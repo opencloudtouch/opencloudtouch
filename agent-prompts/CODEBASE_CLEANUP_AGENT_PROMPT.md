@@ -926,6 +926,146 @@ locust -f tests/performance/locustfile.py
 
 **Format** (max 3 pages, same structure as Frontend report)
 
+### 2.7 GitHub Workflows & CI/CD Analysis
+
+**Objective**: Review and optimize GitHub Actions workflows for reliability, performance, and maintainability.
+
+**Workflow Inventory**:
+```powershell
+# List all workflows
+Get-ChildItem .github/workflows/*.yml | Select-Object Name, Length, LastWriteTime
+
+# Check workflow runs (via GitHub CLI if available)
+gh run list --limit 20
+```
+
+**Review Checklist**:
+
+#### Workflow Configuration
+- [ ] **Naming**: Descriptive names (not "CI", use "Backend Tests + Coverage")
+- [ ] **Triggers**: Appropriate events (push, pull_request, schedule)
+- [ ] **Paths**: Filter to relevant files (`paths: ['backend/**', 'pyproject.toml']`)
+- [ ] **Concurrency**: Cancel in-progress runs on new push
+  ```yaml
+  concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+  ```
+
+#### Job Optimization
+- [ ] **Parallelization**: Independent jobs run in parallel (tests, build, lint)
+- [ ] **Caching**: Dependencies cached (pip cache, npm cache, Docker layers)
+  ```yaml
+  - uses: actions/cache@v4
+    with:
+      path: ~/.cache/pip
+      key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+  ```
+- [ ] **Matrix Strategy**: Test multiple versions (Python 3.11, 3.12, 3.13)
+- [ ] **Fail-fast**: Disabled for comprehensive test results
+  ```yaml
+  strategy:
+    fail-fast: false
+    matrix:
+      python-version: ["3.11", "3.12", "3.13"]
+  ```
+
+#### Security & Secrets
+- [ ] **Secrets**: No hardcoded credentials (use GitHub Secrets)
+- [ ] **Permissions**: Minimal permissions (`permissions: read-all` or specific)
+- [ ] **GITHUB_TOKEN**: Scoped appropriately (contents: read, issues: write)
+- [ ] **Third-party Actions**: Pinned to specific SHA (not `@v4`, use `@abc123`)
+  ```yaml
+  # ❌ BAD: Unpinned version
+  - uses: actions/checkout@v4
+  
+  # ✅ GOOD: Pinned to SHA
+  - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab  # v4.1.1
+  ```
+
+#### Error Handling & Debugging
+- [ ] **Continue-on-error**: Used sparingly (only for optional steps)
+- [ ] **Timeout**: Set for long-running jobs (`timeout-minutes: 30`)
+- [ ] **Retry**: For flaky external dependencies (network calls)
+- [ ] **Debug Logs**: Available via `ACTIONS_STEP_DEBUG` secret
+
+#### Performance Metrics
+- [ ] **Duration**: Jobs <10min (tests), <15min (build+deploy)
+- [ ] **Cache Hit Rate**: >80% for dependencies
+- [ ] **Artifacts**: Minimized size (<100MB for coverage reports)
+- [ ] **Docker Layers**: Optimized (base layers cached)
+
+#### Common Issues to Fix
+
+**Issue: Workflow runs on every push (expensive)**
+```yaml
+# ❌ BAD: Runs on all file changes
+on: [push, pull_request]
+
+# ✅ GOOD: Only run when relevant files change
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'pyproject.toml'
+      - 'requirements*.txt'
+  pull_request:
+    paths:
+      - 'backend/**'
+```
+
+**Issue: Missing dependency caching (slow builds)**
+```yaml
+# ✅ ADD: Cache pip dependencies
+- name: Cache Python dependencies
+  uses: actions/cache@v4
+  with:
+    path: ~/.cache/pip
+    key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+    restore-keys: |
+      ${{ runner.os }}-pip-
+```
+
+**Issue: Secrets warnings (CODECOV_TOKEN not found locally)**
+```yaml
+# ✅ FIX: Make secret optional for forks
+- name: Upload coverage
+  if: ${{ github.event_name == 'push' && secrets.CODECOV_TOKEN != '' }}
+  uses: codecov/codecov-action@v4
+  with:
+    token: ${{ secrets.CODECOV_TOKEN }}
+```
+
+**Issue: No concurrency control (wastes CI minutes)**
+```yaml
+# ✅ ADD: Cancel outdated runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+```
+
+**Issue: Unpinned action versions (security risk)**
+```powershell
+# Check all action versions
+Get-Content .github/workflows/*.yml | Select-String "uses:.*@v[0-9]" | 
+  ForEach-Object { Write-Host "⚠️ Unpinned: $_" }
+
+# ✅ FIX: Pin to SHA (use GitHub's "Use SHA" button in Actions tab)
+```
+
+**Cleanup Actions (AUTONOMOUS)**:
+1. Add path filters to reduce unnecessary runs
+2. Add dependency caching (pip, npm, Docker)
+3. Add concurrency groups
+4. Fix secret handling (make optional for forks)
+5. Add timeouts to prevent hung jobs
+6. Optimize matrix strategy (parallel test runs)
+
+**DO NOT ask before applying these fixes** - they are standard best practices.
+
+**Deliverable**: Updated workflows with optimizations documented in commit message.
+
 ---
 
 ## 🔍 PHASE 3: TEST SUITE ANALYSIS (60 minutes)

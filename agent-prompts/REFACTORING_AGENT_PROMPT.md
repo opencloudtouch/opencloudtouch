@@ -434,6 +434,8 @@ bandit -r src/ -f json -o ../analysis/bandit-security.json
 
 **Deliverable**: `analysis/refactoring-roadmap.md`
 
+**Note**: For infrastructure refactoring (GitHub Workflows, CI/CD optimization, Docker improvements), refer to **CODEBASE_CLEANUP_AGENT_PROMPT.md Section 2.7**.
+
 ---
 
 ## 🔨 PHASE 3: REFACTORING EXECUTION (Test-Driven!)
