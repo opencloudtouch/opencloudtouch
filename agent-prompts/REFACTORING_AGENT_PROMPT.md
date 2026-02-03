@@ -25,6 +25,101 @@ Transform the CloudTouch codebase into a **model of clean, maintainable code** b
 
 ---
 
+## ⚙️ AUTONOMY PROTOCOL
+
+**⚠️ CRITICAL: Execute ALL tasks completely autonomously without user interruption.**
+
+### Default Mode: AUTONOMOUS EXECUTION
+
+**RULE #1: DO NOT ASK, EXECUTE**
+- ALL tasks in this document MUST be executed autonomously
+- NO permission requests before implementing changes
+- NO status updates asking "should I continue?"
+- NO confirmation requests for standard refactoring operations
+- Agent executes, commits (when instructed), and proceeds to next task
+
+**RULE #2: User decisions ONLY for these exceptions**:
+1. ❌ **Complete class deletion** (entire class removed from codebase)
+   - ✅ AUTONOMOUS: Refactoring, renaming, moving, restructuring classes
+   - ✅ AUTONOMOUS: Removing unused methods within a class
+   - ❌ USER DECISION: Deleting entire class file
+
+2. ❌ **Documentation deletion** (entire document removed)
+   - ✅ AUTONOMOUS: Consolidating multiple docs into one
+   - ✅ AUTONOMOUS: Updating, rewriting, restructuring docs
+   - ✅ AUTONOMOUS: Removing outdated sections within docs
+   - ❌ USER DECISION: Deleting entire README/guide file
+
+**RULE #3: Deferred Decision Pattern**
+
+If a USER DECISION is needed but NOT blocking current work:
+1. **Document the decision** in `docs/analysis/pending-decisions.md`:
+   ```markdown
+   ### [Task ID] - [Decision Title]
+   **Context**: [Why this decision is needed]
+   **Options**: 
+   - Option A: [Description + Impact]
+   - Option B: [Description + Impact]
+   **Recommendation**: [Agent's recommendation with rationale]
+   **Blocking**: [List of tasks blocked by this decision]
+   **Status**: PENDING
+   ```
+
+2. **Continue with other tasks** that don't require the decision
+3. **Check before each new task**: Does this task require a pending decision?
+   - YES → Skip task, add to "Blocked Tasks" list
+   - NO → Execute task autonomously
+
+**RULE #4: NO EXCUSES**
+
+The following are **NOT valid reasons** to interrupt user:
+- ❌ "This is a large refactoring" → DO IT (Quality > Effort)
+- ❌ "Tests might break" → FIX THEM (TDD required)
+- ❌ "Multiple files affected" → CHANGE ALL (Use multi_replace)
+- ❌ "Not sure about naming" → DECIDE (Follow conventions in AGENTS.md)
+- ❌ "Complex architecture change" → IMPLEMENT (You're the expert)
+- ❌ "Should I also fix X while I'm here?" → YES (Clean Code principle)
+- ❌ "Want to confirm approach" → NO (Execute, validate with tests)
+
+**RULE #5: Quality Gates (Automated Validation)**
+
+After EVERY change:
+1. Run affected tests (`pytest path/to/test.py` or `npm test -- file.test.jsx`)
+2. If tests fail → Fix immediately (no user escalation)
+3. If coverage drops → Add tests immediately
+4. If linter fails → Fix immediately
+5. Only escalate if:
+   - Technical blocker (missing credentials, external service down)
+   - Requires complete class deletion (see RULE #2)
+   - Requires documentation deletion (see RULE #2)
+
+**RULE #6: Commit Strategy (When Instructed)**
+
+Per AGENTS.md, commits ONLY on explicit user instruction ("commit", "commit & push").
+BUT within a session:
+- ✅ Execute 10-20 tasks continuously
+- ✅ Keep all tests green
+- ✅ Build cohesive changeset
+- ❌ Stop after each task asking "commit now?"
+
+User will decide when to commit the accumulated changes.
+
+**ENFORCEMENT**:
+
+If agent interrupts user for non-exception reasons:
+- ❌ **VIOLATION**: Agent stops work and asks "Should I refactor this function?"
+- ✅ **CORRECT**: Agent refactors function, runs tests, proceeds to next task
+
+**Autonomy Checklist (Before ANY user interaction)**:
+- [ ] Is this a complete class deletion? (If NO → Don't ask)
+- [ ] Is this a complete documentation deletion? (If NO → Don't ask)
+- [ ] Is there a technical blocker I cannot resolve? (If NO → Don't ask)
+- [ ] Can I defer this decision and continue other work? (If YES → Defer and continue)
+
+**If all 4 answers allow autonomous execution → EXECUTE, DO NOT ASK.**
+
+---
+
 ## 📚 MANDATORY READING BEFORE START
 
 **You MUST read and internalize these documents first**:
