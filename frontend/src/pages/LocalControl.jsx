@@ -33,7 +33,6 @@ export default function LocalControl({ devices = [] }) {
     const newVolume = parseInt(e.target.value, 10);
     setVolume(newVolume);
     setMuted(false);
-    console.log(`Set volume to ${newVolume} on ${currentDevice?.name}`);
   };
 
   const handleMuteToggle = () => {
@@ -42,7 +41,6 @@ export default function LocalControl({ devices = [] }) {
 
   const handleSourceChange = (sourceId) => {
     setSelectedSource(sourceId);
-    console.log(`Switch to ${sourceId} on ${currentDevice?.name}`);
   };
 
   const handlePlayPause = () => {

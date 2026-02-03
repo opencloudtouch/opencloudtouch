@@ -40,7 +40,6 @@ export default function MultiRoom({ devices = [] }) {
 
     setZones([...zones, newZone]);
     setSelectedDevices([]);
-    console.log("Created zone:", newZone);
   };
 
   const handleDissolveZone = (zoneId) => {
