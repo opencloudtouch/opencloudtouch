@@ -119,7 +119,7 @@ function App() {
       const errorMessage =
         err instanceof Error ? err.message : "Unbekannter Fehler beim Laden der Geräte";
       setError(errorMessage);
-      console.error("Failed to fetch devices:", err);
+      // Error already captured in state, no logging needed in production
       return [];
     } finally {
       setIsLoading(false);

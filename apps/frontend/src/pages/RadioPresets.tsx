@@ -37,7 +37,7 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
 
   const handlePlayPreset = (presetNumber: number) => {
     // TODO: Phase 3 - Call backend API to play preset
-    console.log(`Play preset ${presetNumber}`);
+    void presetNumber; // Suppress unused warning until backend implemented
   };
 
   const handleClearPreset = (presetNumber: number) => {

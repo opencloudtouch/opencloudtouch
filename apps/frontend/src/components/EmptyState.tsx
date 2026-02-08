@@ -27,22 +27,24 @@ export default function EmptyState({ onRefreshDevices }: EmptyStateProps) {
 
   // Check if manual IPs exist on mount
   useEffect(() => {
-    checkManualIPs();
+    const checkIPs = async () => {
+      try {
+        const response = await fetch("/api/settings/manual-ips");
+        if (response.ok) {
+          const data = await response.json();
+          setHasManualIPs(data.ips && data.ips.length > 0);
+        }
+      } catch {
+        // Silent fail - manual IP check is non-critical
+      }
+    };
+    checkIPs();
   }, []);
 
-  const checkManualIPs = async () => {
-    try {
-      const response = await fetch("/api/settings/manual-ips");
-      if (response.ok) {
-        const data = await response.json();
-        setHasManualIPs(data.ips && data.ips.length > 0);
-      }
-    } catch (err) {
-      console.error("Failed to check manual IPs:", err);
-    }
-  };
+  const handleOpenModal = async () => {
+    setShowModal(true);
 
-  const loadManualIPs = async () => {
+    // Load existing IPs when opening modal
     try {
       const response = await fetch("/api/settings/manual-ips");
       if (response.ok) {
@@ -51,14 +53,9 @@ export default function EmptyState({ onRefreshDevices }: EmptyStateProps) {
           setIpList(data.ips.join("\n"));
         }
       }
-    } catch (err) {
-      console.error("Failed to load manual IPs:", err);
+    } catch {
+      // Silent fail - modal will show empty textarea
     }
-  };
-
-  const handleOpenModal = () => {
-    setShowModal(true);
-    loadManualIPs(); // Load existing IPs when opening modal
   };
 
   const handleSaveIPs = async () => {
@@ -104,9 +101,9 @@ export default function EmptyState({ onRefreshDevices }: EmptyStateProps) {
         setIpList("");
         setSuccess(false);
       }, 1500);
-    } catch (err) {
+    } catch {
       setError("Fehler beim Speichern der IP-Adressen");
-      console.error(err);
+      // Error already shown to user in UI
     } finally {
       setIsSaving(false);
     }
@@ -142,8 +139,8 @@ export default function EmptyState({ onRefreshDevices }: EmptyStateProps) {
           "warning"
         );
       }
-    } catch (err) {
-      console.error("Discovery failed:", err);
+    } catch {
+      // Error shown via toast notification
       showToast("Fehler bei der Gerätesuche. Bitte versuche es erneut.", "error");
     } finally {
       setIsDiscovering(false);
