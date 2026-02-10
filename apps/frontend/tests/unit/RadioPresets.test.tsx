@@ -16,6 +16,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import RadioPresets from '../../src/pages/RadioPresets';
 
+// Mock API module
+vi.mock('../../src/api/presets', () => ({
+  getDevicePresets: vi.fn(),
+  setPreset: vi.fn(),
+  clearPreset: vi.fn(),
+}));
+
+import * as presetsApi from '../../src/api/presets';
+
 // Mock child components
 vi.mock('../../src/components/DeviceSwiper', () => ({
   default: ({ children, onIndexChange }) => (
@@ -75,7 +84,14 @@ vi.mock('../../src/components/RadioSearch', () => ({
       <div data-testid="radio-search-modal">
         <button onClick={onClose} data-testid="search-close">Close</button>
         <button
-          onClick={() => onStationSelect({ name: 'Test Radio', url: 'http://test.com' })}
+          onClick={() => onStationSelect({
+            stationuuid: 'test-uuid',
+            name: 'Test Radio',
+            country: 'Germany',
+            url: 'http://test.com',
+            homepage: 'http://test-homepage.com',
+            favicon: 'http://test-favicon.com/icon.png',
+          })}
           data-testid="select-station"
         >
           Select Test Radio
@@ -103,6 +119,20 @@ describe('RadioPresets Page', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Setup default API mocks
+    vi.mocked(presetsApi.getDevicePresets).mockResolvedValue([]);
+    vi.mocked(presetsApi.setPreset).mockResolvedValue({
+      id: 1,
+      device_id: 'AABBCC123456',
+      preset_number: 1,
+      station_uuid: 'test-uuid',
+      station_name: 'Test Radio',
+      station_url: 'http://test.com',
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+    });
+    vi.mocked(presetsApi.clearPreset).mockResolvedValue({ message: 'Preset cleared' });
   });
 
   describe('Device Display', () => {
@@ -219,6 +249,9 @@ describe('RadioPresets Page', () => {
 
   describe('Preset Clearing', () => {
     it('should clear assigned preset when clicking clear button', async () => {
+      // Mock window.confirm
+      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
       render(<RadioPresets devices={mockDevices} />);
 
       // Assign preset
@@ -237,9 +270,14 @@ describe('RadioPresets Page', () => {
         expect(screen.getByTestId('preset-4-assign')).toBeInTheDocument();
         expect(screen.queryByTestId('preset-4-name')).not.toBeInTheDocument();
       });
+
+      confirmSpy.mockRestore();
     });
 
     it('should maintain other presets when clearing one', async () => {
+      // Mock window.confirm
+      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
       render(<RadioPresets devices={mockDevices} />);
 
       // Assign two presets
@@ -259,6 +297,8 @@ describe('RadioPresets Page', () => {
         expect(screen.getByTestId('preset-1-assign')).toBeInTheDocument();
         expect(screen.getByTestId('preset-2-name')).toBeInTheDocument();
       });
+
+      confirmSpy.mockRestore();
     });
   });
 
@@ -316,6 +356,346 @@ describe('RadioPresets Page', () => {
       // Toggle back
       fireEvent.click(muteButton);
       expect(muteButton).toHaveTextContent('Mute');
+    });
+  });
+
+  describe('API Integration', () => {
+    it('should load presets from API on mount', async () => {
+      const mockPresets = [
+        {
+          id: 1,
+          device_id: 'AABBCC123456',
+          preset_number: 1,
+          station_uuid: 'uuid-1',
+          station_name: 'Radio One',
+          station_url: 'http://radio1.com',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+        },
+        {
+          id: 2,
+          device_id: 'AABBCC123456',
+          preset_number: 3,
+          station_uuid: 'uuid-3',
+          station_name: 'Radio Three',
+          station_url: 'http://radio3.com',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+        },
+      ];
+
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(mockPresets);
+
+      render(<RadioPresets devices={mockDevices} />);
+
+      // Should call API with device_id
+      await waitFor(() => {
+        expect(presetsApi.getDevicePresets).toHaveBeenCalledWith('AABBCC123456');
+      });
+
+      // Should display loaded presets
+      await waitFor(() => {
+        expect(screen.getByTestId('preset-1-name')).toHaveTextContent('Radio One');
+        expect(screen.getByTestId('preset-3-name')).toHaveTextContent('Radio Three');
+      });
+    });
+
+    it('should call setPreset API when assigning station', async () => {
+      render(<RadioPresets devices={mockDevices} />);
+
+      // Open search and select station
+      fireEvent.click(screen.getByTestId('preset-2-assign'));
+      fireEvent.click(screen.getByTestId('select-station'));
+
+      // Should call API with correct parameters
+      await waitFor(() => {
+        expect(presetsApi.setPreset).toHaveBeenCalledWith({
+          device_id: 'AABBCC123456',
+          preset_number: 2,
+          station_uuid: 'test-uuid',
+          station_name: 'Test Radio',
+          station_url: 'http://test.com',
+          station_homepage: 'http://test-homepage.com',
+          station_favicon: 'http://test-favicon.com/icon.png',
+        });
+      });
+    });
+
+    it('should call clearPreset API when clearing preset', async () => {
+      // Setup preset first
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue([
+        {
+          id: 1,
+          device_id: 'AABBCC123456',
+          preset_number: 4,
+          station_uuid: 'uuid-4',
+          station_name: 'Radio Four',
+          station_url: 'http://radio4.com',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+        },
+      ]);
+
+      // Mock window.confirm
+      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+      render(<RadioPresets devices={mockDevices} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('preset-4-name')).toBeInTheDocument();
+      });
+
+      // Clear preset
+      fireEvent.click(screen.getByTestId('preset-4-clear'));
+
+      // Should call API
+      await waitFor(() => {
+        expect(presetsApi.clearPreset).toHaveBeenCalledWith('AABBCC123456', 4);
+      });
+
+      confirmSpy.mockRestore();
+    });
+
+    it('should not clear preset if user cancels confirmation', async () => {
+      // Setup preset first
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue([
+        {
+          id: 1,
+          device_id: 'AABBCC123456',
+          preset_number: 5,
+          station_uuid: 'uuid-5',
+          station_name: 'Radio Five',
+          station_url: 'http://radio5.com',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+        },
+      ]);
+
+      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+      render(<RadioPresets devices={mockDevices} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('preset-5-name')).toBeInTheDocument();
+      });
+
+      // Try to clear preset
+      fireEvent.click(screen.getByTestId('preset-5-clear'));
+
+      // Should NOT call API
+      expect(presetsApi.clearPreset).not.toHaveBeenCalled();
+
+      // Preset should still be there
+      expect(screen.getByTestId('preset-5-name')).toBeInTheDocument();
+
+      confirmSpy.mockRestore();
+    });
+
+    it('should reload presets when device changes', async () => {
+      const device1Presets = [
+        {
+          id: 1,
+          device_id: 'AABBCC123456',
+          preset_number: 1,
+          station_uuid: 'uuid-1',
+          station_name: 'Device 1 Radio',
+          station_url: 'http://radio1.com',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+        },
+      ];
+
+      const device2Presets = [
+        {
+          id: 2,
+          device_id: 'DDEEFF789012',
+          preset_number: 2,
+          station_uuid: 'uuid-2',
+          station_name: 'Device 2 Radio',
+          station_url: 'http://radio2.com',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+        },
+      ];
+
+      vi.mocked(presetsApi.getDevicePresets)
+        .mockResolvedValueOnce(device1Presets)
+        .mockResolvedValueOnce(device2Presets);
+
+      render(<RadioPresets devices={mockDevices} />);
+
+      // Wait for device 1 presets to load
+      await waitFor(() => {
+        expect(screen.getByTestId('preset-1-name')).toHaveTextContent('Device 1 Radio');
+      });
+
+      // Switch to device 2
+      fireEvent.click(screen.getByText('Device 2'));
+
+      // Should load device 2 presets
+      await waitFor(() => {
+        expect(presetsApi.getDevicePresets).toHaveBeenCalledWith('DDEEFF789012');
+        expect(screen.getByTestId('preset-2-name')).toHaveTextContent('Device 2 Radio');
+      });
+
+      // Device 1 preset should be gone
+      expect(screen.queryByText('Device 1 Radio')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should display error when loading presets fails', async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockRejectedValue(
+        new Error('Network error')
+      );
+
+      render(<RadioPresets devices={mockDevices} />);
+
+      // Should display error message
+      await waitFor(() => {
+        expect(screen.getByTestId('error-message')).toHaveTextContent('Network error');
+      });
+    });
+
+    it('should dismiss error message when clicking close', async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockRejectedValue(
+        new Error('Network error')
+      );
+
+      render(<RadioPresets devices={mockDevices} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('error-message')).toBeInTheDocument();
+      });
+
+      // Click close button
+      const closeButton = screen.getByTestId('error-message').querySelector('button');
+      fireEvent.click(closeButton!);
+
+      // Error should be gone
+      await waitFor(() => {
+        expect(screen.queryByTestId('error-message')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should display error when setting preset fails', async () => {
+      vi.mocked(presetsApi.setPreset).mockRejectedValue(
+        new Error('Failed to save preset')
+      );
+
+      render(<RadioPresets devices={mockDevices} />);
+
+      // Try to assign preset
+      fireEvent.click(screen.getByTestId('preset-1-assign'));
+      fireEvent.click(screen.getByTestId('select-station'));
+
+      // Should display error
+      await waitFor(() => {
+        expect(screen.getByTestId('error-message')).toHaveTextContent('Failed to save preset');
+      });
+    });
+
+    it('should display error when clearing preset fails', async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue([
+        {
+          id: 1,
+          device_id: 'AABBCC123456',
+          preset_number: 1,
+          station_uuid: 'uuid-1',
+          station_name: 'Test Radio',
+          station_url: 'http://test.com',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+        },
+      ]);
+
+      vi.mocked(presetsApi.clearPreset).mockRejectedValue(
+        new Error('Failed to clear preset')
+      );
+
+      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+      render(<RadioPresets devices={mockDevices} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('preset-1-name')).toBeInTheDocument();
+      });
+
+      // Try to clear
+      fireEvent.click(screen.getByTestId('preset-1-clear'));
+
+      // Should display error
+      await waitFor(() => {
+        expect(screen.getByTestId('error-message')).toHaveTextContent('Failed to clear preset');
+      });
+
+      confirmSpy.mockRestore();
+    });
+  });
+
+  describe('Loading States', () => {
+    it('should show loading indicator while loading presets', async () => {
+      let resolvePresets: (value: any) => void;
+      const presetsPromise = new Promise((resolve) => {
+        resolvePresets = resolve;
+      });
+
+      vi.mocked(presetsApi.getDevicePresets).mockReturnValue(presetsPromise as any);
+
+      render(<RadioPresets devices={mockDevices} />);
+
+      // Should show loading
+      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+
+      // Resolve presets
+      resolvePresets!([]);
+
+      // Loading should disappear
+      await waitFor(() => {
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should show loading indicator while saving preset', async () => {
+      let resolveSetPreset: (value: any) => void;
+      const setPresetPromise = new Promise((resolve) => {
+        resolveSetPreset = resolve;
+      });
+
+      vi.mocked(presetsApi.setPreset).mockReturnValue(setPresetPromise as any);
+
+      render(<RadioPresets devices={mockDevices} />);
+
+      // Wait for initial load to complete
+      await waitFor(() => {
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      });
+
+      // Start assigning preset
+      fireEvent.click(screen.getByTestId('preset-1-assign'));
+      fireEvent.click(screen.getByTestId('select-station'));
+
+      // Should show loading
+      await waitFor(() => {
+        expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+      });
+
+      // Resolve save
+      resolveSetPreset!({
+        id: 1,
+        device_id: 'AABBCC123456',
+        preset_number: 1,
+        station_uuid: 'test-uuid',
+        station_name: 'Test Radio',
+        station_url: 'http://test.com',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      });
+
+      // Loading should disappear
+      await waitFor(() => {
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      });
     });
   });
 });

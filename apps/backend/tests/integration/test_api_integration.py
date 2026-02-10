@@ -374,3 +374,106 @@ async def test_get_device_by_id_not_found():
         assert "not found" in data["detail"].lower()
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_sync_uses_manual_ips_from_database():
+    """
+    Regression test: /sync must use manual IPs from database, not just ENV vars.
+
+    Bug: /sync only used config.manual_device_ips_list (ENV vars),
+         ignoring manual IPs stored in database via POST /api/settings/manual-ips.
+    Fixed: 2025-01-XX - /sync now merges DB + ENV IPs before discovery.
+    """
+    # Manual IP configured in database (via API)
+    db_manual_ip = "192.168.178.78"
+
+    # Mock settings repo to return DB IP
+    mock_settings = AsyncMock(spec=SettingsRepository)
+    mock_settings.get_manual_ips = AsyncMock(return_value=[db_manual_ip])
+    set_settings_repo(mock_settings)
+
+    # Mock config with EMPTY ENV vars
+    with patch("opencloudtouch.devices.api.routes.get_config") as mock_get_cfg:
+        mock_cfg = AsyncMock()
+        mock_cfg.discovery_enabled = True
+        mock_cfg.discovery_timeout = 5
+        mock_cfg.manual_device_ips_list = []  # ← No ENV IPs!
+        mock_get_cfg.return_value = mock_cfg
+
+        # Mock device repository
+        mock_repo = AsyncMock(spec=DeviceRepository)
+        mock_repo.upsert = AsyncMock()
+
+        async def get_mock_repo():
+            return mock_repo
+
+        # Mock discovery and client
+        device_info = DeviceInfo(
+            device_id="TEST123",
+            name="Test Device",
+            type="SoundTouch 10",
+            mac_address="AA:BB:CC:DD:EE:FF",
+            ip_address=db_manual_ip,
+            firmware_version="1.0.0",
+        )
+
+        try:
+            with patch(
+                "opencloudtouch.devices.services.sync_service.get_discovery_adapter"
+            ) as mock_get_disco, patch(
+                "opencloudtouch.devices.services.sync_service.get_device_client"
+            ) as mock_get_client, patch(
+                "opencloudtouch.devices.services.sync_service.ManualDiscovery"
+            ) as mock_manual_disco:
+
+                # SSDP discovery returns empty
+                mock_ssdp_instance = AsyncMock()
+                mock_ssdp_instance.discover.return_value = []
+                mock_get_disco.return_value = mock_ssdp_instance
+
+                # Manual discovery returns device from DB IP
+                mock_manual_instance = AsyncMock()
+                mock_manual_instance.discover.return_value = [
+                    DiscoveredDevice(
+                        ip=db_manual_ip,
+                        port=8090,
+                        name="Test Device",
+                        model="SoundTouch 10",
+                    )
+                ]
+                mock_manual_disco.return_value = mock_manual_instance
+
+                # Device client returns info
+                mock_client_instance = AsyncMock()
+                mock_client_instance.get_info.return_value = device_info
+                mock_get_client.return_value = mock_client_instance
+
+                # Override repo dependency
+                from opencloudtouch.devices.api.routes import get_device_repo
+
+                app.dependency_overrides[get_device_repo] = get_mock_repo
+
+                transport = ASGITransport(app=app)
+                async with AsyncClient(
+                    transport=transport, base_url="http://test"
+                ) as client:
+                    response = await client.post("/api/devices/sync")
+
+                assert response.status_code == 200
+                data = response.json()
+
+                # CRITICAL: Must discover 1 device (from DB manual IP)
+                assert (
+                    data["discovered"] == 1
+                ), f"Expected 1 device from DB manual IP, got {data['discovered']}"
+                assert data["synced"] == 1
+
+                # Verify ManualDiscovery was called with DB IP
+                mock_manual_disco.assert_called_once_with([db_manual_ip])
+
+                # Verify device was persisted
+                mock_repo.upsert.assert_called_once()
+
+        finally:
+            app.dependency_overrides.clear()

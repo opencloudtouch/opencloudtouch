@@ -83,6 +83,17 @@ class SSDPDiscovery:
         # Create UDP socket for multicast
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        # Join multicast group (CRITICAL for receiving responses!)
+        # Binding to 0.0.0.0 required for SSDP multicast membership
+        mreq = socket.inet_aton(self.SSDP_MULTICAST_ADDR) + socket.inet_aton(
+            "0.0.0.0"
+        )  # nosec B104
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+
+        # Bind to SSDP port to receive responses
+        sock.bind(("", self.SSDP_PORT))
+
         sock.settimeout(self.timeout)
 
         # M-SEARCH message
@@ -159,7 +170,12 @@ class SSDPDiscovery:
         """
         devices = {}
 
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        # Use higher connection limit to parallelize more aggressively
+        # Reduce timeout from 5s to 2s (non-Bose devices don't need to be slow)
+        async with httpx.AsyncClient(
+            timeout=2.0,
+            limits=httpx.Limits(max_connections=200, max_keepalive_connections=50),
+        ) as client:
             tasks = [self._fetch_and_parse_device(client, loc) for loc in locations]
             results = await asyncio.gather(*tasks, return_exceptions=True)
 

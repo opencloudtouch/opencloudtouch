@@ -140,11 +140,26 @@ async def sync_devices(
     async with _discovery_lock:
         cfg = get_config()
 
+        # Merge manual IPs from database and environment variable
+        db_ips = []
+        try:
+            db_ips = await settings_repo.get_manual_ips()
+        except Exception as e:
+            logger.error(f"Failed to get manual IPs from database: {e}")
+
+        env_ips = cfg.manual_device_ips_list or []
+        all_manual_ips = list(set(db_ips + env_ips))
+
+        if all_manual_ips:
+            logger.info(
+                f"Using manual IPs: {all_manual_ips} (DB: {len(db_ips)}, ENV: {len(env_ips)})"
+            )
+
         # Use service layer for business logic
         service = DeviceSyncService(
             repository=repo,
             discovery_timeout=cfg.discovery_timeout,
-            manual_ips=cfg.manual_device_ips_list,
+            manual_ips=all_manual_ips,
             discovery_enabled=cfg.discovery_enabled,
         )
 

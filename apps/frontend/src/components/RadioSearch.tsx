@@ -5,6 +5,9 @@ export interface RadioStation {
   stationuuid: string;
   name: string;
   country: string;
+  url?: string;
+  homepage?: string;
+  favicon?: string;
   // Add other station properties as needed
 }
 

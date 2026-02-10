@@ -14,9 +14,18 @@ from fastapi.staticfiles import StaticFiles
 
 from opencloudtouch.api import devices_router
 from opencloudtouch.core.config import get_config, init_config
-from opencloudtouch.core.dependencies import set_device_repo, set_settings_repo
+from opencloudtouch.core.dependencies import (
+    set_device_repo,
+    set_preset_repo,
+    set_preset_service,
+    set_settings_repo,
+)
 from opencloudtouch.core.logging import setup_logging
 from opencloudtouch.db import DeviceRepository
+from opencloudtouch.presets.repository import PresetRepository
+from opencloudtouch.presets.service import PresetService
+from opencloudtouch.presets.api.routes import router as presets_router
+from opencloudtouch.presets.api.station_routes import router as stations_router
 from opencloudtouch.radio.api.routes import router as radio_router
 from opencloudtouch.settings.repository import SettingsRepository
 from opencloudtouch.settings.routes import router as settings_router
@@ -57,6 +66,17 @@ async def lifespan(app: FastAPI):
     set_settings_repo(settings_repo)  # Register via dependency injection
     logger.info("Settings repository initialized")
 
+    # Initialize preset repository
+    preset_repo = PresetRepository(cfg.effective_db_path)
+    await preset_repo.initialize()
+    set_preset_repo(preset_repo)  # Register via dependency injection
+    logger.info("Preset repository initialized")
+
+    # Initialize preset service
+    preset_service = PresetService(preset_repo)
+    set_preset_service(preset_service)  # Register via dependency injection
+    logger.info("Preset service initialized")
+
     yield
 
     # Shutdown
@@ -65,6 +85,9 @@ async def lifespan(app: FastAPI):
 
     await settings_repo.close()
     logger.info("Settings repository closed")
+
+    await preset_repo.close()
+    logger.info("Preset repository closed")
 
     logger.info("OpenCloudTouch shutting down")
 
@@ -81,6 +104,7 @@ app = FastAPI(
 )
 
 # CORS middleware for Web UI
+# CORS middleware for Web UI
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # In production: configure properly
@@ -91,8 +115,10 @@ app.add_middleware(
 
 # Include API routers
 app.include_router(devices_router)
+app.include_router(presets_router)
 app.include_router(radio_router)
 app.include_router(settings_router)
+app.include_router(stations_router)  # Station descriptors for SoundTouch devices
 
 
 # Health endpoint
