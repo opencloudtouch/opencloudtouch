@@ -5,10 +5,11 @@ Uses aiosqlite for async SQLite operations
 
 import logging
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any, List, Optional
 
 import aiosqlite
+
+from opencloudtouch.core.repository import BaseRepository
 
 logger = logging.getLogger(__name__)
 
@@ -72,20 +73,11 @@ class Device:
         }
 
 
-class DeviceRepository:
+class DeviceRepository(BaseRepository):
     """Repository for device persistence."""
 
-    def __init__(self, db_path: str):
-        self.db_path = Path(db_path)
-        self._db: Optional[aiosqlite.Connection] = None
-
-    async def initialize(self) -> None:
-        """Initialize database and create tables."""
-        # Ensure directory exists
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-
-        self._db = await aiosqlite.connect(str(self.db_path))
-
+    async def _create_schema(self) -> None:
+        """Create devices table and indexes."""
         await self._db.execute("""
             CREATE TABLE IF NOT EXISTS devices (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -121,13 +113,6 @@ class DeviceRepository:
         """)
 
         await self._db.commit()
-        logger.info(f"Database initialized: {self.db_path}")
-
-    async def close(self) -> None:
-        """Close database connection."""
-        if self._db:
-            await self._db.close()
-            self._db = None
 
     async def upsert(self, device: Device) -> Device:
         """
@@ -139,10 +124,9 @@ class DeviceRepository:
         Returns:
             Device with updated id
         """
-        if not self._db:
-            raise RuntimeError("Database not initialized")
+        db = self._ensure_initialized()
 
-        cursor = await self._db.execute(
+        cursor = await db.execute(
             """
             INSERT INTO devices (device_id, ip, name, model, mac_address, firmware_version, schema_version, last_seen)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -171,17 +155,16 @@ class DeviceRepository:
         row = await cursor.fetchone()
         device.id = row[0] if row else None
 
-        await self._db.commit()
+        await db.commit()
         logger.debug(f"Upserted device: {device.name} ({device.device_id})")
 
         return device
 
     async def get_all(self) -> List[Device]:
         """Get all devices."""
-        if not self._db:
-            raise RuntimeError("Database not initialized")
+        db = self._ensure_initialized()
 
-        cursor = await self._db.execute("""
+        cursor = await db.execute("""
             SELECT id, device_id, ip, name, model, mac_address, firmware_version, schema_version, last_seen
             FROM devices
             ORDER BY last_seen DESC
@@ -208,10 +191,9 @@ class DeviceRepository:
 
     async def get_by_device_id(self, device_id: str) -> Optional[Device]:
         """Get device by device_id."""
-        if not self._db:
-            raise RuntimeError("Database not initialized")
+        db = self._ensure_initialized()
 
-        cursor = await self._db.execute(
+        cursor = await db.execute(
             """
             SELECT id, device_id, ip, name, model, mac_address, firmware_version, schema_version, last_seen
             FROM devices
@@ -239,11 +221,10 @@ class DeviceRepository:
 
     async def delete_all(self) -> int:
         """Delete all devices from database. Returns number of deleted rows."""
-        if not self._db:
-            raise RuntimeError("Database not initialized")
+        db = self._ensure_initialized()
 
-        cursor = await self._db.execute("DELETE FROM devices")
-        await self._db.commit()
+        cursor = await db.execute("DELETE FROM devices")
+        await db.commit()
 
         deleted_count = cursor.rowcount
         logger.debug(f"Deleted all devices from database: {deleted_count} rows")

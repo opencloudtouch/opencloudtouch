@@ -2,34 +2,19 @@
 
 import logging
 from datetime import UTC, datetime
-from pathlib import Path
-from typing import Optional
 
 import aiosqlite
+
+from opencloudtouch.core.repository import BaseRepository
 
 logger = logging.getLogger(__name__)
 
 
-class SettingsRepository:
+class SettingsRepository(BaseRepository):
     """Repository for managing settings in SQLite database."""
 
-    def __init__(self, db_path: Path):
-        """
-        Initialize settings repository.
-
-        Args:
-            db_path: Path to SQLite database file
-        """
-        self.db_path = db_path
-        self._db: Optional[aiosqlite.Connection] = None
-
-    async def initialize(self) -> None:
-        """Initialize database and create tables."""
-        # Ensure directory exists
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-
-        self._db = await aiosqlite.connect(str(self.db_path))
-
+    async def _create_schema(self) -> None:
+        """Create settings tables and indexes."""
         await self._db.execute("""
             CREATE TABLE IF NOT EXISTS manual_device_ips (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,13 +28,6 @@ class SettingsRepository:
         """)
 
         await self._db.commit()
-        logger.info("Settings database initialized")
-
-    async def close(self) -> None:
-        """Close database connection."""
-        if self._db:
-            await self._db.close()
-            self._db = None
 
     async def add_manual_ip(self, ip: str) -> None:
         """
@@ -61,8 +39,7 @@ class SettingsRepository:
         Raises:
             ValueError: If IP address is invalid or already exists
         """
-        if not self._db:
-            raise RuntimeError("Database not initialized")
+        db = self._ensure_initialized()
 
         # Basic IP validation
         parts = ip.split(".")
@@ -77,14 +54,14 @@ class SettingsRepository:
             raise ValueError(f"Invalid IP address: {ip}")
 
         try:
-            await self._db.execute(
+            await db.execute(
                 """
                 INSERT INTO manual_device_ips (ip_address, created_at)
                 VALUES (?, ?)
             """,
                 (ip, datetime.now(UTC).isoformat()),
             )
-            await self._db.commit()
+            await db.commit()
             logger.info(f"Added manual IP: {ip}")
         except aiosqlite.IntegrityError as e:
             raise ValueError(f"IP address already exists: {ip}") from e
@@ -96,16 +73,15 @@ class SettingsRepository:
         Args:
             ip: IP address to remove
         """
-        if not self._db:
-            raise RuntimeError("Database not initialized")
+        db = self._ensure_initialized()
 
-        cursor = await self._db.execute(
+        cursor = await db.execute(
             """
             DELETE FROM manual_device_ips WHERE ip_address = ?
         """,
             (ip,),
         )
-        await self._db.commit()
+        await db.commit()
 
         if cursor.rowcount == 0:
             logger.warning(f"Manual IP not found for removal: {ip}")
@@ -119,19 +95,18 @@ class SettingsRepository:
         Args:
             ips: List of IP addresses to set
         """
-        if not self._db:
-            raise RuntimeError("Database not initialized")
+        db = self._ensure_initialized()
 
         # Clear all existing IPs
-        await self._db.execute("DELETE FROM manual_device_ips")
+        await db.execute("DELETE FROM manual_device_ips")
 
         # Add new IPs
         for ip in ips:
-            await self._db.execute(
+            await db.execute(
                 "INSERT INTO manual_device_ips (ip_address) VALUES (?)", (ip,)
             )
 
-        await self._db.commit()
+        await db.commit()
         logger.info(f"Set {len(ips)} manual IPs")
 
     async def get_manual_ips(self) -> list[str]:
@@ -141,10 +116,9 @@ class SettingsRepository:
         Returns:
             List of IP addresses
         """
-        if not self._db:
-            raise RuntimeError("Database not initialized")
+        db = self._ensure_initialized()
 
-        cursor = await self._db.execute("""
+        cursor = await db.execute("""
             SELECT ip_address FROM manual_device_ips ORDER BY created_at ASC
         """)
         rows = await cursor.fetchall()

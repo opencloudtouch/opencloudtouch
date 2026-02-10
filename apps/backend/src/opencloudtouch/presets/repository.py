@@ -2,36 +2,20 @@
 
 import logging
 from datetime import datetime
-from pathlib import Path
 from typing import List, Optional
 
-import aiosqlite
 
+from opencloudtouch.core.repository import BaseRepository
 from opencloudtouch.presets.models import Preset
 
 logger = logging.getLogger(__name__)
 
 
-class PresetRepository:
+class PresetRepository(BaseRepository):
     """Repository for preset persistence using SQLite."""
 
-    def __init__(self, db_path: str):
-        """
-        Initialize PresetRepository.
-
-        Args:
-            db_path: Path to SQLite database file
-        """
-        self.db_path = Path(db_path)
-        self._db: Optional[aiosqlite.Connection] = None
-
-    async def initialize(self) -> None:
-        """Initialize database and create presets table."""
-        # Ensure directory exists
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-
-        self._db = await aiosqlite.connect(str(self.db_path))
-
+    async def _create_schema(self) -> None:
+        """Create presets table and indexes."""
         await self._db.execute("""
             CREATE TABLE IF NOT EXISTS presets (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,13 +42,6 @@ class PresetRepository:
         """)
 
         await self._db.commit()
-        logger.info(f"Preset database initialized: {self.db_path}")
-
-    async def close(self) -> None:
-        """Close database connection."""
-        if self._db:
-            await self._db.close()
-            self._db = None
 
     async def set_preset(self, preset: Preset) -> Preset:
         """
@@ -79,10 +56,9 @@ class PresetRepository:
         Raises:
             RuntimeError: If database not initialized
         """
-        if not self._db:
-            raise RuntimeError("Database not initialized")
+        db = self._ensure_initialized()
 
-        cursor = await self._db.execute(
+        cursor = await db.execute(
             """
             INSERT INTO presets (
                 device_id, preset_number, station_uuid, station_name, station_url,
@@ -114,7 +90,7 @@ class PresetRepository:
         row = await cursor.fetchone()
         preset.id = row[0] if row else None
 
-        await self._db.commit()
+        await db.commit()
         logger.debug(
             f"Set preset {preset.preset_number} for device {preset.device_id}: "
             f"{preset.station_name}"
@@ -136,10 +112,9 @@ class PresetRepository:
         Raises:
             RuntimeError: If database not initialized
         """
-        if not self._db:
-            raise RuntimeError("Database not initialized")
+        db = self._ensure_initialized()
 
-        cursor = await self._db.execute(
+        cursor = await db.execute(
             """
             SELECT id, device_id, preset_number, station_uuid, station_name,
                    station_url, station_homepage, station_favicon,
@@ -181,10 +156,9 @@ class PresetRepository:
         Raises:
             RuntimeError: If database not initialized
         """
-        if not self._db:
-            raise RuntimeError("Database not initialized")
+        db = self._ensure_initialized()
 
-        cursor = await self._db.execute(
+        cursor = await db.execute(
             """
             SELECT id, device_id, preset_number, station_uuid, station_name,
                    station_url, station_homepage, station_favicon,
@@ -230,15 +204,14 @@ class PresetRepository:
         Raises:
             RuntimeError: If database not initialized
         """
-        if not self._db:
-            raise RuntimeError("Database not initialized")
+        db = self._ensure_initialized()
 
-        cursor = await self._db.execute(
+        cursor = await db.execute(
             "DELETE FROM presets WHERE device_id = ? AND preset_number = ?",
             (device_id, preset_number),
         )
 
-        await self._db.commit()
+        await db.commit()
 
         deleted_count = cursor.rowcount
         if deleted_count > 0:
@@ -259,15 +232,14 @@ class PresetRepository:
         Raises:
             RuntimeError: If database not initialized
         """
-        if not self._db:
-            raise RuntimeError("Database not initialized")
+        db = self._ensure_initialized()
 
-        cursor = await self._db.execute(
+        cursor = await db.execute(
             "DELETE FROM presets WHERE device_id = ?",
             (device_id,),
         )
 
-        await self._db.commit()
+        await db.commit()
 
         deleted_count = cursor.rowcount
         if deleted_count > 0:
