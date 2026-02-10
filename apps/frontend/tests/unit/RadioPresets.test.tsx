@@ -24,6 +24,7 @@ vi.mock('../../src/api/presets', () => ({
 }));
 
 import * as presetsApi from '../../src/api/presets';
+import type { PresetResponse } from '../../src/api/presets';
 
 // Mock child components
 vi.mock('../../src/components/DeviceSwiper', () => ({
@@ -635,12 +636,12 @@ describe('RadioPresets Page', () => {
 
   describe('Loading States', () => {
     it('should show loading indicator while loading presets', async () => {
-      let resolvePresets: (value: any) => void;
-      const presetsPromise = new Promise((resolve) => {
+      let resolvePresets: (value: PresetResponse[]) => void;
+      const presetsPromise = new Promise<PresetResponse[]>((resolve) => {
         resolvePresets = resolve;
       });
 
-      vi.mocked(presetsApi.getDevicePresets).mockReturnValue(presetsPromise as any);
+      vi.mocked(presetsApi.getDevicePresets).mockReturnValue(presetsPromise);
 
       render(<RadioPresets devices={mockDevices} />);
 
@@ -657,12 +658,12 @@ describe('RadioPresets Page', () => {
     });
 
     it('should show loading indicator while saving preset', async () => {
-      let resolveSetPreset: (value: any) => void;
-      const setPresetPromise = new Promise((resolve) => {
+      let resolveSetPreset: (value: PresetResponse) => void;
+      const setPresetPromise = new Promise<PresetResponse>((resolve) => {
         resolveSetPreset = resolve;
       });
 
-      vi.mocked(presetsApi.setPreset).mockReturnValue(setPresetPromise as any);
+      vi.mocked(presetsApi.setPreset).mockReturnValue(setPresetPromise);
 
       render(<RadioPresets devices={mockDevices} />);
 
