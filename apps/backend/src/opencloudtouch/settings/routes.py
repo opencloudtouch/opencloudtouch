@@ -6,8 +6,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
-from opencloudtouch.core.dependencies import get_settings_repo
-from opencloudtouch.settings.repository import SettingsRepository
+from opencloudtouch.core.dependencies import get_settings_service
+from opencloudtouch.settings.service import SettingsService
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ class MessageResponse(BaseModel):
 
 @router.get("/manual-ips", response_model=ManualIPsResponse)
 async def get_manual_ips(
-    repo: Annotated[SettingsRepository, Depends(get_settings_repo)],
+    service: Annotated[SettingsService, Depends(get_settings_service)],
 ) -> ManualIPsResponse:
     """
     Get all manual device IP addresses.
@@ -43,7 +43,7 @@ async def get_manual_ips(
     Returns:
         List of manually configured IP addresses
     """
-    ips = await repo.get_manual_ips()
+    ips = await service.get_manual_ips()
     return ManualIPsResponse(ips=ips)
 
 
@@ -54,7 +54,7 @@ async def get_manual_ips(
 )
 async def set_manual_ips(
     request: SetManualIPsRequest,
-    repo: Annotated[SettingsRepository, Depends(get_settings_repo)],
+    service: Annotated[SettingsService, Depends(get_settings_service)],
 ) -> ManualIPsResponse:
     """
     Replace all manual device IP addresses with new list.
@@ -65,36 +65,20 @@ async def set_manual_ips(
     Returns:
         Updated list of manual IP addresses
     """
-    # Clear existing IPs
-    existing_ips = await repo.get_manual_ips()
-    for ip in existing_ips:
-        await repo.remove_manual_ip(ip)
-
-    # Add new IPs
-    for ip in request.ips:
-        try:
-            await repo.add_manual_ip(ip)
-        except ValueError as e:
-            # If one IP fails, rollback by clearing all
-            for added_ip in request.ips:
-                try:
-                    await repo.remove_manual_ip(added_ip)
-                except Exception as rollback_error:
-                    logger.warning(
-                        f"Failed to rollback added IP {added_ip}: {rollback_error}"
-                    )
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid IP address: {ip}",
-            ) from e
-
-    return ManualIPsResponse(ips=request.ips)
+    try:
+        result_ips = await service.set_manual_ips(request.ips)
+        return ManualIPsResponse(ips=result_ips)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
 
 
 @router.delete("/manual-ips/{ip}", response_model=MessageResponse)
 async def delete_manual_ip(
     ip: str,
-    repo: Annotated[SettingsRepository, Depends(get_settings_repo)],
+    service: Annotated[SettingsService, Depends(get_settings_service)],
 ) -> MessageResponse:
     """
     Remove a manual device IP address.
@@ -105,5 +89,5 @@ async def delete_manual_ip(
     Returns:
         Success message with removed IP
     """
-    await repo.remove_manual_ip(ip)
+    await service.remove_manual_ip(ip)
     return MessageResponse(message="IP removed successfully", ip=ip)

@@ -164,7 +164,9 @@ async def test_sync_devices_success(mock_config, mock_settings_repo):
             mock_get_client.return_value = mock_client_instance
 
             # Override dependency
-            from opencloudtouch.devices.api.routes import get_device_repo
+            from opencloudtouch.core.dependencies import (
+                get_device_service as get_device_repo,
+            )
 
             app.dependency_overrides[get_device_repo] = get_mock_repo
 
@@ -225,7 +227,9 @@ async def test_sync_devices_partial_failure(mock_config, mock_settings_repo):
             ]
             mock_get_client.return_value = mock_client_instance
 
-            from opencloudtouch.devices.api.routes import get_device_repo
+            from opencloudtouch.core.dependencies import (
+                get_device_service as get_device_repo,
+            )
 
             app.dependency_overrides[get_device_repo] = get_mock_repo
 
@@ -247,7 +251,7 @@ async def test_sync_devices_partial_failure(mock_config, mock_settings_repo):
 @pytest.mark.asyncio
 async def test_get_devices_empty():
     """Test GET /api/devices with no devices in DB."""
-    from opencloudtouch.devices.api.routes import get_device_repo
+    from opencloudtouch.core.dependencies import get_device_service as get_device_repo
 
     mock_repo = AsyncMock(spec=DeviceRepository)
     mock_repo.get_all.return_value = []
@@ -273,7 +277,7 @@ async def test_get_devices_empty():
 @pytest.mark.asyncio
 async def test_get_devices_with_data():
     """Test GET /api/devices with devices in DB."""
-    from opencloudtouch.devices.api.routes import get_device_repo
+    from opencloudtouch.core.dependencies import get_device_service as get_device_repo
 
     devices = [
         Device(
@@ -319,7 +323,7 @@ async def test_get_devices_with_data():
 @pytest.mark.asyncio
 async def test_get_device_by_id_success():
     """Test GET /api/devices/{device_id} with existing device."""
-    from opencloudtouch.devices.api.routes import get_device_repo
+    from opencloudtouch.core.dependencies import get_device_service as get_device_repo
 
     device = Device(
         device_id="DEVICE1",
@@ -354,7 +358,7 @@ async def test_get_device_by_id_success():
 @pytest.mark.asyncio
 async def test_get_device_by_id_not_found():
     """Test GET /api/devices/{device_id} with non-existent device."""
-    from opencloudtouch.devices.api.routes import get_device_repo
+    from opencloudtouch.core.dependencies import get_device_service as get_device_repo
 
     mock_repo = AsyncMock(spec=DeviceRepository)
     mock_repo.get_by_device_id.return_value = None
@@ -450,7 +454,9 @@ async def test_sync_uses_manual_ips_from_database():
                 mock_get_client.return_value = mock_client_instance
 
                 # Override repo dependency
-                from opencloudtouch.devices.api.routes import get_device_repo
+                from opencloudtouch.core.dependencies import (
+                    get_device_service as get_device_repo,
+                )
 
                 app.dependency_overrides[get_device_repo] = get_mock_repo
 

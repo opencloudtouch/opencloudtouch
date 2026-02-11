@@ -16,12 +16,17 @@ from opencloudtouch.api import devices_router
 from opencloudtouch.core.config import get_config, init_config
 from opencloudtouch.core.dependencies import (
     set_device_repo,
+    set_device_service,
     set_preset_repo,
     set_preset_service,
     set_settings_repo,
+    set_settings_service,
 )
 from opencloudtouch.core.logging import setup_logging
 from opencloudtouch.db import DeviceRepository
+from opencloudtouch.devices.adapter import BoseDeviceDiscoveryAdapter
+from opencloudtouch.devices.service import DeviceService
+from opencloudtouch.devices.services.sync_service import DeviceSyncService
 from opencloudtouch.presets.repository import PresetRepository
 from opencloudtouch.presets.service import PresetService
 from opencloudtouch.presets.api.routes import router as presets_router
@@ -29,6 +34,7 @@ from opencloudtouch.presets.api.station_routes import router as stations_router
 from opencloudtouch.radio.api.routes import router as radio_router
 from opencloudtouch.settings.repository import SettingsRepository
 from opencloudtouch.settings.routes import router as settings_router
+from opencloudtouch.settings.service import SettingsService
 
 
 @asynccontextmanager
@@ -76,6 +82,27 @@ async def lifespan(app: FastAPI):
     preset_service = PresetService(preset_repo)
     set_preset_service(preset_service)  # Register via dependency injection
     logger.info("Preset service initialized")
+
+    # Initialize device service
+    discovery_adapter = BoseDeviceDiscoveryAdapter()
+    sync_service = DeviceSyncService(
+        repository=device_repo,
+        discovery_timeout=cfg.discovery_timeout,
+        manual_ips=cfg.manual_device_ips_list or [],
+        discovery_enabled=cfg.discovery_enabled,
+    )
+    device_service = DeviceService(
+        repository=device_repo,
+        sync_service=sync_service,
+        discovery_adapter=discovery_adapter,
+    )
+    set_device_service(device_service)  # Register via dependency injection
+    logger.info("Device service initialized")
+
+    # Initialize settings service
+    settings_service = SettingsService(settings_repo)
+    set_settings_service(settings_service)  # Register via dependency injection
+    logger.info("Settings service initialized")
 
     yield
 

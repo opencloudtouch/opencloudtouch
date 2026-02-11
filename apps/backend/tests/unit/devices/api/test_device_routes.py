@@ -14,29 +14,31 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from opencloudtouch.devices.api.routes import get_device_repo
-from opencloudtouch.devices.repository import Device, DeviceRepository
+from opencloudtouch.core.dependencies import get_device_service, get_settings_service
+from opencloudtouch.devices.repository import Device
 from opencloudtouch.main import app
-from opencloudtouch.settings.repository import SettingsRepository
-from opencloudtouch.settings.routes import get_settings_repo
 
 
 @pytest.fixture
-def mock_repo():
-    """Mock device repository."""
-    repo = AsyncMock(spec=DeviceRepository)
-    return repo
+def mock_device_service():
+    """Mock device service."""
+    service = AsyncMock()
+    return service
 
 
 @pytest.fixture
-def client(mock_repo):
+def mock_settings_service():
+    """Mock settings service."""
+    service = AsyncMock()
+    service.get_manual_ips = AsyncMock(return_value=[])
+    return service
+
+
+@pytest.fixture
+def client(mock_device_service, mock_settings_service):
     """FastAPI test client with dependency override."""
-    # Create settings repo mock inside fixture
-    mock_settings = AsyncMock(spec=SettingsRepository)
-    mock_settings.get_manual_ips = AsyncMock(return_value=[])
-
-    app.dependency_overrides[get_device_repo] = lambda: mock_repo
-    app.dependency_overrides[get_settings_repo] = lambda: mock_settings
+    app.dependency_overrides[get_device_service] = lambda: mock_device_service
+    app.dependency_overrides[get_settings_service] = lambda: mock_settings_service
     yield TestClient(app)
     app.dependency_overrides.clear()
 
@@ -69,9 +71,9 @@ def sample_devices():
 class TestDeviceListEndpoint:
     """Tests for GET /api/devices endpoint."""
 
-    def test_get_devices_empty(self, client, mock_repo):
+    def test_get_devices_empty(self, client, mock_device_service):
         """Test GET /api/devices with empty database."""
-        mock_repo.get_all = AsyncMock(return_value=[])
+        mock_device_service.get_all = AsyncMock(return_value=[])
 
         response = client.get("/api/devices")
 
@@ -80,9 +82,9 @@ class TestDeviceListEndpoint:
         assert data["count"] == 0
         assert data["devices"] == []
 
-    def test_get_devices_with_data(self, client, mock_repo, sample_devices):
+    def test_get_devices_with_data(self, client, mock_device_service, sample_devices):
         """Test GET /api/devices with devices in database."""
-        mock_repo.get_all = AsyncMock(return_value=sample_devices)
+        mock_device_service.get_all = AsyncMock(return_value=sample_devices)
 
         response = client.get("/api/devices")
 
@@ -93,9 +95,11 @@ class TestDeviceListEndpoint:
         assert data["devices"][0]["device_id"] == "12345ABC"
         assert data["devices"][1]["device_id"] == "67890DEF"
 
-    def test_get_devices_includes_all_fields(self, client, mock_repo, sample_devices):
+    def test_get_devices_includes_all_fields(
+        self, client, mock_device_service, sample_devices
+    ):
         """Test that response includes all device fields."""
-        mock_repo.get_all = AsyncMock(return_value=[sample_devices[0]])
+        mock_device_service.get_all = AsyncMock(return_value=[sample_devices[0]])
 
         response = client.get("/api/devices")
 
@@ -112,9 +116,11 @@ class TestDeviceListEndpoint:
 class TestDeviceDetailEndpoint:
     """Tests for GET /api/devices/{device_id} endpoint."""
 
-    def test_get_device_by_id_success(self, client, mock_repo, sample_devices):
+    def test_get_device_by_id_success(
+        self, client, mock_device_service, sample_devices
+    ):
         """Test GET /api/devices/{device_id} - device found."""
-        mock_repo.get_by_device_id = AsyncMock(return_value=sample_devices[0])
+        mock_device_service.get_by_device_id = AsyncMock(return_value=sample_devices[0])
 
         response = client.get("/api/devices/12345ABC")
 
@@ -124,9 +130,9 @@ class TestDeviceDetailEndpoint:
         assert data["name"] == "Living Room"
         assert data["model"] == "SoundTouch 30"
 
-    def test_get_device_by_id_not_found(self, client, mock_repo):
+    def test_get_device_by_id_not_found(self, client, mock_device_service):
         """Test GET /api/devices/{device_id} - device not found."""
-        mock_repo.get_by_device_id = AsyncMock(return_value=None)
+        mock_device_service.get_by_device_id = AsyncMock(return_value=None)
 
         response = client.get("/api/devices/NOTFOUND")
 
@@ -134,10 +140,10 @@ class TestDeviceDetailEndpoint:
         assert "not found" in response.json()["detail"].lower()
 
     def test_get_device_by_id_includes_all_fields(
-        self, client, mock_repo, sample_devices
+        self, client, mock_device_service, sample_devices
     ):
         """Test that device detail response includes all fields."""
-        mock_repo.get_by_device_id = AsyncMock(return_value=sample_devices[0])
+        mock_device_service.get_by_device_id = AsyncMock(return_value=sample_devices[0])
 
         response = client.get("/api/devices/12345ABC")
 
@@ -219,17 +225,14 @@ class TestSyncEndpoint:
             # Restore original function
             devices_module.discover_devices = original_discover
 
-    def test_sync_endpoint_returns_409_when_in_progress(self, client, mock_repo):
+    def test_sync_endpoint_returns_409_when_in_progress(
+        self, client, mock_device_service
+    ):
         """Test POST /api/devices/sync returns 409 if discovery already running."""
         import opencloudtouch.devices.api.routes as devices_module
-        from opencloudtouch.core.dependencies import set_settings_repo
 
-        # Mock settings repository
-        mock_settings = AsyncMock(spec=SettingsRepository)
-        mock_settings.get_manual_ips = AsyncMock(return_value=[])
-
-        # Inject mock via dependency injection
-        set_settings_repo(mock_settings)
+        # No need to inject dependencies - we're testing the lock behavior
+        # The service mock from fixture already handles dependencies
 
         # Mock the lock to appear as if it's already acquired
         # This avoids cross-event-loop issues with asyncio.Lock
@@ -243,7 +246,7 @@ class TestSyncEndpoint:
 class TestDiscoverEndpoint:
     """Tests for GET /api/devices/discover endpoint."""
 
-    def test_discover_success_ssdp_only(self, client, mock_repo):
+    def test_discover_success_ssdp_only(self, client, mock_device_service):
         """Test device discovery via SSDP (no manual IPs).
 
         Use case: User clicks 'Search Devices' in UI, SSDP finds devices.
@@ -273,7 +276,7 @@ class TestDiscoverEndpoint:
             assert data["devices"][0]["name"] == "Living Room"
             assert data["devices"][1]["ip"] == "192.168.1.101"
 
-    def test_discover_no_devices_found(self, client, mock_repo):
+    def test_discover_no_devices_found(self, client, mock_device_service):
         """Test discovery when no devices found.
 
         Use case: User on isolated network or devices offline.
@@ -293,7 +296,7 @@ class TestDiscoverEndpoint:
             assert data["count"] == 0
             assert data["devices"] == []
 
-    def test_discover_with_manual_ips(self, client, mock_repo):
+    def test_discover_with_manual_ips(self, client, mock_device_service):
         """Test discovery combining SSDP and manual IPs.
 
         Use case: User has configured fallback IPs for devices with static IPs.
@@ -343,7 +346,7 @@ class TestDiscoverEndpoint:
                     assert data["count"] == 3
                     assert len(data["devices"]) == 3
 
-    def test_discover_ssdp_fails_gracefully(self, client, mock_repo):
+    def test_discover_ssdp_fails_gracefully(self, client, mock_device_service):
         """Test discovery when SSDP fails but manual IPs work.
 
         Use case: SSDP multicast blocked by firewall, fallback to manual IPs.
@@ -386,7 +389,7 @@ class TestDiscoverEndpoint:
                     assert data["count"] == 1
                     assert data["devices"][0]["ip"] == "192.168.1.200"
 
-    def test_discover_disabled_via_config(self, client, mock_repo):
+    def test_discover_disabled_via_config(self, client, mock_device_service):
         """Test discovery when disabled in config.
 
         Use case: Admin disables auto-discovery, only uses manual IPs.
@@ -418,13 +421,13 @@ class TestDiscoverEndpoint:
 class TestCapabilitiesEndpoint:
     """Tests for GET /api/devices/{device_id}/capabilities endpoint."""
 
-    def test_get_capabilities_device_not_found(self, client, mock_repo):
+    def test_get_capabilities_device_not_found(self, client, mock_device_service):
         """Test capabilities endpoint when device doesn't exist in DB.
 
         Use case: User requests capabilities for non-existent device ID.
         Expected: Returns 404 NOT FOUND.
         """
-        mock_repo.get_by_device_id = AsyncMock(return_value=None)
+        mock_device_service.get_by_device_id = AsyncMock(return_value=None)
 
         response = client.get("/api/devices/NOTFOUND/capabilities")
 
@@ -613,7 +616,9 @@ class TestSyncDatabaseErrors:
 class TestDeleteAllDevicesEndpoint:
     """Tests for DELETE /api/devices endpoint (testing/cleanup)."""
 
-    def test_delete_all_devices_blocked_in_production(self, client, mock_repo):
+    def test_delete_all_devices_blocked_in_production(
+        self, client, mock_device_service
+    ):
         """Test DELETE /api/devices is blocked when dangerous operations disabled."""
         # Default config has allow_dangerous_operations=False
         response = client.delete("/api/devices")
@@ -623,10 +628,10 @@ class TestDeleteAllDevicesEndpoint:
         assert "Dangerous operations disabled" in data["detail"]
         assert "OCT_ALLOW_DANGEROUS_OPERATIONS=true" in data["detail"]
         # Should NOT call delete_all when blocked
-        mock_repo.delete_all.assert_not_called()
+        mock_device_service.delete_all.assert_not_called()
 
     def test_delete_all_devices_success_when_enabled(
-        self, client, mock_repo, monkeypatch
+        self, client, mock_device_service, monkeypatch
     ):
         """Test DELETE /api/devices succeeds when dangerous operations enabled."""
         # Enable dangerous operations via env var
@@ -637,16 +642,18 @@ class TestDeleteAllDevicesEndpoint:
 
         init_config()  # Reload config with new env var
 
-        mock_repo.delete_all = AsyncMock(return_value=None)
+        mock_device_service.delete_all = AsyncMock(return_value=None)
 
         response = client.delete("/api/devices")
 
         assert response.status_code == 200
         data = response.json()
         assert data["message"] == "All devices deleted"
-        mock_repo.delete_all.assert_awaited_once()
+        mock_device_service.delete_all.assert_awaited_once()
 
-    def test_delete_all_devices_when_empty(self, client, mock_repo, monkeypatch):
+    def test_delete_all_devices_when_empty(
+        self, client, mock_device_service, monkeypatch
+    ):
         """Test DELETE /api/devices when database is already empty."""
         # Enable dangerous operations
         monkeypatch.setenv("OCT_ALLOW_DANGEROUS_OPERATIONS", "true")
@@ -655,11 +662,11 @@ class TestDeleteAllDevicesEndpoint:
 
         init_config()  # Reload config
 
-        mock_repo.delete_all = AsyncMock(return_value=None)
+        mock_device_service.delete_all = AsyncMock(return_value=None)
 
         response = client.delete("/api/devices")
 
         assert response.status_code == 200
         data = response.json()
         assert data["message"] == "All devices deleted"
-        mock_repo.delete_all.assert_awaited_once()
+        mock_device_service.delete_all.assert_awaited_once()
