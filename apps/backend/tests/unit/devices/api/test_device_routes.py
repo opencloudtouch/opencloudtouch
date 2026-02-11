@@ -73,7 +73,7 @@ class TestDeviceListEndpoint:
 
     def test_get_devices_empty(self, client, mock_device_service):
         """Test GET /api/devices with empty database."""
-        mock_device_service.get_all = AsyncMock(return_value=[])
+        mock_device_service.get_all_devices = AsyncMock(return_value=[])
 
         response = client.get("/api/devices")
 
@@ -84,7 +84,7 @@ class TestDeviceListEndpoint:
 
     def test_get_devices_with_data(self, client, mock_device_service, sample_devices):
         """Test GET /api/devices with devices in database."""
-        mock_device_service.get_all = AsyncMock(return_value=sample_devices)
+        mock_device_service.get_all_devices = AsyncMock(return_value=sample_devices)
 
         response = client.get("/api/devices")
 
@@ -99,7 +99,9 @@ class TestDeviceListEndpoint:
         self, client, mock_device_service, sample_devices
     ):
         """Test that response includes all device fields."""
-        mock_device_service.get_all = AsyncMock(return_value=[sample_devices[0]])
+        mock_device_service.get_all_devices = AsyncMock(
+            return_value=[sample_devices[0]]
+        )
 
         response = client.get("/api/devices")
 
@@ -120,7 +122,7 @@ class TestDeviceDetailEndpoint:
         self, client, mock_device_service, sample_devices
     ):
         """Test GET /api/devices/{device_id} - device found."""
-        mock_device_service.get_by_device_id = AsyncMock(return_value=sample_devices[0])
+        mock_device_service.get_device_by_id = AsyncMock(return_value=sample_devices[0])
 
         response = client.get("/api/devices/12345ABC")
 
@@ -132,7 +134,7 @@ class TestDeviceDetailEndpoint:
 
     def test_get_device_by_id_not_found(self, client, mock_device_service):
         """Test GET /api/devices/{device_id} - device not found."""
-        mock_device_service.get_by_device_id = AsyncMock(return_value=None)
+        mock_device_service.get_device_by_id = AsyncMock(return_value=None)
 
         response = client.get("/api/devices/NOTFOUND")
 
@@ -143,7 +145,7 @@ class TestDeviceDetailEndpoint:
         self, client, mock_device_service, sample_devices
     ):
         """Test that device detail response includes all fields."""
-        mock_device_service.get_by_device_id = AsyncMock(return_value=sample_devices[0])
+        mock_device_service.get_device_by_id = AsyncMock(return_value=sample_devices[0])
 
         response = client.get("/api/devices/12345ABC")
 
@@ -259,22 +261,17 @@ class TestDiscoverEndpoint:
             DiscoveredDevice(ip="192.168.1.101", port=8090, name="Kitchen"),
         ]
 
-        with patch(
-            "opencloudtouch.devices.api.routes.BoseDeviceDiscoveryAdapter"
-        ) as mock_adapter:
-            mock_instance = AsyncMock()
-            mock_instance.discover.return_value = mock_discovered
-            mock_adapter.return_value = mock_instance
+        mock_device_service.discover_devices = AsyncMock(return_value=mock_discovered)
 
-            response = client.get("/api/devices/discover")
+        response = client.get("/api/devices/discover")
 
-            assert response.status_code == 200
-            data = response.json()
-            assert data["count"] == 2
-            assert len(data["devices"]) == 2
-            assert data["devices"][0]["ip"] == "192.168.1.100"
-            assert data["devices"][0]["name"] == "Living Room"
-            assert data["devices"][1]["ip"] == "192.168.1.101"
+        assert response.status_code == 200
+        data = response.json()
+        assert data["count"] == 2
+        assert len(data["devices"]) == 2
+        assert data["devices"][0]["ip"] == "192.168.1.100"
+        assert data["devices"][0]["name"] == "Living Room"
+        assert data["devices"][1]["ip"] == "192.168.1.101"
 
     def test_discover_no_devices_found(self, client, mock_device_service):
         """Test discovery when no devices found.
@@ -282,19 +279,14 @@ class TestDiscoverEndpoint:
         Use case: User on isolated network or devices offline.
         Expected: Returns empty list, not an error (valid state).
         """
-        with patch(
-            "opencloudtouch.devices.api.routes.BoseDeviceDiscoveryAdapter"
-        ) as mock_adapter:
-            mock_instance = AsyncMock()
-            mock_instance.discover.return_value = []
-            mock_adapter.return_value = mock_instance
+        mock_device_service.discover_devices = AsyncMock(return_value=[])
 
-            response = client.get("/api/devices/discover")
+        response = client.get("/api/devices/discover")
 
-            assert response.status_code == 200
-            data = response.json()
-            assert data["count"] == 0
-            assert data["devices"] == []
+        assert response.status_code == 200
+        data = response.json()
+        assert data["count"] == 0
+        assert data["devices"] == []
 
     def test_discover_with_manual_ips(self, client, mock_device_service):
         """Test discovery combining SSDP and manual IPs.
@@ -304,47 +296,22 @@ class TestDiscoverEndpoint:
         """
         from opencloudtouch.discovery import DiscoveredDevice
 
-        # Mock config with manual IPs
-        with patch("opencloudtouch.devices.api.routes.get_config") as mock_cfg:
-            mock_cfg.return_value.manual_device_ips_list = [
-                "192.168.1.200",
-                "192.168.1.201",
-            ]
-            mock_cfg.return_value.discovery_enabled = True
-            mock_cfg.return_value.discovery_timeout = 10
+        # Service returns combined SSDP + manual results
+        combined_devices = [
+            DiscoveredDevice(ip="192.168.1.100", port=8090, name="SSDP Device"),
+            DiscoveredDevice(ip="192.168.1.200", port=8090),
+            DiscoveredDevice(ip="192.168.1.201", port=8090),
+        ]
 
-            # Mock SSDP finding 1 device
-            ssdp_device = DiscoveredDevice(
-                ip="192.168.1.100", port=8090, name="SSDP Device"
-            )
+        mock_device_service.discover_devices = AsyncMock(return_value=combined_devices)
 
-            # Mock manual finding 2 devices
-            manual_devices = [
-                DiscoveredDevice(ip="192.168.1.200", port=8090),
-                DiscoveredDevice(ip="192.168.1.201", port=8090),
-            ]
+        response = client.get("/api/devices/discover")
 
-            with patch(
-                "opencloudtouch.devices.api.routes.BoseDeviceDiscoveryAdapter"
-            ) as mock_ssdp:
-                mock_ssdp_inst = AsyncMock()
-                mock_ssdp_inst.discover.return_value = [ssdp_device]
-                mock_ssdp.return_value = mock_ssdp_inst
-
-                with patch(
-                    "opencloudtouch.devices.api.routes.ManualDiscovery"
-                ) as mock_manual:
-                    mock_manual_inst = AsyncMock()
-                    mock_manual_inst.discover.return_value = manual_devices
-                    mock_manual.return_value = mock_manual_inst
-
-                    response = client.get("/api/devices/discover")
-
-                    assert response.status_code == 200
-                    data = response.json()
-                    # Should have 1 SSDP + 2 Manual = 3 total
-                    assert data["count"] == 3
-                    assert len(data["devices"]) == 3
+        assert response.status_code == 200
+        data = response.json()
+        # Should have 1 SSDP + 2 Manual = 3 total
+        assert data["count"] == 3
+        assert len(data["devices"]) == 3
 
     def test_discover_ssdp_fails_gracefully(self, client, mock_device_service):
         """Test discovery when SSDP fails but manual IPs work.
@@ -353,69 +320,45 @@ class TestDiscoverEndpoint:
         Expected: Returns manual devices, logs SSDP error but doesn't fail.
 
         Regression: SSDP exceptions should not crash entire discovery.
+        Note: DeviceService handles error gracefully and returns available devices.
         """
         from opencloudtouch.discovery import DiscoveredDevice
 
+        # Service returns manual devices even if SSDP failed
         manual_devices = [
             DiscoveredDevice(ip="192.168.1.200", port=8090, name="Fallback")
         ]
 
-        with patch("opencloudtouch.devices.api.routes.get_config") as mock_cfg:
-            mock_cfg.return_value.manual_device_ips_list = ["192.168.1.200"]
-            mock_cfg.return_value.discovery_enabled = True
-            mock_cfg.return_value.discovery_timeout = 10
+        mock_device_service.discover_devices = AsyncMock(return_value=manual_devices)
 
-            # SSDP raises exception
-            with patch(
-                "opencloudtouch.devices.api.routes.BoseDeviceDiscoveryAdapter"
-            ) as mock_ssdp:
-                mock_ssdp_inst = AsyncMock()
-                mock_ssdp_inst.discover.side_effect = Exception("Network error")
-                mock_ssdp.return_value = mock_ssdp_inst
+        response = client.get("/api/devices/discover")
 
-                # Manual discovery works
-                with patch(
-                    "opencloudtouch.devices.api.routes.ManualDiscovery"
-                ) as mock_manual:
-                    mock_manual_inst = AsyncMock()
-                    mock_manual_inst.discover.return_value = manual_devices
-                    mock_manual.return_value = mock_manual_inst
-
-                    response = client.get("/api/devices/discover")
-
-                    # Should still succeed with manual devices
-                    assert response.status_code == 200
-                    data = response.json()
-                    assert data["count"] == 1
-                    assert data["devices"][0]["ip"] == "192.168.1.200"
+        # Should still succeed with manual devices
+        assert response.status_code == 200
+        data = response.json()
+        assert data["count"] == 1
+        assert data["devices"][0]["ip"] == "192.168.1.200"
 
     def test_discover_disabled_via_config(self, client, mock_device_service):
         """Test discovery when disabled in config.
 
         Use case: Admin disables auto-discovery, only uses manual IPs.
         Expected: SSDP skipped, only manual IPs discovered.
+        Note: DeviceService handles this logic, route just calls discover_devices().
         """
         from opencloudtouch.discovery import DiscoveredDevice
 
+        # Service returns only manual devices (SSDP disabled)
         manual_devices = [DiscoveredDevice(ip="192.168.1.200", port=8090)]
 
-        with patch("opencloudtouch.devices.api.routes.get_config") as mock_cfg:
-            mock_cfg.return_value.discovery_enabled = False  # Disabled!
-            mock_cfg.return_value.manual_device_ips_list = ["192.168.1.200"]
+        mock_device_service.discover_devices = AsyncMock(return_value=manual_devices)
 
-            with patch(
-                "opencloudtouch.devices.api.routes.ManualDiscovery"
-            ) as mock_manual:
-                mock_manual_inst = AsyncMock()
-                mock_manual_inst.discover.return_value = manual_devices
-                mock_manual.return_value = mock_manual_inst
+        response = client.get("/api/devices/discover")
 
-                response = client.get("/api/devices/discover")
-
-                assert response.status_code == 200
-                data = response.json()
-                # Should only have manual device, SSDP skipped
-                assert data["count"] == 1
+        assert response.status_code == 200
+        data = response.json()
+        # Should only have manual device, SSDP skipped
+        assert data["count"] == 1
 
 
 class TestCapabilitiesEndpoint:
@@ -427,7 +370,10 @@ class TestCapabilitiesEndpoint:
         Use case: User requests capabilities for non-existent device ID.
         Expected: Returns 404 NOT FOUND.
         """
-        mock_device_service.get_by_device_id = AsyncMock(return_value=None)
+        # Mock get_device_capabilities to raise ValueError (device not found)
+        mock_device_service.get_device_capabilities = AsyncMock(
+            side_effect=ValueError("Device NOTFOUND not found")
+        )
 
         response = client.get("/api/devices/NOTFOUND/capabilities")
 
@@ -620,6 +566,13 @@ class TestDeleteAllDevicesEndpoint:
         self, client, mock_device_service
     ):
         """Test DELETE /api/devices is blocked when dangerous operations disabled."""
+        # Mock service raising PermissionError (dangerous ops disabled)
+        mock_device_service.delete_all_devices = AsyncMock(
+            side_effect=PermissionError(
+                "Dangerous operations disabled. Set OCT_ALLOW_DANGEROUS_OPERATIONS=true to enable."
+            )
+        )
+
         # Default config has allow_dangerous_operations=False
         response = client.delete("/api/devices")
 
@@ -627,8 +580,6 @@ class TestDeleteAllDevicesEndpoint:
         data = response.json()
         assert "Dangerous operations disabled" in data["detail"]
         assert "OCT_ALLOW_DANGEROUS_OPERATIONS=true" in data["detail"]
-        # Should NOT call delete_all when blocked
-        mock_device_service.delete_all.assert_not_called()
 
     def test_delete_all_devices_success_when_enabled(
         self, client, mock_device_service, monkeypatch
@@ -642,14 +593,14 @@ class TestDeleteAllDevicesEndpoint:
 
         init_config()  # Reload config with new env var
 
-        mock_device_service.delete_all = AsyncMock(return_value=None)
+        mock_device_service.delete_all_devices = AsyncMock(return_value=None)
 
         response = client.delete("/api/devices")
 
         assert response.status_code == 200
         data = response.json()
         assert data["message"] == "All devices deleted"
-        mock_device_service.delete_all.assert_awaited_once()
+        mock_device_service.delete_all_devices.assert_awaited_once()
 
     def test_delete_all_devices_when_empty(
         self, client, mock_device_service, monkeypatch
@@ -662,11 +613,11 @@ class TestDeleteAllDevicesEndpoint:
 
         init_config()  # Reload config
 
-        mock_device_service.delete_all = AsyncMock(return_value=None)
+        mock_device_service.delete_all_devices = AsyncMock(return_value=None)
 
         response = client.delete("/api/devices")
 
         assert response.status_code == 200
         data = response.json()
         assert data["message"] == "All devices deleted"
-        mock_device_service.delete_all.assert_awaited_once()
+        mock_device_service.delete_all_devices.assert_awaited_once()

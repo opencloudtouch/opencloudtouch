@@ -83,7 +83,7 @@ Optional kann später ein Music-Assistant-Adapter oder weitere Provider ergänzt
 
 3. **Web-UI öffnen:**
    ```
-   http://localhost:8000
+   http://localhost:7777
    ```
 
 4. **Logs prüfen:**
@@ -106,7 +106,7 @@ docker run -d \
   ghcr.io/<your-username>/opencloudtouch:latest
 ```
 
-Danach im Browser öffnen: `http://localhost:8000`
+Danach im Browser öffnen: `http://localhost:7777`
 
 ### Warum `--network host`?
 
@@ -162,7 +162,7 @@ npm install
 npm run dev
 ```
 
-- **Backend** läuft auf: http://localhost:8000  
+- **Backend** läuft auf: http://localhost:7777  
 - **Frontend** läuft auf: http://localhost:5173 (proxied zu Backend)
 
 ### Backend Setup (manuell)
@@ -177,7 +177,7 @@ python -m venv .venv
 pip install -r requirements-dev.txt
 
 # Backend starten
-uvicorn opencloudtouch.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn opencloudtouch.main:app --reload --host 0.0.0.0 --port 7777
 ```
 
 ### Tests
@@ -235,7 +235,7 @@ open apps/backend/htmlcov/index.html    # macOS/Linux
 docker compose logs opencloudtouch
 
 # Health check manuell testen
-docker exec opencloudtouch curl http://localhost:8000/health
+docker exec opencloudtouch curl http://localhost:7777/health
 ```
 
 ### Geräte werden nicht gefunden
@@ -244,9 +244,9 @@ docker exec opencloudtouch curl http://localhost:8000/health
 - Prüfen Sie, ob Geräte im selben Netzwerk sind
 - Manuellen Fallback nutzen: ENV Variable `OCT_MANUAL_DEVICE_IPS=192.168.1.100,192.168.1.101` setzen
 
-### Port 8000 bereits belegt
+### Port 7777 bereits belegt
 
-Ändern Sie den Port in [docker-compose.yml](docker-compose.yml) oder via ENV:
+Ändern Sie den Port in [deployment/docker-compose.yml](deployment/docker-compose.yml) oder via ENV:
 
 ```bash
 OCT_PORT=8080 docker compose up -d
@@ -267,7 +267,7 @@ Siehe [.env.example](.env.example) und [config.example.yaml](config.example.yaml
 | Variable | Default | Beschreibung |
 |----------|---------|--------------|
 | `OCT_HOST` | `0.0.0.0` | API Bind-Adresse |
-| `OCT_PORT` | `8000` | API Port |
+| `OCT_PORT` | `7777` | API Port |
 | `OCT_LOG_LEVEL` | `INFO` | Log-Level (DEBUG, INFO, WARNING, ERROR) |
 | `OCT_DB_PATH` | `/data/oct.db` | SQLite Datenbankpfad |
 | `OCT_DISCOVERY_ENABLED` | `true` | SSDP/UPnP Discovery aktivieren |
@@ -391,13 +391,13 @@ npm run test:e2e         # E2E only (Cypress, auto-setup)
 ```
 
 ### Backend
-- **Aktuell**: 96% (296 Tests)
+- **Aktuell**: 88% (268 Tests)
 - **Arten**: Unit Tests, Integration Tests
 - **Technologie**: pytest + pytest-cov + pytest-asyncio
 - **Kommando**: `npm run test:backend` (oder `cd apps/backend && pytest --cov=opencloudtouch --cov-report=term-missing --cov-fail-under=80`)
 
 ### Frontend
-- **Aktuell**: 52% (87 Tests) ⚠️ UNTER 80% THRESHOLD
+- **Aktuell**: ~55% (87 Tests) ⚠️ UNTER 80% THRESHOLD
 - **Arten**: Unit Tests (Vitest), E2E Tests (Cypress)
 - **Technologie**: Vitest + @testing-library/react, Cypress
 - **Kommandos**:

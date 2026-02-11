@@ -222,9 +222,18 @@ class TestDeviceServiceCapabilities:
         self, device_service, mock_repository, sample_device
     ):
         """Test getting device capabilities."""
+        from unittest.mock import AsyncMock
+
         # Arrange
         mock_repository.get_by_device_id.return_value = sample_device
+
         expected_capabilities = {
+            "model": "SoundTouch 30 Series III",
+            "api_version": "1.0",
+            "has_hdmi": False,
+        }
+
+        expected_feature_flags = {
             "device_id": "AABBCC112233",
             "device_model": "SoundTouch 30 Series III",
             "is_soundbar": False,
@@ -235,11 +244,20 @@ class TestDeviceServiceCapabilities:
             },
         }
 
-        # Mock the capability detection
-        with patch("opencloudtouch.devices.service.get_device_capabilities"), patch(
+        # Mock the capability detection and device client creation
+        with patch(
+            "opencloudtouch.devices.service.get_device_capabilities",
+            new_callable=AsyncMock,
+        ) as mock_get_caps, patch(
             "opencloudtouch.devices.service.get_feature_flags_for_ui"
-        ) as mock_get_flags:
-            mock_get_flags.return_value = expected_capabilities
+        ) as mock_get_flags, patch(
+            "opencloudtouch.devices.service.SoundTouchDevice"
+        ) as mock_device_class, patch(
+            "opencloudtouch.devices.service.SoundTouchClient"
+        ):  # Patched but not used (prevents import side effects)
+
+            mock_get_caps.return_value = expected_capabilities
+            mock_get_flags.return_value = expected_feature_flags
 
             # Act
             result = await device_service.get_device_capabilities("AABBCC112233")
@@ -248,6 +266,9 @@ class TestDeviceServiceCapabilities:
             assert result["device_id"] == "AABBCC112233"
             assert result["features"]["bass_control"] is True
             mock_repository.get_by_device_id.assert_called_once_with("AABBCC112233")
+            mock_device_class.assert_called_once_with("192.168.1.100")
+            mock_get_caps.assert_called_once()
+            mock_get_flags.assert_called_once_with(expected_capabilities)
 
     @pytest.mark.asyncio
     async def test_get_device_capabilities_device_not_found(

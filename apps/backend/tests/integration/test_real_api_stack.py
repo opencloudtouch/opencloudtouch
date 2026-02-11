@@ -22,13 +22,19 @@ from httpx import ASGITransport, AsyncClient
 from opencloudtouch.core.dependencies import (
     clear_dependencies,
     set_device_repo,
+    set_device_service,
     set_settings_repo,
+    set_settings_service,
 )
 from opencloudtouch.db import DeviceRepository
+from opencloudtouch.devices.adapter import BoseDeviceDiscoveryAdapter
 from opencloudtouch.devices.client import DeviceInfo
+from opencloudtouch.devices.service import DeviceService
+from opencloudtouch.devices.services.sync_service import DeviceSyncService
 from opencloudtouch.discovery import DiscoveredDevice
 from opencloudtouch.main import app
 from opencloudtouch.settings.repository import SettingsRepository
+from opencloudtouch.settings.service import SettingsService
 
 
 @pytest.fixture
@@ -60,6 +66,23 @@ async def real_api_client(real_db):
     # Set repositories using dependency injection
     set_device_repo(device_repo)
     set_settings_repo(settings_repo)
+
+    # Initialize services (same as main.py lifespan)
+    sync_service = DeviceSyncService(
+        repository=device_repo,
+        discovery_timeout=10,
+        manual_ips=[],
+        discovery_enabled=True,
+    )
+    device_service = DeviceService(
+        repository=device_repo,
+        sync_service=sync_service,
+        discovery_adapter=BoseDeviceDiscoveryAdapter(),
+    )
+    set_device_service(device_service)
+
+    settings_service = SettingsService(repository=settings_repo)
+    set_settings_service(settings_service)
 
     try:
         transport = ASGITransport(app=app)

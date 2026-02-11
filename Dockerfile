@@ -33,36 +33,52 @@ COPY apps/frontend/ ./apps/frontend/
 # Build frontend
 RUN npm run build --workspace=apps/frontend
 
-# Stage 2: Build Backend + Runtime
-FROM python:3.11-slim AS backend
+# Stage 2: Python Dependencies (separate for better caching)
+FROM python:3.11-slim AS python-deps
 
-# Install system dependencies
+# Install build dependencies
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends gcc && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Install Python dependencies with prefix for easy copying
+COPY apps/backend/requirements.txt ./
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# Cleanup: Remove gcc and build artifacts (reduce layer size)
+RUN apt-get purge -y --auto-remove gcc && \
+    find /install -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
+    find /install -name "*.pyc" -delete
+
+# Stage 3: Backend Runtime
+FROM python:3.11-slim AS backend
 
 WORKDIR /app
 
-# Install Python dependencies
-COPY apps/backend/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy Python dependencies from build stage
+COPY --from=python-deps /install /usr/local
 
 # Copy backend source (as package)
 COPY apps/backend/src/opencloudtouch ./opencloudtouch
 
+# Precompile Python bytecode for faster startup
+# -b: Write .pyc files (bytecode)
+# Delete .py source files to save space (bytecode is sufficient)
+RUN python -m compileall -b opencloudtouch/ && \
+    find opencloudtouch/ -name "*.py" ! -name "__main__.py" -delete && \
+    find opencloudtouch/ -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+
 # Copy frontend build from previous stage
 COPY --from=frontend-builder /app/apps/frontend/dist ./frontend/dist
 
+# Copy entrypoint script
+COPY apps/backend/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Create data directory
 RUN mkdir -p /data
-
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:7777/health')" || exit 1
-
-# Expose port
-EXPOSE 7777
 
 # Run as non-root user
 RUN useradd -m -u 1000 oct && chown -R oct:oct /app /data
@@ -73,9 +89,17 @@ ENV OCT_HOST=0.0.0.0
 ENV OCT_PORT=7777
 ENV OCT_DB_PATH=/data/oct.db
 ENV OCT_LOG_LEVEL=INFO
+ENV OCT_DISCOVERY_ENABLED=true
 
 # Set Python path for package
 ENV PYTHONPATH=/app
 
-# Start application using module entry point
-CMD ["python", "-m", "opencloudtouch"]
+# Healthcheck using entrypoint script
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD /entrypoint.sh health || exit 1
+
+# Expose port
+EXPOSE 7777
+
+# Use entrypoint script
+ENTRYPOINT ["/entrypoint.sh"]
