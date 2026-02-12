@@ -11,6 +11,15 @@ export interface RadioStation {
   // Add other station properties as needed
 }
 
+interface RawStationData {
+  uuid: string;
+  name: string;
+  country: string;
+  url?: string;
+  homepage?: string;
+  favicon?: string;
+}
+
 interface RadioSearchProps {
   onStationSelect: (station: RadioStation) => void;
   isOpen: boolean;
@@ -79,7 +88,7 @@ export default function RadioSearch({ onStationSelect, isOpen, onClose }: RadioS
 
         const data = await response.json();
         const stations = Array.isArray(data?.stations) ? data.stations : [];
-        const normalized: RadioStation[] = stations.map((station: any) => ({
+        const normalized: RadioStation[] = stations.map((station: RawStationData) => ({
           stationuuid: station.uuid,
           name: station.name,
           country: station.country,
