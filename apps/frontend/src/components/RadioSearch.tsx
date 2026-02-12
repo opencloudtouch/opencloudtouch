@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import "./RadioSearch.css";
 
 export interface RadioStation {
@@ -17,28 +17,88 @@ interface RadioSearchProps {
   onClose?: () => void;
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:7777";
+
+function getApiBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    const cypress = (window as { Cypress?: { env?: (key: string) => unknown } }).Cypress;
+    const apiUrl = cypress?.env?.("apiUrl");
+    if (typeof apiUrl === "string" && apiUrl.length > 0) {
+      return apiUrl.replace(/\/api\/?$/, "");
+    }
+  }
+
+  return API_BASE_URL;
+}
+
 export default function RadioSearch({ onStationSelect, isOpen, onClose }: RadioSearchProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<RadioStation[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const debounceRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const handleSearch = async (searchQuery: string) => {
     setQuery(searchQuery);
+    setError(null);
     if (!searchQuery.trim()) {
       setResults([]);
+      setLoading(false);
+      if (debounceRef.current !== null) {
+        window.clearTimeout(debounceRef.current);
+      }
+      if (abortRef.current) {
+        abortRef.current.abort();
+      }
       return;
     }
 
     setLoading(true);
-    // Simulate API search
-    setTimeout(() => {
-      const mockResults: RadioStation[] = [
-        { stationuuid: "1", name: "Absolut relax", country: "Germany" },
-        { stationuuid: "2", name: "Bayern 1", country: "Germany" },
-        { stationuuid: "3", name: "1LIVE", country: "Germany" },
-      ].filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
-      setResults(mockResults);
-      setLoading(false);
+    if (debounceRef.current !== null) {
+      window.clearTimeout(debounceRef.current);
+    }
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
+
+    debounceRef.current = window.setTimeout(async () => {
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      try {
+        const baseUrl = getApiBaseUrl();
+        const response = await fetch(
+          `${baseUrl}/api/radio/search?q=${encodeURIComponent(searchQuery)}&search_type=name&limit=10`,
+          { signal: controller.signal }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        const stations = Array.isArray(data?.stations) ? data.stations : [];
+        const normalized: RadioStation[] = stations.map((station: any) => ({
+          stationuuid: station.uuid,
+          name: station.name,
+          country: station.country,
+          url: station.url,
+          homepage: station.homepage,
+          favicon: station.favicon,
+        }));
+
+        setResults(normalized);
+        setError(null);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          return;
+        }
+        setResults([]);
+        setError("Suche fehlgeschlagen");
+      } finally {
+        setLoading(false);
+      }
     }, 300);
   };
 
@@ -69,8 +129,9 @@ export default function RadioSearch({ onStationSelect, isOpen, onClose }: RadioS
         </div>
 
         <div className="search-results">
+          {error && <div className="search-error">{error}</div>}
           {loading && <div className="search-loading">Suche...</div>}
-          {!loading && results.length === 0 && query && (
+          {!loading && !error && results.length === 0 && query && (
             <div className="search-empty">Keine Sender gefunden</div>
           )}
           {results.map((station) => (

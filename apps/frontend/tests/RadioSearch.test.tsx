@@ -1,14 +1,46 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import RadioSearch from '../src/components/RadioSearch'
 
 describe('RadioSearch Component', () => {
   const mockOnStationSelect = vi.fn()
   const mockOnClose = vi.fn()
+  const mockStations = [
+    { uuid: 'mock-bbc-1', name: 'BBC Radio 1', country: 'United Kingdom' },
+    { uuid: 'mock-npr-1', name: 'NPR (National Public Radio)', country: 'United States' },
+    { uuid: 'mock-france-inter', name: 'France Inter', country: 'France' }
+  ]
 
   beforeEach(() => {
     mockOnStationSelect.mockClear()
     mockOnClose.mockClear()
+
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      const query = url.searchParams.get('q') || ''
+
+      if (query === 'ERROR_503') {
+        return {
+          ok: false,
+          status: 503,
+          json: async () => ({ detail: 'Service unavailable' })
+        } as Response
+      }
+
+      const filtered = mockStations.filter((station) =>
+        station.name.toLowerCase().includes(query.toLowerCase())
+      )
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ stations: filtered })
+      } as Response
+    }))
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it('renders nothing when closed', () => {
@@ -89,7 +121,7 @@ describe('RadioSearch Component', () => {
     )
 
     const searchInput = screen.getByPlaceholderText('Sender suchen...')
-    fireEvent.change(searchInput, { target: { value: 'Bayern' } })
+    fireEvent.change(searchInput, { target: { value: 'BBC' } })
 
     expect(screen.getByText('Suche...')).toBeInTheDocument()
   })
@@ -104,10 +136,10 @@ describe('RadioSearch Component', () => {
     )
 
     const searchInput = screen.getByPlaceholderText('Sender suchen...')
-    fireEvent.change(searchInput, { target: { value: 'Bayern' } })
+    fireEvent.change(searchInput, { target: { value: 'BBC' } })
 
     await waitFor(() => {
-      expect(screen.getByText('Bayern 1')).toBeInTheDocument()
+      expect(screen.getByText('BBC Radio 1')).toBeInTheDocument()
     }, { timeout: 500 })
   })
 
@@ -121,11 +153,11 @@ describe('RadioSearch Component', () => {
     )
 
     const searchInput = screen.getByPlaceholderText('Sender suchen...')
-    fireEvent.change(searchInput, { target: { value: 'relax' } })
+    fireEvent.change(searchInput, { target: { value: 'NPR' } })
 
     await waitFor(() => {
-      expect(screen.getByText('Absolut relax')).toBeInTheDocument()
-      expect(screen.queryByText('Bayern 1')).not.toBeInTheDocument()
+      expect(screen.getByText('NPR (National Public Radio)')).toBeInTheDocument()
+      expect(screen.queryByText('BBC Radio 1')).not.toBeInTheDocument()
     }, { timeout: 500 })
   })
 
@@ -172,18 +204,18 @@ describe('RadioSearch Component', () => {
     )
 
     const searchInput = screen.getByPlaceholderText('Sender suchen...')
-    fireEvent.change(searchInput, { target: { value: 'Bayern' } })
+    fireEvent.change(searchInput, { target: { value: 'BBC' } })
 
     await waitFor(() => {
-      const stationButton = screen.getByText('Bayern 1')
+      const stationButton = screen.getByText('BBC Radio 1')
       fireEvent.click(stationButton)
     }, { timeout: 500 })
 
     expect(mockOnStationSelect).toHaveBeenCalledWith(
       expect.objectContaining({
-        stationuuid: '2',
-        name: 'Bayern 1',
-        country: 'Germany'
+        stationuuid: 'mock-bbc-1',
+        name: 'BBC Radio 1',
+        country: 'United Kingdom'
       })
     )
   })
@@ -198,10 +230,10 @@ describe('RadioSearch Component', () => {
     )
 
     const searchInput = screen.getByPlaceholderText('Sender suchen...')
-    fireEvent.change(searchInput, { target: { value: 'Bayern' } })
+    fireEvent.change(searchInput, { target: { value: 'BBC' } })
 
     await waitFor(() => {
-      const stationButton = screen.getByText('Bayern 1')
+      const stationButton = screen.getByText('BBC Radio 1')
       fireEvent.click(stationButton)
     }, { timeout: 500 })
 
@@ -231,10 +263,10 @@ describe('RadioSearch Component', () => {
     )
 
     const searchInput = screen.getByPlaceholderText('Sender suchen...')
-    fireEvent.change(searchInput, { target: { value: 'BAYERN' } })
+    fireEvent.change(searchInput, { target: { value: 'FRANCE' } })
 
     await waitFor(() => {
-      expect(screen.getByText('Bayern 1')).toBeInTheDocument()
+      expect(screen.getByText('France Inter')).toBeInTheDocument()
     }, { timeout: 500 })
   })
 })

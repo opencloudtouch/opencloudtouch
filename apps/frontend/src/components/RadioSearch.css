@@ -72,6 +72,15 @@
   color: var(--color-text-secondary);
 }
 
+.search-error {
+  text-align: center;
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-darker);
+  border-radius: var(--border-radius-md);
+}
+
 .search-result-item {
   width: 100%;
   padding: var(--space-md);

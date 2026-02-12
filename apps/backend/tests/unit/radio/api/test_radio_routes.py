@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from httpx import ASGITransport
 
 from opencloudtouch.main import app
-from opencloudtouch.radio.api.routes import get_radiobrowser_adapter
+from opencloudtouch.radio.api.routes import get_radio_provider
 from opencloudtouch.radio.providers.radiobrowser import RadioBrowserError, RadioStation
 
 
@@ -66,7 +66,7 @@ class TestRadioSearchEndpoint:
         """Test search by station name."""
         mock_adapter.search_by_name.return_value = mock_radio_stations
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get(
                 "/api/radio/search", params={"q": "test", "search_type": "name"}
@@ -86,7 +86,7 @@ class TestRadioSearchEndpoint:
         """Test search by country."""
         mock_adapter.search_by_country.return_value = [mock_radio_stations[0]]
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get(
                 "/api/radio/search", params={"q": "Germany", "search_type": "country"}
@@ -104,7 +104,7 @@ class TestRadioSearchEndpoint:
         """Test search by tag."""
         mock_adapter.search_by_tag.return_value = [mock_radio_stations[1]]
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get(
                 "/api/radio/search", params={"q": "jazz", "search_type": "tag"}
@@ -124,7 +124,7 @@ class TestRadioSearchEndpoint:
         """Test that default search type is 'name'."""
         mock_adapter.search_by_name.return_value = mock_radio_stations
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get("/api/radio/search", params={"q": "test"})
 
@@ -137,7 +137,7 @@ class TestRadioSearchEndpoint:
         """Test that limit parameter is passed correctly."""
         mock_adapter.search_by_name.return_value = mock_radio_stations
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get(
                 "/api/radio/search", params={"q": "test", "limit": 25}
@@ -152,7 +152,7 @@ class TestRadioSearchEndpoint:
         """Test default limit is 10."""
         mock_adapter.search_by_name.return_value = mock_radio_stations
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get("/api/radio/search", params={"q": "test"})
 
@@ -198,7 +198,7 @@ class TestRadioSearchEndpoint:
         """Test search with no results."""
         mock_adapter.search_by_name.return_value = []
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get("/api/radio/search", params={"q": "nonexistent"})
 
@@ -212,7 +212,7 @@ class TestRadioSearchEndpoint:
         """Test that adapter errors are handled gracefully."""
         mock_adapter.search_by_name.side_effect = RadioBrowserError("API error")
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get("/api/radio/search", params={"q": "test"})
 
@@ -226,7 +226,7 @@ class TestRadioSearchEndpoint:
         """Test response format structure."""
         mock_adapter.search_by_name.return_value = mock_radio_stations
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get("/api/radio/search", params={"q": "test"})
 
@@ -251,7 +251,7 @@ class TestRadioSearchEndpoint:
         """Test that response field types are correct."""
         mock_adapter.search_by_name.return_value = mock_radio_stations
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get("/api/radio/search", params={"q": "test"})
 
@@ -282,7 +282,7 @@ class TestRadioStationDetailEndpoint:
         """Test getting station detail by UUID."""
         mock_adapter.get_station_by_uuid.return_value = mock_radio_stations[0]
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get("/api/radio/station/test-uuid-1")
 
@@ -300,7 +300,7 @@ class TestRadioStationDetailEndpoint:
             "Station not found"
         )
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get("/api/radio/station/nonexistent")
 
@@ -324,7 +324,7 @@ class TestRadioAPIErrorHandling:
             "API timeout after 10s"
         )
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get("/api/radio/search", params={"q": "test"})
 
@@ -349,7 +349,7 @@ class TestRadioAPIErrorHandling:
             "Cannot connect to api.radio-browser.info"
         )
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get("/api/radio/search", params={"q": "test"})
 
@@ -374,7 +374,7 @@ class TestRadioAPIErrorHandling:
             "API timeout"
         )
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get("/api/radio/station/test-uuid")
 
@@ -396,7 +396,7 @@ class TestRadioAPIErrorHandling:
             "Network error"
         )
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get("/api/radio/station/test-uuid")
 
@@ -415,7 +415,7 @@ class TestRadioAPIErrorHandling:
         """
         mock_adapter.search_by_name.return_value = mock_radio_stations
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get("/api/radio/search", params={"q": "Rock & Roll"})
 
@@ -437,7 +437,7 @@ class TestRadioAPIErrorHandling:
         """
         mock_adapter.search_by_name.return_value = mock_radio_stations
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get("/api/radio/search", params={"q": "Москва"})
 
@@ -465,7 +465,7 @@ class TestRadioAPIIntegration:
         mock_adapter.search_by_name.return_value = mock_radio_stations
         mock_adapter.get_station_by_uuid.return_value = mock_radio_stations[0]
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             # 1. Search
             response = client.get("/api/radio/search", params={"q": "test"})
@@ -494,7 +494,7 @@ class TestRadioSearchEdgeCases:
         """
         mock_adapter.search_by_country.return_value = []
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get(
                 "/api/radio/search",
@@ -518,7 +518,7 @@ class TestRadioSearchEdgeCases:
         """
         mock_adapter.search_by_tag.return_value = mock_radio_stations
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get(
                 "/api/radio/search", params={"q": "rock&roll", "search_type": "tag"}
@@ -538,7 +538,7 @@ class TestRadioSearchEdgeCases:
         """
         mock_adapter.search_by_country.return_value = mock_radio_stations
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             response = client.get(
                 "/api/radio/search",
@@ -563,7 +563,7 @@ class TestRadioSearchEdgeCases:
         """
         mock_adapter.search_by_tag.return_value = mock_radio_stations
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             # Test uppercase
             response = client.get(
@@ -596,7 +596,7 @@ class TestConcurrentRadioRequests:
         """
         mock_adapter.get_station_by_uuid.return_value = mock_radio_stations[0]
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             import asyncio
 
@@ -646,7 +646,7 @@ class TestConcurrentRadioRequests:
 
         mock_adapter.search_by_name.side_effect = mock_search
 
-        app.dependency_overrides[get_radiobrowser_adapter] = lambda: mock_adapter
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
         try:
             import asyncio
 

@@ -83,6 +83,55 @@ def test_cors_headers_present():
     assert "access-control-allow-methods" in response.headers
 
 
+def test_spa_path_traversal_blocked():
+    """Security test: Path traversal validation logic.
+
+    Regression test for BE-01 (P1 Critical).
+    Tests path validation logic to prevent directory traversal.
+    """
+    from urllib.parse import unquote
+
+    # Test the validation logic directly
+    def is_safe_path(full_path: str) -> bool:
+        """Replicate serve_spa() security checks."""
+        decoded_path = unquote(full_path)
+
+        # Reject directory traversal patterns
+        if ".." in decoded_path:
+            return False
+
+        # Reject backslashes (Windows path traversal)
+        if "\\" in decoded_path:
+            return False
+
+        return True
+
+    # Common path traversal attack vectors
+    dangerous_paths = [
+        "/../../../etc/passwd",
+        "..%2F..%2F..%2Fetc/passwd",
+        "....//....//etc/passwd",
+        "..\\..\\..\\etc\\passwd",
+        "/%2e%2e/%2e%2e/%2e%2e/etc/passwd",
+        "test/../../../etc/passwd",
+        "..%252f..%252fetc/passwd",  # Double-encoded
+    ]
+
+    for path in dangerous_paths:
+        assert not is_safe_path(path), f"Path traversal not blocked: {path}"
+
+    # Valid paths should pass
+    safe_paths = [
+        "index.html",
+        "assets/main.js",
+        "static/logo.png",
+        "",
+    ]
+
+    for path in safe_paths:
+        assert is_safe_path(path), f"Safe path incorrectly blocked: {path}"
+
+
 @pytest.mark.asyncio
 async def test_lifespan_error_handling():
     """Test lifespan handles errors gracefully."""

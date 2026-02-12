@@ -155,10 +155,15 @@ async function startFrontend() {
   await killPort(TEST_PORT_FRONTEND);
 
   // Build frontend
+  const frontendEnv = {
+    ...process.env,
+    VITE_API_BASE_URL: `http://localhost:${TEST_PORT_BACKEND}`
+  };
+
   const buildProcess = spawn(
     'npm',
     ['run', 'build'],
-    { cwd: FRONTEND_DIR, stdio: 'inherit', shell: true }
+    { cwd: FRONTEND_DIR, stdio: 'inherit', shell: true, env: frontendEnv }
   );
 
   await new Promise((resolve, reject) => {
@@ -175,7 +180,7 @@ async function startFrontend() {
   frontendProcess = spawn(
     'npm',
     ['run', 'preview', '--', '--port', String(TEST_PORT_FRONTEND), '--strictPort'],
-    { cwd: FRONTEND_DIR, stdio: 'pipe', shell: true }
+    { cwd: FRONTEND_DIR, stdio: 'pipe', shell: true, env: frontendEnv }
   );
 
   frontendProcess.stderr.on('data', (data) => {

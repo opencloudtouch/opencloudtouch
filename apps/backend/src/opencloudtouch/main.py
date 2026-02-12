@@ -7,7 +7,7 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -24,7 +24,7 @@ from opencloudtouch.core.dependencies import (
 )
 from opencloudtouch.core.logging import setup_logging
 from opencloudtouch.db import DeviceRepository
-from opencloudtouch.devices.adapter import BoseDeviceDiscoveryAdapter
+from opencloudtouch.devices.adapter import get_discovery_adapter
 from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.services.sync_service import DeviceSyncService
 from opencloudtouch.presets.repository import PresetRepository
@@ -84,7 +84,7 @@ async def lifespan(app: FastAPI):
     logger.info("Preset service initialized")
 
     # Initialize device service
-    discovery_adapter = BoseDeviceDiscoveryAdapter()
+    discovery_adapter = get_discovery_adapter()
     sync_service = DeviceSyncService(
         repository=device_repo,
         discovery_timeout=cfg.discovery_timeout,
@@ -98,6 +98,15 @@ async def lifespan(app: FastAPI):
     )
     set_device_service(device_service)  # Register via dependency injection
     logger.info("Device service initialized")
+
+    # Auto-discover devices on startup (especially mock devices)
+    if cfg.mock_mode:
+        logger.info("[MOCK MODE] Auto-discovering devices on startup...")
+        result = await device_service.sync_devices()
+        logger.info(
+            f"[MOCK MODE] Device sync: {result.synced} synced, "
+            f"{result.failed} failed ({result.discovered} discovered)"
+        )
 
     # Initialize settings service
     settings_service = SettingsService(settings_repo)
@@ -185,11 +194,55 @@ if static_dir.exists():
     # Catch-all route for SPA (React Router) - must come AFTER API routes
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
-        """Serve index.html for all non-API routes (SPA support)."""
+        """Serve index.html for all non-API routes (SPA support).
+
+        Args:
+            full_path: Requested file path (e.g., "index.html", "assets/app.js")
+
+        Returns:
+            FileResponse for existing files, or index.html for SPA routes.
+
+        Raises:
+            HTTPException: 404 if path traversal attempt detected.
+        """
+        # DEBUG
+        import sys
+
+        print(f"DEBUG serve_spa: full_path={repr(full_path)}", file=sys.stderr)
+        print(f"DEBUG: '..' in full_path = {'..' in full_path}", file=sys.stderr)
+
+        # SECURITY: Prevent path traversal attacks
+        from urllib.parse import unquote
+
+        # Decode URL-encoded characters (%2e = ., %2f = /)
+        decoded_path = unquote(full_path)
+        print(f"DEBUG: decoded_path={repr(decoded_path)}", file=sys.stderr)
+        print(f"DEBUG: '..' in decoded = {'..' in decoded_path}", file=sys.stderr)
+
+        # Reject any path containing directory traversal patterns
+        if ".." in decoded_path:
+            print("DEBUG: Blocking path due to '..'", file=sys.stderr)
+            raise HTTPException(status_code=404, detail="Not found")
+
+        # Reject backslashes (Windows path traversal)
+        if "\\" in decoded_path:
+            raise HTTPException(status_code=404, detail="Not found")
+
+        # Build safe path and verify it stays within frontend directory
+        try:
+            requested_path = (static_dir / decoded_path).resolve()
+            frontend_root = static_dir.resolve()
+
+            # Verify resolved path is within allowed directory
+            if not str(requested_path).startswith(str(frontend_root)):
+                raise HTTPException(status_code=404, detail="Not found")
+        except (ValueError, OSError):
+            # Handle invalid paths (e.g., illegal characters)
+            raise HTTPException(status_code=404, detail="Not found")
+
         # If requesting a static file that exists, serve it
-        file_path = static_dir / full_path
-        if file_path.is_file():
-            return FileResponse(file_path)
+        if requested_path.is_file():
+            return FileResponse(requested_path)
 
         # Otherwise serve index.html (React Router handles the rest)
         return FileResponse(static_dir / "index.html")

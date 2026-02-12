@@ -10,8 +10,9 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
+from opencloudtouch.radio.adapter import get_radio_adapter
+from opencloudtouch.radio.provider import RadioProvider
 from opencloudtouch.radio.providers.radiobrowser import (
-    RadioBrowserAdapter,
     RadioBrowserConnectionError,
     RadioBrowserError,
     RadioBrowserTimeoutError,
@@ -87,9 +88,9 @@ class SearchType(str, Enum):
 
 
 # Dependency Injection
-def get_radiobrowser_adapter() -> RadioBrowserAdapter:
-    """Get RadioBrowser adapter instance."""
-    return RadioBrowserAdapter()
+def get_radio_provider() -> RadioProvider:
+    """Factory: Get radio provider (Mock or Real based on OCT_MOCK_MODE)."""
+    return get_radio_adapter()
 
 
 # Endpoints
@@ -100,7 +101,7 @@ async def search_stations(
         SearchType.NAME, description="Search type: name, country, or tag"
     ),
     limit: int = Query(10, ge=1, le=100, description="Maximum number of results"),
-    adapter: RadioBrowserAdapter = Depends(get_radiobrowser_adapter),
+    adapter: RadioProvider = Depends(get_radio_provider),
 ):
     """
     Search radio stations.
@@ -145,7 +146,7 @@ async def search_stations(
 
 @router.get("/station/{uuid}", response_model=RadioStationResponse)
 async def get_station_detail(
-    uuid: str, adapter: RadioBrowserAdapter = Depends(get_radiobrowser_adapter)
+    uuid: str, adapter: RadioProvider = Depends(get_radio_provider)
 ):
     """
     Get radio station detail by UUID.
