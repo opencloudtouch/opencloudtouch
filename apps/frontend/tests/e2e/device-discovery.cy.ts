@@ -44,7 +44,7 @@ describe('Device Discovery', () => {
 
       // Swipe right 1x → device 1
       cy.get('.swipe-arrow-right').click()
-      cy.wait(300) // Animation
+      cy.wait(150) // Animation (Phase 2 optimization)
       cy.get('[data-test="device-card"]').find('[data-test="device-ip"]')
         .invoke('text')
         .then((secondIP) => {
@@ -55,7 +55,7 @@ describe('Device Discovery', () => {
 
       // Swipe right 2x → device 2 (last device)
       cy.get('.swipe-arrow-right').click()
-      cy.wait(300) // Animation
+      cy.wait(150) // Animation (Phase 2 optimization)
       cy.get('[data-test="device-card"]').find('[data-test="device-ip"]')
         .invoke('text')
         .then((thirdIP) => {
@@ -66,13 +66,13 @@ describe('Device Discovery', () => {
 
       // Swipe left 1x → back to device 1
       cy.get('.swipe-arrow-left').click()
-      cy.wait(300) // Animation
+      cy.wait(150) // Animation (Phase 2 optimization)
       cy.get('.swipe-arrow-left').should('not.be.disabled')
       cy.get('.swipe-arrow-right').should('not.be.disabled')
 
       // Swipe left 2x → back to device 0 (first device)
       cy.get('.swipe-arrow-left').click()
-      cy.wait(300) // Animation
+      cy.wait(150) // Animation (Phase 2 optimization)
       cy.get('.swipe-arrow-left').should('be.disabled') // Start of list
       cy.get('.swipe-arrow-right').should('not.be.disabled')
     })
@@ -97,16 +97,16 @@ describe('Device Discovery', () => {
 
       // Swipe to last device (2x right)
       cy.get('.swipe-arrow-right').click()
-      cy.wait(300)
+      cy.wait(150) // Phase 2 optimization
       cy.get('.swipe-arrow-right').click()
-      cy.wait(300)
+      cy.wait(150) // Phase 2 optimization
       cy.get('.swipe-arrow-right').should('be.disabled') // End reached
 
       // Swipe back to first device (2x left)
       cy.get('.swipe-arrow-left').click()
-      cy.wait(300)
+      cy.wait(150) // Phase 2 optimization
       cy.get('.swipe-arrow-left').click()
-      cy.wait(300)
+      cy.wait(150) // Phase 2 optimization
       cy.get('.swipe-arrow-left').should('be.disabled') // Start reached
     })
   })
