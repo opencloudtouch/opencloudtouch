@@ -219,8 +219,8 @@ describe('Preset Mapping (Iteration 3)', () => {
     it('should manage presets independently for different devices', () => {
       // Get second device ID
       cy.request(`${apiUrl}/devices`).then((response) => {
-        const device1Id = response.body[0].device_id
-        const device2Id = response.body[1].device_id
+        const device1Id = response.body.devices[0].device_id
+        const device2Id = response.body.devices[1].device_id
 
         // Assign preset 1 to device 1
         cy.request('POST', `${apiUrl}/presets/set`, {
