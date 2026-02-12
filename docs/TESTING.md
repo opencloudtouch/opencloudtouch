@@ -286,6 +286,45 @@ pytest -v
 3. **Use Vite watch mode** during frontend development
 4. **Run E2E headed mode** for debugging (see what's happening)
 
+## CI/CD Integration - Codecov
+
+Track test coverage over time with automated PR comments showing coverage changes.
+
+### Setup (5 minutes)
+
+1. **Create Codecov account**: https://about.codecov.io/ → Sign in with GitHub
+2. **Activate repository**: Find `soundtouch-bridge` in Codecov dashboard → Enable
+3. **Add GitHub Secret**: Copy upload token from Codecov → Add as `CODECOV_TOKEN` in GitHub repo secrets
+4. **Verify**: Push a commit → Check GitHub Actions → Codecov upload should succeed
+
+### What you get
+
+- 📊 Coverage trends over time
+- 🔍 PR comments showing coverage diff for changed files
+- ⚠️ Automatic warnings if coverage drops
+- 📁 File-level coverage browser
+
+### Configuration
+
+Optional `codecov.yml` in project root:
+```yaml
+coverage:
+  status:
+    project:
+      default:
+        target: 80%        # Minimum coverage threshold
+        threshold: 1%      # Max 1% drop allowed
+```
+
+**Badge**: Add to README:
+```markdown
+[![codecov](https://codecov.io/gh/user/soundtouch-bridge/branch/main/graph/badge.svg)](https://codecov.io/gh/user/soundtouch-bridge)
+```
+
+**Cost**: Free for public repositories
+
+**Docs**: https://docs.codecov.com/
+
 ## Future Enhancements
 
 - [ ] Test result caching (Nx, Turborepo)
