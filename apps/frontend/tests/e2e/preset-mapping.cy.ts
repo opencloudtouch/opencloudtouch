@@ -22,7 +22,7 @@ describe('Preset Mapping (Iteration 3)', () => {
 
     // Get first device ID for preset tests
     cy.request(`${apiUrl}/devices`).then((response) => {
-      deviceId = response.body[0].device_id
+      deviceId = response.body.devices[0].device_id
       // Clear any existing presets for this device
       cy.request('GET', `${apiUrl}/presets/${deviceId}`).then((presetsResp) => {
         presetsResp.body.forEach((preset: { preset_number: number }) => {
