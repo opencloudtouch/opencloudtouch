@@ -5,7 +5,6 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from opencloudtouch.core.dependencies import set_settings_repo
 from opencloudtouch.db import Device
 from opencloudtouch.discovery import DiscoveredDevice
 from opencloudtouch.main import app
@@ -26,10 +25,10 @@ def mock_config():
 
 @pytest.fixture
 def mock_settings_repo():
-    """Mock settings repository and register it."""
+    """Mock settings repository and register it in app.state."""
     mock_repo = AsyncMock(spec=SettingsRepository)
     mock_repo.get_manual_ips = AsyncMock(return_value=[])
-    set_settings_repo(mock_repo)
+    app.state.settings_repo = mock_repo
     yield mock_repo
 
 
@@ -377,7 +376,7 @@ async def test_sync_uses_manual_ips_from_database():
     # Mock settings repo to return DB IP
     mock_settings = AsyncMock(spec=SettingsRepository)
     mock_settings.get_manual_ips = AsyncMock(return_value=[db_manual_ip])
-    set_settings_repo(mock_settings)
+    app.state.settings_repo = mock_settings
 
     # Mock DeviceService to return successful sync
     mock_service = AsyncMock(spec=DeviceService)

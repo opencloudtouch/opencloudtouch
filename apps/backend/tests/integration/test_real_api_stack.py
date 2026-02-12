@@ -19,13 +19,6 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from opencloudtouch.core.dependencies import (
-    clear_dependencies,
-    set_device_repo,
-    set_device_service,
-    set_settings_repo,
-    set_settings_service,
-)
 from opencloudtouch.db import DeviceRepository
 from opencloudtouch.devices.adapter import BoseDeviceDiscoveryAdapter
 from opencloudtouch.devices.client import DeviceInfo
@@ -59,13 +52,9 @@ async def real_db():
 
 @pytest.fixture
 async def real_api_client(real_db):
-    """FastAPI client with real DB and dependency overrides."""
+    """FastAPI client with real DB and dependency in app.state."""
     device_repo = real_db["device_repo"]
     settings_repo = real_db["settings_repo"]
-
-    # Set repositories using dependency injection
-    set_device_repo(device_repo)
-    set_settings_repo(settings_repo)
 
     # Initialize services (same as main.py lifespan)
     sync_service = DeviceSyncService(
@@ -79,18 +68,17 @@ async def real_api_client(real_db):
         sync_service=sync_service,
         discovery_adapter=BoseDeviceDiscoveryAdapter(),
     )
-    set_device_service(device_service)
-
     settings_service = SettingsService(repository=settings_repo)
-    set_settings_service(settings_service)
 
-    try:
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            yield client
-    finally:
-        # Clean up dependencies after test
-        clear_dependencies()
+    # Set in app.state for dependency injection
+    app.state.device_repo = device_repo
+    app.state.settings_repo = settings_repo
+    app.state.device_service = device_service
+    app.state.settings_service = settings_service
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
 
 
 class TestRealAPIStack:

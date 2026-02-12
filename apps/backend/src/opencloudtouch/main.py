@@ -14,14 +14,6 @@ from fastapi.staticfiles import StaticFiles
 
 from opencloudtouch.api import devices_router
 from opencloudtouch.core.config import get_config, init_config
-from opencloudtouch.core.dependencies import (
-    set_device_repo,
-    set_device_service,
-    set_preset_repo,
-    set_preset_service,
-    set_settings_repo,
-    set_settings_service,
-)
 from opencloudtouch.core.logging import setup_logging
 from opencloudtouch.db import DeviceRepository
 from opencloudtouch.devices.adapter import get_discovery_adapter
@@ -56,7 +48,7 @@ async def lifespan(app: FastAPI):
     # Initialize database
     device_repo = DeviceRepository(cfg.effective_db_path)
     await device_repo.initialize()
-    set_device_repo(device_repo)  # Register via dependency injection
+    app.state.device_repo = device_repo
     logger.info("Device repository initialized")
 
     # Initialize settings repository (convert str to Path if needed)
@@ -69,18 +61,18 @@ async def lifespan(app: FastAPI):
     )
     settings_repo = SettingsRepository(db_path)
     await settings_repo.initialize()
-    set_settings_repo(settings_repo)  # Register via dependency injection
+    app.state.settings_repo = settings_repo
     logger.info("Settings repository initialized")
 
     # Initialize preset repository
     preset_repo = PresetRepository(cfg.effective_db_path)
     await preset_repo.initialize()
-    set_preset_repo(preset_repo)  # Register via dependency injection
+    app.state.preset_repo = preset_repo
     logger.info("Preset repository initialized")
 
     # Initialize preset service
     preset_service = PresetService(preset_repo)
-    set_preset_service(preset_service)  # Register via dependency injection
+    app.state.preset_service = preset_service
     logger.info("Preset service initialized")
 
     # Initialize device service
@@ -96,7 +88,7 @@ async def lifespan(app: FastAPI):
         sync_service=sync_service,
         discovery_adapter=discovery_adapter,
     )
-    set_device_service(device_service)  # Register via dependency injection
+    app.state.device_service = device_service
     logger.info("Device service initialized")
 
     # Auto-discover devices on startup (especially mock devices)
@@ -110,7 +102,7 @@ async def lifespan(app: FastAPI):
 
     # Initialize settings service
     settings_service = SettingsService(settings_repo)
-    set_settings_service(settings_service)  # Register via dependency injection
+    app.state.settings_service = settings_service
     logger.info("Settings service initialized")
 
     yield

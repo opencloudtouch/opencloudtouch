@@ -6,7 +6,6 @@ from pathlib import Path
 import pytest
 from httpx import AsyncClient, ASGITransport
 
-from opencloudtouch.core.dependencies import set_preset_service
 from opencloudtouch.presets.repository import PresetRepository
 from opencloudtouch.presets.service import PresetService
 from opencloudtouch.main import app
@@ -19,10 +18,11 @@ async def preset_service():
         db_path = Path(tmpdir) / "test_presets.db"
         repo = PresetRepository(str(db_path))
         await repo.initialize()
-        set_preset_service(repo)  # Register repository via dependency injection
 
         service = PresetService(repo)
-        set_preset_service(service)  # Register service via dependency injection
+
+        # Set in app.state for dependency injection
+        app.state.preset_service = service
 
         yield service
 
