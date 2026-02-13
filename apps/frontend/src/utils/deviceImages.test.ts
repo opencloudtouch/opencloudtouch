@@ -1,7 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   getDeviceImage,
   getAllDeviceImages,
+  preloadDeviceImages,
   getDeviceDisplayName,
   getDeviceAspectRatio,
 } from "./deviceImages";
@@ -53,6 +54,50 @@ describe("deviceImages utilities", () => {
       expect(images).toHaveProperty("st300");
       expect(images).toHaveProperty("default");
       expect(Object.keys(images)).toHaveLength(5);
+    });
+  });
+
+  describe("preloadDeviceImages", () => {
+    beforeEach(() => {
+      // Mock the Image constructor
+      global.Image = class {
+        public src = "";
+        constructor() {
+          // Simulate image loading
+        }
+      } as unknown as typeof Image;
+    });
+
+    it("should attempt to preload all device images", () => {
+      const imageSrcList: string[] = [];
+
+      // Override Image to track src assignments
+      global.Image = class {
+        private _src = "";
+
+        get src() {
+          return this._src;
+        }
+
+        set src(value: string) {
+          this._src = value;
+          imageSrcList.push(value);
+        }
+      } as unknown as typeof Image;
+
+      preloadDeviceImages();
+
+      // Should create images for all device types
+      expect(imageSrcList).toContain("/images/devices/st10.svg");
+      expect(imageSrcList).toContain("/images/devices/st20.svg");
+      expect(imageSrcList).toContain("/images/devices/st30.svg");
+      expect(imageSrcList).toContain("/images/devices/st300.svg");
+      expect(imageSrcList).toContain("/images/devices/default.svg");
+      expect(imageSrcList).toHaveLength(5);
+    });
+
+    it("should not throw errors when called", () => {
+      expect(() => preloadDeviceImages()).not.toThrow();
     });
   });
 
