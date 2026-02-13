@@ -105,7 +105,7 @@ class DeviceRepository(BaseRepository):
             await self._db.commit()
 
         await self._db.execute("""
-            CREATE INDEX IF NOT EXISTS idx_device_id ON devices(device_id)
+            CREATE INDEX IF NOT EXISTS idx_devices_device_id ON devices(device_id)
         """)
 
         await self._db.execute("""

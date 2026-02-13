@@ -33,7 +33,7 @@ class PresetRepository(BaseRepository):
         """)
 
         await self._db.execute("""
-            CREATE INDEX IF NOT EXISTS idx_device_id ON presets(device_id)
+            CREATE INDEX IF NOT EXISTS idx_presets_device_id ON presets(device_id)
         """)
 
         await self._db.execute("""
