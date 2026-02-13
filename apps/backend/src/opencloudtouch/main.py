@@ -256,23 +256,14 @@ if static_dir.exists():
         Raises:
             HTTPException: 404 if path traversal attempt detected.
         """
-        # DEBUG
-        import sys
-
-        print(f"DEBUG serve_spa: full_path={repr(full_path)}", file=sys.stderr)
-        print(f"DEBUG: '..' in full_path = {'..' in full_path}", file=sys.stderr)
-
         # SECURITY: Prevent path traversal attacks
         from urllib.parse import unquote
 
         # Decode URL-encoded characters (%2e = ., %2f = /)
         decoded_path = unquote(full_path)
-        print(f"DEBUG: decoded_path={repr(decoded_path)}", file=sys.stderr)
-        print(f"DEBUG: '..' in decoded = {'..' in decoded_path}", file=sys.stderr)
 
         # Reject any path containing directory traversal patterns
         if ".." in decoded_path:
-            print("DEBUG: Blocking path due to '..'", file=sys.stderr)
             raise HTTPException(status_code=404, detail="Not found")
 
         # Reject backslashes (Windows path traversal)
