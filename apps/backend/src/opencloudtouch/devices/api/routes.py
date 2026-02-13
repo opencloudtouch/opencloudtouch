@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from opencloudtouch.core.config import AppConfig, get_config
 from opencloudtouch.core.dependencies import get_device_service
+from opencloudtouch.core.exceptions import DeviceNotFoundError, DiscoveryError
 from opencloudtouch.devices.service import DeviceService
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,8 @@ async def discover_devices(
         }
     except Exception as e:
         logger.error(f"Discovery failed: {e}")
-        raise HTTPException(status_code=500, detail="Device discovery failed") from e
+        # Wrap generic exceptions in DiscoveryError
+        raise DiscoveryError(f"Device discovery failed: {str(e)}") from e
 
 
 @router.post("/sync")
@@ -75,7 +77,8 @@ async def sync_devices(
             return result.to_dict()
         except Exception as e:
             logger.error(f"Sync failed: {e}")
-            raise HTTPException(status_code=500, detail="Device sync failed") from e
+            # Wrap generic exceptions in DiscoveryError
+            raise DiscoveryError(f"Device sync failed: {str(e)}") from e
 
 
 @router.get("")
@@ -134,11 +137,14 @@ async def get_device(
 
     Returns:
         Device details
+
+    Raises:
+        DeviceNotFoundError: If device does not exist
     """
     device = await device_service.get_device_by_id(device_id)
 
     if not device:
-        raise HTTPException(status_code=404, detail="Device not found")
+        raise DeviceNotFoundError(device_id)
 
     return device.to_dict()
 
@@ -182,7 +188,8 @@ async def get_device_capabilities_endpoint(
         capabilities = await device_service.get_device_capabilities(device_id)
         return capabilities
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        # ValueError from service means device not found
+        raise DeviceNotFoundError(device_id) from e
     except Exception as e:
         logger.error(f"Failed to get capabilities for device {device_id}: {e}")
         raise HTTPException(

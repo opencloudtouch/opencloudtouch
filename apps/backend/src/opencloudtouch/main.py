@@ -7,13 +7,19 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from opencloudtouch.api import devices_router
 from opencloudtouch.core.config import get_config, init_config
+from opencloudtouch.core.exceptions import (
+    DeviceConnectionError,
+    DeviceNotFoundError,
+    DiscoveryError,
+    OpenCloudTouchError,
+)
 from opencloudtouch.core.logging import setup_logging
 from opencloudtouch.db import DeviceRepository
 from opencloudtouch.devices.adapter import get_discovery_adapter
@@ -131,7 +137,60 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS middleware for Web UI
+
+# ============================================================================
+# Exception Handlers - Unified Error Handling Strategy (ARCH-06)
+# ============================================================================
+
+
+@app.exception_handler(DeviceNotFoundError)
+async def device_not_found_handler(request: Request, exc: DeviceNotFoundError):
+    """Handle DeviceNotFoundError as 404 HTTP response."""
+    logger = logging.getLogger(__name__)
+    logger.warning(f"Device not found: {exc.device_id}")
+    return JSONResponse(
+        status_code=404,
+        content={"error": "device_not_found", "detail": str(exc)},
+    )
+
+
+@app.exception_handler(DeviceConnectionError)
+async def device_connection_error_handler(request: Request, exc: DeviceConnectionError):
+    """Handle DeviceConnectionError as 503 Service Unavailable."""
+    logger = logging.getLogger(__name__)
+    logger.error(f"Device connection failed: {exc.device_ip}", exc_info=exc)
+    return JSONResponse(
+        status_code=503,
+        content={"error": "device_unavailable", "detail": str(exc)},
+    )
+
+
+@app.exception_handler(DiscoveryError)
+async def discovery_error_handler(request: Request, exc: DiscoveryError):
+    """Handle DiscoveryError as 500 Internal Server Error."""
+    logger = logging.getLogger(__name__)
+    logger.error(f"Discovery failed: {exc}", exc_info=exc)
+    return JSONResponse(
+        status_code=500,
+        content={"error": "discovery_failed", "detail": str(exc)},
+    )
+
+
+@app.exception_handler(OpenCloudTouchError)
+async def oct_error_handler(request: Request, exc: OpenCloudTouchError):
+    """Catch-all for other OpenCloudTouch domain exceptions."""
+    logger = logging.getLogger(__name__)
+    logger.error(f"OpenCloudTouch error: {exc}", exc_info=exc)
+    return JSONResponse(
+        status_code=500,
+        content={"error": "internal_error", "detail": str(exc)},
+    )
+
+
+# ============================================================================
+# CORS Middleware
+# ============================================================================
+
 # CORS middleware for Web UI
 app.add_middleware(
     CORSMiddleware,
