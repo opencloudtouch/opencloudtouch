@@ -118,10 +118,12 @@ async function startBackend() {
 
   log(`[DEBUG] Python path: ${pythonCmd}`, colors.yellow);
 
-  // Add src directory to PYTHONPATH (no longer needed with editable install)
+  // Set PYTHONPATH to src directory (required for non-editable installs)
+  const pythonPath = join(BACKEND_DIR, 'src');
 
   const env = {
     ...process.env,
+    PYTHONPATH: pythonPath,
     OCT_PORT: String(TEST_PORT_BACKEND),
     OCT_MOCK_MODE: 'true',
     OCT_ALLOW_DANGEROUS_OPERATIONS: 'true',

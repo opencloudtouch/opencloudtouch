@@ -8,9 +8,11 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from opencloudtouch.api import devices_router
 from opencloudtouch.core.config import get_config, init_config
@@ -18,7 +20,9 @@ from opencloudtouch.core.exceptions import (
     DeviceConnectionError,
     DeviceNotFoundError,
     DiscoveryError,
+    ErrorDetail,
     OpenCloudTouchError,
+    map_status_to_type,
 )
 from opencloudtouch.core.logging import setup_logging
 from opencloudtouch.db import DeviceRepository
@@ -142,8 +146,64 @@ app = FastAPI(
 
 
 # ============================================================================
-# Exception Handlers - Unified Error Handling Strategy (ARCH-06)
+# Exception Handlers - RFC 7807-inspired Standardized Error Responses
 # ============================================================================
+
+
+@app.exception_handler(StarletteHTTPException)
+async def starlette_http_exception_handler(
+    request: Request, exc: StarletteHTTPException
+):
+    """Handle Starlette HTTPException (404, 405 from routing layer) with RFC 7807 format."""
+    # Starlette raises these for non-existent routes (404) and wrong methods (405)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=ErrorDetail(
+            type=map_status_to_type(exc.status_code),
+            title=exc.detail if exc.detail else f"HTTP {exc.status_code}",
+            status=exc.status_code,
+            detail=exc.detail if exc.detail else "The requested resource was not found",
+            instance=str(request.url.path),
+        ).model_dump(),
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Handle FastAPI HTTPException with standardized error format."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=ErrorDetail(
+            type=map_status_to_type(exc.status_code),
+            title=exc.detail,
+            status=exc.status_code,
+            detail=exc.detail,
+            instance=str(request.url.path),
+        ).model_dump(),
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Handle Pydantic validation errors with field-level details."""
+    return JSONResponse(
+        status_code=422,
+        content=ErrorDetail(
+            type="validation_error",
+            title="Invalid Request Data",
+            status=422,
+            detail="Request validation failed",
+            instance=str(request.url.path),
+            errors=[
+                {
+                    "field": ".".join(str(loc) for loc in err["loc"]),
+                    "message": err["msg"],
+                    "type": err["type"],
+                }
+                for err in exc.errors()
+            ],
+        ).model_dump(),
+    )
 
 
 @app.exception_handler(DeviceNotFoundError)
@@ -153,7 +213,13 @@ async def device_not_found_handler(request: Request, exc: DeviceNotFoundError):
     logger.warning(f"Device not found: {exc.device_id}")
     return JSONResponse(
         status_code=404,
-        content={"error": "device_not_found", "detail": str(exc)},
+        content=ErrorDetail(
+            type="not_found",
+            title="Device Not Found",
+            status=404,
+            detail=str(exc),
+            instance=str(request.url.path),
+        ).model_dump(),
     )
 
 
@@ -164,7 +230,13 @@ async def device_connection_error_handler(request: Request, exc: DeviceConnectio
     logger.error(f"Device connection failed: {exc.device_ip}", exc_info=exc)
     return JSONResponse(
         status_code=503,
-        content={"error": "device_unavailable", "detail": str(exc)},
+        content=ErrorDetail(
+            type="service_unavailable",
+            title="Device Unavailable",
+            status=503,
+            detail=str(exc),
+            instance=str(request.url.path),
+        ).model_dump(),
     )
 
 
@@ -175,7 +247,13 @@ async def discovery_error_handler(request: Request, exc: DiscoveryError):
     logger.error(f"Discovery failed: {exc}", exc_info=exc)
     return JSONResponse(
         status_code=500,
-        content={"error": "discovery_failed", "detail": str(exc)},
+        content=ErrorDetail(
+            type="server_error",
+            title="Device Discovery Failed",
+            status=500,
+            detail=str(exc),
+            instance=str(request.url.path),
+        ).model_dump(),
     )
 
 
@@ -186,7 +264,34 @@ async def oct_error_handler(request: Request, exc: OpenCloudTouchError):
     logger.error(f"OpenCloudTouch error: {exc}", exc_info=exc)
     return JSONResponse(
         status_code=500,
-        content={"error": "internal_error", "detail": str(exc)},
+        content=ErrorDetail(
+            type="server_error",
+            title="Internal Error",
+            status=500,
+            detail=str(exc),
+            instance=str(request.url.path),
+        ).model_dump(),
+    )
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    """Catch-all for unhandled exceptions."""
+    logger = logging.getLogger(__name__)
+    logger.exception("Unhandled exception", exc_info=exc)
+
+    # Show detailed error message (production can override with log filtering)
+    detail = str(exc)
+
+    return JSONResponse(
+        status_code=500,
+        content=ErrorDetail(
+            type="server_error",
+            title="Internal Server Error",
+            status=500,
+            detail=detail,
+            instance=str(request.url.path),
+        ).model_dump(),
     )
 
 

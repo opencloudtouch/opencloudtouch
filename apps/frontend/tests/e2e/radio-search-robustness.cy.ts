@@ -171,7 +171,7 @@ describe('Radio Search Robustness', () => {
       // Should show error message in UI
       cy.get('.search-error')
         .should('be.visible')
-        .and('contain.text', 'Suche fehlgeschlagen')
+        .and('contain.text', 'Dienst nicht verfügbar')
 
       // Search input should still be usable (not crash)
       cy.get('.search-input').should('be.visible').and('not.be.disabled')

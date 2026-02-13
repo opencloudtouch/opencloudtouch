@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { ApiError, isApiError, getErrorMessage, parseApiError } from "../api/types";
 import "./RadioSearch.css";
 
 export interface RadioStation {
@@ -83,7 +84,18 @@ export default function RadioSearch({ onStationSelect, isOpen, onClose }: RadioS
         );
 
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
+          // Parse standardized error response (RFC 7807)
+          const apiError = await parseApiError(response);
+          console.error("Radio search failed:", apiError || response);
+
+          // Use user-friendly error message from getErrorMessage
+          if (apiError) {
+            setError(getErrorMessage(apiError));
+          } else {
+            setError(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          setResults([]);
+          return;
         }
 
         const data = await response.json();
@@ -104,7 +116,8 @@ export default function RadioSearch({ onStationSelect, isOpen, onClose }: RadioS
           return;
         }
         setResults([]);
-        setError("Suche fehlgeschlagen");
+        setError(getErrorMessage(err));
+        console.error("Radio search error:", err);
       } finally {
         setLoading(false);
       }

@@ -92,8 +92,8 @@ repos:
       # MANDATORY: ALL TESTS MUST PASS BEFORE COMMIT
       # ========================================================================
       - id: all-tests-must-pass
-        name: "🚨 MANDATORY: Run ALL tests (Backend + Frontend Unit) - 100% must pass"
-        entry: bash -c 'cd apps/backend && ../../.venv/Scripts/python.exe -m pytest -v --tb=short -x && cd ../frontend && npm run test'
+        name: "🚨 MANDATORY: Run ALL tests (Backend + Frontend + E2E) - 100% must pass"
+        entry: bash -c 'npm test || exit 1'
         language: system
         pass_filenames: false
         always_run: true

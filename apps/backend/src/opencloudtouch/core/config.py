@@ -33,7 +33,8 @@ class AppConfig(BaseSettings):
     cors_origins: list[str] = Field(
         default=[
             "http://localhost:3000",
-            "http://localhost:5173",
+            "http://localhost:4173",  # Vite preview (E2E tests)
+            "http://localhost:5173",  # Vite dev
             "http://localhost:7777",
         ],
         description="Allowed CORS origins (use ['*'] for development only)",

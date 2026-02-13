@@ -163,3 +163,83 @@ async def test_lifespan_error_handling():
         with pytest.raises(Exception, match="DB connection failed"):
             async with lifespan(app):
                 pass
+
+
+def test_404_returns_rfc7807_error():
+    """Test that 404 Not Found returns RFC 7807 ErrorDetail.
+
+    Tests the StarletteHTTPException handler for routing-level 404s.
+    We need to test before the SPA catch-all is hit.
+    """
+    from opencloudtouch.main import StarletteHTTPException
+
+    # Simulate a routing 404 by patching the router lookup
+    # Alternative: Use a request that actually triggers Starlette's 404
+    # Since all routes are handled by SPA catch-all, we test the handler directly
+
+    # Create a mock request
+    mock_request = MagicMock()
+    mock_request.url.path = "/api/test-404"
+
+    # Create StarletteHTTPException
+    exc = StarletteHTTPException(status_code=404, detail="Not Found")
+
+    # Call handler directly
+    from opencloudtouch.main import starlette_http_exception_handler
+    import asyncio
+
+    response = asyncio.run(starlette_http_exception_handler(mock_request, exc))
+
+    assert response.status_code == 404
+    # Parse JSON from response body
+    import json
+
+    data = json.loads(response.body.decode())
+
+    # Verify RFC 7807 structure
+    assert "type" in data
+    assert "title" in data
+    assert "status" in data
+    assert "detail" in data
+    assert "instance" in data
+
+    # Verify values
+    assert data["type"] == "not_found"
+    assert data["status"] == 404
+
+
+def test_405_returns_rfc7807_error():
+    """Test that 405 Method Not Allowed returns RFC 7807 ErrorDetail.
+
+    Tests the StarletteHTTPException handler for routing-level 405s.
+    """
+    from opencloudtouch.main import StarletteHTTPException
+    from unittest.mock import MagicMock
+    import asyncio
+    import json
+
+    # Create a mock request
+    mock_request = MagicMock()
+    mock_request.url.path = "/api/devices"
+
+    # Create StarletteHTTPException for 405
+    exc = StarletteHTTPException(status_code=405, detail="Method Not Allowed")
+
+    # Call handler directly
+    from opencloudtouch.main import starlette_http_exception_handler
+
+    response = asyncio.run(starlette_http_exception_handler(mock_request, exc))
+
+    assert response.status_code == 405
+    data = json.loads(response.body.decode())
+
+    # Verify RFC 7807 structure
+    assert "type" in data
+    assert "title" in data
+    assert "status" in data
+    assert "detail" in data
+    assert "instance" in data
+
+    # Verify values
+    assert data["status"] == 405
+    assert data["instance"] == "/api/devices"

@@ -3,12 +3,18 @@
  * Centralized API calls for device management
  */
 
-// Backend API response structure
+import { getErrorMessage } from "./types";
+
+// Backend API response structure (matches Device.to_dict() from repository.py)
 interface DeviceAPIResponse {
+  id?: number;
   device_id: string;
-  ip_address: string;
-  friendly_name: string;
-  model_name?: string;
+  ip: string; // Backend uses 'ip', not 'ip_address'
+  name: string; // Backend uses 'name', not 'friendly_name'
+  model: string; // Backend uses 'model', not 'model_name'
+  mac_address: string;
+  firmware_version: string;
+  schema_version?: string;
   last_seen: string;
 }
 
@@ -38,9 +44,10 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 function mapDeviceFromAPI(apiDevice: DeviceAPIResponse): Device {
   return {
     device_id: apiDevice.device_id,
-    name: apiDevice.friendly_name,
-    model: apiDevice.model_name,
-    ip: apiDevice.ip_address,
+    name: apiDevice.name, // Backend already returns 'name'
+    model: apiDevice.model, // Backend already returns 'model'
+    ip: apiDevice.ip, // Backend already returns 'ip'
+    firmware: apiDevice.firmware_version,
   };
 }
 
@@ -48,26 +55,40 @@ function mapDeviceFromAPI(apiDevice: DeviceAPIResponse): Device {
  * Fetch all devices from the backend
  */
 export async function getDevices(): Promise<Device[]> {
-  const response = await fetch(`${API_BASE_URL}/api/devices`);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch devices: ${response.statusText}`);
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/devices`);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      throw new Error(
+        getErrorMessage(errorData) || `Failed to fetch devices: ${response.statusText}`
+      );
+    }
+    const data = await response.json();
+    const devicesList: DeviceAPIResponse[] = data.devices || [];
+    return devicesList.map(mapDeviceFromAPI);
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
   }
-  const data = await response.json();
-  const devicesList: DeviceAPIResponse[] = data.devices || [];
-  return devicesList.map(mapDeviceFromAPI);
 }
 
 /**
  * Sync devices by triggering discovery
  */
 export async function syncDevices(): Promise<SyncResult> {
-  const response = await fetch(`${API_BASE_URL}/api/devices/sync`, {
-    method: "POST",
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to sync devices: ${response.statusText}`);
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/devices/sync`, {
+      method: "POST",
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      throw new Error(
+        getErrorMessage(errorData) || `Failed to sync devices: ${response.statusText}`
+      );
+    }
+    return response.json();
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
   }
-  return response.json();
 }
 
 /**

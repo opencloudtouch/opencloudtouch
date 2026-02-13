@@ -15,6 +15,7 @@ def test_config_defaults(monkeypatch):
     # Remove CI env var to test production defaults
     monkeypatch.delenv("CI", raising=False)
     monkeypatch.delenv("OCT_MOCK_MODE", raising=False)
+    monkeypatch.delenv("OCT_DB_PATH", raising=False)
 
     config = AppConfig()
 
@@ -175,6 +176,7 @@ def test_effective_db_path_explicit():
 
 def test_effective_db_path_ci_mode(monkeypatch):
     """Test effective_db_path returns :memory: in CI."""
+    monkeypatch.delenv("OCT_DB_PATH", raising=False)
     monkeypatch.setenv("CI", "true")
     config = AppConfig()
     assert config.effective_db_path == ":memory:"
@@ -183,6 +185,7 @@ def test_effective_db_path_ci_mode(monkeypatch):
 def test_effective_db_path_mock_mode(monkeypatch):
     """Test effective_db_path returns test DB in mock mode."""
     monkeypatch.delenv("CI", raising=False)
+    monkeypatch.delenv("OCT_DB_PATH", raising=False)
     config = AppConfig(mock_mode=True)
     assert config.effective_db_path == "data-local/oct-test.db"
 
@@ -191,5 +194,6 @@ def test_effective_db_path_production(monkeypatch):
     """Test effective_db_path returns production path by default."""
     monkeypatch.delenv("CI", raising=False)
     monkeypatch.delenv("OCT_MOCK_MODE", raising=False)
+    monkeypatch.delenv("OCT_DB_PATH", raising=False)
     config = AppConfig(mock_mode=False)
     assert config.effective_db_path == "/data/oct.db"
