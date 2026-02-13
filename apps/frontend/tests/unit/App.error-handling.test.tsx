@@ -30,7 +30,7 @@ describe('App Error Handling', () => {
 
     // Assert: Should show error message
     await waitFor(() => {
-      expect(screen.getByText(/Fehler beim Laden der Ger‰te/i)).toBeInTheDocument();
+      expect(screen.getByText(/Fehler beim Laden der Ger√§te/i)).toBeInTheDocument();
     });
   });
 
@@ -47,7 +47,7 @@ describe('App Error Handling', () => {
 
     // Assert: Should show error message
     await waitFor(() => {
-      expect(screen.getByText(/Fehler beim Laden der Ger‰te/i)).toBeInTheDocument();
+      expect(screen.getByText(/Fehler beim Laden der Ger√§te/i)).toBeInTheDocument();
     });
   });
 
@@ -88,7 +88,7 @@ describe('App Error Handling', () => {
 
     // Assert: Should load devices successfully
     await waitFor(() => {
-      expect(screen.queryByText(/Fehler beim Laden der Ger‰te/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Fehler beim Laden der GerÔøΩte/i)).not.toBeInTheDocument();
     });
 
     // Check navigation is rendered (uses data-test, not data-testid)
@@ -107,7 +107,7 @@ describe('App Error Handling', () => {
     // Act: Render app
     renderWithProviders(<App />);
     await waitFor(() => {
-      expect(screen.getByText(/Fehler beim Laden der Ger‰te/i)).toBeInTheDocument();
+      expect(screen.getByText(/Fehler beim Laden der Ger√§te/i)).toBeInTheDocument();
     });
 
     // Act: Retry
@@ -116,7 +116,7 @@ describe('App Error Handling', () => {
 
     // Assert: Error message should be gone
     await waitFor(() => {
-      expect(screen.queryByText(/Fehler beim Laden der Ger‰te/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Fehler beim Laden der Ger√§te/i)).not.toBeInTheDocument();
     });
   });
 

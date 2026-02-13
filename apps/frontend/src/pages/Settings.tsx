@@ -9,7 +9,7 @@ export default function Settings() {
   const [success, setSuccess] = useState("");
 
   // React Query hooks
-  const { data: manualIPs = [], isLoading: loading } = useManualIPs();
+  const { data: manualIPs = [], isLoading: loading, error: queryError } = useManualIPs();
   const addIP = useAddManualIP();
   const deleteIP = useDeleteManualIP();
 
@@ -72,6 +72,16 @@ export default function Settings() {
       <div className="loading-container">
         <div className="spinner" />
         <p className="loading-message">Einstellungen werden geladen...</p>
+      </div>
+    );
+  }
+
+  if (queryError) {
+    return (
+      <div className="error-container">
+        <div className="error-icon">⚠️</div>
+        <h2 className="error-title">Fehler beim Laden</h2>
+        <p className="error-message">{queryError.message}</p>
       </div>
     );
   }

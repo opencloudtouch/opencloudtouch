@@ -116,14 +116,18 @@ describe('EmptyState Component', () => {
         json: async () => ({ synced: 3 })
       });
 
-      const onRefresh = vi.fn();
-      renderWithProviders(<EmptyState onRefreshDevices={onRefresh} />);
+      // Mock refetch of devices after sync
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ devices: [{ device_id: '1', name: 'Test' }] })
+      });
+
+      renderWithProviders(<EmptyState />);
 
       const discoverButton = screen.getByRole('button', { name: /Jetzt Geräte suchen/i });
       fireEvent.click(discoverButton);
 
       await waitFor(() => {
-        expect(onRefresh).toHaveBeenCalled();
         expect(mockNavigate).toHaveBeenCalledWith('/');
       });
     });
@@ -141,7 +145,7 @@ describe('EmptyState Component', () => {
         json: async () => ({ synced: 0 })
       });
 
-      renderWithProviders(<EmptyState onRefreshDevices={() => {}} />);
+      renderWithProviders(<EmptyState />);
 
       const discoverButton = screen.getByRole('button', { name: /Jetzt Geräte suchen/i });
       fireEvent.click(discoverButton);
@@ -162,7 +166,7 @@ describe('EmptyState Component', () => {
       // Mock failed device sync
       vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'));
 
-      renderWithProviders(<EmptyState onRefreshDevices={() => {}} />);
+      renderWithProviders(<EmptyState />);
 
       const discoverButton = screen.getByRole('button', { name: /Jetzt Geräte suchen/i });
       fireEvent.click(discoverButton);
@@ -240,8 +244,8 @@ describe('EmptyState Component', () => {
         expect(screen.getByText(/Ungültige IP-Adressen:/)).toBeInTheDocument();
       });
 
-      // API should NOT be called
-      expect(fetch).toHaveBeenCalledTimes(2); // Only initial checks
+      // API should NOT be called (only manual IPs fetch)
+      expect(fetch).toHaveBeenCalledTimes(1); // Only manual IPs check
     });
 
     it('should save valid IP addresses successfully', async () => {

@@ -242,13 +242,21 @@ describe('Settings Page', () => {
   })
 
   it('deletes IP successfully', async () => {
+    // Initial fetch of IPs
     fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: ['192.168.1.10', '192.168.1.20'] })
     })
 
+    // DELETE request
     fetch.mockResolvedValueOnce({
       ok: true
+    })
+
+    // Re-fetch after delete (React Query invalidation)
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ips: ['192.168.1.20'] })
     })
 
     renderWithProviders(<Settings />)
@@ -338,14 +346,22 @@ describe('Settings Page', () => {
   })
 
   it('trims whitespace from IP input', async () => {
+    // Initial fetch - empty list
     fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: [] })
     })
 
+    // POST new manual IPs (with trimmed IP)
     fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({})
+      json: async () => ({ ips: ['192.168.1.30'] })
+    })
+
+    // Re-fetch after mutation (React Query invalidation)
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ips: ['192.168.1.30'] })
     })
 
     renderWithProviders(<Settings />)
@@ -364,7 +380,7 @@ describe('Settings Page', () => {
       expect(fetch).toHaveBeenCalledWith(
         '/api/settings/manual-ips',
         expect.objectContaining({
-          body: JSON.stringify({ ip: '192.168.1.30' }) // Trimmed
+          body: JSON.stringify({ ips: ['192.168.1.30'] }) // Trimmed
         })
       )
     })
