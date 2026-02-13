@@ -131,7 +131,7 @@ opencloudtouch/
 │   ├── pyproject.toml         # Python packaging (PEP 517/518)
 │   ├── pytest.ini             # Test configuration
 │   └── Dockerfile             # Backend container image
-├── apps/apps/frontend/                  # React Frontend (Vite)
+├── apps/frontend/             # React Frontend (Vite)
 │   ├── src/                   # React components, hooks, services
 │   ├── tests/                 # Frontend tests
 │   └── package.json           # NPM dependencies

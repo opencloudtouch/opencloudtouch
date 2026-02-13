@@ -94,16 +94,15 @@ class IDeviceSyncService(Protocol):
     Implementation handles discovery → query → persist workflow.
     """
 
+    async def sync(self) -> SyncResult:
+        """Synchronize devices to database.
 
-async def sync(self) -> SyncResult:
-    """Synchronize devices to database.
+        Discovers devices, queries each for detailed info, persists to DB.
 
-    Discovers devices, queries each for detailed info, persists to DB.
+        Returns:
+            SyncResult with statistics (discovered, synced, failed)
 
-    Returns:
-        SyncResult with statistics (discovered, synced, failed)
-
-    Raises:
-        Exception: If sync workflow fails critically
-    """
-    ...
+        Raises:
+            Exception: If sync workflow fails critically
+        """
+        ...
