@@ -1,34 +1,17 @@
-import { useState, useEffect, FormEvent } from "react";
+import { useState, FormEvent } from "react";
 import { motion } from "framer-motion";
+import { useManualIPs, useAddManualIP, useDeleteManualIP } from "../hooks/useSettings";
 import "./Settings.css";
 
 export default function Settings() {
-  const [manualIPs, setManualIPs] = useState<string[]>([]);
   const [newIP, setNewIP] = useState("");
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Fetch manual IPs from backend
-  useEffect(() => {
-    fetchManualIPs();
-  }, []);
-
-  const fetchManualIPs = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("/api/settings/manual-ips");
-      if (!response.ok) throw new Error("Failed to fetch IPs");
-      const data = await response.json();
-      setManualIPs(data.ips || []);
-      setError("");
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      setError(`Fehler beim Laden: ${errorMessage}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query hooks
+  const { data: manualIPs = [], isLoading: loading } = useManualIPs();
+  const addIP = useAddManualIP();
+  const deleteIP = useDeleteManualIP();
 
   const validateIP = (ip: string): boolean => {
     const parts = ip.split(".");
@@ -59,22 +42,11 @@ export default function Settings() {
     }
 
     try {
-      const response = await fetch("/api/settings/manual-ips", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ip: trimmedIP }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.detail || "Failed to add IP");
-      }
-
-      setManualIPs([...manualIPs, trimmedIP]);
+      await addIP.mutateAsync(trimmedIP);
       setNewIP("");
       setSuccess(`IP ${trimmedIP} hinzugefügt`);
       setError("");
-      // Auto-clear success message after 3s (UX: temporary notification)
+      // Auto-clear success message after 3s
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
@@ -84,18 +56,10 @@ export default function Settings() {
 
   const handleDeleteIP = async (ipToDelete: string) => {
     try {
-      const response = await fetch(`/api/settings/manual-ips/${ipToDelete}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete IP");
-      }
-
-      setManualIPs(manualIPs.filter((ip) => ip !== ipToDelete));
+      await deleteIP.mutateAsync(ipToDelete);
       setSuccess(`IP ${ipToDelete} entfernt`);
       setError("");
-      // Auto-clear success message after 3s (UX: temporary notification)
+      // Auto-clear success message after 3s
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";

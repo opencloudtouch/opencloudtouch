@@ -17,6 +17,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { ToastProvider } from '../../src/contexts/ToastContext';
 import EmptyState from '../../src/components/EmptyState';
+import { QueryWrapper } from '../utils/reactQueryTestUtils';
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
@@ -30,9 +31,11 @@ vi.mock('react-router-dom', async () => {
 
 const renderWithProviders = (component) => {
   return render(
-    <BrowserRouter>
-      <ToastProvider>{component}</ToastProvider>
-    </BrowserRouter>
+    <QueryWrapper>
+      <BrowserRouter>
+        <ToastProvider>{component}</ToastProvider>
+      </BrowserRouter>
+    </QueryWrapper>
   );
 };
 

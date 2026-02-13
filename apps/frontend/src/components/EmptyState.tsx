@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../contexts/ToastContext";
+import { useManualIPs, useSetManualIPs } from "../hooks/useSettings";
+import { useSyncDevices } from "../hooks/useDevices";
 import "./EmptyState.css";
 
 /**
@@ -10,56 +12,30 @@ import "./EmptyState.css";
  * Guides user through initial setup.
  */
 
-interface EmptyStateProps {
-  onRefreshDevices: () => void | Promise<void | unknown>;
-}
-
-export default function EmptyState({ onRefreshDevices }: EmptyStateProps) {
+export default function EmptyState() {
   const navigate = useNavigate();
   const { show: showToast } = useToast();
   const [showModal, setShowModal] = useState(false);
   const [ipList, setIpList] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [hasManualIPs, setHasManualIPs] = useState(false);
-  const [isDiscovering, setIsDiscovering] = useState(false);
 
-  // Check if manual IPs exist on mount
-  useEffect(() => {
-    const checkIPs = async () => {
-      try {
-        const response = await fetch("/api/settings/manual-ips");
-        if (response.ok) {
-          const data = await response.json();
-          setHasManualIPs(data.ips && data.ips.length > 0);
-        }
-      } catch {
-        // Silent fail - manual IP check is non-critical
-      }
-    };
-    checkIPs();
-  }, []);
+  // React Query hooks
+  const { data: manualIPs = [], isLoading: loadingIPs } = useManualIPs();
+  const setManualIPs = useSetManualIPs();
+  const syncDevices = useSyncDevices();
+
+  const hasManualIPs = manualIPs.length > 0;
 
   const handleOpenModal = async () => {
     setShowModal(true);
-
-    // Load existing IPs when opening modal
-    try {
-      const response = await fetch("/api/settings/manual-ips");
-      if (response.ok) {
-        const data = await response.json();
-        if (data.ips && data.ips.length > 0) {
-          setIpList(data.ips.join("\n"));
-        }
-      }
-    } catch {
-      // Silent fail - modal will show empty textarea
+    // Pre-fill with existing IPs
+    if (manualIPs.length > 0) {
+      setIpList(manualIPs.join("\n"));
     }
   };
 
   const handleSaveIPs = async () => {
-    setIsSaving(true);
     setError(null);
     setSuccess(false);
 
@@ -75,27 +51,16 @@ export default function EmptyState({ onRefreshDevices }: EmptyStateProps) {
 
     if (invalidIPs.length > 0) {
       setError(`Ungültige IP-Adressen: ${invalidIPs.join(", ")}`);
-      setIsSaving(false);
       return;
     }
 
     try {
-      const response = await fetch("/api/settings/manual-ips", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ips }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to save IPs");
-      }
+      // Set all IPs at once (replaces existing)
+      await setManualIPs.mutateAsync(ips);
 
       setSuccess(true);
 
-      // Update hasManualIPs state
-      setHasManualIPs(ips.length > 0);
-
-      // Close modal after short delay to show success state (UX: allow users to see success message)
+      // Close modal after short delay to show success state
       setTimeout(() => {
         setShowModal(false);
         setIpList("");
@@ -103,47 +68,26 @@ export default function EmptyState({ onRefreshDevices }: EmptyStateProps) {
       }, 1500);
     } catch {
       setError("Fehler beim Speichern der IP-Adressen");
-      // Error already shown to user in UI
-    } finally {
-      setIsSaving(false);
     }
   };
 
   const handleDiscovery = async () => {
-    setIsDiscovering(true);
-
     try {
-      // Trigger device sync
-      const response = await fetch("/api/devices/sync", {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        throw new Error("Device sync failed");
-      }
-
-      const result = await response.json();
+      const result = await syncDevices.mutateAsync();
 
       // Check if any devices were found
       if (result.synced > 0) {
-        // Refresh devices in parent (App.jsx)
-        if (onRefreshDevices) {
-          await onRefreshDevices();
-        }
+        // React Query will automatically refetch devices
         // Navigate to dashboard
         navigate("/");
       } else {
-        // Show toast notification
         showToast(
           "Keine Geräte gefunden. Prüfe ob deine Geräte eingeschaltet und im gleichen Netzwerk sind.",
           "warning"
         );
       }
     } catch {
-      // Error shown via toast notification
       showToast("Fehler bei der Gerätesuche. Bitte versuche es erneut.", "error");
-    } finally {
-      setIsDiscovering(false);
     }
   };
 
@@ -218,7 +162,7 @@ export default function EmptyState({ onRefreshDevices }: EmptyStateProps) {
         <button
           className="cta-button"
           onClick={handleDiscovery}
-          disabled={isDiscovering}
+          disabled={syncDevices.isPending}
           data-test="discover-button"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -228,7 +172,7 @@ export default function EmptyState({ onRefreshDevices }: EmptyStateProps) {
             />
             <circle cx="10" cy="10" r="3" fill="currentColor" />
           </svg>
-          {isDiscovering
+          {syncDevices.isPending
             ? "Suche läuft..."
             : hasManualIPs
               ? "Mit manuellen IPs suchen"
@@ -314,7 +258,7 @@ export default function EmptyState({ onRefreshDevices }: EmptyStateProps) {
               placeholder="Beispiel:&#10;192.168.1.100&#10;192.168.1.101&#10;192.168.1.102"
               rows={6}
               maxLength={600}
-              disabled={isSaving}
+              disabled={setManualIPs.isPending}
               className="modal-textarea"
               data-test="ip-textarea"
             />
@@ -363,7 +307,7 @@ export default function EmptyState({ onRefreshDevices }: EmptyStateProps) {
               <button
                 className="modal-cancel"
                 onClick={() => setShowModal(false)}
-                disabled={isSaving}
+                disabled={setManualIPs.isPending}
                 data-test="cancel-button"
               >
                 Abbrechen
@@ -371,10 +315,10 @@ export default function EmptyState({ onRefreshDevices }: EmptyStateProps) {
               <button
                 className="modal-save"
                 onClick={handleSaveIPs}
-                disabled={isSaving}
+                disabled={setManualIPs.isPending}
                 data-test="save-button"
               >
-                {isSaving ? "Speichere..." : "Speichern"}
+                {setManualIPs.isPending ? "Speichere..." : "Speichern"}
               </button>
             </div>
           </div>

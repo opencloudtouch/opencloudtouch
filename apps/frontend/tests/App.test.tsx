@@ -1,9 +1,14 @@
-﻿import { describe, it, expect, vi } from 'vitest'
+﻿import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import App from '../src/App'
+import { QueryWrapper } from './utils/reactQueryTestUtils'
 
 // Mock fetch globally
 global.fetch = vi.fn()
+
+const renderWithProviders = (component) => {
+  return render(<QueryWrapper>{component}</QueryWrapper>)
+}
 
 describe('App Component', () => {
   beforeEach(() => {
@@ -16,7 +21,7 @@ describe('App Component', () => {
       json: async () => ({ devices: [] })
     })
 
-    render(<App />)
+    renderWithProviders(<App />)
 
     await waitFor(() => {
       expect(screen.getByText(/Willkommen bei OpenCloudTouch/i)).toBeInTheDocument()
@@ -29,7 +34,7 @@ describe('App Component', () => {
       json: async () => ({ devices: [{ id: '1', device_id: '1', name: 'Test Device' }] })
     })
 
-    render(<App />)
+    renderWithProviders(<App />)
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith('/api/devices')
@@ -42,7 +47,7 @@ describe('App Component', () => {
       json: async () => ({ devices: [{ id: '1', device_id: '1', name: 'Test Device' }] })
     })
 
-    render(<App />)
+    renderWithProviders(<App />)
 
     await waitFor(() => {
       // Navigation should be visible

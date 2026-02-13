@@ -45,6 +45,7 @@
   "author": "Your Name",
   "license": "Apache-2.0",
   "dependencies": {
+    "@tanstack/react-query": "^5.90.21",
     "cypress": "^15.10.0"
   }
 }

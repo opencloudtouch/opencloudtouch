@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useState, useEffect } from "react";
 import { ToastProvider } from "./contexts/ToastContext";
 import Navigation from "./components/Navigation";
 import EmptyState from "./components/EmptyState";
@@ -9,7 +8,8 @@ import MultiRoom from "./pages/MultiRoom";
 import Firmware from "./pages/Firmware";
 import Settings from "./pages/Settings";
 import Licenses from "./pages/Licenses";
-import { Device } from "./components/DeviceSwiper";
+import { Device } from "./api/devices";
+import { useDevices } from "./hooks/useDevices";
 import "./App.css";
 
 /**
@@ -18,12 +18,11 @@ import "./App.css";
 interface AppRouterProps {
   devices: Device[];
   isLoading: boolean;
-  error: string | null;
-  onRefreshDevices: () => void | Promise<void | Device[]>;
+  error: Error | null;
   onRetry: () => void;
 }
 
-function AppRouter({ devices, isLoading, error, onRefreshDevices, onRetry }: AppRouterProps) {
+function AppRouter({ devices, isLoading, error, onRetry }: AppRouterProps) {
   if (isLoading) {
     return (
       <div className="app">
@@ -41,7 +40,7 @@ function AppRouter({ devices, isLoading, error, onRefreshDevices, onRetry }: App
         <div className="error-container">
           <div className="error-icon">⚠️</div>
           <h2 className="error-title">Fehler beim Laden der Geräte</h2>
-          <p className="error-message">{error}</p>
+          <p className="error-message">{error.message}</p>
           <button className="btn btn-primary" onClick={onRetry} aria-label="Erneut versuchen">
             Erneut versuchen
           </button>
@@ -56,13 +55,7 @@ function AppRouter({ devices, isLoading, error, onRefreshDevices, onRetry }: App
         {/* Welcome Screen - shown when no devices */}
         <Route
           path="/welcome"
-          element={
-            devices.length === 0 ? (
-              <EmptyState onRefreshDevices={onRefreshDevices} />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
+          element={devices.length === 0 ? <EmptyState /> : <Navigate to="/" replace />}
         />
 
         {/* Main App Routes - require devices */}
@@ -96,43 +89,7 @@ function AppRouter({ devices, isLoading, error, onRefreshDevices, onRetry }: App
 }
 
 function App() {
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch devices from backend
-  const fetchDevices = async (): Promise<Device[]> => {
-    try {
-      setError(null); // Clear previous errors
-      setIsLoading(true);
-
-      const response = await fetch("/api/devices");
-      if (!response.ok) {
-        throw new Error(`Server-Fehler: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const devicesList: Device[] = data.devices || [];
-      setDevices(devicesList);
-      return devicesList;
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Unbekannter Fehler beim Laden der Geräte";
-      setError(errorMessage);
-      // Error already captured in state, no logging needed in production
-      return [];
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRetry = () => {
-    fetchDevices();
-  };
-
-  useEffect(() => {
-    fetchDevices();
-  }, []);
+  const { data: devices = [], isLoading, error, refetch } = useDevices();
 
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -141,8 +98,7 @@ function App() {
           devices={devices}
           isLoading={isLoading}
           error={error}
-          onRefreshDevices={fetchDevices}
-          onRetry={handleRetry}
+          onRetry={() => refetch()}
         />
       </ToastProvider>
     </BrowserRouter>

@@ -1,9 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import Settings from '../src/pages/Settings'
+import { QueryWrapper } from './utils/reactQueryTestUtils'
 
 // Mock fetch globally
 global.fetch = vi.fn()
+
+const renderWithProviders = (component) => {
+  return render(<QueryWrapper>{component}</QueryWrapper>)
+}
 
 describe('Settings Page', () => {
   beforeEach(() => {
@@ -13,7 +18,7 @@ describe('Settings Page', () => {
   it('shows loading state initially', () => {
     fetch.mockImplementation(() => new Promise(() => {})) // Never resolves
 
-    render(<Settings />)
+    renderWithProviders(<Settings />)
 
     expect(screen.getByText('Einstellungen werden geladen...')).toBeInTheDocument()
   })
@@ -24,7 +29,7 @@ describe('Settings Page', () => {
       json: async () => ({ ips: ['192.168.1.10', '192.168.1.20'] })
     })
 
-    render(<Settings />)
+    renderWithProviders(<Settings />)
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith('/api/settings/manual-ips')
@@ -37,7 +42,7 @@ describe('Settings Page', () => {
       json: async () => ({ ips: ['192.168.1.10', '192.168.1.20'] })
     })
 
-    render(<Settings />)
+    renderWithProviders(<Settings />)
 
     await waitFor(() => {
       expect(screen.getByText('192.168.1.10')).toBeInTheDocument()
@@ -51,7 +56,7 @@ describe('Settings Page', () => {
       json: async () => ({ ips: [] })
     })
 
-    render(<Settings />)
+    renderWithProviders(<Settings />)
 
     await waitFor(() => {
       expect(screen.getByText('Keine manuellen IPs konfiguriert')).toBeInTheDocument()
@@ -61,7 +66,7 @@ describe('Settings Page', () => {
   it('shows error message when fetch fails', async () => {
     fetch.mockRejectedValueOnce(new Error('Network error'))
 
-    render(<Settings />)
+    renderWithProviders(<Settings />)
 
     await waitFor(() => {
       expect(screen.getByText(/Fehler beim Laden/i)).toBeInTheDocument()
@@ -74,7 +79,7 @@ describe('Settings Page', () => {
       json: async () => ({ ips: [] })
     })
 
-    render(<Settings />)
+    renderWithProviders(<Settings />)
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('192.168.1.10')).toBeInTheDocument()
@@ -101,7 +106,7 @@ describe('Settings Page', () => {
       json: async () => ({ ips: [] })
     })
 
-    render(<Settings />)
+    renderWithProviders(<Settings />)
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('192.168.1.10')).toBeInTheDocument()
@@ -125,7 +130,7 @@ describe('Settings Page', () => {
       json: async () => ({ ips: ['192.168.1.10'] })
     })
 
-    render(<Settings />)
+    renderWithProviders(<Settings />)
 
     await waitFor(() => {
       expect(screen.getByText('192.168.1.10')).toBeInTheDocument()
@@ -148,12 +153,7 @@ describe('Settings Page', () => {
       json: async () => ({ ips: [] })
     })
 
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({})
-    })
-
-    render(<Settings />)
+    renderWithProviders(<Settings />)
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('192.168.1.10')).toBeInTheDocument()
@@ -163,17 +163,21 @@ describe('Settings Page', () => {
     const addButton = screen.getByText('+ Hinzufügen')
 
     fireEvent.change(input, { target: { value: '192.168.1.30' } })
+
+    // Mock POST request for adding IP (sets all IPs)
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ips: ['192.168.1.30'] })
+    })
+
     fireEvent.click(addButton)
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith(
-        '/api/settings/manual-ips',
-        expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ip: '192.168.1.30' })
-        })
-      )
+      const postCall = fetch.mock.calls.find(call => call[1]?.method === 'POST')
+      expect(postCall).toBeDefined()
+      expect(postCall[0]).toBe('/api/settings/manual-ips')
+      const body = JSON.parse(postCall[1].body)
+      expect(body).toEqual({ ips: ['192.168.1.30'] })
     })
 
     await waitFor(() => {
@@ -192,7 +196,7 @@ describe('Settings Page', () => {
       json: async () => ({})
     })
 
-    render(<Settings />)
+    renderWithProviders(<Settings />)
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('192.168.1.10')).toBeInTheDocument()
@@ -220,7 +224,7 @@ describe('Settings Page', () => {
       json: async () => ({ detail: 'Server error' })
     })
 
-    render(<Settings />)
+    renderWithProviders(<Settings />)
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('192.168.1.10')).toBeInTheDocument()
@@ -247,7 +251,7 @@ describe('Settings Page', () => {
       ok: true
     })
 
-    render(<Settings />)
+    renderWithProviders(<Settings />)
 
     await waitFor(() => {
       expect(screen.getByText('192.168.1.10')).toBeInTheDocument()
@@ -283,7 +287,7 @@ describe('Settings Page', () => {
       ok: false
     })
 
-    render(<Settings />)
+    renderWithProviders(<Settings />)
 
     await waitFor(() => {
       expect(screen.getByText('192.168.1.10')).toBeInTheDocument()
@@ -306,7 +310,7 @@ describe('Settings Page', () => {
       json: async () => ({ ips: [] })
     })
 
-    render(<Settings />)
+    renderWithProviders(<Settings />)
 
     await waitFor(() => {
       expect(screen.getByText(/Nach dem Hinzufügen oder Entfernen/i)).toBeInTheDocument()
@@ -319,7 +323,7 @@ describe('Settings Page', () => {
       json: async () => ({ ips: [] })
     })
 
-    render(<Settings />)
+    renderWithProviders(<Settings />)
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('192.168.1.10')).toBeInTheDocument()
@@ -344,7 +348,7 @@ describe('Settings Page', () => {
       json: async () => ({})
     })
 
-    render(<Settings />)
+    renderWithProviders(<Settings />)
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('192.168.1.10')).toBeInTheDocument()

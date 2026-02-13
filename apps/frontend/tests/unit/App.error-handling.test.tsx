@@ -1,10 +1,15 @@
-ï»¿/**
+/**
  * Tests for App.jsx Error Handling
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../../src/App';
+import { QueryWrapper } from '../utils/reactQueryTestUtils';
+
+const renderWithProviders = (component) => {
+  return render(<QueryWrapper>{component}</QueryWrapper>)
+}
 
 describe('App Error Handling', () => {
   beforeEach(() => {
@@ -21,11 +26,11 @@ describe('App Error Handling', () => {
     global.fetch.mockRejectedValueOnce(new Error('Network error'));
 
     // Act: Render app
-    render(<App />);
+    renderWithProviders(<App />);
 
     // Assert: Should show error message
     await waitFor(() => {
-      expect(screen.getByText(/Fehler beim Laden der GerÃ¤te/i)).toBeInTheDocument();
+      expect(screen.getByText(/Fehler beim Laden der Geräte/i)).toBeInTheDocument();
     });
   });
 
@@ -38,11 +43,11 @@ describe('App Error Handling', () => {
     });
 
     // Act: Render app
-    render(<App />);
+    renderWithProviders(<App />);
 
     // Assert: Should show error message
     await waitFor(() => {
-      expect(screen.getByText(/Fehler beim Laden der GerÃ¤te/i)).toBeInTheDocument();
+      expect(screen.getByText(/Fehler beim Laden der Geräte/i)).toBeInTheDocument();
     });
   });
 
@@ -51,7 +56,7 @@ describe('App Error Handling', () => {
     global.fetch.mockRejectedValueOnce(new Error('Network error'));
 
     // Act: Render app
-    render(<App />);
+    renderWithProviders(<App />);
 
     // Assert: Should have retry button
     await waitFor(() => {
@@ -73,7 +78,7 @@ describe('App Error Handling', () => {
       });
 
     // Act: Render app and click retry
-    render(<App />);
+    renderWithProviders(<App />);
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /erneut versuchen/i })).toBeInTheDocument();
     });
@@ -83,7 +88,7 @@ describe('App Error Handling', () => {
 
     // Assert: Should load devices successfully
     await waitFor(() => {
-      expect(screen.queryByText(/Fehler beim Laden der GerÃ¤te/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Fehler beim Laden der Geräte/i)).not.toBeInTheDocument();
     });
 
     // Check navigation is rendered (uses data-test, not data-testid)
@@ -100,9 +105,9 @@ describe('App Error Handling', () => {
       });
 
     // Act: Render app
-    render(<App />);
+    renderWithProviders(<App />);
     await waitFor(() => {
-      expect(screen.getByText(/Fehler beim Laden der GerÃ¤te/i)).toBeInTheDocument();
+      expect(screen.getByText(/Fehler beim Laden der Geräte/i)).toBeInTheDocument();
     });
 
     // Act: Retry
@@ -111,7 +116,7 @@ describe('App Error Handling', () => {
 
     // Assert: Error message should be gone
     await waitFor(() => {
-      expect(screen.queryByText(/Fehler beim Laden der GerÃ¤te/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Fehler beim Laden der Geräte/i)).not.toBeInTheDocument();
     });
   });
 
@@ -133,7 +138,7 @@ describe('App Error Handling', () => {
       );
 
     // Act: Render app and click retry
-    render(<App />);
+    renderWithProviders(<App />);
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /erneut versuchen/i })).toBeInTheDocument();
     });
