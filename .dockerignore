@@ -1,18 +1,85 @@
+# Version Control
 .git/
 .gitignore
+.gitattributes
+.github/
+
+# IDE & Editor
 .vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
 **/__pycache__/
 **/*.pyc
+**/*.pyo
+**/*.pyd
+.Python
+**/.pytest_cache/
+**/.coverage
+htmlcov/
+*.cover
+.hypothesis/
+**/*.egg-info/
+**/venv/
+**/.venv/
+**/env/
+**/.env/
+
+# Node.js / Frontend
 **/node_modules/
 **/dist/
 **/.vite/
-**/venv/
-**/.pytest_cache/
-**/.coverage
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build artifacts
+build/
+dist/
+*.egg
+*.whl
+
+# Documentation
 docs/
-tests/
 *.md
 !README.md
+
+# Tests
+tests/
+**/test_*.py
+**/*_test.py
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+e2e/
+cypress/
+
+# Environment & Config
 .env
+.env.*
+!.env.example
+*.local
+
+# Database
 *.db
 *.db-journal
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
