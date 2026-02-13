@@ -5,8 +5,17 @@
 # Supports amd64 and arm64
 # ============================================================
 
+# Base Image Versions (Pinned for Reproducibility)
+# Update SHA256 digests with:
+#   docker pull <image>:<tag>
+#   docker inspect --format='{{.RepoDigests}}' <image>:<tag>
+#
+# Current versions:
+#   Node.js: 20.11-alpine (Alpine 3.19)
+#   Python: 3.11.8-slim (Debian Bookworm)
+
 # Stage 1: Build Frontend
-FROM node:20-alpine AS frontend-builder
+FROM node:20.11-alpine3.19@sha256:aa96f8d22277ea3c16c6892cb89b2dcbe5c3c26b31fcd6a4e23bddf7f81c84b7 AS frontend-builder
 
 # Get build architecture from buildx
 ARG TARGETARCH
@@ -34,7 +43,7 @@ COPY apps/frontend/ ./apps/frontend/
 RUN npm run build --workspace=apps/frontend
 
 # Stage 2: Python Dependencies (separate for better caching)
-FROM python:3.11-slim AS python-deps
+FROM python:3.11.8-slim-bookworm@sha256:8c9da8f3069be48e38bb88c0f5936dfe1bf0e14e0b1ca3e4e1e0b7f7a4a6aa6f AS python-deps
 
 # Install build dependencies
 RUN apt-get update && \
@@ -53,7 +62,7 @@ RUN apt-get purge -y --auto-remove gcc && \
     find /install -name "*.pyc" -delete
 
 # Stage 3: Backend Runtime
-FROM python:3.11-slim AS backend
+FROM python:3.11.8-slim-bookworm@sha256:8c9da8f3069be48e38bb88c0f5936dfe1bf0e14e0b1ca3e4e1e0b7f7a4a6aa6f AS backend
 
 WORKDIR /app
 
