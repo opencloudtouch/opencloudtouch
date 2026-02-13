@@ -12,7 +12,8 @@ from httpx import ASGITransport
 
 from opencloudtouch.main import app
 from opencloudtouch.radio.api.routes import get_radio_provider
-from opencloudtouch.radio.providers.radiobrowser import RadioBrowserError, RadioStation
+from opencloudtouch.radio.models import RadioStation
+from opencloudtouch.radio.providers.radiobrowser import RadioBrowserError
 
 
 @pytest.fixture
@@ -29,25 +30,27 @@ def mock_adapter():
 
 @pytest.fixture
 def mock_radio_stations():
-    """Mock radio station data."""
+    """Mock radio station data (unified RadioStation model)."""
     return [
         RadioStation(
-            station_uuid="test-uuid-1",
+            station_id="test-uuid-1",
             name="Test Radio 1",
             url="http://stream1.example.com/radio.mp3",
             country="Germany",
             codec="MP3",
             bitrate=128,
-            tags="pop,rock",
+            tags=["pop", "rock"],
+            provider="radiobrowser",
         ),
         RadioStation(
-            station_uuid="test-uuid-2",
+            station_id="test-uuid-2",
             name="Test Radio 2",
             url="http://stream2.example.com/radio.mp3",
             country="Switzerland",
             codec="AAC",
             bitrate=192,
-            tags="jazz,smooth",
+            tags=["jazz", "smooth"],
+            provider="radiobrowser",
         ),
     ]
 

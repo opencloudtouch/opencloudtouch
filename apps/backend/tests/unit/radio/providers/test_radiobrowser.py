@@ -13,17 +13,17 @@ from opencloudtouch.radio.providers.radiobrowser import (
     RadioBrowserAdapter,
     RadioBrowserConnectionError,
     RadioBrowserError,
+    RadioBrowserStation,
     RadioBrowserTimeoutError,
-    RadioStation,
 )
 
 
-class TestRadioStation:
-    """Tests for RadioStation data model."""
+class TestRadioBrowserStation:
+    """Tests for RadioBrowserStation data model."""
 
     def test_radio_station_creation_minimal(self):
-        """Test creating RadioStation with minimal required fields."""
-        station = RadioStation(
+        """Test creating RadioBrowserStation with minimal required fields."""
+        station = RadioBrowserStation(
             station_uuid="test-uuid-123",
             name="Test Station",
             url="http://stream.example.com/radio.mp3",
@@ -38,8 +38,8 @@ class TestRadioStation:
         assert station.codec == "MP3"
 
     def test_radio_station_creation_full(self):
-        """Test creating RadioStation with all fields."""
-        station = RadioStation(
+        """Test creating RadioBrowserStation with all fields."""
+        station = RadioBrowserStation(
             station_uuid="test-uuid-456",
             name="Full Station",
             url="http://stream.example.com/full.mp3",
@@ -91,7 +91,7 @@ class TestRadioStation:
             "clicktrend": 3,
         }
 
-        station = RadioStation.from_api_response(api_response)
+        station = RadioBrowserStation.from_api_response(api_response)
 
         assert station.station_uuid == "960761d5-0601-11e8-ae97-52543be04c81"
         assert station.name == "Absolut relax"
@@ -149,7 +149,7 @@ class TestRadioBrowserAdapter:
 
             assert len(stations) == 1
             assert stations[0].name == "Test Radio"
-            assert stations[0].station_uuid == "uuid-1"
+            assert stations[0].station_id == "uuid-1"
             mock_request.assert_called_once()
 
     @pytest.mark.asyncio
@@ -217,7 +217,8 @@ class TestRadioBrowserAdapter:
             stations = await adapter.search_by_tag("jazz")
 
             assert len(stations) == 1
-            assert "jazz" in stations[0].tags.lower()
+            # tags is now a list in unified RadioStation model
+            assert "jazz" in stations[0].tags
 
     @pytest.mark.asyncio
     async def test_get_station_by_uuid_success(self):
@@ -244,10 +245,11 @@ class TestRadioBrowserAdapter:
 
             station = await adapter.get_station_by_uuid("test-uuid")
 
-            assert station.station_uuid == "test-uuid"
+            assert station.station_id == "test-uuid"
             assert station.name == "Detailed Station"
             assert station.bitrate == 256
-            assert station.votes == 500
+            # votes is not in unified RadioStation model
+            # assert station.votes == 500
 
     @pytest.mark.asyncio
     async def test_get_station_by_uuid_not_found(self):

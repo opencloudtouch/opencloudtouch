@@ -11,12 +11,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from opencloudtouch.radio.adapter import get_radio_adapter
+from opencloudtouch.radio.models import RadioStation
 from opencloudtouch.radio.provider import RadioProvider
 from opencloudtouch.radio.providers.radiobrowser import (
     RadioBrowserConnectionError,
     RadioBrowserError,
     RadioBrowserTimeoutError,
-    RadioStation,
 )
 
 # Router
@@ -25,51 +25,33 @@ router = APIRouter(prefix="/api/radio", tags=["radio"])
 
 # Request/Response Models
 class RadioStationResponse(BaseModel):
-    """Radio station response model."""
+    """Radio station response model (unified across all providers)."""
 
-    uuid: str
+    uuid: str  # Mapped from station_id for API compatibility
     name: str
     url: str
-    url_resolved: str | None = None
     homepage: str | None = None
     favicon: str | None = None
-    tags: str | None = None
+    tags: list[str] | None = None
     country: str
-    countrycode: str | None = None
-    state: str | None = None
-    language: str | None = None
-    languagecodes: str | None = None
-    votes: int | None = None
-    codec: str
+    codec: str | None = None
     bitrate: int | None = None
-    hls: bool | None = None
-    lastcheckok: bool | None = None
-    clickcount: int | None = None
-    clicktrend: int | None = None
+    provider: str = "unknown"
 
     @classmethod
     def from_station(cls, station: RadioStation) -> "RadioStationResponse":
         """Convert RadioStation to response model."""
         return cls(
-            uuid=station.station_uuid,
+            uuid=station.station_id,
             name=station.name,
             url=station.url,
-            url_resolved=station.url_resolved,
             homepage=station.homepage,
             favicon=station.favicon,
             tags=station.tags,
             country=station.country,
-            countrycode=station.countrycode,
-            state=station.state,
-            language=station.language,
-            languagecodes=station.languagecodes,
-            votes=station.votes,
             codec=station.codec,
             bitrate=station.bitrate,
-            hls=station.hls,
-            lastcheckok=station.lastcheckok,
-            clickcount=station.clickcount,
-            clicktrend=station.clicktrend,
+            provider=station.provider,
         )
 
 

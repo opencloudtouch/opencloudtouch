@@ -20,6 +20,8 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
+from opencloudtouch.radio.models import RadioStation
+
 
 # Custom Exceptions
 class RadioBrowserError(Exception):
@@ -41,8 +43,8 @@ class RadioBrowserConnectionError(RadioBrowserError):
 
 
 @dataclass
-class RadioStation:
-    """Represents a radio station from RadioBrowser API."""
+class RadioBrowserStation:
+    """Represents a radio station from RadioBrowser API (internal model)."""
 
     station_uuid: str
     name: str
@@ -65,9 +67,9 @@ class RadioStation:
     clicktrend: Optional[int] = None
 
     @staticmethod
-    def from_api_response(data: Dict[str, Any]) -> "RadioStation":
-        """Create RadioStation from API response dict."""
-        return RadioStation(
+    def from_api_response(data: Dict[str, Any]) -> "RadioBrowserStation":
+        """Create RadioBrowserStation from API response dict."""
+        return RadioBrowserStation(
             station_uuid=data["stationuuid"],
             name=data["name"],
             url=data["url"],
@@ -87,6 +89,26 @@ class RadioStation:
             lastcheckok=bool(data.get("lastcheckok", 0)),
             clickcount=data.get("clickcount"),
             clicktrend=data.get("clicktrend"),
+        )
+
+    def to_unified(self) -> RadioStation:
+        """Convert RadioBrowserStation to unified RadioStation model."""
+        # Parse tags string to list
+        tags_list = None
+        if self.tags:
+            tags_list = [tag.strip() for tag in self.tags.split(",") if tag.strip()]
+
+        return RadioStation(
+            station_id=self.station_uuid,
+            name=self.name,
+            url=self.url_resolved or self.url,  # Prefer resolved URL
+            country=self.country,
+            codec=self.codec or None,
+            bitrate=self.bitrate,
+            tags=tags_list,
+            favicon=self.favicon,
+            homepage=self.homepage,
+            provider="radiobrowser",
         )
 
 
@@ -135,7 +157,10 @@ class RadioBrowserAdapter:
 
         try:
             data = await self._make_request(endpoint, params)
-            return [RadioStation.from_api_response(item) for item in data]
+            return [
+                RadioBrowserStation.from_api_response(item).to_unified()
+                for item in data
+            ]
         except httpx.TimeoutException as e:
             raise RadioBrowserTimeoutError(f"Request timed out: {e}") from e
         except httpx.ConnectError as e:
@@ -163,7 +188,10 @@ class RadioBrowserAdapter:
 
         try:
             data = await self._make_request(endpoint, params)
-            return [RadioStation.from_api_response(item) for item in data]
+            return [
+                RadioBrowserStation.from_api_response(item).to_unified()
+                for item in data
+            ]
         except httpx.TimeoutException as e:
             raise RadioBrowserTimeoutError(f"Request timed out: {e}") from e
         except httpx.ConnectError as e:
@@ -189,7 +217,10 @@ class RadioBrowserAdapter:
 
         try:
             data = await self._make_request(endpoint, params)
-            return [RadioStation.from_api_response(item) for item in data]
+            return [
+                RadioBrowserStation.from_api_response(item).to_unified()
+                for item in data
+            ]
         except httpx.TimeoutException as e:
             raise RadioBrowserTimeoutError(f"Request timed out: {e}") from e
         except httpx.ConnectError as e:
@@ -222,7 +253,7 @@ class RadioBrowserAdapter:
 
             # API returns list, take first item
             station_data = data[0] if isinstance(data, list) else data
-            return RadioStation.from_api_response(station_data)
+            return RadioBrowserStation.from_api_response(station_data).to_unified()
         except httpx.TimeoutException as e:
             raise RadioBrowserTimeoutError(f"Request timed out: {e}") from e
         except httpx.ConnectError as e:
