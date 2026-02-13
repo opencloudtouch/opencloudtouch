@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
+    "license-checker": "^25.0.1",
     "prettier": "^3.8.1",
     "rimraf": "^6.0.1"
   },
