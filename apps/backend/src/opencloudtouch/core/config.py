@@ -29,6 +29,16 @@ class AppConfig(BaseSettings):
     log_format: str = Field(default="text", description="Log format: 'text' or 'json'")
     log_file: Optional[str] = Field(default=None, description="Optional log file path")
 
+    # CORS
+    cors_origins: list[str] = Field(
+        default=[
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://localhost:7777",
+        ],
+        description="Allowed CORS origins (use ['*'] for development only)",
+    )
+
     # Mock Mode
     mock_mode: bool = Field(
         default=False, description="Enable mock mode (for testing without real devices)"

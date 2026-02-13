@@ -34,6 +34,9 @@ from opencloudtouch.settings.repository import SettingsRepository
 from opencloudtouch.settings.routes import router as settings_router
 from opencloudtouch.settings.service import SettingsService
 
+# Module-level logger
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -192,9 +195,17 @@ async def oct_error_handler(request: Request, exc: OpenCloudTouchError):
 # ============================================================================
 
 # CORS middleware for Web UI
+# Security: Check if wildcard is used and log warning
+cfg = get_config()
+if cfg.cors_origins == ["*"]:
+    logger.warning(
+        "CORS allows all origins - not recommended for production. "
+        "Set OCT_CORS_ORIGINS to restrict access."
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production: configure properly
+    allow_origins=cfg.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
