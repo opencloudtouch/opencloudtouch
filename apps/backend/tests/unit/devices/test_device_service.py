@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, patch
 
 from opencloudtouch.devices.repository import Device
 from opencloudtouch.devices.service import DeviceService
-from opencloudtouch.devices.services.sync_service import SyncResult
+from opencloudtouch.devices.models import SyncResult
 from opencloudtouch.discovery import DiscoveredDevice
 
 

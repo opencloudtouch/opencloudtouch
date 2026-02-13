@@ -157,7 +157,7 @@ async def test_sync_devices_success(mock_config, mock_settings_repo):
     """Test /api/devices/sync endpoint with successful sync."""
     from opencloudtouch.core.dependencies import get_device_service
     from opencloudtouch.devices.service import DeviceService
-    from opencloudtouch.devices.services.sync_service import SyncResult
+    from opencloudtouch.devices.models import SyncResult
 
     # Mock DeviceService
     mock_service = AsyncMock(spec=DeviceService)
@@ -188,7 +188,7 @@ async def test_sync_devices_partial_failure(mock_config, mock_settings_repo):
     """Test sync with one device failing to connect."""
     from opencloudtouch.core.dependencies import get_device_service
     from opencloudtouch.devices.service import DeviceService
-    from opencloudtouch.devices.services.sync_service import SyncResult
+    from opencloudtouch.devices.models import SyncResult
 
     # Mock DeviceService with partial failure
     mock_service = AsyncMock(spec=DeviceService)
@@ -368,7 +368,7 @@ async def test_sync_uses_manual_ips_from_database():
     """
     from opencloudtouch.core.dependencies import get_device_service
     from opencloudtouch.devices.service import DeviceService
-    from opencloudtouch.devices.services.sync_service import SyncResult
+    from opencloudtouch.devices.models import SyncResult
 
     # Manual IP configured in database (via API)
     db_manual_ip = "192.168.178.78"

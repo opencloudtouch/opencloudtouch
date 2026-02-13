@@ -4,33 +4,16 @@ Orchestrates device discovery and database synchronization.
 """
 
 import logging
-from dataclasses import dataclass
 from typing import List, Optional
 
 from opencloudtouch.db import Device
 from opencloudtouch.devices.adapter import get_discovery_adapter, get_device_client
 from opencloudtouch.devices.discovery.manual import ManualDiscovery
-from opencloudtouch.devices.repository import DeviceRepository
+from opencloudtouch.devices.interfaces import IDeviceRepository
+from opencloudtouch.devices.models import SyncResult
 from opencloudtouch.discovery import DiscoveredDevice
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class SyncResult:
-    """Result of device synchronization operation."""
-
-    discovered: int
-    synced: int
-    failed: int
-
-    def to_dict(self) -> dict:
-        """Convert to dictionary for API response."""
-        return {
-            "discovered": self.discovered,
-            "synced": self.synced,
-            "failed": self.failed,
-        }
 
 
 class DeviceSyncService:
@@ -46,7 +29,7 @@ class DeviceSyncService:
 
     def __init__(
         self,
-        repository: DeviceRepository,
+        repository: IDeviceRepository,
         discovery_timeout: int = 10,
         manual_ips: Optional[List[str]] = None,
         discovery_enabled: bool = True,

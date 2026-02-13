@@ -12,7 +12,7 @@ from httpx import ASGITransport, AsyncClient
 
 from opencloudtouch.core.dependencies import get_device_service
 from opencloudtouch.devices.service import DeviceService
-from opencloudtouch.devices.services.sync_service import SyncResult
+from opencloudtouch.devices.models import SyncResult
 from opencloudtouch.discovery import DiscoveredDevice
 from opencloudtouch.main import app
 

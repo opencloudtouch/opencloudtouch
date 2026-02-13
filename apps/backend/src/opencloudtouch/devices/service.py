@@ -10,16 +10,16 @@ from typing import List, Optional
 from bosesoundtouchapi import SoundTouchClient, SoundTouchDevice
 
 from opencloudtouch.db import Device
-from opencloudtouch.devices.adapter import BoseDeviceDiscoveryAdapter
+from opencloudtouch.devices.interfaces import (
+    IDeviceRepository,
+    IDeviceSyncService,
+    IDiscoveryAdapter,
+)
 from opencloudtouch.devices.capabilities import (
     get_device_capabilities,
     get_feature_flags_for_ui,
 )
-from opencloudtouch.devices.repository import DeviceRepository
-from opencloudtouch.devices.services.sync_service import (
-    DeviceSyncService,
-    SyncResult,
-)
+from opencloudtouch.devices.models import SyncResult
 from opencloudtouch.discovery import DiscoveredDevice
 
 logger = logging.getLogger(__name__)
@@ -33,23 +33,23 @@ class DeviceService:
 
     Responsibilities:
     - Orchestrate device discovery
-    - Orchestrate device synchronization (via DeviceSyncService)
-    - Manage device data access (via DeviceRepository)
+    - Orchestrate device synchronization (via IDeviceSyncService)
+    - Manage device data access (via IDeviceRepository)
     - Handle device capability queries
     """
 
     def __init__(
         self,
-        repository: DeviceRepository,
-        sync_service: DeviceSyncService,
-        discovery_adapter: BoseDeviceDiscoveryAdapter,
+        repository: IDeviceRepository,
+        sync_service: IDeviceSyncService,
+        discovery_adapter: IDiscoveryAdapter,
     ):
         """Initialize device service.
 
         Args:
-            repository: DeviceRepository for data persistence
-            sync_service: DeviceSyncService for sync operations
-            discovery_adapter: BoseDeviceDiscoveryAdapter for discovery
+            repository: IDeviceRepository for data persistence
+            sync_service: IDeviceSyncService for sync operations
+            discovery_adapter: IDiscoveryAdapter for discovery
         """
         self.repository = repository
         self.sync_service = sync_service

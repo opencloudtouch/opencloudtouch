@@ -5,7 +5,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from opencloudtouch.db import Device
-from opencloudtouch.devices.services.sync_service import DeviceSyncService, SyncResult
+from opencloudtouch.devices.services.sync_service import DeviceSyncService
+from opencloudtouch.devices.models import SyncResult
 from opencloudtouch.discovery import DiscoveredDevice
 
 
