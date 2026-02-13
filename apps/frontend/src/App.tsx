@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ToastProvider } from "./contexts/ToastContext";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import Navigation from "./components/Navigation";
 import EmptyState from "./components/EmptyState";
 import RadioPresets from "./pages/RadioPresets";
@@ -92,16 +93,18 @@ function App() {
   const { data: devices = [], isLoading, error, refetch } = useDevices();
 
   return (
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <ToastProvider>
-        <AppRouter
-          devices={devices}
-          isLoading={isLoading}
-          error={error}
-          onRetry={() => refetch()}
-        />
-      </ToastProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <ToastProvider>
+          <AppRouter
+            devices={devices}
+            isLoading={isLoading}
+            error={error}
+            onRetry={() => refetch()}
+          />
+        </ToastProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 
