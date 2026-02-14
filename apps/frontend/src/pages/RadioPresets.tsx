@@ -40,6 +40,14 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
 
       try {
         const devicePresets = await getDevicePresets(currentDevice.device_id);
+
+        // Defensive: Ensure devicePresets is an array
+        if (!Array.isArray(devicePresets)) {
+          console.error("getDevicePresets returned non-array:", devicePresets);
+          setPresets({});
+          return;
+        }
+
         const presetsMap: Record<number, Preset> = {};
 
         devicePresets.forEach((preset: PresetResponse) => {
@@ -82,11 +90,11 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
         station_favicon: station.favicon,
       });
 
-      // Update local state
-      setPresets({
-        ...presets,
+      // Update local state using functional updater to avoid race conditions
+      setPresets((prevPresets) => ({
+        ...prevPresets,
         [assigningPreset]: { station_name: station.name },
-      });
+      }));
 
       setAssigningPreset(null);
       setSearchOpen(false);
@@ -118,10 +126,12 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
     try {
       await clearPresetAPI(currentDevice.device_id, presetNumber);
 
-      // Update local state
-      const newPresets = { ...presets };
-      delete newPresets[presetNumber];
-      setPresets(newPresets);
+      // Update local state using functional updater to avoid race conditions
+      setPresets((prevPresets) => {
+        const newPresets = { ...prevPresets };
+        delete newPresets[presetNumber];
+        return newPresets;
+      });
     } catch (err) {
       console.error("Failed to clear preset:", err);
       setError(err instanceof Error ? err.message : "Failed to clear preset");

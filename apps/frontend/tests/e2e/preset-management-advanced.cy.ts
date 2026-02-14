@@ -9,10 +9,6 @@
  * Prerequisites:
  * - Backend running with OCT_MOCK_MODE=true
  */
-/*
-// TODO: This test file has TypeScript compilation issues related to reformatting
-// Temporarily disabled to allow other E2E tests to run
-// Can be re-enabled after proper review and refactoring
 
 describe('Preset Management Advanced', () => {
   const apiUrl = Cypress.env('apiUrl')
@@ -82,24 +78,33 @@ describe('Preset Management Advanced', () => {
 
   describe('Preset Lifecycle: Set → Clear → Set', () => {
     it('should set preset on empty slot', () => {
-      // Click preset 1 (empty)
+      //Find and click the first empty preset slot (whichever number it is)
       waitForPresetsReady()
-      cy.get('.preset-empty').first().scrollIntoView().click({ force: true })
-      cy.get('.radio-search-modal', { timeout: 10000 }).should('be.visible')
 
-      // Search and select
-      cy.get('.search-input').type('BBC')
-      cy.get('.search-results', { timeout: 10000 }).should('be.visible')
-      cy.get('.search-result-item', { timeout: 10000 })
-        .should('have.length.at.least', 1)
-      cy.get('.search-result-item').first().click()
+      // Get the first empty preset slot's number for later verification
+      cy.get('.preset-empty').first().invoke('attr', 'data-testid').then((testId) => {
+        const slotNumber = testId?.split('-')[2] || '1'
 
-      // Wait for state update and modal close
-      waitForPresetsReady()
-      cy.get('.radio-search-modal').should('not.exist')
+        // Click the first empty slot
+        cy.get('.preset-empty').first().scrollIntoView().click({ force: true })
+        cy.get('.radio-search-modal', { timeout: 10000 }).should('be.visible')
 
-      // Verify preset saved in UI
-      cy.get('.presets-grid button').first().should('contain', stationA.name)
+        // Search and select
+        cy.get('.search-input').type('BBC')
+        cy.get('.search-results', { timeout: 10000 }).should('be.visible')
+        cy.get('.search-result-item', { timeout: 10000 })
+          .should('have.length.at.least', 1)
+        cy.get('.search-result-item').first().click()
+
+        // Wait for API call to complete and modal to close
+        cy.get('.radio-search-modal', { timeout: 10000 }).should('not.exist')
+
+        // Wait for preset to be saved (loading indicator may not appear with fast mock API)
+        cy.wait(500) // Give API call time to complete
+
+        // Verify preset saved in UI (should show station name in the slot we clicked)
+        cy.get(`[data-testid="preset-play-${slotNumber}"]`).should('contain', stationA.name)
+      })
     })
 
     it('should clear assigned preset', () => {
@@ -117,21 +122,19 @@ describe('Preset Management Advanced', () => {
       // Reload to see preset
       cy.reload()
       waitForPresetsReady()
-      cy.contains('.presets-grid button', stationA.name, { timeout: 10000 })
+      cy.contains('.presets-grid .preset-play', stationA.name, { timeout: 10000 })
         .should('exist')
-      cy.get('.presets-grid button').eq(1).should('contain', stationA.name)
+      cy.get('.presets-grid .preset-play').eq(0).should('contain', stationA.name)
 
       // Confirm deletion
       cy.on('window:confirm', () => true)
 
-      // Clear preset (find clear button within preset 2)
-      cy.get('.presets-grid').within(() => {
-        cy.contains('button', stationA.name).scrollIntoView().parent().find('[class*="clear"]').click({ force: true })
-      })
+      // Clear preset using data-testid
+      cy.get('[data-testid="preset-clear-2"]').click({ force: true })
 
       // Verify preset cleared in UI
       waitForPresetsReady()
-      cy.get('.presets-grid button').eq(1).should('not.contain', stationA.name)
+      cy.get('[data-testid="preset-empty-2"]').should('exist')
     })
 
     it('should allow setting preset after clearing', () => {
@@ -149,13 +152,11 @@ describe('Preset Management Advanced', () => {
 
       // Clear preset 3
       cy.on('window:confirm', () => true)
-      cy.get('.presets-grid').within(() => {
-        cy.contains('button', stationA.name).scrollIntoView().parent().find('[class*="clear"]').click({ force: true })
-      })
+      cy.get('[data-testid="preset-clear-3"]').click({ force: true })
 
       // Now assign new station to cleared preset
       waitForPresetsReady()
-      cy.get('.preset-empty').eq(2).scrollIntoView().click({ force: true })
+      cy.get('[data-testid="preset-empty-3"]').scrollIntoView().click({ force: true })
       cy.get('.radio-search-modal', { timeout: 10000 }).should('be.visible')
       cy.get('.search-input').type('NPR')
       cy.get('.search-results', { timeout: 10000 }).should('be.visible')
@@ -163,12 +164,12 @@ describe('Preset Management Advanced', () => {
         .should('have.length.at.least', 1)
       cy.get('.search-result-item').first().click()
 
-      // Wait for state update and modal close
-      waitForPresetsReady()
-      cy.get('.radio-search-modal').should('not.exist')
+      // Wait for API call to complete and modal to close
+      cy.get('.radio-search-modal', { timeout: 10000 }).should('not.exist')
+      cy.get('[data-testid="loading-indicator"]', { timeout: 10000 }).should('not.exist')
 
       // Verify new preset
-      cy.get('.presets-grid button').eq(2).should('contain', stationB.name)
+      cy.get('[data-testid="preset-play-3"]').should('contain', stationB.name)
     })
   })
 
@@ -187,19 +188,17 @@ describe('Preset Management Advanced', () => {
 
       cy.reload()
       waitForPresetsReady()
-      cy.contains('.presets-grid button', stationA.name, { timeout: 10000 })
+      cy.get('[data-testid="preset-play-4"]', { timeout: 10000 })
         .should('exist')
-      cy.get('.presets-grid button').eq(3).should('contain', stationA.name)
+        .and('contain', stationA.name)
 
       // Clear preset first
       cy.on('window:confirm', () => true)
-      cy.get('.presets-grid').within(() => {
-        cy.contains('button', stationA.name).scrollIntoView().parent().find('[class*="clear"]').click({ force: true })
-      })
+      cy.get('[data-testid="preset-clear-4"]').click({ force: true })
       waitForPresetsReady()
 
       // Click on empty preset 4 to reassign
-      cy.get('.preset-empty').eq(3).scrollIntoView().click({ force: true })
+      cy.get('[data-testid="preset-empty-4"]').scrollIntoView().click({ force: true })
       cy.get('.radio-search-modal', { timeout: 10000 }).should('be.visible')
 
       // Select new station
@@ -210,11 +209,10 @@ describe('Preset Management Advanced', () => {
       cy.get('.search-result-item').first().click()
 
       // Verify preset overwritten
-      waitForPresetsReady()
-      cy.get('.radio-search-modal').should('not.exist')
-      cy.get('.presets-grid button').eq(3)
+      cy.get('.radio-search-modal', { timeout: 10000 }).should('not.exist')
+      cy.get('[data-testid="loading-indicator"]', { timeout: 10000 }).should('not.exist')
+      cy.get('[data-testid="preset-play-4"]')
         .should('contain', stationB.name)
-        .and('not.contain', stationA.name)
     })
 
     it('should handle multiple overwrites sequentially', () => {
@@ -224,18 +222,13 @@ describe('Preset Management Advanced', () => {
       stations.forEach((station, index) => {
         if (index > 0) {
           cy.on('window:confirm', () => true)
-          cy.get('.presets-grid').within(() => {
-            cy.contains('button', stations[index - 1].name)
-              .scrollIntoView()
-              .parent()
-              .find('[class*="clear"]')
-              .click({ force: true })
-          })
+          // Clear previous preset using data-testid
+          cy.get(`[data-testid="preset-clear-${presetNumber}"]`).click({ force: true })
           waitForPresetsReady()
         }
 
-        // Click preset button (empty)
-        cy.get('.preset-empty').eq(presetNumber - 1).scrollIntoView().click({ force: true })
+        // Click preset button (should be empty after clear, or initially empty)
+        cy.get(`[data-testid="preset-empty-${presetNumber}"]`).scrollIntoView().click({ force: true })
         cy.get('.radio-search-modal', { timeout: 10000 }).should('be.visible')
 
         cy.get('.search-input').clear().type(station.name)
@@ -243,14 +236,17 @@ describe('Preset Management Advanced', () => {
         cy.get('.search-result-item', { timeout: 10000 })
           .should('have.length.at.least', 1)
         cy.get('.search-result-item').first().click()
-                 // Wait for state update before checking preset
-         waitForPresetsReady()
-         cy.get('.radio-search-modal').should('not.exist')
-        cy.get('.presets-grid button').eq(presetNumber - 1).should('contain', station.name)
+
+        // Wait for API call to complete and modal to close
+        cy.get('.radio-search-modal', { timeout: 10000 }).should('not.exist')
+        cy.get('[data-testid="loading-indicator"]', { timeout: 10000 }).should('not.exist')
+
+        // Verify preset was set
+        cy.get(`[data-testid="preset-play-${presetNumber}"]`).should('contain', station.name)
       })
 
       // Final verification: should have last station
-      cy.get('.presets-grid button').eq(presetNumber - 1).should('contain', stationC.name)
+      cy.get(`[data-testid="preset-play-${presetNumber}"]`).should('contain', stationC.name)
     })
 
     it('should require confirmation for overwrite (optional UX)', () => {
@@ -298,12 +294,9 @@ describe('Preset Management Advanced', () => {
 
       cy.reload()
       waitForPresetsReady()
-      cy.contains('.presets-grid button', stationA.name, { timeout: 10000 })
+      cy.get('[data-testid="preset-play-2"]', { timeout: 10000 })
         .should('exist')
-
-      // Filled preset should show station name
-      cy.get('.presets-grid button').eq(1)
-        .should('contain', stationA.name)
+        .and('contain', stationA.name)
         .and('not.contain', 'Zuweisen')
     })
 
@@ -319,20 +312,15 @@ describe('Preset Management Advanced', () => {
 
       cy.reload()
       waitForPresetsReady()
-      cy.contains('.presets-grid button', stationA.name, { timeout: 10000 })
+      cy.get('[data-testid="preset-play-3"]', { timeout: 10000 })
         .should('exist')
+        .and('contain', stationA.name)
 
       // Should have clear button
-      cy.get('.presets-grid').within(() => {
-        cy.contains('button', stationA.name).parent().find('[class*="clear"]')
-          .should('exist')
-      })
+      cy.get('[data-testid="preset-clear-3"]').should('exist')
 
-      // Should have play button (Phase 4 feature)
-      cy.get('.presets-grid').within(() => {
-        cy.contains('button', stationA.name).parent().find('[class*="play"]')
-          .should('exist') // May be disabled until Phase 4
-      })
+      // Should have play button
+      cy.get('[data-testid="preset-play-3"]').should('exist')
     })
 
     it('should disable interactions during loading', () => {
@@ -386,9 +374,9 @@ describe('Preset Management Advanced', () => {
 
       // Verify all presets still visible
       presets.forEach(({ number, station }) => {
-        cy.contains('.presets-grid button', station.name, { timeout: 10000 })
+        cy.get(`[data-testid="preset-play-${number}"]`, { timeout: 10000 })
           .should('exist')
-        cy.get('.presets-grid button').eq(number - 1).should('contain', station.name)
+          .and('contain', station.name)
       })
     })
 
@@ -424,18 +412,18 @@ describe('Preset Management Advanced', () => {
         waitForPresetsReady()
 
         // Should show device 1 preset
-        cy.contains('.presets-grid button', stationA.name, { timeout: 10000 })
+        cy.get('[data-testid=\"preset-play-1\"]', { timeout: 10000 })
           .should('exist')
-        cy.get('.presets-grid button').first().should('contain', stationA.name)
+          .and('contain', stationA.name)
 
         // Switch to device 2 (via swiper or device selector)
         cy.get('.swipe-arrow-right').click({ force: true })
         waitForPresetsReady()
 
         // Should show device 2 preset
-        cy.contains('.presets-grid button', stationB.name, { timeout: 10000 })
+        cy.get('[data-testid=\"preset-play-1\"]', { timeout: 10000 })
           .should('exist')
-        cy.get('.presets-grid button').first().should('contain', stationB.name)
+          .and('contain', stationB.name)
       })
     })
   })
@@ -471,8 +459,9 @@ describe('Preset Management Advanced', () => {
 
       cy.reload()
       waitForPresetsReady()
-      cy.contains('.presets-grid button', stationA.name, { timeout: 10000 })
+      cy.get('[data-testid="preset-play-2"]', { timeout: 10000 })
         .should('exist')
+        .and('contain', stationA.name)
 
       // Mock clear failure
       cy.intercept('DELETE', `${apiUrl}/presets/${deviceId}/2`, {
@@ -481,16 +470,14 @@ describe('Preset Management Advanced', () => {
       }).as('clearPresetFail')
 
       cy.on('window:confirm', () => true)
-      cy.get('.presets-grid').within(() => {
-        cy.contains('button', stationA.name).scrollIntoView().parent().find('[class*="clear"]').click({ force: true })
-      })
+      cy.get('[data-testid="preset-clear-2"]').click({ force: true })
       cy.wait('@clearPresetFail')
 
-      // Should show error
-      cy.get('[data-testid="error-message"]').should('be.visible')
+      // Should show error (scroll into view to ensure visibility)
+      cy.get('[data-testid="error-message"]').scrollIntoView().should('be.visible')
 
       // Preset should still be visible (not optimistically removed)
-      cy.get('.presets-grid button').eq(1).should('contain', stationA.name)
+      cy.get('[data-testid="preset-play-2"]').should('contain', stationA.name)
     })
 
     it('should dismiss error messages', () => {
@@ -518,4 +505,3 @@ describe('Preset Management Advanced', () => {
     })
   })
 })
-*/

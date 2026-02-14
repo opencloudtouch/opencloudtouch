@@ -22,7 +22,7 @@ interface RawStationData {
 }
 
 interface RadioSearchProps {
-  onStationSelect: (station: RadioStation) => void;
+  onStationSelect: (station: RadioStation) => void | Promise<void>;
   isOpen: boolean;
   onClose?: () => void;
 }
@@ -124,8 +124,8 @@ export default function RadioSearch({ onStationSelect, isOpen, onClose }: RadioS
     }, 300);
   };
 
-  const handleSelect = (station: RadioStation) => {
-    onStationSelect(station);
+  const handleSelect = async (station: RadioStation) => {
+    await onStationSelect(station);
     setQuery("");
     setResults([]);
     onClose?.();
