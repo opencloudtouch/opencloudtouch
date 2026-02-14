@@ -153,6 +153,38 @@ class DeviceService:
             logger.error(f"Failed to get capabilities for device {device_id}: {e}")
             raise
 
+    async def press_key(self, device_id: str, key: str, state: str = "both") -> None:
+        """
+        Simulate a key press on a device.
+
+        Args:
+            device_id: Device ID
+            key: Key name (e.g., "PRESET_1", "PRESET_2", ...)
+            state: Key state ("press", "release", or "both")
+
+        Raises:
+            ValueError: If device not found
+            Exception: If key press fails
+        """
+        logger.info(f"Pressing key {key} on device {device_id} (state: {state})")
+
+        # Get device from DB
+        device = await self.repository.get_by_device_id(device_id)
+        if not device:
+            raise ValueError(f"Device {device_id} not found")
+
+        # Create client and press key
+        from opencloudtouch.devices.adapter import get_device_client
+
+        base_url = f"http://{device.ip_address}:8090"
+        client = get_device_client(base_url)
+
+        try:
+            await client.press_key(key, state)
+            logger.info(f"Successfully pressed key {key} on device {device_id}")
+        finally:
+            await client.close()
+
     async def delete_all_devices(self, allow_dangerous_operations: bool) -> None:
         """Delete all devices from database.
 

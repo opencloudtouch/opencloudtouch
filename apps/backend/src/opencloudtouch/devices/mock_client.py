@@ -138,6 +138,40 @@ class MockDeviceClient(DeviceClient):
         assert isinstance(now_playing, NowPlayingInfo)
         return now_playing
 
+    async def press_key(self, key: str, state: str = "both") -> None:
+        """
+        Mock key press simulation.
+
+        Args:
+            key: Key name (e.g., "PRESET_1", "PRESET_2", ...)
+            state: Key state ("press", "release", or "both")
+        """
+        valid_keys = [
+            "PRESET_1",
+            "PRESET_2",
+            "PRESET_3",
+            "PRESET_4",
+            "PRESET_5",
+            "PRESET_6",
+            "PLAY",
+            "PAUSE",
+            "POWER",
+        ]
+        valid_states = ["press", "release", "both"]
+
+        if key not in valid_keys:
+            raise ValueError(f"Invalid key: {key}")
+
+        if state not in valid_states:
+            raise ValueError(
+                f"Invalid state: {state}. Must be 'press', 'release', or 'both'"
+            )
+
+        logger.info(
+            f"[MOCK] press_key({key}, {state}) for device {self.device_id}",
+            extra={"device_id": self.device_id, "key": key, "state": state},
+        )
+
     async def close(self) -> None:
         """Mock close (no-op)."""
         logger.debug(f"[MOCK] close() for device {self.device_id}")

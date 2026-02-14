@@ -18,11 +18,6 @@ const ThrowError = ({ shouldThrow = true }: { shouldThrow?: boolean }) => {
   return <div>No error</div>;
 };
 
-// Component that throws during render
-const AsyncError = () => {
-  throw new Promise(() => {}); // Simulates async error
-};
-
 describe("ErrorBoundary", () => {
   // Suppress console.error for these tests since we expect errors
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;

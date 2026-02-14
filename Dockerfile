@@ -15,7 +15,7 @@
 #   Python: 3.11.8-slim (Debian Bookworm)
 
 # Stage 1: Build Frontend
-FROM node:20.11-alpine3.19@sha256:aa96f8d22277ea3c16c6892cb89b2dcbe5c3c26b31fcd6a4e23bddf7f81c84b7 AS frontend-builder
+FROM node:20-alpine@sha256:09e2b3d9726018aecf269bd35325f46bf75046a643a66d28360ec71132750ec8 AS frontend-builder
 
 # Get build architecture from buildx
 ARG TARGETARCH
@@ -43,7 +43,7 @@ COPY apps/frontend/ ./apps/frontend/
 RUN npm run build --workspace=apps/frontend
 
 # Stage 2: Python Dependencies (separate for better caching)
-FROM python:3.11.8-slim-bookworm@sha256:8c9da8f3069be48e38bb88c0f5936dfe1bf0e14e0b1ca3e4e1e0b7f7a4a6aa6f AS python-deps
+FROM python:3.11-slim@sha256:0b23cfb7425d065008b778022a17b1551c82f8b4866ee5a7a200084b7e2eafbf AS python-deps
 
 # Install build dependencies
 RUN apt-get update && \
@@ -62,7 +62,7 @@ RUN apt-get purge -y --auto-remove gcc && \
     find /install -name "*.pyc" -delete
 
 # Stage 3: Backend Runtime
-FROM python:3.11.8-slim-bookworm@sha256:8c9da8f3069be48e38bb88c0f5936dfe1bf0e14e0b1ca3e4e1e0b7f7a4a6aa6f AS backend
+FROM python:3.11-slim@sha256:0b23cfb7425d065008b778022a17b1551c82f8b4866ee5a7a200084b7e2eafbf AS backend
 
 WORKDIR /app
 

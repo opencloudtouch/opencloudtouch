@@ -189,6 +189,53 @@ class BoseDeviceClientAdapter(DeviceClient):
             )
             raise DeviceConnectionError(self.ip, str(e)) from e
 
+    async def press_key(self, key: str, state: str = "both") -> None:
+        """
+        Simulate a key press on the device.
+
+        Args:
+            key: Key name (e.g., "PRESET_1", "PRESET_2", ...)
+            state: Key state ("press", "release", or "both")
+
+        Raises:
+            ConnectionError: If device is unreachable
+            ValueError: If key or state is invalid
+        """
+        try:
+            from bosesoundtouchapi import KeyStates, SoundTouchKeys
+
+            # Map string to enum
+            try:
+                key_enum = SoundTouchKeys[key]
+            except KeyError:
+                raise ValueError(f"Invalid key: {key}") from None
+
+            state_map = {
+                "press": KeyStates.Press,
+                "release": KeyStates.Release,
+                "both": KeyStates.Both,
+            }
+
+            if state not in state_map:
+                raise ValueError(
+                    f"Invalid state: {state}. Must be 'press', 'release', or 'both'"
+                )
+
+            state_enum = state_map[state]
+
+            logger.info(
+                f"Simulating key press on {self.ip}: {key} ({state})",
+                extra={"device_ip": self.ip, "key": key, "state": state},
+            )
+
+            self._client.Action(key_enum, state_enum)
+
+        except Exception as e:
+            logger.error(
+                f"Failed to press key {key} on {self.base_url}: {e}", exc_info=True
+            )
+            raise DeviceConnectionError(self.ip, str(e)) from e
+
     async def close(self) -> None:
         """Close client connections (no-op for bosesoundtouchapi)."""
         # BoseClient doesn't require explicit cleanup
