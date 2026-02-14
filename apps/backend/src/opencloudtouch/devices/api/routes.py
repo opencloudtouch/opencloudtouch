@@ -195,3 +195,47 @@ async def get_device_capabilities_endpoint(
         raise HTTPException(
             status_code=500, detail=f"Failed to query device capabilities: {str(e)}"
         ) from e
+
+
+@router.post("/{device_id}/key")
+async def press_key(
+    device_id: str,
+    key: str,
+    state: str = "both",
+    device_service: DeviceService = Depends(get_device_service),
+):
+    """
+    Simulate a key press on a device.
+
+    Used for E2E testing to trigger preset playback without physical button press.
+
+    Args:
+        device_id: Device ID
+        key: Key name (e.g., "PRESET_1", "PRESET_2", "PRESET_3", ...)
+        state: Key state ("press", "release", or "both"). Default: "both"
+
+    Returns:
+        Success message
+
+    Raises:
+        DeviceNotFoundError: If device does not exist
+        HTTPException(400): If key or state is invalid
+        HTTPException(500): If key press fails
+
+    Example:
+        POST /api/devices/AABBCC112233/key?key=PRESET_1&state=both
+    """
+    try:
+        await device_service.press_key(device_id, key, state)
+        return {"message": f"Key {key} pressed successfully", "device_id": device_id}
+    except ValueError as e:
+        # Device not found
+        if "not found" in str(e).lower():
+            raise DeviceNotFoundError(device_id) from e
+        # Invalid key or state
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        logger.error(f"Failed to press key {key} on device {device_id}: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to press key: {str(e)}"
+        ) from e

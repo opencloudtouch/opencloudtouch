@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { ApiError, isApiError, getErrorMessage, parseApiError } from "../api/types";
+import { getErrorMessage, parseApiError } from "../api/types";
 import "./RadioSearch.css";
 
 export interface RadioStation {

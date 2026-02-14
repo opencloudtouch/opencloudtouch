@@ -68,6 +68,21 @@ class DeviceClient(ABC):
         pass
 
     @abstractmethod
+    async def press_key(self, key: str, state: str = "both") -> None:
+        """
+        Simulate a key press on the device.
+
+        Args:
+            key: Key name (e.g., "PRESET_1", "PRESET_2", ...)
+            state: Key state ("press", "release", or "both")
+
+        Raises:
+            ConnectionError: If device is unreachable
+            ValueError: If key or state is invalid
+        """
+        pass
+
+    @abstractmethod
     async def close(self) -> None:
         """Close client connections."""
         pass
