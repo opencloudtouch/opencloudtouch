@@ -128,7 +128,7 @@ main() {
     esac
 
     # Setup signal handlers for graceful shutdown
-    trap shutdown SIGTERM SIGINT
+    trap 'shutdown' TERM INT
 
     log_info "Starting application on ${OCT_HOST}:${OCT_PORT}"
     log_info "Database: $OCT_DB_PATH"

@@ -21,11 +21,11 @@ docker-compose.override.yml
 
 # Local data & databases
 data-local/
+deployment/data-local/
 *.db
 *.db-journal
 
-# Deployment artifacts (personal deployment configs)
-deployment/local/
+# Deployment artifacts (container images and local runtime data)
 *.tar
 opencloudtouch-image.tar
 

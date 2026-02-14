@@ -1,0 +1,13 @@
+# Force LF line endings for shell scripts (prevents Docker entrypoint errors on Windows)
+*.sh text eol=lf
+
+# Force LF for Python files
+*.py text eol=lf
+
+# Force LF for YAML/JSON
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+
+# Auto-detect for other text files
+* text=auto
