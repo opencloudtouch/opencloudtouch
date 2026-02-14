@@ -210,7 +210,7 @@ async function runCypressTests() {
 
   const cypressProcess = spawn(
     'npx',
-    ['cypress', 'run'],
+    ['cypress', 'run', '--browser', 'chrome', '--headless'],
     { cwd: FRONTEND_DIR, env, stdio: 'inherit', shell: true }
   );
 

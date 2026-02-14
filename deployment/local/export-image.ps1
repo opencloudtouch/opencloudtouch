@@ -1,5 +1,5 @@
 #!/usr/bin/env pwsh
-# Export container image for deployment to TrueNAS
+# Export container image for deployment to remote server
 # Creates a portable .tar file that can be imported on any Docker/Podman host
 
 param(
@@ -150,12 +150,12 @@ try {
     Write-Host ""
     Write-Host "=== Next Steps ===" -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "1. Transfer the image to TrueNAS:" -ForegroundColor White
-    Write-Host "   scp $OutputFile user@truenas:/mnt/pool/docker-images/" -ForegroundColor Gray
+    Write-Host "1. Transfer the image to remote server:" -ForegroundColor White
+    Write-Host "   scp $OutputFile user@server:/path/to/docker-images/" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "2. On TrueNAS, import and run:" -ForegroundColor White
-    Write-Host "   docker load -i /mnt/pool/docker-images/$OutputFile" -ForegroundColor Gray
-    Write-Host "   docker run -d --name soundtouch-bridge --network host -v /mnt/pool/stb-data:/data $Tag" -ForegroundColor Gray
+    Write-Host "2. On remote server, import and run:" -ForegroundColor White
+    Write-Host "   docker load -i /path/to/docker-images/$OutputFile" -ForegroundColor Gray
+    Write-Host "   docker run -d --name opencloudtouch --network host -v /path/to/data:/data $Tag" -ForegroundColor Gray
     Write-Host ""
     Write-Host "3. Or use the deploy-to-server.ps1 script for automation" -ForegroundColor White
     Write-Host ""

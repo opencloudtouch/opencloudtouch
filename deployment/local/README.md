@@ -1,18 +1,33 @@
 ﻿# Local Deployment Scripts
 
-**⚠️ This directory is gitignored - your personal scripts stay private!**
+**ℹ️ Scripts are versioned in Git, configuration is in `.env` (gitignored)**
 
-This folder contains **your personal deployment scripts** for your specific environment (TrueNAS, Docker, hosts, etc.).
-
-Other developers will have their own `deployment/local/` with different configs.
+This folder contains deployment scripts for remote server deployment. Each developer configures their own `.env` file.
 
 ---
 
-## What Goes Here?
+## Quick Start
 
-✅ **Personal deployment scripts:**
-- `deploy-to-server.ps1` - Deploy to your remote server
-- `deploy-local.ps1` - Run locally on your machine
+### 1. Create Your Configuration
+
+```powershell
+# Copy template to .env
+cp .env.template .env
+
+# Edit .env with your infrastructure
+notepad .env  # Windows
+nano .env     # Linux/Mac
+```
+
+### 2. Configure Your Infrastructure
+
+```bash
+# .env file (this is YOUR personal config, gitignored!)
+DEPLOY_HOST=your-server-hostname
+DEPLOY_USER=your-username
+REMOTE_DATA_PATH=/path/to/container/data
+CONTAINER_PORT=7777
+```
 - `export-image.ps1` - Export Docker image
 - `clear-database.ps1` - Clear your local DB
 - `run-e2e-tests-remote.ps1` - Test on remote server
@@ -133,45 +148,101 @@ Write-Host "Exported: $OutputPath ($([math]::Round($size, 2)) MB)" -ForegroundCo
 
 ## Tips
 
-### Use Environment Variables
+## Available Configuration Options
 
-```powershell
-# deployment/local/.env (gitignored!)
-NAS_HOST=truenas.home.local
-NAS_USER=admin
-NAS_PATH=/mnt/pool/apps/opencloudtouch
-
-# Load in script:
-Get-Content .env | ForEach-Object {
-    $key, $val = $_ -split '=', 2
-    Set-Item -Path "env:$key" -Value $val
-}
-```
-
-### SSH Key Authentication
+See [.env.template](.env.template) for all available options:
 
 ```bash
-# Avoid password prompts
-ssh-keygen -t ed25519 -f ~/.ssh/nas_deploy_key
-ssh-copy-id -i ~/.ssh/nas_deploy_key.pub user@nas.local
+# Remote Server
+DEPLOY_HOST=server-hostname
+DEPLOY_USER=username
+DEPLOY_USE_SUDO=false
 
-# Use in scripts
-ssh -i ~/.ssh/nas_deploy_key user@nas.local "podman ps"
+# Container Settings
+CONTAINER_NAME=opencloudtouch
+CONTAINER_TAG=opencloudtouch:latest
+
+# Paths
+REMOTE_DATA_PATH=/path/to/container/data
+REMOTE_IMAGE_PATH=/tmp
+LOCAL_DATA_PATH=./deployment/data-local
+
+# Network
+CONTAINER_PORT=7777
+
+# Optional: Manual Device IPs
+MANUAL_DEVICE_IPS=192.168.1.100,192.168.1.101
 ```
 
-### Test Before Deploy
+---
+
+## Deployment Scripts
+
+### deploy-to-server.ps1
+
+Deploy to remote server via SSH (uses .env configuration).
 
 ```powershell
-# Dry run mode
-param([switch]$DryRun)
+.\deploy-to-server.ps1              # Full build + deploy
+.\deploy-to-server.ps1 -SkipBuild   # Use existing image
+.\deploy-to-server.ps1 -UseSudo     # Use sudo for docker
+```
 
-if ($DryRun) {
-    Write-Host "Would deploy to: $NasHost" -ForegroundColor Yellow
-    Write-Host "Would run: podman run ..." -ForegroundColor Yellow
-    exit 0
-}
+### deploy-local.ps1
 
-# Actual deployment...
+Deploy locally using Podman (Windows WSL2 + Rootful mode).
+
+```powershell
+.\deploy-local.ps1                   # Full build + deploy
+.\deploy-local.ps1 -SkipBuild        # Use existing image
+```
+
+### clear-database.ps1
+
+Clear database on remote server.
+
+```powershell
+.\clear-database.ps1                 # Uses .env config
+```
+
+### export-image.ps1
+
+Export Docker image to tar file for manual transfer.
+
+```powershell
+.\export-image.ps1                   # Creates opencloudtouch-image.tar
+```
+
+---
+
+## SSH Key Authentication
+
+Avoid password prompts in deployment:
+
+```bash
+# Generate SSH key
+ssh-keygen -t ed25519 -f ~/.ssh/deploy_key
+
+# Copy to remote server
+ssh-copy-id -i ~/.ssh/deploy_key.pub user@server
+
+# Test connection
+ssh -i ~/.ssh/deploy_key user@server "docker ps"
+```
+
+Add to `.ssh/config` for easier access:
+
+```
+Host myserver
+  HostName server.example.com
+  User deployuser
+  IdentityFile ~/.ssh/deploy_key
+```
+
+Then use hostname in `.env`:
+
+```bash
+DEPLOY_HOST=myserver
 ```
 
 ---

@@ -1,12 +1,21 @@
 #!/usr/bin/env pwsh
-# Clear the OpenCloudTouch database on TrueNAS
+# Clear the OpenCloudTouch database on remote server
 
 param(
-    [string]$TrueNasHost = "targethost",
-    [string]$TrueNasUser = "user",
-    [string]$DataPath = "/mnt/Docker/opencloudtouch/data",
-    [string]$ContainerName = "opencloudtouch"
+    [string]$RemoteHost = "",
+    [string]$RemoteUser = "",
+    [string]$DataPath = "",
+    [string]$ContainerName = ""
 )
+
+# Load configuration from .env
+. "$PSScriptRoot\config.ps1"
+$config = Load-DeploymentConfig
+
+if (-not $TrueNasHost) { $TrueNasHost = $config.DEPLOY_HOST }
+if (-not $TrueNasUser) { $TrueNasUser = $config.DEPLOY_USER }
+if (-not $DataPath) { $DataPath = $config.REMOTE_DATA_PATH }
+if (-not $ContainerName) { $ContainerName = $config.CONTAINER_NAME }
 
 Write-Host ""
 Write-Host "=== Clear OpenCloudTouch Database ===" -ForegroundColor Yellow
@@ -43,13 +52,13 @@ echo "[OK] Container restarted: `${ContainerName}"
 "@
 
 $clearScript = $clearScript -replace "`r`n", "`n"
-$clearScript | ssh "${TrueNasUser}@${TrueNasHost}" "bash -s"
+$clearScript | ssh "${RemoteUser}@${RemoteHost}" "bash -s"
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
     Write-Host "[OK] Database cleared and container restarted!" -ForegroundColor Green
     Write-Host ""
-    Write-Host "Access the app at: http://${TrueNasHost}:7777" -ForegroundColor Cyan
+    Write-Host "Access the app at: http://${RemoteHost}:7777" -ForegroundColor Cyan
     Write-Host "You should now see the empty state with 'Keine Geräte gefunden'" -ForegroundColor Gray
     Write-Host ""
 } else {

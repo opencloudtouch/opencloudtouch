@@ -1,19 +1,26 @@
 #!/usr/bin/env pwsh
-# Run E2E Hardware Tests on TrueNAS with real SoundTouch devices
+# Run E2E Hardware Tests on remote server with real SoundTouch devices
 
 param(
-    [string]$TrueNasHost = "targethost",
-    [string]$TrueNasUser = "user",
+    [string]$RemoteHost = "",
+    [string]$RemoteUser = "",
     [string]$LogLevel = "DEBUG",
     [switch]$SkipDiscovery,
     [switch]$SkipIntegration,
     [switch]$Coverage
 )
 
+# Load configuration from .env
+. "$PSScriptRoot\config.ps1"
+$config = Load-DeploymentConfig
+
+if (-not $RemoteHost) { $RemoteHost = $config.DEPLOY_HOST }
+if (-not $RemoteUser) { $RemoteUser = $config.DEPLOY_USER }
+
 Write-Host ""
-Write-Host "=== Run E2E Tests on TrueNAS ===" -ForegroundColor Yellow
+Write-Host "=== Run E2E Tests on Remote Server ===" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "Target: $TrueNasUser@$TrueNasHost" -ForegroundColor White
+Write-Host "Target: $RemoteUser@$RemoteHost" -ForegroundColor White
 Write-Host "Log Level: $LogLevel" -ForegroundColor Gray
 Write-Host ""
 
@@ -124,9 +131,9 @@ else
 fi
 "@
 
-# Execute on TrueNAS
+# Execute on remote server
 try {
-    Write-Host "[>] Connecting to TrueNAS..." -ForegroundColor Cyan
+    Write-Host "[>] Connecting to remote server..." -ForegroundColor Cyan
 
     # Convert to Unix line endings
     $testCmd = $testCmd -replace "`r`n", "`n"
@@ -135,7 +142,7 @@ try {
     $testCmd = $testCmd -replace "\`$LogLevel", $LogLevel
 
     # Execute via SSH
-    $testCmd | ssh "${TrueNasUser}@${TrueNasHost}" "bash -s"
+    $testCmd | ssh "${RemoteUser}@${RemoteHost}" "bash -s"
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
@@ -152,7 +159,7 @@ try {
     Write-Host "[ERROR] SSH connection failed: $_" -ForegroundColor Red
     Write-Host ""
     Write-Host "Common issues:" -ForegroundColor Yellow
-    Write-Host "- SSH not configured: ssh ${TrueNasUser}@${TrueNasHost}" -ForegroundColor Gray
-    Write-Host "- Container not running: ssh ${TrueNasUser}@${TrueNasHost} 'docker start cloudtouch'" -ForegroundColor Gray
+    Write-Host "- SSH not configured: ssh ${RemoteUser}@${RemoteHost}" -ForegroundColor Gray
+    Write-Host "- Container not running: ssh ${RemoteUser}@${RemoteHost} 'docker start cloudtouch'" -ForegroundColor Gray
     exit 1
 }

@@ -11,8 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest watch",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "cypress run",
-    "test:e2e:headed": "cypress run --headed --browser electron",
+    "test:e2e": "cypress run --browser chrome --headless",
+    "test:e2e:headed": "cypress run --headed --browser chrome",
     "test:e2e:open": "cypress open",
     "lint": "eslint .",
     "clean": "rimraf node_modules dist .vite coverage cypress/screenshots cypress/videos"

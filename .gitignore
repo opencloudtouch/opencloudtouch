@@ -18,6 +18,10 @@ tools/local-scripts/
 # Local configuration (use config.example.yaml as template)
 config.yaml
 docker-compose.override.yml
+.env
+.env.local
+deployment/local/.env
+deployment/local/.env.local
 
 # Local data & databases
 data-local/

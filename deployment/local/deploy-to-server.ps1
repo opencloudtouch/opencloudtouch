@@ -1,5 +1,5 @@
 #!/usr/bin/env pwsh
-# Deploy OpenCloudTouch to TrueNAS via SSH
+# Deploy OpenCloudTouch to remote server via SSH
 # Builds locally, transfers image, and deploys remotely
 
 param(
@@ -11,12 +11,21 @@ param(
     [switch]$Verbose
 )
 
-# Configuration - adjust these values if needed
-$TrueNasHost = "targethost"
-$TrueNasUser = "user"
-$Tag = "opencloudtouch:latest"
-$ContainerName = "opencloudtouch"
-$DataPath = "/mnt/Docker/opencloudtouch/data"
+# Load configuration from .env
+. "$PSScriptRoot\config.ps1"
+$config = Load-DeploymentConfig
+
+$RemoteHost = $config.DEPLOY_HOST
+$RemoteUser = $config.DEPLOY_USER
+$Tag = $config.CONTAINER_TAG
+$ContainerName = $config.CONTAINER_NAME
+$DataPath = $config.REMOTE_DATA_PATH
+if (-not $ManualIPs -and $config.MANUAL_DEVICE_IPS) {
+    $ManualIPs = $config.MANUAL_DEVICE_IPS
+}
+if ($config.DEPLOY_USE_SUDO -eq "true") {
+    $UseSudo = $true
+}
 
 function Write-Step {
     param([string]$Message)
@@ -35,9 +44,9 @@ function Write-ErrorMsg {
 
 try {
     Write-Host ""
-    Write-Host "=== Deploy OpenCloudTouch to TrueNAS ===" -ForegroundColor Yellow
+    Write-Host "=== Deploy OpenCloudTouch to Remote Server ===" -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "Target: $TrueNasUser@$TrueNasHost" -ForegroundColor White
+    Write-Host "Target: $RemoteUser@$RemoteHost" -ForegroundColor White
     Write-Host ""
 
     $imageTar = "opencloudtouch-image.tar"
@@ -53,17 +62,17 @@ try {
         exit 1
     }
 
-    # Step 2: Transfer to TrueNAS
-    Write-Step "Transferring image to TrueNAS..."
-    scp $imageTar "${TrueNasUser}@${TrueNasHost}:/tmp/"
+    # Step 2: Transfer to remote server
+    Write-Step "Transferring image to remote server..."
+    scp $imageTar "${RemoteUser}@${RemoteHost}:/tmp/"
     if ($LASTEXITCODE -ne 0) {
         Write-ErrorMsg "Transfer failed! Check SSH connection."
         exit 1
     }
     Write-Success "Image transferred"
 
-    # Step 3: Deploy on TrueNAS
-    Write-Step "Deploying container on TrueNAS..."
+    # Step 3: Deploy on remote server
+    Write-Step "Deploying container on remote server..."
 
     # Determine if sudo is needed
     $dockerCmd = if ($UseSudo) { "sudo docker" } else { "docker" }
@@ -120,31 +129,31 @@ echo "[OK] Container started successfully"
 $dockerCmd ps --filter name=$ContainerName --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 echo ""
-echo "Access SoundTouch Bridge at: http://${TrueNasHost}:7777"
+echo "Access SoundTouch Bridge at: http://${RemoteHost}:7777"
 echo ""
 echo "View logs: $dockerCmd logs -f $ContainerName"
 "@
 
     # Execute deployment - convert to Unix line endings
     $deployScript = $deployScript -replace "`r`n", "`n"
-    $deployScript | ssh "${TrueNasUser}@${TrueNasHost}" "bash -s"
+    $deployScript | ssh "${RemoteUser}@${RemoteHost}" "bash -s"
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
         Write-Success "Deployment complete!"
         Write-Host ""
         Write-Host "=== Container Info ===" -ForegroundColor Yellow
-        Write-Host "URL: http://${TrueNasHost}:7777" -ForegroundColor Green
+        Write-Host "URL: http://${RemoteHost}:7777" -ForegroundColor Green
 
         $logsCmd = if ($UseSudo) { "sudo docker" } else { "docker" }
-        Write-Host "Logs: ssh ${TrueNasUser}@${TrueNasHost} '$logsCmd logs -f $ContainerName'" -ForegroundColor Gray
+        Write-Host "Logs: ssh ${RemoteUser}@${RemoteHost} '$logsCmd logs -f $ContainerName'" -ForegroundColor Gray
         Write-Host ""
     } else {
         Write-ErrorMsg "Deployment failed! Check logs above."
         Write-Host ""
         Write-Host "Common issues:" -ForegroundColor Yellow
-        Write-Host "- User not in docker group: ssh ${TrueNasUser}@${TrueNasHost} 'sudo usermod -aG docker ${TrueNasUser}'" -ForegroundColor Gray
-        Write-Host "- Or try with sudo: .\deploy-to-server.ps1 -TrueNasHost $TrueNasHost -TrueNasUser $TrueNasUser -UseSudo" -ForegroundColor Gray
+        Write-Host "- User not in docker group: ssh ${RemoteUser}@${RemoteHost} 'sudo usermod -aG docker ${RemoteUser}'" -ForegroundColor Gray
+        Write-Host "- Or try with sudo: .\deploy-to-server.ps1 -UseSudo" -ForegroundColor Gray
         Write-Host ""
     }
 
