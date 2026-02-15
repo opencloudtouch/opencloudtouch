@@ -2,6 +2,9 @@ import { useState, useEffect, ChangeEvent } from "react";
 import { motion } from "framer-motion";
 import DeviceSwiper, { Device } from "../components/DeviceSwiper";
 import { NowPlayingData } from "../components/NowPlaying";
+import StatusBadge from "../components/StatusBadge";
+import SetupWizard from "../components/SetupWizard";
+import { SetupStatus, getSetupStatus } from "../api/setup";
 import "./LocalControl.css";
 
 type SourceId = "INTERNET_RADIO" | "BLUETOOTH" | "AUX" | "AIRPLAY";
@@ -30,11 +33,32 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
   const [muted, setMuted] = useState(false);
   const [selectedSource, setSelectedSource] = useState<SourceId>("INTERNET_RADIO");
   const [playState, setPlayState] = useState<"PLAY_STATE" | "PAUSE_STATE">("PLAY_STATE");
+  const [setupWizardDevice, setSetupWizardDevice] = useState<Device | null>(null);
+  const [deviceSetupStatus, setDeviceSetupStatus] = useState<Record<string, SetupStatus>>({});
 
   const currentDevice = devices[currentDeviceIndex];
 
   // Temporary: Set nowPlaying to null properly typed
   const nowPlaying = null as NowPlayingData | null;
+
+  // Fetch setup status for all devices
+  useEffect(() => {
+    async function fetchSetupStatuses() {
+      const statuses: Record<string, SetupStatus> = {};
+      for (const device of devices) {
+        try {
+          const status = await getSetupStatus(device.device_id);
+          statuses[device.device_id] = status?.status || "unconfigured";
+        } catch {
+          statuses[device.device_id] = "unconfigured";
+        }
+      }
+      setDeviceSetupStatus(statuses);
+    }
+    if (devices.length > 0) {
+      fetchSetupStatuses();
+    }
+  }, [devices]);
 
   useEffect(() => {
     if (currentDevice) {
@@ -76,6 +100,29 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
     // TODO: Implement standby API call
   };
 
+  const handleOpenSetupWizard = (device: Device) => {
+    setSetupWizardDevice(device);
+  };
+
+  const handleSetupComplete = () => {
+    if (setupWizardDevice) {
+      // Mark device as configured
+      setDeviceSetupStatus((prev) => ({
+        ...prev,
+        [setupWizardDevice.device_id]: "configured",
+      }));
+      setSetupWizardDevice(null);
+    }
+  };
+
+  const handleSetupCancel = () => {
+    setSetupWizardDevice(null);
+  };
+
+  const currentDeviceSetupStatus = currentDevice
+    ? deviceSetupStatus[currentDevice.device_id] || "unconfigured"
+    : "unconfigured";
+
   if (devices.length === 0) {
     return (
       <div className="empty-container">
@@ -104,8 +151,15 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
         <div className="control-card">
           {/* Device Header */}
           <div className="control-card-header">
-            <h2 className="device-name">{currentDevice?.name}</h2>
-            <span className="device-model">{currentDevice?.model || "Unknown Model"}</span>
+            <div className="device-header-info">
+              <h2 className="device-name">{currentDevice?.name}</h2>
+              <span className="device-model">{currentDevice?.model || "Unknown Model"}</span>
+            </div>
+            <StatusBadge
+              status={currentDeviceSetupStatus}
+              onClick={() => currentDevice && handleOpenSetupWizard(currentDevice)}
+              showAction={currentDeviceSetupStatus === "unconfigured"}
+            />
           </div>
 
           {/* Volume Control */}
@@ -222,6 +276,18 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
           </motion.div>
         </div>
       </DeviceSwiper>
+
+      {/* Setup Wizard Modal */}
+      {setupWizardDevice && (
+        <SetupWizard
+          deviceId={setupWizardDevice.device_id}
+          deviceName={setupWizardDevice.name}
+          model={setupWizardDevice.model || "Unknown"}
+          ip={setupWizardDevice.ip || ""}
+          onComplete={handleSetupComplete}
+          onCancel={handleSetupCancel}
+        />
+      )}
     </div>
   );
 }

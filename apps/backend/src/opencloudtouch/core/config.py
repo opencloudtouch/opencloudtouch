@@ -20,6 +20,7 @@ class AppConfig(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",  # Ignore deployment-related env vars (DEPLOY_*, CONTAINER_*, etc.)
     )
 
     # Server
@@ -98,8 +99,8 @@ class AppConfig(BaseSettings):
 
     # Station Descriptor
     station_descriptor_base_url: str = Field(
-        default="http://localhost:7777/stations/preset",
-        description="Base URL for station descriptors (used in preset URLs)",
+        default="http://localhost:7777",
+        description="Base URL for OCT backend (used in Bose preset programming)",
     )
 
     # Feature Toggles (9.3.6 - NICE TO HAVE)

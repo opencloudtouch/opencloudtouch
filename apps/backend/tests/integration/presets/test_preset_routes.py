@@ -16,17 +16,26 @@ async def preset_service():
     """Create and initialize a temporary preset service for testing."""
     with tempfile.TemporaryDirectory() as tmpdir:
         db_path = Path(tmpdir) / "test_presets.db"
-        repo = PresetRepository(str(db_path))
-        await repo.initialize()
+        
+        # Initialize device repo (needed for preset service)
+        from opencloudtouch.devices.repository import DeviceRepository
+        device_repo = DeviceRepository(str(db_path))
+        await device_repo.initialize()
+        
+        # Initialize preset repo
+        preset_repo = PresetRepository(str(db_path))
+        await preset_repo.initialize()
 
-        service = PresetService(repo)
+        # Initialize preset service with device_repo
+        service = PresetService(preset_repo, device_repo)
 
         # Set in app.state for dependency injection
         app.state.preset_service = service
 
         yield service
 
-        await repo.close()
+        await preset_repo.close()
+        await device_repo.close()
 
 
 @pytest.mark.asyncio

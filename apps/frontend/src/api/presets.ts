@@ -4,7 +4,7 @@
  * Provides methods to interact with the backend preset endpoints.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:7777";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 export interface PresetSetRequest {
   device_id: string;

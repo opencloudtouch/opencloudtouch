@@ -176,7 +176,7 @@ class DeviceService:
         # Create client and press key
         from opencloudtouch.devices.adapter import get_device_client
 
-        base_url = f"http://{device.ip_address}:8090"
+        base_url = f"http://{device.ip}:8090"
         client = get_device_client(base_url)
 
         try:

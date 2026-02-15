@@ -14,10 +14,16 @@
 }
 
 .control-card-header {
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: var(--space-xl);
   padding-bottom: var(--space-md);
   border-bottom: 1px solid var(--color-border);
+}
+
+.device-header-info {
+  text-align: left;
 }
 
 .device-name {

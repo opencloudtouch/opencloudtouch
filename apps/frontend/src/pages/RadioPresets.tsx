@@ -10,6 +10,7 @@ import {
   getDevicePresets,
   type PresetResponse,
 } from "../api/presets";
+import { playPreset as playPresetAPI } from "../api/devices";
 import "./RadioPresets.css";
 
 interface RadioPresetsProps {
@@ -106,10 +107,23 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
     }
   };
 
-  const handlePlayPreset = (presetNumber: number) => {
-    // TODO: Phase 4 - Implement playback via Bose SoundTouch API
-    // This will be implemented when we add the playback control feature
-    void presetNumber; // Suppress unused warning until backend implemented
+  const handlePlayPreset = async (presetNumber: number) => {
+    if (!currentDevice?.device_id) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      await playPresetAPI(currentDevice.device_id, presetNumber);
+
+      // Success feedback could be added here (e.g., toast notification)
+      console.log(`Playing preset ${presetNumber} on ${currentDevice.name}`);
+    } catch (err) {
+      console.error("Failed to play preset:", err);
+      setError(err instanceof Error ? err.message : "Failed to play preset");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleClearPreset = async (presetNumber: number) => {

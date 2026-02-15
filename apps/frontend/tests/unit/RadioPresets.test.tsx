@@ -12,8 +12,8 @@
  * - Edge cases: no devices, preset lifecycle
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import RadioPresets from '../../src/pages/RadioPresets';
 
 // Mock API module
@@ -136,9 +136,23 @@ describe('RadioPresets Page', () => {
     vi.mocked(presetsApi.clearPreset).mockResolvedValue({ message: 'Preset cleared' });
   });
 
+  // Helper function to render and wait for initial load to complete
+  const renderAndWaitForLoad = async (devices = mockDevices) => {
+    const result = render(<RadioPresets devices={devices} />);
+    // Wait for any pending state updates from useEffect
+    await act(async () => {
+      await vi.waitFor(() => {
+        expect(presetsApi.getDevicePresets).toHaveBeenCalled();
+      }, { timeout: 100 }).catch(() => {
+        // May not be called if no devices
+      });
+    });
+    return result;
+  };
+
   describe('Device Display', () => {
-    it('should display current device information', () => {
-      render(<RadioPresets devices={mockDevices} />);
+    it('should display current device information', async () => {
+      await renderAndWaitForLoad();
 
       // Component uses data-test, not data-testid, so use text queries
       expect(screen.getByText('Living Room')).toBeInTheDocument();
@@ -146,16 +160,20 @@ describe('RadioPresets Page', () => {
       expect(screen.getByText('192.168.1.101')).toBeInTheDocument();
     });
 
-    it('should show all 6 preset buttons', () => {
-      render(<RadioPresets devices={mockDevices} />);
+    it('should show all 6 preset buttons', async () => {
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       for (let i = 1; i <= 6; i++) {
         expect(screen.getByTestId(`preset-${i}`)).toBeInTheDocument();
       }
     });
 
-    it('should show empty state when no devices available', () => {
-      render(<RadioPresets devices={[]} />);
+    it('should show empty state when no devices available', async () => {
+      await act(async () => {
+        render(<RadioPresets devices={[]} />);
+      });
 
       expect(screen.getByText('Keine Geräte gefunden')).toBeInTheDocument();
       expect(screen.queryByTestId('device-swiper')).not.toBeInTheDocument();
@@ -163,8 +181,10 @@ describe('RadioPresets Page', () => {
   });
 
   describe('Preset Assignment Flow', () => {
-    it('should open radio search modal when clicking assign button', () => {
-      render(<RadioPresets devices={mockDevices} />);
+    it('should open radio search modal when clicking assign button', async () => {
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       const assignButton = screen.getByTestId('preset-1-assign');
       fireEvent.click(assignButton);
@@ -173,7 +193,9 @@ describe('RadioPresets Page', () => {
     });
 
     it('should assign station to preset when selected from search', async () => {
-      render(<RadioPresets devices={mockDevices} />);
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       // Open search for preset 1
       const assignButton = screen.getByTestId('preset-1-assign');
@@ -191,8 +213,10 @@ describe('RadioPresets Page', () => {
       // Note: Modal remains open (component behavior - user must close manually)
     });
 
-    it('should close search modal when clicking close button', () => {
-      render(<RadioPresets devices={mockDevices} />);
+    it('should close search modal when clicking close button', async () => {
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       // Open search
       fireEvent.click(screen.getByTestId('preset-2-assign'));
@@ -204,7 +228,9 @@ describe('RadioPresets Page', () => {
     });
 
     it('should allow assigning different stations to different presets', async () => {
-      render(<RadioPresets devices={mockDevices} />);
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       // Assign to preset 1
       fireEvent.click(screen.getByTestId('preset-1-assign'));
@@ -230,18 +256,26 @@ describe('RadioPresets Page', () => {
 
   describe('Preset Playback', () => {
     it('should show play button for assigned preset', async () => {
-      render(<RadioPresets devices={mockDevices} />);
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       // Assign preset first
-      fireEvent.click(screen.getByTestId('preset-3-assign'));
-      fireEvent.click(screen.getByTestId('select-station'));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('preset-3-assign'));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('select-station'));
+      });
 
       await waitFor(() => {
         expect(screen.getByTestId('preset-3-play')).toBeInTheDocument();
       });
 
       // Click play - should not throw error (TODO: backend API in Phase 3)
-      fireEvent.click(screen.getByTestId('preset-3-play'));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('preset-3-play'));
+      });
 
       // Verify play button still exists after click
       expect(screen.getByTestId('preset-3-play')).toBeInTheDocument();
@@ -253,7 +287,9 @@ describe('RadioPresets Page', () => {
       // Mock window.confirm
       const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
 
-      render(<RadioPresets devices={mockDevices} />);
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       // Assign preset
       fireEvent.click(screen.getByTestId('preset-4-assign'));
@@ -279,7 +315,9 @@ describe('RadioPresets Page', () => {
       // Mock window.confirm
       const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
 
-      render(<RadioPresets devices={mockDevices} />);
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       // Assign two presets
       fireEvent.click(screen.getByTestId('preset-1-assign'));
@@ -304,20 +342,26 @@ describe('RadioPresets Page', () => {
   });
 
   describe('Device Switching', () => {
-    it('should render DeviceSwiper component', () => {
-      render(<RadioPresets devices={mockDevices} />);
+    it('should render DeviceSwiper component', async () => {
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       expect(screen.getByTestId('device-swiper')).toBeInTheDocument();
     });
 
-    it('should update displayed device when swiper index changes', () => {
-      render(<RadioPresets devices={mockDevices} />);
+    it('should update displayed device when swiper index changes', async () => {
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       // Initially shows first device
       expect(screen.getByText('Living Room')).toBeInTheDocument();
 
       // Switch to second device
-      fireEvent.click(screen.getByText('Device 2'));
+      await act(async () => {
+        fireEvent.click(screen.getByText('Device 2'));
+      });
 
       // Should show second device
       expect(screen.getByText('Küche')).toBeInTheDocument();
@@ -326,24 +370,32 @@ describe('RadioPresets Page', () => {
   });
 
   describe('Volume Control', () => {
-    it('should render volume slider', () => {
-      render(<RadioPresets devices={mockDevices} />);
+    it('should render volume slider', async () => {
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       expect(screen.getByTestId('volume-slider')).toBeInTheDocument();
       expect(screen.getByTestId('volume-input')).toHaveValue('45');
     });
 
-    it('should update volume when slider changes', () => {
-      render(<RadioPresets devices={mockDevices} />);
+    it('should update volume when slider changes', async () => {
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       const volumeInput = screen.getByTestId('volume-input');
-      fireEvent.change(volumeInput, { target: { value: '75' } });
+      await act(async () => {
+        fireEvent.change(volumeInput, { target: { value: '75' } });
+      });
 
       expect(volumeInput).toHaveValue('75');
     });
 
-    it('should toggle mute state', () => {
-      render(<RadioPresets devices={mockDevices} />);
+    it('should toggle mute state', async () => {
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       const muteButton = screen.getByTestId('mute-button');
 
@@ -351,11 +403,15 @@ describe('RadioPresets Page', () => {
       expect(muteButton).toHaveTextContent('Mute');
 
       // Toggle mute
-      fireEvent.click(muteButton);
+      await act(async () => {
+        fireEvent.click(muteButton);
+      });
       expect(muteButton).toHaveTextContent('Unmute');
 
       // Toggle back
-      fireEvent.click(muteButton);
+      await act(async () => {
+        fireEvent.click(muteButton);
+      });
       expect(muteButton).toHaveTextContent('Mute');
     });
   });
@@ -387,7 +443,9 @@ describe('RadioPresets Page', () => {
 
       vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(mockPresets);
 
-      render(<RadioPresets devices={mockDevices} />);
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       // Should call API with device_id
       await waitFor(() => {
@@ -402,7 +460,9 @@ describe('RadioPresets Page', () => {
     });
 
     it('should call setPreset API when assigning station', async () => {
-      render(<RadioPresets devices={mockDevices} />);
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       // Open search and select station
       fireEvent.click(screen.getByTestId('preset-2-assign'));
@@ -440,7 +500,9 @@ describe('RadioPresets Page', () => {
       // Mock window.confirm
       const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
 
-      render(<RadioPresets devices={mockDevices} />);
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       await waitFor(() => {
         expect(screen.getByTestId('preset-4-name')).toBeInTheDocument();
@@ -474,7 +536,9 @@ describe('RadioPresets Page', () => {
 
       const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
 
-      render(<RadioPresets devices={mockDevices} />);
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       await waitFor(() => {
         expect(screen.getByTestId('preset-5-name')).toBeInTheDocument();
@@ -523,7 +587,9 @@ describe('RadioPresets Page', () => {
         .mockResolvedValueOnce(device1Presets)
         .mockResolvedValueOnce(device2Presets);
 
-      render(<RadioPresets devices={mockDevices} />);
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       // Wait for device 1 presets to load
       await waitFor(() => {
@@ -545,12 +611,23 @@ describe('RadioPresets Page', () => {
   });
 
   describe('Error Handling', () => {
+    // Suppress console.error for error handling tests (expected behavior)
+    const originalConsoleError = console.error;
+    beforeEach(() => {
+      console.error = vi.fn();
+    });
+    afterEach(() => {
+      console.error = originalConsoleError;
+    });
+
     it('should display error when loading presets fails', async () => {
       vi.mocked(presetsApi.getDevicePresets).mockRejectedValue(
         new Error('Network error')
       );
 
-      render(<RadioPresets devices={mockDevices} />);
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       // Should display error message
       await waitFor(() => {
@@ -563,7 +640,9 @@ describe('RadioPresets Page', () => {
         new Error('Network error')
       );
 
-      render(<RadioPresets devices={mockDevices} />);
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       await waitFor(() => {
         expect(screen.getByTestId('error-message')).toBeInTheDocument();
@@ -584,7 +663,9 @@ describe('RadioPresets Page', () => {
         new Error('Failed to save preset')
       );
 
-      render(<RadioPresets devices={mockDevices} />);
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       // Try to assign preset
       fireEvent.click(screen.getByTestId('preset-1-assign'));
@@ -616,7 +697,9 @@ describe('RadioPresets Page', () => {
 
       const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
 
-      render(<RadioPresets devices={mockDevices} />);
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       await waitFor(() => {
         expect(screen.getByTestId('preset-1-name')).toBeInTheDocument();
@@ -643,7 +726,9 @@ describe('RadioPresets Page', () => {
 
       vi.mocked(presetsApi.getDevicePresets).mockReturnValue(presetsPromise);
 
-      render(<RadioPresets devices={mockDevices} />);
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
 
       // Should show loading
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();

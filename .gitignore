@@ -10,7 +10,7 @@ __pycache__/
 
 # Personal developer environment (not shared)
 AGENTS.md
-docs/agent-prompts/
+**/agent-prompts/
 tools/local-scripts/
 .local/
 *.local.*

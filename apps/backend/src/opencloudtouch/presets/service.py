@@ -8,6 +8,8 @@ Repository handles data persistence.
 import logging
 from typing import List, Optional
 
+from opencloudtouch.core.config import get_config
+from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.repository import PresetRepository
 
@@ -21,13 +23,17 @@ class PresetService:
     ensuring separation between HTTP layer (routes) and data layer (repository).
     """
 
-    def __init__(self, repository: PresetRepository):
+    def __init__(
+        self, repository: PresetRepository, device_repository: DeviceRepository
+    ):
         """Initialize the preset service.
 
         Args:
-            repository: PresetRepository instance for data persistence
+            repository: PresetRepository instance for preset data persistence
+            device_repository: DeviceRepository instance for device lookups
         """
         self.repository = repository
+        self.device_repository = device_repository
 
     async def set_preset(
         self,
@@ -41,8 +47,8 @@ class PresetService:
     ) -> Preset:
         """Set a preset for a device.
 
-        Creates or updates a preset mapping. When the physical preset button
-        is pressed on the SoundTouch device, it will load the configured station.
+        Creates or updates a preset mapping AND programs the Bose device.
+        This ensures the physical preset button will play the configured station.
 
         Args:
             device_id: Device identifier
@@ -57,8 +63,9 @@ class PresetService:
             The saved Preset object
 
         Raises:
-            ValueError: If preset_number is not between 1-6
+            ValueError: If preset_number is not between 1-6 or device not found
         """
+        # 1. Save to OpenCloudTouch database
         preset = Preset(
             device_id=device_id,
             preset_number=preset_number,
@@ -72,8 +79,49 @@ class PresetService:
         saved_preset = await self.repository.set_preset(preset)
 
         logger.info(
-            f"Set preset {preset_number} for device {device_id}: {station_name}"
+            f"Set preset {preset_number} in database for device {device_id}: {station_name}"
         )
+
+        # 2. Program Bose device via /storePreset API
+        try:
+            device = await self.device_repository.get_by_device_id(device_id)
+            if not device:
+                raise ValueError(f"Device {device_id} not found")
+
+            from opencloudtouch.devices.adapter import get_device_client
+            from opencloudtouch.core.config import get_config
+
+            # Get OCT backend URL from config
+            cfg = get_config()
+            oct_backend_url = cfg.station_descriptor_base_url
+
+            base_url = f"http://{device.ip}:8090"
+            client = get_device_client(base_url)
+
+            try:
+                await client.store_preset(
+                    device_id=device_id,
+                    preset_number=preset_number,
+                    station_url=station_url,  # Stored in DB, proxied by OCT!
+                    station_name=station_name,
+                    oct_backend_url=oct_backend_url,  # OCT HTTP stream proxy
+                )
+                logger.info(
+                    f"✅ Bose device programmed: Preset {preset_number} = {station_name}"
+                )
+            finally:
+                await client.close()
+
+        except Exception as e:
+            logger.error(
+                f"Failed to program Bose device for preset {preset_number}: {e}",
+                exc_info=True,
+            )
+            # Don't fail the whole operation if Bose programming fails
+            # Database record is still saved, user can retry
+            logger.warning(
+                f"Preset {preset_number} saved to database but NOT programmed on Bose device"
+            )
 
         return saved_preset
 

@@ -99,13 +99,19 @@ try {
 
     # Step 2: Stop and remove existing container
     Write-Step "Stopping existing container (if any)..."
-    $existingContainer = podman ps -a --filter "name=$ContainerName" --format "{{.Names}}" 2>$null
-    if ($existingContainer -eq $ContainerName) {
-        podman stop $ContainerName 2>&1 | Out-Null
-        podman rm $ContainerName 2>&1 | Out-Null
-        Write-Success "Removed old container"
+    try {
+        $existingContainer = podman ps -a --filter "name=$ContainerName" --format "{{.Names}}" 2>$null
+        if ($existingContainer -eq $ContainerName) {
+            podman stop $ContainerName 2>&1 | Out-Null
+            podman rm $ContainerName 2>&1 | Out-Null
+            Write-Success "Removed old container"
+        }
+        else {
+            Write-Host "  No existing container found" -ForegroundColor DarkGray
+        }
     }
-    else {
+    catch {
+        # Ignore errors - container may not exist
         Write-Host "  No existing container found" -ForegroundColor DarkGray
     }
 

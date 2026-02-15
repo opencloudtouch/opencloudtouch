@@ -1,0 +1,418 @@
+/**
+ * SetupWizard Styles
+ */
+
+.setup-wizard-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.setup-wizard-modal {
+  background: var(--bg-secondary, #1a1a2e);
+  border-radius: 16px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.wizard-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary, #888);
+  font-size: 1.5rem;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.wizard-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary, #fff);
+}
+
+/* Progress Dots */
+.wizard-progress-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem 1rem 0;
+}
+
+.progress-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border-color, #333);
+  transition: all 0.3s;
+}
+
+.progress-dot.active {
+  background: var(--primary-color, #4a90d9);
+  transform: scale(1.2);
+}
+
+.progress-dot.completed {
+  background: var(--success-color, #28a745);
+}
+
+/* Wizard Step Content */
+.wizard-step {
+  padding: 1.5rem 2rem 2rem;
+}
+
+.wizard-step h2 {
+  margin: 0 0 1.5rem;
+  font-size: 1.5rem;
+  color: var(--text-primary, #fff);
+  text-align: center;
+}
+
+/* Device Info Card */
+.wizard-device-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.device-icon {
+  font-size: 2.5rem;
+}
+
+.device-details h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--text-primary, #fff);
+}
+
+.device-details .device-model {
+  margin: 0.25rem 0 0;
+  color: var(--text-secondary, #888);
+  font-size: 0.9rem;
+}
+
+.device-details .device-ip {
+  margin: 0.25rem 0 0;
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: var(--text-tertiary, #666);
+}
+
+/* Info Box */
+.wizard-info-box {
+  background: rgba(74, 144, 217, 0.1);
+  border: 1px solid rgba(74, 144, 217, 0.3);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.wizard-info-box h4 {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  color: var(--primary-color, #4a90d9);
+}
+
+.wizard-info-box ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--text-secondary, #ccc);
+  font-size: 0.9rem;
+}
+
+.wizard-info-box li {
+  margin-bottom: 0.4rem;
+}
+
+/* Instructions Cards */
+.wizard-instructions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.instruction-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.instruction-card.highlight {
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.instruction-card h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-primary, #fff);
+}
+
+.instruction-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary, #ccc);
+}
+
+.instruction-card ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #ccc);
+}
+
+.buy-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  color: var(--primary-color, #4a90d9);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.buy-link:hover {
+  text-decoration: underline;
+}
+
+/* Steps List */
+.wizard-steps-list {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.wizard-steps-list h4 {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  color: var(--text-primary, #fff);
+}
+
+.wizard-steps-list ol {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--text-secondary, #ccc);
+  font-size: 0.9rem;
+}
+
+.wizard-steps-list li {
+  margin-bottom: 0.5rem;
+}
+
+.wizard-steps-list code {
+  background: rgba(74, 144, 217, 0.2);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+/* Success/Error Boxes */
+.wizard-success-box,
+.wizard-error-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.wizard-success-box {
+  background: rgba(40, 167, 69, 0.1);
+  border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.wizard-success-box.large {
+  padding: 1.5rem;
+}
+
+.wizard-error-box {
+  background: rgba(220, 53, 69, 0.1);
+  border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.success-icon,
+.error-icon {
+  font-size: 1.75rem;
+  flex-shrink: 0;
+}
+
+.wizard-success-box h4,
+.wizard-error-box h4 {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+  color: var(--text-primary, #fff);
+}
+
+.wizard-success-box p,
+.wizard-error-box p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary, #ccc);
+}
+
+.error-message {
+  white-space: pre-line;
+}
+
+/* Progress Bar */
+.wizard-progress {
+  margin-bottom: 1.5rem;
+}
+
+.progress-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color, #4a90d9), #6bb3f8);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-label {
+  font-size: 0.95rem;
+  color: var(--text-primary, #fff);
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.progress-message {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #888);
+  margin: 0;
+}
+
+/* Spinner */
+.wizard-spinner {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--primary-color, #4a90d9);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.wizard-hint {
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-secondary, #888);
+  margin: 0;
+}
+
+/* Error */
+.wizard-error {
+  background: rgba(220, 53, 69, 0.1);
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  color: #ff6b6b;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  white-space: pre-line;
+}
+
+/* Actions */
+.wizard-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.btn-primary {
+  background: var(--primary-color, #4a90d9);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #5aa0e9;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border-color, #444);
+  color: var(--text-secondary, #ccc);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--text-secondary, #888);
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .setup-wizard-modal {
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .wizard-step {
+    padding: 1rem 1.25rem 1.5rem;
+  }
+
+  .wizard-actions {
+    flex-direction: column-reverse;
+  }
+
+  .wizard-actions button {
+    width: 100%;
+  }
+}

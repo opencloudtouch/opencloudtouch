@@ -107,8 +107,8 @@ try {
     if (-not $SkipBuild) {
         Write-Step "Building container image..."
 
-        # Ensure we're in project root
-        $projectRoot = Split-Path $PSScriptRoot -Parent
+        # Ensure we're in project root (two levels up from deployment/local)
+        $projectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
         Push-Location $projectRoot
 
         $buildCmd = "podman build -f ./Dockerfile -t $Tag"
