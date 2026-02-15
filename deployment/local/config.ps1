@@ -15,7 +15,8 @@ function Load-DeploymentConfig {
         REMOTE_IMAGE_PATH = "/tmp"
         LOCAL_DATA_PATH = Join-Path $PSScriptRoot "..\data-local"
         CONTAINER_PORT = 7777
-        MANUAL_DEVICE_IPS = ""
+        OCT_MANUAL_DEVICE_IPS = ""
+        OCT_STATION_DESCRIPTOR_BASE_URL = ""
     }
 
     # Load .env if exists

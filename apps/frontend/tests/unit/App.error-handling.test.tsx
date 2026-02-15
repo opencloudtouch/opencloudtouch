@@ -11,10 +11,44 @@ const renderWithProviders = (component) => {
   return render(<QueryWrapper>{component}</QueryWrapper>)
 }
 
+// Helper to create fetch mock that handles all endpoints
+const createFetchMock = (overrides = {}) => {
+  const devices = overrides.devices ?? [];
+  const devicesError = overrides.devicesError ?? null;
+  
+  return (url) => {
+    if (url.includes('/api/devices')) {
+      if (devicesError) {
+        return Promise.reject(devicesError);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ devices })
+      });
+    }
+    if (url.includes('/api/settings/manual-ips')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ ips: [] })
+      });
+    }
+    if (url.includes('/api/presets')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => []
+      });
+    }
+    return Promise.resolve({
+      ok: true,
+      json: async () => ({})
+    });
+  };
+};
+
 describe('App Error Handling', () => {
   beforeEach(() => {
-    // Reset fetch mock before each test
-    global.fetch = vi.fn();
+    // Default mock that returns empty devices
+    global.fetch = vi.fn().mockImplementation(createFetchMock());
   });
 
   afterEach(() => {
@@ -22,8 +56,8 @@ describe('App Error Handling', () => {
   });
 
   it('should display error state when API fetch fails', async () => {
-    // Arrange: Mock fetch to fail
-    global.fetch.mockRejectedValueOnce(new Error('Network error'));
+    // Arrange: Mock fetch to fail for devices
+    global.fetch = vi.fn().mockImplementation(createFetchMock({ devicesError: new Error('Network error') }));
 
     // Act: Render app
     renderWithProviders(<App />);
@@ -35,11 +69,16 @@ describe('App Error Handling', () => {
   });
 
   it('should display error state when API returns non-OK status', async () => {
-    // Arrange: Mock 500 error
-    global.fetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      statusText: 'Internal Server Error',
+    // Arrange: Mock 500 error for devices endpoint
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/api/devices')) {
+        return Promise.resolve({
+          ok: false,
+          status: 500,
+          statusText: 'Internal Server Error',
+        });
+      }
+      return createFetchMock()(url);
     });
 
     // Act: Render app
@@ -53,7 +92,7 @@ describe('App Error Handling', () => {
 
   it('should show retry button in error state', async () => {
     // Arrange: Mock fetch to fail
-    global.fetch.mockRejectedValueOnce(new Error('Network error'));
+    global.fetch = vi.fn().mockImplementation(createFetchMock({ devicesError: new Error('Network error') }));
 
     // Act: Render app
     renderWithProviders(<App />);
@@ -66,16 +105,24 @@ describe('App Error Handling', () => {
 
   it('should retry fetching devices when retry button clicked', async () => {
     // Arrange: Mock fetch to fail once, then succeed
-    global.fetch
-      .mockRejectedValueOnce(new Error('Network error'))
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          devices: [
-            { device_id: '123', name: 'Test Device', ip: '192.168.1.100' },
-          ],
-        }),
-      });
+    let callCount = 0;
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/api/devices')) {
+        callCount++;
+        if (callCount === 1) {
+          return Promise.reject(new Error('Network error'));
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            devices: [
+              { device_id: '123', name: 'Test Device', ip: '192.168.1.100' },
+            ],
+          }),
+        });
+      }
+      return createFetchMock()(url);
+    });
 
     // Act: Render app and click retry
     renderWithProviders(<App />);
@@ -88,7 +135,7 @@ describe('App Error Handling', () => {
 
     // Assert: Should load devices successfully
     await waitFor(() => {
-      expect(screen.queryByText(/Fehler beim Laden der Ger�te/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Fehler beim Laden der Geräte/i)).not.toBeInTheDocument();
     });
 
     // Check navigation is rendered (uses data-test, not data-testid)
@@ -97,12 +144,20 @@ describe('App Error Handling', () => {
 
   it('should clear error state after successful retry', async () => {
     // Arrange: Mock fetch to fail once, then succeed
-    global.fetch
-      .mockRejectedValueOnce(new Error('Network error'))
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ devices: [] }),
-      });
+    let callCount = 0;
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/api/devices')) {
+        callCount++;
+        if (callCount === 1) {
+          return Promise.reject(new Error('Network error'));
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ devices: [] }),
+        });
+      }
+      return createFetchMock()(url);
+    });
 
     // Act: Render app
     renderWithProviders(<App />);
@@ -122,10 +177,14 @@ describe('App Error Handling', () => {
 
   it('should show loading state during retry', async () => {
     // Arrange: Mock fetch to fail once, then delay success
-    global.fetch
-      .mockRejectedValueOnce(new Error('Network error'))
-      .mockImplementationOnce(() =>
-        new Promise((resolve) =>
+    let callCount = 0;
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/api/devices')) {
+        callCount++;
+        if (callCount === 1) {
+          return Promise.reject(new Error('Network error'));
+        }
+        return new Promise((resolve) =>
           setTimeout(
             () =>
               resolve({
@@ -134,8 +193,10 @@ describe('App Error Handling', () => {
               }),
             100
           )
-        )
-      );
+        );
+      }
+      return createFetchMock()(url);
+    });
 
     // Act: Render app and click retry
     renderWithProviders(<App />);

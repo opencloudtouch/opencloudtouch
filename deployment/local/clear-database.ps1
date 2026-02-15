@@ -12,15 +12,15 @@ param(
 . "$PSScriptRoot\config.ps1"
 $config = Load-DeploymentConfig
 
-if (-not $TrueNasHost) { $TrueNasHost = $config.DEPLOY_HOST }
-if (-not $TrueNasUser) { $TrueNasUser = $config.DEPLOY_USER }
+if (-not $RemoteHost) { $RemoteHost = $config.DEPLOY_HOST }
+if (-not $RemoteUser) { $RemoteUser = $config.DEPLOY_USER }
 if (-not $DataPath) { $DataPath = $config.REMOTE_DATA_PATH }
 if (-not $ContainerName) { $ContainerName = $config.CONTAINER_NAME }
 
 Write-Host ""
 Write-Host "=== Clear OpenCloudTouch Database ===" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "Target: $TrueNasUser@$TrueNasHost" -ForegroundColor White
+Write-Host "Target: $RemoteUser@$RemoteHost" -ForegroundColor White
 Write-Host "Database: $DataPath/oct.db" -ForegroundColor White
 Write-Host ""
 

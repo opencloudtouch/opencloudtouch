@@ -7,7 +7,8 @@ to determine which stream to play.
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Path as FastAPIPath
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi import Path as FastAPIPath
 from fastapi.responses import JSONResponse
 
 from opencloudtouch.core.dependencies import get_preset_service

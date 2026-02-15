@@ -27,7 +27,7 @@ interface RadioSearchProps {
   onClose?: () => void;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:7777";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 function getApiBaseUrl(): string {
   if (typeof window !== "undefined") {

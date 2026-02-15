@@ -202,7 +202,8 @@ class BoseDeviceClientAdapter(DeviceClient):
             ValueError: If key or state is invalid
         """
         try:
-            from bosesoundtouchapi import KeyStates, SoundTouchKeys
+            from bosesoundtouchapi import SoundTouchKeys
+            from bosesoundtouchapi.models.keystates import KeyStates
 
             # Map string to enum
             try:
@@ -233,6 +234,95 @@ class BoseDeviceClientAdapter(DeviceClient):
         except Exception as e:
             logger.error(
                 f"Failed to press key {key} on {self.base_url}: {e}", exc_info=True
+            )
+            raise DeviceConnectionError(self.ip, str(e)) from e
+
+    async def store_preset(
+        self,
+        device_id: str,
+        preset_number: int,
+        station_url: str,
+        station_name: str,
+        oct_backend_url: str,
+    ) -> None:
+        """
+        Store a preset on the Bose device.
+
+        Programs the device's physical preset button to call OCT backend.
+        OCT acts as HTTP proxy for HTTPS RadioBrowser streams.
+
+        **Flow:**
+        1. OCT programs Bose with: `http://{oct_ip}:7777/device/{device_id}/preset/{N}`
+        2. User presses PRESET_N button on Bose device
+        3. Bose requests OCT backend: `GET /device/{device_id}/preset/{N}`
+        4. OCT fetches HTTPS stream from RadioBrowser
+        5. OCT proxies stream as HTTP chunked transfer to Bose
+        6. Bose plays HTTP stream ✅
+
+        **Why proxy instead of direct URL?**
+        - ✅ TESTED: Direct HTTPS URLs fail (LED white → orange)
+        - ✅ TESTED: HTTP 302 redirect to HTTPS fails (LED white → orange)
+        - ✅ SOLUTION: OCT as HTTP stream proxy (HTTPS → HTTP chunked transfer)
+
+        Args:
+            device_id: Bose device identifier (for OCT backend URL)
+            preset_number: Preset slot (1-6)
+            station_url: RadioBrowser stream URL (stored in DB, proxied by OCT!)
+            station_name: Station display name
+            oct_backend_url: OCT backend base URL (e.g., "http://192.168.178.108:7777")
+
+        Raises:
+            ConnectionError: If device is unreachable
+            ValueError: If preset_number not in 1-6
+        """
+        if not 1 <= preset_number <= 6:
+            raise ValueError(f"Preset number must be 1-6, got {preset_number}")
+
+        try:
+            from bosesoundtouchapi.models.preset import Preset
+
+            # Build M3U playlist URL (absolute HTTP URL)
+            # Hypothesis: Bose might parse playlist files better than direct stream URLs
+            playlist_url = f"{oct_backend_url}/playlist/{device_id}/{preset_number}.m3u"
+            
+            # Also keep stream proxy URL for reference
+            stream_proxy_url = f"{oct_backend_url}/device/{device_id}/preset/{preset_number}"
+
+            logger.info(
+                f"Storing preset {preset_number} on {self.ip}: {station_name}",
+                extra={
+                    "device_ip": self.ip,
+                    "device_id": device_id,
+                    "preset_number": preset_number,
+                    "station_name": station_name,
+                    "playlist_url": playlist_url,
+                    "stream_proxy_url": stream_proxy_url,
+                    "upstream_url": station_url,
+                },
+            )
+
+            # Create Preset with absolute M3U playlist URL
+            # Bose device will fetch the .m3u file and parse the stream URL from it
+            preset = Preset(
+                presetId=preset_number,
+                source="INTERNET_RADIO",
+                typeValue="stationurl",
+                location=playlist_url,  # Absolute M3U playlist URL
+                name=station_name,
+                isPresetable=True,
+            )
+
+            # Call Bose API to program device
+            self._client.StorePreset(preset)
+
+            logger.info(
+                f"✅ Bose device programmed with OCT BMX path: {relative_location} → {oct_stream_url}"
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Failed to store preset {preset_number} on {self.base_url}: {e}",
+                exc_info=True,
             )
             raise DeviceConnectionError(self.ip, str(e)) from e
 

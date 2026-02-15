@@ -101,3 +101,30 @@ export async function getDeviceCapabilities(deviceId: string): Promise<any> {
   }
   return response.json();
 }
+
+/**
+ * Play a preset on a device by simulating key press
+ * 
+ * @param deviceId - Device ID
+ * @param presetNumber - Preset number (1-6)
+ */
+export async function playPreset(deviceId: string, presetNumber: number): Promise<void> {
+  if (presetNumber < 1 || presetNumber > 6) {
+    throw new Error(`Invalid preset number: ${presetNumber}. Must be 1-6`);
+  }
+
+  const key = `PRESET_${presetNumber}`;
+  const response = await fetch(
+    `${API_BASE_URL}/api/devices/${deviceId}/key?key=${key}&state=both`,
+    {
+      method: "POST",
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(
+      getErrorMessage(errorData) || `Failed to play preset: ${response.statusText}`
+    );
+  }
+}

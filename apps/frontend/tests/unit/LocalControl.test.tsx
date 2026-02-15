@@ -8,14 +8,14 @@
  */
 
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import LocalControl from '../../src/pages/LocalControl';
 
 // Mock framer-motion to avoid animation issues in tests
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }) => <div {...props}>{children}</div>,
+    div: ({ children, dragConstraints, dragElastic, whileTap, whileHover, initial, animate, exit, transition, ...props }) => <div {...props}>{children}</div>,
   },
   AnimatePresence: ({ children }) => <>{children}</>,
 }));
@@ -46,8 +46,10 @@ describe('LocalControl - Core Playback Functionality', () => {
    * TEST 1: Empty State Handling
    * User Story: Als User möchte ich wissen wenn keine Geräte verfügbar sind
    */
-  test('should show empty state when no devices available', () => {
-    render(<LocalControl devices={[]} />);
+  test('should show empty state when no devices available', async () => {
+    await act(async () => {
+      render(<LocalControl devices={[]} />);
+    });
 
     expect(screen.getByText(/Keine Geräte gefunden/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /play/i })).not.toBeInTheDocument();
@@ -57,8 +59,10 @@ describe('LocalControl - Core Playback Functionality', () => {
    * TEST 2: Device Display
    * User Story: Als User möchte ich sehen welches Gerät ich steuere
    */
-  test('should display current device name and model', () => {
-    render(<LocalControl devices={mockDevices} />);
+  test('should display current device name and model', async () => {
+    await act(async () => {
+      render(<LocalControl devices={mockDevices} />);
+    });
 
     expect(screen.getByText('Living Room')).toBeInTheDocument();
     expect(screen.getByText('SoundTouch 10')).toBeInTheDocument();
@@ -222,14 +226,20 @@ describe('LocalControl - Source Selection', () => {
    * TEST 10: Conditional AirPlay Support
    * User Story: Als User möchte ich AirPlay nur sehen wenn das Gerät es unterstützt
    */
-  test('should show AirPlay only when device supports it', () => {
-    const { rerender } = render(<LocalControl devices={[mockDevices[0]]} />);
+  test('should show AirPlay only when device supports it', async () => {
+    let rerender;
+    await act(async () => {
+      const result = render(<LocalControl devices={[mockDevices[0]]} />);
+      rerender = result.rerender;
+    });
 
     // ST10 (no AirPlay support)
     expect(screen.queryByRole('button', { name: /AirPlay/i })).not.toBeInTheDocument();
 
     // ST30 (with AirPlay support)
-    rerender(<LocalControl devices={[mockDevices[1]]} />);
+    await act(async () => {
+      rerender(<LocalControl devices={[mockDevices[1]]} />);
+    });
     expect(screen.getByRole('button', { name: /AirPlay/i })).toBeInTheDocument();
   });
 

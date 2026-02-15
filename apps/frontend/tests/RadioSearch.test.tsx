@@ -16,7 +16,11 @@ describe('RadioSearch Component', () => {
     mockOnClose.mockClear()
 
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
-      const url = new URL(String(input))
+      // Handle relative URLs by adding a base
+      const urlString = String(input)
+      const url = urlString.startsWith('http') 
+        ? new URL(urlString) 
+        : new URL(urlString, 'http://localhost')
       const query = url.searchParams.get('q') || ''
 
       if (query === 'ERROR_503') {

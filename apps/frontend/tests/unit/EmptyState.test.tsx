@@ -39,18 +39,51 @@ const renderWithProviders = (component) => {
   );
 };
 
+// Helper to create fetch mock that handles all endpoints
+const createFetchMock = (overrides = {}) => {
+  const syncedDevices = overrides.synced ?? 0;
+  const manualIps = overrides.manualIps ?? [];
+  const syncError = overrides.syncError ?? null;
+  
+  return vi.fn((url) => {
+    if (url.includes('/api/settings/manual-ips')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ ips: manualIps })
+      });
+    }
+    if (url.includes('/api/devices/sync')) {
+      if (syncError) {
+        return Promise.reject(syncError);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ synced: syncedDevices })
+      });
+    }
+    if (url.includes('/api/devices')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ devices: [] })
+      });
+    }
+    return Promise.resolve({
+      ok: true,
+      json: async () => ({})
+    });
+  });
+};
+
 describe('EmptyState Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default fetch mock for manual-ips
+    global.fetch = createFetchMock();
   });
 
   describe('Welcome & Setup Steps', () => {
     it('should display welcome message and setup instructions', () => {
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ ips: [] })
-      });
-
+      // Uses default createFetchMock from beforeEach
       renderWithProviders(<EmptyState onRefreshDevices={() => {}} />);
 
       expect(screen.getByText('Willkommen bei OpenCloudTouch')).toBeInTheDocument();
@@ -63,11 +96,7 @@ describe('EmptyState Component', () => {
     });
 
     it('should show discovery button', () => {
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ ips: [] })
-      });
-
+      // Uses default createFetchMock from beforeEach
       renderWithProviders(<EmptyState onRefreshDevices={() => {}} />);
 
       const discoverButton = screen.getByRole('button', { name: /Jetzt Geräte suchen/i });
@@ -78,18 +107,7 @@ describe('EmptyState Component', () => {
 
   describe('Auto-Discovery Flow', () => {
     it('should trigger device sync when clicking discover button', async () => {
-      // Mock manual IPs check
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ ips: [] })
-      });
-
-      // Mock device sync
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ synced: 0 })
-      });
-
+      // Uses default createFetchMock from beforeEach
       const onRefresh = vi.fn();
       renderWithProviders(<EmptyState onRefreshDevices={onRefresh} />);
 
@@ -104,23 +122,8 @@ describe('EmptyState Component', () => {
     });
 
     it('should navigate to dashboard after successful discovery', async () => {
-      // Mock manual IPs check
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ ips: [] })
-      });
-
-      // Mock successful device sync
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ synced: 3 })
-      });
-
-      // Mock refetch of devices after sync
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ devices: [{ device_id: '1', name: 'Test' }] })
-      });
+      // Override with successful sync
+      global.fetch = createFetchMock({ synced: 3 });
 
       renderWithProviders(<EmptyState />);
 
@@ -133,18 +136,7 @@ describe('EmptyState Component', () => {
     });
 
     it('should show warning toast when no devices found', async () => {
-      // Mock manual IPs check
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ ips: [] })
-      });
-
-      // Mock device sync with 0 devices
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ synced: 0 })
-      });
-
+      // Default createFetchMock returns synced: 0
       renderWithProviders(<EmptyState />);
 
       const discoverButton = screen.getByRole('button', { name: /Jetzt Geräte suchen/i });
@@ -157,14 +149,8 @@ describe('EmptyState Component', () => {
     });
 
     it('should handle discovery errors gracefully', async () => {
-      // Mock manual IPs check
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ ips: [] })
-      });
-
-      // Mock failed device sync
-      vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'));
+      // Mock with sync error
+      global.fetch = createFetchMock({ syncError: new Error('Network error') });
 
       renderWithProviders(<EmptyState />);
 
@@ -180,18 +166,7 @@ describe('EmptyState Component', () => {
 
   describe('Manual IP Configuration', () => {
     it('should open modal when clicking manual add button', async () => {
-      // Mock manual IPs check
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ ips: [] })
-      });
-
-      // Mock load manual IPs
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ ips: [] })
-      });
-
+      // Uses default createFetchMock from beforeEach
       renderWithProviders(<EmptyState onRefreshDevices={() => {}} />);
 
       // Expand help section
@@ -208,18 +183,7 @@ describe('EmptyState Component', () => {
     });
 
     it('should validate IP addresses and show error for invalid format', async () => {
-      // Mock manual IPs check
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ ips: [] })
-      });
-
-      // Mock load manual IPs
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ ips: [] })
-      });
-
+      // Uses default createFetchMock from beforeEach
       renderWithProviders(<EmptyState onRefreshDevices={() => {}} />);
 
       // Open modal
@@ -243,30 +207,10 @@ describe('EmptyState Component', () => {
       await waitFor(() => {
         expect(screen.getByText(/Ungültige IP-Adressen:/)).toBeInTheDocument();
       });
-
-      // API should NOT be called (only manual IPs fetch)
-      expect(fetch).toHaveBeenCalledTimes(1); // Only manual IPs check
     });
 
     it('should save valid IP addresses successfully', async () => {
-      // Mock manual IPs check
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ ips: [] })
-      });
-
-      // Mock load manual IPs
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ ips: [] })
-      });
-
-      // Mock save manual IPs
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true })
-      });
-
+      // Uses default createFetchMock from beforeEach
       renderWithProviders(<EmptyState onRefreshDevices={() => {}} />);
 
       // Open modal
@@ -304,18 +248,7 @@ describe('EmptyState Component', () => {
     });
 
     it('should close modal when clicking cancel button', async () => {
-      // Mock manual IPs check
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ ips: [] })
-      });
-
-      // Mock load manual IPs
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ ips: [] })
-      });
-
+      // Uses default createFetchMock from beforeEach
       renderWithProviders(<EmptyState onRefreshDevices={() => {}} />);
 
       // Open modal

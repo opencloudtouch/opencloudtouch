@@ -14,7 +14,8 @@ import {
 } from '../../../src/api/presets';
 
 describe('Presets API Service', () => {
-  const API_BASE_URL = 'http://localhost:7777';
+  // API_BASE_URL defaults to empty string in test environment (no VITE_API_BASE_URL set)
+  const API_BASE_URL = '';
 
   beforeEach(() => {
     vi.clearAllMocks();

@@ -15,13 +15,29 @@ param(
 . "$PSScriptRoot\config.ps1"
 $config = Load-DeploymentConfig
 
+Write-Host ""
+Write-Host "=== DEBUG: Loaded Configuration ===" -ForegroundColor Magenta
+Write-Host "Config file: $PSScriptRoot\.env" -ForegroundColor Gray
+Write-Host "DEPLOY_HOST: $($config.DEPLOY_HOST)" -ForegroundColor Cyan
+Write-Host "DEPLOY_USER: $($config.DEPLOY_USER)" -ForegroundColor Cyan
+Write-Host "CONTAINER_NAME: $($config.CONTAINER_NAME)" -ForegroundColor Cyan
+Write-Host "CONTAINER_TAG: $($config.CONTAINER_TAG)" -ForegroundColor Cyan
+Write-Host "REMOTE_DATA_PATH: $($config.REMOTE_DATA_PATH)" -ForegroundColor Cyan
+Write-Host "CONTAINER_PORT: $($config.CONTAINER_PORT)" -ForegroundColor Cyan
+Write-Host "OCT_MANUAL_DEVICE_IPS: $($config.OCT_MANUAL_DEVICE_IPS)" -ForegroundColor Cyan
+Write-Host "OCT_STATION_DESCRIPTOR_BASE_URL: $($config.OCT_STATION_DESCRIPTOR_BASE_URL)" -ForegroundColor Cyan
+Write-Host "DEPLOY_USE_SUDO: $($config.DEPLOY_USE_SUDO)" -ForegroundColor Cyan
+Write-Host "===================================" -ForegroundColor Magenta
+Write-Host ""
+
 $RemoteHost = $config.DEPLOY_HOST
 $RemoteUser = $config.DEPLOY_USER
 $Tag = $config.CONTAINER_TAG
 $ContainerName = $config.CONTAINER_NAME
 $DataPath = $config.REMOTE_DATA_PATH
-if (-not $ManualIPs -and $config.MANUAL_DEVICE_IPS) {
-    $ManualIPs = $config.MANUAL_DEVICE_IPS
+$ContainerPort = $config.CONTAINER_PORT
+if (-not $ManualIPs -and $config.OCT_MANUAL_DEVICE_IPS) {
+    $ManualIPs = $config.OCT_MANUAL_DEVICE_IPS
 }
 if ($config.DEPLOY_USE_SUDO -eq "true") {
     $UseSudo = $true
@@ -78,10 +94,11 @@ try {
     $dockerCmd = if ($UseSudo) { "sudo docker" } else { "docker" }
 
     # Build docker run command
-    $runCmd = "$dockerCmd run -d --name $ContainerName --restart unless-stopped --network host -v ${DataPath}:/data -e CT_LOG_LEVEL=DEBUG -e CT_DISCOVERY_ENABLED=true"
+    $StationDescriptorBaseUrl = if ($config.OCT_STATION_DESCRIPTOR_BASE_URL) { $config.OCT_STATION_DESCRIPTOR_BASE_URL } else { "http://${RemoteHost}:${ContainerPort}" }
+    $runCmd = "$dockerCmd run -d --name $ContainerName --restart unless-stopped --network host -v ${DataPath}:/data -e OCT_LOG_LEVEL=DEBUG -e OCT_DISCOVERY_ENABLED=true -e OCT_STATION_DESCRIPTOR_BASE_URL=${StationDescriptorBaseUrl}"
 
     if ($ManualIPs) {
-        $runCmd += " -e CT_MANUAL_DEVICE_IPS='$ManualIPs'"
+        $runCmd += " -e OCT_MANUAL_DEVICE_IPS='$ManualIPs'"
         Write-Host "    Using manual device IPs + SSDP discovery: $ManualIPs" -ForegroundColor Gray
     } else {
         Write-Host "    SSDP/mDNS discovery enabled" -ForegroundColor Gray
@@ -118,7 +135,7 @@ mkdir -p $DataPath 2>/dev/null || sudo mkdir -p $DataPath
 
 if [ "\$ClearDatabase" = "True" ]; then
     echo "[>] Clearing database..."
-    rm -f $DataPath/ct.db 2>/dev/null || sudo rm -f $DataPath/ct.db
+    rm -f $DataPath/oct.db 2>/dev/null || sudo rm -f $DataPath/oct.db
     echo "[OK] Database cleared"
 fi
 

@@ -6,6 +6,34 @@ import { QueryWrapper } from './utils/reactQueryTestUtils'
 // Mock fetch globally
 global.fetch = vi.fn()
 
+// Helper to mock multiple endpoints
+const mockFetchResponses = (devices = [], manualIps = []) => {
+  fetch.mockImplementation((url) => {
+    if (url.includes('/api/devices')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ devices })
+      });
+    }
+    if (url.includes('/api/settings/manual-ips')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ ips: manualIps })
+      });
+    }
+    if (url.includes('/api/presets')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => []
+      });
+    }
+    return Promise.resolve({
+      ok: true,
+      json: async () => ({})
+    });
+  });
+};
+
 const renderWithProviders = (component) => {
   return render(<QueryWrapper>{component}</QueryWrapper>)
 }
@@ -16,10 +44,7 @@ describe('App Component', () => {
   })
 
   it('shows empty state when no devices found', async () => {
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ devices: [] })
-    })
+    mockFetchResponses([]);
 
     renderWithProviders(<App />)
 
@@ -29,10 +54,7 @@ describe('App Component', () => {
   })
 
   it('fetches devices on mount', async () => {
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ devices: [{ id: '1', device_id: '1', name: 'Test Device' }] })
-    })
+    mockFetchResponses([{ id: '1', device_id: '1', name: 'Test Device' }]);
 
     renderWithProviders(<App />)
 
@@ -42,10 +64,7 @@ describe('App Component', () => {
   })
 
   it('renders navigation when devices exist', async () => {
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ devices: [{ id: '1', device_id: '1', name: 'Test Device' }] })
-    })
+    mockFetchResponses([{ id: '1', device_id: '1', name: 'Test Device' }]);
 
     renderWithProviders(<App />)
 
