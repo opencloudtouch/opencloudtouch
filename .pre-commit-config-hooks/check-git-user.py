@@ -72,12 +72,12 @@ def main():
 
     if errors:
         print("\n" + "="*60)
-        print("🚫 COMMIT BLOCKED: Git Configuration Invalid")
+        print("[BLOCKED] COMMIT BLOCKED: Git Configuration Invalid")
         print("="*60)
         for error in errors:
             print(f"\n{error}")
         print("\n" + "="*60)
-        print("💡 Recommended configuration:")
+        print("[TIP] Recommended configuration:")
         print("   git config --local user.name 'user'")
         print("   git config --local user.email 'user@example.com'")
         print("="*60 + "\n")

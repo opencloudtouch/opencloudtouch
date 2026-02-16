@@ -53,8 +53,13 @@ RUN apt-get update && \
 WORKDIR /build
 
 # Install Python dependencies with prefix for easy copying
+# First: Install security-pinned transitive deps to prevent vulnerable versions
+# being pulled first by other packages
 COPY apps/backend/requirements.txt ./
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+RUN pip install --no-cache-dir --prefix=/install \
+    jaraco-context==6.1.0 \
+    wheel==0.46.2 && \
+    pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # Cleanup: Remove gcc and build artifacts (reduce layer size)
 RUN apt-get purge -y --auto-remove gcc && \
