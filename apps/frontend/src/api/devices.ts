@@ -67,7 +67,7 @@ export async function getDevices(): Promise<Device[]> {
     const devicesList: DeviceAPIResponse[] = data.devices || [];
     return devicesList.map(mapDeviceFromAPI);
   } catch (error) {
-    throw new Error(getErrorMessage(error));
+    throw new Error(getErrorMessage(error), { cause: error });
   }
 }
 
@@ -87,7 +87,7 @@ export async function syncDevices(): Promise<SyncResult> {
     }
     return response.json();
   } catch (error) {
-    throw new Error(getErrorMessage(error));
+    throw new Error(getErrorMessage(error), { cause: error });
   }
 }
 
