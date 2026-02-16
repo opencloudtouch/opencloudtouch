@@ -83,6 +83,14 @@ WORKDIR /app
 # Copy Python dependencies from build stage
 COPY --from=python-deps /install /usr/local
 
+# Remove vulnerable packages AFTER copying deps (CVE-2026-23949, CVE-2026-24049)
+# - Base image contains setuptools with vendored jaraco.context-5.3.0 and wheel-0.45.1
+# - These are not needed at runtime and pose security risks
+RUN find /usr/local/lib -path "*setuptools/_vendor/jaraco*" -delete 2>/dev/null || true && \
+    find /usr/local/lib -path "*setuptools/_vendor/wheel*" -delete 2>/dev/null || true && \
+    find /usr/local/lib -name "wheel-0.45*.dist-info" -exec rm -rf {} + 2>/dev/null || true && \
+    find /usr/local/lib -name "jaraco.context-5.3.0*" -exec rm -rf {} + 2>/dev/null || true
+
 # Copy backend source (as package)
 COPY apps/backend/src/opencloudtouch ./opencloudtouch
 
