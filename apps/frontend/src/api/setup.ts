@@ -66,10 +66,14 @@ export interface ConnectivityResult {
  * Get model-specific setup instructions
  */
 export async function getModelInstructions(model: string): Promise<ModelInstructions> {
-  const response = await fetch(`${API_BASE_URL}/api/setup/instructions/${encodeURIComponent(model)}`);
+  const response = await fetch(
+    `${API_BASE_URL}/api/setup/instructions/${encodeURIComponent(model)}`
+  );
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
-    throw new Error(getErrorMessage(errorData) || `Failed to get instructions: ${response.statusText}`);
+    throw new Error(
+      getErrorMessage(errorData) || `Failed to get instructions: ${response.statusText}`
+    );
   }
   return response.json();
 }
@@ -85,7 +89,9 @@ export async function checkConnectivity(ip: string): Promise<ConnectivityResult>
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
-    throw new Error(getErrorMessage(errorData) || `Connectivity check failed: ${response.statusText}`);
+    throw new Error(
+      getErrorMessage(errorData) || `Connectivity check failed: ${response.statusText}`
+    );
   }
   return response.json();
 }
@@ -140,9 +146,12 @@ export async function verifySetup(
   bmx_url: string | null;
   verified: boolean;
 }> {
-  const response = await fetch(`${API_BASE_URL}/api/setup/verify/${deviceId}?ip=${encodeURIComponent(ip)}`, {
-    method: "POST",
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/setup/verify/${deviceId}?ip=${encodeURIComponent(ip)}`,
+    {
+      method: "POST",
+    }
+  );
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
     throw new Error(getErrorMessage(errorData) || `Verification failed: ${response.statusText}`);

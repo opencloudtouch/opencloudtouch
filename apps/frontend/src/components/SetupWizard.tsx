@@ -219,11 +219,7 @@ export default function SetupWizard({
         <button className="btn-secondary" onClick={() => setWizardStep("intro")}>
           Zurück
         </button>
-        <button
-          className="btn-primary"
-          onClick={handleCheckConnectivity}
-          disabled={isChecking}
-        >
+        <button className="btn-primary" onClick={handleCheckConnectivity} disabled={isChecking}>
           {isChecking ? "Prüfe..." : "Verbindung prüfen"}
         </button>
       </div>
@@ -274,9 +270,7 @@ export default function SetupWizard({
               style={{ width: `${calculateProgress(setupProgress.current_step)}%` }}
             />
           </div>
-          <div className="progress-label">
-            {STEP_LABELS[setupProgress.current_step]}
-          </div>
+          <div className="progress-label">{STEP_LABELS[setupProgress.current_step]}</div>
           <p className="progress-message">{setupProgress.message}</p>
         </div>
       )}
@@ -302,8 +296,8 @@ export default function SetupWizard({
         <div>
           <h4>Gerät erfolgreich konfiguriert!</h4>
           <p>
-            {deviceName} ist jetzt mit OpenCloudTouch verbunden und nutzt die
-            lokale Streaming-Infrastruktur.
+            {deviceName} ist jetzt mit OpenCloudTouch verbunden und nutzt die lokale
+            Streaming-Infrastruktur.
           </p>
         </div>
       </div>
@@ -373,8 +367,8 @@ export default function SetupWizard({
                 wizardStep === step
                   ? "active"
                   : ["intro", "usb", "check", "running", "complete"].indexOf(wizardStep) > index
-                  ? "completed"
-                  : ""
+                    ? "completed"
+                    : ""
               }`}
             />
           ))}

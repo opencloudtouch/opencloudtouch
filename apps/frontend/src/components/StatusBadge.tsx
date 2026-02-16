@@ -12,10 +12,7 @@ interface StatusBadgeProps {
   showLabel?: boolean;
 }
 
-const STATUS_CONFIG: Record<
-  SetupStatus,
-  { icon: string; label: string; className: string }
-> = {
+const STATUS_CONFIG: Record<SetupStatus, { icon: string; label: string; className: string }> = {
   unconfigured: {
     icon: "⚠️",
     label: "Nicht konfiguriert",

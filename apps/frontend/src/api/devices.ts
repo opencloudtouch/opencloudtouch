@@ -104,7 +104,7 @@ export async function getDeviceCapabilities(deviceId: string): Promise<any> {
 
 /**
  * Play a preset on a device by simulating key press
- * 
+ *
  * @param deviceId - Device ID
  * @param presetNumber - Preset number (1-6)
  */
@@ -123,8 +123,6 @@ export async function playPreset(deviceId: string, presetNumber: number): Promis
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
-    throw new Error(
-      getErrorMessage(errorData) || `Failed to play preset: ${response.statusText}`
-    );
+    throw new Error(getErrorMessage(errorData) || `Failed to play preset: ${response.statusText}`);
   }
 }
