@@ -375,6 +375,26 @@ Fokus: **Knopf drücken → Sender spielt → Anzeige**
 - Weitere Provider/Adapter (optional): TuneIn*, Spotify*, Apple Music*, Deezer*, Music Assistant*
   - *Hinweis: Provider werden nur aufgenommen, wenn rechtlich und technisch sauber umsetzbar.*
 
+### 🎧 Provider-Roadmap (TuneIn & Spotify)
+
+**Aktueller Stand (2026-02):**
+- ✅ RadioBrowser ist als MVP-Provider produktiv integriert (Iteration 2 abgeschlossen).
+- ✅ Provider-Abstraktion ist vorhanden, damit weitere Adapter sauber ergänzt werden können.
+- ⏳ TuneIn und Spotify sind noch nicht implementiert.
+
+**Status je Provider:**
+- `TuneIn`: geplant, aktuell zurückgestellt bis Lizenz-/ToS-Klärung abgeschlossen ist.
+- `Spotify`: geplant, aktuell zurückgestellt (zusätzlich OAuth-Flow und Token-Handling erforderlich).
+
+**Nächste Schritte (Roadmap):**
+1. Rechtliche/ToS-Prüfung für TuneIn und Spotify mit klarem Go/No-Go.
+2. Provider-Interface um Auth- und Stream-Resolution-Anforderungen erweitern.
+3. TuneIn-Adapter hinter Feature-Flag implementieren (inkl. Integrationstests).
+4. Spotify-Adapter hinter Feature-Flag implementieren (OAuth, Refresh, Fehlerfälle).
+5. UI/Config-Dokumentation für Provider-Auswahl und Setup ergänzen.
+
+Grundlage: `docs/OpenCloudTouch_Projektplan.md` (u. a. Abschnitte 4.4, 6.4, 10.2/10.3).
+
 ---
 
 ## 🧪 Tests & Coverage
