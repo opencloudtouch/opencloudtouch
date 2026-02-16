@@ -244,12 +244,12 @@ jobs:
           retention-days: 1
 
   # ============================================================================
-  # E2E TESTS (runs after backend + frontend)
+  # E2E TESTS (runs parallel with unit tests after security/format)
   # ============================================================================
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-tests]
+    needs: [security, format]
 
     steps:
       - name: Checkout code
