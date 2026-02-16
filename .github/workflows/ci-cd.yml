@@ -11,6 +11,13 @@ on:
     branches:
       - main
       - develop
+  workflow_dispatch:
+    inputs:
+      ignore_scan_errors:
+        description: 'Ignore container scan errors (registry access issues)'
+        required: false
+        default: 'false'
+        type: boolean
 
 env:
   REGISTRY: ghcr.io
@@ -540,7 +547,7 @@ jobs:
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
-        continue-on-error: true  # Don't fail if registry access issues
+        continue-on-error: ${{ inputs.ignore_scan_errors == true }}
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
           format: 'sarif'
@@ -555,7 +562,7 @@ jobs:
 
       - name: Run Trivy vulnerability scanner (table output)
         uses: aquasecurity/trivy-action@master
-        continue-on-error: true  # Don't fail if registry access issues
+        continue-on-error: ${{ inputs.ignore_scan_errors == true }}
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
           format: 'table'
