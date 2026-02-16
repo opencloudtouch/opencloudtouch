@@ -19,7 +19,6 @@ Created: 2026-02-15 (Playlist-File Hypothesis Test)
 """
 
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import Path as FastAPIPath

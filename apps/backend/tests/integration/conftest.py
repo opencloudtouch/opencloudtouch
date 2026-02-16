@@ -11,7 +11,7 @@ from fastapi import FastAPI
 # Set mock mode BEFORE initializing config
 os.environ.setdefault("OCT_MOCK_MODE", "true")
 
-from opencloudtouch.core.config import init_config, get_config
+from opencloudtouch.core.config import init_config
 from opencloudtouch.db import DeviceRepository
 from opencloudtouch.devices.adapter import BoseDeviceDiscoveryAdapter
 from opencloudtouch.devices.service import DeviceService

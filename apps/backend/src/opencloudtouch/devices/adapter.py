@@ -318,7 +318,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             self._client.StorePreset(preset)
 
             logger.info(
-                f"✅ Bose device programmed with OCT BMX path: {relative_location} → {oct_stream_url}"
+                f"✅ Bose device programmed with OCT BMX path: {playlist_url} → {stream_proxy_url}"
             )
 
         except Exception as e:

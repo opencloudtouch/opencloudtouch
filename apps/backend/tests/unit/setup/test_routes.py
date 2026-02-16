@@ -14,8 +14,6 @@ from opencloudtouch.setup.models import (
     SetupStatus,
     SetupStep,
     SetupProgress,
-    ModelInstructions,
-    MODEL_INSTRUCTIONS,
     get_model_instructions,
 )
 from opencloudtouch.setup.service import SetupService, get_setup_service

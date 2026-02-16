@@ -8,7 +8,6 @@ Repository handles data persistence.
 import logging
 from typing import List, Optional
 
-from opencloudtouch.core.config import get_config
 from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.repository import PresetRepository

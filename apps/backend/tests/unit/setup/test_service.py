@@ -6,7 +6,6 @@ Following TDD Red-Green-Refactor cycle.
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime
 
 from opencloudtouch.setup.service import SetupService, get_setup_service
 from opencloudtouch.setup.models import (

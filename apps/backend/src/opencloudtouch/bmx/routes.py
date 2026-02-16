@@ -13,8 +13,6 @@ import base64
 import json
 import logging
 import os
-import urllib.parse
-import urllib.request
 from typing import Any
 from xml.etree import ElementTree
 

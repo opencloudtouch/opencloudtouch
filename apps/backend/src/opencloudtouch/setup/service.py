@@ -9,7 +9,6 @@ Orchestrates the device configuration process:
 5. Verify configuration
 """
 
-import asyncio
 import logging
 from datetime import datetime
 from typing import Dict, Optional, Callable, Awaitable
@@ -24,7 +23,6 @@ from opencloudtouch.setup.models import (
 )
 from opencloudtouch.setup.ssh_client import (
     SoundTouchSSHClient,
-    SoundTouchTelnetClient,
     check_ssh_port,
     check_telnet_port,
 )
