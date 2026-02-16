@@ -1,12 +1,12 @@
 # OpenCloudTouch (OCT)
 
-**OpenCloudTouch** ist eine lokale Open-Source-Loesung fuer Bose SoundTouch-Geraete nach dem Cloud-Ende.
+**OpenCloudTouch** ist eine lokale Open-Source-Loesung fuer **Bose®-Geräte der SoundTouch®-Serie** nach dem Cloud-Ende.
 
-Ziel: SoundTouch-Lautsprecher (z. B. SoundTouch 10/30/300) weiter nutzen, ohne Bose-Cloud und ohne proprietaere App.
+Ziel: SoundTouch®-Lautsprecher (z. B. SoundTouch® 10/30/300) weiter nutzen, ohne Bose®-Cloud und ohne proprietaere App.
 
 > Leitidee: Ein Container, eine Web-App, lokale Steuerung.
 
-**Trademark Notice**: OpenCloudTouch (OCT) is not affiliated with Bose Corporation. Bose and SoundTouch are registered trademarks of Bose Corporation. See `TRADEMARK.md`.
+**Trademark Notice**: OpenCloudTouch (OCT) is not affiliated with Bose® Corporation. Bose® and SoundTouch® are registered trademarks of Bose® Corporation. See `TRADEMARK.md`.
 
 ## Features
 
@@ -15,7 +15,7 @@ Ziel: SoundTouch-Lautsprecher (z. B. SoundTouch 10/30/300) weiter nutzen, ohne B
 - Device Discovery via SSDP/UPnP + manuelle IP-Fallbacks
 - Preset-Programmierung inkl. lokaler Descriptor-/Playlist-Endpunkte
 - Setup-Wizard fuer Geraetekonfiguration
-- BMX-kompatible Endpunkte fuer SoundTouch (inkl. TuneIn-Resolver-Route)
+- BMX-kompatible Endpunkte fuer SoundTouch® (inkl. TuneIn-Resolver-Route)
 - Docker-Deployment (amd64 + arm64)
 
 ## Architektur (Kurzfassung)
@@ -25,7 +25,7 @@ Browser UI
    ->
 OpenCloudTouch (FastAPI + React, im Container)
    ->
-SoundTouch Geraete im lokalen Netzwerk (HTTP/WebSocket)
+SoundTouch® Geraete im lokalen Netzwerk (HTTP/WebSocket)
 ```
 
 Radio-Provider sind per Adapter abstrahiert. Aktuell ist RadioBrowser integriert.
@@ -230,7 +230,7 @@ Bereits umgesetzt (Codebasis):
 - Preset-Verwaltung (`/api/presets/...`) inkl. Station-Descriptor/Playlist-Routen
 - Key-Press Endpoint fuer Preset-Tests (`/api/devices/{device_id}/key`)
 - Setup-Wizard API (`/api/setup/...`)
-- BMX-Routen fuer SoundTouch-Kompatibilitaet (inkl. TuneIn-Playback-Route)
+- BMX-Routen fuer SoundTouch®-Kompatibilitaet (inkl. TuneIn-Playback-Route)
 - Frontend-Seiten fuer Radio, Presets, Multiroom, Firmware, Settings
 
 Offen bzw. in Planung:
