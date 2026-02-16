@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../contexts/ToastContext";
 import { useManualIPs, useSetManualIPs } from "../hooks/useSettings";
@@ -21,7 +21,7 @@ export default function EmptyState() {
   const [success, setSuccess] = useState(false);
 
   // React Query hooks
-  const { data: manualIPs = [], isLoading: loadingIPs } = useManualIPs();
+  const { data: manualIPs = [] } = useManualIPs();
   const setManualIPs = useSetManualIPs();
   const syncDevices = useSyncDevices();
 

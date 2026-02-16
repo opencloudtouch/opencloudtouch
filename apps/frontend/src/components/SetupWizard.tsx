@@ -335,7 +335,7 @@ export default function SetupWizard({
         <h4>Mögliche Ursachen:</h4>
         <ul>
           <li>USB-Stick nicht richtig eingesteckt</li>
-          <li>Falsche Datei auf USB-Stick (muss "remote_services" heißen)</li>
+          <li>Falsche Datei auf USB-Stick (muss &quot;remote_services&quot; heißen)</li>
           <li>Gerät wurde nicht neu gestartet</li>
           <li>Netzwerkproblem zwischen Server und Gerät</li>
         </ul>

@@ -15,9 +15,10 @@ import LocalControl from '../../src/pages/LocalControl';
 // Mock framer-motion to avoid animation issues in tests
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, dragConstraints, dragElastic, whileTap, whileHover, initial, animate, exit, transition, ...props }) => <div {...props}>{children}</div>,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    div: ({ children, dragConstraints, dragElastic, whileTap, whileHover, initial, animate, exit, transition, ...props }: Record<string, unknown>) => <div {...props}>{children}</div>,
   },
-  AnimatePresence: ({ children }) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 const mockDevices = [

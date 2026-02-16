@@ -94,7 +94,7 @@ export async function syncDevices(): Promise<SyncResult> {
 /**
  * Get device capabilities
  */
-export async function getDeviceCapabilities(deviceId: string): Promise<any> {
+export async function getDeviceCapabilities(deviceId: string): Promise<Record<string, unknown>> {
   const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}/capabilities`);
   if (!response.ok) {
     throw new Error(`Failed to fetch device capabilities: ${response.statusText}`);
