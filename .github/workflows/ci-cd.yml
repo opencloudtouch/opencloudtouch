@@ -79,7 +79,7 @@ jobs:
           python-version: '3.13'
 
       - name: Install black
-        run: pip install black==24.10.0
+        run: pip install black==26.1.0
 
       - name: Check Python formatting
         run: |

@@ -26,7 +26,6 @@ import pytest
 import respx
 from httpx import AsyncClient, Response
 
-
 # Module-level respx router for external HTTP mocks
 external_mock = respx.mock(assert_all_called=False)
 

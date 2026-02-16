@@ -78,8 +78,7 @@ class DeviceRepository(BaseRepository):
 
     async def _create_schema(self) -> None:
         """Create devices table and indexes."""
-        await self._db.execute(
-            """
+        await self._db.execute("""
             CREATE TABLE IF NOT EXISTS devices (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 device_id TEXT UNIQUE NOT NULL,
@@ -93,32 +92,25 @@ class DeviceRepository(BaseRepository):
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        """
-        )
+        """)
 
         # Migration: Add schema_version column if it doesn't exist
         try:
             await self._db.execute("SELECT schema_version FROM devices LIMIT 1")
         except aiosqlite.OperationalError:
             logger.info("Migrating devices table: Adding schema_version column")
-            await self._db.execute(
-                """
+            await self._db.execute("""
                 ALTER TABLE devices ADD COLUMN schema_version TEXT
-            """
-            )
+            """)
             await self._db.commit()
 
-        await self._db.execute(
-            """
+        await self._db.execute("""
             CREATE INDEX IF NOT EXISTS idx_devices_device_id ON devices(device_id)
-        """
-        )
+        """)
 
-        await self._db.execute(
-            """
+        await self._db.execute("""
             CREATE INDEX IF NOT EXISTS idx_ip ON devices(ip)
-        """
-        )
+        """)
 
         await self._db.commit()
 
@@ -172,13 +164,11 @@ class DeviceRepository(BaseRepository):
         """Get all devices."""
         db = self._ensure_initialized()
 
-        cursor = await db.execute(
-            """
+        cursor = await db.execute("""
             SELECT id, device_id, ip, name, model, mac_address, firmware_version, schema_version, last_seen
             FROM devices
             ORDER BY last_seen DESC
-        """
-        )
+        """)
 
         rows = await cursor.fetchall()
 

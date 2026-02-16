@@ -16,8 +16,7 @@ class PresetRepository(BaseRepository):
 
     async def _create_schema(self) -> None:
         """Create presets table and indexes."""
-        await self._db.execute(
-            """
+        await self._db.execute("""
             CREATE TABLE IF NOT EXISTS presets (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 device_id TEXT NOT NULL,
@@ -31,21 +30,16 @@ class PresetRepository(BaseRepository):
                 updated_at TIMESTAMP NOT NULL,
                 UNIQUE(device_id, preset_number)
             )
-        """
-        )
+        """)
 
-        await self._db.execute(
-            """
+        await self._db.execute("""
             CREATE INDEX IF NOT EXISTS idx_presets_device_id ON presets(device_id)
-        """
-        )
+        """)
 
-        await self._db.execute(
-            """
+        await self._db.execute("""
             CREATE INDEX IF NOT EXISTS idx_device_preset
             ON presets(device_id, preset_number)
-        """
-        )
+        """)
 
         await self._db.commit()
 
