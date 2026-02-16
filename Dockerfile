@@ -52,6 +52,9 @@ RUN apt-get update && \
 
 WORKDIR /build
 
+# Upgrade pip, setuptools, wheel FIRST to get latest versions with security fixes
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
 # Install Python dependencies with prefix for easy copying
 # First: Install security-pinned transitive deps to prevent vulnerable versions
 # being pulled first by other packages
@@ -60,6 +63,12 @@ RUN pip install --no-cache-dir --prefix=/install \
     jaraco-context==6.1.0 \
     wheel==0.46.2 && \
     pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# Remove vulnerable vendored packages from setuptools (CVE-2026-23949, CVE-2026-24049)
+# These are bundled inside setuptools but not needed at runtime
+RUN find /install -path "*setuptools/_vendor/jaraco*" -delete 2>/dev/null || true && \
+    find /install -path "*setuptools/_vendor/wheel*" -delete 2>/dev/null || true && \
+    find /install -name "wheel-0.45*.dist-info" -exec rm -rf {} + 2>/dev/null || true
 
 # Cleanup: Remove gcc and build artifacts (reduce layer size)
 RUN apt-get purge -y --auto-remove gcc && \
