@@ -24,8 +24,8 @@ dependencies = [
     "ssdpy>=0.4.1",
     "asyncssh>=2.20.0",
     "starlette>=0.40.0",
-    "jaraco-context>=6.1.0",
-    "wheel>=0.46.2",
+    "jaraco-context==6.1.0",
+    "wheel==0.46.2",
 ]
 
 [project.optional-dependencies]
