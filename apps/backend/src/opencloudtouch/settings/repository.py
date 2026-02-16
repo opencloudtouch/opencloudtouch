@@ -15,17 +15,21 @@ class SettingsRepository(BaseRepository):
 
     async def _create_schema(self) -> None:
         """Create settings tables and indexes."""
-        await self._db.execute("""
+        await self._db.execute(
+            """
             CREATE TABLE IF NOT EXISTS manual_device_ips (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 ip_address TEXT UNIQUE NOT NULL,
                 created_at TEXT NOT NULL
             )
-        """)
+        """
+        )
 
-        await self._db.execute("""
+        await self._db.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_ip_address ON manual_device_ips(ip_address)
-        """)
+        """
+        )
 
         await self._db.commit()
 
@@ -118,8 +122,10 @@ class SettingsRepository(BaseRepository):
         """
         db = self._ensure_initialized()
 
-        cursor = await db.execute("""
+        cursor = await db.execute(
+            """
             SELECT ip_address FROM manual_device_ips ORDER BY created_at ASC
-        """)
+        """
+        )
         rows = await cursor.fetchall()
         return [row[0] for row in rows]

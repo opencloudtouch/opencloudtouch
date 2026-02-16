@@ -57,7 +57,7 @@ class TestGetInstructions:
         """Test getting instructions for known model."""
         response = client.get("/api/setup/instructions/SoundTouch%2010")
         assert response.status_code == 200
-        
+
         data = response.json()
         assert data["model_name"] == "SoundTouch 10"
         assert data["display_name"] == "Bose SoundTouch 10"
@@ -68,7 +68,7 @@ class TestGetInstructions:
         """Test getting instructions for unknown model returns default."""
         response = client.get("/api/setup/instructions/UnknownModelXYZ")
         assert response.status_code == 200
-        
+
         data = response.json()
         assert data["model_name"] == "Unknown"
 
@@ -76,7 +76,7 @@ class TestGetInstructions:
         """Test model name with spaces is handled."""
         response = client.get("/api/setup/instructions/SoundTouch%2030")
         assert response.status_code == 200
-        
+
         data = response.json()
         assert "30" in data["model_name"]
 
@@ -92,19 +92,20 @@ class TestCheckConnectivity:
 
     def test_check_connectivity_with_valid_ip(self, client, mock_setup_service):
         """Test connectivity check with valid IP."""
-        mock_setup_service.check_device_connectivity = AsyncMock(return_value={
-            "ip": "192.168.1.100",
-            "ssh_available": True,
-            "telnet_available": True,
-            "ready_for_setup": True,
-        })
+        mock_setup_service.check_device_connectivity = AsyncMock(
+            return_value={
+                "ip": "192.168.1.100",
+                "ssh_available": True,
+                "telnet_available": True,
+                "ready_for_setup": True,
+            }
+        )
 
         response = client.post(
-            "/api/setup/check-connectivity",
-            json={"ip": "192.168.1.100"}
+            "/api/setup/check-connectivity", json={"ip": "192.168.1.100"}
         )
         assert response.status_code == 200
-        
+
         data = response.json()
         assert data["ip"] == "192.168.1.100"
         assert data["ssh_available"] is True
@@ -125,13 +126,16 @@ class TestStartSetup:
         mock_setup_service.get_setup_status.return_value = None  # No active setup
         mock_setup_service.run_setup = AsyncMock()
 
-        response = client.post("/api/setup/start", json={
-            "device_id": "DEVICE123",
-            "ip": "192.168.1.100",
-            "model": "SoundTouch 10",
-        })
+        response = client.post(
+            "/api/setup/start",
+            json={
+                "device_id": "DEVICE123",
+                "ip": "192.168.1.100",
+                "model": "SoundTouch 10",
+            },
+        )
         assert response.status_code == 200
-        
+
         data = response.json()
         assert data["device_id"] == "DEVICE123"
         assert data["status"] == "started"
@@ -146,11 +150,14 @@ class TestStartSetup:
         )
         mock_setup_service.get_setup_status.return_value = existing_progress
 
-        response = client.post("/api/setup/start", json={
-            "device_id": "DEVICE123",
-            "ip": "192.168.1.100",
-            "model": "SoundTouch 10",
-        })
+        response = client.post(
+            "/api/setup/start",
+            json={
+                "device_id": "DEVICE123",
+                "ip": "192.168.1.100",
+                "model": "SoundTouch 10",
+            },
+        )
         assert response.status_code == 409  # Conflict
 
 
@@ -163,7 +170,7 @@ class TestGetStatus:
 
         response = client.get("/api/setup/status/DEVICE123")
         assert response.status_code == 200
-        
+
         data = response.json()
         assert data["status"] == "not_found"
 
@@ -179,7 +186,7 @@ class TestGetStatus:
 
         response = client.get("/api/setup/status/DEVICE123")
         assert response.status_code == 200
-        
+
         data = response.json()
         assert data["device_id"] == "DEVICE123"
         assert data["current_step"] == "config_modify"
@@ -191,20 +198,20 @@ class TestVerifySetup:
 
     def test_verify_setup_success(self, client, mock_setup_service):
         """Test successful verification."""
-        mock_setup_service.verify_setup = AsyncMock(return_value={
-            "ip": "192.168.1.100",
-            "ssh_accessible": True,
-            "ssh_persistent": True,
-            "bmx_configured": True,
-            "bmx_url": "<bmxRegistryUrl>http://server/bmx</bmxRegistryUrl>",
-            "verified": True,
-        })
-
-        response = client.post(
-            "/api/setup/verify/DEVICE123?ip=192.168.1.100"
+        mock_setup_service.verify_setup = AsyncMock(
+            return_value={
+                "ip": "192.168.1.100",
+                "ssh_accessible": True,
+                "ssh_persistent": True,
+                "bmx_configured": True,
+                "bmx_url": "<bmxRegistryUrl>http://server/bmx</bmxRegistryUrl>",
+                "verified": True,
+            }
         )
+
+        response = client.post("/api/setup/verify/DEVICE123?ip=192.168.1.100")
         assert response.status_code == 200
-        
+
         data = response.json()
         assert data["verified"] is True
         assert data["ssh_accessible"] is True
@@ -217,11 +224,11 @@ class TestListSupportedModels:
         """Test listing all supported models."""
         response = client.get("/api/setup/models")
         assert response.status_code == 200
-        
+
         data = response.json()
         assert "models" in data
         assert len(data["models"]) > 0
-        
+
         # Check structure
         model = data["models"][0]
         assert "model_name" in model
@@ -233,9 +240,9 @@ class TestListSupportedModels:
         """Test that known devices are in the list."""
         response = client.get("/api/setup/models")
         data = response.json()
-        
+
         model_names = [m["model_name"] for m in data["models"]]
-        
+
         # Check for known SoundTouch models
         assert "SoundTouch 10" in model_names
         assert "SoundTouch 20" in model_names

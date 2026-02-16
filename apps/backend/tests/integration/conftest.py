@@ -25,7 +25,7 @@ init_config()
 
 def create_test_app() -> FastAPI:
     """Create a minimal FastAPI app for testing (no lifespan context).
-    
+
     Note: Routers already have their prefixes defined (e.g., "/api/presets"),
     so we don't add prefixes here.
     """
@@ -112,10 +112,10 @@ async def real_db():
 @pytest.fixture
 async def real_api_client(real_db):
     """FastAPI client with real DB and dependency in app.state.
-    
+
     Uses a minimal test app WITHOUT lifespan to avoid asyncio deadlocks.
     httpx.ASGITransport does not trigger FastAPI lifespan events.
-    
+
     OCT_MOCK_MODE is set globally in conftest.py to prevent real HTTP calls.
     """
     device_repo = real_db["device_repo"]
@@ -157,8 +157,10 @@ async def real_api_client(real_db):
 
     transport = ASGITransport(app=test_app)
     timeout = Timeout(5.0, connect=2.0)  # 5s read, 2s connect - prevent hangs
-    
-    async with AsyncClient(transport=transport, base_url="http://test", timeout=timeout) as client:
+
+    async with AsyncClient(
+        transport=transport, base_url="http://test", timeout=timeout
+    ) as client:
         yield client
 
     await preset_repo.close()

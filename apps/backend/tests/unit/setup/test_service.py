@@ -41,8 +41,9 @@ class TestSetupServiceInitialization:
         """Test get_setup_service returns singleton."""
         # Reset singleton for test
         import opencloudtouch.setup.service as service_module
+
         service_module._setup_service = None
-        
+
         service1 = get_setup_service()
         service2 = get_setup_service()
         assert service1 is service2
@@ -113,14 +114,14 @@ class TestSetupServiceConnectivity:
         with patch(
             "opencloudtouch.setup.service.check_ssh_port",
             new_callable=AsyncMock,
-            return_value=True
+            return_value=True,
         ), patch(
             "opencloudtouch.setup.service.check_telnet_port",
             new_callable=AsyncMock,
-            return_value=True
+            return_value=True,
         ):
             result = await setup_service.check_device_connectivity("192.168.1.100")
-            
+
             assert result["ip"] == "192.168.1.100"
             assert result["ssh_available"] is True
             assert result["telnet_available"] is True
@@ -132,14 +133,14 @@ class TestSetupServiceConnectivity:
         with patch(
             "opencloudtouch.setup.service.check_ssh_port",
             new_callable=AsyncMock,
-            return_value=False
+            return_value=False,
         ), patch(
             "opencloudtouch.setup.service.check_telnet_port",
             new_callable=AsyncMock,
-            return_value=True
+            return_value=True,
         ):
             result = await setup_service.check_device_connectivity("192.168.1.100")
-            
+
             assert result["ssh_available"] is False
             assert result["telnet_available"] is True
             assert result["ready_for_setup"] is False  # SSH required
@@ -158,11 +159,9 @@ class TestSetupServiceRunSetup:
         """Create mock SSH client."""
         client = MagicMock()
         client.connect = AsyncMock(return_value=MagicMock(success=True))
-        client.execute = AsyncMock(return_value=MagicMock(
-            success=True,
-            output="Success",
-            exit_code=0
-        ))
+        client.execute = AsyncMock(
+            return_value=MagicMock(success=True, output="Success", exit_code=0)
+        )
         client.close = AsyncMock()
         return client
 
@@ -171,14 +170,14 @@ class TestSetupServiceRunSetup:
         """Test run_setup creates progress entry."""
         with patch(
             "opencloudtouch.setup.service.SoundTouchSSHClient",
-            return_value=mock_ssh_client
+            return_value=mock_ssh_client,
         ):
             await setup_service.run_setup(
                 device_id="DEVICE123",
                 ip="192.168.1.100",
                 model="SoundTouch 10",
             )
-            
+
             # Progress should exist (or be cleaned up if successful)
             # Either way, the setup should have run
 
@@ -186,36 +185,36 @@ class TestSetupServiceRunSetup:
     async def test_run_setup_ssh_connection_failure(self, setup_service):
         """Test run_setup handles SSH connection failure."""
         mock_client = MagicMock()
-        mock_client.connect = AsyncMock(return_value=MagicMock(
-            success=False,
-            error="Connection refused"
-        ))
+        mock_client.connect = AsyncMock(
+            return_value=MagicMock(success=False, error="Connection refused")
+        )
         mock_client.close = AsyncMock()
 
         with patch(
-            "opencloudtouch.setup.service.SoundTouchSSHClient",
-            return_value=mock_client
+            "opencloudtouch.setup.service.SoundTouchSSHClient", return_value=mock_client
         ):
             progress = await setup_service.run_setup(
                 device_id="DEVICE123",
                 ip="192.168.1.100",
                 model="SoundTouch 10",
             )
-            
+
             assert progress.status == SetupStatus.FAILED
             assert progress.error == "Connection refused"
 
     @pytest.mark.asyncio
-    async def test_run_setup_with_progress_callback(self, setup_service, mock_ssh_client):
+    async def test_run_setup_with_progress_callback(
+        self, setup_service, mock_ssh_client
+    ):
         """Test run_setup calls progress callback."""
         progress_updates = []
-        
+
         async def on_progress(progress):
             progress_updates.append(progress.current_step)
 
         with patch(
             "opencloudtouch.setup.service.SoundTouchSSHClient",
-            return_value=mock_ssh_client
+            return_value=mock_ssh_client,
         ):
             await setup_service.run_setup(
                 device_id="DEVICE123",
@@ -223,7 +222,7 @@ class TestSetupServiceRunSetup:
                 model="SoundTouch 10",
                 on_progress=on_progress,
             )
-            
+
             # Should have received multiple progress updates
             assert len(progress_updates) > 0
 
@@ -242,10 +241,10 @@ class TestSetupServiceVerify:
         with patch(
             "opencloudtouch.setup.service.check_ssh_port",
             new_callable=AsyncMock,
-            return_value=False
+            return_value=False,
         ):
             result = await setup_service.verify_setup("192.168.1.100")
-            
+
             assert result["ip"] == "192.168.1.100"
             assert result["ssh_accessible"] is False
             assert result["verified"] is False
@@ -255,27 +254,31 @@ class TestSetupServiceVerify:
         """Test successful verification."""
         mock_client = MagicMock()
         mock_client.connect = AsyncMock()
-        mock_client.execute = AsyncMock(side_effect=[
-            MagicMock(output="yes", success=True),  # SSH persistence check
-            MagicMock(output="<bmxRegistryUrl>http://localhost:8000/bmx</bmxRegistryUrl>", success=True),  # BMX check
-        ])
+        mock_client.execute = AsyncMock(
+            side_effect=[
+                MagicMock(output="yes", success=True),  # SSH persistence check
+                MagicMock(
+                    output="<bmxRegistryUrl>http://localhost:8000/bmx</bmxRegistryUrl>",
+                    success=True,
+                ),  # BMX check
+            ]
+        )
         mock_client.close = AsyncMock()
 
         with patch(
             "opencloudtouch.setup.service.check_ssh_port",
             new_callable=AsyncMock,
-            return_value=True
+            return_value=True,
         ), patch(
-            "opencloudtouch.setup.service.SoundTouchSSHClient",
-            return_value=mock_client
+            "opencloudtouch.setup.service.SoundTouchSSHClient", return_value=mock_client
         ), patch(
             "opencloudtouch.setup.service.get_config"
         ) as mock_config:
             mock_config.return_value.server_url = "http://localhost:8000"
             mock_config.return_value.host = "localhost"
             mock_config.return_value.port = 8000
-            
+
             result = await setup_service.verify_setup("192.168.1.100")
-            
+
             assert result["ssh_accessible"] is True
             assert result["ssh_persistent"] is True

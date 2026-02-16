@@ -30,10 +30,7 @@ class TestSSHConnectionResult:
 
     def test_failure_result(self):
         """Test failed connection result."""
-        result = SSHConnectionResult(
-            success=False,
-            error="Connection refused"
-        )
+        result = SSHConnectionResult(success=False, error="Connection refused")
         assert result.success is False
         assert result.error == "Connection refused"
 
@@ -43,11 +40,7 @@ class TestCommandResult:
 
     def test_successful_command(self):
         """Test successful command result."""
-        result = CommandResult(
-            success=True,
-            output="file.txt",
-            exit_code=0
-        )
+        result = CommandResult(success=True, output="file.txt", exit_code=0)
         assert result.success is True
         assert result.output == "file.txt"
         assert result.exit_code == 0
@@ -55,11 +48,7 @@ class TestCommandResult:
 
     def test_failed_command(self):
         """Test failed command result."""
-        result = CommandResult(
-            success=False,
-            exit_code=1,
-            error="Command not found"
-        )
+        result = CommandResult(success=False, exit_code=1, error="Command not found")
         assert result.success is False
         assert result.exit_code == 1
         assert result.error == "Command not found"
@@ -86,8 +75,7 @@ class TestSoundTouchSSHClient:
             # Force reimport to trigger ImportError
             with patch.object(ssh_client, "connect") as mock_connect:
                 mock_connect.return_value = SSHConnectionResult(
-                    success=False,
-                    error="asyncssh not installed"
+                    success=False, error="asyncssh not installed"
                 )
                 result = await ssh_client.connect()
                 assert result.success is False
@@ -99,7 +87,7 @@ class TestSoundTouchSSHClient:
         # Need to mock asyncssh first so the import doesn't fail
         mock_asyncssh = MagicMock()
         mock_asyncssh.connect = AsyncMock()
-        
+
         with patch.dict("sys.modules", {"asyncssh": mock_asyncssh}):
             with patch("asyncio.wait_for") as mock_wait:
                 mock_wait.side_effect = asyncio.TimeoutError()
@@ -130,7 +118,7 @@ class TestSoundTouchSSHClient:
 
         async with ssh_client:
             ssh_client.connect.assert_called_once()
-        
+
         ssh_client.close.assert_called_once()
 
     @pytest.mark.asyncio
@@ -154,7 +142,7 @@ class TestSoundTouchSSHClient:
         mock_result.stdout = "file1.txt\nfile2.txt"
         mock_result.stderr = ""
         mock_result.exit_status = 0
-        
+
         mock_connection = MagicMock()
         mock_connection.run = AsyncMock(return_value=mock_result)
         ssh_client._connection = mock_connection
@@ -246,12 +234,14 @@ class TestSoundTouchTelnetClient:
     @pytest.mark.asyncio
     async def test_context_manager(self, telnet_client):
         """Test async context manager protocol."""
-        telnet_client.connect = AsyncMock(return_value=SSHConnectionResult(success=True))
+        telnet_client.connect = AsyncMock(
+            return_value=SSHConnectionResult(success=True)
+        )
         telnet_client.close = AsyncMock()
 
         async with telnet_client:
             telnet_client.connect.assert_called_once()
-        
+
         telnet_client.close.assert_called_once()
 
     @pytest.mark.asyncio
@@ -266,7 +256,9 @@ class TestSoundTouchTelnetClient:
         with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_conn:
             mock_conn.return_value = (mock_reader, mock_writer)
             with patch("asyncio.sleep", new_callable=AsyncMock):
-                with patch.object(telnet_client, "_read_available", new_callable=AsyncMock) as mock_read:
+                with patch.object(
+                    telnet_client, "_read_available", new_callable=AsyncMock
+                ) as mock_read:
                     mock_read.return_value = "Welcome"
                     result = await telnet_client.connect(timeout=5.0)
                     assert result.success is True
@@ -290,7 +282,7 @@ class TestSoundTouchTelnetClient:
         mock_writer = MagicMock()
         mock_writer.write = MagicMock()
         mock_writer.drain = AsyncMock()
-        
+
         telnet_client._reader = mock_reader
         telnet_client._writer = mock_writer
 
@@ -307,10 +299,12 @@ class TestSoundTouchTelnetClient:
         mock_writer = MagicMock()
         mock_writer.write = MagicMock()
         mock_writer.drain = AsyncMock()
-        
+
         telnet_client._reader = mock_reader
         telnet_client._writer = mock_writer
-        telnet_client._read_available = AsyncMock(return_value="Error: Command not found")
+        telnet_client._read_available = AsyncMock(
+            return_value="Error: Command not found"
+        )
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
             result = await telnet_client.execute("invalid_cmd")
@@ -323,7 +317,7 @@ class TestSoundTouchTelnetClient:
         mock_reader = MagicMock()
         mock_writer = MagicMock()
         mock_writer.write = MagicMock(side_effect=Exception("Connection lost"))
-        
+
         telnet_client._reader = mock_reader
         telnet_client._writer = mock_writer
 
@@ -337,7 +331,7 @@ class TestSoundTouchTelnetClient:
         mock_writer = MagicMock()
         mock_writer.close = MagicMock()
         mock_writer.wait_closed = AsyncMock()
-        
+
         telnet_client._reader = MagicMock()
         telnet_client._writer = mock_writer
 

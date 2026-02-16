@@ -110,7 +110,9 @@ async def stream_device_preset(
         async def stream_generator():
             """Generator that fetches and yields audio chunks from RadioBrowser."""
             try:
-                async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+                async with httpx.AsyncClient(
+                    timeout=30.0, follow_redirects=True
+                ) as client:
                     async with client.stream(
                         "GET",
                         preset.station_url,
@@ -136,7 +138,9 @@ async def stream_device_preset(
                             )
 
                         # Detect content type
-                        content_type = upstream_response.headers.get("content-type", "audio/mpeg")
+                        content_type = upstream_response.headers.get(
+                            "content-type", "audio/mpeg"
+                        )
 
                         logger.info(
                             f"[STREAMING] {preset.station_name} → Bose device (HTTP proxy active)",
@@ -149,7 +153,9 @@ async def stream_device_preset(
                         )
 
                         # Stream audio chunks
-                        async for chunk in upstream_response.aiter_bytes(chunk_size=8192):
+                        async for chunk in upstream_response.aiter_bytes(
+                            chunk_size=8192
+                        ):
                             yield chunk
 
             except httpx.RequestError as e:

@@ -284,9 +284,11 @@ class BoseDeviceClientAdapter(DeviceClient):
             # Build M3U playlist URL (absolute HTTP URL)
             # Hypothesis: Bose might parse playlist files better than direct stream URLs
             playlist_url = f"{oct_backend_url}/playlist/{device_id}/{preset_number}.m3u"
-            
+
             # Also keep stream proxy URL for reference
-            stream_proxy_url = f"{oct_backend_url}/device/{device_id}/preset/{preset_number}"
+            stream_proxy_url = (
+                f"{oct_backend_url}/device/{device_id}/preset/{preset_number}"
+            )
 
             logger.info(
                 f"Storing preset {preset_number} on {self.ip}: {station_name}",

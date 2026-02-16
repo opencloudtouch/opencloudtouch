@@ -16,7 +16,8 @@ updates:
       - "python"
       - "backend"
     commit-message:
-      prefix: "chore(deps)"
+      prefix: "chore"
+      prefix-development: "chore"
       include: "scope"
     reviewers:
       - "user"
@@ -44,7 +45,8 @@ updates:
       - "npm"
       - "frontend"
     commit-message:
-      prefix: "chore(deps)"
+      prefix: "chore"
+      prefix-development: "chore"
       include: "scope"
     reviewers:
       - "user"
@@ -79,7 +81,8 @@ updates:
       - "npm"
       - "workspace"
     commit-message:
-      prefix: "chore(deps)"
+      prefix: "chore"
+      prefix-development: "chore"
       include: "scope"
 
   # GitHub Actions dependencies
@@ -95,5 +98,6 @@ updates:
       - "github-actions"
       - "ci"
     commit-message:
-      prefix: "chore(deps)"
+      prefix: "chore"
+      prefix-development: "chore"
       include: "scope"

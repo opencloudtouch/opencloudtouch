@@ -93,7 +93,7 @@ class TestSetupProgress:
     def test_progress_to_dict(self, sample_progress):
         """Test to_dict serialization."""
         result = sample_progress.to_dict()
-        
+
         assert result["device_id"] == "AABBCC112233"
         assert result["current_step"] == "ssh_connect"
         assert result["status"] == "pending"
@@ -112,7 +112,7 @@ class TestSetupProgress:
             error="Connection refused",
         )
         result = progress.to_dict()
-        
+
         assert result["status"] == "failed"
         assert result["error"] == "Connection refused"
 
@@ -127,7 +127,7 @@ class TestSetupProgress:
             completed_at=completed_time,
         )
         result = progress.to_dict()
-        
+
         assert result["completed_at"] == completed_time.isoformat()
 
 
@@ -158,7 +158,7 @@ class TestModelInstructions:
     def test_instructions_to_dict(self, sample_instructions):
         """Test to_dict serialization."""
         result = sample_instructions.to_dict()
-        
+
         assert result["model_name"] == "SoundTouch 10"
         assert result["display_name"] == "Bose SoundTouch 10"
         assert result["usb_port_type"] == "micro-usb"

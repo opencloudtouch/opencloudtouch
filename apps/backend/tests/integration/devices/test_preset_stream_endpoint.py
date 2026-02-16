@@ -36,14 +36,18 @@ external_mock = respx.mock(assert_all_called=False)
 def setup_external_mocks():
     """Setup external HTTP mocks before each test."""
     # Define common external stream mocks
-    external_mock.get("https://edge71.live-sm.absolutradio.de/absolut-relax/stream/mp3").mock(
+    external_mock.get(
+        "https://edge71.live-sm.absolutradio.de/absolut-relax/stream/mp3"
+    ).mock(
         return_value=Response(
             status_code=200,
             content=b"FAKE_AUDIO_DATA_CHUNK_123",
             headers={"content-type": "audio/mpeg", "icy-name": "Absolut Relax"},
         )
     )
-    external_mock.get("https://streams.radiobob.de/bob-national/mp3-192/mediaplayer").mock(
+    external_mock.get(
+        "https://streams.radiobob.de/bob-national/mp3-192/mediaplayer"
+    ).mock(
         return_value=Response(
             status_code=200,
             content=b"RADIO_BOB_AUDIO",
@@ -51,24 +55,44 @@ def setup_external_mocks():
         )
     )
     external_mock.get("https://mp3channels.webradio.antenne.de/antenne").mock(
-        return_value=Response(status_code=200, content=b"AUDIO_PRESET_3", headers={"content-type": "audio/mpeg"})
+        return_value=Response(
+            status_code=200,
+            content=b"AUDIO_PRESET_3",
+            headers={"content-type": "audio/mpeg"},
+        )
     )
-    external_mock.get("https://br-br1-franken.cast.addradio.de/br/br1/franken/mp3/128/stream.mp3").mock(
-        return_value=Response(status_code=200, content=b"AUDIO_PRESET_4", headers={"content-type": "audio/mpeg"})
+    external_mock.get(
+        "https://br-br1-franken.cast.addradio.de/br/br1/franken/mp3/128/stream.mp3"
+    ).mock(
+        return_value=Response(
+            status_code=200,
+            content=b"AUDIO_PRESET_4",
+            headers={"content-type": "audio/mpeg"},
+        )
     )
     external_mock.get("https://st01.sslstream.dlf.de/dlf/01/128/mp3/stream.mp3").mock(
-        return_value=Response(status_code=200, content=b"AUDIO_PRESET_5", headers={"content-type": "audio/mpeg"})
+        return_value=Response(
+            status_code=200,
+            content=b"AUDIO_PRESET_5",
+            headers={"content-type": "audio/mpeg"},
+        )
     )
-    external_mock.get("https://wdr-wdr2-ruhrgebiet.icecastssl.wdr.de/wdr/wdr2/ruhrgebiet/mp3/128/stream.mp3").mock(
-        return_value=Response(status_code=200, content=b"AUDIO_PRESET_6", headers={"content-type": "audio/mpeg"})
+    external_mock.get(
+        "https://wdr-wdr2-ruhrgebiet.icecastssl.wdr.de/wdr/wdr2/ruhrgebiet/mp3/128/stream.mp3"
+    ).mock(
+        return_value=Response(
+            status_code=200,
+            content=b"AUDIO_PRESET_6",
+            headers={"content-type": "audio/mpeg"},
+        )
     )
     external_mock.get("https://broken.stream.invalid/audio.mp3").mock(
         return_value=Response(status_code=404, content=b"Not Found")
     )
-    
+
     with external_mock:
         yield
-    
+
     external_mock.reset()
 
 
@@ -99,7 +123,9 @@ async def test_stream_preset_proxy_success(real_api_client: AsyncClient):
             "station_homepage": "https://www.absolutradio.de/relax",
         },
     )
-    assert set_response.status_code == 201, f"Failed to save preset: {set_response.text}"
+    assert (
+        set_response.status_code == 201
+    ), f"Failed to save preset: {set_response.text}"
 
     # Act: Simulate Bose device requesting stream
     stream_response = await real_api_client.get(
@@ -107,10 +133,15 @@ async def test_stream_preset_proxy_success(real_api_client: AsyncClient):
     )
 
     # Assert: HTTP 200 streaming proxy response
-    assert stream_response.status_code == 200, f"Expected 200, got {stream_response.status_code}"
+    assert (
+        stream_response.status_code == 200
+    ), f"Expected 200, got {stream_response.status_code}"
     assert stream_response.headers.get("content-type") == "audio/mpeg"
     assert stream_response.headers.get("icy-name") == station_name
-    assert stream_response.headers.get("Cache-Control") == "no-cache, no-store, must-revalidate"
+    assert (
+        stream_response.headers.get("Cache-Control")
+        == "no-cache, no-store, must-revalidate"
+    )
 
     # Verify audio data received
     assert b"FAKE_AUDIO_DATA" in stream_response.content
@@ -133,10 +164,13 @@ async def test_stream_preset_not_found(real_api_client: AsyncClient):
     )
 
     # Assert: HTTP 404
-    assert stream_response.status_code == 404, f"Expected 404, got {stream_response.status_code}"
+    assert (
+        stream_response.status_code == 404
+    ), f"Expected 404, got {stream_response.status_code}"
     error_detail = stream_response.json()
-    assert "not configured" in error_detail["detail"].lower(), \
-        f"Error message should mention 'not configured': {error_detail['detail']}"
+    assert (
+        "not configured" in error_detail["detail"].lower()
+    ), f"Error message should mention 'not configured': {error_detail['detail']}"
 
 
 @pytest.mark.asyncio
@@ -156,7 +190,9 @@ async def test_stream_preset_invalid_number(real_api_client: AsyncClient):
     )
 
     # Assert: HTTP 422 validation error
-    assert stream_response.status_code == 422, f"Expected 422, got {stream_response.status_code}"
+    assert (
+        stream_response.status_code == 422
+    ), f"Expected 422, got {stream_response.status_code}"
 
 
 @pytest.mark.asyncio
@@ -218,12 +254,21 @@ async def test_stream_preset_all_slots(real_api_client: AsyncClient):
     # Arrange: Configure all 6 presets (mocks are defined in autouse fixture)
     device_id = "TEST_ALL_SLOTS"
     stations = [
-        ("Absolut Relax", "https://edge71.live-sm.absolutradio.de/absolut-relax/stream/mp3"),
+        (
+            "Absolut Relax",
+            "https://edge71.live-sm.absolutradio.de/absolut-relax/stream/mp3",
+        ),
         ("Radio BOB!", "https://streams.radiobob.de/bob-national/mp3-192/mediaplayer"),
         ("ANTENNE BAYERN", "https://mp3channels.webradio.antenne.de/antenne"),
-        ("Bayern 1", "https://br-br1-franken.cast.addradio.de/br/br1/franken/mp3/128/stream.mp3"),
+        (
+            "Bayern 1",
+            "https://br-br1-franken.cast.addradio.de/br/br1/franken/mp3/128/stream.mp3",
+        ),
         ("Deutschlandfunk", "https://st01.sslstream.dlf.de/dlf/01/128/mp3/stream.mp3"),
-        ("WDR 2", "https://wdr-wdr2-ruhrgebiet.icecastssl.wdr.de/wdr/wdr2/ruhrgebiet/mp3/128/stream.mp3"),
+        (
+            "WDR 2",
+            "https://wdr-wdr2-ruhrgebiet.icecastssl.wdr.de/wdr/wdr2/ruhrgebiet/mp3/128/stream.mp3",
+        ),
     ]
 
     for preset_num, (name, url) in enumerate(stations, start=1):
@@ -247,13 +292,17 @@ async def test_stream_preset_all_slots(real_api_client: AsyncClient):
 
     # Assert: All presets return HTTP 200 with correct audio
     for preset_num, response in responses:
-        assert response.status_code == 200, f"Preset {preset_num} failed: {response.status_code}"
+        assert (
+            response.status_code == 200
+        ), f"Preset {preset_num} failed: {response.status_code}"
         # Just verify we got some audio data (mocks are defined in fixture)
         assert len(response.content) > 0, f"Preset {preset_num} empty response"
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="StreamingResponse cannot change HTTP status after headers sent - error handling limitation")
+@pytest.mark.skip(
+    reason="StreamingResponse cannot change HTTP status after headers sent - error handling limitation"
+)
 async def test_stream_upstream_unavailable_returns_502(real_api_client: AsyncClient):
     """Test that upstream stream unavailable returns HTTP 502.
 

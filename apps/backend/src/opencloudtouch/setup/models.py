@@ -12,30 +12,30 @@ from typing import Optional, List
 
 class SetupStatus(str, Enum):
     """Status of device setup process."""
-    
+
     UNCONFIGURED = "unconfigured"  # Device discovered but not configured
-    PENDING = "pending"            # Setup in progress
-    CONFIGURED = "configured"      # Successfully configured
-    FAILED = "failed"              # Setup failed
+    PENDING = "pending"  # Setup in progress
+    CONFIGURED = "configured"  # Successfully configured
+    FAILED = "failed"  # Setup failed
 
 
 class SetupStep(str, Enum):
     """Individual steps in the setup process."""
-    
-    USB_INSERT = "usb_insert"           # User inserts USB with remote_services
-    DEVICE_REBOOT = "device_reboot"     # Device needs reboot after USB
-    SSH_CONNECT = "ssh_connect"         # Connect via SSH
-    SSH_PERSIST = "ssh_persist"         # Make SSH persistent
-    CONFIG_BACKUP = "config_backup"     # Backup original config
-    CONFIG_MODIFY = "config_modify"     # Modify BMX URL
-    VERIFY = "verify"                   # Verify configuration
-    COMPLETE = "complete"               # Setup complete
+
+    USB_INSERT = "usb_insert"  # User inserts USB with remote_services
+    DEVICE_REBOOT = "device_reboot"  # Device needs reboot after USB
+    SSH_CONNECT = "ssh_connect"  # Connect via SSH
+    SSH_PERSIST = "ssh_persist"  # Make SSH persistent
+    CONFIG_BACKUP = "config_backup"  # Backup original config
+    CONFIG_MODIFY = "config_modify"  # Modify BMX URL
+    VERIFY = "verify"  # Verify configuration
+    COMPLETE = "complete"  # Setup complete
 
 
 @dataclass
 class SetupProgress:
     """Progress of an ongoing setup process."""
-    
+
     device_id: str
     current_step: SetupStep
     status: SetupStatus
@@ -43,7 +43,7 @@ class SetupProgress:
     error: Optional[str] = None
     started_at: datetime = field(default_factory=datetime.utcnow)
     completed_at: Optional[datetime] = None
-    
+
     def to_dict(self) -> dict:
         """Convert to dictionary for API response."""
         return {
@@ -53,14 +53,16 @@ class SetupProgress:
             "message": self.message,
             "error": self.error,
             "started_at": self.started_at.isoformat(),
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": (
+                self.completed_at.isoformat() if self.completed_at else None
+            ),
         }
 
 
 @dataclass
 class ModelInstructions:
     """Model-specific setup instructions and purchase recommendations."""
-    
+
     model_name: str
     display_name: str
     usb_port_type: str  # "micro-usb" | "usb-a" | "usb-c"
@@ -69,7 +71,7 @@ class ModelInstructions:
     adapter_recommendation: str
     image_url: Optional[str] = None
     notes: List[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> dict:
         """Convert to dictionary for API response."""
         return {
@@ -187,11 +189,11 @@ def get_model_instructions(model_name: str) -> ModelInstructions:
     # Try exact match first
     if model_name in MODEL_INSTRUCTIONS:
         return MODEL_INSTRUCTIONS[model_name]
-    
+
     # Try partial match
     for key, instructions in MODEL_INSTRUCTIONS.items():
         if key.lower() in model_name.lower() or model_name.lower() in key.lower():
             return instructions
-    
+
     # Return default
     return DEFAULT_INSTRUCTIONS

@@ -16,12 +16,13 @@ async def preset_service():
     """Create and initialize a temporary preset service for testing."""
     with tempfile.TemporaryDirectory() as tmpdir:
         db_path = Path(tmpdir) / "test_presets.db"
-        
+
         # Initialize device repo (needed for preset service)
         from opencloudtouch.devices.repository import DeviceRepository
+
         device_repo = DeviceRepository(str(db_path))
         await device_repo.initialize()
-        
+
         # Initialize preset repo
         preset_repo = PresetRepository(str(db_path))
         await preset_repo.initialize()
