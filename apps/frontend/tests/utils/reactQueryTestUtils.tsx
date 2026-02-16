@@ -2,8 +2,8 @@
  * Test utilities for React Query components
  * Provides QueryClient wrapper for testing
  */
-import { ReactNode } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 /**
  * Create a new QueryClient for testing

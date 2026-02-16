@@ -1,6 +1,6 @@
-import { afterEach, beforeAll, vi } from 'vitest'
-import { cleanup } from '@testing-library/react'
-import '@testing-library/jest-dom/vitest'
+import { afterEach, beforeAll, vi } from "vitest";
+import { cleanup } from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
 
 // Mock fetch with base URL for API calls
 beforeAll(() => {
@@ -10,13 +10,13 @@ beforeAll(() => {
       ok: true,
       status: 200,
       json: async () => ({}),
-      text: async () => '',
+      text: async () => "",
     });
   });
 });
 
 // Cleanup after each test
 afterEach(() => {
-  cleanup()
-  vi.clearAllMocks()
-})
+  cleanup();
+  vi.clearAllMocks();
+});

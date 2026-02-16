@@ -1,276 +1,241 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import RadioSearch from '../src/components/RadioSearch'
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import RadioSearch from "../src/components/RadioSearch";
 
-describe('RadioSearch Component', () => {
-  const mockOnStationSelect = vi.fn()
-  const mockOnClose = vi.fn()
+describe("RadioSearch Component", () => {
+  const mockOnStationSelect = vi.fn();
+  const mockOnClose = vi.fn();
   const mockStations = [
-    { uuid: 'mock-bbc-1', name: 'BBC Radio 1', country: 'United Kingdom' },
-    { uuid: 'mock-npr-1', name: 'NPR (National Public Radio)', country: 'United States' },
-    { uuid: 'mock-france-inter', name: 'France Inter', country: 'France' }
-  ]
+    { uuid: "mock-bbc-1", name: "BBC Radio 1", country: "United Kingdom" },
+    { uuid: "mock-npr-1", name: "NPR (National Public Radio)", country: "United States" },
+    { uuid: "mock-france-inter", name: "France Inter", country: "France" },
+  ];
 
   beforeEach(() => {
-    mockOnStationSelect.mockClear()
-    mockOnClose.mockClear()
+    mockOnStationSelect.mockClear();
+    mockOnClose.mockClear();
 
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
-      // Handle relative URLs by adding a base
-      const urlString = String(input)
-      const url = urlString.startsWith('http') 
-        ? new URL(urlString) 
-        : new URL(urlString, 'http://localhost')
-      const query = url.searchParams.get('q') || ''
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        // Handle relative URLs by adding a base
+        const urlString = String(input);
+        const url = urlString.startsWith("http")
+          ? new URL(urlString)
+          : new URL(urlString, "http://localhost");
+        const query = url.searchParams.get("q") || "";
 
-      if (query === 'ERROR_503') {
+        if (query === "ERROR_503") {
+          return {
+            ok: false,
+            status: 503,
+            json: async () => ({ detail: "Service unavailable" }),
+          } as Response;
+        }
+
+        const filtered = mockStations.filter((station) =>
+          station.name.toLowerCase().includes(query.toLowerCase())
+        );
+
         return {
-          ok: false,
-          status: 503,
-          json: async () => ({ detail: 'Service unavailable' })
-        } as Response
-      }
-
-      const filtered = mockStations.filter((station) =>
-        station.name.toLowerCase().includes(query.toLowerCase())
-      )
-
-      return {
-        ok: true,
-        status: 200,
-        json: async () => ({ stations: filtered })
-      } as Response
-    }))
-  })
+          ok: true,
+          status: 200,
+          json: async () => ({ stations: filtered }),
+        } as Response;
+      })
+    );
+  });
 
   afterEach(() => {
-    vi.unstubAllGlobals()
-  })
+    vi.unstubAllGlobals();
+  });
 
-  it('renders nothing when closed', () => {
+  it("renders nothing when closed", () => {
     const { container } = render(
-      <RadioSearch
-        isOpen={false}
-        onStationSelect={mockOnStationSelect}
-        onClose={mockOnClose}
-      />
-    )
-    expect(container.firstChild).toBeNull()
-  })
+      <RadioSearch isOpen={false} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
+    expect(container.firstChild).toBeNull();
+  });
 
-  it('renders search modal when open', () => {
+  it("renders search modal when open", () => {
     render(
-      <RadioSearch
-        isOpen={true}
-        onStationSelect={mockOnStationSelect}
-        onClose={mockOnClose}
-      />
-    )
-    expect(screen.getByPlaceholderText('Sender suchen...')).toBeInTheDocument()
-    expect(screen.getByText('✕')).toBeInTheDocument()
-  })
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
+    expect(screen.getByPlaceholderText("Sender suchen...")).toBeInTheDocument();
+    expect(screen.getByText("✕")).toBeInTheDocument();
+  });
 
-  it('calls onClose when close button clicked', () => {
+  it("calls onClose when close button clicked", () => {
     render(
-      <RadioSearch
-        isOpen={true}
-        onStationSelect={mockOnStationSelect}
-        onClose={mockOnClose}
-      />
-    )
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
 
-    const closeButton = screen.getByText('✕')
-    fireEvent.click(closeButton)
+    const closeButton = screen.getByText("✕");
+    fireEvent.click(closeButton);
 
-    expect(mockOnClose).toHaveBeenCalledTimes(1)
-  })
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
 
-  it('calls onClose when overlay clicked', () => {
+  it("calls onClose when overlay clicked", () => {
     render(
-      <RadioSearch
-        isOpen={true}
-        onStationSelect={mockOnStationSelect}
-        onClose={mockOnClose}
-      />
-    )
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
 
-    const overlay = screen.getByRole('button', { name: '✕' }).closest('.radio-search-overlay')
-    fireEvent.click(overlay)
+    const overlay = screen.getByRole("button", { name: "✕" }).closest(".radio-search-overlay");
+    fireEvent.click(overlay);
 
-    expect(mockOnClose).toHaveBeenCalled()
-  })
+    expect(mockOnClose).toHaveBeenCalled();
+  });
 
-  it('does not close when modal content clicked', () => {
+  it("does not close when modal content clicked", () => {
     render(
-      <RadioSearch
-        isOpen={true}
-        onStationSelect={mockOnStationSelect}
-        onClose={mockOnClose}
-      />
-    )
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
 
-    const modal = document.querySelector('.radio-search-modal')
-    fireEvent.click(modal)
+    const modal = document.querySelector(".radio-search-modal");
+    fireEvent.click(modal);
 
-    expect(mockOnClose).not.toHaveBeenCalled()
-  })
+    expect(mockOnClose).not.toHaveBeenCalled();
+  });
 
-  it('shows loading state during search', async () => {
+  it("shows loading state during search", async () => {
     render(
-      <RadioSearch
-        isOpen={true}
-        onStationSelect={mockOnStationSelect}
-        onClose={mockOnClose}
-      />
-    )
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
 
-    const searchInput = screen.getByPlaceholderText('Sender suchen...')
-    fireEvent.change(searchInput, { target: { value: 'BBC' } })
+    const searchInput = screen.getByPlaceholderText("Sender suchen...");
+    fireEvent.change(searchInput, { target: { value: "BBC" } });
 
-    expect(screen.getByText('Suche...')).toBeInTheDocument()
-  })
+    expect(screen.getByText("Suche...")).toBeInTheDocument();
+  });
 
-  it('displays search results', async () => {
+  it("displays search results", async () => {
     render(
-      <RadioSearch
-        isOpen={true}
-        onStationSelect={mockOnStationSelect}
-        onClose={mockOnClose}
-      />
-    )
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
 
-    const searchInput = screen.getByPlaceholderText('Sender suchen...')
-    fireEvent.change(searchInput, { target: { value: 'BBC' } })
+    const searchInput = screen.getByPlaceholderText("Sender suchen...");
+    fireEvent.change(searchInput, { target: { value: "BBC" } });
 
-    await waitFor(() => {
-      expect(screen.getByText('BBC Radio 1')).toBeInTheDocument()
-    }, { timeout: 500 })
-  })
+    await waitFor(
+      () => {
+        expect(screen.getByText("BBC Radio 1")).toBeInTheDocument();
+      },
+      { timeout: 500 }
+    );
+  });
 
-  it('filters results based on search query', async () => {
+  it("filters results based on search query", async () => {
     render(
-      <RadioSearch
-        isOpen={true}
-        onStationSelect={mockOnStationSelect}
-        onClose={mockOnClose}
-      />
-    )
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
 
-    const searchInput = screen.getByPlaceholderText('Sender suchen...')
-    fireEvent.change(searchInput, { target: { value: 'NPR' } })
+    const searchInput = screen.getByPlaceholderText("Sender suchen...");
+    fireEvent.change(searchInput, { target: { value: "NPR" } });
 
-    await waitFor(() => {
-      expect(screen.getByText('NPR (National Public Radio)')).toBeInTheDocument()
-      expect(screen.queryByText('BBC Radio 1')).not.toBeInTheDocument()
-    }, { timeout: 500 })
-  })
+    await waitFor(
+      () => {
+        expect(screen.getByText("NPR (National Public Radio)")).toBeInTheDocument();
+        expect(screen.queryByText("BBC Radio 1")).not.toBeInTheDocument();
+      },
+      { timeout: 500 }
+    );
+  });
 
-  it('shows empty state when no results found', async () => {
+  it("shows empty state when no results found", async () => {
     render(
-      <RadioSearch
-        isOpen={true}
-        onStationSelect={mockOnStationSelect}
-        onClose={mockOnClose}
-      />
-    )
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
 
-    const searchInput = screen.getByPlaceholderText('Sender suchen...')
-    fireEvent.change(searchInput, { target: { value: 'nonexistent' } })
+    const searchInput = screen.getByPlaceholderText("Sender suchen...");
+    fireEvent.change(searchInput, { target: { value: "nonexistent" } });
 
-    await waitFor(() => {
-      expect(screen.getByText('Keine Sender gefunden')).toBeInTheDocument()
-    }, { timeout: 500 })
-  })
+    await waitFor(
+      () => {
+        expect(screen.getByText("Keine Sender gefunden")).toBeInTheDocument();
+      },
+      { timeout: 500 }
+    );
+  });
 
-  it('clears results when search query is empty', () => {
+  it("clears results when search query is empty", () => {
     render(
-      <RadioSearch
-        isOpen={true}
-        onStationSelect={mockOnStationSelect}
-        onClose={mockOnClose}
-      />
-    )
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
 
-    const searchInput = screen.getByPlaceholderText('Sender suchen...')
-    fireEvent.change(searchInput, { target: { value: '' } })
+    const searchInput = screen.getByPlaceholderText("Sender suchen...");
+    fireEvent.change(searchInput, { target: { value: "" } });
 
-    expect(screen.queryByText('Suche...')).not.toBeInTheDocument()
-    expect(screen.queryByText('Keine Sender gefunden')).not.toBeInTheDocument()
-  })
+    expect(screen.queryByText("Suche...")).not.toBeInTheDocument();
+    expect(screen.queryByText("Keine Sender gefunden")).not.toBeInTheDocument();
+  });
 
-  it('calls onStationSelect when station clicked', async () => {
+  it("calls onStationSelect when station clicked", async () => {
     render(
-      <RadioSearch
-        isOpen={true}
-        onStationSelect={mockOnStationSelect}
-        onClose={mockOnClose}
-      />
-    )
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
 
-    const searchInput = screen.getByPlaceholderText('Sender suchen...')
-    fireEvent.change(searchInput, { target: { value: 'BBC' } })
+    const searchInput = screen.getByPlaceholderText("Sender suchen...");
+    fireEvent.change(searchInput, { target: { value: "BBC" } });
 
-    await waitFor(() => {
-      const stationButton = screen.getByText('BBC Radio 1')
-      fireEvent.click(stationButton)
-    }, { timeout: 500 })
+    await waitFor(
+      () => {
+        const stationButton = screen.getByText("BBC Radio 1");
+        fireEvent.click(stationButton);
+      },
+      { timeout: 500 }
+    );
 
     expect(mockOnStationSelect).toHaveBeenCalledWith(
       expect.objectContaining({
-        stationuuid: 'mock-bbc-1',
-        name: 'BBC Radio 1',
-        country: 'United Kingdom'
+        stationuuid: "mock-bbc-1",
+        name: "BBC Radio 1",
+        country: "United Kingdom",
       })
-    )
-  })
+    );
+  });
 
-  it('clears search and closes modal after station selection', async () => {
+  it("clears search and closes modal after station selection", async () => {
     render(
-      <RadioSearch
-        isOpen={true}
-        onStationSelect={mockOnStationSelect}
-        onClose={mockOnClose}
-      />
-    )
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
 
-    const searchInput = screen.getByPlaceholderText('Sender suchen...')
-    fireEvent.change(searchInput, { target: { value: 'BBC' } })
+    const searchInput = screen.getByPlaceholderText("Sender suchen...");
+    fireEvent.change(searchInput, { target: { value: "BBC" } });
 
-    await waitFor(() => {
-      const stationButton = screen.getByText('BBC Radio 1')
-      fireEvent.click(stationButton)
-    }, { timeout: 500 })
+    await waitFor(
+      () => {
+        const stationButton = screen.getByText("BBC Radio 1");
+        fireEvent.click(stationButton);
+      },
+      { timeout: 500 }
+    );
 
-    expect(mockOnClose).toHaveBeenCalled()
-  })
+    expect(mockOnClose).toHaveBeenCalled();
+  });
 
-  it('autofocuses search input when opened', () => {
+  it("autofocuses search input when opened", () => {
     render(
-      <RadioSearch
-        isOpen={true}
-        onStationSelect={mockOnStationSelect}
-        onClose={mockOnClose}
-      />
-    )
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
 
-    const searchInput = screen.getByPlaceholderText('Sender suchen...')
-    expect(searchInput).toHaveFocus()
-  })
+    const searchInput = screen.getByPlaceholderText("Sender suchen...");
+    expect(searchInput).toHaveFocus();
+  });
 
-  it('is case-insensitive when searching', async () => {
+  it("is case-insensitive when searching", async () => {
     render(
-      <RadioSearch
-        isOpen={true}
-        onStationSelect={mockOnStationSelect}
-        onClose={mockOnClose}
-      />
-    )
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
 
-    const searchInput = screen.getByPlaceholderText('Sender suchen...')
-    fireEvent.change(searchInput, { target: { value: 'FRANCE' } })
+    const searchInput = screen.getByPlaceholderText("Sender suchen...");
+    fireEvent.change(searchInput, { target: { value: "FRANCE" } });
 
-    await waitFor(() => {
-      expect(screen.getByText('France Inter')).toBeInTheDocument()
-    }, { timeout: 500 })
-  })
-})
+    await waitFor(
+      () => {
+        expect(screen.getByText("France Inter")).toBeInTheDocument();
+      },
+      { timeout: 500 }
+    );
+  });
+});

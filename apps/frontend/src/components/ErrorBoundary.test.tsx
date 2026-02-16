@@ -78,7 +78,8 @@ describe("ErrorBoundary", () => {
     const errorCalls = consoleErrorSpy.mock.calls.flat();
     expect(
       errorCalls.some(
-        (call: unknown) => typeof call === "string" && call.includes("ErrorBoundary caught an error")
+        (call: unknown) =>
+          typeof call === "string" && call.includes("ErrorBoundary caught an error")
       )
     ).toBe(true);
   });
