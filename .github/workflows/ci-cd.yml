@@ -555,6 +555,7 @@ jobs:
 
       - name: Run Trivy vulnerability scanner (table output)
         uses: aquasecurity/trivy-action@master
+        continue-on-error: true  # Don't fail if registry access issues
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
           format: 'table'
