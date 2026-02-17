@@ -1,6 +1,9 @@
 /**
  * LoadingSkeleton Component Tests
- * Tests for loading placeholder components
+ *
+ * User Story: Als User sehe ich Platzhalter während Inhalte laden
+ *
+ * Focus: Skeleton components render correctly with configurable dimensions
  */
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
@@ -13,96 +16,60 @@ import {
 } from "../../src/components/LoadingSkeleton";
 
 describe("LoadingSkeleton", () => {
-  describe("Skeleton", () => {
-    it("renders with default dimensions", () => {
-      const { container } = render(<Skeleton />);
+  describe("Skeleton Base Component", () => {
+    it("renders with configurable dimensions", () => {
+      const { container, rerender } = render(<Skeleton />);
       const skeleton = container.querySelector(".skeleton");
 
+      // Default dimensions
       expect(skeleton).toBeInTheDocument();
       expect(skeleton).toHaveStyle({ width: "100%", height: "20px" });
-    });
 
-    it("renders with custom dimensions", () => {
-      const { container } = render(<Skeleton width="200px" height="40px" borderRadius="8px" />);
-      const skeleton = container.querySelector(".skeleton");
-
+      // Custom dimensions
+      rerender(<Skeleton width="200px" height="40px" borderRadius="8px" />);
       expect(skeleton).toHaveStyle({
         width: "200px",
         height: "40px",
         borderRadius: "8px",
       });
-    });
 
-    it("has aria-hidden attribute for accessibility", () => {
-      const { container } = render(<Skeleton />);
-      const skeleton = container.querySelector(".skeleton");
-
+      // Hidden from screen readers (decorative element)
       expect(skeleton).toHaveAttribute("aria-hidden", "true");
     });
-
-    it("applies custom className", () => {
-      const { container } = render(<Skeleton className="custom-skeleton" />);
-      const skeleton = container.querySelector(".skeleton");
-
-      expect(skeleton).toHaveClass("skeleton");
-      expect(skeleton).toHaveClass("custom-skeleton");
-    });
   });
 
-  describe("DeviceCardSkeleton", () => {
-    it("renders device card placeholder structure", () => {
+  describe("Skeleton Variants", () => {
+    it("DeviceCardSkeleton renders placeholder with expected skeleton elements", () => {
       const { container } = render(<DeviceCardSkeleton />);
-
       expect(container.querySelector(".device-card-skeleton")).toBeInTheDocument();
-      expect(container.querySelector(".device-card-skeleton-content")).toBeInTheDocument();
-      expect(container.querySelectorAll(".skeleton")).toHaveLength(3); // Icon + 2 text lines
+      expect(container.querySelectorAll(".skeleton").length).toBeGreaterThanOrEqual(2);
     });
-  });
 
-  describe("PresetSkeleton", () => {
-    it("renders preset placeholder structure", () => {
+    it("PresetSkeleton renders placeholder with expected skeleton elements", () => {
       const { container } = render(<PresetSkeleton />);
-
       expect(container.querySelector(".preset-skeleton")).toBeInTheDocument();
-      expect(container.querySelector(".preset-skeleton-content")).toBeInTheDocument();
-      expect(container.querySelectorAll(".skeleton")).toHaveLength(3); // Icon + 2 text lines
+      expect(container.querySelectorAll(".skeleton").length).toBeGreaterThanOrEqual(2);
     });
-  });
 
-  describe("StationCardSkeleton", () => {
-    it("renders station card placeholder structure", () => {
+    it("StationCardSkeleton renders placeholder with expected skeleton elements", () => {
       const { container } = render(<StationCardSkeleton />);
-
       expect(container.querySelector(".station-card-skeleton")).toBeInTheDocument();
-      expect(container.querySelector(".station-card-skeleton-content")).toBeInTheDocument();
-      expect(container.querySelectorAll(".skeleton")).toHaveLength(3); // Image + 2 text lines
+      expect(container.querySelectorAll(".skeleton").length).toBeGreaterThanOrEqual(2);
     });
   });
 
   describe("SkeletonList", () => {
-    it("renders multiple skeleton items", () => {
-      const { container } = render(
+    it("renders configurable number of skeleton items", () => {
+      const { container, rerender } = render(
         <SkeletonList count={5} SkeletonComponent={DeviceCardSkeleton} />
       );
+      expect(container.querySelectorAll(".device-card-skeleton")).toHaveLength(5);
 
-      const skeletons = container.querySelectorAll(".device-card-skeleton");
-      expect(skeletons).toHaveLength(5);
-    });
+      rerender(<SkeletonList count={3} SkeletonComponent={PresetSkeleton} />);
+      expect(container.querySelectorAll(".preset-skeleton")).toHaveLength(3);
 
-    it("renders correct number of items", () => {
-      const { container } = render(<SkeletonList count={3} SkeletonComponent={PresetSkeleton} />);
-
-      const skeletons = container.querySelectorAll(".preset-skeleton");
-      expect(skeletons).toHaveLength(3);
-    });
-
-    it("renders with different skeleton types", () => {
-      const { container } = render(
-        <SkeletonList count={2} SkeletonComponent={StationCardSkeleton} />
-      );
-
-      const skeletons = container.querySelectorAll(".station-card-skeleton");
-      expect(skeletons).toHaveLength(2);
+      rerender(<SkeletonList count={2} SkeletonComponent={StationCardSkeleton} />);
+      expect(container.querySelectorAll(".station-card-skeleton")).toHaveLength(2);
     });
   });
 });

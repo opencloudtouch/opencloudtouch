@@ -12,9 +12,10 @@
  * - Error handling (no devices, API errors)
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
+import React from "react";
 import { ToastProvider } from "../../src/contexts/ToastContext";
 import EmptyState from "../../src/components/EmptyState";
 import { QueryWrapper } from "../utils/reactQueryTestUtils";
@@ -29,7 +30,15 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
-const renderWithProviders = (component) => {
+interface FetchMockOverrides {
+  synced?: number;
+  manualIps?: string[];
+  syncError?: Error | null;
+}
+
+let mockFetch: Mock;
+
+const renderWithProviders = (component: React.ReactElement) => {
   return render(
     <QueryWrapper>
       <BrowserRouter>
@@ -40,7 +49,7 @@ const renderWithProviders = (component) => {
 };
 
 // Helper to create fetch mock that handles all endpoints
-const createFetchMock = (overrides = {}) => {
+const createFetchMock = (overrides: FetchMockOverrides = {}) => {
   const syncedDevices = overrides.synced ?? 0;
   const manualIps = overrides.manualIps ?? [];
   const syncError = overrides.syncError ?? null;
@@ -78,13 +87,18 @@ describe("EmptyState Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default fetch mock for manual-ips
-    global.fetch = createFetchMock();
+    mockFetch = createFetchMock();
+    vi.stubGlobal("fetch", mockFetch);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   describe("Welcome & Setup Steps", () => {
     it("should display welcome message and setup instructions", () => {
       // Uses default createFetchMock from beforeEach
-      renderWithProviders(<EmptyState onRefreshDevices={() => {}} />);
+      renderWithProviders(<EmptyState />);
 
       expect(screen.getByText("Willkommen bei OpenCloudTouch")).toBeInTheDocument();
       expect(screen.getByText("Noch keine Geräte gefunden.")).toBeInTheDocument();
@@ -97,7 +111,7 @@ describe("EmptyState Component", () => {
 
     it("should show discovery button", () => {
       // Uses default createFetchMock from beforeEach
-      renderWithProviders(<EmptyState onRefreshDevices={() => {}} />);
+      renderWithProviders(<EmptyState />);
 
       const discoverButton = screen.getByRole("button", { name: /Jetzt Geräte suchen/i });
       expect(discoverButton).toBeInTheDocument();
@@ -108,14 +122,13 @@ describe("EmptyState Component", () => {
   describe("Auto-Discovery Flow", () => {
     it("should trigger device sync when clicking discover button", async () => {
       // Uses default createFetchMock from beforeEach
-      const onRefresh = vi.fn();
-      renderWithProviders(<EmptyState onRefreshDevices={onRefresh} />);
+      renderWithProviders(<EmptyState />);
 
       const discoverButton = screen.getByRole("button", { name: /Jetzt Geräte suchen/i });
       fireEvent.click(discoverButton);
 
       await waitFor(() => {
-        expect(fetch).toHaveBeenCalledWith("/api/devices/sync", {
+        expect(mockFetch).toHaveBeenCalledWith("/api/devices/sync", {
           method: "POST",
         });
       });
@@ -123,7 +136,8 @@ describe("EmptyState Component", () => {
 
     it("should navigate to dashboard after successful discovery", async () => {
       // Override with successful sync
-      global.fetch = createFetchMock({ synced: 3 });
+      mockFetch = createFetchMock({ synced: 3 });
+      vi.stubGlobal("fetch", mockFetch);
 
       renderWithProviders(<EmptyState />);
 
@@ -150,7 +164,8 @@ describe("EmptyState Component", () => {
 
     it("should handle discovery errors gracefully", async () => {
       // Mock with sync error
-      global.fetch = createFetchMock({ syncError: new Error("Network error") });
+      mockFetch = createFetchMock({ syncError: new Error("Network error") });
+      vi.stubGlobal("fetch", mockFetch);
 
       renderWithProviders(<EmptyState />);
 
@@ -167,7 +182,7 @@ describe("EmptyState Component", () => {
   describe("Manual IP Configuration", () => {
     it("should open modal when clicking manual add button", async () => {
       // Uses default createFetchMock from beforeEach
-      renderWithProviders(<EmptyState onRefreshDevices={() => {}} />);
+      renderWithProviders(<EmptyState />);
 
       // Expand help section
       const helpSummary = screen.getByText("Keine Geräte gefunden?");
@@ -184,7 +199,7 @@ describe("EmptyState Component", () => {
 
     it("should validate IP addresses and show error for invalid format", async () => {
       // Uses default createFetchMock from beforeEach
-      renderWithProviders(<EmptyState onRefreshDevices={() => {}} />);
+      renderWithProviders(<EmptyState />);
 
       // Open modal
       const helpSummary = screen.getByText("Keine Geräte gefunden?");
@@ -211,7 +226,7 @@ describe("EmptyState Component", () => {
 
     it("should save valid IP addresses successfully", async () => {
       // Uses default createFetchMock from beforeEach
-      renderWithProviders(<EmptyState onRefreshDevices={() => {}} />);
+      renderWithProviders(<EmptyState />);
 
       // Open modal
       const helpSummary = screen.getByText("Keine Geräte gefunden?");
@@ -234,7 +249,7 @@ describe("EmptyState Component", () => {
       fireEvent.click(saveButton);
 
       await waitFor(() => {
-        expect(fetch).toHaveBeenCalledWith("/api/settings/manual-ips", {
+        expect(mockFetch).toHaveBeenCalledWith("/api/settings/manual-ips", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ips: ["192.168.1.100", "192.168.1.101"] }),
@@ -249,7 +264,7 @@ describe("EmptyState Component", () => {
 
     it("should close modal when clicking cancel button", async () => {
       // Uses default createFetchMock from beforeEach
-      renderWithProviders(<EmptyState onRefreshDevices={() => {}} />);
+      renderWithProviders(<EmptyState />);
 
       // Open modal
       const helpSummary = screen.getByText("Keine Geräte gefunden?");

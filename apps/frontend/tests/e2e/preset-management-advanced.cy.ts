@@ -328,10 +328,9 @@ describe("Preset Management Advanced", () => {
 
     it("should disable interactions during loading", () => {
       cy.intercept("POST", `${apiUrl}/presets/set`, (req) => {
-        req.reply((res) => {
-          return new Promise((resolve) => {
-            setTimeout(() => resolve(res), 1000);
-          });
+        // Delay response by 1 second to simulate slow network
+        req.on("response", (res) => {
+          res.setDelay(1000);
         });
       }).as("slowSetPreset");
 

@@ -49,7 +49,7 @@ async def test_lifespan_initialization():
 
 
 def test_health_endpoint():
-    """Test health check endpoint returns expected fields."""
+    """Test health check endpoint returns expected fields and types."""
     from opencloudtouch.main import app
 
     client = TestClient(app)
@@ -57,9 +57,18 @@ def test_health_endpoint():
 
     assert response.status_code == 200
     data = response.json()
+
+    # Required fields
     assert data["status"] == "healthy"
     assert "version" in data
     assert "config" in data
+
+    # Type validation (from integration tests)
+    assert isinstance(data["status"], str)
+    assert isinstance(data["version"], str)
+    assert isinstance(data["config"], dict)
+    assert isinstance(data["config"]["discovery_enabled"], bool)
+    assert isinstance(data["config"]["db_path"], str)
 
 
 def test_cors_headers_present():

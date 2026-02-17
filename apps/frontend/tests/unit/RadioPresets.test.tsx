@@ -25,10 +25,11 @@ vi.mock("../../src/api/presets", () => ({
 
 import * as presetsApi from "../../src/api/presets";
 import type { PresetResponse } from "../../src/api/presets";
+import type { ReactNode } from "react";
 
 // Mock child components
 vi.mock("../../src/components/DeviceSwiper", () => ({
-  default: ({ children, onIndexChange }) => (
+  default: ({ children, onIndexChange }: { children: ReactNode; onIndexChange: (index: number) => void }) => (
     <div data-testid="device-swiper">
       <button onClick={() => onIndexChange(0)}>Device 1</button>
       <button onClick={() => onIndexChange(1)}>Device 2</button>
@@ -38,13 +39,13 @@ vi.mock("../../src/components/DeviceSwiper", () => ({
 }));
 
 vi.mock("../../src/components/NowPlaying", () => ({
-  default: ({ nowPlaying }) => (
+  default: ({ nowPlaying }: { nowPlaying: { title: string } | null }) => (
     <div data-testid="now-playing">{nowPlaying ? nowPlaying.title : "No playback"}</div>
   ),
 }));
 
 vi.mock("../../src/components/VolumeSlider", () => ({
-  default: ({ volume, onVolumeChange, muted, onMuteToggle }) => (
+  default: ({ volume, onVolumeChange, muted, onMuteToggle }: { volume: number; onVolumeChange: (v: number) => void; muted: boolean; onMuteToggle: () => void }) => (
     <div data-testid="volume-slider">
       <input
         type="range"
@@ -60,7 +61,7 @@ vi.mock("../../src/components/VolumeSlider", () => ({
 }));
 
 vi.mock("../../src/components/PresetButton", () => ({
-  default: ({ number, preset, onAssign, onClear, onPlay }) => (
+  default: ({ number, preset, onAssign, onClear, onPlay }: { number: number; preset: { station_name: string } | null; onAssign: () => void; onClear: () => void; onPlay: () => void }) => (
     <div data-testid={`preset-${number}`}>
       <span>Preset {number}</span>
       {preset ? (
@@ -83,7 +84,7 @@ vi.mock("../../src/components/PresetButton", () => ({
 }));
 
 vi.mock("../../src/components/RadioSearch", () => ({
-  default: ({ isOpen, onClose, onStationSelect }) => {
+  default: ({ isOpen, onClose, onStationSelect }: { isOpen: boolean; onClose: () => void; onStationSelect: (station: { stationuuid: string; name: string; country: string; url: string; homepage: string; favicon: string }) => void }) => {
     if (!isOpen) return null;
     return (
       <div data-testid="radio-search-modal">

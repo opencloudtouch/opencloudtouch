@@ -1,22 +1,27 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import Settings from "../src/pages/Settings";
-import { QueryWrapper } from "./utils/reactQueryTestUtils";
+import Settings from "../../src/pages/Settings";
+import { QueryWrapper } from "../utils/reactQueryTestUtils";
 
-// Mock fetch globally
-global.fetch = vi.fn();
+// Create typed mock for fetch
+let mockFetch: Mock;
 
-const renderWithProviders = (component) => {
+const renderWithProviders = (component: React.ReactElement) => {
   return render(<QueryWrapper>{component}</QueryWrapper>);
 };
 
 describe("Settings Page", () => {
   beforeEach(() => {
-    fetch.mockClear();
+    mockFetch = vi.fn();
+    vi.stubGlobal("fetch", mockFetch);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("shows loading state initially", () => {
-    fetch.mockImplementation(() => new Promise(() => {})); // Never resolves
+    mockFetch.mockImplementation(() => new Promise(() => {})); // Never resolves
 
     renderWithProviders(<Settings />);
 
@@ -24,7 +29,7 @@ describe("Settings Page", () => {
   });
 
   it("fetches manual IPs on mount", async () => {
-    fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: ["192.168.1.10", "192.168.1.20"] }),
     });
@@ -32,12 +37,12 @@ describe("Settings Page", () => {
     renderWithProviders(<Settings />);
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith("/api/settings/manual-ips");
+      expect(mockFetch).toHaveBeenCalledWith("/api/settings/manual-ips");
     });
   });
 
   it("displays fetched IPs", async () => {
-    fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: ["192.168.1.10", "192.168.1.20"] }),
     });
@@ -51,7 +56,7 @@ describe("Settings Page", () => {
   });
 
   it("shows empty state when no IPs configured", async () => {
-    fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: [] }),
     });
@@ -64,7 +69,7 @@ describe("Settings Page", () => {
   });
 
   it("shows error message when fetch fails", async () => {
-    fetch.mockRejectedValueOnce(new Error("Network error"));
+    mockFetch.mockRejectedValueOnce(new Error("Network error"));
 
     renderWithProviders(<Settings />);
 
@@ -74,7 +79,7 @@ describe("Settings Page", () => {
   });
 
   it("validates IP format before adding", async () => {
-    fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: [] }),
     });
@@ -86,7 +91,7 @@ describe("Settings Page", () => {
     });
 
     const input = screen.getByPlaceholderText("192.168.1.10");
-    const form = input.closest("form");
+    const form = input.closest("form")!;
 
     // Invalid IP: too many octets
     fireEvent.change(input, { target: { value: "192.168.1.1.1" } });
@@ -96,12 +101,12 @@ describe("Settings Page", () => {
       expect(screen.getByText(/Ungültige IP-Adresse/i)).toBeInTheDocument();
     });
 
-    // fetch should not be called for invalid IP
-    expect(fetch).toHaveBeenCalledTimes(1); // Only initial fetch
+    // mockFetch should not be called for invalid IP
+    expect(mockFetch).toHaveBeenCalledTimes(1); // Only initial fetch
   });
 
   it("validates IP octet range", async () => {
-    fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: [] }),
     });
@@ -113,7 +118,7 @@ describe("Settings Page", () => {
     });
 
     const input = screen.getByPlaceholderText("192.168.1.10");
-    const form = input.closest("form");
+    const form = input.closest("form")!;
 
     // Invalid IP: octet > 255
     fireEvent.change(input, { target: { value: "192.168.1.300" } });
@@ -125,7 +130,7 @@ describe("Settings Page", () => {
   });
 
   it("prevents adding duplicate IPs", async () => {
-    fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: ["192.168.1.10"] }),
     });
@@ -148,7 +153,8 @@ describe("Settings Page", () => {
   });
 
   it("adds valid IP successfully", async () => {
-    fetch.mockResolvedValueOnce({
+    // Initial fetch - empty list
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: [] }),
     });
@@ -165,7 +171,13 @@ describe("Settings Page", () => {
     fireEvent.change(input, { target: { value: "192.168.1.30" } });
 
     // Mock POST request for adding IP (sets all IPs)
-    fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ips: ["192.168.1.30"] }),
+    });
+
+    // Re-fetch after mutation (React Query invalidation)
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: ["192.168.1.30"] }),
     });
@@ -173,10 +185,10 @@ describe("Settings Page", () => {
     fireEvent.click(addButton);
 
     await waitFor(() => {
-      const postCall = fetch.mock.calls.find((call) => call[1]?.method === "POST");
+      const postCall = mockFetch.mock.calls.find((call: unknown[]) => (call[1] as RequestInit)?.method === "POST");
       expect(postCall).toBeDefined();
-      expect(postCall[0]).toBe("/api/settings/manual-ips");
-      const body = JSON.parse(postCall[1].body);
+      expect(postCall![0]).toBe("/api/settings/manual-ips");
+      const body = JSON.parse((postCall![1] as RequestInit).body as string);
       expect(body).toEqual({ ips: ["192.168.1.30"] });
     });
 
@@ -186,14 +198,22 @@ describe("Settings Page", () => {
   });
 
   it("clears input after successful add", async () => {
-    fetch.mockResolvedValueOnce({
+    // Initial fetch - empty list
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: [] }),
     });
 
-    fetch.mockResolvedValueOnce({
+    // POST request
+    mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({}),
+      json: async () => ({ ips: ["192.168.1.30"] }),
+    });
+
+    // Re-fetch after mutation (React Query invalidation)
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ips: ["192.168.1.30"] }),
     });
 
     renderWithProviders(<Settings />);
@@ -202,7 +222,7 @@ describe("Settings Page", () => {
       expect(screen.getByPlaceholderText("192.168.1.10")).toBeInTheDocument();
     });
 
-    const input = screen.getByPlaceholderText("192.168.1.10");
+    const input = screen.getByPlaceholderText("192.168.1.10") as HTMLInputElement;
     const addButton = screen.getByText("+ Hinzufügen");
 
     fireEvent.change(input, { target: { value: "192.168.1.30" } });
@@ -214,12 +234,12 @@ describe("Settings Page", () => {
   });
 
   it("shows error when add fails", async () => {
-    fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: [] }),
     });
 
-    fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: false,
       json: async () => ({ detail: "Server error" }),
     });
@@ -243,18 +263,18 @@ describe("Settings Page", () => {
 
   it("deletes IP successfully", async () => {
     // Initial fetch of IPs
-    fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: ["192.168.1.10", "192.168.1.20"] }),
     });
 
     // DELETE request
-    fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
     });
 
     // Re-fetch after delete (React Query invalidation)
-    fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: ["192.168.1.20"] }),
     });
@@ -266,10 +286,10 @@ describe("Settings Page", () => {
     });
 
     const deleteButtons = screen.getAllByTitle("IP entfernen");
-    fireEvent.click(deleteButtons[0]);
+    fireEvent.click(deleteButtons[0]!);
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenCalledWith(
         "/api/settings/manual-ips/192.168.1.10",
         expect.objectContaining({ method: "DELETE" })
       );
@@ -286,12 +306,12 @@ describe("Settings Page", () => {
   });
 
   it("shows error when delete fails", async () => {
-    fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: ["192.168.1.10"] }),
     });
 
-    fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: false,
     });
 
@@ -313,7 +333,7 @@ describe("Settings Page", () => {
   });
 
   it("shows info box", async () => {
-    fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: [] }),
     });
@@ -326,7 +346,7 @@ describe("Settings Page", () => {
   });
 
   it("rejects empty IP input", async () => {
-    fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: [] }),
     });
@@ -347,19 +367,19 @@ describe("Settings Page", () => {
 
   it("trims whitespace from IP input", async () => {
     // Initial fetch - empty list
-    fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: [] }),
     });
 
     // POST new manual IPs (with trimmed IP)
-    fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: ["192.168.1.30"] }),
     });
 
     // Re-fetch after mutation (React Query invalidation)
-    fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: ["192.168.1.30"] }),
     });
@@ -371,13 +391,13 @@ describe("Settings Page", () => {
     });
 
     const input = screen.getByPlaceholderText("192.168.1.10");
-    const form = input.closest("form");
+    const form = input.closest("form")!;
 
     fireEvent.change(input, { target: { value: "  192.168.1.30  " } });
     fireEvent.submit(form);
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenCalledWith(
         "/api/settings/manual-ips",
         expect.objectContaining({
           body: JSON.stringify({ ips: ["192.168.1.30"] }), // Trimmed

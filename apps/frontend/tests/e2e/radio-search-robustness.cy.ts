@@ -10,7 +10,6 @@
  */
 describe("Radio Search Robustness", () => {
   const apiUrl = Cypress.env("apiUrl");
-  let deviceId: string;
 
   beforeEach(() => {
     // Clear devices
@@ -26,7 +25,9 @@ describe("Radio Search Robustness", () => {
 
     // Get device ID for tests
     cy.request(`${apiUrl}/devices`).then((response) => {
-      deviceId = response.body.devices[0].device_id;
+      // deviceId stored for potential future use
+      const _deviceId = response.body.devices[0].device_id;
+      cy.wrap(_deviceId).as("deviceId");
     });
 
     // Navigate to Radio Presets page

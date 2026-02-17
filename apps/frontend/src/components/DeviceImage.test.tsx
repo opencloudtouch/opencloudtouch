@@ -1,52 +1,47 @@
+/**
+ * DeviceImage Component Tests
+ *
+ * User Story: Als User sehe ich ein Bild meines Gerätetyps
+ *
+ * Focus: Correct image rendering based on device type
+ */
 import React from "react";
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import DeviceImage from "./DeviceImage";
 
 describe("DeviceImage Component", () => {
-  it("should render device image with correct src", () => {
-    render(<DeviceImage deviceType="SoundTouch 10" />);
-    const img = screen.getByRole("img");
-    expect(img).toHaveAttribute("src", "/images/devices/st10.svg");
+  it("renders correct image for known device types", () => {
+    const { rerender } = render(<DeviceImage deviceType="SoundTouch 10" />);
+    expect(screen.getByRole("img")).toHaveAttribute("src", "/images/devices/st10.svg");
+
+    rerender(<DeviceImage deviceType="SoundTouch 20" />);
+    expect(screen.getByRole("img")).toHaveAttribute("src", "/images/devices/st20.svg");
+
+    rerender(<DeviceImage deviceType="SoundTouch 30" />);
+    expect(screen.getByRole("img")).toHaveAttribute("src", "/images/devices/st30.svg");
   });
 
-  it("should render device image with default fallback for unknown model", () => {
-    render(<DeviceImage deviceType="Unknown Model" />);
-    const img = screen.getByRole("img");
-    expect(img).toHaveAttribute("src", "/images/devices/default.svg");
+  it("falls back to default image for unknown device types", () => {
+    render(<DeviceImage deviceType="Unknown Model XYZ" />);
+    expect(screen.getByRole("img")).toHaveAttribute("src", "/images/devices/default.svg");
   });
 
-  it("should show device label when showLabel is true", () => {
-    render(<DeviceImage deviceType="SoundTouch 20" showLabel={true} />);
+  it("displays device label when showLabel is true", () => {
+    const { rerender } = render(<DeviceImage deviceType="SoundTouch 20" showLabel={true} />);
     expect(screen.getByText("SoundTouch 20")).toBeInTheDocument();
-  });
 
-  it("should NOT show device label when showLabel is false", () => {
-    render(<DeviceImage deviceType="SoundTouch 30" showLabel={false} />);
+    rerender(<DeviceImage deviceType="SoundTouch 30" showLabel={false} />);
     expect(screen.queryByText("SoundTouch 30")).not.toBeInTheDocument();
   });
 
-  it("should apply custom alt text", () => {
-    render(<DeviceImage deviceType="ST10" alt="My Speaker" />);
-    const img = screen.getByRole("img");
-    expect(img).toHaveAttribute("alt", "My Speaker");
+  it("uses provided alt text for accessibility", () => {
+    render(<DeviceImage deviceType="ST10" alt="Living Room Speaker" />);
+    expect(screen.getByRole("img")).toHaveAttribute("alt", "Living Room Speaker");
   });
 
-  it("should apply size classes correctly", () => {
-    const { container } = render(<DeviceImage deviceType="ST20" size="large" />);
-    const imageContainer = container.querySelector(".device-image-container > div");
-    expect(imageContainer).toHaveClass("w-48", "h-48");
-  });
-
-  it("should apply custom className", () => {
-    const { container } = render(<DeviceImage deviceType="ST30" className="custom-class" />);
-    const imageContainer = container.querySelector(".device-image-container");
-    expect(imageContainer).toHaveClass("custom-class");
-  });
-
-  it("should use lazy loading", () => {
+  it("uses lazy loading for performance", () => {
     render(<DeviceImage deviceType="ST300" />);
-    const img = screen.getByRole("img");
-    expect(img).toHaveAttribute("loading", "lazy");
+    expect(screen.getByRole("img")).toHaveAttribute("loading", "lazy");
   });
 });

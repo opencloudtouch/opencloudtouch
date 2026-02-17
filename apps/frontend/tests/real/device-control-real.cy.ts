@@ -61,7 +61,7 @@ describe("Device Control - Real Hardware", () => {
       cy.request("GET", `${apiUrl}/devices`).then((response) => {
         expect(response.body.count).to.be.greaterThan(0);
 
-        response.body.devices.forEach((device) => {
+        response.body.devices.forEach((device: { ip: string; device_id: string; name: string; model: string }) => {
           // Verify IP format
           expect(device.ip).to.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/);
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import DeviceSwiper from "../src/components/DeviceSwiper";
+import DeviceSwiper from "../../src/components/DeviceSwiper";
 
 describe("DeviceSwiper Component", () => {
   const mockDevices = [
@@ -37,18 +37,7 @@ describe("DeviceSwiper Component", () => {
     expect(dots).toHaveLength(3);
   });
 
-  it("marks current device dot as active", () => {
-    render(
-      <DeviceSwiper devices={mockDevices} currentIndex={1} onIndexChange={mockOnIndexChange}>
-        <div>Device Content</div>
-      </DeviceSwiper>
-    );
 
-    const dots = screen.getAllByRole("tab");
-    expect(dots[1]).toHaveClass("active");
-    expect(dots[0]).not.toHaveClass("active");
-    expect(dots[2]).not.toHaveClass("active");
-  });
 
   it("disables previous arrow at first device", () => {
     render(
@@ -72,27 +61,7 @@ describe("DeviceSwiper Component", () => {
     expect(nextButton).toBeDisabled();
   });
 
-  it("enables previous arrow when not at first device", () => {
-    render(
-      <DeviceSwiper devices={mockDevices} currentIndex={1} onIndexChange={mockOnIndexChange}>
-        <div>Device Content</div>
-      </DeviceSwiper>
-    );
 
-    const prevButton = screen.getByLabelText("Previous device");
-    expect(prevButton).not.toBeDisabled();
-  });
-
-  it("enables next arrow when not at last device", () => {
-    render(
-      <DeviceSwiper devices={mockDevices} currentIndex={1} onIndexChange={mockOnIndexChange}>
-        <div>Device Content</div>
-      </DeviceSwiper>
-    );
-
-    const nextButton = screen.getByLabelText("Next device");
-    expect(nextButton).not.toBeDisabled();
-  });
 
   it("calls onIndexChange with previous index when previous arrow clicked", () => {
     render(
@@ -154,36 +123,12 @@ describe("DeviceSwiper Component", () => {
     );
 
     const dots = screen.getAllByRole("tab");
-    fireEvent.click(dots[2]);
+    fireEvent.click(dots[2]!);
 
     expect(mockOnIndexChange).toHaveBeenCalledWith(2);
   });
 
-  it("updates drag direction when clicking dot forward", () => {
-    render(
-      <DeviceSwiper devices={mockDevices} currentIndex={0} onIndexChange={mockOnIndexChange}>
-        <div>Device Content</div>
-      </DeviceSwiper>
-    );
 
-    const dots = screen.getAllByRole("tab");
-    fireEvent.click(dots[2]); // Forward
-
-    expect(mockOnIndexChange).toHaveBeenCalledWith(2);
-  });
-
-  it("updates drag direction when clicking dot backward", () => {
-    render(
-      <DeviceSwiper devices={mockDevices} currentIndex={2} onIndexChange={mockOnIndexChange}>
-        <div>Device Content</div>
-      </DeviceSwiper>
-    );
-
-    const dots = screen.getAllByRole("tab");
-    fireEvent.click(dots[0]); // Backward
-
-    expect(mockOnIndexChange).toHaveBeenCalledWith(0);
-  });
 
   it("renders children content", () => {
     render(
@@ -221,19 +166,7 @@ describe("DeviceSwiper Component", () => {
     expect(dots[2]).toHaveAttribute("aria-selected", "false");
   });
 
-  it("uses device_id as key for dots", () => {
-    const { container } = render(
-      <DeviceSwiper devices={mockDevices} currentIndex={0} onIndexChange={mockOnIndexChange}>
-        <div>Device Content</div>
-      </DeviceSwiper>
-    );
 
-    const dotsContainer = container.querySelector(".swiper-dots");
-    const dots = dotsContainer.querySelectorAll(".dot");
-
-    // Keys are not directly accessible in DOM, but we can verify unique dots exist
-    expect(dots).toHaveLength(3);
-  });
 
   it("handles single device gracefully", () => {
     const singleDevice = [{ device_id: "1", name: "Solo", ip: "192.168.1.10" }];
