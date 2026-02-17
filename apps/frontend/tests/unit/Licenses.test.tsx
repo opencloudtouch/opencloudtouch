@@ -1,52 +1,35 @@
+/**
+ * Licenses Page Tests
+ *
+ * User Story: Als User möchte ich Open-Source Lizenzinformationen einsehen
+ *
+ * Focus: Page renders all required license sections (legal compliance)
+ */
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
-import Licenses from "../src/pages/Licenses";
+import Licenses from "../../src/pages/Licenses";
 
-describe("Licenses Component", () => {
-  it("renders page title", () => {
+describe("Licenses Page", () => {
+  it("displays all required license information for legal compliance", () => {
     render(
       <BrowserRouter>
         <Licenses />
       </BrowserRouter>
     );
+
+    // Page title
     expect(screen.getByText(/Open-Source Lizenzen/i)).toBeInTheDocument();
-  });
 
-  it("renders frontend dependencies", () => {
-    render(
-      <BrowserRouter>
-        <Licenses />
-      </BrowserRouter>
-    );
+    // Frontend dependencies must be listed
     expect(screen.getByText("React", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/Framer Motion/i)).toBeInTheDocument();
-  });
 
-  it("renders backend dependencies", () => {
-    render(
-      <BrowserRouter>
-        <Licenses />
-      </BrowserRouter>
-    );
+    // Backend dependencies must be listed
     expect(screen.getByText(/FastAPI/i)).toBeInTheDocument();
-  });
 
-  it("renders compliance notice", () => {
-    render(
-      <BrowserRouter>
-        <Licenses />
-      </BrowserRouter>
-    );
+    // Legal compliance sections
     expect(screen.getByText(/Lizenz-Compliance/i)).toBeInTheDocument();
-  });
-
-  it("renders attribution section", () => {
-    render(
-      <BrowserRouter>
-        <Licenses />
-      </BrowserRouter>
-    );
     expect(screen.getByText(/Danksagung/i)).toBeInTheDocument();
   });
 });

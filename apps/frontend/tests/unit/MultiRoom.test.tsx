@@ -10,16 +10,17 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactNode, HTMLAttributes } from "react";
 import MultiRoom from "../../src/pages/MultiRoom";
 
 // Mock framer-motion
 vi.mock("framer-motion", () => ({
   motion: {
-    div: ({ children, ...props }) => <div {...props}>{children}</div>,
-    section: ({ children, ...props }) => <section {...props}>{children}</section>,
-    label: ({ children, ...props }) => <label {...props}>{children}</label>,
+    div: ({ children, ...props }: { children: ReactNode } & HTMLAttributes<HTMLDivElement>) => <div {...props}>{children}</div>,
+    section: ({ children, ...props }: { children: ReactNode } & HTMLAttributes<HTMLElement>) => <section {...props}>{children}</section>,
+    label: ({ children, ...props }: { children: ReactNode } & HTMLAttributes<HTMLLabelElement>) => <label {...props}>{children}</label>,
   },
-  AnimatePresence: ({ children }) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 const mockDevices = [
@@ -87,12 +88,12 @@ describe("MultiRoom - Zone Creation", () => {
     const checkboxes = screen.getAllByRole("checkbox");
 
     // Select first device
-    await user.click(checkboxes[0]);
+    await user.click(checkboxes[0]!);
     expect(checkboxes[0]).toBeChecked();
     expect(screen.getByText(/1 Gerät\(e\) ausgewählt/i)).toBeInTheDocument();
 
     // Select second device
-    await user.click(checkboxes[1]);
+    await user.click(checkboxes[1]!);
     expect(checkboxes[1]).toBeChecked();
     expect(screen.getByText(/2 Gerät\(e\) ausgewählt/i)).toBeInTheDocument();
   });
@@ -108,14 +109,14 @@ describe("MultiRoom - Zone Creation", () => {
     const checkboxes = screen.getAllByRole("checkbox");
 
     // Select first device - should become Master
-    await user.click(checkboxes[0]);
+    await user.click(checkboxes[0]!);
     await waitFor(() => {
       const labels = screen.getAllByText("Master");
       expect(labels.length).toBeGreaterThan(0);
     });
 
     // Select second device - should become Slave
-    await user.click(checkboxes[1]);
+    await user.click(checkboxes[1]!);
     await waitFor(() => {
       expect(screen.getByText("Slave")).toBeInTheDocument();
     });
@@ -132,7 +133,7 @@ describe("MultiRoom - Zone Creation", () => {
     const checkboxes = screen.getAllByRole("checkbox");
 
     // Select only 1 device
-    await user.click(checkboxes[0]);
+    await user.click(checkboxes[0]!);
 
     await waitFor(() => {
       expect(screen.getByText(/mindestens 2 erforderlich/i)).toBeInTheDocument();
@@ -152,8 +153,8 @@ describe("MultiRoom - Zone Creation", () => {
     const checkboxes = screen.getAllByRole("checkbox");
 
     // Select 2 devices
-    await user.click(checkboxes[0]); // Living Room
-    await user.click(checkboxes[1]); // Schlafzimmer
+    await user.click(checkboxes[0]!); // Living Room
+    await user.click(checkboxes[1]!); // Schlafzimmer
 
     const createButton = screen.getByRole("button", { name: /Zone erstellen/i });
     expect(createButton).toBeEnabled();
@@ -179,11 +180,11 @@ describe("MultiRoom - Zone Creation", () => {
     const checkboxes = screen.getAllByRole("checkbox");
 
     // Select device
-    await user.click(checkboxes[0]);
+    await user.click(checkboxes[0]!);
     expect(checkboxes[0]).toBeChecked();
 
     // Deselect device
-    await user.click(checkboxes[0]);
+    await user.click(checkboxes[0]!);
     expect(checkboxes[0]).not.toBeChecked();
 
     // Selection count should be gone
@@ -256,8 +257,8 @@ describe("MultiRoom - Zone Management", () => {
 
     // Create a zone first
     const checkboxes = screen.getAllByRole("checkbox");
-    await user.click(checkboxes[2]); // Küche
-    await user.click(checkboxes[3]); // Badezimmer
+    await user.click(checkboxes[2]!); // Küche
+    await user.click(checkboxes[3]!); // Badezimmer
 
     const createButton = screen.getByRole("button", { name: /Zone erstellen/i });
     await user.click(createButton);
@@ -282,8 +283,8 @@ describe("MultiRoom - Edge Cases", () => {
     const checkboxes = screen.getAllByRole("checkbox");
 
     // Select devices
-    await user.click(checkboxes[2]);
-    await user.click(checkboxes[3]);
+    await user.click(checkboxes[2]!);
+    await user.click(checkboxes[3]!);
 
     // Create zone
     const createButton = screen.getByRole("button", { name: /Zone erstellen/i });
@@ -321,8 +322,8 @@ describe("MultiRoom - Edge Cases", () => {
     const checkboxes = screen.getAllByRole("checkbox");
 
     // Create first new zone
-    await user.click(checkboxes[2]);
-    await user.click(checkboxes[3]);
+    await user.click(checkboxes[2]!);
+    await user.click(checkboxes[3]!);
     const createButton = screen.getByRole("button", { name: /Zone erstellen/i });
     await user.click(createButton);
 

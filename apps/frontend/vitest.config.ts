@@ -26,10 +26,9 @@ export default defineConfig({
         'eslint.config.ts',
       ],
       thresholds: {
-        lines: 65,        // Temporarily lowered - new components need tests
-        functions: 65,    // Temporarily lowered - new components need tests
-        branches: 55,     // Temporarily lowered - new components need tests
-        statements: 65,   // Temporarily lowered - new components need tests
+        // Single global threshold (average of all metrics)
+        // Current: Stmts 88.33%, Branch 78.93%, Funcs 87.32%, Lines 89.04%
+        global: 80,
       },
     },
   },

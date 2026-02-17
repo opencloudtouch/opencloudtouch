@@ -8,7 +8,8 @@
 import { describe, it, expect, beforeAll } from "vitest";
 
 // Mark as real device tests (will be skipped in CI)
-const REAL_DEVICES_AVAILABLE = process.env.OCT_HAS_DEVICES === "true";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const REAL_DEVICES_AVAILABLE = (import.meta as any).env?.OCT_HAS_DEVICES === "true";
 const skipIfNoDevices = REAL_DEVICES_AVAILABLE ? it : it.skip;
 
 describe("Real Device API Integration", () => {

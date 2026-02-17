@@ -4,7 +4,7 @@ import "@testing-library/jest-dom/vitest";
 
 // Mock fetch with base URL for API calls
 beforeAll(() => {
-  global.fetch = vi.fn(() => {
+  vi.stubGlobal("fetch", vi.fn(() => {
     // Return mock response by default
     return Promise.resolve({
       ok: true,
@@ -12,7 +12,7 @@ beforeAll(() => {
       json: async () => ({}),
       text: async () => "",
     });
-  });
+  }));
 });
 
 // Cleanup after each test

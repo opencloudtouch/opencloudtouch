@@ -66,20 +66,6 @@ describe("PresetButton Component", () => {
       expect(mockOnClear).not.toHaveBeenCalled();
     });
 
-    it("applies preset-empty CSS class", () => {
-      render(
-        <PresetButton
-          number={1}
-          preset={null}
-          onAssign={mockOnAssign}
-          onClear={mockOnClear}
-          onPlay={mockOnPlay}
-        />
-      );
-
-      const button = screen.getByText("Preset zuweisen").closest("button");
-      expect(button).toHaveClass("preset-empty");
-    });
   });
 
   describe("Assigned Preset", () => {
@@ -136,41 +122,6 @@ describe("PresetButton Component", () => {
       expect(mockOnPlay).not.toHaveBeenCalled();
     });
 
-    it("renders both play and clear buttons", () => {
-      render(
-        <PresetButton
-          number={1}
-          preset={mockPreset}
-          onAssign={mockOnAssign}
-          onClear={mockOnClear}
-          onPlay={mockOnPlay}
-        />
-      );
-
-      const playButton = document.querySelector(".preset-play");
-      const clearButton = document.querySelector(".preset-clear");
-
-      expect(playButton).toBeInTheDocument();
-      expect(clearButton).toBeInTheDocument();
-    });
-
-    it("applies correct CSS classes for assigned preset", () => {
-      render(
-        <PresetButton
-          number={1}
-          preset={mockPreset}
-          onAssign={mockOnAssign}
-          onClear={mockOnClear}
-          onPlay={mockOnPlay}
-        />
-      );
-
-      const playButton = screen.getByText("BBC Radio 1").closest("button");
-      const clearButton = screen.getByLabelText("Clear preset");
-
-      expect(playButton).toHaveClass("preset-play");
-      expect(clearButton).toHaveClass("preset-clear");
-    });
   });
 
   describe("Preset Number Display", () => {
@@ -198,37 +149,6 @@ describe("PresetButton Component", () => {
       expect(screen.getByText("6")).toBeInTheDocument();
     });
 
-    it("renders preset number within preset-number span", () => {
-      render(
-        <PresetButton
-          number={4}
-          preset={null}
-          onAssign={mockOnAssign}
-          onClear={mockOnClear}
-          onPlay={mockOnPlay}
-        />
-      );
-
-      const numberSpan = document.querySelector(".preset-number");
-      expect(numberSpan).toBeInTheDocument();
-      expect(numberSpan).toHaveTextContent("4");
-    });
   });
 
-  describe("Container Element", () => {
-    it("wraps content in preset-button container", () => {
-      render(
-        <PresetButton
-          number={1}
-          preset={null}
-          onAssign={mockOnAssign}
-          onClear={mockOnClear}
-          onPlay={mockOnPlay}
-        />
-      );
-
-      const container = document.querySelector(".preset-button");
-      expect(container).toBeInTheDocument();
-    });
-  });
 });

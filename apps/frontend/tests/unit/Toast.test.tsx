@@ -155,19 +155,19 @@ describe("Toast Component", () => {
 
     it("should render different icons for each type", () => {
       const { rerender } = render(<Toast message="Test" type="success" />);
-      const successToast = screen.getByText("Test").closest(".toast");
+      const successToast = screen.getByText("Test").closest(".toast")!;
       expect(successToast.querySelector("svg")).toBeInTheDocument();
 
       rerender(<Toast message="Test" type="error" />);
-      const errorToast = screen.getByText("Test").closest(".toast");
+      const errorToast = screen.getByText("Test").closest(".toast")!;
       expect(errorToast.querySelector("svg")).toBeInTheDocument();
 
       rerender(<Toast message="Test" type="warning" />);
-      const warningToast = screen.getByText("Test").closest(".toast");
+      const warningToast = screen.getByText("Test").closest(".toast")!;
       expect(warningToast.querySelector("svg")).toBeInTheDocument();
 
       rerender(<Toast message="Test" type="info" />);
-      const infoToast = screen.getByText("Test").closest(".toast");
+      const infoToast = screen.getByText("Test").closest(".toast")!;
       expect(infoToast.querySelector("svg")).toBeInTheDocument();
     });
   });

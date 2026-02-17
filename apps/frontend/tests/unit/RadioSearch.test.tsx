@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import RadioSearch from "../src/components/RadioSearch";
+import RadioSearch from "../../src/components/RadioSearch";
 
 describe("RadioSearch Component", () => {
   const mockOnStationSelect = vi.fn();
@@ -81,7 +81,7 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const overlay = screen.getByRole("button", { name: "✕" }).closest(".radio-search-overlay");
+    const overlay = screen.getByRole("button", { name: "✕" }).closest(".radio-search-overlay")!;
     fireEvent.click(overlay);
 
     expect(mockOnClose).toHaveBeenCalled();
@@ -92,7 +92,7 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const modal = document.querySelector(".radio-search-modal");
+    const modal = document.querySelector(".radio-search-modal")!;
     fireEvent.click(modal);
 
     expect(mockOnClose).not.toHaveBeenCalled();
@@ -234,6 +234,44 @@ describe("RadioSearch Component", () => {
     await waitFor(
       () => {
         expect(screen.getByText("France Inter")).toBeInTheDocument();
+      },
+      { timeout: 500 }
+    );
+  });
+
+  it("displays error message on API failure", async () => {
+    render(
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
+
+    const searchInput = screen.getByPlaceholderText("Sender suchen...");
+    fireEvent.change(searchInput, { target: { value: "ERROR_503" } });
+
+    await waitFor(
+      () => {
+        expect(screen.getByText(/HTTP 503/)).toBeInTheDocument();
+      },
+      { timeout: 500 }
+    );
+  });
+
+  it("handles network errors gracefully", async () => {
+    // Override fetch to throw network error
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("Network error"))
+    );
+
+    render(
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
+
+    const searchInput = screen.getByPlaceholderText("Sender suchen...");
+    fireEvent.change(searchInput, { target: { value: "test" } });
+
+    await waitFor(
+      () => {
+        expect(screen.getByText("Network error")).toBeInTheDocument();
       },
       { timeout: 500 }
     );

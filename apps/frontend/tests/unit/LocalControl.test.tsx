@@ -10,6 +10,7 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import React from "react";
 import LocalControl from "../../src/pages/LocalControl";
 
 // Mock framer-motion to avoid animation issues in tests
@@ -27,7 +28,7 @@ vi.mock("framer-motion", () => ({
       exit,
       transition,
       ...props
-    }: Record<string, unknown>) => <div {...props}>{children}</div>,
+    }: Record<string, unknown>) => <div {...props}>{children as React.ReactNode}</div>,
     /* eslint-enable @typescript-eslint/no-unused-vars */
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -90,7 +91,7 @@ describe("LocalControl - Core Playback Functionality", () => {
     render(<LocalControl devices={mockDevices} />);
 
     // Find by icon text since there's no aria-label
-    const playPauseButton = screen.getByText("⏸️").closest("button");
+    const playPauseButton = screen.getByText("⏸️").closest("button")!;
 
     // Initial state: Playing (shows pause icon)
     expect(playPauseButton).toHaveTextContent("⏸️");
@@ -163,7 +164,7 @@ describe("LocalControl - Core Playback Functionality", () => {
     const user = userEvent.setup();
     render(<LocalControl devices={mockDevices} />);
 
-    const previousButton = screen.getByText("⏮").closest("button");
+    const previousButton = screen.getByText("⏮").closest("button")!;
 
     await user.click(previousButton);
 
@@ -180,7 +181,7 @@ describe("LocalControl - Core Playback Functionality", () => {
     const user = userEvent.setup();
     render(<LocalControl devices={mockDevices} />);
 
-    const nextButton = screen.getByText("⏭").closest("button");
+    const nextButton = screen.getByText("⏭").closest("button")!;
 
     await user.click(nextButton);
 
@@ -240,9 +241,9 @@ describe("LocalControl - Source Selection", () => {
    * User Story: Als User möchte ich AirPlay nur sehen wenn das Gerät es unterstützt
    */
   test("should show AirPlay only when device supports it", async () => {
-    let rerender;
+    let rerender: (ui: React.ReactElement) => void;
     await act(async () => {
-      const result = render(<LocalControl devices={[mockDevices[0]]} />);
+      const result = render(<LocalControl devices={[mockDevices[0]!]} />);
       rerender = result.rerender;
     });
 
@@ -251,7 +252,7 @@ describe("LocalControl - Source Selection", () => {
 
     // ST30 (with AirPlay support)
     await act(async () => {
-      rerender(<LocalControl devices={[mockDevices[1]]} />);
+      rerender(<LocalControl devices={[mockDevices[1]!]} />);
     });
     expect(screen.getByRole("button", { name: /AirPlay/i })).toBeInTheDocument();
   });
@@ -350,6 +351,21 @@ describe("LocalControl - Edge Cases", () => {
     // Slider should be disabled
     await waitFor(() => {
       expect(volumeSlider).toBeDisabled();
+    });
+  });
+
+  /**
+   * TEST 15: Device Model Fallback
+   * User Story: "Unknown Model" wird angezeigt wenn kein Modell bekannt
+   */
+  test("should display Unknown Model when device model is missing", async () => {
+    const deviceWithoutModel = [
+      { device_id: "1", name: "Test Device", ip: "192.168.1.10" },
+    ];
+    render(<LocalControl devices={deviceWithoutModel} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Unknown Model")).toBeInTheDocument();
     });
   });
 });
