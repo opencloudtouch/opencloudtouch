@@ -101,9 +101,10 @@ class PresetService:
                 await client.store_preset(
                     device_id=device_id,
                     preset_number=preset_number,
-                    station_url=station_url,  # Stored in DB, proxied by OCT!
+                    station_url=station_url,
                     station_name=station_name,
-                    oct_backend_url=oct_backend_url,  # OCT HTTP stream proxy
+                    oct_backend_url=oct_backend_url,
+                    station_image_url=station_favicon or "",
                 )
                 logger.info(
                     f"✅ Bose device programmed: Preset {preset_number} = {station_name}"

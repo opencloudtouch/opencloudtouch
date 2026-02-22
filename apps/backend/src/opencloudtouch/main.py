@@ -16,6 +16,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from opencloudtouch.api import devices_router
 from opencloudtouch.bmx.routes import router as bmx_router
+from opencloudtouch.marge.routes import router as marge_router
 from opencloudtouch.core.config import get_config, init_config
 from opencloudtouch.core.exceptions import (
     DeviceConnectionError,
@@ -332,6 +333,7 @@ app.include_router(stations_router)  # Station descriptors for SoundTouch device
 app.include_router(device_preset_stream_router)  # Stream proxy for Bose presets
 app.include_router(device_descriptor_router)  # Preset descriptors (XML) for Bose
 app.include_router(bmx_router)  # BMX stream resolution for Bose devices
+app.include_router(marge_router)  # Marge (streaming.bose.com) account sync
 app.include_router(playlist_router)  # M3U/PLS playlist files for Bose presets
 app.include_router(setup_router)  # Device setup wizard
 
@@ -370,49 +372,65 @@ if static_dir.exists():
         "/assets", StaticFiles(directory=str(static_dir / "assets")), name="assets"
     )
 
-    # Catch-all route for SPA (React Router) - must come AFTER API routes
-    @app.get("/{full_path:path}")
-    async def serve_spa(full_path: str):
-        """Serve index.html for all non-API routes (SPA support).
+    # Custom 404 handler for SPA (serves index.html for non-API routes)
+    @app.exception_handler(404)
+    async def spa_404_handler(request: Request, exc):
+        """Serve index.html for 404s on non-API routes (SPA support).
 
-        Args:
-            full_path: Requested file path (e.g., "index.html", "assets/app.js")
-
-        Returns:
-            FileResponse for existing files, or index.html for SPA routes.
-
-        Raises:
-            HTTPException: 404 if path traversal attempt detected.
+        API routes return normal 404 JSON error.
+        Frontend routes return index.html (React Router handles routing).
         """
-        # SECURITY: Prevent path traversal attacks
+        path = request.url.path
+
+        # If it's an API route, return normal 404 error
+        api_prefixes = (
+            "/api/",
+            "/v1/",
+            "/bmx/",
+            "/core02/",
+            "/health",
+            "/openapi",
+            "/docs",
+            "/redoc",
+            "/streaming/",
+            "/stations/",
+            "/device/",
+            "/descriptor/",
+            "/playlist/",
+        )
+        if any(path.startswith(prefix) for prefix in api_prefixes):
+            # Return JSON error for API routes
+            return JSONResponse(
+                status_code=404,
+                content=ErrorDetail(
+                    type="not_found",
+                    title="Not Found",
+                    status=404,
+                    detail=f"The requested resource {path} was not found",
+                    instance=path,
+                ).model_dump(),
+            )
+
+        # SECURITY: Prevent path traversal in file path
         from urllib.parse import unquote
 
-        # Decode URL-encoded characters (%2e = ., %2f = /)
-        decoded_path = unquote(full_path)
+        decoded_path = unquote(path.lstrip("/"))
 
-        # Reject any path containing directory traversal patterns
-        if ".." in decoded_path:
+        if ".." in decoded_path or "\\" in decoded_path:
             raise HTTPException(status_code=404, detail="Not found")
 
-        # Reject backslashes (Windows path traversal)
-        if "\\" in decoded_path:
-            raise HTTPException(status_code=404, detail="Not found")
-
-        # Build safe path and verify it stays within frontend directory
+        # For frontend routes, check if file exists
         try:
             requested_path = (static_dir / decoded_path).resolve()
             frontend_root = static_dir.resolve()
 
-            # Verify resolved path is within allowed directory
-            if not str(requested_path).startswith(str(frontend_root)):
-                raise HTTPException(status_code=404, detail="Not found")
+            if (
+                str(requested_path).startswith(str(frontend_root))
+                and requested_path.is_file()
+            ):
+                return FileResponse(requested_path)
         except (ValueError, OSError):
-            # Handle invalid paths (e.g., illegal characters)
-            raise HTTPException(status_code=404, detail="Not found")
-
-        # If requesting a static file that exists, serve it
-        if requested_path.is_file():
-            return FileResponse(requested_path)
+            pass
 
         # Otherwise serve index.html (React Router handles the rest)
         return FileResponse(static_dir / "index.html")

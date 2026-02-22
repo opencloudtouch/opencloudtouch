@@ -231,6 +231,7 @@ Bereits umgesetzt (Codebasis):
 - Key-Press Endpoint fuer Preset-Tests (`/api/devices/{device_id}/key`)
 - Setup-Wizard API (`/api/setup/...`)
 - BMX-Routen fuer SoundTouch®-Kompatibilitaet (inkl. TuneIn-Playback-Route)
+- LOCAL_INTERNET_RADIO Playback via Orion-Adapter (siehe [docs/PRESET_PLAYBACK.md](docs/PRESET_PLAYBACK.md))
 - Frontend-Seiten fuer Radio, Presets, Multiroom, Firmware, Settings
 
 Offen bzw. in Planung:

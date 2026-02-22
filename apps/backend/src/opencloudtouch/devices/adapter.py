@@ -244,32 +244,39 @@ class BoseDeviceClientAdapter(DeviceClient):
         station_url: str,
         station_name: str,
         oct_backend_url: str,
+        station_image_url: str = "",
     ) -> None:
         """
-        Store a preset on the Bose device.
+        Store a preset on the Bose device using LOCAL_INTERNET_RADIO + Orion adapter.
 
-        Programs the device's physical preset button to call OCT backend.
-        OCT acts as HTTP proxy for HTTPS RadioBrowser streams.
+        Programs the device's physical preset button to call OCT's BMX Orion adapter.
+        The Orion adapter decodes the base64 payload and returns the stream URL.
 
         **Flow:**
-        1. OCT programs Bose with: `http://{oct_ip}:7777/device/{device_id}/preset/{N}`
-        2. User presses PRESET_N button on Bose device
-        3. Bose requests OCT backend: `GET /device/{device_id}/preset/{N}`
-        4. OCT fetches HTTPS stream from RadioBrowser
-        5. OCT proxies stream as HTTP chunked transfer to Bose
-        6. Bose plays HTTP stream ✅
+        1. OCT encodes stream data as base64 JSON
+        2. OCT programs Bose with: LOCAL_INTERNET_RADIO source + orion location URL
+        3. User presses PRESET_N button on Bose device
+        4. Bose requests OCT: `GET /core02/svc-bmx-adapter-orion/prod/orion/station?data={base64}`
+        5. OCT decodes base64 → returns BmxPlaybackResponse with streamUrl
+        6. Bose plays the stream ✅
 
-        **Why proxy instead of direct URL?**
-        - ✅ TESTED: Direct HTTPS URLs fail (LED white → orange)
-        - ✅ TESTED: HTTP 302 redirect to HTTPS fails (LED white → orange)
-        - ✅ SOLUTION: OCT as HTTP stream proxy (HTTPS → HTTP chunked transfer)
+        **Why LOCAL_INTERNET_RADIO + Orion?**
+        - ✅ TESTED 2026-02-22: Works reliably with base64-encoded stream data
+        - ❌ TESTED: TuneIn source returns 500 (device firmware issue)
+        - ❌ TESTED: Direct HTTPS URLs fail (LED white → orange)
+        - ❌ TESTED: HTTP 302 redirect to HTTPS fails
+
+        **Implementation Note:**
+        - Uses direct HTTP POST to /storePreset endpoint
+        - BoseSoundTouchAPI library's StorePreset() method silently fails (2026-02-22)
 
         Args:
-            device_id: Bose device identifier (for OCT backend URL)
+            device_id: Bose device identifier
             preset_number: Preset slot (1-6)
-            station_url: RadioBrowser stream URL (stored in DB, proxied by OCT!)
+            station_url: RadioBrowser stream URL
             station_name: Station display name
             oct_backend_url: OCT backend base URL (e.g., "http://192.168.178.108:7777")
+            station_image_url: Optional station logo URL
 
         Raises:
             ConnectionError: If device is unreachable
@@ -279,15 +286,24 @@ class BoseDeviceClientAdapter(DeviceClient):
             raise ValueError(f"Preset number must be 1-6, got {preset_number}")
 
         try:
-            from bosesoundtouchapi.models.preset import Preset
+            import base64
+            import json
 
-            # Build M3U playlist URL (absolute HTTP URL)
-            # Hypothesis: Bose might parse playlist files better than direct stream URLs
-            playlist_url = f"{oct_backend_url}/playlist/{device_id}/{preset_number}.m3u"
+            import httpx
 
-            # Also keep stream proxy URL for reference
-            stream_proxy_url = (
-                f"{oct_backend_url}/device/{device_id}/preset/{preset_number}"
+            # Encode stream data as base64 JSON for Orion adapter
+            stream_data = {
+                "streamUrl": station_url,
+                "name": station_name,
+                "imageUrl": station_image_url,
+            }
+            json_str = json.dumps(stream_data)
+            base64_data = base64.urlsafe_b64encode(json_str.encode()).decode()
+
+            # Build Orion adapter URL with base64 data
+            orion_url = (
+                f"{oct_backend_url}/core02/svc-bmx-adapter-orion/prod/orion/station"
+                f"?data={base64_data}"
             )
 
             logger.info(
@@ -297,30 +313,43 @@ class BoseDeviceClientAdapter(DeviceClient):
                     "device_id": device_id,
                     "preset_number": preset_number,
                     "station_name": station_name,
-                    "playlist_url": playlist_url,
-                    "stream_proxy_url": stream_proxy_url,
+                    "orion_url": orion_url[:100] + "...",
                     "upstream_url": station_url,
                 },
             )
 
-            # Create Preset with absolute M3U playlist URL
-            # Bose device will fetch the .m3u file and parse the stream URL from it
-            preset = Preset(
-                presetId=preset_number,
-                source="INTERNET_RADIO",
-                typeValue="stationurl",
-                location=playlist_url,  # Absolute M3U playlist URL
-                name=station_name,
-                isPresetable=True,
+            # Build XML payload for /storePreset endpoint
+            # Direct HTTP is required - BoseSoundTouchAPI.StorePreset() silently fails
+            xml_payload = (
+                f'<preset id="{preset_number}" createdOn="0" updatedOn="0">'
+                f'<ContentItem source="LOCAL_INTERNET_RADIO" type="stationurl" '
+                f'location="{orion_url}" sourceAccount="" isPresetable="true">'
+                f"<itemName>{station_name}</itemName>"
+                f"</ContentItem></preset>"
             )
 
-            # Call Bose API to program device
-            self._client.StorePreset(preset)
+            # POST to device's /storePreset endpoint
+            store_url = f"{self.base_url}/storePreset"
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    store_url,
+                    content=xml_payload,
+                    headers={"Content-Type": "application/xml"},
+                )
+                response.raise_for_status()
 
             logger.info(
-                f"✅ Bose device programmed with OCT BMX path: {playlist_url} → {stream_proxy_url}"
+                f"✅ Bose device programmed with LOCAL_INTERNET_RADIO + Orion: {station_name}"
             )
 
+        except httpx.HTTPStatusError as e:
+            logger.error(
+                f"HTTP error storing preset {preset_number} on {self.base_url}: {e}",
+                exc_info=True,
+            )
+            raise DeviceConnectionError(
+                self.ip, f"HTTP {e.response.status_code}"
+            ) from e
         except Exception as e:
             logger.error(
                 f"Failed to store preset {preset_number} on {self.base_url}: {e}",

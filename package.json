@@ -14,7 +14,7 @@
     "build": "npm run build --workspace=apps/frontend",
     "preview": "npm run preview --workspace=apps/frontend",
     "test": "npm run test:all",
-    "test:backend": ".venv\\Scripts\\python.exe -m pytest apps/backend/tests -v --cov=opencloudtouch --cov-report=term-missing --cov-report=html",
+    "test:backend": ".venv\\Scripts\\python.exe -m pytest apps/backend/tests -v -x --timeout=120 --cov=opencloudtouch --cov-report=term-missing --cov-report=html",
     "test:frontend": "npm run test --workspace=apps/frontend",
     "test:e2e": "node scripts/e2e-runner.mjs",
     "test:all": "npm run test:backend && npm run test:frontend && npm run test:e2e",

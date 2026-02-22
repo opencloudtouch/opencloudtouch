@@ -5,7 +5,7 @@ Separates HTTP layer (routes) from business logic from data layer (repository).
 """
 
 import logging
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from bosesoundtouchapi import SoundTouchClient, SoundTouchDevice
 
@@ -19,8 +19,10 @@ from opencloudtouch.devices.capabilities import (
     get_device_capabilities,
     get_feature_flags_for_ui,
 )
-from opencloudtouch.devices.models import SyncResult
+from opencloudtouch.devices.models import KEY_MAPPING, KeyType, SyncResult
 from opencloudtouch.discovery import DiscoveredDevice
+from opencloudtouch.devices.client import NowPlayingInfo
+from opencloudtouch.devices.adapter import get_device_client
 
 logger = logging.getLogger(__name__)
 
@@ -207,3 +209,48 @@ class DeviceService:
         await self.repository.delete_all()
 
         logger.info("All devices deleted")
+
+    async def send_key(
+        self, device_id: str, key: Union[KeyType, str], state: str = "both"
+    ) -> NowPlayingInfo:
+        """Send playback key and return now playing info.
+
+        Args:
+            device_id: Target device ID
+            key: Supported key (KeyType or string value)
+            state: press|release|both
+
+        Raises:
+            ValueError: If device missing, key invalid, or state invalid
+        """
+
+        device = await self.repository.get_by_device_id(device_id)
+        if not device:
+            raise ValueError(f"Device {device_id} not found")
+
+        try:
+            key_enum = key if isinstance(key, KeyType) else KeyType(key)
+        except Exception:
+            raise ValueError(f"Unsupported key: {key}") from None
+
+        valid_states = {"press", "release", "both"}
+        if state not in valid_states:
+            raise ValueError(
+                f"Invalid state: {state}. Must be one of {sorted(valid_states)}"
+            )
+
+        mapped = KEY_MAPPING.get(key_enum)
+        if mapped is None:
+            raise ValueError(f"Unsupported key: {key}")
+
+        key_value = mapped.value if hasattr(mapped, "value") else str(mapped)
+
+        base_url = f"http://{device.ip}:8090"
+        client = get_device_client(base_url)
+
+        try:
+            await client.press_key(key_value, state)
+            now_playing = await client.get_now_playing()
+            return now_playing
+        finally:
+            await client.close()

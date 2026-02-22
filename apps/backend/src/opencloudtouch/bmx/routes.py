@@ -26,6 +26,27 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["bmx"])
 
 
+def convert_https_to_http(url: str) -> str:
+    """Convert HTTPS URLs to HTTP for Bose device compatibility.
+
+    Bose SoundTouch devices cannot play HTTPS streams directly.
+    Most radio stations support both HTTP and HTTPS, so we try HTTP first.
+
+    Args:
+        url: Stream URL (may be HTTPS or HTTP)
+
+    Returns:
+        HTTP version of the URL (https:// → http://)
+    """
+    if url.startswith("https://"):
+        http_url = "http://" + url[8:]
+        logger.info(
+            f"[BMX] Converting HTTPS to HTTP: {url[:50]}... → {http_url[:50]}..."
+        )
+        return http_url
+    return url
+
+
 # =============================================================================
 # Pydantic Models for BMX Responses
 # =============================================================================
@@ -46,9 +67,22 @@ class BmxServiceAssets(BaseModel):
     color: str = "#000000"
 
 
+class BmxServiceLinks(BaseModel):
+    """Service navigation links."""
+
+    bmx_navigate: dict[str, str] = Field(
+        default_factory=lambda: {"href": "/v1/navigate"}
+    )
+    bmx_token: dict[str, str] = Field(default_factory=lambda: {"href": "/v1/token"})
+    self: dict[str, str] = Field(default_factory=lambda: {"href": "/"})
+
+
 class BmxService(BaseModel):
     """Individual BMX service entry."""
 
+    links: BmxServiceLinks = Field(
+        default_factory=BmxServiceLinks, serialization_alias="_links"
+    )
     id: BmxServiceId
     baseUrl: str
     assets: BmxServiceAssets
@@ -61,10 +95,21 @@ class BmxService(BaseModel):
     )
 
 
+class BmxServicesResponseLinks(BaseModel):
+    """Root-level BMX services links."""
+
+    bmx_services_availability: dict[str, str] = Field(
+        default_factory=lambda: {"href": "../servicesAvailability"}
+    )
+
+
 class BmxServicesResponse(BaseModel):
     """BMX registry response."""
 
-    askAgainAfter: int = 86400000  # 24 hours in ms
+    links: BmxServicesResponseLinks = Field(
+        default_factory=BmxServicesResponseLinks, serialization_alias="_links"
+    )
+    askAgainAfter: int = 60000  # 60 seconds in ms (for debugging)
     bmx_services: list[BmxService]
 
 
@@ -73,7 +118,11 @@ class BmxStream(BaseModel):
 
     hasPlaylist: bool = True
     isRealtime: bool = True
+    maxTimeout: int = 60
+    bufferingTimeout: int = 20
+    connectingTimeout: int = 10
     streamUrl: str
+    links: dict[str, Any] = Field(default_factory=dict, serialization_alias="_links")
 
 
 class BmxAudio(BaseModel):
@@ -81,6 +130,7 @@ class BmxAudio(BaseModel):
 
     hasPlaylist: bool = True
     isRealtime: bool = True
+    maxTimeout: int = 60
     streamUrl: str
     streams: list[BmxStream] = []
 
@@ -92,6 +142,8 @@ class BmxPlaybackResponse(BaseModel):
     imageUrl: str = ""
     name: str
     streamType: str = "liveRadio"
+    links: dict[str, Any] = Field(default_factory=dict, serialization_alias="_links")
+    isFavorite: bool = False
 
 
 # =============================================================================
@@ -149,11 +201,35 @@ async def resolve_tunein_station(station_id: str) -> BmxPlaybackResponse:
 
             logger.info(f"[BMX TUNEIN] Resolved {station_id} → {primary_url}")
 
-            streams = [BmxStream(streamUrl=url) for url in stream_urls]
+            # Build bmx_reporting URL
+            base_url = get_oct_base_url()
+            bmx_reporting = f"{base_url}/bmx/tunein/v1/reporting/station/{station_id}"
+
+            # Create streams with bmx_reporting links
+            streams = [
+                BmxStream(
+                    streamUrl=url,
+                    links={"bmx_reporting": {"href": bmx_reporting}},
+                )
+                for url in stream_urls
+            ]
             audio = BmxAudio(streamUrl=primary_url, streams=streams)
+
+            # Add critical links for device playback
+            links = {
+                "bmx_nowplaying": {
+                    "href": f"{base_url}/bmx/tunein/v1/now-playing/station/{station_id}",
+                    "useInternalClient": "ALWAYS",
+                },
+                "bmx_reporting": {"href": bmx_reporting},
+                "bmx_favorite": {
+                    "href": f"{base_url}/bmx/tunein/v1/favorite/{station_id}"
+                },
+            }
 
             return BmxPlaybackResponse(
                 audio=audio,
+                links=links,
                 imageUrl=logo,
                 name=name,
             )
@@ -169,8 +245,85 @@ async def resolve_tunein_station(station_id: str) -> BmxPlaybackResponse:
 
 
 def get_oct_base_url() -> str:
-    """Get OCT backend URL from environment."""
-    return os.getenv("OCT_BACKEND_URL", "http://192.168.178.11:7777")
+    """Get OCT backend URL from environment.
+
+    Returns hostname-based URL so device can resolve via /etc/hosts.
+    Device knows 'content.api.bose.io' from modified /etc/hosts.
+    """
+    return os.getenv("OCT_BACKEND_URL", "http://content.api.bose.io:7777")
+
+
+@router.get("/bmx/orion/now-playing/station/{station_id}")
+@router.get("/bmx/orion/now-playing")
+async def bmx_now_playing_stub(station_id: str | None = None) -> JSONResponse:
+    """Stub endpoint for now-playing data.
+
+    Device calls this to get currently playing track info.
+    Returns minimal valid response to prevent errors.
+    """
+    logger.info(f"[BMX NOW-PLAYING] Station: {station_id or 'custom'}")
+    return JSONResponse(
+        content={
+            "status": "playing",
+            "stationId": station_id or "custom",
+        },
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+
+
+@router.post("/bmx/orion/reporting/station/{station_id}")
+@router.post("/bmx/orion/reporting")
+async def bmx_reporting_stub(station_id: str | None = None) -> JSONResponse:
+    """Stub endpoint for telemetry reporting.
+
+    Device calls this to report playback events.
+    Returns success to prevent errors.
+    """
+    logger.info(f"[BMX REPORTING] Station: {station_id or 'custom'}")
+    return JSONResponse(
+        content={"status": "ok"},
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+
+
+@router.get("/bmx/tunein/v1/now-playing/station/{station_id}")
+async def bmx_tunein_now_playing(station_id: str) -> JSONResponse:
+    """TuneIn now-playing stub.
+
+    Device calls this to get currently playing track info.
+    """
+    logger.info(f"[BMX TUNEIN NOW-PLAYING] Station: {station_id}")
+    return JSONResponse(
+        content={"status": "playing", "stationId": station_id},
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+
+
+@router.post("/bmx/tunein/v1/reporting/station/{station_id}")
+async def bmx_tunein_reporting(station_id: str) -> JSONResponse:
+    """TuneIn reporting stub.
+
+    Device calls this to report playback events.
+    """
+    logger.info(f"[BMX TUNEIN REPORTING] Station: {station_id}")
+    return JSONResponse(
+        content={"status": "ok"},
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+
+
+@router.get("/bmx/tunein/v1/favorite/{station_id}")
+@router.post("/bmx/tunein/v1/favorite/{station_id}")
+async def bmx_tunein_favorite(station_id: str) -> JSONResponse:
+    """TuneIn favorite stub.
+
+    Device calls this to mark/unmark stations as favorites.
+    """
+    logger.info(f"[BMX TUNEIN FAVORITE] Station: {station_id}")
+    return JSONResponse(
+        content={"status": "ok", "isFavorite": False},
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
 
 
 @router.get("/bmx/registry/v1/services")
@@ -210,8 +363,11 @@ async def bmx_services() -> JSONResponse:
     logger.info(f"[BMX REGISTRY] Returning {len(services)} services")
 
     return JSONResponse(
-        content=response.model_dump(),
-        headers={"Content-Type": "application/json"},
+        content=response.model_dump(by_alias=True),
+        headers={
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+        },
     )
 
 
@@ -229,12 +385,21 @@ async def bmx_tunein_playback(station_id: str) -> JSONResponse:
     """
     try:
         response = await resolve_tunein_station(station_id)
-        return JSONResponse(content=response.model_dump())
+
+        # Add CORS headers
+        headers = {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+        }
+
+        return JSONResponse(content=response.model_dump(), headers=headers)
     except Exception as e:
         logger.error(f"[BMX TUNEIN] Playback error: {e}")
         return JSONResponse(
             content={"error": str(e)},
             status_code=500,
+            headers={"Access-Control-Allow-Origin": "*"},
         )
 
 
@@ -256,6 +421,7 @@ async def custom_stream_playback(request: Request) -> JSONResponse:
         return JSONResponse(
             content={"error": "Missing data parameter"},
             status_code=400,
+            headers={"Access-Control-Allow-Origin": "*"},
         )
 
     try:
@@ -267,24 +433,42 @@ async def custom_stream_playback(request: Request) -> JSONResponse:
         image_url = json_obj.get("imageUrl", "")
         name = json_obj.get("name", "Custom Station")
 
+        # Convert HTTPS to HTTP - Bose devices can't play HTTPS streams
+        stream_url = convert_https_to_http(stream_url)
+
         logger.info(f"[BMX ORION] Custom stream: {name} → {stream_url}")
 
         stream = BmxStream(streamUrl=stream_url)
         audio = BmxAudio(streamUrl=stream_url, streams=[stream])
 
+        # Add critical links
+        base_url = get_oct_base_url()
+        links = {
+            "bmx_nowplaying": {
+                "href": f"{base_url}/bmx/orion/now-playing",
+                "useInternalClient": "ALWAYS",
+            },
+            "bmx_reporting": {"href": f"{base_url}/bmx/orion/reporting"},
+        }
+
         response = BmxPlaybackResponse(
             audio=audio,
+            links=links,
             imageUrl=image_url,
             name=name,
         )
 
-        return JSONResponse(content=response.model_dump())
+        return JSONResponse(
+            content=response.model_dump(),
+            headers={"Access-Control-Allow-Origin": "*"},
+        )
 
     except Exception as e:
         logger.error(f"[BMX ORION] Error: {e}")
         return JSONResponse(
             content={"error": str(e)},
             status_code=500,
+            headers={"Access-Control-Allow-Origin": "*"},
         )
 
 

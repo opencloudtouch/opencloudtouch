@@ -9,8 +9,9 @@ from unittest.mock import AsyncMock, patch
 
 from opencloudtouch.devices.repository import Device
 from opencloudtouch.devices.service import DeviceService
-from opencloudtouch.devices.models import SyncResult
+from opencloudtouch.devices.models import SyncResult, KeyType
 from opencloudtouch.discovery import DiscoveredDevice
+from opencloudtouch.devices.client import NowPlayingInfo
 
 
 @pytest.fixture
@@ -281,6 +282,71 @@ class TestDeviceServiceCapabilities:
         # Act & Assert
         with pytest.raises(ValueError, match="Device not found"):
             await device_service.get_device_capabilities("NONEXISTENT")
+
+
+class TestDeviceServiceSendKey:
+    """Test playback key handling."""
+
+    @pytest.mark.asyncio
+    async def test_send_key_success(
+        self, device_service, mock_repository, sample_device
+    ):
+        """Send supported playback key and return now playing info."""
+
+        mock_repository.get_by_device_id.return_value = sample_device
+
+        now_playing = NowPlayingInfo(
+            source="INTERNET_RADIO",
+            state="PLAY_STATE",
+            station_name="Radio Paradise",
+            artist="Various",
+            track="Test Track",
+            album=None,
+            artwork_url=None,
+        )
+
+        from unittest.mock import AsyncMock
+
+        mock_client = AsyncMock()
+        mock_client.get_now_playing.return_value = now_playing
+
+        with patch(
+            "opencloudtouch.devices.service.get_device_client",
+            return_value=mock_client,
+        ) as mock_factory:
+            result = await device_service.send_key(
+                sample_device.device_id, KeyType.PLAY, state="press"
+            )
+
+        mock_repository.get_by_device_id.assert_called_once_with(
+            sample_device.device_id
+        )
+        mock_factory.assert_called_once()
+        mock_client.press_key.assert_awaited_once_with(KeyType.PLAY.value, "press")
+        mock_client.get_now_playing.assert_awaited_once()
+        mock_client.close.assert_awaited_once()
+
+        assert result == now_playing
+
+    @pytest.mark.asyncio
+    async def test_send_key_invalid_key_raises(
+        self, device_service, mock_repository, sample_device
+    ):
+        """Unsupported key raises ValueError."""
+
+        mock_repository.get_by_device_id.return_value = sample_device
+
+        with pytest.raises(ValueError, match="Unsupported key"):
+            await device_service.send_key(sample_device.device_id, "INVALID")
+
+    @pytest.mark.asyncio
+    async def test_send_key_device_not_found(self, device_service, mock_repository):
+        """Device missing raises ValueError."""
+
+        mock_repository.get_by_device_id.return_value = None
+
+        with pytest.raises(ValueError, match="Device NONEXISTENT not found"):
+            await device_service.send_key("NONEXISTENT", KeyType.PAUSE)
 
 
 class TestDeviceServiceDeletion:
