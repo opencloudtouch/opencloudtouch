@@ -27,6 +27,7 @@ interface LocalControlProps {
 }
 
 export default function LocalControl({ devices = [] }: LocalControlProps) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _navigate = useNavigate(); // Will be used when setup wizard is integrated
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
   const [volume, setVolume] = useState(45);
