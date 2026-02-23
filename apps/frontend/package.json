@@ -39,7 +39,7 @@
     "@vitest/coverage-v8": "^4.0.18",
     "@vitest/ui": "^4.0.18",
     "colorette": "^2.0.20",
-    "eslint": "9.39.2",
+    "eslint": "10.0.1",
     "eslint-plugin-react": "^7.37.5",
     "globals": "^17.3.0",
     "jiti": "^2.6.1",
