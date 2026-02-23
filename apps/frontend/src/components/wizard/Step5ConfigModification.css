@@ -1,0 +1,256 @@
+/* Config Modification Styles */
+.config-modification {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.config-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.config-description {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+/* Input Section */
+.config-input-section {
+  margin-bottom: 2rem;
+}
+
+.config-input-group {
+  margin-bottom: 2rem;
+}
+
+.config-label {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.config-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: "Courier New", monospace;
+  transition: border-color 0.2s;
+}
+
+.config-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+.config-hint {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+}
+
+/* Change Preview */
+.config-change-preview {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.config-preview-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 1rem;
+}
+
+.config-change-item {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+.config-change-from,
+.config-change-to {
+  padding: 0.75rem;
+  border-radius: 6px;
+}
+
+.config-change-from {
+  background: #ffebee;
+  border: 1px solid #ef5350;
+}
+
+.config-change-to {
+  background: #e8f5e9;
+  border: 1px solid #66bb6a;
+}
+
+.config-change-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+  color: var(--text-secondary);
+}
+
+.config-change-from code {
+  color: #c62828;
+}
+
+.config-change-to code {
+  color: #2e7d32;
+}
+
+.config-change-arrow {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--text-secondary);
+}
+
+.config-modify-btn {
+  width: 100%;
+  font-size: 1.125rem;
+}
+
+/* Error */
+.config-error {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1.5rem;
+  background: #ffebee;
+  border: 1px solid #f44336;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.error-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.error-content strong {
+  display: block;
+  color: #c62828;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.error-content p {
+  margin: 0;
+  color: #b71c1c;
+  line-height: 1.6;
+}
+
+/* Success */
+.config-success {
+  text-align: center;
+}
+
+.success-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.success-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2e7d32;
+  margin: 0.5rem 0;
+}
+
+.success-message {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+
+/* Config Details */
+.config-details {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: left;
+  margin-bottom: 1.5rem;
+}
+
+.config-detail-item {
+  margin-bottom: 1rem;
+}
+
+.config-detail-item:last-child {
+  margin-bottom: 0;
+}
+
+.config-detail-item strong {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.config-detail-item code {
+  display: block;
+  font-family: "Courier New", monospace;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  background: #f5f5f5;
+  padding: 0.5rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+/* Diff Viewer */
+.config-diff-section {
+  margin-top: 1.5rem;
+}
+
+.config-diff-toggle {
+  width: 100%;
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.config-diff {
+  background: #263238;
+  color: #aed581;
+  padding: 1rem;
+  border-radius: 6px;
+  font-family: "Courier New", monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.config-diff code {
+  color: inherit;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .config-change-item {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  .config-change-arrow {
+    text-align: center;
+    transform: rotate(90deg);
+  }
+}

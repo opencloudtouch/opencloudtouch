@@ -1,8 +1,15 @@
 """
-SoundTouch SSH/Telnet Client
+SoundTouch SSHitel Client
 
 Async client for SSH and Telnet connections to SoundTouch devices.
 Used for device configuration after USB-stick activation.
+
+Supports legacy SSH algorithms required by SoundTouch devices:
+- Host Key Algorithms: ssh-rsa, ssh-dss
+- Key Exchange: diffie-hellman-group1-sha1, diffie-hellman-group14-sha1
+- Ciphers: aes128-cbc, 3des-cbc
+
+Tested with SoundTouch 10 (Firmware 0x0939).
 """
 
 import asyncio
@@ -50,6 +57,11 @@ class SoundTouchSSHClient:
 
         SoundTouch devices use root user with no password when
         remote_services is enabled via USB stick.
+
+        Enables legacy SSH algorithms required by older SoundTouch firmware:
+        - HostKeyAlgorithms: ssh-rsa, ssh-dss
+        - KexAlgorithms: diffie-hellman-group1-sha1, diffie-hellman-group14-sha1
+        - Ciphers: aes128-cbc, 3des-cbc
         """
         try:
             # Try to import asyncssh (optional dependency)
@@ -64,6 +76,7 @@ class SoundTouchSSHClient:
             logger.info(f"Connecting to {self.host}:{self.port} via SSH...")
 
             # Connect with no password (SoundTouch root has no password)
+            # Enable legacy algorithms for old SoundTouch firmware
             self._connection = await asyncio.wait_for(
                 asyncssh.connect(
                     self.host,
@@ -71,6 +84,25 @@ class SoundTouchSSHClient:
                     username="root",
                     password="",
                     known_hosts=None,  # Skip host key verification for embedded devices
+                    # Legacy algorithms required by SoundTouch
+                    server_host_key_algs=[
+                        "ssh-rsa",
+                        "rsa-sha2-512",
+                        "rsa-sha2-256",
+                        "ssh-dss",
+                    ],
+                    kex_algs=[
+                        "diffie-hellman-group1-sha1",
+                        "diffie-hellman-group14-sha1",
+                        "diffie-hellman-group-exchange-sha256",
+                        "ecdh-sha2-nistp256",
+                    ],
+                    encryption_algs=[
+                        "aes128-cbc",
+                        "3des-cbc",
+                        "aes128-ctr",
+                        "aes256-ctr",
+                    ],
                 ),
                 timeout=timeout,
             )

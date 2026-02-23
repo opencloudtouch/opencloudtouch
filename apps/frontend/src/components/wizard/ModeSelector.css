@@ -1,0 +1,96 @@
+/**
+ * Mode Selector Styles
+ */
+.mode-selector-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.mode-title {
+  font-size: 32px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.mode-description {
+  font-size: 16px;
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.mode-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.mode-card {
+  position: relative;
+  padding: 32px;
+  background: var(--color-bg-card);
+  border: 2px solid var(--color-border);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.mode-card:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.mode-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  padding: 4px 12px;
+  background: var(--color-success);
+  color: white;
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mode-icon {
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: 16px;
+}
+
+.mode-card-title {
+  font-size: 24px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: 12px;
+}
+
+.mode-card-description {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.mode-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mode-features li {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  padding: 6px 0;
+  line-height: 1.4;
+}
+
+.mode-guided .mode-features li {
+  color: var(--color-success);
+}

@@ -8,6 +8,7 @@ export interface Device {
   model?: string;
   firmware?: string;
   ip?: string;
+  setup_status?: "unconfigured" | "configured" | "in_progress" | "failed";
   capabilities?: {
     airplay?: boolean;
   };

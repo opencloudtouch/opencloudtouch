@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import DeviceSwiper, { Device } from "../components/DeviceSwiper";
 import NowPlaying from "../components/NowPlaying";
 import PresetButton, { Preset } from "../components/PresetButton";
+import SetupBadge from "../components/SetupBadge";
 import RadioSearch, { RadioStation } from "../components/RadioSearch";
 import VolumeSlider from "../components/VolumeSlider";
 import {
@@ -174,15 +175,23 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
       >
         <div className="device-card" data-test="device-card">
           <div className="device-card-header">
-            <h2 className="device-name" data-test="device-name">
-              {currentDevice?.name || "Unknown Device"}
-            </h2>
-            <span className="device-model" data-test="device-model">
-              {currentDevice?.model || "Unknown Model"}
-            </span>
-            <span className="device-ip" data-test="device-ip">
-              {currentDevice?.ip || "Unknown IP"}
-            </span>
+            <div className="device-info">
+              <h2 className="device-name" data-test="device-name">
+                {currentDevice?.name || "Unknown Device"}
+              </h2>
+              <span className="device-model" data-test="device-model">
+                {currentDevice?.model || "Unknown Model"}
+              </span>
+              <span className="device-ip" data-test="device-ip">
+                {currentDevice?.ip || "Unknown IP"}
+              </span>
+            </div>
+            {currentDevice && (
+              <SetupBadge
+                deviceId={currentDevice.device_id}
+                setupStatus={currentDevice.setup_status}
+              />
+            )}
           </div>
 
           <NowPlaying nowPlaying={nowPlaying} />

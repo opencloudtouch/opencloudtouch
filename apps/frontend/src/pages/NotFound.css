@@ -1,0 +1,38 @@
+/**
+ * Not Found Page Styles
+ */
+.not-found-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+  background: var(--color-bg-primary);
+}
+
+.not-found-content {
+  text-align: center;
+  max-width: 500px;
+}
+
+.not-found-code {
+  font-size: 120px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
+  margin: 0 0 20px 0;
+  line-height: 1;
+}
+
+.not-found-title {
+  font-size: 32px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 16px 0;
+}
+
+.not-found-description {
+  font-size: 16px;
+  color: var(--color-text-secondary);
+  margin: 0 0 32px 0;
+  line-height: 1.6;
+}

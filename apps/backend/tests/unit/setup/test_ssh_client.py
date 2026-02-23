@@ -122,6 +122,30 @@ class TestSoundTouchSSHClient:
         ssh_client.close.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_connect_with_legacy_ciphers(self, ssh_client):
+        """Test SSH connection uses legacy algorithms for SoundTouch compatibility."""
+        mock_connection = MagicMock()
+        mock_asyncssh = MagicMock()
+
+        # Capture the asyncssh.connect call to verify algorithm parameters
+        async def mock_connect(*args, **kwargs):
+            # Verify legacy algorithms are configured
+            assert "server_host_key_algs" in kwargs
+            assert "ssh-rsa" in kwargs["server_host_key_algs"]
+            assert "kex_algs" in kwargs
+            assert "diffie-hellman-group1-sha1" in kwargs["kex_algs"]
+            assert "encryption_algs" in kwargs
+            assert "aes128-cbc" in kwargs["encryption_algs"]
+            return mock_connection
+
+        mock_asyncssh.connect = mock_connect
+
+        with patch.dict("sys.modules", {"asyncssh": mock_asyncssh}):
+            with patch("asyncio.wait_for", return_value=mock_connection):
+                result = await ssh_client.connect(timeout=5.0)
+                assert result.success is True
+
+    @pytest.mark.asyncio
     async def test_connect_success(self, ssh_client):
         """Test successful SSH connection."""
         mock_connection = MagicMock()

@@ -245,3 +245,147 @@ class TestListSupportedModels:
         assert "SoundTouch 10" in model_names
         assert "SoundTouch 20" in model_names
         assert "SoundTouch 30" in model_names
+
+
+class TestEnablePermanentSSH:
+    """Tests for POST /api/setup/ssh/enable-permanent."""
+
+    @pytest.mark.asyncio
+    async def test_enable_permanent_ssh_success(self, client, monkeypatch):
+        """Test enabling permanent SSH successfully."""
+        # Mock SSH client
+        mock_connection = AsyncMock()
+        mock_connection.run = AsyncMock(
+            return_value=MagicMock(stdout="", stderr="", exit_status=0)
+        )
+
+        mock_ssh_client = AsyncMock()
+        mock_ssh_client.connect = AsyncMock(
+            return_value=MagicMock(success=True, output="Connected")
+        )
+        mock_ssh_client.execute = AsyncMock(
+            return_value=MagicMock(success=True, output="", exit_code=0, error=None)
+        )
+        mock_ssh_client.close = AsyncMock()
+        mock_ssh_client._connection = mock_connection
+
+        # Patch SoundTouchSSHClient
+        from opencloudtouch.setup import routes
+
+        monkeypatch.setattr(
+            routes, "SoundTouchSSHClient", lambda host, port: mock_ssh_client
+        )
+
+        # Make request
+        response = client.post(
+            "/api/setup/ssh/enable-permanent",
+            json={
+                "device_id": "DEVICE123",
+                "ip": "192.168.1.100",
+                "make_permanent": True,
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["permanent_enabled"] is True
+        assert "dauerhaft aktiviert" in data["message"]
+
+        # Verify SSH client was called correctly
+        mock_ssh_client.connect.assert_awaited_once()
+        mock_ssh_client.execute.assert_awaited_once()
+        mock_ssh_client.close.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_enable_permanent_ssh_not_requested(self, client, monkeypatch):
+        """Test when permanent SSH is not requested."""
+        response = client.post(
+            "/api/setup/ssh/enable-permanent",
+            json={
+                "device_id": "DEVICE123",
+                "ip": "192.168.1.100",
+                "make_permanent": False,
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["permanent_enabled"] is False
+        assert "temporär" in data["message"]
+
+    @pytest.mark.asyncio
+    async def test_enable_permanent_ssh_connection_failed(self, client, monkeypatch):
+        """Test when SSH connection fails."""
+        mock_ssh_client = AsyncMock()
+        mock_ssh_client.connect = AsyncMock(
+            return_value=MagicMock(success=False, error="Connection refused")
+        )
+        mock_ssh_client.close = AsyncMock()
+
+        from opencloudtouch.setup import routes
+
+        monkeypatch.setattr(
+            routes, "SoundTouchSSHClient", lambda host, port: mock_ssh_client
+        )
+
+        response = client.post(
+            "/api/setup/ssh/enable-permanent",
+            json={
+                "device_id": "DEVICE123",
+                "ip": "192.168.1.100",
+                "make_permanent": True,
+            },
+        )
+
+        assert response.status_code == 503
+        assert "Connection refused" in response.json()["detail"]
+
+    @pytest.mark.asyncio
+    async def test_enable_permanent_ssh_command_failed(self, client, monkeypatch):
+        """Test when SSH command execution fails."""
+        mock_ssh_client = AsyncMock()
+        mock_ssh_client.connect = AsyncMock(
+            return_value=MagicMock(success=True, output="Connected")
+        )
+        mock_ssh_client.execute = AsyncMock(
+            return_value=MagicMock(
+                success=False, output="Permission denied", exit_code=1, error="Failed"
+            )
+        )
+        mock_ssh_client.close = AsyncMock()
+
+        from opencloudtouch.setup import routes
+
+        monkeypatch.setattr(
+            routes, "SoundTouchSSHClient", lambda host, port: mock_ssh_client
+        )
+
+        response = client.post(
+            "/api/setup/ssh/enable-permanent",
+            json={
+                "device_id": "DEVICE123",
+                "ip": "192.168.1.100",
+                "make_permanent": True,
+            },
+        )
+
+        assert response.status_code == 500
+        assert "Command failed" in response.json()["detail"]
+
+    def test_enable_permanent_ssh_missing_fields(self, client):
+        """Test request validation with missing fields."""
+        # Missing ip
+        response = client.post(
+            "/api/setup/ssh/enable-permanent",
+            json={"device_id": "DEVICE123", "make_permanent": True},
+        )
+        assert response.status_code == 422
+
+        # Missing device_id
+        response = client.post(
+            "/api/setup/ssh/enable-permanent",
+            json={"ip": "192.168.1.100", "make_permanent": True},
+        )
+        assert response.status_code == 422

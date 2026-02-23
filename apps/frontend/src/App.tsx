@@ -9,6 +9,8 @@ import MultiRoom from "./pages/MultiRoom";
 import Firmware from "./pages/Firmware";
 import Settings from "./pages/Settings";
 import Licenses from "./pages/Licenses";
+import SetupWizard from "./pages/SetupWizard";
+import NotFound from "./pages/NotFound";
 import { Device } from "./api/devices";
 import { useDevices } from "./hooks/useDevices";
 import "./App.css";
@@ -53,6 +55,9 @@ function AppRouter({ devices, isLoading, error, onRetry }: AppRouterProps) {
   return (
     <div className="app">
       <Routes>
+        {/* Setup Wizard - always accessible */}
+        <Route path="/setup-wizard" element={<SetupWizard devices={devices} />} />
+
         {/* Welcome Screen - shown when no devices */}
         <Route
           path="/welcome"
@@ -76,6 +81,7 @@ function AppRouter({ devices, isLoading, error, onRetry }: AppRouterProps) {
                     <Route path="/firmware" element={<Firmware devices={devices} />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/licenses" element={<Licenses />} />
+                    <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>
               </>
