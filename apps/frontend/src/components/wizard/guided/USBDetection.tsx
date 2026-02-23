@@ -33,6 +33,7 @@ export default function USBDetection({ onNext, onCancel }: USBDetectionProps) {
 
     try {
       // Request directory access with write permission
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const dirHandle = await (window as any).showDirectoryPicker({
         mode: "readwrite",
       });
@@ -40,6 +41,7 @@ export default function USBDetection({ onNext, onCancel }: USBDetectionProps) {
       // Count files in directory
       let fileCount = 0;
       for await (const entry of dirHandle.values()) {
+        void entry; // Mark as intentionally unused
         fileCount++;
       }
 
@@ -61,12 +63,13 @@ export default function USBDetection({ onNext, onCancel }: USBDetectionProps) {
       if (isWritable) {
         await createRemoteServicesFile(dirHandle);
       }
-    } catch (err: any) {
-      if (err.name === "AbortError") {
+    } catch (err: unknown) {
+      const error = err as Error;
+      if (error.name === "AbortError") {
         // User cancelled - not an error
         setError(null);
       } else {
-        setError(`Fehler beim Zugriff: ${err.message}`);
+        setError(`Fehler beim Zugriff: ${error.message}`);
       }
     } finally {
       setScanning(false);
@@ -97,8 +100,9 @@ export default function USBDetection({ onNext, onCancel }: USBDetectionProps) {
       await writable.write(""); // Empty file
       await writable.close();
       setRemoteServicesCreated(true);
-    } catch (err: any) {
-      setError(`Fehler beim Erstellen: ${err.message}`);
+    } catch (err: unknown) {
+      const error = err as Error;
+      setError(`Fehler beim Erstellen: ${error.message}`);
     }
   };
 

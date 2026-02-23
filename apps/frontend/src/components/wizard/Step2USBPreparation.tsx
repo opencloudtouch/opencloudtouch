@@ -123,7 +123,7 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
         <div className="usb-section">
           <h3 className="usb-section-title">
             <span className="usb-section-number">2</span>
-            Datei "remote_services" erstellen
+            Datei &quot;remote_services&quot; erstellen
           </h3>
           <p className="usb-section-description">
             Erstellen Sie eine Datei namens <code>remote_services</code> (ohne Dateiendung) im
@@ -155,7 +155,7 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
             </label>
             <label className="usb-checklist-item">
               <input type="checkbox" />
-              <span>Datei "remote_services" ist im Root-Verzeichnis</span>
+              <span>Datei &quot;remote_services&quot; ist im Root-Verzeichnis</span>
             </label>
             <label className="usb-checklist-item">
               <input type="checkbox" />

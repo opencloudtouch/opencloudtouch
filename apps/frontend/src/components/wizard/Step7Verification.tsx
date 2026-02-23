@@ -29,7 +29,7 @@ interface TestResult {
 
 export default function Step7Verification({
   deviceId,
-  deviceName,
+  // deviceName,
   octIp,
   onNext,
   onPrevious,

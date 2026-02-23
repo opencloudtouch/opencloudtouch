@@ -17,7 +17,7 @@ interface Step5Props {
 
 export default function Step5ConfigModification({
   deviceId,
-  deviceName,
+  // deviceName,
   octUrl,
   onNext,
   onPrevious,

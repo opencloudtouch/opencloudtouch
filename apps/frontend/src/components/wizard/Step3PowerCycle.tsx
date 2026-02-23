@@ -174,7 +174,7 @@ export default function Step3PowerCycle({ deviceId, deviceName, onNext, onPrevio
             <h4 className="troubleshooting-title">⚠️ Fehlerbehebung</h4>
             <ul className="troubleshooting-list">
               <li>Überprüfen Sie, ob der USB-Stick korrekt eingesteckt ist</li>
-              <li>Stellen Sie sicher, dass die Datei "remote_services" korrekt ist</li>
+              <li>Stellen Sie sicher, dass die Datei &quot;remote_services&quot; korrekt ist</li>
               <li>Warten Sie mindestens 60 Sekunden nach dem Neustart</li>
               <li>Versuchen Sie einen weiteren Power Cycle (Schritte 2-5)</li>
               <li>Prüfen Sie, ob das Gerät im gleichen Netzwerk ist</li>

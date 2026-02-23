@@ -41,7 +41,7 @@ export default function SetupWizard({ devices }: SetupWizardProps) {
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [steps, setSteps] = useState<WizardStep[]>(GUIDED_STEPS);
-  const [enablePermanentSSH, setEnablePermanentSSH] = useState<boolean>(false);
+  // const [enablePermanentSSH, setEnablePermanentSSH] = useState<boolean>(false);
 
   // Auto-select device from URL parameter
   useEffect(() => {

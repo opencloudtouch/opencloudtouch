@@ -20,7 +20,7 @@ const OPTIONAL_DOMAINS = ["content.api.bose.io", "api.bosebuild.com", "firmware.
 
 export default function Step6HostsModification({
   deviceId,
-  deviceName,
+  // deviceName,
   octIp,
   onNext,
   onPrevious,

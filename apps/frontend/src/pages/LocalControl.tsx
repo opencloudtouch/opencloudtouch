@@ -27,7 +27,7 @@ interface LocalControlProps {
 }
 
 export default function LocalControl({ devices = [] }: LocalControlProps) {
-  const navigate = useNavigate();
+  const _navigate = useNavigate(); // Will be used when setup wizard is integrated
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
   const [volume, setVolume] = useState(45);
   const [muted, setMuted] = useState(false);
@@ -79,12 +79,12 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
     // TODO: Implement standby API call
   };
 
-  const handleOpenSetupWizard = (device: Device) => {
-    // Navigate to setup wizard with device parameter
-    navigate(`/setup-wizard?deviceId=${device.device_id}`);
-  };
+  // const handleOpenSetupWizard = (device: Device) => {
+  //   // Navigate to setup wizard with device parameter
+  //   _navigate(`/setup-wizard?deviceId=${device.device_id}`);
+  // };
 
-  const currentDeviceSetupStatus = currentDevice?.setup_status || "unconfigured";
+  // const currentDeviceSetupStatus = currentDevice?.setup_status || "unconfigured";
 
   if (devices.length === 0) {
     return (
