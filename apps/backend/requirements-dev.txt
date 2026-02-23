@@ -7,7 +7,7 @@ pytest-xdist==3.8.0
 httpx==0.28.1
 respx==0.22.0
 black==26.1.0
-ruff==0.15.1
+ruff==0.15.2
 mypy==1.19.1
 bandit==1.9.3
 safety==3.7.0
