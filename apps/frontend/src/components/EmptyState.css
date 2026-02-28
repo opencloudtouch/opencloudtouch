@@ -134,6 +134,89 @@
   box-shadow: 0 8px 16px rgba(255, 255, 255, 0.1);
 }
 
+/* Progressive Discovery Results */
+.discovery-progress {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.discovery-stats {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.discovered-devices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.discovered-device {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  animation: deviceAppear 0.3s ease-out;
+}
+
+@keyframes deviceAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.device-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--success-green);
+  border-radius: 50%;
+  font-size: 1rem;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.device-info {
+  flex: 1;
+  text-align: left;
+}
+
+.device-name {
+  font-weight: 500;
+  color: #ffffff;
+  margin-bottom: 0.25rem;
+}
+
+.device-model {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
 .empty-state-divider {
   display: flex;
   align-items: center;

@@ -33,7 +33,7 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
     }
   }, []);
 
-  const usbPort = deviceModel.startsWith("ST10") ? "Micro USB" : "USB-A";
+  const usbPort = deviceModel.includes("30") || deviceModel.includes("300") ? "USB-A" : "Micro-USB";
 
   const getFormatInstructions = (): { title: string; steps: string[] } => {
     switch (platform) {
@@ -106,10 +106,21 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
 
         {/* Format Instructions */}
         <div className="usb-section">
-          <h3 className="usb-section-title">
-            <span className="usb-section-number">1</span>
-            {formatInstructions.title}
-          </h3>
+          <div className="usb-section-header">
+            <h3 className="usb-section-title">
+              <span className="usb-section-number">1</span>
+              {formatInstructions.title}
+            </h3>
+            <select
+              className="usb-platform-select"
+              value={platform}
+              onChange={(e) => setPlatform(e.target.value as Platform)}
+            >
+              <option value="windows">Windows</option>
+              <option value="macos">macOS</option>
+              <option value="linux">Linux</option>
+            </select>
+          </div>
           <ol className="usb-instruction-list">
             {formatInstructions.steps.map((step, index) => (
               <li key={index} className="usb-instruction-item">
@@ -127,19 +138,9 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
           </h3>
           <p className="usb-section-description">
             Erstellen Sie eine Datei namens <code>remote_services</code> (ohne Dateiendung) im
-            Root-Verzeichnis des USB-Sticks mit folgendem Inhalt:
+            Root-Verzeichnis des USB-Sticks. Die Datei muss <strong>leer</strong> sein (kein
+            Inhalt).
           </p>
-          <pre className="usb-file-content">
-            <code>SSH=ENABLE{"\n"}TELNET=ENABLE</code>
-          </pre>
-          <button
-            className="btn btn-secondary usb-copy-btn"
-            onClick={() => {
-              navigator.clipboard.writeText("SSH=ENABLE\nTELNET=ENABLE");
-            }}
-          >
-            📋 In Zwischenablage kopieren
-          </button>
         </div>
 
         {/* Verification */}
@@ -155,11 +156,7 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
             </label>
             <label className="usb-checklist-item">
               <input type="checkbox" />
-              <span>Datei &quot;remote_services&quot; ist im Root-Verzeichnis</span>
-            </label>
-            <label className="usb-checklist-item">
-              <input type="checkbox" />
-              <span>Dateiinhalt ist korrekt (SSH=ENABLE, TELNET=ENABLE)</span>
+              <span>Datei &quot;remote_services&quot; ist im Root-Verzeichnis und leer</span>
             </label>
             <label className="usb-checklist-item">
               <input
@@ -172,20 +169,6 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
               </span>
             </label>
           </div>
-        </div>
-
-        {/* Platform Switcher */}
-        <div className="usb-platform-switcher">
-          <span className="usb-platform-label">Anderes System?</span>
-          <select
-            className="usb-platform-select"
-            value={platform}
-            onChange={(e) => setPlatform(e.target.value as Platform)}
-          >
-            <option value="windows">Windows</option>
-            <option value="macos">macOS</option>
-            <option value="linux">Linux</option>
-          </select>
         </div>
       </div>
     </WizardStep>

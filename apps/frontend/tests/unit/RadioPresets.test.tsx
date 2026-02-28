@@ -21,6 +21,7 @@ vi.mock("../../src/api/presets", () => ({
   getDevicePresets: vi.fn(),
   setPreset: vi.fn(),
   clearPreset: vi.fn(),
+  syncPresetsFromDevice: vi.fn(),
 }));
 
 import * as presetsApi from "../../src/api/presets";
@@ -143,6 +144,7 @@ describe("RadioPresets Page", () => {
       updated_at: "2024-01-01T00:00:00Z",
     });
     vi.mocked(presetsApi.clearPreset).mockResolvedValue({ message: "Preset cleared" });
+    vi.mocked(presetsApi.syncPresetsFromDevice).mockResolvedValue({ message: "Synced" });
   });
 
   // Helper function to render and wait for initial load to complete

@@ -81,7 +81,7 @@ class AppConfig(BaseSettings):
     discovery_enabled: bool = Field(
         default=True, description="Enable SSDP/UPnP discovery"
     )
-    discovery_timeout: int = Field(default=5, description="Discovery timeout (seconds)")
+    discovery_timeout: int = Field(default=3, description="Discovery timeout (seconds)")
     manual_device_ips: str = Field(
         default="", description="Comma-separated list of manual device IPs"
     )

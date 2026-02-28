@@ -6,6 +6,8 @@ Includes manual modification endpoints for advanced users.
 """
 
 import logging
+import re
+import socket
 from typing import Any, Dict
 
 from fastapi import (
@@ -171,7 +173,7 @@ async def enable_permanent_ssh(
             "message": "SSH bleibt temporär (USB-Stick erforderlich)",
         }
 
-    ssh_client = SoundTouchSSHClient(host=request.ip, port=17317)
+    ssh_client = SoundTouchSSHClient(host=request.ip, port=22)
 
     try:
         # Connect to device
@@ -301,6 +303,8 @@ class ConfigModifyResponse(BaseModel):
     message: str
     backup_path: str = ""
     diff: str = ""
+    old_url: str = ""
+    new_url: str = ""
 
 
 class HostsModifyRequest(BaseModel):
@@ -331,6 +335,24 @@ class RestoreResponse(BaseModel):
     """Response with restore result."""
 
     success: bool
+    message: str
+
+
+class VerifyRedirectRequest(BaseModel):
+    """Request to verify domain redirect from device."""
+
+    device_ip: str
+    domain: str
+    expected_ip: str  # OCT hostname or IP as seen by browser
+
+
+class VerifyRedirectResponse(BaseModel):
+    """Response with domain redirect verification result."""
+
+    success: bool
+    domain: str
+    resolved_ip: str = ""
+    matches_expected: bool = False
     message: str
 
 
@@ -436,6 +458,8 @@ async def wizard_modify_config(request: ConfigModifyRequest):
                 message="Config modified successfully",
                 backup_path=result.backup_path,
                 diff=result.diff,
+                old_url="bmx.bose.com",
+                new_url=request.oct_ip,
             )
 
     except Exception as e:
@@ -549,6 +573,107 @@ async def wizard_list_backups(request: ListBackupsRequest):
 
     except Exception as e:
         logger.error(f"List backups failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
+
+
+@router.post("/wizard/reboot-device")
+async def wizard_reboot_device(request: ConnectivityCheckRequest) -> Dict[str, Any]:
+    """Reboot SoundTouch device via SSH (Wizard Step 7).
+
+    Sends the `reboot` command via SSH. The device drops the SSH connection
+    immediately after receiving the command — this is expected and not an error.
+    Frontend should wait ~60s before attempting verify-redirect tests.
+    """
+    logger.info(f"Sending reboot command to {request.ip}")
+
+    ssh_client = SoundTouchSSHClient(host=request.ip, port=22)
+    try:
+        conn_result = await ssh_client.connect(timeout=10.0)
+        if not conn_result.success:
+            raise HTTPException(
+                status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"SSH connection failed: {conn_result.error}",
+            )
+
+        # The device drops the connection immediately on reboot — that is expected.
+        # A short timeout avoids blocking the request for 30s.
+        await ssh_client.execute("reboot", timeout=5.0)
+
+        logger.info(f"Reboot command sent to {request.ip}")
+        return {
+            "success": True,
+            "message": "Neustart-Befehl gesendet. Das Gerät startet in wenigen Sekunden neu.",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Unexpected error during reboot: {e}")
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Unexpected error: {str(e)}",
+        )
+    finally:
+        await ssh_client.close()
+
+
+@router.post("/wizard/verify-redirect", response_model=VerifyRedirectResponse)
+async def wizard_verify_redirect(request: VerifyRedirectRequest):
+    """Verify a domain is redirected to OCT on the device (Wizard Step 7).
+
+    SSH into the device, run ping against the domain, and check whether
+    the resolved IP matches the OCT server's IP.
+    """
+    logger.info(
+        f"Verifying redirect of {request.domain} on {request.device_ip} "
+        f"(expected: {request.expected_ip})"
+    )
+
+    # Resolve expected_ip on the server side (handles hostname like 'hera')
+    try:
+        expected_resolved = socket.gethostbyname(request.expected_ip)
+    except socket.gaierror:
+        expected_resolved = request.expected_ip  # already an IP or unresolvable
+
+    try:
+        async with SoundTouchSSHClient(request.device_ip) as ssh:
+            # Use ping -c1 -W2 — respects /etc/hosts on the device
+            result = await ssh.execute(
+                f"ping -c 1 -W 2 {request.domain} 2>&1 | head -2"
+            )
+            output = (result.output or "").strip()
+
+            # BusyBox ping first line: 'PING domain (resolved_ip): ...'
+            match = re.search(r"PING [^\(]*\(([^\)]+)\)", output)
+            if not match:
+                return VerifyRedirectResponse(
+                    success=False,
+                    domain=request.domain,
+                    resolved_ip="",
+                    matches_expected=False,
+                    message=f"Could not resolve {request.domain} on device. Output: {output[:200]}",
+                )
+
+            resolved_ip = match.group(1).strip()
+            matches = resolved_ip == expected_resolved
+
+            return VerifyRedirectResponse(
+                success=matches,
+                domain=request.domain,
+                resolved_ip=resolved_ip,
+                matches_expected=matches,
+                message=(
+                    f"{request.domain} → {resolved_ip} ✓"
+                    if matches
+                    else f"{request.domain} → {resolved_ip} (expected {expected_resolved})"
+                ),
+            )
+
+    except Exception as e:
+        logger.error(f"Verify redirect failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),

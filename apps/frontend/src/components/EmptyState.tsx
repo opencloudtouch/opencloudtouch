@@ -1,15 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../contexts/ToastContext";
 import { useManualIPs, useSetManualIPs } from "../hooks/useSettings";
-import { useSyncDevices } from "../hooks/useDevices";
+import { useDiscoveryStream } from "../hooks/useDiscoveryStream";
 import "./EmptyState.css";
 
 /**
  * EmptyState Component
  *
  * Shown on first app start when no devices are discovered yet.
- * Guides user through initial setup.
+ * Guides user through initial setup with progressive device discovery.
  */
 
 export default function EmptyState() {
@@ -23,7 +23,16 @@ export default function EmptyState() {
   // React Query hooks
   const { data: manualIPs = [] } = useManualIPs();
   const setManualIPs = useSetManualIPs();
-  const syncDevices = useSyncDevices();
+
+  // Progressive discovery via SSE
+  const {
+    isDiscovering,
+    devicesFound,
+    completed,
+    error: discoveryError,
+    stats,
+    startDiscovery,
+  } = useDiscoveryStream();
 
   const hasManualIPs = manualIPs.length > 0;
 
@@ -71,25 +80,39 @@ export default function EmptyState() {
     }
   };
 
-  const handleDiscovery = async () => {
-    try {
-      const result = await syncDevices.mutateAsync();
-
-      // Check if any devices were found
-      if (result.synced > 0) {
-        // React Query will automatically refetch devices
-        // Navigate to dashboard
-        navigate("/");
-      } else {
-        showToast(
-          "Keine Geräte gefunden. Prüfe ob deine Geräte eingeschaltet und im gleichen Netzwerk sind.",
-          "warning"
-        );
-      }
-    } catch {
-      showToast("Fehler bei der Gerätesuche. Bitte versuche es erneut.", "error");
-    }
+  const handleDiscovery = () => {
+    startDiscovery();
   };
+
+  // Navigate when devices found (must be in useEffect, not render phase)
+  useEffect(() => {
+    if (completed && devicesFound.length > 0) {
+      navigate("/");
+    }
+  }, [completed, devicesFound.length, navigate]);
+
+  // Show error toast (must be in useEffect, not render phase)
+  useEffect(() => {
+    if (discoveryError) {
+      const isAlreadyRunning = discoveryError.includes("already in progress");
+      showToast(
+        isAlreadyRunning
+          ? "Gerätesuche läuft bereits. Bitte warten..."
+          : "Fehler bei der Gerätesuche. Bitte versuche es erneut.",
+        isAlreadyRunning ? "info" : "error"
+      );
+    }
+  }, [discoveryError, showToast]);
+
+  // Show completion toast if no devices found (must be in useEffect, not render phase)
+  useEffect(() => {
+    if (completed && devicesFound.length === 0 && !discoveryError) {
+      showToast(
+        "Keine Geräte gefunden. Prüfe ob deine Geräte eingeschaltet und im gleichen Netzwerk sind.",
+        "warning"
+      );
+    }
+  }, [completed, devicesFound.length, discoveryError, showToast]);
 
   return (
     <div className="empty-state" data-test="empty-state">
@@ -162,7 +185,7 @@ export default function EmptyState() {
         <button
           className="cta-button"
           onClick={handleDiscovery}
-          disabled={syncDevices.isPending}
+          disabled={isDiscovering}
           data-test="discover-button"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -172,17 +195,34 @@ export default function EmptyState() {
             />
             <circle cx="10" cy="10" r="3" fill="currentColor" />
           </svg>
-          {syncDevices.isPending
-            ? "Suche läuft..."
+          {isDiscovering
+            ? `Suche läuft... (${stats.synced} gefunden)`
             : hasManualIPs
               ? "Mit manuellen IPs suchen"
               : "Jetzt Geräte suchen"}
         </button>
 
-        <div className="empty-state-divider">
-          <span>oder</span>
-        </div>
-
+        {/* Progressive discovery results */}
+        {isDiscovering && devicesFound.length > 0 && (
+          <div className="discovery-progress" data-test="discovery-progress">
+            <p className="discovery-stats">
+              {stats.synced} von {stats.discovered} Geräten gespeichert...
+            </p>
+            <div className="discovered-devices">
+              {devicesFound.map((device) => (
+                <div key={device.id} className="discovered-device">
+                  <div className="device-icon">✓</div>
+                  <div className="device-info">
+                    <div className="device-name">{device.name}</div>
+                    <div className="device-model">
+                      {device.model} • {device.ip}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <button
           className="cta-button secondary"
           onClick={() => navigate("/setup-wizard")}

@@ -34,7 +34,7 @@ class RestoreResult:
 class SoundTouchConfigService:
     """Service for modifying SoundTouch device configuration."""
 
-    CONFIG_PATH = "/nv/OverrideSdkPrivateCfg.xml"
+    CONFIG_PATH = "/mnt/nv/OverrideSdkPrivateCfg.xml"
     BACKUP_DIR = "/usb/backups"
 
     def __init__(self, ssh: SoundTouchSSHClient):
@@ -47,9 +47,27 @@ class SoundTouchConfigService:
         self.ssh = ssh
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
+    async def _remount_rw(self) -> None:
+        """Remount root filesystem read-write before writing."""
+        result = await self.ssh.execute("mount -o remount,rw /")
+        if result.exit_code != 0:
+            self.logger.warning(
+                f"remount rw returned exit_code={result.exit_code}: {result.stderr}"
+            )
+
+    async def _remount_ro(self) -> None:
+        """Remount root filesystem read-only after writing."""
+        result = await self.ssh.execute("mount -o remount,ro /")
+        if result.exit_code != 0:
+            self.logger.warning(
+                f"remount ro returned exit_code={result.exit_code}: {result.stderr}"
+            )
+
     async def modify_bmx_url(self, oct_ip: str) -> ModifyResult:
         """
         Modify BMX URL in config to point to OCT.
+
+        Write protocol: remount rw → write → remount ro (in finally block).
 
         Args:
             oct_ip: OCT server IP address
@@ -60,24 +78,27 @@ class SoundTouchConfigService:
         self.logger.info(f"Modifying BMX URL to point to OCT at {oct_ip}")
 
         try:
-            # TODO: Implement actual config modification
-            # 1. Download current config
-            # 2. Parse XML
-            # 3. Find BMX URLs
-            # 4. Replace with OCT IP
-            # 5. Backup original
-            # 6. Upload modified config
-            # 7. Generate diff
+            await self._remount_rw()
+            try:
+                # TODO: Implement actual config modification
+                # 1. Download current config:  cat {self.CONFIG_PATH}
+                # 2. Parse XML
+                # 3. Find BMX URLs and replace with oct_ip
+                # 4. Backup original: cp {self.CONFIG_PATH} {self.BACKUP_DIR}/config_backup.xml
+                # 5. Upload modified config: write via echo/tee or scp
+                # 6. Generate diff
 
-            backup_path = f"{self.BACKUP_DIR}/config_backup.xml"
-            diff = f"- bmx.bose.com\n+ {oct_ip}"
+                backup_path = f"{self.BACKUP_DIR}/config_backup.xml"
+                diff = f"- bmx.bose.com\n+ {oct_ip}"
 
-            self.logger.info("Config modified successfully")
-            return ModifyResult(
-                success=True,
-                backup_path=backup_path,
-                diff=diff,
-            )
+                self.logger.info("Config modified successfully")
+                return ModifyResult(
+                    success=True,
+                    backup_path=backup_path,
+                    diff=diff,
+                )
+            finally:
+                await self._remount_ro()
 
         except Exception as e:
             self.logger.error(f"Config modification failed: {e}")

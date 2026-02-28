@@ -4,42 +4,42 @@
  * Provides type-safe API calls for device modification wizard.
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
 export interface CheckPortsRequest {
-  device_id: string;
+  device_ip: string;
+  timeout?: number;
 }
 
 export interface CheckPortsResponse {
-  ssh_available: boolean;
-  telnet_available: boolean;
+  success: boolean;
+  has_ssh: boolean;
+  has_telnet: boolean;
   message: string;
 }
 
+export interface BackupVolume {
+  volume: string;
+  path: string;
+  size_mb: number;
+  duration_seconds: number;
+}
+
 export interface BackupRequest {
-  device_id: string;
-  backup_types: ("rootfs" | "persistent" | "update")[];
+  device_ip: string;
 }
 
 export interface BackupResponse {
   success: boolean;
-  backup_dir: string;
-  backups: {
-    rootfs?: string;
-    persistent?: string;
-    update?: string;
-  };
-  sizes: {
-    rootfs?: number;
-    persistent?: number;
-    update?: number;
-  };
   message: string;
+  volumes: BackupVolume[];
+  total_size_mb: number;
+  total_duration_seconds: number;
 }
 
 export interface ModifyConfigRequest {
-  device_id: string;
-  oct_url: string;
+  device_ip: string;
+  oct_ip: string;
 }
 
 export interface ModifyConfigResponse {
@@ -53,9 +53,9 @@ export interface ModifyConfigResponse {
 }
 
 export interface ModifyHostsRequest {
-  device_id: string;
+  device_ip: string;
   oct_ip: string;
-  domains: string[];
+  include_optional?: boolean;
 }
 
 export interface ModifyHostsResponse {
@@ -68,7 +68,7 @@ export interface ModifyHostsResponse {
 }
 
 export interface RestoreRequest {
-  device_id: string;
+  device_ip: string;
   backup_path?: string;
 }
 
@@ -79,7 +79,7 @@ export interface RestoreResponse {
 }
 
 export interface VerifyRedirectRequest {
-  device_id: string;
+  device_ip: string;
   domain: string;
   expected_ip: string;
 }
@@ -195,6 +195,65 @@ export async function restoreHosts(request: RestoreRequest): Promise<RestoreResp
   if (!response.ok) {
     const error = await response.text();
     throw new Error(`Hosts restore failed: ${error}`);
+  }
+
+  return response.json();
+}
+
+export interface RebootDeviceRequest {
+  ip: string;
+}
+
+export interface RebootDeviceResponse {
+  success: boolean;
+  message: string;
+}
+
+/**
+ * Send reboot command to device via SSH (Wizard Step 7)
+ */
+export async function rebootDevice(request: RebootDeviceRequest): Promise<RebootDeviceResponse> {
+  const response = await fetch(`${API_BASE}/api/setup/wizard/reboot-device`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Reboot failed: ${error}`);
+  }
+
+  return response.json();
+}
+
+export interface EnablePermanentSSHRequest {
+  device_id: string;
+  ip: string;
+  make_permanent: boolean;
+}
+
+export interface EnablePermanentSSHResponse {
+  success: boolean;
+  permanent_enabled: boolean;
+  message: string;
+}
+
+/**
+ * Enable (or skip) permanent SSH on device
+ */
+export async function enablePermanentSsh(
+  request: EnablePermanentSSHRequest
+): Promise<EnablePermanentSSHResponse> {
+  const response = await fetch(`${API_BASE}/api/setup/ssh/enable-permanent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Enable permanent SSH failed: ${error}`);
   }
 
   return response.json();

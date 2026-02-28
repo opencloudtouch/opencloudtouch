@@ -23,6 +23,7 @@ export interface PresetResponse {
   station_uuid: string;
   station_name: string;
   station_url: string;
+  source?: string;
   station_homepage?: string;
   station_favicon?: string;
   created_at: string;
@@ -114,6 +115,27 @@ export async function clearAllPresets(deviceId: string): Promise<MessageResponse
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: "Failed to clear all presets" }));
     throw new Error(error.detail || "Failed to clear all presets");
+  }
+
+  return response.json();
+}
+
+/**
+ * Sync presets from device to OCT database.
+ *
+ * Fetches presets from the physical device and imports them.
+ * Useful when device was configured by another OCT instance or manually.
+ */
+export async function syncPresetsFromDevice(deviceId: string): Promise<MessageResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/presets/${deviceId}/sync`, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    const error = await response
+      .json()
+      .catch(() => ({ detail: "Failed to sync presets from device" }));
+    throw new Error(error.detail || "Failed to sync presets from device");
   }
 
   return response.json();

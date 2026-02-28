@@ -71,6 +71,58 @@ class DeviceSyncService:
             failed=failed,
         )
 
+    async def sync_with_events(self, event_bus) -> SyncResult:
+        """
+        Discover devices and synchronize to database with event streaming.
+
+        Same as sync() but publishes events for SSE progressive loading.
+
+        Args:
+            event_bus: DiscoveryEventBus for publishing events
+
+        Returns:
+            SyncResult with discovery/sync statistics
+        """
+        from opencloudtouch.devices.events import (
+            device_found_event,
+            device_synced_event,
+            device_failed_event,
+        )
+
+        discovered_devices = await self._discover_devices()
+
+        # Publish device_found events
+        for device in discovered_devices:
+            await event_bus.publish(device_found_event(device))
+
+        # Sync devices to DB with events
+        synced = 0
+        failed = 0
+
+        for discovered_device in discovered_devices:
+            try:
+                device = await self._fetch_device_info(discovered_device)
+                await self.repository.upsert(device)
+                synced += 1
+                logger.info(f"Synced device: {device.name} ({device.device_id})")
+
+                # Publish device_synced event
+                await event_bus.publish(device_synced_event(device))
+
+            except Exception as e:
+                failed += 1
+                device_ip = getattr(discovered_device, "ip", str(discovered_device))
+                logger.error(f"Failed to sync device {device_ip}: {e}")
+
+                # Publish device_failed event
+                await event_bus.publish(device_failed_event(device_ip, str(e)))
+
+        return SyncResult(
+            discovered=len(discovered_devices),
+            synced=synced,
+            failed=failed,
+        )
+
     async def _discover_devices(self) -> List[DiscoveredDevice]:
         """
         Discover devices via all enabled methods.
@@ -100,7 +152,7 @@ class DeviceSyncService:
         """
         try:
             discovery = get_discovery_adapter(timeout=self.discovery_timeout)
-            discovered = await discovery.discover()
+            discovered = await discovery.discover(timeout=self.discovery_timeout)
             logger.info(f"SSDP discovered {len(discovered)} devices")
             return discovered
         except Exception as e:

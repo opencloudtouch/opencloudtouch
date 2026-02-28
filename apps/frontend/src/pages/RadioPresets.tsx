@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import DeviceSwiper, { Device } from "../components/DeviceSwiper";
 import NowPlaying from "../components/NowPlaying";
 import PresetButton, { Preset } from "../components/PresetButton";
@@ -9,6 +10,7 @@ import {
   setPreset as setPresetAPI,
   clearPreset as clearPresetAPI,
   getDevicePresets,
+  syncPresetsFromDevice,
   type PresetResponse,
 } from "../api/presets";
 import { playPreset as playPresetAPI } from "../api/devices";
@@ -19,6 +21,7 @@ interface RadioPresetsProps {
 }
 
 export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
+  const [searchParams] = useSearchParams();
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
   const [assigningPreset, setAssigningPreset] = useState<number | null>(null);
@@ -26,11 +29,26 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
   const [muted, setMuted] = useState(false);
   const [presets, setPresets] = useState<Record<number, Preset>>({});
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const currentDevice = devices[currentDeviceIndex];
   // TODO: NowPlaying will be implemented in Phase 3 with backend endpoint
   const nowPlaying = null;
+
+  // Auto-select device from URL parameter on mount / when devices load
+  useEffect(() => {
+    const deviceId = searchParams.get("device");
+    if (deviceId && devices.length > 0) {
+      const deviceIndex = devices.findIndex((d) => d.device_id === deviceId);
+      if (deviceIndex !== -1) {
+        setCurrentDeviceIndex(deviceIndex);
+      }
+    }
+    // Intentionally omit currentDeviceIndex: re-running on every arrow-key change
+    // would override the user's manual selection back to the URL device.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, devices]);
 
   // Load presets when device changes
   useEffect(() => {
@@ -50,11 +68,42 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
           return;
         }
 
+        // Auto-sync from device if no presets found in database
+        if (devicePresets.length === 0) {
+          console.log(
+            `[RadioPresets] No presets in DB for ${currentDevice.device_id}, syncing from device...`
+          );
+          try {
+            const syncResult = await syncPresetsFromDevice(currentDevice.device_id);
+            console.log(`[RadioPresets] Sync result: ${syncResult.message}`);
+
+            // Reload presets after sync
+            const syncedPresets = await getDevicePresets(currentDevice.device_id);
+            if (Array.isArray(syncedPresets)) {
+              const presetsMap: Record<number, Preset> = {};
+              syncedPresets.forEach((preset: PresetResponse) => {
+                presetsMap[preset.preset_number] = {
+                  station_name: preset.station_name,
+                  station_url: preset.station_url,
+                  source: preset.source,
+                };
+              });
+              setPresets(presetsMap);
+              return;
+            }
+          } catch (syncErr) {
+            console.warn(`[RadioPresets] Auto-sync failed: ${syncErr}`);
+            // Continue with empty presets, user can manually sync
+          }
+        }
+
         const presetsMap: Record<number, Preset> = {};
 
         devicePresets.forEach((preset: PresetResponse) => {
           presetsMap[preset.preset_number] = {
             station_name: preset.station_name,
+            station_url: preset.station_url,
+            source: preset.source,
           };
         });
 
@@ -69,6 +118,44 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
 
     loadPresets();
   }, [currentDevice?.device_id]);
+
+  // Sync presets from device
+  const handleSyncPresets = async () => {
+    if (!currentDevice?.device_id) return;
+
+    setSyncing(true);
+    setError(null);
+
+    try {
+      const result = await syncPresetsFromDevice(currentDevice.device_id);
+      console.log(result.message);
+
+      // Reload presets after sync
+      const devicePresets = await getDevicePresets(currentDevice.device_id);
+
+      if (!Array.isArray(devicePresets)) {
+        console.error("getDevicePresets returned non-array:", devicePresets);
+        setPresets({});
+        return;
+      }
+
+      const presetsMap: Record<number, Preset> = {};
+      devicePresets.forEach((preset: PresetResponse) => {
+        presetsMap[preset.preset_number] = {
+          station_name: preset.station_name,
+          station_url: preset.station_url,
+          source: preset.source,
+        };
+      });
+
+      setPresets(presetsMap);
+    } catch (err) {
+      console.error("Failed to sync presets:", err);
+      setError(err instanceof Error ? err.message : "Failed to sync presets");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleAssignClick = (presetNumber: number) => {
     setAssigningPreset(presetNumber);
@@ -207,7 +294,18 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
 
       {/* Presets for Current Device */}
       <div className="presets-section">
-        <h3 className="section-title">Gespeicherte Sender</h3>
+        <div className="section-header">
+          <h3 className="section-title">Gespeicherte Sender</h3>
+          <button
+            className="sync-button"
+            onClick={handleSyncPresets}
+            disabled={syncing || loading}
+            title="Presets vom Gerät synchronisieren"
+          >
+            <span className="sync-icon">{syncing ? "⏳" : "🔄"}</span>
+            <span>{syncing ? "Sync..." : "Vom Gerät laden"}</span>
+          </button>
+        </div>
 
         {/* Error Message */}
         {error && (

@@ -9,7 +9,7 @@ import "./SetupBadge.css";
 
 interface SetupBadgeProps {
   deviceId: string;
-  setupStatus?: "unconfigured" | "configured" | "pending";
+  setupStatus?: "unconfigured" | "configured" | "pending" | "in_progress" | "failed";
 }
 
 export default function SetupBadge({ deviceId, setupStatus = "unconfigured" }: SetupBadgeProps) {
@@ -24,7 +24,10 @@ export default function SetupBadge({ deviceId, setupStatus = "unconfigured" }: S
       case "configured":
         return "setup-badge badge-configured";
       case "pending":
+      case "in_progress":
         return "setup-badge badge-pending";
+      case "failed":
+        return "setup-badge badge-unconfigured";
       case "unconfigured":
       default:
         return "setup-badge badge-unconfigured";
@@ -36,7 +39,10 @@ export default function SetupBadge({ deviceId, setupStatus = "unconfigured" }: S
       case "configured":
         return "✓";
       case "pending":
+      case "in_progress":
         return "⏳";
+      case "failed":
+        return "⚠️";
       case "unconfigured":
       default:
         return "⚙️";
@@ -48,7 +54,10 @@ export default function SetupBadge({ deviceId, setupStatus = "unconfigured" }: S
       case "configured":
         return "Gerät konfiguriert";
       case "pending":
+      case "in_progress":
         return "Setup läuft...";
+      case "failed":
+        return "Setup fehlgeschlagen - Klicken zum Wiederholen";
       case "unconfigured":
       default:
         return "Setup erforderlich - Klicken zum Konfigurieren";
@@ -61,6 +70,7 @@ export default function SetupBadge({ deviceId, setupStatus = "unconfigured" }: S
       onClick={handleClick}
       title={getBadgeTitle()}
       aria-label={getBadgeTitle()}
+      data-test="setup-button"
     >
       <span className="badge-icon">{getBadgeIcon()}</span>
     </button>

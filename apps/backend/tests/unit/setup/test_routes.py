@@ -389,3 +389,475 @@ class TestEnablePermanentSSH:
             json={"ip": "192.168.1.100", "make_permanent": True},
         )
         assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# /wizard/verify-redirect
+# ---------------------------------------------------------------------------
+
+
+def _make_ssh_ctx(execute_result):
+    """Return a mock async context manager whose ssh.execute returns execute_result."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    mock_ssh = AsyncMock()
+    mock_ssh.execute = AsyncMock(return_value=execute_result)
+    mock_ctx = MagicMock()
+    mock_ctx.__aenter__ = AsyncMock(return_value=mock_ssh)
+    mock_ctx.__aexit__ = AsyncMock(return_value=None)
+    return mock_ctx
+
+
+class TestWizardVerifyRedirect:
+    """Tests for POST /api/setup/wizard/verify-redirect."""
+
+    ENDPOINT = "/api/setup/wizard/verify-redirect"
+    PAYLOAD = {
+        "device_ip": "192.168.1.100",
+        "domain": "bose.vtuner.com",
+        "expected_ip": "192.168.1.50",
+    }
+
+    def _ping_output(self, domain, resolved_ip):
+        return f"PING {domain} ({resolved_ip}): 56 data bytes\n64 bytes from {resolved_ip}: seq=0"
+
+    @pytest.mark.asyncio
+    async def test_successful_match(self, client, monkeypatch):
+        """Resolved IP matches expected → success=True, matches_expected=True."""
+        from opencloudtouch.setup import routes
+        import socket
+
+        monkeypatch.setattr(socket, "gethostbyname", lambda h: "192.168.1.50")
+
+        from opencloudtouch.setup.ssh_client import CommandResult
+
+        result = CommandResult(
+            success=True,
+            output=self._ping_output("bose.vtuner.com", "192.168.1.50"),
+            exit_code=0,
+        )
+        monkeypatch.setattr(
+            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_ctx(result)
+        )
+
+        response = client.post(self.ENDPOINT, json=self.PAYLOAD)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["matches_expected"] is True
+        assert data["resolved_ip"] == "192.168.1.50"
+
+    @pytest.mark.asyncio
+    async def test_mismatch_returns_success_false(self, client, monkeypatch):
+        """Resolved IP doesn't match expected → success=False, matches_expected=False."""
+        from opencloudtouch.setup import routes
+        import socket
+
+        monkeypatch.setattr(socket, "gethostbyname", lambda h: "192.168.1.50")
+
+        from opencloudtouch.setup.ssh_client import CommandResult
+
+        result = CommandResult(
+            success=True,
+            output=self._ping_output("bose.vtuner.com", "1.2.3.4"),
+            exit_code=0,
+        )
+        monkeypatch.setattr(
+            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_ctx(result)
+        )
+
+        response = client.post(self.ENDPOINT, json=self.PAYLOAD)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is False
+        assert data["matches_expected"] is False
+        assert data["resolved_ip"] == "1.2.3.4"
+
+    @pytest.mark.asyncio
+    async def test_hostname_expected_ip_is_resolved(self, client, monkeypatch):
+        """expected_ip as hostname ('hera') is resolved server-side before comparison."""
+        from opencloudtouch.setup import routes
+        import socket
+
+        monkeypatch.setattr(socket, "gethostbyname", lambda h: "10.0.0.99")
+
+        from opencloudtouch.setup.ssh_client import CommandResult
+
+        result = CommandResult(
+            success=True,
+            output=self._ping_output("bose.vtuner.com", "10.0.0.99"),
+            exit_code=0,
+        )
+        monkeypatch.setattr(
+            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_ctx(result)
+        )
+
+        response = client.post(
+            self.ENDPOINT,
+            json={**self.PAYLOAD, "expected_ip": "hera"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+
+    @pytest.mark.asyncio
+    async def test_unresolvable_domain_on_device(self, client, monkeypatch):
+        """If ping produces no match (domain unresolvable), success=False."""
+        from opencloudtouch.setup import routes
+        import socket
+
+        monkeypatch.setattr(socket, "gethostbyname", lambda h: "192.168.1.50")
+
+        from opencloudtouch.setup.ssh_client import CommandResult
+
+        result = CommandResult(
+            success=False,
+            output="ping: bad address 'bose.vtuner.com'",
+            exit_code=1,
+        )
+        monkeypatch.setattr(
+            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_ctx(result)
+        )
+
+        response = client.post(self.ENDPOINT, json=self.PAYLOAD)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is False
+        assert data["resolved_ip"] == ""
+
+    def test_missing_device_ip_returns_422(self, client):
+        """Validation: device_ip is required."""
+        response = client.post(
+            self.ENDPOINT,
+            json={"domain": "bose.vtuner.com", "expected_ip": "192.168.1.50"},
+        )
+        assert response.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_command_result_uses_output_field(self, client, monkeypatch):
+        """
+        BUG-06 Regression: routes.py used result.stdout instead of result.output.
+        CommandResult has .output not .stdout → AttributeError → 500.
+        """
+        from opencloudtouch.setup import routes
+        import socket
+        from opencloudtouch.setup.ssh_client import CommandResult
+
+        monkeypatch.setattr(socket, "gethostbyname", lambda h: "192.168.1.50")
+
+        # Build a CommandResult with .output (correct field name)
+        result = CommandResult(
+            success=True,
+            output=self._ping_output("bose.vtuner.com", "192.168.1.50"),
+            exit_code=0,
+        )
+        # Verify the model has 'output' but NOT 'stdout'
+        assert hasattr(
+            result, "output"
+        ), "BUG-06: CommandResult must have .output field"
+        assert not hasattr(
+            result, "stdout"
+        ), "BUG-06: CommandResult must NOT have .stdout - routes.py must use .output"
+
+        monkeypatch.setattr(
+            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_ctx(result)
+        )
+
+        response = client.post(self.ENDPOINT, json=self.PAYLOAD)
+        # Must not return 500 (AttributeError: has no attribute 'stdout')
+        assert response.status_code != 500, (
+            "BUG-06: verify-redirect returned 500 – routes.py likely uses result.stdout "
+            "instead of result.output"
+        )
+        assert (
+            response.status_code == 200
+        ), f"BUG-06: Expected 200, got {response.status_code}: {response.text}"
+
+
+# ---------------------------------------------------------------------------
+# /wizard/reboot-device
+# ---------------------------------------------------------------------------
+
+
+class TestWizardRebootDevice:
+    """Tests for POST /api/setup/wizard/reboot-device.
+
+    Regression: endpoint was missing entirely. Step 6 told the user to reboot
+    in the next step, but Step 7 had no reboot button/API.
+    """
+
+    ENDPOINT = "/api/setup/wizard/reboot-device"
+
+    @pytest.mark.asyncio
+    async def test_reboot_success(self, client, monkeypatch):
+        """Test successful reboot command delivery.
+
+        The SSH connection drops immediately on reboot (expected).
+        A successful or error result from execute() both indicate
+        the command was accepted — we return success=True regardless.
+        """
+        mock_ssh_client = AsyncMock()
+        mock_ssh_client.connect = AsyncMock(
+            return_value=MagicMock(success=True, output="Connected")
+        )
+        # execute may raise or return error — both OK for reboot
+        mock_ssh_client.execute = AsyncMock(
+            return_value=MagicMock(success=True, output="", exit_code=0, error=None)
+        )
+        mock_ssh_client.close = AsyncMock()
+
+        from opencloudtouch.setup import routes
+
+        monkeypatch.setattr(
+            routes, "SoundTouchSSHClient", lambda host, port: mock_ssh_client
+        )
+
+        response = client.post(self.ENDPOINT, json={"ip": "192.168.178.79"})
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert "Neustart" in data["message"]
+        mock_ssh_client.execute.assert_awaited_once_with("reboot", timeout=5.0)
+        mock_ssh_client.close.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_reboot_connection_failure_returns_503(self, client, monkeypatch):
+        """Test that SSH connection failure returns 503."""
+        mock_ssh_client = AsyncMock()
+        mock_ssh_client.connect = AsyncMock(
+            return_value=MagicMock(success=False, error="Connection refused")
+        )
+        mock_ssh_client.close = AsyncMock()
+
+        from opencloudtouch.setup import routes
+
+        monkeypatch.setattr(
+            routes, "SoundTouchSSHClient", lambda host, port: mock_ssh_client
+        )
+
+        response = client.post(self.ENDPOINT, json={"ip": "192.168.178.99"})
+
+        assert response.status_code == 503
+        assert "Connection refused" in response.json()["detail"]
+
+    def test_missing_ip_returns_422(self, client):
+        """Validation: ip field is required."""
+        response = client.post(self.ENDPOINT, json={})
+        assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# BUG-04: enable-permanent uses port 22 (was 17317 which is Bose Telnet)
+# ---------------------------------------------------------------------------
+
+
+class TestEnablePermanentSSHPort:
+    """
+    BUG-04 Regression: enable-permanent-ssh passed port=17317 to SSHClient.
+    Port 17317 is the Bose Telnet service. SSH runs on port 22.
+    Result: /mnt/nv/remote_services was never created → no persistence.
+    """
+
+    @pytest.mark.asyncio
+    async def test_uses_port_22(self, client, monkeypatch):
+        """enable-permanent must connect via SSH port 22, not Telnet port 17317."""
+        from opencloudtouch.setup import routes
+
+        captured_port = []
+
+        def capture_ssh_client(host, port):
+            captured_port.append(port)
+            mock_ssh = AsyncMock()
+            mock_ssh.connect = AsyncMock(return_value=MagicMock(success=True))
+            mock_ssh.execute = AsyncMock(
+                return_value=MagicMock(success=True, output="", exit_code=0, error=None)
+            )
+            mock_ssh.close = AsyncMock()
+            return mock_ssh
+
+        monkeypatch.setattr(routes, "SoundTouchSSHClient", capture_ssh_client)
+
+        client.post(
+            "/api/setup/ssh/enable-permanent",
+            json={"device_id": "X", "ip": "192.168.1.100", "make_permanent": True},
+        )
+
+        assert len(captured_port) >= 1, "SoundTouchSSHClient was never called"
+        assert captured_port[0] == 22, (
+            f"BUG-04: enable-permanent-ssh must use port 22 (SSH), "
+            f"got port={captured_port[0]}. Port 17317 = Bose Telnet!"
+        )
+
+
+# ---------------------------------------------------------------------------
+# BUG-19: /wizard/check-ports request uses device_ip, response has has_ssh
+# ---------------------------------------------------------------------------
+
+
+class TestCheckPorts:
+    """
+    BUG-19 Regression: Frontend sent {device_id} but backend expects {device_ip}.
+    Response field name was also wrong: frontend read .ssh_available, backend
+    returned .has_ssh.
+    """
+
+    ENDPOINT = "/api/setup/wizard/check-ports"
+
+    def test_request_uses_device_ip(self, client, monkeypatch):
+        """Endpoint must accept device_ip field (not device_id)."""
+        import opencloudtouch.setup.routes as routes
+
+        monkeypatch.setattr(routes, "check_ssh_port", AsyncMock(return_value=True))
+        monkeypatch.setattr(routes, "check_telnet_port", AsyncMock(return_value=False))
+
+        response = client.post(self.ENDPOINT, json={"device_ip": "192.168.1.100"})
+        assert response.status_code == 200, (
+            f"BUG-19: /wizard/check-ports with device_ip field failed: "
+            f"{response.status_code} {response.json()}"
+        )
+
+    def test_request_with_device_id_is_rejected(self, client):
+        """device_id field must NOT be accepted (wrong field name)."""
+        response = client.post(self.ENDPOINT, json={"device_id": "DEVICE123"})
+        assert response.status_code == 422, (
+            f"BUG-19: device_id should be rejected (field is device_ip). "
+            f"Got {response.status_code}"
+        )
+
+    def test_response_has_has_ssh_field(self, client, monkeypatch):
+        """Response must use has_ssh field (not ssh_available)."""
+        import opencloudtouch.setup.routes as routes
+
+        monkeypatch.setattr(routes, "check_ssh_port", AsyncMock(return_value=True))
+        monkeypatch.setattr(routes, "check_telnet_port", AsyncMock(return_value=False))
+
+        response = client.post(self.ENDPOINT, json={"device_ip": "192.168.1.100"})
+        assert response.status_code == 200
+        data = response.json()
+
+        assert (
+            "has_ssh" in data
+        ), f"BUG-19: Response must contain 'has_ssh' field. Got: {list(data.keys())}"
+        assert (
+            "has_telnet" in data
+        ), f"BUG-19: Response must contain 'has_telnet' field. Got: {list(data.keys())}"
+        assert (
+            "ssh_available" not in data
+        ), "BUG-19: 'ssh_available' should not exist (frontend was reading wrong field)"
+
+    def test_ssh_available_returns_true_in_has_ssh(self, client, monkeypatch):
+        """When SSH is open, has_ssh=True should be returned."""
+        import opencloudtouch.setup.routes as routes
+
+        monkeypatch.setattr(routes, "check_ssh_port", AsyncMock(return_value=True))
+        monkeypatch.setattr(routes, "check_telnet_port", AsyncMock(return_value=True))
+
+        response = client.post(self.ENDPOINT, json={"device_ip": "192.168.1.100"})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["has_ssh"] is True
+        assert data["success"] is True
+
+    def test_no_ports_open_returns_success_false(self, client, monkeypatch):
+        """When neither SSH nor Telnet is open, success=False."""
+        import opencloudtouch.setup.routes as routes
+
+        monkeypatch.setattr(routes, "check_ssh_port", AsyncMock(return_value=False))
+        monkeypatch.setattr(routes, "check_telnet_port", AsyncMock(return_value=False))
+
+        response = client.post(self.ENDPOINT, json={"device_ip": "192.168.1.100"})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is False
+
+
+# ---------------------------------------------------------------------------
+# BUG-07: /wizard/modify-config response missing old_url/new_url fields
+# ---------------------------------------------------------------------------
+
+
+class TestModifyConfig:
+    """
+    BUG-07 Regression: ConfigModifyResponse was missing old_url/new_url fields.
+    Step 5 UI showed 'Alte URL: N/A' and 'Neue URL: N/A'.
+    """
+
+    ENDPOINT = "/api/setup/wizard/modify-config"
+
+    def test_response_schema_has_old_url_field(self, client, monkeypatch):
+        """Response must contain old_url field."""
+        from opencloudtouch.setup.routes import ConfigModifyResponse
+
+        fields = ConfigModifyResponse.model_fields
+        assert "old_url" in fields, (
+            "BUG-07: ConfigModifyResponse must have 'old_url' field. "
+            "Step 5 UI shows 'Alte URL: N/A' without it."
+        )
+
+    def test_response_schema_has_new_url_field(self, client, monkeypatch):
+        """Response must contain new_url field."""
+        from opencloudtouch.setup.routes import ConfigModifyResponse
+
+        fields = ConfigModifyResponse.model_fields
+        assert "new_url" in fields, (
+            "BUG-07: ConfigModifyResponse must have 'new_url' field. "
+            "Step 5 UI shows 'Neue URL: N/A' without it."
+        )
+
+    def test_response_old_url_not_required_has_default(self, client):
+        """old_url and new_url should have defaults (not break old integrations)."""
+        from opencloudtouch.setup.routes import ConfigModifyResponse
+
+        # Test that model can be created with just required fields
+        response = ConfigModifyResponse(success=True, message="OK")
+        assert response.old_url == ""
+        assert response.new_url == ""
+
+
+# ---------------------------------------------------------------------------
+# BUG-25: /wizard/backup requires device_ip not device_id
+# ---------------------------------------------------------------------------
+
+
+class TestBackup:
+    """
+    BUG-25 Regression: Steps 4-7 sent {device_id} but backend expects {device_ip}.
+    Result: 422 Validation Error for all wizard operations.
+    """
+
+    ENDPOINT = "/api/setup/wizard/backup"
+
+    def test_requires_device_ip_not_device_id(self, client):
+        """Endpoint must require device_ip field, not device_id."""
+        # Sending device_id should fail with 422
+        response = client.post(self.ENDPOINT, json={"device_id": "DEVICE123"})
+        assert response.status_code == 422, (
+            f"BUG-25: device_id should be rejected (endpoint expects device_ip). "
+            f"Got {response.status_code}"
+        )
+
+    def test_accepts_device_ip_field(self, client, monkeypatch):
+        """Endpoint must accept device_ip field."""
+        from opencloudtouch.setup.routes import BackupRequest
+
+        # Verify model has device_ip field
+        fields = BackupRequest.model_fields
+        assert "device_ip" in fields, (
+            f"BUG-25: BackupRequest must have 'device_ip' field. "
+            f"Got fields: {list(fields.keys())}"
+        )
+
+    def test_backup_response_has_volumes_list(self, client):
+        """Response uses volumes[]: list, not backups.rootfs object."""
+        from opencloudtouch.setup.routes import BackupResponse
+
+        # Response must have 'volumes' as a list (not backups.rootfs)
+        fields = BackupResponse.model_fields
+        assert "volumes" in fields, (
+            "BUG-23+BUG-25: BackupResponse must have 'volumes' list field. "
+            "Frontend was reading backups.rootfs → TypeError."
+        )
+        assert (
+            "total_size_mb" in fields
+        ), "BackupResponse must have 'total_size_mb' field."

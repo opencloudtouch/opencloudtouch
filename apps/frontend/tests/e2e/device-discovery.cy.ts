@@ -32,6 +32,10 @@ describe("Device Discovery", () => {
       cy.get('[data-test="app-header"]').should("be.visible");
       cy.get('[data-test="device-card"]').should("have.length", 1);
 
+      // Wait for ALL 3 devices to load before checking navigation
+      // (progressive SSE may deliver devices incrementally)
+      cy.get(".swiper-dots .dot").should("have.length", 3);
+
       // Verify 3 devices by swiping navigation
       // Start at device 0 - left arrow should be disabled
       cy.get(".swipe-arrow-left").should("be.disabled");
@@ -93,6 +97,9 @@ describe("Device Discovery", () => {
       cy.waitForDevices();
 
       cy.url().should("eq", Cypress.config().baseUrl + "/");
+
+      // Wait for ALL 3 devices to load before checking navigation
+      cy.get(".swiper-dots .dot").should("have.length", 3);
 
       // Verify 3 devices by swiping navigation
       cy.get(".swipe-arrow-left").should("be.disabled");

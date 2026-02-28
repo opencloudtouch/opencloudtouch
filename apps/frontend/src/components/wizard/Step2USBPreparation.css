@@ -6,7 +6,7 @@
 
 /* Device Info */
 .usb-device-info {
-  background: #e3f2fd;
+  background: rgba(33, 150, 243, 0.1);
   border: 1px solid #2196f3;
   border-radius: 8px;
   padding: 1rem;
@@ -21,7 +21,7 @@
 }
 
 .usb-device-details {
-  color: #0d47a1;
+  color: var(--text-primary);
   line-height: 1.6;
 }
 
@@ -37,6 +37,18 @@
 /* Sections */
 .usb-section {
   margin-bottom: 2.5rem;
+}
+
+.usb-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.usb-section-header .usb-section-title {
+  margin-bottom: 0;
 }
 
 .usb-section-title {
@@ -193,13 +205,31 @@
 }
 
 .usb-platform-select {
-  padding: 0.5rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: white;
-  color: var(--text-primary);
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--color-bg-card, #2a2a2a);
+  color: var(--text-primary, #e0e0e0);
   font-size: 0.875rem;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.usb-platform-select:hover {
+  border-color: var(--primary-color, #4a90d9);
+  background: var(--color-bg-hover, #333);
+}
+
+.usb-platform-select:focus {
+  outline: none;
+  border-color: var(--primary-color, #4a90d9);
+  box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.2);
+}
+
+.usb-platform-select option {
+  background: var(--color-bg-card, #2a2a2a);
+  color: var(--text-primary, #e0e0e0);
 }
 
 /* Responsive */

@@ -87,7 +87,7 @@
 
 /* Selection Info */
 .device-selection-info {
-  background: #e3f2fd;
+  background: rgba(33, 150, 243, 0.1);
   border: 1px solid #2196f3;
   border-radius: 8px;
   padding: 1rem;
@@ -102,7 +102,7 @@
 }
 
 .info-content {
-  color: #0d47a1;
+  color: var(--text-primary);
   line-height: 1.6;
 }
 

@@ -72,6 +72,19 @@ export async function getDevices(): Promise<Device[]> {
 }
 
 /**
+ * Custom error class with HTTP status code
+ */
+class APIError extends Error {
+  statusCode?: number;
+
+  constructor(message: string, statusCode?: number) {
+    super(message);
+    this.name = "APIError";
+    this.statusCode = statusCode;
+  }
+}
+
+/**
  * Sync devices by triggering discovery
  */
 export async function syncDevices(): Promise<SyncResult> {
@@ -81,12 +94,15 @@ export async function syncDevices(): Promise<SyncResult> {
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
-      throw new Error(
-        getErrorMessage(errorData) || `Failed to sync devices: ${response.statusText}`
-      );
+      const message =
+        getErrorMessage(errorData) || `Failed to sync devices: ${response.statusText}`;
+      throw new APIError(message, response.status);
     }
     return response.json();
   } catch (error) {
+    if (error instanceof APIError) {
+      throw error;
+    }
     throw new Error(getErrorMessage(error), { cause: error });
   }
 }

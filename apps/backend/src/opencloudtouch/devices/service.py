@@ -4,6 +4,7 @@ Orchestrates device discovery, synchronization, and management.
 Separates HTTP layer (routes) from business logic from data layer (repository).
 """
 
+import asyncio
 import logging
 from typing import List, Optional, Union
 
@@ -97,6 +98,80 @@ class DeviceService:
         )
 
         return result
+
+    async def sync_devices_with_events(self, event_bus) -> SyncResult:
+        """Synchronize devices to database with event streaming.
+
+        Same as sync_devices() but publishes events to event_bus for SSE streaming.
+
+        Args:
+            event_bus: DiscoveryEventBus for publishing events
+
+        Returns:
+            SyncResult with discovery/sync statistics
+        """
+        from opencloudtouch.devices.events import (
+            DiscoveryEvent,
+            DiscoveryEventType,
+        )
+
+        logger.info("Starting device sync with event streaming")
+
+        # Publish started event
+        await event_bus.publish(
+            DiscoveryEvent(
+                type=DiscoveryEventType.STARTED,
+                data={"message": "Starting device discovery"},
+            )
+        )
+
+        try:
+            # Run sync with event callbacks
+            # asyncio.timeout as backstop: SSDP runs in thread executor so
+            # cancellation is handled at coroutine level
+            timeout_seconds = 15  # 5s SSDP + some margin for DB sync
+            async with asyncio.timeout(timeout_seconds):
+                result = await self.sync_service.sync_with_events(event_bus)
+
+            # Publish completed event
+            await event_bus.publish(
+                DiscoveryEvent(
+                    type=DiscoveryEventType.COMPLETED,
+                    data={
+                        "discovered": result.discovered,
+                        "synced": result.synced,
+                        "failed": result.failed,
+                    },
+                )
+            )
+
+            logger.info(
+                f"Sync complete: {result.synced} synced, {result.failed} failed "
+                f"(discovered: {result.discovered})"
+            )
+
+            return result
+
+        except asyncio.TimeoutError:
+            error_msg = f"Discovery timed out after {timeout_seconds}s (SSDP hanging)"
+            logger.error(error_msg)
+            # Publish timeout error event
+            await event_bus.publish(
+                DiscoveryEvent(
+                    type=DiscoveryEventType.ERROR,
+                    data={"message": error_msg},
+                )
+            )
+            # Return empty result instead of crashing
+            return SyncResult(discovered=0, synced=0, failed=0)
+
+        except Exception as e:
+            logger.error(f"Sync with events failed: {e}")
+            # Publish error event
+            await event_bus.publish(
+                DiscoveryEvent(type=DiscoveryEventType.ERROR, data={"message": str(e)})
+            )
+            raise
 
     async def get_all_devices(self) -> List[Device]:
         """Get all devices from database.

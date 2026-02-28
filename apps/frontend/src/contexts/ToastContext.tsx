@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import Toast from "../components/Toast";
 
 /**
@@ -36,13 +36,13 @@ interface ToastProviderProps {
 export function ToastProvider({ children }: ToastProviderProps) {
   const [toast, setToast] = useState<ToastData | null>(null);
 
-  const show = (message: string, type: ToastType = "info", duration: number = 5000) => {
+  const show = useCallback((message: string, type: ToastType = "info", duration: number = 5000) => {
     setToast({ message, type, duration });
-  };
+  }, []);
 
-  const hide = () => {
+  const hide = useCallback(() => {
     setToast(null);
-  };
+  }, []);
 
   return (
     <ToastContext.Provider value={{ show, hide }}>

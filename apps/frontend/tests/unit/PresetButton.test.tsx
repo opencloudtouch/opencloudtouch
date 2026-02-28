@@ -151,4 +151,134 @@ describe("PresetButton Component", () => {
 
   });
 
+  // ---------------------------------------------------------------------------
+  // BUG-33: CloudBadge false positives for BMX URL presets
+  // ---------------------------------------------------------------------------
+
+  describe("BUG-33: BMX URL presets are cloud-independent", () => {
+    /**
+     * BMX presets have station_url = "https://content.api.bose.io/v1/...?data=BASE64"
+     * where BASE64 = btoa(JSON.stringify({ streamUrl: "http://shoutcast.example.com/..." }))
+     *
+     * Old bug: isCloudDependent() saw "content.api.bose.io" → returned true → orange badge.
+     * Fix: decode base64 data param → check actual streamUrl → return false if non-cloud.
+     */
+
+    const makeBmxPreset = (streamUrl: string): Preset => {
+      const payload = btoa(JSON.stringify({ streamUrl }));
+      return {
+        station_name: "SHOUTcast Radio via BMX",
+        source: "INTERNET_RADIO",
+        station_url: `https://content.api.bose.io/v1/audio-content?type=r&data=${payload}`,
+      };
+    };
+
+    it("shows compatible badge for BMX preset with shoutcast stream URL", () => {
+      const preset = makeBmxPreset("http://shoutcast.example.com/stream.mp3");
+
+      render(
+        <PresetButton
+          number={1}
+          preset={preset}
+          onAssign={mockOnAssign}
+          onClear={mockOnClear}
+          onPlay={mockOnPlay}
+        />
+      );
+
+      // Compatible badge should be shown (not cloud-dependent)
+      expect(
+        screen.queryByRole("img", { name: /Kompatibel nach Cloud-Abschaltung/i })
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("img", { name: /Cloud-abhängig/i })
+      ).not.toBeInTheDocument();
+    });
+
+    it("shows cloud-dependent badge for BMX preset pointing to streaming.bose.com", () => {
+      const preset = makeBmxPreset("http://streaming.bose.com/some-stream");
+
+      render(
+        <PresetButton
+          number={1}
+          preset={preset}
+          onAssign={mockOnAssign}
+          onClear={mockOnClear}
+          onPlay={mockOnPlay}
+        />
+      );
+
+      expect(
+        screen.queryByRole("img", { name: /Cloud-abhängig/i })
+      ).toBeInTheDocument();
+    });
+
+    it("shows cloud-dependent badge when BMX base64 payload cannot be decoded", () => {
+      const preset: Preset = {
+        station_name: "BMX Broken Payload",
+        source: "INTERNET_RADIO",
+        station_url: "https://content.api.bose.io/v1/audio-content?type=r&data=NOT_VALID_BASE64!!!",
+      };
+
+      render(
+        <PresetButton
+          number={1}
+          preset={preset}
+          onAssign={mockOnAssign}
+          onClear={mockOnClear}
+          onPlay={mockOnPlay}
+        />
+      );
+
+      // Safe default: cloud-dependent when we can't determine the real URL
+      expect(
+        screen.queryByRole("img", { name: /Cloud-abhängig/i })
+      ).toBeInTheDocument();
+    });
+
+    it("TUNEIN source is always cloud-dependent (not affected by BUG-33 fix)", () => {
+      const preset: Preset = {
+        station_name: "TuneIn Station",
+        source: "TUNEIN",
+        station_url: "http://shoutcast.example.com/stream.mp3",
+      };
+
+      render(
+        <PresetButton
+          number={1}
+          preset={preset}
+          onAssign={mockOnAssign}
+          onClear={mockOnClear}
+          onPlay={mockOnPlay}
+        />
+      );
+
+      expect(
+        screen.queryByRole("img", { name: /Cloud-abhängig/i })
+      ).toBeInTheDocument();
+    });
+
+    it("LOCAL_INTERNET_RADIO source is always cloud-independent", () => {
+      const preset: Preset = {
+        station_name: "OCT Local Station",
+        source: "LOCAL_INTERNET_RADIO",
+        station_url: "http://192.168.1.50/stream/radio.m3u",
+      };
+
+      render(
+        <PresetButton
+          number={1}
+          preset={preset}
+          onAssign={mockOnAssign}
+          onClear={mockOnClear}
+          onPlay={mockOnPlay}
+        />
+      );
+
+      expect(
+        screen.queryByRole("img", { name: /Kompatibel nach Cloud-Abschaltung/i })
+      ).toBeInTheDocument();
+    });
+  });
+
 });

@@ -81,13 +81,14 @@ export default function DeviceSwiper({
   };
 
   return (
-    <div className="device-swiper">
+    <div className="device-swiper" data-test="device-swiper">
       {/* Navigation Arrows */}
       <button
         className="swipe-arrow swipe-arrow-left"
         onClick={goToPrevious}
         disabled={currentIndex === 0}
-        aria-label="Previous device"
+        aria-label="Vorheriges Gerät"
+        data-test="device-prev"
       >
         <span>‹</span>
       </button>
@@ -96,7 +97,8 @@ export default function DeviceSwiper({
         className="swipe-arrow swipe-arrow-right"
         onClick={goToNext}
         disabled={currentIndex === devices.length - 1}
-        aria-label="Next device"
+        aria-label="Nächstes Gerät"
+        data-test="device-next"
       >
         <span>›</span>
       </button>

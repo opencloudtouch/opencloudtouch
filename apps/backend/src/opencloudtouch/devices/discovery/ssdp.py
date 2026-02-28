@@ -10,6 +10,7 @@ Bose SoundTouch devices announce themselves via SSDP on port 1900.
 import asyncio
 import logging
 import socket
+import time
 from typing import Dict, Optional
 from xml.etree.ElementTree import Element
 
@@ -30,7 +31,7 @@ class SSDPDiscovery:
     SSDP_MULTICAST_ADDR = "239.255.255.250"
     SSDP_PORT = 1900
     SEARCH_TARGET = "ssdp:all"  # Broad search, filter by manufacturer later
-    MX_DELAY = 3  # Max delay for device responses (seconds)
+    MX_DELAY = 2  # Max delay for device responses (seconds)
 
     def __init__(self, timeout: int = 10):
         """
@@ -94,7 +95,12 @@ class SSDPDiscovery:
         # Bind to SSDP port to receive responses
         sock.bind(("", self.SSDP_PORT))
 
-        sock.settimeout(self.timeout)
+        # Wall-clock deadline: ensures loop exits after exactly self.timeout seconds
+        # regardless of continuous data flow from many UPnP devices.
+        # socket.settimeout alone is NOT sufficient: it only catches silence gaps,
+        # but in networks with 40+ UPnP devices, data flows continuously and
+        # the loop never exits.
+        deadline = time.monotonic() + self.timeout
 
         # M-SEARCH message
         msg = (
@@ -117,8 +123,11 @@ class SSDPDiscovery:
                 logger.error(f"Failed to send SSDP M-SEARCH: {e}")
                 return []
 
-            # Collect responses
-            while True:
+            # Collect responses until wall-clock deadline
+            # Short polling intervals (0.1s) so we check deadline frequently
+            while time.monotonic() < deadline:
+                remaining = deadline - time.monotonic()
+                sock.settimeout(min(remaining, 0.1))  # poll every 100ms max
                 try:
                     data, addr = sock.recvfrom(8192)
                     response = data.decode("utf-8", errors="ignore")
@@ -130,7 +139,7 @@ class SSDPDiscovery:
                         logger.debug(f"Found SSDP device at {location}")
 
                 except socket.timeout:
-                    break
+                    continue  # Check deadline again
                 except Exception as e:
                     logger.debug(f"Error receiving SSDP response: {e}")
                     break
@@ -170,13 +179,33 @@ class SSDPDiscovery:
         """
         devices = {}
 
+        # Pre-filter: Only fetch Bose SoundTouch device URLs
+        # Bose devices use port 8091 and have characteristic BO5EBO5E UUID pattern
+        # This avoids fetching XMLs from non-Bose devices (routers, printers, etc.)
+        bose_locations = [
+            loc for loc in locations if ":8091/" in loc and "BO5EBO5E" in loc
+        ]
+
+        if not bose_locations:
+            logger.info(
+                f"No Bose device URLs found in {len(locations)} SSDP response(s)"
+            )
+            return {}
+
+        logger.info(
+            f"Pre-filtered to {len(bose_locations)} Bose device(s) "
+            f"from {len(locations)} total SSDP response(s)"
+        )
+
         # Use higher connection limit to parallelize more aggressively
         # Reduce timeout from 5s to 2s (non-Bose devices don't need to be slow)
         async with httpx.AsyncClient(
             timeout=2.0,
             limits=httpx.Limits(max_connections=200, max_keepalive_connections=50),
         ) as client:
-            tasks = [self._fetch_and_parse_device(client, loc) for loc in locations]
+            tasks = [
+                self._fetch_and_parse_device(client, loc) for loc in bose_locations
+            ]
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
             for result in results:

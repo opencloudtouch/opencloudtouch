@@ -12,14 +12,102 @@
   text-align: center;
 }
 
+/* Reboot Section */
+.reboot-section {
+  background: rgba(255, 152, 0, 0.08);
+  border: 2px solid #ff9800;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.reboot-header {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.reboot-icon {
+  font-size: 1.75rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.reboot-header strong {
+  display: block;
+  font-size: 1rem;
+  color: #ffb74d;
+  margin-bottom: 0.25rem;
+}
+
+.reboot-hint {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #aaa);
+  margin: 0;
+}
+
+.reboot-btn {
+  align-self: flex-start;
+  background: #ff9800;
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  padding: 0.6rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.reboot-btn:hover {
+  background: #fb8c00;
+}
+
+.reboot-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  padding: 0.5rem 0;
+}
+
+.reboot-status--progress {
+  color: #ffb74d;
+}
+.reboot-status--waiting {
+  color: #ffd54f;
+}
+.reboot-status--done {
+  color: #81c784;
+}
+.reboot-status--error {
+  color: var(--color-danger, #ef5350);
+  flex-wrap: wrap;
+}
+
+.reboot-countdown {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #ffd54f;
+  min-width: 3.5ch;
+  text-align: right;
+}
+
+.reboot-retry {
+  margin-left: auto;
+}
+
 /* Start Section */
 .verification-start {
   text-align: center;
 }
 
 .verification-info {
-  background: #e3f2fd;
-  border: 1px solid #2196f3;
+  background: rgba(33, 150, 243, 0.1);
+  border: 2px solid #2196f3;
   border-radius: 8px;
   padding: 2rem;
   margin-bottom: 2rem;
@@ -36,19 +124,20 @@
 .info-content h3 {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #0d47a1;
+  color: #64b5f6;
   margin: 0 0 1rem;
 }
 
 .info-content ul {
   margin: 0;
   padding-left: 1.5rem;
-  color: #1565c0;
+  color: #90caf9;
 }
 
 .info-content li {
   margin-bottom: 0.5rem;
   line-height: 1.6;
+  font-weight: 500;
 }
 
 .verification-test-btn {
@@ -71,7 +160,7 @@
 
 /* Test Item */
 .verification-test-item {
-  background: var(--surface-color);
+  background: var(--color-bg-card, #2a2a2a);
   border: 2px solid var(--border-color);
   border-radius: 8px;
   padding: 1.5rem;
@@ -79,13 +168,13 @@
 }
 
 .verification-test-item.success {
-  border-color: #4caf50;
-  background: rgba(76, 175, 80, 0.05);
+  border-color: #66bb6a;
+  background: rgba(76, 175, 80, 0.1);
 }
 
 .verification-test-item.failed {
-  border-color: #f44336;
-  background: rgba(244, 67, 54, 0.05);
+  border-color: #ef5350;
+  background: rgba(244, 67, 54, 0.1);
 }
 
 .test-item-header {
@@ -108,20 +197,21 @@
   display: block;
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary, #e0e0e0);
   font-family: "Courier New", monospace;
 }
 
 .test-item-description {
   display: block;
   font-size: 0.875rem;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #b0b0b0);
   margin-top: 0.25rem;
+  font-weight: 500;
 }
 
 /* Test Details */
 .test-item-details {
-  background: white;
+  background: var(--color-bg-card, #2a2a2a);
   border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 1rem;
@@ -143,16 +233,17 @@
 .test-detail-label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #b0b0b0);
 }
 
 .test-detail-value {
   font-family: "Courier New", monospace;
   font-size: 0.875rem;
-  color: var(--text-primary);
-  background: #f5f5f5;
+  color: var(--text-primary, #e0e0e0);
+  background: rgba(0, 0, 0, 0.3);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
+  font-weight: 500;
 }
 
 .test-detail-status {
@@ -163,31 +254,34 @@
 }
 
 .test-detail-status.match {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: rgba(76, 175, 80, 0.2);
+  color: #81c784;
 }
 
 .test-detail-status.mismatch {
-  background: #ffebee;
-  color: #c62828;
+  background: rgba(244, 67, 54, 0.2);
+  color: #ef5350;
 }
 
 .test-item-message {
   padding: 0.75rem;
-  background: #f5f5f5;
+  background: rgba(244, 67, 54, 0.15);
+  border: 1px solid rgba(244, 67, 54, 0.3);
   border-radius: 6px;
 }
 
 .test-item-message small {
   font-size: 0.875rem;
-  color: var(--text-secondary);
+  color: #ffcdd2;
+  font-weight: 500;
+  line-height: 1.5;
 }
 
 /* Overall Success */
 .verification-success {
   text-align: center;
-  background: #e8f5e9;
-  border: 2px solid #4caf50;
+  background: rgba(76, 175, 80, 0.1);
+  border: 2px solid #66bb6a;
   border-radius: 8px;
   padding: 2rem;
 }
@@ -200,21 +294,22 @@
 .verification-success .success-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #2e7d32;
+  color: #81c784;
   margin: 0.5rem 0;
 }
 
 .verification-success .success-message {
   font-size: 1rem;
-  color: #388e3c;
+  color: #a5d6a7;
   line-height: 1.6;
   margin: 0;
+  font-weight: 500;
 }
 
 /* Overall Failed */
 .verification-failed {
-  background: #fff3cd;
-  border: 2px solid #ffc107;
+  background: rgba(255, 152, 0, 0.1);
+  border: 2px solid #ff9800;
   border-radius: 8px;
   padding: 2rem;
 }
@@ -228,22 +323,24 @@
 .failed-title {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #856404;
+  color: #ffb74d;
   margin: 0.5rem 0;
   text-align: center;
 }
 
 .failed-message {
   font-size: 1rem;
-  color: #856404;
+  color: #ffcc80;
   line-height: 1.6;
   margin-bottom: 1rem;
+  font-weight: 500;
 }
 
 .failed-steps {
   margin: 1rem 0;
   padding-left: 1.5rem;
-  color: #856404;
+  color: #ffe0b2;
+  font-weight: 500;
 }
 
 .failed-steps li {

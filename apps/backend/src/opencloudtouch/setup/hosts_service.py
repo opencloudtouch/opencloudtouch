@@ -4,6 +4,7 @@ Hosts file service for SoundTouch devices.
 Handles modification and restoration of /etc/hosts file.
 """
 
+import base64
 import logging
 from dataclasses import dataclass
 from typing import List
@@ -36,12 +37,22 @@ class SoundTouchHostsService:
 
     HOSTS_PATH = "/etc/hosts"
     BACKUP_DIR = "/usb/backups"
+    OCT_MARKER_START = "# OCT-START"
+    OCT_MARKER_END = "# OCT-END"
 
-    # Bose domains to redirect to OCT
+    # Critical vTuner domains for Internet Radio
+    VTUNER_HOSTS = [
+        "bose.vtuner.com",
+        "bose2.vtuner.com",
+        "primary5.vtuner.com",
+        "primary6.vtuner.com",
+    ]
+
+    # Bose cloud domains for streaming / account services
     REQUIRED_HOSTS = [
+        "streaming.bose.com",
         "bmx.bose.com",
         "api.bosesoundtouch.com",
-        "streaming.bose.com",
     ]
 
     OPTIONAL_HOSTS = [
@@ -60,11 +71,30 @@ class SoundTouchHostsService:
         self.ssh = ssh
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
+    async def _remount_rw(self) -> None:
+        """Remount root filesystem read-write before writing."""
+        result = await self.ssh.execute("mount -o remount,rw /")
+        if result.exit_code != 0:
+            self.logger.warning(
+                f"remount rw returned exit_code={result.exit_code}: {result.stderr}"
+            )
+
+    async def _remount_ro(self) -> None:
+        """Remount root filesystem read-only after writing."""
+        result = await self.ssh.execute("mount -o remount,ro /")
+        if result.exit_code != 0:
+            self.logger.warning(
+                f"remount ro returned exit_code={result.exit_code}: {result.stderr}"
+            )
+
     async def modify_hosts(
         self, oct_ip: str, include_optional: bool = True
     ) -> ModifyResult:
         """
         Modify /etc/hosts to redirect Bose domains to OCT.
+
+        Write protocol: remount rw → write → remount ro (in finally block).
+        Uses base64 piping for atomic write to avoid shell-escape issues.
 
         Args:
             oct_ip: OCT server IP address
@@ -79,29 +109,93 @@ class SoundTouchHostsService:
         )
 
         try:
-            # TODO: Implement actual hosts modification
-            # 1. Download current hosts file
-            # 2. Backup original
-            # 3. Add OCT redirects
-            # 4. Upload modified hosts
-            # 5. Generate diff
+            await self._remount_rw()
+            try:
+                # 1. Read current hosts
+                read_result = await self.ssh.execute(f"cat {self.HOSTS_PATH}")
+                if not read_result.success:
+                    raise RuntimeError(f"Cannot read hosts file: {read_result.error}")
+                original_content = read_result.output or ""
 
-            hosts_to_add = self.REQUIRED_HOSTS[:]
-            if include_optional:
-                hosts_to_add.extend(self.OPTIONAL_HOSTS)
+                # 2. Backup original (only once — don't overwrite an existing backup)
+                backup_path = f"{self.BACKUP_DIR}/hosts_backup"
+                check = await self.ssh.execute(
+                    f"test -f {backup_path} && echo 'exists' || echo 'missing'"
+                )
+                if "missing" in (check.output or ""):
+                    backup_result = await self.ssh.execute(
+                        f"cp {self.HOSTS_PATH} {backup_path}"
+                    )
+                    if not backup_result.success:
+                        self.logger.warning(
+                            f"Backup may have failed: {backup_result.error}"
+                        )
 
-            backup_path = f"{self.BACKUP_DIR}/hosts_backup"
-            diff_lines = [f"+ {oct_ip} {host}" for host in hosts_to_add]
-            diff = "\n".join(diff_lines)
+                # 3. Build clean baseline: strip any previous OCT block and
+                #    any bare Bose-domain entries (old format without markers)
+                all_bose_domains = (
+                    self.VTUNER_HOSTS + self.REQUIRED_HOSTS + self.OPTIONAL_HOSTS
+                )
+                clean_lines: list[str] = []
+                in_oct_block = False
+                for line in original_content.splitlines():
+                    if self.OCT_MARKER_START in line:
+                        in_oct_block = True
+                        continue
+                    if self.OCT_MARKER_END in line:
+                        in_oct_block = False
+                        continue
+                    if in_oct_block:
+                        continue
+                    # Drop bare entries from old OCT installs (no marker)
+                    parts = line.split()
+                    if len(parts) >= 2 and any(d in parts for d in all_bose_domains):
+                        continue
+                    clean_lines.append(line)
 
-            self.logger.info(
-                f"Hosts modified successfully ({len(hosts_to_add)} entries)"
-            )
-            return ModifyResult(
-                success=True,
-                backup_path=backup_path,
-                diff=diff,
-            )
+                # 4. Build new OCT block
+                domains_to_add = self.VTUNER_HOSTS + self.REQUIRED_HOSTS
+                if include_optional:
+                    domains_to_add = domains_to_add + self.OPTIONAL_HOSTS
+
+                oct_lines = [self.OCT_MARKER_START]
+                for domain in domains_to_add:
+                    oct_lines.append(f"{oct_ip}\t{domain}\t# OpenCloudTouch redirect")
+                oct_lines.append(self.OCT_MARKER_END)
+
+                # Strip trailing blank lines from baseline and assemble
+                while clean_lines and clean_lines[-1].strip() == "":
+                    clean_lines.pop()
+                new_content = (
+                    "\n".join(clean_lines) + "\n\n" + "\n".join(oct_lines) + "\n"
+                )
+
+                # 5. Atomic write via base64 (avoids shell escaping issues on BusyBox)
+                b64 = base64.b64encode(new_content.encode()).decode()
+                write_cmd = (
+                    f"echo '{b64}' | base64 -d > /tmp/hosts.new && "
+                    f"mv /tmp/hosts.new {self.HOSTS_PATH}"
+                )
+                write_result = await self.ssh.execute(write_cmd)
+                if not write_result.success:
+                    raise RuntimeError(
+                        f"Failed to write hosts file: {write_result.error or write_result.output}"
+                    )
+
+                # 6. Build diff summary for UI
+                diff_lines = [f"+ {oct_ip}\t{d}" for d in domains_to_add]
+                diff = "\n".join(diff_lines)
+
+                self.logger.info(
+                    f"Hosts modified successfully ({len(domains_to_add)} entries)"
+                )
+                return ModifyResult(
+                    success=True,
+                    backup_path=backup_path,
+                    diff=diff,
+                )
+            finally:
+                await self._remount_ro()
 
         except Exception as e:
             self.logger.error(f"Hosts modification failed: {e}")

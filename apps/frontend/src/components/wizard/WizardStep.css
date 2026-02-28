@@ -41,7 +41,7 @@
 
 /* Warning Banner */
 .wizard-warning {
-  background: #fff3cd;
+  background: rgba(255, 193, 7, 0.1);
   border: 1px solid #ffc107;
   border-radius: 8px;
   padding: 1rem;
@@ -57,7 +57,7 @@
 }
 
 .wizard-warning-text {
-  color: #856404;
+  color: var(--text-primary);
   font-weight: 500;
   line-height: 1.5;
 }
@@ -143,4 +143,63 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Button Styles for Wizard */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-primary {
+  background: var(--primary-color, #4a90d9);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #5aa0e9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(74, 144, 217, 0.3);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  background: rgba(74, 144, 217, 0.4);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 2px solid var(--border-color, #444);
+  color: var(--text-primary, #e0e0e0);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--text-secondary, #888);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
 }

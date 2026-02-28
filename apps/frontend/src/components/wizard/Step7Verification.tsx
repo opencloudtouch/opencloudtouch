@@ -1,13 +1,13 @@
 /**
  * Step 7: Verification & Test
  */
-import { useState } from "react";
-import { verifyRedirect } from "../../api/wizard";
+import { useState, useEffect, useRef } from "react";
+import { verifyRedirect, rebootDevice } from "../../api/wizard";
 import WizardStep from "./WizardStep";
 import "./Step7Verification.css";
 
 interface Step7Props {
-  deviceId: string;
+  deviceIp: string;
   deviceName: string;
   octIp: string;
   onNext: () => void;
@@ -28,7 +28,7 @@ interface TestResult {
 }
 
 export default function Step7Verification({
-  deviceId,
+  deviceIp,
   // deviceName,
   octIp,
   onNext,
@@ -37,6 +37,42 @@ export default function Step7Verification({
   const [testing, setTesting] = useState(false);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [allTestsPassed, setAllTestsPassed] = useState(false);
+
+  type RebootState = "idle" | "rebooting" | "waiting" | "done" | "error";
+  const [rebootState, setRebootState] = useState<RebootState>("idle");
+  const [rebootCountdown, setRebootCountdown] = useState(0);
+  const [rebootError, setRebootError] = useState("");
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, []);
+
+  const handleReboot = async () => {
+    setRebootState("rebooting");
+    setRebootError("");
+    try {
+      await rebootDevice({ ip: deviceIp });
+      setRebootState("waiting");
+      setRebootCountdown(60);
+      countdownRef.current = setInterval(() => {
+        setRebootCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownRef.current!);
+            setRebootState("done");
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unbekannter Fehler";
+      setRebootError(msg);
+      setRebootState("error");
+    }
+  };
 
   const handleRunTests = async () => {
     setTesting(true);
@@ -48,7 +84,7 @@ export default function Step7Verification({
     for (const { domain } of TEST_DOMAINS) {
       try {
         const result = await verifyRedirect({
-          device_id: deviceId,
+          device_ip: deviceIp,
           domain,
           expected_ip: octIp,
         });
@@ -88,6 +124,55 @@ export default function Step7Verification({
       isNextDisabled={!allTestsPassed}
     >
       <div className="verification">
+        {/* Reboot Section */}
+        <div className="reboot-section">
+          <div className="reboot-header">
+            <span className="reboot-icon">🔄</span>
+            <div>
+              <strong>Geräte-Neustart</strong>
+              <p className="reboot-hint">
+                Die /etc/hosts-Änderungen werden erst nach einem Neustart wirksam. Starten Sie das
+                Gerät neu, bevor Sie die Tests ausführen.
+              </p>
+            </div>
+          </div>
+
+          {rebootState === "idle" && (
+            <button className="btn btn-warning reboot-btn" onClick={handleReboot}>
+              🔄 Gerät jetzt neu starten
+            </button>
+          )}
+
+          {rebootState === "rebooting" && (
+            <div className="reboot-status reboot-status--progress">
+              <span className="spinner-small" />
+              Neustart-Befehl wird gesendet...
+            </div>
+          )}
+
+          {rebootState === "waiting" && (
+            <div className="reboot-status reboot-status--waiting">
+              <span className="reboot-countdown">{rebootCountdown}s</span>
+              Gerät startet neu – bitte warten...
+            </div>
+          )}
+
+          {rebootState === "done" && (
+            <div className="reboot-status reboot-status--done">
+              ✅ Neustart abgeschlossen – Gerät sollte wieder erreichbar sein.
+            </div>
+          )}
+
+          {rebootState === "error" && (
+            <div className="reboot-status reboot-status--error">
+              ❌ {rebootError}
+              <button className="btn btn-secondary reboot-retry" onClick={handleReboot}>
+                Erneut versuchen
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Test Button */}
         {testResults.length === 0 && (
           <div className="verification-start">

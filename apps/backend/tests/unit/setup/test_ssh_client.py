@@ -4,6 +4,7 @@ Tests for SoundTouchSSHClient, SoundTouchTelnetClient, and connection helpers.
 Following TDD Red-Green-Refactor cycle.
 """
 
+import sys
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -111,8 +112,7 @@ class TestSoundTouchSSHClient:
 
     @pytest.mark.asyncio
     async def test_context_manager(self, ssh_client):
-        """Test async context manager protocol."""
-        # Mock the connect method
+        """Test async context manager protocol on successful connect."""
         ssh_client.connect = AsyncMock(return_value=SSHConnectionResult(success=True))
         ssh_client.close = AsyncMock()
 
@@ -120,6 +120,22 @@ class TestSoundTouchSSHClient:
             ssh_client.connect.assert_called_once()
 
         ssh_client.close.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_context_manager_raises_on_failed_connect(self, ssh_client):
+        """__aenter__ must raise ConnectionError when SSH connect fails.
+
+        Previously __aenter__ silently swallowed the error and callers got
+        'Not connected. Call connect() first.' on every execute() call.
+        """
+        ssh_client.connect = AsyncMock(
+            return_value=SSHConnectionResult(success=False, error="Connection refused")
+        )
+        ssh_client.close = AsyncMock()
+
+        with pytest.raises(ConnectionError, match="Connection refused"):
+            async with ssh_client:
+                pass  # should not reach here
 
     @pytest.mark.asyncio
     async def test_connect_with_legacy_ciphers(self, ssh_client):
@@ -387,20 +403,27 @@ class TestConnectionHelpers:
 
     @pytest.mark.asyncio
     async def test_ssh_connection_success(self):
-        """Test SSH connection test with open port."""
-        mock_writer = MagicMock()
-        mock_writer.close = MagicMock()
-        mock_writer.wait_closed = AsyncMock()
+        """Test SSH connection check with successful asyncssh handshake."""
+        mock_conn = MagicMock()
+        mock_conn.close = MagicMock()
 
-        with patch("asyncio.wait_for") as mock_wait:
-            mock_wait.return_value = (MagicMock(), mock_writer)
+        # Inject a mock asyncssh module into sys.modules because asyncssh is
+        # an optional dependency that may not be installed in the test environment.
+        # check_ssh_port does `import asyncssh` inside and uses the module-level
+        # asyncssh.connect, so we must mock the full module.
+        mock_asyncssh = MagicMock()
+        mock_asyncssh.connect = AsyncMock(return_value=mock_conn)
+        mock_asyncssh.Error = Exception  # needed for except clause in check_ssh_port
+
+        with patch.dict(sys.modules, {"asyncssh": mock_asyncssh}):
             result = await check_ssh_port("192.168.1.100")
-            assert result is True
-            mock_writer.close.assert_called_once()
+
+        assert result is True
+        mock_conn.close.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_ssh_connection_timeout(self):
-        """Test SSH connection test with timeout."""
+        """Test SSH connection check with timeout."""
         with patch("asyncio.wait_for") as mock_wait:
             mock_wait.side_effect = asyncio.TimeoutError()
             result = await check_ssh_port("192.168.1.100")
@@ -408,7 +431,7 @@ class TestConnectionHelpers:
 
     @pytest.mark.asyncio
     async def test_ssh_connection_refused(self):
-        """Test SSH connection test with refused connection."""
+        """Test SSH connection check with refused connection."""
         with patch("asyncio.wait_for") as mock_wait:
             mock_wait.side_effect = ConnectionRefusedError()
             result = await check_ssh_port("192.168.1.100")

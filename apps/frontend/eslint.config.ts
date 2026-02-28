@@ -71,5 +71,18 @@ export default [
       }
     }
   },
-  ...tseslint.configs.recommended
+  ...tseslint.configs.recommended,
+  // Override: allow intentionally-unused variables prefixed with _ (TypeScript convention)
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          varsIgnorePattern: "^_",
+          argsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_"
+        }
+      ]
+    }
+  }
 ];

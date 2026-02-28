@@ -8,6 +8,7 @@ import "./Step5ConfigModification.css";
 
 interface Step5Props {
   deviceId: string;
+  deviceIp: string;
   deviceName: string;
   octUrl: string;
   onNext: () => void;
@@ -16,7 +17,8 @@ interface Step5Props {
 }
 
 export default function Step5ConfigModification({
-  deviceId,
+  deviceId: _deviceId,
+  deviceIp,
   // deviceName,
   octUrl,
   onNext,
@@ -35,8 +37,8 @@ export default function Step5ConfigModification({
 
     try {
       const result = await modifyConfig({
-        device_id: deviceId,
-        oct_url: customUrl,
+        device_ip: deviceIp,
+        oct_ip: customUrl,
       });
 
       setModifyData(result);

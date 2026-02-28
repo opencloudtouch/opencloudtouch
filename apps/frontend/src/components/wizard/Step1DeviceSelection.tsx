@@ -63,7 +63,7 @@ export default function Step1DeviceSelection({
               )}
 
               <div className="device-card-image">
-                {device.model_number?.startsWith("ST10") ? "🔊" : "📻"}
+                {device.model?.startsWith("ST10") ? "🔊" : "📻"}
               </div>
 
               <h3 className="device-card-name">{device.name}</h3>
@@ -71,15 +71,15 @@ export default function Step1DeviceSelection({
               <div className="device-card-details">
                 <div className="device-detail-row">
                   <span className="device-detail-label">Modell:</span>
-                  <span className="device-detail-value">{device.model_number || "Unbekannt"}</span>
+                  <span className="device-detail-value">{device.model || "Unbekannt"}</span>
                 </div>
                 <div className="device-detail-row">
                   <span className="device-detail-label">IP:</span>
-                  <span className="device-detail-value">{device.ip_address}</span>
+                  <span className="device-detail-value">{device.ip || "N/A"}</span>
                 </div>
                 <div className="device-detail-row">
-                  <span className="device-detail-label">MAC:</span>
-                  <span className="device-detail-value">{device.mac_address || "N/A"}</span>
+                  <span className="device-detail-label">Firmware:</span>
+                  <span className="device-detail-value">{device.firmware || "N/A"}</span>
                 </div>
               </div>
             </div>
@@ -91,10 +91,14 @@ export default function Step1DeviceSelection({
         <div className="device-selection-info">
           <div className="info-icon">ℹ️</div>
           <div className="info-content">
-            <strong>Ausgewählt:</strong> {selectedDevice.name} ({selectedDevice.model_number})
+            <strong>Ausgewählt:</strong> {selectedDevice.name} (
+            {selectedDevice.model || "SoundTouch"})
             <br />
             <small>
-              USB-Port: {selectedDevice.model_number?.startsWith("ST10") ? "Micro USB" : "USB-A"}
+              USB-Port:{" "}
+              {/ST\s*30|SoundTouch\s*30|ST\s*300|SoundTouch\s*300/i.test(selectedDevice.model ?? "")
+                ? "USB-A"
+                : "Micro-USB"}
             </small>
           </div>
         </div>

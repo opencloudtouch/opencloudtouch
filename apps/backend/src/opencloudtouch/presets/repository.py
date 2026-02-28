@@ -26,11 +26,20 @@ class PresetRepository(BaseRepository):
                 station_url TEXT NOT NULL,
                 station_homepage TEXT,
                 station_favicon TEXT,
+                source TEXT,
                 created_at TIMESTAMP NOT NULL,
                 updated_at TIMESTAMP NOT NULL,
                 UNIQUE(device_id, preset_number)
             )
         """)
+
+        # Migration: Add source column if it doesn't exist (added in v0.3)
+        try:
+            await self._db.execute("SELECT source FROM presets LIMIT 1")
+        except Exception:
+            logger.info("Migrating presets table: Adding source column")
+            await self._db.execute("ALTER TABLE presets ADD COLUMN source TEXT")
+            await self._db.commit()
 
         await self._db.execute("""
             CREATE INDEX IF NOT EXISTS idx_presets_device_id ON presets(device_id)
@@ -62,15 +71,16 @@ class PresetRepository(BaseRepository):
             """
             INSERT INTO presets (
                 device_id, preset_number, station_uuid, station_name, station_url,
-                station_homepage, station_favicon, created_at, updated_at
+                station_homepage, station_favicon, source, created_at, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(device_id, preset_number) DO UPDATE SET
                 station_uuid = excluded.station_uuid,
                 station_name = excluded.station_name,
                 station_url = excluded.station_url,
                 station_homepage = excluded.station_homepage,
                 station_favicon = excluded.station_favicon,
+                source = excluded.source,
                 updated_at = excluded.updated_at
             RETURNING id
         """,
@@ -82,6 +92,7 @@ class PresetRepository(BaseRepository):
                 preset.station_url,
                 preset.station_homepage,
                 preset.station_favicon,
+                preset.source,
                 preset.created_at,
                 preset.updated_at,
             ),
@@ -117,7 +128,7 @@ class PresetRepository(BaseRepository):
         cursor = await db.execute(
             """
             SELECT id, device_id, preset_number, station_uuid, station_name,
-                   station_url, station_homepage, station_favicon,
+                   station_url, station_homepage, station_favicon, source,
                    created_at, updated_at
             FROM presets
             WHERE device_id = ? AND preset_number = ?
@@ -139,8 +150,9 @@ class PresetRepository(BaseRepository):
             station_url=row[5],
             station_homepage=row[6],
             station_favicon=row[7],
-            created_at=datetime.fromisoformat(row[8]) if row[8] else None,
-            updated_at=datetime.fromisoformat(row[9]) if row[9] else None,
+            source=row[8],
+            created_at=datetime.fromisoformat(row[9]) if row[9] else None,
+            updated_at=datetime.fromisoformat(row[10]) if row[10] else None,
         )
 
     async def get_all_presets(self, device_id: str) -> List[Preset]:
@@ -161,7 +173,7 @@ class PresetRepository(BaseRepository):
         cursor = await db.execute(
             """
             SELECT id, device_id, preset_number, station_uuid, station_name,
-                   station_url, station_homepage, station_favicon,
+                   station_url, station_homepage, station_favicon, source,
                    created_at, updated_at
             FROM presets
             WHERE device_id = ?
@@ -182,8 +194,9 @@ class PresetRepository(BaseRepository):
                 station_url=row[5],
                 station_homepage=row[6],
                 station_favicon=row[7],
-                created_at=datetime.fromisoformat(row[8]) if row[8] else None,
-                updated_at=datetime.fromisoformat(row[9]) if row[9] else None,
+                source=row[8],
+                created_at=datetime.fromisoformat(row[9]) if row[9] else None,
+                updated_at=datetime.fromisoformat(row[10]) if row[10] else None,
             )
             for row in rows
         ]

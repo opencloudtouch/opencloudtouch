@@ -8,6 +8,7 @@ import "./Step6HostsModification.css";
 
 interface Step6Props {
   deviceId: string;
+  deviceIp: string;
   deviceName: string;
   octIp: string;
   onNext: () => void;
@@ -15,11 +16,20 @@ interface Step6Props {
   onHostsModified: (data: ModifyHostsResponse) => void;
 }
 
-const REQUIRED_DOMAINS = ["bose.vtuner.com", "streaming.bose.com"];
-const OPTIONAL_DOMAINS = ["content.api.bose.io", "api.bosebuild.com", "firmware.bose.com"];
+const REQUIRED_DOMAINS = [
+  "bose.vtuner.com",
+  "bose2.vtuner.com",
+  "primary5.vtuner.com",
+  "primary6.vtuner.com",
+  "streaming.bose.com",
+  "bmx.bose.com",
+  "api.bosesoundtouch.com",
+];
+const OPTIONAL_DOMAINS = ["update.bose.com", "analytics.bose.com", "telemetry.bose.com"];
 
 export default function Step6HostsModification({
-  deviceId,
+  deviceId: _deviceId,
+  deviceIp,
   // deviceName,
   octIp,
   onNext,
@@ -47,9 +57,9 @@ export default function Step6HostsModification({
 
     try {
       const result = await modifyHosts({
-        device_id: deviceId,
+        device_ip: deviceIp,
         oct_ip: customIp,
-        domains: selectedDomains,
+        include_optional: selectedDomains.some((d) => OPTIONAL_DOMAINS.includes(d)),
       });
 
       setModifyData(result);

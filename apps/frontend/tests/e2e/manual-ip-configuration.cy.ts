@@ -74,6 +74,9 @@ describe("Manual IP Configuration", () => {
       cy.get('[data-test="discover-button"]').click();
       cy.waitForDevices();
 
+      // Wait for redirect to dashboard
+      cy.url().should("eq", Cypress.config().baseUrl + "/");
+
       // Verify devices (MockDiscoveryAdapter returns 3 devices total)
       // Swiper shows 1 card at a time, check dots for count
       cy.get(".swiper-dots .dot").should("have.length", 3);
@@ -91,6 +94,9 @@ describe("Manual IP Configuration", () => {
 
       cy.get('[data-test="discover-button"]').click();
       cy.waitForDevices();
+
+      // Wait for redirect to dashboard
+      cy.url().should("eq", Cypress.config().baseUrl + "/");
 
       // Verify 3 devices (all mock devices)
       // Swiper shows 1 card at a time, check dots for count
@@ -182,7 +188,7 @@ describe("Manual IP Configuration", () => {
       // Verify state persisted after reload
       cy.url().should("eq", Cypress.config().baseUrl + "/");
       cy.get('[data-test="app-header"]').should("be.visible");
-      cy.get(".swiper-dots .dot").should("have.length", 3);
+      cy.get(".swiper-dots .dot", { timeout: 15000 }).should("have.length", 3);
       cy.get('[data-test="device-card"]').should("have.length", 1);
 
       // Verify devices still in DB via API

@@ -165,7 +165,11 @@ class SoundTouchSSHClient:
             logger.info(f"SSH connection to {self.host} closed")
 
     async def __aenter__(self):
-        await self.connect()
+        result = await self.connect()
+        if not result.success:
+            raise ConnectionError(
+                f"SSH connection to {self.host} failed: {result.error}"
+            )
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -272,18 +276,53 @@ class SoundTouchTelnetClient:
 
 async def check_ssh_port(host: str, timeout: float = 5.0) -> bool:
     """
-    Quick check if SSH port is open on device.
+    Check if SSH is actually accessible on the device.
 
-    Returns True if port 22 is reachable.
+    Performs a real SSH handshake with legacy algorithms required by
+    SoundTouch devices. Returns True only if authentication-level
+    access is reached (not just TCP reachability).
     """
     try:
-        _, writer = await asyncio.wait_for(
-            asyncio.open_connection(host, 22), timeout=timeout
+        import asyncssh
+    except ImportError:
+        logger.warning("asyncssh not installed – falling back to TCP check")
+        try:
+            _, writer = await asyncio.wait_for(
+                asyncio.open_connection(host, 22), timeout=timeout
+            )
+            writer.close()
+            await writer.wait_closed()
+            return True
+        except (asyncio.TimeoutError, ConnectionRefusedError, OSError):
+            return False
+
+    try:
+        conn = await asyncio.wait_for(
+            asyncssh.connect(
+                host,
+                port=22,
+                username="root",
+                password="",
+                known_hosts=None,
+                server_host_key_algs=[
+                    "ssh-rsa",
+                    "rsa-sha2-512",
+                    "rsa-sha2-256",
+                    "ssh-dss",
+                ],
+                kex_algs=[
+                    "diffie-hellman-group1-sha1",
+                    "diffie-hellman-group14-sha1",
+                    "diffie-hellman-group-exchange-sha256",
+                    "ecdh-sha2-nistp256",
+                ],
+                encryption_algs=["aes128-cbc", "3des-cbc", "aes128-ctr", "aes256-ctr"],
+            ),
+            timeout=timeout,
         )
-        writer.close()
-        await writer.wait_closed()
+        conn.close()
         return True
-    except (asyncio.TimeoutError, ConnectionRefusedError, OSError):
+    except (asyncio.TimeoutError, ConnectionRefusedError, OSError, asyncssh.Error):
         return False
 
 

@@ -249,3 +249,129 @@ class TestPresetRepository:
         all_presets = await preset_repo.get_all_presets("device123")
         assert len(all_presets) == 1
         assert all_presets[0].station_uuid == "uuid2"
+
+
+# ---------------------------------------------------------------------------
+# BUG-34: Missing DB migration for 'source' column
+# ---------------------------------------------------------------------------
+
+
+class TestMigration:
+    """
+    BUG-34 Regression: Adding 'source' column to the Preset model was done
+    without a migration script for existing databases.
+
+    Symptom: existing installations got:
+      sqlite3.OperationalError: table presets has no column named source
+
+    Fix: _create_schema() runs ALTER TABLE IF NOT EXISTS analog (SELECT to detect).
+    """
+
+    @pytest.mark.asyncio
+    async def test_initialize_creates_source_column(self, preset_repo):
+        """New database must have source column from the start."""
+        # Verify source column exists by trying to use it
+        preset = Preset(
+            device_id="device_migration",
+            preset_number=1,
+            station_uuid="uuid-migration",
+            station_name="Migration Test",
+            station_url="http://migration.test/stream",
+            source="INTERNET_RADIO",
+        )
+        # Should not raise OperationalError
+        await preset_repo.set_preset(preset)
+
+        result = await preset_repo.get_preset("device_migration", 1)
+        assert result is not None
+        assert (
+            result.source == "INTERNET_RADIO"
+        ), "BUG-34: source field should be stored and retrieved correctly."
+
+    @pytest.mark.asyncio
+    async def test_adds_source_column_to_existing_db(self):
+        """
+        BUG-34: Existing databases (without source column) must be migrated.
+
+        Simulates the real-world scenario: old DB without source column,
+        new code that needs it.
+        """
+        import tempfile
+        import aiosqlite
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "legacy_presets.db"
+
+            # 1. Create old-style DB WITHOUT source column
+            async with aiosqlite.connect(str(db_path)) as db:
+                await db.execute("""
+                    CREATE TABLE presets (
+                        device_id TEXT NOT NULL,
+                        preset_number INTEGER NOT NULL,
+                        station_uuid TEXT,
+                        station_name TEXT NOT NULL,
+                        station_url TEXT NOT NULL,
+                        station_homepage TEXT,
+                        station_favicon TEXT,
+                        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (device_id, preset_number)
+                    )
+                """)
+                # Insert a row without source column
+                await db.execute(
+                    "INSERT INTO presets (device_id, preset_number, station_name, station_url) "
+                    "VALUES ('device1', 1, 'Old Station', 'http://old.radio/stream')"
+                )
+                await db.commit()
+
+            # 2. Initialize PresetRepository on the legacy DB (should auto-migrate)
+            repo = PresetRepository(str(db_path))
+            await repo.initialize()  # Must NOT raise OperationalError
+
+            # 3. Verify source column now exists by doing a raw SQL write/read
+            async with aiosqlite.connect(str(db_path)) as db:
+                # Get columns of the migrated table
+                cursor = await db.execute("PRAGMA table_info(presets)")
+                rows = await cursor.fetchall()
+                col_names = [row[1] for row in rows]
+                assert (
+                    "source" in col_names
+                ), f"BUG-34: After migration, 'source' column must exist. Columns: {col_names}"
+
+                # Write to source column via raw SQL (avoids the new schema's id column issue)
+                await db.execute(
+                    "UPDATE presets SET source = 'TUNEIN' "
+                    "WHERE device_id = 'device1' AND preset_number = 1"
+                )
+                await db.commit()
+
+                # Verify the update
+                cursor = await db.execute(
+                    "SELECT source FROM presets WHERE device_id = 'device1' AND preset_number = 1"
+                )
+                row = await cursor.fetchone()
+                assert row is not None, "Old row must still be present after migration"
+                assert (
+                    row[0] == "TUNEIN"
+                ), f"BUG-34: source column must be writable after migration. Got: {row[0]}"
+
+            await repo.close()
+
+    @pytest.mark.asyncio
+    async def test_source_field_can_be_none(self, preset_repo):
+        """source field is nullable (TEXT without NOT NULL)."""
+        preset = Preset(
+            device_id="device_null_source",
+            preset_number=1,
+            station_uuid="uuid-null",
+            station_name="Station Without Source",
+            station_url="http://nosource.radio/stream",
+            source=None,
+        )
+        await preset_repo.set_preset(preset)
+
+        result = await preset_repo.get_preset("device_null_source", 1)
+        assert result is not None
+        assert result.source is None, "source=None should be stored as NULL"
