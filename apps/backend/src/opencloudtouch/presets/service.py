@@ -174,7 +174,7 @@ class PresetService:
         if result:
             logger.info(f"Cleared preset {preset_number} for device {device_id}")
 
-        return result
+        return bool(result)
 
     async def clear_all_presets(self, device_id: str) -> int:
         """Clear all presets for a device.
@@ -350,7 +350,7 @@ class PresetService:
                 device_id=device_id,
                 preset_number=preset_number,
                 station_uuid=station_uuid,
-                station_name=station_name,
+                station_name=station_name or "Unknown",
                 station_url=station_url,
                 station_homepage=None,
                 station_favicon=None,

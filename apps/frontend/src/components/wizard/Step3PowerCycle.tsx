@@ -136,6 +136,7 @@ export default function Step3PowerCycle({
       return () => clearTimeout(timer);
     }
     return undefined; // Explicit return for other code paths
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkAttempts]);
 
   return (
@@ -433,9 +434,10 @@ export default function Step3PowerCycle({
               <div className="putty-step">
                 <span className="putty-step-num">4</span>
                 <span>
-                  <strong>Connection → SSH → Auth:</strong> "Allow attempted changes of username"
-                  aktivieren; unter <em>Host keys</em> → <code>rsa-sha2-256, rsa-sha2-512</code>{" "}
-                  entfernen, nur <code>ssh-rsa</code> belassen
+                  <strong>Connection → SSH → Auth:</strong> &quot;Allow attempted changes of
+                  username&quot; aktivieren; unter <em>Host keys</em> →{" "}
+                  <code>rsa-sha2-256, rsa-sha2-512</code> entfernen, nur <code>ssh-rsa</code>{" "}
+                  belassen
                 </span>
               </div>
               <div className="putty-step">

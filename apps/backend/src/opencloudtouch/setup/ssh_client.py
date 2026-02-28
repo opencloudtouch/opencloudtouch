@@ -37,6 +37,7 @@ class CommandResult:
     output: str = ""
     exit_code: int = -1
     error: Optional[str] = None
+    stderr: str = ""
 
 
 class SoundTouchSSHClient:
@@ -77,8 +78,9 @@ class SoundTouchSSHClient:
 
             # Connect with no password (SoundTouch root has no password)
             # Enable legacy algorithms for old SoundTouch firmware
-            self._connection = await asyncio.wait_for(
-                asyncssh.connect(
+            # Type: ignore needed because asyncssh returns _ACMWrapper which mypy can't resolve
+            self._connection = await asyncio.wait_for(  # type: ignore[func-returns-value]
+                asyncssh.connect(  # type: ignore[arg-type]
                     self.host,
                     port=self.port,
                     username="root",

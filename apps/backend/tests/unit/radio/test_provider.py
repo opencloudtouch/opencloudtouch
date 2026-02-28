@@ -156,6 +156,15 @@ class TestRadioProviderInterface:
                     )
                 ]
 
+            async def get_station_by_uuid(self, uuid: str):
+                return RadioStation(
+                    station_id=uuid,
+                    name="Test Station",
+                    url="http://test.com",
+                    country="DE",
+                    provider="test",
+                )
+
         # Should be able to instantiate
         provider = TestProvider()
         assert provider.provider_name == "test"
@@ -191,6 +200,9 @@ class TestRadioProviderInterface:
 
             async def search_by_tag(self, tag: str, limit: int = 20):
                 return []
+
+            async def get_station_by_uuid(self, uuid: str):
+                raise NotImplementedError
 
         provider = SimpleProvider()
         station = RadioStation(

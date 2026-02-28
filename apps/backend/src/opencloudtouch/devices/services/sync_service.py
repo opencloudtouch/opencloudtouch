@@ -101,13 +101,15 @@ class DeviceSyncService:
 
         for discovered_device in discovered_devices:
             try:
-                device = await self._fetch_device_info(discovered_device)
-                await self.repository.upsert(device)
+                synced_device = await self._fetch_device_info(discovered_device)
+                await self.repository.upsert(synced_device)
                 synced += 1
-                logger.info(f"Synced device: {device.name} ({device.device_id})")
+                logger.info(
+                    f"Synced device: {synced_device.name} ({synced_device.device_id})"
+                )
 
                 # Publish device_synced event
-                await event_bus.publish(device_synced_event(device))
+                await event_bus.publish(device_synced_event(synced_device))
 
             except Exception as e:
                 failed += 1

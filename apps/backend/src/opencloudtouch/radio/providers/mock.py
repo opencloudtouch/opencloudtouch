@@ -349,3 +349,7 @@ class MockRadioAdapter(RadioProvider):
                 return station
 
         raise RadioBrowserError(f"Station not found: {uuid}")
+
+    async def get_station_by_uuid(self, uuid: str) -> RadioStation:
+        """Implement RadioProvider abstract method — delegates to get_by_uuid."""
+        return await self.get_by_uuid(uuid)

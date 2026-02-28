@@ -300,7 +300,7 @@ describe("EmptyState Component", () => {
 
   describe("BUG-16: 409 Conflict → info toast (not error)", () => {
     it("shows info toast when discovery is already in progress", async () => {
-      const mockShowToast = vi.fn();
+      const _mockShowToast = vi.fn();
       // We can't easily intercept from outside, so we verify
       // by checking what the component renders when error contains "already in progress"
       // The real test is in the behavior: error toast uses correct type

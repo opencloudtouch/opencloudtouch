@@ -176,3 +176,17 @@ class MockDeviceClient(DeviceClient):
         """Mock close (no-op)."""
         logger.debug(f"[MOCK] close() for device {self.device_id}")
         pass
+
+    async def store_preset(
+        self,
+        device_id: str,
+        preset_number: int,
+        station_url: str,
+        station_name: str,
+        oct_backend_url: str,
+        station_image_url: str = "",
+    ) -> None:
+        """Mock store preset (no-op for testing)."""
+        logger.info(
+            f"[MOCK] store_preset({preset_number}, {station_name}) for device {device_id}"
+        )

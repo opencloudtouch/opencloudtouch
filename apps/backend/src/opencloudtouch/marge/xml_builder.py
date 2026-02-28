@@ -77,7 +77,7 @@ def build_presets_xml(presets: list[Any]) -> ET.Element:
     return presets_elem
 
 
-def build_recents_xml(recents: list[Any] = None) -> ET.Element:
+def build_recents_xml(recents: list[Any] | None = None) -> ET.Element:
     """Build XML element for recents list.
 
     Args:
@@ -127,7 +127,7 @@ def build_sources_xml() -> ET.Element:
     return sources_elem
 
 
-def build_devices_xml(devices: list[Any] = None) -> ET.Element:
+def build_devices_xml(devices: list[Any] | None = None) -> ET.Element:
     """Build XML element for multiroom devices list.
 
     Args:
@@ -148,7 +148,9 @@ def build_devices_xml(devices: list[Any] = None) -> ET.Element:
     return devices_elem
 
 
-def build_full_account_xml(presets: list[Any], recents: list[Any] = None) -> ET.Element:
+def build_full_account_xml(
+    presets: list[Any], recents: list[Any] | None = None
+) -> ET.Element:
     """Build XML element for full account sync.
 
     Args:

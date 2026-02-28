@@ -15,7 +15,7 @@ class SettingsRepository(BaseRepository):
 
     async def _create_schema(self) -> None:
         """Create settings tables and indexes."""
-        await self._db.execute("""
+        await self._conn.execute("""
             CREATE TABLE IF NOT EXISTS manual_device_ips (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 ip_address TEXT UNIQUE NOT NULL,
@@ -23,11 +23,11 @@ class SettingsRepository(BaseRepository):
             )
         """)
 
-        await self._db.execute("""
+        await self._conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_ip_address ON manual_device_ips(ip_address)
         """)
 
-        await self._db.commit()
+        await self._conn.commit()
 
     async def add_manual_ip(self, ip: str) -> None:
         """

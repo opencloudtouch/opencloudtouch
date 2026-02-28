@@ -1,6 +1,7 @@
 """Marge (streaming.bose.com) account sync routes."""
 
 import logging
+from typing import Any
 from xml.etree import ElementTree as ET
 
 from fastapi import APIRouter, Depends
@@ -46,7 +47,7 @@ async def get_full_account(
     presets = await preset_repo.get_all_presets(device_id)
 
     # TODO: Load recents from database (not implemented yet)
-    recents = []
+    recents: list[Any] = []
 
     # Build XML
     account_xml = build_full_account_xml(presets, recents)
@@ -94,7 +95,7 @@ async def get_recents(device_id: str) -> Response:
     logger.info(f"[MARGE] Get recents for device {device_id}")
 
     # TODO: Load recents from database
-    recents = []
+    recents: list[Any] = []
 
     recents_xml = build_recents_xml(recents)
     xml_str = ET.tostring(recents_xml, encoding="utf-8", xml_declaration=True)
@@ -133,7 +134,7 @@ async def get_devices(device_id: str) -> Response:
     logger.info(f"[MARGE] Get devices for device {device_id}")
 
     # TODO: Implement multiroom device discovery
-    devices = []
+    devices: list[Any] = []
 
     devices_xml = build_devices_xml(devices)
     xml_str = ET.tostring(devices_xml, encoding="utf-8", xml_declaration=True)

@@ -4,7 +4,7 @@ Defines abstract interfaces for repository, discovery, and synchronization.
 Enables dependency injection with type safety while avoiding circular dependencies.
 """
 
-from typing import List, Optional, Protocol
+from typing import Any, List, Optional, Protocol
 
 from opencloudtouch.db import Device
 from opencloudtouch.devices.models import SyncResult
@@ -45,19 +45,25 @@ class IDeviceRepository(Protocol):
         """
         ...
 
-    async def upsert(self, device: Device) -> None:
+    async def upsert(self, device: Device) -> Device:
         """Insert or update device.
 
         Args:
             device: Device to persist
+
+        Returns:
+            Device with updated id
 
         Raises:
             RuntimeError: If repository not initialized
         """
         ...
 
-    async def delete_all(self) -> None:
+    async def delete_all(self) -> int:
         """Delete all devices from database.
+
+        Returns:
+            Number of deleted rows
 
         Warning: Destructive operation, use with caution.
         """
@@ -104,5 +110,18 @@ class IDeviceSyncService(Protocol):
 
         Raises:
             Exception: If sync workflow fails critically
+        """
+        ...
+
+    async def sync_with_events(self, event_bus: Any) -> SyncResult:
+        """Synchronize devices with SSE event streaming.
+
+        Same as sync() but publishes events for progressive loading UI.
+
+        Args:
+            event_bus: DiscoveryEventBus for publishing events
+
+        Returns:
+            SyncResult with discovery/sync statistics
         """
         ...

@@ -103,15 +103,6 @@ export default function SetupWizard({ devices }: SetupWizardProps) {
     }
   };
 
-  const _handleCancel = () => {
-    const confirmed = window.confirm(
-      "Möchten Sie den Setup-Wizard wirklich abbrechen?\n\nAlle bisher vorgenommenen Änderungen bleiben erhalten."
-    );
-    if (confirmed) {
-      navigate("/");
-    }
-  };
-
   const handleBackToPresets = () => {
     // Navigate back to presets page with device parameter
     if (selectedDevice) {

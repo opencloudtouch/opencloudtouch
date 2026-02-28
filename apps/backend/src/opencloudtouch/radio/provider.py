@@ -103,6 +103,23 @@ class RadioProvider(ABC):
         """
         pass
 
+    @abstractmethod
+    async def get_station_by_uuid(self, uuid: str) -> RadioStation:
+        """
+        Get a specific station by UUID.
+
+        Args:
+            uuid: Station UUID
+
+        Returns:
+            RadioStation object
+
+        Raises:
+            RadioProviderError: If station not found or request fails
+            RadioProviderTimeoutError: On timeout
+        """
+        pass
+
     async def resolve_stream_url(self, station: RadioStation) -> str:
         """
         Resolve final stream URL (optional, override if needed).

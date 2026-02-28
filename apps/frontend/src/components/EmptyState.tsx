@@ -210,7 +210,7 @@ export default function EmptyState() {
             </p>
             <div className="discovered-devices">
               {devicesFound.map((device) => (
-                <div key={device.id} className="discovered-device">
+                <div key={device.device_id} className="discovered-device">
                   <div className="device-icon">✓</div>
                   <div className="device-info">
                     <div className="device-name">{device.name}</div>

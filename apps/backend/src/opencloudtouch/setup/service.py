@@ -304,7 +304,10 @@ class SetupService:
 
             # Verify it points to our server
             config = get_config()
-            our_server = config.server_url or f"http://{config.host}:{config.port}"
+            our_server = (
+                config.station_descriptor_base_url
+                or f"http://{config.host}:{config.port}"
+            )
             result["bmx_configured"] = our_server in check.output
 
             await client.close()

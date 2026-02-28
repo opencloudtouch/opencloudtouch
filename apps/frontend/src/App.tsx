@@ -100,7 +100,10 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      <BrowserRouter
+        {...({ future: { v7_startTransition: true, v7_relativeSplatPath: true } } as any)}
+      >
         <ToastProvider>
           <AppRouter
             devices={devices}

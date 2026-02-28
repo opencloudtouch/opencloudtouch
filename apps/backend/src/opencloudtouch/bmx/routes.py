@@ -184,8 +184,10 @@ async def resolve_tunein_station(station_id: str) -> BmxPlaybackResponse:
             if station_elem is not None:
                 name_elem = station_elem.find("name")
                 logo_elem = station_elem.find("logo")
-                name = name_elem.text if name_elem is not None else "Unknown Station"
-                logo = logo_elem.text if logo_elem is not None else ""
+                name = (
+                    name_elem.text if name_elem is not None else None
+                ) or "Unknown Station"
+                logo = (logo_elem.text if logo_elem is not None else None) or ""
 
             # Get stream URLs
             stream_url = TUNEIN_STREAM_URL % station_id

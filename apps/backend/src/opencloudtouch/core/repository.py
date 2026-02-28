@@ -69,3 +69,11 @@ class BaseRepository:
         if not self._db:
             raise RuntimeError("Database not initialized. Call initialize() first.")
         return self._db
+
+    @property
+    def _conn(self) -> aiosqlite.Connection:
+        """Return active database connection, raising if not initialized.
+
+        Use in _create_schema() and other internal methods that run post-init.
+        """
+        return self._ensure_initialized()

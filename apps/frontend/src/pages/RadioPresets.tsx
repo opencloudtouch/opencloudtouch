@@ -47,7 +47,6 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
     }
     // Intentionally omit currentDeviceIndex: re-running on every arrow-key change
     // would override the user's manual selection back to the URL device.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, devices]);
 
   // Load presets when device changes

@@ -5,7 +5,6 @@
  *
  * Focus: Correct image rendering based on device type
  */
-import React from "react";
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import DeviceImage from "./DeviceImage";
