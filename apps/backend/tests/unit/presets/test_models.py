@@ -1,7 +1,9 @@
 """Tests for preset domain models."""
 
-from datetime import datetime, UTC
+from datetime import UTC, datetime
+
 import pytest
+
 from opencloudtouch.presets.models import Preset
 
 

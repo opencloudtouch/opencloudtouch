@@ -1,15 +1,16 @@
 """Unit tests for marge account sync endpoints."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 from xml.etree import ElementTree
 
+import pytest
+
 from opencloudtouch.marge.routes import (
+    get_devices,
     get_full_account,
     get_presets,
     get_recents,
     get_sources,
-    get_devices,
 )
 
 
@@ -219,8 +220,8 @@ class TestMargeIntegration:
     @pytest.mark.asyncio
     async def test_full_account_with_db(self, test_db_path):
         """Test full account sync with real database."""
-        from opencloudtouch.presets.repository import PresetRepository
         from opencloudtouch.marge.routes import get_full_account
+        from opencloudtouch.presets.repository import PresetRepository
 
         # Arrange
         preset_repo = PresetRepository(test_db_path)

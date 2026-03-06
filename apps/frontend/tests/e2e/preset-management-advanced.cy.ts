@@ -11,7 +11,7 @@
  */
 
 describe("Preset Management Advanced", () => {
-  const apiUrl = Cypress.env("apiUrl");
+  let apiUrl: string;
   let deviceId: string;
 
   const stationA = {
@@ -46,6 +46,8 @@ describe("Preset Management Advanced", () => {
   };
 
   beforeEach(() => {
+    apiUrl = (Cypress.expose('apiUrl') as string) ?? 'http://localhost:7778/api';
+
     // Mock preset sync-from-device to prevent 10-second HTTP timeout
     // (sync endpoint tries real HTTP to 192.168.1.x which is unreachable in test env)
     cy.intercept('POST', '/api/presets/*/sync', {
@@ -132,11 +134,11 @@ describe("Preset Management Advanced", () => {
       cy.contains(".presets-grid .preset-play", stationA.name, { timeout: 10000 }).should("exist");
       cy.get(".presets-grid .preset-play").eq(0).should("contain", stationA.name);
 
-      // Confirm deletion
-      cy.on("window:confirm", () => true);
-
       // Clear preset using data-testid
       cy.get('[data-testid="preset-clear-2"]').click({ force: true });
+
+      // Confirm deletion via ConfirmDialog
+      cy.get('[data-testid="confirm-dialog-confirm"]').click();
 
       // Verify preset cleared in UI
       waitForPresetsReady();
@@ -157,8 +159,8 @@ describe("Preset Management Advanced", () => {
       waitForPresetsReady();
 
       // Clear preset 3
-      cy.on("window:confirm", () => true);
       cy.get('[data-testid="preset-clear-3"]').click({ force: true });
+      cy.get('[data-testid="confirm-dialog-confirm"]').click();
 
       // Now assign new station to cleared preset
       waitForPresetsReady();
@@ -198,8 +200,8 @@ describe("Preset Management Advanced", () => {
         .and("contain", stationA.name);
 
       // Clear preset first
-      cy.on("window:confirm", () => true);
       cy.get('[data-testid="preset-clear-4"]').click({ force: true });
+      cy.get('[data-testid="confirm-dialog-confirm"]').click();
       waitForPresetsReady();
 
       // Click on empty preset 4 to reassign
@@ -224,9 +226,9 @@ describe("Preset Management Advanced", () => {
 
       stations.forEach((station, index) => {
         if (index > 0) {
-          cy.on("window:confirm", () => true);
           // Clear previous preset using data-testid
           cy.get(`[data-testid="preset-clear-${presetNumber}"]`).click({ force: true });
+          cy.get('[data-testid="confirm-dialog-confirm"]').click();
           waitForPresetsReady();
         }
 
@@ -266,7 +268,6 @@ describe("Preset Management Advanced", () => {
       cy.reload();
 
       // Attempt to overwrite by clearing first
-      cy.on("window:confirm", () => true);
       cy.get(".presets-grid").within(() => {
         cy.contains("button", stationA.name)
           .scrollIntoView()
@@ -274,6 +275,7 @@ describe("Preset Management Advanced", () => {
           .find('[class*="clear"]')
           .click({ force: true });
       });
+      cy.get('[data-testid="confirm-dialog-confirm"]').click();
 
       waitForPresetsReady();
 
@@ -477,8 +479,8 @@ describe("Preset Management Advanced", () => {
         body: { detail: "Delete failed" },
       }).as("clearPresetFail");
 
-      cy.on("window:confirm", () => true);
       cy.get('[data-testid="preset-clear-2"]').click({ force: true });
+      cy.get('[data-testid="confirm-dialog-confirm"]').click();
       cy.wait("@clearPresetFail");
 
       // Should show error (scroll into view to ensure visibility)

@@ -92,6 +92,7 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
       onNext={onNext}
       onPrevious={onPrevious}
       isNextDisabled={!usbReady}
+      nextDisabledReason="Bitte alle Schritte oben abhaken, um fortzufahren."
     >
       <div className="usb-preparation">
         {/* Device Info */}
@@ -111,10 +112,15 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
               <span className="usb-section-number">1</span>
               {formatInstructions.title}
             </h3>
+            <label htmlFor="usb-platform-select" className="usb-platform-label">
+              Betriebssystem:
+            </label>
             <select
+              id="usb-platform-select"
               className="usb-platform-select"
               value={platform}
               onChange={(e) => setPlatform(e.target.value as Platform)}
+              aria-label="Betriebssystem auswählen"
             >
               <option value="windows">Windows</option>
               <option value="macos">macOS</option>

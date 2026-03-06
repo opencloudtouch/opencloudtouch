@@ -49,7 +49,9 @@ class BaseRepository:
 
         Subclasses MUST implement this method to define their schema.
         """
-        raise NotImplementedError("Subclasses must implement _create_schema()")
+        raise NotImplementedError(
+            "Subclasses must implement _create_schema()"
+        )  # pragma: no cover
 
     async def close(self) -> None:
         """Close database connection."""

@@ -9,6 +9,7 @@ import sys
 import warnings
 
 import pytest
+
 from opencloudtouch.core.config import AppConfig
 
 # Fix Windows asyncio cleanup issues

@@ -1,4 +1,4 @@
-﻿"""API routes module"""
+"""API routes module"""
 
 from opencloudtouch.devices.api.routes import router as devices_router
 

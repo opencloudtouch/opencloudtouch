@@ -197,6 +197,48 @@
   margin-bottom: 0.75rem;
 }
 
+/* REFACT-210: SSH Manual Test Collapsible */
+.ssh-manual-test-collapsible {
+  margin: 1rem 0;
+  border: 1px solid var(--border-color, #3a3a3a);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ssh-manual-test-summary {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  background: var(--color-bg-card, #2a2a2a);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary, #888);
+  list-style: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ssh-manual-test-summary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary, #e0e0e0);
+}
+
+.ssh-manual-test-summary::-webkit-details-marker {
+  display: none;
+}
+
+.ssh-manual-test-hint {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #888);
+  margin-bottom: 1rem;
+  line-height: 1.6;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+  border-left: 3px solid var(--primary-color, #4a90d9);
+}
+
 /* Client Tabs */
 .ssh-client-tabs {
   display: flex;
@@ -368,7 +410,7 @@
 
 .risk-answers {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem; /* REFACT-204: erhöht von 0.5rem auf 0.75rem (12px) */
   flex-wrap: wrap;
 }
 
@@ -450,7 +492,7 @@
 /* Decision cards (radio-style) */
 .risk-decision-buttons {
   display: flex;
-  gap: 0.75rem;
+  gap: 1.5rem; /* REFACT-212: erhöht von 0.75rem auf 1.5rem (24px) */
   flex-wrap: wrap;
   margin-top: 0.25rem;
 }

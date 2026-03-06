@@ -7,6 +7,8 @@ import "./ProgressTracker.css";
 export interface WizardStep {
   id: number;
   label: string;
+  /** Vollständige Beschreibung für Screen-Reader und Tooltip-Hover (REFACT-203) */
+  description?: string;
   status: "pending" | "in-progress" | "completed" | "error";
 }
 
@@ -25,13 +27,31 @@ export default function ProgressTracker({ steps, currentStep }: ProgressTrackerP
             className={`progress-step ${step.status} ${step.id === currentStep ? "active" : ""}`}
           >
             <div className="step-indicator">
-              <div className="step-circle">
+              <div
+                className="step-circle"
+                title={step.description ?? step.label}
+                aria-label={
+                  step.status === "completed"
+                    ? `Schritt ${step.id}: ${step.label}${step.description ? ` — ${step.description}` : ""} – abgeschlossen`
+                    : step.status === "error"
+                      ? `Schritt ${step.id}: ${step.label}${step.description ? ` — ${step.description}` : ""} – Fehler`
+                      : step.status === "in-progress"
+                        ? `Schritt ${step.id}: ${step.label}${step.description ? ` — ${step.description}` : ""} – läuft`
+                        : `Schritt ${step.id}: ${step.label}${step.description ? ` — ${step.description}` : ""} – ausstehend`
+                }
+              >
                 {step.status === "completed" ? (
-                  <span className="step-icon">✓</span>
+                  <span className="step-icon" aria-hidden="true">
+                    ✓
+                  </span>
                 ) : step.status === "error" ? (
-                  <span className="step-icon">✗</span>
+                  <span className="step-icon" aria-hidden="true">
+                    ✗
+                  </span>
                 ) : (
-                  <span className="step-number">{step.id}</span>
+                  <span className="step-number" aria-hidden="true">
+                    {step.id}
+                  </span>
                 )}
               </div>
               {index < steps.length - 1 && <div className="step-connector" />}

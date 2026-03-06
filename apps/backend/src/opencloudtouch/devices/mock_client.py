@@ -1,4 +1,4 @@
-﻿"""
+"""
 Mock device client for testing and development without real devices.
 
 Provides deterministic responses that simulate device HTTP API.

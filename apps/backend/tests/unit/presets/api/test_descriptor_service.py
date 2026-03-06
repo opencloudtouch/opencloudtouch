@@ -1,10 +1,11 @@
 """Tests for station descriptor service."""
 
-import pytest
 from unittest.mock import AsyncMock
 
-from opencloudtouch.presets.models import Preset
+import pytest
+
 from opencloudtouch.presets.api.descriptor_service import StationDescriptorService
+from opencloudtouch.presets.models import Preset
 
 
 @pytest.fixture

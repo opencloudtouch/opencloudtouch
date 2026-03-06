@@ -46,7 +46,7 @@ class RadioProvider(ABC):
         Returns:
             str: Provider name (e.g. "radiobrowser", "tunein")
         """
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     async def search_by_name(self, name: str, limit: int = 20) -> List[RadioStation]:
@@ -65,7 +65,7 @@ class RadioProvider(ABC):
             RadioProviderTimeoutError: On timeout
             RadioProviderConnectionError: On connection failure
         """
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     async def search_by_country(
@@ -84,7 +84,7 @@ class RadioProvider(ABC):
         Raises:
             RadioProviderError: On provider-specific errors
         """
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     async def search_by_tag(self, tag: str, limit: int = 20) -> List[RadioStation]:
@@ -101,7 +101,7 @@ class RadioProvider(ABC):
         Raises:
             RadioProviderError: On provider-specific errors
         """
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     async def get_station_by_uuid(self, uuid: str) -> RadioStation:
@@ -118,7 +118,7 @@ class RadioProvider(ABC):
             RadioProviderError: If station not found or request fails
             RadioProviderTimeoutError: On timeout
         """
-        pass
+        pass  # pragma: no cover
 
     async def resolve_stream_url(self, station: RadioStation) -> str:
         """

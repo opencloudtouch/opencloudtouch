@@ -10,7 +10,7 @@
 describe("Manual IP Configuration", () => {
   beforeEach(() => {
     // Clear DB and manual IPs before each test
-    const apiUrl = Cypress.env("apiUrl");
+    const apiUrl = Cypress.expose('apiUrl');
     cy.request("DELETE", `${apiUrl}/devices`);
     cy.request("POST", `${apiUrl}/settings/manual-ips`, { ips: [] });
   });
@@ -119,7 +119,7 @@ describe("Manual IP Configuration", () => {
       cy.get('[data-test="modal-content"]').should("not.exist");
 
       // Verify IPs NOT saved (should still be empty)
-      const apiUrl = Cypress.env("apiUrl");
+      const apiUrl = Cypress.expose('apiUrl');
       cy.request("GET", `${apiUrl}/settings/manual-ips`).its("body.ips").should("have.length", 0);
     });
   });
@@ -160,7 +160,7 @@ describe("Manual IP Configuration", () => {
       cy.waitForModalClose();
 
       // Verify IPs persisted via bulk endpoint
-      const apiUrl = Cypress.env("apiUrl");
+      const apiUrl = Cypress.expose('apiUrl');
       cy.request("GET", `${apiUrl}/settings/manual-ips`).then((response) => {
         expect(response.body.ips).to.have.length(3);
         expect(response.body.ips).to.include.members(ips);
@@ -192,7 +192,7 @@ describe("Manual IP Configuration", () => {
       cy.get('[data-test="device-card"]').should("have.length", 1);
 
       // Verify devices still in DB via API
-      const apiUrl = Cypress.env("apiUrl");
+      const apiUrl = Cypress.expose('apiUrl');
       cy.request("GET", `${apiUrl}/devices`).then((response) => {
         expect(response.body).to.have.property("count", 3);
         expect(response.body.devices).to.have.length(3);

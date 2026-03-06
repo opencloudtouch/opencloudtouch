@@ -160,51 +160,42 @@ describe("LocalControl - Core Playback Functionality", () => {
    * TEST 6: Previous Track
    * User Story: Als User möchte ich zum vorherigen Track springen
    */
-  test("should call previous track handler when previous button clicked", async () => {
-    const user = userEvent.setup();
+  test("previous track button should be disabled until API is implemented", async () => {
     render(<LocalControl devices={mockDevices} />);
 
     const previousButton = screen.getByText("⏮").closest("button")!;
 
-    await user.click(previousButton);
-
-    // Currently no API call implemented, so just verify button is clickable
-    // TODO: Add API mock assertion when API is implemented
-    expect(previousButton).toBeEnabled();
+    // Button is disabled until Phase 3 implementation
+    expect(previousButton).toBeDisabled();
+    expect(previousButton).toHaveAttribute("title", "Kommt in Phase 3");
   });
 
   /**
    * TEST 7: Next Track
    * User Story: Als User möchte ich zum nächsten Track springen
    */
-  test("should call next track handler when next button clicked", async () => {
-    const user = userEvent.setup();
+  test("next track button should be disabled until API is implemented", async () => {
     render(<LocalControl devices={mockDevices} />);
 
     const nextButton = screen.getByText("⏭").closest("button")!;
 
-    await user.click(nextButton);
-
-    // Currently no API call implemented, so just verify button is clickable
-    // TODO: Add API mock assertion when API is implemented
-    expect(nextButton).toBeEnabled();
+    // Button is disabled until Phase 3 implementation
+    expect(nextButton).toBeDisabled();
+    expect(nextButton).toHaveAttribute("title", "Kommt in Phase 3");
   });
 
   /**
    * TEST 8: Standby Mode
    * User Story: Als User möchte ich das Gerät in Standby versetzen
    */
-  test("should call standby handler when standby button clicked", async () => {
-    const user = userEvent.setup();
+  test("standby button should be disabled until API is implemented", async () => {
     render(<LocalControl devices={mockDevices} />);
 
     const standbyButton = screen.getByRole("button", { name: /Standby/i });
 
-    await user.click(standbyButton);
-
-    // Currently no API call implemented, so just verify button is clickable
-    // TODO: Add API mock assertion when API is implemented
-    expect(standbyButton).toBeEnabled();
+    // Button is disabled until Phase 3 implementation
+    expect(standbyButton).toBeDisabled();
+    expect(standbyButton).toHaveAttribute("title", "Kommt in Phase 3");
   });
 });
 

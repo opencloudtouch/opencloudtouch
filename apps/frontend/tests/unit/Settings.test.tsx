@@ -68,7 +68,7 @@ describe("Settings Page", () => {
     });
   });
 
-  it("shows error message when fetch fails", async () => {
+  it("shows error message with retry button when fetch fails", async () => {
     mockFetch.mockRejectedValueOnce(new Error("Network error"));
 
     renderWithProviders(<Settings />);
@@ -76,6 +76,7 @@ describe("Settings Page", () => {
     await waitFor(() => {
       expect(screen.getByText(/Fehler beim Laden/i)).toBeInTheDocument();
     });
+    expect(screen.getByRole("button", { name: /erneut versuchen/i })).toBeInTheDocument();
   });
 
   it("validates IP format before adding", async () => {
@@ -325,7 +326,7 @@ describe("Settings Page", () => {
     fireEvent.click(deleteButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/Fehler beim Löschen/i)).toBeInTheDocument();
+      expect(screen.getByText(/unerwarteter Fehler/i)).toBeInTheDocument();
     });
 
     // IP should still be in list

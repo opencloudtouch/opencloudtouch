@@ -209,9 +209,6 @@ async function runCypressTests() {
     project: FRONTEND_DIR,
     browser: 'electron',
     headless: true,
-    env: {
-      CYPRESS_API_URL: `http://localhost:${TEST_PORT_BACKEND}/api`,
-    },
   });
 
   if (result.status === 'failed' || result.totalFailed > 0) {

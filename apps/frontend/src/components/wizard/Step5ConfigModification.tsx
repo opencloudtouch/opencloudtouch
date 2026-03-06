@@ -64,6 +64,7 @@ export default function Step5ConfigModification({
       onNext={onNext}
       onPrevious={onPrevious}
       isNextDisabled={!modifyData?.success}
+      nextDisabledReason="Bitte zuerst die Konfiguration erfolgreich anwenden."
     >
       <div className="config-modification">
         {/* URL Input */}
@@ -163,14 +164,16 @@ export default function Step5ConfigModification({
             {modifyData.diff && (
               <div className="config-diff-section">
                 <button
-                  className="btn btn-secondary config-diff-toggle"
+                  className="btn btn-outline config-diff-toggle"
                   onClick={() => setShowDiff(!showDiff)}
+                  aria-expanded={showDiff}
+                  aria-controls="config-diff-content"
                 >
-                  {showDiff ? "▼ Diff ausblenden" : "▶ Diff anzeigen"}
+                  {showDiff ? "▼ Änderungen ausblenden" : "▶ Änderungen anzeigen"}
                 </button>
 
                 {showDiff && (
-                  <pre className="config-diff">
+                  <pre className="config-diff" id="config-diff-content">
                     <code>{modifyData.diff}</code>
                   </pre>
                 )}

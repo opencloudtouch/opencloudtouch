@@ -43,15 +43,21 @@
   border-color: var(--color-accent);
 }
 
+.search-input:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 .search-close {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--border-radius-md);
   background-color: var(--color-bg-darker);
   color: var(--color-text-secondary);
   font-size: 20px;
-  min-width: auto;
-  min-height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .search-close:hover {
@@ -88,7 +94,7 @@
   background-color: transparent;
   border-radius: var(--border-radius-md);
   margin-bottom: var(--space-sm);
-  min-height: auto;
+  min-height: 44px;
 }
 
 .search-result-item:hover {

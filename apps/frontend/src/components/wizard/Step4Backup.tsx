@@ -81,7 +81,7 @@ export default function Step4Backup({
                   Erstelle Backup...
                 </>
               ) : (
-                <>🔒 Backup jetzt erstellen</>
+                <>� Backup jetzt erstellen</>
               )}
             </button>
           </div>
@@ -102,7 +102,9 @@ export default function Step4Backup({
 
         {error && (
           <div className="backup-error">
-            <div className="error-icon">❌</div>
+            <div className="error-icon" role="img" aria-label="Fehler beim Backup">
+              ❌
+            </div>
             <div className="error-content">
               <strong>Backup fehlgeschlagen</strong>
               <p>{error}</p>
@@ -113,7 +115,9 @@ export default function Step4Backup({
         {/* Backup Success */}
         {backupData?.success && (
           <div className="backup-success">
-            <div className="success-icon">✅</div>
+            <div className="success-icon" role="img" aria-label="Backup erfolgreich abgeschlossen">
+              ✅
+            </div>
             <h3 className="success-title">Backup erfolgreich erstellt!</h3>
             <p className="success-message">{backupData.message}</p>
 

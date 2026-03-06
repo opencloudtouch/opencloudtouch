@@ -11,8 +11,8 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from opencloudtouch.core.dependencies import get_device_service
-from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.models import SyncResult
+from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.discovery import DiscoveredDevice
 from opencloudtouch.main import app
 

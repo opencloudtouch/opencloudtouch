@@ -5,3 +5,6 @@
 
 // Import commands
 import "./commands";
+
+// Accessibility testing (axe-core integration)
+import "cypress-axe";

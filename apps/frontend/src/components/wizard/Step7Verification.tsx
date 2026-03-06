@@ -138,9 +138,14 @@ export default function Step7Verification({
           </div>
 
           {rebootState === "idle" && (
-            <button className="btn btn-warning reboot-btn" onClick={handleReboot}>
-              🔄 Gerät jetzt neu starten
-            </button>
+            <div className="reboot-action">
+              <button className="btn btn-secondary reboot-btn" onClick={handleReboot}>
+                🔄 Gerät jetzt neu starten
+              </button>
+              <small className="reboot-action-hint">
+                Nur wenn Tests fehlschlagen und Sie sicher sind, dass der Neustart nötig ist
+              </small>
+            </div>
           )}
 
           {rebootState === "rebooting" && (

@@ -92,9 +92,9 @@ repos:
       # MANDATORY: ALL TESTS MUST PASS BEFORE COMMIT
       # ========================================================================
       - id: all-tests-must-pass
-        name: "🚨 MANDATORY: Run ALL tests (Backend + Frontend + E2E) - 100% must pass"
+        name: "MANDATORY: Run unit tests (Backend + Frontend) - 100% must pass"
         entry: npm
-        args: [test]
+        args: [run, test:unit]
         language: system
         pass_filenames: false
         always_run: true

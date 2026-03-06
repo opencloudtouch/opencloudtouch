@@ -1,6 +1,10 @@
 /* Radio Presets Page */
 .radio-presets-page {
   padding-bottom: var(--space-2xl);
+  /* REFACT-141: max-width prevents excessive whitespace on widescreen */
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Device Card */
@@ -42,6 +46,15 @@
 .device-model {
   font-size: 14px;
   color: var(--color-text-secondary);
+}
+
+/* REFACT-109: IP stays visible but is visually secondary to name/model */
+.device-ip {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  opacity: 0.65;
+  font-family: monospace;
+  letter-spacing: 0;
 }
 
 /* Presets Section */
@@ -93,8 +106,9 @@
   cursor: not-allowed;
 }
 
+/* REFACT-138: Consistent icon size with other action icons (18px) */
 .sync-icon {
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .presets-grid {

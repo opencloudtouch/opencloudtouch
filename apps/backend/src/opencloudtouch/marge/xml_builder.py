@@ -1,7 +1,7 @@
 """XML builder functions for marge responses."""
 
-from xml.etree import ElementTree as ET
 from typing import Any
+from xml.etree import ElementTree as ET
 
 
 def build_preset_xml(preset: Any) -> ET.Element:

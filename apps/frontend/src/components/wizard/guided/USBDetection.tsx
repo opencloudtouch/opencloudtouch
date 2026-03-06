@@ -148,7 +148,9 @@ export default function USBDetection({ onNext, onCancel }: USBDetectionProps) {
 
       {error && (
         <motion.div className="warning-box" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <div className="warning-icon">⚠️</div>
+          <div className="warning-icon" aria-hidden="true">
+            ⚠️
+          </div>
           <div className="warning-text">{error}</div>
         </motion.div>
       )}
@@ -194,7 +196,9 @@ export default function USBDetection({ onNext, onCancel }: USBDetectionProps) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <div className="warning-icon">⚠️</div>
+          <div className="warning-icon" aria-hidden="true">
+            ⚠️
+          </div>
           <div className="warning-text">
             <strong>USB-Stick nicht leer ({selectedDevice.fileCount} Dateien)</strong>
             <br />

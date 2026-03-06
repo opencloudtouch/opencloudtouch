@@ -16,7 +16,7 @@ export default function NowPlaying({ nowPlaying }: NowPlayingProps) {
   if (!nowPlaying) {
     return (
       <div className="now-playing empty">
-        <div className="np-placeholder">Kein Titel</div>
+        <div className="np-placeholder">Keine Wiedergabe</div>
       </div>
     );
   }

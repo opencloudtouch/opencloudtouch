@@ -50,10 +50,18 @@ class DiscoveryEventBus:
     Event bus for discovery events.
 
     Broadcasts events to all subscribed clients via asyncio.Queue.
+    Dead queues are pruned during publish (REFACT-106).
     """
+
+    MAX_SUBSCRIBERS = 20  # Safety cap to prevent unbounded growth
 
     def __init__(self):
         self._subscribers: list[asyncio.Queue] = []
+
+    @property
+    def subscriber_count(self) -> int:
+        """Return current number of subscribers."""
+        return len(self._subscribers)
 
     def subscribe(self) -> asyncio.Queue:
         """
@@ -62,6 +70,13 @@ class DiscoveryEventBus:
         Returns:
             Queue that will receive DiscoveryEvent objects
         """
+        if len(self._subscribers) >= self.MAX_SUBSCRIBERS:
+            logger.warning(
+                "Max subscribers (%d) reached — pruning all queues",
+                self.MAX_SUBSCRIBERS,
+            )
+            self._subscribers.clear()
+
         queue: asyncio.Queue = asyncio.Queue()
         self._subscribers.append(queue)
         logger.debug(
@@ -124,19 +139,39 @@ def get_event_bus() -> DiscoveryEventBus:
     return _event_bus
 
 
-async def event_generator(queue: asyncio.Queue) -> AsyncGenerator[str, None]:
+async def event_generator(
+    queue: asyncio.Queue, timeout: float = 30.0
+) -> AsyncGenerator[str, None]:
     """
     Generate SSE messages from event queue.
 
+    Applies a per-event timeout to prevent indefinite blocking when no
+    COMPLETED/ERROR event is published (REFACT-104: lock starvation fix).
+
     Args:
         queue: Queue receiving DiscoveryEvent objects
+        timeout: Max seconds to wait for each event (default 30s)
 
     Yields:
         SSE formatted strings
     """
     try:
         while True:
-            event: DiscoveryEvent = await queue.get()
+            try:
+                event: DiscoveryEvent = await asyncio.wait_for(
+                    queue.get(), timeout=timeout
+                )
+            except asyncio.TimeoutError:
+                logger.warning(
+                    "Event generator timed out waiting for event after %.0fs",
+                    timeout,
+                )
+                timeout_event = DiscoveryEvent(
+                    type=DiscoveryEventType.ERROR,
+                    data={"message": "Discovery timed out"},
+                )
+                yield timeout_event.to_sse()
+                break
             yield event.to_sse()
 
             # Stop streaming after completed/error events

@@ -159,6 +159,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.875rem;
+  min-height: var(--touch-target-min, 44px); /* REFACT-213: explizite Touch-Target-Höhe */
   background: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: 6px;
@@ -225,6 +226,11 @@
   outline: none;
   border-color: var(--primary-color, #4a90d9);
   box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.2);
+}
+
+.usb-platform-select:focus-visible {
+  outline: 2px solid var(--primary-color, #4a90d9);
+  outline-offset: 2px;
 }
 
 .usb-platform-select option {

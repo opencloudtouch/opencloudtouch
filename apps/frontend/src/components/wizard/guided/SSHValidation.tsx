@@ -141,7 +141,9 @@ export default function SSHValidation({ deviceIp, onNext, onPrevious }: SSHValid
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <div className="warning-icon">⚠️</div>
+          <div className="warning-icon" aria-hidden="true">
+            ⚠️
+          </div>
           <div className="warning-text">
             <strong>SICHERHEITSHINWEIS:</strong>
             <ul style={{ marginTop: "8px", paddingLeft: "20px" }}>

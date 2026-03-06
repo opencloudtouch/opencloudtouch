@@ -32,7 +32,6 @@ export default function VolumeSlider({
         disabled={muted}
         aria-label="Volume"
       />
-      <span className="volume-value">{volume}%</span>
     </div>
   );
 }

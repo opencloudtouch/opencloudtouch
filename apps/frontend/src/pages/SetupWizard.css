@@ -6,19 +6,18 @@
   padding: var(--space-xl) var(--space-md);
 }
 
-/* Global Demo Banner */
+/* Global Demo Banner — REFACT-129: Improved contrast, less dominant */
 .global-demo-banner {
   max-width: 1200px;
   margin: 0 auto var(--space-xl);
-  padding: var(--space-md) var(--space-lg);
-  background-color: rgba(234, 179, 8, 0.1);
-  border: 2px solid rgba(234, 179, 8, 0.5);
+  padding: var(--space-sm) var(--space-lg);
+  background-color: rgba(234, 179, 8, 0.08);
+  border: 1px solid rgba(234, 179, 8, 0.4);
   border-radius: var(--border-radius-lg);
   text-align: center;
-  font-size: 15px;
-  color: #fbbf24;
+  font-size: 13px;
+  color: #92400e; /* WCAG AA: dark amber — higher contrast than #fbbf24 */
   font-weight: var(--font-weight-medium);
-  box-shadow: var(--shadow-md);
 }
 
 .global-demo-banner a {
@@ -69,6 +68,28 @@
   font-size: 16px;
   color: var(--color-text-secondary);
   margin-bottom: var(--space-xl);
+}
+
+/* REFACT-140: Help hint + inline link button */
+.wizard-empty-hint {
+  font-size: 15px;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-md);
+  margin-top: calc(-1 * var(--space-lg));
+}
+
+.inline-link-button {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+.inline-link-button:hover {
+  opacity: 0.8;
 }
 
 /* Mobile Responsive */
@@ -162,8 +183,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.3);
   color: white;
@@ -235,8 +256,8 @@
   }
 
   .progress-step-circle {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     font-size: 0.75rem;
   }
 

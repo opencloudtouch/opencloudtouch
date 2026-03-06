@@ -1,4 +1,4 @@
-﻿"""
+"""
 Device capability detection module.
 
 This module provides capability detection for streaming devices to enable
@@ -6,6 +6,7 @@ model-specific features in the UI and graceful degradation when endpoints
 are not supported.
 """
 
+import asyncio
 from dataclasses import dataclass, field
 from typing import Any, List, Optional, Set
 
@@ -85,11 +86,13 @@ async def get_device_capabilities(client: SoundTouchClient) -> DeviceCapabilitie
     """
     logger.debug("Fetching capabilities", extra={"device": client.Device.DeviceName})
 
-    # Get device info for type
-    info = client.GetInformation()
-
-    # Get capabilities from /capabilities endpoint
-    caps = client.GetCapabilities()
+    # Run all three blocking bosesoundtouchapi calls concurrently in the thread
+    # pool so the asyncio event loop is never blocked by synchronous HTTP I/O.
+    info, caps, sources_response = await asyncio.gather(
+        asyncio.to_thread(client.GetInformation),
+        asyncio.to_thread(client.GetCapabilities),
+        asyncio.to_thread(client.GetSourceList),
+    )
 
     # Parse supported endpoints from supportedURLs
     supported_endpoints = set()
@@ -99,7 +102,6 @@ async def get_device_capabilities(client: SoundTouchClient) -> DeviceCapabilitie
         supported_endpoints.add(endpoint)
 
     # Parse available sources
-    sources_response = client.GetSourceList()
     supported_sources = [
         source.Source for source in sources_response.Sources if source.Status == "READY"
     ]
@@ -142,6 +144,29 @@ async def get_device_capabilities(client: SoundTouchClient) -> DeviceCapabilitie
     )
 
     return capabilities
+
+
+async def get_capabilities_for_ip(ip: str) -> DeviceCapabilities:
+    """Get device capabilities by IP address.
+
+    Convenience wrapper that handles SoundTouchDevice and SoundTouchClient
+    construction internally, keeping the bosesoundtouchapi dependency
+    encapsulated within this module.
+
+    Args:
+        ip: Device IP address
+
+    Returns:
+        DeviceCapabilities with all detected capabilities
+
+    Raises:
+        SoundTouchError: If device communication fails
+    """
+    from bosesoundtouchapi import SoundTouchDevice  # noqa: PLC0415
+
+    st_device = SoundTouchDevice(ip)
+    client = SoundTouchClient(st_device)
+    return await get_device_capabilities(client)
 
 
 async def safe_api_call(

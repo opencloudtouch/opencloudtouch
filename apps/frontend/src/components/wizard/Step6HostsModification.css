@@ -41,6 +41,11 @@
   box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
 }
 
+.hosts-input:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
 .hosts-hint {
   display: block;
   font-size: 0.875rem;

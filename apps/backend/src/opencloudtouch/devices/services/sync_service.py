@@ -1,4 +1,4 @@
-﻿"""Device synchronization service.
+"""Device synchronization service.
 
 Orchestrates device discovery and database synchronization.
 """
@@ -7,8 +7,13 @@ import logging
 from typing import List, Optional
 
 from opencloudtouch.db import Device
-from opencloudtouch.devices.adapter import get_discovery_adapter, get_device_client
+from opencloudtouch.devices.adapter import get_device_client, get_discovery_adapter
 from opencloudtouch.devices.discovery.manual import ManualDiscovery
+from opencloudtouch.devices.events import (
+    device_failed_event,
+    device_found_event,
+    device_synced_event,
+)
 from opencloudtouch.devices.interfaces import IDeviceRepository
 from opencloudtouch.devices.models import SyncResult
 from opencloudtouch.discovery import DiscoveredDevice
@@ -83,12 +88,6 @@ class DeviceSyncService:
         Returns:
             SyncResult with discovery/sync statistics
         """
-        from opencloudtouch.devices.events import (
-            device_found_event,
-            device_synced_event,
-            device_failed_event,
-        )
-
         discovered_devices = await self._discover_devices()
 
         # Publish device_found events
@@ -99,25 +98,18 @@ class DeviceSyncService:
         synced = 0
         failed = 0
 
+        async def _on_synced(device: Device) -> None:
+            await event_bus.publish(device_synced_event(device))
+
+        async def _on_failed(discovered: DiscoveredDevice, error: Exception) -> None:
+            device_ip = getattr(discovered, "ip", str(discovered))
+            await event_bus.publish(device_failed_event(device_ip, str(error)))
+
         for discovered_device in discovered_devices:
-            try:
-                synced_device = await self._fetch_device_info(discovered_device)
-                await self.repository.upsert(synced_device)
+            if await self._sync_one_device(discovered_device, _on_synced, _on_failed):
                 synced += 1
-                logger.info(
-                    f"Synced device: {synced_device.name} ({synced_device.device_id})"
-                )
-
-                # Publish device_synced event
-                await event_bus.publish(device_synced_event(synced_device))
-
-            except Exception as e:
+            else:
                 failed += 1
-                device_ip = getattr(discovered_device, "ip", str(discovered_device))
-                logger.error(f"Failed to sync device {device_ip}: {e}")
-
-                # Publish device_failed event
-                await event_bus.publish(device_failed_event(device_ip, str(e)))
 
         return SyncResult(
             discovered=len(discovered_devices),
@@ -129,8 +121,11 @@ class DeviceSyncService:
         """
         Discover devices via all enabled methods.
 
+        Deduplicates results by IP address so that a device present in both
+        SSDP and manual-IP lists is only synced once.
+
         Returns:
-            List of discovered devices (may contain duplicates)
+            Deduplicated list of discovered devices
         """
         devices: List[DiscoveredDevice] = []
 
@@ -142,8 +137,26 @@ class DeviceSyncService:
         if self.manual_ips:
             devices.extend(await self._discover_via_manual_ips())
 
-        logger.info(f"Discovered {len(devices)} devices total")
-        return devices
+        # Deduplicate by IP (SSDP and manual can surface the same device)
+        seen_ips: set[str] = set()
+        unique_devices: List[DiscoveredDevice] = []
+        for device in devices:
+            if device.ip not in seen_ips:
+                seen_ips.add(device.ip)
+                unique_devices.append(device)
+            else:
+                logger.debug(
+                    f"Deduplicating device at {device.ip} (already found via another source)"
+                )
+
+        if len(unique_devices) < len(devices):
+            logger.info(
+                f"Deduplicated {len(devices) - len(unique_devices)} device(s) "
+                f"({len(unique_devices)} unique after deduplication)"
+            )
+
+        logger.info(f"Discovered {len(unique_devices)} unique devices total")
+        return unique_devices
 
     async def _discover_via_ssdp(self) -> List[DiscoveredDevice]:
         """
@@ -180,8 +193,7 @@ class DeviceSyncService:
     async def _sync_devices_to_db(
         self, discovered: List[DiscoveredDevice]
     ) -> tuple[int, int]:
-        """
-        Query each discovered device and sync to database.
+        """Query each discovered device and sync to database.
 
         Args:
             discovered: List of discovered devices
@@ -193,17 +205,45 @@ class DeviceSyncService:
         failed = 0
 
         for discovered_device in discovered:
-            try:
-                device = await self._fetch_device_info(discovered_device)
-                await self.repository.upsert(device)
+            if await self._sync_one_device(discovered_device):
                 synced += 1
-                logger.info(f"Synced device: {device.name} ({device.device_id})")
-            except Exception as e:
+            else:
                 failed += 1
-                device_info = getattr(discovered_device, "ip", str(discovered_device))
-                logger.error(f"Failed to sync device {device_info}: {e}")
 
         return synced, failed
+
+    async def _sync_one_device(
+        self,
+        discovered: DiscoveredDevice,
+        on_synced=None,
+        on_failed=None,
+    ) -> bool:
+        """Fetch and upsert a single device.
+
+        Encapsulates the fetch → upsert → log → callback flow used by
+        both ``_sync_devices_to_db`` and ``sync_with_events``.
+
+        Args:
+            discovered: Discovered device to sync
+            on_synced: Optional async callback(device) called on success
+            on_failed: Optional async callback(discovered, error) called on failure
+
+        Returns:
+            True if sync succeeded, False otherwise
+        """
+        try:
+            device = await self._fetch_device_info(discovered)
+            await self.repository.upsert(device)
+            logger.info(f"Synced device: {device.name} ({device.device_id})")
+            if on_synced:
+                await on_synced(device)
+            return True
+        except Exception as e:
+            device_ip = getattr(discovered, "ip", str(discovered))
+            logger.error(f"Failed to sync device {device_ip}: {e}")
+            if on_failed:
+                await on_failed(discovered, e)
+            return False
 
     async def _fetch_device_info(self, discovered: DiscoveredDevice) -> Device:
         """

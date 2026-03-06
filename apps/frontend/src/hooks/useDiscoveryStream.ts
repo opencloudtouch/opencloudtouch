@@ -3,6 +3,19 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Device } from "../api/devices";
 
 /**
+ * Safe JSON.parse: returns parsed value or null on SyntaxError.
+ * Prevents a single malformed SSE packet from crashing the discovery stream.
+ */
+function safeParse<T>(raw: string, eventType: string): T | null {
+  try {
+    return JSON.parse(raw) as T;
+  } catch (err) {
+    console.error(`[SSE] Failed to parse ${eventType} event payload:`, raw, err);
+    return null;
+  }
+}
+
+/**
  * Discovery Event Types from Backend SSE
  */
 export type DiscoveryEventType =
@@ -80,7 +93,8 @@ export function useDiscoveryStream() {
 
     // Handle device_found event
     eventSource.addEventListener("device_found", (e: MessageEvent) => {
-      const data = JSON.parse(e.data);
+      const data = safeParse<unknown>(e.data, "device_found");
+      if (!data) return;
       console.log("[SSE] Device found:", data);
 
       setState((prev) => ({
@@ -91,7 +105,8 @@ export function useDiscoveryStream() {
 
     // Handle device_synced event
     eventSource.addEventListener("device_synced", (e: MessageEvent) => {
-      const device: Device = JSON.parse(e.data);
+      const device = safeParse<Device>(e.data, "device_synced");
+      if (!device) return;
       console.log("[SSE] Device synced:", device);
 
       // Track synchronously via ref (used by completed handler for atomic cache update)
@@ -115,7 +130,8 @@ export function useDiscoveryStream() {
 
     // Handle device_failed event
     eventSource.addEventListener("device_failed", (e: MessageEvent) => {
-      const data = JSON.parse(e.data);
+      const data = safeParse<unknown>(e.data, "device_failed");
+      if (!data) return;
       console.warn("[SSE] Device failed:", data);
 
       setState((prev) => ({
@@ -126,7 +142,11 @@ export function useDiscoveryStream() {
 
     // Handle completed event
     eventSource.addEventListener("completed", (e: MessageEvent) => {
-      const data = JSON.parse(e.data);
+      const data = safeParse<{ discovered: number; synced: number; failed: number }>(
+        e.data,
+        "completed"
+      );
+      if (!data) return;
       console.log("[SSE] Discovery completed:", data);
 
       // Atomically update cache with ALL discovered devices before marking

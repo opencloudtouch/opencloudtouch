@@ -4,7 +4,6 @@ import logging
 from datetime import datetime
 from typing import List, Optional
 
-
 from opencloudtouch.core.repository import BaseRepository
 from opencloudtouch.presets.models import Preset
 
@@ -14,8 +13,41 @@ logger = logging.getLogger(__name__)
 class PresetRepository(BaseRepository):
     """Repository for preset persistence using SQLite."""
 
+    @staticmethod
+    def _row_to_preset(row: tuple) -> "Preset":
+        """Map a database row tuple to a Preset model.
+
+        Column order must match the SELECT column list used throughout this
+        repository:  id, device_id, preset_number, station_uuid, station_name,
+        station_url, station_homepage, station_favicon, source,
+        created_at, updated_at.
+        """
+        return Preset(
+            id=row[0],
+            device_id=row[1],
+            preset_number=row[2],
+            station_uuid=row[3],
+            station_name=row[4],
+            station_url=row[5],
+            station_homepage=row[6],
+            station_favicon=row[7],
+            source=row[8],
+            created_at=datetime.fromisoformat(row[9]) if row[9] else None,
+            updated_at=datetime.fromisoformat(row[10]) if row[10] else None,
+        )
+
     async def _create_schema(self) -> None:
-        """Create presets table and indexes."""
+        """Create presets table, indexes and apply schema migrations."""
+        # Step 1: Schema-version tracking table (audit trail + idempotency)
+        await self._conn.execute("""
+            CREATE TABLE IF NOT EXISTS schema_versions (
+                version     INTEGER PRIMARY KEY,
+                applied_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                description TEXT
+            )
+            """)
+
+        # Step 2: Base presets table (source column added via migration v1)
         await self._conn.execute("""
             CREATE TABLE IF NOT EXISTS presets (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,31 +58,68 @@ class PresetRepository(BaseRepository):
                 station_url TEXT NOT NULL,
                 station_homepage TEXT,
                 station_favicon TEXT,
-                source TEXT,
                 created_at TIMESTAMP NOT NULL,
                 updated_at TIMESTAMP NOT NULL,
                 UNIQUE(device_id, preset_number)
             )
-        """)
+            """)
 
-        # Migration: Add source column if it doesn't exist (added in v0.3)
-        try:
-            await self._conn.execute("SELECT source FROM presets LIMIT 1")
-        except Exception:
-            logger.info("Migrating presets table: Adding source column")
-            await self._conn.execute("ALTER TABLE presets ADD COLUMN source TEXT")
-            await self._conn.commit()
+        # Step 3: Apply migrations idempotently (ordered by version)
+        await self._apply_migration(
+            version=1,
+            description="Add source column to presets",
+            sql="ALTER TABLE presets ADD COLUMN source TEXT",
+        )
 
+        # Step 4: Indexes
         await self._conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_presets_device_id ON presets(device_id)
-        """)
-
+            """)
         await self._conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_device_preset
             ON presets(device_id, preset_number)
-        """)
+            """)
 
         await self._conn.commit()
+
+    async def _apply_migration(self, version: int, description: str, sql: str) -> None:
+        """Apply a single schema migration idempotently.
+
+        Checks ``schema_versions`` first; skips the migration if it has
+        already been applied.  On success, records the version so the
+        migration is never repeated.
+
+        Args:
+            version:     Monotonically increasing migration number.
+            description: Human-readable description for the audit log.
+            sql:         DDL statement to execute (e.g. ALTER TABLE …).
+        """
+        cursor = await self._conn.execute(
+            "SELECT version FROM schema_versions WHERE version = ?",
+            (version,),
+        )
+        if await cursor.fetchone():
+            return  # Already applied — idempotent
+
+        try:
+            await self._conn.execute(sql)
+        except Exception as e:  # noqa: BLE001
+            # Treat "duplicate column name" as idempotent: the column was added
+            # directly in the base DDL before migration tracking was introduced
+            # (e.g. on hera the DB predates schema_versions).
+            if "duplicate column name" in str(e).lower():
+                logger.info(
+                    "Migration v%d: column already exists, marking as applied (idempotent)",
+                    version,
+                )
+            else:
+                raise
+
+        await self._conn.execute(
+            "INSERT INTO schema_versions (version, description) VALUES (?, ?)",
+            (version, description),
+        )
+        logger.info("Applied schema migration v%d: %s", version, description)
 
     async def set_preset(self, preset: Preset) -> Preset:
         """
@@ -141,19 +210,7 @@ class PresetRepository(BaseRepository):
         if not row:
             return None
 
-        return Preset(
-            id=row[0],
-            device_id=row[1],
-            preset_number=row[2],
-            station_uuid=row[3],
-            station_name=row[4],
-            station_url=row[5],
-            station_homepage=row[6],
-            station_favicon=row[7],
-            source=row[8],
-            created_at=datetime.fromisoformat(row[9]) if row[9] else None,
-            updated_at=datetime.fromisoformat(row[10]) if row[10] else None,
-        )
+        return self._row_to_preset(row)
 
     async def get_all_presets(self, device_id: str) -> List[Preset]:
         """
@@ -184,22 +241,7 @@ class PresetRepository(BaseRepository):
 
         rows = await cursor.fetchall()
 
-        presets = [
-            Preset(
-                id=row[0],
-                device_id=row[1],
-                preset_number=row[2],
-                station_uuid=row[3],
-                station_name=row[4],
-                station_url=row[5],
-                station_homepage=row[6],
-                station_favicon=row[7],
-                source=row[8],
-                created_at=datetime.fromisoformat(row[9]) if row[9] else None,
-                updated_at=datetime.fromisoformat(row[10]) if row[10] else None,
-            )
-            for row in rows
-        ]
+        presets = [self._row_to_preset(row) for row in rows]
 
         return presets
 

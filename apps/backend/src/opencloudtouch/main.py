@@ -1,4 +1,4 @@
-﻿"""
+"""
 OpenCloudTouch - Main FastAPI Application
 Iteration 0: Basic setup with /health endpoint
 """
@@ -7,44 +7,45 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.exceptions import RequestValidationError
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
-from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from opencloudtouch.api import devices_router
+from opencloudtouch.bmx.resolve_routes import resolve_router
+from opencloudtouch.devices.api.discovery_routes import discovery_router
 from opencloudtouch.bmx.routes import router as bmx_router
-from opencloudtouch.marge.routes import router as marge_router
 from opencloudtouch.core.config import get_config, init_config
-from opencloudtouch.core.exceptions import (
-    DeviceConnectionError,
-    DeviceNotFoundError,
-    DiscoveryError,
-    ErrorDetail,
-    OpenCloudTouchError,
-    map_status_to_type,
+from opencloudtouch.core.exception_handlers import (
+    register_exception_handlers,  # re-exported for backward compat
 )
 from opencloudtouch.core.logging import setup_logging
+from opencloudtouch.core.static_files import (
+    find_frontend_static_dir,
+    mount_static_files,
+)
 from opencloudtouch.db import DeviceRepository
 from opencloudtouch.devices.adapter import get_discovery_adapter
 from opencloudtouch.devices.api.preset_stream_routes import (
     descriptor_router as device_descriptor_router,
+)
+from opencloudtouch.devices.api.preset_stream_routes import (
     router as device_preset_stream_router,
 )
 from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.services.sync_service import DeviceSyncService
-from opencloudtouch.presets.repository import PresetRepository
-from opencloudtouch.presets.service import PresetService
+from opencloudtouch.marge.routes import router as marge_router
+from opencloudtouch.presets.api.playlist_routes import router as playlist_router
 from opencloudtouch.presets.api.routes import router as presets_router
 from opencloudtouch.presets.api.station_routes import router as stations_router
-from opencloudtouch.presets.api.playlist_routes import router as playlist_router
+from opencloudtouch.presets.repository import PresetRepository
+from opencloudtouch.presets.service import PresetService
 from opencloudtouch.radio.api.routes import router as radio_router
 from opencloudtouch.settings.repository import SettingsRepository
 from opencloudtouch.settings.routes import router as settings_router
 from opencloudtouch.settings.service import SettingsService
 from opencloudtouch.setup.routes import router as setup_router
+from opencloudtouch.setup.wizard_routes import wizard_router
 
 # Module-level logger
 logger = logging.getLogger(__name__)
@@ -157,151 +158,7 @@ app = FastAPI(
 # Exception Handlers - RFC 7807-inspired Standardized Error Responses
 # ============================================================================
 
-
-@app.exception_handler(StarletteHTTPException)
-async def starlette_http_exception_handler(
-    request: Request, exc: StarletteHTTPException
-):
-    """Handle Starlette HTTPException (404, 405 from routing layer) with RFC 7807 format."""
-    # Starlette raises these for non-existent routes (404) and wrong methods (405)
-    return JSONResponse(
-        status_code=exc.status_code,
-        content=ErrorDetail(
-            type=map_status_to_type(exc.status_code),
-            title=exc.detail if exc.detail else f"HTTP {exc.status_code}",
-            status=exc.status_code,
-            detail=exc.detail if exc.detail else "The requested resource was not found",
-            instance=str(request.url.path),
-        ).model_dump(),
-    )
-
-
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
-    """Handle FastAPI HTTPException with standardized error format."""
-    return JSONResponse(
-        status_code=exc.status_code,
-        content=ErrorDetail(
-            type=map_status_to_type(exc.status_code),
-            title=exc.detail,
-            status=exc.status_code,
-            detail=exc.detail,
-            instance=str(request.url.path),
-        ).model_dump(),
-    )
-
-
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    """Handle Pydantic validation errors with field-level details."""
-    return JSONResponse(
-        status_code=422,
-        content=ErrorDetail(
-            type="validation_error",
-            title="Invalid Request Data",
-            status=422,
-            detail="Request validation failed",
-            instance=str(request.url.path),
-            errors=[
-                {
-                    "field": ".".join(str(loc) for loc in err["loc"]),
-                    "message": err["msg"],
-                    "type": err["type"],
-                }
-                for err in exc.errors()
-            ],
-        ).model_dump(),
-    )
-
-
-@app.exception_handler(DeviceNotFoundError)
-async def device_not_found_handler(request: Request, exc: DeviceNotFoundError):
-    """Handle DeviceNotFoundError as 404 HTTP response."""
-    logger = logging.getLogger(__name__)
-    logger.warning(f"Device not found: {exc.device_id}")
-    return JSONResponse(
-        status_code=404,
-        content=ErrorDetail(
-            type="not_found",
-            title="Device Not Found",
-            status=404,
-            detail=str(exc),
-            instance=str(request.url.path),
-        ).model_dump(),
-    )
-
-
-@app.exception_handler(DeviceConnectionError)
-async def device_connection_error_handler(request: Request, exc: DeviceConnectionError):
-    """Handle DeviceConnectionError as 503 Service Unavailable."""
-    logger = logging.getLogger(__name__)
-    logger.error(f"Device connection failed: {exc.device_ip}", exc_info=exc)
-    return JSONResponse(
-        status_code=503,
-        content=ErrorDetail(
-            type="service_unavailable",
-            title="Device Unavailable",
-            status=503,
-            detail=str(exc),
-            instance=str(request.url.path),
-        ).model_dump(),
-    )
-
-
-@app.exception_handler(DiscoveryError)
-async def discovery_error_handler(request: Request, exc: DiscoveryError):
-    """Handle DiscoveryError as 500 Internal Server Error."""
-    logger = logging.getLogger(__name__)
-    logger.error(f"Discovery failed: {exc}", exc_info=exc)
-    return JSONResponse(
-        status_code=500,
-        content=ErrorDetail(
-            type="server_error",
-            title="Device Discovery Failed",
-            status=500,
-            detail=str(exc),
-            instance=str(request.url.path),
-        ).model_dump(),
-    )
-
-
-@app.exception_handler(OpenCloudTouchError)
-async def oct_error_handler(request: Request, exc: OpenCloudTouchError):
-    """Catch-all for other OpenCloudTouch domain exceptions."""
-    logger = logging.getLogger(__name__)
-    logger.error(f"OpenCloudTouch error: {exc}", exc_info=exc)
-    return JSONResponse(
-        status_code=500,
-        content=ErrorDetail(
-            type="server_error",
-            title="Internal Error",
-            status=500,
-            detail=str(exc),
-            instance=str(request.url.path),
-        ).model_dump(),
-    )
-
-
-@app.exception_handler(Exception)
-async def generic_exception_handler(request: Request, exc: Exception):
-    """Catch-all for unhandled exceptions."""
-    logger = logging.getLogger(__name__)
-    logger.exception("Unhandled exception", exc_info=exc)
-
-    # Show detailed error message (production can override with log filtering)
-    detail = str(exc)
-
-    return JSONResponse(
-        status_code=500,
-        content=ErrorDetail(
-            type="server_error",
-            title="Internal Server Error",
-            status=500,
-            detail=detail,
-            instance=str(request.url.path),
-        ).model_dump(),
-    )
-
+register_exception_handlers(app)
 
 # ============================================================================
 # CORS Middleware
@@ -325,6 +182,11 @@ app.add_middleware(
 )
 
 # Include API routers
+# NOTE: discovery_router MUST come before devices_router so /discover path
+# matches before the wildcard /{device_id} route.
+app.include_router(
+    discovery_router
+)  # Device discovery endpoints (/discover, /sync, /stream)
 app.include_router(devices_router)
 app.include_router(presets_router)
 app.include_router(radio_router)
@@ -333,9 +195,11 @@ app.include_router(stations_router)  # Station descriptors for SoundTouch device
 app.include_router(device_preset_stream_router)  # Stream proxy for Bose presets
 app.include_router(device_descriptor_router)  # Preset descriptors (XML) for Bose
 app.include_router(bmx_router)  # BMX stream resolution for Bose devices
+app.include_router(resolve_router)  # Legacy BMX resolve endpoint
 app.include_router(marge_router)  # Marge (streaming.bose.com) account sync
 app.include_router(playlist_router)  # M3U/PLS playlist files for Bose presets
 app.include_router(setup_router)  # Device setup wizard
+app.include_router(wizard_router)  # SSH-driven wizard step endpoints
 
 
 # Health endpoint
@@ -350,93 +214,16 @@ async def health_check():
             "version": "0.2.0",
             "config": {
                 "discovery_enabled": cfg.discovery_enabled,
-                "db_path": cfg.db_path,
             },
         },
     )
 
 
-# Static files (frontend)
-# Development: ../../apps/frontend/dist (relative to src/opencloudtouch)
-# Production: frontend/dist (copied during Docker build to /app/frontend/dist)
-static_dir = Path(__file__).parent.parent.parent.parent / "frontend" / "dist"
-if not static_dir.exists():
-    # Fallback for Docker/production deployment
-    static_dir = Path(__file__).parent.parent / "frontend" / "dist"
-
-if static_dir.exists():
-    from fastapi.responses import FileResponse
-
-    # Serve static assets (CSS, JS, images)
-    app.mount(
-        "/assets", StaticFiles(directory=str(static_dir / "assets")), name="assets"
-    )
-
-    # Custom 404 handler for SPA (serves index.html for non-API routes)
-    @app.exception_handler(404)
-    async def spa_404_handler(request: Request, exc):
-        """Serve index.html for 404s on non-API routes (SPA support).
-
-        API routes return normal 404 JSON error.
-        Frontend routes return index.html (React Router handles routing).
-        """
-        path = request.url.path
-
-        # If it's an API route, return normal 404 error
-        api_prefixes = (
-            "/api/",
-            "/v1/",
-            "/bmx/",
-            "/core02/",
-            "/health",
-            "/openapi",
-            "/docs",
-            "/redoc",
-            "/streaming/",
-            "/stations/",
-            "/device/",
-            "/descriptor/",
-            "/playlist/",
-        )
-        if any(path.startswith(prefix) for prefix in api_prefixes):
-            # Return JSON error for API routes
-            return JSONResponse(
-                status_code=404,
-                content=ErrorDetail(
-                    type="not_found",
-                    title="Not Found",
-                    status=404,
-                    detail=f"The requested resource {path} was not found",
-                    instance=path,
-                ).model_dump(),
-            )
-
-        # SECURITY: Prevent path traversal in file path
-        from urllib.parse import unquote
-
-        decoded_path = unquote(path.lstrip("/"))
-
-        if ".." in decoded_path or "\\" in decoded_path:
-            raise HTTPException(status_code=404, detail="Not found")
-
-        # For frontend routes, check if file exists
-        try:
-            requested_path = (static_dir / decoded_path).resolve()
-            frontend_root = static_dir.resolve()
-
-            if (
-                str(requested_path).startswith(str(frontend_root))
-                and requested_path.is_file()
-            ):
-                return FileResponse(requested_path)
-        except (ValueError, OSError):
-            pass
-
-        # Otherwise serve index.html (React Router handles the rest)
-        return FileResponse(static_dir / "index.html")
+# Static files (frontend) — SPA 404 handler
+mount_static_files(app, find_frontend_static_dir(Path(__file__)))
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import uvicorn
 
     cfg = get_config()

@@ -3,7 +3,8 @@
 import logging
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Path as FastAPIPath
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi import Path as FastAPIPath
 from pydantic import BaseModel, Field
 
 from opencloudtouch.core.dependencies import get_preset_service

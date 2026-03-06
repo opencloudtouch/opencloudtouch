@@ -9,16 +9,12 @@ Tested endpoint:
 
 import base64
 import json
-import pytest
-from fastapi.testclient import TestClient
-from fastapi import FastAPI
 
-from opencloudtouch.bmx.routes import (
-    router,
-    BmxPlaybackResponse,
-    BmxAudio,
-    BmxStream,
-)
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from opencloudtouch.bmx.routes import BmxAudio, BmxPlaybackResponse, BmxStream, router
 
 
 @pytest.fixture

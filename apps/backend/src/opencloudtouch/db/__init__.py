@@ -1,4 +1,4 @@
-﻿"""Database module initialization"""
+"""Database module initialization"""
 
 from opencloudtouch.devices.repository import Device, DeviceRepository
 

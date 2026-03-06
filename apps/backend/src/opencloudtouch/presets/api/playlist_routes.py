@@ -32,6 +32,51 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/playlist", tags=["playlist"])
 
 
+async def _get_preset_content(
+    preset_service: PresetService,
+    device_id: str,
+    preset_number: int,
+    format_name: str,
+) -> tuple[str, str]:
+    """Fetch preset and return (station_name, stream_url) or raise HTTPException.
+
+    Args:
+        preset_service: Service for looking up presets
+        device_id: Bose device identifier
+        preset_number: Preset number (1-6)
+        format_name: Format label for log messages (e.g., "M3U", "PLS")
+
+    Returns:
+        Tuple of (station_name, stream_url)
+
+    Raises:
+        HTTPException 404: Preset not configured
+        HTTPException 500: No stream URL configured
+    """
+    preset = await preset_service.get_preset(device_id, preset_number)
+
+    if not preset:
+        logger.warning(
+            f"{format_name}: Preset not found for device {device_id}, preset {preset_number}"
+        )
+        raise HTTPException(
+            status_code=404,
+            detail=f"Preset {preset_number} not configured for device {device_id}",
+        )
+
+    stream_url = preset.station_url
+    if not stream_url:
+        logger.error(
+            f"{format_name}: No stream URL for device {device_id}, preset {preset_number}"
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"No stream URL configured for preset {preset_number}",
+        )
+
+    return preset.station_name or "Unknown Station", stream_url
+
+
 @router.get(
     "/{device_id}/{preset_number}.m3u",
     response_class=PlainTextResponse,
@@ -74,35 +119,11 @@ async def get_playlist_m3u(
         M3U playlist content with Content-Type: audio/x-mpegurl
     """
     try:
-        preset = await preset_service.get_preset(device_id, preset_number)
+        station_name, stream_url = await _get_preset_content(
+            preset_service, device_id, preset_number, "M3U"
+        )
 
-        if not preset:
-            logger.warning(
-                f"M3U: Preset not found for device {device_id}, preset {preset_number}"
-            )
-            raise HTTPException(
-                status_code=404,
-                detail=f"Preset {preset_number} not configured for device {device_id}",
-            )
-
-        # Generate M3U playlist content
-        station_name = preset.station_name or "Unknown Station"
-        stream_url = preset.station_url
-
-        if not stream_url:
-            logger.error(
-                f"M3U: No stream URL for device {device_id}, preset {preset_number}"
-            )
-            raise HTTPException(
-                status_code=500,
-                detail=f"No stream URL configured for preset {preset_number}",
-            )
-
-        # Extended M3U format
-        m3u_content = f"""#EXTM3U
-#EXTINF:-1,{station_name}
-{stream_url}
-"""
+        m3u_content = f"#EXTM3U\n#EXTINF:-1,{station_name}\n{stream_url}\n"
 
         logger.info(
             f"Serving M3U for {device_id} preset {preset_number}: {station_name}",
@@ -181,37 +202,18 @@ async def get_playlist_pls(
         PLS playlist content with Content-Type: audio/x-scpls
     """
     try:
-        preset = await preset_service.get_preset(device_id, preset_number)
+        station_name, stream_url = await _get_preset_content(
+            preset_service, device_id, preset_number, "PLS"
+        )
 
-        if not preset:
-            logger.warning(
-                f"PLS: Preset not found for device {device_id}, preset {preset_number}"
-            )
-            raise HTTPException(
-                status_code=404,
-                detail=f"Preset {preset_number} not configured for device {device_id}",
-            )
-
-        station_name = preset.station_name or "Unknown Station"
-        stream_url = preset.station_url
-
-        if not stream_url:
-            logger.error(
-                f"PLS: No stream URL for device {device_id}, preset {preset_number}"
-            )
-            raise HTTPException(
-                status_code=500,
-                detail=f"No stream URL configured for preset {preset_number}",
-            )
-
-        # PLS format
-        pls_content = f"""[playlist]
-File1={stream_url}
-Title1={station_name}
-Length1=-1
-NumberOfEntries=1
-Version=2
-"""
+        pls_content = (
+            f"[playlist]\n"
+            f"File1={stream_url}\n"
+            f"Title1={station_name}\n"
+            f"Length1=-1\n"
+            f"NumberOfEntries=1\n"
+            f"Version=2\n"
+        )
 
         logger.info(
             f"Serving PLS for {device_id} preset {preset_number}: {station_name}",

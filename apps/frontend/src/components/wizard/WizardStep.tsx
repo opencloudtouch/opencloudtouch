@@ -20,6 +20,8 @@ export interface WizardStepProps {
   isNextDisabled?: boolean;
   isPreviousDisabled?: boolean;
   isLoading?: boolean;
+  /** Erklärender Text, warum 'Weiter' deaktiviert ist. Erscheint als Tooltip + Hilfetext. */
+  nextDisabledReason?: string;
 }
 
 export default function WizardStep({
@@ -37,6 +39,7 @@ export default function WizardStep({
   isNextDisabled = false,
   isPreviousDisabled = false,
   isLoading = false,
+  nextDisabledReason,
 }: WizardStepProps) {
   return (
     <motion.div
@@ -56,7 +59,9 @@ export default function WizardStep({
       {/* Warning Banner */}
       {warning && (
         <div className="wizard-warning" role="alert">
-          <span className="wizard-warning-icon">⚠️</span>
+          <span className="wizard-warning-icon" aria-hidden="true">
+            ⚠️
+          </span>
           <span className="wizard-warning-text">{warning}</span>
         </div>
       )}
@@ -89,12 +94,19 @@ export default function WizardStep({
             </button>
           )}
 
+          {isNextDisabled && nextDisabledReason && !isLoading && (
+            <span className="wizard-next-hint" role="status" aria-live="polite">
+              ℹ️ {nextDisabledReason}
+            </span>
+          )}
+
           {onNext && (
             <button
               className="btn btn-primary wizard-btn-next"
               onClick={onNext}
               disabled={isNextDisabled || isLoading}
               aria-label={nextLabel}
+              title={isNextDisabled && nextDisabledReason ? nextDisabledReason : undefined}
             >
               {isLoading ? (
                 <>

@@ -8,13 +8,11 @@ Covers:
 - Graceful failure when archive is empty
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from opencloudtouch.setup.backup_service import (
-    SoundTouchBackupService,
-    VolumeType,
-)
+import pytest
+
+from opencloudtouch.setup.backup_service import SoundTouchBackupService, VolumeType
 from opencloudtouch.setup.ssh_client import CommandResult
 
 
@@ -263,3 +261,24 @@ class TestBackupAll:
         rootfs_result = next(r for r in results if r.volume == VolumeType.ROOTFS)
         assert rootfs_result.success is False
         assert "SSH disconnected" in (rootfs_result.error or "")
+
+    async def test_mkdir_failure_logs_warning_but_continues(self, service, mock_ssh):
+        """backup_all logs a warning when mkdir -p fails but continues (line 104).
+
+        mkdir failure is non-fatal: the backup dir may already exist.
+        """
+        mock_ssh.execute.side_effect = [
+            _ok("/media/sda1"),  # find_usb_mount
+            _fail("mkdir: /media/sda1/oct-backup: File exists"),  # mkdir fails
+            _ok(),  # tar rootfs
+            _ok("61341696"),  # wc -c rootfs
+            _ok(),  # tar persistent
+            _ok("10240"),  # wc -c persistent
+            _ok(),  # tar update
+            _ok("954966"),  # wc -c update
+        ]
+
+        results = await service.backup_all()
+
+        # Should still attempt all volumes despite mkdir warning
+        assert len(results) == 3

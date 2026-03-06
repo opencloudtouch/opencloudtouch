@@ -1,4 +1,4 @@
-﻿"""Settings module for OpenCloudTouch."""
+"""Settings module for OpenCloudTouch."""
 
 from opencloudtouch.settings.repository import SettingsRepository
 

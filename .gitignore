@@ -247,3 +247,15 @@ project-files/
 **/cypress/videos/
 **/cypress/screenshots/
 **/cypress/downloads/
+**/tests/e2e/screenshots/
+**/tests/e2e/reports/vision/screenshots/
+cypress-output.txt
+e2e-result.txt
+**/coverage.json
+e2e-job-out.txt
+e2e-out.txt
+e2e-tail.txt
+apps/frontend/tests/e2e/reports
+docs/analysis
+docs/project-planning
+tools

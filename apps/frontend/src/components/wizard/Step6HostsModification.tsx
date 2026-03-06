@@ -85,6 +85,7 @@ export default function Step6HostsModification({
       onNext={onNext}
       onPrevious={onPrevious}
       isNextDisabled={!modifyData?.success}
+      nextDisabledReason="Bitte zuerst die Hosts-Datei erfolgreich anwenden."
     >
       <div className="hosts-modification">
         {/* Configuration */}
@@ -123,7 +124,13 @@ export default function Step6HostsModification({
                       disabled
                     />
                     <code className="hosts-domain-name">{domain}</code>
-                    <span className="hosts-domain-badge">Erforderlich</span>
+                    <span
+                      className="hosts-domain-badge"
+                      title="Diese Domain wird zwingend benötigt, damit Internet-Radio auf Ihrem Gerät weiterhin funktioniert. Sie kann nicht abgewählt werden."
+                      aria-label="Pflicht-Domain: wird für Internet-Radio benötigt"
+                    >
+                      Erforderlich
+                    </span>
                   </label>
                 ))}
               </div>
@@ -195,14 +202,16 @@ export default function Step6HostsModification({
             {modifyData.diff && (
               <div className="hosts-diff-section">
                 <button
-                  className="btn btn-secondary hosts-diff-toggle"
+                  className="btn btn-outline hosts-diff-toggle"
                   onClick={() => setShowDiff(!showDiff)}
+                  aria-expanded={showDiff}
+                  aria-controls="hosts-diff-content"
                 >
-                  {showDiff ? "▼ Diff ausblenden" : "▶ Diff anzeigen"}
+                  {showDiff ? "▼ Änderungen ausblenden" : "▶ Änderungen anzeigen"}
                 </button>
 
                 {showDiff && (
-                  <pre className="hosts-diff">
+                  <pre className="hosts-diff" id="hosts-diff-content">
                     <code>{modifyData.diff}</code>
                   </pre>
                 )}
@@ -211,7 +220,9 @@ export default function Step6HostsModification({
 
             {/* Reboot Notice */}
             <div className="hosts-reboot-notice">
-              <div className="notice-icon">⚠️</div>
+              <div className="notice-icon" aria-hidden="true">
+                ⚠️
+              </div>
               <div className="notice-content">
                 <strong>Neustart erforderlich!</strong>
                 <p>

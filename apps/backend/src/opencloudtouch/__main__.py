@@ -1,4 +1,4 @@
-﻿"""Entry point for running opencloudtouch as module."""
+"""Entry point for running opencloudtouch as module."""
 
 import uvicorn
 

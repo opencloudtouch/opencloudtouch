@@ -86,13 +86,15 @@
   flex-shrink: 0;
   background: none;
   border: none;
-  padding: 4px;
+  padding: 8px;
   cursor: pointer;
   color: #6b7280;
   transition: color 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .toast-close:hover {

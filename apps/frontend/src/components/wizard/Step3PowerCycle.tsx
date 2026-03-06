@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { checkPorts } from "../../api/wizard";
 import WizardStep from "./WizardStep";
+import CopyableCommand from "./CopyableCommand";
 import "./Step3PowerCycle.css";
 
 // ─── SSH Persistence Risk Assessment ───────────────────────────────────────────
@@ -34,49 +35,6 @@ function calcRiskLevel(answers: RiskAnswers): "gering" | "mittel" | "hoch" | nul
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 type SshClient = "terminal" | "putty";
-
-function CopyableCommand({ command }: { command: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(command).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      });
-    } else {
-      // Fallback for HTTP (non-secure context)
-      const textarea = document.createElement("textarea");
-      textarea.value = command;
-      textarea.style.position = "fixed";
-      textarea.style.opacity = "0";
-      document.body.appendChild(textarea);
-      textarea.focus();
-      textarea.select();
-      try {
-        document.execCommand("copy");
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } finally {
-        document.body.removeChild(textarea);
-      }
-    }
-  };
-
-  return (
-    <div className="ssh-command-wrapper">
-      <pre className="ssh-hint-command">{command}</pre>
-      <button
-        className={`ssh-copy-btn ${copied ? "copied" : ""}`}
-        onClick={handleCopy}
-        title="In Zwischenablage kopieren"
-        aria-label="Befehl kopieren"
-      >
-        {copied ? "✓" : "⎘"}
-      </button>
-    </div>
-  );
-}
 
 interface Step3Props {
   deviceIp: string;
@@ -204,7 +162,9 @@ export default function Step3PowerCycle({
 
           {!checking && !portsAvailable && checkAttempts === 0 && (
             <div className="power-cycle-status pending">
-              <div className="status-icon">⏳</div>
+              <div className="status-icon" aria-hidden="true">
+                ⏳
+              </div>
               <div className="status-content">
                 <p>Warte auf Geräteneustart...</p>
                 <small>Automatische Prüfung in 30 Sekunden</small>
@@ -226,7 +186,9 @@ export default function Step3PowerCycle({
 
           {!checking && portsAvailable && (
             <div className="power-cycle-status success">
-              <div className="status-icon">✅</div>
+              <div className="status-icon" aria-hidden="true">
+                ✅
+              </div>
               <div className="status-content">
                 <p>
                   <strong>SSH/Telnet verfügbar!</strong>
@@ -238,7 +200,9 @@ export default function Step3PowerCycle({
 
           {!checking && !portsAvailable && checkAttempts > 0 && errorMessage && (
             <div className="power-cycle-status error">
-              <div className="status-icon">❌</div>
+              <div className="status-icon" aria-hidden="true">
+                ❌
+              </div>
               <div className="status-content">
                 <p>
                   <strong>Ports nicht erreichbar</strong>
@@ -279,7 +243,7 @@ export default function Step3PowerCycle({
                       className={`risk-answer-btn ${riskAnswers.q1 === a ? "selected" : ""} ${a === "unbekannt" ? "unknown" : ""}`}
                       onClick={() => setRiskAnswers((prev) => ({ ...prev, q1: a }))}
                     >
-                      {a === "ja" ? "Ja" : a === "nein" ? "Nein" : "Weiß ich nicht"}
+                      {a === "ja" ? "✅ Ja" : a === "nein" ? "❌ Nein" : "❓ Weiß ich nicht"}
                     </button>
                   ))}
                 </div>
@@ -298,7 +262,7 @@ export default function Step3PowerCycle({
                       className={`risk-answer-btn ${riskAnswers.q2 === a ? "selected" : ""} ${a === "unbekannt" ? "unknown" : ""}`}
                       onClick={() => setRiskAnswers((prev) => ({ ...prev, q2: a }))}
                     >
-                      {a === "ja" ? "Ja" : a === "nein" ? "Nein" : "Weiß ich nicht"}
+                      {a === "ja" ? "✅ Ja" : a === "nein" ? "❌ Nein" : "❓ Weiß ich nicht"}
                     </button>
                   ))}
                 </div>
@@ -317,7 +281,7 @@ export default function Step3PowerCycle({
                       className={`risk-answer-btn ${riskAnswers.q3 === a ? "selected" : ""} ${a === "unbekannt" ? "unknown" : ""}`}
                       onClick={() => setRiskAnswers((prev) => ({ ...prev, q3: a }))}
                     >
-                      {a === "ja" ? "Ja" : a === "nein" ? "Nein" : "Weiß ich nicht"}
+                      {a === "ja" ? "✅ Ja" : a === "nein" ? "❌ Nein" : "❓ Weiß ich nicht"}
                     </button>
                   ))}
                 </div>
@@ -373,84 +337,93 @@ export default function Step3PowerCycle({
           )}
         </div>
 
-        {/* SSH Command Hint */}
-        <div className="power-cycle-ssh-hint">
-          <h4 className="ssh-hint-title">🔑 SSH-Verbindung manuell testen</h4>
-          <p className="ssh-hint-description">
-            SoundTouch-Geräte benötigen Legacy-SSH-Algorithmen.
-          </p>
+        {/* SSH Command Hint — collapsible für Fortgeschrittene (REFACT-210) */}
+        <details className="ssh-manual-test-collapsible">
+          <summary className="ssh-manual-test-summary">
+            🔧 Für Fortgeschrittene: SSH-Verbindung manuell testen
+          </summary>
+          <div className="power-cycle-ssh-hint">
+            <p className="ssh-manual-test-hint">
+              <strong>Wann ist das nötig?</strong> Nur wenn der automatische Test oben fehlschlägt
+              und Sie den Verbindungsaufbau selbst überprüfen möchten. Für den normalen Ablauf
+              können Sie diesen Schritt überspringen.
+            </p>
+            <p className="ssh-hint-description">
+              SoundTouch-Geräte benötigen Legacy-SSH-Algorithmen.
+            </p>
 
-          {/* Client Switcher */}
-          <div className="ssh-client-tabs">
-            <button
-              className={`ssh-client-tab ${sshClient === "terminal" ? "active" : ""}`}
-              onClick={() => setSshClient("terminal")}
-            >
-              🖥️ Terminal (Linux / macOS)
-            </button>
-            <button
-              className={`ssh-client-tab ${sshClient === "putty" ? "active" : ""}`}
-              onClick={() => setSshClient("putty")}
-            >
-              🪟 PuTTY (Windows)
-            </button>
-          </div>
+            {/* Client Switcher */}
+            <div className="ssh-client-tabs">
+              <button
+                className={`ssh-client-tab ${sshClient === "terminal" ? "active" : ""}`}
+                onClick={() => setSshClient("terminal")}
+              >
+                🖥️ Terminal (Linux / macOS)
+              </button>
+              <button
+                className={`ssh-client-tab ${sshClient === "putty" ? "active" : ""}`}
+                onClick={() => setSshClient("putty")}
+              >
+                🪟 PuTTY (Windows)
+              </button>
+            </div>
 
-          {sshClient === "terminal" && (
-            <CopyableCommand
-              command={`ssh \
+            {sshClient === "terminal" && (
+              <CopyableCommand
+                command={`ssh \
   -o HostKeyAlgorithms=ssh-rsa \
   -o PubkeyAcceptedKeyTypes=ssh-rsa \
   -o KexAlgorithms=diffie-hellman-group1-sha1 \
   -o Ciphers=aes128-cbc \
   root@${deviceIp || "<IP-des-Geräts>"}`}
-            />
-          )}
+              />
+            )}
 
-          {sshClient === "putty" && (
-            <div className="putty-instructions">
-              <div className="putty-step">
-                <span className="putty-step-num">1</span>
-                <span>
-                  <strong>Session:</strong> Host Name = <code>{deviceIp || "&lt;IP&gt;"}</code>,
-                  Port = <code>22</code>, Connection type = <code>SSH</code>
-                </span>
+            {sshClient === "putty" && (
+              <div className="putty-instructions">
+                <div className="putty-step">
+                  <span className="putty-step-num">1</span>
+                  <span>
+                    <strong>Session:</strong> Host Name = <code>{deviceIp || "&lt;IP&gt;"}</code>,
+                    Port = <code>22</code>, Connection type = <code>SSH</code>
+                  </span>
+                </div>
+                <div className="putty-step">
+                  <span className="putty-step-num">2</span>
+                  <span>
+                    <strong>Connection → SSH → Kex:</strong> Preferred key exchange methods → ganz
+                    oben <code>Diffie-Hellman group 1</code> einordnen
+                  </span>
+                </div>
+                <div className="putty-step">
+                  <span className="putty-step-num">3</span>
+                  <span>
+                    <strong>Connection → SSH → Cipher:</strong> Encryption cipher selection policy →{" "}
+                    <code>3DES</code> oder <code>AES</code> ganz oben; sicherstellen dass{" "}
+                    <code>aes128-cbc</code> nicht deaktiviert ist
+                  </span>
+                </div>
+                <div className="putty-step">
+                  <span className="putty-step-num">4</span>
+                  <span>
+                    <strong>Connection → SSH → Auth:</strong> &quot;Allow attempted changes of
+                    username&quot; aktivieren; unter <em>Host keys</em> →{" "}
+                    <code>rsa-sha2-256, rsa-sha2-512</code> entfernen, nur <code>ssh-rsa</code>{" "}
+                    belassen
+                  </span>
+                </div>
+                <div className="putty-step">
+                  <span className="putty-step-num">5</span>
+                  <span>
+                    Login: Username = <code>root</code>, Passwort = leer (Enter drücken)
+                  </span>
+                </div>
               </div>
-              <div className="putty-step">
-                <span className="putty-step-num">2</span>
-                <span>
-                  <strong>Connection → SSH → Kex:</strong> Preferred key exchange methods → ganz
-                  oben <code>Diffie-Hellman group 1</code> einordnen
-                </span>
-              </div>
-              <div className="putty-step">
-                <span className="putty-step-num">3</span>
-                <span>
-                  <strong>Connection → SSH → Cipher:</strong> Encryption cipher selection policy →{" "}
-                  <code>3DES</code> oder <code>AES</code> ganz oben; sicherstellen dass{" "}
-                  <code>aes128-cbc</code> nicht deaktiviert ist
-                </span>
-              </div>
-              <div className="putty-step">
-                <span className="putty-step-num">4</span>
-                <span>
-                  <strong>Connection → SSH → Auth:</strong> &quot;Allow attempted changes of
-                  username&quot; aktivieren; unter <em>Host keys</em> →{" "}
-                  <code>rsa-sha2-256, rsa-sha2-512</code> entfernen, nur <code>ssh-rsa</code>{" "}
-                  belassen
-                </span>
-              </div>
-              <div className="putty-step">
-                <span className="putty-step-num">5</span>
-                <span>
-                  Login: Username = <code>root</code>, Passwort = leer (Enter drücken)
-                </span>
-              </div>
-            </div>
-          )}
+            )}
 
-          <small className="ssh-hint-note">Passwort: leer lassen (Enter drücken)</small>
-        </div>
+            <small className="ssh-hint-note">Passwort: leer lassen (Enter drücken)</small>
+          </div>
+        </details>
 
         {/* Troubleshooting */}
         {checkAttempts > 0 && !portsAvailable && (

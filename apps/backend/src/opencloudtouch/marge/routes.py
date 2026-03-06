@@ -9,17 +9,34 @@ from fastapi.responses import Response
 
 from opencloudtouch.core.dependencies import get_preset_repository
 from opencloudtouch.marge.xml_builder import (
+    build_devices_xml,
     build_full_account_xml,
     build_presets_xml,
     build_recents_xml,
     build_sources_xml,
-    build_devices_xml,
 )
 from opencloudtouch.presets.repository import PresetRepository
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["marge"])
+
+_MEDIA_XML = "application/xml"
+_MEDIA_STREAMING_XML = "application/vnd.bose.streaming-v1.2+xml"
+
+
+def _xml_response(element: ET.Element, media_type: str = _MEDIA_XML) -> Response:
+    """Serialize an ElementTree element to a FastAPI XML Response.
+
+    Args:
+        element: Root XML element to serialize
+        media_type: MIME type for the response (default: application/xml)
+
+    Returns:
+        FastAPI Response with UTF-8 encoded XML content
+    """
+    content = ET.tostring(element, encoding="utf-8", xml_declaration=True)
+    return Response(content=content, media_type=media_type)
 
 
 @router.get("/v1/systems/devices/{device_id}")
@@ -49,13 +66,9 @@ async def get_full_account(
     # TODO: Load recents from database (not implemented yet)
     recents: list[Any] = []
 
-    # Build XML
-    account_xml = build_full_account_xml(presets, recents)
-    xml_str = ET.tostring(account_xml, encoding="utf-8", xml_declaration=True)
-
     logger.info(f"[MARGE] Returning {len(presets)} presets for {device_id}")
 
-    return Response(content=xml_str, media_type="application/xml")
+    return _xml_response(build_full_account_xml(presets, recents))
 
 
 @router.get("/v1/systems/devices/{device_id}/presets")
@@ -76,10 +89,7 @@ async def get_presets(
 
     presets = await preset_repo.get_all_presets(device_id)
 
-    presets_xml = build_presets_xml(presets)
-    xml_str = ET.tostring(presets_xml, encoding="utf-8", xml_declaration=True)
-
-    return Response(content=xml_str, media_type="application/xml")
+    return _xml_response(build_presets_xml(presets))
 
 
 @router.get("/v1/systems/devices/{device_id}/recents")
@@ -97,10 +107,7 @@ async def get_recents(device_id: str) -> Response:
     # TODO: Load recents from database
     recents: list[Any] = []
 
-    recents_xml = build_recents_xml(recents)
-    xml_str = ET.tostring(recents_xml, encoding="utf-8", xml_declaration=True)
-
-    return Response(content=xml_str, media_type="application/xml")
+    return _xml_response(build_recents_xml(recents))
 
 
 @router.get("/v1/systems/devices/{device_id}/sources")
@@ -116,9 +123,8 @@ async def get_sources(device_id: str) -> Response:
     logger.info(f"[MARGE] Get sources for device {device_id}")
 
     sources_xml = build_sources_xml()
-    xml_str = ET.tostring(sources_xml, encoding="utf-8", xml_declaration=True)
 
-    return Response(content=xml_str, media_type="application/xml")
+    return _xml_response(sources_xml)
 
 
 @router.get("/v1/systems/devices/{device_id}/devices")
@@ -136,10 +142,7 @@ async def get_devices(device_id: str) -> Response:
     # TODO: Implement multiroom device discovery
     devices: list[Any] = []
 
-    devices_xml = build_devices_xml(devices)
-    xml_str = ET.tostring(devices_xml, encoding="utf-8", xml_declaration=True)
-
-    return Response(content=xml_str, media_type="application/xml")
+    return _xml_response(build_devices_xml(devices))
 
 
 @router.post("/v1/systems/devices/{device_id}/power_on")
@@ -187,9 +190,7 @@ async def get_sourceproviders(device_id: str) -> Response:
         provider_elem.set("source", provider)
         provider_elem.set("status", "AVAILABLE")
 
-    xml_str = ET.tostring(root, encoding="utf-8", xml_declaration=True)
-
-    return Response(content=xml_str, media_type="application/xml")
+    return _xml_response(root)
 
 
 # =============================================================================
@@ -244,11 +245,7 @@ async def streaming_sourceproviders() -> Response:
     ET.SubElement(local_radio, "name").text = "LOCAL_INTERNET_RADIO"
     ET.SubElement(local_radio, "updatedOn").text = "2014-01-01T00:00:00.000+00:00"
 
-    xml_str = ET.tostring(root, encoding="utf-8", xml_declaration=True)
-
-    return Response(
-        content=xml_str, media_type="application/vnd.bose.streaming-v1.2+xml"
-    )
+    return _xml_response(root, _MEDIA_STREAMING_XML)
 
 
 @router.get("/streaming/account/{account_id}/full")
@@ -277,17 +274,11 @@ async def streaming_full_account(
     # Load presets from database
     presets = await preset_repo.get_all_presets(device_id)
 
-    # Build full account XML
-    account_xml = build_full_account_xml(presets, [])
-    xml_str = ET.tostring(account_xml, encoding="utf-8", xml_declaration=True)
-
     logger.info(
         f"[MARGE/STREAMING] Returning {len(presets)} presets for account {account_id}"
     )
 
-    return Response(
-        content=xml_str, media_type="application/vnd.bose.streaming-v1.2+xml"
-    )
+    return _xml_response(build_full_account_xml(presets, []), _MEDIA_STREAMING_XML)
 
 
 @router.post("/v1/scmudc/{device_id}")

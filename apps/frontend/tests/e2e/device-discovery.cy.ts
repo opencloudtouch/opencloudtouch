@@ -9,7 +9,7 @@
 describe("Device Discovery", () => {
   beforeEach(() => {
     // Clear DB before each test (fresh state)
-    const apiUrl = Cypress.env("apiUrl");
+    const apiUrl = Cypress.expose('apiUrl');
     cy.request("DELETE", `${apiUrl}/devices`);
   });
 
@@ -85,7 +85,7 @@ describe("Device Discovery", () => {
     });
 
     it("should show correct number of devices based on manual IPs", () => {
-      const apiUrl = Cypress.env("apiUrl");
+      const apiUrl = Cypress.expose('apiUrl');
       const ips = ["192.168.1.100", "192.168.1.101", "192.168.1.102"];
 
       // Add manual IPs via API

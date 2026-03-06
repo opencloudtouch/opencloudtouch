@@ -11,8 +11,9 @@ The old code had CONFIG_PATH = "/nv/OverrideSdkPrivateCfg.xml" which
 caused step 5 (config modification) to fail with "file not found".
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from opencloudtouch.setup.config_service import SoundTouchConfigService
 from opencloudtouch.setup.ssh_client import CommandResult
@@ -123,3 +124,108 @@ class TestConfigServiceSSHRemount:
         assert (
             result.backup_path != ""
         ), "backup_path must not be empty after successful modification"
+
+    @pytest.mark.asyncio
+    async def test_remount_rw_logs_warning_on_nonzero_exit(self, service, mock_ssh):
+        """_remount_rw should log a warning when SSH returns non-zero exit code."""
+        mock_ssh.execute.return_value = CommandResult(
+            success=False, output="", exit_code=1, stderr="permission denied"
+        )
+
+        # Should still complete without exception
+        result = await service.modify_bmx_url(oct_ip="192.168.1.50")
+
+        assert result.success is True  # stub still succeeds after warning
+
+    @pytest.mark.asyncio
+    async def test_remount_ro_logs_warning_on_nonzero_exit(self, service, mock_ssh):
+        """_remount_ro should log a warning when SSH returns non-zero exit code."""
+        # First call (remount rw) succeeds, second call (remount ro) fails
+        mock_ssh.execute.side_effect = [
+            CommandResult(success=True, output="", exit_code=0),  # remount rw
+            CommandResult(
+                success=False, output="", exit_code=1, stderr="busy"
+            ),  # remount ro
+        ]
+
+        result = await service.modify_bmx_url(oct_ip="192.168.1.50")
+
+        # Second SSH result (exit_code=1) triggers remount_ro warning branch
+        assert result.success is True
+
+    @pytest.mark.asyncio
+    async def test_modify_config_returns_failure_on_exception(self, service, mock_ssh):
+        """modify_bmx_url returns ModifyResult(success=False) when SSH raises."""
+        mock_ssh.execute.side_effect = OSError("connection lost")
+
+        result = await service.modify_bmx_url(oct_ip="192.168.1.50")
+
+        assert result.success is False
+        assert result.error is not None
+        assert "connection lost" in result.error
+
+
+class TestRestoreConfig:
+    """Tests for restore_config method."""
+
+    @pytest.mark.asyncio
+    async def test_restore_config_success(self, service, mock_ssh):
+        """restore_config returns RestoreResult(success=True) on happy path."""
+        result = await service.restore_config(backup_path="/usb/backups/config.xml")
+
+        assert result.success is True
+        assert result.error is None
+
+    @pytest.mark.asyncio
+    async def test_restore_config_failure_on_exception(self, service, mock_ssh):
+        """restore_config returns RestoreResult(success=False) when exception raised."""
+        import unittest.mock as um
+
+        call_count = 0
+
+        def info_side_effect(msg, *args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 2:  # second logger.info call inside try block
+                raise RuntimeError("unexpected error")
+
+        with um.patch.object(service, "logger") as mock_log:
+            mock_log.info.side_effect = info_side_effect
+            mock_log.error = um.MagicMock()
+            result = await service.restore_config(backup_path="/usb/backups/config.xml")
+
+        assert result.success is False
+        assert result.error is not None
+
+
+class TestListBackups:
+    """Tests for list_backups method."""
+
+    @pytest.mark.asyncio
+    async def test_list_backups_returns_list(self, service, mock_ssh):
+        """list_backups returns a list of backup paths (stub returns hardcoded list)."""
+        result = await service.list_backups()
+
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+    @pytest.mark.asyncio
+    async def test_list_backups_returns_xml_paths(self, service, mock_ssh):
+        """list_backups returns paths ending in .xml."""
+        result = await service.list_backups()
+
+        for path in result:
+            assert path.endswith(".xml"), f"Expected .xml path, got: {path}"
+
+    @pytest.mark.asyncio
+    async def test_list_backups_exception_returns_empty_list(self, service, mock_ssh):
+        """list_backups catches unexpected exceptions and returns [] (lines 160-162)."""
+        from unittest.mock import patch
+
+        # The logger.info call is inside the try block; making it raise triggers the except
+        with patch.object(
+            service.logger, "info", side_effect=RuntimeError("log failure")
+        ):
+            result = await service.list_backups()
+
+        assert result == []

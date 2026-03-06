@@ -8,13 +8,14 @@
   padding: 40px 20px;
 }
 
+/* REFACT-129: Improved contrast ratio — dark text on translucent background */
 .demo-banner {
-  padding: 12px 20px;
-  background: rgba(249, 115, 22, 0.1);
-  border: 1px solid rgba(249, 115, 22, 0.3);
+  padding: 8px 16px;
+  background: rgba(249, 115, 22, 0.08);
+  border: 1px solid rgba(249, 115, 22, 0.35);
   border-radius: 8px;
-  color: #f97316;
-  font-size: 14px;
+  color: #c2410c; /* WCAG AA: darker orange-red for contrast */
+  font-size: 13px;
   font-weight: var(--font-weight-medium);
   margin-bottom: 24px;
   text-align: center;

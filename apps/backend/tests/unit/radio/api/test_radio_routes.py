@@ -680,3 +680,57 @@ class TestConcurrentRadioRequests:
 
         finally:
             app.dependency_overrides.clear()
+
+
+class TestRadioUncoveredExceptionPaths:
+    """Covers remaining exception paths in radio/api/routes.py.
+
+    Regression: Lines 122-123 (search Exception), 152-155 (station RadioBrowserError),
+    156 (station Exception) were previously uncovered.
+    """
+
+    def test_search_unexpected_exception_returns_500(self, client, mock_adapter):
+        """Generic RuntimeError in search_stations returns 500 (covers 122-123)."""
+        mock_adapter.search_by_name.side_effect = RuntimeError("Unexpected DB crash")
+
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
+        try:
+            response = client.get("/api/radio/search", params={"q": "test"})
+            assert response.status_code == 500
+            assert "Unexpected" in response.json()["detail"]
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_station_detail_radiobrowser_error_non_not_found_returns_500(
+        self, client, mock_adapter
+    ):
+        """RadioBrowserError without 'not found' message returns 500 (covers 153-155)."""
+        from opencloudtouch.radio.providers.radiobrowser import RadioBrowserError
+
+        mock_adapter.get_station_by_uuid.side_effect = RadioBrowserError(
+            "API rate limit exceeded"
+        )
+
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
+        try:
+            response = client.get("/api/radio/station/test-uuid")
+            assert response.status_code == 500
+            assert "RadioBrowser" in response.json()["detail"]
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_station_detail_unexpected_exception_returns_500(
+        self, client, mock_adapter
+    ):
+        """Generic RuntimeError in get_station_detail returns 500 (covers line 156)."""
+        mock_adapter.get_station_by_uuid.side_effect = RuntimeError(
+            "Unexpected runtime error"
+        )
+
+        app.dependency_overrides[get_radio_provider] = lambda: mock_adapter
+        try:
+            response = client.get("/api/radio/station/test-uuid")
+            assert response.status_code == 500
+            assert "Unexpected" in response.json()["detail"]
+        finally:
+            app.dependency_overrides.clear()

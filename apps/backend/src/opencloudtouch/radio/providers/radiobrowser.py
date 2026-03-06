@@ -307,4 +307,4 @@ class RadioBrowserAdapter(RadioProvider):
                     raise
 
         # Should not reach here
-        raise RadioBrowserError("Request failed after retries")
+        raise RadioBrowserError("Request failed after retries")  # pragma: no cover

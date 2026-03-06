@@ -88,13 +88,16 @@
   font-size: 1rem;
   font-weight: 600;
   color: #ffffff;
-  margin-bottom: 0.25rem;
+  /* REFACT-132: Increased spacing below heading for readability */
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
 }
 
 .step-content p {
   font-size: 0.875rem;
   color: #999;
-  line-height: 1.5;
+  line-height: 1.6;
+  margin-bottom: 0;
 }
 
 .cta-button {
@@ -122,16 +125,23 @@
   transform: translateY(0);
 }
 
+/* REFACT-131: Secondary button has reduced visual weight vs primary */
+/* REFACT-145: Both CTA buttons have consistent SVG icon prefix + same border-radius */
 .cta-button.secondary {
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  padding: 0.75rem 1.5rem;
 }
 
 .cta-button.secondary:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  transform: translateY(-1px);
+  box-shadow: none;
 }
 
 /* Progressive Discovery Results */
@@ -410,12 +420,34 @@
   font-size: 0.95rem;
   resize: vertical;
   transition: border-color 0.2s;
-  margin-bottom: 1rem;
+  margin-bottom: 0.25rem; /* Reduced: validation error takes space below */
+}
+
+/* REFACT-135: Real-time validation error state */
+.modal-textarea--error {
+  border-color: #ef4444;
+}
+
+.modal-textarea--error:focus {
+  border-color: #ef4444;
+  outline-color: #ef4444;
+}
+
+.modal-validation-error {
+  color: #ef4444;
+  font-size: 0.82rem;
+  margin-bottom: 0.75rem;
+  padding: 0.25rem 0;
 }
 
 .modal-textarea:focus {
   outline: none;
   border-color: var(--primary-blue);
+}
+
+.modal-textarea:focus-visible {
+  outline: 2px solid var(--color-accent, #0066cc);
+  outline-offset: 2px;
 }
 
 .modal-textarea:disabled {

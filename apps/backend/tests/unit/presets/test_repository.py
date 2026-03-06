@@ -2,6 +2,7 @@
 
 import tempfile
 from pathlib import Path
+
 import pytest
 
 from opencloudtouch.presets.models import Preset
@@ -297,8 +298,9 @@ class TestMigration:
         new code that needs it.
         """
         import tempfile
-        import aiosqlite
         from pathlib import Path
+
+        import aiosqlite
 
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = Path(tmpdir) / "legacy_presets.db"
@@ -375,3 +377,164 @@ class TestMigration:
         result = await preset_repo.get_preset("device_null_source", 1)
         assert result is not None
         assert result.source is None, "source=None should be stored as NULL"
+
+
+# ---------------------------------------------------------------------------
+# REFACT-007: Schema-version table (idempotency + audit trail)
+# ---------------------------------------------------------------------------
+
+
+class TestSchemaVersions:
+    """REFACT-007: Verify that the schema-versions tracking table is created
+    and that migrations are recorded and not re-applied."""
+
+    @pytest.mark.asyncio
+    async def test_schema_versions_table_is_created(self, preset_repo):
+        """schema_versions table must exist after initialization."""
+        cursor = await preset_repo._db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' "
+            "AND name='schema_versions'"
+        )
+        row = await cursor.fetchone()
+        assert row is not None, "schema_versions table must be created on init"
+
+    @pytest.mark.asyncio
+    async def test_migration_v1_recorded_in_schema_versions(self, preset_repo):
+        """Migration v1 (source column) must be recorded in schema_versions."""
+        cursor = await preset_repo._db.execute(
+            "SELECT version, description FROM schema_versions WHERE version = 1"
+        )
+        row = await cursor.fetchone()
+        assert row is not None, "Migration v1 must be recorded in schema_versions"
+        assert row[0] == 1
+        assert "source" in row[1].lower()
+
+    @pytest.mark.asyncio
+    async def test_migration_is_idempotent(self):
+        """Calling _create_schema twice must not raise and must not duplicate rows."""
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "idempotent.db"
+            repo = PresetRepository(str(db_path))
+            await repo.initialize()  # first run
+
+            # Second initialize must be safe (no duplicate-column / unique errors)
+            await repo._create_schema()  # type: ignore[attr-defined]
+
+            cursor = await repo._db.execute(
+                "SELECT COUNT(*) FROM schema_versions WHERE version = 1"
+            )
+            row = await cursor.fetchone()
+            assert row[0] == 1, (
+                "Migration v1 must appear exactly once in schema_versions "
+                "even after _create_schema is called twice"
+            )
+            await repo.close()
+
+    @pytest.mark.asyncio
+    async def test_migration_robust_against_duplicate_column(self):
+        """Regression test: DB already has source column but NO schema_versions.
+
+        This is the exact scenario that caused startup failure on hera:
+        An older version of the code included 'source' directly in the base
+        CREATE TABLE DDL.  When the new code with migration tracking runs,
+        schema_versions is empty → migration tries ALTER TABLE ADD COLUMN source
+        → sqlite3.OperationalError: duplicate column name: source.
+
+        The fix: _apply_migration must catch 'duplicate column name' and treat
+        it as an already-applied migration (idempotent).
+
+        Bug: Application startup failed on hera after new image deployment.
+        Fixed: 2026-03-05 — catch duplicate column name in _apply_migration.
+        """
+        import tempfile
+        from pathlib import Path
+
+        import aiosqlite
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "hera_regression.db"
+
+            # Simulate old-style DB: presets WITH source column, NO schema_versions
+            async with aiosqlite.connect(str(db_path)) as db:
+                await db.execute("""
+                    CREATE TABLE presets (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        device_id TEXT NOT NULL,
+                        preset_number INTEGER NOT NULL,
+                        station_uuid TEXT NOT NULL,
+                        station_name TEXT NOT NULL,
+                        station_url TEXT NOT NULL,
+                        station_homepage TEXT,
+                        station_favicon TEXT,
+                        source TEXT,
+                        created_at TIMESTAMP,
+                        updated_at TIMESTAMP,
+                        UNIQUE(device_id, preset_number)
+                    )
+                    """)
+                await db.commit()
+
+            # Must NOT raise — this is the hera crash scenario
+            repo = PresetRepository(str(db_path))
+            await repo.initialize()
+
+            # schema_versions should now contain migration v1
+            async with aiosqlite.connect(str(db_path)) as db:
+                cursor = await db.execute(
+                    "SELECT version FROM schema_versions WHERE version = 1"
+                )
+                row = await cursor.fetchone()
+                assert (
+                    row is not None
+                ), "Migration v1 must be recorded even when column already existed"
+
+            await repo.close()
+        """Legacy DB (without schema_versions or source column) must be migrated
+        and the migration must be recorded in schema_versions with a timestamp."""
+        import tempfile
+        from pathlib import Path
+
+        import aiosqlite
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "legacy.db"
+
+            # Old-style DB — no source column, no schema_versions table
+            async with aiosqlite.connect(str(db_path)) as db:
+                await db.execute("""
+                    CREATE TABLE presets (
+                        device_id TEXT NOT NULL,
+                        preset_number INTEGER NOT NULL,
+                        station_name TEXT NOT NULL,
+                        station_url TEXT NOT NULL,
+                        PRIMARY KEY (device_id, preset_number)
+                    )
+                    """)
+                await db.commit()
+
+            repo = PresetRepository(str(db_path))
+            await repo.initialize()
+
+            # source column must now exist
+            async with aiosqlite.connect(str(db_path)) as db:
+                cursor = await db.execute("PRAGMA table_info(presets)")
+                rows = await cursor.fetchall()
+                col_names = [r[1] for r in rows]
+                assert (
+                    "source" in col_names
+                ), "REFACT-007: source column must exist after migrating legacy DB"
+
+                # Migration must be recorded
+                cursor = await db.execute(
+                    "SELECT version, applied_at FROM schema_versions WHERE version = 1"
+                )
+                row = await cursor.fetchone()
+                assert (
+                    row is not None
+                ), "REFACT-007: Migration v1 must be recorded in schema_versions"
+                assert row[1] is not None, "applied_at timestamp must be set"
+
+            await repo.close()

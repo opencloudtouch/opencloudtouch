@@ -32,8 +32,8 @@
 }
 
 .step-circle {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -57,11 +57,17 @@
   transition: all 0.3s ease;
 }
 
+/* REFACT-136: min. 44px touch target for step label area */
 .step-label {
   font-size: 12px;
   color: var(--color-text-secondary);
   text-align: center;
   font-weight: var(--font-weight-medium);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 2px;
 }
 
 /* Active Step */

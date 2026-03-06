@@ -1,15 +1,16 @@
 """Unit tests for BMX TuneIn playback resolution."""
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 from fastapi.responses import JSONResponse
 
 from opencloudtouch.bmx.routes import (
-    resolve_tunein_station,
-    bmx_tunein_playback,
-    BmxPlaybackResponse,
     BmxAudio,
+    BmxPlaybackResponse,
     BmxStream,
+    bmx_tunein_playback,
+    resolve_tunein_station,
 )
 
 
@@ -42,7 +43,7 @@ class TestResolveTuneInStation:
         mock_response_stream = MagicMock()
         mock_response_stream.text = stream_urls
 
-        with patch("opencloudtouch.bmx.routes.httpx.AsyncClient") as mock_client:
+        with patch("opencloudtouch.bmx.tunein.httpx.AsyncClient") as mock_client:
             mock_context = AsyncMock()
             mock_context.__aenter__.return_value.get = AsyncMock(
                 side_effect=[mock_response_describe, mock_response_stream]
@@ -94,7 +95,7 @@ class TestResolveTuneInStation:
         mock_response_stream = MagicMock()
         mock_response_stream.text = stream_urls
 
-        with patch("opencloudtouch.bmx.routes.httpx.AsyncClient") as mock_client:
+        with patch("opencloudtouch.bmx.tunein.httpx.AsyncClient") as mock_client:
             mock_context = AsyncMock()
             mock_context.__aenter__.return_value.get = AsyncMock(
                 side_effect=[mock_response_describe, mock_response_stream]
@@ -133,7 +134,7 @@ class TestResolveTuneInStation:
         mock_response_stream = MagicMock()
         mock_response_stream.text = stream_urls
 
-        with patch("opencloudtouch.bmx.routes.httpx.AsyncClient") as mock_client:
+        with patch("opencloudtouch.bmx.tunein.httpx.AsyncClient") as mock_client:
             mock_context = AsyncMock()
             mock_context.__aenter__.return_value.get = AsyncMock(
                 side_effect=[mock_response_describe, mock_response_stream]
@@ -154,7 +155,7 @@ class TestResolveTuneInStation:
         mock_response = MagicMock()
         mock_response.text = invalid_xml
 
-        with patch("opencloudtouch.bmx.routes.httpx.AsyncClient") as mock_client:
+        with patch("opencloudtouch.bmx.tunein.httpx.AsyncClient") as mock_client:
             mock_context = AsyncMock()
             mock_context.__aenter__.return_value.get = AsyncMock(
                 return_value=mock_response
@@ -184,7 +185,7 @@ class TestResolveTuneInStation:
         mock_response_stream = MagicMock()
         mock_response_stream.text = stream_urls
 
-        with patch("opencloudtouch.bmx.routes.httpx.AsyncClient") as mock_client:
+        with patch("opencloudtouch.bmx.tunein.httpx.AsyncClient") as mock_client:
             mock_context = AsyncMock()
             mock_context.__aenter__.return_value.get = AsyncMock(
                 side_effect=[mock_response_describe, mock_response_stream]
@@ -204,7 +205,7 @@ class TestResolveTuneInStation:
         # Arrange
         station_id = "s12345"
 
-        with patch("opencloudtouch.bmx.routes.httpx.AsyncClient") as mock_client:
+        with patch("opencloudtouch.bmx.tunein.httpx.AsyncClient") as mock_client:
             mock_context = AsyncMock()
             mock_context.__aenter__.return_value.get = AsyncMock(
                 side_effect=Exception("Network timeout")

@@ -49,11 +49,25 @@
   margin: 0;
 }
 
+.reboot-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.reboot-action-hint {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #888);
+  font-style: italic;
+}
+
 .reboot-btn {
   align-self: flex-start;
-  background: #ff9800;
-  color: #000;
-  border: none;
+  /* REFACT-214: btn-secondary statt btn-warning — Neustart ist nicht der primäre CTA */
+  background: var(--surface-color, #2a2a2a);
+  color: var(--text-primary, #e0e0e0);
+  border: 1px solid var(--border-color, #3a3a3a);
   border-radius: 6px;
   padding: 0.6rem 1.25rem;
   font-size: 0.95rem;
@@ -63,7 +77,8 @@
 }
 
 .reboot-btn:hover {
-  background: #fb8c00;
+  background: var(--color-bg-hover, #333);
+  border-color: var(--primary-color, #4a90d9);
 }
 
 .reboot-status {

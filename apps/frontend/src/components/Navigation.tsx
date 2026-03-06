@@ -31,7 +31,7 @@ export default function Navigation() {
           <span className="nav-label">Firmware</span>
         </NavLink> */}
         <NavLink to={withDevice("/settings")} className="nav-link">
-          <span className="nav-icon">⚡</span>
+          <span className="nav-icon">⚙️</span>
           <span className="nav-label">Settings</span>
         </NavLink>
       </div>

@@ -16,7 +16,7 @@
  *   BUG-12  Hardcodierte OCT-URL 192.168.1.50 statt window.location
  */
 
-const API_BASE = Cypress.env("apiUrl") || "http://localhost:7778/api";
+const API_BASE = Cypress.expose('apiUrl') || "http://localhost:7778/api";
 const FRONTEND_BASE = "http://localhost:4173";
 
 // ─── Shared Fixtures ──────────────────────────────────────────────────────────

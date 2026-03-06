@@ -212,15 +212,16 @@ async def test_discovery_ipv6_addresses_in_ssdp_response():
 @pytest.mark.asyncio
 async def test_client_extract_firmware_version_missing_components():
     """Test firmware extraction when Components list is empty."""
-    from opencloudtouch.devices.adapter import BoseDeviceClientAdapter
     from unittest.mock import MagicMock
+
+    from opencloudtouch.devices.adapter import BoseDeviceClientAdapter
 
     # Mock info object without Components
     mock_info = MagicMock()
     mock_info.Components = []  # Empty list
 
-    with patch("opencloudtouch.devices.adapter.SoundTouchDevice"):
-        with patch("opencloudtouch.devices.adapter.BoseClient"):
+    with patch("opencloudtouch.devices.client_adapter.SoundTouchDevice"):
+        with patch("opencloudtouch.devices.client_adapter.BoseClient"):
             client = BoseDeviceClientAdapter("http://192.168.1.100:8090")
             version = client._extract_firmware_version(mock_info)
 
@@ -230,8 +231,9 @@ async def test_client_extract_firmware_version_missing_components():
 @pytest.mark.asyncio
 async def test_client_extract_firmware_version_no_software_version():
     """Test firmware extraction when SoftwareVersion attribute is missing."""
-    from opencloudtouch.devices.adapter import BoseDeviceClientAdapter
     from unittest.mock import MagicMock
+
+    from opencloudtouch.devices.adapter import BoseDeviceClientAdapter
 
     # Mock info with Components but no SoftwareVersion
     mock_info = MagicMock()
@@ -239,8 +241,8 @@ async def test_client_extract_firmware_version_no_software_version():
     del mock_component.SoftwareVersion
     mock_info.Components = [mock_component]
 
-    with patch("opencloudtouch.devices.adapter.SoundTouchDevice"):
-        with patch("opencloudtouch.devices.adapter.BoseClient"):
+    with patch("opencloudtouch.devices.client_adapter.SoundTouchDevice"):
+        with patch("opencloudtouch.devices.client_adapter.BoseClient"):
             client = BoseDeviceClientAdapter("http://192.168.1.100:8090")
             version = client._extract_firmware_version(mock_info)
 
@@ -250,15 +252,16 @@ async def test_client_extract_firmware_version_no_software_version():
 @pytest.mark.asyncio
 async def test_client_extract_ip_address_no_network_info():
     """Test IP extraction when NetworkInfo is empty."""
-    from opencloudtouch.devices.adapter import BoseDeviceClientAdapter
     from unittest.mock import MagicMock
+
+    from opencloudtouch.devices.adapter import BoseDeviceClientAdapter
 
     # Mock info without NetworkInfo
     mock_info = MagicMock()
     mock_info.NetworkInfo = []
 
-    with patch("opencloudtouch.devices.adapter.SoundTouchDevice"):
-        with patch("opencloudtouch.devices.adapter.BoseClient"):
+    with patch("opencloudtouch.devices.client_adapter.SoundTouchDevice"):
+        with patch("opencloudtouch.devices.client_adapter.BoseClient"):
             client = BoseDeviceClientAdapter("http://192.168.1.100:8090")
             ip = client._extract_ip_address(mock_info)
 
@@ -269,8 +272,9 @@ async def test_client_extract_ip_address_no_network_info():
 @pytest.mark.asyncio
 async def test_client_extract_ip_address_no_ip_address_attribute():
     """Test IP extraction when IpAddress attribute is missing."""
-    from opencloudtouch.devices.adapter import BoseDeviceClientAdapter
     from unittest.mock import MagicMock
+
+    from opencloudtouch.devices.adapter import BoseDeviceClientAdapter
 
     # Mock info with NetworkInfo but no IpAddress
     mock_info = MagicMock()
@@ -278,8 +282,8 @@ async def test_client_extract_ip_address_no_ip_address_attribute():
     del mock_network.IpAddress
     mock_info.NetworkInfo = [mock_network]
 
-    with patch("opencloudtouch.devices.adapter.SoundTouchDevice"):
-        with patch("opencloudtouch.devices.adapter.BoseClient"):
+    with patch("opencloudtouch.devices.client_adapter.SoundTouchDevice"):
+        with patch("opencloudtouch.devices.client_adapter.BoseClient"):
             client = BoseDeviceClientAdapter("http://192.168.1.100:8090")
             ip = client._extract_ip_address(mock_info)
 
@@ -290,8 +294,9 @@ async def test_client_extract_ip_address_no_ip_address_attribute():
 @pytest.mark.asyncio
 async def test_client_get_now_playing_success():
     """Test successful get_now_playing call."""
-    from opencloudtouch.devices.adapter import BoseDeviceClientAdapter
     from unittest.mock import MagicMock
+
+    from opencloudtouch.devices.adapter import BoseDeviceClientAdapter
 
     # Mock now playing status
     mock_status = MagicMock()
@@ -303,8 +308,10 @@ async def test_client_get_now_playing_success():
     mock_status.Album = "Album Name"
     mock_status.ArtUrl = "http://example.com/art.jpg"
 
-    with patch("opencloudtouch.devices.adapter.SoundTouchDevice"):
-        with patch("opencloudtouch.devices.adapter.BoseClient") as mock_bose_client:
+    with patch("opencloudtouch.devices.client_adapter.SoundTouchDevice"):
+        with patch(
+            "opencloudtouch.devices.client_adapter.BoseClient"
+        ) as mock_bose_client:
             mock_bose_client.return_value.GetNowPlayingStatus.return_value = mock_status
 
             client = BoseDeviceClientAdapter("http://192.168.1.100:8090")
@@ -322,16 +329,19 @@ async def test_client_get_now_playing_success():
 @pytest.mark.asyncio
 async def test_client_get_now_playing_minimal():
     """Test get_now_playing with minimal data (no optional fields)."""
-    from opencloudtouch.devices.adapter import BoseDeviceClientAdapter
     from unittest.mock import MagicMock
+
+    from opencloudtouch.devices.adapter import BoseDeviceClientAdapter
 
     # Mock now playing with only required fields
     mock_status = MagicMock(spec=["PlayStatus", "Source"])
     mock_status.PlayStatus = "STOP_STATE"
     mock_status.Source = "STANDBY"
 
-    with patch("opencloudtouch.devices.adapter.SoundTouchDevice"):
-        with patch("opencloudtouch.devices.adapter.BoseClient") as mock_bose_client:
+    with patch("opencloudtouch.devices.client_adapter.SoundTouchDevice"):
+        with patch(
+            "opencloudtouch.devices.client_adapter.BoseClient"
+        ) as mock_bose_client:
             mock_bose_client.return_value.GetNowPlayingStatus.return_value = mock_status
 
             client = BoseDeviceClientAdapter("http://192.168.1.100:8090")
@@ -349,11 +359,13 @@ async def test_client_get_now_playing_minimal():
 @pytest.mark.asyncio
 async def test_client_get_now_playing_error():
     """Test get_now_playing when an error occurs."""
-    from opencloudtouch.devices.adapter import BoseDeviceClientAdapter
     from opencloudtouch.core.exceptions import DeviceConnectionError
+    from opencloudtouch.devices.adapter import BoseDeviceClientAdapter
 
-    with patch("opencloudtouch.devices.adapter.SoundTouchDevice"):
-        with patch("opencloudtouch.devices.adapter.BoseClient") as mock_bose_client:
+    with patch("opencloudtouch.devices.client_adapter.SoundTouchDevice"):
+        with patch(
+            "opencloudtouch.devices.client_adapter.BoseClient"
+        ) as mock_bose_client:
             mock_bose_client.return_value.GetNowPlayingStatus.side_effect = Exception(
                 "Connection timeout"
             )
@@ -398,8 +410,8 @@ def test_get_device_client_real_mode():
     from opencloudtouch.devices.adapter import get_device_client
 
     with patch.dict("os.environ", {"OCT_MOCK_MODE": "false"}, clear=False):
-        with patch("opencloudtouch.devices.adapter.SoundTouchDevice"):
-            with patch("opencloudtouch.devices.adapter.BoseClient"):
+        with patch("opencloudtouch.devices.client_adapter.SoundTouchDevice"):
+            with patch("opencloudtouch.devices.client_adapter.BoseClient"):
                 client = get_device_client("http://192.168.1.100:8090")
 
                 from opencloudtouch.devices.adapter import BoseDeviceClientAdapter
@@ -448,3 +460,26 @@ def test_get_device_client_mock_mode_unknown_ip():
         # Should fallback to first mock device but keep provided IP
         assert isinstance(client, MockDeviceClient)
         assert client.ip_address == "10.0.0.1"  # IP from base_url preserved
+
+
+# ==================== PRESS KEY TESTS ====================
+
+
+@pytest.mark.asyncio
+async def test_client_press_key_delegates_to_bose_action():
+    """press_key maps string key/state to BoseClient.Action() with correct enums."""
+    from unittest.mock import MagicMock
+
+    from opencloudtouch.devices.adapter import BoseDeviceClientAdapter
+
+    with patch("opencloudtouch.devices.client_adapter.SoundTouchDevice"):
+        with patch(
+            "opencloudtouch.devices.client_adapter.BoseClient"
+        ) as mock_bose_client:
+            mock_instance = MagicMock()
+            mock_bose_client.return_value = mock_instance
+
+            client = BoseDeviceClientAdapter("http://192.168.1.100:8090")
+            await client.press_key("PRESET_1", "press")
+
+            mock_instance.Action.assert_called_once()

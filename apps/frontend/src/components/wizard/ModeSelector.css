@@ -37,25 +37,48 @@
   cursor: pointer;
   text-align: left;
   transition: all 0.2s ease;
+  /* REFACT-139: Explicit interactive affordances — button-like role */
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
+/* REFACT-139: More visible hover state — border highlight + background shift */
 .mode-card:hover {
   border-color: var(--color-accent);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  background: var(--color-bg-card-hover, rgba(255, 255, 255, 0.04));
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(74, 144, 217, 0.2);
+  transform: translateY(-2px);
 }
 
+.mode-card:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* REFACT-139: Focus-visible for keyboard navigation */
+.mode-card:focus-visible {
+  outline: 2px solid var(--color-accent, #4a90d9);
+  outline-offset: 3px;
+}
+
+/* REFACT-144: Badge is informational only — not a clickable element */
 .mode-badge {
   position: absolute;
   top: 16px;
   right: 16px;
-  padding: 4px 12px;
+  padding: 4px 10px;
   background: var(--color-success);
   color: white;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: var(--font-weight-semibold);
   border-radius: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  pointer-events: none;
+  user-select: none;
+  cursor: default;
 }
 
 .mode-icon {

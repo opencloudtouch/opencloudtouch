@@ -39,7 +39,6 @@ export default function MultiRoom({ devices = [] }: MultiRoomProps) {
 
   const handleCreateZone = () => {
     if (selectedDevices.length < 2) {
-      alert("Mindestens 2 Geräte erforderlich für eine Zone");
       return;
     }
 

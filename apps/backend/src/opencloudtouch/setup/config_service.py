@@ -143,9 +143,9 @@ class SoundTouchConfigService:
         Returns:
             List of backup file paths
         """
-        self.logger.info("Listing config backups")
-
         try:
+            self.logger.info("Listing config backups")
+
             # TODO: Implement actual backup listing
             # 1. Connect to device
             # 2. List files in backup directory

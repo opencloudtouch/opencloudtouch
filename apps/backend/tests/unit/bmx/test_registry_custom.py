@@ -2,15 +2,13 @@
 
 import base64
 import json
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from opencloudtouch.bmx.routes import (
-    bmx_services,
-    custom_stream_playback,
-)
+from opencloudtouch.bmx.routes import bmx_services, custom_stream_playback
 
 
 class TestBmxRegistry:

@@ -7,7 +7,7 @@ import "./Step8Completion.css";
 
 interface Step8Props {
   deviceName: string;
-  backupPath: string;
+  backupPath: string | null;
   onFinish: () => void;
 }
 
@@ -65,16 +65,28 @@ export default function Step8Completion({ deviceName, backupPath, onFinish }: St
           </ul>
         </div>
 
-        {/* Backup Info */}
+        {/* Backup Info — REFACT-119: show warning when no backup was created */}
         <div className="completion-backup-info">
-          <div className="backup-info-icon">💾</div>
+          <div className="backup-info-icon">{backupPath ? "💾" : "⚠️"}</div>
           <div className="backup-info-content">
-            <strong>Backup-Speicherort:</strong>
-            <code className="backup-info-path">{backupPath}</code>
-            <p className="backup-info-note">
-              Bewahren Sie dieses Backup sicher auf! Sie können damit Ihr Gerät im Notfall
-              wiederherstellen.
-            </p>
+            {backupPath ? (
+              <>
+                <strong>Backup-Speicherort:</strong>
+                <code className="backup-info-path">{backupPath}</code>
+                <p className="backup-info-note">
+                  Bewahren Sie dieses Backup sicher auf! Sie können damit Ihr Gerät im Notfall
+                  wiederherstellen.
+                </p>
+              </>
+            ) : (
+              <>
+                <strong>Kein Backup erstellt</strong>
+                <p className="backup-info-warning">
+                  Es wurde kein Backup Ihres Geräts erstellt. Bitte sichern Sie Ihr Gerät manuell,
+                  bevor Sie weitere Änderungen vornehmen.
+                </p>
+              </>
+            )}
           </div>
         </div>
 

@@ -18,7 +18,7 @@ const SOURCES: Source[] = [
   { id: "INTERNET_RADIO", label: "Radio", icon: "📻", supported: true },
   { id: "BLUETOOTH", label: "Bluetooth", icon: "📱", supported: true },
   { id: "AUX", label: "AUX", icon: "🎵", supported: true },
-  { id: "AIRPLAY", label: "AirPlay", icon: "✈️", supported: "conditional" },
+  { id: "AIRPLAY", label: "AirPlay", icon: "📡", supported: "conditional" },
 ];
 
 interface LocalControlProps {
@@ -65,24 +65,9 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
     setPlayState(newState);
   };
 
-  const handlePrevious = () => {
-    // TODO: Implement previous track API call
-  };
-
-  const handleNext = () => {
-    // TODO: Implement next track API call
-  };
-
-  const handleStandby = () => {
-    // TODO: Implement standby API call
-  };
-
   // const handleOpenSetupWizard = (device: Device) => {
-  //   // Navigate to setup wizard with device parameter
-  //   _navigate(`/setup-wizard?deviceId=${device.device_id}`);
+  //   navigate(`/setup-wizard?deviceId=${device.device_id}`);
   // };
-
-  // const currentDeviceSetupStatus = currentDevice?.setup_status || "unconfigured";
 
   if (devices.length === 0) {
     return (
@@ -110,6 +95,13 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
         onIndexChange={setCurrentDeviceIndex}
       >
         <div className="control-card">
+          {/* Coming-Soon Banner */}
+          <div className="control-coming-soon-banner" role="note" aria-label="Hinweis">
+            ℹ️ <strong>Direkte Gerätesteuerung</strong> ist in Vorbereitung. Lautstärke und
+            Quellauswahl werden in einer späteren Version live mit dem Gerät verbunden. Nutzen Sie
+            bis dahin die Tasten am Gerät.
+          </div>
+
           {/* Device Header */}
           <div className="control-card-header">
             <div className="device-header-info">
@@ -144,7 +136,7 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
               max="100"
               value={volume}
               onChange={handleVolumeChange}
-              className="volume-slider"
+              className="lc-volume-range"
               disabled={muted}
             />
           </motion.div>
@@ -195,11 +187,7 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
           >
             <h3 className="playback-title">Wiedergabe</h3>
             <div className="playback-controls">
-              <button
-                className="playback-button previous"
-                onClick={handlePrevious}
-                disabled={selectedSource === "AUX"}
-              >
+              <button className="playback-button previous" disabled title="Kommt in Phase 3">
                 <span className="playback-icon">⏮</span>
               </button>
               <button
@@ -209,11 +197,7 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
               >
                 <span className="playback-icon">{playState === "PLAY_STATE" ? "⏸️" : "▶️"}</span>
               </button>
-              <button
-                className="playback-button next"
-                onClick={handleNext}
-                disabled={selectedSource === "AUX"}
-              >
+              <button className="playback-button next" disabled title="Kommt in Phase 3">
                 <span className="playback-icon">⏭</span>
               </button>
             </div>
@@ -233,7 +217,7 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
               <span className="quick-action-icon">{muted ? "🔇" : "🔊"}</span>
               <span className="quick-action-label">{muted ? "Ton an" : "Stumm"}</span>
             </button>
-            <button className="quick-action-button standby" onClick={handleStandby}>
+            <button className="quick-action-button standby" disabled title="Kommt in Phase 3">
               <span className="quick-action-icon">💤</span>
               <span className="quick-action-label">Standby</span>
             </button>

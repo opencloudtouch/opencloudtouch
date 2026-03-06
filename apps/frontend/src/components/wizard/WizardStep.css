@@ -83,6 +83,17 @@
   gap: 1rem;
   align-items: center;
   margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* REFACT-202: Disabled-Weiter-Hint */
+.wizard-next-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, var(--text-secondary));
+  font-style: italic;
+  align-self: center;
+  order: -1; /* erscheint vor dem Button */
 }
 
 .wizard-btn-previous,
@@ -191,6 +202,24 @@
 .btn-secondary:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.08);
   border-color: var(--text-secondary, #888);
+}
+
+/* REFACT-209: Outline-Variante für Toggle-Buttons */
+.btn-outline {
+  background: transparent;
+  border: 2px solid var(--primary-color, #4a90d9);
+  color: var(--primary-color, #4a90d9);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--primary-color, #4a90d9);
+  color: white;
+}
+
+.btn-outline:active:not(:disabled) {
+  background: var(--primary-color, #4a90d9);
+  color: white;
+  opacity: 0.85;
 }
 
 .btn-ghost {

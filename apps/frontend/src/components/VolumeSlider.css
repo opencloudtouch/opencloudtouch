@@ -2,7 +2,8 @@
 .volume-slider {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  /* REFACT-142: Explicit min 12px gap prevents misclick between icon and slider */
+  gap: 12px;
   padding: var(--space-md);
   background-color: var(--color-bg-card);
   border: 1px solid var(--color-border);
@@ -10,8 +11,8 @@
 }
 
 .volume-mute {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   font-size: 20px;
   border-radius: var(--border-radius-sm);
   background-color: var(--color-bg-darker);
@@ -44,11 +45,16 @@
   appearance: none;
 }
 
+.volume-input:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 4px;
+}
+
 .volume-input::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background-color: var(--color-accent);
   cursor: pointer;
@@ -56,8 +62,8 @@
 }
 
 .volume-input::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background-color: var(--color-accent);
   cursor: pointer;
@@ -68,12 +74,4 @@
 .volume-input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.volume-value {
-  min-width: 45px;
-  text-align: right;
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
-  font-size: 14px;
 }

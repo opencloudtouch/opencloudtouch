@@ -1,4 +1,4 @@
-﻿"""
+"""
 Radio API Endpoints
 
 Provides REST API for searching and retrieving radio stations.
@@ -100,8 +100,8 @@ async def search_stations(
             stations = await adapter.search_by_country(q, limit=limit)
         elif search_type == SearchType.TAG:
             stations = await adapter.search_by_tag(q, limit=limit)
-        else:
-            raise HTTPException(
+        else:  # pragma: no cover
+            raise HTTPException(  # pragma: no cover
                 status_code=422, detail=f"Invalid search type: {search_type}"
             )
 

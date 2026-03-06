@@ -51,13 +51,13 @@ Author: OCT Development
 
 import base64
 import json
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
-from opencloudtouch.devices.adapter import BoseDeviceClientAdapter
 from opencloudtouch.core.exceptions import DeviceConnectionError
+from opencloudtouch.devices.adapter import BoseDeviceClientAdapter
 
 
 class TestStorePresetDirectHTTP:
@@ -80,7 +80,7 @@ class TestStorePresetDirectHTTP:
     def adapter(self, mock_soundtouch_device):
         """Create BoseDeviceClientAdapter with mocked SoundTouch device."""
         with patch(
-            "opencloudtouch.devices.adapter.SoundTouchDevice",
+            "opencloudtouch.devices.client_adapter.SoundTouchDevice",
             return_value=mock_soundtouch_device,
         ):
             return BoseDeviceClientAdapter("http://192.168.178.79:8090")
@@ -363,7 +363,7 @@ class TestStorePresetXMLFormat:
     def adapter(self, mock_soundtouch_device):
         """Create adapter with mocked device."""
         with patch(
-            "opencloudtouch.devices.adapter.SoundTouchDevice",
+            "opencloudtouch.devices.client_adapter.SoundTouchDevice",
             return_value=mock_soundtouch_device,
         ):
             return BoseDeviceClientAdapter("http://192.168.178.79:8090")

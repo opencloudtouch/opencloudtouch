@@ -103,7 +103,8 @@ class SettingsRepository(BaseRepository):
         # Add new IPs
         for ip in ips:
             await db.execute(
-                "INSERT INTO manual_device_ips (ip_address) VALUES (?)", (ip,)
+                "INSERT INTO manual_device_ips (ip_address, created_at) VALUES (?, ?)",
+                (ip, datetime.now(UTC).isoformat()),
             )
 
         await db.commit()

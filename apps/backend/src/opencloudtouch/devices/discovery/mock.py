@@ -1,4 +1,4 @@
-﻿"""
+"""
 Mock discovery adapter for testing and development without real devices.
 
 Provides predefined devices that simulate Bose® hardware.

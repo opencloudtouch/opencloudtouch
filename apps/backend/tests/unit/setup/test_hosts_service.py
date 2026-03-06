@@ -8,8 +8,9 @@ Regression tests for:
 These bugs caused /etc/hosts to remain unmodified despite wizard reporting success.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from opencloudtouch.setup.hosts_service import SoundTouchHostsService
 from opencloudtouch.setup.ssh_client import CommandResult
