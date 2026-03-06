@@ -8,17 +8,9 @@ __pycache__/
 
 # Project-specific - exclude from git
 
-# Personal developer environment (not shared)
-AGENTS.md
-**/agent-prompts/
-**/*AGENT*
-tools/local-scripts/
-
-# Bose API schemas & device-specific XML files (local research artifacts)
-apps/backend/bose_api/
+# All personal/local files live in .local/ — never commit this folder
 .local/
 *.local.*
-reference-impl/
 
 # Local configuration (use config.example.yaml as template)
 config.yaml
@@ -260,6 +252,3 @@ e2e-job-out.txt
 e2e-out.txt
 e2e-tail.txt
 apps/frontend/tests/e2e/reports
-docs/analysis
-docs/project-planning
-tools
