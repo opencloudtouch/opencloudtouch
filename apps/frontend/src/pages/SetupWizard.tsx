@@ -165,7 +165,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
               <button className="inline-link-button" onClick={() => navigate("/welcome")}>
                 Startseite
               </button>{" "}
-              und klicken Sie auf „Jetzt Geräte suchen".
+              {`und klicken Sie auf \u201EJetzt Ger\u00E4te suchen\u201C.`}
             </p>
             <button className="btn btn-primary" onClick={() => navigate("/")}>
               Zurück zur Startseite
