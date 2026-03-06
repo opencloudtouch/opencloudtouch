@@ -153,12 +153,15 @@ describe("Device Discovery", () => {
       // Trigger discovery first
       cy.visit("/welcome");
       cy.get('[data-test="discover-button"]').click();
-      cy.waitForDevices();
 
-      // Now try to visit /welcome again (with devices in DB)
+      // Wait for discovery to complete AND auto-redirect to happen.
+      // This confirms devices are persisted in the DB before testing the guard.
+      cy.url().should("eq", Cypress.config().baseUrl + "/", { timeout: 15000 });
+
+      // Now try to visit /welcome again (with devices confirmed in DB)
       cy.visit("/welcome");
 
-      // Should redirect to dashboard
+      // Routing guard should redirect back to dashboard
       cy.url().should("eq", Cypress.config().baseUrl + "/");
     });
   });

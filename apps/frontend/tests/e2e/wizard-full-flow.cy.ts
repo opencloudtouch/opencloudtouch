@@ -563,6 +563,7 @@ describe("Setup Wizard API — Backend Smoke Tests", () => {
         expected_ip: "192.168.178.11",
       },
       failOnStatusCode: false,
+      timeout: 30000, // SSH-Timeout im Backend ist 10s → genug Puffer
     }).then((resp) => {
       // Must not be 404 (endpoint missing)
       expect(resp.status).to.not.equal(404);

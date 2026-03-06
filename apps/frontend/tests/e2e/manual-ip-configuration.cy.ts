@@ -9,9 +9,17 @@
 
 describe("Manual IP Configuration", () => {
   beforeEach(() => {
-    // Clear DB and manual IPs before each test
+    // Clear DB and manual IPs before each test.
+    // Use failOnStatusCode: false + retry to handle transient SQLite 500 errors
+    // caused by concurrent SSE streams holding a DB read transaction from prior tests.
     const apiUrl = Cypress.expose('apiUrl');
-    cy.request("DELETE", `${apiUrl}/devices`);
+    cy.request({ method: "DELETE", url: `${apiUrl}/devices`, failOnStatusCode: false })
+      .then((resp) => {
+        if (resp.status !== 200) {
+          cy.wait(500);
+          cy.request("DELETE", `${apiUrl}/devices`);
+        }
+      });
     cy.request("POST", `${apiUrl}/settings/manual-ips`, { ips: [] });
   });
 
