@@ -18,8 +18,8 @@ export default defineConfig({
     specPattern: "tests/e2e/ux/**/*.cy.{js,ts}",
     supportFile: "tests/e2e/support/e2e.ts",
     fixturesFolder: false, // Inline fixtures in tests
-    screenshotsFolder: "tests/e2e/screenshots/ux",
-    videosFolder: "tests/e2e/videos/ux",
+    screenshotsFolder: "../../.out/reports/screenshots/ux",
+    videosFolder: "../../.out/reports/videos/ux",
     video: false, // Screenshots only
     screenshotOnRunFailure: true, // Also capture failures
 

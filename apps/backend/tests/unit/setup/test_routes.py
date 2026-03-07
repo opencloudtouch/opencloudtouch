@@ -998,7 +998,7 @@ class TestWizardModifyConfigRoute:
 
         response = client.post(
             self.ENDPOINT,
-            json={"device_ip": "192.168.1.100", "oct_ip": "192.168.1.50"},
+            json={"device_ip": "192.168.1.100", "target_addr": "192.168.1.50"},
         )
         assert response.status_code == 200
         data = response.json()
@@ -1028,7 +1028,7 @@ class TestWizardModifyConfigRoute:
 
         response = client.post(
             self.ENDPOINT,
-            json={"device_ip": "192.168.1.100", "oct_ip": "192.168.1.50"},
+            json={"device_ip": "192.168.1.100", "target_addr": "192.168.1.50"},
         )
         assert response.status_code == 200
         data = response.json()
@@ -1048,7 +1048,7 @@ class TestWizardModifyConfigRoute:
 
         response = client.post(
             self.ENDPOINT,
-            json={"device_ip": "192.168.1.100", "oct_ip": "192.168.1.50"},
+            json={"device_ip": "192.168.1.100", "target_addr": "192.168.1.50"},
         )
         assert response.status_code == 500
 
@@ -1082,7 +1082,7 @@ class TestWizardModifyHostsRoute:
 
         response = client.post(
             self.ENDPOINT,
-            json={"device_ip": "192.168.1.100", "oct_ip": "192.168.1.50"},
+            json={"device_ip": "192.168.1.100", "target_addr": "192.168.1.50"},
         )
         assert response.status_code == 200
         data = response.json()
@@ -1108,7 +1108,7 @@ class TestWizardModifyHostsRoute:
 
         response = client.post(
             self.ENDPOINT,
-            json={"device_ip": "192.168.1.100", "oct_ip": "192.168.1.50"},
+            json={"device_ip": "192.168.1.100", "target_addr": "192.168.1.50"},
         )
         assert response.status_code == 200
         assert response.json()["success"] is False
@@ -1127,7 +1127,7 @@ class TestWizardModifyHostsRoute:
 
         response = client.post(
             self.ENDPOINT,
-            json={"device_ip": "192.168.1.100", "oct_ip": "192.168.1.50"},
+            json={"device_ip": "192.168.1.100", "target_addr": "192.168.1.50"},
         )
         assert response.status_code == 500
 

@@ -102,7 +102,7 @@ RUN python -m compileall -b opencloudtouch/ && \
     find opencloudtouch/ -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 
 # Copy frontend build from previous stage
-COPY --from=frontend-builder /app/apps/frontend/dist ./frontend/dist
+COPY --from=frontend-builder /app/.out/dist ./frontend/dist
 
 # Copy entrypoint script
 COPY apps/backend/entrypoint.sh /entrypoint.sh

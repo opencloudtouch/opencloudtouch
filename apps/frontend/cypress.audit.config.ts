@@ -13,7 +13,7 @@ import { defineConfig } from "cypress";
 import { writeFileSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 
-const REPORT_DIR = join(__dirname, "tests/e2e/reports/accessibility");
+const REPORT_DIR = join(__dirname, "../../.out/reports/accessibility");
 const REPORT_JSON = join(REPORT_DIR, "violations.json");
 const REPORT_MD = join(REPORT_DIR, "accessibility-report.md");
 

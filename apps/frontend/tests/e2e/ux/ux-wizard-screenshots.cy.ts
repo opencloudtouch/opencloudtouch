@@ -291,8 +291,9 @@ function skipBackupStep() {
 function completeConfigStep() {
   cy.contains("button", /konfiguration.*ndern/i, { timeout: 8000 }).click({ force: true });
   cy.contains(/bmx\.bose\.com|konfiguration.*geändert|erfolgreich/i, { timeout: 10000 }).should("exist");
-  cy.contains("button", /weiter/i).click({ force: true });
-  cy.wait(300);
+  // Wait explicitly for "Weiter" to be enabled (isNextDisabled=false after successful modification)
+  cy.contains("button", /weiter/i, { timeout: 8000 }).should("not.be.disabled").click();
+  cy.wait(500);
 }
 
 /** Complete Hosts step: trigger modification → Weiter */

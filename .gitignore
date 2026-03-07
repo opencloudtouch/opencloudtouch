@@ -236,6 +236,12 @@ marimo/_lsp/
 __marimo__/
 project-files/
 
+# Centralized generated artifacts (coverage, build, e2e logs)
+.out/
+
+# Generated OpenAPI spec (regenerate with: npm run generate:openapi)
+apps/backend/openapi.yaml
+
 # Frontend build & coverage artifacts
 **/coverage/
 **/dist/

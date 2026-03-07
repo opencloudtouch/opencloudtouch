@@ -198,7 +198,7 @@ class TestWizardModifyConfig:
             mock_ssh.return_value.__aexit__ = AsyncMock(return_value=False)
             response = client.post(
                 "/api/setup/wizard/modify-config",
-                json={"device_ip": "192.168.1.100", "oct_ip": "192.168.1.50"},
+                json={"device_ip": "192.168.1.100", "target_addr": "192.168.1.50"},
             )
         assert response.status_code == 200
         body = response.json()
@@ -222,7 +222,7 @@ class TestWizardModifyConfig:
             mock_ssh.return_value.__aexit__ = AsyncMock(return_value=False)
             response = client.post(
                 "/api/setup/wizard/modify-config",
-                json={"device_ip": "192.168.1.100", "oct_ip": "192.168.1.50"},
+                json={"device_ip": "192.168.1.100", "target_addr": "192.168.1.50"},
             )
         assert response.status_code == 200
         assert response.json()["success"] is False
@@ -237,7 +237,7 @@ class TestWizardModifyConfig:
             mock_ssh.return_value.__aexit__ = AsyncMock(return_value=False)
             response = client.post(
                 "/api/setup/wizard/modify-config",
-                json={"device_ip": "192.168.1.100", "oct_ip": "192.168.1.50"},
+                json={"device_ip": "192.168.1.100", "target_addr": "192.168.1.50"},
             )
         assert response.status_code == 500
 
@@ -268,7 +268,7 @@ class TestWizardModifyHosts:
                 "/api/setup/wizard/modify-hosts",
                 json={
                     "device_ip": "192.168.1.100",
-                    "oct_ip": "192.168.1.50",
+                    "target_addr": "192.168.1.50",
                     "include_optional": False,
                 },
             )
@@ -293,7 +293,7 @@ class TestWizardModifyHosts:
                 "/api/setup/wizard/modify-hosts",
                 json={
                     "device_ip": "192.168.1.100",
-                    "oct_ip": "192.168.1.50",
+                    "target_addr": "192.168.1.50",
                     "include_optional": True,
                 },
             )

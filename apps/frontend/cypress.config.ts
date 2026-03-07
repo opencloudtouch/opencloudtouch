@@ -14,8 +14,8 @@ export default defineConfig({
     excludeSpecPattern: 'tests/real/**/*.cy.{js,jsx,ts,tsx}', // Exclude real device tests from default runs
     supportFile: 'tests/e2e/support/e2e.ts',
     fixturesFolder: false, // No fixtures needed (backend provides mocks)
-    screenshotsFolder: 'tests/e2e/screenshots',
-    videosFolder: 'tests/e2e/videos',
+    screenshotsFolder: '../../.out/reports/screenshots',
+    videosFolder: '../../.out/reports/videos',
     video: false, // Disable video recording (speeds up tests)
 
     setupNodeEvents(on, config) {

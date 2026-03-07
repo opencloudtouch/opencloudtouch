@@ -53,17 +53,13 @@ class TestStationDescriptorEndpoint:
         assert data["stationName"] == "Test Radio"
 
     def test_returns_404_when_preset_not_configured(self, client, mock_preset_service):
-        """Returns 404 when no preset is configured for the device/number.
-
-        Note: The SPA 404 handler in main.py intercepts all /stations/ 404s and
-        formats the detail as "The requested resource {path} was not found".
-        """
+        """Returns 404 when no preset is configured for the device/number."""
         mock_preset_service.get_preset = AsyncMock(return_value=None)
 
         response = client.get("/stations/preset/DEV123/3.json")
 
         assert response.status_code == 404
-        assert "/stations/preset/DEV123/3.json" in response.json()["detail"]
+        assert "Preset 3 not configured for device DEV123" == response.json()["detail"]
 
     def test_returns_500_on_unexpected_exception(self, client, mock_preset_service):
         """Returns 500 on generic runtime error (covers lines 78-82).

@@ -144,8 +144,13 @@ async function startBackend() {
 
   log('[DEBUG] Waiting for backend health endpoint...', colors.yellow);
 
-  // Wait for backend to be ready
+  // Wait for backend to be ready (health check)
   await waitForEndpoint(`http://localhost:${TEST_PORT_BACKEND}/health`);
+
+  // Wait for API to be fully initialized (database ready for queries)
+  log('[DEBUG] Waiting for backend API endpoints to be ready...', colors.yellow);
+  await waitForEndpoint(`http://localhost:${TEST_PORT_BACKEND}/api/devices`);
+
   logSuccess('Backend started successfully');
 }
 
