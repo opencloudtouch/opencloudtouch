@@ -58,7 +58,7 @@ export default function Step6HostsModification({
     try {
       const result = await modifyHosts({
         device_ip: deviceIp,
-        oct_ip: customIp,
+        target_addr: customIp,
         include_optional: selectedDomains.some((d) => OPTIONAL_DOMAINS.includes(d)),
       });
 

@@ -15,7 +15,7 @@ import socket
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator, Dict
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi import status as http_status
 
 from opencloudtouch.setup.api_models import (
@@ -74,6 +74,24 @@ async def ssh_operation(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Wizard operation '{operation_name}' failed. Check server logs for details.",
         )
+
+
+@wizard_router.get("/wizard/server-info")
+async def wizard_server_info(request: Request) -> Dict[str, Any]:
+    """Get OCT server info for auto-filling wizard forms.
+
+    Returns server URL that frontend can use as default.
+    Detects host/port from incoming HTTP request headers.
+    """
+    # Extract from actual HTTP request
+    url = request.url
+    server_url = f"{url.scheme}://{url.hostname}:{url.port or 7777}"
+
+    return {
+        "server_url": server_url,
+        "default_port": 7777,
+        "supported_protocols": ["http", "https"],
+    }
 
 
 @wizard_router.post("/wizard/check-ports", response_model=PortCheckResponse)
@@ -139,11 +157,17 @@ async def wizard_backup(request: BackupRequest):
 @wizard_router.post("/wizard/modify-config", response_model=ConfigModifyResponse)
 async def wizard_modify_config(request: ConfigModifyRequest):
     """Modify OverrideSdkPrivateCfg.xml (Wizard Step 5)."""
-    logger.info(f"Modifying config on {request.device_ip} (OCT: {request.oct_ip})")
+    from urllib.parse import urlparse
+
+    logger.info(f"Modifying config on {request.device_ip} (OCT: {request.target_addr})")
+
+    # Parse URL to extract host for config service
+    parsed = urlparse(request.target_addr)
+    target_host = parsed.hostname or parsed.netloc
 
     async with ssh_operation(request.device_ip, "modify-config") as ssh:
         config_service = SoundTouchConfigService(ssh)
-        result = await config_service.modify_bmx_url(request.oct_ip)
+        result = await config_service.modify_bmx_url(target_host)
 
         if not result.success:
             return ConfigModifyResponse(
@@ -156,20 +180,24 @@ async def wizard_modify_config(request: ConfigModifyRequest):
             backup_path=result.backup_path,
             diff=result.diff,
             old_url="bmx.bose.com",
-            new_url=request.oct_ip,
+            new_url=target_host,
         )
 
 
 @wizard_router.post("/wizard/modify-hosts", response_model=HostsModifyResponse)
 async def wizard_modify_hosts(request: HostsModifyRequest):
     """Modify /etc/hosts (Wizard Step 6)."""
-    logger.info(f"Modifying hosts on {request.device_ip} (OCT: {request.oct_ip})")
+    from urllib.parse import urlparse
+
+    logger.info(f"Modifying hosts on {request.device_ip} (OCT: {request.target_addr})")
+
+    # Parse URL to extract host for hosts service
+    parsed = urlparse(request.target_addr)
+    target_host = parsed.hostname or parsed.netloc
 
     async with ssh_operation(request.device_ip, "modify-hosts") as ssh:
         hosts_service = SoundTouchHostsService(ssh)
-        result = await hosts_service.modify_hosts(
-            request.oct_ip, request.include_optional
-        )
+        result = await hosts_service.modify_hosts(target_host, request.include_optional)
 
         if not result.success:
             return HostsModifyResponse(

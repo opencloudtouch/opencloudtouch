@@ -83,40 +83,76 @@ class TestBackupRequestValidation:
 
 
 class TestConfigModifyRequestValidation:
-    def test_valid_device_and_oct_ip(self):
-        req = ConfigModifyRequest(device_ip=VALID_IPV4, oct_ip="10.0.0.1")
+    def test_valid_full_url(self):
+        """Test with full URL including protocol and port."""
+        req = ConfigModifyRequest(
+            device_ip=VALID_IPV4, target_addr="http://192.168.1.100:7777"
+        )
         assert req.device_ip == VALID_IPV4
-        assert req.oct_ip == "10.0.0.1"
+        assert req.target_addr == "http://192.168.1.100:7777"
+
+    def test_hostname_without_protocol(self):
+        """Test hostname without protocol - should add http."""
+        req = ConfigModifyRequest(device_ip=VALID_IPV4, target_addr="oct.local")
+        assert req.target_addr == "http://oct.local:7777"
+
+    def test_ip_without_port(self):
+        """Test IP without port - should add default 7777."""
+        req = ConfigModifyRequest(device_ip=VALID_IPV4, target_addr="10.0.0.1")
+        assert req.target_addr == "http://10.0.0.1:7777"
+
+    def test_hostname_with_port_no_protocol(self):
+        """Test hostname with port but no protocol."""
+        req = ConfigModifyRequest(device_ip=VALID_IPV4, target_addr="hera:8080")
+        assert req.target_addr == "http://hera:8080"
+
+    def test_https_url(self):
+        """Test HTTPS URL."""
+        req = ConfigModifyRequest(
+            device_ip=VALID_IPV4, target_addr="https://oct.local:443"
+        )
+        assert req.target_addr == "https://oct.local:443"
 
     def test_invalid_device_ip_raises(self):
         with pytest.raises(ValidationError):
-            ConfigModifyRequest(device_ip="bad-ip", oct_ip=VALID_IPV4)
+            ConfigModifyRequest(device_ip="bad-ip", target_addr="http://oct.local")
 
-    def test_invalid_oct_ip_raises(self):
+    def test_invalid_target_addr_raises(self):
+        """Test invalid target address format."""
         with pytest.raises(ValidationError):
-            ConfigModifyRequest(device_ip=VALID_IPV4, oct_ip="bad-ip")
+            ConfigModifyRequest(device_ip=VALID_IPV4, target_addr="not a valid url")
 
-    def test_both_invalid_raises(self):
+    def test_empty_target_addr_raises(self):
+        """Test empty target address."""
         with pytest.raises(ValidationError):
-            ConfigModifyRequest(device_ip="bad1", oct_ip="bad2")
+            ConfigModifyRequest(device_ip=VALID_IPV4, target_addr="")
 
 
 class TestHostsModifyRequestValidation:
-    def test_valid_ips(self):
-        req = HostsModifyRequest(device_ip=VALID_IPV4, oct_ip="10.0.0.1")
+    def test_valid_full_url(self):
+        """Test with full URL."""
+        req = HostsModifyRequest(
+            device_ip=VALID_IPV4, target_addr="http://10.0.0.1:7777"
+        )
         assert req.device_ip == VALID_IPV4
-        assert req.oct_ip == "10.0.0.1"
+        assert req.target_addr == "http://10.0.0.1:7777"
+
+    def test_hostname_normalized(self):
+        """Test hostname gets normalized with defaults."""
+        req = HostsModifyRequest(device_ip=VALID_IPV4, target_addr="oct.local")
+        assert req.target_addr == "http://oct.local:7777"
 
     def test_invalid_device_ip_raises(self):
         with pytest.raises(ValidationError):
-            HostsModifyRequest(device_ip="garbage", oct_ip=VALID_IPV4)
+            HostsModifyRequest(device_ip="garbage", target_addr="http://oct.local")
 
-    def test_invalid_oct_ip_raises(self):
+    def test_invalid_target_addr_raises(self):
+        """Test invalid target address."""
         with pytest.raises(ValidationError):
-            HostsModifyRequest(device_ip=VALID_IPV4, oct_ip="garbage")
+            HostsModifyRequest(device_ip=VALID_IPV4, target_addr="@invalid!")
 
     def test_default_include_optional(self):
-        req = HostsModifyRequest(device_ip=VALID_IPV4, oct_ip="10.0.0.1")
+        req = HostsModifyRequest(device_ip=VALID_IPV4, target_addr="oct.local")
         assert req.include_optional is True
 
 

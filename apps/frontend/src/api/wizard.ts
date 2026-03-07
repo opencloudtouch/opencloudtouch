@@ -1,23 +1,47 @@
 /**
  * Setup Wizard API Client
  *
- * Provides type-safe API calls for device modification wizard.
+ * Uses generated types from OpenAPI spec for type-safety.
+ * Runtime fetch wrappers with error handling.
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+import type { components } from "./generated/schema";
 
-export interface CheckPortsRequest {
-  device_ip: string;
-  timeout?: number;
+// Re-export generated DTOs as convenient aliases
+export type CheckPortsRequest = components["schemas"]["PortCheckRequest"];
+export type CheckPortsResponse = components["schemas"]["PortCheckResponse"];
+export type BackupRequest = components["schemas"]["BackupRequest"];
+export type BackupResponse = components["schemas"]["BackupResponse"];
+export type ModifyConfigRequest = components["schemas"]["ConfigModifyRequest"];
+export type ModifyConfigResponse = components["schemas"]["ConfigModifyResponse"];
+export type ModifyHostsRequest = components["schemas"]["HostsModifyRequest"];
+export type ModifyHostsResponse = components["schemas"]["HostsModifyResponse"];
+export type RestoreRequest = components["schemas"]["RestoreRequest"];
+export type RestoreResponse = components["schemas"]["RestoreResponse"];
+export type VerifyRedirectRequest = components["schemas"]["VerifyRedirectRequest"];
+export type VerifyRedirectResponse = components["schemas"]["VerifyRedirectResponse"];
+export type RebootDeviceRequest = components["schemas"]["ConnectivityCheckRequest"];
+export type EnablePermanentSSHRequest = components["schemas"]["EnablePermanentSSHRequest"];
+
+// Types not in OpenAPI (server-info returns untyped dict)
+export interface ServerInfoResponse {
+  server_url: string;
+  default_port: number;
+  supported_protocols: string[];
 }
 
-export interface CheckPortsResponse {
+export interface RebootDeviceResponse {
   success: boolean;
-  has_ssh: boolean;
-  has_telnet: boolean;
   message: string;
 }
 
+export interface EnablePermanentSSHResponse {
+  success: boolean;
+  permanent_enabled: boolean;
+  message: string;
+}
+
+// Keep BackupVolume for components that destructure it
 export interface BackupVolume {
   volume: string;
   path: string;
@@ -25,71 +49,19 @@ export interface BackupVolume {
   duration_seconds: number;
 }
 
-export interface BackupRequest {
-  device_ip: string;
-}
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
-export interface BackupResponse {
-  success: boolean;
-  message: string;
-  volumes: BackupVolume[];
-  total_size_mb: number;
-  total_duration_seconds: number;
-}
+/**
+ * Get OCT server info for auto-filling wizard forms
+ */
+export async function getServerInfo(): Promise<ServerInfoResponse> {
+  const response = await fetch(`${API_BASE}/api/setup/wizard/server-info`);
 
-export interface ModifyConfigRequest {
-  device_ip: string;
-  oct_ip: string;
-}
+  if (!response.ok) {
+    throw new Error(`Server info fetch failed: ${response.statusText}`);
+  }
 
-export interface ModifyConfigResponse {
-  success: boolean;
-  action: string;
-  old_url?: string;
-  new_url?: string;
-  backup_path?: string;
-  diff?: string;
-  message: string;
-}
-
-export interface ModifyHostsRequest {
-  device_ip: string;
-  oct_ip: string;
-  include_optional?: boolean;
-}
-
-export interface ModifyHostsResponse {
-  success: boolean;
-  action: string;
-  added_entries: number;
-  backup_path?: string;
-  diff?: string;
-  message: string;
-}
-
-export interface RestoreRequest {
-  device_ip: string;
-  backup_path?: string;
-}
-
-export interface RestoreResponse {
-  success: boolean;
-  restored_from: string;
-  message: string;
-}
-
-export interface VerifyRedirectRequest {
-  device_ip: string;
-  domain: string;
-  expected_ip: string;
-}
-
-export interface VerifyRedirectResponse {
-  success: boolean;
-  domain: string;
-  resolved_ip: string;
-  matches_expected: boolean;
-  message: string;
+  return response.json();
 }
 
 /**
@@ -200,15 +172,6 @@ export async function restoreHosts(request: RestoreRequest): Promise<RestoreResp
   return response.json();
 }
 
-export interface RebootDeviceRequest {
-  ip: string;
-}
-
-export interface RebootDeviceResponse {
-  success: boolean;
-  message: string;
-}
-
 /**
  * Send reboot command to device via SSH (Wizard Step 7)
  */
@@ -225,18 +188,6 @@ export async function rebootDevice(request: RebootDeviceRequest): Promise<Reboot
   }
 
   return response.json();
-}
-
-export interface EnablePermanentSSHRequest {
-  device_id: string;
-  ip: string;
-  make_permanent: boolean;
-}
-
-export interface EnablePermanentSSHResponse {
-  success: boolean;
-  permanent_enabled: boolean;
-  message: string;
 }
 
 /**

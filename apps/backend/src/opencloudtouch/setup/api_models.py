@@ -93,15 +93,71 @@ class BackupResponse(BaseModel):
     total_duration_seconds: float = 0.0
 
 
+def _normalize_target_addr(v: str) -> str:
+    """Normalize target address: add protocol/port defaults, validate format.
+
+    Accepts:
+    - Full URL: http://192.168.1.100:7777, https://oct.local:8080
+    - Hostname with port: oct.local:7777
+    - Hostname without port: oct.local (adds :7777)
+    - IP without port: 192.168.1.100 (adds :7777)
+
+    Returns normalized URL with protocol and port.
+    """
+    v = v.strip()
+    if not v:
+        raise ValueError("Target address cannot be empty")
+
+    # Pattern: (protocol)?(hostname|ip)(:port)?
+    # Examples: http://hera:7777, 192.168.1.100, oct.local, hera:8080
+    pattern = r"^((?P<protocol>https?)://)?(?P<host>[a-zA-Z0-9][a-zA-Z0-9.-]*|[\d.]+)(:(?P<port>\d+))?$"
+    match = re.match(pattern, v)
+
+    if not match:
+        raise ValueError(
+            f"Invalid target address: '{v}'. "
+            f"Expected format: (http://)hostname(:port) or (http://)IP(:port). "
+            f"Examples: http://192.168.1.100:7777, oct.local, 192.168.1.100:8080"
+        )
+
+    protocol = match.group("protocol") or "http"
+    host = match.group("host")
+    port = match.group("port") or "7777"
+
+    # Validate hostname/IP
+    if "." in host and all(c.isdigit() or c == "." for c in host):
+        # Looks like IP - validate it
+        try:
+            ipaddress.ip_address(host)
+        except ValueError:
+            raise ValueError(f"Invalid IP address: '{host}'")
+    elif not _HOSTNAME_RE.match(host):
+        raise ValueError(f"Invalid hostname: '{host}'")
+
+    # Validate port
+    try:
+        port_int = int(port)
+        if not (1 <= port_int <= 65535):
+            raise ValueError(f"Port must be between 1-65535, got: {port}")
+    except ValueError as e:
+        raise ValueError(f"Invalid port: {e}")
+
+    return f"{protocol}://{host}:{port}"
+
+
 class ConfigModifyRequest(WizardDeviceRequest):
     """Request to modify config file."""
 
-    oct_ip: str
+    target_addr: str = Field(
+        ...,
+        description="OCT server URL (e.g., http://192.168.1.100:7777 or oct.local)",
+    )
 
-    @field_validator("oct_ip")
+    @field_validator("target_addr")
     @classmethod
-    def validate_oct_ip(cls, v: str) -> str:
-        return _validate_ip_field(v)
+    def validate_target_addr(cls, v: str) -> str:
+        """Validate and normalize target address."""
+        return _normalize_target_addr(v)
 
 
 class ConfigModifyResponse(BaseModel):
@@ -118,13 +174,17 @@ class ConfigModifyResponse(BaseModel):
 class HostsModifyRequest(WizardDeviceRequest):
     """Request to modify hosts file."""
 
-    oct_ip: str
+    target_addr: str = Field(
+        ...,
+        description="OCT server URL (e.g., http://192.168.1.100:7777)",
+    )
     include_optional: bool = True
 
-    @field_validator("oct_ip")
+    @field_validator("target_addr")
     @classmethod
-    def validate_oct_ip(cls, v: str) -> str:
-        return _validate_ip_field(v)
+    def validate_target_addr(cls, v: str) -> str:
+        """Validate and normalize target address."""
+        return _normalize_target_addr(v)
 
 
 class HostsModifyResponse(BaseModel):

@@ -33,12 +33,16 @@
     "audit:vision:gpt41-mini": ".venv\\Scripts\\python.exe tools/analyze_ux_screenshots.py --model gpt-4.1-mini --resume",
     "audit:vision:llama": ".venv\\Scripts\\python.exe tools/analyze_ux_screenshots.py --model llama-vision --resume",
     "audit:vision:llama-large": ".venv\\Scripts\\python.exe tools/analyze_ux_screenshots.py --model llama-vision-large --resume",
+    "generate:openapi": "cd apps/backend && ..\\..\\.venv\\Scripts\\python.exe -c \"from opencloudtouch.main import app; import yaml; f=open('openapi.yaml','w',encoding='utf-8'); f.write(yaml.dump(app.openapi(),sort_keys=False,allow_unicode=True)); f.close(); print('OpenAPI YAML exported')\"",
+    "generate:types": "npx openapi-typescript apps/backend/openapi.yaml -o apps/frontend/src/api/generated/schema.ts",
+    "generate:api": "npm run generate:openapi && npm run generate:types",
     "lint": "npm run lint --workspace=apps/frontend",
     "clean": "npm run clean --workspaces --if-present && rimraf node_modules .venv data-local htmlcov .coverage .pytest_cache"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
     "license-checker": "^25.0.1",
+    "openapi-typescript": "^7.13.0",
     "prettier": "^3.8.1",
     "rimraf": "^6.0.1"
   },
