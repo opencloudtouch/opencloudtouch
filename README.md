@@ -4,6 +4,8 @@
 
 Ziel: SoundTouch®-Lautsprecher (z. B. SoundTouch® 10/30/300) weiter nutzen, ohne Bose®-Cloud und ohne proprietaere App.
 
+> 📖 **Vollständige Dokumentation**: [GitHub Wiki](https://github.com/scheilch/opencloudtouch/wiki)
+
 > Leitidee: Ein Container, eine Web-App, lokale Steuerung.
 
 **Trademark Notice**: OpenCloudTouch (OCT) is not affiliated with Bose® Corporation. Bose® and SoundTouch® are registered trademarks of Bose® Corporation. See `TRADEMARK.md`.

@@ -86,13 +86,22 @@ def mount_static_files(app: FastAPI, static_dir: Path) -> None:
         path = request.url.path
 
         if _is_api_path(path):
+            # Preserve the original exception detail for app-level 404s (e.g. route
+            # handlers that raise HTTPException(404, "Preset X not configured")).
+            # Starlette routing-level 404s have detail="Not Found" (the HTTP phrase).
+            exc_detail = getattr(exc, "detail", None)
+            detail = (
+                str(exc_detail)
+                if exc_detail and exc_detail != "Not Found"
+                else f"The requested resource {path} was not found"
+            )
             return JSONResponse(
                 status_code=404,
                 content=ErrorDetail(
                     type="not_found",
                     title="Not Found",
                     status=404,
-                    detail=f"The requested resource {path} was not found",
+                    detail=detail,
                     instance=path,
                 ).model_dump(),
             )
