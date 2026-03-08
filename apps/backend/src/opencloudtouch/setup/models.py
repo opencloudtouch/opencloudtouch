@@ -7,7 +7,7 @@ Data models for the device setup/configuration process.
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Optional, List
+from typing import List, Optional
 
 
 class SetupStatus(str, Enum):

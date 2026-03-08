@@ -1,4 +1,4 @@
-﻿"""
+"""
 Manual discovery fallback
 Allows users to specify device IPs manually when SSDP/UPnP doesn't work
 """

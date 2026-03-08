@@ -14,7 +14,9 @@ from opencloudtouch.devices.client import DeviceInfo
 async def test_get_info_success():
     """Test successful /info request."""
     # Mock SoundTouchDevice constructor to avoid actual network calls
-    with patch("opencloudtouch.devices.adapter.SoundTouchDevice") as mock_device_class:
+    with patch(
+        "opencloudtouch.devices.client_adapter.SoundTouchDevice"
+    ) as mock_device_class:
         mock_device = MagicMock()
         mock_device_class.return_value = mock_device
 
@@ -63,7 +65,9 @@ async def test_get_info_success():
 @pytest.mark.asyncio
 async def test_get_info_firmware_logging(caplog):
     """Test that firmware details are logged on device initialization."""
-    with patch("opencloudtouch.devices.adapter.SoundTouchDevice") as mock_device_class:
+    with patch(
+        "opencloudtouch.devices.client_adapter.SoundTouchDevice"
+    ) as mock_device_class:
         mock_device = MagicMock()
         mock_device_class.return_value = mock_device
 
@@ -106,7 +110,9 @@ async def test_get_info_firmware_logging(caplog):
 @pytest.mark.asyncio
 async def test_get_now_playing_success():
     """Test successful /now_playing request."""
-    with patch("opencloudtouch.devices.adapter.SoundTouchDevice") as mock_device_class:
+    with patch(
+        "opencloudtouch.devices.client_adapter.SoundTouchDevice"
+    ) as mock_device_class:
         mock_device = MagicMock()
         mock_device_class.return_value = mock_device
 
@@ -135,7 +141,9 @@ async def test_get_info_connection_error():
     """Test /info request with connection error."""
     from opencloudtouch.core.exceptions import DeviceConnectionError
 
-    with patch("opencloudtouch.devices.adapter.SoundTouchDevice") as mock_device_class:
+    with patch(
+        "opencloudtouch.devices.client_adapter.SoundTouchDevice"
+    ) as mock_device_class:
         mock_device = MagicMock()
         mock_device_class.return_value = mock_device
 
@@ -153,7 +161,9 @@ async def test_parse_invalid_xml():
     """Test XML parsing with invalid response (library handles internally)."""
     from opencloudtouch.core.exceptions import DeviceConnectionError
 
-    with patch("opencloudtouch.devices.adapter.SoundTouchDevice") as mock_device_class:
+    with patch(
+        "opencloudtouch.devices.client_adapter.SoundTouchDevice"
+    ) as mock_device_class:
         mock_device = MagicMock()
         mock_device_class.return_value = mock_device
 
@@ -169,7 +179,9 @@ async def test_parse_invalid_xml():
 
 def test_client_base_url_trailing_slash():
     """Test that trailing slash is removed from base_url."""
-    with patch("opencloudtouch.devices.adapter.SoundTouchDevice") as mock_device_class:
+    with patch(
+        "opencloudtouch.devices.client_adapter.SoundTouchDevice"
+    ) as mock_device_class:
         mock_device = MagicMock()
         mock_device_class.return_value = mock_device
 
@@ -190,7 +202,9 @@ def test_connect_timeout_constructor_parameter_regression():
                 but the property is read-only after initialization.
     Solution: Pass timeout via constructor: SoundTouchDevice(host=ip, connectTimeout=timeout)
     """
-    with patch("opencloudtouch.devices.adapter.SoundTouchDevice") as mock_device_class:
+    with patch(
+        "opencloudtouch.devices.client_adapter.SoundTouchDevice"
+    ) as mock_device_class:
         mock_device = MagicMock()
         mock_device_class.return_value = mock_device
 
@@ -208,7 +222,9 @@ def test_connect_timeout_constructor_parameter_regression():
 
 def test_connect_timeout_default_value():
     """Test that default timeout (5s) is properly passed to SoundTouchDevice."""
-    with patch("opencloudtouch.devices.adapter.SoundTouchDevice") as mock_device_class:
+    with patch(
+        "opencloudtouch.devices.client_adapter.SoundTouchDevice"
+    ) as mock_device_class:
         mock_device = MagicMock()
         mock_device_class.return_value = mock_device
 
@@ -225,7 +241,9 @@ def test_connect_timeout_default_value():
 
 def test_connect_timeout_custom_port():
     """Test timeout with custom port extraction from URL."""
-    with patch("opencloudtouch.devices.adapter.SoundTouchDevice") as mock_device_class:
+    with patch(
+        "opencloudtouch.devices.client_adapter.SoundTouchDevice"
+    ) as mock_device_class:
         mock_device = MagicMock()
         mock_device_class.return_value = mock_device
 

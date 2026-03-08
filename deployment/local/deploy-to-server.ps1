@@ -95,7 +95,7 @@ try {
 
     # Build docker run command
     $StationDescriptorBaseUrl = if ($config.OCT_STATION_DESCRIPTOR_BASE_URL) { $config.OCT_STATION_DESCRIPTOR_BASE_URL } else { "http://${RemoteHost}:${ContainerPort}" }
-    $runCmd = "$dockerCmd run -d --name $ContainerName --restart unless-stopped --network host -v ${DataPath}:/data -e OCT_LOG_LEVEL=DEBUG -e OCT_DISCOVERY_ENABLED=true -e OCT_STATION_DESCRIPTOR_BASE_URL=${StationDescriptorBaseUrl}"
+    $runCmd = "$dockerCmd run -d --name $ContainerName --restart unless-stopped --network host -v ${DataPath}:/data -e OCT_HOST=0.0.0.0 -e OCT_PORT=${ContainerPort} -e OCT_LOG_LEVEL=DEBUG -e OCT_DISCOVERY_ENABLED=true -e OCT_STATION_DESCRIPTOR_BASE_URL=${StationDescriptorBaseUrl}"
 
     if ($ManualIPs) {
         $runCmd += " -e OCT_MANUAL_DEVICE_IPS='$ManualIPs'"

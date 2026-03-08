@@ -1,6 +1,10 @@
 /* Radio Presets Page */
 .radio-presets-page {
   padding-bottom: var(--space-2xl);
+  /* REFACT-141: max-width prevents excessive whitespace on widescreen */
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Device Card */
@@ -17,21 +21,40 @@
 }
 
 .device-card-header {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
   padding-bottom: var(--space-md);
   border-bottom: 1px solid var(--color-border);
+}
+
+.device-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
 }
 
 .device-name {
   font-size: 24px;
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
-  margin-bottom: var(--space-xs);
+  margin: 0;
 }
 
 .device-model {
   font-size: 14px;
   color: var(--color-text-secondary);
+}
+
+/* REFACT-109: IP stays visible but is visually secondary to name/model */
+.device-ip {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  opacity: 0.65;
+  font-family: monospace;
+  letter-spacing: 0;
 }
 
 /* Presets Section */
@@ -42,12 +65,50 @@
   margin-right: auto;
 }
 
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
 .section-title {
   font-size: 20px;
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
-  margin-bottom: var(--space-lg);
-  text-align: center;
+  margin: 0;
+}
+
+.sync-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-darker);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sync-button:hover:not(:disabled) {
+  background: var(--color-bg-card);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.sync-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* REFACT-138: Consistent icon size with other action icons (18px) */
+.sync-icon {
+  font-size: 18px;
 }
 
 .presets-grid {

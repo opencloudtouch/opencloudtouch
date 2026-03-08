@@ -88,13 +88,16 @@
   font-size: 1rem;
   font-weight: 600;
   color: #ffffff;
-  margin-bottom: 0.25rem;
+  /* REFACT-132: Increased spacing below heading for readability */
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
 }
 
 .step-content p {
   font-size: 0.875rem;
   color: #999;
-  line-height: 1.5;
+  line-height: 1.6;
+  margin-bottom: 0;
 }
 
 .cta-button {
@@ -120,6 +123,125 @@
 
 .cta-button:active {
   transform: translateY(0);
+}
+
+/* REFACT-131: Secondary button has reduced visual weight vs primary */
+/* REFACT-145: Both CTA buttons have consistent SVG icon prefix + same border-radius */
+.cta-button.secondary {
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  padding: 0.75rem 1.5rem;
+}
+
+.cta-button.secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.9);
+  transform: translateY(-1px);
+  box-shadow: none;
+}
+
+/* Progressive Discovery Results */
+.discovery-progress {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.discovery-stats {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.discovered-devices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.discovered-device {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  animation: deviceAppear 0.3s ease-out;
+}
+
+@keyframes deviceAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.device-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--success-green);
+  border-radius: 50%;
+  font-size: 1rem;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.device-info {
+  flex: 1;
+  text-align: left;
+}
+
+.device-name {
+  font-weight: 500;
+  color: #ffffff;
+  margin-bottom: 0.25rem;
+}
+
+.device-model {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.empty-state-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+}
+
+.empty-state-divider::before,
+.empty-state-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .manual-ips-hint {
@@ -298,12 +420,34 @@
   font-size: 0.95rem;
   resize: vertical;
   transition: border-color 0.2s;
-  margin-bottom: 1rem;
+  margin-bottom: 0.25rem; /* Reduced: validation error takes space below */
+}
+
+/* REFACT-135: Real-time validation error state */
+.modal-textarea--error {
+  border-color: #ef4444;
+}
+
+.modal-textarea--error:focus {
+  border-color: #ef4444;
+  outline-color: #ef4444;
+}
+
+.modal-validation-error {
+  color: #ef4444;
+  font-size: 0.82rem;
+  margin-bottom: 0.75rem;
+  padding: 0.25rem 0;
 }
 
 .modal-textarea:focus {
   outline: none;
   border-color: var(--primary-blue);
+}
+
+.modal-textarea:focus-visible {
+  outline: 2px solid var(--color-accent, #0066cc);
+  outline-offset: 2px;
 }
 
 .modal-textarea:disabled {

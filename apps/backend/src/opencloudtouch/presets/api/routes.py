@@ -3,7 +3,8 @@
 import logging
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Path as FastAPIPath
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi import Path as FastAPIPath
 from pydantic import BaseModel, Field
 
 from opencloudtouch.core.dependencies import get_preset_service
@@ -38,6 +39,7 @@ class PresetResponse(BaseModel):
     station_url: str
     station_homepage: Optional[str]
     station_favicon: Optional[str]
+    source: Optional[str]
     created_at: str
     updated_at: str
 
@@ -200,3 +202,39 @@ async def clear_all_presets(
     except Exception as e:
         logger.error(f"Error clearing all presets for device {device_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to clear presets")
+
+
+@router.post("/{device_id}/sync", response_model=MessageResponse)
+async def sync_presets_from_device(
+    device_id: str = FastAPIPath(..., description="Device identifier"),
+    preset_service: PresetService = Depends(get_preset_service),
+):
+    """
+    Sync presets from device to OCT database.
+
+    Fetches presets from the physical device and imports them into OCT.
+    Useful when a device was configured by another OCT instance or manually.
+
+    Returns:
+        Message with sync count
+
+    Raises:
+        404: Device not found
+        502: Device unreachable
+        500: Internal error
+    """
+    try:
+        count = await preset_service.sync_presets_from_device(device_id)
+
+        return MessageResponse(
+            message=f"Synced {count} presets from device {device_id}"
+        )
+
+    except ValueError as e:
+        logger.error(f"Device {device_id} not found: {e}")
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error syncing presets from device {device_id}: {e}")
+        raise HTTPException(
+            status_code=502, detail="Failed to sync presets from device"
+        )

@@ -11,7 +11,7 @@
 .swiper-container {
   position: relative;
   width: 100%;
-  height: var(--card-height);
+  height: var(--card-height, 400px); /* 400px default for desktop; overridden in media queries */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -43,8 +43,6 @@
   background-color: rgba(255, 255, 255, 0.1);
   border-radius: 50%;
   color: var(--color-text-primary);
-  font-size: 32px;
-  font-weight: var(--font-weight-bold);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -80,22 +78,34 @@
 }
 
 .dot {
+  /* 44px vertical touch target; visual dot rendered via ::after to avoid
+     grid/flex layout distortion from a wide invisible hit area */
+  min-width: unset;
+  min-height: unset;
+  padding: 18px 8px;
+  background: transparent;
+  border-radius: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dot::after {
+  content: "";
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background-color: var(--color-border);
   transition: all 0.3s ease;
-  padding: 0;
-  min-width: auto;
-  min-height: auto;
+  flex-shrink: 0;
 }
 
-.dot:hover {
+.dot:hover::after {
   background-color: var(--color-text-secondary);
   transform: scale(1.2);
 }
 
-.dot.active {
+.dot.active::after {
   width: 24px;
   border-radius: 4px;
   background-color: var(--color-accent);
@@ -112,9 +122,8 @@
   }
 
   .swipe-arrow {
-    width: 40px;
-    height: 40px;
-    font-size: 28px;
+    width: 44px;
+    height: 44px;
   }
 
   .swipe-arrow-left {

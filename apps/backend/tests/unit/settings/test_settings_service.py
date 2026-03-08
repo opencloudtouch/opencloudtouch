@@ -4,8 +4,9 @@ Tests business logic layer for settings management.
 Following TDD Red-Green-Refactor cycle.
 """
 
-import pytest
 from unittest.mock import AsyncMock
+
+import pytest
 
 from opencloudtouch.settings.service import SettingsService
 

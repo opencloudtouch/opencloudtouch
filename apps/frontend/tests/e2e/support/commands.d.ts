@@ -30,5 +30,47 @@ declare namespace Cypress {
      * @example cy.waitForModalClose()
      */
     waitForModalClose(): Chainable<void>;
+
+    // =========================================================================
+    // UX Screenshot Commands
+    // =========================================================================
+
+    /**
+     * Inject light/white background CSS for design inspection screenshots.
+     * Overrides the dark Bose theme with a neutral light analysis mode.
+     * @example cy.injectLightMode()
+     */
+    injectLightMode(): Chainable<void>;
+
+    /**
+     * Remove the injected light mode CSS override.
+     * @example cy.removeLightMode()
+     */
+    removeLightMode(): Chainable<void>;
+
+    /**
+     * Take a screenshot with the native dark app theme.
+     * Screenshot is saved as `{name}__dark.png`.
+     * @param name - Base filename (without extension)
+     * @example cy.screenshotDark('02a_presets_full-page')
+     */
+    screenshotDark(name: string): Chainable<void>;
+
+    /**
+     * Take a screenshot with an injected light/white background.
+     * Useful for isolated component inspection.
+     * Screenshot is saved as `{name}__light.png`.
+     * @param name - Base filename (without extension)
+     * @example cy.screenshotLight('02a_presets_full-page')
+     */
+    screenshotLight(name: string): Chainable<void>;
+
+    /**
+     * Take two screenshots: one with dark theme, one with light background.
+     * Saves `{name}__dark.png` and `{name}__light.png`.
+     * @param name - Base filename (without extension)
+     * @example cy.screenshotBoth('02a_presets_full-page')
+     */
+    screenshotBoth(name: string): Chainable<void>;
   }
 }

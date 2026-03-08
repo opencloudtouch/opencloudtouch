@@ -5,6 +5,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getDevices, syncDevices, getDeviceCapabilities } from "../api/devices";
 import type { Device, SyncResult } from "../api/devices";
 
+/** Devices are stable in a home network — 5 min staleTime avoids constant refetching */
+const DEVICE_STALE_TIME = 5 * 60 * 1000;
+
 /**
  * Fetch all devices with automatic caching and refetching
  */
@@ -12,6 +15,9 @@ export function useDevices() {
   return useQuery<Device[]>({
     queryKey: ["devices"],
     queryFn: getDevices,
+    staleTime: DEVICE_STALE_TIME,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
   });
 }
 

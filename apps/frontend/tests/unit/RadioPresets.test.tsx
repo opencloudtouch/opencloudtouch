@@ -16,11 +16,19 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import RadioPresets from "../../src/pages/RadioPresets";
 
+// Mock toast context so tests don't require ToastProvider wrapper
+const mockShowToast = vi.fn();
+vi.mock("../../src/contexts/ToastContext", () => ({
+  useToast: () => ({ show: mockShowToast }),
+  ToastProvider: ({ children }: { children: ReactNode }) => children,
+}));
+
 // Mock API module
 vi.mock("../../src/api/presets", () => ({
   getDevicePresets: vi.fn(),
   setPreset: vi.fn(),
   clearPreset: vi.fn(),
+  syncPresetsFromDevice: vi.fn(),
 }));
 
 import * as presetsApi from "../../src/api/presets";
@@ -143,6 +151,7 @@ describe("RadioPresets Page", () => {
       updated_at: "2024-01-01T00:00:00Z",
     });
     vi.mocked(presetsApi.clearPreset).mockResolvedValue({ message: "Preset cleared" });
+    vi.mocked(presetsApi.syncPresetsFromDevice).mockResolvedValue({ message: "Synced" });
   });
 
   // Helper function to render and wait for initial load to complete
@@ -298,9 +307,6 @@ describe("RadioPresets Page", () => {
 
   describe("Preset Clearing", () => {
     it("should clear assigned preset when clicking clear button", async () => {
-      // Mock window.confirm
-      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
-
       await act(async () => {
         render(<RadioPresets devices={mockDevices} />);
       });
@@ -313,24 +319,31 @@ describe("RadioPresets Page", () => {
         expect(screen.getByTestId("preset-4-name")).toBeInTheDocument();
       });
 
-      // Clear preset
+      // Click clear — opens ConfirmDialog
       fireEvent.click(screen.getByTestId("preset-4-clear"));
+
+      // Confirm in dialog
+      await waitFor(() => {
+        expect(screen.getByTestId("confirm-dialog-confirm")).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByTestId("confirm-dialog-confirm"));
 
       // Should show assign button again
       await waitFor(() => {
         expect(screen.getByTestId("preset-4-assign")).toBeInTheDocument();
         expect(screen.queryByTestId("preset-4-name")).not.toBeInTheDocument();
       });
-
-      confirmSpy.mockRestore();
     });
 
     it("should maintain other presets when clearing one", async () => {
-      // Mock window.confirm
-      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
-
       await act(async () => {
         render(<RadioPresets devices={mockDevices} />);
+      });
+
+      // Wait for the REFACT-120 auto-sync debounce (500 ms) to fire and settle,
+      // otherwise the background sync resets optimistically-saved presets mid-test.
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 600));
       });
 
       // Assign two presets
@@ -342,16 +355,18 @@ describe("RadioPresets Page", () => {
       fireEvent.click(screen.getByTestId("select-station"));
       await waitFor(() => expect(screen.getByTestId("preset-2-name")).toBeInTheDocument());
 
-      // Clear preset 1
+      // Clear preset 1 — confirm in dialog
       fireEvent.click(screen.getByTestId("preset-1-clear"));
+      await waitFor(() => {
+        expect(screen.getByTestId("confirm-dialog-confirm")).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByTestId("confirm-dialog-confirm"));
 
       // Preset 1 should be cleared, preset 2 should remain
       await waitFor(() => {
         expect(screen.getByTestId("preset-1-assign")).toBeInTheDocument();
         expect(screen.getByTestId("preset-2-name")).toBeInTheDocument();
       });
-
-      confirmSpy.mockRestore();
     });
   });
 
@@ -511,9 +526,6 @@ describe("RadioPresets Page", () => {
         },
       ]);
 
-      // Mock window.confirm
-      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
-
       await act(async () => {
         render(<RadioPresets devices={mockDevices} />);
       });
@@ -522,15 +534,17 @@ describe("RadioPresets Page", () => {
         expect(screen.getByTestId("preset-4-name")).toBeInTheDocument();
       });
 
-      // Clear preset
+      // Click clear — confirm in dialog
       fireEvent.click(screen.getByTestId("preset-4-clear"));
+      await waitFor(() => {
+        expect(screen.getByTestId("confirm-dialog-confirm")).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByTestId("confirm-dialog-confirm"));
 
       // Should call API
       await waitFor(() => {
         expect(presetsApi.clearPreset).toHaveBeenCalledWith("AABBCC123456", 4);
       });
-
-      confirmSpy.mockRestore();
     });
 
     it("should not clear preset if user cancels confirmation", async () => {
@@ -548,8 +562,6 @@ describe("RadioPresets Page", () => {
         },
       ]);
 
-      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
-
       await act(async () => {
         render(<RadioPresets devices={mockDevices} />);
       });
@@ -558,16 +570,20 @@ describe("RadioPresets Page", () => {
         expect(screen.getByTestId("preset-5-name")).toBeInTheDocument();
       });
 
-      // Try to clear preset
+      // Try to clear preset — opens ConfirmDialog
       fireEvent.click(screen.getByTestId("preset-5-clear"));
+
+      // Cancel in dialog
+      await waitFor(() => {
+        expect(screen.getByTestId("confirm-dialog-cancel")).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByTestId("confirm-dialog-cancel"));
 
       // Should NOT call API
       expect(presetsApi.clearPreset).not.toHaveBeenCalled();
 
       // Preset should still be there
       expect(screen.getByTestId("preset-5-name")).toBeInTheDocument();
-
-      confirmSpy.mockRestore();
     });
 
     it("should reload presets when device changes", async () => {
@@ -643,7 +659,7 @@ describe("RadioPresets Page", () => {
 
       // Should display error message
       await waitFor(() => {
-        expect(screen.getByTestId("error-message")).toHaveTextContent("Network error");
+        expect(screen.getByTestId("error-message")).toHaveTextContent("Presets konnten nicht geladen werden");
       });
     });
 
@@ -681,7 +697,7 @@ describe("RadioPresets Page", () => {
 
       // Should display error
       await waitFor(() => {
-        expect(screen.getByTestId("error-message")).toHaveTextContent("Failed to save preset");
+        expect(screen.getByTestId("error-message")).toHaveTextContent("Preset konnte nicht gespeichert werden");
       });
     });
 
@@ -701,8 +717,6 @@ describe("RadioPresets Page", () => {
 
       vi.mocked(presetsApi.clearPreset).mockRejectedValue(new Error("Failed to clear preset"));
 
-      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
-
       await act(async () => {
         render(<RadioPresets devices={mockDevices} />);
       });
@@ -711,15 +725,17 @@ describe("RadioPresets Page", () => {
         expect(screen.getByTestId("preset-1-name")).toBeInTheDocument();
       });
 
-      // Try to clear
+      // Try to clear — confirm in dialog
       fireEvent.click(screen.getByTestId("preset-1-clear"));
-
-      // Should display error
       await waitFor(() => {
-        expect(screen.getByTestId("error-message")).toHaveTextContent("Failed to clear preset");
+        expect(screen.getByTestId("confirm-dialog-confirm")).toBeInTheDocument();
       });
+      fireEvent.click(screen.getByTestId("confirm-dialog-confirm"));
 
-      confirmSpy.mockRestore();
+      // Should display user-friendly error
+      await waitFor(() => {
+        expect(screen.getByTestId("error-message")).toHaveTextContent("Preset konnte nicht gelöscht werden");
+      });
     });
   });
 
@@ -732,12 +748,20 @@ describe("RadioPresets Page", () => {
 
       vi.mocked(presetsApi.getDevicePresets).mockReturnValue(presetsPromise);
 
-      await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
-      });
+      // Use fake timers to advance past the 500ms debounce
+      vi.useFakeTimers();
+      render(<RadioPresets devices={mockDevices} />);
 
-      // Should show loading
-      expect(screen.getByTestId("loading-indicator")).toBeInTheDocument();
+      // Advance past the 500ms debounce
+      await act(async () => {
+        vi.advanceTimersByTime(600);
+      });
+      vi.useRealTimers();
+
+      // Should now be loading (loadPresets fired and set loading=true)
+      await waitFor(() => {
+        expect(screen.getByTestId("loading-indicator")).toBeInTheDocument();
+      });
 
       // Resolve presets
       resolvePresets!([]);

@@ -130,6 +130,8 @@ try {
         "-v", "${LocalDataPath}:/data",
         "-e", "OCT_LOG_LEVEL=DEBUG",
         "-e", "OCT_DB_PATH=/data/oct.db",
+        "-e", "OCT_STATION_DESCRIPTOR_BASE_URL=http://content.api.bose.io:7777",
+        "-e", "OCT_DISCOVERY_ENABLED=true",
         $Tag
     )
 

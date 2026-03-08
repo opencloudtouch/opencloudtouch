@@ -1,0 +1,2579 @@
+openapi: 3.1.0
+info:
+  title: OpenCloudTouch
+  description: Open-Source replacement for discontinued streaming device cloud features
+  version: 0.2.0
+paths:
+  /api/devices/discover:
+    get:
+      tags:
+      - Devices
+      summary: Discover Devices
+      description: "Trigger device discovery.\n\nReturns:\n    List of discovered\
+        \ devices (not yet saved to DB)"
+      operationId: discover_devices_api_devices_discover_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Discover Devices Api Devices Discover Get
+  /api/devices/sync:
+    post:
+      tags:
+      - Devices
+      summary: Sync Devices
+      description: "Discover devices and sync to database.\nQueries each device for\
+        \ detailed info (/info endpoint).\n\nReturns:\n    Sync summary with success/failure\
+        \ counts"
+      operationId: sync_devices_api_devices_sync_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/devices/discover/stream:
+    get:
+      tags:
+      - Devices
+      summary: Discover Devices Stream
+      description: "Discover devices and stream results via Server-Sent Events (SSE).\n\
+        \nProgressive loading:\n- Sends `device_found` events as devices are discovered\
+        \ via SSDP\n- Sends `device_synced` events as devices are saved to DB\n- Sends\
+        \ `completed` event when done\n\nFrontend can show devices immediately instead\
+        \ of waiting for full scan.\n\nReturns:\n    StreamingResponse with SSE events\n\
+        \nEvent Types:\n    - started: Discovery started\n    - device_found: Device\
+        \ discovered (SSDP response)\n    - device_synced: Device synced to DB\n \
+        \   - device_failed: Device sync failed\n    - completed: Discovery finished\n\
+        \    - error: Error occurred\n\nExample SSE Stream:\n    event: started\n\
+        \    data: {\"message\": \"Starting discovery\"}\n\n    event: device_found\n\
+        \    data: {\"ip\": \"192.168.1.100\", \"name\": \"Küche\", \"model\": \"\
+        SoundTouch 10\"}\n\n    event: device_synced\n    data: {\"id\": 1, \"device_id\"\
+        : \"ABC123\", \"ip\": \"192.168.1.100\", ...}\n\n    event: completed\n  \
+        \  data: {\"discovered\": 3, \"synced\": 3, \"failed\": 0}"
+      operationId: discover_devices_stream_api_devices_discover_stream_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/devices:
+    get:
+      tags:
+      - Devices
+      summary: Get Devices
+      description: "Get all devices from database.\n\nReturns:\n    List of devices\
+        \ with details"
+      operationId: get_devices_api_devices_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+    delete:
+      tags:
+      - Devices
+      summary: Delete All Devices
+      description: "Delete all devices from database.\n\n**Testing/Development endpoint\
+        \ only.**\nUse for cleaning database before E2E tests or manual testing.\n\
+        \n**Protected**: Requires OCT_ALLOW_DANGEROUS_OPERATIONS=true\n\nReturns:\n\
+        \    Confirmation message\n\nRaises:\n    HTTPException(403): If dangerous\
+        \ operations are disabled in production"
+      operationId: delete_all_devices_api_devices_delete
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/devices/{device_id}:
+    get:
+      tags:
+      - Devices
+      summary: Get Device
+      description: "Get single device by device_id.\n\nArgs:\n    device_id: Device\
+        \ ID\n\nReturns:\n    Device details\n\nRaises:\n    DeviceNotFoundError:\
+        \ If device does not exist"
+      operationId: get_device_api_devices__device_id__get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/devices/{device_id}/capabilities:
+    get:
+      tags:
+      - Devices
+      summary: Get Device Capabilities Endpoint
+      description: "Get device capabilities for UI feature detection.\n\nReturns which\
+        \ features this specific device supports:\n- HDMI control (ST300 only)\n-\
+        \ Bass/balance controls\n- Available input sources\n- Zone/group support\n\
+        - All supported endpoints\n\nArgs:\n    device_id: Device ID\n\nReturns:\n\
+        \    Feature flags and capabilities for UI rendering\n\nExample Response:\n\
+        \    {\n        \"device_id\": \"AABBCC112233\",\n        \"device_type\"\
+        : \"SoundTouch 30 Series III\",\n        \"is_soundbar\": false,\n       \
+        \ \"features\": {\n            \"hdmi_control\": false,\n            \"bass_control\"\
+        : true,\n            \"bluetooth\": true,\n            ...\n        },\n \
+        \       \"sources\": [\"BLUETOOTH\", \"AUX\", \"INTERNET_RADIO\"],\n     \
+        \   \"advanced\": {...}\n    }"
+      operationId: get_device_capabilities_endpoint_api_devices__device_id__capabilities_get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/devices/{device_id}/key:
+    post:
+      tags:
+      - Devices
+      summary: Press Key
+      description: "Simulate a key press on a device.\n\nUsed for E2E testing to trigger\
+        \ preset playback without physical button press.\n\nArgs:\n    device_id:\
+        \ Device ID\n    key: Key name (e.g., \"PRESET_1\", \"PRESET_2\", \"PRESET_3\"\
+        , ...)\n    state: Key state (\"press\", \"release\", or \"both\"). Default:\
+        \ \"both\"\n\nReturns:\n    Success message\n\nRaises:\n    DeviceNotFoundError:\
+        \ If device does not exist\n    HTTPException(400): If key or state is invalid\n\
+        \    HTTPException(500): If key press fails\n\nExample:\n    POST /api/devices/AABBCC112233/key?key=PRESET_1&state=both"
+      operationId: press_key_api_devices__device_id__key_post
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: key
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Key
+      - name: state
+        in: query
+        required: false
+        schema:
+          type: string
+          default: both
+          title: State
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/presets/set:
+    post:
+      tags:
+      - presets
+      summary: Set Preset
+      description: 'Set a preset for a device.
+
+
+        Creates or updates a preset mapping. When the physical preset button
+
+        is pressed on the SoundTouch device, it will load the configured station.'
+      operationId: set_preset_api_presets_set_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresetSetRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresetResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/presets/{device_id}:
+    get:
+      tags:
+      - presets
+      summary: Get Device Presets
+      description: 'Get all presets for a device.
+
+
+        Returns all configured presets (1-6) for the specified device.
+
+        Empty slots are not included in the response.'
+      operationId: get_device_presets_api_presets__device_id__get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Device identifier
+          title: Device Id
+        description: Device identifier
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PresetResponse'
+                title: Response Get Device Presets Api Presets  Device Id  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - presets
+      summary: Clear All Presets
+      description: 'Clear all presets for a device.
+
+
+        Removes all preset configurations for the specified device.'
+      operationId: clear_all_presets_api_presets__device_id__delete
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Device identifier
+          title: Device Id
+        description: Device identifier
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/opencloudtouch__presets__api__routes__MessageResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/presets/{device_id}/{preset_number}:
+    get:
+      tags:
+      - presets
+      summary: Get Preset
+      description: 'Get a specific preset.
+
+
+        Returns the preset configuration for the specified device and preset number.'
+      operationId: get_preset_api_presets__device_id___preset_number__get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Device identifier
+          title: Device Id
+        description: Device identifier
+      - name: preset_number
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 6
+          minimum: 1
+          description: Preset number (1-6)
+          title: Preset Number
+        description: Preset number (1-6)
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresetResponse'
+        '404':
+          description: Preset not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - presets
+      summary: Clear Preset
+      description: 'Clear a specific preset.
+
+
+        Removes the preset configuration. The physical preset button will no
+
+        longer trigger playback until a new station is assigned.'
+      operationId: clear_preset_api_presets__device_id___preset_number__delete
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Device identifier
+          title: Device Id
+        description: Device identifier
+      - name: preset_number
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 6
+          minimum: 1
+          description: Preset number (1-6)
+          title: Preset Number
+        description: Preset number (1-6)
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/opencloudtouch__presets__api__routes__MessageResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/presets/{device_id}/sync:
+    post:
+      tags:
+      - presets
+      summary: Sync Presets From Device
+      description: "Sync presets from device to OCT database.\n\nFetches presets from\
+        \ the physical device and imports them into OCT.\nUseful when a device was\
+        \ configured by another OCT instance or manually.\n\nReturns:\n    Message\
+        \ with sync count\n\nRaises:\n    404: Device not found\n    502: Device unreachable\n\
+        \    500: Internal error"
+      operationId: sync_presets_from_device_api_presets__device_id__sync_post
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Device identifier
+          title: Device Id
+        description: Device identifier
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/opencloudtouch__presets__api__routes__MessageResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/radio/search:
+    get:
+      tags:
+      - radio
+      summary: Search Stations
+      description: 'Search radio stations.
+
+
+        - **q**: Search query (required, min 1 character)
+
+        - **search_type**: Type of search - name, country, or tag (default: name)
+
+        - **limit**: Maximum results (1-100, default: 10)'
+      operationId: search_stations_api_radio_search_get
+      parameters:
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          description: Search query
+          title: Q
+        description: Search query
+      - name: search_type
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/SearchType'
+          description: 'Search type: name, country, or tag'
+          default: name
+        description: 'Search type: name, country, or tag'
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          description: Maximum number of results
+          default: 10
+          title: Limit
+        description: Maximum number of results
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RadioSearchResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/radio/station/{uuid}:
+    get:
+      tags:
+      - radio
+      summary: Get Station Detail
+      description: 'Get radio station detail by UUID.
+
+
+        - **uuid**: Station UUID'
+      operationId: get_station_detail_api_radio_station__uuid__get
+      parameters:
+      - name: uuid
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Uuid
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RadioStationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/settings/manual-ips:
+    get:
+      tags:
+      - settings
+      summary: Get Manual Ips
+      description: "Get all manual device IP addresses.\n\nReturns:\n    List of manually\
+        \ configured IP addresses"
+      operationId: get_manual_ips_api_settings_manual_ips_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManualIPsResponse'
+    post:
+      tags:
+      - settings
+      summary: Set Manual Ips
+      description: "Replace all manual device IP addresses with new list.\n\nArgs:\n\
+        \    request: Request containing list of IP addresses\n\nReturns:\n    Updated\
+        \ list of manual IP addresses"
+      operationId: set_manual_ips_api_settings_manual_ips_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetManualIPsRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManualIPsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/settings/manual-ips/{ip}:
+    delete:
+      tags:
+      - settings
+      summary: Delete Manual Ip
+      description: "Remove a manual device IP address.\n\nArgs:\n    ip: IP address\
+        \ to remove\n\nReturns:\n    Success message with removed IP"
+      operationId: delete_manual_ip_api_settings_manual_ips__ip__delete
+      parameters:
+      - name: ip
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Ip
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/opencloudtouch__settings__routes__MessageResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /stations/preset/{device_id}/{preset_number}.json:
+    get:
+      tags:
+      - stations
+      summary: Get Station Descriptor
+      description: "Get station descriptor for a device preset.\n\nThis endpoint is\
+        \ called by SoundTouch devices when a preset button is pressed.\nIt returns\
+        \ the stream URL and metadata for playback.\n\nResponse format:\n```json\n\
+        {\n    \"stationName\": \"Station Name\",\n    \"streamUrl\": \"http://stream.url/path\"\
+        ,\n    \"homepage\": \"https://station.homepage\",\n    \"favicon\": \"https://station.favicon/icon.png\"\
+        ,\n    \"uuid\": \"radiobrowser-uuid\"\n}\n```"
+      operationId: get_station_descriptor_stations_preset__device_id___preset_number__json_get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Device identifier
+          title: Device Id
+        description: Device identifier
+      - name: preset_number
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 6
+          minimum: 1
+          description: Preset number (1-6)
+          title: Preset Number
+        description: Preset number (1-6)
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /device/{device_id}/preset/{preset_id}:
+    get:
+      tags:
+      - device-presets
+      summary: Stream Device Preset
+      description: "Stream proxy endpoint for Bose SoundTouch custom presets.\n\n\
+        **How it works:**\n1. User configures preset via OCT UI (e.g., \"Absolut Relax\"\
+        \ → Preset 1)\n2. OCT stores mapping in database: `device_id=689E194F7D2F,\
+        \ preset=1, url=https://stream.url`\n3. OCT programs Bose device with OCT\
+        \ backend URL:\n   ```\n   location=\"http://192.168.1.108:7777/device/689E194F7D2F/preset/1\"\
+        \n   ```\n4. User presses PRESET_1 button on Bose device\n5. Bose requests:\
+        \ `GET /device/689E194F7D2F/preset/1`\n6. OCT looks up preset in database\n\
+        7. **OCT proxies HTTPS stream as HTTP:** Fetches from RadioBrowser, streams\
+        \ to Bose\n8. Bose receives HTTP audio stream and plays ✅\n\n**Why HTTP proxy\
+        \ instead of direct HTTPS URL?**\n- ❌ Bose cannot play HTTPS streams directly\
+        \ (certificate validation fails)\n- ❌ HTTP 302 redirect to HTTPS URL → INVALID_SOURCE\
+        \ error\n- ✅ OCT acts as HTTP audio proxy: Fetches HTTPS → Serves as HTTP\
+        \ chunked transfer\n- ✅ Bose treats OCT like \"TuneIn integration\" (trusted\
+        \ HTTP source)\n\n**Example flow:**\n```\nRequest:  GET /device/689E194F7D2F/preset/1\n\
+        Response: HTTP 200 OK\n          Content-Type: audio/mpeg\n          Transfer-Encoding:\
+        \ chunked\n          icy-name: Absolut Relax\n          [Audio data stream:\
+        \ chunk1, chunk2, chunk3...]\n```\n\nArgs:\n    device_id: Bose device identifier\
+        \ (from URL path)\n    preset_id: Preset number 1-6 (from URL path)\n    preset_service:\
+        \ Injected preset service\n\nReturns:\n    StreamingResponse with proxied\
+        \ audio stream\n\nRaises:\n    404: Preset not configured for this device\n\
+        \    502: RadioBrowser stream unavailable\n    500: Internal server error"
+      operationId: stream_device_preset_device__device_id__preset__preset_id__get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Device identifier
+          title: Device Id
+        description: Device identifier
+      - name: preset_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 6
+          minimum: 1
+          description: Preset number (1-6)
+          title: Preset Id
+        description: Preset number (1-6)
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /descriptor/device/{device_id}/preset/{preset_id}:
+    get:
+      tags:
+      - device-descriptors
+      summary: Get Preset Descriptor
+      description: "Get preset descriptor XML for Bose SoundTouch device.\n\n**How\
+        \ it works:**\nBose devices with `source=\"INTERNET_RADIO\"` expect an XML\
+        \ descriptor endpoint\n(similar to TuneIn's `/v1/playback/station/...` endpoints).\n\
+        \n**Flow:**\n1. OCT programs Bose preset with descriptor URL:\n   ```xml\n\
+        \   <ContentItem source=\"INTERNET_RADIO\"\n                location=\"http://192.168.1.100:7777/descriptor/device/689E194F7D2F/preset/1\"\
+        >\n     <itemName>Absolut relax</itemName>\n   </ContentItem>\n   ```\n2.\
+        \ User presses PRESET_1 button on Bose device\n3. Bose requests: `GET /descriptor/device/689E194F7D2F/preset/1`\n\
+        4. OCT returns XML with **direct stream URL**:\n   ```xml\n   <ContentItem\
+        \ source=\"INTERNET_RADIO\" type=\"stationurl\"\n                location=\"\
+        https://absolut-relax.live-sm.absolutradio.de/absolut-relax\">\n     <itemName>Absolut\
+        \ relax</itemName>\n   </ContentItem>\n   ```\n5. Bose fetches stream from\
+        \ direct URL and plays ✅\n\nArgs:\n    device_id: Bose device identifier\n\
+        \    preset_id: Preset number 1-6\n    preset_service: Injected preset service\n\
+        \nReturns:\n    XML Response with ContentItem descriptor\n\nRaises:\n    404:\
+        \ Preset not configured"
+      operationId: get_preset_descriptor_descriptor_device__device_id__preset__preset_id__get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Device identifier
+          title: Device Id
+        description: Device identifier
+      - name: preset_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 6
+          minimum: 1
+          description: Preset number (1-6)
+          title: Preset Id
+        description: Preset number (1-6)
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /bmx/orion/now-playing:
+    get:
+      tags:
+      - bmx
+      summary: Bmx Now Playing Stub
+      description: 'Stub endpoint for now-playing data.
+
+
+        Device calls this to get currently playing track info.
+
+        Returns minimal valid response to prevent errors.'
+      operationId: bmx_now_playing_stub_bmx_orion_now_playing_get
+      parameters:
+      - name: station_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Station Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /bmx/orion/now-playing/station/{station_id}:
+    get:
+      tags:
+      - bmx
+      summary: Bmx Now Playing Stub
+      description: 'Stub endpoint for now-playing data.
+
+
+        Device calls this to get currently playing track info.
+
+        Returns minimal valid response to prevent errors.'
+      operationId: bmx_now_playing_stub_bmx_orion_now_playing_station__station_id__get
+      parameters:
+      - name: station_id
+        in: path
+        required: true
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Station Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /bmx/orion/reporting:
+    post:
+      tags:
+      - bmx
+      summary: Bmx Reporting Stub
+      description: 'Stub endpoint for telemetry reporting.
+
+
+        Device calls this to report playback events.
+
+        Returns success to prevent errors.'
+      operationId: bmx_reporting_stub_bmx_orion_reporting_post
+      parameters:
+      - name: station_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Station Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /bmx/orion/reporting/station/{station_id}:
+    post:
+      tags:
+      - bmx
+      summary: Bmx Reporting Stub
+      description: 'Stub endpoint for telemetry reporting.
+
+
+        Device calls this to report playback events.
+
+        Returns success to prevent errors.'
+      operationId: bmx_reporting_stub_bmx_orion_reporting_station__station_id__post
+      parameters:
+      - name: station_id
+        in: path
+        required: true
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Station Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /bmx/tunein/v1/now-playing/station/{station_id}:
+    get:
+      tags:
+      - bmx
+      summary: Bmx Tunein Now Playing
+      description: 'TuneIn now-playing stub.
+
+
+        Device calls this to get currently playing track info.'
+      operationId: bmx_tunein_now_playing_bmx_tunein_v1_now_playing_station__station_id__get
+      parameters:
+      - name: station_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Station Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /bmx/tunein/v1/reporting/station/{station_id}:
+    post:
+      tags:
+      - bmx
+      summary: Bmx Tunein Reporting
+      description: 'TuneIn reporting stub.
+
+
+        Device calls this to report playback events.'
+      operationId: bmx_tunein_reporting_bmx_tunein_v1_reporting_station__station_id__post
+      parameters:
+      - name: station_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Station Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /bmx/tunein/v1/favorite/{station_id}:
+    post:
+      tags:
+      - bmx
+      summary: Bmx Tunein Favorite
+      description: 'TuneIn favorite stub.
+
+
+        Device calls this to mark/unmark stations as favorites.'
+      operationId: bmx_tunein_favorite_bmx_tunein_v1_favorite__station_id__post
+      parameters:
+      - name: station_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Station Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - bmx
+      summary: Bmx Tunein Favorite
+      description: 'TuneIn favorite stub.
+
+
+        Device calls this to mark/unmark stations as favorites.'
+      operationId: bmx_tunein_favorite_bmx_tunein_v1_favorite__station_id__get
+      parameters:
+      - name: station_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Station Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /bmx/registry/v1/services:
+    get:
+      tags:
+      - bmx
+      summary: Bmx Services
+      description: 'Return list of available BMX services.
+
+
+        This endpoint is called by the device after booting to discover
+
+        available streaming services. We provide:
+
+        - TUNEIN: Resolved via TuneIn API
+
+        - LOCAL_INTERNET_RADIO: Custom stations via OCT'
+      operationId: bmx_services_bmx_registry_v1_services_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /bmx/tunein/v1/playback/station/{station_id}:
+    get:
+      tags:
+      - bmx
+      summary: Bmx Tunein Playback
+      description: 'Resolve TuneIn station to stream URL.
+
+
+        The device calls this endpoint with a station ID (e.g., "s158432")
+
+        and expects a JSON response with stream URLs.'
+      operationId: bmx_tunein_playback_bmx_tunein_v1_playback_station__station_id__get
+      parameters:
+      - name: station_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Station Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /core02/svc-bmx-adapter-orion/prod/orion/station:
+    get:
+      tags:
+      - bmx
+      summary: Custom Stream Playback
+      description: 'Play custom stream URL.
+
+
+        This endpoint handles LOCAL_INTERNET_RADIO sources. The data parameter
+
+        contains base64-encoded JSON with streamUrl, imageUrl, and name.'
+      operationId: custom_stream_playback_core02_svc_bmx_adapter_orion_prod_orion_station_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /bmx/resolve:
+    post:
+      tags:
+      - bmx
+      summary: Resolve Stream
+      description: 'Resolve ContentItem to playable stream URL.
+
+
+        Bose devices call this endpoint with a ContentItem XML to resolve:
+
+        - TuneIn station IDs → direct stream URLs
+
+        - Direct stream URLs → pass through
+
+        - OCT stream proxy URLs → pass through
+
+
+        This mimics the original Bose BMX server (bmx.bose.com).'
+      operationId: resolve_stream_bmx_resolve_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /v1/systems/devices/{device_id}:
+    get:
+      tags:
+      - marge
+      summary: Get Full Account
+      description: "Get full account sync for device.\n\nThis endpoint is called by\
+        \ SoundTouch devices on boot to sync:\n- Presets (6 buttons)\n- Recents (recently\
+        \ played)\n- Sources (available sources)\n\nArgs:\n    device_id: Device MAC\
+        \ address (e.g., \"689E194F7D2F\")\n    preset_repo: Preset repository dependency\n\
+        \nReturns:\n    XML Response with <boseAccount> structure"
+      operationId: get_full_account_v1_systems_devices__device_id__get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/systems/devices/{device_id}/presets:
+    get:
+      tags:
+      - marge
+      summary: Get Presets
+      description: "Get presets for device.\n\nArgs:\n    device_id: Device MAC address\n\
+        \    preset_repo: Preset repository dependency\n\nReturns:\n    XML Response\
+        \ with <presets> structure"
+      operationId: get_presets_v1_systems_devices__device_id__presets_get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/systems/devices/{device_id}/recents:
+    get:
+      tags:
+      - marge
+      summary: Get Recents
+      description: "Get recently played items for device.\n\nArgs:\n    device_id:\
+        \ Device MAC address\n\nReturns:\n    XML Response with <recents> structure"
+      operationId: get_recents_v1_systems_devices__device_id__recents_get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/systems/devices/{device_id}/sources:
+    get:
+      tags:
+      - marge
+      summary: Get Sources
+      description: "Get available sources for device.\n\nArgs:\n    device_id: Device\
+        \ MAC address\n\nReturns:\n    XML Response with <sources> structure"
+      operationId: get_sources_v1_systems_devices__device_id__sources_get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/systems/devices/{device_id}/devices:
+    get:
+      tags:
+      - marge
+      summary: Get Devices
+      description: "Get multiroom devices for device.\n\nArgs:\n    device_id: Device\
+        \ MAC address\n\nReturns:\n    XML Response with <devices> structure"
+      operationId: get_devices_v1_systems_devices__device_id__devices_get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/systems/devices/{device_id}/power_on:
+    put:
+      tags:
+      - marge
+      summary: Power On
+      description: "Device boot notification.\n\nSoundTouch devices call this on power-on\
+        \ to notify the server.\n\nArgs:\n    device_id: Device MAC address\n\nReturns:\n\
+        \    204 No Content (acknowledgement)"
+      operationId: power_on_v1_systems_devices__device_id__power_on_put
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - marge
+      summary: Power On
+      description: "Device boot notification.\n\nSoundTouch devices call this on power-on\
+        \ to notify the server.\n\nArgs:\n    device_id: Device MAC address\n\nReturns:\n\
+        \    204 No Content (acknowledgement)"
+      operationId: power_on_v1_systems_devices__device_id__power_on_post
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/systems/devices/{device_id}/sourceproviders:
+    get:
+      tags:
+      - marge
+      summary: Get Sourceproviders
+      description: "Get available source providers for device.\n\nArgs:\n    device_id:\
+        \ Device MAC address\n\nReturns:\n    XML Response with <sourceproviders>\
+        \ structure"
+      operationId: get_sourceproviders_v1_systems_devices__device_id__sourceproviders_get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /streaming/support/power_on:
+    put:
+      tags:
+      - marge
+      summary: Streaming Power On
+      description: "Device boot notification via streaming endpoint.\n\nSoundTouch\
+        \ devices call this on power-on to notify the server.\nThe device data is\
+        \ in the XML body with device ID, serial number,\nfirmware version, IP address,\
+        \ and diagnostic data.\n\nReturns:\n    200 OK (acknowledgement)"
+      operationId: streaming_power_on_streaming_support_power_on_put
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+    post:
+      tags:
+      - marge
+      summary: Streaming Power On
+      description: "Device boot notification via streaming endpoint.\n\nSoundTouch\
+        \ devices call this on power-on to notify the server.\nThe device data is\
+        \ in the XML body with device ID, serial number,\nfirmware version, IP address,\
+        \ and diagnostic data.\n\nReturns:\n    200 OK (acknowledgement)"
+      operationId: streaming_power_on_streaming_support_power_on_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /streaming/sourceproviders:
+    get:
+      tags:
+      - marge
+      summary: Streaming Sourceproviders
+      description: "Get available source providers.\n\nReturns list of streaming source\
+        \ providers like TUNEIN, SPOTIFY, etc.\n\nReturns:\n    XML Response with\
+        \ <sourceProviders> structure"
+      operationId: streaming_sourceproviders_streaming_sourceproviders_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /streaming/account/{account_id}/full:
+    get:
+      tags:
+      - marge
+      summary: Streaming Full Account
+      description: "Get full account sync via streaming endpoint.\n\nThis is the streaming.bose.com\
+        \ version of the account sync endpoint.\nReturns complete account with all\
+        \ devices, presets, recents, and sources.\n\nArgs:\n    account_id: Account\
+        \ ID (e.g., \"3784726\")\n    preset_repo: Preset repository dependency\n\n\
+        Returns:\n    XML Response with <account> structure"
+      operationId: streaming_full_account_streaming_account__account_id__full_get
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Account Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/scmudc/{device_id}:
+    post:
+      tags:
+      - marge
+      summary: Scmudc Reporting
+      description: "Device reporting/telemetry endpoint.\n\nDevices periodically call\
+        \ this to report status/telemetry data.\nWe acknowledge but don't process\
+        \ the data.\n\nArgs:\n    device_id: Device MAC address\n\nReturns:\n    200\
+        \ OK"
+      operationId: scmudc_reporting_v1_scmudc__device_id__post
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /playlist/{device_id}/{preset_number}.m3u:
+    get:
+      tags:
+      - playlist
+      summary: Get Playlist M3U
+      description: "Get M3U playlist file for a device preset.\n\nReturns an M3U playlist\
+        \ containing the stream URL for the specified preset.\nThis format might be\
+        \ better parsed by Bose SoundTouch devices.\n\nM3U Format:\n```\n#EXTM3U\n\
+        #EXTINF:-1,Station Name\nhttp://stream.url/path\n```\n\nHeaders:\n- Content-Type:\
+        \ audio/x-mpegurl\n\nArgs:\n    device_id: Bose device identifier\n    preset_number:\
+        \ Preset number (1-6)\n\nReturns:\n    M3U playlist content with Content-Type:\
+        \ audio/x-mpegurl"
+      operationId: get_playlist_m3u_playlist__device_id___preset_number__m3u_get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Device identifier
+          title: Device Id
+        description: Device identifier
+      - name: preset_number
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 6
+          minimum: 1
+          description: Preset number (1-6)
+          title: Preset Number
+        description: Preset number (1-6)
+      responses:
+        '200':
+          description: M3U playlist file
+          content:
+            text/plain:
+              schema:
+                type: string
+            audio/x-mpegurl: {}
+        '404':
+          description: Preset not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /playlist/{device_id}/{preset_number}.pls:
+    get:
+      tags:
+      - playlist
+      summary: Get Playlist Pls
+      description: "Get PLS playlist file for a device preset.\n\nReturns a PLS playlist\
+        \ containing the stream URL for the specified preset.\nAlternative format\
+        \ that might work better with some devices.\n\nPLS Format:\n```\n[playlist]\n\
+        File1=http://stream.url/path\nTitle1=Station Name\nLength1=-1\nNumberOfEntries=1\n\
+        Version=2\n```\n\nHeaders:\n- Content-Type: audio/x-scpls\n\nArgs:\n    device_id:\
+        \ Bose device identifier\n    preset_number: Preset number (1-6)\n\nReturns:\n\
+        \    PLS playlist content with Content-Type: audio/x-scpls"
+      operationId: get_playlist_pls_playlist__device_id___preset_number__pls_get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Device identifier
+          title: Device Id
+        description: Device identifier
+      - name: preset_number
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 6
+          minimum: 1
+          description: Preset number (1-6)
+          title: Preset Number
+        description: Preset number (1-6)
+      responses:
+        '200':
+          description: PLS playlist file
+          content:
+            text/plain:
+              schema:
+                type: string
+            audio/x-scpls: {}
+        '404':
+          description: Preset not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/instructions/{model}:
+    get:
+      tags:
+      - Device Setup
+      summary: Get Instructions
+      description: "Get model-specific setup instructions.\n\nReturns:\n    Instructions\
+        \ including USB port location, adapter recommendations, etc."
+      operationId: get_instructions_api_setup_instructions__model__get
+      parameters:
+      - name: model
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Model
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Get Instructions Api Setup Instructions  Model  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/check-connectivity:
+    post:
+      tags:
+      - Device Setup
+      summary: Check Connectivity
+      description: 'Check if device is ready for setup (SSH/Telnet available).
+
+
+        This should be called after user inserts USB stick and reboots device.'
+      operationId: check_connectivity_api_setup_check_connectivity_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectivityCheckRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Check Connectivity Api Setup Check Connectivity Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/start:
+    post:
+      tags:
+      - Device Setup
+      summary: Start Setup
+      description: 'Start the device setup process.
+
+
+        This runs the full setup flow:
+
+        1. Connect via SSH
+
+        2. Make SSH persistent
+
+        3. Backup config
+
+        4. Modify BMX URL
+
+        5. Verify configuration
+
+
+        The setup runs in background. Use GET /status/{device_id} to check progress.'
+      operationId: start_setup_api_setup_start_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetupRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Start Setup Api Setup Start Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/status/{device_id}:
+    get:
+      tags:
+      - Device Setup
+      summary: Get Status
+      description: 'Get setup status for a device.
+
+
+        Returns current step, progress, and any errors.'
+      operationId: get_status_api_setup_status__device_id__get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Get Status Api Setup Status  Device Id  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/ssh/enable-permanent:
+    post:
+      tags:
+      - Device Setup
+      summary: Enable Permanent Ssh
+      description: 'Enable permanent SSH access on SoundTouch device.
+
+
+        Copies /remote_services to /mnt/nv/ persistent volume.
+
+        After reboot, SSH remains active without USB stick.
+
+
+        Security Warning:
+
+        - SSH becomes permanently accessible on network
+
+        - Root login without password
+
+        - Only recommended in trusted home networks'
+      operationId: enable_permanent_ssh_api_setup_ssh_enable_permanent_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnablePermanentSSHRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Enable Permanent Ssh Api Setup Ssh Enable Permanent
+                  Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/verify/{device_id}:
+    post:
+      tags:
+      - Device Setup
+      summary: Verify Setup
+      description: 'Verify that device setup is complete and working.
+
+
+        Checks:
+
+        - SSH accessible
+
+        - SSH persistent
+
+        - BMX URL configured correctly'
+      operationId: verify_setup_api_setup_verify__device_id__post
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: ip
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Ip
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Verify Setup Api Setup Verify  Device Id  Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/models:
+    get:
+      tags:
+      - Device Setup
+      summary: List Supported Models
+      description: Get list of all supported models with their instructions.
+      operationId: list_supported_models_api_setup_models_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response List Supported Models Api Setup Models Get
+  /api/setup/wizard/server-info:
+    get:
+      tags:
+      - Setup Wizard
+      summary: Wizard Server Info
+      description: 'Get OCT server info for auto-filling wizard forms.
+
+
+        Returns server URL that frontend can use as default.
+
+        Detects host/port from incoming HTTP request headers.'
+      operationId: wizard_server_info_api_setup_wizard_server_info_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Wizard Server Info Api Setup Wizard Server Info Get
+  /api/setup/wizard/check-ports:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Check Ports
+      description: Check if SSH/Telnet ports accessible (Wizard Step 3).
+      operationId: wizard_check_ports_api_setup_wizard_check_ports_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortCheckRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortCheckResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/backup:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Backup
+      description: Create complete backup to USB stick (Wizard Step 4).
+      operationId: wizard_backup_api_setup_wizard_backup_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BackupRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/modify-config:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Modify Config
+      description: Modify OverrideSdkPrivateCfg.xml (Wizard Step 5).
+      operationId: wizard_modify_config_api_setup_wizard_modify_config_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigModifyRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigModifyResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/modify-hosts:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Modify Hosts
+      description: Modify /etc/hosts (Wizard Step 6).
+      operationId: wizard_modify_hosts_api_setup_wizard_modify_hosts_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HostsModifyRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HostsModifyResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/restore-config:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Restore Config
+      description: Restore config from backup (Wizard Step 8).
+      operationId: wizard_restore_config_api_setup_wizard_restore_config_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestoreRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestoreResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/restore-hosts:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Restore Hosts
+      description: Restore hosts from backup (Wizard Step 8).
+      operationId: wizard_restore_hosts_api_setup_wizard_restore_hosts_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestoreRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestoreResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/list-backups:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard List Backups
+      description: List available backups (Wizard Step 8).
+      operationId: wizard_list_backups_api_setup_wizard_list_backups_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListBackupsRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListBackupsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/reboot-device:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Reboot Device
+      description: 'Reboot SoundTouch device via SSH (Wizard Step 7).
+
+
+        Sends the `reboot` command via SSH. The device drops the SSH connection
+
+        immediately after receiving the command — this is expected and not an error.
+
+        Frontend should wait ~60s before attempting verify-redirect tests.'
+      operationId: wizard_reboot_device_api_setup_wizard_reboot_device_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectivityCheckRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Wizard Reboot Device Api Setup Wizard Reboot Device
+                  Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/verify-redirect:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Verify Redirect
+      description: 'Verify a domain is redirected to OCT on the device (Wizard Step
+        7).
+
+
+        SSH into the device, run ping against the domain, and check whether
+
+        the resolved IP matches the OCT server''s IP.'
+      operationId: wizard_verify_redirect_api_setup_wizard_verify_redirect_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyRedirectRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyRedirectResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /health:
+    get:
+      tags:
+      - System
+      summary: Health Check
+      description: Health check endpoint for Docker and monitoring.
+      operationId: health_check_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+components:
+  schemas:
+    BackupRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+      type: object
+      required:
+      - device_ip
+      title: BackupRequest
+      description: Request to create device backup.
+    BackupResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        message:
+          type: string
+          title: Message
+        volumes:
+          items:
+            type: object
+          type: array
+          title: Volumes
+        total_size_mb:
+          type: number
+          title: Total Size Mb
+          default: 0.0
+        total_duration_seconds:
+          type: number
+          title: Total Duration Seconds
+          default: 0.0
+      type: object
+      required:
+      - success
+      - message
+      title: BackupResponse
+      description: Response with backup results.
+    ConfigModifyRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+        target_addr:
+          type: string
+          title: Target Addr
+          description: OCT server URL (e.g., http://192.168.1.100:7777 or oct.local)
+      type: object
+      required:
+      - device_ip
+      - target_addr
+      title: ConfigModifyRequest
+      description: Request to modify config file.
+    ConfigModifyResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        message:
+          type: string
+          title: Message
+        backup_path:
+          type: string
+          title: Backup Path
+          default: ''
+        diff:
+          type: string
+          title: Diff
+          default: ''
+        old_url:
+          type: string
+          title: Old Url
+          default: ''
+        new_url:
+          type: string
+          title: New Url
+          default: ''
+      type: object
+      required:
+      - success
+      - message
+      title: ConfigModifyResponse
+      description: Response with config modification result.
+    ConnectivityCheckRequest:
+      properties:
+        ip:
+          type: string
+          title: Ip
+      type: object
+      required:
+      - ip
+      title: ConnectivityCheckRequest
+      description: Request to check device connectivity.
+    EnablePermanentSSHRequest:
+      properties:
+        device_id:
+          type: string
+          title: Device Id
+          description: Device ID
+        ip:
+          type: string
+          title: Ip
+          description: Device IP address
+        make_permanent:
+          type: boolean
+          title: Make Permanent
+          description: Copy remote_services to /mnt/nv/ for persistence
+          default: true
+      type: object
+      required:
+      - device_id
+      - ip
+      title: EnablePermanentSSHRequest
+      description: Request to enable permanent SSH access on device.
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HostsModifyRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+        target_addr:
+          type: string
+          title: Target Addr
+          description: OCT server URL (e.g., http://192.168.1.100:7777)
+        include_optional:
+          type: boolean
+          title: Include Optional
+          default: true
+      type: object
+      required:
+      - device_ip
+      - target_addr
+      title: HostsModifyRequest
+      description: Request to modify hosts file.
+    HostsModifyResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        message:
+          type: string
+          title: Message
+        backup_path:
+          type: string
+          title: Backup Path
+          default: ''
+        diff:
+          type: string
+          title: Diff
+          default: ''
+      type: object
+      required:
+      - success
+      - message
+      title: HostsModifyResponse
+      description: Response with hosts modification result.
+    ListBackupsRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+      type: object
+      required:
+      - device_ip
+      title: ListBackupsRequest
+      description: Request to list backups.
+    ListBackupsResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        config_backups:
+          items:
+            type: string
+          type: array
+          title: Config Backups
+        hosts_backups:
+          items:
+            type: string
+          type: array
+          title: Hosts Backups
+      type: object
+      required:
+      - success
+      title: ListBackupsResponse
+      description: Response with backup list.
+    ManualIPsResponse:
+      properties:
+        ips:
+          items:
+            type: string
+          type: array
+          title: Ips
+          description: List of manual IP addresses
+      type: object
+      required:
+      - ips
+      title: ManualIPsResponse
+      description: Response model for manual IPs list.
+    PortCheckRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+        timeout:
+          type: number
+          maximum: 60.0
+          minimum: 1.0
+          title: Timeout
+          default: 10.0
+      type: object
+      required:
+      - device_ip
+      title: PortCheckRequest
+      description: Request to check SSH/Telnet ports.
+    PortCheckResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        message:
+          type: string
+          title: Message
+        has_ssh:
+          type: boolean
+          title: Has Ssh
+          default: false
+        has_telnet:
+          type: boolean
+          title: Has Telnet
+          default: false
+      type: object
+      required:
+      - success
+      - message
+      title: PortCheckResponse
+      description: Response with port check results.
+    PresetResponse:
+      properties:
+        id:
+          type: integer
+          title: Id
+        device_id:
+          type: string
+          title: Device Id
+        preset_number:
+          type: integer
+          title: Preset Number
+        station_uuid:
+          type: string
+          title: Station Uuid
+        station_name:
+          type: string
+          title: Station Name
+        station_url:
+          type: string
+          title: Station Url
+        station_homepage:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Station Homepage
+        station_favicon:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Station Favicon
+        source:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source
+        created_at:
+          type: string
+          title: Created At
+        updated_at:
+          type: string
+          title: Updated At
+      type: object
+      required:
+      - id
+      - device_id
+      - preset_number
+      - station_uuid
+      - station_name
+      - station_url
+      - station_homepage
+      - station_favicon
+      - source
+      - created_at
+      - updated_at
+      title: PresetResponse
+      description: Response model for a preset.
+    PresetSetRequest:
+      properties:
+        device_id:
+          type: string
+          title: Device Id
+          description: Device identifier
+        preset_number:
+          type: integer
+          maximum: 6.0
+          minimum: 1.0
+          title: Preset Number
+          description: Preset number (1-6)
+        station_uuid:
+          type: string
+          title: Station Uuid
+          description: RadioBrowser station UUID
+        station_name:
+          type: string
+          title: Station Name
+          description: Station name
+        station_url:
+          type: string
+          title: Station Url
+          description: Stream URL
+        station_homepage:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Station Homepage
+          description: Station homepage URL
+        station_favicon:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Station Favicon
+          description: Station favicon URL
+      type: object
+      required:
+      - device_id
+      - preset_number
+      - station_uuid
+      - station_name
+      - station_url
+      title: PresetSetRequest
+      description: Request model for setting a preset.
+    RadioSearchResponse:
+      properties:
+        stations:
+          items:
+            $ref: '#/components/schemas/RadioStationResponse'
+          type: array
+          title: Stations
+      type: object
+      required:
+      - stations
+      title: RadioSearchResponse
+      description: Search results response.
+    RadioStationResponse:
+      properties:
+        uuid:
+          type: string
+          title: Uuid
+        name:
+          type: string
+          title: Name
+        url:
+          type: string
+          title: Url
+        homepage:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Homepage
+        favicon:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Favicon
+        tags:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Tags
+        country:
+          type: string
+          title: Country
+        codec:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Codec
+        bitrate:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Bitrate
+        provider:
+          type: string
+          title: Provider
+          default: unknown
+      type: object
+      required:
+      - uuid
+      - name
+      - url
+      - country
+      title: RadioStationResponse
+      description: Radio station response model (unified across all providers).
+    RestoreRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+        backup_path:
+          type: string
+          title: Backup Path
+      type: object
+      required:
+      - device_ip
+      - backup_path
+      title: RestoreRequest
+      description: Request to restore from backup.
+    RestoreResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - success
+      - message
+      title: RestoreResponse
+      description: Response with restore result.
+    SearchType:
+      type: string
+      enum:
+      - name
+      - country
+      - tag
+      title: SearchType
+      description: Search type enum.
+    SetManualIPsRequest:
+      properties:
+        ips:
+          items:
+            type: string
+          type: array
+          title: Ips
+          description: List of IP addresses to set
+      type: object
+      required:
+      - ips
+      title: SetManualIPsRequest
+      description: Request model for setting all manual IPs at once.
+    SetupRequest:
+      properties:
+        device_id:
+          type: string
+          title: Device Id
+        ip:
+          type: string
+          title: Ip
+        model:
+          type: string
+          title: Model
+      type: object
+      required:
+      - device_id
+      - ip
+      - model
+      title: SetupRequest
+      description: Request to start device setup.
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    VerifyRedirectRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+        domain:
+          type: string
+          title: Domain
+        expected_ip:
+          type: string
+          title: Expected Ip
+      type: object
+      required:
+      - device_ip
+      - domain
+      - expected_ip
+      title: VerifyRedirectRequest
+      description: Request to verify domain redirect from device.
+    VerifyRedirectResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        domain:
+          type: string
+          title: Domain
+        resolved_ip:
+          type: string
+          title: Resolved Ip
+          default: ''
+        matches_expected:
+          type: boolean
+          title: Matches Expected
+          default: false
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - success
+      - domain
+      - message
+      title: VerifyRedirectResponse
+      description: Response with domain redirect verification result.
+    opencloudtouch__presets__api__routes__MessageResponse:
+      properties:
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - message
+      title: MessageResponse
+      description: Generic message response.
+    opencloudtouch__settings__routes__MessageResponse:
+      properties:
+        message:
+          type: string
+          title: Message
+        ip:
+          type: string
+          title: Ip
+      type: object
+      required:
+      - message
+      - ip
+      title: MessageResponse
+      description: Generic message response.

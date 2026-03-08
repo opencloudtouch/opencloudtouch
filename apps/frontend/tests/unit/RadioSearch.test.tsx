@@ -81,7 +81,7 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const overlay = screen.getByRole("button", { name: "✕" }).closest(".radio-search-overlay")!;
+    const overlay = screen.getByRole("button", { name: "Suche schließen" }).closest(".radio-search-overlay")!;
     fireEvent.click(overlay);
 
     expect(mockOnClose).toHaveBeenCalled();
@@ -249,7 +249,7 @@ describe("RadioSearch Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText(/HTTP 503/)).toBeInTheDocument();
+        expect(screen.getByText("Sendersuche fehlgeschlagen. Bitte versuchen Sie es erneut.")).toBeInTheDocument();
       },
       { timeout: 500 }
     );

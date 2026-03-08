@@ -1,4 +1,4 @@
-﻿"""API routes for Settings management."""
+"""API routes for Settings management."""
 
 import logging
 from typing import Annotated

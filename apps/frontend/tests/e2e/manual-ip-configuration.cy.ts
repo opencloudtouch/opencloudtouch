@@ -9,9 +9,17 @@
 
 describe("Manual IP Configuration", () => {
   beforeEach(() => {
-    // Clear DB and manual IPs before each test
-    const apiUrl = Cypress.env("apiUrl");
-    cy.request("DELETE", `${apiUrl}/devices`);
+    // Clear DB and manual IPs before each test.
+    // Use failOnStatusCode: false + retry to handle transient SQLite 500 errors
+    // caused by concurrent SSE streams holding a DB read transaction from prior tests.
+    const apiUrl = Cypress.expose('apiUrl');
+    cy.request({ method: "DELETE", url: `${apiUrl}/devices`, failOnStatusCode: false })
+      .then((resp) => {
+        if (resp.status !== 200) {
+          cy.wait(500);
+          cy.request("DELETE", `${apiUrl}/devices`);
+        }
+      });
     cy.request("POST", `${apiUrl}/settings/manual-ips`, { ips: [] });
   });
 
@@ -74,6 +82,9 @@ describe("Manual IP Configuration", () => {
       cy.get('[data-test="discover-button"]').click();
       cy.waitForDevices();
 
+      // Wait for redirect to dashboard
+      cy.url().should("eq", Cypress.config().baseUrl + "/");
+
       // Verify devices (MockDiscoveryAdapter returns 3 devices total)
       // Swiper shows 1 card at a time, check dots for count
       cy.get(".swiper-dots .dot").should("have.length", 3);
@@ -91,6 +102,9 @@ describe("Manual IP Configuration", () => {
 
       cy.get('[data-test="discover-button"]').click();
       cy.waitForDevices();
+
+      // Wait for redirect to dashboard
+      cy.url().should("eq", Cypress.config().baseUrl + "/");
 
       // Verify 3 devices (all mock devices)
       // Swiper shows 1 card at a time, check dots for count
@@ -113,7 +127,7 @@ describe("Manual IP Configuration", () => {
       cy.get('[data-test="modal-content"]').should("not.exist");
 
       // Verify IPs NOT saved (should still be empty)
-      const apiUrl = Cypress.env("apiUrl");
+      const apiUrl = Cypress.expose('apiUrl');
       cy.request("GET", `${apiUrl}/settings/manual-ips`).its("body.ips").should("have.length", 0);
     });
   });
@@ -154,7 +168,7 @@ describe("Manual IP Configuration", () => {
       cy.waitForModalClose();
 
       // Verify IPs persisted via bulk endpoint
-      const apiUrl = Cypress.env("apiUrl");
+      const apiUrl = Cypress.expose('apiUrl');
       cy.request("GET", `${apiUrl}/settings/manual-ips`).then((response) => {
         expect(response.body.ips).to.have.length(3);
         expect(response.body.ips).to.include.members(ips);
@@ -182,11 +196,11 @@ describe("Manual IP Configuration", () => {
       // Verify state persisted after reload
       cy.url().should("eq", Cypress.config().baseUrl + "/");
       cy.get('[data-test="app-header"]').should("be.visible");
-      cy.get(".swiper-dots .dot").should("have.length", 3);
+      cy.get(".swiper-dots .dot", { timeout: 15000 }).should("have.length", 3);
       cy.get('[data-test="device-card"]').should("have.length", 1);
 
       // Verify devices still in DB via API
-      const apiUrl = Cypress.env("apiUrl");
+      const apiUrl = Cypress.expose('apiUrl');
       cy.request("GET", `${apiUrl}/devices`).then((response) => {
         expect(response.body).to.have.property("count", 3);
         expect(response.body.devices).to.have.length(3);

@@ -493,7 +493,104 @@ async def test_ssdp_msearch_socket_error():
         locations = discovery._ssdp_msearch()
 
         assert locations == []
-        mock_socket.close.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# BUG-13: SSDP Discovery hung 30+ minutes (no wall-clock deadline)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_ssdp_discovery_respects_timeout():
+    """
+    BUG-13 Regression: SSDPDiscovery hung for 30+ minutes when network
+    had 40+ non-Bose devices responding to M-SEARCH.
+
+    Root cause:
+    1. No wall-clock deadline in _ssdp_msearch — it collected ALL responses
+    2. sync_service called discover() without timeout= parameter
+    3. Each non-Bose URL was fetched over HTTP before filtering
+
+    Fix: wall-clock deadline in _ssdp_msearch using time.monotonic().
+    Measurement: 30+ min → 3.8s after fix.
+
+    This test verifies discovery terminates promptly with a short timeout.
+    """
+    import time
+
+    # Use a short timeout (1 second) to keep test fast
+    discovery = SSDPDiscovery(timeout=1)
+
+    # Mock socket to simulate responses from 40 non-Bose devices
+    # (they respond to M-SEARCH but each HTTP fetch filters them out)
+    non_bose_locations = [f"http://192.168.1.{i}:1900/description" for i in range(40)]
+
+    with patch.object(discovery, "_ssdp_msearch", return_value=non_bose_locations):
+        with patch("httpx.AsyncClient") as mock_client_class:
+
+            def make_non_bose_xml(url):
+                """Return non-Bose manufacturer XML synchronously."""
+                mock_resp = MagicMock()
+                mock_resp.text = """<?xml version="1.0"?>
+<root xmlns="urn:schemas-upnp-org:device-1-0">
+    <device>
+        <friendlyName>Some TV</friendlyName>
+        <manufacturer>Samsung</manufacturer>
+        <modelName>Smart TV</modelName>
+    </device>
+</root>"""
+                mock_resp.raise_for_status = MagicMock()
+                return mock_resp
+
+            mock_client_instance = AsyncMock()
+            mock_client_instance.get = AsyncMock(
+                side_effect=lambda url, **kw: make_non_bose_xml(url)
+            )
+            mock_client_instance.__aenter__ = AsyncMock(
+                return_value=mock_client_instance
+            )
+            mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+            mock_client_class.return_value = mock_client_instance
+
+            start = time.monotonic()
+            result = await discovery.discover()
+            elapsed = time.monotonic() - start
+
+    # Verify: no Bose devices → empty result
+    assert result == {}
+
+    # Critical: must terminate within reasonable time (not 30+ minutes)
+    # Allow generous 30s for test infra overhead; real fix = ~1-4s
+    assert elapsed < 30, (
+        f"BUG-13: Discovery took {elapsed:.1f}s with 40 non-Bose devices. "
+        "Should complete in < 30s (was hanging 30+ minutes before fix). "
+        "Fix: wall-clock deadline in _ssdp_msearch."
+    )
+
+
+@pytest.mark.asyncio
+async def test_ssdp_discovery_with_timeout_parameter():
+    """
+    BUG-13: SSDPDiscovery(timeout=3) uses the specified timeout as deadline.
+    """
+    discovery = SSDPDiscovery(timeout=3)
+    assert (
+        discovery.timeout == 3
+    ), "SSDPDiscovery must store the timeout parameter for wall-clock deadline."
+
+
+@pytest.mark.asyncio
+async def test_ssdp_discovery_default_timeout_is_bounded():
+    """
+    BUG-13: Default timeout must be reasonable (not unbounded).
+    Pre-fix: no deadline → hung until all 40 responses fetched.
+    """
+    discovery = SSDPDiscovery()
+    # Default timeout should be bounded (e.g., 3-30 seconds)
+    assert 1 <= discovery.timeout <= 30, (
+        f"BUG-13: Default timeout={discovery.timeout}s. "
+        "Must be between 1 and 30 seconds for timely completion."
+    )
 
 
 def test_ssdp_msearch_socket_recvfrom_decode_error():

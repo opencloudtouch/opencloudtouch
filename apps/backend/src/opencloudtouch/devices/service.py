@@ -4,22 +4,25 @@ Orchestrates device discovery, synchronization, and management.
 Separates HTTP layer (routes) from business logic from data layer (repository).
 """
 
+import asyncio
 import logging
-from typing import List, Optional
-
-from bosesoundtouchapi import SoundTouchClient, SoundTouchDevice
+from contextlib import asynccontextmanager
+from typing import AsyncIterator, List, Optional, Union
 
 from opencloudtouch.db import Device
+from opencloudtouch.devices.adapter import get_device_client
+from opencloudtouch.devices.capabilities import (
+    get_capabilities_for_ip,
+    get_feature_flags_for_ui,
+)
+from opencloudtouch.devices.client import NowPlayingInfo
 from opencloudtouch.devices.interfaces import (
     IDeviceRepository,
     IDeviceSyncService,
     IDiscoveryAdapter,
 )
-from opencloudtouch.devices.capabilities import (
-    get_device_capabilities,
-    get_feature_flags_for_ui,
-)
-from opencloudtouch.devices.models import SyncResult
+from opencloudtouch.devices.events import DiscoveryEvent, DiscoveryEventType
+from opencloudtouch.devices.models import KEY_MAPPING, KeyType, SyncResult
 from opencloudtouch.discovery import DiscoveredDevice
 
 logger = logging.getLogger(__name__)
@@ -37,6 +40,9 @@ class DeviceService:
     - Manage device data access (via IDeviceRepository)
     - Handle device capability queries
     """
+
+    # REFACT-014: Named constant replaces inline magic number (5s SSDP + DB sync margin)
+    _SYNC_STREAM_TIMEOUT: int = 15
 
     def __init__(
         self,
@@ -96,6 +102,76 @@ class DeviceService:
 
         return result
 
+    async def sync_devices_with_events(self, event_bus) -> SyncResult:
+        """Synchronize devices to database with event streaming.
+
+        Same as sync_devices() but publishes events to event_bus for SSE streaming.
+
+        Args:
+            event_bus: DiscoveryEventBus for publishing events
+
+        Returns:
+            SyncResult with discovery/sync statistics
+        """
+        logger.info("Starting device sync with event streaming")
+
+        # Publish started event
+        await event_bus.publish(
+            DiscoveryEvent(
+                type=DiscoveryEventType.STARTED,
+                data={"message": "Starting device discovery"},
+            )
+        )
+
+        try:
+            # Run sync with event callbacks
+            # asyncio.timeout as backstop: SSDP runs in thread executor so
+            # cancellation is handled at coroutine level
+            async with asyncio.timeout(self._SYNC_STREAM_TIMEOUT):
+                result = await self.sync_service.sync_with_events(event_bus)
+
+            # Publish completed event
+            await event_bus.publish(
+                DiscoveryEvent(
+                    type=DiscoveryEventType.COMPLETED,
+                    data={
+                        "discovered": result.discovered,
+                        "synced": result.synced,
+                        "failed": result.failed,
+                    },
+                )
+            )
+
+            logger.info(
+                f"Sync complete: {result.synced} synced, {result.failed} failed "
+                f"(discovered: {result.discovered})"
+            )
+
+            return result
+
+        except asyncio.TimeoutError:
+            error_msg = (
+                f"Discovery timed out after {self._SYNC_STREAM_TIMEOUT}s (SSDP hanging)"
+            )
+            logger.error(error_msg)
+            # Publish timeout error event
+            await event_bus.publish(
+                DiscoveryEvent(
+                    type=DiscoveryEventType.ERROR,
+                    data={"message": error_msg},
+                )
+            )
+            # Return empty result instead of crashing
+            return SyncResult(discovered=0, synced=0, failed=0)
+
+        except Exception as e:
+            logger.error(f"Sync with events failed: {e}")
+            # Publish error event
+            await event_bus.publish(
+                DiscoveryEvent(type=DiscoveryEventType.ERROR, data={"message": str(e)})
+            )
+            raise
+
     async def get_all_devices(self) -> List[Device]:
         """Get all devices from database.
 
@@ -137,21 +213,35 @@ class DeviceService:
         logger.info(f"Querying capabilities for device {device_id} ({device.ip})")
 
         try:
-            # Create device client
-            st_device = SoundTouchDevice(device.ip)
-            client = SoundTouchClient(st_device)
-
-            # Get capabilities
-            capabilities = await get_device_capabilities(client)
-
-            # Convert to UI-friendly format
-            feature_flags = get_feature_flags_for_ui(capabilities)
-
-            return feature_flags
+            capabilities = await get_capabilities_for_ip(device.ip)
+            return get_feature_flags_for_ui(capabilities)
 
         except Exception as e:
             logger.error(f"Failed to get capabilities for device {device_id}: {e}")
             raise
+
+    @asynccontextmanager
+    async def _device_client(self, device_id: str) -> AsyncIterator:
+        """Async context manager: look up device, create HTTP client, ensure close.
+
+        Args:
+            device_id: Device ID to look up
+
+        Yields:
+            Configured device HTTP client
+
+        Raises:
+            ValueError: If device not found in repository
+        """
+        device = await self.repository.get_by_device_id(device_id)
+        if not device:
+            raise ValueError(f"Device {device_id} not found")
+        base_url = f"http://{device.ip}:8090"
+        client = get_device_client(base_url)
+        try:
+            yield client
+        finally:
+            await client.close()
 
     async def press_key(self, device_id: str, key: str, state: str = "both") -> None:
         """
@@ -167,23 +257,9 @@ class DeviceService:
             Exception: If key press fails
         """
         logger.info(f"Pressing key {key} on device {device_id} (state: {state})")
-
-        # Get device from DB
-        device = await self.repository.get_by_device_id(device_id)
-        if not device:
-            raise ValueError(f"Device {device_id} not found")
-
-        # Create client and press key
-        from opencloudtouch.devices.adapter import get_device_client
-
-        base_url = f"http://{device.ip}:8090"
-        client = get_device_client(base_url)
-
-        try:
+        async with self._device_client(device_id) as client:
             await client.press_key(key, state)
-            logger.info(f"Successfully pressed key {key} on device {device_id}")
-        finally:
-            await client.close()
+        logger.info(f"Successfully pressed key {key} on device {device_id}")
 
     async def delete_all_devices(self, allow_dangerous_operations: bool) -> None:
         """Delete all devices from database.
@@ -207,3 +283,39 @@ class DeviceService:
         await self.repository.delete_all()
 
         logger.info("All devices deleted")
+
+    async def send_key(
+        self, device_id: str, key: Union[KeyType, str], state: str = "both"
+    ) -> NowPlayingInfo:
+        """Send playback key and return now playing info.
+
+        Args:
+            device_id: Target device ID
+            key: Supported key (KeyType or string value)
+            state: press|release|both
+
+        Raises:
+            ValueError: If device missing, key invalid, or state invalid
+        """
+
+        try:
+            key_enum = key if isinstance(key, KeyType) else KeyType(key)
+        except Exception:
+            raise ValueError(f"Unsupported key: {key}") from None
+
+        valid_states = {"press", "release", "both"}
+        if state not in valid_states:
+            raise ValueError(
+                f"Invalid state: {state}. Must be one of {sorted(valid_states)}"
+            )
+
+        mapped = KEY_MAPPING.get(key_enum)
+        if mapped is None:
+            raise ValueError(f"Unsupported key: {key}")
+
+        key_value = mapped.value if hasattr(mapped, "value") else str(mapped)
+
+        async with self._device_client(device_id) as client:
+            await client.press_key(key_value, state)
+            now_playing = await client.get_now_playing()
+        return now_playing

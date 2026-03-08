@@ -10,5 +10,9 @@
 
     "terminal.integrated.env.windows": {
         "JAVA_TOOL_OPTIONS": "-Dfile.encoding=UTF-8"
+    },
+    "sonarlint.connectedMode.project": {
+        "connectionId": "scheilscm",
+        "projectKey": "scheilch_opencloudtouch"
     }
 }

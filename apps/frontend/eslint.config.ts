@@ -2,6 +2,7 @@ import js from "@eslint/js";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 import pluginReact from "eslint-plugin-react";
+import pluginReactHooks from "eslint-plugin-react-hooks";
 
 export default [
   {
@@ -22,7 +23,8 @@ export default [
   {
     files: ["**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
     plugins: {
-      react: pluginReact
+      react: pluginReact,
+      "react-hooks": pluginReactHooks
     },
     settings: {
       react: {
@@ -49,7 +51,10 @@ export default [
       // TypeScript migration complete - prop-types no longer needed
       "react/prop-types": "off",
       // Temporary: Disable display-name until eslint-plugin-react v8
-      "react/display-name": "off"
+      "react/display-name": "off",
+      // React Hooks rules
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn"
     }
   },
   // Test files configuration
@@ -71,5 +76,18 @@ export default [
       }
     }
   },
-  ...tseslint.configs.recommended
+  ...tseslint.configs.recommended,
+  // Override: allow intentionally-unused variables prefixed with _ (TypeScript convention)
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          varsIgnorePattern: "^_",
+          argsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_"
+        }
+      ]
+    }
+  }
 ];

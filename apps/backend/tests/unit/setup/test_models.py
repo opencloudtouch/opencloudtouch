@@ -4,17 +4,18 @@ Tests for SetupStatus, SetupStep, SetupProgress, and ModelInstructions.
 Following TDD Red-Green-Refactor cycle.
 """
 
-import pytest
 from datetime import datetime
 
+import pytest
+
 from opencloudtouch.setup.models import (
+    DEFAULT_INSTRUCTIONS,
+    MODEL_INSTRUCTIONS,
+    ModelInstructions,
+    SetupProgress,
     SetupStatus,
     SetupStep,
-    SetupProgress,
-    ModelInstructions,
-    MODEL_INSTRUCTIONS,
     get_model_instructions,
-    DEFAULT_INSTRUCTIONS,
 )
 
 

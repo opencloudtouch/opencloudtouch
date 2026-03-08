@@ -187,7 +187,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          files: ./apps/backend/coverage.xml
+          files: ./.out/coverage/backend/coverage.xml
           flags: backend
           name: backend-coverage
           fail_ci_if_error: true
@@ -198,7 +198,7 @@ jobs:
         if: always()
         with:
           name: backend-coverage
-          path: apps/backend/coverage.json
+          path: .out/coverage/backend/coverage.json
           retention-days: 1
 
   # ============================================================================
@@ -236,7 +236,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          files: ./apps/frontend/coverage/lcov.info
+          files: ./.out/coverage/frontend/lcov.info
           flags: frontend
           name: frontend-coverage
           fail_ci_if_error: true
@@ -247,7 +247,7 @@ jobs:
         if: always()
         with:
           name: frontend-coverage
-          path: apps/frontend/coverage/coverage-summary.json
+          path: .out/coverage/frontend/coverage-summary.json
           retention-days: 1
 
   # ============================================================================
@@ -396,7 +396,7 @@ jobs:
 
     strategy:
       matrix:
-        platform: [linux/amd64, linux/arm64]
+        platform: [linux/amd64, linux/arm64, linux/arm/v7]
 
     permissions:
       contents: read

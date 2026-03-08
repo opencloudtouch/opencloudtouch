@@ -1,0 +1,234 @@
+/* Wizard Step Base Styles */
+.wizard-step {
+  background: var(--surface-color);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Step Header */
+.wizard-step-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.wizard-step-number {
+  display: inline-block;
+  background: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.wizard-step-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+  color: var(--text-primary);
+}
+
+.wizard-step-description {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin: 0.5rem 0 0;
+  line-height: 1.6;
+}
+
+/* Warning Banner */
+.wizard-warning {
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.wizard-warning-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.wizard-warning-text {
+  color: var(--text-primary);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* Step Content */
+.wizard-step-content {
+  min-height: 200px;
+  margin-bottom: 2rem;
+}
+
+/* Step Actions */
+.wizard-step-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.wizard-actions-right {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* REFACT-202: Disabled-Weiter-Hint */
+.wizard-next-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, var(--text-secondary));
+  font-style: italic;
+  align-self: center;
+  order: -1; /* erscheint vor dem Button */
+}
+
+.wizard-btn-previous,
+.wizard-btn-next,
+.wizard-btn-skip {
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.wizard-btn-next {
+  min-width: 140px;
+}
+
+.wizard-btn-skip {
+  color: var(--text-secondary);
+}
+
+.spinner-small {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin-right: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .wizard-step {
+    padding: 1.5rem;
+  }
+
+  .wizard-step-title {
+    font-size: 1.5rem;
+  }
+
+  .wizard-step-actions {
+    flex-direction: column;
+  }
+
+  .wizard-actions-right {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .wizard-btn-previous,
+  .wizard-btn-next,
+  .wizard-btn-skip {
+    width: 100%;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Button Styles for Wizard */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-primary {
+  background: var(--primary-color, #4a90d9);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #5aa0e9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(74, 144, 217, 0.3);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  background: rgba(74, 144, 217, 0.4);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 2px solid var(--border-color, #444);
+  color: var(--text-primary, #e0e0e0);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--text-secondary, #888);
+}
+
+/* REFACT-209: Outline-Variante für Toggle-Buttons */
+.btn-outline {
+  background: transparent;
+  border: 2px solid var(--primary-color, #4a90d9);
+  color: var(--primary-color, #4a90d9);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--primary-color, #4a90d9);
+  color: white;
+}
+
+.btn-outline:active:not(:disabled) {
+  background: var(--primary-color, #4a90d9);
+  color: white;
+  opacity: 0.85;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}

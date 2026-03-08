@@ -11,15 +11,15 @@ Orchestrates the device configuration process:
 
 import logging
 from datetime import datetime
-from typing import Dict, Optional, Callable, Awaitable
+from typing import Awaitable, Callable, Dict, Optional
 
 from opencloudtouch.core.config import get_config
 from opencloudtouch.setup.models import (
+    ModelInstructions,
+    SetupProgress,
     SetupStatus,
     SetupStep,
-    SetupProgress,
     get_model_instructions,
-    ModelInstructions,
 )
 from opencloudtouch.setup.ssh_client import (
     SoundTouchSSHClient,
@@ -107,144 +107,36 @@ class SetupService:
                 await on_progress(progress)
 
         try:
-            # Step 1: Connect via SSH
             await update_progress(SetupStep.SSH_CONNECT, "Verbinde via SSH...")
-
-            client = SoundTouchSSHClient(ip)
-            conn_result = await client.connect(timeout=15.0)
-
-            if not conn_result.success:
-                await update_progress(
-                    SetupStep.SSH_CONNECT,
-                    "SSH-Verbindung fehlgeschlagen",
-                    error=conn_result.error,
-                )
+            client = await self._connect_ssh(ip, update_progress, progress)
+            if client is None:
                 return progress
 
-            logger.info(f"SSH connected to {ip}")
-
-            # Step 2: Make SSH persistent
             await update_progress(SetupStep.SSH_PERSIST, "Aktiviere SSH dauerhaft...")
+            await self._persist_ssh(client)
 
-            result = await client.execute("touch /mnt/nv/remote_services")
-            if not result.success:
-                logger.warning(f"Could not persist SSH: {result.error}")
-                # Continue anyway - might already be persistent
-
-            # Verify
-            result = await client.execute("ls -la /mnt/nv/remote_services")
-            if "remote_services" in result.output:
-                logger.info("SSH persistence verified")
-
-            # Step 3: Backup config
             await update_progress(SetupStep.CONFIG_BACKUP, "Erstelle Backup...")
+            await self._backup_config(client)
 
-            backup_dir = (
-                f"/mnt/nv/backup_oct_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            )
-            await client.execute(f"mkdir -p {backup_dir}")
-
-            # Backup important files
-            files_to_backup = [
-                "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml",
-                "/opt/Bose/etc/SoundTouchCfg.xml",
-            ]
-            for filepath in files_to_backup:
-                await client.execute(f"cp {filepath} {backup_dir}/ 2>/dev/null || true")
-
-            logger.info(f"Config backup created in {backup_dir}")
-
-            # Step 4: Read current config
-            await update_progress(
-                SetupStep.CONFIG_MODIFY, "Lese aktuelle Konfiguration..."
-            )
-
-            result = await client.execute(
-                "cat /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml | grep -i bmxRegistryUrl"
-            )
-            current_bmx_url = result.output.strip() if result.success else "Unknown"
-            logger.info(f"Current BMX URL: {current_bmx_url}")
-
-            # Build our BMX URL
-            oct_server = (
-                self._config.server_url
-                or f"http://{self._config.host}:{self._config.port}"
-            )
-            new_bmx_url = f"{oct_server}/bmx/registry/v1/services"
-
-            # Step 5: Modify config
+            new_bmx_url = self._resolve_bmx_url()
             await update_progress(
                 SetupStep.CONFIG_MODIFY, f"Setze BMX URL auf {new_bmx_url}..."
             )
 
-            # Check if we can write to /opt/Bose (usually read-only)
-            # Try creating override in /mnt/nv instead
-            result = await client.execute(
-                "test -w /opt/Bose/etc && echo 'writable' || echo 'readonly'"
+            failed = await self._apply_bmx_url(
+                client, new_bmx_url, update_progress, progress
             )
+            if failed:
+                await client.close()
+                return progress
 
-            if "readonly" in result.output:
-                logger.info("Root filesystem is read-only, using override mechanism")
-
-                # Copy config to /mnt/nv for override
-                await client.execute(
-                    "cp /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml /mnt/nv/SoundTouchSdkPrivateCfg.xml"
-                )
-
-                # Modify the copy using sed
-                sed_cmd = f"sed -i 's|<bmxRegistryUrl>.*</bmxRegistryUrl>|<bmxRegistryUrl>{new_bmx_url}</bmxRegistryUrl>|g' /mnt/nv/SoundTouchSdkPrivateCfg.xml"
-                result = await client.execute(sed_cmd)
-
-                if not result.success:
-                    await update_progress(
-                        SetupStep.CONFIG_MODIFY,
-                        "Konfiguration konnte nicht geändert werden",
-                        error=result.error,
-                    )
-                    await client.close()
-                    return progress
-
-                # Note: Device needs to be configured to read from /mnt/nv override
-                # This might require additional steps depending on firmware version
-                logger.warning(
-                    "Config written to /mnt/nv - may need additional override setup"
-                )
-            else:
-                # Direct modification (if filesystem is writable)
-                sed_cmd = f"sed -i 's|<bmxRegistryUrl>.*</bmxRegistryUrl>|<bmxRegistryUrl>{new_bmx_url}</bmxRegistryUrl>|g' /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml"
-                result = await client.execute(sed_cmd)
-
-                if not result.success:
-                    await update_progress(
-                        SetupStep.CONFIG_MODIFY,
-                        "Konfiguration konnte nicht geändert werden",
-                        error=result.error,
-                    )
-                    await client.close()
-                    return progress
-
-            # Step 6: Verify
             await update_progress(SetupStep.VERIFY, "Verifiziere Konfiguration...")
-
-            # Read back and verify
-            result = await client.execute(
-                "cat /mnt/nv/SoundTouchSdkPrivateCfg.xml 2>/dev/null || "
-                "cat /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml | grep -i bmxRegistryUrl"
-            )
-
-            if new_bmx_url in result.output:
-                logger.info("BMX URL verified successfully")
-            else:
-                logger.warning(f"BMX URL verification unclear: {result.output}")
-
-            # Close connection
+            await self._verify_bmx_url(client, new_bmx_url)
             await client.close()
 
-            # Step 7: Complete
             await update_progress(SetupStep.COMPLETE, "Setup abgeschlossen!")
             progress.status = SetupStatus.CONFIGURED
             progress.completed_at = datetime.utcnow()
-
             logger.info(f"Device {device_id} setup completed successfully")
             return progress
 
@@ -255,10 +147,110 @@ class SetupService:
             progress.message = "Setup fehlgeschlagen"
             return progress
         finally:
-            # Cleanup
             if device_id in self._active_setups:
                 if progress.status == SetupStatus.CONFIGURED:
                     del self._active_setups[device_id]
+
+    async def _connect_ssh(
+        self,
+        ip: str,
+        update_progress: Callable,
+        progress: "SetupProgress",
+    ) -> Optional["SoundTouchSSHClient"]:
+        """Connect to device via SSH. Returns client on success, None on failure."""
+        client = SoundTouchSSHClient(ip)
+        conn_result = await client.connect(timeout=15.0)
+        if not conn_result.success:
+            await update_progress(
+                SetupStep.SSH_CONNECT,
+                "SSH-Verbindung fehlgeschlagen",
+                error=conn_result.error,
+            )
+            return None
+        logger.info(f"SSH connected to {ip}")
+        return client
+
+    async def _persist_ssh(self, client: "SoundTouchSSHClient") -> None:
+        """Make SSH persistent on the device (best-effort, does not fail setup)."""
+        result = await client.execute("touch /mnt/nv/remote_services")
+        if not result.success:
+            logger.warning(f"Could not persist SSH: {result.error}")
+        result = await client.execute("ls -la /mnt/nv/remote_services")
+        if "remote_services" in (result.output or ""):
+            logger.info("SSH persistence verified")
+
+    async def _backup_config(self, client: "SoundTouchSSHClient") -> None:
+        """Back up important device config files to /mnt/nv."""
+        backup_dir = f"/mnt/nv/backup_oct_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        await client.execute(f"mkdir -p {backup_dir}")
+        for filepath in [
+            "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml",
+            "/opt/Bose/etc/SoundTouchCfg.xml",
+        ]:
+            await client.execute(f"cp {filepath} {backup_dir}/ 2>/dev/null || true")
+        logger.info(f"Config backup created in {backup_dir}")
+
+    def _resolve_bmx_url(self) -> str:
+        """Build the BMX registry URL for this OCT instance."""
+        oct_server = (
+            self._config.server_url or f"http://{self._config.host}:{self._config.port}"
+        )
+        return f"{oct_server}/bmx/registry/v1/services"
+
+    async def _apply_bmx_url(
+        self,
+        client: "SoundTouchSSHClient",
+        new_bmx_url: str,
+        update_progress: Callable,
+        progress: "SetupProgress",
+    ) -> bool:
+        """Write the new BMX URL into device config.
+
+        Returns:
+            True if the step failed (caller should abort), False on success.
+        """
+        result = await client.execute(
+            "test -w /opt/Bose/etc && echo 'writable' || echo 'readonly'"
+        )
+
+        if "readonly" in (result.output or ""):
+            logger.info("Root filesystem is read-only, using override mechanism")
+            await client.execute(
+                "cp /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml /mnt/nv/SoundTouchSdkPrivateCfg.xml"
+            )
+            config_path = "/mnt/nv/SoundTouchSdkPrivateCfg.xml"
+            logger.warning(
+                "Config written to /mnt/nv - may need additional override setup"
+            )
+        else:
+            config_path = "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml"
+
+        sed_cmd = (
+            f"sed -i 's|<bmxRegistryUrl>.*</bmxRegistryUrl>|"
+            f"<bmxRegistryUrl>{new_bmx_url}</bmxRegistryUrl>|g' {config_path}"
+        )
+        result = await client.execute(sed_cmd)
+        if not result.success:
+            await update_progress(
+                SetupStep.CONFIG_MODIFY,
+                "Konfiguration konnte nicht geändert werden",
+                error=result.error,
+            )
+            return True  # failed
+        return False  # success
+
+    async def _verify_bmx_url(
+        self, client: "SoundTouchSSHClient", new_bmx_url: str
+    ) -> None:
+        """Verify that the BMX URL was written correctly (best-effort log only)."""
+        result = await client.execute(
+            "cat /mnt/nv/SoundTouchSdkPrivateCfg.xml 2>/dev/null || "
+            "cat /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml | grep -i bmxRegistryUrl"
+        )
+        if new_bmx_url in (result.output or ""):
+            logger.info("BMX URL verified successfully")
+        else:
+            logger.warning(f"BMX URL verification unclear: {result.output}")
 
     async def verify_setup(self, ip: str) -> dict:
         """
@@ -304,7 +296,10 @@ class SetupService:
 
             # Verify it points to our server
             config = get_config()
-            our_server = config.server_url or f"http://{config.host}:{config.port}"
+            our_server = (
+                config.station_descriptor_base_url
+                or f"http://{config.host}:{config.port}"
+            )
             result["bmx_configured"] = our_server in check.output
 
             await client.close()

@@ -9,9 +9,11 @@
  * - RadioBrowser API available (real or mocked)
  */
 describe("Radio Search Robustness", () => {
-  const apiUrl = Cypress.env("apiUrl");
+  let apiUrl: string;
 
   beforeEach(() => {
+    apiUrl = (Cypress.expose('apiUrl') as string) ?? 'http://localhost:7778/api';
+
     // Clear devices
     cy.request("DELETE", `${apiUrl}/devices`);
 

@@ -2,7 +2,7 @@
 
 # ============================================================
 # Multi-stage build for OpenCloudTouch
-# Supports amd64 and arm64
+# Supports amd64, arm64, and armv7 (Raspberry Pi 2/3/4/5)
 # ============================================================
 
 # Base Image Versions (Pinned for Reproducibility)
@@ -34,6 +34,8 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
       npm install --no-save @rollup/rollup-linux-x64-musl; \
     elif [ "$TARGETARCH" = "arm64" ]; then \
       npm install --no-save @rollup/rollup-linux-arm64-musl; \
+    elif [ "$TARGETARCH" = "arm" ]; then \
+      npm install --no-save @rollup/rollup-linux-arm-musleabihf; \
     fi
 
 # Copy frontend source
@@ -102,7 +104,7 @@ RUN python -m compileall -b opencloudtouch/ && \
     find opencloudtouch/ -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 
 # Copy frontend build from previous stage
-COPY --from=frontend-builder /app/apps/frontend/dist ./frontend/dist
+COPY --from=frontend-builder /app/.out/dist ./frontend/dist
 
 # Copy entrypoint script
 COPY apps/backend/entrypoint.sh /entrypoint.sh

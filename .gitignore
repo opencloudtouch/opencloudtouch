@@ -8,13 +8,9 @@ __pycache__/
 
 # Project-specific - exclude from git
 
-# Personal developer environment (not shared)
-AGENTS.md
-**/agent-prompts/
-tools/local-scripts/
+# All personal/local files live in .local/ — never commit this folder
 .local/
 *.local.*
-reference-impl/
 
 # Local configuration (use config.example.yaml as template)
 config.yaml
@@ -33,6 +29,12 @@ deployment/data-local/
 # Deployment artifacts (container images and local runtime data)
 *.tar
 opencloudtouch-image.tar
+
+# Raspberry Pi image build artifacts
+raspi-image/pi-gen/
+raspi-image/output/
+*.img
+*.img.xz
 
 # Temporary analysis files (cleanup/refactoring artifacts)
 *_TEMP.md
@@ -240,6 +242,12 @@ marimo/_lsp/
 __marimo__/
 project-files/
 
+# Centralized generated artifacts (coverage, build, e2e logs)
+.out/
+
+# Generated OpenAPI spec (regenerate with: npm run generate:openapi)
+apps/backend/openapi.yaml
+
 # Frontend build & coverage artifacts
 **/coverage/
 **/dist/
@@ -247,3 +255,12 @@ project-files/
 **/cypress/videos/
 **/cypress/screenshots/
 **/cypress/downloads/
+**/tests/e2e/screenshots/
+**/tests/e2e/reports/vision/screenshots/
+cypress-output.txt
+e2e-result.txt
+**/coverage.json
+e2e-job-out.txt
+e2e-out.txt
+e2e-tail.txt
+apps/frontend/tests/e2e/reports

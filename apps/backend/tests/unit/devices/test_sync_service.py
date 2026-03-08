@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from opencloudtouch.db import Device
-from opencloudtouch.devices.services.sync_service import DeviceSyncService
 from opencloudtouch.devices.models import SyncResult
+from opencloudtouch.devices.services.sync_service import DeviceSyncService
 from opencloudtouch.discovery import DiscoveredDevice
 
 
@@ -283,3 +283,253 @@ class TestDeviceSyncService:
             "synced": 3,
             "failed": 2,
         }
+
+    # ── sync_with_events ────────────────────────────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_sync_with_events_publishes_device_found(
+        self, mock_repository, discovered_devices, mock_device_info, monkeypatch
+    ):
+        """sync_with_events() publishes device_found events for each discovery."""
+        from unittest.mock import AsyncMock as _AM
+
+        async def mock_discover_ssdp(self):
+            return discovered_devices
+
+        mock_client = _AM()
+        mock_client.get_info = _AM(return_value=mock_device_info)
+        monkeypatch.setattr(DeviceSyncService, "_discover_via_ssdp", mock_discover_ssdp)
+        monkeypatch.setattr(
+            "opencloudtouch.devices.services.sync_service.get_device_client",
+            lambda url: mock_client,
+        )
+
+        mock_bus = _AM()
+        mock_bus.publish = _AM()
+
+        service = DeviceSyncService(repository=mock_repository)
+        result = await service.sync_with_events(mock_bus)
+
+        assert result.discovered == 2
+        assert result.synced == 2
+        assert result.failed == 0
+        # device_found (×2) + device_synced (×2) = 4 publish calls
+        assert mock_bus.publish.call_count == 4
+
+    @pytest.mark.asyncio
+    async def test_sync_with_events_publishes_device_failed(
+        self, mock_repository, discovered_devices, monkeypatch
+    ):
+        """sync_with_events() publishes device_failed for devices that error."""
+        from unittest.mock import AsyncMock as _AM
+
+        async def mock_discover_ssdp(self):
+            return discovered_devices
+
+        mock_client = _AM()
+        mock_client.get_info = _AM(side_effect=Exception("timeout"))
+        monkeypatch.setattr(DeviceSyncService, "_discover_via_ssdp", mock_discover_ssdp)
+        monkeypatch.setattr(
+            "opencloudtouch.devices.services.sync_service.get_device_client",
+            lambda url: mock_client,
+        )
+
+        mock_bus = _AM()
+        mock_bus.publish = _AM()
+
+        service = DeviceSyncService(repository=mock_repository)
+        result = await service.sync_with_events(mock_bus)
+
+        assert result.failed == 2
+        assert result.synced == 0
+        # device_found (×2) + device_failed (×2) = 4
+        assert mock_bus.publish.call_count == 4
+
+    @pytest.mark.asyncio
+    async def test_sync_with_events_no_devices(self, mock_repository, monkeypatch):
+        """sync_with_events() handles empty discovery list."""
+        from unittest.mock import AsyncMock as _AM
+
+        async def mock_discover_ssdp(self):
+            return []
+
+        monkeypatch.setattr(DeviceSyncService, "_discover_via_ssdp", mock_discover_ssdp)
+
+        mock_bus = _AM()
+        mock_bus.publish = _AM()
+
+        service = DeviceSyncService(repository=mock_repository)
+        result = await service.sync_with_events(mock_bus)
+
+        assert result.discovered == 0
+        assert result.synced == 0
+        assert mock_bus.publish.call_count == 0
+
+    # ── error paths in _discover_via_ssdp / _discover_via_manual_ips ───────
+
+    @pytest.mark.asyncio
+    async def test_discover_via_ssdp_returns_empty_on_exception(
+        self, mock_repository, monkeypatch
+    ):
+        """_discover_via_ssdp() returns [] when discovery raises."""
+        from unittest.mock import AsyncMock as _AM
+
+        async def failing_discover(*args, **kwargs):
+            raise RuntimeError("network error")
+
+        mock_adapter = _AM()
+        mock_adapter.discover = _AM(side_effect=RuntimeError("network error"))
+
+        monkeypatch.setattr(
+            "opencloudtouch.devices.services.sync_service.get_discovery_adapter",
+            lambda timeout: mock_adapter,
+        )
+
+        service = DeviceSyncService(repository=mock_repository, discovery_enabled=True)
+        result = await service._discover_via_ssdp()
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_discover_via_manual_ips_returns_empty_on_exception(
+        self, mock_repository, monkeypatch
+    ):
+        """_discover_via_manual_ips() returns [] when discovery raises."""
+
+        class FailingManual:
+            def __init__(self, ips):
+                pass
+
+            async def discover(self):
+                raise RuntimeError("cannot reach")
+
+        monkeypatch.setattr(
+            "opencloudtouch.devices.services.sync_service.ManualDiscovery",
+            FailingManual,
+        )
+
+        service = DeviceSyncService(
+            repository=mock_repository, manual_ips=["192.168.1.50"]
+        )
+        result = await service._discover_via_manual_ips()
+        assert result == []
+
+
+class TestDeviceSyncServiceDeduplication:
+    """Regression tests for device deduplication in _discover_devices.
+
+    Bug: When a device appears in both SSDP and manual-IP results, it would be
+    synced twice — producing an incorrect SyncResult.discovered count and
+    redundant API calls to the device.
+
+    Fixed: _discover_devices() deduplicates by IP address before returning.
+    """
+
+    @pytest.mark.asyncio
+    async def test_duplicate_ip_removed(self, mock_repository, monkeypatch):
+        """Devices found by both SSDP and manual IPs are deduplicated by IP."""
+        shared_ip = DiscoveredDevice(
+            ip="192.168.1.100", port=8090, model="SoundTouch 30"
+        )
+        ssdp_only = DiscoveredDevice(
+            ip="192.168.1.101", port=8090, model="SoundTouch 10"
+        )
+
+        async def mock_ssdp(self):
+            return [shared_ip, ssdp_only]
+
+        async def mock_manual(self):
+            # Same IP as shared_ip — should be deduplicated
+            return [
+                DiscoveredDevice(ip="192.168.1.100", port=8090, model="SoundTouch 30")
+            ]
+
+        monkeypatch.setattr(DeviceSyncService, "_discover_via_ssdp", mock_ssdp)
+        monkeypatch.setattr(DeviceSyncService, "_discover_via_manual_ips", mock_manual)
+
+        service = DeviceSyncService(
+            repository=mock_repository,
+            manual_ips=["192.168.1.100"],
+            discovery_enabled=True,
+        )
+        result = await service._discover_devices()
+
+        assert len(result) == 2
+        ips = [d.ip for d in result]
+        assert "192.168.1.100" in ips
+        assert "192.168.1.101" in ips
+
+    @pytest.mark.asyncio
+    async def test_no_duplicates_unchanged(self, mock_repository, monkeypatch):
+        """When no duplicates exist, all devices are returned."""
+        dev_a = DiscoveredDevice(ip="192.168.1.10", port=8090, model="SoundTouch 30")
+        dev_b = DiscoveredDevice(ip="192.168.1.20", port=8090, model="SoundTouch 10")
+        dev_c = DiscoveredDevice(ip="192.168.1.30", port=8090, model="SoundTouch 10")
+
+        async def mock_ssdp(self):
+            return [dev_a, dev_b]
+
+        async def mock_manual(self):
+            return [dev_c]
+
+        monkeypatch.setattr(DeviceSyncService, "_discover_via_ssdp", mock_ssdp)
+        monkeypatch.setattr(DeviceSyncService, "_discover_via_manual_ips", mock_manual)
+
+        service = DeviceSyncService(
+            repository=mock_repository,
+            manual_ips=["192.168.1.30"],
+            discovery_enabled=True,
+        )
+        result = await service._discover_devices()
+
+        assert len(result) == 3
+
+    @pytest.mark.asyncio
+    async def test_sync_result_counts_unique_devices(
+        self, mock_repository, monkeypatch
+    ):
+        """SyncResult.discovered reflects unique devices, not raw count."""
+        shared_ip = DiscoveredDevice(
+            ip="192.168.1.100", port=8090, model="SoundTouch 30"
+        )
+
+        async def mock_ssdp(self):
+            return [shared_ip]
+
+        async def mock_manual(self):
+            # Same IP — after deduplication only 1 total device
+            return [
+                DiscoveredDevice(ip="192.168.1.100", port=8090, model="SoundTouch 30")
+            ]
+
+        mock_info = MagicMock()
+        mock_info.device_id = "AABBCCDDEE00"
+        mock_info.name = "Kitchen"
+        mock_info.type = "SoundTouch 30"
+        mock_info.mac_address = "AA:BB:CC:DD:EE:00"
+        mock_info.firmware_version = "28.0.0"
+
+        async def mock_fetch(self, discovered):
+            return Device(
+                device_id=mock_info.device_id,
+                ip=discovered.ip,
+                name=mock_info.name,
+                model=mock_info.type,
+                mac_address=mock_info.mac_address,
+                firmware_version=mock_info.firmware_version,
+            )
+
+        monkeypatch.setattr(DeviceSyncService, "_discover_via_ssdp", mock_ssdp)
+        monkeypatch.setattr(DeviceSyncService, "_discover_via_manual_ips", mock_manual)
+        monkeypatch.setattr(DeviceSyncService, "_fetch_device_info", mock_fetch)
+
+        service = DeviceSyncService(
+            repository=mock_repository,
+            manual_ips=["192.168.1.100"],
+            discovery_enabled=True,
+        )
+        result = await service.sync()
+
+        # discovered must reflect unique count (1), not raw count (2)
+        assert result.discovered == 1
+        assert result.synced == 1
+        assert result.failed == 0

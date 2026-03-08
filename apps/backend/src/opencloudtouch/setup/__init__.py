@@ -8,17 +8,14 @@ Provides functionality for configuring SoundTouch devices:
 """
 
 from opencloudtouch.setup.models import (
+    ModelInstructions,
+    SetupProgress,
     SetupStatus,
     SetupStep,
-    SetupProgress,
-    ModelInstructions,
     get_model_instructions,
 )
-from opencloudtouch.setup.service import (
-    SetupService,
-    get_setup_service,
-)
 from opencloudtouch.setup.routes import router as setup_router
+from opencloudtouch.setup.service import SetupService, get_setup_service
 
 __all__ = [
     "SetupStatus",

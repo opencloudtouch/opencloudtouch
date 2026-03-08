@@ -12,7 +12,7 @@
 describe("Device Control - Real Hardware", () => {
   before(() => {
     // Verify we're NOT in mock mode
-    const apiUrl = Cypress.env("apiUrl");
+    const apiUrl = Cypress.expose('apiUrl');
     cy.request("GET", `${apiUrl}/../health`)
       .its("body")
       .then((health) => {
@@ -22,7 +22,7 @@ describe("Device Control - Real Hardware", () => {
 
   beforeEach(() => {
     // Clear DB before each test
-    const apiUrl = Cypress.env("apiUrl");
+    const apiUrl = Cypress.expose('apiUrl');
     cy.request("DELETE", `${apiUrl}/devices`);
   });
 
@@ -51,7 +51,7 @@ describe("Device Control - Real Hardware", () => {
     });
 
     it("should verify discovered devices have valid IP addresses", () => {
-      const apiUrl = Cypress.env("apiUrl");
+      const apiUrl = Cypress.expose('apiUrl');
 
       cy.visit("/welcome");
       cy.get('[data-test="discover-button"]').click();
@@ -80,7 +80,7 @@ describe("Device Control - Real Hardware", () => {
   describe("Real Device Interaction", () => {
     beforeEach(() => {
       // Setup: Discover real devices first
-      const apiUrl = Cypress.env("apiUrl");
+      const apiUrl = Cypress.expose('apiUrl');
       cy.request("POST", `${apiUrl}/devices/sync`);
       cy.wait(15000); // Wait for sync
 
@@ -115,7 +115,7 @@ describe("Device Control - Real Hardware", () => {
       cy.log("⚠️  To test offline handling: Power off a device and re-run");
 
       // Try to discover - might find fewer devices
-      const apiUrl = Cypress.env("apiUrl");
+      const apiUrl = Cypress.expose('apiUrl');
       cy.request("POST", `${apiUrl}/devices/sync`);
       cy.wait(15000);
 

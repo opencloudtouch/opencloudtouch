@@ -16,7 +16,7 @@ services:
       - OCT_LOG_LEVEL=INFO
       - OCT_MOCK_MODE=false  # Production: Use real devices
       - OCT_DISCOVERY_ENABLED=true
-      - OCT_DISCOVERY_TIMEOUT=10
+      - OCT_DISCOVERY_TIMEOUT=3
       # Station descriptor URL - adjust if running on different host
       - OCT_STATION_DESCRIPTOR_BASE_URL=http://localhost:7777/stations/preset
     restart: unless-stopped

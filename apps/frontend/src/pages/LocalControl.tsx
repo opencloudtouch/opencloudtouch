@@ -2,9 +2,7 @@ import { useState, useEffect, ChangeEvent } from "react";
 import { motion } from "framer-motion";
 import DeviceSwiper, { Device } from "../components/DeviceSwiper";
 import { NowPlayingData } from "../components/NowPlaying";
-import StatusBadge from "../components/StatusBadge";
-import SetupWizard from "../components/SetupWizard";
-import { SetupStatus, getSetupStatus } from "../api/setup";
+import SetupBadge from "../components/SetupBadge";
 import "./LocalControl.css";
 
 type SourceId = "INTERNET_RADIO" | "BLUETOOTH" | "AUX" | "AIRPLAY";
@@ -20,7 +18,7 @@ const SOURCES: Source[] = [
   { id: "INTERNET_RADIO", label: "Radio", icon: "📻", supported: true },
   { id: "BLUETOOTH", label: "Bluetooth", icon: "📱", supported: true },
   { id: "AUX", label: "AUX", icon: "🎵", supported: true },
-  { id: "AIRPLAY", label: "AirPlay", icon: "✈️", supported: "conditional" },
+  { id: "AIRPLAY", label: "AirPlay", icon: "📡", supported: "conditional" },
 ];
 
 interface LocalControlProps {
@@ -33,32 +31,11 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
   const [muted, setMuted] = useState(false);
   const [selectedSource, setSelectedSource] = useState<SourceId>("INTERNET_RADIO");
   const [playState, setPlayState] = useState<"PLAY_STATE" | "PAUSE_STATE">("PLAY_STATE");
-  const [setupWizardDevice, setSetupWizardDevice] = useState<Device | null>(null);
-  const [deviceSetupStatus, setDeviceSetupStatus] = useState<Record<string, SetupStatus>>({});
 
   const currentDevice = devices[currentDeviceIndex];
 
   // Temporary: Set nowPlaying to null properly typed
   const nowPlaying = null as NowPlayingData | null;
-
-  // Fetch setup status for all devices
-  useEffect(() => {
-    async function fetchSetupStatuses() {
-      const statuses: Record<string, SetupStatus> = {};
-      for (const device of devices) {
-        try {
-          const status = await getSetupStatus(device.device_id);
-          statuses[device.device_id] = status?.status || "unconfigured";
-        } catch {
-          statuses[device.device_id] = "unconfigured";
-        }
-      }
-      setDeviceSetupStatus(statuses);
-    }
-    if (devices.length > 0) {
-      fetchSetupStatuses();
-    }
-  }, [devices]);
 
   useEffect(() => {
     if (currentDevice) {
@@ -88,40 +65,9 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
     setPlayState(newState);
   };
 
-  const handlePrevious = () => {
-    // TODO: Implement previous track API call
-  };
-
-  const handleNext = () => {
-    // TODO: Implement next track API call
-  };
-
-  const handleStandby = () => {
-    // TODO: Implement standby API call
-  };
-
-  const handleOpenSetupWizard = (device: Device) => {
-    setSetupWizardDevice(device);
-  };
-
-  const handleSetupComplete = () => {
-    if (setupWizardDevice) {
-      // Mark device as configured
-      setDeviceSetupStatus((prev) => ({
-        ...prev,
-        [setupWizardDevice.device_id]: "configured",
-      }));
-      setSetupWizardDevice(null);
-    }
-  };
-
-  const handleSetupCancel = () => {
-    setSetupWizardDevice(null);
-  };
-
-  const currentDeviceSetupStatus = currentDevice
-    ? deviceSetupStatus[currentDevice.device_id] || "unconfigured"
-    : "unconfigured";
+  // const handleOpenSetupWizard = (device: Device) => {
+  //   navigate(`/setup-wizard?deviceId=${device.device_id}`);
+  // };
 
   if (devices.length === 0) {
     return (
@@ -149,17 +95,27 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
         onIndexChange={setCurrentDeviceIndex}
       >
         <div className="control-card">
+          {/* Coming-Soon Banner */}
+          <div className="control-coming-soon-banner" role="note" aria-label="Hinweis">
+            ℹ️ <strong>Direkte Gerätesteuerung</strong> ist in Vorbereitung. Lautstärke und
+            Quellauswahl werden in einer späteren Version live mit dem Gerät verbunden. Nutzen Sie
+            bis dahin die Tasten am Gerät.
+          </div>
+
           {/* Device Header */}
           <div className="control-card-header">
             <div className="device-header-info">
               <h2 className="device-name">{currentDevice?.name}</h2>
               <span className="device-model">{currentDevice?.model || "Unknown Model"}</span>
             </div>
-            <StatusBadge
-              status={currentDeviceSetupStatus}
-              onClick={() => currentDevice && handleOpenSetupWizard(currentDevice)}
-              showAction={currentDeviceSetupStatus === "unconfigured"}
-            />
+            <div className="device-header-actions">
+              {currentDevice && (
+                <SetupBadge
+                  deviceId={currentDevice.device_id}
+                  setupStatus={currentDevice.setup_status}
+                />
+              )}
+            </div>
           </div>
 
           {/* Volume Control */}
@@ -180,7 +136,7 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
               max="100"
               value={volume}
               onChange={handleVolumeChange}
-              className="volume-slider"
+              className="lc-volume-range"
               disabled={muted}
             />
           </motion.div>
@@ -231,11 +187,7 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
           >
             <h3 className="playback-title">Wiedergabe</h3>
             <div className="playback-controls">
-              <button
-                className="playback-button previous"
-                onClick={handlePrevious}
-                disabled={selectedSource === "AUX"}
-              >
+              <button className="playback-button previous" disabled title="Kommt in Phase 3">
                 <span className="playback-icon">⏮</span>
               </button>
               <button
@@ -245,11 +197,7 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
               >
                 <span className="playback-icon">{playState === "PLAY_STATE" ? "⏸️" : "▶️"}</span>
               </button>
-              <button
-                className="playback-button next"
-                onClick={handleNext}
-                disabled={selectedSource === "AUX"}
-              >
+              <button className="playback-button next" disabled title="Kommt in Phase 3">
                 <span className="playback-icon">⏭</span>
               </button>
             </div>
@@ -269,25 +217,13 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
               <span className="quick-action-icon">{muted ? "🔇" : "🔊"}</span>
               <span className="quick-action-label">{muted ? "Ton an" : "Stumm"}</span>
             </button>
-            <button className="quick-action-button standby" onClick={handleStandby}>
+            <button className="quick-action-button standby" disabled title="Kommt in Phase 3">
               <span className="quick-action-icon">💤</span>
               <span className="quick-action-label">Standby</span>
             </button>
           </motion.div>
         </div>
       </DeviceSwiper>
-
-      {/* Setup Wizard Modal */}
-      {setupWizardDevice && (
-        <SetupWizard
-          deviceId={setupWizardDevice.device_id}
-          deviceName={setupWizardDevice.name}
-          model={setupWizardDevice.model || "Unknown"}
-          ip={setupWizardDevice.ip || ""}
-          onComplete={handleSetupComplete}
-          onCancel={handleSetupCancel}
-        />
-      )}
     </div>
   );
 }

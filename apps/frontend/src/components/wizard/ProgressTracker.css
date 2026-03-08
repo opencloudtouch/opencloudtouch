@@ -1,0 +1,137 @@
+/**
+ * Progress Tracker Styles
+ */
+.progress-tracker {
+  padding: 24px 20px;
+  background: var(--color-bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  margin-bottom: 24px;
+}
+
+.progress-steps {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+}
+
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+}
+
+.step-indicator {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.step-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--color-border);
+  background: var(--color-bg-primary);
+  font-weight: var(--font-weight-semibold);
+  font-size: 16px;
+  color: var(--color-text-secondary);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.step-connector {
+  flex: 1;
+  height: 2px;
+  background: var(--color-border);
+  margin: 0 8px;
+  transition: all 0.3s ease;
+}
+
+/* REFACT-136: min. 44px touch target for step label area */
+.step-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  text-align: center;
+  font-weight: var(--font-weight-medium);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 2px;
+}
+
+/* Active Step */
+.progress-step.active .step-circle {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.3);
+}
+
+.progress-step.active .step-label {
+  color: var(--color-accent);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* In Progress */
+.progress-step.in-progress .step-circle {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  animation: pulse-ring 2s ease-in-out infinite;
+}
+
+@keyframes pulse-ring {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(96, 165, 250, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(96, 165, 250, 0);
+  }
+}
+
+/* Completed */
+.progress-step.completed .step-circle {
+  border-color: var(--color-success);
+  background: var(--color-success);
+  color: white;
+}
+
+.progress-step.completed + .progress-step .step-connector {
+  background: var(--color-success);
+}
+
+.progress-step.completed .step-label {
+  color: var(--color-success);
+}
+
+/* Error */
+.progress-step.error .step-circle {
+  border-color: var(--color-error);
+  background: var(--color-error);
+  color: white;
+}
+
+.progress-step.error .step-label {
+  color: var(--color-error);
+}
+
+.step-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.step-number {
+  font-size: 16px;
+}

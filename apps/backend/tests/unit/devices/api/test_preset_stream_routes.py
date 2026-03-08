@@ -1,0 +1,164 @@
+"""Unit tests for preset stream and descriptor routes.
+
+Covers:
+- GET /device/{device_id}/preset/{preset_id}  — HTTP proxy stream
+- GET /descriptor/device/{device_id}/preset/{preset_id} — XML/redirect descriptor
+"""
+
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from fastapi.testclient import TestClient
+
+from opencloudtouch.core.dependencies import get_preset_service
+from opencloudtouch.main import app
+from opencloudtouch.presets.models import Preset
+
+
+@pytest.fixture
+def mock_preset_service():
+    """Mock preset service."""
+    return AsyncMock()
+
+
+@pytest.fixture
+def client(mock_preset_service):
+    """TestClient with preset service dependency override."""
+    app.dependency_overrides[get_preset_service] = lambda: mock_preset_service
+    yield TestClient(app)
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def sample_preset():
+    """Sample configured preset."""
+    return Preset(
+        device_id="689E194F7D2F",
+        preset_number=1,
+        station_uuid="station-uuid-1234",
+        station_name="Absolut Relax",
+        station_url="https://stream.absolutradio.de/absolut-relax",
+    )
+
+
+class TestStreamDevicePreset:
+    """Tests for GET /device/{device_id}/preset/{preset_id}."""
+
+    def test_preset_not_found_returns_404(self, client, mock_preset_service):
+        """Test 404 when preset not configured for device."""
+        mock_preset_service.get_preset = AsyncMock(return_value=None)
+
+        response = client.get("/device/UNKNOWN/preset/1")
+
+        assert response.status_code == 404
+
+    def test_stream_returns_streaming_response(
+        self, client, mock_preset_service, sample_preset
+    ):
+        """Test successful stream returns 200 with audio/mpeg content type."""
+        mock_preset_service.get_preset = AsyncMock(return_value=sample_preset)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {"content-type": "audio/mpeg"}
+        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_response.__aexit__ = AsyncMock(return_value=False)
+
+        async def mock_aiter_bytes(chunk_size=8192):
+            yield b"audio_data_chunk_1"
+            yield b"audio_data_chunk_2"
+
+        mock_response.aiter_bytes = mock_aiter_bytes
+
+        mock_client_ctx = MagicMock()
+        mock_client_ctx.__aenter__ = AsyncMock(return_value=mock_client_ctx)
+        mock_client_ctx.__aexit__ = AsyncMock(return_value=False)
+        mock_client_ctx.stream = MagicMock(return_value=mock_response)
+
+        with patch("httpx.AsyncClient", return_value=mock_client_ctx):
+            with client.stream("GET", "/device/689E194F7D2F/preset/1") as response:
+                assert response.status_code == 200
+                assert "audio" in response.headers.get("content-type", "")
+
+    def test_upstream_non_200_raises_502(
+        self, client, mock_preset_service, sample_preset
+    ):
+        """Test 502 when upstream RadioBrowser returns non-200."""
+        mock_preset_service.get_preset = AsyncMock(return_value=sample_preset)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 503
+        mock_response.headers = {}
+        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_response.__aexit__ = AsyncMock(return_value=False)
+
+        async def mock_aiter_bytes(chunk_size=8192):
+            return
+            yield  # make it async generator
+
+        mock_response.aiter_bytes = mock_aiter_bytes
+
+        mock_client_ctx = MagicMock()
+        mock_client_ctx.__aenter__ = AsyncMock(return_value=mock_client_ctx)
+        mock_client_ctx.__aexit__ = AsyncMock(return_value=False)
+        mock_client_ctx.stream = MagicMock(return_value=mock_response)
+
+        with patch("httpx.AsyncClient", return_value=mock_client_ctx):
+            # The 502 is raised inside the generator; TestClient will propagate it
+            with pytest.raises(Exception):
+                with client.stream("GET", "/device/689E194F7D2F/preset/1") as resp:
+                    resp.read()
+
+    def test_httpx_request_error_raises_502(
+        self, client, mock_preset_service, sample_preset
+    ):
+        """Test 502 when httpx.RequestError occurs connecting to upstream."""
+        import httpx
+
+        mock_preset_service.get_preset = AsyncMock(return_value=sample_preset)
+
+        mock_client_ctx = MagicMock()
+        mock_client_ctx.__aenter__ = AsyncMock(return_value=mock_client_ctx)
+        mock_client_ctx.__aexit__ = AsyncMock(return_value=False)
+
+        # stream() returns context manager that raises on __aenter__
+        mock_stream_ctx = MagicMock()
+        mock_stream_ctx.__aenter__ = AsyncMock(
+            side_effect=httpx.ConnectError("Connection refused")
+        )
+        mock_stream_ctx.__aexit__ = AsyncMock(return_value=False)
+        mock_client_ctx.stream = MagicMock(return_value=mock_stream_ctx)
+
+        with patch("httpx.AsyncClient", return_value=mock_client_ctx):
+            with pytest.raises(Exception):
+                with client.stream("GET", "/device/689E194F7D2F/preset/1") as resp:
+                    resp.read()
+
+
+class TestGetPresetDescriptor:
+    """Tests for GET /descriptor/device/{device_id}/preset/{preset_id}."""
+
+    def test_descriptor_found_returns_302_redirect(
+        self, client, mock_preset_service, sample_preset
+    ):
+        """Test descriptor returns 302 redirect to stream URL."""
+        mock_preset_service.get_preset = AsyncMock(return_value=sample_preset)
+
+        response = client.get(
+            "/descriptor/device/689E194F7D2F/preset/1",
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 302
+        assert response.headers["location"] == sample_preset.station_url
+
+    def test_descriptor_not_found_returns_404(self, client, mock_preset_service):
+        """Test descriptor returns 404 when preset not configured."""
+        mock_preset_service.get_preset = AsyncMock(return_value=None)
+
+        response = client.get(
+            "/descriptor/device/UNKNOWN/preset/1",
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 404

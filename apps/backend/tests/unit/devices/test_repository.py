@@ -238,6 +238,17 @@ def test_device_schema_version_extraction():
     )
     assert device2.schema_version == "28.0.3"
 
+    # Very short firmware version (fewer than 3 parts) — covers line 59
+    device2b = Device(
+        device_id="TEST2B",
+        ip="192.168.1.2",
+        name="Test",
+        model="SoundTouch 10",
+        mac_address="AA:BB:CC:DD:EE:FF",
+        firmware_version="28.0",
+    )
+    assert device2b.schema_version == "28.0"
+
     # Empty firmware
     device3 = Device(
         device_id="TEST3",

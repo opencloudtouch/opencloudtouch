@@ -407,7 +407,8 @@ class TestRadioBrowserErrorHandling:
         """Helper to create a properly configured AsyncMock for httpx.AsyncClient."""
         mock_client = AsyncMock()
         mock_client.__aenter__.return_value = mock_client
-        mock_client.__aexit__.return_value = None
+        # __aexit__ must be async - use AsyncMock not return_value
+        mock_client.__aexit__ = AsyncMock(return_value=None)
         return mock_client
 
     @pytest.mark.asyncio

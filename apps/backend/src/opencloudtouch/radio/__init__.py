@@ -1,4 +1,4 @@
-﻿"""Radio Domain - Radio station search and management"""
+"""Radio Domain - Radio station search and management"""
 
 from opencloudtouch.radio.models import RadioStation
 from opencloudtouch.radio.providers.radiobrowser import (

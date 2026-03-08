@@ -12,7 +12,7 @@
 describe("Radio Playback - Real Hardware", () => {
   before(() => {
     // Verify we're NOT in mock mode
-    const apiUrl = Cypress.env("apiUrl");
+    const apiUrl = Cypress.expose('apiUrl');
     cy.request("GET", `${apiUrl}/../health`)
       .its("body")
       .then((health) => {
@@ -22,7 +22,7 @@ describe("Radio Playback - Real Hardware", () => {
 
   beforeEach(() => {
     // Setup: Ensure devices are discovered
-    const apiUrl = Cypress.env("apiUrl");
+    const apiUrl = Cypress.expose('apiUrl');
     cy.request("DELETE", `${apiUrl}/devices`);
     cy.request("POST", `${apiUrl}/devices/sync`);
     cy.wait(15000); // Wait for real discovery
@@ -73,7 +73,7 @@ describe("Radio Playback - Real Hardware", () => {
 
   describe("Device Capabilities Detection", () => {
     it("should detect actual device capabilities from real hardware", () => {
-      const apiUrl = Cypress.env("apiUrl");
+      const apiUrl = Cypress.expose('apiUrl');
 
       // Get devices
       cy.request("GET", `${apiUrl}/devices`).then((response) => {

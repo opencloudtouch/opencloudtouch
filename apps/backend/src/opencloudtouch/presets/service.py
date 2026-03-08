@@ -8,8 +8,11 @@ Repository handles data persistence.
 import logging
 from typing import List, Optional
 
+import httpx
+
 from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.presets.models import Preset
+from opencloudtouch.presets.parser import DevicePresetParser
 from opencloudtouch.presets.repository import PresetRepository
 
 logger = logging.getLogger(__name__)
@@ -33,6 +36,7 @@ class PresetService:
         """
         self.repository = repository
         self.device_repository = device_repository
+        self._parser = DevicePresetParser()
 
     async def set_preset(
         self,
@@ -73,6 +77,7 @@ class PresetService:
             station_url=station_url,
             station_homepage=station_homepage,
             station_favicon=station_favicon,
+            source="LOCAL_INTERNET_RADIO",  # OCT-managed presets from RadioBrowser
         )
 
         saved_preset = await self.repository.set_preset(preset)
@@ -87,8 +92,8 @@ class PresetService:
             if not device:
                 raise ValueError(f"Device {device_id} not found")
 
-            from opencloudtouch.devices.adapter import get_device_client
             from opencloudtouch.core.config import get_config
+            from opencloudtouch.devices.adapter import get_device_client
 
             # Get OCT backend URL from config
             cfg = get_config()
@@ -101,9 +106,10 @@ class PresetService:
                 await client.store_preset(
                     device_id=device_id,
                     preset_number=preset_number,
-                    station_url=station_url,  # Stored in DB, proxied by OCT!
+                    station_url=station_url,
                     station_name=station_name,
-                    oct_backend_url=oct_backend_url,  # OCT HTTP stream proxy
+                    oct_backend_url=oct_backend_url,
+                    station_image_url=station_favicon or "",
                 )
                 logger.info(
                     f"✅ Bose device programmed: Preset {preset_number} = {station_name}"
@@ -165,7 +171,7 @@ class PresetService:
         if result:
             logger.info(f"Cleared preset {preset_number} for device {device_id}")
 
-        return result
+        return bool(result)
 
     async def clear_all_presets(self, device_id: str) -> int:
         """Clear all presets for a device.
@@ -181,3 +187,65 @@ class PresetService:
         logger.info(f"Cleared {count} presets for device {device_id}")
 
         return count
+
+    async def sync_presets_from_device(self, device_id: str) -> int:
+        """Sync presets from physical device to OCT database.
+
+        Fetches presets from device's /presets endpoint and imports them into OCT.
+        This is useful when a device was configured by another OCT instance or manually.
+
+        Args:
+            device_id: Device identifier
+
+        Returns:
+            Number of presets synced
+
+        Raises:
+            ValueError: If device not found
+            httpx.HTTPError: If device is unreachable
+        """
+        device = await self.device_repository.get_by_device_id(device_id)
+        if not device:
+            raise ValueError(f"Device {device_id} not found")
+
+        logger.info(
+            f"Syncing presets from device {device_id} ({device.ip})",
+            extra={"device_id": device_id, "device_ip": device.ip},
+        )
+
+        preset_xml = await self._fetch_device_presets(device.ip)
+        parsed_presets = self._parser.parse_presets(device_id, preset_xml)
+        synced_count = 0
+
+        for preset in parsed_presets:
+            await self.repository.set_preset(preset)
+            synced_count += 1
+            logger.info(
+                f"Synced preset {preset.preset_number}: {preset.station_name} (source: {preset.source})",
+                extra={
+                    "device_id": device_id,
+                    "preset_number": preset.preset_number,
+                    "source": preset.source,
+                },
+            )
+
+        logger.info(
+            f"Synced {synced_count} presets from device {device_id}",
+            extra={"device_id": device_id, "synced_count": synced_count},
+        )
+        return synced_count
+
+    async def _fetch_device_presets(self, device_ip: str) -> bytes:
+        """Fetch presets XML from device.
+
+        Args:
+            device_ip: Device IP address
+
+        Returns:
+            Raw XML response bytes
+        """
+        device_url = f"http://{device_ip}:8090/presets"
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(device_url)
+            response.raise_for_status()
+        return response.content
