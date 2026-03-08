@@ -1,35 +1,28 @@
 """
 Device Setup API Routes
 
-Endpoints for device setup wizard and configuration.
+General device setup endpoints: connectivity check, full setup flow, SSH management.
+SSH-driven wizard step endpoints live in wizard_routes.py (STORY-304).
 """
 
 import logging
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from pydantic import BaseModel
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import status as http_status
 
-from opencloudtouch.setup.service import SetupService, get_setup_service
+from opencloudtouch.setup.api_models import (
+    ConnectivityCheckRequest,
+    EnablePermanentSSHRequest,
+    SetupRequest,
+)
 from opencloudtouch.setup.models import SetupStatus
+from opencloudtouch.setup.service import SetupService, get_setup_service
+from opencloudtouch.setup.ssh_client import SoundTouchSSHClient
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/setup", tags=["Device Setup"])
-
-
-class SetupRequest(BaseModel):
-    """Request to start device setup."""
-
-    device_id: str
-    ip: str
-    model: str
-
-
-class ConnectivityCheckRequest(BaseModel):
-    """Request to check device connectivity."""
-
-    ip: str
 
 
 @router.get("/instructions/{model}")
@@ -122,6 +115,78 @@ async def get_status(
         }
 
     return progress.to_dict()
+
+
+@router.post("/ssh/enable-permanent")
+async def enable_permanent_ssh(
+    request: EnablePermanentSSHRequest,
+) -> Dict[str, Any]:
+    """
+    Enable permanent SSH access on SoundTouch device.
+
+    Copies /remote_services to /mnt/nv/ persistent volume.
+    After reboot, SSH remains active without USB stick.
+
+    Security Warning:
+    - SSH becomes permanently accessible on network
+    - Root login without password
+    - Only recommended in trusted home networks
+    """
+    if not request.make_permanent:
+        return {
+            "success": True,
+            "permanent_enabled": False,
+            "message": "SSH bleibt temporär (USB-Stick erforderlich)",
+        }
+
+    ssh_client = SoundTouchSSHClient(host=request.ip, port=22)
+
+    try:
+        # Connect to device
+        logger.info(f"Connecting to {request.ip} to enable permanent SSH...")
+        conn_result = await ssh_client.connect(timeout=10.0)
+
+        if not conn_result.success:
+            raise HTTPException(
+                status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"SSH connection failed: {conn_result.error}",
+            )
+
+        # Copy remote_services to persistent volume
+        # SoundTouch init script (shelby_usb) checks both USB root AND /mnt/nv/
+        cmd = "touch /mnt/nv/remote_services"
+        result = await ssh_client.execute(cmd, timeout=5.0)
+
+        if not result.success:
+            logger.error(f"Failed to create /mnt/nv/remote_services: {result.error}")
+            raise HTTPException(
+                status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Command failed: {result.error or result.output}",
+            )
+
+        logger.info(f"Permanent SSH enabled for {request.device_id} at {request.ip}")
+
+        return {
+            "success": True,
+            "permanent_enabled": True,
+            "device_id": request.device_id,
+            "message": (
+                "SSH dauerhaft aktiviert. "
+                "Nach Neustart startet SSH automatisch ohne USB-Stick. "
+                "⚠️ Sicherheitsrisiko in unsicheren Netzen!"
+            ),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Unexpected error enabling permanent SSH: {e}")
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Unexpected error: {str(e)}",
+        )
+    finally:
+        await ssh_client.close()
 
 
 @router.post("/verify/{device_id}")

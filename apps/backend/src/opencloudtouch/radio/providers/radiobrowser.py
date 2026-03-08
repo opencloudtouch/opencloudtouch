@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 from opencloudtouch.radio.models import RadioStation
+from opencloudtouch.radio.provider import RadioProvider
 
 
 # Custom Exceptions
@@ -112,7 +113,7 @@ class RadioBrowserStation:
         )
 
 
-class RadioBrowserAdapter:
+class RadioBrowserAdapter(RadioProvider):
     """
     Adapter for RadioBrowser.info API.
 
@@ -140,6 +141,11 @@ class RadioBrowserAdapter:
         self.timeout = timeout
         self.max_retries = max_retries
         self.base_url = random.choice(self.API_SERVERS)
+
+    @property
+    def provider_name(self) -> str:
+        """Unique identifier for this provider."""
+        return "radiobrowser"
 
     async def search_by_name(self, name: str, limit: int = 10) -> List[RadioStation]:
         """
@@ -301,4 +307,4 @@ class RadioBrowserAdapter:
                     raise
 
         # Should not reach here
-        raise RadioBrowserError("Request failed after retries")
+        raise RadioBrowserError("Request failed after retries")  # pragma: no cover

@@ -8,7 +8,7 @@
  * - RadioBrowser API available (real or mocked)
  */
 describe("Preset Mapping (Iteration 3)", () => {
-  const apiUrl = Cypress.env("apiUrl");
+  const apiUrl = Cypress.expose('apiUrl');
   let deviceId: string;
 
   beforeEach(() => {

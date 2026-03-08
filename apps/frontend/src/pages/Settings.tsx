@@ -1,6 +1,7 @@
 import { useState, FormEvent } from "react";
 import { motion } from "framer-motion";
 import { useManualIPs, useAddManualIP, useDeleteManualIP } from "../hooks/useSettings";
+import { toUserMessage } from "../utils/errorMessages";
 import "./Settings.css";
 
 export default function Settings() {
@@ -9,7 +10,7 @@ export default function Settings() {
   const [success, setSuccess] = useState("");
 
   // React Query hooks
-  const { data: manualIPs = [], isLoading: loading, error: queryError } = useManualIPs();
+  const { data: manualIPs = [], isLoading: loading, error: queryError, refetch } = useManualIPs();
   const addIP = useAddManualIP();
   const deleteIP = useDeleteManualIP();
 
@@ -49,8 +50,8 @@ export default function Settings() {
       // Auto-clear success message after 3s
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      setError(`Fehler: ${errorMessage}`);
+      console.error("[Settings] Failed to add IP:", err);
+      setError(toUserMessage(err));
     }
   };
 
@@ -62,15 +63,15 @@ export default function Settings() {
       // Auto-clear success message after 3s
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      setError(`Fehler beim Löschen: ${errorMessage}`);
+      console.error("[Settings] Failed to delete IP:", err);
+      setError(toUserMessage(err));
     }
   };
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="spinner" />
+      <div className="loading-container" role="status" aria-live="polite" aria-label="Ladevorgang">
+        <div className="spinner" aria-hidden="true" />
         <p className="loading-message">Einstellungen werden geladen...</p>
       </div>
     );
@@ -81,7 +82,10 @@ export default function Settings() {
       <div className="error-container">
         <div className="error-icon">⚠️</div>
         <h2 className="error-title">Fehler beim Laden</h2>
-        <p className="error-message">{queryError.message}</p>
+        <p className="error-message">{toUserMessage(queryError.message)}</p>
+        <button className="btn btn-primary" onClick={() => void refetch()}>
+          Erneut versuchen
+        </button>
       </div>
     );
   }

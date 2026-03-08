@@ -37,12 +37,6 @@ class DeviceNotFoundError(OpenCloudTouchError):
         super().__init__(f"Device not found: {device_id}")
 
 
-class ConfigurationError(OpenCloudTouchError):
-    """Raised when configuration is invalid."""
-
-    pass
-
-
 # ============================================================================
 # Standardized Error Response Models (RFC 7807-inspired)
 # ============================================================================
@@ -79,6 +73,21 @@ class ErrorDetail(BaseModel):
     errors: list[dict[str, Any]] | None = None
 
 
+_HTTP_STATUS_TYPE_MAP: dict[int, str] = {
+    400: "bad_request",
+    401: "unauthorized",
+    403: "forbidden",
+    404: "not_found",
+    409: "conflict",
+    422: "validation_error",
+    429: "rate_limit_exceeded",
+    500: "server_error",
+    502: "bad_gateway",
+    503: "service_unavailable",
+    504: "gateway_timeout",
+}
+
+
 def map_status_to_type(status_code: int) -> str:
     """Map HTTP status code to error type string.
 
@@ -88,27 +97,4 @@ def map_status_to_type(status_code: int) -> str:
     Returns:
         Error type string (e.g., 'not_found', 'validation_error')
     """
-    if status_code == 400:
-        return "bad_request"
-    elif status_code == 401:
-        return "unauthorized"
-    elif status_code == 403:
-        return "forbidden"
-    elif status_code == 404:
-        return "not_found"
-    elif status_code == 409:
-        return "conflict"
-    elif status_code == 422:
-        return "validation_error"
-    elif status_code == 429:
-        return "rate_limit_exceeded"
-    elif status_code == 500:
-        return "server_error"
-    elif status_code == 502:
-        return "bad_gateway"
-    elif status_code == 503:
-        return "service_unavailable"
-    elif status_code == 504:
-        return "gateway_timeout"
-    else:
-        return "error"
+    return _HTTP_STATUS_TYPE_MAP.get(status_code, "error")

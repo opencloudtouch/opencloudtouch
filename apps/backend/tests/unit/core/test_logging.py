@@ -4,7 +4,6 @@ import json
 import logging
 import sys
 
-
 from opencloudtouch.core.logging import (
     ContextFormatter,
     StructuredFormatter,

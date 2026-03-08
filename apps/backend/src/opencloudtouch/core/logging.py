@@ -1,4 +1,4 @@
-﻿"""
+"""
 Structured logging configuration for OpenCloudTouch
 Provides consistent logging format with context enrichment
 """

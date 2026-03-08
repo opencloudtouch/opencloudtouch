@@ -153,6 +153,28 @@ npm run preview -- --port 4173 &
 npm run test:e2e
 ```
 
+### UX-Screenshot-Tests & Accessibility-Audit (bei UI-Änderungen)
+
+**Pflicht** für jede Story/Task, die UI-Komponenten hinzufügt oder verändert:
+
+```bash
+# 1. UX-Screenshots aktualisieren (baut + startet Preview-Server automatisch)
+npm run test:ux
+# Output: apps/frontend/tests/e2e/screenshots/ux/**/*.png (dark + light)
+
+# 2. WCAG 2.1 AA Accessibility-Audit
+npm run audit:a11y
+# Report: apps/frontend/tests/e2e/reports/accessibility/accessibility-report.md
+
+# 3. GPT-4o Vision-Analyse (bei ≥3 geänderten UI-Komponenten)
+#    Voraussetzung: GITHUB_TOKEN_COPILOT in .env
+npm run audit:vision
+# Report: apps/frontend/tests/e2e/reports/vision/ux-vision-report.md
+```
+
+**Neue Findings** (Kontrast, Touch-Target, Accessibility-Violations) in
+`docs/project-planning/phases/phase-3b-quality-sprint-1b/REFACTORING.md` eintragen.
+
 ---
 
 ## 🔧 Development Workflow
@@ -175,7 +197,22 @@ cd apps/frontend
 npm test
 ```
 
-### 3. **Commit (Hooks laufen automatisch!)**
+### 3. **UX-Audit (nur bei UI-Änderungen)**
+```bash
+# Screenshots aktualisieren
+npm run test:ux
+
+# Accessibility-Audit (WCAG 2.1 AA)
+npm run audit:a11y
+
+# Vision-Analyse (optional, bei größeren UI-Änderungen)
+# Voraussetzung: GITHUB_TOKEN_COPILOT in .env
+npm run audit:vision
+```
+
+Findings in `docs/project-planning/phases/phase-3b-quality-sprint-1b/REFACTORING.md` eintragen.
+
+### 4. **Commit (Hooks laufen automatisch!)**
 ```bash
 git add .
 git commit -m "feat(devices): add multiroom support"
@@ -187,7 +224,7 @@ git commit -m "feat(devices): add multiroom support"
 # ✅ Security
 ```
 
-### 4. **Push (Tests laufen automatisch!)**
+### 5. **Push (Tests laufen automatisch!)**
 ```bash
 git push origin feat/my-new-feature
 
@@ -195,13 +232,13 @@ git push origin feat/my-new-feature
 # ✅ Unit Tests
 ```
 
-### 5. **Pull Request erstellen**
+### 6. **Pull Request erstellen**
 - Gehe zu GitHub
 - Erstelle PR von deinem Branch → `main`
 - Beschreibe Änderungen
 - Warte auf CI/CD Checks
 
-### 6. **CI/CD Pipeline (automatisch)**
+### 7. **CI/CD Pipeline (automatisch)**
 GitHub Actions führt aus:
 1. ✅ Security Scan (bandit, npm audit)
 2. ✅ Format Check (black, prettier)
@@ -381,6 +418,8 @@ Bevor du PR erstellst:
 - [ ] Commit Messages Conventional Format
 - [ ] Dokumentation aktualisiert
 - [ ] E2E Tests passen (falls UI-Änderung)
+- [ ] `npm run test:ux` ausgeführt, Screenshots aktuell (falls UI-Änderung)
+- [ ] `npm run audit:a11y` grün / keine neuen Violations (falls UI-Änderung)
 - [ ] CHANGELOG.md aktualisiert (bei Breaking Changes)
 
 **GitHub Actions prüft automatisch!**

@@ -1,0 +1,231 @@
+name: Build Raspberry Pi Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      oct_version:
+        description: 'OCT Docker image version tag (default: latest)'
+        required: false
+        default: 'latest'
+        type: string
+      architectures:
+        description: 'Which architectures to build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - arm64
+          - armhf
+      attach_to_release:
+        description: 'Attach images to latest GitHub Release'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PI_GEN_REPO: https://github.com/RPi-Distro/pi-gen.git
+  PI_GEN_BRANCH: arm64
+
+jobs:
+  # ============================================================================
+  # BUILD RASPBERRY PI IMAGE
+  # ============================================================================
+  build-image:
+    name: Build ${{ matrix.arch }} Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ${{ fromJSON(inputs.architectures == 'all' && '["arm64", "armhf"]' || format('["{0}"]', inputs.architectures)) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          echo "=== Disk space before cleanup ==="
+          df -h /
+          # Remove unnecessary pre-installed software
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /usr/local/share/boost /usr/share/swift || true
+          sudo apt-get clean
+          echo "=== Disk space after cleanup ==="
+          df -h /
+
+      - name: Clone pi-gen
+        run: |
+          git clone --depth 1 --branch ${{ env.PI_GEN_BRANCH }} \
+            ${{ env.PI_GEN_REPO }} pi-gen
+
+      - name: Configure pi-gen
+        run: |
+          cd pi-gen
+
+          # Write config
+          cat > config << 'EOF'
+          IMG_NAME=opencloudtouch-${{ matrix.arch }}
+          RELEASE=bookworm
+          TARGET_HOSTNAME=opencloudtouch
+          FIRST_USER_NAME=oct
+          FIRST_USER_PASS=opencloudtouch
+          ENABLE_SSH=1
+          LOCALE_DEFAULT=en_GB.UTF-8
+          KEYBOARD_KEYMAP=us
+          KEYBOARD_LAYOUT=English (US)
+          TIMEZONE_DEFAULT=Europe/Berlin
+          WPA_COUNTRY=DE
+          STAGE_LIST=stage0 stage1 stage2 stage-opencloudtouch
+          EOF
+
+          # Remove leading whitespace from config (heredoc indentation)
+          sed -i 's/^          //' config
+
+          # Set architecture
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            echo "ARCH=arm64" >> config
+          else
+            echo "ARCH=armhf" >> config
+          fi
+
+          echo "=== pi-gen config ==="
+          cat config
+
+      - name: Install OpenCloudTouch stage
+        run: |
+          # Copy custom stage into pi-gen
+          cp -r raspi-image/stage-opencloudtouch pi-gen/stage-opencloudtouch
+
+          # Copy embedded files
+          mkdir -p pi-gen/stage-opencloudtouch/01-configure-oct/files
+          cp raspi-image/files/* pi-gen/stage-opencloudtouch/01-configure-oct/files/
+
+          # Set OCT version in compose file
+          OCT_VERSION="${{ inputs.oct_version || 'latest' }}"
+          if [ "$OCT_VERSION" != "latest" ]; then
+            sed -i "s|ghcr.io/scheilch/opencloudtouch:latest|ghcr.io/scheilch/opencloudtouch:${OCT_VERSION}|g" \
+              pi-gen/stage-opencloudtouch/01-configure-oct/files/docker-compose.yml
+          fi
+
+          # Mark stage for image export
+          touch pi-gen/stage-opencloudtouch/EXPORT_IMAGE
+          touch pi-gen/stage-opencloudtouch/EXPORT_NOOBS
+
+          # Skip image export for base stages
+          touch pi-gen/stage0/SKIP_IMAGES
+          touch pi-gen/stage1/SKIP_IMAGES
+          touch pi-gen/stage2/SKIP_IMAGES
+
+          # Skip desktop stages
+          touch pi-gen/stage3/SKIP 2>/dev/null || true
+          touch pi-gen/stage4/SKIP 2>/dev/null || true
+          touch pi-gen/stage5/SKIP 2>/dev/null || true
+
+          echo "=== Stage structure ==="
+          find pi-gen/stage-opencloudtouch -type f | sort
+
+      - name: Build image with pi-gen
+        run: |
+          cd pi-gen
+          chmod +x build-docker.sh
+          ./build-docker.sh
+        timeout-minutes: 60
+
+      - name: Compress and checksum image
+        id: image
+        run: |
+          OCT_VERSION="${{ inputs.oct_version || 'latest' }}"
+
+          # Find the built image
+          IMG_FILE=$(find pi-gen/deploy -name "*.img" -type f | head -1)
+          if [ -z "$IMG_FILE" ]; then
+            echo "::error::No image file found!"
+            ls -la pi-gen/deploy/ || echo "deploy dir not found"
+            exit 1
+          fi
+
+          echo "Found image: $IMG_FILE ($(du -h "$IMG_FILE" | cut -f1))"
+
+          # Compress
+          OUTPUT_NAME="opencloudtouch-${{ matrix.arch }}-${OCT_VERSION}.img.xz"
+          xz -9 -T0 "$IMG_FILE"
+
+          # Move to output
+          mkdir -p output
+          mv "${IMG_FILE}.xz" "output/${OUTPUT_NAME}"
+
+          # Checksums
+          cd output
+          sha256sum "${OUTPUT_NAME}" > "${OUTPUT_NAME}.sha256"
+
+          echo "output_name=${OUTPUT_NAME}" >> "$GITHUB_OUTPUT"
+          echo "output_path=output/${OUTPUT_NAME}" >> "$GITHUB_OUTPUT"
+
+          echo "=== Output ==="
+          ls -lh .
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: raspi-image-${{ matrix.arch }}
+          path: |
+            output/*.img.xz
+            output/*.sha256
+          retention-days: 30
+          compression-level: 0  # Already compressed with xz
+
+  # ============================================================================
+  # ATTACH TO RELEASE (optional)
+  # ============================================================================
+  attach-to-release:
+    name: Attach to Release
+    runs-on: ubuntu-latest
+    needs: build-image
+    if: inputs.attach_to_release
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all image artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: raspi-image-*
+          path: images
+          merge-multiple: true
+
+      - name: Get latest release
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_TAG=$(gh api repos/${{ github.repository }}/releases/latest \
+            --jq '.tag_name' 2>/dev/null || echo "")
+
+          if [ -z "$RELEASE_TAG" ]; then
+            echo "::error::No release found to attach images to."
+            exit 1
+          fi
+
+          echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "Attaching to release: ${RELEASE_TAG}"
+
+      - name: Upload images to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd images
+          for file in *.img.xz *.sha256; do
+            echo "Uploading: $file"
+            gh release upload "${{ steps.release.outputs.release_tag }}" \
+              "$file" \
+              --repo "${{ github.repository }}" \
+              --clobber
+          done
+
+          echo "=== Release assets updated ==="
+          gh release view "${{ steps.release.outputs.release_tag }}" \
+            --repo "${{ github.repository }}"

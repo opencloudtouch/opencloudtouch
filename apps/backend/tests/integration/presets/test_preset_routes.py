@@ -4,11 +4,11 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 
+from opencloudtouch.main import app
 from opencloudtouch.presets.repository import PresetRepository
 from opencloudtouch.presets.service import PresetService
-from opencloudtouch.main import app
 
 
 @pytest.fixture

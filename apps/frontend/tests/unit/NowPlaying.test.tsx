@@ -20,13 +20,13 @@ describe("NowPlaying Component", () => {
     it("should show empty state when nowPlaying is null", () => {
       render(<NowPlaying nowPlaying={null} />);
 
-      expect(screen.getByText("Kein Titel")).toBeInTheDocument();
+      expect(screen.getByText("Keine Wiedergabe")).toBeInTheDocument();
     });
 
     it("should show empty state when nowPlaying is undefined", () => {
       render(<NowPlaying />);
 
-      expect(screen.getByText("Kein Titel")).toBeInTheDocument();
+      expect(screen.getByText("Keine Wiedergabe")).toBeInTheDocument();
     });
 
     it("should apply empty CSS class in empty state", () => {

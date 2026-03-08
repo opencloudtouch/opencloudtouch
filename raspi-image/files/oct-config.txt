@@ -1,0 +1,20 @@
+# ============================================================================
+# OpenCloudTouch Configuration
+# ============================================================================
+# Place this file on the boot partition (FAT32) of the SD card.
+# It will be read on first boot and applied automatically.
+# After applying, the file is deleted (contains sensitive data).
+#
+# Lines starting with # are comments.
+# ============================================================================
+
+# Wi-Fi Configuration (required for headless setup)
+# WIFI_SSID=MyNetwork
+# WIFI_PASSWORD=MySecretPassword
+# WIFI_COUNTRY=DE
+
+# OpenCloudTouch Settings
+# OCT_PORT=7777
+
+# System Settings
+# TIMEZONE=Europe/Berlin

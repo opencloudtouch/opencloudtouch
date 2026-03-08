@@ -13,6 +13,7 @@ import { spawn, exec } from 'child_process';
 import { promisify } from 'util';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import cypress from 'cypress';
 import { platform } from 'os';
 
 const execAsync = promisify(exec);
@@ -143,8 +144,13 @@ async function startBackend() {
 
   log('[DEBUG] Waiting for backend health endpoint...', colors.yellow);
 
-  // Wait for backend to be ready
+  // Wait for backend to be ready (health check)
   await waitForEndpoint(`http://localhost:${TEST_PORT_BACKEND}/health`);
+
+  // Wait for API to be fully initialized (database ready for queries)
+  log('[DEBUG] Waiting for backend API endpoints to be ready...', colors.yellow);
+  await waitForEndpoint(`http://localhost:${TEST_PORT_BACKEND}/api/devices`);
+
   logSuccess('Backend started successfully');
 }
 
@@ -156,11 +162,10 @@ async function startFrontend() {
 
   await killPort(TEST_PORT_FRONTEND);
 
-  // Build frontend
-  const frontendEnv = {
-    ...process.env,
-    VITE_API_BASE_URL: `http://localhost:${TEST_PORT_BACKEND}`
-  };
+  // Build frontend without VITE_API_BASE_URL so the app uses relative /api/* URLs.
+  // The Vite preview proxy then forwards them to the backend at port 7778.
+  // This is required so cy.intercept('/api/...') works correctly in Cypress.
+  const frontendEnv = { ...process.env };
 
   const buildProcess = spawn(
     'npm',
@@ -198,37 +203,26 @@ async function startFrontend() {
 }
 
 /**
- * Run Cypress tests
+ * Run Cypress tests using the Cypress Node.js Module API.
+ * Avoids subprocess spawning which causes Electron crash (STATUS_ILLEGAL_INSTRUCTION)
+ * when the parent process has no real console (e.g. git commit from VSCode GUI).
  */
 async function runCypressTests() {
   logInfo('Running Cypress E2E tests...');
 
-  const env = {
-    ...process.env,
-    CYPRESS_API_URL: `http://localhost:${TEST_PORT_BACKEND}/api`
-  };
-
-  const cypressProcess = spawn(
-    'npx',
-    ['cypress', 'run', '--browser', 'chrome', '--headless'],
-    { cwd: FRONTEND_DIR, env, stdio: 'inherit', shell: true }
-  );
-
-  return new Promise((resolve, reject) => {
-    cypressProcess.on('close', (code) => {
-      // Cypress sometimes returns -1 due to async cleanup issues
-      // Treat as success if not a genuine failure
-      if (code === 0 || code === -1) {
-        resolve(0);
-      } else {
-        reject(new Error(`Cypress tests failed with code ${code}`));
-      }
-    });
-
-    cypressProcess.on('error', (error) => {
-      reject(error);
-    });
+  const result = await cypress.run({
+    project: FRONTEND_DIR,
+    browser: 'electron',
+    headless: true,
   });
+
+  if (result.status === 'failed' || result.totalFailed > 0) {
+    throw new Error(
+      `Cypress tests failed: ${result.totalFailed ?? '?'} test(s) failed`
+    );
+  }
+
+  return result;
 }
 
 /**

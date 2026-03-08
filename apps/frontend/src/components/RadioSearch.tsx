@@ -31,8 +31,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 function getApiBaseUrl(): string {
   if (typeof window !== "undefined") {
-    const cypress = (window as { Cypress?: { env?: (key: string) => unknown } }).Cypress;
-    const apiUrl = cypress?.env?.("apiUrl");
+    const cypress = (window as { Cypress?: { expose?: (key: string) => unknown } }).Cypress;
+    const apiUrl = cypress?.expose?.("apiUrl");
     if (typeof apiUrl === "string" && apiUrl.length > 0) {
       return apiUrl.replace(/\/api\/?$/, "");
     }
@@ -92,7 +92,7 @@ export default function RadioSearch({ onStationSelect, isOpen, onClose }: RadioS
           if (apiError) {
             setError(getErrorMessage(apiError));
           } else {
-            setError(`HTTP ${response.status}: ${response.statusText}`);
+            setError("Sendersuche fehlgeschlagen. Bitte versuchen Sie es erneut.");
           }
           setResults([]);
           return;
@@ -145,7 +145,12 @@ export default function RadioSearch({ onStationSelect, isOpen, onClose }: RadioS
             onChange={(e) => handleSearch(e.target.value)}
             autoFocus
           />
-          <button className="search-close" onClick={onClose}>
+          <button
+            className="search-close"
+            onClick={onClose}
+            aria-label="Suche schließen"
+            title="Suche schließen"
+          >
             ✕
           </button>
         </div>

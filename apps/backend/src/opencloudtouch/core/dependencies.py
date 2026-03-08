@@ -1,4 +1,4 @@
-﻿"""Dependency injection for FastAPI routes.
+"""Dependency injection for FastAPI routes.
 
 Centralizes dependency management using FastAPI app.state.
 """

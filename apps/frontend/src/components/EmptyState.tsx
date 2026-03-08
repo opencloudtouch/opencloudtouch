@@ -1,95 +1,75 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../contexts/ToastContext";
-import { useManualIPs, useSetManualIPs } from "../hooks/useSettings";
-import { useSyncDevices } from "../hooks/useDevices";
+import { useManualIPs } from "../hooks/useSettings";
+import { useDiscoveryStream } from "../hooks/useDiscoveryStream";
+import ManualIPModal from "./ManualIPModal";
 import "./EmptyState.css";
 
 /**
  * EmptyState Component
  *
  * Shown on first app start when no devices are discovered yet.
- * Guides user through initial setup.
+ * Guides user through initial setup with progressive device discovery.
  */
 
 export default function EmptyState() {
   const navigate = useNavigate();
   const { show: showToast } = useToast();
   const [showModal, setShowModal] = useState(false);
-  const [ipList, setIpList] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   // React Query hooks
   const { data: manualIPs = [] } = useManualIPs();
-  const setManualIPs = useSetManualIPs();
-  const syncDevices = useSyncDevices();
+
+  // Progressive discovery via SSE
+  const {
+    isDiscovering,
+    devicesFound,
+    completed,
+    error: discoveryError,
+    stats,
+    startDiscovery,
+  } = useDiscoveryStream();
 
   const hasManualIPs = manualIPs.length > 0;
 
-  const handleOpenModal = async () => {
+  const handleOpenModal = () => {
     setShowModal(true);
-    // Pre-fill with existing IPs
-    if (manualIPs.length > 0) {
-      setIpList(manualIPs.join("\n"));
-    }
   };
 
-  const handleSaveIPs = async () => {
-    setError(null);
-    setSuccess(false);
-
-    // Parse IPs (comma or newline separated)
-    const ips = ipList
-      .split(/[,\n]/)
-      .map((ip) => ip.trim())
-      .filter((ip) => ip.length > 0);
-
-    // Basic IP validation
-    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-    const invalidIPs = ips.filter((ip) => !ipRegex.test(ip));
-
-    if (invalidIPs.length > 0) {
-      setError(`Ungültige IP-Adressen: ${invalidIPs.join(", ")}`);
-      return;
-    }
-
-    try {
-      // Set all IPs at once (replaces existing)
-      await setManualIPs.mutateAsync(ips);
-
-      setSuccess(true);
-
-      // Close modal after short delay to show success state
-      setTimeout(() => {
-        setShowModal(false);
-        setIpList("");
-        setSuccess(false);
-      }, 1500);
-    } catch {
-      setError("Fehler beim Speichern der IP-Adressen");
-    }
+  const handleDiscovery = () => {
+    startDiscovery();
   };
 
-  const handleDiscovery = async () => {
-    try {
-      const result = await syncDevices.mutateAsync();
-
-      // Check if any devices were found
-      if (result.synced > 0) {
-        // React Query will automatically refetch devices
-        // Navigate to dashboard
-        navigate("/");
-      } else {
-        showToast(
-          "Keine Geräte gefunden. Prüfe ob deine Geräte eingeschaltet und im gleichen Netzwerk sind.",
-          "warning"
-        );
-      }
-    } catch {
-      showToast("Fehler bei der Gerätesuche. Bitte versuche es erneut.", "error");
+  // Navigate when devices found (must be in useEffect, not render phase)
+  useEffect(() => {
+    if (completed && devicesFound.length > 0) {
+      navigate("/");
     }
-  };
+  }, [completed, devicesFound.length, navigate]);
+
+  // Show error toast (must be in useEffect, not render phase)
+  useEffect(() => {
+    if (discoveryError) {
+      const isAlreadyRunning = discoveryError.includes("already in progress");
+      showToast(
+        isAlreadyRunning
+          ? "Gerätesuche läuft bereits. Bitte warten..."
+          : "Fehler bei der Gerätesuche. Bitte versuche es erneut.",
+        isAlreadyRunning ? "info" : "error"
+      );
+    }
+  }, [discoveryError, showToast]);
+
+  // Show completion toast if no devices found (must be in useEffect, not render phase)
+  useEffect(() => {
+    if (completed && devicesFound.length === 0 && !discoveryError) {
+      showToast(
+        "Keine Geräte gefunden. Prüfe ob deine Geräte eingeschaltet und im gleichen Netzwerk sind.",
+        "warning"
+      );
+    }
+  }, [completed, devicesFound.length, discoveryError, showToast]);
 
   return (
     <div className="empty-state" data-test="empty-state">
@@ -162,7 +142,7 @@ export default function EmptyState() {
         <button
           className="cta-button"
           onClick={handleDiscovery}
-          disabled={syncDevices.isPending}
+          disabled={isDiscovering}
           data-test="discover-button"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -172,11 +152,47 @@ export default function EmptyState() {
             />
             <circle cx="10" cy="10" r="3" fill="currentColor" />
           </svg>
-          {syncDevices.isPending
-            ? "Suche läuft..."
+          {isDiscovering
+            ? `Suche läuft... (${stats.synced} gefunden)`
             : hasManualIPs
               ? "Mit manuellen IPs suchen"
               : "Jetzt Geräte suchen"}
+        </button>
+
+        {/* Progressive discovery results */}
+        {isDiscovering && devicesFound.length > 0 && (
+          <div className="discovery-progress" data-test="discovery-progress">
+            <p className="discovery-stats">
+              {stats.synced} von {stats.discovered} Geräten gespeichert...
+            </p>
+            <div className="discovered-devices">
+              {devicesFound.map((device) => (
+                <div key={device.device_id} className="discovered-device">
+                  <div className="device-icon">✓</div>
+                  <div className="device-info">
+                    <div className="device-name">{device.name}</div>
+                    <div className="device-model">
+                      {device.model} • {device.ip}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <button
+          className="cta-button secondary"
+          onClick={() => navigate("/setup-wizard")}
+          data-test="setup-wizard-button"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+            <path
+              fillRule="evenodd"
+              d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+              clipRule="evenodd"
+            />
+          </svg>
+          Gerät manuell einrichten
         </button>
 
         {hasManualIPs && (
@@ -210,120 +226,21 @@ export default function EmptyState() {
                   manuell hinzu
                 </button>
               </li>
+              {/* REFACT-140: Inline guide link */}
+              <li>
+                Folge dem{" "}
+                <button className="inline-link-button" onClick={() => navigate("/setup-wizard")}>
+                  Setup-Assistenten
+                </button>{" "}
+                für eine Schritt-für-Schritt Anleitung
+              </li>
             </ul>
           </details>
         </div>
       </div>
 
       {/* Manual IP Configuration Modal */}
-      {showModal && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowModal(false)}
-          data-test="modal-overlay"
-        >
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-            data-test="modal-content"
-          >
-            <div className="modal-header">
-              <h2 data-test="modal-title">Manuelle IP-Konfiguration</h2>
-              <button
-                className="modal-close"
-                onClick={() => setShowModal(false)}
-                aria-label="Schließen"
-              >
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-
-            <p className="modal-description">
-              Geben Sie die IP-Adressen Ihrer Geräte ein (eine pro Zeile oder kommagetrennt).
-            </p>
-
-            <textarea
-              value={ipList}
-              onChange={(e) => setIpList(e.target.value)}
-              placeholder="Beispiel:&#10;192.168.1.100&#10;192.168.1.101&#10;192.168.1.102"
-              rows={6}
-              maxLength={600}
-              disabled={setManualIPs.isPending}
-              className="modal-textarea"
-              data-test="ip-textarea"
-            />
-
-            <div className="modal-hint">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span>
-                Die IP-Adresse finden Sie in der zugehörigen App unter Einstellungen → Info oder in
-                Ihrem Router.
-              </span>
-            </div>
-
-            {error && (
-              <div className="modal-error">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="modal-success">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                IP-Adressen gespeichert!
-              </div>
-            )}
-
-            <div className="modal-actions">
-              <button
-                className="modal-cancel"
-                onClick={() => setShowModal(false)}
-                disabled={setManualIPs.isPending}
-                data-test="cancel-button"
-              >
-                Abbrechen
-              </button>
-              <button
-                className="modal-save"
-                onClick={handleSaveIPs}
-                disabled={setManualIPs.isPending}
-                data-test="save-button"
-              >
-                {setManualIPs.isPending ? "Speichere..." : "Speichern"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ManualIPModal isOpen={showModal} onClose={() => setShowModal(false)} />
     </div>
   );
 }

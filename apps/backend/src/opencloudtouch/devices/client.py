@@ -86,3 +86,26 @@ class DeviceClient(ABC):
     async def close(self) -> None:
         """Close client connections."""
         pass
+
+    @abstractmethod
+    async def store_preset(
+        self,
+        device_id: str,
+        preset_number: int,
+        station_url: str,
+        station_name: str,
+        oct_backend_url: str,
+        station_image_url: str = "",
+    ) -> None:
+        """
+        Store a preset on the Bose device.
+
+        Args:
+            device_id: Bose device identifier
+            preset_number: Preset slot (1-6)
+            station_url: RadioBrowser stream URL
+            station_name: Station display name
+            oct_backend_url: OCT backend base URL
+            station_image_url: Optional station logo URL
+        """
+        pass

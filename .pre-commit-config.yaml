@@ -92,8 +92,9 @@ repos:
       # MANDATORY: ALL TESTS MUST PASS BEFORE COMMIT
       # ========================================================================
       - id: all-tests-must-pass
-        name: "🚨 MANDATORY: Run ALL tests (Backend + Frontend + E2E) - 100% must pass"
-        entry: bash -c 'npm test || exit 1'
+        name: "MANDATORY: Run ALL tests (Backend + Frontend + E2E) - 100% must pass"
+        entry: npm
+        args: [test]
         language: system
         pass_filenames: false
         always_run: true
@@ -103,25 +104,28 @@ repos:
       # Backend Tests (pre-push only)
       - id: pytest-quick
         name: Run backend unit tests (pre-push)
-        entry: bash -c 'cd apps/backend && ../../.venv/Scripts/python.exe -m pytest tests/unit -v --tb=short -x'
+        entry: .venv/Scripts/python.exe
+        args: [-m, pytest, apps/backend/tests/unit, -v, --tb=short, -x]
         language: system
         pass_filenames: false
         always_run: true
         stages: [pre-push]  # Only on push, not every commit
 
-      # Frontend Unit Tests (pre-push only) - Note: Requires Git Bash on Windows
+      # Frontend Unit Tests (pre-push only)
       - id: vitest
         name: Run frontend unit tests (pre-push)
-        entry: bash -c 'cd apps/frontend && npm run test'
+        entry: npm
+        args: [run, test, --prefix, apps/frontend]
         language: system
         pass_filenames: false
         always_run: true
         stages: [pre-push]
 
-      # Frontend ESLint (pre-push only) - Note: Requires Git Bash on Windows
+      # Frontend ESLint (pre-push only)
       - id: eslint
         name: Lint frontend (eslint, pre-push)
-        entry: bash -c 'cd apps/frontend && npm run lint'
+        entry: npm
+        args: [run, lint, --prefix, apps/frontend]
         language: system
         pass_filenames: false
         always_run: true
@@ -130,7 +134,7 @@ repos:
       # Block deprecated .js test files (TypeScript migration complete)
       - id: no-js-tests
         name: Block new .js test files (use .ts/.tsx)
-        entry: bash -c 'files=$(git diff --cached --name-only --diff-filter=A | grep -E "\.(test|spec)\.js$"); if [ -n "$files" ]; then echo "ERROR - New .js test files not allowed. Use .ts/.tsx instead."; echo "$files"; exit 1; fi'
+        entry: node scripts/check-no-js-tests.mjs
         language: system
         pass_filenames: false
         always_run: true

@@ -5,8 +5,8 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from httpx import AsyncClient, ASGITransport, Timeout
 from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient, Timeout
 
 # Set mock mode BEFORE initializing config
 os.environ.setdefault("OCT_MOCK_MODE", "true")
@@ -29,23 +29,22 @@ def create_test_app() -> FastAPI:
     Note: Routers already have their prefixes defined (e.g., "/api/presets"),
     so we don't add prefixes here.
     """
-    from opencloudtouch.devices.api.routes import router as devices_router
-    from opencloudtouch.presets.api.routes import router as presets_router
-    from opencloudtouch.devices.api.preset_stream_routes import (
-        router as stream_router,
-        descriptor_router,
-    )
-    from opencloudtouch.settings.routes import router as settings_router
-    from opencloudtouch.radio.api.routes import router as radio_router
+    from fastapi import Request
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.responses import JSONResponse
+
     from opencloudtouch.core.exceptions import (
-        DeviceNotFoundError,
         DeviceConnectionError,
+        DeviceNotFoundError,
         DiscoveryError,
         OpenCloudTouchError,
     )
-    from fastapi import Request
-    from fastapi.responses import JSONResponse
-    from fastapi.middleware.cors import CORSMiddleware
+    from opencloudtouch.devices.api.preset_stream_routes import descriptor_router
+    from opencloudtouch.devices.api.preset_stream_routes import router as stream_router
+    from opencloudtouch.devices.api.routes import router as devices_router
+    from opencloudtouch.presets.api.routes import router as presets_router
+    from opencloudtouch.radio.api.routes import router as radio_router
+    from opencloudtouch.settings.routes import router as settings_router
 
     test_app = FastAPI(title="OpenCloudTouch Test")
 

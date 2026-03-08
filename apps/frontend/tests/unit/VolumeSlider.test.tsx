@@ -17,12 +17,12 @@ import VolumeSlider from "../../src/components/VolumeSlider";
 
 describe("VolumeSlider Component", () => {
   describe("Volume Display & Controls", () => {
-    it("should display current volume value", () => {
+    it("should render slider with correct volume", () => {
       render(
         <VolumeSlider volume={45} onVolumeChange={vi.fn()} muted={false} onMuteToggle={vi.fn()} />
       );
 
-      expect(screen.getByText("45%")).toBeInTheDocument();
+      expect(screen.getByRole("slider")).toHaveValue("45");
     });
 
     it("should update volume when slider changes", () => {
@@ -161,7 +161,7 @@ describe("VolumeSlider Component", () => {
         />
       );
 
-      expect(screen.getByText("100%")).toBeInTheDocument();
+      expect(screen.getByRole("slider")).toHaveValue("100");
       expect(screen.getByText("🔊")).toBeInTheDocument();
     });
 

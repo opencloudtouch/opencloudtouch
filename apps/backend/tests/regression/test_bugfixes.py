@@ -6,6 +6,7 @@ it does not reoccur. Tests are organized by bug ID and date.
 """
 
 import pytest
+
 from opencloudtouch.radio.providers.mock import MockRadioAdapter
 
 

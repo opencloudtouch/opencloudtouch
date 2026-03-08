@@ -21,6 +21,7 @@ class Preset:
         station_url: str,
         station_homepage: Optional[str] = None,
         station_favicon: Optional[str] = None,
+        source: Optional[str] = None,
         created_at: Optional[datetime] = None,
         updated_at: Optional[datetime] = None,
         id: Optional[int] = None,
@@ -36,6 +37,7 @@ class Preset:
             station_url: Stream URL for playback
             station_homepage: Optional station homepage URL
             station_favicon: Optional station favicon URL
+            source: Preset source type (TUNEIN, INTERNET_RADIO, LOCAL_INTERNET_RADIO, etc.)
             created_at: Creation timestamp
             updated_at: Last update timestamp
             id: Database primary key (optional)
@@ -54,6 +56,7 @@ class Preset:
         self.station_url = station_url
         self.station_homepage = station_homepage
         self.station_favicon = station_favicon
+        self.source = source
         self.created_at = created_at or datetime.now(UTC)
         self.updated_at = updated_at or datetime.now(UTC)
 
@@ -68,6 +71,7 @@ class Preset:
             "station_url": self.station_url,
             "station_homepage": self.station_homepage,
             "station_favicon": self.station_favicon,
+            "source": self.source,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

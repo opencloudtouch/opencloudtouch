@@ -17,14 +17,14 @@ from opencloudtouch.core.exceptions import (
     OpenCloudTouchError,
     map_status_to_type,
 )
-from opencloudtouch.main import (
-    http_exception_handler,
-    validation_exception_handler,
-    device_not_found_handler,
+from opencloudtouch.core.exception_handlers import (
     device_connection_error_handler,
+    device_not_found_handler,
     discovery_error_handler,
-    oct_error_handler,
     generic_exception_handler,
+    http_exception_handler,
+    oct_error_handler,
+    validation_exception_handler,
 )
 
 

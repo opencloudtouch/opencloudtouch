@@ -16,10 +16,13 @@
   align-items: center;
 }
 
+/* REFACT-143: Italic + muted to distinguish placeholder from real content */
 .np-placeholder {
   color: var(--color-text-tertiary);
   font-size: 18px;
   text-align: center;
+  font-style: italic;
+  opacity: 0.75;
 }
 
 .np-art {

@@ -4,6 +4,7 @@ Nutzt pydantic-settings für ENV + YAML Validierung.
 """
 
 import os
+from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
@@ -81,7 +82,7 @@ class AppConfig(BaseSettings):
     discovery_enabled: bool = Field(
         default=True, description="Enable SSDP/UPnP discovery"
     )
-    discovery_timeout: int = Field(default=5, description="Discovery timeout (seconds)")
+    discovery_timeout: int = Field(default=3, description="Discovery timeout (seconds)")
     manual_device_ips: str = Field(
         default="", description="Comma-separated list of manual device IPs"
     )
@@ -101,22 +102,6 @@ class AppConfig(BaseSettings):
     station_descriptor_base_url: str = Field(
         default="http://localhost:7777",
         description="Base URL for OCT backend (used in Bose preset programming)",
-    )
-
-    # Feature Toggles (9.3.6 - NICE TO HAVE)
-    enable_hdmi_controls: bool = Field(
-        default=True,
-        description="Enable HDMI/CEC controls for ST300 (can be disabled if causing issues)",
-    )
-    enable_advanced_audio: bool = Field(
-        default=True,
-        description="Enable advanced audio controls (DSP, Tone, Level) for ST300",
-    )
-    enable_zone_management: bool = Field(
-        default=True, description="Enable multi-room zone management"
-    )
-    enable_group_management: bool = Field(
-        default=True, description="Enable group management features"
     )
 
     # Production Safety
@@ -177,22 +162,45 @@ class AppConfig(BaseSettings):
         return cls(**data)
 
 
-# Globale Config-Instanz
-config: Optional[AppConfig] = None
+# ---------------------------------------------------------------------------
+# Config factory — lazy singleton via lru_cache (REFACT-013)
+# ---------------------------------------------------------------------------
+
+
+@lru_cache(maxsize=1)
+def get_config() -> AppConfig:
+    """Get the application config (lazy singleton).
+
+    The first call creates an :class:`AppConfig` instance (reads ENV vars and
+    ``.env`` file).  Subsequent calls return the cached instance.  Call
+    :func:`clear_config` to invalidate the cache (tests only).
+    """
+    return AppConfig()
+
+
+def clear_config() -> None:
+    """Invalidate the config cache.
+
+    After this call the next :func:`get_config` invocation creates a fresh
+    ``AppConfig``, picking up any environment-variable changes.  Intended for
+    test isolation; do **not** call in production code.
+    """
+    get_config.cache_clear()
 
 
 def init_config(yaml_path: Optional[Path] = None) -> AppConfig:
-    """Initialize global config instance."""
-    global config
-    if yaml_path and yaml_path.exists():
-        config = AppConfig.load_from_yaml(yaml_path)
-    else:
-        config = AppConfig()
-    return config
+    """Re-initialise and return the config singleton.
 
+    Clears the :func:`lru_cache` so that the next :func:`get_config` call
+    creates a fresh :class:`AppConfig`.  Kept for backward compatibility with
+    callers that reload config after changing environment variables.
 
-def get_config() -> AppConfig:
-    """Get current config instance."""
-    if config is None:
-        raise RuntimeError("Config not initialized. Call init_config() first.")
-    return config
+    Args:
+        yaml_path: Optional YAML path (reserved — ``AppConfig`` may also be
+                   configured via environment variables directly).
+
+    Returns:
+        Fresh :class:`AppConfig` instance.
+    """
+    get_config.cache_clear()
+    return get_config()

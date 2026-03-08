@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from opencloudtouch.core.config import AppConfig, init_config
+from opencloudtouch.core.config import AppConfig, clear_config, init_config
 
 
 def test_config_defaults(monkeypatch):
@@ -26,53 +26,10 @@ def test_config_defaults(monkeypatch):
     assert config.db_path == ""  # Empty by default
     assert config.effective_db_path == "/data/oct.db"  # Production default
     assert config.discovery_enabled is True
-    assert config.discovery_timeout == 5  # Optimized from 10s to 5s
+    assert config.discovery_timeout == 3  # Optimized for fast Bose discovery (<5s)
     assert config.manual_device_ips_list == []
     assert config.device_http_port == 8090
     assert config.device_ws_port == 8080
-
-    # Feature toggles (9.3.6)
-    assert config.enable_hdmi_controls is True
-    assert config.enable_advanced_audio is True
-    assert config.enable_zone_management is True
-    assert config.enable_group_management is True
-
-
-def test_config_feature_toggles():
-    """Test feature toggle configuration."""
-    # Default: all enabled
-    config1 = AppConfig()
-    assert config1.enable_hdmi_controls is True
-    assert config1.enable_advanced_audio is True
-
-    # Disable specific features
-    config2 = AppConfig(
-        enable_hdmi_controls=False,
-        enable_advanced_audio=False,
-        enable_zone_management=False,
-    )
-    assert config2.enable_hdmi_controls is False
-    assert config2.enable_advanced_audio is False
-    assert config2.enable_zone_management is False
-    assert config2.enable_group_management is True  # Still enabled
-
-
-def test_config_feature_toggles_from_env():
-    """Test feature toggles from environment variables."""
-
-    # Set ENV variables
-    os.environ["OCT_ENABLE_HDMI_CONTROLS"] = "false"
-    os.environ["OCT_ENABLE_ADVANCED_AUDIO"] = "false"
-
-    config = AppConfig()
-
-    assert config.enable_hdmi_controls is False
-    assert config.enable_advanced_audio is False
-    assert config.enable_zone_management is True  # Not set, default True
-
-    # Clean up
-    del os.environ["OCT_ENABLE_HDMI_CONTROLS"]
-    del os.environ["OCT_ENABLE_ADVANCED_AUDIO"]
 
 
 def test_config_log_level_validation():
@@ -156,19 +113,54 @@ def test_config_yaml_nonexistent():
     assert config.port > 0
 
 
-def test_get_config_not_initialized():
-    """Test get_config raises error when not initialized."""
-    import opencloudtouch.core.config
+def test_get_config_returns_app_config():
+    """get_config() returns an AppConfig instance without explicit init."""
+    from opencloudtouch.core.config import get_config
 
-    # Temporarily set config to None
-    original = opencloudtouch.core.config.config
-    opencloudtouch.core.config.config = None
+    cfg = get_config()
+    assert isinstance(cfg, AppConfig)
 
-    try:
-        with pytest.raises(RuntimeError, match="Config not initialized"):
-            opencloudtouch.core.config.get_config()
-    finally:
-        opencloudtouch.core.config.config = original
+
+def test_get_config_returns_same_instance():
+    """get_config() returns the same cached instance on repeated calls."""
+    from opencloudtouch.core.config import get_config
+
+    cfg1 = get_config()
+    cfg2 = get_config()
+    assert cfg1 is cfg2, "lru_cache must return the same object on repeated calls"
+
+
+def test_clear_config_invalidates_cache(monkeypatch):
+    """clear_config() forces a fresh AppConfig on next get_config() call (REFACT-013)."""
+    from opencloudtouch.core.config import get_config
+
+    cfg_before = get_config()
+
+    # Clear and reload — fresh instance expected
+    clear_config()
+    cfg_after = get_config()
+
+    # Both must be valid AppConfig instances
+    assert isinstance(cfg_before, AppConfig)
+    assert isinstance(cfg_after, AppConfig)
+    # They are different objects (cache was invalidated)
+    assert cfg_before is not cfg_after
+
+
+def test_init_config_reloads_env_vars(monkeypatch):
+    """init_config() picks up env-var changes after clear (REFACT-013 test isolation)."""
+    from opencloudtouch.core.config import get_config
+
+    # Ensure fresh state
+    clear_config()
+
+    monkeypatch.setenv("OCT_PORT", "9876")
+    init_config()  # clears cache + re-initialises
+    cfg = get_config()
+    assert cfg.port == 9876, "init_config must pick up updated env vars"
+
+    # Cleanup
+    clear_config()
 
 
 def test_effective_db_path_explicit():

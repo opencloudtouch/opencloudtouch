@@ -1,4 +1,4 @@
-﻿"""Devices Domain - All device-related functionality"""
+"""Devices Domain - All device-related functionality"""
 
 from opencloudtouch.devices.adapter import (
     BoseDeviceClientAdapter,

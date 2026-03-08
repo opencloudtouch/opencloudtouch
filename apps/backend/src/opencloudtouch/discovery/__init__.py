@@ -42,4 +42,4 @@ class DeviceDiscovery(ABC):
         Raises:
             DiscoveryError: If discovery fails
         """
-        pass
+        pass  # pragma: no cover

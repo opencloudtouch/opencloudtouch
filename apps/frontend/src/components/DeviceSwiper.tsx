@@ -8,6 +8,7 @@ export interface Device {
   model?: string;
   firmware?: string;
   ip?: string;
+  setup_status?: "unconfigured" | "configured" | "in_progress" | "failed";
   capabilities?: {
     airplay?: boolean;
   };
@@ -80,24 +81,50 @@ export default function DeviceSwiper({
   };
 
   return (
-    <div className="device-swiper">
+    <div className="device-swiper" data-test="device-swiper">
       {/* Navigation Arrows */}
       <button
         className="swipe-arrow swipe-arrow-left"
         onClick={goToPrevious}
         disabled={currentIndex === 0}
-        aria-label="Previous device"
+        aria-label="Vorheriges Gerät"
+        data-test="device-prev"
       >
-        <span>‹</span>
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
       </button>
 
       <button
         className="swipe-arrow swipe-arrow-right"
         onClick={goToNext}
         disabled={currentIndex === devices.length - 1}
-        aria-label="Next device"
+        aria-label="Nächstes Gerät"
+        data-test="device-next"
       >
-        <span>›</span>
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
       </button>
 
       {/* Swipeable Card Container */}

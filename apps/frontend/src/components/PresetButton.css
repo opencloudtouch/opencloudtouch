@@ -52,15 +52,16 @@
 }
 
 .preset-clear {
-  width: 40px;
+  min-width: 44px;
   height: 60px;
   background-color: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius-md);
   color: var(--color-text-secondary);
   font-size: 18px;
-  min-width: auto;
-  min-height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .preset-clear:hover {

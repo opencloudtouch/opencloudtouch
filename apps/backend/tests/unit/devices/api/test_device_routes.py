@@ -194,8 +194,8 @@ class TestSyncEndpoint:
         Bug: If discovery raises exception, lock might remain acquired.
         Fixed: 2026-01-29 - try-finally block resets _discovery_in_progress.
         """
-        import opencloudtouch.devices.api.routes as devices_module
-        from opencloudtouch.devices.api.routes import _discovery_lock
+        import opencloudtouch.devices.api.discovery_routes as devices_module
+        from opencloudtouch.devices.api.discovery_routes import _discovery_lock
 
         # Reset global state
         devices_module._discovery_in_progress = False
@@ -231,11 +231,10 @@ class TestSyncEndpoint:
         self, client, mock_device_service
     ):
         """Test POST /api/devices/sync returns 409 if discovery already running."""
-        import opencloudtouch.devices.api.routes as devices_module
+        import opencloudtouch.devices.api.discovery_routes as devices_module
 
         # No need to inject dependencies - we're testing the lock behavior
         # The service mock from fixture already handles dependencies
-
         # Mock the lock to appear as if it's already acquired
         # This avoids cross-event-loop issues with asyncio.Lock
         with patch.object(devices_module._discovery_lock, "locked", return_value=True):
@@ -379,6 +378,38 @@ class TestCapabilitiesEndpoint:
 
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
+
+    def test_get_capabilities_success(self, client, mock_device_service):
+        """Test capabilities endpoint returns data on success (covers line 283).
+
+        Use case: Device exists and capabilities are fetched successfully.
+        Expected: Returns 200 OK with capability dict.
+        """
+        mock_device_service.get_device_capabilities = AsyncMock(
+            return_value={"device_id": "TEST123", "features": {}}
+        )
+
+        response = client.get("/api/devices/TEST123/capabilities")
+
+        assert response.status_code == 200
+        assert response.json()["device_id"] == "TEST123"
+
+    def test_get_capabilities_generic_exception_returns_500(
+        self, client, mock_device_service
+    ):
+        """Test capabilities endpoint returns 500 on unexpected error (covers 287-289).
+
+        Use case: Unexpected runtime error during capabilities fetch.
+        Expected: Returns 500 with error detail.
+        """
+        mock_device_service.get_device_capabilities = AsyncMock(
+            side_effect=RuntimeError("Hardware failure")
+        )
+
+        response = client.get("/api/devices/TEST123/capabilities")
+
+        assert response.status_code == 500
+        assert "capabilities" in response.json()["detail"].lower()
 
     # Note: ST30/ST300 capability tests removed - they require complex mocking
     # of bosesoundtouchapi library internals. Capability detection is already
@@ -557,6 +588,120 @@ class TestSyncDatabaseErrors:
 
         finally:
             await repo.close()
+
+
+class TestSyncErrorPath:
+    """Tests for POST /api/devices/sync error wrapping."""
+
+    def test_sync_wraps_generic_exception_in_discovery_error(
+        self, client, mock_device_service
+    ):
+        """Test sync endpoint wraps generic exceptions."""
+        mock_device_service.sync_devices = AsyncMock(
+            side_effect=RuntimeError("DB connection lost")
+        )
+
+        response = client.post("/api/devices/sync")
+
+        # DiscoveryError is handled as 500 Internal Server Error
+        assert response.status_code == 500
+
+
+class TestDiscoverStreamEndpoint:
+    """Tests for GET /api/devices/discover/stream SSE endpoint."""
+
+    def test_discover_stream_returns_event_stream(self, client, mock_device_service):
+        """Test SSE stream endpoint returns text/event-stream content type."""
+        from opencloudtouch.devices.models import SyncResult
+
+        mock_device_service.sync_devices_with_events = AsyncMock(
+            return_value=SyncResult(discovered=1, synced=1, failed=0)
+        )
+
+        with patch(
+            "opencloudtouch.devices.api.discovery_routes.get_event_bus"
+        ) as mock_get_bus:
+            mock_bus = AsyncMock()
+            mock_bus.subscribe.return_value = AsyncMock()
+            mock_bus.unsubscribe = AsyncMock()
+            mock_get_bus.return_value = mock_bus
+
+            # Use stream=True to avoid consuming full body
+            with client.stream("GET", "/api/devices/discover/stream") as response:
+                assert response.status_code == 200
+                assert "text/event-stream" in response.headers.get("content-type", "")
+
+    def test_discover_stream_returns_409_when_locked(self, client, mock_device_service):
+        """Test SSE stream endpoint returns 409 when discovery already in progress."""
+        import opencloudtouch.devices.api.discovery_routes as devices_module
+
+        with patch.object(devices_module._discovery_lock, "locked", return_value=True):
+            response = client.get("/api/devices/discover/stream")
+
+        assert response.status_code == 409
+        assert "already in progress" in response.json()["detail"].lower()
+
+
+class TestKeyPressEndpoint:
+    """Tests for POST /api/devices/{id}/key endpoint."""
+
+    def test_press_key_success(self, client, mock_device_service):
+        """Test key press returns 200 on success."""
+        mock_device_service.press_key = AsyncMock(return_value=None)
+
+        response = client.post("/api/devices/AABBCC112233/key?key=PRESET_1&state=both")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "PRESET_1" in data["message"]
+        assert data["device_id"] == "AABBCC112233"
+
+    def test_press_key_device_not_found_returns_404(self, client, mock_device_service):
+        """Test key press returns 404 when device not found."""
+        mock_device_service.press_key = AsyncMock(
+            side_effect=ValueError("Device NONEXISTENT not found")
+        )
+
+        response = client.post("/api/devices/NONEXISTENT/key?key=PRESET_1")
+
+        assert response.status_code == 404
+
+    def test_press_key_invalid_key_returns_400(self, client, mock_device_service):
+        """Test key press returns 400 when key name is invalid."""
+        mock_device_service.press_key = AsyncMock(
+            side_effect=ValueError("Invalid key: BOGUS_KEY")
+        )
+
+        response = client.post("/api/devices/AABBCC112233/key?key=BOGUS_KEY")
+
+        assert response.status_code == 400
+        assert "Invalid key" in response.json()["detail"]
+
+    def test_press_key_generic_exception_returns_500(self, client, mock_device_service):
+        """Test key press returns 500 on generic exception."""
+        mock_device_service.press_key = AsyncMock(
+            side_effect=ConnectionError("Device unreachable")
+        )
+
+        response = client.post("/api/devices/AABBCC112233/key?key=PRESET_1")
+
+        assert response.status_code == 500
+
+    def test_press_key_500_does_not_leak_internal_details(
+        self, client, mock_device_service
+    ):
+        """Regression test REFACT-101: 500 errors must not expose internal exception details."""
+        mock_device_service.press_key = AsyncMock(
+            side_effect=RuntimeError("Internal DB connection pool exhausted at 0x7f3a")
+        )
+
+        response = client.post("/api/devices/AABBCC112233/key?key=PRESET_1")
+
+        assert response.status_code == 500
+        detail = response.json()["detail"]
+        assert "0x7f3a" not in detail
+        assert "pool exhausted" not in detail
+        assert "Failed to press key on device" in detail
 
 
 class TestDeleteAllDevicesEndpoint:

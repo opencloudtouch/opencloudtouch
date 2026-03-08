@@ -12,155 +12,45 @@ to OCT via USB configuration, these endpoints provide:
 import base64
 import json
 import logging
-import os
-from typing import Any
-from xml.etree import ElementTree
 
-import httpx
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+
+from opencloudtouch.bmx.models import (
+    BmxAudio,
+    BmxPlaybackResponse,
+    BmxService,
+    BmxServiceAssets,
+    BmxServiceId,
+    BmxServicesResponse,
+    BmxStream,
+)
+from opencloudtouch.bmx.tunein import get_oct_base_url, resolve_tunein_station
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["bmx"])
 
 
-# =============================================================================
-# Pydantic Models for BMX Responses
-# =============================================================================
+def convert_https_to_http(url: str) -> str:
+    """Convert HTTPS URLs to HTTP for Bose device compatibility.
 
-
-class BmxServiceId(BaseModel):
-    """Service identifier."""
-
-    name: str
-    value: int
-
-
-class BmxServiceAssets(BaseModel):
-    """Service branding assets."""
-
-    name: str
-    description: str = ""
-    color: str = "#000000"
-
-
-class BmxService(BaseModel):
-    """Individual BMX service entry."""
-
-    id: BmxServiceId
-    baseUrl: str
-    assets: BmxServiceAssets
-    streamTypes: list[str] = ["liveRadio"]
-    askAdapter: bool = False
-    authenticationModel: dict[str, Any] = Field(
-        default_factory=lambda: {
-            "anonymousAccount": {"autoCreate": True, "enabled": True}
-        }
-    )
-
-
-class BmxServicesResponse(BaseModel):
-    """BMX registry response."""
-
-    askAgainAfter: int = 86400000  # 24 hours in ms
-    bmx_services: list[BmxService]
-
-
-class BmxStream(BaseModel):
-    """Audio stream info."""
-
-    hasPlaylist: bool = True
-    isRealtime: bool = True
-    streamUrl: str
-
-
-class BmxAudio(BaseModel):
-    """Audio playback info."""
-
-    hasPlaylist: bool = True
-    isRealtime: bool = True
-    streamUrl: str
-    streams: list[BmxStream] = []
-
-
-class BmxPlaybackResponse(BaseModel):
-    """Playback response with stream URL."""
-
-    audio: BmxAudio
-    imageUrl: str = ""
-    name: str
-    streamType: str = "liveRadio"
-
-
-# =============================================================================
-# TuneIn API Integration
-# =============================================================================
-
-TUNEIN_DESCRIBE_URL = "https://opml.radiotime.com/describe.ashx?id=%s"
-TUNEIN_STREAM_URL = "http://opml.radiotime.com/Tune.ashx?id=%s&formats=mp3,aac,ogg"
-
-
-async def resolve_tunein_station(station_id: str) -> BmxPlaybackResponse:
-    """Resolve TuneIn station ID to playable stream URL.
+    Bose SoundTouch devices cannot play HTTPS streams directly.
+    Most radio stations support both HTTP and HTTPS, so we try HTTP first.
 
     Args:
-        station_id: TuneIn station ID (e.g., "s158432" for Absolut Relax)
+        url: Stream URL (may be HTTPS or HTTP)
 
     Returns:
-        BmxPlaybackResponse with stream URLs
+        HTTP version of the URL (https:// → http://)
     """
-    logger.info(f"[BMX TUNEIN] Resolving station: {station_id}")
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            # Get station metadata
-            describe_url = TUNEIN_DESCRIBE_URL % station_id
-            describe_resp = await client.get(describe_url)
-            describe_xml = describe_resp.text
-
-            # Parse station info (TuneIn API response, trusted source)
-            root = ElementTree.fromstring(describe_xml)  # nosec B314
-            body = root.find("body")
-            outline = body.find("outline") if body is not None else None
-            station_elem = outline.find("station") if outline is not None else None
-
-            name = "Unknown Station"
-            logo = ""
-
-            if station_elem is not None:
-                name_elem = station_elem.find("name")
-                logo_elem = station_elem.find("logo")
-                name = name_elem.text if name_elem is not None else "Unknown Station"
-                logo = logo_elem.text if logo_elem is not None else ""
-
-            # Get stream URLs
-            stream_url = TUNEIN_STREAM_URL % station_id
-            stream_resp = await client.get(stream_url)
-            stream_urls = [
-                url.strip() for url in stream_resp.text.splitlines() if url.strip()
-            ]
-
-            if not stream_urls:
-                raise ValueError(f"No stream URLs found for station {station_id}")
-
-            primary_url = stream_urls[0]
-
-            logger.info(f"[BMX TUNEIN] Resolved {station_id} → {primary_url}")
-
-            streams = [BmxStream(streamUrl=url) for url in stream_urls]
-            audio = BmxAudio(streamUrl=primary_url, streams=streams)
-
-            return BmxPlaybackResponse(
-                audio=audio,
-                imageUrl=logo,
-                name=name,
-            )
-
-    except Exception as e:
-        logger.error(f"[BMX TUNEIN] Error resolving {station_id}: {e}")
-        raise
+    if url.startswith("https://"):
+        http_url = "http://" + url[8:]
+        logger.info(
+            f"[BMX] Converting HTTPS to HTTP: {url[:50]}... → {http_url[:50]}..."
+        )
+        return http_url
+    return url
 
 
 # =============================================================================
@@ -168,9 +58,77 @@ async def resolve_tunein_station(station_id: str) -> BmxPlaybackResponse:
 # =============================================================================
 
 
-def get_oct_base_url() -> str:
-    """Get OCT backend URL from environment."""
-    return os.getenv("OCT_BACKEND_URL", "http://192.168.178.11:7777")
+@router.get("/bmx/orion/now-playing/station/{station_id}")
+@router.get("/bmx/orion/now-playing")
+async def bmx_now_playing_stub(station_id: str | None = None) -> JSONResponse:
+    """Stub endpoint for now-playing data.
+
+    Device calls this to get currently playing track info.
+    Returns minimal valid response to prevent errors.
+    """
+    logger.info(f"[BMX NOW-PLAYING] Station: {station_id or 'custom'}")
+    return JSONResponse(
+        content={
+            "status": "playing",
+            "stationId": station_id or "custom",
+        },
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+
+
+@router.post("/bmx/orion/reporting/station/{station_id}")
+@router.post("/bmx/orion/reporting")
+async def bmx_reporting_stub(station_id: str | None = None) -> JSONResponse:
+    """Stub endpoint for telemetry reporting.
+
+    Device calls this to report playback events.
+    Returns success to prevent errors.
+    """
+    logger.info(f"[BMX REPORTING] Station: {station_id or 'custom'}")
+    return JSONResponse(
+        content={"status": "ok"},
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+
+
+@router.get("/bmx/tunein/v1/now-playing/station/{station_id}")
+async def bmx_tunein_now_playing(station_id: str) -> JSONResponse:
+    """TuneIn now-playing stub.
+
+    Device calls this to get currently playing track info.
+    """
+    logger.info(f"[BMX TUNEIN NOW-PLAYING] Station: {station_id}")
+    return JSONResponse(
+        content={"status": "playing", "stationId": station_id},
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+
+
+@router.post("/bmx/tunein/v1/reporting/station/{station_id}")
+async def bmx_tunein_reporting(station_id: str) -> JSONResponse:
+    """TuneIn reporting stub.
+
+    Device calls this to report playback events.
+    """
+    logger.info(f"[BMX TUNEIN REPORTING] Station: {station_id}")
+    return JSONResponse(
+        content={"status": "ok"},
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+
+
+@router.get("/bmx/tunein/v1/favorite/{station_id}")
+@router.post("/bmx/tunein/v1/favorite/{station_id}")
+async def bmx_tunein_favorite(station_id: str) -> JSONResponse:
+    """TuneIn favorite stub.
+
+    Device calls this to mark/unmark stations as favorites.
+    """
+    logger.info(f"[BMX TUNEIN FAVORITE] Station: {station_id}")
+    return JSONResponse(
+        content={"status": "ok", "isFavorite": False},
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
 
 
 @router.get("/bmx/registry/v1/services")
@@ -210,8 +168,11 @@ async def bmx_services() -> JSONResponse:
     logger.info(f"[BMX REGISTRY] Returning {len(services)} services")
 
     return JSONResponse(
-        content=response.model_dump(),
-        headers={"Content-Type": "application/json"},
+        content=response.model_dump(by_alias=True),
+        headers={
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+        },
     )
 
 
@@ -229,12 +190,21 @@ async def bmx_tunein_playback(station_id: str) -> JSONResponse:
     """
     try:
         response = await resolve_tunein_station(station_id)
-        return JSONResponse(content=response.model_dump())
+
+        # Add CORS headers
+        headers = {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+        }
+
+        return JSONResponse(content=response.model_dump(), headers=headers)
     except Exception as e:
         logger.error(f"[BMX TUNEIN] Playback error: {e}")
         return JSONResponse(
             content={"error": str(e)},
             status_code=500,
+            headers={"Access-Control-Allow-Origin": "*"},
         )
 
 
@@ -256,6 +226,7 @@ async def custom_stream_playback(request: Request) -> JSONResponse:
         return JSONResponse(
             content={"error": "Missing data parameter"},
             status_code=400,
+            headers={"Access-Control-Allow-Origin": "*"},
         )
 
     try:
@@ -267,128 +238,40 @@ async def custom_stream_playback(request: Request) -> JSONResponse:
         image_url = json_obj.get("imageUrl", "")
         name = json_obj.get("name", "Custom Station")
 
+        # Convert HTTPS to HTTP - Bose devices can't play HTTPS streams
+        stream_url = convert_https_to_http(stream_url)
+
         logger.info(f"[BMX ORION] Custom stream: {name} → {stream_url}")
 
         stream = BmxStream(streamUrl=stream_url)
         audio = BmxAudio(streamUrl=stream_url, streams=[stream])
 
+        # Add critical links
+        base_url = get_oct_base_url()
+        links = {
+            "bmx_nowplaying": {
+                "href": f"{base_url}/bmx/orion/now-playing",
+                "useInternalClient": "ALWAYS",
+            },
+            "bmx_reporting": {"href": f"{base_url}/bmx/orion/reporting"},
+        }
+
         response = BmxPlaybackResponse(
             audio=audio,
+            links=links,
             imageUrl=image_url,
             name=name,
         )
 
-        return JSONResponse(content=response.model_dump())
+        return JSONResponse(
+            content=response.model_dump(),
+            headers={"Access-Control-Allow-Origin": "*"},
+        )
 
     except Exception as e:
         logger.error(f"[BMX ORION] Error: {e}")
         return JSONResponse(
             content={"error": str(e)},
             status_code=500,
-        )
-
-
-# =============================================================================
-# Legacy BMX Resolve Endpoint (for backward compatibility)
-# =============================================================================
-
-
-@router.post("/bmx/resolve")
-async def resolve_stream(request: Request) -> Response:
-    """Resolve ContentItem to playable stream URL.
-
-    Bose devices call this endpoint with a ContentItem XML to resolve:
-    - TuneIn station IDs → direct stream URLs
-    - Direct stream URLs → pass through
-    - OCT stream proxy URLs → pass through
-
-    This mimics the original Bose BMX server (bmx.bose.com).
-    """
-    try:
-        body = await request.body()
-        body_str = body.decode("utf-8")
-
-        logger.info(f"[BMX RESOLVE] Request body: {body_str}")
-
-        # Parse XML request (from trusted SoundTouch device)
-        root = ElementTree.fromstring(body_str)  # nosec B314
-
-        # Extract attributes
-        source = root.get("source", "")
-        location = root.get("location", "")
-        station_id = root.get("stationId", "")
-        item_name = root.find("itemName")
-        station_name_elem = root.find("stationName")
-
-        item_name_text = item_name.text if item_name is not None else "Unknown"
-        station_name_text = (
-            station_name_elem.text if station_name_elem is not None else item_name_text
-        )
-
-        logger.info(
-            f"[BMX RESOLVE] source={source}, location={location}, stationId={station_id}"
-        )
-
-        # Handle OCT relative locations (/oct/device/{id}/preset/{N})
-        # Resolve to absolute OCT stream proxy URL
-        if location and location.startswith("/oct/device/"):
-            # Extract device_id and preset_number from path
-            import re
-
-            match = re.match(r"/oct/device/([^/]+)/preset/(\d+)", location)
-            if match:
-                device_id = match.group(1)
-                preset_number = match.group(2)
-
-                # Get OCT backend URL from environment
-                oct_url = os.getenv("OCT_BACKEND_URL", "http://192.168.178.11:7777")
-                resolved_url = f"{oct_url}/device/{device_id}/preset/{preset_number}"
-
-                logger.info(
-                    f"[BMX RESOLVE] OCT location resolved: {location} → {resolved_url}"
-                )
-
-                # Build resolved ContentItem XML
-                resolved_xml = f"""<ContentItem source="INTERNET_RADIO" type="stationurl" location="{resolved_url}" isPresetable="true">
-  <itemName>{item_name_text}</itemName>
-  <stationName>{station_name_text}</stationName>
-</ContentItem>"""
-
-                return Response(content=resolved_xml, media_type="application/xml")
-
-        # Handle direct stream URLs or absolute OCT stream proxy URLs
-        # These are already resolved, pass through as-is
-        if location and (
-            location.startswith("http://") or location.startswith("https://")
-        ):
-            logger.info("[BMX RESOLVE] Direct URL or OCT proxy - pass through")
-            return Response(content=body_str, media_type="application/xml")
-
-        # Handle TuneIn stations (not implemented yet - would need TuneIn API)
-        if source == "TUNEIN" and station_id:
-            logger.warning(
-                f"[BMX RESOLVE] TuneIn station {station_id} not supported yet"
-            )
-            # For now, pass through
-            return Response(content=body_str, media_type="application/xml")
-
-        # Handle other sources (Spotify, etc.) - pass through
-        if source and source not in ["INTERNET_RADIO", "TUNEIN"]:
-            logger.info(f"[BMX RESOLVE] {source} source - pass through")
-            return Response(content=body_str, media_type="application/xml")
-
-        # If we can't resolve, return error
-        logger.error("[BMX RESOLVE] Unable to resolve stream")
-        return Response(
-            content="<error>Unable to resolve stream</error>",
-            status_code=400,
-            media_type="application/xml",
-        )
-
-    except Exception as e:
-        logger.error(f"[BMX RESOLVE] Error: {e}", exc_info=True)
-        return Response(
-            content="<error>Resolution failed</error>",
-            status_code=500,
-            media_type="application/xml",
+            headers={"Access-Control-Allow-Origin": "*"},
         )

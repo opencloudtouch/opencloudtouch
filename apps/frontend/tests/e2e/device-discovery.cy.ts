@@ -9,7 +9,7 @@
 describe("Device Discovery", () => {
   beforeEach(() => {
     // Clear DB before each test (fresh state)
-    const apiUrl = Cypress.env("apiUrl");
+    const apiUrl = Cypress.expose('apiUrl');
     cy.request("DELETE", `${apiUrl}/devices`);
   });
 
@@ -31,6 +31,10 @@ describe("Device Discovery", () => {
       // Verify devices visible (MockDiscoveryAdapter returns 3 devices)
       cy.get('[data-test="app-header"]').should("be.visible");
       cy.get('[data-test="device-card"]').should("have.length", 1);
+
+      // Wait for ALL 3 devices to load before checking navigation
+      // (progressive SSE may deliver devices incrementally)
+      cy.get(".swiper-dots .dot").should("have.length", 3);
 
       // Verify 3 devices by swiping navigation
       // Start at device 0 - left arrow should be disabled
@@ -81,7 +85,7 @@ describe("Device Discovery", () => {
     });
 
     it("should show correct number of devices based on manual IPs", () => {
-      const apiUrl = Cypress.env("apiUrl");
+      const apiUrl = Cypress.expose('apiUrl');
       const ips = ["192.168.1.100", "192.168.1.101", "192.168.1.102"];
 
       // Add manual IPs via API
@@ -93,6 +97,9 @@ describe("Device Discovery", () => {
       cy.waitForDevices();
 
       cy.url().should("eq", Cypress.config().baseUrl + "/");
+
+      // Wait for ALL 3 devices to load before checking navigation
+      cy.get(".swiper-dots .dot").should("have.length", 3);
 
       // Verify 3 devices by swiping navigation
       cy.get(".swipe-arrow-left").should("be.disabled");
@@ -146,12 +153,15 @@ describe("Device Discovery", () => {
       // Trigger discovery first
       cy.visit("/welcome");
       cy.get('[data-test="discover-button"]').click();
-      cy.waitForDevices();
 
-      // Now try to visit /welcome again (with devices in DB)
+      // Wait for discovery to complete AND auto-redirect to happen.
+      // This confirms devices are persisted in the DB before testing the guard.
+      cy.url().should("eq", Cypress.config().baseUrl + "/", { timeout: 15000 });
+
+      // Now try to visit /welcome again (with devices confirmed in DB)
       cy.visit("/welcome");
 
-      // Should redirect to dashboard
+      // Routing guard should redirect back to dashboard
       cy.url().should("eq", Cypress.config().baseUrl + "/");
     });
   });

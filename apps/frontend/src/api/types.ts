@@ -88,7 +88,9 @@ function getUserFriendlyMessage(statusOrType: number | string): string {
 }
 
 /**
- * Extract user-friendly error message from various error types
+ * Extract error message from various error types.
+ * Used in the API client layer for error propagation.
+ * UI display should use toUserMessage() from utils/errorMessages.ts instead.
  */
 export function getErrorMessage(error: unknown): string {
   // Check if it's our standardized ApiError

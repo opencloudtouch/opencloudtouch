@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { ToastType } from "../contexts/ToastContext";
 import "./Toast.css";
 
@@ -34,7 +34,7 @@ export default function Toast({ message, type = "info", duration = 5000, onClose
 
   if (!isVisible) return null;
 
-  const icons: Record<ToastType, JSX.Element> = {
+  const icons: Record<ToastType, React.ReactElement> = {
     success: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
         <path
