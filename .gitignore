@@ -30,6 +30,12 @@ deployment/data-local/
 *.tar
 opencloudtouch-image.tar
 
+# Raspberry Pi image build artifacts
+raspi-image/pi-gen/
+raspi-image/output/
+*.img
+*.img.xz
+
 # Temporary analysis files (cleanup/refactoring artifacts)
 *_TEMP.md
 CONTEXT_TEMP.md

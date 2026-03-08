@@ -2,7 +2,7 @@
 
 # ============================================================
 # Multi-stage build for OpenCloudTouch
-# Supports amd64 and arm64
+# Supports amd64, arm64, and armv7 (Raspberry Pi 2/3/4/5)
 # ============================================================
 
 # Base Image Versions (Pinned for Reproducibility)
@@ -34,6 +34,8 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
       npm install --no-save @rollup/rollup-linux-x64-musl; \
     elif [ "$TARGETARCH" = "arm64" ]; then \
       npm install --no-save @rollup/rollup-linux-arm64-musl; \
+    elif [ "$TARGETARCH" = "arm" ]; then \
+      npm install --no-save @rollup/rollup-linux-arm-musleabihf; \
     fi
 
 # Copy frontend source
