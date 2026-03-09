@@ -143,8 +143,18 @@ jobs:
           sed -i '/^rpi-keyboard-fw-update$/d' "$PACKAGES_FILE"
           sed -i '/^rpi-connect-lite$/d' "$PACKAGES_FILE"
 
-          echo "=== Patched stage2 packages ==="
+          echo "=== Patched stage2/01-sys-tweaks packages ==="
           cat "$PACKAGES_FILE"
+
+          # Also patch stage2/04-cloud-init packages
+          CLOUD_INIT_PACKAGES="pi-gen/stage2/04-cloud-init/00-packages"
+          if [ -f "$CLOUD_INIT_PACKAGES" ]; then
+            echo "=== Original stage2/04-cloud-init packages ==="
+            cat "$CLOUD_INIT_PACKAGES"
+            sed -i '/^rpi-cloud-init-mods$/d' "$CLOUD_INIT_PACKAGES"
+            echo "=== Patched stage2/04-cloud-init packages ==="
+            cat "$CLOUD_INIT_PACKAGES"
+          fi
 
           # Patch 01-run.sh: rpi-resize service comes from rpi-swap (removed above)
           # Make systemctl enable rpi-resize non-fatal
