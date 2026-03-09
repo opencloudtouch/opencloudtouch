@@ -75,7 +75,7 @@ jobs:
           ENABLE_SSH=1
           LOCALE_DEFAULT=en_GB.UTF-8
           KEYBOARD_KEYMAP=us
-          KEYBOARD_LAYOUT=English (US)
+          KEYBOARD_LAYOUT="English (US)"
           TIMEZONE_DEFAULT=Europe/Berlin
           WPA_COUNTRY=DE
           STAGE_LIST=stage0 stage1 stage2 stage-opencloudtouch
