@@ -27,6 +27,8 @@ COPY package*.json ./
 COPY apps/frontend/package*.json ./apps/frontend/
 
 # Install dependencies using workspace
+# Skip Cypress binary download - not needed for frontend build (only for E2E tests)
+ENV CYPRESS_INSTALL_BINARY=0
 RUN npm ci
 
 # Install platform-specific rollup binary for Alpine (musl)

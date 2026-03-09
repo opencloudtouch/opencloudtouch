@@ -29,7 +29,6 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.21",
-    "cypress": "^15.10.0",
     "framer-motion": "^12.35.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -37,6 +36,7 @@
   },
   "devDependencies": {
     "@eslint/css": "^0.14.1",
+    "cypress": "^15.10.0",
     "@eslint/js": "10.0.1",
     "@eslint/json": "^1.0.0",
     "@eslint/markdown": "^7.5.1",
