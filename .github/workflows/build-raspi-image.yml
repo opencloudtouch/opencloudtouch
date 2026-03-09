@@ -78,7 +78,7 @@ jobs:
           KEYBOARD_LAYOUT="English (US)"
           TIMEZONE_DEFAULT=Europe/Berlin
           WPA_COUNTRY=DE
-          STAGE_LIST=stage0 stage1 stage2 stage-opencloudtouch
+          STAGE_LIST="stage0 stage1 stage2 stage-opencloudtouch"
           EOF
 
           # Remove leading whitespace from config (heredoc indentation)
