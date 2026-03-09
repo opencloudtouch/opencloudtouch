@@ -70,18 +70,43 @@ docker compose -f deployment/docker-compose.yml down
 ### Option 2: Docker Run (GHCR Image)
 
 ```bash
+# Latest stable release (recommended)
 docker run -d \
   --name opencloudtouch \
   --network host \
-  -v oct-data:/data \
-  ghcr.io/scheilch/opencloudtouch:latest
+  -v opencloudtouch-data:/data \
+  -e OCT_DISCOVERY_ENABLED=true \
+  ghcr.io/scheilch/opencloudtouch:stable
+
+# Or a specific version
+docker pull ghcr.io/scheilch/opencloudtouch:1.0.0
 ```
 
-Beispiel fuer einen commit-spezifischen Tag:
+### Available Docker Tags
 
-```bash
-docker pull ghcr.io/scheilch/opencloudtouch:main-6ce3982
-```
+| Tag | Description |
+|-----|-------------|
+| `stable` | Latest stable release (recommended) |
+| `1.0.0` | Specific version |
+| `latest` | Latest build from main (may be unstable) |
+| `1.0` | Latest patch of minor version |
+
+### Supported Architectures
+
+| Arch | Platform | Devices |
+|------|----------|---------|
+| `amd64` | x86_64 | Desktop, Server, NAS |
+| `arm64` | aarch64 | Raspberry Pi 4/5, Apple Silicon |
+| `arm/v7` | armhf | Raspberry Pi 2/3 |
+
+### Option 3: Raspberry Pi (SD-Card Image)
+
+Pre-built SD card images for Raspberry Pi 3/4/5 are available on the [Releases page](https://github.com/scheilch/opencloudtouch/releases).
+
+1. Download `.img.xz` for your architecture
+2. Flash with [Raspberry Pi Imager](https://www.raspberrypi.com/software/)
+3. Boot → OpenCloudTouch starts automatically on port 7777
+4. Default login: `oct` / `opencloudtouch`
 
 ## Projekt-Struktur
 

@@ -80,6 +80,15 @@ RUN apt-get purge -y --auto-remove gcc && \
 # Stage 3: Backend Runtime
 FROM python:3.11-slim@sha256:0b23cfb7425d065008b778022a17b1551c82f8b4866ee5a7a200084b7e2eafbf AS backend
 
+# OCI Image Labels
+LABEL org.opencontainers.image.title="OpenCloudTouch" \
+      org.opencontainers.image.description="Local control for Bose SoundTouch devices after cloud shutdown" \
+      org.opencontainers.image.url="https://github.com/scheilch/opencloudtouch" \
+      org.opencontainers.image.source="https://github.com/scheilch/opencloudtouch" \
+      org.opencontainers.image.documentation="https://github.com/scheilch/opencloudtouch/wiki" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.vendor="OpenCloudTouch"
+
 WORKDIR /app
 
 # Copy Python dependencies from build stage

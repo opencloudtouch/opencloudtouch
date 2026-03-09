@@ -9,18 +9,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_No changes yet._
+
+---
+
+## [1.0.0] - 2026-03-09
+
 ### Added
+- **Setup Wizard** — Guided device configuration with manual and guided modes
+- **Raspberry Pi SD card images** — Pre-built images for Pi 3/4/5 (arm64 + armhf)
+- **Automated release pipeline** — One-click releases with version bump, Docker push, RasPi builds
+- **Upgrade guide** (UPGRADING.md) — Version-to-version migration documentation
+- **GitHub Wiki** — 20+ bilingual documentation pages (DE/EN)
+- **Accessibility audit** — Automated a11y testing with Cypress
+- **UX screenshot tests** — Visual regression testing across viewports and themes
+- **E2E test suite** — 159 end-to-end tests across 10 specs
+- **Pre-commit hooks** — Restructured: commit = unit tests (~60s), push = full suite
 - Trivy container security scanning in CI/CD pipeline
 - Dependabot configuration for automated dependency updates
 - API documentation (docs/API.md)
 - Troubleshooting guide (docs/TROUBLESHOOTING.md)
 - Security policy (SECURITY.md)
+- OCI image labels for Docker/GHCR metadata
+- Docker Compose deployment template
 - This changelog
 
 ### Changed
+- **Test suite expanded** from 644 to 1527 tests (1024 backend + 344 frontend + 159 E2E)
 - Dependency injection migrated from global singletons to FastAPI app.state
 - Pinned all dependencies to exact versions in pyproject.toml
 - Added `pythonpath = src` to pytest.ini for CI compatibility
+- Docker image now supports `stable` tag for production use
+- README updated with versioned Docker tags and RasPi instructions
+- Parallel test execution with pytest-xdist
 
 ### Fixed
 - Frontend type safety: replaced 'any' type with RawStationData interface
@@ -30,11 +51,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - XML namespace handling in SSDP discovery
 - Indentation bug in IDeviceSyncService protocol
 - Database filename typo in config.example.yaml (ct.db → oct.db)
+- Pi-gen build compatibility for both arm64 and armhf architectures
 
 ### Security
 - Enabled container vulnerability scanning (Trivy)
 - Documented security considerations and threat model
 - Added Dependabot for automated security updates
+- Removed vulnerable vendored packages from setuptools in Docker image
 
 ---
 
@@ -87,6 +110,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.0.0 | 2026-03-09 | Setup Wizard, Multi-arch Docker, RasPi images, 1527 tests |
 | 0.2.0 | 2026-02-01 | Major release: SSDP discovery, presets, radio search |
 | 0.1.0 | 2026-01-15 | Initial release: basic device control |
 
@@ -114,13 +138,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Release Process
 
-1. Update version in `apps/backend/pyproject.toml`
-2. Update version in `apps/frontend/package.json`
-3. Update this CHANGELOG.md (move Unreleased → new version)
-4. Commit: `git commit -m "chore(release): bump version to vX.Y.Z"`
-5. Tag: `git tag -a vX.Y.Z -m "Release vX.Y.Z"`
-6. Push: `git push && git push --tags`
-7. GitHub Actions builds and publishes container image
+Releases are fully automated via GitHub Actions:
+
+1. Go to **Actions → Release → Run workflow**
+2. Enter version number (e.g., `1.1.0`)
+3. The workflow automatically:
+   - Bumps version in all package files
+   - Updates this CHANGELOG
+   - Creates Git tag and GitHub Release
+   - Builds and pushes Docker images (amd64, arm64, arm/v7)
+   - Builds Raspberry Pi SD card images
+   - Attaches all artifacts to the release
+
+See [UPGRADING.md](UPGRADING.md) for version-specific migration guides.
 
 ---
 

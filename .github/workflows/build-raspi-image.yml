@@ -139,11 +139,21 @@ jobs:
         run: |
           OCT_VERSION="${{ inputs.oct_version || 'latest' }}"
 
-          # Find the built image
+          # Find the built image (may be inside a ZIP)
           IMG_FILE=$(find pi-gen/deploy -name "*.img" -type f | head -1)
           if [ -z "$IMG_FILE" ]; then
+            # Try extracting from ZIP
+            ZIP_FILE=$(find pi-gen/deploy -name "*.zip" -type f | head -1)
+            if [ -n "$ZIP_FILE" ]; then
+              echo "Found ZIP: $ZIP_FILE — extracting..."
+              unzip -o "$ZIP_FILE" -d pi-gen/deploy/
+              IMG_FILE=$(find pi-gen/deploy -name "*.img" -type f | head -1)
+            fi
+          fi
+
+          if [ -z "$IMG_FILE" ]; then
             echo "::error::No image file found!"
-            ls -la pi-gen/deploy/ || echo "deploy dir not found"
+            ls -laR pi-gen/deploy/ || echo "deploy dir not found"
             exit 1
           fi
 

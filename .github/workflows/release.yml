@@ -1,10 +1,24 @@
-name: Create Release
+# ==============================================================================
+# RELEASE WORKFLOW — Fully automated release pipeline
+#
+# Trigger: workflow_dispatch with version input
+# Steps:
+#   1. Pre-flight: Validate version, check CI status
+#   2. Version bump: pyproject.toml, package.json, frontend/package.json
+#   3. CHANGELOG.md: Move [Unreleased] → [X.Y.Z] - YYYY-MM-DD
+#   4. Commit: "chore(release): vX.Y.Z"
+#   5. Git Tag: vX.Y.Z → triggers ci-cd.yml → Docker Multi-Arch Build + Push
+#   6. GitHub Release: Auto-generated changelog + Docker instructions
+#   7. Trigger: build-raspi-image.yml for arm64 + armhf
+# ==============================================================================
+
+name: Release
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g., 1.2.3 without v prefix)'
+        description: 'Release version (e.g., 1.0.0 — without v prefix)'
         required: true
         type: string
       prerelease:
@@ -12,25 +26,27 @@ on:
         required: false
         type: boolean
         default: false
-      release_notes:
-        description: 'Release notes (optional, auto-generated if empty)'
+      skip_raspi:
+        description: 'Skip Raspberry Pi image builds'
         required: false
-        type: string
+        type: boolean
+        default: false
 
 jobs:
-  create-release:
-    name: Create Release Tag
+  # ============================================================================
+  # PRE-FLIGHT CHECKS
+  # ============================================================================
+  preflight:
+    name: Pre-flight Checks
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - name: Validate version format
         run: |
           VERSION="${{ inputs.version }}"
-          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "❌ Invalid version format: $VERSION"
-            echo "Expected: X.Y.Z (e.g., 1.2.3)"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "::error::Invalid version format: $VERSION"
+            echo "Expected: X.Y.Z or X.Y.Z-beta.1 (e.g., 1.0.0, 2.1.0-rc.1)"
             exit 1
           fi
           echo "✅ Valid version: $VERSION"
@@ -38,211 +54,377 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0  # Full history for changelog
+          fetch-depth: 0
+
+      - name: Check tag does not exist
+        run: |
+          TAG="v${{ inputs.version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "::error::Tag $TAG already exists! Delete first: git push --delete origin $TAG && git tag -d $TAG"
+            exit 1
+          fi
+          echo "✅ Tag $TAG is available"
+
+      - name: Check latest CI status on main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🔍 Checking CI/CD status on main..."
+
+          LAST_RUN=$(gh run list --workflow=ci-cd.yml --branch=main --limit=1 \
+            --json conclusion --jq '.[0].conclusion' 2>/dev/null || echo "unknown")
+
+          echo "Last CI run: $LAST_RUN"
+
+          if [ "$LAST_RUN" = "failure" ]; then
+            echo "::warning::Last CI/CD run on main failed. Proceeding anyway (manual trigger)."
+          fi
+
+          echo "✅ Pre-flight checks passed"
+
+  # ============================================================================
+  # VERSION BUMP + TAG + RELEASE
+  # ============================================================================
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: preflight
+
+    permissions:
+      contents: write
+
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      version: ${{ steps.tag.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Check if tag already exists
+      - name: Bump version in all package files
         run: |
-          TAG="v${{ inputs.version }}"
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "❌ Tag $TAG already exists!"
-            echo "Delete it first with: git push --delete origin $TAG"
-            exit 1
-          fi
-          echo "✅ Tag $TAG is available"
+          VERSION="${{ inputs.version }}"
+          echo "📦 Bumping version to $VERSION..."
 
-      - name: Generate changelog
-        id: changelog
+          # 1. Root package.json
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" package.json
+          echo "  ✅ package.json"
+
+          # 2. Backend pyproject.toml (project.version AND tool.commitizen.version)
+          sed -i "s/^version = \"[^\"]*\"/version = \"$VERSION\"/" apps/backend/pyproject.toml
+          echo "  ✅ apps/backend/pyproject.toml"
+
+          # 3. Frontend package.json
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" apps/frontend/package.json
+          echo "  ✅ apps/frontend/package.json"
+
+          # Verify
+          echo ""
+          echo "=== Version verification ==="
+          grep '"version"' package.json | head -1
+          grep '^version' apps/backend/pyproject.toml | head -1
+          grep '"version"' apps/frontend/package.json | head -1
+
+      - name: Update CHANGELOG.md
         run: |
-          TAG="v${{ inputs.version }}"
+          VERSION="${{ inputs.version }}"
+          DATE=$(date +%Y-%m-%d)
 
-          # Get last tag
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          echo "📝 Updating CHANGELOG.md: [Unreleased] → [$VERSION] - $DATE"
 
-          if [ -z "$LAST_TAG" ]; then
-            echo "📝 First release - no previous tag found"
-            CHANGELOG="## 🎉 First Release\n\nInitial release of OpenCloudTouch v${{ inputs.version }}"
-          else
-            echo "📝 Generating changelog since $LAST_TAG"
+          sed -i "s/## \[Unreleased\]/## [Unreleased]\n\n_No changes yet._\n\n---\n\n## [$VERSION] - $DATE/" CHANGELOG.md
 
-            # Parse Conventional Commits and group by type
-            FEATURES=$(git log ${LAST_TAG}..HEAD --pretty=format:"%s (%h)" --no-merges --grep="^feat" || echo "")
-            FIXES=$(git log ${LAST_TAG}..HEAD --pretty=format:"%s (%h)" --no-merges --grep="^fix" || echo "")
-            PERF=$(git log ${LAST_TAG}..HEAD --pretty=format:"%s (%h)" --no-merges --grep="^perf" || echo "")
-            DOCS=$(git log ${LAST_TAG}..HEAD --pretty=format:"%s (%h)" --no-merges --grep="^docs" || echo "")
-            TESTS=$(git log ${LAST_TAG}..HEAD --pretty=format:"%s (%h)" --no-merges --grep="^test" || echo "")
-            REFACTOR=$(git log ${LAST_TAG}..HEAD --pretty=format:"%s (%h)" --no-merges --grep="^refactor" || echo "")
-            CI=$(git log ${LAST_TAG}..HEAD --pretty=format:"%s (%h)" --no-merges --grep="^ci" || echo "")
-            CHORE=$(git log ${LAST_TAG}..HEAD --pretty=format:"%s (%h)" --no-merges --grep="^chore\|^build" || echo "")
-            BREAKING=$(git log ${LAST_TAG}..HEAD --pretty=format:"%s (%h)" --no-merges --grep="BREAKING CHANGE\|!" || echo "")
+          echo "  ✅ CHANGELOG.md updated"
 
-            # Build changelog
-            CHANGELOG="## 🚀 What's Changed in v${{ inputs.version }}\n\n"
+      - name: Commit version bump
+        run: |
+          VERSION="${{ inputs.version }}"
+          git add package.json apps/backend/pyproject.toml apps/frontend/package.json CHANGELOG.md
+          git commit -m "chore(release): v${VERSION}
 
-            # Breaking Changes first!
-            if [ -n "$BREAKING" ]; then
-              CHANGELOG="${CHANGELOG}### ⚠️ Breaking Changes\n\n"
-              while IFS= read -r commit; do
-                CHANGELOG="${CHANGELOG}- ${commit}\n"
-              done <<< "$BREAKING"
-              CHANGELOG="${CHANGELOG}\n"
-            fi
+          - Bump version to ${VERSION} in all package files
+          - Update CHANGELOG.md with release date"
 
-            # Features
-            if [ -n "$FEATURES" ]; then
-              CHANGELOG="${CHANGELOG}### ✨ Features\n\n"
-              while IFS= read -r commit; do
-                CHANGELOG="${CHANGELOG}- ${commit}\n"
-              done <<< "$FEATURES"
-              CHANGELOG="${CHANGELOG}\n"
-            fi
-
-            # Bug Fixes
-            if [ -n "$FIXES" ]; then
-              CHANGELOG="${CHANGELOG}### 🐛 Bug Fixes\n\n"
-              while IFS= read -r commit; do
-                CHANGELOG="${CHANGELOG}- ${commit}\n"
-              done <<< "$FIXES"
-              CHANGELOG="${CHANGELOG}\n"
-            fi
-
-            # Performance
-            if [ -n "$PERF" ]; then
-              CHANGELOG="${CHANGELOG}### ⚡ Performance\n\n"
-              while IFS= read -r commit; do
-                CHANGELOG="${CHANGELOG}- ${commit}\n"
-              done <<< "$PERF"
-              CHANGELOG="${CHANGELOG}\n"
-            fi
-
-            # Refactoring
-            if [ -n "$REFACTOR" ]; then
-              CHANGELOG="${CHANGELOG}### ♻️ Refactoring\n\n"
-              while IFS= read -r commit; do
-                CHANGELOG="${CHANGELOG}- ${commit}\n"
-              done <<< "$REFACTOR"
-              CHANGELOG="${CHANGELOG}\n"
-            fi
-
-            # Tests
-            if [ -n "$TESTS" ]; then
-              CHANGELOG="${CHANGELOG}### 🧪 Tests\n\n"
-              while IFS= read -r commit; do
-                CHANGELOG="${CHANGELOG}- ${commit}\n"
-              done <<< "$TESTS"
-              CHANGELOG="${CHANGELOG}\n"
-            fi
-
-            # Documentation
-            if [ -n "$DOCS" ]; then
-              CHANGELOG="${CHANGELOG}### 📚 Documentation\n\n"
-              while IFS= read -r commit; do
-                CHANGELOG="${CHANGELOG}- ${commit}\n"
-              done <<< "$DOCS"
-              CHANGELOG="${CHANGELOG}\n"
-            fi
-
-            # CI/CD
-            if [ -n "$CI" ]; then
-              CHANGELOG="${CHANGELOG}### 🔧 CI/CD\n\n"
-              while IFS= read -r commit; do
-                CHANGELOG="${CHANGELOG}- ${commit}\n"
-              done <<< "$CI"
-              CHANGELOG="${CHANGELOG}\n"
-            fi
-
-            # Maintenance
-            if [ -n "$CHORE" ]; then
-              CHANGELOG="${CHANGELOG}### 🛠️ Maintenance\n\n"
-              while IFS= read -r commit; do
-                CHANGELOG="${CHANGELOG}- ${commit}\n"
-              done <<< "$CHORE"
-              CHANGELOG="${CHANGELOG}\n"
-            fi
-
-            CHANGELOG="${CHANGELOG}\n**Full Changelog**: https://github.com/${{ github.repository }}/compare/${LAST_TAG}...${TAG}"
-          fi
-
-          # Use custom release notes if provided
-          if [ -n "${{ inputs.release_notes }}" ]; then
-            CHANGELOG="${{ inputs.release_notes }}"
-          fi
-
-          # Save to file (multi-line safe)
-          echo -e "$CHANGELOG" > changelog.txt
-          cat changelog.txt
+          echo "✅ Version bump committed"
 
       - name: Create and push tag
+        id: tag
         run: |
-          TAG="v${{ inputs.version }}"
-          git tag -a "$TAG" -m "Release $TAG"
+          VERSION="${{ inputs.version }}"
+          TAG="v${VERSION}"
+
+          git tag -a "$TAG" -m "Release $TAG
+
+          OpenCloudTouch $TAG — Local control for Bose SoundTouch devices.
+
+          See CHANGELOG.md for details."
+
+          git push origin main
           git push origin "$TAG"
 
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
           echo "✅ Tag $TAG created and pushed"
-          echo "🚀 CI/CD Pipeline will now build and push Docker images"
+          echo "🚀 CI/CD Pipeline will build Docker images automatically"
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          VERSION="${{ inputs.version }}"
+          TAG="v${VERSION}"
+
+          # Get previous tag
+          PREV_TAG=$(git tag --sort=-v:refname | grep -v "$TAG" | head -1 || echo "")
+
+          if [ -z "$PREV_TAG" ]; then
+            RANGE=""
+            COMPARE_TEXT="🎉 **First release of OpenCloudTouch!**"
+          else
+            RANGE="${PREV_TAG}..${TAG}"
+            COMPARE_TEXT="**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${TAG}"
+          fi
+
+          # Build release notes file
+          cat > release-notes.md << EOF
+          ## 🚀 OpenCloudTouch v${VERSION}
+
+          Local control for Bose® SoundTouch® devices — after the cloud shutdown.
+          EOF
+          sed -i 's/^          //' release-notes.md
+
+          # Parse conventional commits (only if we have a range)
+          add_section() {
+            local title="$1"
+            local pattern="$2"
+            local icon="$3"
+            local content=""
+
+            if [ -n "$RANGE" ]; then
+              content=$(git log $RANGE --pretty=format:"- %s (%h)" --no-merges --grep="$pattern" 2>/dev/null || echo "")
+            else
+              content=$(git log --pretty=format:"- %s (%h)" --no-merges --grep="$pattern" 2>/dev/null || echo "")
+            fi
+
+            if [ -n "$content" ]; then
+              echo "" >> release-notes.md
+              echo "### ${icon} ${title}" >> release-notes.md
+              echo "" >> release-notes.md
+              echo "$content" >> release-notes.md
+            fi
+          }
+
+          add_section "Features" "^feat" "✨"
+          add_section "Bug Fixes" "^fix" "🐛"
+          add_section "Performance" "^perf" "⚡"
+          add_section "Refactoring" "^refactor" "♻️"
+          add_section "Tests" "^test" "🧪"
+          add_section "Documentation" "^docs" "📚"
+          add_section "CI/CD" "^ci" "🔧"
+          add_section "Maintenance" "^chore\|^build" "🛠️"
+          add_section "Style" "^style" "🎨"
+
+          # Docker instructions
+          cat >> release-notes.md << EOF
+
+          ---
+
+          ## 📦 Installation
+
+          ### Docker (recommended)
+
+          \`\`\`bash
+          # Pull the latest stable release
+          docker pull ghcr.io/${{ github.repository }}:stable
+
+          # Or pull this specific version
+          docker pull ghcr.io/${{ github.repository }}:${VERSION}
+
+          # Run the container
+          docker run -d \\
+            --name opencloudtouch \\
+            --network host \\
+            -v opencloudtouch-data:/data \\
+            -e OCT_DISCOVERY_ENABLED=true \\
+            ghcr.io/${{ github.repository }}:${VERSION}
+          \`\`\`
+
+          ### Docker Compose
+
+          \`\`\`yaml
+          services:
+            opencloudtouch:
+              image: ghcr.io/${{ github.repository }}:${VERSION}
+              container_name: opencloudtouch
+              restart: unless-stopped
+              network_mode: host
+              volumes:
+                - oct-data:/data
+              environment:
+                - OCT_DISCOVERY_ENABLED=true
+                - OCT_LOG_LEVEL=INFO
+
+          volumes:
+            oct-data:
+          \`\`\`
+
+          ### Raspberry Pi (SD-Card Image)
+
+          Pre-built SD card images for Raspberry Pi 3/4/5 will be attached to this release shortly.
+
+          1. Download the \`.img.xz\` file for your architecture (arm64 or armhf)
+          2. Flash with [Raspberry Pi Imager](https://www.raspberrypi.com/software/) or: \`xz -d *.img.xz && sudo dd if=*.img of=/dev/sdX bs=4M status=progress\`
+          3. Boot → OpenCloudTouch starts automatically on port 7777
+          4. Default credentials: \`oct\` / \`opencloudtouch\`
+
+          ### Available Docker Tags
+
+          | Tag | Description |
+          |-----|-------------|
+          | \`stable\` | Latest stable release (recommended) |
+          | \`${VERSION}\` | This specific version |
+          | \`latest\` | Latest build from main branch |
+          | \`$(echo $VERSION | cut -d. -f1-2)\` | Latest patch of this minor version |
+
+          ### Supported Architectures
+
+          | Architecture | Platform | Example Devices |
+          |-------------|----------|-----------------|
+          | \`amd64\` | x86_64 | Desktop, Server, NAS |
+          | \`arm64\` | aarch64 | Raspberry Pi 4/5, Apple Silicon |
+          | \`arm/v7\` | armhf | Raspberry Pi 2/3 |
+
+          ---
+
+          ## 🔗 Resources
+
+          - 📖 [Documentation (Wiki)](https://github.com/scheilch/opencloudtouch/wiki)
+          - 🐛 [Report Issues](https://github.com/scheilch/opencloudtouch/issues)
+          - 📋 [Upgrade Guide](https://github.com/scheilch/opencloudtouch/blob/main/UPGRADING.md)
+          - 📄 [Full Changelog](https://github.com/scheilch/opencloudtouch/blob/main/CHANGELOG.md)
+
+          ${COMPARE_TEXT}
+          EOF
+
+          # Remove heredoc indentation
+          sed -i 's/^          //' release-notes.md
+
+          echo "=== Release Notes Preview ==="
+          head -30 release-notes.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ inputs.version }}
-          name: Release v${{ inputs.version }}
-          body_path: changelog.txt
+          name: "🎉 OpenCloudTouch v${{ inputs.version }}"
+          body_path: release-notes.md
           prerelease: ${{ inputs.prerelease }}
           draft: false
-          generate_release_notes: true  # GitHub auto-generates additional notes
+          make_latest: ${{ !inputs.prerelease }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Summary
+      - name: Step summary
         run: |
-          echo "# 🎉 Release v${{ inputs.version }} Created!" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Tag:** \`v${{ inputs.version }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Pre-release:** ${{ inputs.prerelease && '✅ Yes' || '❌ No' }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## 🚀 Next Steps" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "1. ✅ Git tag created and pushed" >> $GITHUB_STEP_SUMMARY
-          echo "2. ✅ GitHub Release created" >> $GITHUB_STEP_SUMMARY
-          echo "3. ⏳ **CI/CD Pipeline triggered** - Building Docker images..." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Watch the build:** [CI/CD Pipeline](https://github.com/${{ github.repository }}/actions/workflows/ci-cd.yml)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## 📦 Docker Images (after CI/CD completes)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "# Pull latest stable release:" >> $GITHUB_STEP_SUMMARY
-          echo "docker pull ghcr.io/${{ github.repository }}:stable" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "# Pull specific version:" >> $GITHUB_STEP_SUMMARY
-          echo "docker pull ghcr.io/${{ github.repository }}:${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Release Page:** https://github.com/${{ github.repository }}/releases/tag/v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          VERSION="${{ inputs.version }}"
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # 🎉 Release v${VERSION} Created!
 
-  verify-trigger:
-    name: Verify CI/CD Trigger
+          | Step | Status |
+          |------|--------|
+          | Version bump | ✅ package.json, pyproject.toml, frontend/package.json |
+          | CHANGELOG.md | ✅ Updated |
+          | Git commit | ✅ Pushed to main |
+          | Git tag | ✅ v${VERSION} |
+          | GitHub Release | ✅ Published |
+
+          ## 🚀 Automated Downstream Pipelines
+
+          1. **CI/CD** → Docker multi-arch build + push to GHCR
+             [Watch](https://github.com/${{ github.repository }}/actions/workflows/ci-cd.yml)
+          2. **Raspberry Pi** → SD card images (arm64 + armhf)
+             [Watch](https://github.com/${{ github.repository }}/actions/workflows/build-raspi-image.yml)
+
+          ## 📦 After CI completes
+
+          \`\`\`bash
+          docker pull ghcr.io/${{ github.repository }}:stable
+          docker pull ghcr.io/${{ github.repository }}:${VERSION}
+          \`\`\`
+
+          **Release:** https://github.com/${{ github.repository }}/releases/tag/v${VERSION}
+          EOF
+
+  # ============================================================================
+  # TRIGGER RASPBERRY PI IMAGE BUILDS
+  # ============================================================================
+  trigger-raspi:
+    name: Trigger Raspberry Pi Builds
     runs-on: ubuntu-latest
-    needs: create-release
+    needs: release
+    if: ${{ !inputs.skip_raspi }}
 
     steps:
-      - name: Wait for CI/CD
+      - name: Trigger build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "⏳ Waiting 5 seconds for CI/CD pipeline to start..."
-          sleep 5
+          VERSION="${{ needs.release.outputs.version }}"
+          echo "🍓 Triggering Raspberry Pi image builds for v${VERSION}..."
 
-      - name: Check CI/CD status
+          gh workflow run build-raspi-image.yml \
+            --repo "${{ github.repository }}" \
+            --field oct_version="${VERSION}" \
+            --field architectures=all \
+            --field attach_to_release=true
+
+          echo "✅ Raspberry Pi build triggered"
+          echo "📋 Images will be automatically attached to the release when ready"
+
+  # ============================================================================
+  # VERIFY DOWNSTREAM WORKFLOWS
+  # ============================================================================
+  verify:
+    name: Verify Downstream
+    runs-on: ubuntu-latest
+    needs: [release, trigger-raspi]
+    if: always() && needs.release.result == 'success'
+
+    steps:
+      - name: Wait and check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "🔍 Checking if CI/CD pipeline was triggered..."
-          echo ""
-          echo "Expected workflow run for tag: v${{ inputs.version }}"
-          echo ""
-          echo "📊 View CI/CD runs: https://github.com/${{ github.repository }}/actions/workflows/ci-cd.yml"
-          echo ""
-          echo "If no run appears after 1 minute, check:"
-          echo "  1. Tag v${{ inputs.version }} exists: git fetch --tags && git tag -l"
-          echo "  2. CI/CD workflow triggers on 'tags: v*'"
+          sleep 15
+          VERSION="${{ needs.release.outputs.version }}"
+          TAG="v${VERSION}"
+
+          echo "# 🔍 Downstream Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # CI/CD
+          CI_STATUS=$(gh run list --workflow=ci-cd.yml --limit=1 \
+            --repo "${{ github.repository }}" \
+            --json status --jq '.[0].status' 2>/dev/null || echo "unknown")
+          echo "- **CI/CD Pipeline**: ${CI_STATUS}" >> $GITHUB_STEP_SUMMARY
+
+          # RasPi
+          if [ "${{ needs.trigger-raspi.result }}" = "success" ]; then
+            RASPI_STATUS=$(gh run list --workflow=build-raspi-image.yml --limit=1 \
+              --repo "${{ github.repository }}" \
+              --json status --jq '.[0].status' 2>/dev/null || echo "unknown")
+            echo "- **Raspberry Pi Builds**: ${RASPI_STATUS}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Raspberry Pi Builds**: ⏭️ Skipped" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📋 [Release Page](https://github.com/${{ github.repository }}/releases/tag/${TAG})" >> $GITHUB_STEP_SUMMARY
