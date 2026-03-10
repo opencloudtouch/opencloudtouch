@@ -16,48 +16,28 @@ _No changes yet._
 ## [1.0.0] - 2026-03-09
 
 ### Added
-- **Setup Wizard** — Guided device configuration with manual and guided modes
+- **Setup Wizard** — Manual device configuration via SSH and USB stick
 - **Raspberry Pi SD card images** — Pre-built images for Pi 3/4/5 (arm64 + armhf)
-- **Automated release pipeline** — One-click releases with version bump, Docker push, RasPi builds
+- **Multi-arch Docker images** — amd64, arm64, arm/v7
 - **Upgrade guide** (UPGRADING.md) — Version-to-version migration documentation
-- **GitHub Wiki** — 20+ bilingual documentation pages (DE/EN)
-- **Accessibility audit** — Automated a11y testing with Cypress
-- **UX screenshot tests** — Visual regression testing across viewports and themes
-- **E2E test suite** — 159 end-to-end tests across 10 specs
-- **Pre-commit hooks** — Restructured: commit = unit tests (~60s), push = full suite
-- Trivy container security scanning in CI/CD pipeline
-- Dependabot configuration for automated dependency updates
-- API documentation (docs/API.md)
-- Troubleshooting guide (docs/TROUBLESHOOTING.md)
-- Security policy (SECURITY.md)
-- OCI image labels for Docker/GHCR metadata
+- **Documentation** — Bilingual Wiki pages (DE/EN), API docs, Troubleshooting guide
 - Docker Compose deployment template
 - This changelog
 
 ### Changed
-- **Test suite expanded** from 644 to 1527 tests (1024 backend + 344 frontend + 159 E2E)
-- Dependency injection migrated from global singletons to FastAPI app.state
-- Pinned all dependencies to exact versions in pyproject.toml
-- Added `pythonpath = src` to pytest.ini for CI compatibility
 - Docker image now supports `stable` tag for production use
-- README updated with versioned Docker tags and RasPi instructions
-- Parallel test execution with pytest-xdist
+- Pinned all dependencies to exact versions
 
 ### Fixed
-- Frontend type safety: replaced 'any' type with RawStationData interface
 - CORS configuration now uses explicit default origins instead of wildcard
 - SQLite index name collision between devices and presets tables
-- RadioStation model consolidated into single source in radio/models.py
 - XML namespace handling in SSDP discovery
-- Indentation bug in IDeviceSyncService protocol
-- Database filename typo in config.example.yaml (ct.db → oct.db)
+- Database filename typo in config (ct.db → oct.db)
 - Pi-gen build compatibility for both arm64 and armhf architectures
 
 ### Security
-- Enabled container vulnerability scanning (Trivy)
-- Documented security considerations and threat model
-- Added Dependabot for automated security updates
-- Removed vulnerable vendored packages from setuptools in Docker image
+- Container vulnerability scanning enabled
+- Automated dependency security updates
 
 ---
 
@@ -68,9 +48,6 @@ _No changes yet._
 - Preset management supporting slots 1-6
 - RadioBrowser.info integration for internet radio search
 - Manual device IP configuration for networks without multicast
-- Multiroom group detection and display
-- Volume control with debouncing
-- Now playing information display
 - Device swiper navigation for browsing multiple devices
 - Mock mode for local development without physical devices
 - Health check endpoint for container monitoring
@@ -95,8 +72,7 @@ _No changes yet._
 ### Added
 - Initial release
 - Basic device listing via manual configuration
-- Now playing information from SoundTouch API
-- Simple web interface for device control
+- Basic web interface for device control
 - Docker deployment support
 
 ### Known Issues
@@ -110,7 +86,7 @@ _No changes yet._
 
 | Version | Date | Description |
 |---------|------|-------------|
-| 1.0.0 | 2026-03-09 | Setup Wizard, Multi-arch Docker, RasPi images, 1527 tests |
+| 1.0.0 | 2026-03-09 | Setup Wizard (manual), Multi-arch Docker, RasPi images |
 | 0.2.0 | 2026-02-01 | Major release: SSDP discovery, presets, radio search |
 | 0.1.0 | 2026-01-15 | Initial release: basic device control |
 
@@ -155,5 +131,5 @@ See [UPGRADING.md](UPGRADING.md) for version-specific migration guides.
 ---
 
 **Maintained by:** OpenCloudTouch Contributors  
-**License:** MIT  
-**Repository:** https://github.com/yourorg/opencloudtouch
+**License:** Apache License 2.0  
+**Repository:** https://github.com/scheilch/opencloudtouch

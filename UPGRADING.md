@@ -8,13 +8,10 @@ This guide helps you upgrade between OpenCloudTouch versions.
 
 ### What's New
 
-- **Setup Wizard** — Guided device configuration (manual + guided mode)
-- **1500+ tests** — Comprehensive test suite (backend, frontend, E2E)
+- **Setup Wizard** — Manual device configuration via SSH and USB stick
 - **Multi-arch Docker images** — amd64, arm64, arm/v7
 - **Raspberry Pi SD card images** — Pre-built images for Pi 3/4/5
-- **Security scanning** — Trivy container scanning in CI/CD
-- **Automated dependency updates** — Dependabot for Python + npm
-- **Full documentation** — GitHub Wiki with bilingual pages (DE/EN)
+- **Documentation** — Bilingual Wiki (DE/EN) with installation, setup, and troubleshooting guides
 
 ### Docker Upgrade
 
@@ -131,7 +128,7 @@ docker restart opencloudtouch
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| 1.0.0 | 2026-03-09 | Setup Wizard, Multi-arch Docker, RasPi images, 1500+ tests |
+| 1.0.0 | 2026-03-09 | Setup Wizard (manual), Multi-arch Docker, RasPi images |
 | 0.2.0 | 2026-02-01 | SSDP discovery, presets, radio search, Clean Architecture |
 | 0.1.0 | 2026-01-15 | Initial release, basic device control |
 

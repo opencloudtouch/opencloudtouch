@@ -16,7 +16,7 @@ Ziel: SoundTouch®-Lautsprecher (z. B. SoundTouch® 10/30/300) weiter nutzen, oh
 - Web-UI fuer Desktop und Smartphone
 - Device Discovery via SSDP/UPnP + manuelle IP-Fallbacks
 - Preset-Programmierung inkl. lokaler Descriptor-/Playlist-Endpunkte
-- Setup-Wizard fuer Geraetekonfiguration
+- Setup-Wizard fuer manuelle Geraetekonfiguration (via SSH/USB)
 - BMX-kompatible Endpunkte fuer SoundTouch® (inkl. TuneIn-Resolver-Route)
 - Docker-Deployment (amd64 + arm64)
 
@@ -259,7 +259,7 @@ Bereits umgesetzt (Codebasis):
 - Setup-Wizard API (`/api/setup/...`)
 - BMX-Routen fuer SoundTouch®-Kompatibilitaet (inkl. TuneIn-Playback-Route)
 - LOCAL_INTERNET_RADIO Playback via Orion-Adapter (siehe [docs/PRESET_PLAYBACK.md](docs/PRESET_PLAYBACK.md))
-- Frontend-Seiten fuer Radio, Presets, Multiroom, Firmware, Settings
+- Frontend-Seiten fuer Radio, Presets, Firmware, Settings
 
 Offen bzw. in Planung:
 
