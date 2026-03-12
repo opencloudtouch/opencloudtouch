@@ -6,7 +6,7 @@ pytest-timeout==2.4.0
 pytest-xdist==3.8.0
 httpx==0.28.1
 respx==0.22.0
-black==26.3.0
+black==26.3.1
 ruff==0.15.5
 mypy==1.19.1
 bandit==1.9.4
