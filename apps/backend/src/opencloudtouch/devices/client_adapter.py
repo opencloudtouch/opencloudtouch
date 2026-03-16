@@ -369,6 +369,18 @@ class BoseDeviceClientAdapter(DeviceClient):
         ]
         if not members:
             return None
+        # Ensure master is always present in the members list.
+        # Some SoundTouch devices omit the master from the member list
+        # when queried from certain perspectives.
+        if not any(m.device_id == zone.MasterDeviceId for m in members):
+            members.insert(
+                0,
+                ZoneMemberInfo(
+                    device_id=zone.MasterDeviceId,
+                    ip_address=zone.MasterIpAddress or "",
+                    role="master",
+                ),
+            )
         return ZoneStatus(
             master_id=zone.MasterDeviceId,
             master_ip=zone.MasterIpAddress or "",

@@ -194,3 +194,80 @@ class TestRemoveZone:
 
         with pytest.raises(DeviceConnectionError):
             await client.remove_zone()
+
+
+class TestZoneToStatusMasterInjection:
+    """Tests for _zone_to_status master injection with many devices."""
+
+    @pytest.mark.asyncio
+    async def test_injects_master_when_missing_from_members(self):
+        """Master is injected into members when API omits it."""
+        client = _make_client()
+        # Zone where API only returns slaves, master missing from members
+        members = []
+        for i in range(4):
+            m = MagicMock()
+            m.DeviceId = f"SLAVE{i+1:03d}"
+            m.IpAddress = f"192.168.1.{i+10}"
+            members.append(m)
+        zone = _make_mock_zone(
+            master_id="MASTER01",
+            master_ip="192.168.1.1",
+            members=members,
+            is_master=True,
+        )
+        client._client.GetZoneStatus.return_value = zone
+
+        result = await client.get_zone_status()
+
+        assert result is not None
+        assert len(result.members) == 5  # 4 slaves + injected master
+        assert result.members[0].device_id == "MASTER01"
+        assert result.members[0].role == "master"
+
+    @pytest.mark.asyncio
+    async def test_five_device_zone_all_members_present(self):
+        """Zone with 5 devices returns all 5 members with correct roles."""
+        client = _make_client()
+        members = []
+        # Master
+        m = MagicMock()
+        m.DeviceId = "MASTER01"
+        m.IpAddress = "192.168.1.1"
+        members.append(m)
+        # 4 slaves
+        for i in range(4):
+            m = MagicMock()
+            m.DeviceId = f"SLAVE{i+1:03d}"
+            m.IpAddress = f"192.168.1.{i+10}"
+            members.append(m)
+        zone = _make_mock_zone(
+            master_id="MASTER01",
+            master_ip="192.168.1.1",
+            members=members,
+            is_master=True,
+        )
+        client._client.GetZoneStatus.return_value = zone
+
+        result = await client.get_zone_status()
+
+        assert result is not None
+        assert len(result.members) == 5
+        roles = {m.device_id: m.role for m in result.members}
+        assert roles["MASTER01"] == "master"
+        for i in range(4):
+            assert roles[f"SLAVE{i+1:03d}"] == "slave"
+
+    @pytest.mark.asyncio
+    async def test_no_duplicate_master_when_already_present(self):
+        """Master is NOT duplicated when API already includes it."""
+        client = _make_client()
+        zone = _make_mock_zone()  # default: master + 1 slave
+        client._client.GetZoneStatus.return_value = zone
+
+        result = await client.get_zone_status()
+
+        assert result is not None
+        assert len(result.members) == 2
+        master_count = sum(1 for m in result.members if m.role == "master")
+        assert master_count == 1

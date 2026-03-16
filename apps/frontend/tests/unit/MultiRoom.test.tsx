@@ -515,3 +515,80 @@ describe("MultiRoom - Toast Notifications (STORY-1008)", () => {
     });
   });
 });
+
+describe("MultiRoom - 5+ Device Zone Display", () => {
+  const fiveDevices = [
+    { device_id: "D001", name: "Wohnzimmer", model: "SoundTouch 30" },
+    { device_id: "D002", name: "Küche", model: "SoundTouch 10" },
+    { device_id: "D003", name: "Schlafzimmer", model: "SoundTouch 10" },
+    { device_id: "D004", name: "Bad", model: "SoundTouch 300" },
+    { device_id: "D005", name: "Büro", model: "SoundTouch 20" },
+  ];
+
+  const fiveMemberZone: ZoneInfo = {
+    master_id: "D001",
+    master_ip: "192.168.1.10",
+    is_master: true,
+    members: [
+      { device_id: "D001", ip_address: "192.168.1.10", role: "master", name: "Wohnzimmer" },
+      { device_id: "D002", ip_address: "192.168.1.11", role: "slave", name: "Küche" },
+      { device_id: "D003", ip_address: "192.168.1.12", role: "slave", name: "Schlafzimmer" },
+      { device_id: "D004", ip_address: "192.168.1.13", role: "slave", name: "Bad" },
+      { device_id: "D005", ip_address: "192.168.1.14", role: "slave", name: "Büro" },
+    ],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("should display all 5 zone members with correct badges", () => {
+    mockZonesState = { zones: [fiveMemberZone], isLoading: false, error: null };
+    render(<MultiRoom devices={fiveDevices} />);
+
+    // All 5 device names visible in zone display
+    expect(screen.getAllByText("Wohnzimmer").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Küche").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Schlafzimmer").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Bad").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Büro").length).toBeGreaterThanOrEqual(1);
+
+    // 1 Master badge + 4 Slave badges in zone
+    const masterBadges = screen.getAllByText("Master");
+    const slaveBadges = screen.getAllByText("Slave");
+    expect(masterBadges.length).toBeGreaterThanOrEqual(1);
+    expect(slaveBadges.length).toBeGreaterThanOrEqual(4);
+  });
+
+  test("should render volume slider for each of 5 zone members", () => {
+    mockZonesState = { zones: [fiveMemberZone], isLoading: false, error: null };
+    render(<MultiRoom devices={fiveDevices} />);
+
+    const volumeSliders = screen.getAllByTestId("volume-slider");
+    expect(volumeSliders.length).toBe(5);
+  });
+
+  test("should select all 5 devices and create zone", async () => {
+    mockZonesState = { zones: [], isLoading: false, error: null };
+    const user = userEvent.setup();
+    render(<MultiRoom devices={fiveDevices} />);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    expect(checkboxes.length).toBe(5);
+
+    for (const cb of checkboxes) {
+      await user.click(cb);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByText(/5 Gerät\(e\) ausgewählt/i)).toBeInTheDocument();
+    });
+
+    const createButton = screen.getByRole("button", { name: /Zone erstellen/i });
+    expect(createButton).toBeEnabled();
+
+    await user.click(createButton);
+
+    expect(mockCreateZone).toHaveBeenCalledWith("D001", ["D002", "D003", "D004", "D005"]);
+  });
+});

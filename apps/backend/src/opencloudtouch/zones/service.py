@@ -84,12 +84,21 @@ class ZoneService:
 
         results = await asyncio.gather(*[_fetch_zone(d) for d in devices])
 
-        seen_masters: set[str] = set()
-        zones: list[ZoneStatus] = []
+        # Group zone results by master_id, preferring the master's own
+        # perspective (is_master=True) since it has the complete member list.
+        zone_map: dict[str, ZoneStatus] = {}
         for status in results:
-            if status and status.master_id not in seen_masters:
-                seen_masters.add(status.master_id)
-                zones.append(self._enrich_zone_status(status, devices))
+            if not status:
+                continue
+            mid = status.master_id
+            if mid not in zone_map or (
+                status.is_master and not zone_map[mid].is_master
+            ):
+                zone_map[mid] = status
+
+        zones: list[ZoneStatus] = [
+            self._enrich_zone_status(s, devices) for s in zone_map.values()
+        ]
         return zones
 
     async def create_zone(self, master_id: str, slave_ids: list[str]) -> ZoneStatus:

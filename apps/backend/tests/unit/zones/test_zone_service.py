@@ -161,6 +161,99 @@ class TestGetAllZones:
         assert len(result) == 1
         assert result[0].master_id == "DEV002"
 
+    @pytest.mark.asyncio
+    async def test_prefers_master_perspective_over_slave(self):
+        """Uses master's zone status which has the complete member list."""
+        service, repo = _make_service()
+        dev1 = _make_device("DEV001", "192.168.1.100", "Speaker 1")
+        dev2 = _make_device("DEV002", "192.168.1.101", "Speaker 2")
+        dev3 = _make_device("DEV003", "192.168.1.102", "Speaker 3")
+        repo.get_all.return_value = [dev1, dev2, dev3]
+
+        # Slave perspective: incomplete members (only 2)
+        slave_zone = ZoneStatus(
+            master_id="DEV001",
+            master_ip="192.168.1.100",
+            is_master=False,
+            members=[
+                ZoneMemberInfo(
+                    device_id="DEV001", ip_address="192.168.1.100", role="master"
+                ),
+                ZoneMemberInfo(
+                    device_id="DEV002", ip_address="192.168.1.101", role="slave"
+                ),
+            ],
+        )
+        # Master perspective: complete members (all 3)
+        master_zone = ZoneStatus(
+            master_id="DEV001",
+            master_ip="192.168.1.100",
+            is_master=True,
+            members=[
+                ZoneMemberInfo(
+                    device_id="DEV001", ip_address="192.168.1.100", role="master"
+                ),
+                ZoneMemberInfo(
+                    device_id="DEV002", ip_address="192.168.1.101", role="slave"
+                ),
+                ZoneMemberInfo(
+                    device_id="DEV003", ip_address="192.168.1.102", role="slave"
+                ),
+            ],
+        )
+
+        def get_client(ip):
+            client = AsyncMock()
+            if "100" in ip:
+                client.get_zone_status.return_value = master_zone
+            elif "101" in ip:
+                client.get_zone_status.return_value = slave_zone
+            else:
+                client.get_zone_status.return_value = slave_zone
+            return client
+
+        with patch.object(service, "_get_client", side_effect=get_client):
+            result = await service.get_all_zones()
+
+        assert len(result) == 1
+        assert len(result[0].members) == 3
+
+    @pytest.mark.asyncio
+    async def test_five_device_zone_all_members_returned(self):
+        """Zone with 5 devices returns all 5 enriched members."""
+        service, repo = _make_service()
+        devices = [
+            _make_device(f"DEV{i:03d}", f"192.168.1.{100+i}", f"Speaker {i}")
+            for i in range(5)
+        ]
+        repo.get_all.return_value = devices
+
+        all_members = [
+            ZoneMemberInfo(
+                device_id=f"DEV{i:03d}",
+                ip_address=f"192.168.1.{100+i}",
+                role="master" if i == 0 else "slave",
+            )
+            for i in range(5)
+        ]
+        zone = ZoneStatus(
+            master_id="DEV000",
+            master_ip="192.168.1.100",
+            is_master=True,
+            members=all_members,
+        )
+
+        mock_client = AsyncMock()
+        mock_client.get_zone_status.return_value = zone
+
+        with patch.object(service, "_get_client", return_value=mock_client):
+            result = await service.get_all_zones()
+
+        assert len(result) == 1
+        assert len(result[0].members) == 5
+        assert result[0].members[0].name == "Speaker 0"
+        assert result[0].members[4].name == "Speaker 4"
+
 
 class TestCreateZone:
     """Tests for create_zone."""
