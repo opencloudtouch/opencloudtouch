@@ -1,7 +1,7 @@
 /**
- * Tests for SetupWizard V2 (pages/SetupWizard.tsx)
+ * Tests for SetupWizard (pages/SetupWizard.tsx)
  *
- * V2 wizard: device array input, mode selection (guided/manual), step navigation.
+ * Wizard starts directly at step 1 (no mode selection).
  * Sub-components are mocked to keep tests focused on wizard orchestration.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -34,42 +34,9 @@ vi.mock("../../../src/components/wizard/DeviceInfoHeader", () => ({
   ),
 }));
 
-vi.mock("../../../src/components/wizard/ModeSelector", () => ({
-  default: ({ onModeSelect }: { onModeSelect: (mode: "guided" | "manual") => void }) => (
-    <div data-testid="mode-selector">
-      <button onClick={() => onModeSelect("guided")}>Guided</button>
-      <button onClick={() => onModeSelect("manual")}>Manual</button>
-    </div>
-  ),
-}));
-
 vi.mock("../../../src/components/wizard/ProgressTracker", () => ({
   default: ({ currentStep }: { currentStep: number }) => (
     <div data-testid="progress-tracker">Step {currentStep}</div>
-  ),
-}));
-
-vi.mock("../../../src/components/wizard/guided/USBDetection", () => ({
-  default: ({ onNext }: { onNext: () => void }) => (
-    <div data-testid="usb-detection">
-      <button onClick={onNext}>USB weiter</button>
-    </div>
-  ),
-}));
-
-vi.mock("../../../src/components/wizard/guided/SSHValidation", () => ({
-  default: ({ onNext }: { onNext: (makePermanent: boolean) => void }) => (
-    <div data-testid="ssh-validation">
-      <button onClick={() => onNext(false)}>SSH weiter</button>
-    </div>
-  ),
-}));
-
-vi.mock("../../../src/components/wizard/guided/BackupProgress", () => ({
-  default: ({ onNext }: { onNext: () => void }) => (
-    <div data-testid="backup-progress">
-      <button onClick={onNext}>Backup weiter</button>
-    </div>
   ),
 }));
 
@@ -133,7 +100,7 @@ vi.mock("../../../src/api/wizard", () => ({
   enablePermanentSsh: vi.fn().mockResolvedValue({}),
 }));
 
-// ─── Test fixtures ────────────────────────────────────────────────────────────
+// --- Test fixtures ---
 
 const mockDevice: Device = {
   device_id: "ST30-001",
@@ -145,14 +112,14 @@ const mockDevice: Device = {
 
 const mockDevices: Device[] = [mockDevice];
 
-// ─── Tests ────────────────────────────────────────────────────────────────────
+// --- Tests ---
 
-describe("SetupWizard V2 (pages/SetupWizard)", () => {
+describe("SetupWizard (pages/SetupWizard)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  // ── Empty State ─────────────────────────────────────────────────────────────
+  // -- Empty State --
 
   describe("Empty State", () => {
     it("shows empty state message when no devices provided", () => {
@@ -167,102 +134,38 @@ describe("SetupWizard V2 (pages/SetupWizard)", () => {
       ).toBeInTheDocument();
     });
 
-    it("does not render ModeSelector in empty state", () => {
+    it("does not render ProgressTracker in empty state", () => {
       render(<SetupWizard devices={[]} />);
-      expect(screen.queryByTestId("mode-selector")).not.toBeInTheDocument();
-    });
-  });
-
-  // ── Mode Selection ──────────────────────────────────────────────────────────
-
-  describe("Mode Selection", () => {
-    it("renders ModeSelector when devices are available", () => {
-      render(<SetupWizard devices={mockDevices} />);
-      expect(screen.getByTestId("mode-selector")).toBeInTheDocument();
-    });
-
-    it("does not show PHASE 1 DEMO banner in production/test mode", () => {
-      render(<SetupWizard devices={mockDevices} />);
-      // Banner is gated behind import.meta.env.DEV — not shown in test/production builds
-      expect(screen.queryByText(/PHASE 1 DEMO/)).not.toBeInTheDocument();
-    });
-
-    it("does not show ProgressTracker in mode-select state", () => {
-      render(<SetupWizard devices={mockDevices} />);
       expect(screen.queryByTestId("progress-tracker")).not.toBeInTheDocument();
     });
   });
 
-  // ── Guided Mode ─────────────────────────────────────────────────────────────
+  // -- Direct Wizard Start --
 
-  describe("Guided Mode", () => {
-    it("shows ProgressTracker and USB step after guided mode selected", async () => {
+  describe("Direct Wizard Start", () => {
+    it("renders ProgressTracker and USB step immediately when devices are available", () => {
       render(<SetupWizard devices={mockDevices} />);
-      fireEvent.click(screen.getByRole("button", { name: /guided/i }));
-      await waitFor(() => {
-        expect(screen.getByTestId("progress-tracker")).toBeInTheDocument();
-        expect(screen.getByTestId("usb-detection")).toBeInTheDocument();
-      });
+      expect(screen.getByTestId("progress-tracker")).toBeInTheDocument();
+      expect(screen.getByTestId("step2-usb-preparation")).toBeInTheDocument();
     });
 
-    it("ProgressTracker starts at step 1 in guided mode", async () => {
+    it("ProgressTracker starts at step 1", () => {
       render(<SetupWizard devices={mockDevices} />);
-      fireEvent.click(screen.getByRole("button", { name: /guided/i }));
-      await waitFor(() => {
-        expect(screen.getByText("Step 1")).toBeInTheDocument();
-      });
+      expect(screen.getByText("Step 1")).toBeInTheDocument();
     });
 
-    it("advances from USB to SSH step", async () => {
+    it("does not show PHASE 1 DEMO banner in production/test mode", () => {
       render(<SetupWizard devices={mockDevices} />);
-      fireEvent.click(screen.getByRole("button", { name: /guided/i }));
-      await waitFor(() => expect(screen.getByTestId("usb-detection")).toBeInTheDocument());
-      fireEvent.click(screen.getByRole("button", { name: /usb weiter/i }));
-      await waitFor(() => {
-        expect(screen.getByTestId("ssh-validation")).toBeInTheDocument();
-      });
-    });
-
-    it("advances from SSH to Backup step", async () => {
-      render(<SetupWizard devices={mockDevices} />);
-      fireEvent.click(screen.getByRole("button", { name: /guided/i }));
-      await waitFor(() => expect(screen.getByTestId("usb-detection")).toBeInTheDocument());
-      fireEvent.click(screen.getByRole("button", { name: /usb weiter/i }));
-      await waitFor(() => expect(screen.getByTestId("ssh-validation")).toBeInTheDocument());
-      fireEvent.click(screen.getByRole("button", { name: /ssh weiter/i }));
-      await waitFor(() => {
-        expect(screen.getByTestId("backup-progress")).toBeInTheDocument();
-      });
-    });
-
-    it("shows DeviceInfoHeader during guided mode", async () => {
-      render(<SetupWizard devices={mockDevices} />);
-      fireEvent.click(screen.getByRole("button", { name: /guided/i }));
-      await waitFor(() => {
-        expect(screen.getByTestId("device-info-header")).toBeInTheDocument();
-        expect(screen.getByText("Living Room")).toBeInTheDocument();
-      });
+      expect(screen.queryByText(/PHASE 1 DEMO/)).not.toBeInTheDocument();
     });
   });
 
-  // ── Manual Mode ─────────────────────────────────────────────────────────────
+  // -- Step Navigation --
 
-  describe("Manual Mode", () => {
-    it("shows ProgressTracker and USB Preparation step after manual mode selected", async () => {
-      render(<SetupWizard devices={mockDevices} />);
-      fireEvent.click(screen.getByRole("button", { name: /manual/i }));
-      await waitFor(() => {
-        expect(screen.getByTestId("progress-tracker")).toBeInTheDocument();
-        expect(screen.getByTestId("step2-usb-preparation")).toBeInTheDocument();
-      });
-    });
-
+  describe("Step Navigation", () => {
     it("advances from USB Preparation to Power Cycle step", async () => {
       render(<SetupWizard devices={mockDevices} />);
-      fireEvent.click(screen.getByRole("button", { name: /manual/i }));
-      await waitFor(() =>
-        expect(screen.getByTestId("step2-usb-preparation")).toBeInTheDocument()
-      );
+      expect(screen.getByTestId("step2-usb-preparation")).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: /usb prep weiter/i }));
       await waitFor(() => {
         expect(screen.getByTestId("step3-power-cycle")).toBeInTheDocument();
@@ -271,10 +174,6 @@ describe("SetupWizard V2 (pages/SetupWizard)", () => {
 
     it("advances from Power Cycle to Backup step", async () => {
       render(<SetupWizard devices={mockDevices} />);
-      fireEvent.click(screen.getByRole("button", { name: /manual/i }));
-      await waitFor(() =>
-        expect(screen.getByTestId("step2-usb-preparation")).toBeInTheDocument()
-      );
       fireEvent.click(screen.getByRole("button", { name: /usb prep weiter/i }));
       await waitFor(() => expect(screen.getByTestId("step3-power-cycle")).toBeInTheDocument());
       fireEvent.click(screen.getByRole("button", { name: /power weiter/i }));
@@ -283,9 +182,8 @@ describe("SetupWizard V2 (pages/SetupWizard)", () => {
       });
     });
 
-    it("shows DeviceInfoHeader during manual mode", async () => {
+    it("shows DeviceInfoHeader with device name", async () => {
       render(<SetupWizard devices={mockDevices} />);
-      fireEvent.click(screen.getByRole("button", { name: /manual/i }));
       await waitFor(() => {
         expect(screen.getByTestId("device-info-header")).toBeInTheDocument();
         expect(screen.getByText("Living Room")).toBeInTheDocument();
@@ -293,7 +191,7 @@ describe("SetupWizard V2 (pages/SetupWizard)", () => {
     });
   });
 
-  // ── Device Auto-Selection ───────────────────────────────────────────────────
+  // -- Device Auto-Selection --
 
   describe("Device Auto-Selection", () => {
     it("auto-selects first device when URL has no deviceId parameter", async () => {
@@ -302,7 +200,6 @@ describe("SetupWizard V2 (pages/SetupWizard)", () => {
         { ...mockDevice, device_id: "ST30-002", name: "Bedroom" },
       ];
       render(<SetupWizard devices={multipleDevices} />);
-      fireEvent.click(screen.getByRole("button", { name: /guided/i }));
       await waitFor(() => {
         expect(screen.getByTestId("device-info-header")).toBeInTheDocument();
         expect(screen.getByText("Living Room")).toBeInTheDocument();

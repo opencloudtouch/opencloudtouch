@@ -1,7 +1,7 @@
 /**
- * Setup Wizard V2 - Complete Redesign
+ * Setup Wizard – Geführte Installation
  *
- * Modern wizard with guided/manual modes, auto-progression, and better UX.
+ * Step-by-step wizard to configure a SoundTouch device for OCT.
  * Phase 1: UI Demo only (backend functionality in Phase 3+)
  */
 import { useState, useEffect } from "react";
@@ -9,14 +9,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Device } from "../api/devices";
 import DeviceInfoHeader from "../components/wizard/DeviceInfoHeader";
-import ModeSelector from "../components/wizard/ModeSelector";
 import ProgressTracker, { WizardStep } from "../components/wizard/ProgressTracker";
-import USBDetection from "../components/wizard/guided/USBDetection";
-import SSHValidation from "../components/wizard/guided/SSHValidation";
-import BackupProgress from "../components/wizard/guided/BackupProgress";
-// Aliased: component names reflect position in guided wizard, but are reused in manual mode at different step numbers
-import Step2USBPreparation /* = USBPreparation */ from "../components/wizard/Step2USBPreparation";
-import Step3PowerCycle /* = PowerCycle */ from "../components/wizard/Step3PowerCycle";
+import Step2USBPreparation from "../components/wizard/Step2USBPreparation";
+import Step3PowerCycle from "../components/wizard/Step3PowerCycle";
 import Step4Backup from "../components/wizard/Step4Backup";
 import Step5ConfigModification from "../components/wizard/Step5ConfigModification";
 import { enablePermanentSsh } from "../api/wizard";
@@ -30,55 +25,7 @@ interface SetupWizardProps {
   isLoading?: boolean;
 }
 
-type WizardMode = "select" | "guided" | "manual";
-
-const GUIDED_STEPS: WizardStep[] = [
-  {
-    id: 1,
-    label: "USB",
-    description: "USB-Stick als Konfigurationsträger vorbereiten",
-    status: "pending",
-  },
-  {
-    id: 2,
-    label: "SSH",
-    description: "Gerät neu starten und SSH-Zugang herstellen",
-    status: "pending",
-  },
-  {
-    id: 3,
-    label: "Backup",
-    description: "Gerätedaten sichern (dringend empfohlen)",
-    status: "pending",
-  },
-  {
-    id: 4,
-    label: "Verbindung",
-    description: "Konfigurationsdatei auf OCT-Server umleiten",
-    status: "pending",
-  },
-  {
-    id: 5,
-    label: "DNS",
-    description: "Netzwerk-Weiterleitung für Bose-Domains einrichten",
-    status: "pending",
-  },
-  {
-    id: 6,
-    label: "Prüfung",
-    description: "Konfiguration testen und DNS-Weiterleitung verifizieren",
-    status: "pending",
-  },
-  {
-    id: 7,
-    label: "Neustart",
-    description: "Gerät neu starten und Einrichtung abschließen",
-    status: "pending",
-  },
-  { id: 8, label: "Fertig", description: "Einrichtung abgeschlossen", status: "pending" },
-];
-
-const MANUAL_STEPS: WizardStep[] = [
+const WIZARD_STEPS: WizardStep[] = [
   {
     id: 1,
     label: "USB",
@@ -122,10 +69,9 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [mode, setMode] = useState<WizardMode>("select");
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
-  const [steps, setSteps] = useState<WizardStep[]>(GUIDED_STEPS);
+  const [steps, setSteps] = useState<WizardStep[]>(WIZARD_STEPS);
   const [backupPath, setBackupPath] = useState<string>("");
 
   // Auto-select device from URL parameter OR first available device
@@ -176,19 +122,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
     );
   }
 
-  // Devices are available — ModeSelector renders immediately (mode = "select").
-  // useEffect auto-selects selectedDevice; needed only once mode changes from "select".
-
-  const handleModeSelect = (selectedMode: "guided" | "manual") => {
-    setMode(selectedMode);
-    setCurrentStep(1);
-    // Update steps array based on mode
-    if (selectedMode === "manual") {
-      setSteps(MANUAL_STEPS);
-    } else {
-      setSteps(GUIDED_STEPS);
-    }
-  };
+  // Devices are available — wizard starts directly at step 1.
 
   const handleBackToPresets = () => {
     // Navigate back to presets page with device parameter
@@ -207,7 +141,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
 
   const handleNext = () => {
     completeCurrentStep();
-    const maxSteps = mode === "manual" ? MANUAL_STEPS.length : GUIDED_STEPS.length;
+    const maxSteps = WIZARD_STEPS.length;
     setCurrentStep((prev) => Math.min(prev + 1, maxSteps));
   };
 
@@ -215,15 +149,6 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
-  const handleUSBSelected = () => {
-    handleNext();
-  };
-
-  const handleSSHValidated = (_makePermanent: boolean) => {
-    handleNext();
-  };
-
-  // Manual mode: SSH persistence decision from Step3 risk assessment
   const handleSSHDecision = (makePermanent: boolean) => {
     if (selectedDevice?.ip) {
       enablePermanentSsh({
@@ -262,67 +187,8 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
     }
   };
 
-  const renderGuidedStep = () => {
-    const step = GUIDED_STEPS[currentStep - 1];
-    if (!step) return null;
-
-    const stepId = step.id;
-
-    switch (stepId) {
-      case 1: // USB
-        return <USBDetection onNext={handleUSBSelected} onCancel={handleBackToPresets} />;
-
-      case 2: // SSH
-        return (
-          <SSHValidation
-            deviceIp={selectedDevice?.ip || "192.168.1.100"}
-            onNext={handleSSHValidated}
-            onPrevious={handlePrevious}
-          />
-        );
-
-      case 3: // Backup
-        return <BackupProgress onNext={handleNext} onPrevious={handlePrevious} />;
-
-      case 4: // Config
-      case 5: // Hosts
-      case 6: // Verify
-      case 7: // Reboot
-      case 8: // Complete
-        return (
-          <div className="guided-step-container">
-            <div className="demo-banner">
-              ⚠️ <strong>DEMO MODUS</strong> - Weitere Steps folgen in Phase 2-6
-            </div>
-            <div className="step-header">
-              <h2 className="step-title">
-                🚧 Schritt {currentStep}: {step.label}
-              </h2>
-              <p className="step-description">
-                Dieser Schritt wird in einer zukünftigen Version implementiert.
-              </p>
-            </div>
-            <div className="step-actions">
-              <button className="btn btn-secondary" onClick={handlePrevious}>
-                ← Zurück
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={currentStep === 8 ? () => navigate("/") : handleNext}
-              >
-                {currentStep === 8 ? "Fertig" : "Weiter →"}
-              </button>
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  const renderManualStep = () => {
-    const step = MANUAL_STEPS[currentStep - 1];
+  const renderStep = () => {
+    const step = WIZARD_STEPS[currentStep - 1];
     if (!step) return null;
 
     const stepId = step.id;
@@ -422,63 +288,21 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
         </div>
       )}
 
-      {selectedDevice && mode !== "select" && <DeviceInfoHeader device={selectedDevice} />}
+      {selectedDevice && <DeviceInfoHeader device={selectedDevice} />}
 
       <div className="wizard-content-v2">
-        {mode === "select" && (
+        <ProgressTracker steps={steps} currentStep={currentStep} />
+        <AnimatePresence mode="wait">
           <motion.div
-            key="mode-select"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
+            key={currentStep}
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            transition={{ duration: 0.3 }}
           >
-            <ModeSelector onModeSelect={handleModeSelect} />
+            {renderStep()}
           </motion.div>
-        )}
-
-        {mode === "guided" && (
-          <motion.div
-            key="guided"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <ProgressTracker steps={steps} currentStep={currentStep} />
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentStep}
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -50 }}
-                transition={{ duration: 0.3 }}
-              >
-                {renderGuidedStep()}
-              </motion.div>
-            </AnimatePresence>
-          </motion.div>
-        )}
-
-        {mode === "manual" && (
-          <motion.div
-            key="manual"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <ProgressTracker steps={steps} currentStep={currentStep} />
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentStep}
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -50 }}
-                transition={{ duration: 0.3 }}
-              >
-                {renderManualStep()}
-              </motion.div>
-            </AnimatePresence>
-          </motion.div>
-        )}
+        </AnimatePresence>
       </div>
     </div>
   );
