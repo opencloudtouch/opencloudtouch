@@ -14,6 +14,7 @@ interface PresetButtonProps {
   preset?: Preset | null;
   onAssign: () => void;
   onPlay: () => void;
+  onClear?: () => void;
   isCurrentlyPlaying?: boolean;
 }
 
@@ -111,6 +112,7 @@ export default function PresetButton({
   preset,
   onAssign,
   onPlay,
+  onClear,
   isCurrentlyPlaying,
 }: PresetButtonProps) {
   return (
@@ -154,6 +156,18 @@ export default function PresetButton({
             </div>
             <span className="preset-name">{preset.station_name}</span>
             <CloudBadge isCloudDependent={isCloudDependent(preset)} source={preset.source} />
+          </button>
+          <button
+            className="preset-clear-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClear?.();
+            }}
+            aria-label="Preset löschen"
+            title="Preset löschen"
+            data-testid={`preset-clear-${number}`}
+          >
+            ✕
           </button>
           <button
             className={`preset-play-btn${isCurrentlyPlaying ? " playing" : ""}`}

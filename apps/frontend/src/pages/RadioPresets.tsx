@@ -36,6 +36,7 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
   const [playLoading, setPlayLoading] = useState(false);
   const [powerLoading, setPowerLoading] = useState(false);
   const [pendingStation, setPendingStation] = useState<RadioStation | null>(null);
+  const [clearingPreset, setClearingPreset] = useState<number | null>(null);
 
   const isStandby = npState?.source === "STANDBY";
 
@@ -103,6 +104,14 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
   const handleConfirmOverwrite = async () => {
     if (pendingStation && assigningPreset) {
       await doAssign(assigningPreset, pendingStation);
+    }
+  };
+
+  const handleConfirmClear = async () => {
+    if (clearingPreset && currentDevice?.device_id) {
+      await removePreset(clearingPreset, currentDevice.device_id);
+      setClearingPreset(null);
+      showToast(`Preset ${clearingPreset} gelöscht.`, "success");
     }
   };
 
@@ -270,6 +279,7 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
                   preset={presets[num]}
                   onAssign={() => handleAssignClick(num)}
                   onPlay={() => handlePlayPreset(num)}
+                  onClear={() => setClearingPreset(num)}
                   isCurrentlyPlaying={
                     npState?.state === "PLAY_STATE" &&
                     npState?.station_name === presets[num]?.station_name
@@ -321,6 +331,17 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
         cancelLabel="Abbrechen"
         onConfirm={handleConfirmOverwrite}
         onCancel={() => setPendingStation(null)}
+      />
+
+      {/* Confirm Clear Dialog */}
+      <ConfirmDialog
+        open={clearingPreset !== null}
+        title="Preset löschen"
+        message={`Möchten Sie Preset ${clearingPreset} wirklich löschen?`}
+        confirmLabel="Löschen"
+        cancelLabel="Abbrechen"
+        onConfirm={handleConfirmClear}
+        onCancel={() => setClearingPreset(null)}
       />
     </div>
   );
