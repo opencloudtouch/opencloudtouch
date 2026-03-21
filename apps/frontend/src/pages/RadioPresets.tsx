@@ -109,9 +109,10 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
 
   const handleConfirmClear = async () => {
     if (clearingPreset && currentDevice?.device_id) {
-      await removePreset(clearingPreset, currentDevice.device_id);
+      const presetNum = clearingPreset;
       setClearingPreset(null);
-      showToast(`Preset ${clearingPreset} gelöscht.`, "success");
+      await removePreset(presetNum, currentDevice.device_id);
+      showToast(`Preset ${presetNum} gelöscht.`, "success");
     }
   };
 
