@@ -141,6 +141,7 @@ class DeviceHealthCheck:
             return
 
         try:
+            # Check BMX URL (Strategy A: direct URL change)
             result = await client.execute(
                 "cat /mnt/nv/SoundTouchSdkPrivateCfg.xml 2>/dev/null || "
                 "cat /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml "
@@ -148,7 +149,13 @@ class DeviceHealthCheck:
             )
             bmx_output = result.output or ""
 
-            if our_server in bmx_output:
+            # Check /etc/hosts (Strategy B: hosts redirect via reverse proxy)
+            hosts_result = await client.execute(
+                "grep -c 'OCT-START' /etc/hosts 2>/dev/null || echo '0'"
+            )
+            has_hosts_redirect = hosts_result.output.strip() != "0"
+
+            if our_server in bmx_output or has_hosts_redirect:
                 new_status = "configured"
             elif "bose.com" in bmx_output.lower():
                 new_status = "unconfigured"

@@ -355,6 +355,7 @@ class TestResponseSchemas:
             "resolved_ip",
             "matches_expected",
             "message",
+            "expected_ip",
         }
         assert set(data.keys()) == expected_keys
 

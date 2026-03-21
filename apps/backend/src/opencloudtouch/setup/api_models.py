@@ -250,6 +250,7 @@ class VerifyRedirectResponse(BaseModel):
     success: bool
     domain: str
     resolved_ip: str = ""
+    expected_ip: str = ""
     matches_expected: bool = False
     message: str
 
@@ -264,3 +265,15 @@ class ListBackupsResponse(BaseModel):
     success: bool
     config_backups: list[str] = Field(default_factory=list)
     hosts_backups: list[str] = Field(default_factory=list)
+
+
+class DetectStrategyResponse(BaseModel):
+    """Response with detected setup strategy."""
+
+    proxy_available: bool = Field(
+        description="True if HTTPS reverse proxy detected on port 443"
+    )
+    strategy: str = Field(
+        description="Recommended strategy: 'hosts_only' or 'bmx_and_hosts'"
+    )
+    message: str

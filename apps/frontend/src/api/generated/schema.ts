@@ -921,6 +921,69 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/bmx/radiobrowser/v1/playback/station/{uuid}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Bmx Radiobrowser Playback
+     * @description Resolve RadioBrowser station UUID to stream URL.
+     *
+     *     The device calls this with a station UUID and expects a BMX-format
+     *     JSON response with stream URLs for playback.
+     */
+    get: operations["bmx_radiobrowser_playback_bmx_radiobrowser_v1_playback_station__uuid__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/bmx/radiobrowser/v1/now-playing/station/{uuid}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Bmx Radiobrowser Now Playing
+     * @description Now-playing stub for RadioBrowser stations.
+     */
+    get: operations["bmx_radiobrowser_now_playing_bmx_radiobrowser_v1_now_playing_station__uuid__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/bmx/radiobrowser/v1/reporting/station/{uuid}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Bmx Radiobrowser Reporting
+     * @description Reporting stub for RadioBrowser stations.
+     */
+    post: operations["bmx_radiobrowser_reporting_bmx_radiobrowser_v1_reporting_station__uuid__post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/bmx/resolve": {
     parameters: {
       query?: never;
@@ -967,6 +1030,7 @@ export interface paths {
      *     Args:
      *         device_id: Device MAC address (e.g., "689E194F7D2F")
      *         preset_repo: Preset repository dependency
+     *         recents_repo: Recents repository dependency
      *
      *     Returns:
      *         XML Response with <boseAccount> structure
@@ -1020,6 +1084,7 @@ export interface paths {
      *
      *     Args:
      *         device_id: Device MAC address
+     *         recents_repo: Recents repository dependency
      *
      *     Returns:
      *         XML Response with <recents> structure
@@ -1538,8 +1603,34 @@ export interface paths {
      *
      *     Returns server URL that frontend can use as default.
      *     Detects host/port from incoming HTTP request headers.
+     *     Also resolves the hostname to an IP for /etc/hosts usage.
      */
     get: operations["wizard_server_info_api_setup_wizard_server_info_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/detect-strategy": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Wizard Detect Strategy
+     * @description Detect whether an HTTPS reverse proxy is available on port 443.
+     *
+     *     If a reverse proxy (e.g. Nginx) terminates SSL on 443 and forwards
+     *     to OCT, then the device only needs ``/etc/hosts`` changes (Strategy B).
+     *     Otherwise, the BMX URL in the device config must also be changed
+     *     (Strategy A + hosts).
+     */
+    get: operations["wizard_detect_strategy_api_setup_wizard_detect_strategy_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -1735,6 +1826,165 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/updates/soundtouch": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Firmware Index
+     * @description Return firmware INDEX.XML for SoundTouch devices.
+     *
+     *     The device checks this endpoint at boot and periodically
+     *     to determine if a firmware update is available.
+     */
+    get: operations["firmware_index_updates_soundtouch_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/ced/eup/downloads/rel/{filename}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Firmware Download
+     * @description Redirect firmware download to device.
+     *
+     *     Firmware files are large (100+ MB). Instead of hosting them,
+     *     we return a 404 — OCT intentionally does NOT serve firmware
+     *     updates to prevent devices from updating to versions that
+     *     might break OCT compatibility.
+     *
+     *     In the future, this could proxy to archive.org for
+     *     specific firmware versions needed for downgrading.
+     */
+    get: operations["firmware_download_ced_eup_downloads_rel__filename__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/zones": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get All Zones
+     * @description Get all active multi-room zones.
+     */
+    get: operations["get_all_zones_api_zones_get"];
+    put?: never;
+    /**
+     * Create Zone
+     * @description Create a new multi-room zone.
+     */
+    post: operations["create_zone_api_zones_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/zones/{master_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Dissolve Zone
+     * @description Dissolve a multi-room zone.
+     */
+    delete: operations["dissolve_zone_api_zones__master_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/zones/{master_id}/members": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Add Zone Members
+     * @description Add members to an existing zone.
+     */
+    post: operations["add_zone_members_api_zones__master_id__members_post"];
+    /**
+     * Remove Zone Members
+     * @description Remove members from an existing zone.
+     */
+    delete: operations["remove_zone_members_api_zones__master_id__members_delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/zones/{master_id}/master": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Change Master
+     * @description Change the master of a zone.
+     */
+    put: operations["change_master_api_zones__master_id__master_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/devices/{device_id}/zone": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Device Zone
+     * @description Get zone status for a specific device.
+     */
+    get: operations["get_device_zone_api_devices__device_id__zone_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/health": {
     parameters: {
       query?: never;
@@ -1800,6 +2050,14 @@ export interface components {
       level: number;
     };
     /**
+     * ChangeMasterRequest
+     * @description Request to change zone master.
+     */
+    ChangeMasterRequest: {
+      /** New Master Id */
+      new_master_id: string;
+    };
+    /**
      * ConfigModifyRequest
      * @description Request to modify config file.
      */
@@ -1849,6 +2107,34 @@ export interface components {
     ConnectivityCheckRequest: {
       /** Ip */
       ip: string;
+    };
+    /**
+     * CreateZoneRequest
+     * @description Request to create a new zone.
+     */
+    CreateZoneRequest: {
+      /** Master Id */
+      master_id: string;
+      /** Slave Ids */
+      slave_ids: string[];
+    };
+    /**
+     * DetectStrategyResponse
+     * @description Response with detected setup strategy.
+     */
+    DetectStrategyResponse: {
+      /**
+       * Proxy Available
+       * @description True if HTTPS reverse proxy detected on port 443
+       */
+      proxy_available: boolean;
+      /**
+       * Strategy
+       * @description Recommended strategy: 'hosts_only' or 'bmx_and_hosts'
+       */
+      strategy: string;
+      /** Message */
+      message: string;
     };
     /**
      * EnablePermanentSSHRequest
@@ -1945,6 +2231,14 @@ export interface components {
        * @description List of manual IP addresses
        */
       ips: string[];
+    };
+    /**
+     * ModifyMembersRequest
+     * @description Request to add or remove zone members.
+     */
+    ModifyMembersRequest: {
+      /** Device Ids */
+      device_ids: string[];
     };
     /**
      * PortCheckRequest
@@ -2142,6 +2436,10 @@ export interface components {
       msg: string;
       /** Error Type */
       type: string;
+      /** Input */
+      input?: unknown;
+      /** Context */
+      ctx?: Record<string, never>;
     };
     /**
      * VerifyRedirectRequest
@@ -2170,12 +2468,47 @@ export interface components {
        */
       resolved_ip: string;
       /**
+       * Expected Ip
+       * @default
+       */
+      expected_ip: string;
+      /**
        * Matches Expected
        * @default false
        */
       matches_expected: boolean;
       /** Message */
       message: string;
+    };
+    /**
+     * ZoneMemberInfo
+     * @description A member device within a multi-room zone.
+     */
+    ZoneMemberInfo: {
+      /** Device Id */
+      device_id: string;
+      /** Ip Address */
+      ip_address: string;
+      /** Role */
+      role: string;
+      /** Name */
+      name?: string | null;
+      /** Model */
+      model?: string | null;
+    };
+    /**
+     * ZoneStatus
+     * @description Status of a multi-room zone.
+     */
+    ZoneStatus: {
+      /** Master Id */
+      master_id: string;
+      /** Master Ip */
+      master_ip: string;
+      /** Is Master */
+      is_master: boolean;
+      /** Members */
+      members: components["schemas"]["ZoneMemberInfo"][];
     };
     /**
      * MessageResponse
@@ -3308,6 +3641,99 @@ export interface operations {
       };
     };
   };
+  bmx_radiobrowser_playback_bmx_radiobrowser_v1_playback_station__uuid__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  bmx_radiobrowser_now_playing_bmx_radiobrowser_v1_now_playing_station__uuid__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  bmx_radiobrowser_reporting_bmx_radiobrowser_v1_reporting_station__uuid__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   resolve_stream_bmx_resolve_post: {
     parameters: {
       query?: never;
@@ -4016,6 +4442,26 @@ export interface operations {
       };
     };
   };
+  wizard_detect_strategy_api_setup_wizard_detect_strategy_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DetectStrategyResponse"];
+        };
+      };
+    };
+  };
   wizard_check_ports_api_setup_wizard_check_ports_post: {
     parameters: {
       query?: never;
@@ -4300,6 +4746,273 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["VerifyRedirectResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  firmware_index_updates_soundtouch_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  firmware_download_ced_eup_downloads_rel__filename__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        filename: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_all_zones_api_zones_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ZoneStatus"][];
+        };
+      };
+    };
+  };
+  create_zone_api_zones_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateZoneRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ZoneStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  dissolve_zone_api_zones__master_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        master_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  add_zone_members_api_zones__master_id__members_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        master_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ModifyMembersRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  remove_zone_members_api_zones__master_id__members_delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        master_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ModifyMembersRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  change_master_api_zones__master_id__master_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        master_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ChangeMasterRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ZoneStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_device_zone_api_devices__device_id__zone_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ZoneStatus"] | null;
         };
       };
       /** @description Validation Error */

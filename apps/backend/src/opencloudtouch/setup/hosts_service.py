@@ -5,6 +5,7 @@ Handles modification and restoration of /etc/hosts file.
 """
 
 import base64
+import ipaddress
 import logging
 from dataclasses import dataclass
 from typing import List
@@ -103,6 +104,19 @@ class SoundTouchHostsService:
         Returns:
             Modification result with backup path and diff
         """
+        # /etc/hosts requires a numeric IP address in the first field.
+        # Reject hostnames early to prevent broken entries like "hera  bose.vtuner.com".
+        try:
+            ipaddress.ip_address(oct_ip)
+        except ValueError:
+            return ModifyResult(
+                success=False,
+                error=(
+                    f"'{oct_ip}' is not a valid IP address. "
+                    f"/etc/hosts requires a numeric IP (e.g. 192.168.1.100)."
+                ),
+            )
+
         self.logger.info(
             f"Modifying hosts to redirect to OCT at {oct_ip} "
             f"(optional: {include_optional})"

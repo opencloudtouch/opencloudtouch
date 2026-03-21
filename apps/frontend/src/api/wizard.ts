@@ -26,8 +26,15 @@ export type EnablePermanentSSHRequest = components["schemas"]["EnablePermanentSS
 // Types not in OpenAPI (server-info returns untyped dict)
 export interface ServerInfoResponse {
   server_url: string;
+  server_ip: string;
   default_port: number;
   supported_protocols: string[];
+}
+
+export interface DetectStrategyResponse {
+  proxy_available: boolean;
+  strategy: "hosts_only" | "bmx_and_hosts";
+  message: string;
 }
 
 export interface RebootDeviceResponse {
@@ -59,6 +66,19 @@ export async function getServerInfo(): Promise<ServerInfoResponse> {
 
   if (!response.ok) {
     throw new Error(`Server info fetch failed: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Detect setup strategy: hosts-only (proxy on 443) or bmx+hosts
+ */
+export async function detectStrategy(): Promise<DetectStrategyResponse> {
+  const response = await fetch(`${API_BASE}/api/setup/wizard/detect-strategy`);
+
+  if (!response.ok) {
+    throw new Error(`Strategy detection failed: ${response.statusText}`);
   }
 
   return response.json();

@@ -259,3 +259,57 @@ class TestVTunerDomainsPresent:
                 f"BUG-02: vTuner domain '{domain}' not in diff. "
                 "It won't be redirected to OCT."
             )
+
+
+# ---------------------------------------------------------------------------
+# BUG-03: hostname instead of numeric IP in /etc/hosts
+# ---------------------------------------------------------------------------
+
+
+class TestHostsRequiresNumericIP:
+    """
+    BUG-03 Regression: /etc/hosts was written with a hostname (e.g. 'hera')
+    instead of a numeric IP (e.g. '192.168.178.11').
+
+    The /etc/hosts format requires a numeric IP in the first field.
+    Entries like 'hera  bose.vtuner.com' are silently ignored by the
+    system resolver, causing domains to resolve to their real Bose IPs.
+
+    Discovered: ping bose.vtuner.com on device → 66.135.37.14 despite
+    /etc/hosts containing 'hera bose.vtuner.com'.
+    """
+
+    @pytest.mark.asyncio
+    async def test_hostname_rejected(self, service, mock_ssh):
+        """modify_hosts must reject a hostname (non-IP) as oct_ip."""
+        result = await service.modify_hosts(oct_ip="hera")
+
+        assert result.success is False
+        assert "not a valid IP" in (result.error or "")
+        mock_ssh.execute.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_fqdn_rejected(self, service, mock_ssh):
+        """modify_hosts must reject a FQDN as oct_ip."""
+        result = await service.modify_hosts(oct_ip="myserver.local")
+
+        assert result.success is False
+        assert "not a valid IP" in (result.error or "")
+
+    @pytest.mark.asyncio
+    async def test_ipv4_accepted(self, service, mock_ssh):
+        """modify_hosts must accept a valid IPv4 address."""
+        mock_ssh.execute.return_value = _ok("127.0.0.1 localhost")
+
+        result = await service.modify_hosts(oct_ip="192.168.178.11")
+
+        assert result.success is True
+
+    @pytest.mark.asyncio
+    async def test_ipv6_accepted(self, service, mock_ssh):
+        """modify_hosts must accept a valid IPv6 address."""
+        mock_ssh.execute.return_value = _ok("127.0.0.1 localhost")
+
+        result = await service.modify_hosts(oct_ip="::1")
+
+        assert result.success is True

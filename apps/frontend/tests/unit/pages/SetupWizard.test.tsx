@@ -98,6 +98,17 @@ vi.mock("../../../src/components/wizard/Step8Completion", () => ({
 
 vi.mock("../../../src/api/wizard", () => ({
   enablePermanentSsh: vi.fn().mockResolvedValue({}),
+  getServerInfo: vi.fn().mockResolvedValue({
+    server_url: "http://192.168.1.50:7777",
+    server_ip: "192.168.1.50",
+    default_port: 7777,
+    supported_protocols: ["http", "https"],
+  }),
+  detectStrategy: vi.fn().mockResolvedValue({
+    proxy_available: false,
+    strategy: "bmx_and_hosts",
+    message: "No proxy detected",
+  }),
 }));
 
 // --- Test fixtures ---

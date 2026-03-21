@@ -275,16 +275,22 @@ class SetupService:
         """
         Verify that a device is properly configured.
 
+        Supports two setup strategies:
+        - Strategy A (URL): BMX URL in config points directly to OCT server
+        - Strategy B (Hosts): /etc/hosts redirects Bose domains to OCT via
+          reverse proxy (identified by ``# OCT-START`` marker)
+
         Checks:
         - SSH is accessible
         - SSH is persistent
-        - BMX URL points to our server
+        - BMX URL points to our server OR hosts redirect is active
         """
         result = {
             "ip": ip,
             "ssh_accessible": False,
             "ssh_persistent": False,
             "bmx_configured": False,
+            "hosts_redirect": False,
             "bmx_url": None,
             "verified": False,
         }
@@ -313,7 +319,7 @@ class SetupService:
             )
             result["bmx_url"] = check.output.strip()
 
-            # Verify it points to our server
+            # Strategy A: BMX URL points directly to our server
             config = get_config()
             our_server = (
                 config.station_descriptor_base_url
@@ -321,14 +327,20 @@ class SetupService:
             )
             result["bmx_configured"] = our_server in check.output
 
+            # Strategy B: /etc/hosts redirects Bose domains to OCT
+            hosts_check = await client.execute(
+                "grep -c 'OCT-START' /etc/hosts 2>/dev/null || echo '0'"
+            )
+            result["hosts_redirect"] = hosts_check.output.strip() != "0"
+
             await client.close()
 
-            # Overall verification
+            # Either strategy counts as configured
             result["verified"] = all(
                 [
                     result["ssh_accessible"],
                     result["ssh_persistent"],
-                    result["bmx_configured"],
+                    result["bmx_configured"] or result["hosts_redirect"],
                 ]
             )
 

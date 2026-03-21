@@ -8,13 +8,13 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Device } from "../api/devices";
+import { DetectStrategyResponse, getServerInfo, enablePermanentSsh } from "../api/wizard";
 import DeviceInfoHeader from "../components/wizard/DeviceInfoHeader";
 import ProgressTracker, { WizardStep } from "../components/wizard/ProgressTracker";
 import Step2USBPreparation from "../components/wizard/Step2USBPreparation";
 import Step3PowerCycle from "../components/wizard/Step3PowerCycle";
 import Step4Backup from "../components/wizard/Step4Backup";
 import Step5ConfigModification from "../components/wizard/Step5ConfigModification";
-import { enablePermanentSsh } from "../api/wizard";
 import Step6HostsModification from "../components/wizard/Step6HostsModification";
 import Step7Verification from "../components/wizard/Step7Verification";
 import Step8Completion from "../components/wizard/Step8Completion";
@@ -73,6 +73,17 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   const [currentStep, setCurrentStep] = useState(1);
   const [steps, setSteps] = useState<WizardStep[]>(WIZARD_STEPS);
   const [backupPath, setBackupPath] = useState<string>("");
+  const [_detectedStrategy, setDetectedStrategy] = useState<DetectStrategyResponse | null>(null);
+  const [serverIp, setServerIp] = useState<string>(window.location.hostname);
+
+  // Fetch resolved server IP on mount (hostname → numeric IP for /etc/hosts)
+  useEffect(() => {
+    getServerInfo()
+      .then((info) => {
+        if (info.server_ip) setServerIp(info.server_ip);
+      })
+      .catch(() => {}); // fallback stays window.location.hostname
+  }, []);
 
   // Auto-select device from URL parameter OR first available device
   useEffect(() => {
@@ -174,6 +185,10 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
     // In Phase 3+: Store modification details
   };
 
+  const handleStrategyDetected = (strategy: DetectStrategyResponse) => {
+    setDetectedStrategy(strategy);
+  };
+
   const handleHostsModified = (data: unknown) => {
     console.log("Hosts modified:", data);
     // In Phase 3+: Store modification details
@@ -193,7 +208,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
 
     const stepId = step.id;
     // OCT server config: auto-detect from browser (wizard runs ON the OCT server)
-    const octIp = window.location.hostname;
+    const octIp = serverIp;
     const octUrl = window.location.origin;
 
     switch (stepId) {
@@ -238,6 +253,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
             onNext={handleNext}
             onPrevious={handlePrevious}
             onConfigModified={handleConfigModified}
+            onStrategyDetected={handleStrategyDetected}
           />
         );
 

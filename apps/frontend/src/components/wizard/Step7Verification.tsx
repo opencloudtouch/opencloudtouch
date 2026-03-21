@@ -23,6 +23,7 @@ interface TestResult {
   domain: string;
   success: boolean;
   resolved_ip: string;
+  expected_ip: string;
   matches_expected: boolean;
   message: string;
 }
@@ -93,6 +94,7 @@ export default function Step7Verification({
           domain,
           success: result.success,
           resolved_ip: result.resolved_ip,
+          expected_ip: result.expected_ip || octIp,
           matches_expected: result.matches_expected,
           message: result.message,
         });
@@ -102,6 +104,7 @@ export default function Step7Verification({
           domain,
           success: false,
           resolved_ip: "N/A",
+          expected_ip: octIp,
           matches_expected: false,
           message: `Fehler: ${message}`,
         });
@@ -240,7 +243,7 @@ export default function Step7Verification({
                     </div>
                     <div className="test-detail-row">
                       <span className="test-detail-label">Erwartete IP:</span>
-                      <code className="test-detail-value">{octIp}</code>
+                      <code className="test-detail-value">{result.expected_ip}</code>
                     </div>
                     <div className="test-detail-row">
                       <span className="test-detail-label">Status:</span>

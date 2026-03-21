@@ -1,8 +1,18 @@
 /**
  * Step 5: Config Modification
+ *
+ * Auto-detects setup strategy:
+ * - If HTTPS reverse proxy on port 443 → hosts-only (skip BMX URL change)
+ * - If no proxy → change BMX URL + hosts
  */
 import { useState, useEffect } from "react";
-import { modifyConfig, ModifyConfigResponse, getServerInfo } from "../../api/wizard";
+import {
+  modifyConfig,
+  ModifyConfigResponse,
+  getServerInfo,
+  detectStrategy,
+  DetectStrategyResponse,
+} from "../../api/wizard";
 import WizardStep from "./WizardStep";
 import "./Step5ConfigModification.css";
 
@@ -14,6 +24,7 @@ interface Step5Props {
   onNext: () => void;
   onPrevious: () => void;
   onConfigModified: (data: ModifyConfigResponse) => void;
+  onStrategyDetected?: (strategy: DetectStrategyResponse) => void;
 }
 
 // Validation pattern: (protocol)?(hostname|ip)(:port)?
@@ -50,6 +61,7 @@ export default function Step5ConfigModification({
   onNext,
   onPrevious,
   onConfigModified,
+  onStrategyDetected,
 }: Step5Props) {
   const [customUrl, setCustomUrl] = useState(octUrl);
   const [validationError, setValidationError] = useState("");
@@ -57,20 +69,32 @@ export default function Step5ConfigModification({
   const [modifyData, setModifyData] = useState<ModifyConfigResponse | null>(null);
   const [error, setError] = useState("");
   const [showDiff, setShowDiff] = useState(false);
+  const [strategy, setStrategy] = useState<DetectStrategyResponse | null>(null);
+  const [detecting, setDetecting] = useState(true);
 
-  // Auto-fill server URL on mount
+  // Auto-detect strategy and fill server URL on mount
   useEffect(() => {
-    const fetchServerInfo = async () => {
+    const init = async () => {
+      setDetecting(true);
       try {
-        const info = await getServerInfo();
+        const [info, detected] = await Promise.all([getServerInfo(), detectStrategy()]);
         setCustomUrl(info.server_url);
+        setStrategy(detected);
+        onStrategyDetected?.(detected);
       } catch (err) {
-        console.error("Failed to fetch server info:", err);
-        // Fallback to octUrl prop
+        console.error("Strategy detection failed:", err);
+        // Fallback: assume bmx_and_hosts
         setCustomUrl(octUrl);
+        setStrategy({
+          proxy_available: false,
+          strategy: "bmx_and_hosts",
+          message: "Erkennung fehlgeschlagen – BMX-URL wird geändert.",
+        });
+      } finally {
+        setDetecting(false);
       }
     };
-    fetchServerInfo();
+    init();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleInputChange = (value: string) => {
@@ -131,17 +155,67 @@ export default function Step5ConfigModification({
   return (
     <WizardStep
       stepNumber={5}
-      title="Konfigurationsdatei ändern"
-      description="Ändern Sie die bmxRegistryUrl in der OverrideSdkPrivateCfg.xml."
-      warning="Diese Änderung leitet Radio-Requests zu Ihrem OpenCloudTouch Server um."
+      title={strategy?.proxy_available ? "Reverse-Proxy erkannt" : "Konfigurationsdatei ändern"}
+      description={
+        strategy?.proxy_available
+          ? "Ein HTTPS Reverse-Proxy wurde auf Port 443 erkannt. Die BMX-URL muss nicht geändert werden."
+          : "Ändern Sie die bmxRegistryUrl in der OverrideSdkPrivateCfg.xml."
+      }
+      warning={
+        strategy?.proxy_available
+          ? undefined
+          : "Diese Änderung leitet Radio-Requests zu Ihrem OpenCloudTouch Server um."
+      }
       onNext={onNext}
       onPrevious={onPrevious}
-      isNextDisabled={!modifyData?.success}
-      nextDisabledReason="Bitte zuerst die Konfiguration erfolgreich anwenden."
+      isNextDisabled={detecting || (!strategy?.proxy_available && !modifyData?.success)}
+      nextDisabledReason={
+        detecting
+          ? "Strategie wird erkannt..."
+          : "Bitte zuerst die Konfiguration erfolgreich anwenden."
+      }
     >
       <div className="config-modification">
-        {/* URL Input */}
-        {!modifyData && (
+        {/* Detection spinner */}
+        {detecting && (
+          <div className="config-detecting">
+            <span className="spinner-small" />
+            <p>Erkenne Setup-Strategie...</p>
+          </div>
+        )}
+
+        {/* Proxy detected → hosts-only strategy */}
+        {!detecting && strategy?.proxy_available && (
+          <div className="config-success">
+            <div className="success-icon">🔒</div>
+            <h3 className="success-title">HTTPS Reverse-Proxy erkannt!</h3>
+            <p className="success-message">{strategy.message}</p>
+            <div className="config-details">
+              <div className="config-detail-item">
+                <strong>Strategie:</strong>
+                <span>Nur /etc/hosts ändern (DNS-Umleitung)</span>
+              </div>
+              <div className="config-detail-item">
+                <strong>BMX-URL:</strong>
+                <span>Bleibt unverändert (original Bose URL)</span>
+              </div>
+              <div className="config-detail-item">
+                <strong>Grund:</strong>
+                <span>
+                  Der Reverse-Proxy auf Port 443 fängt HTTPS-Anfragen ab und leitet sie an
+                  OpenCloudTouch weiter.
+                </span>
+              </div>
+            </div>
+            <p className="config-proxy-hint">
+              Klicken Sie auf &quot;Weiter&quot;, um die /etc/hosts-Datei im nächsten Schritt zu
+              konfigurieren.
+            </p>
+          </div>
+        )}
+
+        {/* No proxy → need BMX URL modification */}
+        {!detecting && !strategy?.proxy_available && (
           <div className="config-input-section">
             <h3 className="config-title">OpenCloudTouch Server URL</h3>
             <p className="config-description">
