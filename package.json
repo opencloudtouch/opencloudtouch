@@ -44,7 +44,8 @@
     "license-checker": "^25.0.1",
     "openapi-typescript": "^7.13.0",
     "prettier": "^3.8.1",
-    "rimraf": "^6.0.1"
+    "rimraf": "^6.0.1",
+    "vitest": "^4.0.18"
   },
   "engines": {
     "node": ">=20.0.0",
