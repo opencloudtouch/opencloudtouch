@@ -35,7 +35,7 @@
     "react-router-dom": "^7.13.0"
   },
   "devDependencies": {
-    "@eslint/css": "^0.14.1",
+    "@eslint/css": "^1.0.0",
     "cypress": "^15.10.0",
     "@eslint/js": "10.0.1",
     "@eslint/json": "^1.0.0",
