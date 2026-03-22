@@ -56,7 +56,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "globals": "^17.3.0",
     "jiti": "^2.6.1",
-    "jsdom": "^28.1.0",
+    "jsdom": "^29.0.1",
     "prettier": "^3.8.1",
     "rimraf": "^6.0.1",
     "start-server-and-test": "^2.1.5",
