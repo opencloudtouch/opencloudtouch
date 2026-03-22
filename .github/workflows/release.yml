@@ -1,16 +1,16 @@
 # ==============================================================================
-# RELEASE WORKFLOW â€” Tag + GitHub Release pipeline
+# RELEASE WORKFLOW — Tag + GitHub Release pipeline
 #
 # Trigger: workflow_dispatch with version input
 # Steps:
 #   1. Pre-flight: Validate version, check CI status, verify version in files
-#   2. Git Tag: vX.Y.Z on HEAD â†’ triggers ci-cd.yml â†’ Docker Multi-Arch Build
+#   2. Git Tag: vX.Y.Z on HEAD → triggers ci-cd.yml → Docker Multi-Arch Build
 #   3. GitHub Release: Auto-generated changelog + Docker instructions
 #   4. Trigger: build-raspi-image.yml for arm64 + armhf
 #
 # NOTE: Version bumps in package.json / pyproject.toml / CHANGELOG.md must be
 #       done in the PR BEFORE merging to main. This workflow does NOT push
-#       commits â€” it only creates a tag + release on the current HEAD.
+#       commits — it only creates a tag + release on the current HEAD.
 #       This is required because branch protection blocks direct pushes to main.
 # ==============================================================================
 
@@ -20,7 +20,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g., 1.0.0 â€” without v prefix)'
+        description: 'Release version (e.g., 1.0.0 — without v prefix)'
         required: true
         type: string
       prerelease:
@@ -51,7 +51,7 @@ jobs:
             echo "Expected: X.Y.Z or X.Y.Z-beta.1 (e.g., 1.0.0, 2.1.0-rc.1)"
             exit 1
           fi
-          echo "âœ… Valid version: $VERSION"
+          echo "✅ Valid version: $VERSION"
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -65,12 +65,12 @@ jobs:
             echo "::error::Tag $TAG already exists! Delete first: git push --delete origin $TAG && git tag -d $TAG"
             exit 1
           fi
-          echo "âœ… Tag $TAG is available"
+          echo "✅ Tag $TAG is available"
 
       - name: Verify version in package files
         run: |
           VERSION="${{ inputs.version }}"
-          echo "ðŸ” Checking that version $VERSION is present in all package files..."
+          echo "🔍 Checking that version $VERSION is present in all package files..."
 
           ERRORS=0
 
@@ -79,7 +79,7 @@ jobs:
             echo "::error::package.json version is '$ROOT_VER', expected '$VERSION'"
             ERRORS=$((ERRORS + 1))
           else
-            echo "  âœ… package.json â†’ $ROOT_VER"
+            echo "  ✅ package.json → $ROOT_VER"
           fi
 
           BACKEND_VER=$(grep '^version' apps/backend/pyproject.toml | head -1 | grep -o '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*[^"]*')
@@ -87,7 +87,7 @@ jobs:
             echo "::error::pyproject.toml version is '$BACKEND_VER', expected '$VERSION'"
             ERRORS=$((ERRORS + 1))
           else
-            echo "  âœ… apps/backend/pyproject.toml â†’ $BACKEND_VER"
+            echo "  ✅ apps/backend/pyproject.toml → $BACKEND_VER"
           fi
 
           FRONTEND_VER=$(grep '"version"' apps/frontend/package.json | head -1 | grep -o '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*[^"]*')
@@ -95,7 +95,7 @@ jobs:
             echo "::error::frontend/package.json version is '$FRONTEND_VER', expected '$VERSION'"
             ERRORS=$((ERRORS + 1))
           else
-            echo "  âœ… apps/frontend/package.json â†’ $FRONTEND_VER"
+            echo "  ✅ apps/frontend/package.json → $FRONTEND_VER"
           fi
 
           if [ "$ERRORS" -gt 0 ]; then
@@ -104,13 +104,13 @@ jobs:
             exit 1
           fi
 
-          echo "âœ… All package files match version $VERSION"
+          echo "✅ All package files match version $VERSION"
 
       - name: Check latest CI status on main
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "ðŸ” Checking CI/CD status on main..."
+          echo "🔍 Checking CI/CD status on main..."
 
           LAST_RUN=$(gh run list --workflow=ci-cd.yml --branch=main --limit=1 \
             --json conclusion --jq '.[0].conclusion' 2>/dev/null || echo "unknown")
@@ -121,10 +121,10 @@ jobs:
             echo "::warning::Last CI/CD run on main failed. Proceeding anyway (manual trigger)."
           fi
 
-          echo "âœ… Pre-flight checks passed"
+          echo "✅ Pre-flight checks passed"
 
   # ============================================================================
-  # TAG + RELEASE (no commits â€” branch protection safe)
+  # TAG + RELEASE (no commits — branch protection safe)
   # ============================================================================
   release:
     name: Create Release
@@ -157,7 +157,7 @@ jobs:
 
           git tag -a "$TAG" -m "Release $TAG
 
-          OpenCloudTouch $TAG â€” Local control for Bose SoundTouch devices.
+          OpenCloudTouch $TAG — Local control for Bose SoundTouch devices.
 
           See CHANGELOG.md for details."
 
@@ -166,8 +166,8 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-          echo "âœ… Tag $TAG created and pushed"
-          echo "ðŸš€ CI/CD Pipeline will build Docker images automatically"
+          echo "✅ Tag $TAG created and pushed"
+          echo "🚀 CI/CD Pipeline will build Docker images automatically"
 
       - name: Generate release notes
         id: notes
@@ -180,7 +180,7 @@ jobs:
 
           if [ -z "$PREV_TAG" ]; then
             RANGE=""
-            COMPARE_TEXT="ðŸŽ‰ **First release of OpenCloudTouch!**"
+            COMPARE_TEXT="🎉 **First release of OpenCloudTouch!**"
           else
             RANGE="${PREV_TAG}..${TAG}"
             COMPARE_TEXT="**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${TAG}"
@@ -188,9 +188,9 @@ jobs:
 
           # Build release notes file
           cat > release-notes.md << EOF
-          ## ðŸš€ OpenCloudTouch v${VERSION}
+          ## 🚀 OpenCloudTouch v${VERSION}
 
-          Local control for BoseÂ® SoundTouchÂ® devices â€” after the cloud shutdown.
+          Local control for Bose® SoundTouch® devices — after the cloud shutdown.
           EOF
           sed -i 's/^          //' release-notes.md
 
@@ -215,22 +215,22 @@ jobs:
             fi
           }
 
-          add_section "Features" "^feat" "âœ¨"
-          add_section "Bug Fixes" "^fix" "ðŸ›"
+          add_section "Features" "^feat" "✨"
+          add_section "Bug Fixes" "^fix" "🐛"
           add_section "Performance" "^perf" "âš¡"
-          add_section "Refactoring" "^refactor" "â™»ï¸"
-          add_section "Tests" "^test" "ðŸ§ª"
-          add_section "Documentation" "^docs" "ðŸ“š"
-          add_section "CI/CD" "^ci" "ðŸ”§"
-          add_section "Maintenance" "^chore\|^build" "ðŸ› ï¸"
-          add_section "Style" "^style" "ðŸŽ¨"
+          add_section "Refactoring" "^refactor" "♻️"
+          add_section "Tests" "^test" "🧪"
+          add_section "Documentation" "^docs" "📚"
+          add_section "CI/CD" "^ci" "🔧"
+          add_section "Maintenance" "^chore\|^build" "🛠️"
+          add_section "Style" "^style" "🎨"
 
           # Docker instructions
           cat >> release-notes.md << EOF
 
           ---
 
-          ## ðŸ“¦ Installation
+          ## 📦 Installation
 
           ### Docker (recommended)
 
@@ -275,7 +275,7 @@ jobs:
 
           1. Download the \`.img.xz\` file for your architecture (arm64 or armhf)
           2. Flash with [Raspberry Pi Imager](https://www.raspberrypi.com/software/) or: \`xz -d *.img.xz && sudo dd if=*.img of=/dev/sdX bs=4M status=progress\`
-          3. Boot â†’ OpenCloudTouch starts automatically on port 7777
+          3. Boot → OpenCloudTouch starts automatically on port 7777
           4. Default credentials: \`oct\` / \`opencloudtouch\`
 
           ### Available Docker Tags
@@ -297,12 +297,12 @@ jobs:
 
           ---
 
-          ## ðŸ”— Resources
+          ## 🔗 Resources
 
-          - ðŸ“– [Documentation (Wiki)](https://github.com/scheilch/opencloudtouch/wiki)
-          - ðŸ› [Report Issues](https://github.com/scheilch/opencloudtouch/issues)
-          - ðŸ“‹ [Upgrade Guide](https://github.com/scheilch/opencloudtouch/blob/main/UPGRADING.md)
-          - ðŸ“„ [Full Changelog](https://github.com/scheilch/opencloudtouch/blob/main/CHANGELOG.md)
+          - 📖 [Documentation (Wiki)](https://github.com/scheilch/opencloudtouch/wiki)
+          - 🐛 [Report Issues](https://github.com/scheilch/opencloudtouch/issues)
+          - 📋 [Upgrade Guide](https://github.com/scheilch/opencloudtouch/blob/main/UPGRADING.md)
+          - 📄 [Full Changelog](https://github.com/scheilch/opencloudtouch/blob/main/CHANGELOG.md)
 
           ${COMPARE_TEXT}
           EOF
@@ -317,7 +317,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ inputs.version }}
-          name: "ðŸŽ‰ OpenCloudTouch v${{ inputs.version }}"
+          name: "🎉 OpenCloudTouch v${{ inputs.version }}"
           body_path: release-notes.md
           prerelease: ${{ inputs.prerelease }}
           draft: false
@@ -329,22 +329,22 @@ jobs:
         run: |
           VERSION="${{ inputs.version }}"
           cat >> $GITHUB_STEP_SUMMARY << EOF
-          # ðŸŽ‰ Release v${VERSION} Created!
+          # 🎉 Release v${VERSION} Created!
 
           | Step | Status |
           |------|--------|
-          | Version check | âœ… All package files match v${VERSION} |
-          | Git tag | âœ… v${VERSION} |
-          | GitHub Release | âœ… Published |
+          | Version check | ✅ All package files match v${VERSION} |
+          | Git tag | ✅ v${VERSION} |
+          | GitHub Release | ✅ Published |
 
-          ## ðŸš€ Automated Downstream Pipelines
+          ## 🚀 Automated Downstream Pipelines
 
-          1. **CI/CD** â†’ Docker multi-arch build + push to GHCR
+          1. **CI/CD** → Docker multi-arch build + push to GHCR
              [Watch](https://github.com/${{ github.repository }}/actions/workflows/ci-cd.yml)
-          2. **Raspberry Pi** â†’ SD card images (arm64 + armhf)
+          2. **Raspberry Pi** → SD card images (arm64 + armhf)
              [Watch](https://github.com/${{ github.repository }}/actions/workflows/build-raspi-image.yml)
 
-          ## ðŸ“¦ After CI completes
+          ## 📦 After CI completes
 
           \`\`\`bash
           docker pull ghcr.io/${{ github.repository }}:stable
@@ -369,7 +369,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ needs.release.outputs.version }}"
-          echo "ðŸ“ Triggering Raspberry Pi image builds for v${VERSION}..."
+          echo "🍓 Triggering Raspberry Pi image builds for v${VERSION}..."
 
           gh workflow run build-raspi-image.yml \
             --repo "${{ github.repository }}" \
@@ -377,8 +377,8 @@ jobs:
             --field architectures=all \
             --field attach_to_release=true
 
-          echo "âœ… Raspberry Pi build triggered"
-          echo "ðŸ“‹ Images will be automatically attached to the release when ready"
+          echo "✅ Raspberry Pi build triggered"
+          echo "📋 Images will be automatically attached to the release when ready"
 
   # ============================================================================
   # VERIFY DOWNSTREAM WORKFLOWS
@@ -398,7 +398,7 @@ jobs:
           VERSION="${{ needs.release.outputs.version }}"
           TAG="v${VERSION}"
 
-          echo "# ðŸ” Downstream Status" >> $GITHUB_STEP_SUMMARY
+          echo "# 🔍 Downstream Status" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # CI/CD
@@ -414,8 +414,8 @@ jobs:
               --json status --jq '.[0].status' 2>/dev/null || echo "unknown")
             echo "- **Raspberry Pi Builds**: ${RASPI_STATUS}" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- **Raspberry Pi Builds**: â­ï¸ Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "- **Raspberry Pi Builds**: ⏭️ Skipped" >> $GITHUB_STEP_SUMMARY
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "ðŸ“‹ [Release Page](https://github.com/${{ github.repository }}/releases/tag/${TAG})" >> $GITHUB_STEP_SUMMARY
+          echo "📋 [Release Page](https://github.com/${{ github.repository }}/releases/tag/${TAG})" >> $GITHUB_STEP_SUMMARY
