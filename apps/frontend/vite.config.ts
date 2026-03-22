@@ -8,11 +8,10 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Vendor chunk: React and React DOM (changes rarely)
-          'react-vendor': ['react', 'react-dom'],
-          // Router chunk (if using React Router in future)
-          // 'router': ['react-router-dom'],
+        manualChunks(id) {
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) {
+            return 'react-vendor';
+          }
         },
       },
     },
