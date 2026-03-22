@@ -47,7 +47,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
     "@vitest/coverage-v8": "^4.0.18",
-    "@vitest/ui": "^4.0.18",
+    "@vitest/ui": "^4.1.0",
     "axe-core": "^4.11.1",
     "colorette": "^2.0.20",
     "cypress-axe": "^1.7.0",
