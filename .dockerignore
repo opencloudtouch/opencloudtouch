@@ -24,8 +24,9 @@ htmlcov/
 **/.vite/
 
 # Build & Test Artifacts
-.out/
-**/dist/
+# Keep .out/dist/ — pre-built frontend from CI is placed there
+.out/coverage/
+.out/test-results/
 **/coverage/
 
 # Tests (not needed in production image)
