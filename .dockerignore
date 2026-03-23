@@ -19,7 +19,7 @@ htmlcov/
 .venv/
 .ruff_cache/
 
-# Node.js (frontend build happens in Docker)
+# Node.js (not needed — frontend is pre-built in CI)
 **/node_modules/
 **/.vite/
 
