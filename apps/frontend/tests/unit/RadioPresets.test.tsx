@@ -330,7 +330,7 @@ describe("RadioPresets Page", () => {
   });
 
   describe("Preset Overwrite Flow", () => {
-    it("should show overwrite confirmation when assigning to occupied preset", async () => {
+    it("should directly overwrite an occupied preset without confirmation", async () => {
       vi.mocked(presetsApi.getDevicePresets).mockResolvedValue([
         {
           id: 1,
@@ -352,50 +352,11 @@ describe("RadioPresets Page", () => {
         expect(screen.getByTestId("preset-4-name")).toBeInTheDocument();
       });
 
-      // Click change on an occupied preset
-      fireEvent.click(screen.getByTestId("preset-4-change"));
-
-      // Select a new station
-      fireEvent.click(screen.getByTestId("select-station"));
-
-      // Should show overwrite confirmation
-      await waitFor(() => {
-        expect(screen.getByTestId("confirm-dialog-confirm")).toBeInTheDocument();
-      });
-    });
-
-    it("should overwrite preset when user confirms", async () => {
-      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue([
-        {
-          id: 1,
-          device_id: "AABBCC123456",
-          preset_number: 4,
-          station_uuid: "uuid-4",
-          station_name: "Old Radio",
-          station_url: "http://old.com",
-          created_at: "2024-01-01T00:00:00Z",
-          updated_at: "2024-01-01T00:00:00Z",
-        },
-      ]);
-
-      await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
-      });
-
-      await waitFor(() => {
-        expect(screen.getByTestId("preset-4-name")).toBeInTheDocument();
-      });
-
-      // Click change → select new station → confirm overwrite
+      // Click change on occupied preset → select new station
       fireEvent.click(screen.getByTestId("preset-4-change"));
       fireEvent.click(screen.getByTestId("select-station"));
 
-      await waitFor(() => {
-        expect(screen.getByTestId("confirm-dialog-confirm")).toBeInTheDocument();
-      });
-      fireEvent.click(screen.getByTestId("confirm-dialog-confirm"));
-
-      // Should call setPreset API
+      // Should call setPreset API directly without confirmation dialog
       await waitFor(() => {
         expect(presetsApi.setPreset).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -405,44 +366,6 @@ describe("RadioPresets Page", () => {
           })
         );
       });
-    });
-
-    it("should not overwrite preset when user cancels", async () => {
-      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue([
-        {
-          id: 1,
-          device_id: "AABBCC123456",
-          preset_number: 5,
-          station_uuid: "uuid-5",
-          station_name: "Radio Five",
-          station_url: "http://radio5.com",
-          created_at: "2024-01-01T00:00:00Z",
-          updated_at: "2024-01-01T00:00:00Z",
-        },
-      ]);
-
-      await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
-      });
-
-      await waitFor(() => {
-        expect(screen.getByTestId("preset-5-name")).toBeInTheDocument();
-      });
-
-      // Click change → select new station → cancel
-      fireEvent.click(screen.getByTestId("preset-5-change"));
-      fireEvent.click(screen.getByTestId("select-station"));
-
-      await waitFor(() => {
-        expect(screen.getByTestId("confirm-dialog-cancel")).toBeInTheDocument();
-      });
-      fireEvent.click(screen.getByTestId("confirm-dialog-cancel"));
-
-      // Should NOT call setPreset API
-      expect(presetsApi.setPreset).not.toHaveBeenCalled();
-
-      // Preset should still show old name
-      expect(screen.getByTestId("preset-5-name")).toHaveTextContent("Radio Five");
     });
   });
 
@@ -660,7 +583,7 @@ describe("RadioPresets Page", () => {
       });
     });
 
-    it("should call setPreset API when overwriting existing preset", async () => {
+    it("should call setPreset API directly when overwriting existing preset", async () => {
       vi.mocked(presetsApi.getDevicePresets).mockResolvedValue([
         {
           id: 1,
@@ -682,16 +605,11 @@ describe("RadioPresets Page", () => {
         expect(screen.getByTestId("preset-4-name")).toBeInTheDocument();
       });
 
-      // Click change → select → confirm overwrite
+      // Click change → select station → should save directly
       fireEvent.click(screen.getByTestId("preset-4-change"));
       fireEvent.click(screen.getByTestId("select-station"));
 
-      await waitFor(() => {
-        expect(screen.getByTestId("confirm-dialog-confirm")).toBeInTheDocument();
-      });
-      fireEvent.click(screen.getByTestId("confirm-dialog-confirm"));
-
-      // Should call setPreset API
+      // Should call setPreset API directly without confirmation
       await waitFor(() => {
         expect(presetsApi.setPreset).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -700,45 +618,6 @@ describe("RadioPresets Page", () => {
           })
         );
       });
-    });
-
-    it("should not overwrite preset if user cancels confirmation", async () => {
-      // Setup preset first
-      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue([
-        {
-          id: 1,
-          device_id: "AABBCC123456",
-          preset_number: 5,
-          station_uuid: "uuid-5",
-          station_name: "Radio Five",
-          station_url: "http://radio5.com",
-          created_at: "2024-01-01T00:00:00Z",
-          updated_at: "2024-01-01T00:00:00Z",
-        },
-      ]);
-
-      await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
-      });
-
-      await waitFor(() => {
-        expect(screen.getByTestId("preset-5-name")).toBeInTheDocument();
-      });
-
-      // Click change → select → cancel
-      fireEvent.click(screen.getByTestId("preset-5-change"));
-      fireEvent.click(screen.getByTestId("select-station"));
-
-      await waitFor(() => {
-        expect(screen.getByTestId("confirm-dialog-cancel")).toBeInTheDocument();
-      });
-      fireEvent.click(screen.getByTestId("confirm-dialog-cancel"));
-
-      // Should NOT call setPreset API
-      expect(presetsApi.setPreset).not.toHaveBeenCalled();
-
-      // Preset should still be there
-      expect(screen.getByTestId("preset-5-name")).toBeInTheDocument();
     });
 
     it("should reload presets when device changes", async () => {
@@ -880,14 +759,9 @@ describe("RadioPresets Page", () => {
         expect(screen.getByTestId("preset-1-name")).toBeInTheDocument();
       });
 
-      // Click change → select → confirm overwrite
+      // Click change → select station (saves directly, no confirmation)
       fireEvent.click(screen.getByTestId("preset-1-change"));
       fireEvent.click(screen.getByTestId("select-station"));
-
-      await waitFor(() => {
-        expect(screen.getByTestId("confirm-dialog-confirm")).toBeInTheDocument();
-      });
-      fireEvent.click(screen.getByTestId("confirm-dialog-confirm"));
 
       // Should display user-friendly error
       await waitFor(() => {

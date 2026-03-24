@@ -88,12 +88,6 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
   const handleStationSelect = async (station: RadioStation) => {
     if (!assigningPreset || !currentDevice?.device_id) return;
 
-    // If preset slot already has a station, ask for overwrite confirmation
-    if (presets[assigningPreset]) {
-      setPendingStation(station);
-      return;
-    }
-
     await doAssign(assigningPreset, station);
   };
 
