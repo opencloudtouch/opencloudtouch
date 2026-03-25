@@ -96,6 +96,25 @@ function setupDeviceMocks() {
       message: "SSH dauerhaft aktiviert.",
     },
   }).as("enablePermanentSSH");
+
+  cy.intercept("GET", "/api/setup/wizard/detect-strategy", {
+    statusCode: 200,
+    body: {
+      proxy_available: false,
+      strategy: "bmx_and_hosts",
+      message: "Kein Reverse-Proxy auf Port 443 erkannt. Die BMX-URL muss zusätzlich geändert werden.",
+    },
+  }).as("detectStrategy");
+
+  cy.intercept("GET", "/api/setup/wizard/server-info", {
+    statusCode: 200,
+    body: {
+      server_url: "http://localhost:7778",
+      server_ip: "127.0.0.1",
+      default_port: 7777,
+      supported_protocols: ["http", "https"],
+    },
+  }).as("serverInfo");
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
