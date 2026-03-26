@@ -12,6 +12,7 @@ from xml.etree import ElementTree
 import httpx
 
 from opencloudtouch.bmx.models import BmxAudio, BmxPlaybackResponse, BmxStream
+from opencloudtouch.bmx.stream_utils import convert_https_to_http
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +97,9 @@ async def resolve_tunein_station(station_id: str) -> BmxPlaybackResponse:
 
             stream_resp = await client.get(TUNEIN_STREAM_URL % station_id)
             stream_urls = [
-                u.strip() for u in stream_resp.text.splitlines() if u.strip()
+                convert_https_to_http(u.strip())
+                for u in stream_resp.text.splitlines()
+                if u.strip()
             ]
 
             if not stream_urls:

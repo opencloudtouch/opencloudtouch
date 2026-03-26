@@ -73,6 +73,48 @@ class TestResolveTuneInStation:
             assert result.streamType == "liveRadio"
 
     @pytest.mark.asyncio
+    async def test_resolve_station_converts_https_to_http(self):
+        """Test that HTTPS stream URLs are converted to HTTP for Bose compatibility."""
+        station_id = "s158432"
+        describe_xml = """<?xml version="1.0" encoding="UTF-8"?>
+<opml version="1">
+  <body>
+    <outline>
+      <station>
+        <name>HTTPS Station</name>
+      </station>
+    </outline>
+  </body>
+</opml>"""
+        # TuneIn returns HTTPS URLs
+        stream_urls = "https://secure.stream.example.com/live.mp3\nhttps://backup.stream.example.com/live.aac"
+
+        mock_response_describe = MagicMock()
+        mock_response_describe.text = describe_xml
+        mock_response_stream = MagicMock()
+        mock_response_stream.text = stream_urls
+
+        with patch("opencloudtouch.bmx.tunein.httpx.AsyncClient") as mock_client:
+            mock_context = AsyncMock()
+            mock_context.__aenter__.return_value.get = AsyncMock(
+                side_effect=[mock_response_describe, mock_response_stream]
+            )
+            mock_client.return_value = mock_context
+
+            result = await resolve_tunein_station(station_id)
+
+            # HTTPS should be converted to HTTP
+            assert result.audio.streamUrl == "http://secure.stream.example.com/live.mp3"
+            assert (
+                result.audio.streams[0].streamUrl
+                == "http://secure.stream.example.com/live.mp3"
+            )
+            assert (
+                result.audio.streams[1].streamUrl
+                == "http://backup.stream.example.com/live.aac"
+            )
+
+    @pytest.mark.asyncio
     async def test_resolve_station_minimal_xml(self):
         """Test resolution with minimal XML (missing logo)."""
         # Arrange

@@ -212,6 +212,7 @@ class BoseDeviceClientAdapter(DeviceClient):
         station_name: str,
         oct_backend_url: str,
         station_image_url: str = "",
+        station_uuid: str = "",
     ) -> None:
         """
         Store a preset on the Bose device using LOCAL_INTERNET_RADIO + Orion adapter.
@@ -264,6 +265,9 @@ class BoseDeviceClientAdapter(DeviceClient):
                 "name": station_name,
                 "imageUrl": station_image_url,
             }
+            # TuneIn stations have empty URL - store station ID for dynamic resolution
+            if not station_url and station_uuid:
+                stream_data["tuneinId"] = station_uuid
             json_str = json.dumps(stream_data)
             base64_data = base64.urlsafe_b64encode(json_str.encode()).decode()
 

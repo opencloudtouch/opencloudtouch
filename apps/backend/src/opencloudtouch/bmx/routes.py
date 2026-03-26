@@ -25,32 +25,12 @@ from opencloudtouch.bmx.models import (
     BmxServicesResponse,
     BmxStream,
 )
+from opencloudtouch.bmx.stream_utils import convert_https_to_http
 from opencloudtouch.bmx.tunein import get_oct_base_url, resolve_tunein_station
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["bmx"])
-
-
-def convert_https_to_http(url: str) -> str:
-    """Convert HTTPS URLs to HTTP for Bose device compatibility.
-
-    Bose SoundTouch devices cannot play HTTPS streams directly.
-    Most radio stations support both HTTP and HTTPS, so we try HTTP first.
-
-    Args:
-        url: Stream URL (may be HTTPS or HTTP)
-
-    Returns:
-        HTTP version of the URL (https:// → http://)
-    """
-    if url.startswith("https://"):
-        http_url = "http://" + url[8:]
-        logger.info(
-            f"[BMX] Converting HTTPS to HTTP: {url[:50]}... → {http_url[:50]}..."
-        )
-        return http_url
-    return url
 
 
 # =============================================================================
@@ -244,8 +224,14 @@ async def custom_stream_playback(request: Request) -> JSONResponse:
         json_obj = json.loads(json_str)
 
         stream_url = json_obj.get("streamUrl", "")
+        tunein_id = json_obj.get("tuneinId", "")
         image_url = json_obj.get("imageUrl", "")
         name = json_obj.get("name", "Custom Station")
+
+        # TuneIn stations: resolve stream URL dynamically via TuneIn API
+        if tunein_id and not stream_url:
+            logger.info(f"[BMX ORION] TuneIn station detected: {tunein_id} ({name})")
+            return await _resolve_tunein_for_orion(tunein_id)
 
         # Convert HTTPS to HTTP - Bose devices can't play HTTPS streams
         stream_url = convert_https_to_http(stream_url)
@@ -281,6 +267,27 @@ async def custom_stream_playback(request: Request) -> JSONResponse:
         logger.error(f"[BMX ORION] Error: {e}")
         return JSONResponse(
             content={"error": str(e)},
+            status_code=500,
+            headers={"Access-Control-Allow-Origin": "*"},
+        )
+
+
+async def _resolve_tunein_for_orion(tunein_id: str) -> JSONResponse:
+    """Resolve TuneIn station dynamically for Orion playback.
+
+    Called when a preset contains a tuneinId but no streamUrl.
+    Fetches fresh stream URL from TuneIn API at playback time.
+    """
+    try:
+        response = await resolve_tunein_station(tunein_id)
+        return JSONResponse(
+            content=response.model_dump(),
+            headers={"Access-Control-Allow-Origin": "*"},
+        )
+    except Exception as e:
+        logger.error(f"[BMX ORION] TuneIn resolution failed for {tunein_id}: {e}")
+        return JSONResponse(
+            content={"error": f"TuneIn resolution failed: {e}"},
             status_code=500,
             headers={"Access-Control-Allow-Origin": "*"},
         )

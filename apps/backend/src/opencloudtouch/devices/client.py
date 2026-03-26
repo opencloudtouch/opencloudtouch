@@ -125,6 +125,7 @@ class DeviceClient(ABC):
         station_name: str,
         oct_backend_url: str,
         station_image_url: str = "",
+        station_uuid: str = "",
     ) -> None:
         """
         Store a preset on the Bose device.
@@ -136,6 +137,7 @@ class DeviceClient(ABC):
             station_name: Station display name
             oct_backend_url: OCT backend base URL
             station_image_url: Optional station logo URL
+            station_uuid: Optional station ID (used for TuneIn dynamic resolution)
         """
         pass
 

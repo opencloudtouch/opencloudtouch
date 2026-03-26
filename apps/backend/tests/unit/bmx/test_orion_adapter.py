@@ -9,12 +9,14 @@ Tested endpoint:
 
 import base64
 import json
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from opencloudtouch.bmx.routes import BmxAudio, BmxPlaybackResponse, BmxStream, router
+from opencloudtouch.bmx.models import BmxAudio, BmxPlaybackResponse, BmxStream
+from opencloudtouch.bmx.routes import router
 
 
 @pytest.fixture
@@ -411,3 +413,94 @@ class TestRealWorldStations:
         body = response.json()
         assert body["name"] == name
         assert body["audio"]["streamUrl"] == stream_url
+
+
+def encode_tunein_data(tunein_id: str, name: str, image_url: str = "") -> str:
+    """Helper to encode TuneIn station data as base64 (empty streamUrl + tuneinId)."""
+    data = {
+        "streamUrl": "",
+        "name": name,
+        "imageUrl": image_url,
+        "tuneinId": tunein_id,
+    }
+    return base64.urlsafe_b64encode(json.dumps(data).encode()).decode()
+
+
+class TestOrionTuneInResolution:
+    """Tests for dynamic TuneIn stream resolution via Orion adapter."""
+
+    def test_tunein_station_resolves_dynamically(self, client):
+        """TuneIn preset with empty streamUrl + tuneinId resolves at playback time."""
+        data = encode_tunein_data("s158432", "Absolut Relax")
+        mock_response = BmxPlaybackResponse(
+            audio=BmxAudio(
+                streamUrl="http://stream.absolut.at/relax.mp3",
+                streams=[BmxStream(streamUrl="http://stream.absolut.at/relax.mp3")],
+            ),
+            imageUrl="https://cdn.tunein.com/s158432q.png",
+            name="Absolut Relax",
+        )
+
+        with patch(
+            "opencloudtouch.bmx.routes.resolve_tunein_station",
+            new_callable=AsyncMock,
+            return_value=mock_response,
+        ) as mock_resolve:
+            response = client.get(
+                f"/core02/svc-bmx-adapter-orion/prod/orion/station?data={data}"
+            )
+
+            assert response.status_code == 200
+            body = response.json()
+            assert body["audio"]["streamUrl"] == "http://stream.absolut.at/relax.mp3"
+            assert body["name"] == "Absolut Relax"
+            mock_resolve.assert_called_once_with("s158432")
+
+    def test_tunein_resolution_failure_returns_500(self, client):
+        """TuneIn resolution failure returns 500 with error details."""
+        data = encode_tunein_data("s999999", "Unknown Station")
+
+        with patch(
+            "opencloudtouch.bmx.routes.resolve_tunein_station",
+            new_callable=AsyncMock,
+            side_effect=ValueError("No stream URLs found for station s999999"),
+        ):
+            response = client.get(
+                f"/core02/svc-bmx-adapter-orion/prod/orion/station?data={data}"
+            )
+
+            assert response.status_code == 500
+            body = response.json()
+            assert "error" in body
+            assert "TuneIn resolution failed" in body["error"]
+
+    def test_regular_stream_still_works_with_tunein_id_absent(self, client):
+        """Regular stream (no tuneinId) continues to work as before."""
+        stream_url = "http://stream.example.com/radio.mp3"
+        data = encode_stream_data(stream_url, "Normal Radio")
+
+        response = client.get(
+            f"/core02/svc-bmx-adapter-orion/prod/orion/station?data={data}"
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["audio"]["streamUrl"] == stream_url
+
+    def test_tunein_id_with_streamurl_uses_streamurl(self, client):
+        """When both tuneinId and streamUrl are present, use streamUrl directly."""
+        data_dict = {
+            "streamUrl": "http://direct.example.com/stream.mp3",
+            "name": "Station",
+            "imageUrl": "",
+            "tuneinId": "s158432",
+        }
+        data = base64.urlsafe_b64encode(json.dumps(data_dict).encode()).decode()
+
+        response = client.get(
+            f"/core02/svc-bmx-adapter-orion/prod/orion/station?data={data}"
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["audio"]["streamUrl"] == "http://direct.example.com/stream.mp3"

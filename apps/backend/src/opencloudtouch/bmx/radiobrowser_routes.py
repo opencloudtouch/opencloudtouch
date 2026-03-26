@@ -14,7 +14,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 from opencloudtouch.bmx.models import BmxAudio, BmxPlaybackResponse, BmxStream
-from opencloudtouch.bmx.routes import convert_https_to_http
+from opencloudtouch.bmx.stream_utils import convert_https_to_http
 from opencloudtouch.bmx.tunein import get_oct_base_url
 from opencloudtouch.radio.adapter import get_radio_adapter
 from opencloudtouch.radio.providers.radiobrowser import (

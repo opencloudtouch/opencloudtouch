@@ -110,6 +110,7 @@ class PresetService:
                     station_name=station_name,
                     oct_backend_url=oct_backend_url,
                     station_image_url=station_favicon or "",
+                    station_uuid=station_uuid,
                 )
                 logger.info(
                     f"✅ Bose device programmed: Preset {preset_number} = {station_name}"
