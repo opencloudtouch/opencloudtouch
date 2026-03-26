@@ -251,6 +251,25 @@ function setupWizardMocks() {
     statusCode: 200,
     body: { success: true, message: "Neustart eingeleitet" },
   }).as("rebootDevice");
+
+  // Intercept detect-strategy and server-info to prevent real backend calls
+  // that could return proxy_available=true and hide the config modification button
+  cy.intercept("GET", "/api/setup/wizard/detect-strategy", {
+    statusCode: 200,
+    body: {
+      proxy_available: false,
+      strategy: "bmx_and_hosts",
+      message: "Standard-Strategie: BMX + Hosts",
+    },
+  }).as("detectStrategy");
+
+  cy.intercept("GET", "/api/setup/wizard/server-info", {
+    statusCode: 200,
+    body: {
+      server_url: "http://localhost:7778",
+      server_ip: "127.0.0.1",
+    },
+  }).as("serverInfo");
 }
 
 /** Wait for wizard to be ready at Step 1 (mode selector was removed; wizard starts directly) */
