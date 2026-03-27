@@ -106,85 +106,87 @@ async def stream_device_preset(
             },
         )
 
-        # Stream generator that manages the upstream connection
-        async def stream_generator():
-            """Generator that fetches and yields audio chunks from RadioBrowser."""
-            try:
-                async with httpx.AsyncClient(
-                    timeout=30.0, follow_redirects=True
-                ) as client:
-                    async with client.stream(
-                        "GET",
-                        preset.station_url,
-                        headers={
-                            "User-Agent": "OpenCloudTouch/0.2.0 (Bose SoundTouch Proxy)",
-                            "Icy-MetaData": "1",
-                        },
-                    ) as upstream_response:
-                        # Check if stream is available
-                        if upstream_response.status_code != 200:
-                            logger.error(
-                                f"[502] RadioBrowser stream unavailable: HTTP {upstream_response.status_code}",
-                                extra={
-                                    "device_id": device_id,
-                                    "preset_id": preset_id,
-                                    "upstream_status": upstream_response.status_code,
-                                    "upstream_url": preset.station_url,
-                                },
-                            )
-                            raise HTTPException(
-                                status_code=502,
-                                detail=f"RadioBrowser stream unavailable: HTTP {upstream_response.status_code}",
-                            )
-
-                        # Detect content type
-                        content_type = upstream_response.headers.get(
-                            "content-type", "audio/mpeg"
-                        )
-
-                        logger.info(
-                            f"[STREAMING] {preset.station_name} → Bose device (HTTP proxy active)",
-                            extra={
-                                "device_id": device_id,
-                                "preset_id": preset_id,
-                                "content_type": content_type,
-                                "upstream_headers": dict(upstream_response.headers),
-                            },
-                        )
-
-                        # Stream audio chunks
-                        async for chunk in upstream_response.aiter_bytes(
-                            chunk_size=8192
-                        ):
-                            yield chunk
-
-            except httpx.RequestError as e:
-                logger.error(
-                    f"[502] Failed to fetch RadioBrowser stream: {e}",
-                    extra={
-                        "device_id": device_id,
-                        "preset_id": preset_id,
-                        "upstream_url": preset.station_url,
-                        "error": str(e),
+        # Open upstream connection and check status BEFORE sending response headers.
+        # This ensures we can return proper HTTP error codes (502) instead of
+        # failing inside a StreamingResponse generator (where headers are already sent).
+        http_client = httpx.AsyncClient(timeout=30.0, follow_redirects=True)
+        try:
+            upstream_response = await http_client.send(
+                httpx.Request(
+                    "GET",
+                    preset.station_url,
+                    headers={
+                        "User-Agent": "OpenCloudTouch/0.2.0 (Bose SoundTouch Proxy)",
+                        "Icy-MetaData": "1",
                     },
-                    exc_info=True,
-                )
-                raise HTTPException(
-                    status_code=502,
-                    detail=f"Failed to connect to RadioBrowser: {e}",
-                )
+                ),
+                stream=True,
+            )
+        except httpx.RequestError as e:
+            await http_client.aclose()
+            logger.error(
+                f"[502] Failed to fetch RadioBrowser stream: {e}",
+                extra={
+                    "device_id": device_id,
+                    "preset_id": preset_id,
+                    "upstream_url": preset.station_url,
+                    "error": str(e),
+                },
+                exc_info=True,
+            )
+            raise HTTPException(
+                status_code=502,
+                detail=f"Failed to connect to RadioBrowser: {e}",
+            )
+
+        # Check upstream status before committing to StreamingResponse
+        if upstream_response.status_code != 200:
+            await upstream_response.aclose()
+            await http_client.aclose()
+            logger.error(
+                f"[502] RadioBrowser stream unavailable: HTTP {upstream_response.status_code}",
+                extra={
+                    "device_id": device_id,
+                    "preset_id": preset_id,
+                    "upstream_status": upstream_response.status_code,
+                    "upstream_url": preset.station_url,
+                },
+            )
+            raise HTTPException(
+                status_code=502,
+                detail=f"RadioBrowser stream unavailable: HTTP {upstream_response.status_code}",
+            )
+
+        content_type = upstream_response.headers.get("content-type", "audio/mpeg")
+        logger.info(
+            f"[STREAMING] {preset.station_name} → Bose device (HTTP proxy active)",
+            extra={
+                "device_id": device_id,
+                "preset_id": preset_id,
+                "content_type": content_type,
+                "upstream_headers": dict(upstream_response.headers),
+            },
+        )
+
+        async def stream_generator():
+            """Generator that yields audio chunks from the already-opened upstream."""
+            try:
+                async for chunk in upstream_response.aiter_bytes(chunk_size=8192):
+                    yield chunk
             except Exception as e:
                 logger.error(
                     f"[STREAM ERROR] Proxy interrupted: {e}",
                     extra={"device_id": device_id, "preset_id": preset_id},
                     exc_info=True,
                 )
-                raise
+            finally:
+                await upstream_response.aclose()
+                await http_client.aclose()
 
         # Return streaming response to Bose device
         return StreamingResponse(
             stream_generator(),
-            media_type="audio/mpeg",  # Will be updated by generator
+            media_type=content_type,
             headers={
                 "icy-name": preset.station_name,
                 "Cache-Control": "no-cache, no-store, must-revalidate",

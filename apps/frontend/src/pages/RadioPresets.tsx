@@ -94,11 +94,18 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
   const doAssign = async (presetNumber: number, station: RadioStation) => {
     if (!currentDevice?.device_id) return;
 
-    await assignStation(presetNumber, station, currentDevice.device_id);
-    setAssigningPreset(null);
-    setSearchOpen(false);
-    setPendingStation(null);
-    showToast(t("presets.presetSaved", { number: presetNumber }), "success");
+    try {
+      await assignStation(presetNumber, station, currentDevice.device_id);
+      setAssigningPreset(null);
+      setSearchOpen(false);
+      setPendingStation(null);
+      showToast(t("presets.presetSaved", { number: presetNumber }), "success");
+    } catch {
+      // Error state is already set in usePresets — keep modal closed so user sees the error
+      setAssigningPreset(null);
+      setSearchOpen(false);
+      setPendingStation(null);
+    }
   };
 
   const handleConfirmOverwrite = async () => {

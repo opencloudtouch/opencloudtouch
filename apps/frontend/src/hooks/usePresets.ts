@@ -179,6 +179,7 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
     } catch (err) {
       console.error("[usePresets] Failed to save preset:", err);
       setError("Preset konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.");
+      throw err;
     } finally {
       setLoading(false);
     }

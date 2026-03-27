@@ -298,9 +298,6 @@ async def test_stream_preset_all_slots(real_api_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(
-    reason="StreamingResponse cannot change HTTP status after headers sent - error handling limitation"
-)
 async def test_stream_upstream_unavailable_returns_502(real_api_client: AsyncClient):
     """Test that upstream stream unavailable returns HTTP 502.
 

@@ -152,7 +152,7 @@ describe("Preset Management Advanced", () => {
       cy.get('[data-testid="preset-empty-2"]').should("exist");
     });
 
-    it.skip("should allow setting preset after clearing", () => {
+    it("should allow setting preset after clearing", () => {
       // Set preset 3
       cy.request("POST", `${apiUrl}/presets/set`, {
         device_id: deviceId,
@@ -186,8 +186,8 @@ describe("Preset Management Advanced", () => {
     });
   });
 
-  describe("Preset Overwrite (CURRENTLY BROKEN)", () => {
-    it.skip("should overwrite preset after clearing first", () => {
+  describe("Preset Overwrite", () => {
+    it("should overwrite preset after clearing first", () => {
       // Assign preset 4 with Station A
       cy.request("POST", `${apiUrl}/presets/set`, {
         device_id: deviceId,
@@ -443,20 +443,21 @@ describe("Preset Management Advanced", () => {
   });
 
   describe("Error Handling", () => {
-    it.skip("should handle preset save failure gracefully", () => {
+    it("should handle preset save failure gracefully", () => {
       cy.intercept("POST", `/api/presets/set`, {
         statusCode: 500,
         body: { detail: "Database error" },
       }).as("setPresetFail");
 
-      cy.get(".preset-empty").first().click();
+      cy.get(".preset-empty").first().scrollIntoView().click({ force: true });
       cy.get(".radio-search-modal", { timeout: 10000 }).should("be.visible");
       cy.get(".search-input").type("BBC");
       cy.get(".search-results", { timeout: 10000 }).should("be.visible");
       selectFirstSearchResult();
 
-      // Wait for error state and modal to remain open
-      cy.get(".error-message", { timeout: 5000 }).should("be.visible");
+      // Modal closes, error message appears in page
+      cy.get(".radio-search-modal", { timeout: 10000 }).should("not.exist");
+      cy.get('[data-testid="error-message"]', { timeout: 5000 }).should("be.visible");
     });
 
     it("should handle preset clear failure gracefully", () => {
@@ -492,21 +493,22 @@ describe("Preset Management Advanced", () => {
       cy.get('[data-testid="preset-play-2"]').should("contain", stationA.name);
     });
 
-    it.skip("should dismiss error messages", () => {
+    it("should dismiss error messages", () => {
       // Trigger error
       cy.intercept("POST", `/api/presets/set`, {
         statusCode: 400,
         body: { detail: "Invalid data" },
       }).as("setPresetFail");
 
-      cy.get(".preset-empty").first().click();
+      cy.get(".preset-empty").first().scrollIntoView().click({ force: true });
       cy.get(".radio-search-modal", { timeout: 10000 }).should("be.visible");
       cy.get(".search-input").type("BBC");
       cy.get(".search-results", { timeout: 10000 }).should("be.visible");
       selectFirstSearchResult();
-      cy.wait("@setPresetFail");
 
-      cy.get('[data-testid="error-message"]').should("be.visible");
+      // Modal closes, error message appears in page
+      cy.get(".radio-search-modal", { timeout: 10000 }).should("not.exist");
+      cy.get('[data-testid="error-message"]', { timeout: 5000 }).should("be.visible");
 
       // Dismiss error
       cy.get('[data-testid="error-message"] button').click();

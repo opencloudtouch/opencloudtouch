@@ -61,8 +61,7 @@ class TestStreamDevicePreset:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.headers = {"content-type": "audio/mpeg"}
-        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_response.__aexit__ = AsyncMock(return_value=False)
+        mock_response.aclose = AsyncMock()
 
         async def mock_aiter_bytes(chunk_size=8192):
             yield b"audio_data_chunk_1"
@@ -70,12 +69,14 @@ class TestStreamDevicePreset:
 
         mock_response.aiter_bytes = mock_aiter_bytes
 
-        mock_client_ctx = MagicMock()
-        mock_client_ctx.__aenter__ = AsyncMock(return_value=mock_client_ctx)
-        mock_client_ctx.__aexit__ = AsyncMock(return_value=False)
-        mock_client_ctx.stream = MagicMock(return_value=mock_response)
+        mock_http_client = MagicMock()
+        mock_http_client.send = AsyncMock(return_value=mock_response)
+        mock_http_client.aclose = AsyncMock()
 
-        with patch("httpx.AsyncClient", return_value=mock_client_ctx):
+        with patch(
+            "opencloudtouch.devices.api.preset_stream_routes.httpx.AsyncClient",
+            return_value=mock_http_client,
+        ):
             with client.stream("GET", "/device/689E194F7D2F/preset/1") as response:
                 assert response.status_code == 200
                 assert "audio" in response.headers.get("content-type", "")
@@ -89,25 +90,18 @@ class TestStreamDevicePreset:
         mock_response = MagicMock()
         mock_response.status_code = 503
         mock_response.headers = {}
-        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_response.__aexit__ = AsyncMock(return_value=False)
+        mock_response.aclose = AsyncMock()
 
-        async def mock_aiter_bytes(chunk_size=8192):
-            return
-            yield  # make it async generator
+        mock_http_client = MagicMock()
+        mock_http_client.send = AsyncMock(return_value=mock_response)
+        mock_http_client.aclose = AsyncMock()
 
-        mock_response.aiter_bytes = mock_aiter_bytes
-
-        mock_client_ctx = MagicMock()
-        mock_client_ctx.__aenter__ = AsyncMock(return_value=mock_client_ctx)
-        mock_client_ctx.__aexit__ = AsyncMock(return_value=False)
-        mock_client_ctx.stream = MagicMock(return_value=mock_response)
-
-        with patch("httpx.AsyncClient", return_value=mock_client_ctx):
-            # The 502 is raised inside the generator; TestClient will propagate it
-            with pytest.raises(Exception):
-                with client.stream("GET", "/device/689E194F7D2F/preset/1") as resp:
-                    resp.read()
+        with patch(
+            "opencloudtouch.devices.api.preset_stream_routes.httpx.AsyncClient",
+            return_value=mock_http_client,
+        ):
+            response = client.get("/device/689E194F7D2F/preset/1")
+            assert response.status_code == 502
 
     def test_httpx_request_error_raises_502(
         self, client, mock_preset_service, sample_preset
@@ -117,22 +111,18 @@ class TestStreamDevicePreset:
 
         mock_preset_service.get_preset = AsyncMock(return_value=sample_preset)
 
-        mock_client_ctx = MagicMock()
-        mock_client_ctx.__aenter__ = AsyncMock(return_value=mock_client_ctx)
-        mock_client_ctx.__aexit__ = AsyncMock(return_value=False)
-
-        # stream() returns context manager that raises on __aenter__
-        mock_stream_ctx = MagicMock()
-        mock_stream_ctx.__aenter__ = AsyncMock(
+        mock_http_client = MagicMock()
+        mock_http_client.send = AsyncMock(
             side_effect=httpx.ConnectError("Connection refused")
         )
-        mock_stream_ctx.__aexit__ = AsyncMock(return_value=False)
-        mock_client_ctx.stream = MagicMock(return_value=mock_stream_ctx)
+        mock_http_client.aclose = AsyncMock()
 
-        with patch("httpx.AsyncClient", return_value=mock_client_ctx):
-            with pytest.raises(Exception):
-                with client.stream("GET", "/device/689E194F7D2F/preset/1") as resp:
-                    resp.read()
+        with patch(
+            "opencloudtouch.devices.api.preset_stream_routes.httpx.AsyncClient",
+            return_value=mock_http_client,
+        ):
+            response = client.get("/device/689E194F7D2F/preset/1")
+            assert response.status_code == 502
 
 
 class TestGetPresetDescriptor:
