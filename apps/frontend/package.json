@@ -60,7 +60,7 @@
     "prettier": "^3.8.1",
     "rimraf": "^6.0.1",
     "start-server-and-test": "^2.1.5",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.2",
     "typescript-eslint": "^8.57.1",
     "vite": "^8.0.1",
     "vitest": "^4.0.18"
