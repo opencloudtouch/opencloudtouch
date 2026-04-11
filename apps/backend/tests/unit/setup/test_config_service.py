@@ -21,28 +21,29 @@ from opencloudtouch.setup.config_service import (
 )
 from opencloudtouch.setup.ssh_client import CommandResult
 
-# Sample config XML as found on real SoundTouch 10 devices
+# Sample config XML as found on real SoundTouch 10 devices (unmodified state)
 SAMPLE_CONFIG_XML = """\
-<?xml version="1.0" encoding="utf-8"?>
 <SoundTouchSdkPrivateCfg>
-  <margeServerUrl>http://content.api.bose.io:7777</margeServerUrl>
-  <swUpdateUrl>http://content.api.bose.io:7777/updates/soundtouch</swUpdateUrl>
-  <bmxRegistryUrl>https://content.api.bose.io/bmx/registry/v1/services</bmxRegistryUrl>
-  <usePandoraProductionServer>true</usePandoraProductionServer>
-  <isZeroconfEnabled>true</isZeroconfEnabled>
-  <saveMargeCustomerReport>false</saveMargeCustomerReport>
-  <statsServerUrl>https://events.api.bosecm.com</statsServerUrl>
+    <margeServerUrl>https://streaming.bose.com</margeServerUrl>
+    <statsServerUrl>https://events.api.bosecm.com</statsServerUrl>
+    <swUpdateUrl>https://worldwide.bose.com/updates/soundtouch</swUpdateUrl>
+    <isZeroconfEnabled>true</isZeroconfEnabled>
+    <usePandoraProductionServer>true</usePandoraProductionServer>
+    <saveMargeCustomerReport>false</saveMargeCustomerReport>
+    <bmxRegistryUrl>https://content.api.bose.io/bmx/registry/v1/services</bmxRegistryUrl>
 </SoundTouchSdkPrivateCfg>
 """
 
+# Real output from device after OCT modification (cat /mnt/nv/OverrideSdkPrivateCfg.xml)
 SAMPLE_CONFIG_ALREADY_MODIFIED = """\
-<?xml version="1.0" encoding="utf-8"?>
 <SoundTouchSdkPrivateCfg>
-  <margeServerUrl>http://content.api.bose.io:7777</margeServerUrl>
-  <swUpdateUrl>http://content.api.bose.io:7777/updates/soundtouch</swUpdateUrl>
-  <bmxRegistryUrl>http://content.api.bose.io:7777/bmx/registry/v1/services</bmxRegistryUrl>
-  <usePandoraProductionServer>true</usePandoraProductionServer>
-  <statsServerUrl>https://events.api.bosecm.com</statsServerUrl>
+    <margeServerUrl>http://content.api.bose.io:7777</margeServerUrl>
+    <statsServerUrl>http://content.api.bose.io:7777</statsServerUrl>
+    <swUpdateUrl>http://content.api.bose.io:7777/updates/soundtouch</swUpdateUrl>
+    <isZeroconfEnabled>true</isZeroconfEnabled>
+    <usePandoraProductionServer>true</usePandoraProductionServer>
+    <saveMargeCustomerReport>false</saveMargeCustomerReport>
+    <bmxRegistryUrl>http://content.api.bose.io:7777/bmx/registry/v1/services</bmxRegistryUrl>
 </SoundTouchSdkPrivateCfg>
 """
 
@@ -471,6 +472,8 @@ class TestModifyBmxUrl:
 
         assert "https://content.api.bose.io/bmx" in result.diff  # old
         assert "http://content.api.bose.io:7777/bmx" in result.diff  # new
+        assert "https://streaming.bose.com" in result.diff  # old marge
+        assert "http://content.api.bose.io:7777" in result.diff  # new marge
 
     @pytest.mark.asyncio
     async def test_bmx_url_always_http_never_https(self, service, mock_ssh):
@@ -688,3 +691,278 @@ class TestRemountHelpers:
             success=False, output="", exit_code=1, stderr="busy"
         )
         await service._remount_ro()
+
+
+# ---------------------------------------------------------------------------
+# End-to-end flow with /opt/Bose/etc/ path (Issue #78)
+# ---------------------------------------------------------------------------
+
+# Real config XML from /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml (Issue #78)
+SAMPLE_OPT_BOSE_CONFIG = """\
+<?xml version="1.0" encoding="utf-8"?>
+<SoundTouchSdkPrivateCfg>
+    <margeServerUrl>https://streaming.bose.com</margeServerUrl>
+    <statsServerUrl>https://events.api.bosecm.com</statsServerUrl>
+    <swUpdateUrl>https://worldwide.bose.com/updates/soundtouch</swUpdateUrl>
+    <usePandoraProductionServer>true</usePandoraProductionServer>
+    <isZeroconfEnabled>true</isZeroconfEnabled>
+    <saveMargeCustomerReport>false</saveMargeCustomerReport>
+    <bmxRegistryUrl>https://content.api.bose.io/bmx/registry/v1/services</bmxRegistryUrl>
+</SoundTouchSdkPrivateCfg>
+"""
+
+
+class TestModifyWithOptBosePath:
+    """Full modify flow when config is at /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml.
+
+    Regression test for GitHub issue #78.
+    """
+
+    @pytest.fixture
+    def opt_service(self, mock_ssh):
+        svc = SoundTouchConfigService(mock_ssh)
+        svc.config_path = "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml"
+        return svc
+
+    @pytest.mark.asyncio
+    async def test_write_redirects_to_writable_mnt_nv(self, opt_service, mock_ssh):
+        """When config is on read-only /opt/Bose/etc/, write must go to /mnt/nv/."""
+        mock_ssh.execute.side_effect = [
+            _ok(),  # remount rw
+            _ok(SAMPLE_OPT_BOSE_CONFIG),  # read config (cat)
+            _ok("missing"),  # backup check
+            _ok(),  # cp backup
+            _ok("missing"),  # _write_config: check /mnt/nv/ copy
+            _ok(),  # _write_config: cp to /mnt/nv/
+            _ok(),  # _write_config: base64 write
+            _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify: cat
+            _ok(),  # remount ro
+        ]
+
+        result = await opt_service.modify_bmx_url("192.168.1.50")
+        assert result.success is True
+        assert opt_service.config_path == "/mnt/nv/SoundTouchSdkPrivateCfg.xml"
+
+    @pytest.mark.asyncio
+    async def test_reuses_existing_writable_copy(self, opt_service, mock_ssh):
+        """If /mnt/nv/ copy already exists, skip the cp from /opt/Bose/."""
+        mock_ssh.execute.side_effect = [
+            _ok(),  # remount rw
+            _ok(SAMPLE_OPT_BOSE_CONFIG),  # read config
+            _ok("exists"),  # backup exists
+            _ok("exists"),  # _write_config: writable copy exists
+            _ok(),  # _write_config: base64 write
+            _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
+            _ok(),  # remount ro
+        ]
+
+        result = await opt_service.modify_bmx_url("192.168.1.50")
+        assert result.success is True
+
+        all_cmds = [c[0][0] for c in mock_ssh.execute.call_args_list]
+        assert not any(c.startswith("cp /opt/Bose/") for c in all_cmds)
+
+    @pytest.mark.asyncio
+    async def test_backup_uses_detected_filename(self, opt_service, mock_ssh):
+        """Backup must use SoundTouchSdkPrivateCfg.xml, not Override variant."""
+        mock_ssh.execute.side_effect = [
+            _ok(),  # remount rw
+            _ok(SAMPLE_OPT_BOSE_CONFIG),  # read config
+            _ok("missing"),  # backup check
+            _ok(),  # cp backup
+            _ok("missing"),  # writable copy check
+            _ok(),  # cp to writable
+            _ok(),  # base64 write
+            _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
+            _ok(),  # remount ro
+        ]
+
+        result = await opt_service.modify_bmx_url("192.168.1.50")
+        assert result.success is True
+        assert result.backup_path == "/mnt/nv/SoundTouchSdkPrivateCfg.xml.oct-backup"
+
+    @pytest.mark.asyncio
+    async def test_diff_contains_original_urls(self, opt_service, mock_ssh):
+        """Diff must show original Bose server URLs."""
+        mock_ssh.execute.side_effect = [
+            _ok(),  # remount rw
+            _ok(SAMPLE_OPT_BOSE_CONFIG),  # read config
+            _ok("exists"),  # backup exists
+            _ok("exists"),  # writable copy exists
+            _ok(),  # write
+            _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
+            _ok(),  # remount ro
+        ]
+
+        result = await opt_service.modify_bmx_url("192.168.1.50")
+        assert result.success is True
+        assert "https://content.api.bose.io/bmx" in result.diff
+        assert "https://streaming.bose.com" in result.diff
+
+
+class TestModifyWithMntNvOverridePath:
+    """Full modify flow with /mnt/nv/OverrideSdkPrivateCfg.xml (standard path)."""
+
+    @pytest.mark.asyncio
+    async def test_writes_directly_no_copy(self, service, mock_ssh):
+        """Config on /mnt/nv/ is writable — no copy needed."""
+        mock_ssh.execute.side_effect = [
+            _ok(),  # remount rw
+            _ok(SAMPLE_CONFIG_XML),  # read config
+            _ok("exists"),  # backup exists
+            _ok(),  # write config (direct)
+            _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
+            _ok(),  # remount ro
+        ]
+
+        result = await service.modify_bmx_url("192.168.1.50")
+        assert result.success is True
+
+        all_cmds = [c[0][0] for c in mock_ssh.execute.call_args_list]
+        assert not any(c.startswith("cp /opt/Bose/") for c in all_cmds)
+
+    @pytest.mark.asyncio
+    async def test_backup_uses_override_filename(self, service, mock_ssh):
+        """Backup must be named OverrideSdkPrivateCfg.xml.oct-backup."""
+        mock_ssh.execute.side_effect = [
+            _ok(),  # remount rw
+            _ok(SAMPLE_CONFIG_XML),  # read config
+            _ok("missing"),  # backup check
+            _ok(),  # cp backup
+            _ok(),  # write config
+            _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
+            _ok(),  # remount ro
+        ]
+
+        result = await service.modify_bmx_url("192.168.1.50")
+        assert result.backup_path == "/mnt/nv/OverrideSdkPrivateCfg.xml.oct-backup"
+
+    @pytest.mark.asyncio
+    async def test_write_targets_mnt_nv_directly(self, service, mock_ssh):
+        """Write command must target /mnt/nv/ directly."""
+        mock_ssh.execute.side_effect = [
+            _ok(),  # remount rw
+            _ok(SAMPLE_CONFIG_XML),  # read config
+            _ok("exists"),  # backup exists
+            _ok(),  # write config
+            _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
+            _ok(),  # remount ro
+        ]
+
+        await service.modify_bmx_url("192.168.1.50")
+
+        write_cmd = mock_ssh.execute.call_args_list[3][0][0]
+        assert "/mnt/nv/OverrideSdkPrivateCfg.xml" in write_cmd
+
+
+class TestRestoreWithOptBosePath:
+    """Restore flow when config was moved from /opt/Bose/etc/ to /mnt/nv/."""
+
+    @pytest.fixture
+    def opt_service(self, mock_ssh):
+        svc = SoundTouchConfigService(mock_ssh)
+        svc.config_path = "/mnt/nv/SoundTouchSdkPrivateCfg.xml"
+        return svc
+
+    @pytest.mark.asyncio
+    async def test_restore_targets_detected_path(self, opt_service, mock_ssh):
+        """Restore must copy to the detected (writable) config path."""
+        mock_ssh.execute.side_effect = [
+            _ok("exists"),  # backup check
+            _ok(),  # remount rw
+            _ok(),  # cp backup → /mnt/nv/SoundTouchSdkPrivateCfg.xml
+            _ok(SAMPLE_OPT_BOSE_CONFIG),  # verify
+            _ok(),  # remount ro
+        ]
+
+        result = await opt_service.restore_config(
+            "/mnt/nv/SoundTouchSdkPrivateCfg.xml.oct-backup"
+        )
+        assert result.success is True
+
+        cp_cmd = mock_ssh.execute.call_args_list[2][0][0]
+        assert "/mnt/nv/SoundTouchSdkPrivateCfg.xml" in cp_cmd
+        assert "oct-backup" in cp_cmd
+
+    @pytest.mark.asyncio
+    async def test_restore_with_override_path(self, service, mock_ssh):
+        """Restore must target /mnt/nv/OverrideSdkPrivateCfg.xml for standard path."""
+        mock_ssh.execute.side_effect = [
+            _ok("exists"),  # backup check
+            _ok(),  # remount rw
+            _ok(),  # cp backup → /mnt/nv/OverrideSdkPrivateCfg.xml
+            _ok(SAMPLE_CONFIG_XML),  # verify
+            _ok(),  # remount ro
+        ]
+
+        result = await service.restore_config(
+            "/mnt/nv/OverrideSdkPrivateCfg.xml.oct-backup"
+        )
+        assert result.success is True
+
+        cp_cmd = mock_ssh.execute.call_args_list[2][0][0]
+        assert "/mnt/nv/OverrideSdkPrivateCfg.xml" in cp_cmd
+
+
+class TestDetectConfigPathFullFlow:
+    """End-to-end tests: auto-detect path → modify → verify correct paths."""
+
+    @pytest.fixture
+    def fresh(self, mock_ssh):
+        return SoundTouchConfigService(mock_ssh)
+
+    @pytest.mark.asyncio
+    async def test_first_candidate_found(self, fresh, mock_ssh):
+        """Full flow when /mnt/nv/OverrideSdkPrivateCfg.xml is found."""
+        mock_ssh.execute.side_effect = [
+            _ok(),  # remount rw
+            _ok("found"),  # probe: /mnt/nv/OverrideSdkPrivateCfg.xml
+            _ok(SAMPLE_CONFIG_XML),  # cat config
+            _ok("missing"),  # backup check
+            _ok(),  # cp backup
+            _ok(),  # write config
+            _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify: cat
+            _ok(),  # remount ro
+        ]
+
+        result = await fresh.modify_bmx_url("192.168.1.50")
+        assert result.success is True
+        assert fresh.config_path == "/mnt/nv/OverrideSdkPrivateCfg.xml"
+        assert result.backup_path == "/mnt/nv/OverrideSdkPrivateCfg.xml.oct-backup"
+
+    @pytest.mark.asyncio
+    async def test_second_candidate_found(self, fresh, mock_ssh):
+        """Full flow when only /opt/Bose/etc/ config exists."""
+        mock_ssh.execute.side_effect = [
+            _ok(),  # remount rw
+            _ok("missing"),  # probe 1: /mnt/nv/Override → miss
+            _ok("found"),  # probe 2: /opt/Bose/etc/ → found
+            _ok(SAMPLE_OPT_BOSE_CONFIG),  # cat config
+            _ok("missing"),  # backup check
+            _ok(),  # cp backup
+            _ok("missing"),  # _write_config: writable copy check
+            _ok(),  # _write_config: cp to /mnt/nv/
+            _ok(),  # _write_config: base64 write
+            _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify: cat
+            _ok(),  # remount ro
+        ]
+
+        result = await fresh.modify_bmx_url("192.168.1.50")
+        assert result.success is True
+        assert fresh.config_path == "/mnt/nv/SoundTouchSdkPrivateCfg.xml"
+        assert result.backup_path == "/mnt/nv/SoundTouchSdkPrivateCfg.xml.oct-backup"
+
+    @pytest.mark.asyncio
+    async def test_no_config_found(self, fresh, mock_ssh):
+        """All probes fail → returns failure."""
+        mock_ssh.execute.side_effect = [
+            _ok(),  # remount rw
+            _ok("missing"),  # probe 1
+            _ok("missing"),  # probe 2
+            _ok("missing"),  # probe 3
+            _ok(),  # remount ro (finally)
+        ]
+
+        result = await fresh.modify_bmx_url("192.168.1.50")
+        assert result.success is False
+        assert "Config file not found" in result.error
