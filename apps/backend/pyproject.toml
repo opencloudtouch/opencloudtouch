@@ -35,7 +35,7 @@ dev = [
     "pytest-cov>=5.0.0",
     "pytest-timeout>=2.3.0",
     "pytest-xdist>=3.6.0",
-    "respx>=0.21.0",
+    "respx>=0.23.1",
 ]
 
 [tool.setuptools]
