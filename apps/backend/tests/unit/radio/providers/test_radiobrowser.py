@@ -361,6 +361,75 @@ class TestRadioBrowserAdapter:
             assert "limit" in str(call_args)
 
     @pytest.mark.asyncio
+    async def test_search_passes_hidebroken_param(self):
+        """Test that hidebroken=true is passed to RadioBrowser API."""
+        adapter = RadioBrowserAdapter()
+
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock
+        ) as mock_request:
+            mock_request.return_value = []
+
+            await adapter.search_by_name("test")
+
+            params = mock_request.call_args[1].get(
+                "params",
+                (
+                    mock_request.call_args[0][1]
+                    if len(mock_request.call_args[0]) > 1
+                    else {}
+                ),
+            )
+            assert params.get("hidebroken") == "true"
+
+    @pytest.mark.asyncio
+    async def test_search_passes_order_by_votes(self):
+        """Test that results are ordered by votes descending by default."""
+        adapter = RadioBrowserAdapter()
+
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock
+        ) as mock_request:
+            mock_request.return_value = []
+
+            await adapter.search_by_country("Luxembourg")
+
+            params = mock_request.call_args[1].get(
+                "params",
+                (
+                    mock_request.call_args[0][1]
+                    if len(mock_request.call_args[0]) > 1
+                    else {}
+                ),
+            )
+            assert params.get("order") == "votes"
+            assert params.get("reverse") == "true"
+
+    @pytest.mark.asyncio
+    async def test_search_by_tag_passes_default_params(self):
+        """Test that tag search also passes hidebroken and order params."""
+        adapter = RadioBrowserAdapter()
+
+        with patch.object(
+            adapter, "_make_request", new_callable=AsyncMock
+        ) as mock_request:
+            mock_request.return_value = []
+
+            await adapter.search_by_tag("jazz")
+
+            params = mock_request.call_args[1].get(
+                "params",
+                (
+                    mock_request.call_args[0][1]
+                    if len(mock_request.call_args[0]) > 1
+                    else {}
+                ),
+            )
+            assert params.get("hidebroken") == "true"
+            assert params.get("order") == "votes"
+            assert params.get("reverse") == "true"
+
+    @pytest.mark.asyncio
     async def test_base_url_selection(self):
         """Test that a valid API server is selected."""
         adapter = RadioBrowserAdapter()

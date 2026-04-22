@@ -38,6 +38,7 @@ scripts/
 # Documentation
 *.md
 !README.md
+!DISCLAIMER.md
 
 # Environment & Config
 .env

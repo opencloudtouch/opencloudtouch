@@ -183,7 +183,12 @@ class RadioBrowserAdapter(RadioProvider):
             List of matching RadioStation objects
         """
         endpoint = f"/json/stations/byname/{name}"
-        params = {"limit": limit}
+        params = {
+            "limit": limit,
+            "hidebroken": "true",
+            "order": "votes",
+            "reverse": "true",
+        }
 
         try:
             data = await self._make_request(endpoint, params)
@@ -214,7 +219,12 @@ class RadioBrowserAdapter(RadioProvider):
             List of matching RadioStation objects
         """
         endpoint = f"/json/stations/bycountry/{country}"
-        params = {"limit": limit}
+        params = {
+            "limit": limit,
+            "hidebroken": "true",
+            "order": "votes",
+            "reverse": "true",
+        }
 
         try:
             data = await self._make_request(endpoint, params)
@@ -243,7 +253,12 @@ class RadioBrowserAdapter(RadioProvider):
             List of matching RadioStation objects
         """
         endpoint = f"/json/stations/bytag/{tag}"
-        params = {"limit": limit}
+        params = {
+            "limit": limit,
+            "hidebroken": "true",
+            "order": "votes",
+            "reverse": "true",
+        }
 
         try:
             data = await self._make_request(endpoint, params)
