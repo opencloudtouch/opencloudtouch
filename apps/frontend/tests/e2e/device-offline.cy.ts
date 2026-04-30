@@ -109,33 +109,40 @@ describe("Device Offline Display", () => {
   });
 
   describe("Controls Hidden When Offline", () => {
+    // Tests in this block navigate to /local (LocalControl) because volume-section,
+    // source-section, and playback-section only exist there.
+
     it("should hide volume, source, and playback controls when device is offline", () => {
+      cy.visit("/local");
+
       cy.intercept("GET", "/api/devices/*/now-playing", { statusCode: 503 }).as("nowPlaying503");
       cy.intercept("GET", "/api/devices/*/volume", { statusCode: 503 }).as("volume503");
 
-      cy.wait("@nowPlaying503");
+      // Reload triggers the mount request which hits the 503 intercept
+      cy.reload();
+      cy.wait("@nowPlaying503", { timeout: 10000 });
 
-      // Wait for offline banner to appear
       cy.get('[data-testid="device-offline-banner"]', { timeout: 10000 }).should("be.visible");
 
-      // Controls should NOT be visible
+      // Controls should NOT be visible when device is offline
       cy.get(".volume-section").should("not.exist");
       cy.get(".source-section").should("not.exist");
       cy.get(".playback-section").should("not.exist");
     });
 
     it("should keep device header visible when offline", () => {
-      // Set up intercepts BEFORE navigating to LocalControl
+      cy.visit("/local");
+
       cy.intercept("GET", "/api/devices/*/now-playing", { statusCode: 503 }).as("nowPlaying503");
       cy.intercept("GET", "/api/devices/*/volume", { statusCode: 503 }).as("volume503");
 
-      // Navigate to /local where control-card-header and device-name live
-      cy.visit("/local");
-      cy.wait("@nowPlaying503");
+      // Reload triggers the mount request which hits the 503 intercept
+      cy.reload();
+      cy.wait("@nowPlaying503", { timeout: 10000 });
 
       cy.get('[data-testid="device-offline-banner"]', { timeout: 10000 }).should("be.visible");
 
-      // Device header (name, power button) should remain visible
+      // Device header (name, power button) must remain visible even when offline
       cy.get(".control-card-header").should("be.visible");
       cy.get(".device-name").should("be.visible");
     });
@@ -143,24 +150,31 @@ describe("Device Offline Display", () => {
 
   describe("Recovery: Device Comes Back Online", () => {
     it("should remove offline banner and restore controls when device recovers", () => {
-      // Start with 503
-      cy.intercept("GET", "/api/devices/*/now-playing", { statusCode: 503 }).as("nowPlaying503");
-      cy.intercept("GET", "/api/devices/*/volume", { statusCode: 503 }).as("volume503");
+      cy.visit("/local");
 
-      cy.wait("@nowPlaying503");
+      // times:1 — fires exactly once, then auto-expires so the recovery reload gets a real 200
+      cy.intercept(
+        { method: "GET", url: "/api/devices/*/now-playing", times: 1 },
+        { statusCode: 503 },
+      ).as("nowPlaying503");
+      cy.intercept(
+        { method: "GET", url: "/api/devices/*/volume", times: 1 },
+        { statusCode: 503 },
+      ).as("volume503");
+
+      // Reload triggers mount request → hits the single-use 503 intercept → device offline
+      cy.reload();
+      cy.wait("@nowPlaying503", { timeout: 10000 });
 
       cy.get('[data-testid="device-offline-banner"]', { timeout: 10000 }).should("be.visible");
       cy.get(".volume-section").should("not.exist");
 
-      // Recovery: reload the page — clears offline store and restores polling.
-      // This matches the real UX: the user presses F5 after seeing the offline banner.
-      // The hook stops polling after a 503 (session-level offline), so recovery
-      // requires a full page reload rather than waiting for the next poll cycle.
+      // Recovery: reload again — offlineDeviceStore resets (module-level Set) and
+      // the intercept is already expired (times:1 consumed), so mock backend returns 200.
       cy.reload();
 
-      // After reload, device should be reachable (mock mode returns valid data)
-      cy.get('[data-testid="device-offline-banner"]', { timeout: 15000 }).should("not.exist");
       cy.get(".volume-section", { timeout: 15000 }).should("be.visible");
+      cy.get('[data-testid="device-offline-banner"]').should("not.exist");
     });
   });
 });
