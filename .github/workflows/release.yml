@@ -363,6 +363,9 @@ jobs:
     needs: release
     if: ${{ !inputs.skip_raspi }}
 
+    permissions:
+      actions: write
+
     steps:
       - name: Trigger build
         env:
