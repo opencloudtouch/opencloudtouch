@@ -4,10 +4,10 @@
 # Trigger: workflow_dispatch with release_type choice (patch/minor/major)
 # Steps:
 #   1. Pre-flight: Calculate next version, check tag availability, enforce CI green
-#   2. Version Bump: Update all package files + commit + push
-#   3. Git Tag: vX.Y.Z on the bump commit -> triggers ci-cd.yml Docker builds
-#   4. GitHub Release: Auto-generated changelog + Docker instructions
-#   5. Trigger: build-raspi-image.yml for arm64 + armhf
+#   2. Bump:       Update all package files + commit + push
+#   3. Tag:        vX.Y.Z annotated tag on the bump commit
+#   4. GH Release: Auto-generated changelog + Docker instructions
+#   5. Build:      Trigger build-images.yml (Docker multi-arch + Raspi SD images)
 # ==============================================================================
 
 name: Release
@@ -187,10 +187,10 @@ jobs:
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   # ============================================================================
-  # TAG on the bump commit
+  # GIT TAG on the bump commit
   # ============================================================================
-  release:
-    name: Create Release
+  tag:
+    name: Create Git Tag
     runs-on: ubuntu-latest
     needs: [preflight, bump]
 
@@ -230,6 +230,27 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Tag $TAG created on commit $(git rev-parse HEAD)"
+
+  # ============================================================================
+  # GITHUB RELEASE (notes + publish)
+  # ============================================================================
+  gh-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [preflight, tag]
+
+    permissions:
+      contents: write
+
+    outputs:
+      version: ${{ needs.preflight.outputs.version }}
+
+    steps:
+      - name: Checkout tagged commit
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.tag.outputs.tag }}
 
       - name: Generate release notes
         id: notes
@@ -338,7 +359,7 @@ jobs:
           echo "=== Release Notes Preview ==="
           head -30 release-notes.md
 
-      - name: Create GitHub Release
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ needs.preflight.outputs.version }}
@@ -359,13 +380,8 @@ jobs:
           | Step | Status |
           |------|--------|
           | Version bump | OK - v${VERSION} committed |
-          | Git tag | OK - v${VERSION} on bump commit |
+          | Git tag | OK - v${VERSION} pushed |
           | GitHub Release | OK - Published |
-
-          ## Downstream Pipelines
-
-          - **CI/CD**: Docker multi-arch build + push to GHCR
-          - **Raspberry Pi**: SD card images (arm64 + armhf)
 
           **Release**: https://github.com/${{ github.repository }}/releases/tag/v${VERSION}
           EOF
@@ -376,7 +392,7 @@ jobs:
   trigger-build:
     name: Trigger Image Builds
     runs-on: ubuntu-latest
-    needs: release
+    needs: gh-release
     if: ${{ !inputs.skip_raspi }}
 
     permissions:
@@ -387,7 +403,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION="${{ needs.release.outputs.version }}"
+          VERSION="${{ needs.gh-release.outputs.version }}"
           echo "Triggering Docker + Raspberry Pi image builds for v${VERSION}..."
 
           gh workflow run build-images.yml \
@@ -404,17 +420,17 @@ jobs:
   verify:
     name: Verify Downstream
     runs-on: ubuntu-latest
-    needs: [release, trigger-build]
-    if: always() && needs.release.result == 'success'
+    needs: [gh-release, trigger-build]
+    if: always() && needs.gh-release.result == 'success'
 
     steps:
-      - name: Wait and check CI/CD trigger
+      - name: Wait and check build trigger
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION="${{ needs.release.outputs.version }}"
+          VERSION="${{ needs.gh-release.outputs.version }}"
           TAG="v${VERSION}"
-          echo "Waiting for CI/CD to pick up tag $TAG..."
+          echo "Waiting for build-images.yml to pick up v${VERSION}..."
           sleep 15
 
           RUN=$(gh run list --workflow=build-images.yml --limit=3 \
