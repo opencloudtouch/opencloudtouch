@@ -1,4 +1,4 @@
-﻿# ==============================================================================
+# ==============================================================================
 # CI PIPELINE - Build, Test, Lint, Security, SonarCloud
 #
 # Runs on every push (all branches) and every PR.
@@ -331,7 +331,7 @@ jobs:
           path: .out/coverage/frontend
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v6
         with:
           args: >
             -Dsonar.projectKey=scheilch_opencloudtouch
