@@ -1,0 +1,61 @@
+name: "Translation Contribution: [Language]"
+description: Contribute translations for a new or existing language
+title: "Translation Contribution: [Language]"
+labels: ["i18n", "help wanted"]
+body:
+  - type: input
+    id: language_name
+    attributes:
+      label: Language Name
+      description: The full English name of the language (e.g. "Spanish", "French")
+      placeholder: "e.g. Spanish"
+    validations:
+      required: true
+
+  - type: input
+    id: locale_code
+    attributes:
+      label: Locale Code (ISO 639-1)
+      description: The 2-letter ISO 639-1 code for the language
+      placeholder: "e.g. es"
+    validations:
+      required: true
+
+  - type: input
+    id: completeness
+    attributes:
+      label: Completeness (%)
+      description: Approximately what percentage of keys are translated?
+      placeholder: "e.g. 100"
+    validations:
+      required: true
+
+  - type: textarea
+    id: translations
+    attributes:
+      label: Translated en.json snippet
+      description: >
+        Paste your translated JSON matching the structure of
+        `apps/frontend/src/i18n/locales/en.json`. You can provide a full
+        translation or a partial one — mark missing values with the English
+        string.
+      render: json
+      placeholder: |
+        {
+          "common": {
+            "save": "Guardar",
+            "cancel": "Cancelar"
+          }
+        }
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: >
+        Any additional notes, regional variants, or open questions about the
+        translation (optional).
+    validations:
+      required: false

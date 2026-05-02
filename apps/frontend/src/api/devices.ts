@@ -32,6 +32,7 @@ export interface Device {
   setup_status?: SetupStatus;
   ssh_permanent?: boolean;
   setup_completed_at?: string | null;
+  last_seen?: string;
   capabilities?: {
     airplay?: boolean;
   };
@@ -51,13 +52,14 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 function mapDeviceFromAPI(apiDevice: DeviceAPIResponse): Device {
   return {
     device_id: apiDevice.device_id,
-    name: apiDevice.name, // Backend already returns 'name'
-    model: apiDevice.model, // Backend already returns 'model'
-    ip: apiDevice.ip, // Backend already returns 'ip'
+    name: apiDevice.name,
+    model: apiDevice.model,
+    ip: apiDevice.ip,
     firmware: apiDevice.firmware_version,
     setup_status: apiDevice.setup_status as SetupStatus,
     ssh_permanent: apiDevice.ssh_permanent,
     setup_completed_at: apiDevice.setup_completed_at,
+    last_seen: apiDevice.last_seen,
   };
 }
 

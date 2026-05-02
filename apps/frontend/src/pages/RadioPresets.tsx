@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import DeviceSwiper, { Device } from "../components/DeviceSwiper";
 import NowPlaying from "../components/NowPlaying";
 import PresetButton from "../components/PresetButton";
@@ -23,6 +24,7 @@ interface RadioPresetsProps {
 }
 
 export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -72,7 +74,7 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
   const handleSyncPresets = async () => {
     try {
       await syncPresets();
-      showToast("Presets erfolgreich vom Gerät geladen.", "success");
+      showToast(t("presets.syncedFromDevice"), "success");
     } catch {
       // Error is already set in usePresets error state
     }
@@ -102,7 +104,7 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
     setAssigningPreset(null);
     setSearchOpen(false);
     setPendingStation(null);
-    showToast(`Preset ${presetNumber} gespeichert.`, "success");
+    showToast(t("presets.presetSaved", { number: presetNumber }), "success");
   };
 
   const handleConfirmOverwrite = async () => {
@@ -116,7 +118,7 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
       const presetNum = clearingPreset;
       setClearingPreset(null);
       await removePreset(presetNum, currentDevice.device_id);
-      showToast(`Preset ${presetNum} gelöscht.`, "success");
+      showToast(t("presets.presetDeleted", { number: presetNum }), "success");
     }
   };
 
@@ -125,7 +127,7 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
     await removePreset(assigningPreset, currentDevice.device_id);
     setSearchOpen(false);
     setAssigningPreset(null);
-    showToast(`Preset ${assigningPreset} gelöscht.`, "success");
+    showToast(t("presets.presetDeleted", { number: assigningPreset }), "success");
   };
 
   const handlePlayPreset = async (presetNumber: number) => {
@@ -138,7 +140,7 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
       await playPresetAPI(currentDevice.device_id, presetNumber);
     } catch (err) {
       console.error("Failed to play preset:", err);
-      setPlayError("Preset konnte nicht abgespielt werden. Bitte versuchen Sie es erneut.");
+      setPlayError(t("presets.playFailed"));
     } finally {
       setPlayLoading(false);
     }
@@ -147,14 +149,14 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
   if (devices.length === 0) {
     return (
       <div className="empty-container">
-        <p className="empty-message">Keine Geräte gefunden</p>
+        <p className="empty-message">{t("presets.noDevices")}</p>
       </div>
     );
   }
 
   return (
     <div className="page radio-presets-page">
-      <h1 className="page-title">Radio Presets</h1>
+      <h1 className="page-title">{t("presets.pageTitle")}</h1>
 
       {/* Swipeable Device Cards */}
       <DeviceSwiper
@@ -178,8 +180,8 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
                 }
               }}
               disabled={powerLoading || deviceOffline}
-              aria-label="Ein/Ausschalten"
-              title="Ein/Ausschalten"
+              aria-label={t("player.powerButton")}
+              title={t("player.powerButton")}
             >
               {powerLoading ? "⏳" : "⏻"}
             </button>
@@ -244,15 +246,17 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
       {/* Presets for Current Device */}
       <div className="presets-section">
         <div className="section-header">
-          <h3 className="section-title">Gespeicherte Sender</h3>
+          <h3 className="section-title">{t("presets.savedStations")}</h3>
           <button
             className="sync-button"
             onClick={handleSyncPresets}
             disabled={syncing || loading || deviceOffline}
-            title={deviceOffline ? "Gerät offline" : "Presets vom Gerät synchronisieren"}
+            title={deviceOffline ? t("presets.deviceOffline") : t("presets.syncFromDeviceTitle")}
           >
-            <span className="sync-icon">{syncing ? "⏳" : "🔄"}</span>
-            <span>{syncing ? "Sync..." : "Vom Gerät laden"}</span>
+            <span className="sync-icon">{syncing ? "\u23f3" : "\ud83d\udd04"}</span>
+            <span>
+              {syncing ? t("presets.syncFromDeviceSyncing") : t("presets.syncFromDevice")}
+            </span>
           </button>
         </div>
 
@@ -327,17 +331,14 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
       <div className="presets-info-box">
         <div className="presets-info-icon">ℹ️</div>
         <div className="presets-info-content">
-          <h4 className="presets-info-title">Preset Hinweise</h4>
+          <h4 className="presets-info-title">{t("presets.infoTitle")}</h4>
           <ul className="presets-info-list">
-            <li>Klicke auf ein leeres Preset um einen Sender zuzuweisen</li>
-            <li>Klicke auf einen belegten Sender um ihn zu ändern oder zu löschen</li>
-            <li>▶ spielt den gespeicherten Sender direkt ab</li>
-            <li>
-              <span className="badge-example compatible">✓</span> = Cloud-unabhängig,{" "}
-              <span className="badge-example dependent">☁</span> = Bose Cloud erforderlich
-            </li>
-            <li>⚙️ öffnet den Setup-Wizard für das Gerät</li>
-            <li>&bdquo;Vom Gerät laden&ldquo; synchronisiert die Presets vom SoundTouch</li>
+            <li>{t("presets.infoItem1")}</li>
+            <li>{t("presets.infoItem2")}</li>
+            <li>{t("presets.infoItem3")}</li>
+            <li>{t("presets.infoItem4")}</li>
+            <li>{t("presets.infoItem5")}</li>
+            <li>{t("presets.infoItem6")}</li>
           </ul>
         </div>
       </div>

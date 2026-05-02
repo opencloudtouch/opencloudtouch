@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Tests for Toast.tsx
  *
  * User Story: "Als User möchte ich visuelles Feedback für Aktionen erhalten"
@@ -114,7 +114,7 @@ describe("Toast Component", () => {
       render(<Toast message="Test message" onClose={mockOnClose} />);
 
       // Click close button (use aria-label)
-      fireEvent.click(screen.getByRole("button", { name: "Schließen" }));
+      fireEvent.click(screen.getByRole("button", { name: "Close" }));
 
       // Wait for fade-out animation
       await act(async () => {
@@ -133,7 +133,7 @@ describe("Toast Component", () => {
       expect(toastContainer).toHaveClass("toast-visible");
 
       // Click close
-      fireEvent.click(screen.getByRole("button", { name: "Schließen" }));
+      fireEvent.click(screen.getByRole("button", { name: "Close" }));
 
       // After animation, onClose called
       await act(async () => {
@@ -147,9 +147,9 @@ describe("Toast Component", () => {
     it("should have aria-label on close button for screen readers", () => {
       render(<Toast message="Test message" />);
 
-      expect(screen.getByRole("button", { name: "Schließen" })).toHaveAttribute(
+      expect(screen.getByRole("button", { name: "Close" })).toHaveAttribute(
         "aria-label",
-        "Schließen"
+        "Close"
       );
     });
 

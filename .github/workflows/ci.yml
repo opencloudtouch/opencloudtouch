@@ -10,10 +10,11 @@ name: CI
 on:
   push:
     branches:
-      - '**'
+      - main
+
   pull_request:
-    branches:
-      - '**'
+    types: [opened, synchronize, reopened]
+
   workflow_dispatch:
 
 jobs:
@@ -180,7 +181,9 @@ jobs:
         if: always()
         with:
           name: backend-coverage
-          path: .out/coverage/backend/coverage.json
+          path: |
+            .out/coverage/backend/coverage.json
+            .out/coverage/backend/coverage.xml
           retention-days: 1
 
   # ============================================================================
@@ -225,7 +228,9 @@ jobs:
         if: always()
         with:
           name: frontend-coverage
-          path: .out/coverage/frontend/coverage-summary.json
+          path: |
+            .out/coverage/frontend/coverage-summary.json
+            .out/coverage/frontend/lcov.info
           retention-days: 1
 
   # ============================================================================

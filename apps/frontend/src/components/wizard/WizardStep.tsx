@@ -2,6 +2,7 @@
  * WizardStep - Base component for wizard steps
  */
 import { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import "./WizardStep.css";
 
@@ -20,7 +21,7 @@ export interface WizardStepProps {
   isNextDisabled?: boolean;
   isPreviousDisabled?: boolean;
   isLoading?: boolean;
-  /** Erklärender Text, warum 'Weiter' deaktiviert ist. Erscheint als Tooltip + Hilfetext. */
+  /** Explanatory text for why 'Next' is disabled. Shown as tooltip + hint. */
   nextDisabledReason?: string;
 }
 
@@ -33,14 +34,20 @@ export default function WizardStep({
   onNext,
   onPrevious,
   onSkip,
-  nextLabel = "Weiter",
-  previousLabel = "Zurück",
-  skipLabel = "Überspringen",
+  nextLabel,
+  previousLabel,
+  skipLabel,
   isNextDisabled = false,
   isPreviousDisabled = false,
   isLoading = false,
   nextDisabledReason,
 }: WizardStepProps) {
+  const { t } = useTranslation();
+
+  const labelNext = nextLabel ?? t("setup.next");
+  const labelPrev = previousLabel ?? t("setup.back");
+  const labelSkip = skipLabel ?? t("setup.skip");
+
   return (
     <motion.div
       className="wizard-step"
@@ -51,7 +58,7 @@ export default function WizardStep({
     >
       {/* Step Header */}
       <div className="wizard-step-header">
-        <div className="wizard-step-number">Schritt {stepNumber}</div>
+        <div className="wizard-step-number">{t("setup.stepLabel", { step: stepNumber })}</div>
         <h2 className="wizard-step-title">{title}</h2>
         {description && <p className="wizard-step-description">{description}</p>}
       </div>
@@ -60,7 +67,7 @@ export default function WizardStep({
       {warning && (
         <div className="wizard-warning" role="alert">
           <span className="wizard-warning-icon" aria-hidden="true">
-            ⚠️
+            {"\u26A0\uFE0F"}
           </span>
           <span className="wizard-warning-text">{warning}</span>
         </div>
@@ -76,9 +83,9 @@ export default function WizardStep({
             className="btn btn-secondary wizard-btn-previous"
             onClick={onPrevious}
             disabled={isPreviousDisabled || isLoading}
-            aria-label={previousLabel}
+            aria-label={labelPrev}
           >
-            ← {previousLabel}
+            {"\u2190"} {labelPrev}
           </button>
         )}
 
@@ -88,15 +95,15 @@ export default function WizardStep({
               className="btn btn-ghost wizard-btn-skip"
               onClick={onSkip}
               disabled={isLoading}
-              aria-label={skipLabel}
+              aria-label={labelSkip}
             >
-              {skipLabel}
+              {labelSkip}
             </button>
           )}
 
           {isNextDisabled && nextDisabledReason && !isLoading && (
             <span className="wizard-next-hint" role="status" aria-live="polite">
-              ℹ️ {nextDisabledReason}
+              {"\u2139\uFE0F"} {nextDisabledReason}
             </span>
           )}
 
@@ -105,16 +112,18 @@ export default function WizardStep({
               className="btn btn-primary wizard-btn-next"
               onClick={onNext}
               disabled={isNextDisabled || isLoading}
-              aria-label={nextLabel}
+              aria-label={labelNext}
               title={isNextDisabled && nextDisabledReason ? nextDisabledReason : undefined}
             >
               {isLoading ? (
                 <>
                   <span className="spinner-small" />
-                  Verarbeite...
+                  {t("common.loading")}
                 </>
               ) : (
-                <>{nextLabel} →</>
+                <>
+                  {labelNext} {"\u2192"}
+                </>
               )}
             </button>
           )}

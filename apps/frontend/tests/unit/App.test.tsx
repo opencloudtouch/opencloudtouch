@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Tests for App.jsx
  *
  * Combines: Basic functionality + Error handling
@@ -71,7 +71,7 @@ describe("App Component", () => {
       renderWithProviders(<App />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Willkommen bei OpenCloudTouch/i)).toBeInTheDocument();
+        expect(screen.getByText(/Welcome to OpenCloudTouch/i)).toBeInTheDocument();
       });
     });
 
@@ -116,7 +116,7 @@ describe("App Component", () => {
 
     // Assert: Should show error message
     await waitFor(() => {
-      expect(screen.getByText(/Fehler beim Laden der Geräte/i)).toBeInTheDocument();
+      expect(screen.getByText(/Error loading devices/i)).toBeInTheDocument();
     });
   });
 
@@ -139,7 +139,7 @@ describe("App Component", () => {
 
     // Assert: Should show error message
     await waitFor(() => {
-      expect(screen.getByText(/Fehler beim Laden der Geräte/i)).toBeInTheDocument();
+      expect(screen.getByText(/Error loading devices/i)).toBeInTheDocument();
     });
   });
 
@@ -155,7 +155,7 @@ describe("App Component", () => {
 
     // Assert: Should have retry button
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /erneut versuchen/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Retry/i })).toBeInTheDocument();
     });
   });
 
@@ -182,15 +182,15 @@ describe("App Component", () => {
     // Act: Render app and click retry
     renderWithProviders(<App />);
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /erneut versuchen/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Retry/i })).toBeInTheDocument();
     });
 
-    const retryButton = screen.getByRole("button", { name: /erneut versuchen/i });
+    const retryButton = screen.getByRole("button", { name: /Retry/i });
     await userEvent.click(retryButton);
 
     // Assert: Should load devices successfully
     await waitFor(() => {
-      expect(screen.queryByText(/Fehler beim Laden der Geräte/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Error loading devices/i)).not.toBeInTheDocument();
     });
 
     // Check navigation is rendered (uses data-test, not data-testid)
@@ -218,16 +218,16 @@ describe("App Component", () => {
     // Act: Render app
     renderWithProviders(<App />);
     await waitFor(() => {
-      expect(screen.getByText(/Fehler beim Laden der Geräte/i)).toBeInTheDocument();
+      expect(screen.getByText(/Error loading devices/i)).toBeInTheDocument();
     });
 
     // Act: Retry
-    const retryButton = screen.getByRole("button", { name: /erneut versuchen/i });
+    const retryButton = screen.getByRole("button", { name: /Retry/i });
     await userEvent.click(retryButton);
 
     // Assert: Error message should be gone
     await waitFor(() => {
-      expect(screen.queryByText(/Fehler beim Laden der Geräte/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Error loading devices/i)).not.toBeInTheDocument();
     });
   });
 
@@ -258,18 +258,18 @@ describe("App Component", () => {
     // Act: Render app and click retry
     renderWithProviders(<App />);
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /erneut versuchen/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Retry/i })).toBeInTheDocument();
     });
 
-    const retryButton = screen.getByRole("button", { name: /erneut versuchen/i });
+    const retryButton = screen.getByRole("button", { name: /Retry/i });
     await userEvent.click(retryButton);
 
     // Assert: Should show loading state
-    expect(screen.getByText(/OpenCloudTouch wird geladen/i)).toBeInTheDocument();
+    expect(screen.getByText(/OpenCloudTouch is loading/i)).toBeInTheDocument();
 
     // Wait for loading to finish
     await waitFor(() => {
-      expect(screen.queryByText(/OpenCloudTouch wird geladen/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/OpenCloudTouch is loading/i)).not.toBeInTheDocument();
     });
   });
   });

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Tests for ErrorBoundary component
  *
  * Tests error catching, fallback rendering, and reset functionality.
@@ -47,8 +47,8 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByText(/Etwas ist schiefgelaufen/i)).toBeInTheDocument();
-    expect(screen.getByText(/Ein unerwarteter Fehler ist aufgetreten/i)).toBeInTheDocument();
+    expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
+    expect(screen.getByText(/An unexpected error occurred/i)).toBeInTheDocument();
   });
 
   it("displays error details in expandable section", () => {
@@ -58,7 +58,7 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>
     );
 
-    const details = screen.getByText("Fehlerdetails");
+    const details = screen.getByText("Error details");
     expect(details).toBeInTheDocument();
 
     // Error message should be in the document (check for summary element, not text duplicates)
@@ -94,7 +94,7 @@ describe("ErrorBoundary", () => {
     );
 
     expect(screen.getByText("Custom error: Test error")).toBeInTheDocument();
-    expect(screen.queryByText(/Etwas ist schiefgelaufen/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Something went wrong/i)).not.toBeInTheDocument();
   });
 
   it("provides reset function to custom fallback", async () => {
@@ -139,7 +139,7 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>
     );
 
-    const reloadButton = screen.getByRole("button", { name: /Seite neu laden/i });
+    const reloadButton = screen.getByRole("button", { name: /Reload page/i });
     expect(reloadButton).toBeInTheDocument();
   });
 
@@ -157,7 +157,7 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>
     );
 
-    const reloadButton = screen.getByRole("button", { name: /Seite neu laden/i });
+    const reloadButton = screen.getByRole("button", { name: /Reload page/i });
     await userEvent.click(reloadButton);
 
     expect(reloadMock).toHaveBeenCalledOnce();
@@ -181,7 +181,7 @@ describe("ErrorBoundary", () => {
     );
 
     // Error boundary shows fallback
-    expect(screen.getByText(/Etwas ist schiefgelaufen/i)).toBeInTheDocument();
+    expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
     // Error details section exists (use getAllByText since error appears in two places)
     const errorElements = screen.getAllByText("Error: Deep error", { exact: false });
     expect(errorElements.length).toBeGreaterThan(0);
@@ -197,7 +197,7 @@ describe("ErrorBoundary", () => {
     );
 
     // Should show fallback, not the non-throwing children
-    expect(screen.getByText(/Etwas ist schiefgelaufen/i)).toBeInTheDocument();
+    expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
     expect(screen.queryByText("Child 1")).not.toBeInTheDocument();
   });
 
@@ -212,7 +212,7 @@ describe("ErrorBoundary", () => {
     );
 
     // Error boundary catches the error
-    expect(screen.getByText(/Etwas ist schiefgelaufen/i)).toBeInTheDocument();
+    expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
 
     // Content outside boundary still renders
     expect(screen.getByText("Outside boundary")).toBeInTheDocument();
@@ -239,7 +239,7 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByText(/Etwas ist schiefgelaufen/i)).toBeInTheDocument();
+    expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
   });
 
   it("handles errors from event handlers (manual trigger)", () => {

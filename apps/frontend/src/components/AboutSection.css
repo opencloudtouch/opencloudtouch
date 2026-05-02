@@ -1,0 +1,146 @@
+/* AboutSection — About card in Settings */
+
+.about-section {
+  margin-top: var(--space-xl, 32px);
+}
+
+.about-card {
+  padding: var(--space-md, 16px);
+}
+
+/* App header row */
+.about-app-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md, 16px);
+}
+
+.about-app-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--color-bg-darker, #1a1a2e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.about-app-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.about-name-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm, 8px);
+  flex-wrap: wrap;
+}
+
+.about-app-name {
+  font-size: 16px;
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text-primary, #ffffff);
+}
+
+.about-version-badge {
+  background: var(--color-accent, #0066cc);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.about-version-error {
+  font-size: 12px;
+  color: var(--color-text-secondary, #888);
+}
+
+.about-app-description {
+  font-size: 13px;
+  color: var(--color-text-secondary, #888);
+  line-height: 1.4;
+  margin: 4px 0 0;
+}
+
+/* Divider */
+.about-divider {
+  border: none;
+  border-top: 1px solid var(--color-border, #333);
+  margin: var(--space-md, 16px) 0;
+}
+
+/* Device count / meta row */
+.about-meta-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm, 8px);
+  padding: var(--space-xs, 4px) 0;
+}
+
+.about-meta-icon {
+  font-size: 16px;
+}
+
+.about-meta-text {
+  font-size: 14px;
+  color: var(--color-text-secondary, #888);
+}
+
+/* External links */
+.about-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.about-links li {
+  display: block;
+}
+
+.about-link-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm, 8px);
+  min-height: var(--touch-target-min, 44px);
+  padding: 0 var(--space-xs, 4px);
+  border-radius: var(--border-radius-sm, 4px);
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--color-text-primary, #ffffff);
+  transition: background 150ms ease;
+}
+
+.about-link-item:hover {
+  background: var(--color-bg-darker, #1a1a2e);
+}
+
+.about-link-item:focus-visible {
+  outline: 2px solid var(--color-accent, #0066cc);
+  outline-offset: 2px;
+}
+
+.about-link-icon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.about-link-label {
+  flex: 1;
+  font-size: 14px;
+  color: var(--color-text-primary, #ffffff);
+}
+
+.about-link-chevron {
+  font-size: 16px;
+  color: var(--color-text-tertiary, #555);
+}

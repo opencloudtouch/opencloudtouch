@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Tests for ManualIPModal — Escape key dismissal and a11y attributes.
  *
  * Covers: overlay onKeyDown handler, role attributes, keyboard dismissal.
@@ -29,7 +29,7 @@ describe("ManualIPModal", () => {
 
   it("renders modal content when open", () => {
     render(<ManualIPModal isOpen={true} onClose={mockOnClose} />);
-    expect(screen.getByText("Manuelle IP-Konfiguration")).toBeInTheDocument();
+    expect(screen.getByText("Manual IP Configuration")).toBeInTheDocument();
   });
 
   it("calls onClose when overlay is clicked", () => {

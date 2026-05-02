@@ -398,6 +398,35 @@ Kontakt: `security@<your-domain>` oder GitHub Security Advisory
 
 ---
 
+## 🌍 Translations (i18n)
+
+OpenCloudTouch uses [react-i18next](https://react.i18next.com/) for internationalization.
+See [docs/adr/007-i18n.md](../docs/adr/007-i18n.md) for the full library decision.
+
+### Source of Truth
+
+**`apps/frontend/src/i18n/locales/en.json` is the single source of truth for all UI strings.**
+
+Rules:
+- Every user-visible string MUST exist in `en.json` before it appears in any component
+- German translation lives in `de.json` and must be kept in sync
+- New strings go to `en.json` first, then are translated in `de.json` (and any other locale)
+- Never hardcode English text directly in components — always use `t("key")`
+
+### Adding a new UI string
+
+1. Add the key to `apps/frontend/src/i18n/locales/en.json`
+2. Add the German translation to `apps/frontend/src/i18n/locales/de.json`
+3. Add translations for any other supported locales (`fr.json`, `it.json`, …)
+4. Use `const { t } = useTranslation()` + `t("your.new.key")` in the component
+
+### Contributing a new language
+
+Use the **[Translation Contribution](https://github.com/scheilch/opencloudtouch/issues/new?template=translation_contribution.yml)** issue template.
+You do not need to open a PR — paste your translated JSON into the issue and a maintainer will create the locale file.
+
+---
+
 ## 📚 Dokumentation
 
 Bei Code-Änderungen bitte auch Doku aktualisieren:

@@ -8,17 +8,17 @@ import DeviceOfflineBanner from "../../src/components/DeviceOfflineBanner";
 describe("DeviceOfflineBanner", () => {
   it("renders offline banner with default text", () => {
     render(<DeviceOfflineBanner />);
-    expect(screen.getByText("Gerät nicht erreichbar")).toBeInTheDocument();
+    expect(screen.getByText("Device unreachable")).toBeInTheDocument();
     expect(
-      screen.getByText("Das Gerät ist offline oder nicht im Netzwerk."),
+      screen.getByText("The device is offline or not on the network."),
     ).toBeInTheDocument();
   });
 
   it("renders offline banner with device name", () => {
     render(<DeviceOfflineBanner deviceName="Wohnzimmer" />);
-    expect(screen.getByText("Gerät nicht erreichbar")).toBeInTheDocument();
+    expect(screen.getByText("Device unreachable")).toBeInTheDocument();
     expect(
-      screen.getByText(/Wohnzimmer.+ist offline oder nicht im Netzwerk/),
+      screen.getByText(/Wohnzimmer.+is offline or not on the network/),
     ).toBeInTheDocument();
   });
 

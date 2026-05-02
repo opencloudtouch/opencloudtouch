@@ -27,7 +27,7 @@ describe("PresetButton Component", () => {
       );
 
       expect(screen.getByText("1")).toBeInTheDocument();
-      expect(screen.getByText("Preset zuweisen")).toBeInTheDocument();
+      expect(screen.getByText("Assign preset")).toBeInTheDocument();
     });
 
     it("renders empty state when preset is undefined", () => {
@@ -40,7 +40,7 @@ describe("PresetButton Component", () => {
       );
 
       expect(screen.getByText("2")).toBeInTheDocument();
-      expect(screen.getByText("Preset zuweisen")).toBeInTheDocument();
+      expect(screen.getByText("Assign preset")).toBeInTheDocument();
     });
 
     it("calls onAssign when empty preset is clicked", () => {
@@ -53,7 +53,7 @@ describe("PresetButton Component", () => {
         />
       );
 
-      const button = screen.getByText("Preset zuweisen").closest("button");
+      const button = screen.getByText("Assign preset").closest("button");
       fireEvent.click(button!);
 
       expect(mockOnAssign).toHaveBeenCalledTimes(1);
@@ -104,7 +104,7 @@ describe("PresetButton Component", () => {
         />
       );
 
-      const playButton = screen.getByLabelText("Preset abspielen");
+      const playButton = screen.getByLabelText(/Play preset/i);
       fireEvent.click(playButton);
 
       expect(mockOnPlay).toHaveBeenCalledTimes(1);
@@ -136,7 +136,7 @@ describe("PresetButton Component", () => {
         />
       );
 
-      const playButton = screen.getByLabelText("Wird abgespielt");
+      const playButton = screen.getByLabelText("Now playing");
       expect(playButton).toBeDisabled();
     });
 
@@ -203,10 +203,10 @@ describe("PresetButton Component", () => {
 
       // Compatible badge should be shown (not cloud-dependent)
       expect(
-        screen.queryByRole("img", { name: /Kompatibel nach Cloud-Abschaltung/i })
+        screen.queryByRole("img", { name: /Compatible after cloud shutdown/i })
       ).toBeInTheDocument();
       expect(
-        screen.queryByRole("img", { name: /Cloud-abhängig/i })
+        screen.queryByRole("img", { name: /Cloud-dependent/i })
       ).not.toBeInTheDocument();
     });
 
@@ -223,7 +223,7 @@ describe("PresetButton Component", () => {
       );
 
       expect(
-        screen.queryByRole("img", { name: /Cloud-abhängig/i })
+        screen.queryByRole("img", { name: /Cloud-dependent/i })
       ).toBeInTheDocument();
     });
 
@@ -245,7 +245,7 @@ describe("PresetButton Component", () => {
 
       // Safe default: cloud-dependent when we can't determine the real URL
       expect(
-        screen.queryByRole("img", { name: /Cloud-abhängig/i })
+        screen.queryByRole("img", { name: /Cloud-dependent/i })
       ).toBeInTheDocument();
     });
 
@@ -266,7 +266,7 @@ describe("PresetButton Component", () => {
       );
 
       expect(
-        screen.queryByRole("img", { name: /Cloud-abhängig/i })
+        screen.queryByRole("img", { name: /Cloud-dependent/i })
       ).toBeInTheDocument();
     });
 
@@ -287,7 +287,7 @@ describe("PresetButton Component", () => {
       );
 
       expect(
-        screen.queryByRole("img", { name: /Kompatibel nach Cloud-Abschaltung/i })
+        screen.queryByRole("img", { name: /Compatible after cloud shutdown/i })
       ).toBeInTheDocument();
     });
   });

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Licenses Page Tests
  *
  * User Story: Als User möchte ich Open-Source Lizenzinformationen einsehen
@@ -19,7 +19,7 @@ describe("Licenses Page", () => {
     );
 
     // Page title
-    expect(screen.getByText(/Open-Source Lizenzen/i)).toBeInTheDocument();
+    expect(screen.getByText(/Open-Source Licenses/i)).toBeInTheDocument();
 
     // Frontend dependencies must be listed
     expect(screen.getByText("React", { exact: true })).toBeInTheDocument();
@@ -29,7 +29,7 @@ describe("Licenses Page", () => {
     expect(screen.getByText(/FastAPI/i)).toBeInTheDocument();
 
     // Legal compliance sections
-    expect(screen.getByText(/Lizenz-Compliance/i)).toBeInTheDocument();
-    expect(screen.getByText(/Danksagung/i)).toBeInTheDocument();
+    expect(screen.getByText(/License Compliance/i)).toBeInTheDocument();
+    expect(screen.getByText(/About/i)).toBeInTheDocument();
   });
 });

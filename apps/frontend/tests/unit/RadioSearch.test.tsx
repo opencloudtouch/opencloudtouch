@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+﻿import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import RadioSearch from "../../src/components/RadioSearch";
 
@@ -87,7 +87,7 @@ describe("RadioSearch Component", () => {
     render(
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
-    expect(screen.getByPlaceholderText("z.B. SWR3, BBC Radio\u2026")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026")).toBeInTheDocument();
     expect(screen.getByText("\u2715")).toBeInTheDocument();
   });
 
@@ -96,7 +96,7 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
     expect(screen.getByText("Name")).toBeInTheDocument();
-    expect(screen.getByText("Land")).toBeInTheDocument();
+    expect(screen.getByText("Country")).toBeInTheDocument();
     expect(screen.getByText("Genre")).toBeInTheDocument();
   });
 
@@ -104,18 +104,18 @@ describe("RadioSearch Component", () => {
     render(
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
-    fireEvent.click(screen.getByText("Land"));
-    expect(screen.getByPlaceholderText("z.B. Germany, Austria\u2026")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Country"));
+    expect(screen.getByPlaceholderText("e.g. Germany, Austria\u2026")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Genre"));
-    expect(screen.getByPlaceholderText("z.B. rock, jazz, pop\u2026")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("e.g. Rock, Jazz, pop\u2026")).toBeInTheDocument();
   });
 
   it("sends correct search_type to API", async () => {
     render(
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
-    fireEvent.click(screen.getByText("Land"));
-    const searchInput = screen.getByPlaceholderText("z.B. Germany, Austria\u2026");
+    fireEvent.click(screen.getByText("Country"));
+    const searchInput = screen.getByPlaceholderText("e.g. Germany, Austria\u2026");
     fireEvent.change(searchInput, { target: { value: "Germany" } });
     await waitFor(() => {
       const fetchCalls = (fetch as ReturnType<typeof vi.fn>).mock.calls;
@@ -140,7 +140,7 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const overlay = screen.getByRole("button", { name: "Suche schließen" }).closest(".radio-search-overlay")!;
+    const overlay = screen.getByRole("button", { name: "Close search" }).closest(".radio-search-overlay")!;
     fireEvent.click(overlay);
 
     expect(mockOnClose).toHaveBeenCalled();
@@ -162,10 +162,10 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const searchInput = screen.getByPlaceholderText("z.B. SWR3, BBC Radio\u2026");
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
     fireEvent.change(searchInput, { target: { value: "BBC" } });
 
-    expect(screen.getByText("Suche...")).toBeInTheDocument();
+    expect(screen.getByText("Searching...")).toBeInTheDocument();
   });
 
   it("displays search results", async () => {
@@ -173,7 +173,7 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const searchInput = screen.getByPlaceholderText("z.B. SWR3, BBC Radio\u2026");
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
     fireEvent.change(searchInput, { target: { value: "BBC" } });
 
     await waitFor(
@@ -189,7 +189,7 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const searchInput = screen.getByPlaceholderText("z.B. SWR3, BBC Radio\u2026");
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
     fireEvent.change(searchInput, { target: { value: "NPR" } });
 
     await waitFor(
@@ -206,12 +206,12 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const searchInput = screen.getByPlaceholderText("z.B. SWR3, BBC Radio\u2026");
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
     fireEvent.change(searchInput, { target: { value: "nonexistent" } });
 
     await waitFor(
       () => {
-        expect(screen.getByText("Keine Sender gefunden")).toBeInTheDocument();
+        expect(screen.getByText("No stations found")).toBeInTheDocument();
       },
       { timeout: 700 }
     );
@@ -222,11 +222,11 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const searchInput = screen.getByPlaceholderText("z.B. SWR3, BBC Radio\u2026");
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
     fireEvent.change(searchInput, { target: { value: "" } });
 
-    expect(screen.queryByText("Suche...")).not.toBeInTheDocument();
-    expect(screen.queryByText("Keine Sender gefunden")).not.toBeInTheDocument();
+    expect(screen.queryByText("Searching...")).not.toBeInTheDocument();
+    expect(screen.queryByText("No stations found")).not.toBeInTheDocument();
   });
 
   it("opens station detail when station clicked", async () => {
@@ -234,7 +234,7 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const searchInput = screen.getByPlaceholderText("z.B. SWR3, BBC Radio\u2026");
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
     fireEvent.change(searchInput, { target: { value: "BBC" } });
 
     await waitFor(
@@ -247,7 +247,7 @@ describe("RadioSearch Component", () => {
 
     // Should show detail view (station name from fetch)
     await waitFor(() => {
-      expect(screen.getByText("Als Preset speichern")).toBeInTheDocument();
+      expect(screen.getByText("Save as preset")).toBeInTheDocument();
     });
   });
 
@@ -256,7 +256,7 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const searchInput = screen.getByPlaceholderText("z.B. SWR3, BBC Radio\u2026");
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
     fireEvent.change(searchInput, { target: { value: "BBC" } });
 
     await waitFor(
@@ -268,7 +268,7 @@ describe("RadioSearch Component", () => {
     );
 
     // Search input should be hidden, detail view visible
-    expect(screen.queryByPlaceholderText("z.B. SWR3, BBC Radio\u2026")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("e.g. SWR3, BBC Radio\u2026")).not.toBeInTheDocument();
   });
 
   it("autofocuses search input when opened", () => {
@@ -276,7 +276,7 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const searchInput = screen.getByPlaceholderText("z.B. SWR3, BBC Radio\u2026");
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
     expect(searchInput).toHaveFocus();
   });
 
@@ -285,7 +285,7 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const searchInput = screen.getByPlaceholderText("z.B. SWR3, BBC Radio\u2026");
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
     fireEvent.change(searchInput, { target: { value: "FRANCE" } });
 
     await waitFor(
@@ -301,12 +301,12 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const searchInput = screen.getByPlaceholderText("z.B. SWR3, BBC Radio\u2026");
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
     fireEvent.change(searchInput, { target: { value: "ERROR_503" } });
 
     await waitFor(
       () => {
-        expect(screen.getByText("Sendersuche fehlgeschlagen. Bitte versuchen Sie es erneut.")).toBeInTheDocument();
+        expect(screen.getByText("Station search failed. Please try again.")).toBeInTheDocument();
       },
       { timeout: 700 }
     );
@@ -323,7 +323,7 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const searchInput = screen.getByPlaceholderText("z.B. SWR3, BBC Radio\u2026");
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
     fireEvent.change(searchInput, { target: { value: "test" } });
 
     await waitFor(
@@ -342,7 +342,7 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const searchInput = screen.getByPlaceholderText("z.B. SWR3, BBC Radio\u2026");
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
     fireEvent.change(searchInput, { target: { value: "a" } });
 
     // Wait longer than debounce to confirm no fetch was made
@@ -381,13 +381,19 @@ describe("RadioSearch Component", () => {
     expect(overlay).toHaveAttribute("role", "none");
   });
 
-  it("modal uses native dialog element", () => {
+  it("modal uses div[role=dialog] element (not native dialog) for correct centering", () => {
     render(
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />,
     );
 
-    const dialog = document.querySelector("dialog.radio-search-modal")!;
-    expect(dialog).toBeInTheDocument();
-    expect(dialog).toHaveAttribute("open");
+    // Must be a div with role="dialog", NOT a native <dialog> element
+    // (native <dialog open> has browser-default styles that prevent flex centering)
+    const modal = document.querySelector("div.radio-search-modal")!;
+    expect(modal).toBeInTheDocument();
+    expect(modal).toHaveAttribute("role", "dialog");
+    expect(modal).toHaveAttribute("aria-modal", "true");
+
+    const nativeDialog = document.querySelector("dialog.radio-search-modal");
+    expect(nativeDialog).not.toBeInTheDocument();
   });
 });

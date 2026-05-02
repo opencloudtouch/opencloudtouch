@@ -4,11 +4,21 @@
   background-color: var(--color-bg-darker);
 }
 
-.nav-container {
+/* Outer wrapper: max-width + flex row for nav-links + language selector.
+   Must NOT have overflow:hidden/auto so the LanguageSelector dropdown is visible. */
+.nav-inner {
   display: flex;
+  align-items: center;
   gap: var(--space-sm);
   max-width: 1200px;
   margin: 0 auto;
+}
+
+/* Inner container: scrollable nav links only — LanguageSelector is a sibling */
+.nav-container {
+  display: flex;
+  flex: 1;
+  gap: var(--space-sm);
   overflow-x: auto;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge */
@@ -19,6 +29,8 @@
 }
 
 .nav-link {
+  flex: 1;
+  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;

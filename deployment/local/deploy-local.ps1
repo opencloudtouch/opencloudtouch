@@ -73,6 +73,25 @@ try {
     # Step 1: Build image (unless skipped)
     if (-not $SkipBuild) {
         Write-Step "Building Docker image..."
+        # Step 1a: Build frontend and place artifacts in .out/dist/
+        Write-Step "Building frontend (npm run build)..."
+        $projectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+        $distOut = Join-Path $projectRoot ".out\dist"
+        if (Test-Path $distOut) {
+            Write-Host "    Removing stale frontend artifacts: $distOut" -ForegroundColor Gray
+            Remove-Item -Recurse -Force $distOut
+        }
+        Push-Location (Join-Path $projectRoot "apps\frontend")
+        npm run build
+        if ($LASTEXITCODE -ne 0) {
+            Pop-Location
+            Write-ErrorMsg "Frontend build failed!"
+            exit 1
+        }
+        Pop-Location
+        Write-Success "Frontend built: $distOut"
+
+        # Step 1b: Build container image
         $buildArgs = @("build", "-t", $Tag)
         if ($NoCache) {
             $buildArgs += "--no-cache"
@@ -81,12 +100,16 @@ try {
         $buildArgs += "deployment/Dockerfile"
         $buildArgs += "."
 
+        Push-Location $projectRoot
         if ($Verbose) {
             Write-Host "Command: podman $($buildArgs -join ' ')" -ForegroundColor DarkGray
         }
 
         $buildOutput = & podman @buildArgs 2>&1
-        if ($LASTEXITCODE -ne 0) {
+        $buildExit = $LASTEXITCODE
+        Pop-Location
+
+        if ($buildExit -ne 0) {
             Write-ErrorMsg "Build failed!"
             Write-Host $buildOutput -ForegroundColor Red
             exit 1

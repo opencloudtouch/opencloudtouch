@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import "./NowPlaying.css";
 
 export interface NowPlayingData {
@@ -22,12 +23,6 @@ const BT_ICON =
 const RADIO_ICON =
   "M20 6H8.3l8.26-3.34L15.88 1 3.24 6.15C2.51 6.43 2 7.17 2 8v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z";
 
-function getStationDisplay(station?: string, source?: string): string {
-  if (station) return station;
-  if (source === "BLUETOOTH") return "Kein Gerät verbunden";
-  return "Kein Sender";
-}
-
 function getSourceBadge(source?: string) {
   if (source === "BLUETOOTH") {
     return (
@@ -51,10 +46,18 @@ function getSourceBadge(source?: string) {
 }
 
 export default function NowPlaying({ nowPlaying, onPlayPause }: NowPlayingProps) {
+  const { t } = useTranslation();
+
+  function getStationDisplay(station?: string, source?: string): string {
+    if (station) return station;
+    if (source === "BLUETOOTH") return t("player.bluetoothNoDevice");
+    return t("player.noStation");
+  }
+
   if (!nowPlaying) {
     return (
       <div className="now-playing empty">
-        <div className="np-placeholder">Keine Wiedergabe</div>
+        <div className="np-placeholder">{t("player.noPlayback")}</div>
       </div>
     );
   }
@@ -77,7 +80,7 @@ export default function NowPlaying({ nowPlaying, onPlayPause }: NowPlayingProps)
           <button
             className="np-play-overlay"
             onClick={onPlayPause}
-            aria-label={isPlaying ? "Pause" : "Play"}
+            aria-label={isPlaying ? t("player.pause") : t("player.play")}
           >
             <svg viewBox="0 0 24 24" width="32" height="32" fill="white">
               {isPlaying ? (

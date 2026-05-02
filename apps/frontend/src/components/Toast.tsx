@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { ToastType } from "../contexts/ToastContext";
 import "./Toast.css";
 
@@ -19,6 +20,7 @@ interface ToastProps {
 }
 
 export default function Toast({ message, type = "info", duration = 5000, onClose }: ToastProps) {
+  const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
@@ -102,7 +104,7 @@ export default function Toast({ message, type = "info", duration = 5000, onClose
           setIsVisible(false);
           if (onClose) setTimeout(onClose, 300);
         }}
-        aria-label="Schließen"
+        aria-label={t("common.close")}
         data-test="toast-close-button"
       >
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">

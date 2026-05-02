@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+﻿import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import ConfirmDialog from "../../src/components/ConfirmDialog";
 
@@ -32,9 +32,9 @@ describe("ConfirmDialog", () => {
   describe("Content", () => {
     it("shows default title and button labels", () => {
       render(<ConfirmDialog {...defaultProps} />);
-      expect(screen.getByText("Bestätigen", { selector: "h2" })).toBeInTheDocument();
-      expect(screen.getByTestId("confirm-dialog-confirm")).toHaveTextContent("Bestätigen");
-      expect(screen.getByTestId("confirm-dialog-cancel")).toHaveTextContent("Abbrechen");
+      expect(screen.getByText("Confirm", { selector: "h2" })).toBeInTheDocument();
+      expect(screen.getByTestId("confirm-dialog-confirm")).toHaveTextContent("Confirm");
+      expect(screen.getByTestId("confirm-dialog-cancel")).toHaveTextContent("Cancel");
       expect(screen.getByText(defaultProps.message)).toBeInTheDocument();
     });
 

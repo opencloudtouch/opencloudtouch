@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import "./ConfirmDialog.css";
 
 /**
@@ -36,13 +37,17 @@ interface ConfirmDialogProps {
 
 export default function ConfirmDialog({
   open,
-  title = "Bestätigen",
+  title,
   message,
-  confirmLabel = "Bestätigen",
-  cancelLabel = "Abbrechen",
+  confirmLabel,
+  cancelLabel,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
+  const resolvedTitle = title ?? t("common.confirm");
+  const resolvedConfirmLabel = confirmLabel ?? t("common.confirm");
+  const resolvedCancelLabel = cancelLabel ?? t("common.cancel");
   const cancelRef = useRef<HTMLButtonElement>(null);
 
   // Focus the cancel button when dialog opens (safe default)
@@ -87,7 +92,7 @@ export default function ConfirmDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="confirm-dialog-title" className="confirm-dialog-title">
-          {title}
+          {resolvedTitle}
         </h2>
         <p id="confirm-dialog-message" className="confirm-dialog-message">
           {message}
@@ -99,14 +104,14 @@ export default function ConfirmDialog({
             onClick={onCancel}
             data-testid="confirm-dialog-cancel"
           >
-            {cancelLabel}
+            {resolvedCancelLabel}
           </button>
           <button
             className="confirm-dialog-btn confirm-dialog-btn--confirm"
             onClick={onConfirm}
             data-testid="confirm-dialog-confirm"
           >
-            {confirmLabel}
+            {resolvedConfirmLabel}
           </button>
         </div>
       </div>

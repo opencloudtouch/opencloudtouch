@@ -6,6 +6,7 @@
  * - If no proxy → change BMX URL + hosts
  */
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   modifyConfig,
   ModifyConfigResponse,
@@ -30,23 +31,19 @@ interface Step5Props {
 // Validation pattern: (protocol)?(hostname|ip)(:port)?
 const TARGET_ADDR_PATTERN = /^(https?:\/\/)?([a-zA-Z0-9][a-zA-Z0-9.-]*|[\d.]+)(:\d+)?$/;
 
-function validateTargetAddr(value: string): { valid: boolean; error?: string } {
+function validateTargetAddr(
+  value: string,
+  t: (key: string) => string
+): { valid: boolean; error?: string } {
   if (!value || !value.trim()) {
-    return { valid: false, error: "Server-URL darf nicht leer sein" };
+    return { valid: false, error: t("setup.wizard.step5.validationEmpty") };
   }
 
   const trimmed = value.trim();
   if (!TARGET_ADDR_PATTERN.test(trimmed)) {
     return {
       valid: false,
-      error:
-        "Ung\u00fcltiges Format. " +
-        "Erwartet: (http://)hostname(:port) oder (http://)IP(:port).\n" +
-        "Beispiele:\n" +
-        "  \u2022 http://192.168.1.100:7777\n" +
-        "  \u2022 oct.local\n" +
-        "  \u2022 192.168.1.100:8080\n" +
-        "  \u2022 http://myserver:7777",
+      error: t("setup.wizard.step5.validationInvalid"),
     };
   }
 
@@ -63,6 +60,7 @@ export default function Step5ConfigModification({
   onConfigModified,
   onStrategyDetected,
 }: Step5Props) {
+  const { t } = useTranslation();
   const [customUrl, setCustomUrl] = useState(octUrl);
   const [validationError, setValidationError] = useState("");
   const [modifying, setModifying] = useState(false);
@@ -81,14 +79,13 @@ export default function Step5ConfigModification({
         setCustomUrl(info.server_url);
         setStrategy(detected);
         onStrategyDetected?.(detected);
-      } catch (err) {
-        console.error("Strategy detection failed:", err);
+      } catch {
         // Fallback: assume bmx_and_hosts
         setCustomUrl(octUrl);
         setStrategy({
           proxy_available: false,
           strategy: "bmx_and_hosts",
-          message: "Erkennung fehlgeschlagen – BMX-URL wird geändert.",
+          message: t("setup.wizard.step5.detecting"),
         });
       } finally {
         setDetecting(false);
@@ -104,9 +101,9 @@ export default function Step5ConfigModification({
 
   const handleModifyConfig = async () => {
     // Validate input
-    const validation = validateTargetAddr(customUrl);
+    const validation = validateTargetAddr(customUrl, t);
     if (!validation.valid) {
-      setValidationError(validation.error || "Ung\u00fcltige Eingabe");
+      setValidationError(validation.error || t("errors.badRequest"));
       return;
     }
 
@@ -124,10 +121,10 @@ export default function Step5ConfigModification({
       onConfigModified(result);
 
       if (!result.success) {
-        setError(result.message || "Konfiguration fehlgeschlagen");
+        setError(result.message || t("setup.wizard.step5.errorTitle"));
       }
     } catch (err) {
-      let message = "Unbekannter Fehler";
+      let message = t("errors.unknown");
       if (err instanceof Error) {
         message = err.message;
       }
@@ -155,24 +152,24 @@ export default function Step5ConfigModification({
   return (
     <WizardStep
       stepNumber={5}
-      title={strategy?.proxy_available ? "Reverse-Proxy erkannt" : "Konfigurationsdatei ändern"}
+      title={
+        strategy?.proxy_available
+          ? t("setup.wizard.step5.titleProxy")
+          : t("setup.wizard.step5.titleNoProxy")
+      }
       description={
         strategy?.proxy_available
-          ? "Ein HTTPS Reverse-Proxy wurde auf Port 443 erkannt. Die BMX-URL muss nicht geändert werden."
-          : "Ändern Sie die bmxRegistryUrl in der OverrideSdkPrivateCfg.xml."
+          ? t("setup.wizard.step5.descProxy")
+          : t("setup.wizard.step5.descNoProxy")
       }
-      warning={
-        strategy?.proxy_available
-          ? undefined
-          : "Diese Änderung leitet Radio-Requests zu Ihrem OpenCloudTouch Server um."
-      }
+      warning={strategy?.proxy_available ? undefined : t("setup.wizard.step5.warningNoProxy")}
       onNext={onNext}
       onPrevious={onPrevious}
       isNextDisabled={detecting || (!strategy?.proxy_available && !modifyData?.success)}
       nextDisabledReason={
         detecting
-          ? "Strategie wird erkannt..."
-          : "Bitte zuerst die Konfiguration erfolgreich anwenden."
+          ? t("setup.wizard.step5.nextDisabledDetecting")
+          : t("setup.wizard.step5.nextDisabledApply")
       }
     >
       <div className="config-modification">
@@ -180,7 +177,7 @@ export default function Step5ConfigModification({
         {detecting && (
           <div className="config-detecting">
             <span className="spinner-small" />
-            <p>Erkenne Setup-Strategie...</p>
+            <p>{t("setup.wizard.step5.detecting")}</p>
           </div>
         )}
 
@@ -188,44 +185,35 @@ export default function Step5ConfigModification({
         {!detecting && strategy?.proxy_available && (
           <div className="config-success">
             <div className="success-icon">🔒</div>
-            <h3 className="success-title">HTTPS Reverse-Proxy erkannt!</h3>
+            <h3 className="success-title">{t("setup.wizard.step5.proxySuccessTitle")}</h3>
             <p className="success-message">{strategy.message}</p>
             <div className="config-details">
               <div className="config-detail-item">
-                <strong>Strategie:</strong>
-                <span>Nur /etc/hosts ändern (DNS-Umleitung)</span>
+                <strong>{t("setup.wizard.step5.strategyLabel")}</strong>
+                <span>{t("setup.wizard.step5.strategyValue")}</span>
               </div>
               <div className="config-detail-item">
-                <strong>BMX-URL:</strong>
-                <span>Bleibt unverändert (original Bose URL)</span>
+                <strong>{t("setup.wizard.step5.bmxLabel")}</strong>
+                <span>{t("setup.wizard.step5.bmxValue")}</span>
               </div>
               <div className="config-detail-item">
-                <strong>Grund:</strong>
-                <span>
-                  Der Reverse-Proxy auf Port 443 fängt HTTPS-Anfragen ab und leitet sie an
-                  OpenCloudTouch weiter.
-                </span>
+                <strong>{t("setup.wizard.step5.reasonLabel")}</strong>
+                <span>{t("setup.wizard.step5.reasonValue")}</span>
               </div>
             </div>
-            <p className="config-proxy-hint">
-              Klicken Sie auf &quot;Weiter&quot;, um die /etc/hosts-Datei im nächsten Schritt zu
-              konfigurieren.
-            </p>
+            <p className="config-proxy-hint">{t("setup.wizard.step5.proxyHint")}</p>
           </div>
         )}
 
         {/* No proxy → need BMX URL modification */}
         {!detecting && !strategy?.proxy_available && (
           <div className="config-input-section">
-            <h3 className="config-title">OpenCloudTouch Server URL</h3>
-            <p className="config-description">
-              Geben Sie die URL Ihres OpenCloudTouch Servers an. Diese ersetzt die Bose
-              bmxRegistryUrl.
-            </p>
+            <h3 className="config-title">{t("setup.wizard.step5.configTitle")}</h3>
+            <p className="config-description">{t("setup.wizard.step5.configDesc")}</p>
 
             <div className="config-input-group">
               <label htmlFor="oct-url" className="config-label">
-                Server URL:
+                {t("setup.wizard.step5.urlLabel")}
               </label>
               <input
                 id="oct-url"
@@ -235,34 +223,30 @@ export default function Step5ConfigModification({
                 onChange={(e) => handleInputChange(e.target.value)}
                 placeholder="http://192.168.1.100:7777"
               />
-              <small className="config-hint">
-                Beispiele: http://192.168.1.100:7777, oct.local, 192.168.1.100:8080, myserver:7777
-                <br />
-                Standard-Port ist 7777, Standard-Protokoll ist http
-              </small>
+              <small className="config-hint">{t("setup.wizard.step5.urlHint")}</small>
             </div>
 
-            {/* Validation Error Toast */}
+            {/* Validation Error */}
             {validationError && (
               <div className="config-validation-error">
-                <div className="error-icon">\u26A0\uFE0F</div>
+                <div className="error-icon">� ️</div>
                 <div className="error-content">
-                  <strong>Eingabe ung\u00fcltig</strong>
+                  <strong>{t("setup.wizard.step5.validationErrorTitle")}</strong>
                   <pre className="error-details">{validationError}</pre>
                 </div>
               </div>
             )}
 
             <div className="config-change-preview">
-              <h4 className="config-preview-title">Was wird geändert:</h4>
+              <h4 className="config-preview-title">{t("setup.wizard.step5.changePreviewTitle")}</h4>
               <div className="config-change-item">
                 <div className="config-change-from">
-                  <span className="config-change-label">Von:</span>
+                  <span className="config-change-label">{t("setup.wizard.step5.changeFrom")}</span>
                   <code>https://streaming.bose.com/...</code>
                 </div>
                 <div className="config-change-arrow">→</div>
                 <div className="config-change-to">
-                  <span className="config-change-label">Zu:</span>
+                  <span className="config-change-label">{t("setup.wizard.step5.changeTo")}</span>
                   <code>{customUrl || "http://..."}</code>
                 </div>
               </div>
@@ -276,10 +260,10 @@ export default function Step5ConfigModification({
               {modifying ? (
                 <>
                   <span className="spinner-small" />
-                  Ändere Konfiguration...
+                  {t("setup.wizard.step5.btnApplying")}
                 </>
               ) : (
-                <>⚙️ Konfiguration jetzt ändern</>
+                <>⚙️ {t("setup.wizard.step5.btnApply")}</>
               )}
             </button>
           </div>
@@ -290,7 +274,7 @@ export default function Step5ConfigModification({
           <div className="config-error">
             <div className="error-icon">❌</div>
             <div className="error-content">
-              <strong>Änderung fehlgeschlagen</strong>
+              <strong>{t("setup.wizard.step5.errorTitle")}</strong>
               <p>{error}</p>
             </div>
           </div>
@@ -300,21 +284,21 @@ export default function Step5ConfigModification({
         {modifyData?.success && (
           <div className="config-success">
             <div className="success-icon">✅</div>
-            <h3 className="success-title">Konfiguration erfolgreich geändert!</h3>
+            <h3 className="success-title">{t("setup.wizard.step5.successTitle")}</h3>
             <p className="success-message">{modifyData.message}</p>
 
             <div className="config-details">
               <div className="config-detail-item">
-                <strong>Alte URL:</strong>
+                <strong>{t("setup.wizard.step5.oldUrl")}</strong>
                 <code>{modifyData.old_url || "N/A"}</code>
               </div>
               <div className="config-detail-item">
-                <strong>Neue URL:</strong>
+                <strong>{t("setup.wizard.step5.newUrl")}</strong>
                 <code>{modifyData.new_url || customUrl}</code>
               </div>
               {modifyData.backup_path && (
                 <div className="config-detail-item">
-                  <strong>Backup:</strong>
+                  <strong>{t("setup.wizard.step5.backupLabel")}</strong>
                   <code>{modifyData.backup_path}</code>
                 </div>
               )}
@@ -329,7 +313,9 @@ export default function Step5ConfigModification({
                   aria-expanded={showDiff}
                   aria-controls="config-diff-content"
                 >
-                  {showDiff ? "▼ Änderungen ausblenden" : "▶ Änderungen anzeigen"}
+                  {showDiff
+                    ? t("setup.wizard.step5.btnHideChanges")
+                    : t("setup.wizard.step5.btnShowChanges")}
                 </button>
 
                 {showDiff && (

@@ -141,13 +141,13 @@ describe("SetupWizard (pages/SetupWizard)", () => {
   describe("Empty State", () => {
     it("shows empty state message when no devices provided", () => {
       render(<SetupWizard devices={[]} />);
-      expect(screen.getByText("Keine Geräte gefunden")).toBeInTheDocument();
+      expect(screen.getByText("No devices found")).toBeInTheDocument();
     });
 
     it("shows back-to-home button in empty state", () => {
       render(<SetupWizard devices={[]} />);
       expect(
-        screen.getByRole("button", { name: /zurück zur startseite/i })
+        screen.getByRole("button", { name: /back to home page/i })
       ).toBeInTheDocument();
     });
 

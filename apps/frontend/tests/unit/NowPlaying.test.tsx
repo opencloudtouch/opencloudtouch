@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Tests for NowPlaying.tsx
  *
  * User Story: "Als User möchte ich sehen was gerade abgespielt wird"
@@ -20,13 +20,13 @@ describe("NowPlaying Component", () => {
     it("should show empty state when nowPlaying is null", () => {
       render(<NowPlaying nowPlaying={null} />);
 
-      expect(screen.getByText("Keine Wiedergabe")).toBeInTheDocument();
+      expect(screen.getByText("No playback")).toBeInTheDocument();
     });
 
     it("should show empty state when nowPlaying is undefined", () => {
       render(<NowPlaying />);
 
-      expect(screen.getByText("Keine Wiedergabe")).toBeInTheDocument();
+      expect(screen.getByText("No playback")).toBeInTheDocument();
     });
 
     it("should apply empty CSS class in empty state", () => {
@@ -136,7 +136,7 @@ describe("NowPlaying Component", () => {
   });
 
   describe("Missing Data Handling", () => {
-    it('should show "Kein Sender" when station not provided', () => {
+    it('should show "No station" when station not provided', () => {
       const nowPlaying = {
         track: "Test Track",
         play_status: "PLAY_STATE",
@@ -144,7 +144,7 @@ describe("NowPlaying Component", () => {
 
       render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(screen.getByText("Kein Sender")).toBeInTheDocument();
+      expect(screen.getByText("No station")).toBeInTheDocument();
     });
 
     it("should not show track element when track not provided", () => {
@@ -217,7 +217,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} onPlayPause={vi.fn()} />);
 
-      expect(screen.getByText("Kein Sender")).toBeInTheDocument();
+      expect(screen.getByText("No station")).toBeInTheDocument();
       expect(screen.getByText("Unknown Artist Song")).toBeInTheDocument();
       expect(container.querySelector(".np-art-placeholder svg")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Play" })).toBeInTheDocument();
@@ -288,7 +288,7 @@ describe("NowPlaying Component", () => {
   });
 
   describe("Bluetooth Source Display", () => {
-    it('should show "Kein Gerät verbunden" for BLUETOOTH source without station', () => {
+    it('should show "No device connected" for BLUETOOTH source without station', () => {
       const nowPlaying = {
         source: "BLUETOOTH",
         play_status: "PLAY_STATE",
@@ -296,7 +296,7 @@ describe("NowPlaying Component", () => {
 
       render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(screen.getByText("Kein Gerät verbunden")).toBeInTheDocument();
+      expect(screen.getByText("No device connected")).toBeInTheDocument();
     });
 
     it("should show device name for BLUETOOTH source with station", () => {
@@ -311,7 +311,7 @@ describe("NowPlaying Component", () => {
       expect(screen.getByText("iPhone von Max")).toBeInTheDocument();
     });
 
-    it('should show "Kein Sender" for non-BLUETOOTH source without station', () => {
+    it('should show "No station" for non-BLUETOOTH source without station', () => {
       const nowPlaying = {
         source: "INTERNET_RADIO",
         play_status: "PLAY_STATE",
@@ -319,7 +319,7 @@ describe("NowPlaying Component", () => {
 
       render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(screen.getByText("Kein Sender")).toBeInTheDocument();
+      expect(screen.getByText("No station")).toBeInTheDocument();
     });
   });
 });

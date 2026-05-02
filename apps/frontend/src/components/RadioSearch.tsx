@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getErrorMessage, parseApiError } from "../api/types";
 import { getAvatarColor, getStationInitials } from "../utils/stationAvatar";
 import StationDetail from "./StationDetail";
@@ -49,22 +50,16 @@ function getApiBaseUrl(): string {
 type SearchType = "name" | "country" | "tag";
 type RadioProviderType = "radiobrowser" | "tunein";
 
-const SEARCH_TYPES: { value: SearchType; label: string }[] = [
-  { value: "name", label: "Name" },
-  { value: "country", label: "Land" },
-  { value: "tag", label: "Genre" },
+const SEARCH_TYPES: { value: SearchType }[] = [
+  { value: "name" },
+  { value: "country" },
+  { value: "tag" },
 ];
 
 const PROVIDERS: { value: RadioProviderType; label: string }[] = [
   { value: "radiobrowser", label: "RadioBrowser" },
   { value: "tunein", label: "TuneIn" },
 ];
-
-const SEARCH_PLACEHOLDERS: Record<SearchType, string> = {
-  name: "z.B. SWR3, BBC Radio…",
-  country: "z.B. Germany, Austria…",
-  tag: "z.B. rock, jazz, pop…",
-};
 
 export default function RadioSearch({
   onStationSelect,
@@ -74,6 +69,7 @@ export default function RadioSearch({
   presetNumber: _presetNumber,
   hasExistingPreset,
 }: RadioSearchProps) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<RadioStation[]>([]);
   const [loading, setLoading] = useState(false);
@@ -139,7 +135,7 @@ export default function RadioSearch({
           if (apiError) {
             setError(getErrorMessage(apiError));
           } else {
-            setError("Sendersuche fehlgeschlagen. Bitte versuchen Sie es erneut.");
+            setError(t("presets.searchFailed"));
           }
           setResults([]);
           return;
@@ -193,7 +189,12 @@ export default function RadioSearch({
       tabIndex={-1}
       role="none"
     >
-      <dialog className="radio-search-modal" open>
+      <div
+        className="radio-search-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("presets.searchTitle")}
+      >
         {detailUuid ? (
           <StationDetail
             stationUuid={detailUuid}
@@ -216,7 +217,7 @@ export default function RadioSearch({
               <input
                 type="search"
                 className="search-input"
-                placeholder={SEARCH_PLACEHOLDERS[searchType]}
+                placeholder={t(`presets.searchPlaceholder.${searchType}`)}
                 value={query}
                 onChange={(e) => handleSearch(e.target.value)}
                 autoFocus
@@ -224,23 +225,23 @@ export default function RadioSearch({
               <button
                 className="search-close"
                 onClick={onClose}
-                aria-label="Suche schließen"
-                title="Suche schließen"
+                aria-label={t("presets.searchClose")}
+                title={t("presets.searchClose")}
               >
                 ✕
               </button>
             </div>
             <div className="search-type-row">
-              {SEARCH_TYPES.map((t) => (
+              {SEARCH_TYPES.map((st) => (
                 <button
-                  key={t.value}
-                  className={`search-type-chip${searchType === t.value ? " active" : ""}`}
+                  key={st.value}
+                  className={`search-type-chip${searchType === st.value ? " active" : ""}`}
                   onClick={() => {
-                    setSearchType(t.value);
+                    setSearchType(st.value);
                     if (query.trim().length >= 2) handleSearch(query);
                   }}
                 >
-                  {t.label}
+                  {t(`presets.searchTypeLabel.${st.value}`)}
                 </button>
               ))}
             </div>
@@ -274,9 +275,9 @@ export default function RadioSearch({
 
             <div className="search-results">
               {error && <div className="search-error">{error}</div>}
-              {loading && <div className="search-loading">Suche...</div>}
+              {loading && <div className="search-loading">{t("presets.searchLoading")}</div>}
               {!loading && !error && results.length === 0 && query && (
-                <div className="search-empty">Keine Sender gefunden</div>
+                <div className="search-empty">{t("presets.searchEmpty")}</div>
               )}
               {results.map((station) => (
                 <button
@@ -321,7 +322,7 @@ export default function RadioSearch({
             </div>
           </>
         )}
-      </dialog>
+      </div>
     </div>
   );
 }

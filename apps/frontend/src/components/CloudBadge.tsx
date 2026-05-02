@@ -12,6 +12,7 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import "./CloudBadge.css";
 
 interface CloudBadgeProps {
@@ -20,6 +21,7 @@ interface CloudBadgeProps {
 }
 
 export default function CloudBadge({ isCloudDependent, source }: CloudBadgeProps) {
+  const { t } = useTranslation();
   const [showTooltip, setShowTooltip] = useState(false);
 
   if (!isCloudDependent) {
@@ -33,13 +35,13 @@ export default function CloudBadge({ isCloudDependent, source }: CloudBadgeProps
         onBlur={() => setShowTooltip(false)}
         tabIndex={0}
         role="img"
-        aria-label="Kompatibel nach Cloud-Abschaltung"
+        aria-label={t("presets.cloudCompatible")}
       >
         <span className="badge-icon">✓</span>
         {showTooltip && (
           <div className="badge-tooltip" role="tooltip">
-            <strong>Cloud-unabhängig</strong>
-            <p>Funktioniert auch nach dem 6. Mai 2026 (Bose Cloud-Abschaltung)</p>
+            <strong>{t("presets.cloudIndependent")}</strong>
+            <p>{t("presets.cloudIndependentDesc")}</p>
           </div>
         )}
       </div>
@@ -56,22 +58,18 @@ export default function CloudBadge({ isCloudDependent, source }: CloudBadgeProps
       onBlur={() => setShowTooltip(false)}
       tabIndex={0}
       role="img"
-      aria-label="Cloud-abhängig - Funktioniert möglicherweise nicht nach Mai 2026"
+      aria-label={t("presets.cloudDependent")}
     >
       <span className="badge-icon">☁</span>
       {showTooltip && (
         <div className="badge-tooltip warning" role="tooltip">
-          <strong>Cloud-abhängig</strong>
+          <strong>{t("presets.cloudDependent")}</strong>
           <p>
             {source === "TUNEIN"
-              ? "TuneIn-Presets benötigen Bose Cloud (streaming.bose.com)"
-              : "Dieses Preset benötigt möglicherweise Bose Cloud-Dienste"}
+              ? t("presets.cloudDependentTunein")
+              : t("presets.cloudDependentDesc")}
           </p>
-          <p className="tooltip-note">
-            Nach dem 6. Mai 2026 eventuell nicht mehr verfügbar.
-            <br />
-            Erwägen Sie die Neukonfiguration mit direkten Streams.
-          </p>
+          <p className="tooltip-note">{t("presets.cloudDependentNote")}</p>
         </div>
       )}
     </div>

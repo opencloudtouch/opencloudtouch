@@ -2,6 +2,7 @@
  * Step 7: Verification & Test
  */
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { verifyRedirect, rebootDevice } from "../../api/wizard";
 import WizardStep from "./WizardStep";
 import "./Step7Verification.css";
@@ -15,8 +16,8 @@ interface Step7Props {
 }
 
 const TEST_DOMAINS = [
-  { domain: "bose.vtuner.com", description: "Internet-Radio" },
-  { domain: "streaming.bose.com", description: "Streaming-Services" },
+  { domain: "bose.vtuner.com", descriptionKey: "setup.wizard.step7.domainInternetRadio" },
+  { domain: "streaming.bose.com", descriptionKey: "setup.wizard.step7.domainStreaming" },
 ];
 
 interface TestResult {
@@ -35,6 +36,7 @@ export default function Step7Verification({
   onNext,
   onPrevious,
 }: Step7Props) {
+  const { t } = useTranslation();
   const [testing, setTesting] = useState(false);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [allTestsPassed, setAllTestsPassed] = useState(false);
@@ -69,7 +71,7 @@ export default function Step7Verification({
         });
       }, 1000);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unbekannter Fehler";
+      const msg = err instanceof Error ? err.message : t("errors.unknown");
       setRebootError(msg);
       setRebootState("error");
     }
@@ -99,14 +101,14 @@ export default function Step7Verification({
           message: result.message,
         });
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Unbekannter Fehler";
+        const message = err instanceof Error ? err.message : t("errors.unknown");
         results.push({
           domain,
           success: false,
           resolved_ip: "N/A",
           expected_ip: octIp,
           matches_expected: false,
-          message: `Fehler: ${message}`,
+          message: `${t("common.error")}: ${message}`,
         });
       }
     }
@@ -119,9 +121,9 @@ export default function Step7Verification({
   return (
     <WizardStep
       stepNumber={7}
-      title="Konfiguration testen"
-      description="Überprüfen Sie, ob die Domain-Redirects korrekt funktionieren."
-      warning="Falls Tests fehlschlagen, ist möglicherweise ein Geräte-Neustart erforderlich."
+      title={t("setup.wizard.step7.title")}
+      description={t("setup.wizard.step7.description")}
+      warning={t("setup.wizard.step7.warning")}
       onNext={onNext}
       onPrevious={onPrevious}
       isNextDisabled={!allTestsPassed}
@@ -132,21 +134,18 @@ export default function Step7Verification({
           <div className="reboot-header">
             <span className="reboot-icon">🔄</span>
             <div>
-              <strong>Geräte-Neustart</strong>
-              <p className="reboot-hint">
-                Die /etc/hosts-Änderungen werden erst nach einem Neustart wirksam. Starten Sie das
-                Gerät neu, bevor Sie die Tests ausführen.
-              </p>
+              <strong>{t("setup.wizard.step7.rebootHeader")}</strong>
+              <p className="reboot-hint">{t("setup.wizard.step7.rebootHint")}</p>
             </div>
           </div>
 
           {rebootState === "idle" && (
             <div className="reboot-action">
               <button className="btn btn-secondary reboot-btn" onClick={handleReboot}>
-                🔄 Gerät jetzt neu starten
+                🔄 {t("setup.wizard.step7.btnReboot")}
               </button>
               <small className="reboot-action-hint">
-                Nur wenn Tests fehlschlagen und Sie sicher sind, dass der Neustart nötig ist
+                {t("setup.wizard.step7.rebootActionHint")}
               </small>
             </div>
           )}
@@ -154,20 +153,20 @@ export default function Step7Verification({
           {rebootState === "rebooting" && (
             <div className="reboot-status reboot-status--progress">
               <span className="spinner-small" />
-              Neustart-Befehl wird gesendet...
+              {t("setup.wizard.step7.rebootRebooting")}
             </div>
           )}
 
           {rebootState === "waiting" && (
             <div className="reboot-status reboot-status--waiting">
               <span className="reboot-countdown">{rebootCountdown}s</span>
-              Gerät startet neu – bitte warten...
+              {t("setup.wizard.step7.rebootWaiting")}
             </div>
           )}
 
           {rebootState === "done" && (
             <div className="reboot-status reboot-status--done">
-              ✅ Neustart abgeschlossen – Gerät sollte wieder erreichbar sein.
+              ✅ {t("setup.wizard.step7.rebootDone")}
             </div>
           )}
 
@@ -175,7 +174,7 @@ export default function Step7Verification({
             <div className="reboot-status reboot-status--error">
               ❌ {rebootError}
               <button className="btn btn-secondary reboot-retry" onClick={handleReboot}>
-                Erneut versuchen
+                {t("setup.wizard.step7.btnRetryReboot")}
               </button>
             </div>
           )}
@@ -187,11 +186,11 @@ export default function Step7Verification({
             <div className="verification-info">
               <div className="info-icon">🔍</div>
               <div className="info-content">
-                <h3>Was wird getestet?</h3>
+                <h3>{t("setup.wizard.step7.testInfoTitle")}</h3>
                 <ul>
-                  <li>DNS-Auflösung der Bose-Domains</li>
-                  <li>Umleitung zu Ihrem OpenCloudTouch Server</li>
-                  <li>Korrektheit der IP-Adressen</li>
+                  <li>{t("setup.wizard.step7.testInfoItem1")}</li>
+                  <li>{t("setup.wizard.step7.testInfoItem2")}</li>
+                  <li>{t("setup.wizard.step7.testInfoItem3")}</li>
                 </ul>
               </div>
             </div>
@@ -204,10 +203,10 @@ export default function Step7Verification({
               {testing ? (
                 <>
                   <span className="spinner-small" />
-                  Teste Konfiguration...
+                  {t("setup.wizard.step7.btnRunning")}
                 </>
               ) : (
-                <>🚀 Tests jetzt ausführen</>
+                <>🚀 {t("setup.wizard.step7.btnRunTests")}</>
               )}
             </button>
           </div>
@@ -216,7 +215,7 @@ export default function Step7Verification({
         {/* Test Results */}
         {testResults.length > 0 && (
           <div className="verification-results">
-            <h3 className="verification-title">Test-Ergebnisse</h3>
+            <h3 className="verification-title">{t("setup.wizard.step7.resultsTitle")}</h3>
 
             <div className="verification-test-list">
               {testResults.map((result, index) => (
@@ -231,26 +230,36 @@ export default function Step7Verification({
                     <div className="test-item-info">
                       <strong className="test-item-domain">{result.domain}</strong>
                       <small className="test-item-description">
-                        {TEST_DOMAINS[index]?.description}
+                        {TEST_DOMAINS[index]?.descriptionKey
+                          ? t(TEST_DOMAINS[index].descriptionKey)
+                          : ""}
                       </small>
                     </div>
                   </div>
 
                   <div className="test-item-details">
                     <div className="test-detail-row">
-                      <span className="test-detail-label">Aufgelöste IP:</span>
+                      <span className="test-detail-label">
+                        {t("setup.wizard.step7.resolvedIp")}
+                      </span>
                       <code className="test-detail-value">{result.resolved_ip}</code>
                     </div>
                     <div className="test-detail-row">
-                      <span className="test-detail-label">Erwartete IP:</span>
+                      <span className="test-detail-label">
+                        {t("setup.wizard.step7.expectedIp")}
+                      </span>
                       <code className="test-detail-value">{result.expected_ip}</code>
                     </div>
                     <div className="test-detail-row">
-                      <span className="test-detail-label">Status:</span>
+                      <span className="test-detail-label">
+                        {t("setup.wizard.step7.statusLabel")}
+                      </span>
                       <span
                         className={`test-detail-status ${result.matches_expected ? "match" : "mismatch"}`}
                       >
-                        {result.matches_expected ? "✓ Korrekt" : "✗ Fehlerhaft"}
+                        {result.matches_expected
+                          ? t("setup.wizard.step7.statusCorrect")
+                          : t("setup.wizard.step7.statusFailed")}
                       </span>
                     </div>
                   </div>
@@ -268,29 +277,24 @@ export default function Step7Verification({
             {allTestsPassed ? (
               <div className="verification-success">
                 <div className="success-icon">🎉</div>
-                <h3 className="success-title">Alle Tests bestanden!</h3>
-                <p className="success-message">
-                  Die Domain-Redirects funktionieren korrekt. Ihr Gerät ist bereit für den Einsatz.
-                </p>
+                <h3 className="success-title">{t("setup.wizard.step7.allPassedTitle")}</h3>
+                <p className="success-message">{t("setup.wizard.step7.allPassedMessage")}</p>
               </div>
             ) : (
               <div className="verification-failed">
-                <div className="failed-icon">⚠️</div>
-                <h3 className="failed-title">Einige Tests sind fehlgeschlagen</h3>
-                <p className="failed-message">
-                  Die DNS-Änderungen sind möglicherweise noch nicht aktiv. Versuchen Sie folgende
-                  Schritte:
-                </p>
+                <div className="failed-icon">� ️</div>
+                <h3 className="failed-title">{t("setup.wizard.step7.someFailedTitle")}</h3>
+                <p className="failed-message">{t("setup.wizard.step7.someFailedMessage")}</p>
                 <ul className="failed-steps">
-                  <li>Starten Sie das Gerät neu (Stromversorgung trennen und wieder verbinden)</li>
-                  <li>Warten Sie 60 Sekunden nach dem Neustart</li>
-                  <li>Führen Sie die Tests erneut aus</li>
+                  <li>{t("setup.wizard.step7.failedStep1")}</li>
+                  <li>{t("setup.wizard.step7.failedStep2")}</li>
+                  <li>{t("setup.wizard.step7.failedStep3")}</li>
                 </ul>
                 <button
                   className="btn btn-secondary verification-retry-btn"
                   onClick={handleRunTests}
                 >
-                  🔄 Tests erneut ausführen
+                  🔄 {t("setup.wizard.step7.btnRetryTests")}
                 </button>
               </div>
             )}

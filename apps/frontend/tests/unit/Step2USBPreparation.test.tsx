@@ -108,8 +108,8 @@ describe("Step2USBPreparation - BUG-20: remote_services must be empty", () => {
     const { unmount } = render(
       <Step2USBPreparation deviceModel="SoundTouch 30" {...defaultProps} />
     );
-    // "leer" appears in the description about the file being empty
-    expect(getPageText()).toMatch(/leer/i);
+    // "empty" appears in the description about the file being empty
+    expect(getPageText()).toMatch(/empty/i);
     unmount();
   });
 
@@ -129,7 +129,7 @@ describe("Step2USBPreparation - General functionality", () => {
     const { unmount } = render(
       <Step2USBPreparation deviceModel="SoundTouch 30" {...defaultProps} />
     );
-    expect(screen.getByText("USB-Stick vorbereiten")).toBeInTheDocument();
+    expect(screen.getByText("Prepare USB drive")).toBeInTheDocument();
     unmount();
   });
 

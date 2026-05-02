@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Functional Tests for LocalControl Component
  *
  * User Story: "Als User möchte ich meine Musik steuern (Play/Pause/Skip/Volume)"
@@ -145,7 +145,7 @@ describe("LocalControl - Core Playback Functionality", () => {
       render(<LocalControl devices={[]} />);
     });
 
-    expect(screen.getByText(/Keine Geräte gefunden/i)).toBeInTheDocument();
+    expect(screen.getByText(/No devices found/i)).toBeInTheDocument();
   });
 
   test("should display current device name and model", async () => {
@@ -188,7 +188,7 @@ describe("LocalControl - Core Playback Functionality", () => {
     const user = userEvent.setup();
     render(<LocalControl devices={mockDevices} />);
 
-    const nextButton = screen.getByRole("button", { name: /Nächster Track/i });
+    const nextButton = screen.getByRole("button", { name: /Next Track/i });
     await user.click(nextButton);
 
     expect(mockNextTrack).toHaveBeenCalledWith("ST10-001");
@@ -198,7 +198,7 @@ describe("LocalControl - Core Playback Functionality", () => {
     const user = userEvent.setup();
     render(<LocalControl devices={mockDevices} />);
 
-    const prevButton = screen.getByRole("button", { name: /Vorheriger Track/i });
+    const prevButton = screen.getByRole("button", { name: /Previous Track/i });
     await user.click(prevButton);
 
     expect(mockPrevTrack).toHaveBeenCalledWith("ST10-001");
@@ -223,7 +223,7 @@ describe("LocalControl - Core Playback Functionality", () => {
     const user = userEvent.setup();
     render(<LocalControl devices={mockDevices} />);
 
-    const powerButton = screen.getByRole("button", { name: /Ein\/Ausschalten/i });
+    const powerButton = screen.getByRole("button", { name: /Power on\/off/i });
     await user.click(powerButton);
 
     expect(mockPower).toHaveBeenCalledWith("ST10-001");
@@ -233,7 +233,7 @@ describe("LocalControl - Core Playback Functionality", () => {
     const user = userEvent.setup();
     render(<LocalControl devices={mockDevices} />);
 
-    const muteButton = screen.getByRole("button", { name: /Stumm/i });
+    const muteButton = screen.getByRole("button", { name: "Mute" });
     await user.click(muteButton);
 
     expect(mockToggleMute).toHaveBeenCalled();
@@ -367,6 +367,6 @@ describe("LocalControl - Edge Cases", () => {
       render(<LocalControl devices={mockDevices} />);
     });
 
-    expect(screen.getByRole("button", { name: /Ton an/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Unmute" })).toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+﻿import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import StationDetail from "../../src/components/StationDetail";
 
@@ -105,7 +105,7 @@ describe("StationDetail Component", () => {
       expect(screen.getByText("SWR3")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText("← Zurück"));
+    fireEvent.click(screen.getByText("← Back"));
     expect(mockOnBack).toHaveBeenCalledTimes(1);
   });
 
@@ -118,7 +118,7 @@ describe("StationDetail Component", () => {
       expect(screen.getByText("SWR3")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText("Als Preset speichern"));
+    fireEvent.click(screen.getByText("Save as preset"));
     expect(mockOnSelect).toHaveBeenCalledWith(mockStation);
   });
 
@@ -131,7 +131,7 @@ describe("StationDetail Component", () => {
       expect(screen.getByText("Station konnte nicht geladen werden.")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText("← Zurück"));
+    fireEvent.click(screen.getByText("← Back"));
     expect(mockOnBack).toHaveBeenCalledTimes(1);
   });
 

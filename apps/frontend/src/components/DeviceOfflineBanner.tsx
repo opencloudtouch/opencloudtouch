@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import "./DeviceOfflineBanner.css";
 
 interface DeviceOfflineBannerProps {
@@ -5,6 +6,7 @@ interface DeviceOfflineBannerProps {
 }
 
 export default function DeviceOfflineBanner({ deviceName }: Readonly<DeviceOfflineBannerProps>) {
+  const { t } = useTranslation();
   return (
     <div className="device-offline-banner" role="alert" data-testid="device-offline-banner">
       <div className="offline-icon" aria-hidden="true">
@@ -13,11 +15,11 @@ export default function DeviceOfflineBanner({ deviceName }: Readonly<DeviceOffli
         </svg>
       </div>
       <div className="offline-text">
-        <span className="offline-title">Gerät nicht erreichbar</span>
+        <span className="offline-title">{t("errors.offlineTitle")}</span>
         <span className="offline-detail">
           {deviceName
-            ? `„${deviceName}" ist offline oder nicht im Netzwerk.`
-            : "Das Gerät ist offline oder nicht im Netzwerk."}
+            ? t("errors.offlineDetail", { name: deviceName })
+            : t("errors.offlineDetailNoName")}
         </span>
       </div>
     </div>

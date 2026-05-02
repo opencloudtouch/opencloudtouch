@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TDD tests for the Discover Button feature in the Settings page.
  * Written BEFORE implementation (RED phase).
  *
@@ -101,7 +101,7 @@ describe("Settings — Discover Button visibility", () => {
     renderSettings();
 
     await waitFor(() => {
-      expect(screen.getByText("Keine manuellen IPs konfiguriert")).toBeInTheDocument();
+      expect(screen.getByText("No manual IPs configured")).toBeInTheDocument();
     });
 
     expect(screen.queryByRole("button", { name: /gerät(e)? such|discover/i })).toBeNull();
@@ -240,7 +240,7 @@ describe("Settings — Discover Button on page reload", () => {
 // Completion toast — new device counting
 // ---------------------------------------------------------------------------
 describe("Settings — Discover Button completion toast", () => {
-  it("shows '0 neue Geräte gefunden' when all discovered devices were already known", async () => {
+  it("shows '0 new devices found' when all discovered devices were already known", async () => {
     const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
     (useDiscoveryStream as Mock).mockReturnValue({
       ...makeDiscoveryState({
@@ -255,11 +255,11 @@ describe("Settings — Discover Button completion toast", () => {
     renderSettings([{ device_id: "AAA", ip: "192.168.1.10" }]);
 
     await waitFor(() => {
-      expect(screen.getByText(/0 neue Geräte gefunden/i)).toBeInTheDocument();
+      expect(screen.getByText(/0 new devices found/i)).toBeInTheDocument();
     });
   });
 
-  it("shows '3 neue Geräte gefunden' when 3 new devices discovered, no pre-existing", async () => {
+  it("shows '3 new devices found' when 3 new devices discovered, no pre-existing", async () => {
     const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
     (useDiscoveryStream as Mock).mockReturnValue({
       ...makeDiscoveryState({
@@ -281,11 +281,11 @@ describe("Settings — Discover Button completion toast", () => {
     renderSettings([]);
 
     await waitFor(() => {
-      expect(screen.getByText(/3 neue Geräte gefunden/i)).toBeInTheDocument();
+      expect(screen.getByText(/3 new devices found/i)).toBeInTheDocument();
     });
   });
 
-  it("counts only NEW devices in mix of known and unknown (expects '2 neue Geräte')", async () => {
+  it("counts only NEW devices in mix of known and unknown (expects '2 new devices')", async () => {
     const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
     (useDiscoveryStream as Mock).mockReturnValue({
       ...makeDiscoveryState({
@@ -307,11 +307,11 @@ describe("Settings — Discover Button completion toast", () => {
     renderSettings([{ device_id: "KNOWN1", ip: "192.168.1.10" }]);
 
     await waitFor(() => {
-      expect(screen.getByText(/2 neue Geräte gefunden/i)).toBeInTheDocument();
+      expect(screen.getByText(/2 new devices found/i)).toBeInTheDocument();
     });
   });
 
-  it("shows singular '1 neues Gerät gefunden' for exactly 1 new device", async () => {
+  it("shows singular '1 new device found' for exactly 1 new device", async () => {
     const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
     (useDiscoveryStream as Mock).mockReturnValue({
       ...makeDiscoveryState({
@@ -332,7 +332,7 @@ describe("Settings — Discover Button completion toast", () => {
     renderSettings([{ device_id: "KNOWN1", ip: "192.168.1.10" }]);
 
     await waitFor(() => {
-      expect(screen.getByText(/1 neues Gerät gefunden/i)).toBeInTheDocument();
+      expect(screen.getByText(/1 new device found/i)).toBeInTheDocument();
     });
   });
 
@@ -345,8 +345,8 @@ describe("Settings — Discover Button completion toast", () => {
       expect(screen.getByRole("button", { name: /gerät(e)? such|discover/i })).toBeInTheDocument();
     });
 
-    expect(screen.queryByText(/neue Geräte gefunden/i)).toBeNull();
-    expect(screen.queryByText(/neues Gerät gefunden/i)).toBeNull();
+    expect(screen.queryByText(/new devices found/i)).toBeNull();
+    expect(screen.queryByText(/new device found/i)).toBeNull();
   });
 
   it("does NOT show completion toast when discovery errored (no completed flag)", async () => {
@@ -364,7 +364,7 @@ describe("Settings — Discover Button completion toast", () => {
       expect(screen.getByRole("button", { name: /gerät(e)? such|discover/i })).toBeInTheDocument();
     });
 
-    expect(screen.queryByText(/neue Geräte gefunden/i)).toBeNull();
+    expect(screen.queryByText(/new devices found/i)).toBeNull();
   });
 });
 
@@ -372,7 +372,7 @@ describe("Settings — Discover Button completion toast", () => {
 // Edge cases — existing devices in cache
 // ---------------------------------------------------------------------------
 describe("Settings — Discover Button with existing devices", () => {
-  it("shows '0 neue Geräte gefunden' when all discovered match pre-existing in DB", async () => {
+  it("shows '0 new devices found' when all discovered match pre-existing in DB", async () => {
     const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
     (useDiscoveryStream as Mock).mockReturnValue({
       ...makeDiscoveryState({
@@ -396,7 +396,7 @@ describe("Settings — Discover Button with existing devices", () => {
     ]);
 
     await waitFor(() => {
-      expect(screen.getByText(/0 neue Geräte gefunden/i)).toBeInTheDocument();
+      expect(screen.getByText(/0 new devices found/i)).toBeInTheDocument();
     });
   });
 

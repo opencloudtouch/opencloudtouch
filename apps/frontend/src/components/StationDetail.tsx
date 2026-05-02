@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getErrorMessage } from "../api/types";
 import "./StationDetail.css";
 
@@ -41,6 +42,7 @@ export default function StationDetail({
   onBack,
   onSelect,
 }: StationDetailProps) {
+  const { t } = useTranslation();
   const [station, setStation] = useState<StationDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,9 +91,9 @@ export default function StationDetail({
   if (error || !station) {
     return (
       <div className="station-detail">
-        <div className="sd-error">{error || "Station nicht gefunden."}</div>
+        <div className="sd-error">{error || t("common.stationNotFound")}</div>
         <button className="sd-back" onClick={onBack}>
-          ← Zurück
+          ← {t("common.back")}
         </button>
       </div>
     );
@@ -156,10 +158,10 @@ export default function StationDetail({
 
       <div className="sd-actions">
         <button className="sd-back" onClick={onBack}>
-          ← Zurück
+          ← {t("common.back")}
         </button>
         <button className="sd-select" onClick={() => onSelect(station)}>
-          Als Preset speichern
+          {t("common.saveAsPreset")}
         </button>
       </div>
     </div>

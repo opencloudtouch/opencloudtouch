@@ -2,6 +2,7 @@
  * Step 2: USB Preparation
  */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import WizardStep from "./WizardStep";
 import "./Step2USBPreparation.css";
 
@@ -23,6 +24,7 @@ function detectPlatform(): Platform {
 }
 
 export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }: Step2Props) {
+  const { t } = useTranslation();
   const [platform, setPlatform] = useState<Platform>(detectPlatform);
   const [usbReady, setUsbReady] = useState(false);
 
@@ -32,44 +34,44 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
     switch (platform) {
       case "windows":
         return {
-          title: "Windows - USB-Stick formatieren",
+          title: t("setup.wizard.step2.platformWindowsTitle"),
           steps: [
-            "USB-Stick einstecken",
-            "Rechtsklick auf USB-Laufwerk im Explorer → Formatieren",
-            "Dateisystem: FAT32 auswählen",
-            "Volumebezeichnung: USB_SOUNDTOUCH",
-            "Schnellformatierung: aktiviert",
-            "Klick auf 'Starten'",
+            t("setup.wizard.step2.windowsStep1"),
+            t("setup.wizard.step2.windowsStep2"),
+            t("setup.wizard.step2.windowsStep3"),
+            t("setup.wizard.step2.windowsStep4"),
+            t("setup.wizard.step2.windowsStep5"),
+            t("setup.wizard.step2.windowsStep6"),
           ],
         };
       case "macos":
         return {
-          title: "macOS - USB-Stick formatieren",
+          title: t("setup.wizard.step2.platformMacTitle"),
           steps: [
-            "USB-Stick einstecken",
-            "Festplattendienstprogramm öffnen",
-            "USB-Stick links auswählen",
-            "Klick auf 'Löschen'",
-            "Format: MS-DOS (FAT) auswählen",
-            "Name: USB_SOUNDTOUCH",
-            "Klick auf 'Löschen'",
+            t("setup.wizard.step2.macStep1"),
+            t("setup.wizard.step2.macStep2"),
+            t("setup.wizard.step2.macStep3"),
+            t("setup.wizard.step2.macStep4"),
+            t("setup.wizard.step2.macStep5"),
+            t("setup.wizard.step2.macStep6"),
+            t("setup.wizard.step2.macStep7"),
           ],
         };
       case "linux":
         return {
-          title: "Linux - USB-Stick formatieren",
+          title: t("setup.wizard.step2.platformLinuxTitle"),
           steps: [
-            "USB-Stick einstecken",
-            "Terminal öffnen",
-            "Gerät identifizieren: lsblk",
-            "Formatieren: sudo mkfs.vfat -F 32 -n USB_SOUNDTOUCH /dev/sdX1",
-            "(Ersetze sdX1 mit deinem USB-Gerät)",
+            t("setup.wizard.step2.linuxStep1"),
+            t("setup.wizard.step2.linuxStep2"),
+            t("setup.wizard.step2.linuxStep3"),
+            t("setup.wizard.step2.linuxStep4"),
+            t("setup.wizard.step2.linuxStep5"),
           ],
         };
       default:
         return {
-          title: "USB-Stick formatieren",
-          steps: ["USB-Stick mit FAT32 formatieren", "Volumebezeichnung: USB_SOUNDTOUCH"],
+          title: t("setup.wizard.step2.platformDefaultTitle"),
+          steps: [t("setup.wizard.step2.defaultStep1"), t("setup.wizard.step2.defaultStep2")],
         };
     }
   };
@@ -79,22 +81,24 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
   return (
     <WizardStep
       stepNumber={2}
-      title="USB-Stick vorbereiten"
-      description="Formatieren Sie einen USB-Stick und erstellen Sie die Konfigurationsdatei."
-      warning="Der USB-Stick wird vollständig gelöscht! Sichern Sie vorher alle Daten."
+      title={t("setup.wizard.step2.title")}
+      description={t("setup.wizard.step2.description")}
+      warning={t("setup.wizard.step2.warning")}
       onNext={onNext}
       onPrevious={onPrevious}
       isNextDisabled={!usbReady}
-      nextDisabledReason="Bitte alle Schritte oben abhaken, um fortzufahren."
+      nextDisabledReason={t("setup.wizard.step2.nextDisabled")}
     >
       <div className="usb-preparation">
         {/* Device Info */}
         <div className="usb-device-info">
           <div className="usb-icon">🔌</div>
           <div className="usb-device-details">
-            <strong>Ihr Gerät benötigt:</strong> {usbPort}
+            <strong>{t("setup.wizard.step2.deviceNeeds")}</strong> {usbPort}
             <br />
-            <small>Modell: {deviceModel}</small>
+            <small>
+              {t("setup.wizard.step2.model")} {deviceModel}
+            </small>
           </div>
         </div>
 
@@ -106,14 +110,14 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
               {formatInstructions.title}
             </h3>
             <label htmlFor="usb-platform-select" className="usb-platform-label">
-              Betriebssystem:
+              {t("setup.wizard.step2.platformLabel")}
             </label>
             <select
               id="usb-platform-select"
               className="usb-platform-select"
               value={platform}
               onChange={(e) => setPlatform(e.target.value as Platform)}
-              aria-label="Betriebssystem auswählen"
+              aria-label={t("setup.wizard.step2.platformAriaLabel")}
             >
               <option value="windows">Windows</option>
               <option value="macos">macOS</option>
@@ -133,29 +137,25 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
         <div className="usb-section">
           <h3 className="usb-section-title">
             <span className="usb-section-number">2</span>
-            Datei &quot;remote_services&quot; erstellen
+            {t("setup.wizard.step2.sectionCreateFile")}
           </h3>
-          <p className="usb-section-description">
-            Erstellen Sie eine Datei namens <code>remote_services</code> (ohne Dateiendung) im
-            Root-Verzeichnis des USB-Sticks. Die Datei muss <strong>leer</strong> sein (kein
-            Inhalt).
-          </p>
+          <p className="usb-section-description">{t("setup.wizard.step2.createFileDesc")}</p>
         </div>
 
         {/* Verification */}
         <div className="usb-section">
           <h3 className="usb-section-title">
             <span className="usb-section-number">3</span>
-            Überprüfung
+            {t("setup.wizard.step2.sectionVerify")}
           </h3>
           <div className="usb-checklist">
             <label className="usb-checklist-item">
               <input type="checkbox" />
-              <span>USB-Stick ist mit FAT32 formatiert</span>
+              <span>{t("setup.wizard.step2.checkFat32")}</span>
             </label>
             <label className="usb-checklist-item">
               <input type="checkbox" />
-              <span>Datei &quot;remote_services&quot; ist im Root-Verzeichnis und leer</span>
+              <span>{t("setup.wizard.step2.checkFileEmpty")}</span>
             </label>
             <label className="usb-checklist-item">
               <input
@@ -164,7 +164,7 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
                 onChange={(e) => setUsbReady(e.target.checked)}
               />
               <span>
-                <strong>USB-Stick ist bereit zum Einstecken in das Gerät</strong>
+                <strong>{t("setup.wizard.step2.checkReady")}</strong>
               </span>
             </label>
           </div>

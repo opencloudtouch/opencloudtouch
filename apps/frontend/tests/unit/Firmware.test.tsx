@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Tests for Firmware.tsx
  *
  * User Story: "Als User möchte ich Firmware-Status meiner Geräte sehen"
@@ -46,7 +46,7 @@ describe("Firmware Page", () => {
       render(<Firmware devices={mockDevices} />);
 
       // Current device section
-      expect(screen.getByText("Aktuelles Gerät")).toBeInTheDocument();
+      expect(screen.getByText("Current Device")).toBeInTheDocument();
       expect(screen.getAllByText("Living Room")[0]).toBeInTheDocument(); // Also in "All Devices"
       expect(screen.getAllByText("SoundTouch 30")[0]).toBeInTheDocument();
       expect(screen.getAllByText("1.0.12")[0]).toBeInTheDocument(); // Parsed version
@@ -56,7 +56,7 @@ describe("Firmware Page", () => {
       render(<Firmware devices={mockDevices} />);
 
       // Current device has firmware 1.0.12 → up-to-date
-      const statusBadge = screen.getByText(/✓ Aktuell/);
+      const statusBadge = screen.getByText(/✓ Up to date/);
       expect(statusBadge).toBeInTheDocument();
       expect(statusBadge).toHaveClass("up-to-date");
     });
@@ -65,7 +65,7 @@ describe("Firmware Page", () => {
       render(<Firmware devices={mockDevices} />);
 
       // All devices section
-      expect(screen.getByText("Alle Geräte")).toBeInTheDocument();
+      expect(screen.getByText("All Devices")).toBeInTheDocument();
       expect(screen.getAllByText("Living Room").length).toBeGreaterThanOrEqual(2); // Current + All
       expect(screen.getByText("Küche")).toBeInTheDocument();
       expect(screen.getByText("Bad")).toBeInTheDocument();
@@ -103,28 +103,28 @@ describe("Firmware Page", () => {
     it("should show upload section with disabled state", () => {
       render(<Firmware devices={mockDevices} />);
 
-      expect(screen.getByText("Firmware hochladen")).toBeInTheDocument();
-      expect(screen.getByText(/Upload ist derzeit nicht verfügbar/)).toBeInTheDocument();
+      expect(screen.getByText("Upload Firmware")).toBeInTheDocument();
+      expect(screen.getByText(/Firmware upload is currently not available/)).toBeInTheDocument();
 
-      const uploadButton = screen.getByRole("button", { name: /Firmware auswählen/i });
+      const uploadButton = screen.getByRole("button", { name: /Select firmware/i });
       expect(uploadButton).toBeDisabled();
     });
 
     it("should display warning about experimental feature", () => {
       render(<Firmware devices={mockDevices} />);
 
-      expect(screen.getByText("Experimentelle Funktion")).toBeInTheDocument();
-      expect(screen.getByText(/Firmware-Updates sind experimentell/)).toBeInTheDocument();
-      expect(screen.getByText(/offizielle Firmware-Dateien von Ihrem/)).toBeInTheDocument();
+      expect(screen.getByText("Experimental Feature")).toBeInTheDocument();
+      expect(screen.getByText(/Firmware updates are experimental/)).toBeInTheDocument();
+      expect(screen.getByText(/official firmware files from your/)).toBeInTheDocument();
     });
 
     it("should display firmware update hints", () => {
       render(<Firmware devices={mockDevices} />);
 
-      expect(screen.getByText("Firmware-Hinweise")).toBeInTheDocument();
-      expect(screen.getByText(/nur bei Problemen durchgeführt werden/)).toBeInTheDocument();
-      expect(screen.getByText(/5-10 Minuten dauern/)).toBeInTheDocument();
-      expect(screen.getByText(/automatisch neu/)).toBeInTheDocument();
+      expect(screen.getByText("Firmware Notes")).toBeInTheDocument();
+      expect(screen.getByText(/only be performed if there are problems/)).toBeInTheDocument();
+      expect(screen.getByText(/5–10 minutes/)).toBeInTheDocument();
+      expect(screen.getByText(/restarts automatically/)).toBeInTheDocument();
     });
   });
 
@@ -132,8 +132,8 @@ describe("Firmware Page", () => {
     it("should show empty state when no devices available", () => {
       render(<Firmware devices={[]} />);
 
-      expect(screen.getByText("Keine Geräte gefunden")).toBeInTheDocument();
-      expect(screen.queryByText("Aktuelles Gerät")).not.toBeInTheDocument();
+      expect(screen.getByText("No devices found")).toBeInTheDocument();
+      expect(screen.queryByText("Current Device")).not.toBeInTheDocument();
     });
 
     it("should handle device without firmware version", () => {

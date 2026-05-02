@@ -4,6 +4,7 @@
  * Validates IP format and persists via the settings API.
  */
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useManualIPs, useSetManualIPs } from "../hooks/useSettings";
 
 interface ManualIPModalProps {
@@ -14,6 +15,7 @@ interface ManualIPModalProps {
 }
 
 export default function ManualIPModal({ isOpen, onClose }: ManualIPModalProps) {
+  const { t } = useTranslation();
   const [ipList, setIpList] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -46,7 +48,7 @@ export default function ManualIPModal({ isOpen, onClose }: ManualIPModalProps) {
       const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
       const invalidIPs = ips.filter((ip) => !ipRegex.test(ip));
       if (invalidIPs.length > 0) {
-        setValidationError(`Ungültiges Format: ${invalidIPs.join(", ")}`);
+        setValidationError(t("manualIpModal.invalidFormat", { ips: invalidIPs.join(", ") }));
       }
     }
   };
@@ -66,7 +68,7 @@ export default function ManualIPModal({ isOpen, onClose }: ManualIPModalProps) {
     const invalidIPs = ips.filter((ip) => !ipRegex.test(ip));
 
     if (invalidIPs.length > 0) {
-      setError(`Ungültige IP-Adressen: ${invalidIPs.join(", ")}`);
+      setError(t("manualIpModal.invalidFormat", { ips: invalidIPs.join(", ") }));
       return;
     }
 
@@ -79,7 +81,7 @@ export default function ManualIPModal({ isOpen, onClose }: ManualIPModalProps) {
         setSuccess(false);
       }, 1500);
     } catch {
-      setError("Fehler beim Speichern der IP-Adressen");
+      setError(t("manualIpModal.saveError"));
     }
   };
 
@@ -100,8 +102,8 @@ export default function ManualIPModal({ isOpen, onClose }: ManualIPModalProps) {
     >
       <dialog className="modal-content" open data-test="modal-content">
         <div className="modal-header">
-          <h2 data-test="modal-title">Manuelle IP-Konfiguration</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Schließen">
+          <h2 data-test="modal-title">{t("manualIpModal.title")}</h2>
+          <button className="modal-close" onClick={onClose} aria-label={t("common.close")}>
             <svg
               width="24"
               height="24"
@@ -116,9 +118,7 @@ export default function ManualIPModal({ isOpen, onClose }: ManualIPModalProps) {
           </button>
         </div>
 
-        <p className="modal-description">
-          Geben Sie die IP-Adressen Ihrer Geräte ein (eine pro Zeile oder kommagetrennt).
-        </p>
+        <p className="modal-description">{t("manualIpModal.description")}</p>
 
         <textarea
           value={ipList}
@@ -152,10 +152,7 @@ export default function ManualIPModal({ isOpen, onClose }: ManualIPModalProps) {
               clipRule="evenodd"
             />
           </svg>
-          <span>
-            Die IP-Adresse finden Sie in der zugehörigen App unter Einstellungen → Info oder in
-            Ihrem Router.
-          </span>
+          <span>{t("manualIpModal.hint")}</span>
         </div>
 
         {error && (
@@ -191,7 +188,7 @@ export default function ManualIPModal({ isOpen, onClose }: ManualIPModalProps) {
             disabled={setManualIPs.isPending}
             data-test="cancel-button"
           >
-            Abbrechen
+            {t("common.cancel")}
           </button>
           <button
             className="modal-save"
@@ -199,7 +196,7 @@ export default function ManualIPModal({ isOpen, onClose }: ManualIPModalProps) {
             disabled={setManualIPs.isPending}
             data-test="save-button"
           >
-            {setManualIPs.isPending ? "Speichere..." : "Speichern"}
+            {setManualIPs.isPending ? t("manualIpModal.saving") : t("manualIpModal.save")}
           </button>
         </div>
       </dialog>

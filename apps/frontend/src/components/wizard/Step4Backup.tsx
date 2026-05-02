@@ -2,6 +2,7 @@
  * Step 4: Backup Creation
  */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { createBackup, BackupResponse, BackupVolume } from "../../api/wizard";
 import WizardStep from "./WizardStep";
 import "./Step4Backup.css";
@@ -23,6 +24,7 @@ export default function Step4Backup({
   onPrevious,
   onBackupComplete,
 }: Step4Props) {
+  const { t } = useTranslation();
   const [creating, setCreating] = useState(false);
   const [backupData, setBackupData] = useState<BackupResponse | null>(null);
   const [error, setError] = useState("");
@@ -40,10 +42,10 @@ export default function Step4Backup({
       onBackupComplete(result);
 
       if (!result.success) {
-        setError(result.message || "Backup fehlgeschlagen");
+        setError(result.message || t("setup.wizard.step4.errorTitle"));
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unbekannter Fehler";
+      const message = err instanceof Error ? err.message : t("errors.unknown");
       setError(message);
     } finally {
       setCreating(false);
@@ -53,9 +55,9 @@ export default function Step4Backup({
   return (
     <WizardStep
       stepNumber={4}
-      title="Backup erstellen"
-      description="Erstellen Sie ein vollständiges Backup des Geräts."
-      warning="Ein Backup ist ZWINGEND erforderlich! Ohne Backup können Sie das Gerät bei Problemen NICHT wiederherstellen."
+      title={t("setup.wizard.step4.title")}
+      description={t("setup.wizard.step4.description")}
+      warning={t("setup.wizard.step4.warning")}
       onNext={onNext}
       onPrevious={onPrevious}
       isNextDisabled={false}
@@ -64,11 +66,8 @@ export default function Step4Backup({
         {/* Backup Action */}
         {!backupData && (
           <div className="backup-selection">
-            <h3 className="backup-title">Vollständiges Backup erstellen</h3>
-            <p className="backup-info">
-              Es werden alle Partitionen gesichert: RootFS (~58 MB), Persistent (~10 KB) und Update
-              (~1 MB).
-            </p>
+            <h3 className="backup-title">{t("setup.wizard.step4.sectionTitle")}</h3>
+            <p className="backup-info">{t("setup.wizard.step4.backupInfo")}</p>
 
             <button
               className="btn btn-primary backup-create-btn"
@@ -78,10 +77,10 @@ export default function Step4Backup({
               {creating ? (
                 <>
                   <span className="spinner-small" />
-                  Erstelle Backup...
+                  {t("setup.wizard.step4.btnCreating")}
                 </>
               ) : (
-                <>� Backup jetzt erstellen</>
+                <>💾 {t("setup.wizard.step4.btnCreate")}</>
               )}
             </button>
           </div>
@@ -94,19 +93,19 @@ export default function Step4Backup({
               <div className="spinner-large" />
             </div>
             <p className="progress-message">
-              Backup wird erstellt für <strong>{deviceName}</strong>
+              {t("setup.wizard.step4.progressMessage", { device: deviceName })}
             </p>
-            <small className="progress-note">Dies kann bis zu 2 Minuten dauern...</small>
+            <small className="progress-note">{t("setup.wizard.step4.progressNote")}</small>
           </div>
         )}
 
         {error && (
           <div className="backup-error">
-            <div className="error-icon" role="img" aria-label="Fehler beim Backup">
+            <div className="error-icon" role="img" aria-label={t("setup.wizard.step4.errorTitle")}>
               ❌
             </div>
             <div className="error-content">
-              <strong>Backup fehlgeschlagen</strong>
+              <strong>{t("setup.wizard.step4.errorTitle")}</strong>
               <p>{error}</p>
             </div>
           </div>
@@ -115,22 +114,23 @@ export default function Step4Backup({
         {/* Backup Success */}
         {backupData?.success && (
           <div className="backup-success">
-            <div className="success-icon" role="img" aria-label="Backup erfolgreich abgeschlossen">
+            <div
+              className="success-icon"
+              role="img"
+              aria-label={t("setup.wizard.step4.successTitle")}
+            >
               ✅
             </div>
-            <h3 className="success-title">Backup erfolgreich erstellt!</h3>
+            <h3 className="success-title">{t("setup.wizard.step4.successTitle")}</h3>
             <p className="success-message">{backupData.message}</p>
 
             <div className="backup-location-hint">
               <span className="backup-location-icon">🔌</span>
-              <span>
-                Die Backups wurden auf Ihren <strong>USB-Stick</strong> geschrieben. Ziehen Sie den
-                Stick nach dem Wizard ab – er enthält Ihre Wiederherstellungs-Dateien.
-              </span>
+              <span>{t("setup.wizard.step4.successHint")}</span>
             </div>
 
             <div className="backup-files">
-              <h4 className="backup-files-title">Gespeicherte Dateien (auf USB-Stick):</h4>
+              <h4 className="backup-files-title">{t("setup.wizard.step4.filesTitle")}</h4>
               {(backupData.volumes as unknown as BackupVolume[] | undefined)?.map(
                 (vol: BackupVolume) => (
                   <div key={vol.volume} className="backup-file-item">
@@ -148,7 +148,8 @@ export default function Step4Backup({
             </div>
 
             <div className="backup-summary">
-              <strong>Gesamt:</strong> {backupData.total_size_mb.toFixed(2)} MB in{" "}
+              <strong>{t("setup.wizard.step4.totalLabel")}</strong>{" "}
+              {backupData.total_size_mb.toFixed(2)} MB in{" "}
               {backupData.total_duration_seconds.toFixed(1)}s
             </div>
           </div>

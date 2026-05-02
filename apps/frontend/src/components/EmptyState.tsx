@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useToast } from "../contexts/ToastContext";
 import { useManualIPs } from "../hooks/useSettings";
 import { useDiscoveryStream } from "../hooks/useDiscoveryStream";
@@ -15,6 +16,7 @@ import "./EmptyState.css";
 
 export default function EmptyState() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { show: showToast } = useToast();
   const [showModal, setShowModal] = useState(false);
 
@@ -53,23 +55,18 @@ export default function EmptyState() {
     if (discoveryError) {
       const isAlreadyRunning = discoveryError.includes("already in progress");
       showToast(
-        isAlreadyRunning
-          ? "Gerätesuche läuft bereits. Bitte warten..."
-          : "Fehler bei der Gerätesuche. Bitte versuche es erneut.",
+        isAlreadyRunning ? t("discovery.alreadyRunning") : t("discovery.failed"),
         isAlreadyRunning ? "info" : "error"
       );
     }
-  }, [discoveryError, showToast]);
+  }, [discoveryError, showToast, t]);
 
   // Show completion toast if no devices found (must be in useEffect, not render phase)
   useEffect(() => {
     if (completed && devicesFound.length === 0 && !discoveryError) {
-      showToast(
-        "Keine Geräte gefunden. Prüfe ob deine Geräte eingeschaltet und im gleichen Netzwerk sind.",
-        "warning"
-      );
+      showToast(t("discovery.noDevicesNetwork"), "warning");
     }
-  }, [completed, devicesFound.length, discoveryError, showToast]);
+  }, [completed, devicesFound.length, discoveryError, showToast, t]);
 
   return (
     <div className="empty-state" data-test="empty-state">
@@ -100,41 +97,32 @@ export default function EmptyState() {
         </div>
 
         <h1 className="empty-state-title" data-test="welcome-title">
-          Willkommen bei OpenCloudTouch
+          {t("discovery.welcomeTitle")}
         </h1>
-        <p className="empty-state-description">Noch keine Geräte gefunden.</p>
+        <p className="empty-state-description">{t("discovery.welcomeDescription")}</p>
 
         <div className="empty-state-steps">
           <div className="setup-step">
             <div className="step-number">1</div>
             <div className="step-content">
-              <h3>Geräte einschalten</h3>
-              <p>
-                Stelle sicher, dass deine Geräte eingeschaltet und mit dem gleichen Netzwerk
-                verbunden sind.
-              </p>
+              <h3>{t("discovery.step1Title")}</h3>
+              <p>{t("discovery.step1Desc")}</p>
             </div>
           </div>
 
           <div className="setup-step">
             <div className="step-number">2</div>
             <div className="step-content">
-              <h3>Geräte suchen</h3>
-              <p>
-                Klicke auf &ldquo;Jetzt suchen&rdquo; um automatisch alle Geräte im Netzwerk zu
-                finden.
-              </p>
+              <h3>{t("discovery.step2Title")}</h3>
+              <p>{t("discovery.step2Desc")}</p>
             </div>
           </div>
 
           <div className="setup-step">
             <div className="step-number">3</div>
             <div className="step-content">
-              <h3>Presets verwalten</h3>
-              <p>
-                Nach erfolgreicher Erkennung kannst du Radiosender auf die Preset-Tasten (1-6)
-                legen.
-              </p>
+              <h3>{t("discovery.step3Title")}</h3>
+              <p>{t("discovery.step3Desc")}</p>
             </div>
           </div>
         </div>
@@ -153,17 +141,17 @@ export default function EmptyState() {
             <circle cx="10" cy="10" r="3" fill="currentColor" />
           </svg>
           {isDiscovering
-            ? `Suche läuft... (${stats.synced} gefunden)`
+            ? t("discovery.searchingWithCount", { count: stats.synced })
             : hasManualIPs
-              ? "Mit manuellen IPs suchen"
-              : "Jetzt Geräte suchen"}
+              ? t("discovery.searchingWithManualIPs")
+              : t("discovery.searchNow")}
         </button>
 
         {/* Progressive discovery results */}
         {isDiscovering && devicesFound.length > 0 && (
           <div className="discovery-progress" data-test="discovery-progress">
             <p className="discovery-stats">
-              {stats.synced} von {stats.discovered} Geräten gespeichert...
+              {t("discovery.savedCount", { synced: stats.synced, discovered: stats.discovered })}
             </p>
             <div className="discovered-devices">
               {devicesFound.map((device) => (
@@ -192,7 +180,7 @@ export default function EmptyState() {
               clipRule="evenodd"
             />
           </svg>
-          Gerät manuell einrichten
+          {t("discovery.setupManually")}
         </button>
 
         {hasManualIPs && (
@@ -204,35 +192,31 @@ export default function EmptyState() {
                 clipRule="evenodd"
               />
             </svg>
-            Es wurden manuelle IP-Adressen konfiguriert. Diese werden zusätzlich zur automatischen
-            Erkennung verwendet.
+            {t("discovery.manualIpsConfigured")}
           </p>
         )}
 
         <div className="empty-state-help">
           <details>
-            <summary>Keine Geräte gefunden?</summary>
+            <summary>{t("discovery.noDevicesFoundHelp")}</summary>
             <ul>
-              <li>Prüfe ob die Geräte im gleichen WLAN sind wie OpenCloudTouch</li>
-              <li>Firewall-Regeln könnten die Geräteerkennung blockieren</li>
-              <li>Starte die Geräte und OpenCloudTouch neu</li>
+              <li>{t("discovery.helpSameNetwork")}</li>
+              <li>{t("discovery.helpFirewall")}</li>
+              <li>{t("discovery.helpRestart")}</li>
               <li>
-                Füge Geräte-IPs{" "}
                 <button
                   className="inline-link-button"
                   onClick={handleOpenModal}
                   data-test="manual-add-button"
                 >
-                  manuell hinzu
+                  {t("discovery.helpManualAdd")}
                 </button>
               </li>
               {/* REFACT-140: Inline guide link */}
               <li>
-                Folge dem{" "}
                 <button className="inline-link-button" onClick={() => navigate("/setup-wizard")}>
-                  Setup-Assistenten
-                </button>{" "}
-                für eine Schritt-für-Schritt Anleitung
+                  {t("discovery.helpSetupWizard")}
+                </button>
               </li>
             </ul>
           </details>

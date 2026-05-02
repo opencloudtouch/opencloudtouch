@@ -481,9 +481,7 @@ class BoseDeviceClientAdapter(DeviceClient):
                 ZoneMember(ipAddress=m.ip_address, deviceId=m.device_id)
                 for m in members
             ]
-            await asyncio.to_thread(
-                self._client.RemoveZoneMembers, zone_members, delay=3
-            )
+            await asyncio.to_thread(self._client.RemoveZoneMembers, zone_members, delay=3)  # fmt: skip
         except Exception as e:
             logger.error(
                 f"Failed to remove zone members on {self.base_url}: {e}", exc_info=True

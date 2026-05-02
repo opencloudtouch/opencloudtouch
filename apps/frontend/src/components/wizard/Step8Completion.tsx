@@ -2,6 +2,7 @@
  * Step 8: Completion
  */
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import WizardStep from "./WizardStep";
 import "./Step8Completion.css";
 
@@ -13,6 +14,7 @@ interface Step8Props {
 
 export default function Step8Completion({ deviceName, backupPath, onFinish }: Step8Props) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleGoHome = () => {
     onFinish();
@@ -22,69 +24,52 @@ export default function Step8Completion({ deviceName, backupPath, onFinish }: St
   return (
     <WizardStep
       stepNumber={8}
-      title="Setup abgeschlossen!"
-      description="Ihr Gerät wurde erfolgreich konfiguriert und ist einsatzbereit."
+      title={t("setup.wizard.step8.title")}
+      description={t("setup.wizard.step8.description")}
     >
       <div className="completion">
         <div className="completion-hero">
           <div className="completion-icon">🎉</div>
-          <h2 className="completion-title">Herzlichen Glückwunsch!</h2>
+          <h2 className="completion-title">{t("setup.wizard.step8.heroTitle")}</h2>
           <p className="completion-message">
-            <strong>{deviceName}</strong> wurde erfolgreich für OpenCloudTouch konfiguriert.
+            {t("setup.wizard.step8.heroMessage", { device: deviceName })}
           </p>
         </div>
 
         {/* Summary */}
         <div className="completion-summary">
-          <h3 className="summary-title">Was wurde erledigt:</h3>
+          <h3 className="summary-title">{t("setup.wizard.step8.summaryTitle")}</h3>
           <ul className="summary-list">
-            <li className="summary-item">
-              <span className="summary-icon">✅</span>
-              <span className="summary-text">USB-Stick mit remote_services vorbereitet</span>
-            </li>
-            <li className="summary-item">
-              <span className="summary-icon">✅</span>
-              <span className="summary-text">SSH/Telnet aktiviert</span>
-            </li>
-            <li className="summary-item">
-              <span className="summary-icon">✅</span>
-              <span className="summary-text">Vollständiges Backup erstellt</span>
-            </li>
-            <li className="summary-item">
-              <span className="summary-icon">✅</span>
-              <span className="summary-text">Konfigurationsdatei geändert (bmxRegistryUrl)</span>
-            </li>
-            <li className="summary-item">
-              <span className="summary-icon">✅</span>
-              <span className="summary-text">Hosts-Datei geändert (Domain-Redirects)</span>
-            </li>
-            <li className="summary-item">
-              <span className="summary-icon">✅</span>
-              <span className="summary-text">Konfiguration getestet und verifiziert</span>
-            </li>
+            {[
+              t("setup.wizard.step8.summaryItem1"),
+              t("setup.wizard.step8.summaryItem2"),
+              t("setup.wizard.step8.summaryItem3"),
+              t("setup.wizard.step8.summaryItem4"),
+              t("setup.wizard.step8.summaryItem5"),
+              t("setup.wizard.step8.summaryItem6"),
+            ].map((item) => (
+              <li key={item} className="summary-item">
+                <span className="summary-icon">✅</span>
+                <span className="summary-text">{item}</span>
+              </li>
+            ))}
           </ul>
         </div>
 
-        {/* Backup Info — REFACT-119: show warning when no backup was created */}
+        {/* Backup Info */}
         <div className="completion-backup-info">
-          <div className="backup-info-icon">{backupPath ? "💾" : "⚠️"}</div>
+          <div className="backup-info-icon">{backupPath ? "💾" : "� ️"}</div>
           <div className="backup-info-content">
             {backupPath ? (
               <>
-                <strong>Backup-Speicherort:</strong>
+                <strong>{t("setup.wizard.step8.backupTitle")}</strong>
                 <code className="backup-info-path">{backupPath}</code>
-                <p className="backup-info-note">
-                  Bewahren Sie dieses Backup sicher auf! Sie können damit Ihr Gerät im Notfall
-                  wiederherstellen.
-                </p>
+                <p className="backup-info-note">{t("setup.wizard.step8.backupNote")}</p>
               </>
             ) : (
               <>
-                <strong>Kein Backup erstellt</strong>
-                <p className="backup-info-warning">
-                  Es wurde kein Backup Ihres Geräts erstellt. Bitte sichern Sie Ihr Gerät manuell,
-                  bevor Sie weitere Änderungen vornehmen.
-                </p>
+                <strong>{t("setup.wizard.step8.noBackupTitle")}</strong>
+                <p className="backup-info-warning">{t("setup.wizard.step8.noBackupWarning")}</p>
               </>
             )}
           </div>
@@ -92,29 +77,27 @@ export default function Step8Completion({ deviceName, backupPath, onFinish }: St
 
         {/* Next Steps */}
         <div className="completion-next-steps">
-          <h3 className="next-steps-title">Nächste Schritte:</h3>
+          <h3 className="next-steps-title">{t("setup.wizard.step8.nextTitle")}</h3>
           <div className="next-steps-list">
             <div className="next-step-item">
               <div className="next-step-number">1</div>
               <div className="next-step-content">
-                <strong>USB-Stick sicher entfernen</strong>
-                <p>Sie können den USB-Stick nun vom Gerät entfernen.</p>
+                <strong>{t("setup.wizard.step8.nextStep1Title")}</strong>
+                <p>{t("setup.wizard.step8.nextStep1Desc")}</p>
               </div>
             </div>
             <div className="next-step-item">
               <div className="next-step-number">2</div>
               <div className="next-step-content">
-                <strong>Internet-Radio nutzen</strong>
-                <p>
-                  Ihr Gerät kann nun über OpenCloudTouch auf Internet-Radio und Presets zugreifen.
-                </p>
+                <strong>{t("setup.wizard.step8.nextStep2Title")}</strong>
+                <p>{t("setup.wizard.step8.nextStep2Desc")}</p>
               </div>
             </div>
             <div className="next-step-item">
               <div className="next-step-number">3</div>
               <div className="next-step-content">
-                <strong>Weitere Geräte konfigurieren</strong>
-                <p>Wiederholen Sie den Wizard für weitere SoundTouch-Geräte.</p>
+                <strong>{t("setup.wizard.step8.nextStep3Title")}</strong>
+                <p>{t("setup.wizard.step8.nextStep3Desc")}</p>
               </div>
             </div>
           </div>
@@ -123,27 +106,27 @@ export default function Step8Completion({ deviceName, backupPath, onFinish }: St
         {/* Actions */}
         <div className="completion-actions">
           <button className="btn btn-primary completion-btn-home" onClick={handleGoHome}>
-            🏠 Zur Startseite
+            � {t("setup.wizard.step8.btnHome")}
           </button>
           <button
             className="btn btn-secondary completion-btn-another"
             onClick={() => window.location.reload()}
           >
-            ➕ Weiteres Gerät konfigurieren
+            ➕ {t("setup.wizard.step8.btnAnother")}
           </button>
         </div>
 
         {/* Support Link */}
         <div className="completion-support">
           <p>
-            Probleme oder Fragen?{" "}
+            {t("setup.wizard.step8.supportText")}{" "}
             <a
               href="https://github.com/yourusername/soundtouch-bridge/issues"
               target="_blank"
               rel="noopener noreferrer"
               className="completion-support-link"
             >
-              Support kontaktieren →
+              {t("setup.wizard.step8.supportLink")}
             </a>
           </p>
         </div>

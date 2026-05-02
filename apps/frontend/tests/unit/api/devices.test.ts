@@ -48,6 +48,7 @@ describe("Devices API Client", () => {
           model: "SoundTouch 30",
           ip: "192.168.1.10",
           firmware: "1.0.0",
+          last_seen: "2024-01-01T10:00:00Z",
         },
       ]);
     });

@@ -92,6 +92,16 @@
   color: var(--color-text-tertiary);
 }
 
+.stale-badge {
+  background-color: transparent;
+  padding: 0 4px;
+  font-size: 14px;
+}
+
+.device-checkbox-card.stale {
+  opacity: 0.55;
+}
+
 .device-name {
   flex: 1;
   font-size: 14px;

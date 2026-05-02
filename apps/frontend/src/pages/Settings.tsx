@@ -1,14 +1,17 @@
 import { useState, useEffect, useRef, FormEvent } from "react";
 import { motion } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { useManualIPs, useAddManualIP, useDeleteManualIP } from "../hooks/useSettings";
 import { useDiscoveryStream } from "../hooks/useDiscoveryStream";
 import { useToast } from "../contexts/ToastContext";
 import { toUserMessage } from "../utils/errorMessages";
 import type { Device } from "../api/devices";
+import AboutSection from "../components/AboutSection";
 import "./Settings.css";
 
 export default function Settings() {
+  const { t } = useTranslation();
   const [newIP, setNewIP] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -39,11 +42,10 @@ export default function Settings() {
       const newDeviceCount = devicesFound.filter(
         (d) => !preDiscoveryDeviceIds.has(d.device_id)
       ).length;
-      const message =
-        newDeviceCount === 1 ? "1 neues Gerät gefunden" : `${newDeviceCount} neue Geräte gefunden`;
+      const message = t("settings.discovery.devicesFound", { count: newDeviceCount });
       show(message, "success");
     }
-  }, [completed, devicesFound, preDiscoveryDeviceIds, show]);
+  }, [completed, devicesFound, preDiscoveryDeviceIds, show, t]);
 
   const validateIP = (ip: string): boolean => {
     const parts = ip.split(".");
@@ -59,24 +61,24 @@ export default function Settings() {
     const trimmedIP = newIP.trim();
 
     if (!trimmedIP) {
-      setError("Bitte geben Sie eine IP-Adresse ein");
+      setError(t("settings.manualIps.enterIp"));
       return;
     }
 
     if (!validateIP(trimmedIP)) {
-      setError("Ungültige IP-Adresse (Format: 192.168.1.10)");
+      setError(t("settings.manualIps.invalidFormat"));
       return;
     }
 
     if (manualIPs.includes(trimmedIP)) {
-      setError("Diese IP-Adresse existiert bereits");
+      setError(t("settings.manualIps.alreadyExists"));
       return;
     }
 
     try {
       await addIP.mutateAsync(trimmedIP);
       setNewIP("");
-      setSuccess(`IP ${trimmedIP} hinzugefügt`);
+      setSuccess(t("settings.manualIps.ipAdded", { ip: trimmedIP }));
       setError("");
       // Auto-clear success message after 3s
       setTimeout(() => setSuccess(""), 3000);
@@ -89,7 +91,7 @@ export default function Settings() {
   const handleDeleteIP = async (ipToDelete: string) => {
     try {
       await deleteIP.mutateAsync(ipToDelete);
-      setSuccess(`IP ${ipToDelete} entfernt`);
+      setSuccess(t("settings.manualIps.ipRemoved", { ip: ipToDelete }));
       setError("");
       // Auto-clear success message after 3s
       setTimeout(() => setSuccess(""), 3000);
@@ -103,7 +105,7 @@ export default function Settings() {
     return (
       <div className="loading-container" role="status" aria-live="polite" aria-label="Ladevorgang">
         <div className="spinner" aria-hidden="true" />
-        <p className="loading-message">Einstellungen werden geladen...</p>
+        <p className="loading-message">{t("settings.loading")}</p>
       </div>
     );
   }
@@ -112,10 +114,10 @@ export default function Settings() {
     return (
       <div className="error-container">
         <div className="error-icon">⚠️</div>
-        <h2 className="error-title">Fehler beim Laden</h2>
+        <h2 className="error-title">{t("settings.errorTitle")}</h2>
         <p className="error-message">{toUserMessage(queryError.message)}</p>
         <button className="btn btn-primary" onClick={() => void refetch()}>
-          Erneut versuchen
+          {t("common.retry")}
         </button>
       </div>
     );
@@ -123,7 +125,7 @@ export default function Settings() {
 
   return (
     <div className="page settings-page">
-      <h1 className="page-title">Einstellungen</h1>
+      <h1 className="page-title">{t("settings.title")}</h1>
 
       {/* Manual IPs Section */}
       <motion.section
@@ -133,14 +135,11 @@ export default function Settings() {
       >
         <h2 className="section-title">
           <span className="section-icon">🌐</span>
-          Manuelle Geräte-IPs
+          {t("settings.manualIps.sectionTitle")}
         </h2>
 
         <div className="settings-card">
-          <p className="section-description">
-            Fügen Sie IP-Adressen von Geräten manuell hinzu, falls die automatische Erkennung nicht
-            funktioniert.
-          </p>
+          <p className="section-description">{t("settings.manualIps.description")}</p>
 
           {/* Add IP Form */}
           <form onSubmit={handleAddIP} className="ip-add-form">
@@ -148,12 +147,12 @@ export default function Settings() {
               type="text"
               value={newIP}
               onChange={(e) => setNewIP(e.target.value)}
-              placeholder="192.168.1.10"
+              placeholder={t("settings.manualIps.placeholder")}
               className="ip-input"
               pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
             />
             <button type="submit" className="btn btn-primary">
-              + Hinzufügen
+              {t("settings.manualIps.addButton")}
             </button>
           </form>
 
@@ -164,7 +163,7 @@ export default function Settings() {
           {/* IP List */}
           <div className="ip-list">
             {manualIPs.length === 0 ? (
-              <p className="empty-message">Keine manuellen IPs konfiguriert</p>
+              <p className="empty-message">{t("settings.manualIps.emptyList")}</p>
             ) : (
               <ul className="ip-items">
                 {manualIPs.map((ip) => (
@@ -179,7 +178,7 @@ export default function Settings() {
                     <button
                       onClick={() => handleDeleteIP(ip)}
                       className="btn btn-delete"
-                      title="IP entfernen"
+                      title={t("settings.manualIps.removeIp")}
                     >
                       ×
                     </button>
@@ -196,23 +195,24 @@ export default function Settings() {
                 className="btn btn-primary"
                 onClick={() => void startDiscovery()}
                 disabled={isDiscovering}
-                aria-label="Geräte suchen"
+                aria-label={t("settings.manualIps.discoverButton")}
               >
-                {isDiscovering ? "Suche läuft…" : "Geräte suchen"}
+                {isDiscovering
+                  ? t("settings.manualIps.discovering")
+                  : t("settings.manualIps.discoverButton")}
               </button>
             </div>
           )}
 
           {/* Info Box */}
           <div className="info-box">
-            <strong>ℹ️ Hinweis:</strong>
-            <p>
-              Klicken Sie auf &quot;Geräte suchen&quot;, um die Erkennung manuell zu starten.
-              Gefundene Geräte erscheinen auf der Startseite.
-            </p>
+            <strong>ℹ️</strong>
+            <p>{t("settings.manualIps.infoHint")}</p>
           </div>
         </div>
       </motion.section>
+
+      <AboutSection />
     </div>
   );
 }

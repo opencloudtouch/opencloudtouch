@@ -37,8 +37,8 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByText("Etwas ist schiefgelaufen")).toBeInTheDocument();
-    expect(screen.getByText(/Ein unerwarteter Fehler ist aufgetreten/i)).toBeInTheDocument();
+    expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+    expect(screen.getByText(/An unexpected error occurred/i)).toBeInTheDocument();
   });
 
   it("displays error details in expandable section", () => {
@@ -48,7 +48,7 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>
     );
 
-    const details = screen.getByText("Fehlerdetails");
+    const details = screen.getByText("Error details");
     expect(details).toBeInTheDocument();
 
     // Error message should be visible after expanding
@@ -70,7 +70,7 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>
     );
 
-    const reloadButton = screen.getByRole("button", { name: /neu laden/i });
+    const reloadButton = screen.getByRole("button", { name: /Reload page/i });
     expect(reloadButton).toBeInTheDocument();
 
     fireEvent.click(reloadButton);
@@ -84,9 +84,9 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByText("Etwas ist schiefgelaufen")).toBeInTheDocument();
+    expect(screen.getByText("Something went wrong")).toBeInTheDocument();
 
-    const retryButton = screen.getByRole("button", { name: /fehler zurücksetzen/i });
+    const retryButton = screen.getByRole("button", { name: /Retry/i });
     expect(retryButton).toBeInTheDocument();
 
     // Clicking reset button should attempt to reset (but ThrowError will throw again)
@@ -94,7 +94,7 @@ describe("ErrorBoundary", () => {
     fireEvent.click(retryButton);
 
     // Error boundary will re-catch the error from ThrowError, so error UI remains
-    expect(screen.getByText("Etwas ist schiefgelaufen")).toBeInTheDocument();
+    expect(screen.getByText("Something went wrong")).toBeInTheDocument();
   });
 
   it("supports custom fallback UI", () => {
@@ -143,7 +143,7 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>
     );
 
-    const details = screen.getByText("Fehlerdetails");
+    const details = screen.getByText("Error details");
     fireEvent.click(details);
 
     // Stack trace should contain function names

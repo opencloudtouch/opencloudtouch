@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Tests for RadioPresets.tsx
  *
  * User Story: "Als User möchte ich Radiosender auf Preset-Tasten speichern"
@@ -222,7 +222,7 @@ describe("RadioPresets Page", () => {
         render(<RadioPresets devices={[]} />);
       });
 
-      expect(screen.getByText("Keine Geräte gefunden")).toBeInTheDocument();
+      expect(screen.getByText("No devices found")).toBeInTheDocument();
       expect(screen.queryByTestId("device-swiper")).not.toBeInTheDocument();
     });
   });

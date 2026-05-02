@@ -41,6 +41,11 @@ class BaseRepository:
         # Connect to database
         self._db = await aiosqlite.connect(str(self.db_path))
 
+        # Enable WAL journal mode for concurrent read/write access
+        await self._db.execute("PRAGMA journal_mode=WAL")
+        await self._db.execute("PRAGMA busy_timeout=5000")
+        await self._db.commit()
+
         # Global schema_versions table (shared across all repos in the same DB)
         await self._db.execute("""
             CREATE TABLE IF NOT EXISTS schema_versions (

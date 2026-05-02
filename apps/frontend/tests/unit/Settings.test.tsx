@@ -4,6 +4,11 @@ import Settings from "../../src/pages/Settings";
 import { QueryWrapper } from "../utils/reactQueryTestUtils";
 import { ToastProvider } from "../../src/contexts/ToastContext";
 
+// Mock AboutSection to avoid extra fetch calls (health + devices) in Settings tests
+vi.mock("../../src/components/AboutSection", () => ({
+  default: () => null,
+}));
+
 // Create typed mock for fetch
 let mockFetch: Mock;
 
@@ -26,7 +31,7 @@ describe("Settings Page", () => {
 
     renderWithProviders(<Settings />);
 
-    expect(screen.getByText("Einstellungen werden geladen...")).toBeInTheDocument();
+    expect(screen.getByText("Loading settings...")).toBeInTheDocument();
   });
 
   it("fetches manual IPs on mount", async () => {
@@ -65,7 +70,7 @@ describe("Settings Page", () => {
     renderWithProviders(<Settings />);
 
     await waitFor(() => {
-      expect(screen.getByText("Keine manuellen IPs konfiguriert")).toBeInTheDocument();
+      expect(screen.getByText("No manual IPs configured")).toBeInTheDocument();
     });
   });
 
@@ -75,9 +80,9 @@ describe("Settings Page", () => {
     renderWithProviders(<Settings />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Fehler beim Laden/i)).toBeInTheDocument();
+      expect(screen.getByText(/Error loading/i)).toBeInTheDocument();
     });
-    expect(screen.getByRole("button", { name: /erneut versuchen/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Retry/i })).toBeInTheDocument();
   });
 
   it("validates IP format before adding", async () => {
@@ -100,7 +105,7 @@ describe("Settings Page", () => {
     fireEvent.submit(form);
 
     await waitFor(() => {
-      expect(screen.getByText(/Ungültige IP-Adresse/i)).toBeInTheDocument();
+      expect(screen.getByText(/Invalid IP address/i)).toBeInTheDocument();
     });
 
     // mockFetch should not be called for invalid IP
@@ -127,7 +132,7 @@ describe("Settings Page", () => {
     fireEvent.submit(form);
 
     await waitFor(() => {
-      expect(screen.getByText(/Ungültige IP-Adresse/i)).toBeInTheDocument();
+      expect(screen.getByText(/Invalid IP address/i)).toBeInTheDocument();
     });
   });
 
@@ -144,13 +149,13 @@ describe("Settings Page", () => {
     });
 
     const input = screen.getByPlaceholderText("192.168.1.10");
-    const addButton = screen.getByText("+ Hinzufügen");
+    const addButton = screen.getByText("+ Add");
 
     fireEvent.change(input, { target: { value: "192.168.1.10" } });
     fireEvent.click(addButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/Diese IP-Adresse existiert bereits/i)).toBeInTheDocument();
+      expect(screen.getByText(/This IP address already exists/i)).toBeInTheDocument();
     });
   });
 
@@ -168,7 +173,7 @@ describe("Settings Page", () => {
     });
 
     const input = screen.getByPlaceholderText("192.168.1.10");
-    const addButton = screen.getByText("+ Hinzufügen");
+    const addButton = screen.getByText("+ Add");
 
     fireEvent.change(input, { target: { value: "192.168.1.30" } });
 
@@ -195,7 +200,7 @@ describe("Settings Page", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/IP 192.168.1.30 hinzugefügt/i)).toBeInTheDocument();
+      expect(screen.getByText(/IP 192.168.1.30 added/i)).toBeInTheDocument();
     });
   });
 
@@ -225,7 +230,7 @@ describe("Settings Page", () => {
     });
 
     const input = screen.getByPlaceholderText("192.168.1.10") as HTMLInputElement;
-    const addButton = screen.getByText("+ Hinzufügen");
+    const addButton = screen.getByText("+ Add");
 
     fireEvent.change(input, { target: { value: "192.168.1.30" } });
     fireEvent.click(addButton);
@@ -253,13 +258,13 @@ describe("Settings Page", () => {
     });
 
     const input = screen.getByPlaceholderText("192.168.1.10");
-    const addButton = screen.getByText("+ Hinzufügen");
+    const addButton = screen.getByText("+ Add");
 
     fireEvent.change(input, { target: { value: "192.168.1.30" } });
     fireEvent.click(addButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/Fehler/i)).toBeInTheDocument();
+      expect(screen.getByText(/Error/i)).toBeInTheDocument();
     });
   });
 
@@ -287,7 +292,7 @@ describe("Settings Page", () => {
       expect(screen.getByText("192.168.1.10")).toBeInTheDocument();
     });
 
-    const deleteButtons = screen.getAllByTitle("IP entfernen");
+    const deleteButtons = screen.getAllByTitle("Remove IP");
     fireEvent.click(deleteButtons[0]!);
 
     await waitFor(() => {
@@ -298,7 +303,7 @@ describe("Settings Page", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/IP 192.168.1.10 entfernt/i)).toBeInTheDocument();
+      expect(screen.getByText(/IP 192.168.1.10 removed/i)).toBeInTheDocument();
     });
 
     await waitFor(() => {
@@ -323,11 +328,11 @@ describe("Settings Page", () => {
       expect(screen.getByText("192.168.1.10")).toBeInTheDocument();
     });
 
-    const deleteButton = screen.getByTitle("IP entfernen");
+    const deleteButton = screen.getByTitle("Remove IP");
     fireEvent.click(deleteButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/unerwarteter Fehler/i)).toBeInTheDocument();
+      expect(screen.getByText(/unexpected error/i)).toBeInTheDocument();
     });
 
     // IP should still be in list
@@ -343,7 +348,7 @@ describe("Settings Page", () => {
     renderWithProviders(<Settings />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Klicken Sie auf.*Geräte suchen/i)).toBeInTheDocument();
+      expect(screen.getByText(/Click.*Discover Devices/i)).toBeInTheDocument();
     });
   });
 
@@ -359,11 +364,11 @@ describe("Settings Page", () => {
       expect(screen.getByPlaceholderText("192.168.1.10")).toBeInTheDocument();
     });
 
-    const addButton = screen.getByText("+ Hinzufügen");
+    const addButton = screen.getByText("+ Add");
     fireEvent.click(addButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/Bitte geben Sie eine IP-Adresse ein/i)).toBeInTheDocument();
+      expect(screen.getByText(/Please enter an IP address/i)).toBeInTheDocument();
     });
   });
 

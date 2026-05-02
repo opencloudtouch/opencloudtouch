@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import "./Licenses.css";
 
 /**
@@ -21,6 +22,7 @@ interface Dependencies {
 }
 
 export default function Licenses() {
+  const { t } = useTranslation();
   const dependencies: Dependencies = {
     frontend: [
       {
@@ -147,8 +149,8 @@ export default function Licenses() {
   return (
     <div className="licenses-page">
       <div className="licenses-header">
-        <h1>Open-Source Lizenzen</h1>
-        <p>OpenCloudTouch nutzt folgende Open-Source Bibliotheken:</p>
+        <h1>{t("about.licensesTitle")}</h1>
+        <p>{t("about.licensesDescription")}</p>
       </div>
 
       <div className="licenses-content">
@@ -159,11 +161,8 @@ export default function Licenses() {
 
       <div className="licenses-footer">
         <div className="compliance-notice">
-          <h3>Lizenz-Compliance</h3>
-          <p>
-            OpenCloudTouch ist Open-Source Software unter der Apache License 2.0. Alle verwendeten
-            Bibliotheken sind mit dieser Lizenz kompatibel.
-          </p>
+          <h3>{t("about.licenseCompliance")}</h3>
+          <p>{t("about.licenseComplianceText")}</p>
           <p>
             <strong>OpenCloudTouch Lizenz:</strong>{" "}
             <a
@@ -197,11 +196,8 @@ export default function Licenses() {
         </div>
 
         <div className="attribution">
-          <h3>Danksagung</h3>
-          <p>
-            Wir danken allen Open-Source Entwicklern und Projekten, die diese Software möglich
-            machen. Besonderer Dank an die Bose SoundTouch® Community für die API-Dokumentation.
-          </p>
+          <h3>{t("about.sectionTitle")}</h3>
+          <p>{t("about.appDescription")}</p>
         </div>
       </div>
     </div>

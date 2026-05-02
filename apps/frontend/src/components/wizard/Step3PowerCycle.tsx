@@ -2,6 +2,7 @@
  * Step 3: Power Cycle
  */
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { checkPorts } from "../../api/wizard";
 import WizardStep from "./WizardStep";
 import CopyableCommand from "./CopyableCommand";
@@ -49,6 +50,7 @@ export default function Step3PowerCycle({
   onSSHDecision,
   onPrevious,
 }: Step3Props) {
+  const { t } = useTranslation();
   const [checking, setChecking] = useState(false);
   const [portsAvailable, setPortsAvailable] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -100,9 +102,9 @@ export default function Step3PowerCycle({
   return (
     <WizardStep
       stepNumber={3}
-      title="Gerät neu starten"
-      description="Stecken Sie den USB-Stick ein und starten Sie das Gerät neu."
-      warning="Entfernen Sie den USB-Stick NICHT während des Neustarts!"
+      title={t("setup.wizard.step3.title")}
+      description={t("setup.wizard.step3.description")}
+      warning={t("setup.wizard.step3.warning")}
       onNext={() => onSSHDecision(sshDecision ?? false)}
       onPrevious={onPrevious}
       isNextDisabled={!portsAvailable || sshDecision === null}
@@ -110,55 +112,52 @@ export default function Step3PowerCycle({
       <div className="power-cycle">
         {/* Instructions */}
         <div className="power-cycle-steps">
-          <h3 className="power-cycle-title">Anweisungen</h3>
+          <h3 className="power-cycle-title">{t("setup.wizard.step3.sectionInstructions")}</h3>
 
           <div className="power-cycle-step">
             <div className="power-cycle-step-number">1</div>
             <div className="power-cycle-step-content">
-              <strong>USB-Stick einstecken</strong>
-              <p>Stecken Sie den vorbereiteten USB-Stick in das Gerät ein.</p>
+              <strong>{t("setup.wizard.step3.instructionStep1")}</strong>
+              <p>{t("setup.wizard.step3.instructionStep1Desc")}</p>
             </div>
           </div>
 
           <div className="power-cycle-step">
             <div className="power-cycle-step-number">2</div>
             <div className="power-cycle-step-content">
-              <strong>Stromversorgung trennen</strong>
-              <p>Ziehen Sie das Netzteil des Geräts ab.</p>
+              <strong>{t("setup.wizard.step3.instructionStep2")}</strong>
+              <p>{t("setup.wizard.step3.instructionStep2Desc")}</p>
             </div>
           </div>
 
           <div className="power-cycle-step">
             <div className="power-cycle-step-number">3</div>
             <div className="power-cycle-step-content">
-              <strong>10 Sekunden warten</strong>
-              <p>Warten Sie mindestens 10 Sekunden.</p>
+              <strong>{t("setup.wizard.step3.instructionStep3")}</strong>
+              <p>{t("setup.wizard.step3.instructionStep3Desc")}</p>
             </div>
           </div>
 
           <div className="power-cycle-step">
             <div className="power-cycle-step-number">4</div>
             <div className="power-cycle-step-content">
-              <strong>Stromversorgung wiederherstellen</strong>
-              <p>Stecken Sie das Netzteil wieder ein.</p>
+              <strong>{t("setup.wizard.step3.instructionStep4")}</strong>
+              <p>{t("setup.wizard.step3.instructionStep4Desc")}</p>
             </div>
           </div>
 
           <div className="power-cycle-step">
             <div className="power-cycle-step-number">5</div>
             <div className="power-cycle-step-content">
-              <strong>Warten (~60 Sekunden)</strong>
-              <p>
-                Das Gerät startet neu und liest die <code>remote_services</code> Datei vom
-                USB-Stick.
-              </p>
+              <strong>{t("setup.wizard.step3.instructionStep5")}</strong>
+              <p>{t("setup.wizard.step3.instructionStep5Desc")}</p>
             </div>
           </div>
         </div>
 
         {/* Status Check */}
         <div className="power-cycle-check">
-          <h3 className="power-cycle-title">Status überprüfen</h3>
+          <h3 className="power-cycle-title">{t("setup.wizard.step3.sectionStatus")}</h3>
 
           {!checking && !portsAvailable && checkAttempts === 0 && (
             <div className="power-cycle-status pending">
@@ -166,8 +165,8 @@ export default function Step3PowerCycle({
                 ⏳
               </div>
               <div className="status-content">
-                <p>Warte auf Geräteneustart...</p>
-                <small>Automatische Prüfung in 30 Sekunden</small>
+                <p>{t("setup.wizard.step3.statusWaiting")}</p>
+                <small>{t("setup.wizard.step3.statusWaitingHint")}</small>
               </div>
             </div>
           )}
@@ -178,8 +177,10 @@ export default function Step3PowerCycle({
                 <div className="spinner" />
               </div>
               <div className="status-content">
-                <p>Prüfe SSH/Telnet Ports...</p>
-                <small>Gerät: {deviceName}</small>
+                <p>{t("setup.wizard.step3.statusChecking")}</p>
+                <small>
+                  {t("setup.wizard.step3.statusCheckingDevice")} {deviceName}
+                </small>
               </div>
             </div>
           )}
@@ -191,9 +192,9 @@ export default function Step3PowerCycle({
               </div>
               <div className="status-content">
                 <p>
-                  <strong>SSH/Telnet verfügbar!</strong>
+                  <strong>{t("setup.wizard.step3.statusAvailable")}</strong>
                 </p>
-                <small>Das Gerät ist bereit für die Konfiguration.</small>
+                <small>{t("setup.wizard.step3.statusAvailableHint")}</small>
               </div>
             </div>
           )}
@@ -205,7 +206,7 @@ export default function Step3PowerCycle({
               </div>
               <div className="status-content">
                 <p>
-                  <strong>Ports nicht erreichbar</strong>
+                  <strong>{t("setup.wizard.step3.statusError")}</strong>
                 </p>
                 <small>{errorMessage}</small>
               </div>
@@ -217,24 +218,23 @@ export default function Step3PowerCycle({
             onClick={handleCheckPorts}
             disabled={checking}
           >
-            {checking ? "Prüfe..." : checkAttempts === 0 ? "Jetzt prüfen" : "Erneut prüfen"}
+            {checking
+              ? t("setup.wizard.step3.btnChecking")
+              : checkAttempts === 0
+                ? t("setup.wizard.step3.btnCheckNow")
+                : t("setup.wizard.step3.btnCheckAgain")}
           </button>
 
-          {/* SSH Persistence Risk Assessment — shown after ports are available */}
+          {/* SSH Persistence Risk Assessment */}
           {portsAvailable && (
             <div className="ssh-risk-assessment">
-              <h4 className="risk-title">🔐 SSH dauerhaft aktivieren?</h4>
-              <p className="risk-intro">
-                Der SSH-Zugang wurde temporär durch die <code>remote_services</code>-Datei
-                aktiviert. Beantworten Sie bitte 3 Fragen, um einzuschätzen, ob SSH dauerhaft auf
-                dem Gerät verbleiben soll.
-              </p>
+              <h4 className="risk-title">🔐 {t("setup.wizard.step3.sshTitle")}</h4>
+              <p className="risk-intro">{t("setup.wizard.step3.sshIntro")}</p>
 
               {/* Q1 */}
               <div className="risk-question">
                 <p className="risk-question-text">
-                  <strong>1.</strong> Ist Ihr Heimnetzwerk durch einen Router oder eine Firewall vor
-                  unbefugtem Zugriff aus dem Internet geschützt?
+                  <strong>1.</strong> {t("setup.wizard.step3.q1")}
                 </p>
                 <div className="risk-answers">
                   {(["ja", "nein", "unbekannt"] as RiskAnswer[]).map((a) => (
@@ -243,7 +243,11 @@ export default function Step3PowerCycle({
                       className={`risk-answer-btn ${riskAnswers.q1 === a ? "selected" : ""} ${a === "unbekannt" ? "unknown" : ""}`}
                       onClick={() => setRiskAnswers((prev) => ({ ...prev, q1: a }))}
                     >
-                      {a === "ja" ? "✅ Ja" : a === "nein" ? "❌ Nein" : "❓ Weiß ich nicht"}
+                      {a === "ja"
+                        ? t("setup.wizard.step3.answerYes")
+                        : a === "nein"
+                          ? t("setup.wizard.step3.answerNo")
+                          : t("setup.wizard.step3.answerUnknown")}
                     </button>
                   ))}
                 </div>
@@ -252,8 +256,7 @@ export default function Step3PowerCycle({
               {/* Q2 */}
               <div className="risk-question">
                 <p className="risk-question-text">
-                  <strong>2.</strong> Haben ausschließlich Ihnen bekannte, vertrauenswürdige
-                  Personen Zugang zu Ihrem WLAN-Netzwerk?
+                  <strong>2.</strong> {t("setup.wizard.step3.q2")}
                 </p>
                 <div className="risk-answers">
                   {(["ja", "nein", "unbekannt"] as RiskAnswer[]).map((a) => (
@@ -262,7 +265,11 @@ export default function Step3PowerCycle({
                       className={`risk-answer-btn ${riskAnswers.q2 === a ? "selected" : ""} ${a === "unbekannt" ? "unknown" : ""}`}
                       onClick={() => setRiskAnswers((prev) => ({ ...prev, q2: a }))}
                     >
-                      {a === "ja" ? "✅ Ja" : a === "nein" ? "❌ Nein" : "❓ Weiß ich nicht"}
+                      {a === "ja"
+                        ? t("setup.wizard.step3.answerYes")
+                        : a === "nein"
+                          ? t("setup.wizard.step3.answerNo")
+                          : t("setup.wizard.step3.answerUnknown")}
                     </button>
                   ))}
                 </div>
@@ -271,8 +278,7 @@ export default function Step3PowerCycle({
               {/* Q3 */}
               <div className="risk-question">
                 <p className="risk-question-text">
-                  <strong>3.</strong> Planen Sie, in nächster Zeit Firmware-Updates für dieses
-                  SoundTouch-Gerät einzuspielen?
+                  <strong>3.</strong> {t("setup.wizard.step3.q3")}
                 </p>
                 <div className="risk-answers">
                   {(["nein", "ja", "unbekannt"] as RiskAnswer[]).map((a) => (
@@ -281,7 +287,11 @@ export default function Step3PowerCycle({
                       className={`risk-answer-btn ${riskAnswers.q3 === a ? "selected" : ""} ${a === "unbekannt" ? "unknown" : ""}`}
                       onClick={() => setRiskAnswers((prev) => ({ ...prev, q3: a }))}
                     >
-                      {a === "ja" ? "✅ Ja" : a === "nein" ? "❌ Nein" : "❓ Weiß ich nicht"}
+                      {a === "ja"
+                        ? t("setup.wizard.step3.answerYes")
+                        : a === "nein"
+                          ? t("setup.wizard.step3.answerNo")
+                          : t("setup.wizard.step3.answerUnknown")}
                     </button>
                   ))}
                 </div>
@@ -295,33 +305,32 @@ export default function Step3PowerCycle({
                   </span>
                   <div>
                     <strong>
-                      Risiko:{" "}
+                      {t("setup.wizard.step3.riskLabel")}{" "}
                       {riskLevel === "gering"
-                        ? "Gering"
+                        ? t("setup.wizard.step3.riskLow")
                         : riskLevel === "mittel"
-                          ? "Mittel"
-                          : "Hoch"}
+                          ? t("setup.wizard.step3.riskMedium")
+                          : t("setup.wizard.step3.riskHigh")}
                     </strong>
                     <p className="risk-level-hint">
-                      {riskLevel === "gering" &&
-                        "SSH kann dauerhaft aktiviert werden – Ihr Netzwerk ist gut abgesichert."}
-                      {riskLevel === "mittel" &&
-                        "Wägen Sie ab: dauerhafter SSH erhöht das Angriffspotenzial leicht."}
-                      {riskLevel === "hoch" &&
-                        "Dauerhafter SSH wird nicht empfohlen. Unbekannte Faktoren oder offene Netzwerke erhöhen das Risiko erheblich."}
+                      {riskLevel === "gering" && t("setup.wizard.step3.riskHintLow")}
+                      {riskLevel === "mittel" && t("setup.wizard.step3.riskHintMedium")}
+                      {riskLevel === "hoch" && t("setup.wizard.step3.riskHintHigh")}
                     </p>
                   </div>
                 </div>
               )}
 
-              {/* Decision cards (radio-style) — always shown once risk questions answered */}
+              {/* Decision cards */}
               <div className="risk-decision-buttons">
                 <button
                   className={`risk-card risk-card--permanent${sshDecision === true ? " selected" : ""}${riskLevel === "hoch" ? " danger" : ""}`}
                   onClick={() => handleDecision(true)}
                 >
                   <span className="risk-card-icon">🔓</span>
-                  <span className="risk-card-label">SSH dauerhaft aktivieren</span>
+                  <span className="risk-card-label">
+                    {t("setup.wizard.step3.sshPermanentLabel")}
+                  </span>
                   {sshDecision === true && <span className="risk-card-check">✓</span>}
                 </button>
                 <button
@@ -329,7 +338,9 @@ export default function Step3PowerCycle({
                   onClick={() => handleDecision(false)}
                 >
                   <span className="risk-card-icon">🚪</span>
-                  <span className="risk-card-label">Nicht dauerhaft halten</span>
+                  <span className="risk-card-label">
+                    {t("setup.wizard.step3.sshTemporaryLabel")}
+                  </span>
                   {sshDecision === false && <span className="risk-card-check">✓</span>}
                 </button>
               </div>
@@ -337,20 +348,17 @@ export default function Step3PowerCycle({
           )}
         </div>
 
-        {/* SSH Command Hint — collapsible für Fortgeschrittene (REFACT-210) */}
+        {/* SSH Command Hint — collapsible */}
         <details className="ssh-manual-test-collapsible">
           <summary className="ssh-manual-test-summary">
-            🔧 Für Fortgeschrittene: SSH-Verbindung manuell testen
+            🔧 {t("setup.wizard.step3.advancedTitle")}
           </summary>
           <div className="power-cycle-ssh-hint">
             <p className="ssh-manual-test-hint">
-              <strong>Wann ist das nötig?</strong> Nur wenn der automatische Test oben fehlschlägt
-              und Sie den Verbindungsaufbau selbst überprüfen möchten. Für den normalen Ablauf
-              können Sie diesen Schritt überspringen.
+              <strong>{t("setup.wizard.step3.advancedWhy")}</strong>{" "}
+              {t("setup.wizard.step3.advancedWhyText")}
             </p>
-            <p className="ssh-hint-description">
-              SoundTouch-Geräte benötigen Legacy-SSH-Algorithmen.
-            </p>
+            <p className="ssh-hint-description">{t("setup.wizard.step3.advancedDesc")}</p>
 
             {/* Client Switcher */}
             <div className="ssh-client-tabs">
@@ -358,24 +366,24 @@ export default function Step3PowerCycle({
                 className={`ssh-client-tab ${sshClient === "terminal" ? "active" : ""}`}
                 onClick={() => setSshClient("terminal")}
               >
-                🖥️ Terminal (Linux / macOS)
+                {t("setup.wizard.step3.tabTerminal")}
               </button>
               <button
                 className={`ssh-client-tab ${sshClient === "putty" ? "active" : ""}`}
                 onClick={() => setSshClient("putty")}
               >
-                🪟 PuTTY (Windows)
+                {t("setup.wizard.step3.tabPuTTY")}
               </button>
             </div>
 
             {sshClient === "terminal" && (
               <CopyableCommand
-                command={`ssh \
-  -o HostKeyAlgorithms=ssh-rsa \
-  -o PubkeyAcceptedKeyTypes=ssh-rsa \
-  -o KexAlgorithms=diffie-hellman-group1-sha1 \
-  -o Ciphers=aes128-cbc \
-  root@${deviceIp || "<IP-des-Geräts>"}`}
+                command={`ssh \\
+  -o HostKeyAlgorithms=ssh-rsa \\
+  -o PubkeyAcceptedKeyTypes=ssh-rsa \\
+  -o KexAlgorithms=diffie-hellman-group1-sha1 \\
+  -o Ciphers=aes128-cbc \\
+  root@${deviceIp || "<IP>"}`}
               />
             )}
 
@@ -383,62 +391,44 @@ export default function Step3PowerCycle({
               <div className="putty-instructions">
                 <div className="putty-step">
                   <span className="putty-step-num">1</span>
-                  <span>
-                    <strong>Session:</strong> Host Name = <code>{deviceIp || "&lt;IP&gt;"}</code>,
-                    Port = <code>22</code>, Connection type = <code>SSH</code>
-                  </span>
+                  <span>{t("setup.wizard.step3.puttyStep1", { ip: deviceIp || "<IP>" })}</span>
                 </div>
                 <div className="putty-step">
                   <span className="putty-step-num">2</span>
-                  <span>
-                    <strong>Connection → SSH → Kex:</strong> Preferred key exchange methods → ganz
-                    oben <code>Diffie-Hellman group 1</code> einordnen
-                  </span>
+                  <span>{t("setup.wizard.step3.puttyStep2")}</span>
                 </div>
                 <div className="putty-step">
                   <span className="putty-step-num">3</span>
-                  <span>
-                    <strong>Connection → SSH → Cipher:</strong> Encryption cipher selection policy →{" "}
-                    <code>3DES</code> oder <code>AES</code> ganz oben; sicherstellen dass{" "}
-                    <code>aes128-cbc</code> nicht deaktiviert ist
-                  </span>
+                  <span>{t("setup.wizard.step3.puttyStep3")}</span>
                 </div>
                 <div className="putty-step">
                   <span className="putty-step-num">4</span>
-                  <span>
-                    <strong>Connection → SSH → Auth:</strong> &quot;Allow attempted changes of
-                    username&quot; aktivieren; unter <em>Host keys</em> →{" "}
-                    <code>rsa-sha2-256, rsa-sha2-512</code> entfernen, nur <code>ssh-rsa</code>{" "}
-                    belassen
-                  </span>
+                  <span>{t("setup.wizard.step3.puttyStep4")}</span>
                 </div>
                 <div className="putty-step">
                   <span className="putty-step-num">5</span>
-                  <span>
-                    Login: Username = <code>root</code>, Passwort = leer (Enter drücken)
-                  </span>
+                  <span>{t("setup.wizard.step3.puttyStep5")}</span>
                 </div>
               </div>
             )}
 
-            <small className="ssh-hint-note">Passwort: leer lassen (Enter drücken)</small>
+            <small className="ssh-hint-note">{t("setup.wizard.step3.sshPasswordHint")}</small>
           </div>
         </details>
 
         {/* Troubleshooting */}
         {checkAttempts > 0 && !portsAvailable && (
           <div className="power-cycle-troubleshooting">
-            <h4 className="troubleshooting-title">⚠️ Fehlerbehebung</h4>
+            <h4 className="troubleshooting-title">
+              {t("setup.wizard.step3.troubleshootingTitle")}
+            </h4>
             <ul className="troubleshooting-list">
-              <li>Überprüfen Sie, ob der USB-Stick korrekt eingesteckt ist</li>
-              <li>Stellen Sie sicher, dass die Datei &quot;remote_services&quot; korrekt ist</li>
-              <li>Warten Sie mindestens 60 Sekunden nach dem Neustart</li>
-              <li>Versuchen Sie einen weiteren Power Cycle (Schritte 2-5)</li>
-              <li>Prüfen Sie, ob das Gerät im gleichen Netzwerk ist</li>
-              <li>
-                Testen Sie die SSH-Verbindung manuell mit dem Befehl oben – wenn das funktioniert,
-                ist das Gerät bereit.
-              </li>
+              <li>{t("setup.wizard.step3.troubleshootingItem1")}</li>
+              <li>{t("setup.wizard.step3.troubleshootingItem2")}</li>
+              <li>{t("setup.wizard.step3.troubleshootingItem3")}</li>
+              <li>{t("setup.wizard.step3.troubleshootingItem4")}</li>
+              <li>{t("setup.wizard.step3.troubleshootingItem5")}</li>
+              <li>{t("setup.wizard.step3.troubleshootingItem6")}</li>
             </ul>
           </div>
         )}

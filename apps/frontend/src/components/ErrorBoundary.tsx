@@ -1,4 +1,5 @@
 import { Component, ReactNode } from "react";
+import { i18next } from "../i18n";
 import "./ErrorBoundary.css";
 
 interface ErrorBoundaryProps {
@@ -51,13 +52,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         <div className="error-boundary">
           <div className="error-boundary-content">
             <div className="error-boundary-icon">⚠️</div>
-            <h2 className="error-boundary-title">Etwas ist schiefgelaufen</h2>
-            <p className="error-boundary-message">
-              Ein unerwarteter Fehler ist aufgetreten. Bitte laden Sie die Seite neu.
-            </p>
+            <h2 className="error-boundary-title">{i18next.t("errors.errorBoundaryTitle")}</h2>
+            <p className="error-boundary-message">{i18next.t("errors.errorBoundaryMessage")}</p>
 
             <details className="error-boundary-details">
-              <summary>Fehlerdetails</summary>
+              <summary>{i18next.t("errors.errorDetails")}</summary>
               <pre>{this.state.error.toString()}</pre>
               {this.state.error.stack && (
                 <pre className="error-boundary-stack">{this.state.error.stack}</pre>
@@ -68,16 +67,16 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               <button
                 className="btn btn-primary"
                 onClick={() => window.location.reload()}
-                aria-label="Seite neu laden"
+                aria-label={i18next.t("common.reloadPage")}
               >
-                Neu laden
+                {i18next.t("common.reloadPage")}
               </button>
               <button
                 className="btn btn-secondary"
                 onClick={this.handleReset}
-                aria-label="Fehler zurücksetzen"
+                aria-label={i18next.t("common.retry")}
               >
-                Erneut versuchen
+                {i18next.t("common.retry")}
               </button>
             </div>
           </div>

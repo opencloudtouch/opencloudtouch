@@ -3,13 +3,32 @@ Structured logging configuration for OpenCloudTouch
 Provides consistent logging format with context enrichment
 """
 
+import collections
 import json
 import logging
 import sys
 from datetime import UTC, datetime
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from opencloudtouch.core.config import get_config
+
+# In-memory ring buffer: keeps the last 500 formatted log entries
+_log_buffer: collections.deque[str] = collections.deque(maxlen=500)
+
+
+def get_log_entries() -> List[str]:
+    """Return a snapshot of the in-memory log buffer."""
+    return list(_log_buffer)
+
+
+class MemoryLogHandler(logging.Handler):
+    """Logging handler that stores records in the module-level ring buffer."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            _log_buffer.append(self.format(record))
+        except Exception:  # pragma: no cover
+            self.handleError(record)
 
 
 class StructuredFormatter(logging.Formatter):
@@ -94,6 +113,17 @@ def setup_logging() -> None:
         )
 
     root_logger.addHandler(console_handler)
+
+    # In-memory ring buffer handler (always active, used by /api/logs/backend)
+    memory_handler = MemoryLogHandler()
+    memory_handler.setLevel(config.log_level)
+    memory_handler.setFormatter(
+        ContextFormatter(
+            fmt="%(asctime)s - %(levelname)-8s - %(name)-30s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+    )
+    root_logger.addHandler(memory_handler)
 
     # Optional file handler
     if config.log_file:

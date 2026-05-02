@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import DeviceSwiper, { Device } from "../components/DeviceSwiper";
 import NowPlaying from "../components/NowPlaying";
 import VolumeSlider from "../components/VolumeSlider";
@@ -34,6 +35,7 @@ interface LocalControlProps {
 }
 
 export default function LocalControl({ devices = [] }: LocalControlProps) {
+  const { t } = useTranslation();
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
   const [selectedSource, setSelectedSource] = useState<SourceId>("INTERNET_RADIO");
   const [keyLoading, setKeyLoading] = useState<string | null>(null);
@@ -87,7 +89,7 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
   if (devices.length === 0) {
     return (
       <div className="empty-container">
-        <p className="empty-message">Keine Geräte gefunden</p>
+        <p className="empty-message">{t("player.noDevices")}</p>
       </div>
     );
   }
@@ -101,7 +103,7 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
 
   return (
     <div className="page local-control-page">
-      <h1 className="page-title">Lokale Steuerung</h1>
+      <h1 className="page-title">{t("player.localControl")}</h1>
 
       <DeviceSwiper
         devices={devices}
@@ -116,8 +118,8 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
                 className="power-header-btn on"
                 onClick={() => handleKey("POWER", power)}
                 disabled={keyLoading === "POWER" || deviceOffline}
-                aria-label="Ein/Ausschalten"
-                title="Ein/Ausschalten"
+                aria-label={t("player.powerButton")}
+                title={t("player.powerButton")}
               >
                 {keyLoading === "POWER" ? "⏳" : "⏻"}
               </button>
@@ -202,7 +204,7 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <h3 className="source-title">Quelle</h3>
+              <h3 className="source-title">{t("player.sourceTitle")}</h3>
               <div className="source-tabs">
                 {supportedSources.map((source) => (
                   <button
@@ -226,13 +228,13 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
             >
-              <h3 className="playback-title">Wiedergabe</h3>
+              <h3 className="playback-title">{t("player.playbackTitle")}</h3>
               <div className="playback-controls">
                 <button
                   className="playback-button previous"
                   onClick={() => handleKey("PREV_TRACK", prevTrack)}
                   disabled={keyLoading === "PREV_TRACK"}
-                  aria-label="Vorheriger Track"
+                  aria-label={t("player.prevTrack")}
                 >
                   <span className="playback-icon">{keyLoading === "PREV_TRACK" ? "⏳" : "⏮"}</span>
                 </button>
@@ -240,7 +242,7 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
                   className="playback-button play-pause primary"
                   onClick={() => handleKey("PLAY_PAUSE", togglePlayPause)}
                   disabled={keyLoading === "PLAY_PAUSE"}
-                  aria-label={isPlaying ? "Pause" : "Play"}
+                  aria-label={isPlaying ? t("player.pause") : t("player.play")}
                 >
                   <span className="playback-icon">
                     {keyLoading === "PLAY_PAUSE" ? "⏳" : isPlaying ? "⏸️" : "▶️"}
@@ -250,7 +252,7 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
                   className="playback-button next"
                   onClick={() => handleKey("NEXT_TRACK", nextTrack)}
                   disabled={keyLoading === "NEXT_TRACK"}
-                  aria-label="Nächster Track"
+                  aria-label={t("player.nextTrack")}
                 >
                   <span className="playback-icon">{keyLoading === "NEXT_TRACK" ? "⏳" : "⏭"}</span>
                 </button>
@@ -271,7 +273,9 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
               disabled={deviceOffline}
             >
               <span className="quick-action-icon">{muted ? "🔇" : "🔊"}</span>
-              <span className="quick-action-label">{muted ? "Ton an" : "Stumm"}</span>
+              <span className="quick-action-label">
+                {muted ? t("player.muteOn") : t("player.muteOff")}
+              </span>
             </button>
             <button
               className={`quick-action-button ${deviceZone ? "active" : ""}`}
@@ -279,7 +283,7 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
             >
               <span className="quick-action-icon">🔗</span>
               <span className="quick-action-label">
-                {deviceZone ? "Zone verwalten" : "Multi-Room"}
+                {deviceZone ? t("player.manageZone") : t("player.multiRoom")}
               </span>
             </button>
           </motion.div>

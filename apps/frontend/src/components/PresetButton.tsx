@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import CloudBadge from "./CloudBadge";
 import { getAvatarColor, getStationInitials } from "../utils/stationAvatar";
 import "./PresetButton.css";
@@ -81,13 +82,14 @@ export default function PresetButton({
   isCurrentlyPlaying,
   disabled = false,
 }: PresetButtonProps) {
+  const { t } = useTranslation();
   if (disabled) {
     return (
       <div className="preset-button preset-disabled" data-testid={`preset-${number}`}>
         <div className="preset-info disabled-preset">
           <span className="preset-number">{number}</span>
           <span className="preset-name disabled-text">
-            {preset?.station_name || "Nicht verfügbar"}
+            {preset?.station_name || t("presets.empty")}
           </span>
         </div>
       </div>
@@ -102,7 +104,7 @@ export default function PresetButton({
             className="preset-info"
             onClick={onAssign}
             data-testid={`preset-play-${number}`}
-            title="Klicken um Sender zu ändern"
+            title={t("presets.changeStation")}
           >
             <span className="preset-number">{number}</span>
             <div className="preset-station-logo">
@@ -142,8 +144,8 @@ export default function PresetButton({
               e.stopPropagation();
               onClear?.();
             }}
-            aria-label="Preset löschen"
-            title="Preset löschen"
+            aria-label={t("presets.deletePreset")}
+            title={t("presets.deletePreset")}
             data-testid={`preset-clear-${number}`}
           >
             ✕
@@ -151,10 +153,14 @@ export default function PresetButton({
           <button
             className={`preset-play-btn${isCurrentlyPlaying ? " playing" : ""}`}
             onClick={onPlay}
-            aria-label={isCurrentlyPlaying ? "Wird abgespielt" : "Preset abspielen"}
+            aria-label={
+              isCurrentlyPlaying
+                ? t("presets.nowPlaying")
+                : t("presets.playPreset", { name: preset.station_name })
+            }
             data-testid={`preset-action-${number}`}
             disabled={isCurrentlyPlaying}
-            title={isCurrentlyPlaying ? "Wird bereits abgespielt" : "Abspielen"}
+            title={isCurrentlyPlaying ? t("presets.nowPlaying") : t("player.play")}
           >
             {isCurrentlyPlaying ? (
               <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
@@ -170,7 +176,7 @@ export default function PresetButton({
       ) : (
         <button className="preset-empty" onClick={onAssign} data-testid={`preset-empty-${number}`}>
           <span className="preset-number">{number}</span>
-          <span className="preset-placeholder">Preset zuweisen</span>
+          <span className="preset-placeholder">{t("presets.assignPreset")}</span>
         </button>
       )}
     </div>

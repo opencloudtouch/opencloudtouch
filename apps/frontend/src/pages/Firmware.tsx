@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Device } from "../components/DeviceSwiper";
 import "./Firmware.css";
 
@@ -8,6 +9,7 @@ interface FirmwareProps {
 }
 
 export default function Firmware({ devices = [] }: FirmwareProps) {
+  const { t } = useTranslation();
   const [currentDeviceIndex] = useState(0);
 
   const currentDevice = devices[currentDeviceIndex];
@@ -15,7 +17,7 @@ export default function Firmware({ devices = [] }: FirmwareProps) {
   if (devices.length === 0 || !currentDevice) {
     return (
       <div className="empty-container">
-        <p className="empty-message">Keine Geräte gefunden</p>
+        <p className="empty-message">{t("firmware.noDevices")}</p>
       </div>
     );
   }
@@ -27,14 +29,14 @@ export default function Firmware({ devices = [] }: FirmwareProps) {
   };
 
   const parseFirmwareVersion = (firmware?: string): string => {
-    if (!firmware) return "Unknown";
+    if (!firmware) return t("firmware.unknownVersion");
     const parts = firmware.split(".");
     return `${parts[0]}.${parts[1]}.${parts[2]}`;
   };
 
   return (
     <div className="page firmware-page">
-      <h1 className="page-title">Firmware Updates</h1>
+      <h1 className="page-title">{t("firmware.title")}</h1>
 
       {/* Current Device Firmware */}
       <motion.section
@@ -42,30 +44,30 @@ export default function Firmware({ devices = [] }: FirmwareProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h2 className="section-title">Aktuelles Gerät</h2>
+        <h2 className="section-title">{t("firmware.currentDevice")}</h2>
         <div className="firmware-card current">
           <div className="firmware-card-header">
             <span className="firmware-icon">📱</span>
             <div className="firmware-device-info">
               <h3 className="firmware-device-name">{currentDevice.name}</h3>
               <span className="firmware-device-model">
-                {currentDevice.model || "Unknown Model"}
+                {currentDevice.model || t("firmware.unknownModel")}
               </span>
             </div>
           </div>
 
           <div className="firmware-details">
             <div className="firmware-detail-row">
-              <span className="detail-label">Aktuelle Version:</span>
+              <span className="detail-label">{t("firmware.currentVersion")}</span>
               <span className="detail-value">{parseFirmwareVersion(currentDevice.firmware)}</span>
             </div>
             <div className="firmware-detail-row">
-              <span className="detail-label">Status:</span>
+              <span className="detail-label">{t("firmware.statusLabel")}</span>
               <span className={`status-badge ${getFirmwareStatus(currentDevice.firmware)}`}>
                 {getFirmwareStatus(currentDevice.firmware) === "up-to-date" ? (
-                  <>✓ Aktuell</>
+                  <>✓ {t("firmware.upToDate")}</>
                 ) : (
-                  <>⚠️ Update verfügbar</>
+                  <>⚠️ {t("firmware.updateAvailable")}</>
                 )}
               </span>
             </div>
@@ -80,7 +82,7 @@ export default function Firmware({ devices = [] }: FirmwareProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <h2 className="section-title">Alle Geräte</h2>
+        <h2 className="section-title">{t("firmware.allDevices")}</h2>
         <div className="firmware-list">
           {devices.map((device, index) => {
             const status = getFirmwareStatus(device.firmware);
@@ -128,12 +130,8 @@ export default function Firmware({ devices = [] }: FirmwareProps) {
       >
         <div className="warning-icon">⚠️</div>
         <div className="warning-content">
-          <h3 className="warning-title">Experimentelle Funktion</h3>
-          <p className="warning-text">
-            Firmware-Updates sind experimentell und können Ihr Gerät beschädigen. Verwenden Sie nur
-            offizielle Firmware-Dateien von Ihrem Gerätehersteller. Der Upload ist derzeit
-            deaktiviert.
-          </p>
+          <h3 className="warning-title">{t("firmware.warningTitle")}</h3>
+          <p className="warning-text">{t("firmware.warningText")}</p>
         </div>
       </motion.div>
 
@@ -144,15 +142,15 @@ export default function Firmware({ devices = [] }: FirmwareProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <h2 className="section-title">Firmware hochladen</h2>
+        <h2 className="section-title">{t("firmware.uploadTitle")}</h2>
         <div className="upload-card disabled">
           <div className="upload-icon">📤</div>
-          <p className="upload-text">Firmware-Upload ist derzeit nicht verfügbar</p>
+          <p className="upload-text">{t("firmware.uploadNotAvailable")}</p>
           <button className="upload-button" disabled>
             <span className="button-icon">📁</span>
-            <span>Firmware auswählen</span>
+            <span>{t("firmware.uploadButton")}</span>
           </button>
-          <p className="upload-hint">Diese Funktion wird in zukünftigen Versionen aktiviert</p>
+          <p className="upload-hint">{t("firmware.uploadHint")}</p>
         </div>
       </motion.section>
 
@@ -165,12 +163,12 @@ export default function Firmware({ devices = [] }: FirmwareProps) {
       >
         <div className="info-icon">ℹ️</div>
         <div className="info-content">
-          <h4 className="info-title">Firmware-Hinweise</h4>
+          <h4 className="info-title">{t("firmware.infoTitle")}</h4>
           <ul className="info-list">
-            <li>Firmware-Updates sollten nur bei Problemen durchgeführt werden</li>
-            <li>Während des Updates darf das Gerät nicht ausgeschaltet werden</li>
-            <li>Der Update-Prozess kann 5-10 Minuten dauern</li>
-            <li>Nach dem Update startet das Gerät automatisch neu</li>
+            <li>{t("firmware.infoItem1")}</li>
+            <li>{t("firmware.infoItem2")}</li>
+            <li>{t("firmware.infoItem3")}</li>
+            <li>{t("firmware.infoItem4")}</li>
           </ul>
         </div>
       </motion.div>

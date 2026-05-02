@@ -1,6 +1,7 @@
 import { afterEach, beforeAll, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
+import "../src/i18n";
 
 // Mock EventSource (not available in jsdom) – use direct global assignment so
 // it survives vi.unstubAllGlobals() calls in individual test files.

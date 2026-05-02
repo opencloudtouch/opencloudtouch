@@ -114,20 +114,20 @@ describe("EmptyState Component", () => {
       // Uses default createFetchMock from beforeEach
       renderWithProviders(<EmptyState />);
 
-      expect(screen.getByText("Willkommen bei OpenCloudTouch")).toBeInTheDocument();
-      expect(screen.getByText("Noch keine Geräte gefunden.")).toBeInTheDocument();
+      expect(screen.getByText("Welcome to OpenCloudTouch")).toBeInTheDocument();
+      expect(screen.getByText("No devices found yet.")).toBeInTheDocument();
 
       // Setup steps
-      expect(screen.getByText("Geräte einschalten")).toBeInTheDocument();
-      expect(screen.getByText("Geräte suchen")).toBeInTheDocument();
-      expect(screen.getByText("Presets verwalten")).toBeInTheDocument();
+      expect(screen.getByText("Turn on devices")).toBeInTheDocument();
+      expect(screen.getByText("Search for devices")).toBeInTheDocument();
+      expect(screen.getByText("Manage presets")).toBeInTheDocument();
     });
 
     it("should show discovery button", () => {
       // Uses default createFetchMock from beforeEach
       renderWithProviders(<EmptyState />);
 
-      const discoverButton = screen.getByRole("button", { name: /Jetzt Geräte suchen/i });
+      const discoverButton = screen.getByRole("button", { name: /Search for devices now/i });
       expect(discoverButton).toBeInTheDocument();
       expect(discoverButton).not.toBeDisabled();
     });
@@ -137,7 +137,7 @@ describe("EmptyState Component", () => {
     it("should call startDiscovery when clicking discover button", async () => {
       renderWithProviders(<EmptyState />);
 
-      const discoverButton = screen.getByRole("button", { name: /Jetzt Geräte suchen/i });
+      const discoverButton = screen.getByRole("button", { name: /Search for devices now/i });
       fireEvent.click(discoverButton);
 
       expect(mockStartDiscovery).toHaveBeenCalledTimes(1);
@@ -167,7 +167,7 @@ describe("EmptyState Component", () => {
       renderWithProviders(<EmptyState />);
 
       // Button should be disabled while discovering
-      const discoverButton = screen.getByRole("button", { name: /Suche läuft/i });
+      const discoverButton = screen.getByRole("button", { name: /Searching.../i });
       expect(discoverButton).toBeDisabled();
     });
 
@@ -193,15 +193,15 @@ describe("EmptyState Component", () => {
       renderWithProviders(<EmptyState />);
 
       // Expand help section
-      const helpSummary = screen.getByText("Keine Geräte gefunden?");
+      const helpSummary = screen.getByText("No devices found?");
       fireEvent.click(helpSummary);
 
       // Click manual add button (using text since component uses data-test not data-testid)
-      const manualAddButton = screen.getByRole("button", { name: /manuell hinzu/i });
+      const manualAddButton = screen.getByRole("button", { name: /Add device IPs manually/i });
       fireEvent.click(manualAddButton);
 
       await waitFor(() => {
-        expect(screen.getByText("Manuelle IP-Konfiguration")).toBeInTheDocument();
+        expect(screen.getByText("Manual IP Configuration")).toBeInTheDocument();
       });
     });
 
@@ -210,9 +210,9 @@ describe("EmptyState Component", () => {
       renderWithProviders(<EmptyState />);
 
       // Open modal
-      const helpSummary = screen.getByText("Keine Geräte gefunden?");
+      const helpSummary = screen.getByText("No devices found?");
       fireEvent.click(helpSummary);
-      const manualAddButton = screen.getByRole("button", { name: /manuell hinzu/i });
+      const manualAddButton = screen.getByRole("button", { name: /Add device IPs manually/i });
       fireEvent.click(manualAddButton);
 
       await waitFor(() => {
@@ -224,11 +224,11 @@ describe("EmptyState Component", () => {
       fireEvent.change(textarea, { target: { value: "invalid-ip\n999.999.999.999" } });
 
       // Save
-      const saveButton = screen.getByRole("button", { name: /Speichern/i });
+      const saveButton = screen.getByRole("button", { name: /Save/i });
       fireEvent.click(saveButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/Ungültige IP-Adressen:/)).toBeInTheDocument();
+        expect(screen.getAllByText(/Invalid format:/).length).toBeGreaterThan(0);
       });
     });
 
@@ -237,9 +237,9 @@ describe("EmptyState Component", () => {
       renderWithProviders(<EmptyState />);
 
       // Open modal
-      const helpSummary = screen.getByText("Keine Geräte gefunden?");
+      const helpSummary = screen.getByText("No devices found?");
       fireEvent.click(helpSummary);
-      const manualAddButton = screen.getByRole("button", { name: /manuell hinzu/i });
+      const manualAddButton = screen.getByRole("button", { name: /Add device IPs manually/i });
       fireEvent.click(manualAddButton);
 
       await waitFor(() => {
@@ -253,7 +253,7 @@ describe("EmptyState Component", () => {
       });
 
       // Save
-      const saveButton = screen.getByRole("button", { name: /Speichern/i });
+      const saveButton = screen.getByRole("button", { name: /Save/i });
       fireEvent.click(saveButton);
 
       await waitFor(() => {
@@ -275,21 +275,21 @@ describe("EmptyState Component", () => {
       renderWithProviders(<EmptyState />);
 
       // Open modal
-      const helpSummary = screen.getByText("Keine Geräte gefunden?");
+      const helpSummary = screen.getByText("No devices found?");
       fireEvent.click(helpSummary);
-      const manualAddButton = screen.getByRole("button", { name: /manuell hinzu/i });
+      const manualAddButton = screen.getByRole("button", { name: /Add device IPs manually/i });
       fireEvent.click(manualAddButton);
 
       await waitFor(() => {
-        expect(screen.getByText("Manuelle IP-Konfiguration")).toBeInTheDocument();
+        expect(screen.getByText("Manual IP Configuration")).toBeInTheDocument();
       });
 
       // Click cancel
-      const cancelButton = screen.getByRole("button", { name: /Abbrechen/i });
+      const cancelButton = screen.getByRole("button", { name: /Cancel/i });
       fireEvent.click(cancelButton);
 
       await waitFor(() => {
-        expect(screen.queryByText("Manuelle IP-Konfiguration")).not.toBeInTheDocument();
+        expect(screen.queryByText("Manual IP Configuration")).not.toBeInTheDocument();
       });
     });
   });
@@ -316,7 +316,7 @@ describe("EmptyState Component", () => {
       // We verify the component doesn't crash (previously it crashed with wrong toast type)
       await waitFor(() => {
         // If the component renders without crashing and shows content, BUG-16 is not regressed
-        expect(screen.getByText("Willkommen bei OpenCloudTouch")).toBeInTheDocument();
+        expect(screen.getByText("Welcome to OpenCloudTouch")).toBeInTheDocument();
       });
     });
 
@@ -328,7 +328,7 @@ describe("EmptyState Component", () => {
       expect(() => renderWithProviders(<EmptyState />)).not.toThrow();
 
       await waitFor(() => {
-        expect(screen.getByText("Willkommen bei OpenCloudTouch")).toBeInTheDocument();
+        expect(screen.getByText("Welcome to OpenCloudTouch")).toBeInTheDocument();
       });
     });
   });

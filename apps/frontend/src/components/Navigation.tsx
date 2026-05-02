@@ -1,8 +1,11 @@
 import { NavLink, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import LanguageSelector from "./LanguageSelector";
 import "./Navigation.css";
 
 export default function Navigation() {
   const [searchParams] = useSearchParams();
+  const { t } = useTranslation();
   const deviceParam = searchParams.get("device");
 
   // Preserve device parameter across all navigation
@@ -13,19 +16,22 @@ export default function Navigation() {
 
   return (
     <nav className="nav">
-      <div className="nav-container">
-        <NavLink to={withDevice("/")} className="nav-link">
-          <span className="nav-icon">📻</span>
-          <span className="nav-label">Presets</span>
-        </NavLink>
-        <NavLink to={withDevice("/multiroom")} className="nav-link">
-          <span className="nav-icon">🔊</span>
-          <span className="nav-label">Zones</span>
-        </NavLink>
-        <NavLink to={withDevice("/settings")} className="nav-link">
-          <span className="nav-icon">⚙️</span>
-          <span className="nav-label">Settings</span>
-        </NavLink>
+      <div className="nav-inner">
+        <div className="nav-container">
+          <NavLink to={withDevice("/")} className="nav-link">
+            <span className="nav-icon">📻</span>
+            <span className="nav-label">{t("nav.presets")}</span>
+          </NavLink>
+          <NavLink to={withDevice("/multiroom")} className="nav-link">
+            <span className="nav-icon">🔊</span>
+            <span className="nav-label">{t("nav.zones")}</span>
+          </NavLink>
+          <NavLink to={withDevice("/settings")} className="nav-link">
+            <span className="nav-icon">⚙️</span>
+            <span className="nav-label">{t("nav.settings")}</span>
+          </NavLink>
+        </div>
+        <LanguageSelector />
       </div>
     </nav>
   );

@@ -2531,6 +2531,42 @@ paths:
           content:
             application/json:
               schema: {}
+  /api/logs/backend:
+    get:
+      tags:
+        - logs
+      summary: Download Backend Log
+      description: Returns the in-memory backend log as a plain-text file download.
+      operationId: download_backend_log_api_logs_backend_get
+      responses:
+        '200':
+          description: Plain-text log file download
+          content:
+            text/plain:
+              schema:
+                type: string
+  /api/bug-report:
+    post:
+      tags:
+        - bug-report
+      summary: Submit Bug Report
+      description: Submit a bug report that creates a GitHub issue with diagnostic data.
+      operationId: submit_bug_report_api_bug_report_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BugReportRequest'
+      responses:
+        '200':
+          description: Bug report submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BugReportResponse'
+        '503':
+          description: GitHub token not configured
 components:
   schemas:
     BackupRequest:
@@ -2570,6 +2606,50 @@ components:
       - message
       title: BackupResponse
       description: Response with backup results.
+    BugReportRequest:
+      type: object
+      required:
+        - description
+        - steps_to_reproduce
+        - expected_behavior
+        - installation_type
+        - hardware
+      properties:
+        description:
+          type: string
+          minLength: 20
+        steps_to_reproduce:
+          type: string
+          minLength: 10
+        expected_behavior:
+          type: string
+          minLength: 10
+        installation_type:
+          type: string
+        hardware:
+          type: string
+        soundtouch_devices:
+          type: array
+          items:
+            type: string
+          default: []
+        other_installation:
+          type: string
+          default: ''
+        other_hardware:
+          type: string
+          default: ''
+      title: BugReportRequest
+    BugReportResponse:
+      type: object
+      properties:
+        issue_url:
+          type: string
+        issue_number:
+          type: integer
+        message:
+          type: string
+      title: BugReportResponse
     Body_set_mute_api_devices__device_id__mute_put:
       properties:
         muted:

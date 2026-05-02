@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { ToastProvider } from "./contexts/ToastContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Navigation from "./components/Navigation";
@@ -27,6 +28,7 @@ interface AppRouterProps {
 }
 
 function AppRouter({ devices, isLoading, error, onRetry }: AppRouterProps) {
+  const { t } = useTranslation();
   // REFACT-137: Show hint after 3s loading, retry hint after 8s
   const [loadingSeconds, setLoadingSeconds] = useState(0);
   useEffect(() => {
@@ -43,32 +45,29 @@ function AppRouter({ devices, isLoading, error, onRetry }: AppRouterProps) {
   if (isLoading) {
     const loadingMessage =
       loadingSeconds < 4
-        ? "OpenCloudTouch wird geladen..."
+        ? t("common.openCloudTouchLoading")
         : loadingSeconds < 10
-          ? "Verbindung zum Server wird hergestellt..."
-          : "Dies dauert länger als erwartet. Bitte warten oder Seite neu laden.";
+          ? t("common.connectingToServer")
+          : t("common.loadingTimeout");
     return (
       <div className="app">
         <div
           className="loading-container"
           role="status"
           aria-live="polite"
-          aria-label="Ladevorgang"
+          aria-label={t("common.loading")}
         >
           <div className="spinner" aria-hidden="true" />
           <p className="loading-message">{loadingMessage}</p>
           {loadingSeconds >= 3 && loadingSeconds < 10 && (
-            <p className="loading-hint">Dies kann einige Sekunden dauern...</p>
+            <p className="loading-hint">{t("common.loadingHint")}</p>
           )}
           {loadingSeconds >= 8 && (
             <>
               <button className="btn btn-secondary loading-retry" onClick={onRetry}>
-                🔄 Erneut versuchen
+                🔄 {t("common.retry")}
               </button>
-              <p className="loading-hint">
-                Falls das Problem anhält: Stellen Sie sicher, dass Ihr OpenCloudTouch-Server
-                erreichbar ist und aktualisieren Sie die Seite.
-              </p>
+              <p className="loading-hint">{t("common.retryHint")}</p>
             </>
           )}
         </div>
@@ -81,13 +80,10 @@ function AppRouter({ devices, isLoading, error, onRetry }: AppRouterProps) {
       <div className="app">
         <div className="error-container">
           <div className="error-icon">⚠️</div>
-          <h2 className="error-title">Fehler beim Laden der Geräte</h2>
-          <p className="error-message">
-            Geräte konnten nicht geladen werden. Bitte prüfen Sie die Verbindung und versuchen Sie
-            es erneut.
-          </p>
-          <button className="btn btn-primary" onClick={onRetry} aria-label="Erneut versuchen">
-            Erneut versuchen
+          <h2 className="error-title">{t("errors.devicesLoadTitle")}</h2>
+          <p className="error-message">{t("errors.devicesLoadMessage")}</p>
+          <button className="btn btn-primary" onClick={onRetry} aria-label={t("common.retry")}>
+            {t("common.retry")}
           </button>
         </div>
       </div>

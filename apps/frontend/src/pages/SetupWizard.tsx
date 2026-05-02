@@ -4,9 +4,10 @@
  * Step-by-step wizard to configure a SoundTouch device for OCT.
  * Phase 1: UI Demo only (backend functionality in Phase 3+)
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Device } from "../api/devices";
 import {
   DetectStrategyResponse,
@@ -30,49 +31,58 @@ interface SetupWizardProps {
   isLoading?: boolean;
 }
 
-const WIZARD_STEPS: WizardStep[] = [
-  {
-    id: 1,
-    label: "USB",
-    description: "USB-Stick als Konfigurationsträger vorbereiten",
-    status: "pending",
-  },
-  {
-    id: 2,
-    label: "Neustart",
-    description: "Gerät neu starten und SSH-Zugang herstellen",
-    status: "pending",
-  },
-  {
-    id: 3,
-    label: "Backup",
-    description: "Gerätedaten sichern (dringend empfohlen)",
-    status: "pending",
-  },
-  {
-    id: 4,
-    label: "Verbindung",
-    description: "Konfigurationsdatei auf OCT-Server umleiten",
-    status: "pending",
-  },
-  {
-    id: 5,
-    label: "DNS",
-    description: "Netzwerk-Weiterleitung für Bose-Domains einrichten",
-    status: "pending",
-  },
-  {
-    id: 6,
-    label: "Prüfung",
-    description: "Konfiguration testen und DNS-Weiterleitung verifizieren",
-    status: "pending",
-  },
-  { id: 7, label: "Fertig", description: "Einrichtung abgeschlossen", status: "pending" },
-];
-
 export default function SetupWizard({ devices, isLoading = false }: SetupWizardProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
+
+  const WIZARD_STEPS = useMemo<WizardStep[]>(
+    () => [
+      {
+        id: 1,
+        label: t("setup.step1.label"),
+        description: t("setup.step1.description"),
+        status: "pending",
+      },
+      {
+        id: 2,
+        label: t("setup.step2.label"),
+        description: t("setup.step2.description"),
+        status: "pending",
+      },
+      {
+        id: 3,
+        label: t("setup.step3.label"),
+        description: t("setup.step3.description"),
+        status: "pending",
+      },
+      {
+        id: 4,
+        label: t("setup.step4.label"),
+        description: t("setup.step4.description"),
+        status: "pending",
+      },
+      {
+        id: 5,
+        label: t("setup.step5.label"),
+        description: t("setup.step5.description"),
+        status: "pending",
+      },
+      {
+        id: 6,
+        label: t("setup.step6.label"),
+        description: t("setup.step6.description"),
+        status: "pending",
+      },
+      {
+        id: 7,
+        label: t("setup.step7.label"),
+        description: t("setup.step7.description"),
+        status: "pending",
+      },
+    ],
+    [t]
+  );
 
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
@@ -112,25 +122,28 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
     return (
       <div className="setup-wizard-page-v2">
         {isLoading ? (
-          <div className="wizard-loading" role="status" aria-live="polite" aria-label="Ladevorgang">
+          <div
+            className="wizard-loading"
+            role="status"
+            aria-live="polite"
+            aria-label={t("setup.loadingAriaLabel")}
+          >
             <div className="spinner" aria-hidden="true" />
-            <p className="loading-message">Geräte werden geladen...</p>
+            <p className="loading-message">{t("setup.loading")}</p>
           </div>
         ) : (
           <div className="wizard-empty-state">
             <div className="empty-icon">📱</div>
-            <h2>Keine Geräte gefunden</h2>
-            <p>Bitte synchronisieren Sie zuerst Ihre SoundTouch-Geräte.</p>
+            <h2>{t("setup.noDevices")}</h2>
+            <p>{t("setup.noDevicesHint")}</p>
             {/* REFACT-140: Help link inline */}
             <p className="wizard-empty-hint">
-              Gehen Sie zur{" "}
               <button className="inline-link-button" onClick={() => navigate("/welcome")}>
-                Startseite
-              </button>{" "}
-              {`und klicken Sie auf \u201EJetzt Ger\u00E4te suchen\u201C.`}
+                {t("setup.noDevicesHint2")}
+              </button>
             </p>
             <button className="btn btn-primary" onClick={() => navigate("/")}>
-              Zurück zur Startseite
+              {t("setup.goHome")}
             </button>
           </div>
         )}
