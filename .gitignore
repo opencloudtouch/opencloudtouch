@@ -65,6 +65,11 @@ apps/backend/openapi.yaml
 *_TEMP.md
 CONTEXT_TEMP.md
 *.log
+result.txt
+test-output.txt
+test*.txt
+test_full.txt
+apps/backend/result.txt
 AGENTS.md
 .github/copilot-instructions.md
 .github/prompts/

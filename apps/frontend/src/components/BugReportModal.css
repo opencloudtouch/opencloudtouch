@@ -1,0 +1,205 @@
+/* BugReportModal — One-click bug reporting */
+.bug-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 5vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  overflow-y: auto;
+}
+
+.bug-modal {
+  background: var(--color-bg-card, #242424);
+  border: 1px solid var(--color-border, #333);
+  border-radius: 12px;
+  width: calc(100% - 32px);
+  max-width: 520px;
+  max-height: calc(90vh - 5vh);
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  animation: bugModalFadeIn 0.15s ease-out;
+}
+
+@keyframes bugModalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bug-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 12px;
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-card, #242424);
+  z-index: 1;
+}
+
+.bug-modal-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #fff);
+}
+
+.bug-modal-close {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary, #b3b3b3);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bug-modal-close:hover {
+  color: var(--color-text-primary, #fff);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.bug-modal-form {
+  padding: 8px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bug-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.bug-field--other {
+  margin-top: -8px;
+  padding-left: 16px;
+  border-left: 2px solid var(--color-accent, #0066cc);
+}
+
+.bug-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text-secondary, #b3b3b3);
+}
+
+.bug-required {
+  color: var(--color-danger, #ef5350);
+}
+
+.bug-modal-form textarea,
+.bug-modal-form input[type="text"],
+.bug-modal-form select {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--color-bg-dark, #1a1a1a);
+  border: 1px solid var(--color-border, #333);
+  border-radius: 8px;
+  color: var(--color-text-primary, #fff);
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.bug-modal-form textarea:focus,
+.bug-modal-form input[type="text"]:focus,
+.bug-modal-form select:focus {
+  outline: 2px solid var(--color-accent, #0066cc);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.bug-modal-form select {
+  cursor: pointer;
+  appearance: auto;
+}
+
+.bug-checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.bug-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--color-text-primary, #fff);
+  cursor: pointer;
+  min-height: 32px;
+}
+
+.bug-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-accent, #0066cc);
+}
+
+.bug-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 8px;
+}
+
+.bug-btn {
+  min-width: 100px;
+  min-height: 44px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    opacity 0.15s;
+}
+
+.bug-btn:focus-visible {
+  outline: 2px solid var(--color-accent, #0066cc);
+  outline-offset: 2px;
+}
+
+.bug-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bug-btn--cancel {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-primary, #fff);
+}
+
+.bug-btn--cancel:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.bug-btn--submit {
+  background: var(--color-accent, #0066cc);
+  color: #fff;
+}
+
+.bug-btn--submit:hover:not(:disabled) {
+  background: var(--color-accent-hover, #0052a3);
+}
