@@ -6,8 +6,8 @@ import { useToast } from "../contexts/ToastContext";
 import "./BugReportModal.css";
 
 interface BugReportModalProps {
-  open: boolean;
-  onClose: () => void;
+  readonly open: boolean;
+  readonly onClose: () => void;
 }
 
 const INSTALLATION_OPTIONS = [
@@ -134,21 +134,7 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
         click_timestamp: clickTimestampRef.current,
       });
 
-      showToast(
-        <span>
-          Bug report created!{" "}
-          <a
-            href={result.issue_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: "inherit", textDecoration: "underline" }}
-          >
-            View on GitHub
-          </a>
-        </span>,
-        "success",
-        10000
-      );
+      showToast(`Bug report created! ${result.issue_url}`, "success", 10000);
       resetForm();
       onClose();
     } catch (err) {
@@ -182,13 +168,13 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
   if (!open) return null;
 
   return (
-    <div className="bug-modal-overlay" onClick={onClose} role="presentation">
-      <div
+    <div className="bug-modal-overlay" onClick={onClose}>
+      <dialog
         className="bug-modal"
-        role="dialog"
-        aria-modal="true"
+        open
         aria-labelledby="bug-modal-title"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.key === "Escape" && onClose()}
       >
         <div className="bug-modal-header">
           <h2 id="bug-modal-title">🐛 Report a Bug</h2>
@@ -386,7 +372,7 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
             </button>
           </div>
         </form>
-      </div>
+      </dialog>
     </div>
   );
 }

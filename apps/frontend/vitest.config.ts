@@ -1,8 +1,15 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
+import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      // Mock html2canvas in test environment (not installed as runtime dep yet)
+      'html2canvas': path.resolve(__dirname, 'src/__mocks__/html2canvas.ts'),
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',

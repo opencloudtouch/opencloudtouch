@@ -4,7 +4,24 @@ import { useZoneNames } from "./useZoneNames";
 import { useToast } from "../contexts/ToastContext";
 import type { ZoneInfo } from "../api/zones";
 
-export function useZoneBuilder() {
+interface ZoneBuilderMessages {
+  zoneCreated?: string;
+  zoneUpdated?: string;
+  zoneCreateFailed?: string;
+  zoneDissolved?: string;
+  zoneDissolveFailed?: string;
+}
+
+const DEFAULT_MESSAGES: Required<ZoneBuilderMessages> = {
+  zoneCreated: "Zone erstellt",
+  zoneUpdated: "Zone aktualisiert",
+  zoneCreateFailed: "Zone konnte nicht erstellt werden",
+  zoneDissolved: "Zone aufgelöst",
+  zoneDissolveFailed: "Zone konnte nicht aufgelöst werden",
+};
+
+export function useZoneBuilder(messages?: ZoneBuilderMessages) {
+  const msgs = { ...DEFAULT_MESSAGES, ...messages };
   const { zones, isLoading, error, createZone, dissolveZone, addMembers, removeMembers } =
     useZones();
   const { getZoneName, setZoneName, removeZoneName } = useZoneNames();
@@ -57,9 +74,9 @@ export function useZoneBuilder() {
       }
       setSelectedDevices([]);
       setEditingZone(null);
-      showToast(editingZone ? "Zone aktualisiert" : "Zone erstellt", "success");
+      showToast(editingZone ? msgs.zoneUpdated : msgs.zoneCreated, "success");
     } catch {
-      showToast("Zone konnte nicht erstellt werden", "error");
+      showToast(msgs.zoneCreateFailed, "error");
     } finally {
       setOperationLoading(false);
     }
@@ -72,9 +89,9 @@ export function useZoneBuilder() {
         await dissolveZone(masterId);
         removeZoneName(masterId);
         setConfirmDissolve(null);
-        showToast("Zone aufgelöst", "success");
+        showToast(msgs.zoneDissolved, "success");
       } catch {
-        showToast("Zone konnte nicht aufgelöst werden", "error");
+        showToast(msgs.zoneDissolveFailed, "error");
       } finally {
         setOperationLoading(false);
       }

@@ -1,12 +1,10 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Device } from "../components/DeviceSwiper";
-import { useZones } from "../hooks/useZones";
-import { useZoneNames } from "../hooks/useZoneNames";
+import { useZoneBuilder } from "../hooks/useZoneBuilder";
 import { useVolume } from "../hooks/useVolume";
 import { useNowPlaying } from "../hooks/useNowPlaying";
-import { useToast } from "../contexts/ToastContext";
 import type { ZoneInfo } from "../api/zones";
 import VolumeSlider from "../components/VolumeSlider";
 import NowPlaying from "../components/NowPlaying";
@@ -122,88 +120,33 @@ function EditableZoneName({
 
 export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
   const { t } = useTranslation();
-  const { zones, isLoading, error, createZone, dissolveZone, addMembers, removeMembers } =
-    useZones();
-  const { getZoneName, setZoneName, removeZoneName } = useZoneNames();
-  const { show: showToast } = useToast();
+  const {
+    zones,
+    isLoading,
+    error,
+    selectedDevices,
+    editingZone,
+    operationLoading,
+    confirmDissolve,
+    setConfirmDissolve,
+    handleDeviceToggle,
+    handleSetMaster,
+    handleCreateZone: createZoneAction,
+    handleDissolveZone: dissolveZoneAction,
+    handleEditZone,
+    cancelEdit,
+    getZoneName,
+    setZoneName,
+  } = useZoneBuilder({
+    zoneCreated: t("multiroom.zoneCreated"),
+    zoneUpdated: t("multiroom.zoneUpdated"),
+    zoneCreateFailed: t("multiroom.zoneCreateFailed"),
+    zoneDissolved: t("multiroom.zoneDissolved"),
+    zoneDissolveFailed: t("multiroom.zoneDissolveFailed"),
+  });
 
-  const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
-  const [editingZone, setEditingZone] = useState<ZoneInfo | null>(null);
-  const [operationLoading, setOperationLoading] = useState(false);
-  const [confirmDissolve, setConfirmDissolve] = useState<string | null>(null);
-
-  const handleDeviceToggle = (deviceId: string) => {
-    setSelectedDevices((prev) => {
-      if (prev.includes(deviceId)) {
-        return prev.filter((id) => id !== deviceId);
-      }
-      return [...prev, deviceId];
-    });
-  };
-
-  const handleSetMaster = (deviceId: string) => {
-    setSelectedDevices((prev) => {
-      const without = prev.filter((id) => id !== deviceId);
-      return [deviceId, ...without];
-    });
-  };
-
-  const handleCreateZone = useCallback(async () => {
-    if (selectedDevices.length < 2) return;
-
-    const masterId = selectedDevices[0]!;
-    const slaveIds = selectedDevices.slice(1);
-
-    setOperationLoading(true);
-    try {
-      if (editingZone) {
-        // Edit mode: figure out adds/removes
-        const currentMemberIds = editingZone.members.map((m) => m.device_id);
-        const toAdd = slaveIds.filter((id) => !currentMemberIds.includes(id));
-        const toRemove = currentMemberIds.filter(
-          (id) => id !== editingZone.master_id && !selectedDevices.includes(id)
-        );
-
-        if (toRemove.length > 0) {
-          await removeMembers(editingZone.master_id, toRemove);
-        }
-        if (toAdd.length > 0) {
-          await addMembers(editingZone.master_id, toAdd);
-        }
-      } else {
-        await createZone(masterId, slaveIds);
-      }
-      setSelectedDevices([]);
-      setEditingZone(null);
-      showToast(editingZone ? t("multiroom.zoneUpdated") : t("multiroom.zoneCreated"), "success");
-    } catch {
-      showToast(t("multiroom.zoneCreateFailed"), "error");
-    } finally {
-      setOperationLoading(false);
-    }
-  }, [selectedDevices, editingZone, showToast, createZone, addMembers, removeMembers, t]);
-
-  const handleDissolveZone = useCallback(
-    async (masterId: string) => {
-      setOperationLoading(true);
-      try {
-        await dissolveZone(masterId);
-        removeZoneName(masterId);
-        setConfirmDissolve(null);
-        showToast(t("multiroom.zoneDissolved"), "success");
-      } catch {
-        showToast(t("multiroom.zoneDissolveFailed"), "error");
-      } finally {
-        setOperationLoading(false);
-      }
-    },
-    [dissolveZone, removeZoneName, showToast, t]
-  );
-
-  const handleEditZone = (zone: ZoneInfo) => {
-    setEditingZone(zone);
-    setSelectedDevices(zone.members.map((m) => m.device_id));
-  };
+  const handleCreateZone = () => createZoneAction();
+  const handleDissolveZone = (masterId: string) => dissolveZoneAction(masterId);
 
   const getDeviceById = (deviceId: string): Device | undefined => {
     return devices.find((d) => d.device_id === deviceId);
@@ -464,13 +407,7 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
               </span>
             </button>
             {editingZone && (
-              <button
-                className="zone-action-button"
-                onClick={() => {
-                  setEditingZone(null);
-                  setSelectedDevices([]);
-                }}
-              >
+              <button className="zone-action-button" onClick={cancelEdit}>
                 {t("multiroom.cancel")}
               </button>
             )}
