@@ -169,13 +169,7 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
 
   return (
     <div className="bug-modal-overlay">
-      <dialog
-        className="bug-modal"
-        open
-        aria-labelledby="bug-modal-title"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.key === "Escape" && onClose()}
-      >
+      <dialog className="bug-modal" open aria-labelledby="bug-modal-title" onCancel={onClose}>
         <div className="bug-modal-header">
           <h2 id="bug-modal-title">🐛 Report a Bug</h2>
           <button ref={closeRef} className="bug-modal-close" onClick={onClose} aria-label="Close">

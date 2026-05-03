@@ -189,12 +189,12 @@ describe("BugReportModal", () => {
     expect(checkboxes[0]).not.toBeChecked();
   });
 
-  it("calls onClose on Escape key in dialog", async () => {
+  it("calls onClose on native cancel event (Escape) in dialog", async () => {
     const BugReportModal = await getBugReportModal();
     const onClose = vi.fn();
     render(<BugReportModal open onClose={onClose} />);
     const dialog = screen.getByRole("dialog");
-    fireEvent.keyDown(dialog, { key: "Escape" });
+    fireEvent(dialog, new Event("cancel"));
     expect(onClose).toHaveBeenCalled();
   });
 });
