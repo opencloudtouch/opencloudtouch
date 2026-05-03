@@ -1,4 +1,6 @@
 import { defineConfig } from 'cypress'
+import webpackPreprocessor from '@cypress/webpack-preprocessor'
+import path from 'path'
 
 export default defineConfig({
   allowCypressEnv: false,
@@ -19,6 +21,32 @@ export default defineConfig({
     video: false, // Disable video recording (speeds up tests)
 
     setupNodeEvents(on, config) {
+      // Use custom webpack preprocessor with transpileOnly to avoid TS5101:
+      // Cypress 15's built-in webpack sets downlevelIteration:true which is
+      // deprecated in TypeScript 6.0 and causes a compilation error.
+      // transpileOnly skips type-checking during test bundling (tsc --noEmit
+      // in the lint step still provides full type safety).
+      on(
+        'file:preprocessor',
+        webpackPreprocessor({
+          webpackOptions: {
+            resolve: { extensions: ['.ts', '.tsx', '.js', '.jsx'] },
+            module: {
+              rules: [
+                {
+                  test: /\.tsx?$/,
+                  loader: 'ts-loader',
+                  options: {
+                    transpileOnly: true,
+                    configFile: path.resolve(__dirname, 'tests/tsconfig.json'),
+                  },
+                },
+              ],
+            },
+          },
+        }),
+      );
+
       // a11y violation report store (in-process, resets per test run)
       let a11yViolations: unknown[] = [];
 
