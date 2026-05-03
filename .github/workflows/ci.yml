@@ -292,16 +292,16 @@ jobs:
           curl --retry 10 --retry-delay 2 --retry-connrefused http://localhost:4173
 
       - name: Run Cypress E2E tests
+        id: cypress
         working-directory: apps/frontend
         run: npm run test:e2e
-        continue-on-error: true
         env:
           CYPRESS_BASE_URL: http://localhost:4173
           CYPRESS_API_URL: http://localhost:7778/api
 
       - name: Upload Cypress screenshots on failure
         uses: actions/upload-artifact@v7
-        if: failure()
+        if: failure() && steps.cypress.outcome == 'failure'
         with:
           name: cypress-screenshots
           path: apps/frontend/tests/e2e/screenshots
