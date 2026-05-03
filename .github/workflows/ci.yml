@@ -336,7 +336,7 @@ jobs:
           path: .out/coverage/frontend
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v6
         with:
           args: >
             -Dsonar.projectKey=scheilch_opencloudtouch

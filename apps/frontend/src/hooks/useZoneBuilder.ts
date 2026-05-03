@@ -22,6 +22,7 @@ const DEFAULT_MESSAGES: Required<ZoneBuilderMessages> = {
 
 export function useZoneBuilder(messages?: ZoneBuilderMessages) {
   const msgs = { ...DEFAULT_MESSAGES, ...messages };
+  const { zoneCreated, zoneUpdated, zoneCreateFailed, zoneDissolved, zoneDissolveFailed } = msgs;
   const { zones, isLoading, error, createZone, dissolveZone, addMembers, removeMembers } =
     useZones();
   const { getZoneName, setZoneName, removeZoneName } = useZoneNames();
@@ -74,13 +75,23 @@ export function useZoneBuilder(messages?: ZoneBuilderMessages) {
       }
       setSelectedDevices([]);
       setEditingZone(null);
-      showToast(editingZone ? msgs.zoneUpdated : msgs.zoneCreated, "success");
+      showToast(editingZone ? zoneUpdated : zoneCreated, "success");
     } catch {
-      showToast(msgs.zoneCreateFailed, "error");
+      showToast(zoneCreateFailed, "error");
     } finally {
       setOperationLoading(false);
     }
-  }, [selectedDevices, editingZone, createZone, addMembers, removeMembers, showToast]);
+  }, [
+    selectedDevices,
+    editingZone,
+    createZone,
+    addMembers,
+    removeMembers,
+    showToast,
+    zoneCreated,
+    zoneUpdated,
+    zoneCreateFailed,
+  ]);
 
   const handleDissolveZone = useCallback(
     async (masterId: string) => {
@@ -89,14 +100,14 @@ export function useZoneBuilder(messages?: ZoneBuilderMessages) {
         await dissolveZone(masterId);
         removeZoneName(masterId);
         setConfirmDissolve(null);
-        showToast(msgs.zoneDissolved, "success");
+        showToast(zoneDissolved, "success");
       } catch {
-        showToast(msgs.zoneDissolveFailed, "error");
+        showToast(zoneDissolveFailed, "error");
       } finally {
         setOperationLoading(false);
       }
     },
-    [dissolveZone, removeZoneName, showToast]
+    [dissolveZone, removeZoneName, showToast, zoneDissolved, zoneDissolveFailed]
   );
 
   const handleEditZone = (zone: ZoneInfo) => {
