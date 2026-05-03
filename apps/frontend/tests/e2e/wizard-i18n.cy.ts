@@ -8,21 +8,6 @@
  * the most important visible strings are translated and not hardcoded German.
  */
 
-/**
- * Visit a URL forcing English locale.
- * The global e2e.ts support hook sets "de" before every page load.
- * This helper overrides it for tests that specifically test English behavior.
- */
-function visitEn(url: string, options?: Partial<Cypress.VisitOptions>) {
-  cy.visit(url, {
-    ...options,
-    onBeforeLoad(win) {
-      win.localStorage.setItem("oct-lang", "en");
-      options?.onBeforeLoad?.(win);
-    },
-  });
-}
-
 const FRONTEND_BASE = "http://localhost:4173";
 
 const MOCK_DEVICE = {
@@ -95,12 +80,12 @@ function navigateToWizard() {
 describe("Wizard i18n — English (default)", () => {
   beforeEach(() => {
     setupWizardMocks();
-    visitEn(FRONTEND_BASE);
+    cy.visit(FRONTEND_BASE);
     cy.wait("@getDevices");
   });
 
   it("Step 1 (device selection) renders in English", () => {
-    visitEn(`${FRONTEND_BASE}/setup/wizard`);
+    cy.visit(`${FRONTEND_BASE}/setup/wizard`);
     cy.contains("Step 1").should("exist");
     cy.contains("Configure Device").should("exist");
     // No German strings visible
@@ -108,7 +93,7 @@ describe("Wizard i18n — English (default)", () => {
   });
 
   it("Step 2 (USB preparation) renders English title and descriptions", () => {
-    visitEn(`${FRONTEND_BASE}/setup/wizard?step=2&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.visit(`${FRONTEND_BASE}/setup/wizard?step=2&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
     cy.contains("Prepare USB drive").should("exist");
     cy.contains("USB_SOUNDTOUCH").should("exist");
     // Not German
@@ -116,14 +101,14 @@ describe("Wizard i18n — English (default)", () => {
   });
 
   it("Step 3 (power cycle) renders English title", () => {
-    visitEn(`${FRONTEND_BASE}/setup/wizard?step=3&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.visit(`${FRONTEND_BASE}/setup/wizard?step=3&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
     cy.contains("Restart device").should("exist");
     cy.contains("USB drive").should("exist");
     cy.contains("Gerät neu starten").should("not.exist");
   });
 
   it("Step 4 (backup) renders English title", () => {
-    visitEn(`${FRONTEND_BASE}/setup/wizard?step=4&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.visit(`${FRONTEND_BASE}/setup/wizard?step=4&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
     cy.contains("Create backup").should("exist");
     cy.contains("Backup erstellen").should("not.exist");
   });
@@ -131,13 +116,13 @@ describe("Wizard i18n — English (default)", () => {
   it("Step 5 (config modification) renders English title", () => {
     cy.wait("@serverInfo");
     cy.wait("@detectStrategy");
-    visitEn(`${FRONTEND_BASE}/setup/wizard?step=5&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.visit(`${FRONTEND_BASE}/setup/wizard?step=5&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
     cy.contains(/Modify configuration file|Reverse proxy detected/, { timeout: 5000 }).should("exist");
     cy.contains("Konfigurationsdatei ändern").should("not.exist");
   });
 
   it("Step 6 (hosts modification) renders English title and domain labels", () => {
-    visitEn(`${FRONTEND_BASE}/setup/wizard?step=6&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.visit(`${FRONTEND_BASE}/setup/wizard?step=6&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
     cy.contains("Modify hosts file").should("exist");
     cy.contains("Required").should("exist");
     cy.contains("Optional").should("exist");
@@ -145,19 +130,19 @@ describe("Wizard i18n — English (default)", () => {
   });
 
   it("Step 7 (verification) renders English title", () => {
-    visitEn(`${FRONTEND_BASE}/setup/wizard?step=7&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.visit(`${FRONTEND_BASE}/setup/wizard?step=7&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
     cy.contains("Test configuration").should("exist");
     cy.contains("Konfiguration testen").should("not.exist");
   });
 
   it("Step 8 (completion) renders English title", () => {
-    visitEn(`${FRONTEND_BASE}/setup/wizard?step=8&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79&deviceName=Wohnzimmer`);
+    cy.visit(`${FRONTEND_BASE}/setup/wizard?step=8&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79&deviceName=Wohnzimmer`);
     cy.contains("Setup complete").should("exist");
     cy.contains("Setup abgeschlossen").should("not.exist");
   });
 
   it("navigation bar renders English labels", () => {
-    visitEn(FRONTEND_BASE);
+    cy.visit(FRONTEND_BASE);
     cy.wait("@getDevices");
     cy.get("nav").contains("Presets").should("exist");
     cy.get("nav").contains("Zones").should("exist");

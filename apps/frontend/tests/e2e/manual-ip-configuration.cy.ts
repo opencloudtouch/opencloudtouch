@@ -1,4 +1,4 @@
-/**
+﻿/**
  * E2E Tests: Manual IP Configuration
  * Uses REAL backend API with OCT_MOCK_MODE=true (MockDiscoveryAdapter)
  *
@@ -6,6 +6,17 @@
  * - Backend running with OCT_MOCK_MODE=true
  * - MockDiscoveryAdapter returns 3 predefined devices (192.168.1.100-102)
  */
+
+/** Force German locale â€” CI defaults to English (navigator.language='en') */
+function visitDe(url: string, options?: Partial<Cypress.VisitOptions>) {
+  visitDe(url, {
+    ...options,
+    onBeforeLoad(win) {
+      win.localStorage.setItem("oct-lang", "de");
+      options?.onBeforeLoad?.(win);
+    },
+  });
+}
 
 describe("Manual IP Configuration", () => {
   beforeEach(() => {
@@ -25,7 +36,7 @@ describe("Manual IP Configuration", () => {
 
   describe("EmptyState - Modal Opening", () => {
     it("should display EmptyState welcome screen", () => {
-      cy.visit("/welcome");
+      visitDe("/welcome");
 
       cy.get('[data-test="empty-state"]').should("be.visible");
       cy.get('[data-test="welcome-title"]').should("be.visible").and("contain", "Willkommen");
@@ -33,7 +44,7 @@ describe("Manual IP Configuration", () => {
     });
 
     it("should open manual IP configuration modal", () => {
-      cy.visit("/welcome");
+      visitDe("/welcome");
 
       cy.openIPConfigModal();
 
@@ -49,7 +60,7 @@ describe("Manual IP Configuration", () => {
     it("should save 1 IP and create 1 device", () => {
       const ips = ["192.168.1.100"]; // Matches first mock device
 
-      cy.visit("/welcome");
+      visitDe("/welcome");
 
       // Open modal and enter IP
       cy.openIPConfigModal();
@@ -72,7 +83,7 @@ describe("Manual IP Configuration", () => {
     it("should save 2 IPs and create 2 devices", () => {
       const ips = ["192.168.1.100", "192.168.1.101"];
 
-      cy.visit("/welcome");
+      visitDe("/welcome");
 
       cy.openIPConfigModal();
       cy.saveIPsInModal(ips);
@@ -94,7 +105,7 @@ describe("Manual IP Configuration", () => {
     it("should save 3 IPs and create 3 devices", () => {
       const ips = ["192.168.1.100", "192.168.1.101", "192.168.1.102"];
 
-      cy.visit("/welcome");
+      visitDe("/welcome");
 
       cy.openIPConfigModal();
       cy.saveIPsInModal(ips);
@@ -115,7 +126,7 @@ describe("Manual IP Configuration", () => {
 
   describe("Cancel Action - No Save", () => {
     it("should not save IPs when cancel is clicked", () => {
-      cy.visit("/welcome");
+      visitDe("/welcome");
 
       cy.openIPConfigModal();
 
@@ -133,11 +144,11 @@ describe("Manual IP Configuration", () => {
   });
 
   describe("Complete User Journey", () => {
-    it("should complete full flow: EmptyState → Add IPs → Discover → Dashboard", () => {
+    it("should complete full flow: EmptyState â†’ Add IPs â†’ Discover â†’ Dashboard", () => {
       const ips = ["192.168.1.100", "192.168.1.101"];
 
       // Start at welcome
-      cy.visit("/welcome");
+      visitDe("/welcome");
       cy.get('[data-test="empty-state"]').should("be.visible");
 
       // Open modal and add IPs
@@ -162,7 +173,7 @@ describe("Manual IP Configuration", () => {
     it("BUG-FIX: Manual IPs should save via bulk endpoint", () => {
       const ips = ["192.168.1.100", "192.168.1.101", "192.168.1.102"];
 
-      cy.visit("/welcome");
+      visitDe("/welcome");
       cy.openIPConfigModal();
       cy.saveIPsInModal(ips);
       cy.waitForModalClose();
@@ -179,7 +190,7 @@ describe("Manual IP Configuration", () => {
       const ips = ["192.168.1.100", "192.168.1.101"];
 
       // Setup: Add devices
-      cy.visit("/welcome");
+      visitDe("/welcome");
       cy.openIPConfigModal();
       cy.saveIPsInModal(ips);
       cy.waitForModalClose();
@@ -211,7 +222,7 @@ describe("Manual IP Configuration", () => {
       const ips = ["192.168.1.100"];
 
       // Setup: Create at least 1 device
-      cy.visit("/welcome");
+      visitDe("/welcome");
       cy.openIPConfigModal();
       cy.saveIPsInModal(ips);
       cy.waitForModalClose();

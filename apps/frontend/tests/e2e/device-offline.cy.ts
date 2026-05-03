@@ -10,13 +10,25 @@
  * - Backend running with OCT_MOCK_MODE=true on port 7778
  * - Frontend running on port 4173
  */
+
+/** Force German locale — CI defaults to English (navigator.language='en') */
+function visitDe(url: string, options?: Partial<Cypress.VisitOptions>) {
+  cy.visit(url, {
+    ...options,
+    onBeforeLoad(win) {
+      win.localStorage.setItem("oct-lang", "de");
+      options?.onBeforeLoad?.(win);
+    },
+  });
+}
+
 describe("Device Offline Display", () => {
   const apiUrl = "http://localhost:7778/api";
 
   beforeEach(() => {
     // Clear DB and discover devices (normal path)
     cy.request("DELETE", `${apiUrl}/devices`);
-    cy.visit("/welcome");
+    visitDe("/welcome");
     cy.get('[data-test="discover-button"]').click();
     cy.waitForDevices();
 
@@ -117,7 +129,7 @@ describe("Device Offline Display", () => {
       cy.intercept("GET", "/api/devices/*/now-playing", { statusCode: 503 }).as("nowPlaying503");
       cy.intercept("GET", "/api/devices/*/volume", { statusCode: 503 }).as("volume503");
 
-      cy.visit("/local");
+      visitDe("/local");
       cy.wait("@nowPlaying503", { timeout: 10000 });
 
       cy.get('[data-testid="device-offline-banner"]', { timeout: 10000 }).should("be.visible");
@@ -132,7 +144,7 @@ describe("Device Offline Display", () => {
       cy.intercept("GET", "/api/devices/*/now-playing", { statusCode: 503 }).as("nowPlaying503");
       cy.intercept("GET", "/api/devices/*/volume", { statusCode: 503 }).as("volume503");
 
-      cy.visit("/local");
+      visitDe("/local");
       cy.wait("@nowPlaying503", { timeout: 10000 });
 
       cy.get('[data-testid="device-offline-banner"]', { timeout: 10000 }).should("be.visible");
@@ -149,7 +161,7 @@ describe("Device Offline Display", () => {
       cy.intercept("GET", "/api/devices/*/now-playing", { statusCode: 503 }).as("nowPlaying503");
       cy.intercept("GET", "/api/devices/*/volume", { statusCode: 503 }).as("volume503");
 
-      cy.visit("/local");
+      visitDe("/local");
       cy.wait("@nowPlaying503", { timeout: 10000 });
 
       cy.get('[data-testid="device-offline-banner"]', { timeout: 10000 }).should("be.visible");
