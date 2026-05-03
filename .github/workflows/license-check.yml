@@ -69,5 +69,5 @@ jobs:
           pip-licenses \
             --format=markdown \
             --order=license \
-            --allow-only="MIT License;Apache Software License;BSD License;ISC License (ISCL);Python Software Foundation License;Mozilla Public License 2.0 (MPL 2.0);Public Domain;The Unlicense (Unlicense);Historical Permission Notice and Disclaimer (HPND);CC0 1.0 Universal (CC0 1.0) Public Domain Dedication" \
+            --allow-only="MIT License;Apache Software License;BSD License;ISC License (ISCL);Python Software Foundation License;PSF-2.0;Mozilla Public License 2.0 (MPL 2.0);Public Domain;The Unlicense (Unlicense);Historical Permission Notice and Disclaimer (HPND);CC0 1.0 Universal (CC0 1.0) Public Domain Dedication" \
             --fail-on="GNU General Public License;GNU Lesser General Public License;GNU Affero General Public License;European Union Public Licence"
