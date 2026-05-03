@@ -79,9 +79,15 @@ function navigateToWizard() {
 
 describe("Wizard i18n — English (default)", () => {
   beforeEach(() => {
+    // Override global de locale for this describe block: test English as default
+    Cypress.env("e2e_locale", "en");
     setupWizardMocks();
     cy.visit(FRONTEND_BASE);
     cy.wait("@getDevices");
+  });
+
+  afterEach(() => {
+    Cypress.env("e2e_locale", undefined);
   });
 
   it("Step 1 (device selection) renders in English", () => {
