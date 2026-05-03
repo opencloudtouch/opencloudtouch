@@ -65,9 +65,12 @@ jobs:
           pip install -r apps/backend/requirements.txt
 
       - name: Check backend licenses
+        # asyncssh uses EPL-2.0 OR GPL-2.0-or-later (SPDX composite).
+        # EPL-2.0 (Eclipse Public License 2.0) is weak-copyleft for modifications
+        # to asyncssh itself only — it does not affect embedding projects.
         run: |
           pip-licenses \
             --format=markdown \
             --order=license \
-            --allow-only="MIT License;Apache Software License;BSD License;ISC License (ISCL);Python Software Foundation License;PSF-2.0;Mozilla Public License 2.0 (MPL 2.0);Public Domain;The Unlicense (Unlicense);Historical Permission Notice and Disclaimer (HPND);CC0 1.0 Universal (CC0 1.0) Public Domain Dedication" \
+            --allow-only="MIT License;Apache Software License;BSD License;ISC License (ISCL);Python Software Foundation License;PSF-2.0;Mozilla Public License 2.0 (MPL 2.0);Public Domain;The Unlicense (Unlicense);Historical Permission Notice and Disclaimer (HPND);CC0 1.0 Universal (CC0 1.0) Public Domain Dedication;EPL-2.0 OR GPL-2.0-or-later" \
             --fail-on="GNU General Public License;GNU Lesser General Public License;GNU Affero General Public License;European Union Public Licence"
