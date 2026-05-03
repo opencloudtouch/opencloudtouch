@@ -51,7 +51,6 @@ jobs:
             --production \
             --excludePrivatePackages \
             --onlyAllow "MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;Unlicense;CC0-1.0;CC-BY-3.0;CC-BY-4.0;Python-2.0;BlueOak-1.0.0;Artistic-2.0" \
-            --failOn "GPL;LGPL;AGPL;CPAL;EUPL;SSPL;BUSL" \
             --summary
 
       # ── Backend (pip) ───────────────────────────────────────────────────────
