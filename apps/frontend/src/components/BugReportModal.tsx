@@ -168,7 +168,7 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
   if (!open) return null;
 
   return (
-    <div className="bug-modal-overlay" onClick={onClose}>
+    <div className="bug-modal-overlay">
       <dialog
         className="bug-modal"
         open
