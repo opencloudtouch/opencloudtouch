@@ -65,12 +65,15 @@ jobs:
           pip install -r apps/backend/requirements.txt
 
       - name: Check backend licenses
-        # asyncssh uses EPL-2.0 OR GPL-2.0-or-later (SPDX composite).
-        # EPL-2.0 (Eclipse Public License 2.0) is weak-copyleft for modifications
-        # to asyncssh itself only — it does not affect embedding projects.
+        # asyncssh is an approved dependency: EPL-2.0 (Eclipse Public License 2.0)
+        # is weak-copyleft — only applies to modifications of asyncssh itself, not
+        # to embedding projects. Excluded from fail-on via --ignore-packages.
+        #
+        # Strategy: deny-list (--fail-on) instead of allow-list (--allow-only)
+        # because pip-licenses reports licenses inconsistently (SPDX vs classifier).
         run: |
           pip-licenses \
             --format=markdown \
             --order=license \
-            --allow-only="MIT License;Apache Software License;BSD License;ISC License (ISCL);Python Software Foundation License;PSF-2.0;Mozilla Public License 2.0 (MPL 2.0);Public Domain;The Unlicense (Unlicense);Historical Permission Notice and Disclaimer (HPND);CC0 1.0 Universal (CC0 1.0) Public Domain Dedication;EPL-2.0 OR GPL-2.0-or-later" \
-            --fail-on="GNU General Public License;GNU Lesser General Public License;GNU Affero General Public License;European Union Public Licence"
+            --ignore-packages asyncssh \
+            --fail-on="GNU General Public License;GNU Lesser General Public License;GNU Affero General Public License;European Union Public Licence;GPL-2.0-only;GPL-2.0-or-later;GPL-3.0-only;GPL-3.0-or-later;AGPL-3.0-only;AGPL-3.0-or-later;LGPL-2.1-only;LGPL-2.1-or-later;LGPL-3.0-only;LGPL-3.0-or-later"
