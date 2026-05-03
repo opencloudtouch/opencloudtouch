@@ -67,13 +67,16 @@ jobs:
       - name: Check backend licenses
         # asyncssh is an approved dependency: EPL-2.0 (Eclipse Public License 2.0)
         # is weak-copyleft — only applies to modifications of asyncssh itself, not
-        # to embedding projects. Excluded from fail-on via --ignore-packages.
+        # to embedding projects. Excluded via --ignore-packages because its SPDX
+        # composite expression "EPL-2.0 OR GPL-2.0-or-later" contains "GPL-2.0-or-later"
+        # as a substring, which would otherwise trigger the --fail-on check.
         #
-        # Strategy: deny-list (--fail-on) instead of allow-list (--allow-only)
-        # because pip-licenses reports licenses inconsistently (SPDX vs classifier).
+        # LGPL is intentionally NOT in the deny-list: LGPL-2.1 only requires open-
+        # sourcing modifications to the LGPL library itself, not embedding code.
+        # zeroconf (mDNS discovery) is LGPL-2.1 and safe to use here.
         run: |
           pip-licenses \
             --format=markdown \
             --order=license \
             --ignore-packages asyncssh \
-            --fail-on="GNU General Public License;GNU Lesser General Public License;GNU Affero General Public License;European Union Public Licence;GPL-2.0-only;GPL-2.0-or-later;GPL-3.0-only;GPL-3.0-or-later;AGPL-3.0-only;AGPL-3.0-or-later;LGPL-2.1-only;LGPL-2.1-or-later;LGPL-3.0-only;LGPL-3.0-or-later"
+            --fail-on="GNU General Public License;GNU Affero General Public License;European Union Public Licence;GPL-2.0-only;GPL-2.0-or-later;GPL-3.0-only;GPL-3.0-or-later;AGPL-3.0-only;AGPL-3.0-or-later;EUPL-1.1;EUPL-1.2"
