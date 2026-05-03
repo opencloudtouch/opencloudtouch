@@ -1,0 +1,74 @@
+# ==============================================================================
+# LICENSE CHECK - Verify OSS dependency licenses are compatible
+#
+# Fails on: GPL, AGPL, LGPL, CPAL, EUPL (copyleft incompatible with MIT)
+# Allowed:  MIT, Apache-2.0, BSD-*, ISC, Python-2.0, CC0-1.0, 0BSD, Unlicense
+# ==============================================================================
+
+name: License Check
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/frontend/package.json'
+      - 'package-lock.json'
+      - 'apps/backend/requirements.txt'
+      - 'apps/backend/requirements-dev.txt'
+  pull_request:
+    paths:
+      - 'apps/frontend/package.json'
+      - 'package-lock.json'
+      - 'apps/backend/requirements.txt'
+      - 'apps/backend/requirements-dev.txt'
+  workflow_dispatch:
+
+jobs:
+  license-check:
+    name: License Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      # ── Frontend (npm) ──────────────────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Check frontend licenses
+        run: |
+          npx license-checker-rseidelsohn \
+            --start apps/frontend \
+            --production \
+            --excludePrivatePackages \
+            --onlyAllow "MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;Unlicense;CC0-1.0;CC-BY-3.0;CC-BY-4.0;Python-2.0;BlueOak-1.0.0;Artistic-2.0" \
+            --failOn "GPL;LGPL;AGPL;CPAL;EUPL;SSPL;BUSL" \
+            --summary
+
+      # ── Backend (pip) ───────────────────────────────────────────────────────
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install backend dependencies
+        run: |
+          pip install pip-licenses
+          pip install -r apps/backend/requirements.txt
+
+      - name: Check backend licenses
+        run: |
+          pip-licenses \
+            --format=markdown \
+            --order=license \
+            --allow-only="MIT License;Apache Software License;BSD License;ISC License (ISCL);Python Software Foundation License;Mozilla Public License 2.0 (MPL 2.0);Public Domain;The Unlicense (Unlicense);Historical Permission Notice and Disclaimer (HPND);CC0 1.0 Universal (CC0 1.0) Public Domain Dedication" \
+            --fail-on="GNU General Public License;GNU Lesser General Public License;GNU Affero General Public License;European Union Public Licence"
