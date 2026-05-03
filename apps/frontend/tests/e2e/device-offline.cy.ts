@@ -1,4 +1,4 @@
-/**
+﻿/**
  * E2E Tests: Device Offline Display
  * Regression test for #82: UI must show clear offline indicator when device is unreachable.
  *
@@ -11,7 +11,7 @@
  * - Frontend running on port 4173
  */
 
-/** Force German locale — CI defaults to English (navigator.language='en') */
+/** Force German locale â€” CI defaults to English (navigator.language='en') */
 function visitDe(url: string, options?: Partial<Cypress.VisitOptions>) {
   cy.visit(url, {
     ...options,
@@ -66,7 +66,7 @@ describe("Device Offline Display", () => {
       // Offline banner should appear
       cy.get('[data-testid="device-offline-banner"]', { timeout: 10000 })
         .should("be.visible")
-        .and("contain.text", "Gerät nicht erreichbar");
+        .and("contain.text", "GerÃ¤t nicht erreichbar");
     });
 
     it("should show device name in offline banner", () => {
@@ -157,7 +157,7 @@ describe("Device Offline Display", () => {
 
   describe("Recovery: Device Comes Back Online", () => {
     it("should remove offline banner and restore controls when device recovers", () => {
-      // Phase 1: offline — intercept registered BEFORE visit so initial mount request gets 503
+      // Phase 1: offline â€” intercept registered BEFORE visit so initial mount request gets 503
       cy.intercept("GET", "/api/devices/*/now-playing", { statusCode: 503 }).as("nowPlaying503");
       cy.intercept("GET", "/api/devices/*/volume", { statusCode: 503 }).as("volume503");
 
@@ -167,9 +167,9 @@ describe("Device Offline Display", () => {
       cy.get('[data-testid="device-offline-banner"]', { timeout: 10000 }).should("be.visible");
       cy.get(".volume-section").should("not.exist");
 
-      // Phase 2: recovery — override intercepts to pass through, then reload.
+      // Phase 2: recovery â€” override intercepts to pass through, then reload.
       // cy.reload() resets the JS module context, so offlineDeviceStore clears.
-      // The now-playing request on the fresh mount goes to the real backend (mock mode → 200).
+      // The now-playing request on the fresh mount goes to the real backend (mock mode â†’ 200).
       cy.intercept("GET", "/api/devices/*/now-playing", (req) => {
         req.continue();
       });

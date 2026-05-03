@@ -9,7 +9,7 @@
 
 /** Force German locale â€” CI defaults to English (navigator.language='en') */
 function visitDe(url: string, options?: Partial<Cypress.VisitOptions>) {
-  visitDe(url, {
+  cy.visit(url, {
     ...options,
     onBeforeLoad(win) {
       win.localStorage.setItem("oct-lang", "de");
