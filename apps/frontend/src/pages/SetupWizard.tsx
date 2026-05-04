@@ -85,7 +85,12 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   );
 
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
-  const [currentStep, setCurrentStep] = useState(1);
+  // Step can be initialized via URL param ?step=N (N is 1-based, matching old step numbering where
+  // step 1 was device selection; remaining steps 2-8 map to internal steps 1-7).
+  const urlStep = Number.parseInt(searchParams.get("step") ?? "2", 10);
+  const [currentStep, setCurrentStep] = useState(
+    Number.isNaN(urlStep) ? 1 : Math.max(1, Math.min(urlStep - 1, 7))
+  );
   const [steps, setSteps] = useState<WizardStep[]>(WIZARD_STEPS);
   const [backupPath, setBackupPath] = useState<string>("");
   const [_detectedStrategy, setDetectedStrategy] = useState<DetectStrategyResponse | null>(null);

@@ -444,11 +444,13 @@ describe("Preset Management Advanced", () => {
 
   describe("Error Handling", () => {
     beforeEach(() => {
-      // Ensure device is never marked offline: now-playing and volume polls must succeed.
-      // If the background useNowPlaying hook marks the device offline, the error-message
-      // div uses {error && !deviceOffline && ...} and would NOT render.
+      // Intercept BEFORE reload so first polls on fresh page hit these, not the real backend.
+      // offlineDeviceStore is in-memory: cy.reload() clears it, preventing stale offline state
+      // from previous tests from hiding the error-message div ({error && !deviceOffline && ...}).
       cy.intercept("GET", "/api/devices/*/now-playing", { statusCode: 200, body: { source: "STANDBY" } });
       cy.intercept("GET", "/api/devices/*/volume", { statusCode: 200, body: { actual_volume: 20, muted: false } });
+      cy.reload();
+      waitForPresetsReady();
     });
 
     it("should handle preset save failure gracefully", () => {
