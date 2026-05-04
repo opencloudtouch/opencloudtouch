@@ -168,7 +168,7 @@ jobs:
           CI: "true"
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           files: ./.out/coverage/backend/coverage.xml
           flags: backend
@@ -215,7 +215,7 @@ jobs:
         run: npm run test:coverage
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           files: ./.out/coverage/frontend/lcov.info
           flags: frontend
