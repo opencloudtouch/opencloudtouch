@@ -22,6 +22,16 @@ function setupBasicMocks() {
     body: { devices: [MOCK_DEVICE] },
   }).as("getDevices");
 
+  cy.intercept("GET", "/api/devices/*/now-playing", {
+    statusCode: 200,
+    body: { source: "STANDBY", status: null },
+  });
+
+  cy.intercept("GET", "/api/devices/*/volume", {
+    statusCode: 200,
+    body: { actual_volume: 30, muted: false },
+  });
+
   cy.intercept("GET", "/api/presets*", {
     statusCode: 200,
     body: {

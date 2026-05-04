@@ -41,6 +41,21 @@ function setupWizardMocks() {
     body: { devices: [MOCK_DEVICE] },
   }).as("getDevices");
 
+  cy.intercept("GET", "/api/devices/*/now-playing", {
+    statusCode: 200,
+    body: { source: "STANDBY", status: null },
+  });
+
+  cy.intercept("GET", "/api/devices/*/volume", {
+    statusCode: 200,
+    body: { actual_volume: 30, muted: false },
+  });
+
+  cy.intercept("GET", "/api/presets*", {
+    statusCode: 200,
+    body: { presets: [] },
+  }).as("getPresets");
+
   cy.intercept("POST", "/api/setup/wizard/check-ports", {
     statusCode: 200,
     body: { success: true, has_ssh: true, has_telnet: false, message: "SSH available" },
@@ -182,8 +197,11 @@ describe("Wizard i18n — German (language switch)", () => {
   it("navigation bar switches to German", () => {
     visitDe(FRONTEND_BASE);
     cy.wait("@getDevices");
-    cy.get("nav").contains("Presets").should("not.exist");
-    cy.get("nav").contains("Voreinstellungen").should("exist");
+    // "Presets" is the same in both EN and DE, so check other nav labels
+    cy.get("nav").contains("Zones").should("not.exist");
+    cy.get("nav").contains("Zonen").should("exist");
+    cy.get("nav").contains("Settings").should("not.exist");
+    cy.get("nav").contains("Einstellungen").should("exist");
   });
 
   it("Step 2 title switches to German after language change", () => {
@@ -227,22 +245,28 @@ describe("LanguageSelector — flag-icons rendering", () => {
       .and("have.class", "fi");
   });
 
-  it("opens dropdown with 4 language options", () => {
+  it("opens dropdown with 10 language options", () => {
     cy.get("[aria-label='Select language']").click();
-    cy.get("[role='listbox'] [role='option']").should("have.length", 4);
+    cy.get("[role='listbox'] [role='option']").should("have.length", 10);
   });
 
-  it("dropdown shows English, German, French, Italian options", () => {
+  it("dropdown shows all 10 language options", () => {
     cy.get("[aria-label='Select language']").click();
     cy.get("[role='option']").contains("English").should("exist");
     cy.get("[role='option']").contains("Deutsch").should("exist");
     cy.get("[role='option']").contains("Français").should("exist");
     cy.get("[role='option']").contains("Italiano").should("exist");
+    cy.get("[role='option']").contains("Español").should("exist");
+    cy.get("[role='option']").contains("Nederlands").should("exist");
+    cy.get("[role='option']").contains("Português (BR)").should("exist");
+    cy.get("[role='option']").contains("日本語").should("exist");
+    cy.get("[role='option']").contains("Polski").should("exist");
+    cy.get("[role='option']").contains("Svenska").should("exist");
   });
 
   it("each option has a flag-icons CSS element", () => {
     cy.get("[aria-label='Select language']").click();
-    cy.get("[role='option'] .fi").should("have.length.at.least", 4);
+    cy.get("[role='option'] .fi").should("have.length.at.least", 10);
   });
 
   it("selecting German updates the active language to DE", () => {

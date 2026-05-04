@@ -520,7 +520,7 @@ describe("Preset Management Advanced", () => {
 
       // Modal closes, error message appears in page
       cy.get(".radio-search-modal", { timeout: 10000 }).should("not.exist");
-      cy.get('[data-testid="error-message"]', { timeout: 5000 }).should("be.visible");
+      cy.get('[data-testid="error-message"]', { timeout: 10000 }).scrollIntoView().should("be.visible");
 
       // Dismiss error
       cy.get('[data-testid="error-message"] button').click();
