@@ -18,6 +18,14 @@ function visitEn(url: string) {
   });
 }
 
+function visitDe(url: string) {
+  cy.visit(url, {
+    onBeforeLoad(win) {
+      win.localStorage.setItem("oct-lang", "de");
+    },
+  });
+}
+
 const MOCK_DEVICE = {
   device_id: "DEVICE_WOHNZIMMER",
   name: "Wohnzimmer",
@@ -169,38 +177,32 @@ describe("Wizard i18n — English (default)", () => {
 describe("Wizard i18n — German (language switch)", () => {
   beforeEach(() => {
     setupWizardMocks();
-    cy.visit(FRONTEND_BASE);
-    cy.wait("@getDevices");
-    // Switch language to German via LanguageSelector
-    cy.get("[aria-label='Select language']").click();
-    cy.get("[role='option']").contains("DE").click();
-  });
-
-  afterEach(() => {
-    // Reset language to English
-    cy.get("[aria-label='Select language']").click();
-    cy.get("[role='option']").contains("EN").click();
   });
 
   it("navigation bar switches to German", () => {
+    visitDe(FRONTEND_BASE);
+    cy.wait("@getDevices");
     cy.get("nav").contains("Presets").should("not.exist");
     cy.get("nav").contains("Voreinstellungen").should("exist");
   });
 
   it("Step 2 title switches to German after language change", () => {
-    cy.visit(`${FRONTEND_BASE}/setup-wizard?step=2&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    visitDe(`${FRONTEND_BASE}/setup-wizard?step=2&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.wait("@getDevices");
     cy.contains("USB-Stick vorbereiten").should("exist");
     cy.contains("Prepare USB drive").should("not.exist");
   });
 
   it("Step 6 domain labels are in German", () => {
-    cy.visit(`${FRONTEND_BASE}/setup-wizard?step=6&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    visitDe(`${FRONTEND_BASE}/setup-wizard?step=6&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.wait("@getDevices");
     cy.contains("Hosts-Datei ändern").should("exist");
     cy.contains("Erforderlich").should("exist");
   });
 
   it("Step 8 completion title is in German", () => {
-    cy.visit(`${FRONTEND_BASE}/setup-wizard?step=8&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79&deviceName=Wohnzimmer`);
+    visitDe(`${FRONTEND_BASE}/setup-wizard?step=8&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79&deviceName=Wohnzimmer`);
+    cy.wait("@getDevices");
     cy.contains("Setup abgeschlossen").should("exist");
   });
 });

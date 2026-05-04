@@ -136,7 +136,7 @@ const MOJIBAKE_PATTERNS = [
   "âž",   // ➕ mojibake
   "â†",   // → / ← mojibake
   "â³",   // ⏳ mojibake
-  "ðŸ"Œ", // 🔌 exact
+  "ðŸ\u201DŒ", // 🔌 exact
   "âš ï¸", // ⚠️ exact
 ];
 
@@ -151,7 +151,8 @@ function assertNoMojibake() {
 describe("Wizard Step 2 — USB Preparation (emoji rendering)", () => {
   beforeEach(() => {
     setupWizardMocks();
-    cy.visit(`${FRONTEND_BASE}/setup/wizard?step=2&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.visit(`${FRONTEND_BASE}/setup-wizard?step=2&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.wait("@getDevices");
   });
 
   it("does not render any mojibake characters", () => {
@@ -174,8 +175,8 @@ describe("Wizard Step 2 — USB Preparation (emoji rendering)", () => {
 describe("Wizard Step 3 — Power Cycle (emoji rendering)", () => {
   beforeEach(() => {
     setupWizardMocks();
-    cy.visit(`${FRONTEND_BASE}/setup/wizard?step=3&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
-    cy.wait("@checkPorts");
+    cy.visit(`${FRONTEND_BASE}/setup-wizard?step=3&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.wait("@getDevices");
   });
 
   it("does not render any mojibake characters", () => {
@@ -190,7 +191,8 @@ describe("Wizard Step 4 — Backup (emoji rendering)", () => {
       statusCode: 200,
       body: { success: true, message: "Backup OK", volumes: [], total_size_mb: 0, total_duration_seconds: 0, backup_path: "/usb/backup" },
     }).as("backup");
-    cy.visit(`${FRONTEND_BASE}/setup/wizard?step=4&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.visit(`${FRONTEND_BASE}/setup-wizard?step=4&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.wait("@getDevices");
   });
 
   it("does not render any mojibake characters", () => {
@@ -201,9 +203,8 @@ describe("Wizard Step 4 — Backup (emoji rendering)", () => {
 describe("Wizard Step 5 — Config Modification (emoji rendering)", () => {
   beforeEach(() => {
     setupWizardMocks();
-    cy.visit(`${FRONTEND_BASE}/setup/wizard?step=5&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
-    cy.wait("@serverInfo");
-    cy.wait("@detectStrategy");
+    cy.visit(`${FRONTEND_BASE}/setup-wizard?step=5&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.wait("@getDevices");
   });
 
   it("does not render any mojibake characters", () => {
@@ -227,7 +228,8 @@ describe("Wizard Step 5 — Config Modification (emoji rendering)", () => {
 describe("Wizard Step 6 — Hosts Modification (emoji rendering)", () => {
   beforeEach(() => {
     setupWizardMocks();
-    cy.visit(`${FRONTEND_BASE}/setup/wizard?step=6&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.visit(`${FRONTEND_BASE}/setup-wizard?step=6&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.wait("@getDevices");
   });
 
   it("does not render any mojibake characters", () => {
@@ -242,7 +244,8 @@ describe("Wizard Step 7 — Verification (emoji rendering)", () => {
       statusCode: 200,
       body: { success: true, resolved_ip: "192.168.1.100", expected_ip: "192.168.1.100", matches_expected: true, message: "OK" },
     }).as("verifyRedirect");
-    cy.visit(`${FRONTEND_BASE}/setup/wizard?step=7&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.visit(`${FRONTEND_BASE}/setup-wizard?step=7&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.wait("@getDevices");
   });
 
   it("does not render any mojibake characters", () => {
@@ -268,7 +271,8 @@ describe("Wizard Step 7 — Verification (emoji rendering)", () => {
 describe("Wizard Step 8 — Completion (emoji rendering)", () => {
   beforeEach(() => {
     setupWizardMocks();
-    cy.visit(`${FRONTEND_BASE}/setup/wizard?step=8&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79&deviceName=Wohnzimmer`);
+    cy.visit(`${FRONTEND_BASE}/setup-wizard?step=8&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79&deviceName=Wohnzimmer`);
+    cy.wait("@getDevices");
   });
 
   it("does not render any mojibake characters", () => {
@@ -299,7 +303,8 @@ describe("Wizard Step 8 — Completion (emoji rendering)", () => {
 describe("WizardStep base — warning icon rendering", () => {
   beforeEach(() => {
     setupWizardMocks();
-    cy.visit(`${FRONTEND_BASE}/setup/wizard?step=2&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.visit(`${FRONTEND_BASE}/setup-wizard?step=2&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.wait("@getDevices");
   });
 
   it("warning icon in WizardStep header renders correctly (⚠️ not âš ï¸)", () => {

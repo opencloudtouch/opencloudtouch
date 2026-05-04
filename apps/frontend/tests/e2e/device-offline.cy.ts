@@ -90,7 +90,9 @@ describe("Device Offline Display", () => {
         },
       }).as("volume503");
 
-      cy.wait("@nowPlaying503");
+      // Reload so intercepts are active on initial mount (avoids polling-cycle race condition)
+      cy.reload();
+      cy.wait("@nowPlaying503", { timeout: 10000 });
 
       // Banner should include device name (from the device card header)
       cy.get('[data-testid="device-offline-banner"]', { timeout: 10000 })

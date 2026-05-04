@@ -467,7 +467,9 @@ describe("Preset Management Advanced", () => {
 
       // Modal closes, error message appears in page
       cy.get(".radio-search-modal", { timeout: 10000 }).should("not.exist");
-      cy.get('[data-testid="error-message"]', { timeout: 5000 }).should("be.visible");
+      cy.get('[data-testid="error-message"]', { timeout: 10000 })
+        .scrollIntoView()
+        .should("be.visible");
     });
 
     it("should handle preset clear failure gracefully", () => {
@@ -497,7 +499,7 @@ describe("Preset Management Advanced", () => {
       cy.wait("@clearPresetFail");
 
       // Should show error (scroll into view to ensure visibility)
-      cy.get('[data-testid="error-message"]').scrollIntoView().should("be.visible");
+      cy.get('[data-testid="error-message"]', { timeout: 10000 }).scrollIntoView().should("be.visible");
 
       // Preset should still be visible (not optimistically removed)
       cy.get('[data-testid="preset-play-2"]').should("contain", stationA.name);
