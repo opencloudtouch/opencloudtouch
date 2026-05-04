@@ -32,7 +32,7 @@ function setupBasicMocks() {
     body: { actual_volume: 30, muted: false },
   });
 
-  cy.intercept("GET", "/api/presets*", {
+  cy.intercept("GET", "/api/presets/*", {
     statusCode: 200,
     body: {
       presets: [
@@ -72,13 +72,11 @@ describe("Preset Search Modal — layout", () => {
     setupBasicMocks();
     cy.visit(FRONTEND_BASE);
     cy.wait("@getDevices");
+    cy.wait("@getPresets");
   });
 
   it("modal is rendered as div[role=dialog], not as dialog element", () => {
-    // Open presets page and click an empty preset to open search
-    cy.contains("Presets").click();
-    cy.wait("@getPresets");
-    // Click an empty preset slot (preset 2 or 3)
+    // Click an empty preset slot (preset 2 or 3) to open search modal
     cy.get("[data-preset='2'], .preset-empty").first().click();
     cy.get("[role='dialog'].radio-search-modal").should("exist");
     // Must NOT be a native dialog element
@@ -86,8 +84,6 @@ describe("Preset Search Modal — layout", () => {
   });
 
   it("modal overlay has correct flexbox centering styles", () => {
-    cy.contains("Presets").click();
-    cy.wait("@getPresets");
     cy.get("[data-preset='2'], .preset-empty").first().click();
     cy.get(".radio-search-overlay").should("exist").then(($overlay) => {
       const styles = window.getComputedStyle($overlay[0]);
@@ -98,8 +94,6 @@ describe("Preset Search Modal — layout", () => {
   });
 
   it("modal is visually centered (left edge > 0)", () => {
-    cy.contains("Presets").click();
-    cy.wait("@getPresets");
     cy.get("[data-preset='2'], .preset-empty").first().click();
     cy.get(".radio-search-modal").should("exist").then(($modal) => {
       const rect = $modal[0].getBoundingClientRect();
@@ -111,8 +105,6 @@ describe("Preset Search Modal — layout", () => {
   });
 
   it("modal closes on overlay click", () => {
-    cy.contains("Presets").click();
-    cy.wait("@getPresets");
     cy.get("[data-preset='2'], .preset-empty").first().click();
     cy.get(".radio-search-modal").should("exist");
     cy.get(".radio-search-overlay").click("topLeft");
@@ -120,8 +112,6 @@ describe("Preset Search Modal — layout", () => {
   });
 
   it("modal closes on Escape key", () => {
-    cy.contains("Presets").click();
-    cy.wait("@getPresets");
     cy.get("[data-preset='2'], .preset-empty").first().click();
     cy.get(".radio-search-modal").should("exist");
     cy.get(".radio-search-overlay").type("{esc}");
