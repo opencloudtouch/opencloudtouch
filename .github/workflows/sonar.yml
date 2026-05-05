@@ -50,7 +50,7 @@ jobs:
           CI: "true"
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v7
+        uses: SonarSource/sonarqube-scan-action@v8
         with:
           args: >
             -Dsonar.projectKey=scheilch_opencloudtouch
