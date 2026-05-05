@@ -243,7 +243,6 @@ describe("ErrorBoundary", () => {
   });
 
   it("handles errors from event handlers (manual trigger)", () => {
-    // eslint-disable-next-line @eslint-react/component-hook-factories
     const ErrorButton = () => {
       const handleClick = () => {
         throw new Error("Click error");
