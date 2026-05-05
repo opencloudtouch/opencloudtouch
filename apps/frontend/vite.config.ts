@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __OCT_EXT_RESOLVER__: JSON.stringify(false),
+  },
   build: {
     outDir: '../../.out/dist',
     emptyOutDir: true,

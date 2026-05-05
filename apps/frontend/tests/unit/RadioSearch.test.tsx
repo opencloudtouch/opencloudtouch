@@ -396,4 +396,38 @@ describe("RadioSearch Component", () => {
     const nativeDialog = document.querySelector("dialog.radio-search-modal");
     expect(nativeDialog).not.toBeInTheDocument();
   });
+
+  describe("Feature Toggle (HAS_EXT_RESOLVER)", () => {
+    it("should hide provider row when HAS_EXT_RESOLVER is false (only 1 provider)", async () => {
+      vi.resetModules();
+      vi.doMock("../../src/config/capabilities", () => ({ HAS_EXT_RESOLVER: false }));
+      const { default: RadioSearchGated } = await import("../../src/components/RadioSearch");
+
+      const { container } = render(
+        <RadioSearchGated isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+      );
+
+      // Search type row exists, but provider row should be hidden (only 1 provider)
+      const chipRows = container.querySelectorAll(".search-type-row");
+      // Only the search-type row (name/country/tag) should be visible
+      expect(chipRows.length).toBe(1);
+
+      // No TuneIn text in DOM
+      expect(container.textContent).not.toContain("TuneIn");
+
+      vi.doUnmock("../../src/config/capabilities");
+    });
+
+    it("should show provider row with TuneIn chip when HAS_EXT_RESOLVER is true", () => {
+      const { container } = render(
+        <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+      );
+
+      const chipRows = container.querySelectorAll(".search-type-row");
+      expect(chipRows.length).toBe(2);
+
+      expect(container.textContent).toContain("TuneIn");
+      expect(container.textContent).toContain("RadioBrowser");
+    });
+  });
 });

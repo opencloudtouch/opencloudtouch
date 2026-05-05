@@ -4,6 +4,7 @@ Radio API Endpoints
 Provides REST API for searching and retrieving radio stations.
 """
 
+import os
 from enum import Enum
 from typing import List
 
@@ -100,6 +101,16 @@ async def search_stations(
     - **limit**: Maximum results (1-100, default: 10)
     - **provider**: Radio provider - radiobrowser or tunein (default: radiobrowser)
     """
+    # Guard: reject tunein when extended resolver is disabled
+    if (
+        provider == ProviderType.TUNEIN
+        and os.getenv("OCT_EXTENDED_RESOLVER", "true").lower() != "true"
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Provider 'tunein' is not available",
+        )
+
     adapter = get_radio_adapter(provider.value)
 
     try:
