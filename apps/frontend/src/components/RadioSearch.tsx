@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { HAS_EXT_RESOLVER } from "../config/capabilities";
 import { getErrorMessage, parseApiError } from "../api/types";
 import { getAvatarColor, getStationInitials } from "../utils/stationAvatar";
 import StationDetail from "./StationDetail";
@@ -56,10 +57,14 @@ const SEARCH_TYPES: { value: SearchType }[] = [
   { value: "tag" },
 ];
 
-const PROVIDERS: { value: RadioProviderType; label: string }[] = [
+const ALL_PROVIDERS: { value: RadioProviderType; label: string }[] = [
   { value: "radiobrowser", label: "RadioBrowser" },
   { value: "tunein", label: "TuneIn" },
 ];
+
+const PROVIDERS = HAS_EXT_RESOLVER
+  ? ALL_PROVIDERS
+  : ALL_PROVIDERS.filter((p) => p.value !== "tunein");
 
 export default function RadioSearch({
   onStationSelect,
@@ -245,20 +250,22 @@ export default function RadioSearch({
                 </button>
               ))}
             </div>
-            <div className="search-type-row">
-              {PROVIDERS.map((p) => (
-                <button
-                  key={p.value}
-                  className={`search-type-chip${radioProvider === p.value ? " active" : ""}`}
-                  onClick={() => {
-                    setRadioProvider(p.value);
-                    if (query.trim().length >= 2) handleSearch(query);
-                  }}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
+            {PROVIDERS.length > 1 && (
+              <div className="search-type-row">
+                {PROVIDERS.map((p) => (
+                  <button
+                    key={p.value}
+                    className={`search-type-chip${radioProvider === p.value ? " active" : ""}`}
+                    onClick={() => {
+                      setRadioProvider(p.value);
+                      if (query.trim().length >= 2) handleSearch(query);
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {hasExistingPreset && onDelete && (
               <div className="search-delete-row">

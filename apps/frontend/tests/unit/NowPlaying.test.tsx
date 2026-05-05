@@ -322,4 +322,54 @@ describe("NowPlaying Component", () => {
       expect(screen.getByText("No station")).toBeInTheDocument();
     });
   });
+
+  describe("Feature Toggle (HAS_EXT_RESOLVER)", () => {
+    it("should not show badge for TUNEIN source when HAS_EXT_RESOLVER is false", async () => {
+      vi.resetModules();
+      vi.doMock("../../src/config/capabilities", () => ({ HAS_EXT_RESOLVER: false }));
+      const { default: NowPlayingGated } = await import("../../src/components/NowPlaying");
+
+      const nowPlaying = {
+        station: "TuneIn Station",
+        source: "TUNEIN",
+        play_status: "PLAY_STATE",
+      };
+
+      const { container } = render(<NowPlayingGated nowPlaying={nowPlaying} />);
+
+      expect(container.querySelector(".np-source-badge")).not.toBeInTheDocument();
+
+      vi.doUnmock("../../src/config/capabilities");
+    });
+
+    it("should show Radio badge for TUNEIN source when HAS_EXT_RESOLVER is true", () => {
+      const nowPlaying = {
+        station: "TuneIn Station",
+        source: "TUNEIN",
+        play_status: "PLAY_STATE",
+      };
+
+      const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
+
+      expect(container.querySelector(".np-source-badge.radio")).toBeInTheDocument();
+    });
+
+    it("should always show Radio badge for INTERNET_RADIO regardless of flag", async () => {
+      vi.resetModules();
+      vi.doMock("../../src/config/capabilities", () => ({ HAS_EXT_RESOLVER: false }));
+      const { default: NowPlayingGated } = await import("../../src/components/NowPlaying");
+
+      const nowPlaying = {
+        station: "Radio FM",
+        source: "INTERNET_RADIO",
+        play_status: "PLAY_STATE",
+      };
+
+      const { container } = render(<NowPlayingGated nowPlaying={nowPlaying} />);
+
+      expect(container.querySelector(".np-source-badge.radio")).toBeInTheDocument();
+
+      vi.doUnmock("../../src/config/capabilities");
+    });
+  });
 });

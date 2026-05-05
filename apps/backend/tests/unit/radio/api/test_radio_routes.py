@@ -618,3 +618,59 @@ class TestRadioUncoveredExceptionPaths:
         response = client.get("/api/radio/station/test-uuid")
         assert response.status_code == 500
         assert "Unexpected" in response.json()["detail"]
+
+
+class TestExtendedResolverGuard:
+    """Tests for OCT_EXTENDED_RESOLVER env var guard on tunein provider."""
+
+    def test_tunein_rejected_when_flag_disabled(self, client, mock_adapter):
+        """provider=tunein returns 400 when OCT_EXTENDED_RESOLVER=false."""
+        with patch.dict("os.environ", {"OCT_EXTENDED_RESOLVER": "false"}):
+            response = client.get(
+                "/api/radio/search",
+                params={"q": "test", "provider": "tunein"},
+            )
+        assert response.status_code == 400
+        assert "not available" in response.json()["detail"]
+        mock_adapter.search_by_name.assert_not_called()
+
+    def test_radiobrowser_works_when_flag_disabled(
+        self, client, mock_adapter, mock_radio_stations
+    ):
+        """provider=radiobrowser works normally when OCT_EXTENDED_RESOLVER=false."""
+        mock_adapter.search_by_name.return_value = mock_radio_stations
+        with patch.dict("os.environ", {"OCT_EXTENDED_RESOLVER": "false"}):
+            response = client.get(
+                "/api/radio/search",
+                params={"q": "test", "provider": "radiobrowser"},
+            )
+        assert response.status_code == 200
+        assert len(response.json()["stations"]) == 2
+
+    def test_tunein_works_when_flag_enabled(
+        self, client, mock_adapter, mock_radio_stations
+    ):
+        """provider=tunein works normally when OCT_EXTENDED_RESOLVER=true (default)."""
+        mock_adapter.search_by_name.return_value = mock_radio_stations
+        with patch.dict("os.environ", {"OCT_EXTENDED_RESOLVER": "true"}):
+            response = client.get(
+                "/api/radio/search",
+                params={"q": "test", "provider": "tunein"},
+            )
+        assert response.status_code == 200
+
+    def test_tunein_works_when_flag_not_set(
+        self, client, mock_adapter, mock_radio_stations
+    ):
+        """provider=tunein works when OCT_EXTENDED_RESOLVER is not set (defaults to true)."""
+        mock_adapter.search_by_name.return_value = mock_radio_stations
+        with patch.dict("os.environ", {}, clear=False):
+            # Ensure env var is not set
+            import os
+
+            os.environ.pop("OCT_EXTENDED_RESOLVER", None)
+            response = client.get(
+                "/api/radio/search",
+                params={"q": "test", "provider": "tunein"},
+            )
+        assert response.status_code == 200

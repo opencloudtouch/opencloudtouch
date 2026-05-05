@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { HAS_EXT_RESOLVER } from "../config/capabilities";
 import "./NowPlaying.css";
 
 export interface NowPlayingData {
@@ -33,7 +34,7 @@ function getSourceBadge(source?: string) {
       </div>
     );
   }
-  if (source === "INTERNET_RADIO" || source === "TUNEIN") {
+  if (source === "INTERNET_RADIO" || (HAS_EXT_RESOLVER && source === "TUNEIN")) {
     return (
       <div className="np-source-badge radio" title="Radio">
         <svg viewBox="0 0 24 24" width="16" height="16">
