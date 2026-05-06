@@ -164,7 +164,7 @@ async def _try_classify(
     for attempt in range(2):
         try:
             response = await client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5.4-mini",
                 messages=messages,
                 temperature=0.1,
                 max_tokens=200,
