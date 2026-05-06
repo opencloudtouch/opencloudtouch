@@ -1,0 +1,27 @@
+{
+  "action": "created",
+  "discussion": {
+    "number": 10,
+    "title": "How to set up multiple speakers in one room?",
+    "body": "I have three SoundTouch speakers and want to group them together. Is there a way to do this through the bridge?",
+    "category": {
+      "name": "Q&A"
+    },
+    "author_association": "NONE",
+    "user": {
+      "login": "discussion-user",
+      "type": "User"
+    }
+  },
+  "sender": {
+    "login": "discussion-user",
+    "type": "User"
+  },
+  "repository": {
+    "owner": {
+      "login": "scheilch"
+    },
+    "name": "opencloudtouch",
+    "full_name": "scheilch/opencloudtouch"
+  }
+}

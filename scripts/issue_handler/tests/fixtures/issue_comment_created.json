@@ -1,0 +1,34 @@
+{
+  "action": "created",
+  "issue": {
+    "number": 42,
+    "title": "Speaker not responding after firmware update",
+    "body": "Original issue body here.",
+    "labels": [],
+    "author_association": "NONE",
+    "state": "open",
+    "user": {
+      "login": "community-user",
+      "type": "User"
+    }
+  },
+  "comment": {
+    "body": "I have the same problem with my SoundTouch 10. It started after the latest firmware update.",
+    "author_association": "NONE",
+    "user": {
+      "login": "another-user",
+      "type": "User"
+    }
+  },
+  "sender": {
+    "login": "another-user",
+    "type": "User"
+  },
+  "repository": {
+    "owner": {
+      "login": "scheilch"
+    },
+    "name": "opencloudtouch",
+    "full_name": "scheilch/opencloudtouch"
+  }
+}

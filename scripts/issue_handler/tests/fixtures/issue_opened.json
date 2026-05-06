@@ -1,0 +1,26 @@
+{
+  "action": "opened",
+  "issue": {
+    "number": 42,
+    "title": "Speaker not responding after firmware update",
+    "body": "After updating my SoundTouch 300 firmware to the latest version, the speaker stops responding to commands from the app. I have tried restarting the speaker and the app, but the issue persists.\n\n**Device**: SoundTouch 300\n**OS**: Android 14\n**Steps to reproduce**:\n1. Update firmware\n2. Open app\n3. Try to control speaker\n\n**Expected**: Speaker responds to commands\n**Actual**: No response, timeout after 10 seconds",
+    "labels": [],
+    "author_association": "NONE",
+    "state": "open",
+    "user": {
+      "login": "community-user",
+      "type": "User"
+    }
+  },
+  "sender": {
+    "login": "community-user",
+    "type": "User"
+  },
+  "repository": {
+    "owner": {
+      "login": "scheilch"
+    },
+    "name": "opencloudtouch",
+    "full_name": "scheilch/opencloudtouch"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "action": "edited",
+  "issue": {
+    "number": 42,
+    "title": "Speaker not responding after firmware update [EDITED]",
+    "body": "Updated description with more details.\n\nAfter updating my SoundTouch 300 firmware to the latest version, the speaker stops responding.",
+    "labels": [],
+    "author_association": "NONE",
+    "state": "open",
+    "user": {
+      "login": "community-user",
+      "type": "User"
+    }
+  },
+  "sender": {
+    "login": "community-user",
+    "type": "User"
+  },
+  "repository": {
+    "owner": {
+      "login": "scheilch"
+    },
+    "name": "opencloudtouch",
+    "full_name": "scheilch/opencloudtouch"
+  }
+}
