@@ -1,0 +1,43 @@
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Speaker Compatibility
+
+        Ask questions about supported Bose SoundTouch models, firmware versions, or network setup.
+        Check the [supported models list](https://github.com/scheilch/opencloudtouch#supported-models) first.
+
+  - type: input
+    id: speaker-model
+    attributes:
+      label: Speaker model
+      description: "Which Bose SoundTouch speaker do you have?"
+      placeholder: "e.g. SoundTouch 10, SoundTouch 300, SoundTouch SA-5"
+    validations:
+      required: true
+
+  - type: input
+    id: firmware-version
+    attributes:
+      label: Firmware version (if known)
+      description: "You can find this in the Bose app or on the speaker's web interface."
+      placeholder: "e.g. 31.0.3"
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: What would you like to know about your speaker's compatibility?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: network
+    attributes:
+      label: How is the speaker connected?
+      options:
+        - Wi-Fi
+        - Ethernet
+        - Not connected yet
+        - Not sure

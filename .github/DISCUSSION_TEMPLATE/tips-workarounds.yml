@@ -1,0 +1,44 @@
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Tips & Workarounds
+
+        Share a tip, trick, or workaround that helped you get OpenCloudTouch running smoothly.
+        This is a community knowledge base — your experience might save someone else hours of troubleshooting!
+
+        **Not a workaround?** Use the right channel:
+        - 🐛 Bug? → [Bug Report](https://github.com/scheilch/opencloudtouch/issues/new?template=bug_report.yml)
+        - 🔧 Setup help? → [Setup & Installation](https://github.com/scheilch/opencloudtouch/discussions/new?category=setup-installation)
+
+  - type: input
+    id: applies-to
+    attributes:
+      label: Applies to
+      description: "What does this tip relate to? (e.g. Docker, Raspberry Pi, specific speaker model, network setup)"
+      placeholder: "e.g. Docker on Synology NAS"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem or situation
+      description: What issue does this workaround address?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: The workaround or tip
+      description: Describe what you did to solve it. Include commands, config snippets, or screenshots if helpful.
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes (optional)
+      description: Any caveats, limitations, or alternative approaches worth mentioning.

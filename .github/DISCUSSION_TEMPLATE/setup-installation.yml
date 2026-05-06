@@ -1,0 +1,60 @@
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Setup & Installation Help
+
+        Please provide as much detail as possible so we can help you quickly.
+        **For bug reports**, please use [Bug Report](https://github.com/scheilch/opencloudtouch/issues/new?template=bug_report.yml) instead.
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: Installation method
+      description: How are you running OpenCloudTouch?
+      options:
+        - Docker (docker run / docker-compose)
+        - Raspberry Pi (pre-built image)
+        - Proxmox / VM
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: architecture
+    attributes:
+      label: System architecture
+      options:
+        - x86_64 / amd64
+        - arm64 (Raspberry Pi 4/5, Apple Silicon)
+        - armv7 / arm32 (Raspberry Pi 3)
+        - Other / not sure
+
+  - type: input
+    id: os-version
+    attributes:
+      label: Operating system
+      description: "e.g. Debian 12, Ubuntu 24.04, Proxmox 8.x, Raspberry Pi OS Bookworm"
+      placeholder: "Debian 12 Bookworm"
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What do you need help with?
+      description: Describe your setup problem or question in detail.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or error messages
+      description: "Paste any error output or logs here. Use `docker logs opencloudtouch` to get container logs."
+      render: shell
+
+  - type: textarea
+    id: steps-tried
+    attributes:
+      label: What have you already tried?
+      description: List any troubleshooting steps you have already taken.
