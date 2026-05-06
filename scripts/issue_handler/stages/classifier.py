@@ -135,7 +135,8 @@ async def classifier_stage(event: WebhookEvent, context: dict[str, Any]) -> Pipe
             )
 
         classification = await _try_classify(
-            openai_client, messages, model="gpt-5-nano", cost_tracker=cost_tracker
+            openai_client, messages, model="gpt-5.4-nano",
+            cost_tracker=cost_tracker, service_tier="flex",
         )
 
     if classification is None:
@@ -164,16 +165,20 @@ async def _try_classify(
     messages: list[dict[str, str]],
     model: str = "gpt-4o-mini",
     cost_tracker: Any = None,
+    service_tier: str | None = None,
 ) -> ClassificationResult | None:
     """Attempt classification with a single AI client. Retry once on invalid JSON."""
     for attempt in range(2):
         try:
-            response = await client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=0.1,
-                max_completion_tokens=200,
-            )
+            kwargs: dict[str, Any] = {
+                "model": model,
+                "messages": messages,
+                "temperature": 0.1,
+                "max_completion_tokens": 200,
+            }
+            if service_tier:
+                kwargs["service_tier"] = service_tier
+            response = await client.chat.completions.create(**kwargs)
 
             content = response.choices[0].message.content or ""
 
