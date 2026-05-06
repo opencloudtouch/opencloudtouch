@@ -79,6 +79,8 @@ class ClassificationResult:
     confidence: float
     reasoning: str
     is_clear_bug: bool = False
+    kb_match: str | None = None
+    is_on_topic: bool = True
 
 
 @dataclass

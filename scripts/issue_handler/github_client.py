@@ -115,6 +115,64 @@ class GitHubClient:
         response.raise_for_status()
         return response.json().get("total_count", 0)
 
+    async def set_assignee(self, issue_number: int, username: str) -> None:
+        """Assign a user to an issue."""
+        response = await self._request_with_retry(
+            self._bot_client,
+            "post",
+            self._repo_url(f"/issues/{issue_number}/assignees"),
+            json={"assignees": [username]},
+        )
+        response.raise_for_status()
+
+    async def get_closed_issues_since(
+        self, since_iso: str, labels: list[str] | None = None
+    ) -> list[dict[str, Any]]:
+        """Get closed issues since a given ISO date, optionally filtered by labels."""
+        params: dict[str, Any] = {
+            "state": "closed",
+            "since": since_iso,
+            "per_page": 100,
+        }
+        if labels:
+            params["labels"] = ",".join(labels)
+
+        all_issues: list[dict[str, Any]] = []
+        page = 1
+        while True:
+            params["page"] = page
+            response = await self._request_with_retry(
+                self._search_client,
+                "get",
+                self._repo_url("/issues"),
+                params=params,
+            )
+            response.raise_for_status()
+            issues = response.json()
+            if not issues:
+                break
+            all_issues.extend(issues)
+            if len(issues) < 100:
+                break
+            page += 1
+        return all_issues
+
+    async def bot_has_commented(self, issue_number: int, bot_username: str) -> bool:
+        """Check if the bot has already commented on this issue."""
+        response = await self._request_with_retry(
+            self._search_client,
+            "get",
+            self._repo_url(f"/issues/{issue_number}/comments"),
+            params={"per_page": 100},
+        )
+        if response.status_code == 404:
+            return False
+        response.raise_for_status()
+        comments = response.json()
+        return any(
+            c.get("user", {}).get("login") == bot_username for c in comments
+        )
+
     async def get_issue_state(self, issue_number: int) -> str:
         """Get current issue state. Returns 'deleted' if 404."""
         response = await self._bot_client.get(self._repo_url(f"/issues/{issue_number}"))

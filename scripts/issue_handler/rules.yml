@@ -4,7 +4,7 @@
 settings:
   rate_limit_threshold: 2          # max issues per 24h per user
   min_text_length: 50              # min chars for AI classification
-  bot_username: "oct-support"  # bot account username for self-filtering
+  bot_username: "oct-support"      # bot account username for self-filtering
   monthly_budget_usd: 0.90         # hard cap for OpenAI fallback costs ($0.90 ≈ €1)
 
 rules:

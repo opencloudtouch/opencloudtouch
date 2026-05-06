@@ -79,7 +79,7 @@ class TestFullPipelineIntegration:
 
         # Should reach action stage and apply bug label
         assert any(d.stage == "action" and d.decision == "act" for d in decisions)
-        gh.add_labels.assert_called_with(42, ["bug"])
+        gh.add_labels.assert_any_call(42, ["bug"])
 
     @pytest.mark.asyncio
     async def test_owner_issue_hard_exits(self) -> None:
@@ -180,3 +180,118 @@ class TestFullPipelineIntegration:
         rate_decision = next(d for d in decisions if d.stage == "rate_limiter")
         assert rate_decision.decision == "block"
         assert rate_decision.short_circuit is True
+
+
+class TestCategoryIntegration:
+    """T042: Full classifier → action flow for each category with 3-signal check."""
+
+    def _mock_classify_response(self, category: str, confidence: float = 0.9, **extra) -> MagicMock:
+        data = {
+            "category": category, "confidence": confidence, "reasoning": "test",
+            "is_clear_bug": extra.get("is_clear_bug", False),
+            "kb_match": extra.get("kb_match"), "is_on_topic": extra.get("is_on_topic", True),
+        }
+        resp = MagicMock()
+        resp.choices = [MagicMock()]
+        resp.choices[0].message.content = json.dumps(data)
+        resp.usage = MagicMock()
+        resp.usage.prompt_tokens = 50
+        resp.usage.completion_tokens = 20
+        return resp
+
+    def _make_event(self, **kw) -> WebhookEvent:
+        defaults = dict(
+            event_type="issues", action="opened", sender_login="user", sender_type="User",
+            author_association="NONE", repo_owner="scheilch", repo_name="opencloudtouch",
+            issue_number=42, title="Test", body="Body text with enough content here.", existing_labels=[], is_discussion=False,
+        )
+        defaults.update(kw)
+        return WebhookEvent(**defaults)
+
+    @pytest.mark.asyncio
+    async def test_off_topic_integration(self) -> None:
+        gh = AsyncMock()
+        mock_ai = MagicMock()
+        mock_ai.chat.completions.create = AsyncMock(
+            return_value=self._mock_classify_response("off-topic", 0.85, is_on_topic=False)
+        )
+        context = {
+            "github_models_client": mock_ai, "openai_client": None, "cost_tracker": None,
+            "kb_answers": [], "readme_content": "", "contributing_content": "",
+        }
+        event = self._make_event(title="How to cook pasta", body="Recipe please")
+        await classifier_stage(event, context)
+        context["github_client"] = gh
+        context["bot_username"] = "oct-support"
+        await action_stage(event, context)
+        gh.add_labels.assert_any_call(42, ["off-topic"])
+        gh.set_assignee.assert_called_once()
+        gh.post_comment.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_spam_integration(self) -> None:
+        gh = AsyncMock()
+        mock_ai = MagicMock()
+        mock_ai.chat.completions.create = AsyncMock(
+            return_value=self._mock_classify_response("spam", 0.95, is_on_topic=False)
+        )
+        context = {
+            "github_models_client": mock_ai, "openai_client": None, "cost_tracker": None,
+            "kb_answers": [], "readme_content": "", "contributing_content": "",
+        }
+        event = self._make_event(title="Buy watches", body="Visit spam site")
+        await classifier_stage(event, context)
+        context["github_client"] = gh
+        context["bot_username"] = "oct-support"
+        await action_stage(event, context)
+        gh.add_labels.assert_any_call(42, ["spam"])
+        gh.set_assignee.assert_called_once()
+        gh.post_comment.assert_called_once()
+
+
+class TestEdgeCaseIntegration:
+    """T043: Edge case integration tests — AI unavailable, budget, API failure."""
+
+    @pytest.mark.asyncio
+    async def test_ai_unavailable_fallback(self) -> None:
+        gh = AsyncMock()
+        mock_ai = MagicMock()
+        mock_ai.chat.completions.create = AsyncMock(side_effect=Exception("AI down"))
+        context = {
+            "github_models_client": mock_ai, "openai_client": None, "cost_tracker": None,
+            "kb_answers": [], "readme_content": "", "contributing_content": "",
+        }
+        event = WebhookEvent(
+            event_type="issues", action="opened", sender_login="user", sender_type="User",
+            author_association="NONE", repo_owner="scheilch", repo_name="opencloudtouch",
+            issue_number=99, title="Test", body="Test body content", existing_labels=[],
+        )
+        decision = await classifier_stage(event, context)
+        assert decision.decision == "fallback"
+
+        context["github_client"] = gh
+        context["bot_username"] = "oct-support"
+        await action_stage(event, context)
+        gh.add_labels.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_api_failure_retry_fallback(self) -> None:
+        from models import ClassificationResult
+        gh = AsyncMock()
+        gh.add_labels = AsyncMock(return_value=None)
+        gh.set_assignee = AsyncMock(side_effect=Exception("API down"))
+        gh.post_comment = AsyncMock(return_value=None)
+        context = {
+            "github_client": gh,
+            "classification": ClassificationResult(category="bug", confidence=0.9, reasoning="crash", is_clear_bug=True),
+            "bot_username": "oct-support",
+        }
+        event = WebhookEvent(
+            event_type="issues", action="opened", sender_login="user", sender_type="User",
+            author_association="NONE", repo_owner="scheilch", repo_name="opencloudtouch",
+            issue_number=99, title="Bug", body="Crash", existing_labels=[],
+        )
+        decision = await action_stage(event, context)
+        assert decision.decision == "act"
+        label_calls = [str(c) for c in gh.add_labels.call_args_list]
+        assert any("needs-triage" in c for c in label_calls)

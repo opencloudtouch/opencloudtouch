@@ -44,10 +44,12 @@ jobs:
             ai-cost-tracker-
 
       - name: Run issue handler
+        id: handler
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BOT_PAT: ${{ secrets.BOT_PAT }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_EVENT_TYPE: ${{ github.event_name }}
         run: python scripts/issue_handler/main.py
 
       - name: Save cost tracker cache

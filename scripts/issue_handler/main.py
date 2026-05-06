@@ -17,6 +17,7 @@ import asyncio
 import json
 import os
 import sys
+import time
 from pathlib import Path
 
 from github_client import GitHubClient
@@ -46,6 +47,7 @@ def _load_settings() -> dict:
 async def run() -> int:
     """Main pipeline execution. Returns exit code."""
     try:
+        _start_time = time.monotonic()
         # Parse environment variables
         github_token = os.environ.get("GITHUB_TOKEN", "")
         bot_pat = os.environ.get("BOT_PAT", "")
@@ -82,6 +84,22 @@ async def run() -> int:
                         "stage": "pre_check",
                         "decision": "skip",
                         "reason": f"issue state is {state}",
+                        "short_circuit": True,
+                    }))
+                    return 0
+
+            # Skip if bot already commented on this issue (prevent duplicate responses)
+            bot_username = settings.get("bot_username", "oct-support-bot")
+            if (
+                event.issue_number is not None
+                and not event.is_discussion
+                and event_name == "issue_comment"
+            ):
+                if await github_client.bot_has_commented(event.issue_number, bot_username):
+                    print(json.dumps({
+                        "stage": "pre_check",
+                        "decision": "skip",
+                        "reason": f"bot ({bot_username}) already commented on issue #{event.issue_number}",
                         "short_circuit": True,
                     }))
                     return 0
@@ -176,6 +194,40 @@ async def run() -> int:
             pipeline.add_stage("action", action_stage)
 
             await pipeline.run(event, context)
+
+            # T039: Structured logging
+            classification = context.get("classification")
+            duration_ms = int((time.monotonic() - _start_time) * 1000)
+            log_entry = {
+                "issue_number": event.issue_number,
+                "category": classification.category if classification else "none",
+                "confidence": classification.confidence if classification else 0.0,
+                "kb_match": classification.kb_match if classification else None,
+                "ai_call_count": context.get("ai_call_count", 1 if classification else 0),
+                "processing_duration_ms": duration_ms,
+            }
+            print(json.dumps(log_entry))
+
+            # T040: GitHub Actions Job Summary
+            summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+            if summary_path:
+                response_type = "static"
+                if classification and classification.category == "support" and classification.kb_match:
+                    response_type = "kb_match"
+                elif context.get("support_comment"):
+                    response_type = "ai_generated"
+                elif context.get("follow_up_questions"):
+                    response_type = "ai_generated"
+
+                summary = (
+                    "| Issue | Category | Confidence | Response Type |\n"
+                    "|-------|----------|------------|---------------|\n"
+                    f"| #{event.issue_number} | {log_entry['category']} | "
+                    f"{log_entry['confidence']:.2f} | {response_type} |\n"
+                )
+                with open(summary_path, "a") as sf:
+                    sf.write(summary)
+
             return 0
 
         finally:

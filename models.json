@@ -1,0 +1,834 @@
+[
+  {
+    "description": "Cohere Embed English is the market's leading text representation model used for semantic search, retrieval-augmented generation (RAG), classification, and clustering. Embed English has top performance on the HuggingFace MTEB benchmark and performs well on a variety of industries such as Finance, Legal, and General-Purpose Corpora.The model was trained on nearly 1B English training pairs. For full details of this model, [release blog post](https://aka.ms/cohere-blog).",
+    "friendly_name": "Cohere Embed v3 English",
+    "id": "azureml://registries/azureml-cohere/models/Cohere-embed-v3-english/versions/3",
+    "license": "custom",
+    "model_family": "cohere",
+    "model_registry": "azureml-cohere",
+    "model_version": 3,
+    "name": "Cohere-embed-v3-english",
+    "publisher": "cohere",
+    "summary": "Cohere Embed English is the market's leading text representation model used for semantic search, retrieval-augmented generation (RAG), classification, and clustering.",
+    "tags": [
+      "RAG",
+      "search"
+    ],
+    "task": "embeddings"
+  },
+  {
+    "description": "Cohere Embed Multilingual is the market's leading text representation model used for semantic search, retrieval-augmented generation (RAG), classification, and clustering. Embed Multilingual supports 100+ languages and can be used to search within a language (e.g., search with a French query on French documents) and across languages (e.g., search with an English query on Chinese documents). This model was trained on nearly 1B English training pairs and nearly 0.5B Non-English training pairs from 100+ languages. For full details of this model, [release blog post](https://aka.ms/cohere-blog).",
+    "friendly_name": "Cohere Embed v3 Multilingual",
+    "id": "azureml://registries/azureml-cohere/models/Cohere-embed-v3-multilingual/versions/3",
+    "license": "custom",
+    "model_family": "cohere",
+    "model_registry": "azureml-cohere",
+    "model_version": 3,
+    "name": "Cohere-embed-v3-multilingual",
+    "publisher": "cohere",
+    "summary": "Supporting over 100 languages, Cohere Embed Multilingual is the market's leading text representation model used for semantic search, retrieval-augmented generation (RAG), classification, and clustering.",
+    "tags": [
+      "RAG",
+      "search"
+    ],
+    "task": "embeddings"
+  },
+  {
+    "description": "The Meta Llama 3.1 collection of multilingual large language models (LLMs) is a collection of pretrained and instruction tuned\ngenerative models in 8B, 70B and 405B sizes (text in/text out). The Llama 3.1 instruction tuned text only models (8B, 70B, 405B) are optimized for multilingual dialogue use cases and outperform many of the available open source and closed chat models on\ncommon industry benchmarks.\n\n## Model Architecture\n\nLlama 3.1 is an auto-regressive language model that uses an optimized transformer architecture. The tuned versions use supervised fine-tuning (SFT) and reinforcement learning with human feedback (RLHF) to align with human preferences for helpfulness and safety.\n\n## Training Datasets\n\n**Overview:** Llama 3.1 was pretrained on ~15 trillion tokens of data from publicly available sources. The fine-tuning data includes publicly available instruction datasets, as well as over 25M synthetically generated examples.\n\n**Data Freshness:** The pretraining data has a cutoff of December 2023.\n",
+    "friendly_name": "Meta-Llama-3.1-405B-Instruct",
+    "id": "azureml://registries/azureml-meta/models/Meta-Llama-3.1-405B-Instruct/versions/1",
+    "license": "custom",
+    "model_family": "meta",
+    "model_registry": "azureml-meta",
+    "model_version": 1,
+    "name": "Meta-Llama-3.1-405B-Instruct",
+    "publisher": "meta",
+    "summary": "The Llama 3.1 instruction tuned text only models are optimized for multilingual dialogue use cases and outperform many of the available open source and closed chat models on common industry benchmarks.",
+    "tags": [
+      "conversation"
+    ],
+    "task": "chat-completion"
+  },
+  {
+    "description": "The Meta Llama 3.1 collection of multilingual large language models (LLMs) is a collection of pretrained and instruction tuned\ngenerative models in 8B, 70B and 405B sizes (text in/text out). The Llama 3.1 instruction tuned text only models (8B, 70B, 405B) are optimized for multilingual dialogue use cases and outperform many of the available open source and closed chat models on\ncommon industry benchmarks.\n\n## Model Architecture\n\nLlama 3.1 is an auto-regressive language model that uses an optimized transformer architecture. The tuned versions use supervised fine-tuning (SFT) and reinforcement learning with human feedback (RLHF) to align with human preferences for helpfulness and safety.\n\n## Training Datasets\n\n**Overview:** Llama 3.1 was pretrained on ~15 trillion tokens of data from publicly available sources. The fine-tuning data includes publicly available instruction datasets, as well as over 25M synthetically generated examples.\n\n**Data Freshness:** The pretraining data has a cutoff of December 2023.\n",
+    "friendly_name": "Meta-Llama-3.1-8B-Instruct",
+    "id": "azureml://registries/azureml-meta/models/Meta-Llama-3.1-8B-Instruct/versions/1",
+    "license": "custom",
+    "model_family": "meta",
+    "model_registry": "azureml-meta",
+    "model_version": 1,
+    "name": "Meta-Llama-3.1-8B-Instruct",
+    "publisher": "meta",
+    "summary": "The Llama 3.1 instruction tuned text only models are optimized for multilingual dialogue use cases and outperform many of the available open source and closed chat models on common industry benchmarks.",
+    "tags": [
+      "conversation"
+    ],
+    "task": "chat-completion"
+  },
+  {
+    "description": "GPT-4o offers a shift in how AI models interact with multimodal inputs. By seamlessly combining text, images, and audio, GPT-4o provides a richer, more engaging user experience.\n\nMatching the intelligence of GPT-4 Turbo, it is remarkably more efficient, delivering text at twice the speed and at half the cost. Additionally, GPT-4o exhibits the highest vision performance and excels in non-English languages compared to previous OpenAI models.\n\nGPT-4o is engineered for speed and efficiency. Its advanced ability to handle complex queries with minimal resources can translate into cost savings and performance.\n\nThe introduction of GPT-4o opens numerous possibilities for businesses in various sectors: \n\n1. **Enhanced customer service**: By integrating diverse data inputs, GPT-4o enables more dynamic and comprehensive customer support interactions.\n2. **Advanced analytics**: Leverage GPT-4o's capability to process and analyze different types of data to enhance decision-making and uncover deeper insights.\n3. **Content innovation**: Use GPT-4o's generative capabilities to create engaging and diverse content formats, catering to a broad range of consumer preferences.\n\n## Resources\n\n- [\"Hello GPT-4o\" (OpenAI announcement)](https://openai.com/index/hello-gpt-4o/)\n- [Introducing GPT-4o: OpenAI's new flagship multimodal model now in preview on Azure](https://azure.microsoft.com/en-us/blog/introducing-gpt-4o-openais-new-flagship-multimodal-model-now-in-preview-on-azure/)\n",
+    "friendly_name": "OpenAI GPT-4o",
+    "id": "azureml://registries/azure-openai/models/gpt-4o/versions/2",
+    "license": "custom",
+    "model_family": "openai",
+    "model_registry": "azure-openai",
+    "model_version": 2,
+    "name": "gpt-4o",
+    "publisher": "Azure OpenAI Service",
+    "summary": "OpenAI's most advanced multimodal model in the GPT-4 family. Can handle both text and image inputs.",
+    "tags": [
+      "multipurpose",
+      "multilingual",
+      "multimodal"
+    ],
+    "task": "chat-completion"
+  },
+  {
+    "description": "GPT-4o mini enables a broad range of tasks with its low cost and latency, such as applications that chain or parallelize multiple model calls (e.g., calling multiple APIs), pass a large volume of context to the model (e.g., full code base or conversation history), or interact with customers through fast, real-time text responses (e.g., customer support chatbots).\n\nToday, GPT-4o mini supports text and vision in the API, with support for text, image, video and audio inputs and outputs coming in the future. The model has a context window of 128K tokens and knowledge up to October 2023. Thanks to the improved tokenizer shared with GPT-4o, handling non-English text is now even more cost effective.\n\nGPT-4o mini surpasses GPT-3.5 Turbo and other small models on academic benchmarks across both textual intelligence and multimodal reasoning, and supports the same range of languages as GPT-4o. It also demonstrates strong performance in function calling, which can enable developers to build applications that fetch data or take actions with external systems, and improved long-context performance compared to GPT-3.5 Turbo.\n\n## Resources\n\n- [OpenAI announcement](https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/)\n",
+    "friendly_name": "OpenAI GPT-4o mini",
+    "id": "azureml://registries/azure-openai/models/gpt-4o-mini/versions/1",
+    "license": "custom",
+    "model_family": "OpenAI",
+    "model_registry": "azure-openai",
+    "model_version": 1,
+    "name": "gpt-4o-mini",
+    "publisher": "Azure OpenAI Service",
+    "summary": "An affordable, efficient AI solution for diverse text and image tasks.",
+    "tags": [
+      "multipurpose",
+      "multilingual",
+      "multimodal"
+    ],
+    "task": "chat-completion"
+  },
+  {
+    "description": "Text-embedding-3 series models are the latest and most capable embedding model. The text-embedding-3 models offer better average multi-language retrieval performance with the MIRACL benchmark while still maintaining performance for English tasks with the MTEB benchmark.",
+    "friendly_name": "OpenAI Text Embedding 3 (large)",
+    "id": "azureml://registries/azure-openai/models/text-embedding-3-large/versions/1",
+    "license": "custom",
+    "model_family": "openai",
+    "model_registry": "azure-openai",
+    "model_version": 1,
+    "name": "text-embedding-3-large",
+    "publisher": "Azure OpenAI Service",
+    "summary": "Text-embedding-3 series models are the latest and most capable embedding model from OpenAI.",
+    "tags": [
+      "RAG",
+      "search"
+    ],
+    "task": "embeddings"
+  },
+  {
+    "description": "Text-embedding-3 series models are the latest and most capable embedding model. The text-embedding-3 models offer better average multi-language retrieval performance with the MIRACL benchmark while still maintaining performance for English tasks with the MTEB benchmark.",
+    "friendly_name": "OpenAI Text Embedding 3 (small)",
+    "id": "azureml://registries/azure-openai/models/text-embedding-3-small/versions/1",
+    "license": "custom",
+    "model_family": "openai",
+    "model_registry": "azure-openai",
+    "model_version": 1,
+    "name": "text-embedding-3-small",
+    "publisher": "Azure OpenAI Service",
+    "summary": "Text-embedding-3 series models are the latest and most capable embedding model from OpenAI.",
+    "tags": [
+      "RAG",
+      "search"
+    ],
+    "task": "embeddings"
+  },
+  {
+    "created": 1671217299,
+    "id": "text-embedding-ada-002",
+    "object": "model",
+    "owned_by": "openai-internal"
+  },
+  {
+    "created": 1677532384,
+    "id": "whisper-1",
+    "object": "model",
+    "owned_by": "openai-internal"
+  },
+  {
+    "created": 1677610602,
+    "id": "gpt-3.5-turbo",
+    "object": "model",
+    "owned_by": "openai"
+  },
+  {
+    "created": 1681940951,
+    "id": "tts-1",
+    "object": "model",
+    "owned_by": "openai-internal"
+  },
+  {
+    "created": 1683758102,
+    "id": "gpt-3.5-turbo-16k",
+    "object": "model",
+    "owned_by": "openai-internal"
+  },
+  {
+    "created": 1692634301,
+    "id": "davinci-002",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1692634615,
+    "id": "babbage-002",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1692901427,
+    "id": "gpt-3.5-turbo-instruct",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1694122472,
+    "id": "gpt-3.5-turbo-instruct-0914",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1698785189,
+    "id": "dall-e-3",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1698798177,
+    "id": "dall-e-2",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1698959748,
+    "id": "gpt-3.5-turbo-1106",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1699046015,
+    "id": "tts-1-hd",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1699053241,
+    "id": "tts-1-1106",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1699053533,
+    "id": "tts-1-hd-1106",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1705948997,
+    "id": "text-embedding-3-small",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1705953180,
+    "id": "text-embedding-3-large",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1706048358,
+    "id": "gpt-3.5-turbo-0125",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1715367049,
+    "id": "gpt-4o",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1715368132,
+    "id": "gpt-4o-2024-05-13",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1721172717,
+    "id": "gpt-4o-mini-2024-07-18",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1721172741,
+    "id": "gpt-4o-mini",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1722814719,
+    "id": "gpt-4o-2024-08-06",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1727460443,
+    "id": "gpt-4o-audio-preview",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1731689265,
+    "id": "omni-moderation-latest",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1732734466,
+    "id": "omni-moderation-2024-09-26",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1734034239,
+    "id": "gpt-4o-audio-preview-2024-12-17",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1734115920,
+    "id": "gpt-4o-mini-audio-preview-2024-12-17",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1734326976,
+    "id": "o1-2024-12-17",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1734375816,
+    "id": "o1",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1734387424,
+    "id": "gpt-4o-mini-audio-preview",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1737146383,
+    "id": "o3-mini",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1738010200,
+    "id": "o3-mini-2025-01-31",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1739331543,
+    "id": "gpt-4o-2024-11-20",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1741390858,
+    "id": "gpt-4o-mini-search-preview-2025-03-11",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1741391161,
+    "id": "gpt-4o-mini-search-preview",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1742068463,
+    "id": "gpt-4o-transcribe",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1742068596,
+    "id": "gpt-4o-mini-transcribe",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1742403959,
+    "id": "gpt-4o-mini-tts",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1744133301,
+    "id": "o3-2025-04-16",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1744133506,
+    "id": "o4-mini-2025-04-16",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1744225308,
+    "id": "o3",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1744225351,
+    "id": "o4-mini",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1744315746,
+    "id": "gpt-4.1-2025-04-14",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1744316542,
+    "id": "gpt-4.1",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1744317547,
+    "id": "gpt-4.1-mini-2025-04-14",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1744318173,
+    "id": "gpt-4.1-mini",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1744321025,
+    "id": "gpt-4.1-nano-2025-04-14",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1744321707,
+    "id": "gpt-4.1-nano",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1745517030,
+    "id": "gpt-image-1",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1748908498,
+    "id": "gpt-4o-audio-preview-2025-06-03",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1750798887,
+    "id": "gpt-4o-transcribe-diarize",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1754073306,
+    "id": "gpt-5-chat-latest",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1754075360,
+    "id": "gpt-5-2025-08-07",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1754425777,
+    "id": "gpt-5",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1754425867,
+    "id": "gpt-5-mini-2025-08-07",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1754425928,
+    "id": "gpt-5-mini",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1754426303,
+    "id": "gpt-5-nano-2025-08-07",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1754426384,
+    "id": "gpt-5-nano",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1756256146,
+    "id": "gpt-audio-2025-08-28",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1756271701,
+    "id": "gpt-realtime",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1756271773,
+    "id": "gpt-realtime-2025-08-28",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1756339249,
+    "id": "gpt-audio",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1757527818,
+    "id": "gpt-5-codex",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1758845821,
+    "id": "gpt-image-1-mini",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1759469707,
+    "id": "gpt-5-pro-2025-10-06",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1759469822,
+    "id": "gpt-5-pro",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1759512027,
+    "id": "gpt-audio-mini",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1759512137,
+    "id": "gpt-audio-mini-2025-10-06",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1759514629,
+    "id": "gpt-5-search-api",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1759517133,
+    "id": "gpt-realtime-mini",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1759517175,
+    "id": "gpt-realtime-mini-2025-10-06",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1759708615,
+    "id": "sora-2",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1759708663,
+    "id": "sora-2-pro",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1760043960,
+    "id": "gpt-5-search-api-2025-10-14",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1762547951,
+    "id": "gpt-5.1-chat-latest",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1762800353,
+    "id": "gpt-5.1-2025-11-13",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1762800673,
+    "id": "gpt-5.1",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1762988221,
+    "id": "gpt-5.1-codex",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1763007109,
+    "id": "gpt-5.1-codex-mini",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1763671532,
+    "id": "gpt-5.1-codex-max",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1764030620,
+    "id": "gpt-image-1.5",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1765313028,
+    "id": "gpt-5.2-2025-12-11",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1765313051,
+    "id": "gpt-5.2",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1765343959,
+    "id": "gpt-5.2-pro-2025-12-11",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1765343983,
+    "id": "gpt-5.2-pro",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1765344352,
+    "id": "gpt-5.2-chat-latest",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1765610407,
+    "id": "gpt-4o-mini-transcribe-2025-12-15",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1765610545,
+    "id": "gpt-4o-mini-transcribe-2025-03-20",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1765610731,
+    "id": "gpt-4o-mini-tts-2025-03-20",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1765610837,
+    "id": "gpt-4o-mini-tts-2025-12-15",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1765612007,
+    "id": "gpt-realtime-mini-2025-12-15",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1765760008,
+    "id": "gpt-audio-mini-2025-12-15",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1765925279,
+    "id": "chatgpt-image-latest",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1766164985,
+    "id": "gpt-5.2-codex",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1770537915,
+    "id": "gpt-5.3-codex",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1771461469,
+    "id": "gpt-realtime-1.5",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1771550885,
+    "id": "gpt-audio-1.5",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1771905534,
+    "id": "gpt-4o-search-preview",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1771905621,
+    "id": "gpt-4o-search-preview-2025-03-11",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1772236571,
+    "id": "gpt-5.3-chat-latest",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1772654062,
+    "id": "gpt-5.4-2026-03-05",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1772659601,
+    "id": "gpt-5.4-pro",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1772659657,
+    "id": "gpt-5.4-pro-2026-03-05",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1772691852,
+    "id": "gpt-5.4",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1773450837,
+    "id": "gpt-5.4-nano-2026-03-17",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1773450870,
+    "id": "gpt-5.4-nano",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1773451076,
+    "id": "gpt-5.4-mini-2026-03-17",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1773451123,
+    "id": "gpt-5.4-mini",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1776399795,
+    "id": "gpt-image-2",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1776399994,
+    "id": "gpt-image-2-2026-04-21",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1776824847,
+    "id": "gpt-5.5",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1776839241,
+    "id": "gpt-5.5-2026-04-23",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1776894349,
+    "id": "gpt-5.5-pro",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1776894470,
+    "id": "gpt-5.5-pro-2026-04-23",
+    "object": "model",
+    "owned_by": "system"
+  },
+  {
+    "created": 1777704602,
+    "id": "chat-latest",
+    "object": "model",
+    "owned_by": "system"
+  }
+]
