@@ -85,6 +85,28 @@ body:
     validations:
       required: true
 
+  - type: dropdown
+    id: custom-build
+    attributes:
+      label: Did you build the image yourself?
+      description: "Did you build the Docker image from source (`docker build`) or did you pull the official image (`docker pull ghcr.io/scheilch/opencloudtouch:stable`)? **We only support the official pre-built image.**"
+      options:
+        - "No — I pulled the official image (ghcr.io/scheilch/opencloudtouch)"
+        - "Yes — I built it myself from source"
+    validations:
+      required: true
+
+  - type: textarea
+    id: version-screenshot
+    attributes:
+      label: Version Screenshot
+      description: |
+        Please provide a screenshot of the **Settings** page in the Web UI showing the version number.
+        Alternatively, paste the output of: `curl http://<your-host>:7777/health`
+      placeholder: "Drag & drop a screenshot here, or paste the /health output."
+    validations:
+      required: true
+
   - type: input
     id: browser
     attributes:

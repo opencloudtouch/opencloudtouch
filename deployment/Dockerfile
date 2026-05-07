@@ -117,6 +117,10 @@ ENV OCT_DB_PATH=/data/oct.db
 ENV OCT_LOG_LEVEL=INFO
 ENV OCT_DISCOVERY_ENABLED=true
 
+# Build signature — HMAC of version, only CI can produce a valid one
+ARG OCT_BUILD_SIGNATURE=""
+ENV OCT_BUILD_SIGNATURE=${OCT_BUILD_SIGNATURE}
+
 # Set Python path for package
 ENV PYTHONPATH=/app
 

@@ -263,6 +263,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute build signature
+        id: sign
+        run: |
+          VERSION="${{ inputs.version }}"
+          SIG=$(echo -n "$VERSION" | openssl dgst -sha256 -hmac "${{ secrets.BUILD_SIGNING_KEY }}" | awk '{print $NF}' | cut -c1-16)
+          echo "signature=$SIG" >> $GITHUB_OUTPUT
+
       - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v7
@@ -271,6 +278,8 @@ jobs:
           file: deployment/Dockerfile
           platforms: ${{ matrix.platform }}
           push: true
+          build-args: |
+            OCT_BUILD_SIGNATURE=${{ steps.sign.outputs.signature }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=build-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=build-${{ matrix.platform }}

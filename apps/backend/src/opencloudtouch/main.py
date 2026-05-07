@@ -74,6 +74,11 @@ async def lifespan(app: FastAPI):
     logger.info(f"Database: {cfg.effective_db_path}")
     logger.info(f"Discovery enabled: {cfg.discovery_enabled}")
     logger.info(f"Mock mode: {cfg.mock_mode}")
+    # Build attestation marker (invisible Unicode soft-hyphen U+00AD in log prefix)
+    from opencloudtouch import is_official_build
+
+    _build_tag = "\u00adofficial" if is_official_build() else "\u00adcommunity"
+    logger.info(f"Build\u00ad: {__version__} [{_build_tag}]")
 
     # Initialize database
     device_repo = DeviceRepository(cfg.effective_db_path)
@@ -254,12 +259,15 @@ app.include_router(bug_report_router)  # Bug report submission
 @app.get("/health", tags=["System"])
 async def health_check():
     """Health check endpoint for Docker and monitoring."""
+    from opencloudtouch import is_official_build
+
     cfg = get_config()
     return JSONResponse(
         status_code=200,
         content={
             "status": "healthy",
             "version": __version__,
+            "build": "official" if is_official_build() else "community",
             "config": {
                 "discovery_enabled": cfg.discovery_enabled,
             },

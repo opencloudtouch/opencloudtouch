@@ -88,25 +88,64 @@ def test_health_endpoint():
     # Required fields
     assert data["status"] == "healthy"
     assert "version" in data
+    assert "build" in data
     assert "config" in data
 
     # Type validation (from integration tests)
     assert isinstance(data["status"], str)
     assert isinstance(data["version"], str)
+    assert isinstance(data["build"], str)
+    assert data["build"] in ("official", "community")
     assert isinstance(data["config"], dict)
     assert isinstance(data["config"]["discovery_enabled"], bool)
     # REFACT-102: db_path removed from health endpoint (info leak)
     assert "db_path" not in data["config"]
 
 
-def test_version_comes_from_package_metadata():
-    """__version__ is read from importlib.metadata (pyproject.toml), not hardcoded."""
+def test_version_dev_format_without_signature(monkeypatch):
+    """Without OCT_BUILD_SIGNATURE, version uses dev-<commit> format."""
+    monkeypatch.delenv("OCT_BUILD_SIGNATURE", raising=False)
+    from opencloudtouch import _resolve_version
+
+    ver = _resolve_version()
+    assert ver.startswith("dev-")
+    assert ver != "dev-"  # commit hash must be present
+
+
+def test_version_official_format_with_valid_signature(monkeypatch):
+    """With a valid 16-char hex signature, version matches package metadata."""
+    monkeypatch.setenv("OCT_BUILD_SIGNATURE", "a1b2c3d4e5f67890")
     from importlib.metadata import version as pkg_version
 
-    from opencloudtouch import __version__
+    from opencloudtouch import _resolve_version
 
-    assert __version__ == pkg_version("opencloudtouch")
-    assert __version__ != "0.0.0"  # fallback must not be active in test env
+    ver = _resolve_version()
+    assert ver == pkg_version("opencloudtouch")
+
+
+def test_version_dev_format_with_invalid_signature(monkeypatch):
+    """With an invalid signature (wrong length/format), version is dev-<commit>."""
+    monkeypatch.setenv("OCT_BUILD_SIGNATURE", "1")
+    from opencloudtouch import _resolve_version
+
+    ver = _resolve_version()
+    assert ver.startswith("dev-")
+
+
+def test_is_official_build_false_without_signature(monkeypatch):
+    """is_official_build returns False without signature."""
+    monkeypatch.delenv("OCT_BUILD_SIGNATURE", raising=False)
+    from opencloudtouch import is_official_build
+
+    assert is_official_build() is False
+
+
+def test_is_official_build_true_with_valid_signature(monkeypatch):
+    """is_official_build returns True with valid 16-char hex signature."""
+    monkeypatch.setenv("OCT_BUILD_SIGNATURE", "a1b2c3d4e5f67890")
+    from opencloudtouch import is_official_build
+
+    assert is_official_build() is True
 
 
 def test_app_version_matches_package_version():
@@ -118,7 +157,7 @@ def test_app_version_matches_package_version():
 
 
 def test_health_version_matches_package_version():
-    """Health endpoint returns the same version as the installed package."""
+    """Health endpoint returns the same version as __version__."""
     from opencloudtouch import __version__
     from opencloudtouch.main import app
 
@@ -130,16 +169,13 @@ def test_health_version_matches_package_version():
 
 
 def test_version_single_source_consistency():
-    """All three version surfaces (package, app, health) are identical."""
-    from importlib.metadata import version as pkg_version
-
+    """All version surfaces (app, health) are identical."""
     from opencloudtouch import __version__
     from opencloudtouch.main import app
 
     client = TestClient(app)
     health_version = client.get("/health").json()["version"]
 
-    assert __version__ == pkg_version("opencloudtouch")
     assert app.version == __version__
     assert health_version == __version__
 
