@@ -120,7 +120,7 @@ jobs:
           push: false
           load: true
           tags: opencloudtouch:test
-          cache-from: type=gha,scope=trivy-scan
+          provenance: false
           cache-to: type=gha,mode=max,scope=trivy-scan
 
       - name: Run Trivy vulnerability scanner (blocking)
@@ -207,8 +207,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           push: true
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=build-${{ matrix.platform }}
-          cache-to: type=gha,mode=max,scope=build-${{ matrix.platform }}
+          provenance: false
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true
 
       - name: Export digest
