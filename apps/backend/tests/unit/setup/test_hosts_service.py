@@ -313,3 +313,44 @@ class TestHostsRequiresNumericIP:
         result = await service.modify_hosts(oct_ip="::1")
 
         assert result.success is True
+
+
+# ---------------------------------------------------------------------------
+# BUG-04: content.api.bose.io missing from REQUIRED_HOSTS
+# ---------------------------------------------------------------------------
+
+
+class TestContentApiBoseIoPresent:
+    """
+    BUG-04 Regression: content.api.bose.io was not in REQUIRED_HOSTS,
+    causing preset playback to fail for ALL users.
+
+    The Bose device calls content.api.bose.io:7777 when a preset button
+    is pressed (Orion adapter callback). Without the /etc/hosts redirect,
+    the request goes to the dead Bose cloud and playback never starts.
+
+    Discovered: GitHub issue #139 — multiple users report "music does not
+    start" after successful setup wizard. Root cause: hosts file missing
+    content.api.bose.io entry.
+    """
+
+    def test_content_api_bose_io_in_required_hosts(self):
+        """content.api.bose.io must be in REQUIRED_HOSTS."""
+        assert "content.api.bose.io" in SoundTouchHostsService.REQUIRED_HOSTS, (
+            "BUG-04: 'content.api.bose.io' missing from REQUIRED_HOSTS. "
+            "Preset playback will fail — device cannot reach Orion adapter."
+        )
+
+    @pytest.mark.asyncio
+    async def test_modify_hosts_includes_content_api_domain(self, service, mock_ssh):
+        """Modified hosts file must redirect content.api.bose.io to OCT."""
+        mock_ssh.execute.return_value = _ok("127.0.0.1 localhost")
+        oct_ip = "192.168.1.50"
+
+        result = await service.modify_hosts(oct_ip=oct_ip)
+
+        assert result.success is True
+        assert "content.api.bose.io" in result.diff, (
+            "BUG-04: content.api.bose.io not in hosts diff. "
+            "Preset playback will fail after setup wizard completes."
+        )

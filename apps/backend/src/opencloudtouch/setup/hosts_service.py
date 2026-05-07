@@ -54,6 +54,7 @@ class SoundTouchHostsService:
         "streaming.bose.com",
         "bmx.bose.com",
         "api.bosesoundtouch.com",
+        "content.api.bose.io",
     ]
 
     OPTIONAL_HOSTS = [
