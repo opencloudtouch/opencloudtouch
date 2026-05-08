@@ -296,14 +296,17 @@ class TestSetupServiceInternalMethods:
         assert mock_client.execute.call_count == 2
 
     @pytest.mark.asyncio
-    async def test_apply_bmx_url_readonly_filesystem(self, service):
-        """_apply_bmx_url uses /mnt/nv path when filesystem is readonly (lines 210-215)."""
+    async def test_apply_bmx_url_always_remounts_and_edits_directly(self, service):
+        """_apply_bmx_url must remount rw and edit /opt/Bose/etc/ directly.
+
+        Regression: readonly fallback to /mnt/nv/ doesn't work — firmware ignores it.
+        See: gesellix/Bose-SoundTouch#220, scheilch/opencloudtouch#139
+        """
         mock_client = MagicMock()
         mock_client.execute = AsyncMock(
             side_effect=[
-                MagicMock(success=True, output="readonly"),  # test -w → readonly
-                MagicMock(success=True, output=""),  # cp to /mnt/nv
-                MagicMock(success=True, output=""),  # sed on /mnt/nv path
+                MagicMock(success=True, output=""),  # remount rw
+                MagicMock(success=True, output=""),  # sed on /opt/Bose/etc/ path
             ]
         )
 
@@ -312,19 +315,59 @@ class TestSetupServiceInternalMethods:
 
         failed = await service._apply_bmx_url(
             mock_client,
-            "http://localhost:8000/bmx/registry/v1/services",
+            "http://content.api.bose.io:7777/bmx/registry/v1/services",
             noop_progress,
             MagicMock(),
         )
-        assert failed is False  # should succeed
+        assert failed is False
+
+        # Must have remounted rw
+        first_cmd = mock_client.execute.call_args_list[0][0][0]
+        assert "remount,rw" in first_cmd
+
+        # sed must target /opt/Bose/etc/ directly
+        sed_cmd = mock_client.execute.call_args_list[1][0][0]
+        assert "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml" in sed_cmd
+        assert "/mnt/nv/" not in sed_cmd
 
     @pytest.mark.asyncio
-    async def test_apply_bmx_url_sed_fails_returns_true(self, service):
-        """_apply_bmx_url returns True (failed) when sed command fails (lines 227-232)."""
+    async def test_apply_bmx_url_no_readonly_fallback(self, service):
+        """_apply_bmx_url must NOT copy to /mnt/nv/ as fallback.
+
+        Regression: firmware on ST10/ST300 ignores files on /mnt/nv/.
+        """
         mock_client = MagicMock()
         mock_client.execute = AsyncMock(
             side_effect=[
-                MagicMock(success=True, output="writable"),  # test -w → writable
+                MagicMock(success=True, output=""),  # remount rw
+                MagicMock(success=True, output=""),  # sed
+            ]
+        )
+
+        async def noop_progress(step, msg, **kwargs):
+            pass
+
+        await service._apply_bmx_url(
+            mock_client,
+            "http://content.api.bose.io:7777/bmx/registry/v1/services",
+            noop_progress,
+            MagicMock(),
+        )
+
+        all_cmds = [c[0][0] for c in mock_client.execute.call_args_list]
+        # No cp to /mnt/nv should exist
+        cp_to_mnt_nv = [c for c in all_cmds if "cp" in c and "/mnt/nv/" in c]
+        assert (
+            len(cp_to_mnt_nv) == 0
+        ), "Must NOT copy config to /mnt/nv/ — firmware ignores it"
+
+    @pytest.mark.asyncio
+    async def test_apply_bmx_url_sed_fails_returns_true(self, service):
+        """_apply_bmx_url returns True (failed) when sed command fails."""
+        mock_client = MagicMock()
+        mock_client.execute = AsyncMock(
+            side_effect=[
+                MagicMock(success=True, output=""),  # remount rw
                 MagicMock(success=False, error="sed: no such file"),  # sed fails
             ]
         )
@@ -335,7 +378,7 @@ class TestSetupServiceInternalMethods:
 
         failed = await service._apply_bmx_url(
             mock_client,
-            "http://localhost:8000/bmx",
+            "http://content.api.bose.io:7777/bmx",
             track_progress,
             MagicMock(),
         )
@@ -343,10 +386,72 @@ class TestSetupServiceInternalMethods:
         assert len(progress_calls) == 1
 
     @pytest.mark.asyncio
-    async def test_run_setup_apply_bmx_fails_returns_early(self, service):
-        """run_setup closes client and returns early when _apply_bmx_url fails (lines 123-124)."""
+    async def test_verify_bmx_url_reads_canonical_path(self, service):
+        """_verify_bmx_url must read from /opt/Bose/etc/ path only.
+
+        Regression: OverrideSdkPrivateCfg.xml is ignored by firmware.
+        """
         mock_client = MagicMock()
-        # execute call ordering: touch, ls, mkdir, cp×2, test-w, sed(fails)
+        bmx_url = "http://content.api.bose.io:7777/bmx/registry/v1/services"
+        mock_client.execute = AsyncMock(
+            return_value=MagicMock(
+                success=True, output=f"<bmxRegistryUrl>{bmx_url}</bmxRegistryUrl>"
+            )
+        )
+
+        await service._verify_bmx_url(mock_client, bmx_url)
+
+        verify_cmd = mock_client.execute.call_args_list[0][0][0]
+        assert "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml" in verify_cmd
+        # Must NOT check OverrideSdkPrivateCfg.xml
+        assert "OverrideSdkPrivateCfg" not in verify_cmd
+
+    @pytest.mark.asyncio
+    async def test_verify_setup_reads_canonical_config_path(self, service):
+        """verify_setup must read BMX URL from /opt/Bose/etc/ path.
+
+        Regression: /mnt/nv/ paths are unreliable.
+        """
+        mock_client = MagicMock()
+        mock_client.connect = AsyncMock()
+        mock_client.execute = AsyncMock(
+            side_effect=[
+                MagicMock(output="yes", success=True),  # SSH persistence
+                MagicMock(
+                    output="<bmxRegistryUrl>http://localhost:8000/bmx</bmxRegistryUrl>",
+                    success=True,
+                ),  # BMX check
+            ]
+        )
+        mock_client.close = AsyncMock()
+
+        with patch(
+            "opencloudtouch.setup.service.check_ssh_port",
+            new_callable=AsyncMock,
+            return_value=True,
+        ), patch(
+            "opencloudtouch.setup.service.SoundTouchSSHClient", return_value=mock_client
+        ), patch(
+            "opencloudtouch.setup.service.get_config"
+        ) as cfg_mock:
+            cfg_mock.return_value.station_descriptor_base_url = None
+            cfg_mock.return_value.server_url = "http://localhost:8000"
+            cfg_mock.return_value.host = "localhost"
+            cfg_mock.return_value.port = 8000
+
+            await service.verify_setup("192.168.1.100")
+
+        # The BMX check command
+        bmx_cmd = mock_client.execute.call_args_list[1][0][0]
+        assert "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml" in bmx_cmd
+        # Must NOT reference Override path or /mnt/nv/ variants
+        assert "OverrideSdkPrivateCfg" not in bmx_cmd
+
+    @pytest.mark.asyncio
+    async def test_run_setup_apply_bmx_fails_returns_early(self, service):
+        """run_setup closes client and returns early when _apply_bmx_url fails."""
+        mock_client = MagicMock()
+        # execute call ordering: touch, ls, mkdir, cp×2, remount-rw, sed(fails)
         mock_client.connect = AsyncMock(return_value=MagicMock(success=True))
         mock_client.execute = AsyncMock(
             side_effect=[
@@ -355,7 +460,7 @@ class TestSetupServiceInternalMethods:
                 MagicMock(success=True, output=""),  # mkdir backup
                 MagicMock(success=True, output=""),  # cp config 1
                 MagicMock(success=True, output=""),  # cp config 2
-                MagicMock(success=True, output="writable"),  # test -w
+                MagicMock(success=True, output=""),  # remount rw
                 MagicMock(
                     success=False, error="sed: failed"
                 ),  # sed fails → failed=True
@@ -373,7 +478,7 @@ class TestSetupServiceInternalMethods:
             )
 
         mock_client.close.assert_called()
-        # Progress should be in FAILED state (sed fails → _apply_bmx_url returns True → early return)
+        # Progress should be in FAILED state
         assert progress is not None
 
     @pytest.mark.asyncio

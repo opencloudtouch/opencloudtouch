@@ -225,24 +225,17 @@ class SetupService:
     ) -> bool:
         """Write the new BMX URL into device config.
 
+        Always edits /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml directly
+        after remounting rw. The OverrideSdkPrivateCfg.xml approach does NOT
+        work on SoundTouch 10/300 (firmware ignores it).
+
         Returns:
             True if the step failed (caller should abort), False on success.
         """
-        result = await client.execute(
-            "test -w /opt/Bose/etc && echo 'writable' || echo 'readonly'"
-        )
+        config_path = "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml"
 
-        if "readonly" in (result.output or ""):
-            logger.info("Root filesystem is read-only, using override mechanism")
-            await client.execute(
-                "cp /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml /mnt/nv/SoundTouchSdkPrivateCfg.xml"
-            )
-            config_path = "/mnt/nv/SoundTouchSdkPrivateCfg.xml"
-            logger.warning(
-                "Config written to /mnt/nv - may need additional override setup"
-            )
-        else:
-            config_path = "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml"
+        # Remount rw — required for editing /opt/Bose/etc/
+        await client.execute("mount -o remount,rw /")
 
         sed_cmd = (
             f"sed -i 's|<bmxRegistryUrl>.*</bmxRegistryUrl>|"
@@ -263,8 +256,6 @@ class SetupService:
     ) -> None:
         """Verify that the BMX URL was written correctly (best-effort log only)."""
         result = await client.execute(
-            "cat /mnt/nv/OverrideSdkPrivateCfg.xml 2>/dev/null || "
-            "cat /mnt/nv/SoundTouchSdkPrivateCfg.xml 2>/dev/null || "
             "cat /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml | grep -i bmxRegistryUrl"
         )
         if new_bmx_url in (result.output or ""):
@@ -315,7 +306,6 @@ class SetupService:
 
             # Check BMX URL
             check = await client.execute(
-                "cat /mnt/nv/SoundTouchSdkPrivateCfg.xml 2>/dev/null || "
                 "cat /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml | grep -i bmxRegistryUrl"
             )
             result["bmx_url"] = check.output.strip()

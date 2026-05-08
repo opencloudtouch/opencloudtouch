@@ -67,12 +67,16 @@ class ConfigDiff:
 class SoundTouchConfigService:
     """Service for modifying SoundTouch device configuration."""
 
-    # Probed in order — first existing file wins
+    # Canonical config path — always edit directly (with remount rw).
+    # OverrideSdkPrivateCfg.xml is deliberately excluded: firmware on
+    # SoundTouch 10, 300 and other models ignores it entirely.
+    # See: gesellix/Bose-SoundTouch#220, scheilch/opencloudtouch#139
     CONFIG_CANDIDATES = [
-        "/mnt/nv/OverrideSdkPrivateCfg.xml",
         "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml",
-        "/mnt/nv/SoundTouchSdkPrivateCfg.xml",
     ]
+
+    # Stale override file that must be cleaned up (firmware ignores it)
+    _STALE_OVERRIDE = "/mnt/nv/OverrideSdkPrivateCfg.xml"
     BACKUP_DIR = "/mnt/nv"
 
     def __init__(self, ssh: SoundTouchSSHClient):
@@ -168,24 +172,10 @@ class SoundTouchConfigService:
     async def _write_config(self, content: str) -> None:
         """Write config file atomically via base64 piping.
 
-        If the detected config path is on a read-only filesystem
-        (/opt/Bose/etc/), copies to /mnt/nv/ first and writes there.
+        Writes directly to the canonical path (/opt/Bose/etc/).
+        Caller MUST have remounted rw before calling this.
         """
         path = await self._detect_config_path()
-
-        # If path is on read-only /opt/Bose/etc/, we need to write to /mnt/nv/
-        if path.startswith("/opt/Bose/"):
-            filename = path.rsplit("/", 1)[-1]
-            writable_path = f"/mnt/nv/{filename}"
-            # Copy original to writable location first (if not already there)
-            check = await self.ssh.execute(
-                f"test -f {writable_path} && echo 'exists' || echo 'missing'"
-            )
-            if "missing" in (check.output or ""):
-                await self.ssh.execute(f"cp {path} {writable_path}")
-            self.config_path = writable_path
-            path = writable_path
-            self.logger.info(f"Read-only filesystem detected, writing to {path}")
 
         b64 = base64.b64encode(content.encode()).decode()
         write_cmd = (
@@ -216,6 +206,19 @@ class SoundTouchConfigService:
             if not result.success:
                 self.logger.warning(f"Backup may have failed: {result.error}")
 
+    async def _cleanup_stale_override(self) -> None:
+        """Remove stale OverrideSdkPrivateCfg.xml if it exists.
+
+        Firmware on SoundTouch 10/300 ignores this file, but its presence
+        can confuse other tools or verification checks.
+        """
+        check = await self.ssh.execute(
+            f"test -f {self._STALE_OVERRIDE} && echo 'found' || echo 'missing'"
+        )
+        if "found" in (check.output or ""):
+            self.logger.info(f"Removing stale override: {self._STALE_OVERRIDE}")
+            await self.ssh.execute(f"rm -f {self._STALE_OVERRIDE}")
+
     async def modify_bmx_url(self, oct_ip: str) -> ModifyResult:
         """Modify BMX URL (and optionally marge/swupdate) in config.
 
@@ -239,6 +242,10 @@ class SoundTouchConfigService:
                 config_filename = (await self._detect_config_path()).rsplit("/", 1)[-1]
                 backup_path = f"{self.BACKUP_DIR}/{config_filename}.oct-backup"
                 await self._ensure_backup(backup_path)
+
+                # 2b. Remove stale OverrideSdkPrivateCfg.xml if present
+                # (firmware ignores it, but its presence may confuse verification)
+                await self._cleanup_stale_override()
 
                 # 3. Modify XML tags
                 diff = ConfigDiff()

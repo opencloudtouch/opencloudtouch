@@ -70,7 +70,7 @@ def mock_ssh():
 def service(mock_ssh):
     svc = SoundTouchConfigService(mock_ssh)
     # Pre-set config path to avoid extra SSH probe in every test
-    svc.config_path = "/mnt/nv/OverrideSdkPrivateCfg.xml"
+    svc.config_path = "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml"
     return svc
 
 
@@ -80,62 +80,32 @@ def service(mock_ssh):
 
 
 class TestConfigPath:
-    """Config path auto-detection tests (replaces BUG-03 regression)."""
+    """Config path auto-detection tests."""
 
     @pytest.fixture
     def fresh_service(self, mock_ssh):
         """Service without pre-set config_path for detection tests."""
         return SoundTouchConfigService(mock_ssh)
 
-    def test_first_candidate_is_mnt_nv_override(self):
+    def test_only_candidate_is_opt_bose(self):
         assert (
             SoundTouchConfigService.CONFIG_CANDIDATES[0]
-            == "/mnt/nv/OverrideSdkPrivateCfg.xml"
-        )
-
-    def test_second_candidate_is_opt_bose(self):
-        assert (
-            SoundTouchConfigService.CONFIG_CANDIDATES[1]
             == "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml"
         )
 
-    def test_third_candidate_is_mnt_nv_soundtouch(self):
-        assert (
-            SoundTouchConfigService.CONFIG_CANDIDATES[2]
-            == "/mnt/nv/SoundTouchSdkPrivateCfg.xml"
-        )
+    def test_only_one_candidate(self):
+        assert len(SoundTouchConfigService.CONFIG_CANDIDATES) == 1
 
     def test_backup_dir_is_on_persistent_volume(self):
         """Backups must be on persistent volume so they survive reboots."""
         assert SoundTouchConfigService.BACKUP_DIR == "/mnt/nv"
 
     @pytest.mark.asyncio
-    async def test_detect_first_candidate(self, fresh_service, mock_ssh):
-        """Detects /mnt/nv/OverrideSdkPrivateCfg.xml when it exists."""
+    async def test_detect_canonical_path(self, fresh_service, mock_ssh):
+        """Detects /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml."""
         mock_ssh.execute.return_value = _ok("found")
         path = await fresh_service._detect_config_path()
-        assert path == "/mnt/nv/OverrideSdkPrivateCfg.xml"
-
-    @pytest.mark.asyncio
-    async def test_detect_fallback_to_opt_bose(self, fresh_service, mock_ssh):
-        """Falls back to /opt/Bose/etc/ when /mnt/nv/ doesn't have the file."""
-        mock_ssh.execute.side_effect = [
-            _ok("missing"),  # /mnt/nv/OverrideSdkPrivateCfg.xml
-            _ok("found"),  # /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml
-        ]
-        path = await fresh_service._detect_config_path()
         assert path == "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml"
-
-    @pytest.mark.asyncio
-    async def test_detect_fallback_to_mnt_nv_soundtouch(self, fresh_service, mock_ssh):
-        """Falls back to /mnt/nv/SoundTouchSdkPrivateCfg.xml as last resort."""
-        mock_ssh.execute.side_effect = [
-            _ok("missing"),
-            _ok("missing"),
-            _ok("found"),
-        ]
-        path = await fresh_service._detect_config_path()
-        assert path == "/mnt/nv/SoundTouchSdkPrivateCfg.xml"
 
     @pytest.mark.asyncio
     async def test_detect_raises_when_none_found(self, fresh_service, mock_ssh):
@@ -151,7 +121,7 @@ class TestConfigPath:
         await fresh_service._detect_config_path()
         mock_ssh.execute.reset_mock()
         path = await fresh_service._detect_config_path()
-        assert path == "/mnt/nv/OverrideSdkPrivateCfg.xml"
+        assert path == "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml"
         mock_ssh.execute.assert_not_called()
 
 
@@ -285,12 +255,13 @@ class TestModifyBmxUrl:
 
     @pytest.mark.asyncio
     async def test_happy_path_modifies_bmx_url(self, service, mock_ssh):
-        """Full flow: remount rw → read → backup → modify → write → verify → remount ro."""
+        """Full flow: remount rw → read → backup → cleanup stale → write → verify → remount ro."""
         mock_ssh.execute.side_effect = [
             _ok(),  # remount rw
             _ok(SAMPLE_CONFIG_XML),  # read config (cat)
             _ok("missing"),  # backup check (test -f → missing)
             _ok(),  # cp backup
+            _ok("missing"),  # stale override check
             _ok(),  # write config (base64 pipe)
             _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify read-back
             _ok(),  # remount ro
@@ -322,6 +293,7 @@ class TestModifyBmxUrl:
             _ok(SAMPLE_CONFIG_XML),  # read config
             _ok("missing"),  # backup check
             _ok(),  # cp backup
+            _ok("missing"),  # stale override check
             _ok(),  # write config
             _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
             _ok(),  # remount ro
@@ -341,6 +313,7 @@ class TestModifyBmxUrl:
             _ok(),  # remount rw
             _ok(SAMPLE_CONFIG_XML),  # read config
             _ok("exists"),  # backup check → already exists
+            _ok("missing"),  # stale override check
             _ok(),  # write config
             _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
             _ok(),  # remount ro
@@ -361,6 +334,7 @@ class TestModifyBmxUrl:
             _ok(),  # remount rw
             _ok(SAMPLE_CONFIG_XML),  # read config
             _ok("exists"),  # backup exists
+            _ok("missing"),  # stale override check
             _ok(),  # write config
             _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
             _ok(),  # remount ro
@@ -368,8 +342,8 @@ class TestModifyBmxUrl:
 
         await service.modify_bmx_url("192.168.1.50")
 
-        # Find the write command (index 3: remount, read, backup_check, write)
-        write_cmd = mock_ssh.execute.call_args_list[3][0][0]
+        # Find the write command (index 4: remount, read, backup_check, stale_check, write)
+        write_cmd = mock_ssh.execute.call_args_list[4][0][0]
         assert "base64 -d" in write_cmd
         assert "/tmp/config.new" in write_cmd
         assert "mv /tmp/config.new" in write_cmd
@@ -381,6 +355,7 @@ class TestModifyBmxUrl:
             _ok(),  # remount rw
             _ok(SAMPLE_CONFIG_XML),  # read config
             _ok("exists"),  # backup exists
+            _ok("missing"),  # stale override check
             _ok(),  # write config
             _ok("corrupted garbage"),  # verify → missing closing tag!
             _ok(),  # remount ro
@@ -398,6 +373,7 @@ class TestModifyBmxUrl:
             _ok(),  # remount rw
             _ok(SAMPLE_CONFIG_XML),  # read config
             _ok("exists"),  # backup exists
+            _ok("missing"),  # stale override check
             _ok(),  # write config
             _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
             _ok(),  # remount ro
@@ -448,6 +424,7 @@ class TestModifyBmxUrl:
             _ok(),  # remount rw
             _ok(minimal_xml),  # read config
             _ok("exists"),  # backup check
+            _ok("missing"),  # stale override check
             _ok(),  # remount ro (no write — no changes)
         ]
 
@@ -463,6 +440,7 @@ class TestModifyBmxUrl:
             _ok(),  # remount rw
             _ok(SAMPLE_CONFIG_XML),  # read config
             _ok("exists"),  # backup check
+            _ok("missing"),  # stale override check
             _ok(),  # write config
             _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
             _ok(),  # remount ro
@@ -482,6 +460,7 @@ class TestModifyBmxUrl:
             _ok(),  # remount rw
             _ok(SAMPLE_CONFIG_XML),  # read config
             _ok("exists"),  # backup check
+            _ok("missing"),  # stale override check
             _ok(),  # write config
             _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
             _ok(),  # remount ro
@@ -490,7 +469,7 @@ class TestModifyBmxUrl:
         await service.modify_bmx_url("192.168.1.50")
 
         # Find the write command and decode the base64 content
-        write_cmd = mock_ssh.execute.call_args_list[3][0][0]
+        write_cmd = mock_ssh.execute.call_args_list[4][0][0]
         # Extract base64 string from: echo 'BASE64' | base64 -d > ...
         import base64 as b64
 
@@ -713,10 +692,7 @@ SAMPLE_OPT_BOSE_CONFIG = """\
 
 
 class TestModifyWithOptBosePath:
-    """Full modify flow when config is at /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml.
-
-    Regression test for GitHub issue #78.
-    """
+    """Full modify flow when config is at /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml."""
 
     @pytest.fixture
     def opt_service(self, mock_ssh):
@@ -725,42 +701,23 @@ class TestModifyWithOptBosePath:
         return svc
 
     @pytest.mark.asyncio
-    async def test_write_redirects_to_writable_mnt_nv(self, opt_service, mock_ssh):
-        """When config is on read-only /opt/Bose/etc/, write must go to /mnt/nv/."""
+    async def test_writes_directly_to_opt_bose(self, opt_service, mock_ssh):
+        """Config must be written directly to /opt/Bose/etc/ (no /mnt/nv/ copy)."""
         mock_ssh.execute.side_effect = [
             _ok(),  # remount rw
             _ok(SAMPLE_OPT_BOSE_CONFIG),  # read config (cat)
             _ok("missing"),  # backup check
             _ok(),  # cp backup
-            _ok("missing"),  # _write_config: check /mnt/nv/ copy
-            _ok(),  # _write_config: cp to /mnt/nv/
-            _ok(),  # _write_config: base64 write
+            _ok("missing"),  # stale override check
+            _ok(),  # write config (base64 pipe)
             _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify: cat
             _ok(),  # remount ro
         ]
 
         result = await opt_service.modify_bmx_url("192.168.1.50")
         assert result.success is True
-        assert opt_service.config_path == "/mnt/nv/SoundTouchSdkPrivateCfg.xml"
-
-    @pytest.mark.asyncio
-    async def test_reuses_existing_writable_copy(self, opt_service, mock_ssh):
-        """If /mnt/nv/ copy already exists, skip the cp from /opt/Bose/."""
-        mock_ssh.execute.side_effect = [
-            _ok(),  # remount rw
-            _ok(SAMPLE_OPT_BOSE_CONFIG),  # read config
-            _ok("exists"),  # backup exists
-            _ok("exists"),  # _write_config: writable copy exists
-            _ok(),  # _write_config: base64 write
-            _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
-            _ok(),  # remount ro
-        ]
-
-        result = await opt_service.modify_bmx_url("192.168.1.50")
-        assert result.success is True
-
-        all_cmds = [c[0][0] for c in mock_ssh.execute.call_args_list]
-        assert not any(c.startswith("cp /opt/Bose/") for c in all_cmds)
+        # Path must NOT have been redirected to /mnt/nv/
+        assert opt_service.config_path == "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml"
 
     @pytest.mark.asyncio
     async def test_backup_uses_detected_filename(self, opt_service, mock_ssh):
@@ -770,8 +727,7 @@ class TestModifyWithOptBosePath:
             _ok(SAMPLE_OPT_BOSE_CONFIG),  # read config
             _ok("missing"),  # backup check
             _ok(),  # cp backup
-            _ok("missing"),  # writable copy check
-            _ok(),  # cp to writable
+            _ok("missing"),  # stale override check
             _ok(),  # base64 write
             _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
             _ok(),  # remount ro
@@ -788,7 +744,7 @@ class TestModifyWithOptBosePath:
             _ok(),  # remount rw
             _ok(SAMPLE_OPT_BOSE_CONFIG),  # read config
             _ok("exists"),  # backup exists
-            _ok("exists"),  # writable copy exists
+            _ok("missing"),  # stale override check
             _ok(),  # write
             _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
             _ok(),  # remount ro
@@ -800,16 +756,17 @@ class TestModifyWithOptBosePath:
         assert "https://streaming.bose.com" in result.diff
 
 
-class TestModifyWithMntNvOverridePath:
-    """Full modify flow with /mnt/nv/OverrideSdkPrivateCfg.xml (standard path)."""
+class TestModifyDirectWrite:
+    """Verify modify writes directly to canonical path."""
 
     @pytest.mark.asyncio
     async def test_writes_directly_no_copy(self, service, mock_ssh):
-        """Config on /mnt/nv/ is writable — no copy needed."""
+        """Config is written directly to /opt/Bose/etc/ — no copy to /mnt/nv/."""
         mock_ssh.execute.side_effect = [
             _ok(),  # remount rw
             _ok(SAMPLE_CONFIG_XML),  # read config
             _ok("exists"),  # backup exists
+            _ok("missing"),  # stale override check
             _ok(),  # write config (direct)
             _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
             _ok(),  # remount ro
@@ -819,31 +776,35 @@ class TestModifyWithMntNvOverridePath:
         assert result.success is True
 
         all_cmds = [c[0][0] for c in mock_ssh.execute.call_args_list]
-        assert not any(c.startswith("cp /opt/Bose/") for c in all_cmds)
+        # No cp to /mnt/nv/ should exist
+        cp_to_mnt = [c for c in all_cmds if "cp" in c and "/mnt/nv/SoundTouch" in c]
+        assert len(cp_to_mnt) == 0
 
     @pytest.mark.asyncio
-    async def test_backup_uses_override_filename(self, service, mock_ssh):
-        """Backup must be named OverrideSdkPrivateCfg.xml.oct-backup."""
+    async def test_backup_uses_canonical_filename(self, service, mock_ssh):
+        """Backup must be named SoundTouchSdkPrivateCfg.xml.oct-backup."""
         mock_ssh.execute.side_effect = [
             _ok(),  # remount rw
             _ok(SAMPLE_CONFIG_XML),  # read config
             _ok("missing"),  # backup check
             _ok(),  # cp backup
+            _ok("missing"),  # stale override check
             _ok(),  # write config
             _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
             _ok(),  # remount ro
         ]
 
         result = await service.modify_bmx_url("192.168.1.50")
-        assert result.backup_path == "/mnt/nv/OverrideSdkPrivateCfg.xml.oct-backup"
+        assert result.backup_path == "/mnt/nv/SoundTouchSdkPrivateCfg.xml.oct-backup"
 
     @pytest.mark.asyncio
-    async def test_write_targets_mnt_nv_directly(self, service, mock_ssh):
-        """Write command must target /mnt/nv/ directly."""
+    async def test_write_targets_opt_bose_directly(self, service, mock_ssh):
+        """Write command must target /opt/Bose/etc/ directly."""
         mock_ssh.execute.side_effect = [
             _ok(),  # remount rw
             _ok(SAMPLE_CONFIG_XML),  # read config
             _ok("exists"),  # backup exists
+            _ok("missing"),  # stale override check
             _ok(),  # write config
             _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
             _ok(),  # remount ro
@@ -851,57 +812,32 @@ class TestModifyWithMntNvOverridePath:
 
         await service.modify_bmx_url("192.168.1.50")
 
-        write_cmd = mock_ssh.execute.call_args_list[3][0][0]
-        assert "/mnt/nv/OverrideSdkPrivateCfg.xml" in write_cmd
+        write_cmd = mock_ssh.execute.call_args_list[4][0][0]
+        assert "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml" in write_cmd
 
 
-class TestRestoreWithOptBosePath:
-    """Restore flow when config was moved from /opt/Bose/etc/ to /mnt/nv/."""
-
-    @pytest.fixture
-    def opt_service(self, mock_ssh):
-        svc = SoundTouchConfigService(mock_ssh)
-        svc.config_path = "/mnt/nv/SoundTouchSdkPrivateCfg.xml"
-        return svc
+class TestRestoreWithCanonicalPath:
+    """Restore flow with canonical /opt/Bose/etc/ path."""
 
     @pytest.mark.asyncio
-    async def test_restore_targets_detected_path(self, opt_service, mock_ssh):
-        """Restore must copy to the detected (writable) config path."""
+    async def test_restore_targets_canonical_path(self, service, mock_ssh):
+        """Restore must copy to /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml."""
         mock_ssh.execute.side_effect = [
             _ok("exists"),  # backup check
             _ok(),  # remount rw
-            _ok(),  # cp backup → /mnt/nv/SoundTouchSdkPrivateCfg.xml
+            _ok(),  # cp backup → /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml
             _ok(SAMPLE_OPT_BOSE_CONFIG),  # verify
             _ok(),  # remount ro
         ]
 
-        result = await opt_service.restore_config(
+        result = await service.restore_config(
             "/mnt/nv/SoundTouchSdkPrivateCfg.xml.oct-backup"
         )
         assert result.success is True
 
         cp_cmd = mock_ssh.execute.call_args_list[2][0][0]
-        assert "/mnt/nv/SoundTouchSdkPrivateCfg.xml" in cp_cmd
+        assert "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml" in cp_cmd
         assert "oct-backup" in cp_cmd
-
-    @pytest.mark.asyncio
-    async def test_restore_with_override_path(self, service, mock_ssh):
-        """Restore must target /mnt/nv/OverrideSdkPrivateCfg.xml for standard path."""
-        mock_ssh.execute.side_effect = [
-            _ok("exists"),  # backup check
-            _ok(),  # remount rw
-            _ok(),  # cp backup → /mnt/nv/OverrideSdkPrivateCfg.xml
-            _ok(SAMPLE_CONFIG_XML),  # verify
-            _ok(),  # remount ro
-        ]
-
-        result = await service.restore_config(
-            "/mnt/nv/OverrideSdkPrivateCfg.xml.oct-backup"
-        )
-        assert result.success is True
-
-        cp_cmd = mock_ssh.execute.call_args_list[2][0][0]
-        assert "/mnt/nv/OverrideSdkPrivateCfg.xml" in cp_cmd
 
 
 class TestDetectConfigPathFullFlow:
@@ -912,14 +848,15 @@ class TestDetectConfigPathFullFlow:
         return SoundTouchConfigService(mock_ssh)
 
     @pytest.mark.asyncio
-    async def test_first_candidate_found(self, fresh, mock_ssh):
-        """Full flow when /mnt/nv/OverrideSdkPrivateCfg.xml is found."""
+    async def test_canonical_path_found(self, fresh, mock_ssh):
+        """Full flow when /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml is found."""
         mock_ssh.execute.side_effect = [
             _ok(),  # remount rw
-            _ok("found"),  # probe: /mnt/nv/OverrideSdkPrivateCfg.xml
-            _ok(SAMPLE_CONFIG_XML),  # cat config
+            _ok("found"),  # probe: /opt/Bose/etc/ → found
+            _ok(SAMPLE_OPT_BOSE_CONFIG),  # cat config
             _ok("missing"),  # backup check
             _ok(),  # cp backup
+            _ok("missing"),  # stale override check
             _ok(),  # write config
             _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify: cat
             _ok(),  # remount ro
@@ -927,42 +864,133 @@ class TestDetectConfigPathFullFlow:
 
         result = await fresh.modify_bmx_url("192.168.1.50")
         assert result.success is True
-        assert fresh.config_path == "/mnt/nv/OverrideSdkPrivateCfg.xml"
-        assert result.backup_path == "/mnt/nv/OverrideSdkPrivateCfg.xml.oct-backup"
-
-    @pytest.mark.asyncio
-    async def test_second_candidate_found(self, fresh, mock_ssh):
-        """Full flow when only /opt/Bose/etc/ config exists."""
-        mock_ssh.execute.side_effect = [
-            _ok(),  # remount rw
-            _ok("missing"),  # probe 1: /mnt/nv/Override → miss
-            _ok("found"),  # probe 2: /opt/Bose/etc/ → found
-            _ok(SAMPLE_OPT_BOSE_CONFIG),  # cat config
-            _ok("missing"),  # backup check
-            _ok(),  # cp backup
-            _ok("missing"),  # _write_config: writable copy check
-            _ok(),  # _write_config: cp to /mnt/nv/
-            _ok(),  # _write_config: base64 write
-            _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify: cat
-            _ok(),  # remount ro
-        ]
-
-        result = await fresh.modify_bmx_url("192.168.1.50")
-        assert result.success is True
-        assert fresh.config_path == "/mnt/nv/SoundTouchSdkPrivateCfg.xml"
+        assert fresh.config_path == "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml"
         assert result.backup_path == "/mnt/nv/SoundTouchSdkPrivateCfg.xml.oct-backup"
 
     @pytest.mark.asyncio
     async def test_no_config_found(self, fresh, mock_ssh):
-        """All probes fail → returns failure."""
+        """Probe fails → returns failure."""
         mock_ssh.execute.side_effect = [
             _ok(),  # remount rw
-            _ok("missing"),  # probe 1
-            _ok("missing"),  # probe 2
-            _ok("missing"),  # probe 3
+            _ok("missing"),  # probe: /opt/Bose/etc/ → miss
             _ok(),  # remount ro (finally)
         ]
 
         result = await fresh.modify_bmx_url("192.168.1.50")
         assert result.success is False
         assert "Config file not found" in result.error
+
+
+# ---------------------------------------------------------------------------
+# Regression: OverrideSdkPrivateCfg.xml ignored by firmware (Issue #139 / PR #220)
+#
+# SoundTouch 10, 300 and other models ignore OverrideSdkPrivateCfg.xml entirely.
+# OCT must always write directly to /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml.
+# See: github.com/gesellix/Bose-SoundTouch/pull/220
+# ---------------------------------------------------------------------------
+
+
+class TestOverrideConfigIgnoredByFirmware:
+    """Regression tests: firmware ignores OverrideSdkPrivateCfg.xml on some models.
+
+    The fix removes OverrideSdkPrivateCfg.xml from CONFIG_CANDIDATES entirely
+    and always edits /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml directly.
+    """
+
+    def test_config_candidates_no_override_file(self):
+        """OverrideSdkPrivateCfg.xml must NOT be in candidates — firmware ignores it."""
+        for candidate in SoundTouchConfigService.CONFIG_CANDIDATES:
+            assert "OverrideSdkPrivateCfg" not in candidate, (
+                f"Override config {candidate} must be removed — "
+                "firmware on ST10/ST300 ignores it (gesellix/Bose-SoundTouch#220)"
+            )
+
+    def test_config_candidates_starts_with_opt_bose(self):
+        """Primary config path must be /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml."""
+        assert SoundTouchConfigService.CONFIG_CANDIDATES[0] == (
+            "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml"
+        )
+
+    def test_config_candidates_no_mnt_nv_copy(self):
+        """/mnt/nv/SoundTouchSdkPrivateCfg.xml must NOT be a candidate.
+
+        Writing to /mnt/nv/ doesn't work — the device reads from /opt/Bose/etc/
+        on boot. Only direct edit of the original works reliably.
+        """
+        for candidate in SoundTouchConfigService.CONFIG_CANDIDATES:
+            if candidate.startswith("/mnt/nv/"):
+                pytest.fail(
+                    f"Candidate {candidate} is on /mnt/nv/ — device ignores this path"
+                )
+
+    @pytest.fixture
+    def fresh_service(self, mock_ssh):
+        return SoundTouchConfigService(mock_ssh)
+
+    @pytest.mark.asyncio
+    async def test_detect_finds_opt_bose_directly(self, fresh_service, mock_ssh):
+        """Detection must resolve to /opt/Bose/etc/ path."""
+        mock_ssh.execute.return_value = _ok("found")
+        path = await fresh_service._detect_config_path()
+        assert path == "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml"
+
+    @pytest.mark.asyncio
+    async def test_write_targets_opt_bose_directly(self, fresh_service, mock_ssh):
+        """Write must go to /opt/Bose/etc/ directly — no copy to /mnt/nv/."""
+        fresh_service.config_path = "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml"
+        mock_ssh.execute.return_value = _ok()
+
+        await fresh_service._write_config("<SoundTouchSdkPrivateCfg/>")
+
+        write_cmd = mock_ssh.execute.call_args_list[0][0][0]
+        assert "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml" in write_cmd
+        # Must NOT redirect to /mnt/nv/
+        assert "/mnt/nv/" not in write_cmd
+
+    @pytest.mark.asyncio
+    async def test_modify_cleans_stale_override(self, fresh_service, mock_ssh):
+        """If stale OverrideSdkPrivateCfg.xml exists, it must be removed."""
+        mock_ssh.execute.side_effect = [
+            _ok(),  # remount rw
+            _ok("found"),  # probe: /opt/Bose/etc/ found
+            _ok(SAMPLE_OPT_BOSE_CONFIG),  # read config
+            _ok("missing"),  # backup check
+            _ok(),  # cp backup
+            _ok("found"),  # check stale override exists
+            _ok(),  # rm stale override
+            _ok(),  # write config
+            _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
+            _ok(),  # remount ro
+        ]
+
+        result = await fresh_service.modify_bmx_url("192.168.1.50")
+        assert result.success is True
+
+        all_cmds = [c[0][0] for c in mock_ssh.execute.call_args_list]
+        # Must have removed the stale override
+        rm_cmds = [c for c in all_cmds if "rm" in c and "Override" in c]
+        assert len(rm_cmds) > 0, "Stale OverrideSdkPrivateCfg.xml must be removed"
+
+    @pytest.mark.asyncio
+    async def test_full_flow_writes_to_canonical_path(self, fresh_service, mock_ssh):
+        """End-to-end: config is always written to /opt/Bose/etc/."""
+        fresh_service.config_path = "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml"
+        mock_ssh.execute.side_effect = [
+            _ok(),  # remount rw
+            _ok(SAMPLE_OPT_BOSE_CONFIG),  # read config
+            _ok("exists"),  # backup exists
+            _ok("missing"),  # check stale override → not present
+            _ok(),  # write config
+            _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
+            _ok(),  # remount ro
+        ]
+
+        result = await fresh_service.modify_bmx_url("192.168.1.50")
+        assert result.success is True
+
+        # The write command must target /opt/Bose/etc/
+        write_cmds = [
+            c[0][0] for c in mock_ssh.execute.call_args_list if "base64" in c[0][0]
+        ]
+        assert len(write_cmds) == 1
+        assert "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml" in write_cmds[0]
