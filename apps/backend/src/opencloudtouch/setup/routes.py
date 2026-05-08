@@ -47,7 +47,7 @@ async def check_connectivity(
     setup_service: SetupService = Depends(get_setup_service),
 ) -> Dict[str, Any]:
     """
-    Check if device is ready for setup (SSH/Telnet available).
+    Check if device is ready for setup (SSH available).
 
     This should be called after user inserts USB stick and reboots device.
     """

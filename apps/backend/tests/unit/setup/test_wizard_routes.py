@@ -44,18 +44,11 @@ def client(wizard_app):
 class TestWizardCheckPorts:
     """POST /api/setup/wizard/check-ports"""
 
-    def test_both_ports_accessible(self, client):
-        with (
-            patch(
-                "opencloudtouch.setup.wizard_routes.check_ssh_port",
-                new_callable=AsyncMock,
-                return_value=True,
-            ),
-            patch(
-                "opencloudtouch.setup.wizard_routes.check_telnet_port",
-                new_callable=AsyncMock,
-                return_value=True,
-            ),
+    def test_ssh_accessible(self, client):
+        with patch(
+            "opencloudtouch.setup.wizard_routes.check_ssh_port",
+            new_callable=AsyncMock,
+            return_value=True,
         ):
             response = client.post(
                 "/api/setup/wizard/check-ports",
@@ -65,43 +58,12 @@ class TestWizardCheckPorts:
         body = response.json()
         assert body["success"] is True
         assert body["has_ssh"] is True
-        assert body["has_telnet"] is True
 
-    def test_only_ssh_accessible(self, client):
-        with (
-            patch(
-                "opencloudtouch.setup.wizard_routes.check_ssh_port",
-                new_callable=AsyncMock,
-                return_value=True,
-            ),
-            patch(
-                "opencloudtouch.setup.wizard_routes.check_telnet_port",
-                new_callable=AsyncMock,
-                return_value=False,
-            ),
-        ):
-            response = client.post(
-                "/api/setup/wizard/check-ports",
-                json={"device_ip": "192.168.1.100", "timeout": 3},
-            )
-        assert response.status_code == 200
-        body = response.json()
-        assert body["success"] is True
-        assert body["has_ssh"] is True
-        assert body["has_telnet"] is False
-
-    def test_no_ports_returns_failure(self, client):
-        with (
-            patch(
-                "opencloudtouch.setup.wizard_routes.check_ssh_port",
-                new_callable=AsyncMock,
-                return_value=False,
-            ),
-            patch(
-                "opencloudtouch.setup.wizard_routes.check_telnet_port",
-                new_callable=AsyncMock,
-                return_value=False,
-            ),
+    def test_ssh_not_accessible_returns_failure(self, client):
+        with patch(
+            "opencloudtouch.setup.wizard_routes.check_ssh_port",
+            new_callable=AsyncMock,
+            return_value=False,
         ):
             response = client.post(
                 "/api/setup/wizard/check-ports",
@@ -111,7 +73,6 @@ class TestWizardCheckPorts:
         body = response.json()
         assert body["success"] is False
         assert body["has_ssh"] is False
-        assert body["has_telnet"] is False
 
 
 # ── wizard/backup ─────────────────────────────────────────────────────────────

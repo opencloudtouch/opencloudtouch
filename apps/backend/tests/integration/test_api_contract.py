@@ -292,11 +292,9 @@ class TestResponseSchemas:
         from opencloudtouch.setup.api_models import PortCheckResponse
 
         # Construct minimal valid response
-        resp = PortCheckResponse(
-            success=True, message="OK", has_ssh=True, has_telnet=False
-        )
+        resp = PortCheckResponse(success=True, message="OK", has_ssh=True)
         data = resp.model_dump()
-        assert set(data.keys()) == {"success", "message", "has_ssh", "has_telnet"}
+        assert set(data.keys()) == {"success", "message", "has_ssh"}
 
     @pytest.mark.asyncio
     async def test_backup_response_schema(self, client):

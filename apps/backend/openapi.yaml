@@ -2925,10 +2925,6 @@ components:
           type: boolean
           title: Has Ssh
           default: false
-        has_telnet:
-          type: boolean
-          title: Has Telnet
-          default: false
       type: object
       required:
       - success

@@ -718,7 +718,6 @@ class TestCheckPorts:
         import opencloudtouch.setup.wizard_routes as routes
 
         monkeypatch.setattr(routes, "check_ssh_port", AsyncMock(return_value=True))
-        monkeypatch.setattr(routes, "check_telnet_port", AsyncMock(return_value=False))
 
         response = client.post(self.ENDPOINT, json={"device_ip": "192.168.1.100"})
         assert response.status_code == 200, (
@@ -739,7 +738,6 @@ class TestCheckPorts:
         import opencloudtouch.setup.wizard_routes as routes
 
         monkeypatch.setattr(routes, "check_ssh_port", AsyncMock(return_value=True))
-        monkeypatch.setattr(routes, "check_telnet_port", AsyncMock(return_value=False))
 
         response = client.post(self.ENDPOINT, json={"device_ip": "192.168.1.100"})
         assert response.status_code == 200
@@ -749,9 +747,6 @@ class TestCheckPorts:
             "has_ssh" in data
         ), f"BUG-19: Response must contain 'has_ssh' field. Got: {list(data.keys())}"
         assert (
-            "has_telnet" in data
-        ), f"BUG-19: Response must contain 'has_telnet' field. Got: {list(data.keys())}"
-        assert (
             "ssh_available" not in data
         ), "BUG-19: 'ssh_available' should not exist (frontend was reading wrong field)"
 
@@ -760,7 +755,6 @@ class TestCheckPorts:
         import opencloudtouch.setup.wizard_routes as routes
 
         monkeypatch.setattr(routes, "check_ssh_port", AsyncMock(return_value=True))
-        monkeypatch.setattr(routes, "check_telnet_port", AsyncMock(return_value=True))
 
         response = client.post(self.ENDPOINT, json={"device_ip": "192.168.1.100"})
         assert response.status_code == 200
@@ -768,12 +762,11 @@ class TestCheckPorts:
         assert data["has_ssh"] is True
         assert data["success"] is True
 
-    def test_no_ports_open_returns_success_false(self, client, monkeypatch):
-        """When neither SSH nor Telnet is open, success=False."""
+    def test_no_ssh_returns_success_false(self, client, monkeypatch):
+        """When SSH is not open, success=False."""
         import opencloudtouch.setup.wizard_routes as routes
 
         monkeypatch.setattr(routes, "check_ssh_port", AsyncMock(return_value=False))
-        monkeypatch.setattr(routes, "check_telnet_port", AsyncMock(return_value=False))
 
         response = client.post(self.ENDPOINT, json={"device_ip": "192.168.1.100"})
         assert response.status_code == 200

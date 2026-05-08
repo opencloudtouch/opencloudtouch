@@ -65,7 +65,7 @@ class ConnectivityCheckRequest(BaseModel):
 
 
 class PortCheckRequest(WizardDeviceRequest):
-    """Request to check SSH/Telnet ports."""
+    """Request to check SSH port."""
 
     timeout: float = Field(default=10.0, ge=1.0, le=60.0)
 
@@ -76,7 +76,6 @@ class PortCheckResponse(BaseModel):
     success: bool
     message: str
     has_ssh: bool = False
-    has_telnet: bool = False
 
 
 class BackupRequest(WizardDeviceRequest):

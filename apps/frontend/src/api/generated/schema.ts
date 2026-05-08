@@ -1455,7 +1455,7 @@ export interface paths {
     put?: never;
     /**
      * Check Connectivity
-     * @description Check if device is ready for setup (SSH/Telnet available).
+     * @description Check if device is ready for setup (SSH available).
      *
      *     This should be called after user inserts USB stick and reboots device.
      */
@@ -1650,7 +1650,7 @@ export interface paths {
     put?: never;
     /**
      * Wizard Check Ports
-     * @description Check if SSH/Telnet ports accessible (Wizard Step 3).
+     * @description Check if SSH port is accessible (Wizard Step 3).
      */
     post: operations["wizard_check_ports_api_setup_wizard_check_ports_post"];
     delete?: never;
@@ -2265,7 +2265,7 @@ export interface components {
     };
     /**
      * PortCheckRequest
-     * @description Request to check SSH/Telnet ports.
+     * @description Request to check SSH port.
      */
     PortCheckRequest: {
       /** Device Ip */
@@ -2290,11 +2290,6 @@ export interface components {
        * @default false
        */
       has_ssh: boolean;
-      /**
-       * Has Telnet
-       * @default false
-       */
-      has_telnet: boolean;
     };
     /**
      * PresetResponse
