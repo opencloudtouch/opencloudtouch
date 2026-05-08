@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: OpenCloudTouch
   description: Open-Source replacement for discontinued streaming device cloud features
-  version: 0.2.0
+  version: 1.1.2
 paths:
   /api/devices/discover:
     get:
