@@ -1,0 +1,147 @@
+# syntax=docker/dockerfile:1
+
+# ============================================================
+# Multi-stage build for OpenCloudTouch
+# Supports amd64, arm64, and armv7 (Raspberry Pi 2/3/4/5)
+# ============================================================
+
+# Base Image Versions (Pinned for Reproducibility)
+# Update SHA256 digests with:
+#   docker pull <image>:<tag>
+#   docker inspect --format='{{.RepoDigests}}' <image>:<tag>
+#
+# Current versions:
+#   Node.js: 20.11-alpine (Alpine 3.19)
+#   Python: 3.11.8-slim (Debian Bookworm)
+
+# Stage 1: Build Frontend
+FROM node:20-alpine@sha256:09e2b3d9726018aecf269bd35325f46bf75046a643a66d28360ec71132750ec8 AS frontend-builder
+
+# Get build architecture from buildx
+ARG TARGETARCH
+
+WORKDIR /app
+
+# Copy workspace configuration first
+COPY package*.json ./
+COPY apps/frontend/package*.json ./apps/frontend/
+
+# Install dependencies using workspace
+RUN npm ci
+
+# Install platform-specific rollup binary for Alpine (musl)
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+      npm install --no-save @rollup/rollup-linux-x64-musl; \
+    elif [ "$TARGETARCH" = "arm64" ]; then \
+      npm install --no-save @rollup/rollup-linux-arm64-musl; \
+    elif [ "$TARGETARCH" = "arm" ]; then \
+      npm install --no-save @rollup/rollup-linux-arm-musleabihf; \
+    fi
+
+# Copy frontend source
+COPY apps/frontend/ ./apps/frontend/
+
+# Build frontend
+RUN npm run build --workspace=apps/frontend
+
+# Stage 2: Python Dependencies (separate for better caching)
+FROM python:3.11-slim@sha256:0b23cfb7425d065008b778022a17b1551c82f8b4866ee5a7a200084b7e2eafbf AS python-deps
+
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Upgrade pip, setuptools, wheel FIRST to get latest versions with security fixes
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Install Python dependencies with prefix for easy copying
+# First: Install security-pinned transitive deps to prevent vulnerable versions
+# being pulled first by other packages
+COPY apps/backend/requirements.txt ./
+RUN pip install --no-cache-dir --prefix=/install \
+    jaraco-context==6.1.0 \
+    wheel==0.46.2 && \
+    pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# Remove vulnerable vendored packages from setuptools (CVE-2026-23949, CVE-2026-24049)
+# These are bundled inside setuptools but not needed at runtime
+RUN find /install -path "*setuptools/_vendor/jaraco*" -delete 2>/dev/null || true && \
+    find /install -path "*setuptools/_vendor/wheel*" -delete 2>/dev/null || true && \
+    find /install -name "wheel-0.45*.dist-info" -exec rm -rf {} + 2>/dev/null || true
+
+# Cleanup: Remove gcc and build artifacts (reduce layer size)
+RUN apt-get purge -y --auto-remove gcc && \
+    find /install -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
+    find /install -name "*.pyc" -delete
+
+# Stage 3: Backend Runtime
+FROM python:3.11-slim@sha256:0b23cfb7425d065008b778022a17b1551c82f8b4866ee5a7a200084b7e2eafbf AS backend
+
+# OCI Image Labels
+LABEL org.opencontainers.image.title="OpenCloudTouch" \
+      org.opencontainers.image.description="Local control for Bose SoundTouch devices after cloud shutdown" \
+      org.opencontainers.image.url="https://github.com/scheilch/opencloudtouch" \
+      org.opencontainers.image.source="https://github.com/scheilch/opencloudtouch" \
+      org.opencontainers.image.documentation="https://github.com/scheilch/opencloudtouch/wiki" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.vendor="OpenCloudTouch"
+
+WORKDIR /app
+
+# Copy Python dependencies from build stage
+COPY --from=python-deps /install /usr/local
+
+# Remove vulnerable packages AFTER copying deps (CVE-2026-23949, CVE-2026-24049)
+# - Base image contains setuptools with vendored jaraco.context-5.3.0 and wheel-0.45.1
+# - These are not needed at runtime and pose security risks
+RUN find /usr/local/lib -path "*setuptools/_vendor/jaraco*" -delete 2>/dev/null || true && \
+    find /usr/local/lib -path "*setuptools/_vendor/wheel*" -delete 2>/dev/null || true && \
+    find /usr/local/lib -name "wheel-0.45*.dist-info" -exec rm -rf {} + 2>/dev/null || true && \
+    find /usr/local/lib -name "jaraco.context-5.3.0*" -exec rm -rf {} + 2>/dev/null || true
+
+# Copy backend source (as package)
+COPY apps/backend/src/opencloudtouch ./opencloudtouch
+
+# Precompile Python bytecode for faster startup
+# -b: Write .pyc files (bytecode)
+# Delete .py source files to save space (bytecode is sufficient)
+RUN python -m compileall -b opencloudtouch/ && \
+    find opencloudtouch/ -name "*.py" ! -name "__main__.py" -delete && \
+    find opencloudtouch/ -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+
+# Copy frontend build from previous stage
+COPY --from=frontend-builder /app/.out/dist ./frontend/dist
+
+# Copy entrypoint script
+COPY apps/backend/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Create data directory
+RUN mkdir -p /data
+
+# Run as non-root user
+RUN useradd -m -u 1000 oct && chown -R oct:oct /app /data
+USER oct
+
+# Environment defaults
+ENV OCT_HOST=0.0.0.0
+ENV OCT_PORT=7777
+ENV OCT_DB_PATH=/data/oct.db
+ENV OCT_LOG_LEVEL=INFO
+ENV OCT_DISCOVERY_ENABLED=true
+
+# Set Python path for package
+ENV PYTHONPATH=/app
+
+# Healthcheck using entrypoint script
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD /entrypoint.sh health || exit 1
+
+# Expose port
+EXPOSE 7777
+
+# Use entrypoint script
+ENTRYPOINT ["/entrypoint.sh"]
