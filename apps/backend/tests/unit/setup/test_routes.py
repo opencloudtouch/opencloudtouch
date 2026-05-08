@@ -954,8 +954,8 @@ class TestWizardBackupRoute:
         assert data["success"] is False
         assert "tar: write error" in data["message"]
 
-    def test_backup_ssh_exception_returns_500(self, client, monkeypatch):
-        """SSH exception returns 500."""
+    def test_backup_ssh_exception_returns_503(self, client, monkeypatch):
+        """SSH connection failure returns 503 (Service Unavailable)."""
         from opencloudtouch.setup import wizard_routes as routes
 
         def raise_on_enter(ip):
@@ -967,7 +967,8 @@ class TestWizardBackupRoute:
         monkeypatch.setattr(routes, "SoundTouchSSHClient", raise_on_enter)
 
         response = client.post(self.ENDPOINT, json={"device_ip": "192.168.1.100"})
-        assert response.status_code == 500
+        assert response.status_code == 503
+        assert "SSH" in response.json()["detail"]
 
 
 class TestWizardModifyConfigRoute:
@@ -1035,8 +1036,8 @@ class TestWizardModifyConfigRoute:
         data = response.json()
         assert data["success"] is False
 
-    def test_modify_config_ssh_exception_returns_500(self, client, monkeypatch):
-        """SSH exception during config modification returns 500."""
+    def test_modify_config_ssh_exception_returns_503(self, client, monkeypatch):
+        """SSH exception during config modification returns 503."""
         from opencloudtouch.setup import wizard_routes as routes
 
         def fail_ctx(ip):
@@ -1051,7 +1052,7 @@ class TestWizardModifyConfigRoute:
             self.ENDPOINT,
             json={"device_ip": "192.168.1.100", "target_addr": "192.168.1.50"},
         )
-        assert response.status_code == 500
+        assert response.status_code == 503
 
 
 class TestWizardModifyHostsRoute:
@@ -1114,8 +1115,8 @@ class TestWizardModifyHostsRoute:
         assert response.status_code == 200
         assert response.json()["success"] is False
 
-    def test_modify_hosts_ssh_exception_returns_500(self, client, monkeypatch):
-        """SSH exception returns 500."""
+    def test_modify_hosts_ssh_exception_returns_503(self, client, monkeypatch):
+        """SSH exception returns 503."""
         from opencloudtouch.setup import wizard_routes as routes
 
         def fail_ctx(ip):
@@ -1130,7 +1131,7 @@ class TestWizardModifyHostsRoute:
             self.ENDPOINT,
             json={"device_ip": "192.168.1.100", "target_addr": "192.168.1.50"},
         )
-        assert response.status_code == 500
+        assert response.status_code == 503
 
 
 class TestWizardRestoreRoutes:
@@ -1313,8 +1314,8 @@ class TestEnablePermanentSSHException:
 class TestWizardRestoreExceptionPaths:
     """Tests for exception paths in restore-config, restore-hosts, list-backups."""
 
-    def test_restore_config_ssh_exception_returns_500(self, client, monkeypatch):
-        """SSH exception in restore-config returns 500."""
+    def test_restore_config_ssh_exception_returns_503(self, client, monkeypatch):
+        """SSH exception in restore-config returns 503."""
         from opencloudtouch.setup import wizard_routes as routes
 
         def fail_ctx(ip):
@@ -1332,10 +1333,10 @@ class TestWizardRestoreExceptionPaths:
                 "backup_path": "/usb/backups/config.xml",
             },
         )
-        assert response.status_code == 500
+        assert response.status_code == 503
 
-    def test_restore_hosts_ssh_exception_returns_500(self, client, monkeypatch):
-        """SSH exception in restore-hosts returns 500."""
+    def test_restore_hosts_ssh_exception_returns_503(self, client, monkeypatch):
+        """SSH exception in restore-hosts returns 503."""
         from opencloudtouch.setup import wizard_routes as routes
 
         def fail_ctx(ip):
@@ -1353,10 +1354,10 @@ class TestWizardRestoreExceptionPaths:
                 "backup_path": "/usb/backups/hosts.bak",
             },
         )
-        assert response.status_code == 500
+        assert response.status_code == 503
 
-    def test_list_backups_ssh_exception_returns_500(self, client, monkeypatch):
-        """SSH exception in list-backups returns 500."""
+    def test_list_backups_ssh_exception_returns_503(self, client, monkeypatch):
+        """SSH exception in list-backups returns 503."""
         from opencloudtouch.setup import wizard_routes as routes
 
         def fail_ctx(ip):
@@ -1371,7 +1372,7 @@ class TestWizardRestoreExceptionPaths:
             "/api/setup/wizard/list-backups",
             json={"device_ip": "192.168.1.100"},
         )
-        assert response.status_code == 500
+        assert response.status_code == 503
 
 
 class TestWizardRebootExceptionPath:
@@ -1433,8 +1434,8 @@ class TestWizardVerifyRedirectExceptionPaths:
         data = response.json()
         assert data["resolved_ip"] == "192.168.1.50"
 
-    def test_ssh_exception_returns_500(self, client, monkeypatch):
-        """Generic exception in verify_redirect returns 500."""
+    def test_ssh_exception_returns_503(self, client, monkeypatch):
+        """SSH connection failure in verify_redirect returns 503."""
         import socket
 
         from opencloudtouch.setup import wizard_routes as routes
@@ -1457,4 +1458,4 @@ class TestWizardVerifyRedirectExceptionPaths:
                 "expected_ip": "192.168.1.50",
             },
         )
-        assert response.status_code == 500
+        assert response.status_code == 503

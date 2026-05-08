@@ -63,13 +63,20 @@ async def ssh_operation(
         Connected SoundTouchSSHClient ready for commands
 
     Raises:
-        HTTPException(500): On any error opening SSH connection or during the operation
+        HTTPException(503): When SSH connection is refused or unreachable
+        HTTPException(500): On any other unexpected error
     """
     try:
         async with SoundTouchSSHClient(device_ip) as ssh:
             yield ssh
     except HTTPException:
         raise  # propagate intentional HTTP errors from business logic unchanged
+    except (ConnectionError, ConnectionRefusedError, OSError) as e:
+        logger.error(f"[Wizard/{operation_name}] SSH unreachable on {device_ip}: {e}")
+        raise HTTPException(
+            status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="SSH nicht erreichbar. Bitte USB-Stick prüfen oder SSH erneut aktivieren.",
+        )
     except Exception as e:
         logger.error(
             f"[Wizard/{operation_name}] failed on {device_ip}: {e}", exc_info=True

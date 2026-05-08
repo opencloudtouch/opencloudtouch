@@ -226,6 +226,118 @@ class TestSSHVerification:
 
         mock_repo.update_setup_status.assert_not_called()
 
+    async def test_ssh_unreachable_does_not_reset_on_first_cycle(
+        self, health_check, mock_repo
+    ):
+        """Single SSH failure must NOT reset ssh_permanent (grace period)."""
+        device = _make_device(
+            ssh_permanent=True, setup_status="configured", device_id="dev-grace"
+        )
+
+        with patch(
+            "opencloudtouch.devices.health_check.check_ssh_port",
+            return_value=False,
+        ):
+            await health_check._ssh_verify_device(device, "http://myserver:7777")
+
+        # After only 1 failure, ssh_permanent must NOT be reset
+        mock_repo.update_setup_status.assert_not_called()
+
+    async def test_ssh_unreachable_consecutive_resets_ssh_permanent(
+        self, health_check, mock_repo
+    ):
+        """2 consecutive SSH failures must reset ssh_permanent=False."""
+        device = _make_device(
+            ssh_permanent=True, setup_status="configured", device_id="dev-reset"
+        )
+
+        with patch(
+            "opencloudtouch.devices.health_check.check_ssh_port",
+            return_value=False,
+        ):
+            # First failure — grace period
+            await health_check._ssh_verify_device(device, "http://myserver:7777")
+            # Second failure — should trigger reset
+            await health_check._ssh_verify_device(device, "http://myserver:7777")
+
+        mock_repo.update_setup_status.assert_called_once_with(
+            device_id="dev-reset",
+            setup_status="configured",
+            ssh_permanent=False,
+        )
+
+    async def test_ssh_reachable_resets_fail_count(self, health_check, mock_repo):
+        """After failures, a successful SSH check resets the counter."""
+        device = _make_device(
+            ssh_permanent=True, setup_status="configured", device_id="dev-recover"
+        )
+
+        mock_conn = MagicMock(success=True)
+        mock_client = AsyncMock()
+        mock_client.connect.return_value = mock_conn
+        mock_client.execute.side_effect = [
+            MagicMock(output="bmxRegistryUrl=http://myserver:7777/bmx"),
+            MagicMock(output="0"),
+        ]
+        mock_client.close = AsyncMock()
+
+        with patch(
+            "opencloudtouch.devices.health_check.check_ssh_port",
+            return_value=False,
+        ):
+            # Accumulate 1 failure
+            await health_check._ssh_verify_device(device, "http://myserver:7777")
+
+        # Now SSH comes back
+        with (
+            patch(
+                "opencloudtouch.devices.health_check.check_ssh_port",
+                return_value=True,
+            ),
+            patch(
+                "opencloudtouch.devices.health_check.SoundTouchSSHClient",
+                return_value=mock_client,
+            ),
+        ):
+            await health_check._ssh_verify_device(device, "http://myserver:7777")
+
+        # After recovery, another single failure must NOT reset
+        # (counter was cleared by success)
+        mock_repo.update_setup_status.reset_mock()
+        with patch(
+            "opencloudtouch.devices.health_check.check_ssh_port",
+            return_value=False,
+        ):
+            await health_check._ssh_verify_device(device, "http://myserver:7777")
+
+        mock_repo.update_setup_status.assert_not_called()
+
+    async def test_ssh_fail_count_per_device_isolation(self, health_check, mock_repo):
+        """Failure tracking is per-device — device A failures don't affect B."""
+        device_a = _make_device(
+            ssh_permanent=True, setup_status="configured", device_id="dev-A"
+        )
+        device_b = _make_device(
+            ssh_permanent=True, setup_status="configured", device_id="dev-B"
+        )
+
+        with patch(
+            "opencloudtouch.devices.health_check.check_ssh_port",
+            return_value=False,
+        ):
+            # Device A: 1 failure
+            await health_check._ssh_verify_device(device_a, "http://myserver:7777")
+            # Device B: 1 failure
+            await health_check._ssh_verify_device(device_b, "http://myserver:7777")
+            # Device A: 2nd failure — should trigger reset for A only
+            await health_check._ssh_verify_device(device_a, "http://myserver:7777")
+
+        # Only device A should have been reset (2 consecutive)
+        calls = mock_repo.update_setup_status.call_args_list
+        assert len(calls) == 1
+        assert calls[0].kwargs["device_id"] == "dev-A"
+        assert calls[0].kwargs["ssh_permanent"] is False
+
     async def test_configured_status_when_our_server_in_bmx(
         self, health_check, mock_repo
     ):
