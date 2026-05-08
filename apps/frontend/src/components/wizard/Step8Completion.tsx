@@ -23,7 +23,7 @@ export default function Step8Completion({ deviceName, backupPath, onFinish }: St
 
   return (
     <WizardStep
-      stepNumber={8}
+      stepNumber={7}
       title={t("setup.wizard.step8.title")}
       description={t("setup.wizard.step8.description")}
     >

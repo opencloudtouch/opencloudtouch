@@ -54,7 +54,7 @@ export default function Step4Backup({
 
   return (
     <WizardStep
-      stepNumber={4}
+      stepNumber={3}
       title={t("setup.wizard.step4.title")}
       description={t("setup.wizard.step4.description")}
       warning={t("setup.wizard.step4.warning")}

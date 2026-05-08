@@ -80,7 +80,7 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
 
   return (
     <WizardStep
-      stepNumber={2}
+      stepNumber={1}
       title={t("setup.wizard.step2.title")}
       description={t("setup.wizard.step2.description")}
       warning={t("setup.wizard.step2.warning")}

@@ -45,7 +45,6 @@ from opencloudtouch.setup.hosts_service import SoundTouchHostsService
 from opencloudtouch.setup.ssh_client import (
     SoundTouchSSHClient,
     check_ssh_port,
-    check_telnet_port,
 )
 
 logger = logging.getLogger(__name__)
@@ -63,13 +62,20 @@ async def ssh_operation(
         Connected SoundTouchSSHClient ready for commands
 
     Raises:
-        HTTPException(500): On any error opening SSH connection or during the operation
+        HTTPException(503): When SSH connection is refused or unreachable
+        HTTPException(500): On any other unexpected error
     """
     try:
         async with SoundTouchSSHClient(device_ip) as ssh:
             yield ssh
     except HTTPException:
         raise  # propagate intentional HTTP errors from business logic unchanged
+    except (ConnectionError, ConnectionRefusedError, OSError) as e:
+        logger.error(f"[Wizard/{operation_name}] SSH unreachable on {device_ip}: {e}")
+        raise HTTPException(
+            status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="SSH nicht erreichbar. Bitte USB-Stick prüfen oder SSH erneut aktivieren.",
+        )
     except Exception as e:
         logger.error(
             f"[Wizard/{operation_name}] failed on {device_ip}: {e}", exc_info=True
@@ -159,25 +165,22 @@ def _check_port_443(hostname: str) -> bool:
 
 @wizard_router.post("/wizard/check-ports", response_model=PortCheckResponse)
 async def wizard_check_ports(request: PortCheckRequest):
-    """Check if SSH/Telnet ports accessible (Wizard Step 3)."""
-    logger.info(f"Checking ports on {request.device_ip}")
+    """Check if SSH port is accessible (Wizard Step 3)."""
+    logger.info(f"Checking SSH port on {request.device_ip}")
 
     has_ssh = await check_ssh_port(request.device_ip, timeout=request.timeout)
-    has_telnet = await check_telnet_port(request.device_ip, timeout=request.timeout)
 
-    if not has_ssh and not has_telnet:
+    if not has_ssh:
         return PortCheckResponse(
             success=False,
-            message="Neither SSH nor Telnet accessible. Check USB stick setup.",
+            message="SSH not accessible. Check USB stick setup.",
             has_ssh=False,
-            has_telnet=False,
         )
 
     return PortCheckResponse(
         success=True,
-        message=f"Remote access enabled (SSH: {has_ssh}, Telnet: {has_telnet})",
-        has_ssh=has_ssh,
-        has_telnet=has_telnet,
+        message="SSH access enabled",
+        has_ssh=True,
     )
 
 

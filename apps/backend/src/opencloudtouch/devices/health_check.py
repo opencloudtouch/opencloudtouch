@@ -22,6 +22,7 @@ PING_INTERVAL = 5 * 60  # 5 min
 SSH_VERIFY_INTERVAL = 30 * 60  # 30 min
 PING_TIMEOUT = 5  # HTTP timeout per device
 OFFLINE_THRESHOLD = 15 * 60  # 15 min without response → offline
+SSH_FAIL_THRESHOLD = 2  # consecutive failures before resetting ssh_permanent
 
 
 class DeviceHealthCheck:
@@ -32,6 +33,7 @@ class DeviceHealthCheck:
         self._task: asyncio.Task | None = None
         self._last_ssh_verify = 0.0
         self._running = False
+        self._ssh_fail_count: dict[str, int] = {}
 
     def start(self) -> None:
         """Start the background health-check loop."""
@@ -132,8 +134,25 @@ class DeviceHealthCheck:
     async def _ssh_verify_device(self, device, our_server: str) -> None:
         """Verify a single device via SSH: check BMX URL and update status."""
         if not await check_ssh_port(device.ip, timeout=3.0):
-            logger.debug("SSH not reachable for %s", device.name)
+            count = self._ssh_fail_count.get(device.device_id, 0) + 1
+            self._ssh_fail_count[device.device_id] = count
+            if count >= SSH_FAIL_THRESHOLD:
+                logger.warning(
+                    "SSH unreachable for %s (%d cycles) — disabling ssh_permanent",
+                    device.name,
+                    count,
+                )
+                await self._device_repo.update_setup_status(
+                    device_id=device.device_id,
+                    setup_status=device.setup_status,
+                    ssh_permanent=False,
+                )
+            else:
+                logger.debug("SSH not reachable for %s", device.name)
             return
+
+        # SSH reachable — reset failure counter
+        self._ssh_fail_count[device.device_id] = 0
 
         client = SoundTouchSSHClient(device.ip)
         conn = await client.connect(timeout=5.0)

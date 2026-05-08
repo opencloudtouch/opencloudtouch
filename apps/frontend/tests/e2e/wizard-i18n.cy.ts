@@ -118,7 +118,7 @@ describe("Wizard i18n — English (default)", () => {
   it("Step 1 — USB preparation renders in English", () => {
     visitEn(`${FRONTEND_BASE}/setup-wizard?deviceId=DEVICE_WOHNZIMMER`);
     cy.wait("@getDevices");
-    cy.contains("Step 2").should("exist");
+    cy.contains("Step 1").should("exist");
     cy.contains("Prepare USB drive").should("exist");
     // No German strings visible
     cy.contains("USB-Stick vorbereiten").should("not.exist");

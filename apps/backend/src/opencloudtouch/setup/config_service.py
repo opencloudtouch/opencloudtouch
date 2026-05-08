@@ -72,6 +72,9 @@ class SoundTouchConfigService:
     # ALL other paths that exist are kept in sync after modification.
     # We never know which file firmware actually reads on a given model,
     # so we modify ALL of them to be safe.
+    # Note: OverrideSdkPrivateCfg.xml is ignored by firmware on ST10/ST300
+    # (gesellix/Bose-SoundTouch#220, scheilch/opencloudtouch#139) but we
+    # still sync it if present — never delete files on a foreign OS.
     CONFIG_CANDIDATES = [
         "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml",
         "/mnt/nv/OverrideSdkPrivateCfg.xml",

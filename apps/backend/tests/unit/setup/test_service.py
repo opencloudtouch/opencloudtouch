@@ -104,16 +104,11 @@ class TestSetupServiceConnectivity:
             "opencloudtouch.setup.service.check_ssh_port",
             new_callable=AsyncMock,
             return_value=True,
-        ), patch(
-            "opencloudtouch.setup.service.check_telnet_port",
-            new_callable=AsyncMock,
-            return_value=True,
         ):
             result = await setup_service.check_device_connectivity("192.168.1.100")
 
             assert result["ip"] == "192.168.1.100"
             assert result["ssh_available"] is True
-            assert result["telnet_available"] is True
             assert result["ready_for_setup"] is True
 
     @pytest.mark.asyncio
@@ -123,15 +118,10 @@ class TestSetupServiceConnectivity:
             "opencloudtouch.setup.service.check_ssh_port",
             new_callable=AsyncMock,
             return_value=False,
-        ), patch(
-            "opencloudtouch.setup.service.check_telnet_port",
-            new_callable=AsyncMock,
-            return_value=True,
         ):
             result = await setup_service.check_device_connectivity("192.168.1.100")
 
             assert result["ssh_available"] is False
-            assert result["telnet_available"] is True
             assert result["ready_for_setup"] is False  # SSH required
 
 

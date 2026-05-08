@@ -24,7 +24,6 @@ from opencloudtouch.setup.models import (
 from opencloudtouch.setup.ssh_client import (
     SoundTouchSSHClient,
     check_ssh_port,
-    check_telnet_port,
 )
 
 logger = logging.getLogger(__name__)
@@ -57,15 +56,13 @@ class SetupService:
         """
         Check what connection methods are available for a device.
 
-        Returns dict with ssh_available, telnet_available flags.
+        Returns dict with ssh_available flag.
         """
         ssh_available = await check_ssh_port(ip)
-        telnet_available = await check_telnet_port(ip)
 
         return {
             "ip": ip,
             "ssh_available": ssh_available,
-            "telnet_available": telnet_available,
             "ready_for_setup": ssh_available,
         }
 
