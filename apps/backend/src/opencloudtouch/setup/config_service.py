@@ -67,17 +67,16 @@ class ConfigDiff:
 class SoundTouchConfigService:
     """Service for modifying SoundTouch device configuration."""
 
-    # Canonical config path — always edit directly (with remount rw).
-    # OverrideSdkPrivateCfg.xml is deliberately excluded: firmware on
-    # SoundTouch 10, 300 and other models ignores it entirely.
-    # See: gesellix/Bose-SoundTouch#220, scheilch/opencloudtouch#139
+    # All known config file locations on Bose devices.
+    # The FIRST found path becomes the primary (read source + write target).
+    # ALL other paths that exist are kept in sync after modification.
+    # We never know which file firmware actually reads on a given model,
+    # so we modify ALL of them to be safe.
     CONFIG_CANDIDATES = [
         "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml",
+        "/mnt/nv/OverrideSdkPrivateCfg.xml",
+        "/mnt/nv/SoundTouchSdkPrivateCfg.xml",
     ]
-
-    # Override config file — firmware ignores it on ST10/ST300, but if it
-    # exists on the device we keep it in sync (never delete Bose OS files).
-    _OVERRIDE_PATH = "/mnt/nv/OverrideSdkPrivateCfg.xml"
     BACKUP_DIR = "/mnt/nv"
 
     def __init__(self, ssh: SoundTouchSSHClient):
@@ -207,35 +206,39 @@ class SoundTouchConfigService:
             if not result.success:
                 self.logger.warning(f"Backup may have failed: {result.error}")
 
-    async def _sync_override_config(self, content: str) -> None:
-        """Sync modified content to OverrideSdkPrivateCfg.xml if it exists.
+    async def _sync_all_config_files(self, content: str) -> None:
+        """Sync modified content to ALL existing config files (except the primary).
 
-        Firmware on ST10/ST300 ignores this file, but we don't delete it —
-        we don't fully understand the Bose OS internals.  Instead we keep
-        every existing config file in sync with the canonical one.
+        We don't fully understand which file firmware reads on each model.
+        Rather than guess, we write the modified content to every config file
+        that exists on the device. NEVER create or delete files.
 
         Best-effort: failure here must not abort the main modify flow.
         """
-        try:
-            check = await self.ssh.execute(
-                f"test -f {self._OVERRIDE_PATH} && echo 'found' || echo 'missing'"
-            )
-            if "found" not in (check.output or ""):
-                return
-
-            self.logger.info(f"Syncing override config: {self._OVERRIDE_PATH}")
-            b64 = base64.b64encode(content.encode()).decode()
-            write_cmd = (
-                f"echo '{b64}' | base64 -d > /tmp/override.new && "
-                f"mv /tmp/override.new {self._OVERRIDE_PATH}"
-            )
-            result = await self.ssh.execute(write_cmd)
-            if not result.success:
-                self.logger.warning(
-                    f"Override sync failed (best-effort): {result.error}"
+        primary = await self._detect_config_path()
+        for candidate in self.CONFIG_CANDIDATES:
+            if candidate == primary:
+                continue
+            try:
+                check = await self.ssh.execute(
+                    f"test -f {candidate} && echo 'found' || echo 'missing'"
                 )
-        except Exception as e:
-            self.logger.warning(f"Override sync error (best-effort): {e}")
+                if "found" not in (check.output or ""):
+                    continue
+
+                self.logger.info(f"Syncing config: {candidate}")
+                b64 = base64.b64encode(content.encode()).decode()
+                write_cmd = (
+                    f"echo '{b64}' | base64 -d > /tmp/cfg_sync.new && "
+                    f"mv /tmp/cfg_sync.new {candidate}"
+                )
+                result = await self.ssh.execute(write_cmd)
+                if not result.success:
+                    self.logger.warning(
+                        f"Sync failed for {candidate} (best-effort): {result.error}"
+                    )
+            except Exception as e:
+                self.logger.warning(f"Sync error for {candidate} (best-effort): {e}")
 
     async def modify_bmx_url(self, oct_ip: str) -> ModifyResult:
         """Modify BMX URL (and optionally marge/swupdate) in config.
@@ -294,8 +297,8 @@ class SoundTouchConfigService:
                 # 5. Verify write
                 await self._verify_config()
 
-                # 5b. Sync override config if it exists (best-effort)
-                await self._sync_override_config(modified)
+                # 5b. Sync ALL other config files that exist (best-effort)
+                await self._sync_all_config_files(modified)
 
                 self.logger.info(
                     f"Config modified successfully ({len(diff.changes)} tags)"
