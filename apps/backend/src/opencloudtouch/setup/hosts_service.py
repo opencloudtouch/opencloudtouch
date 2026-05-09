@@ -55,6 +55,8 @@ class SoundTouchHostsService:
         "bmx.bose.com",
         "api.bosesoundtouch.com",
         "content.api.bose.io",
+        "events.api.bosecm.com",
+        "worldwide.bose.com",
     ]
 
     OPTIONAL_HOSTS = [

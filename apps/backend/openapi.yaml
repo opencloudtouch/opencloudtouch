@@ -1773,49 +1773,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /api/setup/start:
-    post:
-      tags:
-      - Device Setup
-      summary: Start Setup
-      description: 'Start the device setup process.
-
-
-        This runs the full setup flow:
-
-        1. Connect via SSH
-
-        2. Make SSH persistent
-
-        3. Backup config
-
-        4. Modify BMX URL
-
-        5. Verify configuration
-
-
-        The setup runs in background. Use GET /status/{device_id} to check progress.'
-      operationId: start_setup_api_setup_start_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SetupRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                type: object
-                title: Response Start Setup Api Setup Start Post
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
   /api/setup/status/{device_id}:
     get:
       tags:
@@ -2318,6 +2275,34 @@ paths:
         schema:
           type: string
           title: Filename
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /ced/soundtouch/downloads_stockholm/{path}:
+    get:
+      tags:
+      - swupdate
+      summary: Firmware Download
+      description: 'Block real Bose firmware download path (Stockholm devices).
+
+        Returns 404 to prevent unintended firmware updates.'
+      operationId: firmware_download_ced_soundtouch_downloads_stockholm__path__get
+      parameters:
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
       responses:
         '200':
           description: Successful Response
@@ -3153,24 +3138,6 @@ components:
       - ips
       title: SetManualIPsRequest
       description: Request model for setting all manual IPs at once.
-    SetupRequest:
-      properties:
-        device_id:
-          type: string
-          title: Device Id
-        ip:
-          type: string
-          title: Ip
-        model:
-          type: string
-          title: Model
-      type: object
-      required:
-      - device_id
-      - ip
-      - model
-      title: SetupRequest
-      description: Request to start device setup.
     ValidationError:
       properties:
         loc:

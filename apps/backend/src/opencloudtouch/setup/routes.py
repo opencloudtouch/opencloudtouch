@@ -1,22 +1,20 @@
 """
 Device Setup API Routes
 
-General device setup endpoints: connectivity check, full setup flow, SSH management.
+General device setup endpoints: connectivity check, verification, SSH management.
 SSH-driven wizard step endpoints live in wizard_routes.py (STORY-304).
 """
 
 import logging
 from typing import Any, Dict
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi import status as http_status
 
 from opencloudtouch.setup.api_models import (
     ConnectivityCheckRequest,
     EnablePermanentSSHRequest,
-    SetupRequest,
 )
-from opencloudtouch.setup.models import SetupStatus
 from opencloudtouch.core.dependencies import get_setup_service
 from opencloudtouch.setup.service import SetupService
 from opencloudtouch.setup.ssh_client import SoundTouchSSHClient
@@ -52,48 +50,6 @@ async def check_connectivity(
     This should be called after user inserts USB stick and reboots device.
     """
     return await setup_service.check_device_connectivity(request.ip)
-
-
-@router.post("/start")
-async def start_setup(
-    request: SetupRequest,
-    background_tasks: BackgroundTasks,
-    setup_service: SetupService = Depends(get_setup_service),
-) -> Dict[str, Any]:
-    """
-    Start the device setup process.
-
-    This runs the full setup flow:
-    1. Connect via SSH
-    2. Make SSH persistent
-    3. Backup config
-    4. Modify BMX URL
-    5. Verify configuration
-
-    The setup runs in background. Use GET /status/{device_id} to check progress.
-    """
-    # Check if setup already in progress
-    existing = setup_service.get_setup_status(request.device_id)
-    if existing and existing.status == SetupStatus.PENDING:
-        raise HTTPException(
-            status_code=409, detail="Setup already in progress for this device"
-        )
-
-    # Start setup in background
-    async def run_setup():
-        await setup_service.run_setup(
-            device_id=request.device_id,
-            ip=request.ip,
-            model=request.model,
-        )
-
-    background_tasks.add_task(run_setup)
-
-    return {
-        "device_id": request.device_id,
-        "status": "started",
-        "message": "Setup gestartet. Prüfe Status unter /api/setup/status/{device_id}",
-    }
 
 
 @router.get("/status/{device_id}")

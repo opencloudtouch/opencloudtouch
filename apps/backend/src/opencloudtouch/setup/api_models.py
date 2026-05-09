@@ -47,14 +47,6 @@ class EnablePermanentSSHRequest(BaseModel):
     )
 
 
-class SetupRequest(BaseModel):
-    """Request to start device setup."""
-
-    device_id: str
-    ip: str
-    model: str
-
-
 class ConnectivityCheckRequest(BaseModel):
     """Request to check device connectivity."""
 

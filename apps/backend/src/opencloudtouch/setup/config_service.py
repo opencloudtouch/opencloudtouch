@@ -69,12 +69,10 @@ class SoundTouchConfigService:
 
     # All known config file locations on Bose devices.
     # The FIRST found path becomes the primary (read source + write target).
-    # ALL other paths that exist are kept in sync after modification.
+    # ALL other paths are synced (created if missing) after modification.
     # We never know which file firmware actually reads on a given model,
-    # so we modify ALL of them to be safe.
-    # Note: OverrideSdkPrivateCfg.xml is ignored by firmware on ST10/ST300
-    # (gesellix/Bose-SoundTouch#220, scheilch/opencloudtouch#139) but we
-    # still sync it if present — never delete files on a foreign OS.
+    # so we write ALL of them to maximise persistence across reboots.
+    # /mnt/nv/ paths survive SquashFS overlay resets that wipe /opt/Bose/etc/.
     CONFIG_CANDIDATES = [
         "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml",
         "/mnt/nv/OverrideSdkPrivateCfg.xml",
@@ -210,11 +208,13 @@ class SoundTouchConfigService:
                 self.logger.warning(f"Backup may have failed: {result.error}")
 
     async def _sync_all_config_files(self, content: str) -> None:
-        """Sync modified content to ALL existing config files (except the primary).
+        """Sync modified content to ALL config file locations.
 
         We don't fully understand which file firmware reads on each model.
-        Rather than guess, we write the modified content to every config file
-        that exists on the device. NEVER create or delete files.
+        Rather than guess, we write the modified content to every config
+        candidate path — creating override files that don't yet exist.
+        This ensures persistence across reboots on devices where /opt/Bose/etc/
+        lives on a read-only SquashFS overlay.
 
         Best-effort: failure here must not abort the main modify flow.
         """
@@ -223,12 +223,6 @@ class SoundTouchConfigService:
             if candidate == primary:
                 continue
             try:
-                check = await self.ssh.execute(
-                    f"test -f {candidate} && echo 'found' || echo 'missing'"
-                )
-                if "found" not in (check.output or ""):
-                    continue
-
                 self.logger.info(f"Syncing config: {candidate}")
                 b64 = base64.b64encode(content.encode()).decode()
                 write_cmd = (
