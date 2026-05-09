@@ -135,6 +135,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      - name: Compute build signature
+        id: sign
+        run: |
+          VERSION="${{ inputs.version }}"
+          SIG=$(echo -n "$VERSION" | openssl dgst -sha256 -hmac "${{ secrets.BUILD_SIGNING_KEY }}" | awk '{print $NF}' | cut -c1-16)
+          echo "signature=$SIG" >> $GITHUB_OUTPUT
+
       - name: Build test image for scanning
         uses: docker/build-push-action@v7
         with:
@@ -144,6 +151,8 @@ jobs:
           push: false
           load: true
           tags: opencloudtouch:test
+          build-args: |
+            OCT_BUILD_SIGNATURE=${{ steps.sign.outputs.signature }}
           cache-from: type=gha,scope=trivy-scan
           cache-to: type=gha,mode=max,scope=trivy-scan
 

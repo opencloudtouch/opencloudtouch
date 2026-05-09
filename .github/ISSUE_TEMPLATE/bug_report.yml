@@ -51,13 +51,16 @@ body:
     id: area
     attributes:
       label: Affected Area
-      description: "Which part of OpenCloudTouch is affected?"
+      description: "Which part of OpenCloudTouch is affected? This helps us route your issue to the right team and select the appropriate troubleshooting guide."
       options:
         - Radio Search
         - Presets
         - Device Control
         - Zones / Multi-Room
-        - Setup / Configuration
+        - "Setup: SSH / USB Stick"
+        - "Setup: Config Modification"
+        - "Setup: Hosts Modification"
+        - "Setup: Backup / Restore"
         - UI / Design
         - Other
     validations:
