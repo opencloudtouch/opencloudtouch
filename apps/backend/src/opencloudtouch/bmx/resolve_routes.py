@@ -41,6 +41,9 @@ def _build_oct_resolved_xml(
     """
     match = re.match(r"/oct/device/([^/]+)/preset/(\d+)", location)
     if not match:
+        logger.debug(
+            "[BMX RESOLVE] Location '%s' does not match OCT preset pattern", location
+        )
         return None
 
     device_id = match.group(1)
@@ -49,6 +52,13 @@ def _build_oct_resolved_xml(
     resolved_url = f"{oct_url}/device/{device_id}/preset/{preset_number}"
 
     logger.info(f"[BMX RESOLVE] OCT location resolved: {location} → {resolved_url}")
+    logger.debug(
+        "[BMX RESOLVE] Resolved details: device=%s, preset=%s, item=%s, station=%s",
+        device_id,
+        preset_number,
+        item_name,
+        station_name,
+    )
     return (
         f'<ContentItem source="INTERNET_RADIO" type="stationurl"'
         f' location="{resolved_url}" isPresetable="true">\n'

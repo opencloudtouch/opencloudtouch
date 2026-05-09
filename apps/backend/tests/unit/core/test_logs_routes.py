@@ -1,4 +1,4 @@
-"""Tests for GET /api/logs/backend endpoint."""
+"""Tests for /api/logs/backend and /api/logs/level endpoints."""
 
 from unittest.mock import patch
 
@@ -37,7 +37,8 @@ class TestDownloadBackendLogs:
         ):
             response = client.get("/api/logs/backend")
 
-        assert response.text == "entry A\nentry B\nentry C"
+        assert "entry A\nentry B\nentry C" in response.text
+        assert "BACKEND LOG BUFFER (3 entries" in response.text
 
     def test_returns_placeholder_when_no_entries(self, client: TestClient):
         with patch(
@@ -47,7 +48,7 @@ class TestDownloadBackendLogs:
             response = client.get("/api/logs/backend")
 
         assert response.status_code == 200
-        assert "(no log entries captured yet)" in response.text
+        assert "(no backend log entries captured yet)" in response.text
 
     def test_content_disposition_is_attachment_with_log_filename(
         self, client: TestClient
@@ -62,3 +63,152 @@ class TestDownloadBackendLogs:
         assert "attachment" in disposition
         assert "oct-backend-" in disposition
         assert ".log" in disposition
+
+
+class TestPostBackendLogs:
+    """Tests for POST /api/logs/backend with frontend logs."""
+
+    def test_post_returns_200_with_frontend_logs(self, client: TestClient):
+        with patch(
+            "opencloudtouch.core.logs_routes.get_log_entries",
+            return_value=["backend line"],
+        ):
+            response = client.post(
+                "/api/logs/backend",
+                json={
+                    "frontend_logs": [
+                        {"timestamp": "12:00:00", "level": "ERROR", "message": "oops"},
+                    ]
+                },
+            )
+
+        assert response.status_code == 200
+        assert "text/plain" in response.headers["content-type"]
+        assert "[12:00:00] ERROR: oops" in response.text
+        assert "backend line" in response.text
+
+    def test_post_with_empty_frontend_logs(self, client: TestClient):
+        with patch(
+            "opencloudtouch.core.logs_routes.get_log_entries",
+            return_value=[],
+        ):
+            response = client.post(
+                "/api/logs/backend",
+                json={"frontend_logs": []},
+            )
+
+        assert response.status_code == 200
+        assert "(no frontend logs received" in response.text
+
+    def test_post_includes_wizard_audit_section(self, client: TestClient):
+        with patch(
+            "opencloudtouch.core.logs_routes.get_log_entries",
+            return_value=[],
+        ):
+            response = client.post(
+                "/api/logs/backend",
+                json={"frontend_logs": []},
+            )
+
+        assert response.status_code == 200
+        assert "WIZARD AUDIT TRAIL" in response.text
+
+
+class TestLogLevel:
+    """Tests for /api/logs/level endpoints."""
+
+    def test_get_log_level(self, client: TestClient):
+        with patch(
+            "opencloudtouch.core.logs_routes.get_current_log_level",
+            return_value="INFO",
+        ):
+            response = client.get("/api/logs/level")
+
+        assert response.status_code == 200
+        assert response.json()["level"] == "INFO"
+
+    def test_put_valid_log_level(self, client: TestClient):
+        with patch(
+            "opencloudtouch.core.logs_routes.set_log_level",
+        ), patch(
+            "opencloudtouch.core.logs_routes.get_current_log_level",
+            return_value="DEBUG",
+        ):
+            response = client.put(
+                "/api/logs/level",
+                json={"level": "DEBUG"},
+            )
+
+        assert response.status_code == 200
+        assert response.json()["level"] == "DEBUG"
+
+    def test_put_invalid_log_level_returns_400(self, client: TestClient):
+        with patch(
+            "opencloudtouch.core.logs_routes.set_log_level",
+            side_effect=ValueError("Invalid level: TRACE"),
+        ):
+            response = client.put(
+                "/api/logs/level",
+                json={"level": "DEBUG"},
+            )
+
+        assert response.status_code == 400
+
+
+class TestAuditTrailFormatters:
+    """Tests for _format_audit_entries and _format_snapshots."""
+
+    def test_format_audit_entries_empty(self):
+        from opencloudtouch.core.logs_routes import _format_audit_entries
+
+        result = _format_audit_entries([])
+        assert "(no wizard audit entries recorded yet)" in result
+
+    def test_format_audit_entries_with_data(self):
+        from opencloudtouch.core.logs_routes import _format_audit_entries
+
+        entries = [
+            {
+                "timestamp": "2025-01-01T12:00:00",
+                "device_id": "DEV1",
+                "step": 3,
+                "category": "user_action",
+                "event": "button_click:next",
+                "detail": None,
+            },
+            {
+                "timestamp": "2025-01-01T12:00:01",
+                "device_id": "DEV1",
+                "step": 4,
+                "category": "config_change",
+                "event": "bmx_url_modified",
+                "detail": "old=bmx.bose.com",
+            },
+        ]
+        result = _format_audit_entries(entries)
+        assert "Audit Log (2 entries)" in result
+        assert "button_click:next" in result
+        assert "old=bmx.bose.com" in result
+
+    def test_format_snapshots_empty(self):
+        from opencloudtouch.core.logs_routes import _format_snapshots
+
+        result = _format_snapshots([])
+        assert "(no config snapshots recorded yet)" in result
+
+    def test_format_snapshots_with_data(self):
+        from opencloudtouch.core.logs_routes import _format_snapshots
+
+        snapshots = [
+            {
+                "timestamp": "2025-01-01T12:00:00",
+                "device_id": "DEV1",
+                "trigger": "before_modify",
+                "file_path": "/etc/hosts",
+                "content": "127.0.0.1 localhost",
+            },
+        ]
+        result = _format_snapshots(snapshots)
+        assert "Config Snapshots (1 entries)" in result
+        assert "/etc/hosts" in result
+        assert "127.0.0.1 localhost" in result

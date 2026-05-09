@@ -2022,6 +2022,24 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/logs/level": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get current log level */
+    get: operations["get_log_level_api_logs_level_get"];
+    /** Set log level at runtime */
+    put: operations["put_log_level_api_logs_level_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/logs/backend": {
     parameters: {
       query?: never;
@@ -2066,6 +2084,19 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** LogLevelResponse */
+    LogLevelResponse: {
+      /** Level */
+      level: string;
+    };
+    /** LogLevelRequest */
+    LogLevelRequest: {
+      /**
+       * Level
+       * @enum {string}
+       */
+      level: "DEBUG" | "INFO" | "WARNING" | "ERROR" | "CRITICAL";
+    };
     /**
      * BackupRequest
      * @description Request to create device backup.
@@ -5170,6 +5201,57 @@ export interface operations {
         content: {
           "application/json": unknown;
         };
+      };
+    };
+  };
+  get_log_level_api_logs_level_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Current log level */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LogLevelResponse"];
+        };
+      };
+    };
+  };
+  put_log_level_api_logs_level_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["LogLevelRequest"];
+      };
+    };
+    responses: {
+      /** @description Updated log level */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LogLevelResponse"];
+        };
+      };
+      /** @description Invalid log level */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

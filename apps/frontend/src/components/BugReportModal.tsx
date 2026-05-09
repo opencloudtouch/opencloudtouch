@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "react-router-dom";
-import { submitBugReport } from "../api/bugReport";
+import { submitBugReport, downloadDiagnostics } from "../api/bugReport";
 import { getLogEntries } from "../utils/logBuffer";
 import { useToast } from "../contexts/ToastContext";
 import "./BugReportModal.css";
@@ -50,6 +50,7 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
   const clickTimestampRef = useRef<number>(0);
 
   const [submitting, setSubmitting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [description, setDescription] = useState("");
   const [steps, setSteps] = useState("");
   const [expected, setExpected] = useState("");
@@ -142,6 +143,30 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
       showToast(`Failed to submit bug report: ${msg}`, "error", 8000);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDownloadDiagnostics = async () => {
+    setDownloading(true);
+    try {
+      const browserInfo = `${navigator.userAgent} | ${window.innerWidth}x${window.innerHeight}`;
+      await downloadDiagnostics({
+        frontend_logs: getLogEntries(),
+        description,
+        browser_info: browserInfo,
+        current_route: location.pathname,
+        click_timestamp: clickTimestampRef.current,
+      });
+      showToast(
+        "Diagnostics downloaded! Attach the .log.gz file to your GitHub issue.",
+        "success",
+        8000
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      showToast(`Failed to download diagnostics: ${msg}`, "error", 8000);
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -349,6 +374,15 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
 
           {/* Submit */}
           <div className="bug-modal-actions">
+            <button
+              type="button"
+              className="bug-btn bug-btn--secondary"
+              onClick={handleDownloadDiagnostics}
+              disabled={downloading || submitting}
+              title="Download diagnostic logs as .log.gz file to attach to a GitHub issue manually"
+            >
+              {downloading ? "Downloading..." : "\u2B07 Download Logs"}
+            </button>
             <button
               type="button"
               className="bug-btn bug-btn--cancel"

@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, FormEvent } from "react";
 import { motion } from "framer-motion";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useManualIPs, useAddManualIP, useDeleteManualIP } from "../hooks/useSettings";
 import { useDiscoveryStream } from "../hooks/useDiscoveryStream";
 import { useToast } from "../contexts/ToastContext";
 import { toUserMessage } from "../utils/errorMessages";
+import { getLogEntries } from "../utils/logBuffer";
 import type { Device } from "../api/devices";
 import AboutSection from "../components/AboutSection";
 import "./Settings.css";
@@ -20,6 +21,36 @@ export default function Settings() {
   const { data: manualIPs = [], isLoading: loading, error: queryError, refetch } = useManualIPs();
   const addIP = useAddManualIP();
   const deleteIP = useDeleteManualIP();
+
+  // Log level query + mutation
+  const { data: logLevelData } = useQuery<{ level: string }>({
+    queryKey: ["log-level"],
+    queryFn: async () => {
+      const res = await fetch("/api/logs/level");
+      if (!res.ok) throw new Error("Failed to fetch log level");
+      return res.json() as Promise<{ level: string }>;
+    },
+    staleTime: 60_000,
+  });
+
+  const setLogLevel = useMutation<{ level: string }, Error, string>({
+    mutationFn: async (level: string) => {
+      const res = await fetch("/api/logs/level", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ level }),
+      });
+      if (!res.ok) throw new Error("Failed to set log level");
+      return res.json() as Promise<{ level: string }>;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["log-level"], data);
+      show(t("settings.logging.levelChanged", { level: data.level }), "success");
+    },
+    onError: () => {
+      show(t("settings.logging.levelError"), "error");
+    },
+  });
 
   // Discovery
   const { isDiscovering, devicesFound, completed, startDiscovery } = useDiscoveryStream();
@@ -208,6 +239,78 @@ export default function Settings() {
           <div className="info-box">
             <strong>ℹ️</strong>
             <p>{t("settings.manualIps.infoHint")}</p>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* Logging Section */}
+      <motion.section
+        className="settings-section"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <h2 className="section-title">
+          <span className="section-icon">📋</span>
+          {t("settings.logging.sectionTitle")}
+        </h2>
+
+        <div className="settings-card">
+          <p className="section-description">{t("settings.logging.description")}</p>
+
+          {/* Log Level Dropdown */}
+          <div className="log-level-row">
+            <label htmlFor="log-level-select" className="log-level-label">
+              {t("settings.logging.logLevel")}
+            </label>
+            <select
+              id="log-level-select"
+              className="log-level-select"
+              value={
+                logLevelData?.level === "CRITICAL" ? "CRITICAL" : (logLevelData?.level ?? "INFO")
+              }
+              onChange={(e) => setLogLevel.mutate(e.target.value)}
+              disabled={setLogLevel.isPending}
+            >
+              <option value="CRITICAL">{t("settings.logging.levelOff")}</option>
+              <option value="INFO">{t("settings.logging.levelInfo")}</option>
+              <option value="DEBUG">{t("settings.logging.levelDebug")}</option>
+            </select>
+          </div>
+
+          {/* Download Logs */}
+          <div className="log-download-row">
+            <p className="section-description">{t("settings.logging.downloadDescription")}</p>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={async () => {
+                try {
+                  const resp = await fetch("/api/logs/backend", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ frontend_logs: getLogEntries() }),
+                  });
+                  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                  const blob = await resp.blob();
+                  const disposition = resp.headers.get("Content-Disposition") || "";
+                  const execResult = /filename="(.+?)"/.exec(disposition);
+                  const filename = execResult?.[1] || "oct-backend.log";
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = filename;
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  URL.revokeObjectURL(url);
+                } catch (err) {
+                  console.error("Log download failed:", err);
+                }
+              }}
+            >
+              {t("settings.logging.downloadLogs")}
+            </button>
           </div>
         </div>
       </motion.section>

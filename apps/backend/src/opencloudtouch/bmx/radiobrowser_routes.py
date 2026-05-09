@@ -71,6 +71,14 @@ async def bmx_radiobrowser_playback(uuid: str) -> JSONResponse:
 
     # Convert HTTPS to HTTP for Bose device compatibility
     stream_url = convert_https_to_http(station.url)
+    logger.debug(
+        "[BMX RADIOBROWSER] Station details: name=%s, url=%s, resolved=%s, codec=%s, bitrate=%s",
+        station.name,
+        station.url,
+        stream_url,
+        getattr(station, "codec", "?"),
+        getattr(station, "bitrate", "?"),
+    )
 
     base_url = get_oct_base_url()
     reporting_url = f"{base_url}/bmx/radiobrowser/v1/reporting/station/{uuid}"

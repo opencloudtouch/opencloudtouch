@@ -116,6 +116,18 @@
       "devicesFound_one": "{{count}} ny enhet hittad",
       "devicesFound_other": "{{count}} nya enheter hittade",
       "noNewDevices": "Inga nya enheter hittades"
+    },
+    "logging": {
+      "sectionTitle": "Loggning",
+      "description": "Styr detaljnivån för loggar och ladda ned loggar för felsökning.",
+      "logLevel": "Loggnivå",
+      "levelOff": "Av",
+      "levelInfo": "Info",
+      "levelDebug": "Debug",
+      "downloadLogs": "Ladda ned loggar",
+      "downloadDescription": "Ladda ned de senaste 1000 backend-loggposterna som textfil.",
+      "levelChanged": "Loggnivå inställd på {{level}}",
+      "levelError": "Det gick inte att ändra loggnivån"
     }
   },
   "manualIpModal": {

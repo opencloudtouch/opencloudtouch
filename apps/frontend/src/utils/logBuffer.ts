@@ -9,7 +9,7 @@ export interface LogEntry {
   message: string;
 }
 
-const MAX_ENTRIES = 100;
+const MAX_ENTRIES = 500;
 const entries: LogEntry[] = [];
 
 let initialized = false;

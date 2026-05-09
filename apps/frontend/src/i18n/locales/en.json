@@ -120,6 +120,18 @@
       "devicesFound_one": "{{count}} new device found",
       "devicesFound_other": "{{count}} new devices found",
       "noNewDevices": "No new devices found"
+    },
+    "logging": {
+      "sectionTitle": "Logging",
+      "description": "Control the log detail level and download logs for troubleshooting.",
+      "logLevel": "Log Level",
+      "levelOff": "Off",
+      "levelInfo": "Info",
+      "levelDebug": "Debug",
+      "downloadLogs": "Download Logs",
+      "downloadDescription": "Download the last 1000 backend log entries as a text file.",
+      "levelChanged": "Log level set to {{level}}",
+      "levelError": "Could not change log level"
     }
   },
   "manualIpModal": {

@@ -167,19 +167,40 @@ async def stream_device_preset(
                 "upstream_headers": dict(upstream_response.headers),
             },
         )
+        logger.debug(
+            "[STREAM DETAIL] upstream=%s, content-type=%s, status=%d, headers=%s",
+            preset.station_url,
+            content_type,
+            upstream_response.status_code,
+            {
+                k: v
+                for k, v in upstream_response.headers.items()
+                if k.startswith("icy") or k == "content-type"
+            },
+        )
 
         async def stream_generator():
             """Generator that yields audio chunks from the already-opened upstream."""
+            chunks = 0
+            total_bytes = 0
             try:
                 async for chunk in upstream_response.aiter_bytes(chunk_size=8192):
+                    chunks += 1
+                    total_bytes += len(chunk)
                     yield chunk
             except Exception as e:
                 logger.error(
-                    f"[STREAM ERROR] Proxy interrupted: {e}",
+                    f"[STREAM ERROR] Proxy interrupted after {chunks} chunks ({total_bytes} bytes): {e}",
                     extra={"device_id": device_id, "preset_id": preset_id},
                     exc_info=True,
                 )
             finally:
+                logger.debug(
+                    "[STREAM END] %s: %d chunks, %d bytes total",
+                    preset.station_name,
+                    chunks,
+                    total_bytes,
+                )
                 await upstream_response.aclose()
                 await http_client.aclose()
 

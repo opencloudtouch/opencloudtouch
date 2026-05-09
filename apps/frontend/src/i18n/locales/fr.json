@@ -120,6 +120,18 @@
       "devicesFound_one": "{{count}} nouvel appareil trouvé",
       "devicesFound_other": "{{count}} nouveaux appareils trouvés",
       "noNewDevices": "Aucun nouvel appareil trouvé"
+    },
+    "logging": {
+      "sectionTitle": "Journalisation",
+      "description": "Contrôlez le niveau de détail des journaux et téléchargez les journaux pour le dépannage.",
+      "logLevel": "Niveau de journal",
+      "levelOff": "Désactivé",
+      "levelInfo": "Info",
+      "levelDebug": "Debug",
+      "downloadLogs": "Télécharger les journaux",
+      "downloadDescription": "Téléchargez les 1000 dernières entrées du journal backend sous forme de fichier texte.",
+      "levelChanged": "Niveau de journal défini sur {{level}}",
+      "levelError": "Impossible de modifier le niveau de journal"
     }
   },
   "manualIpModal": {

@@ -72,6 +72,14 @@ async def get_full_account(
     logger.info(
         f"[MARGE] Returning {len(presets)} presets, {len(recents)} recents for {device_id}"
     )
+    for p in presets:
+        logger.debug(
+            "[MARGE] Preset %d: name=%s, source=%s, location=%.80s",
+            getattr(p, "preset_id", "?"),
+            getattr(p, "station_name", "?"),
+            getattr(p, "source", "?"),
+            getattr(p, "location", "?"),
+        )
 
     return _xml_response(build_full_account_xml(presets, recents))
 

@@ -130,8 +130,8 @@ describe("Bose Cloud Emulator", () => {
 
     it("should contain SoundTouch device entries", () => {
       cy.request(`${BACKEND}/updates/soundtouch`).then((resp) => {
-        // Must have at least SoundTouch 10 (most common device)
-        expect(resp.body).to.include('ID="0x0926"');
+        // Must have at least SoundTouch 10 (most common device, ID 0x0939)
+        expect(resp.body).to.include('ID="0x0939"');
         expect(resp.body).to.include("<DEVICE");
       });
     });
