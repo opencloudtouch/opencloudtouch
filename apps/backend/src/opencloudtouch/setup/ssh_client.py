@@ -74,7 +74,7 @@ class SoundTouchSSHClient:
                     error="asyncssh not installed. Run: pip install asyncssh",
                 )
 
-            logger.info(f"Connecting to {self.host}:{self.port} via SSH...")
+            logger.info("Connecting to %s:%s via SSH...", self.host, self.port)
             logger.debug(
                 "SSH params: user=root, timeout=%.1fs, "
                 "host_key_algs=[ssh-rsa,rsa-sha2-512,rsa-sha2-256,ssh-dss], "
@@ -116,7 +116,7 @@ class SoundTouchSSHClient:
                 timeout=timeout,
             )
 
-            logger.info(f"SSH connection established to {self.host}")
+            logger.info("SSH connection established to %s", self.host)
             return SSHConnectionResult(success=True, output="Connected")
 
         except asyncio.TimeoutError:
@@ -190,7 +190,7 @@ class SoundTouchSSHClient:
             self._connection.close()
             await self._connection.wait_closed()
             self._connection = None
-            logger.info(f"SSH connection to {self.host} closed")
+            logger.info("SSH connection to %s closed", self.host)
 
     async def __aenter__(self):
         result = await self.connect()
@@ -220,7 +220,7 @@ class SoundTouchTelnetClient:
     async def connect(self, timeout: float = 10.0) -> SSHConnectionResult:
         """Establish telnet connection to device."""
         try:
-            logger.info(f"Connecting to {self.host}:{self.port} via Telnet...")
+            logger.info("Connecting to %s:%s via Telnet...", self.host, self.port)
 
             self._reader, self._writer = await asyncio.wait_for(
                 asyncio.open_connection(self.host, self.port), timeout=timeout
@@ -230,7 +230,7 @@ class SoundTouchTelnetClient:
             await asyncio.sleep(0.5)
             initial = await self._read_available()
 
-            logger.info(f"Telnet connection established to {self.host}")
+            logger.info("Telnet connection established to %s", self.host)
             return SSHConnectionResult(success=True, output=initial)
 
         except asyncio.TimeoutError:
@@ -261,7 +261,7 @@ class SoundTouchTelnetClient:
             )
 
         try:
-            logger.debug(f"Telnet executing: {command}")
+            logger.debug("Telnet executing: %s", command)
 
             # Send command
             self._writer.write(f"{command}\r\n".encode())
@@ -292,7 +292,7 @@ class SoundTouchTelnetClient:
             await self._writer.wait_closed()
             self._writer = None
             self._reader = None
-            logger.info(f"Telnet connection to {self.host} closed")
+            logger.info("Telnet connection to %s closed", self.host)
 
     async def __aenter__(self):
         await self.connect()

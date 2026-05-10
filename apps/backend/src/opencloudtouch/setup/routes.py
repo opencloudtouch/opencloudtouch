@@ -100,7 +100,7 @@ async def enable_permanent_ssh(
 
     try:
         # Connect to device
-        logger.info(f"Connecting to {request.ip} to enable permanent SSH...")
+        logger.info("Connecting to %s to enable permanent SSH...", request.ip)
         conn_result = await ssh_client.connect(timeout=10.0)
 
         if not conn_result.success:
@@ -115,13 +115,13 @@ async def enable_permanent_ssh(
         result = await ssh_client.execute(cmd, timeout=5.0)
 
         if not result.success:
-            logger.error(f"Failed to create /mnt/nv/remote_services: {result.error}")
+            logger.error("Failed to create /mnt/nv/remote_services: %s", result.error)
             raise HTTPException(
                 status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Command failed: {result.error or result.output}",
             )
 
-        logger.info(f"Permanent SSH enabled for {request.device_id} at {request.ip}")
+        logger.info("Permanent SSH enabled for %s at %s", request.device_id, request.ip)
 
         return {
             "success": True,
@@ -137,7 +137,7 @@ async def enable_permanent_ssh(
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception(f"Unexpected error enabling permanent SSH: {e}")
+        logger.exception("Unexpected error enabling permanent SSH: %s", e)
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Unexpected error: {str(e)}",

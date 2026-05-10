@@ -53,7 +53,7 @@ describe("submitBugReport", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    await expect(submitBugReport(mockPayload)).rejects.toThrow("503");
+    await expect(submitBugReport(mockPayload)).rejects.toThrow("Bug reporting not configured");
   });
 
   it("sends JSON body with all payload fields", async () => {
@@ -152,9 +152,10 @@ describe("downloadDiagnostics", () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 500,
+      statusText: "Internal Server Error",
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    await expect(downloadDiagnostics(mockDiagnosticsPayload)).rejects.toThrow("500");
+    await expect(downloadDiagnostics(mockDiagnosticsPayload)).rejects.toThrow("Diagnostics download failed");
   });
 });

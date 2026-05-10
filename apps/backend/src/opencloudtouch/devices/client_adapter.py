@@ -55,7 +55,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             )
             self._client = BoseClient(device)
         except Exception as e:
-            logger.error(f"Failed to connect to device at {base_url}: {e}")
+            logger.error("Failed to connect to device at %s: %s", base_url, e)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     def _extract_firmware_version(self, info) -> str:
@@ -107,7 +107,8 @@ class BoseDeviceClientAdapter(DeviceClient):
 
             # Structured logging with firmware details
             logger.info(
-                f"Device {device_info.name} initialized",
+                "Device %s initialized",
+                device_info.name,
                 extra={
                     "device_id": device_info.device_id,
                     "device_type": device_info.type,
@@ -120,7 +121,9 @@ class BoseDeviceClientAdapter(DeviceClient):
             return device_info
 
         except Exception as e:
-            logger.error(f"Failed to get info from {self.base_url}: {e}", exc_info=True)
+            logger.error(
+                "Failed to get info from %s: %s", self.base_url, e, exc_info=True
+            )
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def get_now_playing(self) -> NowPlayingInfo:
@@ -152,7 +155,7 @@ class BoseDeviceClientAdapter(DeviceClient):
 
         except Exception as e:
             logger.error(
-                f"Failed to get now_playing from {self.base_url}: {e}", exc_info=True
+                "Failed to get now_playing from %s: %s", self.base_url, e, exc_info=True
             )
             raise DeviceConnectionError(self.ip, str(e)) from e
 
@@ -192,7 +195,10 @@ class BoseDeviceClientAdapter(DeviceClient):
             state_enum = state_map[state]
 
             logger.info(
-                f"Simulating key press on {self.ip}: {key} ({state})",
+                "Simulating key press on %s: %s (%s)",
+                self.ip,
+                key,
+                state,
                 extra={"device_ip": self.ip, "key": key, "state": state},
             )
 
@@ -200,7 +206,7 @@ class BoseDeviceClientAdapter(DeviceClient):
 
         except Exception as e:
             logger.error(
-                f"Failed to press key {key} on {self.base_url}: {e}", exc_info=True
+                "Failed to press key %s on %s: %s", key, self.base_url, e, exc_info=True
             )
             raise DeviceConnectionError(self.ip, str(e)) from e
 
@@ -315,7 +321,10 @@ class BoseDeviceClientAdapter(DeviceClient):
 
         except httpx.HTTPStatusError as e:
             logger.error(
-                f"HTTP error storing preset {preset_number} on {self.base_url}: {e}",
+                "HTTP error storing preset %d on %s: %s",
+                preset_number,
+                self.base_url,
+                e,
                 exc_info=True,
             )
             raise DeviceConnectionError(
@@ -323,7 +332,10 @@ class BoseDeviceClientAdapter(DeviceClient):
             ) from e
         except Exception as e:
             logger.error(
-                f"Failed to store preset {preset_number} on {self.base_url}: {e}",
+                "Failed to store preset %d on %s: %s",
+                preset_number,
+                self.base_url,
+                e,
                 exc_info=True,
             )
             raise DeviceConnectionError(self.ip, str(e)) from e
@@ -339,7 +351,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             )
         except Exception as e:
             logger.error(
-                f"Failed to get volume from {self.base_url}: {e}", exc_info=True
+                "Failed to get volume from %s: %s", self.base_url, e, exc_info=True
             )
             raise DeviceConnectionError(self.ip, str(e)) from e
 
@@ -348,7 +360,9 @@ class BoseDeviceClientAdapter(DeviceClient):
         try:
             await asyncio.to_thread(self._client.SetVolumeLevel, level)
         except Exception as e:
-            logger.error(f"Failed to set volume on {self.base_url}: {e}", exc_info=True)
+            logger.error(
+                "Failed to set volume on %s: %s", self.base_url, e, exc_info=True
+            )
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def set_mute(self, muted: bool) -> None:
@@ -359,7 +373,9 @@ class BoseDeviceClientAdapter(DeviceClient):
             else:
                 await asyncio.to_thread(self._client.MuteOff, refresh=False)
         except Exception as e:
-            logger.error(f"Failed to set mute on {self.base_url}: {e}", exc_info=True)
+            logger.error(
+                "Failed to set mute on %s: %s", self.base_url, e, exc_info=True
+            )
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def close(self) -> None:

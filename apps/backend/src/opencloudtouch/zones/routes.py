@@ -53,7 +53,7 @@ async def get_all_zones(
     try:
         return await zone_service.get_all_zones()
     except Exception as e:
-        logger.error(f"Failed to get zones: {e}")
+        logger.error("Failed to get zones: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -72,7 +72,7 @@ async def create_zone(
     except DeviceConnectionError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        logger.error(f"Failed to create zone: {e}")
+        logger.error("Failed to create zone: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -89,7 +89,7 @@ async def dissolve_zone(
     except DeviceConnectionError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        logger.error(f"Failed to dissolve zone: {e}")
+        logger.error("Failed to dissolve zone: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -108,7 +108,7 @@ async def add_zone_members(
     except DeviceConnectionError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        logger.error(f"Failed to add zone members: {e}")
+        logger.error("Failed to add zone members: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -126,7 +126,7 @@ async def remove_zone_members(
     except DeviceConnectionError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        logger.error(f"Failed to remove zone members: {e}")
+        logger.error("Failed to remove zone members: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -146,7 +146,7 @@ async def change_master(
     except DeviceConnectionError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        logger.error(f"Failed to change master: {e}")
+        logger.error("Failed to change master: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -168,5 +168,5 @@ async def get_device_zone(
     except DeviceConnectionError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        logger.error(f"Failed to get device zone: {e}")
+        logger.error("Failed to get device zone: %s", e)
         raise HTTPException(status_code=500, detail=str(e))

@@ -96,13 +96,13 @@ class SoundTouchBackupService:
         self.logger.info("Starting backup of all partitions")
 
         usb_path = await self._find_usb_mount()
-        self.logger.info(f"USB mount point: {usb_path}")
+        self.logger.info("USB mount point: %s", usb_path)
 
         backup_dir = f"{usb_path}/oct-backup"
         mkdir_result = await self.ssh.execute(f"mkdir -p {backup_dir}")
         if not mkdir_result.success:
             self.logger.warning(
-                f"mkdir failed (may already exist): {mkdir_result.error}"
+                "mkdir failed (may already exist): %s", mkdir_result.error
             )
 
         results: List[BackupResult] = []
@@ -111,12 +111,14 @@ class SoundTouchBackupService:
                 result = await self._backup_volume(volume, backup_dir)
                 results.append(result)
                 self.logger.info(
-                    f"Backed up {volume.value}: "
-                    f"{result.size_bytes / 1024 / 1024:.2f} MB in {result.duration_seconds:.1f}s"
+                    "Backed up %s: %.2f MB in %.1fs",
+                    volume.value,
+                    result.size_bytes / 1024 / 1024,
+                    result.duration_seconds,
                 )
             except Exception as e:
                 self.logger.error(
-                    f"Failed to backup {volume.value}: {e}", exc_info=True
+                    "Failed to backup %s: %s", volume.value, e, exc_info=True
                 )
                 results.append(BackupResult(volume=volume, success=False, error=str(e)))
 
@@ -134,7 +136,7 @@ class SoundTouchBackupService:
         )
         if result.success and result.output.strip():
             mount_path = result.output.strip()
-            self.logger.debug(f"Detected USB mount: {mount_path}")
+            self.logger.debug("Detected USB mount: %s", mount_path)
             return mount_path
 
         self.logger.warning(
@@ -157,7 +159,7 @@ class SoundTouchBackupService:
         cmd = _BACKUP_COMMANDS[volume].format(path=backup_file)
         timeout = _BACKUP_TIMEOUTS[volume]
 
-        self.logger.info(f"Backing up {volume.value} → {backup_file}")
+        self.logger.info("Backing up %s → %s", volume.value, backup_file)
         start_time = time.time()
 
         tar_result = await self.ssh.execute(cmd, timeout=timeout)
@@ -176,7 +178,7 @@ class SoundTouchBackupService:
             error = (
                 tar_result.error or tar_result.output or "Archive is empty after tar"
             )
-            self.logger.error(f"Backup of {volume.value} failed: {error}")
+            self.logger.error("Backup of %s failed: %s", volume.value, error)
             return BackupResult(
                 volume=volume,
                 success=False,

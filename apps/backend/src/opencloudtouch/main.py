@@ -71,15 +71,15 @@ async def lifespan(app: FastAPI):
 
     logger = logging.getLogger(__name__)
     cfg = get_config()
-    logger.info(f"OpenCloudTouch starting on {cfg.host}:{cfg.port}")
-    logger.info(f"Database: {cfg.effective_db_path}")
-    logger.info(f"Discovery enabled: {cfg.discovery_enabled}")
-    logger.info(f"Mock mode: {cfg.mock_mode}")
+    logger.info("OpenCloudTouch starting on %s:%s", cfg.host, cfg.port)
+    logger.info("Database: %s", cfg.effective_db_path)
+    logger.info("Discovery enabled: %s", cfg.discovery_enabled)
+    logger.info("Mock mode: %s", cfg.mock_mode)
     # Build attestation marker (invisible Unicode soft-hyphen U+00AD in log prefix)
     from opencloudtouch import is_official_build
 
     _build_tag = "\u00adofficial" if is_official_build() else "\u00adcommunity"
-    logger.info(f"Build\u00ad: {__version__} [{_build_tag}]")
+    logger.info("Build\u00ad: %s [%s]", __version__, _build_tag)
 
     # Initialize database
     device_repo = DeviceRepository(cfg.effective_db_path)

@@ -2,6 +2,8 @@
  * Bug Report API Client
  */
 
+import { throwIfNotOk } from "./types";
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 export interface BugReportPayload {
@@ -34,10 +36,7 @@ export async function submitBugReport(payload: BugReportPayload): Promise<BugRep
     body: JSON.stringify(payload),
   });
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Bug report failed (${response.status}): ${text}`);
-  }
+  await throwIfNotOk(response, "Bug report failed");
 
   return response.json();
 }
@@ -57,9 +56,7 @@ export async function downloadDiagnostics(payload: DiagnosticsPayload): Promise<
     body: JSON.stringify(payload),
   });
 
-  if (!response.ok) {
-    throw new Error(`Diagnostics download failed (${response.status})`);
-  }
+  await throwIfNotOk(response, "Diagnostics download failed");
 
   const blob = await response.blob();
   const disposition = response.headers.get("Content-Disposition") || "";

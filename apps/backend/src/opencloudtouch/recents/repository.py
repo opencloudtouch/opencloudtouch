@@ -131,7 +131,7 @@ class RecentsRepository(BaseRepository):
         )
 
         await db.commit()
-        logger.debug(f"Added recent for device {recent.device_id}: {recent.name}")
+        logger.debug("Added recent for device %s: %s", recent.device_id, recent.name)
 
         return recent
 
@@ -183,5 +183,5 @@ class RecentsRepository(BaseRepository):
 
         deleted = cursor.rowcount
         if deleted > 0:
-            logger.debug(f"Cleared {deleted} recents for device {device_id}")
+            logger.debug("Cleared %d recents for device %s", deleted, device_id)
         return deleted

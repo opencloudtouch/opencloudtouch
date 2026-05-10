@@ -130,6 +130,6 @@ class SetupService:
             )
 
         except Exception as e:
-            logger.error(f"Verification failed: {e}")
+            logger.error("Verification failed: %s", e)
 
         return result

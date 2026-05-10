@@ -59,7 +59,7 @@ class BaseRepository:
         # Create schema (implemented by subclasses)
         await self._create_schema()
 
-        logger.info(f"Database initialized: {self.db_path}")
+        logger.info("Database initialized: %s", self.db_path)
 
     async def _create_schema(self) -> None:
         """Create database schema (tables, indexes).

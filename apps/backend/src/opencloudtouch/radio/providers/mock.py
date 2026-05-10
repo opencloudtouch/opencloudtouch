@@ -70,7 +70,7 @@ class MockRadioAdapter(RadioProvider):
             RadioBrowserTimeoutError: For ERROR_504 query
             RadioBrowserError: For ERROR_500 query
         """
-        logger.info(f"[MOCK] Searching stations by name: {query}")
+        logger.info("[MOCK] Searching stations by name: %s", query)
 
         # Error simulation
         if query == "ERROR_503":
@@ -84,7 +84,7 @@ class MockRadioAdapter(RadioProvider):
         query_lower = query.lower()
         results = [s for s in self.MOCK_STATIONS if query_lower in s.name.lower()]
 
-        logger.info(f"[MOCK] Found {len(results)} stations matching '{query}'")
+        logger.info("[MOCK] Found %d stations matching '%s'", len(results), query)
         return results[:limit]
 
     async def search_by_country(
@@ -100,12 +100,12 @@ class MockRadioAdapter(RadioProvider):
         Returns:
             List of matching RadioStation objects
         """
-        logger.info(f"[MOCK] Searching stations by country: {query}")
+        logger.info("[MOCK] Searching stations by country: %s", query)
 
         query_lower = query.lower()
         results = [s for s in self.MOCK_STATIONS if query_lower in s.country.lower()]
 
-        logger.info(f"[MOCK] Found {len(results)} stations in {query}")
+        logger.info("[MOCK] Found %d stations in %s", len(results), query)
         return results[:limit]
 
     async def search_by_tag(self, query: str, limit: int = 10) -> List[RadioStation]:
@@ -119,7 +119,7 @@ class MockRadioAdapter(RadioProvider):
         Returns:
             List of matching RadioStation objects
         """
-        logger.info(f"[MOCK] Searching stations by tag: {query}")
+        logger.info("[MOCK] Searching stations by tag: %s", query)
 
         query_lower = query.lower()
         results = [
@@ -128,7 +128,7 @@ class MockRadioAdapter(RadioProvider):
             if s.tags and any(query_lower in tag.lower() for tag in s.tags)
         ]
 
-        logger.info(f"[MOCK] Found {len(results)} stations with tag '{query}'")
+        logger.info("[MOCK] Found %d stations with tag '%s'", len(results), query)
         return results[:limit]
 
     async def get_by_uuid(self, uuid: str) -> RadioStation:
@@ -141,7 +141,7 @@ class MockRadioAdapter(RadioProvider):
         Returns:
             RadioStation if found, raises error otherwise
         """
-        logger.info(f"[MOCK] Getting station by UUID: {uuid}")
+        logger.info("[MOCK] Getting station by UUID: %s", uuid)
 
         for station in self.MOCK_STATIONS:
             if station.station_id == uuid:

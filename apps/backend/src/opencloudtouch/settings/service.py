@@ -76,7 +76,7 @@ class SettingsService:
         # Validate IP format
         self._validate_ip(ip)
 
-        logger.info(f"Adding manual device IP: {ip}")
+        logger.info("Adding manual device IP: %s", ip)
 
         await self.repository.add_manual_ip(ip)
 
@@ -86,7 +86,7 @@ class SettingsService:
         Args:
             ip: IP address to remove
         """
-        logger.info(f"Removing manual device IP: {ip}")
+        logger.info("Removing manual device IP: %s", ip)
 
         await self.repository.remove_manual_ip(ip)
 
@@ -113,8 +113,9 @@ class SettingsService:
             self._validate_ip(ip)
 
         logger.info(
-            f"Setting manual IPs: {len(unique_ips)} unique IPs "
-            f"(from {len(ips)} provided)"
+            "Setting manual IPs: %d unique IPs " "(from %d provided)",
+            len(unique_ips),
+            len(ips),
         )
 
         # Get existing IPs
@@ -128,6 +129,6 @@ class SettingsService:
         for ip in unique_ips:
             await self.repository.add_manual_ip(ip)
 
-        logger.info(f"Manual IPs updated: {unique_ips}")
+        logger.info("Manual IPs updated: %s", unique_ips)
 
         return unique_ips

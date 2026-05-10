@@ -129,6 +129,27 @@ export async function parseApiError(response: Response): Promise<ApiError | null
 }
 
 /**
+ * Throw a descriptive error if the response is not OK.
+ * Centralizes the `if (!response.ok)` pattern used across all API clients.
+ */
+export async function throwIfNotOk(response: Response, context: string): Promise<void> {
+  if (response.ok) return;
+  let detail: string | null = null;
+  try {
+    const errorData = await response.json();
+    detail = errorData?.detail || (isApiError(errorData) ? errorData.title : null);
+  } catch {
+    // JSON parse failed — try text
+    try {
+      detail = await response.text();
+    } catch {
+      // ignore
+    }
+  }
+  throw new Error(detail || `${context}: ${response.statusText}`);
+}
+
+/**
  * Get error type for UI styling/categorization
  */
 export function getErrorType(error: unknown): string {

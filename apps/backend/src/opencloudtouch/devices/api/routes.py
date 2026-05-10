@@ -129,7 +129,7 @@ async def get_device_capabilities_endpoint(
     except DeviceConnectionError:
         raise
     except Exception as e:
-        logger.error(f"Failed to get capabilities for device {device_id}: {e}")
+        logger.error("Failed to get capabilities for device %s: %s", device_id, e)
         raise HTTPException(
             status_code=500, detail=f"Failed to query device capabilities: {str(e)}"
         ) from e
@@ -175,7 +175,7 @@ async def press_key(
     except DeviceConnectionError:
         raise
     except Exception as e:
-        logger.error(f"Failed to press key {key} on device {device_id}: {e}")
+        logger.error("Failed to press key %s on device %s: %s", key, device_id, e)
         raise HTTPException(
             status_code=500, detail="Failed to press key on device"
         ) from e
@@ -205,7 +205,7 @@ async def get_now_playing(
     except DeviceConnectionError:
         raise
     except Exception as e:
-        logger.error(f"Failed to get now playing for device {device_id}: {e}")
+        logger.error("Failed to get now playing for device %s: %s", device_id, e)
         raise HTTPException(
             status_code=500, detail="Failed to get playback status"
         ) from e
@@ -227,7 +227,7 @@ async def get_volume(
     except DeviceConnectionError:
         raise
     except Exception as e:
-        logger.error(f"Failed to get volume for device {device_id}: {e}")
+        logger.error("Failed to get volume for device %s: %s", device_id, e)
         raise HTTPException(status_code=500, detail="Failed to get volume") from e
 
 
@@ -248,7 +248,7 @@ async def set_volume(
     except DeviceConnectionError:
         raise
     except Exception as e:
-        logger.error(f"Failed to set volume for device {device_id}: {e}")
+        logger.error("Failed to set volume for device %s: %s", device_id, e)
         raise HTTPException(status_code=500, detail="Failed to set volume") from e
 
 
@@ -269,5 +269,5 @@ async def set_mute(
     except DeviceConnectionError:
         raise
     except Exception as e:
-        logger.error(f"Failed to set mute for device {device_id}: {e}")
+        logger.error("Failed to set mute for device %s: %s", device_id, e)
         raise HTTPException(status_code=500, detail="Failed to set mute") from e

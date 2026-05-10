@@ -3,7 +3,7 @@
  * Centralized API calls for device management
  */
 
-import { getErrorMessage } from "./types";
+import { getErrorMessage, throwIfNotOk } from "./types";
 import { SetupStatus } from "./setup";
 
 // Backend API response structure (matches Device.to_dict() from repository.py)
@@ -69,12 +69,7 @@ function mapDeviceFromAPI(apiDevice: DeviceAPIResponse): Device {
 export async function getDevices(): Promise<Device[]> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/devices`);
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      throw new Error(
-        getErrorMessage(errorData) || `Failed to fetch devices: ${response.statusText}`
-      );
-    }
+    await throwIfNotOk(response, "Failed to fetch devices");
     const data = await response.json();
     const devicesList: DeviceAPIResponse[] = data.devices || [];
     return devicesList.map(mapDeviceFromAPI);
@@ -129,9 +124,7 @@ export async function syncDevices(): Promise<SyncResult> {
  */
 export async function getDeviceCapabilities(deviceId: string): Promise<Record<string, unknown>> {
   const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}/capabilities`);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch device capabilities: ${response.statusText}`);
-  }
+  await throwIfNotOk(response, "Failed to fetch device capabilities");
   return response.json();
 }
 
@@ -154,10 +147,7 @@ export async function playPreset(deviceId: string, presetNumber: number): Promis
     }
   );
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(getErrorMessage(errorData) || `Failed to play preset: ${response.statusText}`);
-  }
+  await throwIfNotOk(response, "Failed to play preset");
 }
 
 // ---- Volume API ----
@@ -182,9 +172,7 @@ export async function setVolume(deviceId: string, level: number): Promise<Volume
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ level }),
   });
-  if (!response.ok) {
-    throw new Error(`Failed to set volume: ${response.statusText}`);
-  }
+  await throwIfNotOk(response, "Failed to set volume");
   return response.json();
 }
 
@@ -194,9 +182,7 @@ export async function setMute(deviceId: string, muted: boolean): Promise<VolumeS
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ muted }),
   });
-  if (!response.ok) {
-    throw new Error(`Failed to set mute: ${response.statusText}`);
-  }
+  await throwIfNotOk(response, "Failed to set mute");
   return response.json();
 }
 
@@ -225,9 +211,7 @@ export async function togglePlayPause(deviceId: string): Promise<void> {
     `${API_BASE_URL}/api/devices/${deviceId}/key?key=PLAY_PAUSE&state=both`,
     { method: "POST" }
   );
-  if (!response.ok) {
-    throw new Error(`Failed to toggle play/pause: ${response.statusText}`);
-  }
+  await throwIfNotOk(response, "Failed to toggle play/pause");
 }
 
 export async function sendKey(deviceId: string, key: string): Promise<void> {
@@ -235,9 +219,7 @@ export async function sendKey(deviceId: string, key: string): Promise<void> {
     `${API_BASE_URL}/api/devices/${deviceId}/key?key=${encodeURIComponent(key)}&state=both`,
     { method: "POST" }
   );
-  if (!response.ok) {
-    throw new Error(`Failed to send key ${key}: ${response.statusText}`);
-  }
+  await throwIfNotOk(response, `Failed to send key ${key}`);
 }
 
 export async function nextTrack(deviceId: string): Promise<void> {

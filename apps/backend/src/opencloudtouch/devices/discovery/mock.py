@@ -66,7 +66,7 @@ class MockDiscoveryAdapter(DeviceDiscovery):
         Returns:
             List of DiscoveredDevice objects
         """
-        logger.info(f"[MOCK] Returning {len(self.MOCK_DEVICES)} predefined devices")
+        logger.info("[MOCK] Returning %d predefined devices", len(self.MOCK_DEVICES))
 
         devices = []
         for mac, device_data in self.MOCK_DEVICES.items():

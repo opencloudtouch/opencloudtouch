@@ -80,7 +80,7 @@ class SoundTouchHostsService:
         result = await self.ssh.execute("mount -o remount,rw /")
         if result.exit_code != 0:
             self.logger.warning(
-                f"remount rw returned exit_code={result.exit_code}: {result.stderr}"
+                "remount rw returned exit_code=%s: %s", result.exit_code, result.stderr
             )
 
     async def _remount_ro(self) -> None:
@@ -88,7 +88,7 @@ class SoundTouchHostsService:
         result = await self.ssh.execute("mount -o remount,ro /")
         if result.exit_code != 0:
             self.logger.warning(
-                f"remount ro returned exit_code={result.exit_code}: {result.stderr}"
+                "remount ro returned exit_code=%s: %s", result.exit_code, result.stderr
             )
 
     async def modify_hosts(
@@ -122,8 +122,9 @@ class SoundTouchHostsService:
             )
 
         self.logger.info(
-            f"Modifying hosts to redirect to OCT at {oct_ip} "
-            f"(optional: {include_optional})"
+            "Modifying hosts to redirect to OCT at %s " "(optional: %s)",
+            oct_ip,
+            include_optional,
         )
 
         try:
@@ -158,14 +159,14 @@ class SoundTouchHostsService:
 
                 diff = "\n".join(f"+ {oct_ip}\t{d}" for d in domains_to_add)
                 self.logger.info(
-                    f"Hosts modified successfully ({len(domains_to_add)} entries)"
+                    "Hosts modified successfully (%d entries)", len(domains_to_add)
                 )
                 return ModifyResult(success=True, backup_path=backup_path, diff=diff)
             finally:
                 await self._remount_ro()
 
         except Exception as e:
-            self.logger.error(f"Hosts modification failed: {e}")
+            self.logger.error("Hosts modification failed: %s", e)
             return ModifyResult(success=False, error=str(e))
 
     async def _read_hosts(self) -> str:
@@ -185,7 +186,7 @@ class SoundTouchHostsService:
                 f"cp {self.HOSTS_PATH} {backup_path}"
             )
             if not backup_result.success:
-                self.logger.warning(f"Backup may have failed: {backup_result.error}")
+                self.logger.warning("Backup may have failed: %s", backup_result.error)
 
     def _build_clean_lines(
         self, original_content: str, all_bose_domains: List[str]
@@ -257,7 +258,7 @@ class SoundTouchHostsService:
         Returns:
             Restoration result
         """
-        self.logger.info(f"Restoring hosts from {backup_path}")
+        self.logger.info("Restoring hosts from %s", backup_path)
 
         try:
             # TODO: Implement actual restore logic
@@ -270,7 +271,7 @@ class SoundTouchHostsService:
             return RestoreResult(success=True)
 
         except Exception as e:
-            self.logger.error(f"Hosts restore failed: {e}")
+            self.logger.error("Hosts restore failed: %s", e)
             return RestoreResult(
                 success=False,
                 error=str(e),
@@ -298,5 +299,5 @@ class SoundTouchHostsService:
             ]
 
         except Exception as e:
-            self.logger.error(f"Failed to list backups: {e}")
+            self.logger.error("Failed to list backups: %s", e)
             return []

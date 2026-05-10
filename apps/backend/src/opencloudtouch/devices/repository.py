@@ -184,7 +184,7 @@ class DeviceRepository(BaseRepository):
         device.id = row[0] if row else None
 
         await db.commit()
-        logger.debug(f"Upserted device: {device.name} ({device.device_id})")
+        logger.debug("Upserted device: %s (%s)", device.name, device.device_id)
 
         return device
 
@@ -255,7 +255,7 @@ class DeviceRepository(BaseRepository):
             params,
         )
         await db.commit()
-        logger.info(f"Updated setup status for {device_id}: {setup_status}")
+        logger.info("Updated setup status for %s: %s", device_id, setup_status)
 
     async def delete_all(self) -> int:
         """Delete all devices from database. Returns number of deleted rows."""
@@ -265,7 +265,7 @@ class DeviceRepository(BaseRepository):
         await db.commit()
 
         deleted_count = cursor.rowcount
-        logger.debug(f"Deleted all devices from database: {deleted_count} rows")
+        logger.debug("Deleted all devices from database: %d rows", deleted_count)
 
         return deleted_count
 

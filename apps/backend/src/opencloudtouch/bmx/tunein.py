@@ -85,7 +85,7 @@ async def resolve_tunein_station(station_id: str) -> BmxPlaybackResponse:
     Returns:
         BmxPlaybackResponse with stream URLs
     """
-    logger.info(f"[BMX TUNEIN] Resolving station: {station_id}")
+    logger.info("[BMX TUNEIN] Resolving station: %s", station_id)
 
     if not _STATION_ID_RE.match(station_id):
         raise ValueError(f"Invalid station ID format: {station_id}")
@@ -105,9 +105,9 @@ async def resolve_tunein_station(station_id: str) -> BmxPlaybackResponse:
             if not stream_urls:
                 raise ValueError(f"No stream URLs found for station {station_id}")
 
-            logger.info(f"[BMX TUNEIN] Resolved {station_id} → {stream_urls[0]}")
+            logger.info("[BMX TUNEIN] Resolved %s → %s", station_id, stream_urls[0])
             return _build_tunein_playback_response(station_id, stream_urls, name, logo)
 
     except Exception as e:
-        logger.error(f"[BMX TUNEIN] Error resolving {station_id}: {e}")
+        logger.error("[BMX TUNEIN] Error resolving %s: %s", station_id, e)
         raise

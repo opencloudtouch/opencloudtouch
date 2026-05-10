@@ -51,7 +51,7 @@ def _build_oct_resolved_xml(
     oct_url = os.getenv("OCT_BACKEND_URL", "http://192.168.1.100:7777")
     resolved_url = f"{oct_url}/device/{device_id}/preset/{preset_number}"
 
-    logger.info(f"[BMX RESOLVE] OCT location resolved: {location} → {resolved_url}")
+    logger.info("[BMX RESOLVE] OCT location resolved: %s → %s", location, resolved_url)
     logger.debug(
         "[BMX RESOLVE] Resolved details: device=%s, preset=%s, item=%s, station=%s",
         device_id,
@@ -74,10 +74,10 @@ def _is_pass_through(source: str, location: str, station_id: str) -> bool:
         logger.info("[BMX RESOLVE] Direct URL or OCT proxy - pass through")
         return True
     if source == "TUNEIN" and station_id:
-        logger.warning(f"[BMX RESOLVE] TuneIn station {station_id} not supported yet")
+        logger.warning("[BMX RESOLVE] TuneIn station %s not supported yet", station_id)
         return True
     if source and source not in ("INTERNET_RADIO", "TUNEIN"):
-        logger.info(f"[BMX RESOLVE] {source} source - pass through")
+        logger.info("[BMX RESOLVE] %s source - pass through", source)
         return True
     return False
 
@@ -100,7 +100,7 @@ async def resolve_stream(request: Request) -> Response:
     """
     try:
         body_str = (await request.body()).decode("utf-8")
-        logger.info(f"[BMX RESOLVE] Request body: {body_str}")
+        logger.info("[BMX RESOLVE] Request body: %s", body_str)
 
         root = ElementTree.fromstring(body_str)  # nosec B314
         source = root.get("source", "")
@@ -110,7 +110,10 @@ async def resolve_stream(request: Request) -> Response:
         station_name_text = _get_elem_text(root.find("stationName"), item_name_text)
 
         logger.info(
-            f"[BMX RESOLVE] source={source}, location={location}, stationId={station_id}"
+            "[BMX RESOLVE] source=%s, location=%s, stationId=%s",
+            source,
+            location,
+            station_id,
         )
 
         if location and location.startswith("/oct/device/"):
@@ -131,7 +134,7 @@ async def resolve_stream(request: Request) -> Response:
         )
 
     except Exception as e:
-        logger.error(f"[BMX RESOLVE] Error: {e}", exc_info=True)
+        logger.error("[BMX RESOLVE] Error: %s", e, exc_info=True)
         return Response(
             content="<error>Resolution failed</error>",
             status_code=500,

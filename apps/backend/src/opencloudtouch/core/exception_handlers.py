@@ -6,6 +6,8 @@ format. Register them all via ``register_exception_handlers(app)``.
 """
 
 import logging
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
@@ -25,6 +27,45 @@ from opencloudtouch.radio.providers.radiobrowser import (
     RadioBrowserError,
     RadioBrowserTimeoutError,
 )
+
+logger = logging.getLogger(__name__)
+
+
+def _make_domain_handler(
+    *,
+    status_code: int,
+    error_type: str,
+    title: str,
+    detail: str | None = None,
+    log_level: str = "error",
+    exc_info: bool = False,
+) -> Callable[[Request, Any], Coroutine[Any, Any, JSONResponse]]:
+    """Factory for domain exception handlers that follow the same pattern.
+
+    Args:
+        status_code: HTTP status code for the response.
+        error_type: RFC 7807 error type string.
+        title: Human-readable error title.
+        detail: Fixed detail message. If None, uses str(exc).
+        log_level: Logging level ("warning", "error").
+        exc_info: Whether to include exception traceback in log.
+    """
+    log_fn = getattr(logger, log_level)
+
+    async def handler(request: Request, exc: Exception) -> JSONResponse:
+        log_fn("%s: %s", title, exc, exc_info=exc if exc_info else False)
+        return JSONResponse(
+            status_code=status_code,
+            content=ErrorDetail(
+                type=error_type,
+                title=title,
+                status=status_code,
+                detail=detail or str(exc),
+                instance=str(request.url.path),
+            ).model_dump(),
+        )
+
+    return handler
 
 
 async def starlette_http_exception_handler(
@@ -85,8 +126,7 @@ async def device_not_found_handler(
     request: Request, exc: DeviceNotFoundError
 ) -> JSONResponse:
     """Handle DeviceNotFoundError as 404 HTTP response."""
-    logger = logging.getLogger(__name__)
-    logger.warning(f"Device not found: {exc.device_id}")
+    logger.warning("Device not found: %s", exc.device_id)
     return JSONResponse(
         status_code=404,
         content=ErrorDetail(
@@ -99,97 +139,46 @@ async def device_not_found_handler(
     )
 
 
-async def device_connection_error_handler(
-    request: Request, exc: DeviceConnectionError
-) -> JSONResponse:
-    """Handle DeviceConnectionError as 503 Service Unavailable."""
-    logger = logging.getLogger(__name__)
-    logger.error(f"Device connection failed: {exc.device_ip}", exc_info=exc)
-    return JSONResponse(
-        status_code=503,
-        content=ErrorDetail(
-            type="service_unavailable",
-            title="Device Unavailable",
-            status=503,
-            detail=str(exc),
-            instance=str(request.url.path),
-        ).model_dump(),
-    )
+device_connection_error_handler = _make_domain_handler(
+    status_code=503,
+    error_type="service_unavailable",
+    title="Device Unavailable",
+    exc_info=True,
+)
 
+discovery_error_handler = _make_domain_handler(
+    status_code=500,
+    error_type="server_error",
+    title="Device Discovery Failed",
+    exc_info=True,
+)
 
-async def discovery_error_handler(
-    request: Request, exc: DiscoveryError
-) -> JSONResponse:
-    """Handle DiscoveryError as 500 Internal Server Error."""
-    logger = logging.getLogger(__name__)
-    logger.error(f"Discovery failed: {exc}", exc_info=exc)
-    return JSONResponse(
-        status_code=500,
-        content=ErrorDetail(
-            type="server_error",
-            title="Device Discovery Failed",
-            status=500,
-            detail=str(exc),
-            instance=str(request.url.path),
-        ).model_dump(),
-    )
+oct_error_handler = _make_domain_handler(
+    status_code=500,
+    error_type="server_error",
+    title="Internal Error",
+    exc_info=True,
+)
 
+radio_browser_timeout_handler = _make_domain_handler(
+    status_code=504,
+    error_type="gateway_timeout",
+    title="Radio Service Timeout",
+    detail="Radio station search timed out. Please try again.",
+    log_level="warning",
+)
 
-async def oct_error_handler(request: Request, exc: OpenCloudTouchError) -> JSONResponse:
-    """Catch-all for other OpenCloudTouch domain exceptions."""
-    logger = logging.getLogger(__name__)
-    logger.error(f"OpenCloudTouch error: {exc}", exc_info=exc)
-    return JSONResponse(
-        status_code=500,
-        content=ErrorDetail(
-            type="server_error",
-            title="Internal Error",
-            status=500,
-            detail=str(exc),
-            instance=str(request.url.path),
-        ).model_dump(),
-    )
-
-
-async def radio_browser_timeout_handler(
-    request: Request, exc: RadioBrowserTimeoutError
-) -> JSONResponse:
-    """Handle RadioBrowserTimeoutError as 504 Gateway Timeout."""
-    logger = logging.getLogger(__name__)
-    logger.warning(f"Radio browser timeout: {exc}")
-    return JSONResponse(
-        status_code=504,
-        content=ErrorDetail(
-            type="gateway_timeout",
-            title="Radio Service Timeout",
-            status=504,
-            detail="Radio station search timed out. Please try again.",
-            instance=str(request.url.path),
-        ).model_dump(),
-    )
-
-
-async def radio_browser_connection_handler(
-    request: Request, exc: RadioBrowserError
-) -> JSONResponse:
-    """Handle RadioBrowserConnectionError and RadioBrowserError as 503 Service Unavailable."""
-    logger = logging.getLogger(__name__)
-    logger.warning(f"Radio browser unavailable: {exc}")
-    return JSONResponse(
-        status_code=503,
-        content=ErrorDetail(
-            type="service_unavailable",
-            title="Radio Service Unavailable",
-            status=503,
-            detail="Radio station search is temporarily unavailable. Please try again later.",
-            instance=str(request.url.path),
-        ).model_dump(),
-    )
+radio_browser_connection_handler = _make_domain_handler(
+    status_code=503,
+    error_type="service_unavailable",
+    title="Radio Service Unavailable",
+    detail="Radio station search is temporarily unavailable. Please try again later.",
+    log_level="warning",
+)
 
 
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Catch-all for unhandled exceptions."""
-    logger = logging.getLogger(__name__)
     logger.exception("Unhandled exception", exc_info=exc)
     return JSONResponse(
         status_code=500,

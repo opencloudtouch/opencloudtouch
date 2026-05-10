@@ -33,9 +33,9 @@ class ManualDiscovery(DeviceDiscovery):
         Returns:
             List of devices from manual IP list
         """
-        logger.info(f"Manual discovery: {len(self.device_ips)} device(s) configured")
+        logger.info("Manual discovery: %d device(s) configured", len(self.device_ips))
 
         devices = [DiscoveredDevice(ip=ip, port=8090) for ip in self.device_ips]
 
-        logger.info(f"Manual discovery: {len(devices)} device(s) created")
+        logger.info("Manual discovery: %d device(s) created", len(devices))
         return devices

@@ -84,7 +84,7 @@ describe("Devices API Client", () => {
 
       // getErrorMessage returns fallback for non-ApiError objects
       await expect(getDevices()).rejects.toThrow(
-        "Ein unerwarteter Fehler ist aufgetreten"
+        "Database error"
       );
     });
 
@@ -97,7 +97,7 @@ describe("Devices API Client", () => {
 
       // getErrorMessage(null) returns fallback
       await expect(getDevices()).rejects.toThrow(
-        "Ein unerwarteter Fehler ist aufgetreten"
+        "Failed to fetch devices: Bad Gateway"
       );
     });
 
@@ -264,7 +264,7 @@ describe("Devices API Client", () => {
 
       // getErrorMessage returns fallback for non-ApiError objects
       await expect(playPreset("device123", 1)).rejects.toThrow(
-        "Ein unerwarteter Fehler ist aufgetreten"
+        "Device offline"
       );
     });
 
@@ -277,7 +277,7 @@ describe("Devices API Client", () => {
 
       // getErrorMessage(null) returns fallback
       await expect(playPreset("device123", 1)).rejects.toThrow(
-        "Ein unerwarteter Fehler ist aufgetreten"
+        "Failed to play preset: Service Unavailable"
       );
     });
   });

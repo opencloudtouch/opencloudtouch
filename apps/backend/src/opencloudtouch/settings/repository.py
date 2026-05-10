@@ -62,7 +62,7 @@ class SettingsRepository(BaseRepository):
                 (ip, datetime.now(UTC).isoformat()),
             )
             await db.commit()
-            logger.info(f"Added manual IP: {ip}")
+            logger.info("Added manual IP: %s", ip)
         except aiosqlite.IntegrityError as e:
             raise ValueError(f"IP address already exists: {ip}") from e
 
@@ -84,9 +84,9 @@ class SettingsRepository(BaseRepository):
         await db.commit()
 
         if cursor.rowcount == 0:
-            logger.warning(f"Manual IP not found for removal: {ip}")
+            logger.warning("Manual IP not found for removal: %s", ip)
         else:
-            logger.info(f"Removed manual IP: {ip}")
+            logger.info("Removed manual IP: %s", ip)
 
     async def set_manual_ips(self, ips: list[str]) -> None:
         """
@@ -108,7 +108,7 @@ class SettingsRepository(BaseRepository):
             )
 
         await db.commit()
-        logger.info(f"Set {len(ips)} manual IPs")
+        logger.info("Set %d manual IPs", len(ips))
 
     async def get_manual_ips(self) -> list[str]:
         """

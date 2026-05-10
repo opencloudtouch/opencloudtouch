@@ -137,7 +137,7 @@ async def create_bug_report(request_body: BugReportRequest, request: Request):
             body=body,
         )
 
-    logger.info(f"Bug report created: {issue_url}")
+    logger.info("Bug report created: %s", issue_url)
     return BugReportResponse(issue_url=issue_url)
 
 
