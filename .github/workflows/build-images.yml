@@ -151,10 +151,9 @@ jobs:
           push: false
           load: true
           tags: opencloudtouch:test
+          provenance: false
           build-args: |
             OCT_BUILD_SIGNATURE=${{ steps.sign.outputs.signature }}
-          cache-from: type=gha,scope=trivy-scan
-          cache-to: type=gha,mode=max,scope=trivy-scan
 
       - name: Run Trivy vulnerability scanner (blocking)
         uses: aquasecurity/trivy-action@master
@@ -289,8 +288,7 @@ jobs:
           build-args: |
             OCT_BUILD_SIGNATURE=${{ steps.sign.outputs.signature }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=build-${{ matrix.platform }}
-          cache-to: type=gha,mode=max,scope=build-${{ matrix.platform }}
+          provenance: false
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true
 
       - name: Export digest
