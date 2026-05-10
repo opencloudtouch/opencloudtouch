@@ -283,3 +283,18 @@ class DetectStrategyResponse(BaseModel):
         description="Recommended strategy: 'hosts_only' or 'bmx_and_hosts'"
     )
     message: str
+
+
+class EnsureAccountRequest(WizardDeviceRequest):
+    """Request to ensure device has a margeAccountUUID."""
+
+    pass
+
+
+class EnsureAccountResponse(BaseModel):
+    """Response from account pairing check/fix."""
+
+    success: bool
+    had_uuid: bool = Field(description="True if UUID was already present")
+    uuid: str = Field(default="", description="The current or newly set UUID")
+    message: str = ""

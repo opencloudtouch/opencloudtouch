@@ -64,13 +64,16 @@ async def get_full_account(
     Returns:
         XML Response with <boseAccount> structure
     """
-    logger.info(f"[MARGE] Full account sync for device {device_id}")
+    logger.info("[MARGE] Full account sync for device %s", device_id)
 
     presets = await preset_repo.get_all_presets(device_id)
     recents = await recents_repo.get_recents(device_id)
 
     logger.info(
-        f"[MARGE] Returning {len(presets)} presets, {len(recents)} recents for {device_id}"
+        "[MARGE] Returning %d presets, %d recents for %s",
+        len(presets),
+        len(recents),
+        device_id,
     )
     for p in presets:
         logger.debug(
@@ -98,7 +101,7 @@ async def get_presets(
     Returns:
         XML Response with <presets> structure
     """
-    logger.info(f"[MARGE] Get presets for device {device_id}")
+    logger.info("[MARGE] Get presets for device %s", device_id)
 
     presets = await preset_repo.get_all_presets(device_id)
 
@@ -119,7 +122,7 @@ async def get_recents(
     Returns:
         XML Response with <recents> structure
     """
-    logger.info(f"[MARGE] Get recents for device {device_id}")
+    logger.info("[MARGE] Get recents for device %s", device_id)
 
     recents = await recents_repo.get_recents(device_id)
 
@@ -136,7 +139,7 @@ async def get_sources(device_id: str) -> Response:
     Returns:
         XML Response with <sources> structure
     """
-    logger.info(f"[MARGE] Get sources for device {device_id}")
+    logger.info("[MARGE] Get sources for device %s", device_id)
 
     sources_xml = build_sources_xml()
 
@@ -153,7 +156,7 @@ async def get_devices(device_id: str) -> Response:
     Returns:
         XML Response with <devices> structure
     """
-    logger.info(f"[MARGE] Get devices for device {device_id}")
+    logger.info("[MARGE] Get devices for device %s", device_id)
 
     # TODO: Implement multiroom device discovery
     devices: list[Any] = []
@@ -174,7 +177,7 @@ async def power_on(device_id: str) -> Response:
     Returns:
         204 No Content (acknowledgement)
     """
-    logger.info(f"[MARGE] Device {device_id} powered on")
+    logger.info("[MARGE] Device %s powered on", device_id)
 
     return Response(status_code=204)
 
@@ -189,7 +192,7 @@ async def get_sourceproviders(device_id: str) -> Response:
     Returns:
         XML Response with <sourceproviders> structure
     """
-    logger.info(f"[MARGE] Get sourceproviders for device {device_id}")
+    logger.info("[MARGE] Get sourceproviders for device %s", device_id)
 
     # Build XML manually (simple structure)
     root = ET.Element("sourceproviders")
@@ -281,7 +284,7 @@ async def streaming_full_account(
     Returns:
         XML Response with <account> structure
     """
-    logger.info(f"[MARGE/STREAMING] Full account sync for account {account_id}")
+    logger.info("[MARGE/STREAMING] Full account sync for account %s", account_id)
 
     # For now, return a generic device_id. In future, map account_id to device.
     # The device ID is typically its MAC address.
@@ -291,7 +294,9 @@ async def streaming_full_account(
     presets = await preset_repo.get_all_presets(device_id)
 
     logger.info(
-        f"[MARGE/STREAMING] Returning {len(presets)} presets for account {account_id}"
+        "[MARGE/STREAMING] Returning %d presets for account %s",
+        len(presets),
+        account_id,
     )
 
     return _xml_response(build_full_account_xml(presets, []), _MEDIA_STREAMING_XML)
@@ -310,6 +315,78 @@ async def scmudc_reporting(device_id: str) -> Response:
     Returns:
         200 OK
     """
-    logger.debug(f"[SCMUDC] Report from device {device_id}")
+    logger.debug("[SCMUDC] Report from device %s", device_id)
 
     return Response(status_code=200)
+
+
+# =============================================================================
+# Legacy Marge Compatibility Endpoints (firmware 27.x preset playback)
+# =============================================================================
+# These endpoints are called by the device during preset playback.
+# Without them, the device fails with CURL ErrorCode 7 → INVALID_SOURCE.
+# See: GitHub Issue #167, Zimbo88's analysis.
+
+
+@router.get("/streaming/device/{device_id}/streaming_token")
+async def streaming_token(device_id: str) -> Response:
+    """Return a dummy streaming token for device authentication.
+
+    SoundTouch firmware 27.x requests this token before playing a preset.
+    If the request fails, the device aborts playback with INVALID_SOURCE.
+    The token value is not validated — any non-empty response suffices.
+
+    Args:
+        device_id: Device MAC address
+
+    Returns:
+        JSON with a dummy access token
+    """
+    logger.info("[MARGE/COMPAT] Streaming token requested for device %s", device_id)
+
+    return Response(
+        content='{"access_token":"opencloudtouch","token":"opencloudtouch","expires_in":86400}',
+        media_type="application/json",
+    )
+
+
+@router.get("/v1/blacklist/{device_id}")
+@router.post("/v1/blacklist/{device_id}")
+async def blacklist_check(device_id: str) -> Response:
+    """Content blacklist check — always returns empty (nothing blacklisted).
+
+    The device checks this before playing content. If the endpoint is
+    unreachable, some firmware versions refuse playback.
+
+    Args:
+        device_id: Device MAC address
+
+    Returns:
+        JSON with empty blacklist
+    """
+    logger.debug("[MARGE/COMPAT] Blacklist check for device %s", device_id)
+
+    return Response(
+        content='{"blacklisted":false,"items":[]}',
+        media_type="application/json",
+    )
+
+
+@router.post("/setMargeAccount")
+async def set_marge_account() -> Response:
+    """Pair device with a Bose Cloud account (stub).
+
+    The SoundTouch app calls this to associate a device with an account.
+    OCT doesn't use real cloud accounts, but the device expects a 200 OK.
+    The actual margeAccountUUID is set via Telnet or device-side API.
+
+    Returns:
+        200 OK with status XML
+    """
+    logger.info("[MARGE] setMargeAccount called (stub — accepted)")
+
+    return Response(
+        content="<status>/setMargeAccount</status>",
+        media_type="application/xml",
+        status_code=200,
+    )

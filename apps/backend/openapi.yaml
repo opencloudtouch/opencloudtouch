@@ -1618,6 +1618,138 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /streaming/device/{device_id}/streaming_token:
+    get:
+      tags:
+      - marge
+      summary: Streaming Token
+      description: "Return a dummy streaming token for device authentication.\n\n\
+        SoundTouch firmware 27.x requests this token before playing a preset.\nIf\
+        \ the request fails, the device aborts playback with INVALID_SOURCE.\n\nArgs:\n\
+        \    device_id: Device MAC address\n\nReturns:\n    JSON with a dummy access\
+        \ token"
+      operationId: streaming_token_streaming_device__device_id__streaming_token_get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/blacklist/{device_id}:
+    get:
+      tags:
+      - marge
+      summary: Blacklist Check
+      description: "Content blacklist check — always returns empty (nothing blacklisted).\n\
+        \nThe device checks this before playing content. If the endpoint is\nunreachable,\
+        \ some firmware versions refuse playback.\n\nArgs:\n    device_id: Device\
+        \ MAC address\n\nReturns:\n    JSON with empty blacklist"
+      operationId: blacklist_check_v1_blacklist__device_id__get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - marge
+      summary: Blacklist Check
+      description: "Content blacklist check — always returns empty (nothing blacklisted).\n\
+        \nThe device checks this before playing content. If the endpoint is\nunreachable,\
+        \ some firmware versions refuse playback.\n\nArgs:\n    device_id: Device\
+        \ MAC address\n\nReturns:\n    JSON with empty blacklist"
+      operationId: blacklist_check_v1_blacklist__device_id__post
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /setMargeAccount:
+    post:
+      tags:
+      - marge
+      summary: Set Marge Account
+      description: "Pair device with a Bose Cloud account (stub).\n\nThe SoundTouch\
+        \ app calls this to associate a device with an account.\nOCT doesn't use real\
+        \ cloud accounts, but the device expects a 200 OK.\n\nReturns:\n    200 OK\
+        \ with status XML"
+      operationId: set_marge_account_setMargeAccount_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/xml:
+              schema: {}
+  /api/setup/wizard/ensure-account:
+    post:
+      tags:
+      - setup-wizard
+      summary: Ensure Account UUID
+      description: "Ensure device has a margeAccountUUID (Wizard Step).\n\nDevices\
+        \ without a margeAccountUUID cannot play presets (INVALID_SOURCE).\nThis endpoint\
+        \ checks GET :8090/info and sets a UUID via Telnet if missing.\n\nSafe to\
+        \ call multiple times — no-op if UUID already present."
+      operationId: wizard_ensure_account_api_setup_wizard_ensure_account_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnsureAccountRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnsureAccountResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /playlist/{device_id}/{preset_number}.m3u:
     get:
       tags:
@@ -3531,6 +3663,40 @@ components:
           default: []
       type: object
       title: LogDownloadRequest
+    EnsureAccountRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+      type: object
+      required:
+      - device_ip
+      title: EnsureAccountRequest
+      description: Request to ensure device has a margeAccountUUID.
+    EnsureAccountResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        had_uuid:
+          type: boolean
+          title: Had Uuid
+          description: True if UUID was already present
+        uuid:
+          type: string
+          title: Uuid
+          description: The current or newly set UUID
+          default: ''
+        message:
+          type: string
+          title: Message
+          default: ''
+      type: object
+      required:
+      - success
+      - had_uuid
+      title: EnsureAccountResponse
+      description: Response from account pairing check/fix.
       description: Response with domain redirect verification result.
     WizardCompleteRequest:
       properties:

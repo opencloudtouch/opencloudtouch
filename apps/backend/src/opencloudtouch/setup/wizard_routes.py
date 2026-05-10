@@ -26,6 +26,8 @@ from opencloudtouch.setup.api_models import (
     ConfigModifyResponse,
     ConnectivityCheckRequest,
     DetectStrategyResponse,
+    EnsureAccountRequest,
+    EnsureAccountResponse,
     HostsModifyRequest,
     HostsModifyResponse,
     ListBackupsRequest,
@@ -71,14 +73,16 @@ async def ssh_operation(
     except HTTPException:
         raise  # propagate intentional HTTP errors from business logic unchanged
     except (ConnectionError, ConnectionRefusedError, OSError) as e:
-        logger.error(f"[Wizard/{operation_name}] SSH unreachable on {device_ip}: {e}")
+        logger.error(
+            "[Wizard/%s] SSH unreachable on %s: %s", operation_name, device_ip, e
+        )
         raise HTTPException(
             status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="SSH nicht erreichbar. Bitte USB-Stick prüfen oder SSH erneut aktivieren.",
         )
     except Exception as e:
         logger.error(
-            f"[Wizard/{operation_name}] failed on {device_ip}: {e}", exc_info=True
+            "[Wizard/%s] failed on %s: %s", operation_name, device_ip, e, exc_info=True
         )
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -166,7 +170,7 @@ def _check_port_443(hostname: str) -> bool:
 @wizard_router.post("/wizard/check-ports", response_model=PortCheckResponse)
 async def wizard_check_ports(request: PortCheckRequest):
     """Check if SSH port is accessible (Wizard Step 3)."""
-    logger.info(f"Checking SSH port on {request.device_ip}")
+    logger.info("Checking SSH port on %s", request.device_ip)
 
     has_ssh = await check_ssh_port(request.device_ip, timeout=request.timeout)
 
@@ -187,7 +191,7 @@ async def wizard_check_ports(request: PortCheckRequest):
 @wizard_router.post("/wizard/backup", response_model=BackupResponse)
 async def wizard_backup(request: BackupRequest):
     """Create complete backup to USB stick (Wizard Step 4)."""
-    logger.info(f"Starting backup for {request.device_ip}")
+    logger.info("Starting backup for %s", request.device_ip)
 
     async with ssh_operation(request.device_ip, "backup") as ssh:
         backup_service = SoundTouchBackupService(ssh)
@@ -225,7 +229,9 @@ async def wizard_modify_config(request: ConfigModifyRequest, http_request: Reque
     """Modify OverrideSdkPrivateCfg.xml (Wizard Step 5)."""
     from urllib.parse import urlparse
 
-    logger.info(f"Modifying config on {request.device_ip} (OCT: {request.target_addr})")
+    logger.info(
+        "Modifying config on %s (OCT: %s)", request.device_ip, request.target_addr
+    )
 
     parsed = urlparse(request.target_addr)
     target_host = parsed.hostname or parsed.netloc
@@ -273,7 +279,9 @@ async def wizard_modify_hosts(request: HostsModifyRequest, http_request: Request
     """Modify /etc/hosts (Wizard Step 6)."""
     from urllib.parse import urlparse
 
-    logger.info(f"Modifying hosts on {request.device_ip} (OCT: {request.target_addr})")
+    logger.info(
+        "Modifying hosts on %s (OCT: %s)", request.device_ip, request.target_addr
+    )
 
     parsed = urlparse(request.target_addr)
     target_host = parsed.hostname or parsed.netloc
@@ -325,7 +333,7 @@ async def wizard_modify_hosts(request: HostsModifyRequest, http_request: Request
 @wizard_router.post("/wizard/restore-config", response_model=RestoreResponse)
 async def wizard_restore_config(request: RestoreRequest):
     """Restore config from backup (Wizard Step 8)."""
-    logger.info(f"Restoring config from {request.backup_path}")
+    logger.info("Restoring config from %s", request.backup_path)
 
     async with ssh_operation(request.device_ip, "restore-config") as ssh:
         config_service = SoundTouchConfigService(ssh)
@@ -342,7 +350,7 @@ async def wizard_restore_config(request: RestoreRequest):
 @wizard_router.post("/wizard/restore-hosts", response_model=RestoreResponse)
 async def wizard_restore_hosts(request: RestoreRequest):
     """Restore hosts from backup (Wizard Step 8)."""
-    logger.info(f"Restoring hosts from {request.backup_path}")
+    logger.info("Restoring hosts from %s", request.backup_path)
 
     async with ssh_operation(request.device_ip, "restore-hosts") as ssh:
         hosts_service = SoundTouchHostsService(ssh)
@@ -359,7 +367,7 @@ async def wizard_restore_hosts(request: RestoreRequest):
 @wizard_router.post("/wizard/list-backups", response_model=ListBackupsResponse)
 async def wizard_list_backups(request: ListBackupsRequest):
     """List available backups (Wizard Step 8)."""
-    logger.info(f"Listing backups on {request.device_ip}")
+    logger.info("Listing backups on %s", request.device_ip)
 
     async with ssh_operation(request.device_ip, "list-backups") as ssh:
         config_service = SoundTouchConfigService(ssh)
@@ -383,7 +391,7 @@ async def wizard_reboot_device(request: ConnectivityCheckRequest) -> Dict[str, A
     immediately after receiving the command — this is expected and not an error.
     Frontend should wait ~60s before attempting verify-redirect tests.
     """
-    logger.info(f"Sending reboot command to {request.ip}")
+    logger.info("Sending reboot command to %s", request.ip)
 
     ssh_client = SoundTouchSSHClient(host=request.ip, port=22)
     try:
@@ -398,7 +406,7 @@ async def wizard_reboot_device(request: ConnectivityCheckRequest) -> Dict[str, A
         # A short timeout avoids blocking the request for 30s.
         await ssh_client.execute("reboot", timeout=5.0)
 
-        logger.info(f"Reboot command sent to {request.ip}")
+        logger.info("Reboot command sent to %s", request.ip)
         return {
             "success": True,
             "message": "Neustart-Befehl gesendet. Das Gerät startet in wenigen Sekunden neu.",
@@ -407,13 +415,43 @@ async def wizard_reboot_device(request: ConnectivityCheckRequest) -> Dict[str, A
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception(f"Unexpected error during reboot: {e}")
+        logger.exception("Unexpected error during reboot: %s", e)
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Unexpected error: {str(e)}",
         )
     finally:
         await ssh_client.close()
+
+
+@wizard_router.post("/wizard/ensure-account", response_model=EnsureAccountResponse)
+async def wizard_ensure_account(request: EnsureAccountRequest):
+    """Ensure device has a margeAccountUUID (Wizard Step — after config/hosts).
+
+    Devices without a margeAccountUUID cannot play presets (INVALID_SOURCE).
+    This endpoint checks GET :8090/info and sets a UUID via Telnet if missing.
+
+    Safe to call multiple times — no-op if UUID already present.
+    """
+    from opencloudtouch.setup.account_pairing_service import ensure_account_uuid
+
+    logger.info("Ensuring account UUID on device %s", request.device_ip)
+
+    result = await ensure_account_uuid(request.device_ip)
+
+    if not result.success:
+        return EnsureAccountResponse(
+            success=False,
+            had_uuid=result.had_uuid,
+            message=result.error or "Account pairing failed",
+        )
+
+    return EnsureAccountResponse(
+        success=True,
+        had_uuid=result.had_uuid,
+        uuid=result.uuid,
+        message=result.message,
+    )
 
 
 @wizard_router.post("/wizard/complete", response_model=WizardCompleteResponse)
@@ -425,7 +463,7 @@ async def wizard_complete(request: WizardCompleteRequest, http_request: Request)
     """
     from datetime import UTC, datetime
 
-    logger.info(f"Marking wizard setup complete for device {request.device_id}")
+    logger.info("Marking wizard setup complete for device %s", request.device_id)
 
     device_repo = http_request.app.state.device_repo
     try:
@@ -435,7 +473,7 @@ async def wizard_complete(request: WizardCompleteRequest, http_request: Request)
             setup_completed_at=datetime.now(UTC),
         )
     except Exception as e:
-        logger.exception(f"Failed to update setup status for {request.device_id}")
+        logger.exception("Failed to update setup status for %s", request.device_id)
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update setup status: {e}",
@@ -457,8 +495,10 @@ async def wizard_verify_redirect(request: VerifyRedirectRequest):
     the resolved IP matches the OCT server's IP.
     """
     logger.info(
-        f"Verifying redirect of {request.domain} on {request.device_ip} "
-        f"(expected: {request.expected_ip})"
+        "Verifying redirect of %s on %s (expected: %s)",
+        request.domain,
+        request.device_ip,
+        request.expected_ip,
     )
 
     # Resolve expected_ip on the server side (handles hostname like 'myserver')
