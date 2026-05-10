@@ -90,3 +90,53 @@ sequenceDiagram
     PC->>ST: curl http://device:8090/presets > backup/presets.xml
     PC->>ST: curl http://device:8090/sources > backup/sources.xml
 ```
+
+## Restore Procedure
+
+Two paths: quick config restore (undo OCT changes only) or full partition restore
+(revert everything to pre-OCT state). See [FAQ — Backup & Restore](FAQ.md#backup--restore)
+for detailed instructions.
+
+```mermaid
+flowchart TD
+    A[Need to restore?] --> B{What level?}
+
+    B -->|Config only| C[Quick Restore]
+    B -->|Full device| D[Full Partition Restore]
+
+    C --> C1[SSH into device]
+    C1 --> C2["rw || mount -o remount,rw /"]
+    C2 --> C3[cp .bak files → originals]
+    C3 --> C4[mount -o remount,ro /]
+    C4 --> C5[reboot]
+
+    D --> D1[SSH into device]
+    D1 --> D2[grep /media/ /proc/mounts]
+    D2 --> D3[tar xzf soundtouch-nv.tgz]
+    D3 --> D4[tar xzf soundtouch-update.tgz]
+    D4 --> D5["rw || mount -o remount,rw /"]
+    D5 --> D6[tar xzf soundtouch-rootfs.tgz]
+    D6 --> D7[mount -o remount,ro /]
+    D7 --> D8[reboot]
+
+    C5 --> E[Device back to original config]
+    D8 --> F[Device fully restored to pre-OCT state]
+
+    style C fill:#d4edda
+    style D fill:#fff3cd
+    style E fill:#d4edda
+    style F fill:#d4edda
+```
+
+### OCT Wizard Backup Files (USB stick)
+
+```mermaid
+graph LR
+    subgraph "/media/sda1/oct-backup/"
+        R[soundtouch-rootfs.tgz<br/>~58 MB] --> P1["ubi0:rootfs → /"]
+        N[soundtouch-nv.tgz<br/>~10 KB] --> P2["ubi1:persistent → /mnt/nv"]
+        U[soundtouch-update.tgz<br/>~0.9 MB] --> P3["ubi2:update → /mnt/update"]
+        B1[SoundTouchSdkPrivateCfg.xml.bak]
+        B2[hosts.bak]
+    end
+```

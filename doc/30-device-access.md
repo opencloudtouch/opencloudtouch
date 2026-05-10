@@ -120,6 +120,26 @@ scp root@<device-ip>:/mnt/nv/IoTCerts/* ./backup/certs/
 
 ---
 
+## Partition Layout (ST10, Firmware 27.x)
+
+The flash storage uses UBI with three partitions:
+
+| Partition | Mount Point | Size | Access | Contents |
+|-----------|-------------|------|--------|----------|
+| `ubi0:rootfs` | `/` | ~81.4 MB | Read-only (default) | System binaries, Bose app, config |
+| `ubi1:persistent` | `/mnt/nv` | ~31.5 MB | Read-write | Presets, tokens, WiFi config, logs |
+| `ubi2:update` | `/mnt/update` | ~7.9 MB | Read-write | Firmware installer cache |
+
+The root filesystem is mounted read-only during normal operation. To write to it:
+```bash
+rw || mount -o remount,rw /
+# ... make changes ...
+mount -o remount,ro /
+```
+The `rw` shortcut exists on some firmware versions; `mount -o remount,rw /` is the universal fallback.
+
+---
+
 ## Filesystem Notes
 
 - Root filesystem is typically **read-only**
@@ -127,6 +147,44 @@ scp root@<device-ip>:/mnt/nv/IoTCerts/* ./backup/certs/
 - `/mnt/nv/` is persistent non-volatile storage (survives reboots)
 - `/opt/Bose/` may be overwritten by firmware updates
 - Private keys in `/mnt/nv/IoTCerts/` should be stored with mode 700
+
+---
+
+## Restore Procedure
+
+If something goes wrong, restore from the OCT wizard backups on your USB stick
+(`/media/sda1/oct-backup/`). Full details and step-by-step instructions are in
+the [FAQ — Backup & Restore](FAQ.md#how-do-i-restore-a-full-backup).
+
+### Quick Restore (config only)
+
+Reverts only the cloud URL and DNS changes made by OCT:
+```bash
+rw || mount -o remount,rw /
+cp /media/sda1/oct-backup/SoundTouchSdkPrivateCfg.xml.bak /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml
+cp /media/sda1/oct-backup/hosts.bak /etc/hosts
+mount -o remount,ro /
+reboot
+```
+
+### Full Partition Restore
+
+Restores all three partitions from the tar archives created by the OCT wizard:
+```bash
+# Persistent data (already writable)
+cd / && tar xzf /media/sda1/oct-backup/soundtouch-nv.tgz
+tar xzf /media/sda1/oct-backup/soundtouch-update.tgz
+
+# Root filesystem (needs remount)
+rw || mount -o remount,rw /
+cd / && tar xzf /media/sda1/oct-backup/soundtouch-rootfs.tgz
+mount -o remount,ro /
+
+reboot
+```
+
+> The OCT web UI (Setup Wizard Step 8) can do the quick config restore automatically.
+> Full partition restore is manual SSH only.
 
 ---
 

@@ -66,6 +66,7 @@ gesellix/Bose-SoundTouch) and our own analysis.
 ### Appendix
 - [90-community-projects.md](90-community-projects.md) — SoundCork, ÜberBöse, SoundTouch Plus, AfterTouch
 - [91-todo-extraction-gaps.md](91-todo-extraction-gaps.md) — Known gaps, items for future device extraction
+- [FAQ.md](FAQ.md) — Frequently asked questions (backup & restore, troubleshooting)
 
 ---
 
