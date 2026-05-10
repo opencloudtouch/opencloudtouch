@@ -120,6 +120,18 @@
       "devicesFound_one": "{{count}} new device found",
       "devicesFound_other": "{{count}} new devices found",
       "noNewDevices": "No new devices found"
+    },
+    "logging": {
+      "sectionTitle": "Logging",
+      "description": "Control the log detail level and download logs for troubleshooting.",
+      "logLevel": "Log Level",
+      "levelOff": "Off",
+      "levelInfo": "Info",
+      "levelDebug": "Debug",
+      "downloadLogs": "Download Logs",
+      "downloadDescription": "Download the last 1000 backend log entries as a text file.",
+      "levelChanged": "Log level set to {{level}}",
+      "levelError": "Could not change log level"
     }
   },
   "manualIpModal": {
@@ -304,11 +316,11 @@
         "sectionStatus": "Check status",
         "statusWaiting": "Waiting for device restart...",
         "statusWaitingHint": "Automatic check in 30 seconds",
-        "statusChecking": "Checking SSH/Telnet ports...",
+        "statusChecking": "Checking SSH connection...",
         "statusCheckingDevice": "Device:",
-        "statusAvailable": "SSH/Telnet available!",
+        "statusAvailable": "SSH available!",
         "statusAvailableHint": "The device is ready for configuration.",
-        "statusError": "Ports not reachable",
+        "statusError": "SSH not reachable",
         "btnCheckNow": "Check now",
         "btnCheckAgain": "Check again",
         "btnChecking": "Checking...",
@@ -466,7 +478,7 @@
         "heroMessage": "{{device}} has been successfully configured for OpenCloudTouch.",
         "summaryTitle": "What was done:",
         "summaryItem1": "USB drive with remote_services prepared",
-        "summaryItem2": "SSH/Telnet enabled",
+        "summaryItem2": "SSH enabled",
         "summaryItem3": "Full backup created",
         "summaryItem4": "Configuration file changed (bmxRegistryUrl)",
         "summaryItem5": "Hosts file changed (domain redirects)",

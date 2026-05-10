@@ -41,3 +41,37 @@ export async function submitBugReport(payload: BugReportPayload): Promise<BugRep
 
   return response.json();
 }
+
+export interface DiagnosticsPayload {
+  frontend_logs: Array<{ timestamp: string; level: string; message: string }>;
+  description: string;
+  browser_info: string;
+  current_route: string;
+  click_timestamp: number;
+}
+
+export async function downloadDiagnostics(payload: DiagnosticsPayload): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/bug-report/diagnostics`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Diagnostics download failed (${response.status})`);
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get("Content-Disposition") || "";
+  const execResult = /filename="(.+?)"/.exec(disposition);
+  const filename = execResult?.[1] || "oct-diagnostics.log.gz";
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

@@ -120,6 +120,18 @@
       "devicesFound_one": "{{count}} nuovo dispositivo trovato",
       "devicesFound_other": "{{count}} nuovi dispositivi trovati",
       "noNewDevices": "Nessun nuovo dispositivo trovato"
+    },
+    "logging": {
+      "sectionTitle": "Registrazione",
+      "description": "Controllare il livello di dettaglio dei log e scaricare i log per la risoluzione dei problemi.",
+      "logLevel": "Livello di log",
+      "levelOff": "Disattivato",
+      "levelInfo": "Info",
+      "levelDebug": "Debug",
+      "downloadLogs": "Scarica log",
+      "downloadDescription": "Scarica le ultime 1000 voci del log backend come file di testo.",
+      "levelChanged": "Livello di log impostato su {{level}}",
+      "levelError": "Impossibile modificare il livello di log"
     }
   },
   "manualIpModal": {
@@ -304,9 +316,9 @@
         "sectionStatus": "Verificare lo stato",
         "statusWaiting": "In attesa del riavvio del dispositivo...",
         "statusWaitingHint": "Verifica automatica tra 30 secondi",
-        "statusChecking": "Verifica delle porte SSH/Telnet...",
+        "statusChecking": "Verifica della connessione SSH...",
         "statusCheckingDevice": "Dispositivo:",
-        "statusAvailable": "SSH/Telnet disponibile!",
+        "statusAvailable": "SSH disponibile!",
         "statusAvailableHint": "Il dispositivo è pronto per la configurazione.",
         "statusError": "Porte non raggiungibili",
         "btnCheckNow": "Verifica ora",
@@ -466,7 +478,7 @@
         "heroMessage": "{{device}} è stato configurato con successo per OpenCloudTouch.",
         "summaryTitle": "Cosa è stato fatto:",
         "summaryItem1": "Chiavetta USB con remote_services preparata",
-        "summaryItem2": "SSH/Telnet attivato",
+        "summaryItem2": "SSH attivato",
         "summaryItem3": "Backup completo creato",
         "summaryItem4": "File di configurazione modificato (bmxRegistryUrl)",
         "summaryItem5": "File hosts modificato (reindirizzamenti di dominio)",

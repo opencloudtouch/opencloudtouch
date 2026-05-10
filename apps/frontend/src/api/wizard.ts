@@ -96,7 +96,7 @@ export async function detectStrategy(): Promise<DetectStrategyResponse> {
 }
 
 /**
- * Check if SSH/Telnet ports are available on device
+ * Check if SSH port is available on device
  */
 export async function checkPorts(request: CheckPortsRequest): Promise<CheckPortsResponse> {
   const response = await fetch(`${API_BASE}/api/setup/wizard/check-ports`, {

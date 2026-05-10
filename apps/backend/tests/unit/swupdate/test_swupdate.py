@@ -4,7 +4,7 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from opencloudtouch.swupdate.routes import _build_index_xml, router
+from opencloudtouch.swupdate.routes import _load_index_xml, router
 
 app = FastAPI()
 app.include_router(router)
@@ -18,60 +18,57 @@ async def client():
 
 
 # ---------------------------------------------------------------------------
-# _build_index_xml (pure function)
+# _load_index_xml (static file loader)
 # ---------------------------------------------------------------------------
 
 
-class TestBuildIndexXml:
+class TestLoadIndexXml:
     def test_returns_valid_xml_declaration(self):
-        xml = _build_index_xml("http://localhost:7777")
+        xml = _load_index_xml()
         assert xml.startswith('<?xml version="1.0"')
 
     def test_contains_index_root(self):
-        xml = _build_index_xml("http://localhost:7777")
+        xml = _load_index_xml()
         assert "<INDEX" in xml
         assert "</INDEX>" in xml
 
-    def test_contains_url_header(self):
-        xml = _build_index_xml("http://myhost:7777")
-        assert 'URL_HEADER="http://myhost:7777/ced/eup/downloads/rel"' in xml
-
-    def test_contains_soundtouch_10(self):
-        xml = _build_index_xml("http://x")
-        assert 'ID="0x0926"' in xml
-        assert "SoundTouch 10" in xml
-
     def test_contains_soundtouch_20(self):
-        xml = _build_index_xml("http://x")
+        xml = _load_index_xml()
         assert 'ID="0x0923"' in xml
+        assert "SoundTouch 20" in xml
 
     def test_contains_soundtouch_30(self):
-        xml = _build_index_xml("http://x")
+        xml = _load_index_xml()
         assert 'ID="0x0924"' in xml
 
+    def test_contains_soundtouch_10(self):
+        xml = _load_index_xml()
+        assert 'ID="0x0939"' in xml
+        assert "SoundTouch 10" in xml
+
     def test_contains_soundtouch_300(self):
-        xml = _build_index_xml("http://x")
-        assert 'ID="0x073A"' in xml
+        xml = _load_index_xml()
+        assert 'ID="0x0949"' in xml
+        assert "SoundTouch 300" in xml
 
-    def test_contains_all_devices(self):
-        xml = _build_index_xml("http://x")
-        assert xml.count("<DEVICE") == 6
+    def test_contains_real_device_count(self):
+        """Real Bose index has many more devices than the old synthetic one."""
+        xml = _load_index_xml()
+        assert xml.count("<DEVICE") >= 20
 
-    def test_each_device_has_release(self):
-        xml = _build_index_xml("http://x")
-        assert xml.count("<RELEASE ") == 6
-
-    def test_each_device_has_hardware(self):
-        xml = _build_index_xml("http://x")
-        assert xml.count("<HARDWARE") == 6
-
-    def test_release_has_crc(self):
-        xml = _build_index_xml("http://x")
-        assert 'CRC="0x00000000"' in xml
-
-    def test_release_has_revision(self):
-        xml = _build_index_xml("http://x")
+    def test_contains_real_firmware_revision(self):
+        xml = _load_index_xml()
         assert 'REVISION="27.0.6.46330.5043500"' in xml
+
+    def test_contains_real_crc(self):
+        """Real index has actual CRC values, not 0x00000000."""
+        xml = _load_index_xml()
+        assert "0x2d5a971e" in xml
+
+    def test_contains_downloads_bose_com(self):
+        """Real index references downloads.bose.com for firmware files."""
+        xml = _load_index_xml()
+        assert "downloads.bose.com" in xml
 
 
 # ---------------------------------------------------------------------------
@@ -104,15 +101,15 @@ class TestFirmwareIndex:
     @pytest.mark.asyncio
     async def test_contains_soundtouch_10_device(self, client):
         resp = await client.get("/updates/soundtouch")
-        assert 'ID="0x0926"' in resp.text
+        assert 'ID="0x0939"' in resp.text
 
 
 # ---------------------------------------------------------------------------
-# GET /ced/eup/downloads/rel/{filename}
+# GET /ced/eup/downloads/rel/{filename} (legacy path)
 # ---------------------------------------------------------------------------
 
 
-class TestFirmwareDownload:
+class TestFirmwareDownloadLegacy:
     @pytest.mark.asyncio
     async def test_returns_404(self, client):
         resp = await client.get("/ced/eup/downloads/rel/SoundTouch_10.eup")
@@ -127,4 +124,23 @@ class TestFirmwareDownload:
     @pytest.mark.asyncio
     async def test_blocked_message(self, client):
         resp = await client.get("/ced/eup/downloads/rel/firmware.eup")
+        assert "disabled" in resp.text.lower()
+
+
+# ---------------------------------------------------------------------------
+# GET /ced/soundtouch/downloads_stockholm/{path} (real Bose path)
+# ---------------------------------------------------------------------------
+
+
+class TestFirmwareDownloadReal:
+    @pytest.mark.asyncio
+    async def test_returns_404(self, client):
+        resp = await client.get("/ced/soundtouch/downloads_stockholm/stu/s/Update.stu")
+        assert resp.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_blocked_message(self, client):
+        resp = await client.get(
+            "/ced/soundtouch/downloads_stockholm/stu/r/sm2/Update.stu"
+        )
         assert "disabled" in resp.text.lower()

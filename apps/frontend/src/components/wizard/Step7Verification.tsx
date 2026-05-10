@@ -120,7 +120,7 @@ export default function Step7Verification({
 
   return (
     <WizardStep
-      stepNumber={7}
+      stepNumber={6}
       title={t("setup.wizard.step7.title")}
       description={t("setup.wizard.step7.description")}
       warning={t("setup.wizard.step7.warning")}

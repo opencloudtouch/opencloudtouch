@@ -1,4 +1,4 @@
-"""Unit tests for SSH/Telnet client.
+"""Unit tests for SSH client.
 
 Tests for SoundTouchSSHClient, SoundTouchTelnetClient, and connection helpers.
 Following TDD Red-Green-Refactor cycle.

@@ -12,8 +12,9 @@ from typing import Any, Dict, List
 
 from opencloudtouch.core.config import get_config
 
-# In-memory ring buffer: keeps the last 500 formatted log entries
-_log_buffer: collections.deque[str] = collections.deque(maxlen=500)
+# In-memory ring buffer: keeps the last 1000 formatted log entries
+# (~200 bytes/entry ≈ 200 KB RAM — fine for Raspberry Pi)
+_log_buffer: collections.deque[str] = collections.deque(maxlen=1000)
 
 
 def get_log_entries() -> List[str]:
@@ -145,3 +146,26 @@ def setup_logging() -> None:
 def get_logger(name: str) -> logging.Logger:
     """Get a logger instance with the given name."""
     return logging.getLogger(name)
+
+
+def set_log_level(level: str) -> None:
+    """Change the log level at runtime for all handlers.
+
+    Args:
+        level: Log level string (DEBUG, INFO, WARNING, ERROR, CRITICAL).
+    """
+    numeric = getattr(logging, level.upper(), None)
+    if numeric is None:
+        raise ValueError(f"Invalid log level: {level}")
+
+    root = logging.getLogger()
+    root.setLevel(numeric)
+    for handler in root.handlers:
+        handler.setLevel(numeric)
+
+    logging.info("Log level changed to %s", level.upper())
+
+
+def get_current_log_level() -> str:
+    """Return the current effective log level as uppercase string."""
+    return logging.getLevelName(logging.getLogger().level)

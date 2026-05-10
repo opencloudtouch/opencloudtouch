@@ -1,10 +1,13 @@
 """Bug report API route — collects diagnostics and creates GitHub Issues."""
 
+import base64
+import gzip
 import logging
 from datetime import UTC, datetime
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from opencloudtouch.core.config import get_config
@@ -22,6 +25,8 @@ def _anonymize_ip(ip: str) -> str:
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["bug-report"])
+
+_SECTION_SEPARATOR = "\n\n---\n\n"
 
 
 # ---------------------------------------------------------------------------
@@ -50,6 +55,16 @@ class BugReportRequest(BaseModel):
 
 class BugReportResponse(BaseModel):
     issue_url: str
+
+
+class DiagnosticsRequest(BaseModel):
+    """Request body for diagnostics download (no GitHub token needed)."""
+
+    frontend_logs: list[dict] = []
+    description: str = ""
+    browser_info: str = ""
+    current_route: str = ""
+    click_timestamp: float = 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -82,7 +97,17 @@ async def create_bug_report(request_body: BugReportRequest, request: Request):
         labels=["bug", "user-report"],
     )
 
-    # Upload screenshot as repo file and edit issue body to reference it
+    # Upload logs as gzipped file to repo and link in issue body
+    log_url = await _upload_log_file(
+        token=config.github_token,
+        repo=config.github_repo,
+        issue_number=issue_number,
+        diagnostics=diagnostics,
+        frontend_logs=request_body.frontend_logs,
+    )
+
+    # Upload screenshot as repo file
+    screenshot_url = None
     if request_body.screenshot_data_url:
         try:
             screenshot_url = await _upload_screenshot(
@@ -91,22 +116,66 @@ async def create_bug_report(request_body: BugReportRequest, request: Request):
                 issue_number=issue_number,
                 data_url=request_body.screenshot_data_url,
             )
-            if screenshot_url:
-                screenshot_md = (
-                    f"## Screenshot\n\n![Browser Screenshot]({screenshot_url})"
-                )
-                body = body + f"\n\n---\n\n{screenshot_md}"
-                await _update_issue_body(
-                    token=config.github_token,
-                    repo=config.github_repo,
-                    issue_number=issue_number,
-                    body=body,
-                )
         except Exception:
             logger.debug("Could not upload screenshot to GitHub")
 
+    # Update issue body with log + screenshot links if any were uploaded
+    if log_url or screenshot_url:
+        extras: list[str] = []
+        if log_url:
+            extras.append(
+                f"## Logs\n\n"
+                f"[Download backend + frontend logs (gzipped)]({log_url})"
+            )
+        if screenshot_url:
+            extras.append(f"## Screenshot\n\n![Browser Screenshot]({screenshot_url})")
+        body = body + _SECTION_SEPARATOR + _SECTION_SEPARATOR.join(extras)
+        await _update_issue_body(
+            token=config.github_token,
+            repo=config.github_repo,
+            issue_number=issue_number,
+            body=body,
+        )
+
     logger.info(f"Bug report created: {issue_url}")
     return BugReportResponse(issue_url=issue_url)
+
+
+@router.post("/bug-report/diagnostics")
+async def download_diagnostics(
+    request_body: DiagnosticsRequest, request: Request
+) -> Response:
+    """Download a gzipped diagnostic bundle — works without GitHub token.
+
+    The user can drag-drop the .log.gz file into a manually created GitHub issue.
+    """
+    diagnostics = await _collect_diagnostics(request, request_body.click_timestamp)
+    log_text = _build_log_text(
+        diagnostics=diagnostics,
+        frontend_logs=request_body.frontend_logs,
+        extra_info={
+            "description": request_body.description,
+            "browser": request_body.browser_info,
+            "route": request_body.current_route,
+        },
+    )
+    if not log_text:
+        log_text = "(no log data available)"
+
+    compressed = gzip.compress(log_text.encode("utf-8"), compresslevel=9)
+    timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+    filename = f"oct-diagnostics-{timestamp}.log.gz"
+
+    logger.debug(
+        "Diagnostics download: %d chars → %d bytes gzip",
+        len(log_text),
+        len(compressed),
+    )
+    return Response(
+        content=compressed,
+        media_type="application/gzip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -162,7 +231,7 @@ async def _collect_diagnostics(request: Request, click_timestamp: float = 0.0) -
         logger.debug("Could not collect recents count for bug report")
 
     ring_buffer = get_log_entries()
-    backend_logs = ring_buffer[-100:] if ring_buffer else []
+    backend_logs = ring_buffer[-500:] if ring_buffer else []
 
     # Anonymize manual_device_ips
     anon_ips = [_anonymize_ip(ip) for ip in config.manual_device_ips]
@@ -251,24 +320,8 @@ def _build_issue_body(req: BugReportRequest, diag: dict) -> str:
         config_str = "\n".join(f"- {k}: `{v}`" for k, v in cfg.items())
         sections.append(f"## Configuration\n\n{config_str}")
 
-    # Frontend Logs
-    if req.frontend_logs:
-        log_lines = "\n".join(
-            f"[{entry.get('timestamp', '')}] {entry.get('level', '')}: {entry.get('message', '')}"
-            for entry in req.frontend_logs[-100:]
-        )
-        sections.append(f"## Frontend Logs (last 100)\n\n```\n{log_lines}\n```")
-
-    # Backend Logs (captured before user clicked 'Report a Bug')
-    be_logs = diag.get("backend_logs", [])
-    if be_logs:
-        log_lines = "\n".join(
-            f"[{entry.get('timestamp', '')}] {entry.get('level', '')}: {entry.get('message', '')}"
-            for entry in be_logs
-        )
-        sections.append(
-            f"## Backend Logs (last 100 before report)\n\n```\n{log_lines}\n```"
-        )
+    # Logs are uploaded as a gzipped file attachment after issue creation.
+    # No placeholder needed — the link is added via body update.
 
     return "\n\n---\n\n".join(sections)
 
@@ -353,3 +406,125 @@ async def _update_issue_body(
             json={"body": body},
             timeout=15.0,
         )
+
+
+async def _upload_log_file(
+    token: str,
+    repo: str,
+    issue_number: int,
+    diagnostics: dict,
+    frontend_logs: list[dict],
+) -> str | None:
+    """Build a combined log file, gzip it, upload to repo via Contents API.
+
+    Returns the download URL, or None on failure.
+    """
+    log_text = _build_log_text(diagnostics, frontend_logs)
+    if not log_text:
+        return None
+
+    compressed = gzip.compress(log_text.encode("utf-8"), compresslevel=9)
+    b64_content = base64.b64encode(compressed).decode("ascii")
+
+    logger.debug(
+        "Log file: %d chars text → %d bytes gzip → %d chars base64",
+        len(log_text),
+        len(compressed),
+        len(b64_content),
+    )
+
+    path = f".github/bug-logs/issue-{issue_number}.log.gz"
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.put(
+                f"https://api.github.com/repos/{repo}/contents/{path}",
+                headers={
+                    "Accept": "application/vnd.github+json",
+                    "Authorization": f"Bearer {token}",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                },
+                json={
+                    "message": f"bug report logs for #{issue_number}",
+                    "content": b64_content,
+                },
+                timeout=30.0,
+            )
+            if resp.status_code not in (200, 201):
+                logger.warning(
+                    "Log file upload failed: %d — %s",
+                    resp.status_code,
+                    resp.text[:200],
+                )
+                return None
+            return resp.json()["content"]["download_url"]
+    except Exception as exc:
+        logger.warning("Log file upload error: %s", exc)
+        return None
+
+
+def _build_log_text(
+    diagnostics: dict,
+    frontend_logs: list[dict],
+    extra_info: dict | None = None,
+) -> str:
+    """Build combined plain-text log content from diagnostics."""
+    parts: list[str] = []
+
+    # Header with environment info
+    parts.append("=== OCT Diagnostic Bundle ===")
+    parts.append(f"Version: {diagnostics.get('backend_version', '?')}")
+    parts.append(f"Timestamp: {diagnostics.get('timestamp', '?')}")
+    if extra_info:
+        parts.extend(f"{k}: {v}" for k, v in extra_info.items() if v)
+    parts.append("")
+
+    _append_dict_section(parts, diagnostics, "devices", _format_devices)
+    _append_dict_section(parts, diagnostics, "db_stats", _format_key_value, "DB Stats")
+    _append_dict_section(parts, diagnostics, "config", _format_key_value, "Config")
+
+    # Backend logs
+    be_logs = diagnostics.get("backend_logs", [])
+    if be_logs:
+        parts.append(f"=== Backend Logs ({len(be_logs)} entries) ===")
+        parts.extend(str(e) for e in be_logs)
+        parts.append("")
+
+    # Frontend logs
+    if frontend_logs:
+        trimmed = frontend_logs[-500:]
+        parts.append(f"=== Frontend Logs ({len(trimmed)} entries) ===")
+        for e in trimmed:
+            parts.append(
+                f"[{e.get('timestamp', '')}] {e.get('level', '')}: {e.get('message', '')}"
+            )
+        parts.append("")
+
+    return "\n".join(parts) if parts else ""
+
+
+def _append_dict_section(
+    parts: list[str],
+    diagnostics: dict,
+    key: str,
+    formatter,
+    title: str | None = None,
+) -> None:
+    """Append a diagnostics section if data exists."""
+    data = diagnostics.get(key, {} if key != "devices" else [])
+    if data:
+        formatter(parts, data, title or key.replace("_", " ").title())
+        parts.append("")
+
+
+def _format_devices(parts: list[str], devices: list, title: str) -> None:
+    parts.append(f"=== {title} ({len(devices)}) ===")
+    for d in devices:
+        parts.append(
+            f"  {d.get('name', '?')} (ID {d.get('uuid', '?')}) — {d.get('ip', '?')}"
+        )
+
+
+def _format_key_value(parts: list[str], data: dict, title: str) -> None:
+    parts.append(f"=== {title} ===")
+    for k, v in data.items():
+        parts.append(f"  {k}: {v}")

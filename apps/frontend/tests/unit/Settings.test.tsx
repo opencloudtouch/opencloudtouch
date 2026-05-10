@@ -19,7 +19,20 @@ const renderWithProviders = (component: React.ReactElement) => {
 describe("Settings Page", () => {
   beforeEach(() => {
     mockFetch = vi.fn();
-    vi.stubGlobal("fetch", mockFetch);
+    // Wrap fetch so /api/logs/level is always handled transparently
+    // without consuming sequential mockResolvedValueOnce entries.
+    vi.stubGlobal("fetch", (...args: unknown[]) => {
+      const url = args[0] as string;
+      if (url === "/api/logs/level") {
+        const options = args[1] as RequestInit | undefined;
+        if (options?.method === "PUT") {
+          const body = JSON.parse(options.body as string);
+          return Promise.resolve({ ok: true, json: async () => ({ level: body.level }) });
+        }
+        return Promise.resolve({ ok: true, json: async () => ({ level: "INFO" }) });
+      }
+      return mockFetch(...args);
+    });
   });
 
   afterEach(() => {
@@ -409,6 +422,56 @@ describe("Settings Page", () => {
         expect.objectContaining({
           body: JSON.stringify({ ips: ["192.168.1.30"] }), // Trimmed
         })
+      );
+    });
+  });
+
+  it("downloads logs via POST /api/logs/backend when Download Logs button is clicked", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ips: [] }),
+    });
+
+    renderWithProviders(<Settings />);
+
+    // Wait for settings to load
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("192.168.1.10")).toBeInTheDocument();
+    });
+
+    // Find the Download Logs button in the Logging section
+    const allButtons = screen.getAllByRole("button");
+    const downloadButton = allButtons.find(btn => btn.textContent?.includes("Download") || btn.textContent?.includes("downloadLogs"));
+    expect(downloadButton).toBeDefined();
+
+    // Mock the POST response for log download
+    const mockBlob = new Blob(["log content"], { type: "text/plain" });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      blob: async () => mockBlob,
+      headers: new Headers({
+        "Content-Disposition": 'attachment; filename="oct-backend-20250101.log"',
+      }),
+    });
+
+    // Mock URL.createObjectURL
+    const mockUrl = "blob:http://localhost/test";
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: vi.fn().mockReturnValue(mockUrl),
+      revokeObjectURL: vi.fn(),
+    });
+
+    const mockAnchor = { href: "", download: "", click: vi.fn(), remove: vi.fn() };
+    vi.spyOn(document, "createElement").mockReturnValue(mockAnchor as unknown as HTMLElement);
+    vi.spyOn(document.body, "appendChild").mockImplementation((node) => node);
+
+    fireEvent.click(downloadButton!);
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/logs/backend",
+        expect.objectContaining({ method: "POST" }),
       );
     });
   });

@@ -77,8 +77,16 @@ class TestOpenAPISpecIntegrity:
         assert not missing, f"Schemas missing from YAML: {missing}"
 
     def test_version_matches(self, openapi_spec, openapi_live):
-        """API version must match between YAML and live app."""
-        assert openapi_spec["info"]["version"] == openapi_live["info"]["version"]
+        """API version must match between YAML and live app (official builds only).
+
+        In dev/community builds, __version__ is 'dev-<commit>' which won't
+        match the semver in openapi.yaml. This is by design.
+        """
+        live_version = openapi_live["info"]["version"]
+        yaml_version = openapi_spec["info"]["version"]
+        if live_version.startswith("dev-"):
+            pytest.skip("dev build — OpenAPI version check not applicable")
+        assert yaml_version == live_version
 
     def test_all_methods_match(self, openapi_spec, openapi_live):
         """HTTP methods for each path must match between YAML and live."""
@@ -284,11 +292,9 @@ class TestResponseSchemas:
         from opencloudtouch.setup.api_models import PortCheckResponse
 
         # Construct minimal valid response
-        resp = PortCheckResponse(
-            success=True, message="OK", has_ssh=True, has_telnet=False
-        )
+        resp = PortCheckResponse(success=True, message="OK", has_ssh=True)
         data = resp.model_dump()
-        assert set(data.keys()) == {"success", "message", "has_ssh", "has_telnet"}
+        assert set(data.keys()) == {"success", "message", "has_ssh"}
 
     @pytest.mark.asyncio
     async def test_backup_response_schema(self, client):

@@ -9,6 +9,7 @@ from opencloudtouch.api.bug_report import (
     BugReportRequest,
     _anonymize_ip,
     _build_issue_body,
+    _build_log_text,
     _collect_diagnostics,
     _create_github_issue,
     _update_issue_body,
@@ -152,10 +153,9 @@ class TestBuildIssueBody:
 
         body = _build_issue_body(req, diag)
 
-        assert "## Frontend Logs" in body
-        assert "Component unmount race" in body
-        assert "## Backend Logs" in body
-        assert "Slow query" in body
+        # Logs are uploaded as gzipped file, not embedded in body
+        assert "## Frontend Logs" not in body
+        assert "## Backend Logs" not in body
 
     def test_screenshot_not_in_body(self):
         """Screenshot is uploaded separately, not embedded in issue body."""
@@ -660,3 +660,172 @@ class TestBugReportRouteScreenshot:
 
         # Should still return 200 — exception is caught inside the route
         assert response.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# _build_log_text
+# ---------------------------------------------------------------------------
+
+
+class TestBuildLogText:
+    def test_basic_diagnostics(self):
+        result = _build_log_text(
+            diagnostics={
+                "backend_version": "1.0.0",
+                "timestamp": "2025-01-01T00:00:00",
+                "devices": [],
+                "db_stats": {},
+                "config": {},
+                "backend_logs": [],
+            },
+            frontend_logs=[],
+        )
+        assert "=== OCT Diagnostic Bundle ===" in result
+        assert "Version: 1.0.0" in result
+        assert "Timestamp: 2025-01-01T00:00:00" in result
+
+    def test_with_devices(self):
+        result = _build_log_text(
+            diagnostics={
+                "backend_version": "1.0.0",
+                "timestamp": "2025-01-01",
+                "devices": [
+                    {"name": "Living Room", "uuid": "ABC", "ip": "192.x.x.10"},
+                ],
+                "db_stats": {},
+                "config": {},
+                "backend_logs": [],
+            },
+            frontend_logs=[],
+        )
+        assert "Devices" in result
+        assert "Living Room" in result
+        assert "ABC" in result
+
+    def test_with_db_stats_and_config(self):
+        result = _build_log_text(
+            diagnostics={
+                "backend_version": "1.0.0",
+                "timestamp": "2025-01-01",
+                "devices": [],
+                "db_stats": {"presets": 12, "devices": 2},
+                "config": {"mock_mode": True, "log_level": "DEBUG"},
+                "backend_logs": [],
+            },
+            frontend_logs=[],
+        )
+        assert "DB Stats" in result
+        assert "presets: 12" in result
+        assert "Config" in result
+        assert "mock_mode: True" in result
+
+    def test_with_backend_logs(self):
+        result = _build_log_text(
+            diagnostics={
+                "backend_version": "1.0.0",
+                "timestamp": "2025-01-01",
+                "devices": [],
+                "db_stats": {},
+                "config": {},
+                "backend_logs": ["line1", "line2"],
+            },
+            frontend_logs=[],
+        )
+        assert "Backend Logs (2 entries)" in result
+        assert "line1" in result
+        assert "line2" in result
+
+    def test_with_frontend_logs(self):
+        result = _build_log_text(
+            diagnostics={
+                "backend_version": "1.0.0",
+                "timestamp": "2025-01-01",
+                "devices": [],
+                "db_stats": {},
+                "config": {},
+                "backend_logs": [],
+            },
+            frontend_logs=[
+                {"timestamp": "12:00", "level": "ERROR", "message": "oops"},
+            ],
+        )
+        assert "Frontend Logs (1 entries)" in result
+        assert "[12:00] ERROR: oops" in result
+
+    def test_with_extra_info(self):
+        result = _build_log_text(
+            diagnostics={
+                "backend_version": "1.0.0",
+                "timestamp": "2025-01-01",
+                "devices": [],
+                "db_stats": {},
+                "config": {},
+                "backend_logs": [],
+            },
+            frontend_logs=[],
+            extra_info={"description": "Bug report", "browser": "Chrome"},
+        )
+        assert "description: Bug report" in result
+        assert "browser: Chrome" in result
+
+    def test_empty_diagnostics(self):
+        result = _build_log_text(diagnostics={}, frontend_logs=[])
+        assert "OCT Diagnostic Bundle" in result
+
+    def test_frontend_logs_trimmed_to_500(self):
+        logs = [
+            {"timestamp": f"t{i}", "level": "INFO", "message": f"m{i}"}
+            for i in range(600)
+        ]
+        result = _build_log_text(
+            diagnostics={"backend_version": "?", "timestamp": "?"}, frontend_logs=logs
+        )
+        assert "Frontend Logs (500 entries)" in result
+
+    def test_extra_info_skips_falsy_values(self):
+        result = _build_log_text(
+            diagnostics={"backend_version": "1.0.0", "timestamp": "now"},
+            frontend_logs=[],
+            extra_info={"present": "yes", "absent": "", "none": None},
+        )
+        assert "present: yes" in result
+        assert "absent" not in result
+
+
+# ---------------------------------------------------------------------------
+# Diagnostics download endpoint
+# ---------------------------------------------------------------------------
+
+
+class TestDiagnosticsDownload:
+    @patch("opencloudtouch.api.bug_report._collect_diagnostics")
+    def test_returns_gzipped_response(self, mock_diag):
+        import gzip
+        from opencloudtouch.main import app
+
+        mock_diag.return_value = {
+            "backend_version": "1.0.0",
+            "timestamp": "2025-01-01",
+            "devices": [],
+            "db_stats": {},
+            "config": {},
+            "backend_logs": ["test entry"],
+        }
+
+        client = TestClient(app, raise_server_exceptions=False)
+        response = client.post(
+            "/api/bug-report/diagnostics",
+            json={
+                "frontend_logs": [],
+                "description": "test",
+                "browser_info": "Chrome",
+                "current_route": "/",
+                "click_timestamp": 0,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "application/gzip"
+        assert "Content-Disposition" in response.headers
+        decompressed = gzip.decompress(response.content).decode("utf-8")
+        assert "test entry" in decompressed

@@ -151,7 +151,7 @@ export default function Step5ConfigModification({
 
   return (
     <WizardStep
-      stepNumber={5}
+      stepNumber={4}
       title={
         strategy?.proxy_available
           ? t("setup.wizard.step5.titleProxy")

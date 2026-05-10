@@ -2,7 +2,7 @@ name: KB Growth Scan
 
 on:
   schedule:
-    - cron: '0 6 * * 1'  # Monday 06:00 UTC
+    - cron: '0 6 * * 6'  # Saturday 06:00 UTC
   workflow_dispatch:
 
 permissions:

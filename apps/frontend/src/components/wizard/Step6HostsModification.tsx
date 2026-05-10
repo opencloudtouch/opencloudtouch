@@ -80,7 +80,7 @@ export default function Step6HostsModification({
 
   return (
     <WizardStep
-      stepNumber={6}
+      stepNumber={5}
       title={t("setup.wizard.step6.title")}
       description={t("setup.wizard.step6.description")}
       warning={t("setup.wizard.step6.warning")}

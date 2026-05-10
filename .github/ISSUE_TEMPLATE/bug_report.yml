@@ -51,13 +51,16 @@ body:
     id: area
     attributes:
       label: Affected Area
-      description: "Which part of OpenCloudTouch is affected?"
+      description: "Which part of OpenCloudTouch is affected? This helps us route your issue to the right team and select the appropriate troubleshooting guide."
       options:
         - Radio Search
         - Presets
         - Device Control
         - Zones / Multi-Room
-        - Setup / Configuration
+        - "Setup: SSH / USB Stick"
+        - "Setup: Config Modification"
+        - "Setup: Hosts Modification"
+        - "Setup: Backup / Restore"
         - UI / Design
         - Other
     validations:
@@ -67,7 +70,7 @@ body:
     id: version
     attributes:
       label: OpenCloudTouch Version
-      description: "Which version are you running? Check via `curl http://<your-host>:7777/health` — the `version` field in the response."
+      description: "Which version are you running? Open **Settings** in the Web UI, or run `curl http://<your-host>:<port>/health` (default port is 7777) — the `version` field in the response."
       placeholder: "e.g. 0.2.0"
     validations:
       required: true
@@ -82,6 +85,28 @@ body:
         - Docker / Podman (self-hosted)
         - Local development
         - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: custom-build
+    attributes:
+      label: Did you build the image yourself?
+      description: "Did you build the Docker image from source (`docker build`) or did you pull the official image (`docker pull ghcr.io/scheilch/opencloudtouch:stable`)? **We only support the official pre-built image.**"
+      options:
+        - "No — I pulled the official image (ghcr.io/scheilch/opencloudtouch)"
+        - "Yes — I built it myself from source"
+    validations:
+      required: true
+
+  - type: textarea
+    id: version-screenshot
+    attributes:
+      label: Version Screenshot
+      description: |
+        Please provide a screenshot of the **Settings** page in the Web UI showing the version number.
+        Alternatively, paste the output of: `curl http://<your-host>:<port>/health` (default port: 7777)
+      placeholder: "Drag & drop a screenshot here, or paste the /health output."
     validations:
       required: true
 
@@ -113,15 +138,18 @@ body:
         **Raspberry Pi (official image):**
         ```bash
         ssh pi@opencloudtouch.local
-        docker logs opencloudtouch --tail 100
+        docker logs opencloudtouch --tail 500
         ```
 
         **Docker / Podman (self-hosted):**
         ```bash
-        docker logs opencloudtouch --tail 100
+        docker logs opencloudtouch --tail 500
         # or
-        podman logs opencloudtouch-local --tail 100
+        podman logs opencloudtouch-local --tail 500
         ```
+
+        **Even easier — use the built-in Bug Report button!**
+        Go to **Settings → Report a Bug** in the Web UI. This automatically attaches the last 500 backend log lines, device status, DB stats, and frontend console logs to the GitHub issue. No SSH or copy-paste needed.
 
         **Tip:** For more detail, set `OCT_LOG_LEVEL=DEBUG` in your `docker-compose.yml` environment, restart the container, reproduce the bug, then grab the logs.
       placeholder: "Paste the relevant log output here."

@@ -54,6 +54,9 @@ class SoundTouchHostsService:
         "streaming.bose.com",
         "bmx.bose.com",
         "api.bosesoundtouch.com",
+        "content.api.bose.io",
+        "events.api.bosecm.com",
+        "worldwide.bose.com",
     ]
 
     OPTIONAL_HOSTS = [
@@ -109,6 +112,7 @@ class SoundTouchHostsService:
         try:
             ipaddress.ip_address(oct_ip)
         except ValueError:
+            self.logger.debug("IP validation failed for '%s'", oct_ip)
             return ModifyResult(
                 success=False,
                 error=(
@@ -132,6 +136,14 @@ class SoundTouchHostsService:
                 domains_to_add = self.VTUNER_HOSTS + self.REQUIRED_HOSTS
                 if include_optional:
                     domains_to_add = domains_to_add + self.OPTIONAL_HOSTS
+
+                self.logger.debug(
+                    "Hosts: %d domains to add (vtuner=%d, required=%d, optional=%d)",
+                    len(domains_to_add),
+                    len(self.VTUNER_HOSTS),
+                    len(self.REQUIRED_HOSTS),
+                    len(self.OPTIONAL_HOSTS) if include_optional else 0,
+                )
 
                 all_bose_domains = (
                     self.VTUNER_HOSTS + self.REQUIRED_HOSTS + self.OPTIONAL_HOSTS
@@ -181,6 +193,7 @@ class SoundTouchHostsService:
         """Strip existing OCT blocks and bare Bose-domain entries from hosts."""
         clean_lines: list[str] = []
         in_oct_block = False
+        removed = 0
         for line in original_content.splitlines():
             if self.OCT_MARKER_START in line:
                 in_oct_block = True
@@ -189,11 +202,19 @@ class SoundTouchHostsService:
                 in_oct_block = False
                 continue
             if in_oct_block:
+                removed += 1
                 continue
             parts = line.split()
             if len(parts) >= 2 and any(d in parts for d in all_bose_domains):
+                removed += 1
                 continue
             clean_lines.append(line)
+        self.logger.debug(
+            "Hosts cleanup: %d original lines, %d kept, %d removed",
+            len(original_content.splitlines()),
+            len(clean_lines),
+            removed,
+        )
         return clean_lines
 
     def _build_oct_block(self, oct_ip: str, domains: List[str]) -> list[str]:

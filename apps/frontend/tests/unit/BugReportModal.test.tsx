@@ -6,11 +6,13 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
 
 const mockSubmitBugReport = vi.fn();
+const mockDownloadDiagnostics = vi.fn();
 const mockShowToast = vi.fn();
 
 // Mock dependencies
 vi.mock("../../src/api/bugReport", () => ({
   submitBugReport: mockSubmitBugReport,
+  downloadDiagnostics: mockDownloadDiagnostics,
 }));
 
 vi.mock("../../src/utils/logBuffer", () => ({
@@ -41,6 +43,7 @@ describe("BugReportModal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSubmitBugReport.mockResolvedValue({ issue_url: "https://github.com/test/issues/1" });
+    mockDownloadDiagnostics.mockResolvedValue(undefined);
   });
 
   it("returns null when closed", async () => {
@@ -196,5 +199,47 @@ describe("BugReportModal", () => {
     const dialog = screen.getByRole("dialog");
     fireEvent(dialog, new Event("cancel"));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("downloads diagnostics when Download Logs button is clicked", async () => {
+    const BugReportModal = await getBugReportModal();
+    render(<BugReportModal open onClose={vi.fn()} />);
+
+    const downloadBtn = screen.getByTitle(/Download diagnostic logs/i);
+    fireEvent.click(downloadBtn);
+
+    await waitFor(() => {
+      expect(mockDownloadDiagnostics).toHaveBeenCalledWith(
+        expect.objectContaining({
+          frontend_logs: expect.any(Array),
+          browser_info: expect.any(String),
+          current_route: "/test",
+        }),
+      );
+    });
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith(
+        expect.stringContaining("Diagnostics downloaded"),
+        "success",
+        8000,
+      );
+    });
+  });
+
+  it("shows error toast when diagnostics download fails", async () => {
+    mockDownloadDiagnostics.mockRejectedValue(new Error("Network failure"));
+    const BugReportModal = await getBugReportModal();
+    render(<BugReportModal open onClose={vi.fn()} />);
+
+    const downloadBtn = screen.getByTitle(/Download diagnostic logs/i);
+    fireEvent.click(downloadBtn);
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith(
+        expect.stringContaining("Failed to download"),
+        "error",
+        8000,
+      );
+    });
   });
 });

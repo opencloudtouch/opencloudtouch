@@ -31,6 +31,16 @@ on:
         required: false
         default: true
         type: boolean
+      checkout_ref:
+        description: 'Git ref to checkout (tag/branch). Leave empty for current ref.'
+        required: false
+        type: string
+        default: ''
+      skip_version_check:
+        description: 'Skip version verification (for rebuilding old releases)'
+        required: false
+        type: boolean
+        default: false
 
   workflow_call:
     inputs:
@@ -47,6 +57,16 @@ on:
         description: 'Attach Raspi images to release'
         required: false
         default: true
+        type: boolean
+      checkout_ref:
+        description: 'Git ref to checkout'
+        required: false
+        default: ''
+        type: string
+      skip_version_check:
+        description: 'Skip version verification'
+        required: false
+        default: false
         type: boolean
 
 env:
@@ -66,6 +86,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.checkout_ref || github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -101,6 +123,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.checkout_ref || github.ref }}
 
       - name: Download pre-built frontend
         uses: actions/download-artifact@v8
@@ -110,6 +134,13 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
+
+      - name: Compute build signature
+        id: sign
+        run: |
+          VERSION="${{ inputs.version }}"
+          SIG=$(echo -n "$VERSION" | openssl dgst -sha256 -hmac "${{ secrets.BUILD_SIGNING_KEY }}" | awk '{print $NF}' | cut -c1-16)
+          echo "signature=$SIG" >> $GITHUB_OUTPUT
 
       - name: Build test image for scanning
         uses: docker/build-push-action@v7
@@ -121,7 +152,8 @@ jobs:
           load: true
           tags: opencloudtouch:test
           provenance: false
-          cache-to: type=gha,mode=max,scope=trivy-scan
+          build-args: |
+            OCT_BUILD_SIGNATURE=${{ steps.sign.outputs.signature }}
 
       - name: Run Trivy vulnerability scanner (blocking)
         uses: aquasecurity/trivy-action@master
@@ -149,6 +181,45 @@ jobs:
           path: trivy-results.json
           retention-days: 30
 
+      - name: Verify app version matches release
+        if: ${{ inputs.skip_version_check != true }}
+        run: |
+          EXPECTED="${{ inputs.version }}"
+          echo "Expected version: $EXPECTED"
+
+          # Start container in background
+          docker run -d --name oct-version-check \
+            -e OCT_DISCOVERY_ENABLED=false \
+            -p 7777:7777 \
+            opencloudtouch:test
+
+          # Wait for health endpoint
+          echo "Waiting for health endpoint..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:7777/health > /dev/null 2>&1; then
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "::error::Container did not start within 30s"
+              docker logs oct-version-check
+              exit 1
+            fi
+            sleep 1
+          done
+
+          # Check version
+          ACTUAL=$(curl -sf http://localhost:7777/health | jq -r '.version')
+          echo "Actual version from /health: $ACTUAL"
+
+          docker stop oct-version-check > /dev/null
+
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Version mismatch! /health reports '$ACTUAL' but release version is '$EXPECTED'"
+            exit 1
+          fi
+
+          echo "✅ Version match: $ACTUAL == $EXPECTED"
+
   # ============================================================================
   # DOCKER BUILD (parallel multi-arch)
   # ============================================================================
@@ -168,6 +239,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.checkout_ref || github.ref }}
 
       - name: Download pre-built frontend
         uses: actions/download-artifact@v8
@@ -189,7 +262,6 @@ jobs:
           tags: |
             type=raw,value=${{ inputs.version }}
             type=raw,value=latest
-            type=raw,value=stable
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
@@ -197,6 +269,13 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute build signature
+        id: sign
+        run: |
+          VERSION="${{ inputs.version }}"
+          SIG=$(echo -n "$VERSION" | openssl dgst -sha256 -hmac "${{ secrets.BUILD_SIGNING_KEY }}" | awk '{print $NF}' | cut -c1-16)
+          echo "signature=$SIG" >> $GITHUB_OUTPUT
 
       - name: Build and push by digest
         id: build
@@ -206,6 +285,8 @@ jobs:
           file: deployment/Dockerfile
           platforms: ${{ matrix.platform }}
           push: true
+          build-args: |
+            OCT_BUILD_SIGNATURE=${{ steps.sign.outputs.signature }}
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true
@@ -255,7 +336,6 @@ jobs:
           tags: |
             type=raw,value=${{ inputs.version }}
             type=raw,value=latest
-            type=raw,value=stable
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
@@ -289,6 +369,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.checkout_ref || github.ref }}
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
@@ -335,6 +417,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.checkout_ref || github.ref }}
 
       - name: Free disk space
         run: |
@@ -479,12 +563,81 @@ jobs:
           compression-level: 0
 
   # ============================================================================
+  # TEST RASPBERRY PI IMAGES (QEMU chroot smoke test)
+  # ============================================================================
+  test-raspi:
+    name: Test Raspi ${{ matrix.arch }} Image
+    runs-on: ubuntu-latest
+    needs: [build-raspi]
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ${{ fromJSON((inputs.architectures || 'all') == 'all' && '["arm64", "armhf"]' || format('["{0}"]', inputs.architectures)) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.checkout_ref || github.ref }}
+
+      - name: Download image artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: raspi-image-${{ matrix.arch }}
+          path: images
+
+      - name: Set up QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static binfmt-support xz-utils
+          sudo update-binfmts --enable
+
+      - name: Mount image
+        id: mount
+        run: |
+          set -euo pipefail
+          OCT_VERSION="${{ inputs.version || 'latest' }}"
+          IMG_XZ="images/opencloudtouch-${{ matrix.arch }}-${OCT_VERSION}.img.xz"
+
+          echo "=== Decompressing image ==="
+          xz -d "$IMG_XZ"
+          IMG_FILE="${IMG_XZ%.xz}"
+
+          echo "=== Mounting image ==="
+          LOOP=$(sudo losetup --find --show --partscan "$IMG_FILE")
+          echo "Loop device: $LOOP"
+          lsblk "$LOOP"
+
+          sudo mkdir -p /mnt/raspi
+          sudo mount "${LOOP}p2" /mnt/raspi
+          sudo mount "${LOOP}p1" /mnt/raspi/boot/firmware || \
+            sudo mount "${LOOP}p1" /mnt/raspi/boot || true
+
+          echo "loop=$LOOP" >> "$GITHUB_OUTPUT"
+
+      - name: Run smoke tests
+        run: |
+          chmod +x deployment/raspi-image/test-image.sh
+          sudo deployment/raspi-image/test-image.sh \
+            /mnt/raspi \
+            "${{ inputs.version || 'latest' }}" \
+            "${{ matrix.arch }}"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          sudo umount -R /mnt/raspi 2>/dev/null || true
+          sudo losetup -d "${{ steps.mount.outputs.loop }}" 2>/dev/null || true
+
+  # ============================================================================
   # ATTACH RASPI IMAGES TO RELEASE
   # ============================================================================
   attach-to-release:
     name: Attach Raspi Images to Release
     runs-on: ubuntu-latest
-    needs: [build-raspi]
+    needs: [build-raspi, test-raspi]
     if: ${{ inputs.attach_to_release != false }}
 
     permissions:

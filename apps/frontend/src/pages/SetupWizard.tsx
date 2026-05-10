@@ -15,6 +15,7 @@ import {
   enablePermanentSsh,
   completeWizard,
 } from "../api/wizard";
+import { createWizardAudit, WizardAuditLogger } from "../hooks/useWizardAudit";
 import DeviceInfoHeader from "../components/wizard/DeviceInfoHeader";
 import ProgressTracker, { WizardStep } from "../components/wizard/ProgressTracker";
 import Step2USBPreparation from "../components/wizard/Step2USBPreparation";
@@ -95,6 +96,21 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   const [backupPath, setBackupPath] = useState<string>("");
   const [_detectedStrategy, setDetectedStrategy] = useState<DetectStrategyResponse | null>(null);
   const [serverIp, setServerIp] = useState<string>(window.location.hostname);
+  const [audit, setAudit] = useState<WizardAuditLogger | null>(null);
+
+  // Initialize audit logger when device is selected
+  useEffect(() => {
+    if (selectedDevice) {
+      const logger = createWizardAudit(selectedDevice.device_id);
+      setAudit(logger);
+      logger.logDetail("wizard", "wizard_start", 0, {
+        device_id: selectedDevice.device_id,
+        device_ip: selectedDevice.ip,
+        device_name: selectedDevice.name,
+        device_model: selectedDevice.model,
+      });
+    }
+  }, [selectedDevice]);
 
   // Fetch resolved server IP on mount (hostname → numeric IP for /etc/hosts)
   useEffect(() => {
@@ -174,16 +190,24 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   };
 
   const handleNext = () => {
+    audit?.log("navigation", `step_complete:${currentStep}`, currentStep);
     completeCurrentStep();
     const maxSteps = WIZARD_STEPS.length;
+    audit?.log(
+      "navigation",
+      `step_enter:${Math.min(currentStep + 1, maxSteps)}`,
+      Math.min(currentStep + 1, maxSteps)
+    );
     setCurrentStep((prev) => Math.min(prev + 1, maxSteps));
   };
 
   const handlePrevious = () => {
+    audit?.log("navigation", `step_back:${currentStep}`, currentStep);
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
   const handleSSHDecision = (makePermanent: boolean) => {
+    audit?.logDetail("user_action", "ssh_decision", 2, { make_permanent: makePermanent });
     if (selectedDevice?.ip) {
       enablePermanentSsh({
         device_id: selectedDevice.device_id,
@@ -195,6 +219,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   };
 
   const handleComplete = async () => {
+    audit?.log("wizard", "wizard_complete", 7);
     // Mark final step as complete
     completeCurrentStep();
     // Persist setup_status = "configured" in backend DB
@@ -212,6 +237,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   };
 
   const handleConfigModified = (data: unknown) => {
+    audit?.logDetail("config", "config_modified", 4, { data: JSON.stringify(data) });
     console.log("Config modified:", data);
     // In Phase 3+: Store modification details
   };
@@ -221,11 +247,13 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   };
 
   const handleHostsModified = (data: unknown) => {
+    audit?.logDetail("config", "hosts_modified", 5, { data: JSON.stringify(data) });
     console.log("Hosts modified:", data);
     // In Phase 3+: Store modification details
   };
 
   const handleBackupComplete = (backupData: unknown) => {
+    audit?.logDetail("config", "backup_complete", 3, { data: JSON.stringify(backupData) });
     console.log("Backup completed:", backupData);
     // Store backup path for Step 8 display
     if (backupData && typeof backupData === "object" && "path" in backupData) {

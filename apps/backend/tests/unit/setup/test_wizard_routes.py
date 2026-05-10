@@ -44,18 +44,11 @@ def client(wizard_app):
 class TestWizardCheckPorts:
     """POST /api/setup/wizard/check-ports"""
 
-    def test_both_ports_accessible(self, client):
-        with (
-            patch(
-                "opencloudtouch.setup.wizard_routes.check_ssh_port",
-                new_callable=AsyncMock,
-                return_value=True,
-            ),
-            patch(
-                "opencloudtouch.setup.wizard_routes.check_telnet_port",
-                new_callable=AsyncMock,
-                return_value=True,
-            ),
+    def test_ssh_accessible(self, client):
+        with patch(
+            "opencloudtouch.setup.wizard_routes.check_ssh_port",
+            new_callable=AsyncMock,
+            return_value=True,
         ):
             response = client.post(
                 "/api/setup/wizard/check-ports",
@@ -65,43 +58,12 @@ class TestWizardCheckPorts:
         body = response.json()
         assert body["success"] is True
         assert body["has_ssh"] is True
-        assert body["has_telnet"] is True
 
-    def test_only_ssh_accessible(self, client):
-        with (
-            patch(
-                "opencloudtouch.setup.wizard_routes.check_ssh_port",
-                new_callable=AsyncMock,
-                return_value=True,
-            ),
-            patch(
-                "opencloudtouch.setup.wizard_routes.check_telnet_port",
-                new_callable=AsyncMock,
-                return_value=False,
-            ),
-        ):
-            response = client.post(
-                "/api/setup/wizard/check-ports",
-                json={"device_ip": "192.168.1.100", "timeout": 3},
-            )
-        assert response.status_code == 200
-        body = response.json()
-        assert body["success"] is True
-        assert body["has_ssh"] is True
-        assert body["has_telnet"] is False
-
-    def test_no_ports_returns_failure(self, client):
-        with (
-            patch(
-                "opencloudtouch.setup.wizard_routes.check_ssh_port",
-                new_callable=AsyncMock,
-                return_value=False,
-            ),
-            patch(
-                "opencloudtouch.setup.wizard_routes.check_telnet_port",
-                new_callable=AsyncMock,
-                return_value=False,
-            ),
+    def test_ssh_not_accessible_returns_failure(self, client):
+        with patch(
+            "opencloudtouch.setup.wizard_routes.check_ssh_port",
+            new_callable=AsyncMock,
+            return_value=False,
         ):
             response = client.post(
                 "/api/setup/wizard/check-ports",
@@ -111,7 +73,6 @@ class TestWizardCheckPorts:
         body = response.json()
         assert body["success"] is False
         assert body["has_ssh"] is False
-        assert body["has_telnet"] is False
 
 
 # ── wizard/backup ─────────────────────────────────────────────────────────────
@@ -227,7 +188,8 @@ class TestWizardModifyConfig:
         assert response.status_code == 200
         assert response.json()["success"] is False
 
-    def test_config_modification_exception_returns_500(self, client):
+    def test_config_modification_exception_returns_503(self, client):
+        """SSH connection failure returns 503, not 500."""
         with (
             patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
         ):
@@ -239,7 +201,8 @@ class TestWizardModifyConfig:
                 "/api/setup/wizard/modify-config",
                 json={"device_ip": "192.168.1.100", "target_addr": "192.168.1.50"},
             )
-        assert response.status_code == 500
+        assert response.status_code == 503
+        assert "SSH" in response.json()["detail"]
 
 
 # ── wizard/modify-hosts ───────────────────────────────────────────────────────
@@ -765,3 +728,184 @@ class TestCheckPort443:
             result = _check_port_443("10.0.0.1")
 
         assert result is False
+
+
+# ── SSH 503 regression tests (bugfix-001) ──────────────────────────────────────
+
+
+class TestSSHUnreachableReturns503:
+    """Bugfix-001: SSH connection failures must return 503, not 500."""
+
+    def test_backup_returns_503_when_ssh_unreachable(self, client):
+        with (
+            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
+        ):
+            mock_ssh.return_value.__aenter__ = AsyncMock(
+                side_effect=ConnectionError(
+                    "SSH connection to 192.168.1.100 failed: Connection refused"
+                )
+            )
+            mock_ssh.return_value.__aexit__ = AsyncMock(return_value=False)
+            response = client.post(
+                "/api/setup/wizard/backup",
+                json={"device_ip": "192.168.1.100"},
+            )
+        assert response.status_code == 503
+        assert "SSH" in response.json()["detail"]
+
+    def test_modify_config_returns_503_when_ssh_unreachable(self, client):
+        with (
+            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
+        ):
+            mock_ssh.return_value.__aenter__ = AsyncMock(
+                side_effect=ConnectionError(
+                    "SSH connection to 192.168.1.100 failed: Connection refused"
+                )
+            )
+            mock_ssh.return_value.__aexit__ = AsyncMock(return_value=False)
+            response = client.post(
+                "/api/setup/wizard/modify-config",
+                json={"device_ip": "192.168.1.100", "target_addr": "192.168.1.50"},
+            )
+        assert response.status_code == 503
+        assert "SSH" in response.json()["detail"]
+
+    def test_modify_hosts_returns_503_when_ssh_unreachable(self, client):
+        with (
+            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_routes.socket.gethostbyname",
+                return_value="192.168.1.50",
+            ),
+        ):
+            mock_ssh.return_value.__aenter__ = AsyncMock(
+                side_effect=ConnectionError(
+                    "SSH connection to 192.168.1.100 failed: Connection refused"
+                )
+            )
+            mock_ssh.return_value.__aexit__ = AsyncMock(return_value=False)
+            response = client.post(
+                "/api/setup/wizard/modify-hosts",
+                json={
+                    "device_ip": "192.168.1.100",
+                    "target_addr": "192.168.1.50",
+                    "include_optional": False,
+                },
+            )
+        assert response.status_code == 503
+        assert "SSH" in response.json()["detail"]
+
+
+# ── _snapshot_config_files helper ─────────────────────────────────────────────
+
+
+class TestSnapshotConfigFiles:
+    """Unit tests for _snapshot_config_files audit helper."""
+
+    @pytest.mark.asyncio
+    async def test_snapshots_config_files(self):
+        from opencloudtouch.setup.wizard_routes import _snapshot_config_files
+
+        mock_ssh = AsyncMock()
+        mock_ssh.execute = AsyncMock(
+            return_value=MagicMock(success=True, output="<xml>config</xml>")
+        )
+        mock_repo = AsyncMock()
+        mock_repo.add_config_snapshot = AsyncMock()
+
+        await _snapshot_config_files(
+            ssh=mock_ssh,
+            audit_repo=mock_repo,
+            device_id="192.168.1.100",
+            file_paths=["/opt/Bose/etc/config.xml"],
+            trigger="before_modify",
+        )
+
+        mock_repo.add_config_snapshot.assert_called_once_with(
+            device_id="192.168.1.100",
+            file_path="/opt/Bose/etc/config.xml",
+            content="<xml>config</xml>",
+            trigger="before_modify",
+        )
+
+    @pytest.mark.asyncio
+    async def test_skips_when_no_audit_repo(self):
+        from opencloudtouch.setup.wizard_routes import _snapshot_config_files
+
+        mock_ssh = AsyncMock()
+        await _snapshot_config_files(
+            ssh=mock_ssh,
+            audit_repo=None,
+            device_id="192.168.1.100",
+            file_paths=["/etc/hosts"],
+            trigger="test",
+        )
+        mock_ssh.execute.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_skips_file_when_cat_fails(self):
+        from opencloudtouch.setup.wizard_routes import _snapshot_config_files
+
+        mock_ssh = AsyncMock()
+        mock_ssh.execute = AsyncMock(return_value=MagicMock(success=False, output=""))
+        mock_repo = AsyncMock()
+
+        await _snapshot_config_files(
+            ssh=mock_ssh,
+            audit_repo=mock_repo,
+            device_id="DEV1",
+            file_paths=["/nonexistent"],
+            trigger="test",
+        )
+        mock_repo.add_config_snapshot.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_handles_exception_gracefully(self):
+        from opencloudtouch.setup.wizard_routes import _snapshot_config_files
+
+        mock_ssh = AsyncMock()
+        mock_ssh.execute = AsyncMock(side_effect=RuntimeError("SSH error"))
+        mock_repo = AsyncMock()
+
+        await _snapshot_config_files(
+            ssh=mock_ssh,
+            audit_repo=mock_repo,
+            device_id="DEV1",
+            file_paths=["/etc/hosts"],
+            trigger="test",
+        )
+
+    @pytest.mark.asyncio
+    async def test_multiple_files_snapshot(self):
+        from opencloudtouch.setup.wizard_routes import _snapshot_config_files
+
+        mock_ssh = AsyncMock()
+        mock_ssh.execute = AsyncMock(
+            return_value=MagicMock(success=True, output="content")
+        )
+        mock_repo = AsyncMock()
+        mock_repo.add_config_snapshot = AsyncMock()
+
+        await _snapshot_config_files(
+            ssh=mock_ssh,
+            audit_repo=mock_repo,
+            device_id="DEV1",
+            file_paths=["/a.xml", "/b.xml", "/c.xml"],
+            trigger="before_test",
+        )
+        assert mock_repo.add_config_snapshot.call_count == 3
+
+
+# ── wizard/server-info ────────────────────────────────────────────────────────
+
+
+class TestWizardServerInfo:
+    """GET /api/setup/wizard/server-info"""
+
+    def test_returns_server_url(self, client):
+        response = client.get("/api/setup/wizard/server-info")
+        assert response.status_code == 200
+        body = response.json()
+        assert "server_url" in body
+        assert "server_ip" in body
+        assert body["default_port"] == 7777

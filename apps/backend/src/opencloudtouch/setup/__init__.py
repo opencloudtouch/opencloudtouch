@@ -2,7 +2,7 @@
 Device Setup Module
 
 Provides functionality for configuring SoundTouch devices:
-- SSH/Telnet client for device access
+- SSH client for device access
 - Setup wizard orchestration
 - Model-specific instructions
 """

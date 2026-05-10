@@ -209,10 +209,14 @@ class MockDeviceClient(DeviceClient):
         station_name: str,
         oct_backend_url: str,
         station_image_url: str = "",
+        station_uuid: str = "",
     ) -> None:
         """Mock store preset (no-op for testing)."""
         logger.info(
-            f"[MOCK] store_preset({preset_number}, {station_name}) for device {device_id}"
+            "[MOCK] store_preset(%d, %s) for device %s",
+            preset_number,
+            station_name,
+            device_id,
         )
 
     # ---- Zone Methods ----

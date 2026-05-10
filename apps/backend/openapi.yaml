@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: OpenCloudTouch
   description: Open-Source replacement for discontinued streaming device cloud features
-  version: 1.2.0
+  version: 1.2.2
 paths:
   /api/devices/discover:
     get:
@@ -1773,49 +1773,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /api/setup/start:
-    post:
-      tags:
-      - Device Setup
-      summary: Start Setup
-      description: 'Start the device setup process.
-
-
-        This runs the full setup flow:
-
-        1. Connect via SSH
-
-        2. Make SSH persistent
-
-        3. Backup config
-
-        4. Modify BMX URL
-
-        5. Verify configuration
-
-
-        The setup runs in background. Use GET /status/{device_id} to check progress.'
-      operationId: start_setup_api_setup_start_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SetupRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                type: object
-                title: Response Start Setup Api Setup Start Post
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
   /api/setup/status/{device_id}:
     get:
       tags:
@@ -2330,6 +2287,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /ced/soundtouch/downloads_stockholm/{path}:
+    get:
+      tags:
+      - swupdate
+      summary: Firmware Download
+      description: 'Block real Bose firmware download path (Stockholm devices).
+
+        Returns 404 to prevent unintended firmware updates.'
+      operationId: firmware_download_ced_soundtouch_downloads_stockholm__path__get
+      parameters:
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/zones:
     get:
       tags:
@@ -2531,6 +2516,39 @@ paths:
           content:
             application/json:
               schema: {}
+  /api/logs/level:
+    get:
+      tags:
+        - logs
+      summary: Get current log level
+      operationId: get_log_level_api_logs_level_get
+      responses:
+        '200':
+          description: Current log level
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogLevelResponse'
+    put:
+      tags:
+        - logs
+      summary: Set log level at runtime
+      operationId: put_log_level_api_logs_level_put
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogLevelRequest'
+      responses:
+        '200':
+          description: Updated log level
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogLevelResponse'
+        '400':
+          description: Invalid log level
   /api/logs/backend:
     get:
       tags:
@@ -2538,6 +2556,25 @@ paths:
       summary: Download Backend Log
       description: Returns the in-memory backend log as a plain-text file download.
       operationId: download_backend_log_api_logs_backend_get
+      responses:
+        '200':
+          description: Plain-text log file download
+          content:
+            text/plain:
+              schema:
+                type: string
+    post:
+      tags:
+        - logs
+      summary: Download Logs with Frontend Console
+      description: Returns backend + frontend console logs as a plain-text file download.
+      operationId: download_backend_log_api_logs_backend_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogDownloadRequest'
       responses:
         '200':
           description: Plain-text log file download
@@ -2567,8 +2604,119 @@ paths:
                 $ref: '#/components/schemas/BugReportResponse'
         '503':
           description: GitHub token not configured
+  /api/bug-report/diagnostics:
+    post:
+      tags:
+        - bug-report
+      summary: Download Diagnostics
+      description: Download a gzipped diagnostic bundle without requiring a GitHub token.
+      operationId: download_diagnostics_api_bug_report_diagnostics_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiagnosticsRequest'
+      responses:
+        '200':
+          description: Gzipped diagnostic log file
+          content:
+            application/gzip:
+              schema:
+                type: string
+                format: binary
+  /api/wizard/audit-log:
+    post:
+      tags:
+        - Wizard Audit
+      summary: Post Audit Entry
+      description: Record a single wizard audit log entry.
+      operationId: post_audit_entry_api_wizard_audit_log_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuditEntryRequest'
+      responses:
+        '200':
+          description: Entry recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEntryResponse'
+        '503':
+          description: Wizard audit repository not initialized
+  /api/wizard/audit-log/batch:
+    post:
+      tags:
+        - Wizard Audit
+      summary: Post Audit Batch
+      description: Record multiple wizard audit log entries in one request.
+      operationId: post_audit_batch_api_wizard_audit_log_batch_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuditBatchRequest'
+      responses:
+        '200':
+          description: Batch recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditBatchResponse'
+        '503':
+          description: Wizard audit repository not initialized
+  /api/wizard/config-snapshot:
+    post:
+      tags:
+        - Wizard Audit
+      summary: Post Config Snapshot
+      description: Store a config XML snapshot for audit purposes.
+      operationId: post_config_snapshot_api_wizard_config_snapshot_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigSnapshotRequest'
+      responses:
+        '200':
+          description: Snapshot stored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigSnapshotResponse'
+        '503':
+          description: Wizard audit repository not initialized
 components:
   schemas:
+    LogLevelResponse:
+      properties:
+        level:
+          type: string
+          title: Level
+      type: object
+      required:
+      - level
+      title: LogLevelResponse
+    LogLevelRequest:
+      properties:
+        level:
+          type: string
+          enum:
+          - DEBUG
+          - INFO
+          - WARNING
+          - ERROR
+          - CRITICAL
+          title: Level
+      type: object
+      required:
+      - level
+      title: LogLevelRequest
     BackupRequest:
       properties:
         device_ip:
@@ -2925,10 +3073,6 @@ components:
           type: boolean
           title: Has Ssh
           default: false
-        has_telnet:
-          type: boolean
-          title: Has Telnet
-          default: false
       type: object
       required:
       - success
@@ -3157,24 +3301,6 @@ components:
       - ips
       title: SetManualIPsRequest
       description: Request model for setting all manual IPs at once.
-    SetupRequest:
-      properties:
-        device_id:
-          type: string
-          title: Device Id
-        ip:
-          type: string
-          title: Ip
-        model:
-          type: string
-          title: Model
-      type: object
-      required:
-      - device_id
-      - ip
-      - model
-      title: SetupRequest
-      description: Request to start device setup.
     ValidationError:
       properties:
         loc:
@@ -3248,6 +3374,163 @@ components:
       - domain
       - message
       title: VerifyRedirectResponse
+    DiagnosticsRequest:
+      properties:
+        frontend_logs:
+          type: array
+          items:
+            type: object
+          title: Frontend Logs
+          default: []
+        description:
+          type: string
+          title: Description
+          default: ''
+        browser_info:
+          type: string
+          title: Browser Info
+          default: ''
+        current_route:
+          type: string
+          title: Current Route
+          default: ''
+        click_timestamp:
+          type: number
+          title: Click Timestamp
+          default: 0.0
+      type: object
+      title: DiagnosticsRequest
+    AuditEntryRequest:
+      properties:
+        device_id:
+          type: string
+          title: Device Id
+        category:
+          type: string
+          title: Category
+        event:
+          type: string
+          title: Event
+        step:
+          type: integer
+          title: Step
+          minimum: 0
+          maximum: 7
+        detail:
+          type: string
+          title: Detail
+          maxLength: 10000
+        timestamp:
+          type: string
+          title: Timestamp
+      type: object
+      required:
+      - device_id
+      - category
+      - event
+      title: AuditEntryRequest
+    AuditEntryResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        id:
+          type: integer
+          title: Id
+      type: object
+      required:
+      - success
+      - id
+      title: AuditEntryResponse
+    AuditBatchRequest:
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEntryRequest'
+          title: Entries
+          minItems: 1
+          maxItems: 200
+      type: object
+      required:
+      - entries
+      title: AuditBatchRequest
+    AuditBatchResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        count:
+          type: integer
+          title: Count
+      type: object
+      required:
+      - success
+      - count
+      title: AuditBatchResponse
+    ConfigSnapshotRequest:
+      properties:
+        device_id:
+          type: string
+          title: Device Id
+        file_path:
+          type: string
+          title: File Path
+        content:
+          type: string
+          title: Content
+          maxLength: 50000
+        trigger:
+          type: string
+          title: Trigger
+        timestamp:
+          type: string
+          title: Timestamp
+      type: object
+      required:
+      - device_id
+      - file_path
+      - content
+      title: ConfigSnapshotRequest
+    ConfigSnapshotResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        id:
+          type: integer
+          title: Id
+      type: object
+      required:
+      - success
+      - id
+      title: ConfigSnapshotResponse
+    FrontendLogEntry:
+      properties:
+        timestamp:
+          type: string
+          title: Timestamp
+          default: ''
+        level:
+          type: string
+          title: Level
+          default: ''
+        message:
+          type: string
+          title: Message
+          default: ''
+      type: object
+      title: FrontendLogEntry
+    LogDownloadRequest:
+      properties:
+        frontend_logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/FrontendLogEntry'
+          title: Frontend Logs
+          default: []
+      type: object
+      title: LogDownloadRequest
       description: Response with domain redirect verification result.
     WizardCompleteRequest:
       properties:

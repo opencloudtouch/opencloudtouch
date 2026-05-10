@@ -10,6 +10,7 @@ import React from "react";
 
 // Mock the wizard API to prevent async state updates during render
 vi.mock("../../src/api/wizard", () => ({
+  checkPorts: vi.fn().mockResolvedValue({ success: true, has_ssh: true, message: "SSH access enabled" }),
   detectStrategy: vi.fn().mockResolvedValue({ strategy: "hosts", details: "" }),
   modifyConfig: vi.fn().mockResolvedValue({}),
   getServerInfo: vi.fn().mockResolvedValue({}),
@@ -72,6 +73,168 @@ describe("Step3PowerCycle — render", () => {
     // At least one button must be rendered (previous, SSH decision)
     const buttons = screen.getAllByRole("button");
     expect(buttons.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// ------------------------------------------------------------------
+// Step 3 — handleCheckPorts (port check button logic)
+// ------------------------------------------------------------------
+describe("Step3PowerCycle — handleCheckPorts", () => {
+  it("shows success state when SSH is available", async () => {
+    const { checkPorts } = await import("../../src/api/wizard");
+    (checkPorts as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      has_ssh: true,
+      message: "SSH access enabled",
+    });
+
+    const { default: Step3 } = await import(
+      "../../src/components/wizard/Step3PowerCycle"
+    );
+    render(
+      <Step3
+        deviceIp="192.168.1.1"
+        deviceName="SoundTouch 10"
+        onSSHDecision={vi.fn()}
+        onPrevious={vi.fn()}
+      />
+    );
+
+    const checkBtn = screen.getByRole("button", { name: /Check now/i });
+    await act(async () => {
+      checkBtn.click();
+    });
+
+    expect(checkPorts).toHaveBeenCalledWith({ device_ip: "192.168.1.1", timeout: 10 });
+    expect(screen.getByText(/SSH available/i)).toBeInTheDocument();
+  });
+
+  it("shows error when SSH is not available", async () => {
+    const { checkPorts } = await import("../../src/api/wizard");
+    (checkPorts as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: false,
+      has_ssh: false,
+      message: "SSH not accessible",
+    });
+
+    const { default: Step3 } = await import(
+      "../../src/components/wizard/Step3PowerCycle"
+    );
+    render(
+      <Step3
+        deviceIp="192.168.1.1"
+        deviceName="SoundTouch 10"
+        onSSHDecision={vi.fn()}
+        onPrevious={vi.fn()}
+      />
+    );
+
+    const checkBtn = screen.getByRole("button", { name: /Check now/i });
+    await act(async () => {
+      checkBtn.click();
+    });
+
+    expect(screen.getByText(/SSH ist nicht verfügbar/i)).toBeInTheDocument();
+  });
+
+  it("shows error message on API failure", async () => {
+    const { checkPorts } = await import("../../src/api/wizard");
+    (checkPorts as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("Network timeout")
+    );
+
+    const { default: Step3 } = await import(
+      "../../src/components/wizard/Step3PowerCycle"
+    );
+    render(
+      <Step3
+        deviceIp="192.168.1.1"
+        deviceName="SoundTouch 10"
+        onSSHDecision={vi.fn()}
+        onPrevious={vi.fn()}
+      />
+    );
+
+    const checkBtn = screen.getByRole("button", { name: /Check now/i });
+    await act(async () => {
+      checkBtn.click();
+    });
+
+    expect(screen.getByText(/Network timeout/i)).toBeInTheDocument();
+  });
+});
+
+// ------------------------------------------------------------------
+// Step 3 — calcRiskLevel (SSH persistence risk assessment via UI)
+// ------------------------------------------------------------------
+describe("Step3PowerCycle — calcRiskLevel", () => {
+  async function renderWithSSHAvailable() {
+    const { checkPorts } = await import("../../src/api/wizard");
+    (checkPorts as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      has_ssh: true,
+      message: "SSH access enabled",
+    });
+
+    const { default: Step3 } = await import(
+      "../../src/components/wizard/Step3PowerCycle"
+    );
+    render(
+      <Step3
+        deviceIp="192.168.1.1"
+        deviceName="SoundTouch 10"
+        onSSHDecision={vi.fn()}
+        onPrevious={vi.fn()}
+      />
+    );
+
+    // Trigger port check to show risk assessment
+    const checkBtn = screen.getByRole("button", { name: /Check now/i });
+    await act(async () => {
+      checkBtn.click();
+    });
+  }
+
+  it("shows low risk when all answers are safe", async () => {
+    await renderWithSSHAvailable();
+
+    // Answer Q1=Yes, Q2=Yes, Q3=No → low risk (score=0)
+    const yesButtons = screen.getAllByRole("button", { name: /Yes/i });
+    const noButtons = screen.getAllByRole("button", { name: /No$/i });
+
+    await act(async () => { yesButtons[0]!.click(); }); // Q1: yes
+    await act(async () => { yesButtons[1]!.click(); }); // Q2: yes
+    await act(async () => { noButtons[2]!.click(); }); // Q3: no
+
+    expect(screen.getByText(/Low/i)).toBeInTheDocument();
+  });
+
+  it("shows high risk when unknown is selected", async () => {
+    await renderWithSSHAvailable();
+
+    // Answer all 3 with Q1=unknown → always high risk
+    const unknownButtons = screen.getAllByRole("button", { name: /don't know/i });
+    const yesButtons = screen.getAllByRole("button", { name: /Yes/i });
+    const noButtons = screen.getAllByRole("button", { name: /No$/i });
+
+    await act(async () => { unknownButtons[0]!.click(); }); // Q1: unknown
+    await act(async () => { yesButtons[1]!.click(); }); // Q2: yes
+    await act(async () => { noButtons[2]!.click(); }); // Q3: no
+
+    expect(screen.getByText(/High/i)).toBeInTheDocument();
+  });
+
+  it("shows medium risk with one risky answer", async () => {
+    await renderWithSSHAvailable();
+
+    // Answer Q1=Yes, Q2=Yes, Q3=Yes (updates planned = +1 score → medium)
+    const yesButtons = screen.getAllByRole("button", { name: /Yes/i });
+
+    await act(async () => { yesButtons[0]!.click(); }); // Q1: yes
+    await act(async () => { yesButtons[1]!.click(); }); // Q2: yes
+    await act(async () => { yesButtons[2]!.click(); }); // Q3: yes
+
+    expect(screen.getByText(/Medium/i)).toBeInTheDocument();
   });
 });
 

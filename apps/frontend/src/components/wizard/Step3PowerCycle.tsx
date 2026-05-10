@@ -73,10 +73,10 @@ export default function Step3PowerCycle({
 
     try {
       const result = await checkPorts({ device_ip: deviceIp, timeout: 10 });
-      setPortsAvailable(result.has_ssh || result.has_telnet);
+      setPortsAvailable(result.has_ssh);
 
-      if (!result.has_ssh && !result.has_telnet) {
-        setErrorMessage("SSH und Telnet sind nicht verfügbar. Bitte wiederholen Sie die Schritte.");
+      if (!result.has_ssh) {
+        setErrorMessage("SSH ist nicht verfügbar. Bitte wiederholen Sie die Schritte.");
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unbekannter Fehler";
@@ -101,7 +101,7 @@ export default function Step3PowerCycle({
 
   return (
     <WizardStep
-      stepNumber={3}
+      stepNumber={2}
       title={t("setup.wizard.step3.title")}
       description={t("setup.wizard.step3.description")}
       warning={t("setup.wizard.step3.warning")}

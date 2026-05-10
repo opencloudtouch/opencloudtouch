@@ -121,6 +121,7 @@ async def bmx_services() -> JSONResponse:
     - LOCAL_INTERNET_RADIO: Custom stations via OCT
     """
     base_url = get_oct_base_url()
+    logger.debug("[BMX REGISTRY] base_url=%s", base_url)
 
     services = [
         BmxService(
@@ -155,6 +156,10 @@ async def bmx_services() -> JSONResponse:
     response = BmxServicesResponse(bmx_services=services)
 
     logger.info(f"[BMX REGISTRY] Returning {len(services)} services")
+    logger.debug(
+        "[BMX REGISTRY] Services: %s",
+        [s.id.name for s in services],
+    )
 
     return JSONResponse(
         content=response.model_dump(by_alias=True),
@@ -222,6 +227,7 @@ async def custom_stream_playback(request: Request) -> JSONResponse:
         # Decode base64 data
         json_str = base64.urlsafe_b64decode(data).decode("utf-8")
         json_obj = json.loads(json_str)
+        logger.debug("[BMX ORION] Decoded data: %s", json_str[:300])
 
         stream_url = json_obj.get("streamUrl", "")
         tunein_id = json_obj.get("tuneinId", "")

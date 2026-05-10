@@ -120,6 +120,18 @@
       "devicesFound_one": "{{count}} nouvel appareil trouvé",
       "devicesFound_other": "{{count}} nouveaux appareils trouvés",
       "noNewDevices": "Aucun nouvel appareil trouvé"
+    },
+    "logging": {
+      "sectionTitle": "Journalisation",
+      "description": "Contrôlez le niveau de détail des journaux et téléchargez les journaux pour le dépannage.",
+      "logLevel": "Niveau de journal",
+      "levelOff": "Désactivé",
+      "levelInfo": "Info",
+      "levelDebug": "Debug",
+      "downloadLogs": "Télécharger les journaux",
+      "downloadDescription": "Téléchargez les 1000 dernières entrées du journal backend sous forme de fichier texte.",
+      "levelChanged": "Niveau de journal défini sur {{level}}",
+      "levelError": "Impossible de modifier le niveau de journal"
     }
   },
   "manualIpModal": {
@@ -304,9 +316,9 @@
         "sectionStatus": "Vérifier le statut",
         "statusWaiting": "En attente du redémarrage de l'appareil...",
         "statusWaitingHint": "Vérification automatique dans 30 secondes",
-        "statusChecking": "Vérification des ports SSH/Telnet...",
+        "statusChecking": "Vérification de la connexion SSH...",
         "statusCheckingDevice": "Appareil :",
-        "statusAvailable": "SSH/Telnet disponible !",
+        "statusAvailable": "SSH disponible !",
         "statusAvailableHint": "L'appareil est prêt pour la configuration.",
         "statusError": "Ports non accessibles",
         "btnCheckNow": "Vérifier maintenant",
@@ -466,7 +478,7 @@
         "heroMessage": "{{device}} a été configuré avec succès pour OpenCloudTouch.",
         "summaryTitle": "Ce qui a été fait :",
         "summaryItem1": "Clé USB avec remote_services préparée",
-        "summaryItem2": "SSH/Telnet activé",
+        "summaryItem2": "SSH activé",
         "summaryItem3": "Sauvegarde complète créée",
         "summaryItem4": "Fichier de configuration modifié (bmxRegistryUrl)",
         "summaryItem5": "Fichier hosts modifié (redirections de domaines)",

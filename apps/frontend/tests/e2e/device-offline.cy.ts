@@ -60,8 +60,9 @@ describe("Device Offline Display", () => {
         },
       }).as("volume503");
 
-      // Wait for the 503 response to be processed
-      cy.wait("@nowPlaying503");
+      // Reload so intercepts are active on initial mount (avoids polling-cycle race condition)
+      cy.reload();
+      cy.wait("@nowPlaying503", { timeout: 10000 });
 
       // Offline banner should appear
       cy.get('[data-testid="device-offline-banner"]', { timeout: 10000 })
@@ -114,7 +115,9 @@ describe("Device Offline Display", () => {
 
       cy.intercept("GET", "/api/devices/*/volume", { statusCode: 503 }).as("volume503");
 
-      cy.wait("@nowPlaying503");
+      // Reload so intercepts are active on initial mount (avoids polling-cycle race condition)
+      cy.reload();
+      cy.wait("@nowPlaying503", { timeout: 10000 });
 
       cy.get('[role="alert"]', { timeout: 10000 })
         .should("be.visible")

@@ -137,6 +137,13 @@ class DeviceSyncService:
         """
         devices: List[DiscoveredDevice] = []
 
+        logger.debug(
+            "Discovery config: ssdp=%s, manual_ips=%s, settings_repo=%s",
+            self.discovery_enabled,
+            bool(self.manual_ips),
+            bool(self.settings_repo),
+        )
+
         # SSDP Discovery
         if self.discovery_enabled:
             devices.extend(await self._discover_via_ssdp())
@@ -178,6 +185,10 @@ class DeviceSyncService:
             discovery = get_discovery_adapter(timeout=self.discovery_timeout)
             discovered = await discovery.discover(timeout=self.discovery_timeout)
             logger.info(f"SSDP discovered {len(discovered)} devices")
+            for d in discovered:
+                logger.debug(
+                    "SSDP device: ip=%s, name=%s", d.ip, getattr(d, "name", "?")
+                )
             return discovered
         except Exception as e:
             logger.error(f"SSDP discovery failed: {e}")
@@ -204,6 +215,10 @@ class DeviceSyncService:
             manual = ManualDiscovery(ips)
             discovered = await manual.discover()
             logger.info(f"Manual discovery found {len(discovered)} devices")
+            for d in discovered:
+                logger.debug(
+                    "Manual device: ip=%s, name=%s", d.ip, getattr(d, "name", "?")
+                )
             return discovered
         except Exception as e:
             logger.error(f"Manual discovery failed: {e}")

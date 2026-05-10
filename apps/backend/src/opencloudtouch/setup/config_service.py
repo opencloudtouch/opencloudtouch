@@ -67,10 +67,15 @@ class ConfigDiff:
 class SoundTouchConfigService:
     """Service for modifying SoundTouch device configuration."""
 
-    # Probed in order — first existing file wins
+    # All known config file locations on Bose devices.
+    # The FIRST found path becomes the primary (read source + write target).
+    # ALL other paths are synced (created if missing) after modification.
+    # We never know which file firmware actually reads on a given model,
+    # so we write ALL of them to maximise persistence across reboots.
+    # /mnt/nv/ paths survive SquashFS overlay resets that wipe /opt/Bose/etc/.
     CONFIG_CANDIDATES = [
-        "/mnt/nv/OverrideSdkPrivateCfg.xml",
         "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml",
+        "/mnt/nv/OverrideSdkPrivateCfg.xml",
         "/mnt/nv/SoundTouchSdkPrivateCfg.xml",
     ]
     BACKUP_DIR = "/mnt/nv"
@@ -86,13 +91,19 @@ class SoundTouchConfigService:
         Raises RuntimeError if no config file is found on the device.
         """
         if self.config_path:
+            self.logger.debug("Config path already resolved: %s", self.config_path)
             return self.config_path
 
+        self.logger.debug("Probing %d config candidates", len(self.CONFIG_CANDIDATES))
         for candidate in self.CONFIG_CANDIDATES:
             result = await self.ssh.execute(
                 f"test -f {candidate} && echo 'found' || echo 'missing'"
             )
-            if "found" in (result.output or ""):
+            found = "found" in (result.output or "")
+            self.logger.debug(
+                "Probe %s → %s", candidate, "found" if found else "missing"
+            )
+            if found:
                 self.logger.info(f"Config file detected at {candidate}")
                 self.config_path = candidate
                 return candidate
@@ -134,6 +145,7 @@ class SoundTouchConfigService:
             return xml, None
         old_value = match.group(2)
         new_xml = pattern.sub(rf"\g<1>{new_value}\g<3>", xml, count=1)
+        logger.debug("<%s> %s → %s", tag, old_value[:120], new_value[:120])
         return new_xml, old_value
 
     @staticmethod
@@ -158,36 +170,31 @@ class SoundTouchConfigService:
     async def _read_config(self) -> str:
         """Read current config file from device."""
         path = await self._detect_config_path()
+        self.logger.debug("Reading config from %s", path)
         result = await self.ssh.execute(f"cat {path}")
         if not result.success:
             raise RuntimeError(
                 f"Cannot read config file: {result.error or result.output}"
             )
-        return result.output or ""
+        content = result.output or ""
+        self.logger.debug("Config read: %d bytes", len(content))
+        return content
 
     async def _write_config(self, content: str) -> None:
         """Write config file atomically via base64 piping.
 
-        If the detected config path is on a read-only filesystem
-        (/opt/Bose/etc/), copies to /mnt/nv/ first and writes there.
+        Writes directly to the canonical path (/opt/Bose/etc/).
+        Caller MUST have remounted rw before calling this.
         """
         path = await self._detect_config_path()
 
-        # If path is on read-only /opt/Bose/etc/, we need to write to /mnt/nv/
-        if path.startswith("/opt/Bose/"):
-            filename = path.rsplit("/", 1)[-1]
-            writable_path = f"/mnt/nv/{filename}"
-            # Copy original to writable location first (if not already there)
-            check = await self.ssh.execute(
-                f"test -f {writable_path} && echo 'exists' || echo 'missing'"
-            )
-            if "missing" in (check.output or ""):
-                await self.ssh.execute(f"cp {path} {writable_path}")
-            self.config_path = writable_path
-            path = writable_path
-            self.logger.info(f"Read-only filesystem detected, writing to {path}")
-
         b64 = base64.b64encode(content.encode()).decode()
+        self.logger.debug(
+            "Writing config to %s (%d bytes, base64 %d chars)",
+            path,
+            len(content),
+            len(b64),
+        )
         write_cmd = (
             f"echo '{b64}' | base64 -d > /tmp/config.new && "
             f"mv /tmp/config.new {path}"
@@ -197,6 +204,7 @@ class SoundTouchConfigService:
             raise RuntimeError(
                 f"Failed to write config: {result.error or result.output}"
             )
+        self.logger.debug("Config written successfully to %s", path)
 
     async def _verify_config(self) -> str:
         """Read back config and verify it's valid XML (has closing tag)."""
@@ -215,6 +223,44 @@ class SoundTouchConfigService:
             result = await self.ssh.execute(f"cp {path} {backup_path}")
             if not result.success:
                 self.logger.warning(f"Backup may have failed: {result.error}")
+
+    async def _sync_all_config_files(self, content: str) -> None:
+        """Sync modified content to ALL config file locations.
+
+        We don't fully understand which file firmware reads on each model.
+        Rather than guess, we write the modified content to every config
+        candidate path — creating override files that don't yet exist.
+        This ensures persistence across reboots on devices where /opt/Bose/etc/
+        lives on a read-only SquashFS overlay.
+
+        Best-effort: failure here must not abort the main modify flow.
+        """
+        primary = await self._detect_config_path()
+        self.logger.debug(
+            "Syncing config from primary %s to %d candidates",
+            primary,
+            len(self.CONFIG_CANDIDATES) - 1,
+        )
+        for candidate in self.CONFIG_CANDIDATES:
+            if candidate == primary:
+                self.logger.debug("Skipping primary path %s", candidate)
+                continue
+            try:
+                self.logger.info(f"Syncing config: {candidate}")
+                b64 = base64.b64encode(content.encode()).decode()
+                write_cmd = (
+                    f"echo '{b64}' | base64 -d > /tmp/cfg_sync.new && "
+                    f"mv /tmp/cfg_sync.new {candidate}"
+                )
+                result = await self.ssh.execute(write_cmd)
+                if not result.success:
+                    self.logger.warning(
+                        f"Sync failed for {candidate} (best-effort): {result.error}"
+                    )
+                else:
+                    self.logger.debug("Sync OK: %s", candidate)
+            except Exception as e:
+                self.logger.warning(f"Sync error for {candidate} (best-effort): {e}")
 
     async def modify_bmx_url(self, oct_ip: str) -> ModifyResult:
         """Modify BMX URL (and optionally marge/swupdate) in config.
@@ -272,6 +318,9 @@ class SoundTouchConfigService:
 
                 # 5. Verify write
                 await self._verify_config()
+
+                # 5b. Sync ALL other config files that exist (best-effort)
+                await self._sync_all_config_files(modified)
 
                 self.logger.info(
                     f"Config modified successfully ({len(diff.changes)} tags)"

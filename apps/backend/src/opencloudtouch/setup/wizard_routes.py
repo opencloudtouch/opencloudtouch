@@ -45,7 +45,6 @@ from opencloudtouch.setup.hosts_service import SoundTouchHostsService
 from opencloudtouch.setup.ssh_client import (
     SoundTouchSSHClient,
     check_ssh_port,
-    check_telnet_port,
 )
 
 logger = logging.getLogger(__name__)
@@ -63,13 +62,20 @@ async def ssh_operation(
         Connected SoundTouchSSHClient ready for commands
 
     Raises:
-        HTTPException(500): On any error opening SSH connection or during the operation
+        HTTPException(503): When SSH connection is refused or unreachable
+        HTTPException(500): On any other unexpected error
     """
     try:
         async with SoundTouchSSHClient(device_ip) as ssh:
             yield ssh
     except HTTPException:
         raise  # propagate intentional HTTP errors from business logic unchanged
+    except (ConnectionError, ConnectionRefusedError, OSError) as e:
+        logger.error(f"[Wizard/{operation_name}] SSH unreachable on {device_ip}: {e}")
+        raise HTTPException(
+            status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="SSH nicht erreichbar. Bitte USB-Stick prüfen oder SSH erneut aktivieren.",
+        )
     except Exception as e:
         logger.error(
             f"[Wizard/{operation_name}] failed on {device_ip}: {e}", exc_info=True
@@ -159,25 +165,22 @@ def _check_port_443(hostname: str) -> bool:
 
 @wizard_router.post("/wizard/check-ports", response_model=PortCheckResponse)
 async def wizard_check_ports(request: PortCheckRequest):
-    """Check if SSH/Telnet ports accessible (Wizard Step 3)."""
-    logger.info(f"Checking ports on {request.device_ip}")
+    """Check if SSH port is accessible (Wizard Step 3)."""
+    logger.info(f"Checking SSH port on {request.device_ip}")
 
     has_ssh = await check_ssh_port(request.device_ip, timeout=request.timeout)
-    has_telnet = await check_telnet_port(request.device_ip, timeout=request.timeout)
 
-    if not has_ssh and not has_telnet:
+    if not has_ssh:
         return PortCheckResponse(
             success=False,
-            message="Neither SSH nor Telnet accessible. Check USB stick setup.",
+            message="SSH not accessible. Check USB stick setup.",
             has_ssh=False,
-            has_telnet=False,
         )
 
     return PortCheckResponse(
         success=True,
-        message=f"Remote access enabled (SSH: {has_ssh}, Telnet: {has_telnet})",
-        has_ssh=has_ssh,
-        has_telnet=has_telnet,
+        message="SSH access enabled",
+        has_ssh=True,
     )
 
 
@@ -218,19 +221,37 @@ async def wizard_backup(request: BackupRequest):
 
 
 @wizard_router.post("/wizard/modify-config", response_model=ConfigModifyResponse)
-async def wizard_modify_config(request: ConfigModifyRequest):
+async def wizard_modify_config(request: ConfigModifyRequest, http_request: Request):
     """Modify OverrideSdkPrivateCfg.xml (Wizard Step 5)."""
     from urllib.parse import urlparse
 
     logger.info(f"Modifying config on {request.device_ip} (OCT: {request.target_addr})")
 
-    # Parse URL to extract host for config service
     parsed = urlparse(request.target_addr)
     target_host = parsed.hostname or parsed.netloc
 
     async with ssh_operation(request.device_ip, "modify-config") as ssh:
         config_service = SoundTouchConfigService(ssh)
+        audit_repo = getattr(http_request.app.state, "wizard_audit_repo", None)
+
+        await _snapshot_config_files(
+            ssh,
+            audit_repo,
+            request.device_ip,
+            config_service.CONFIG_CANDIDATES,
+            "before_modify_config",
+        )
+
         result = await config_service.modify_bmx_url(target_host)
+
+        if result.success:
+            await _snapshot_config_files(
+                ssh,
+                audit_repo,
+                request.device_ip,
+                config_service.CONFIG_CANDIDATES,
+                "after_modify_config",
+            )
 
         if not result.success:
             return ConfigModifyResponse(
@@ -248,18 +269,15 @@ async def wizard_modify_config(request: ConfigModifyRequest):
 
 
 @wizard_router.post("/wizard/modify-hosts", response_model=HostsModifyResponse)
-async def wizard_modify_hosts(request: HostsModifyRequest):
+async def wizard_modify_hosts(request: HostsModifyRequest, http_request: Request):
     """Modify /etc/hosts (Wizard Step 6)."""
     from urllib.parse import urlparse
 
     logger.info(f"Modifying hosts on {request.device_ip} (OCT: {request.target_addr})")
 
-    # Parse URL to extract host for hosts service
     parsed = urlparse(request.target_addr)
     target_host = parsed.hostname or parsed.netloc
 
-    # /etc/hosts requires a numeric IP in the first field.
-    # Resolve hostname → IP so entries like "hera" become "192.168.178.11".
     try:
         target_ip = socket.gethostbyname(target_host)
     except socket.gaierror:
@@ -269,8 +287,27 @@ async def wizard_modify_hosts(request: HostsModifyRequest):
         )
 
     async with ssh_operation(request.device_ip, "modify-hosts") as ssh:
+        audit_repo = getattr(http_request.app.state, "wizard_audit_repo", None)
+
+        await _snapshot_config_files(
+            ssh,
+            audit_repo,
+            request.device_ip,
+            ["/etc/hosts"],
+            "before_modify_hosts",
+        )
+
         hosts_service = SoundTouchHostsService(ssh)
         result = await hosts_service.modify_hosts(target_ip, request.include_optional)
+
+        if result.success:
+            await _snapshot_config_files(
+                ssh,
+                audit_repo,
+                request.device_ip,
+                ["/etc/hosts"],
+                "after_modify_hosts",
+            )
 
         if not result.success:
             return HostsModifyResponse(
@@ -464,3 +501,27 @@ async def wizard_verify_redirect(request: VerifyRedirectRequest):
                 else f"{request.domain} → {resolved_ip} (expected {expected_resolved})"
             ),
         )
+
+
+async def _snapshot_config_files(
+    ssh: SoundTouchSSHClient,
+    audit_repo,
+    device_id: str,
+    file_paths: list[str],
+    trigger: str,
+) -> None:
+    """Take config snapshots for audit trail (best-effort, never raises)."""
+    if not audit_repo:
+        return
+    try:
+        for path in file_paths:
+            r = await ssh.execute(f"cat {path} 2>/dev/null")
+            if r.success and r.output:
+                await audit_repo.add_config_snapshot(
+                    device_id=device_id,
+                    file_path=path,
+                    content=r.output,
+                    trigger=trigger,
+                )
+    except Exception as e:
+        logger.warning("Config snapshot (%s) failed: %s", trigger, e)

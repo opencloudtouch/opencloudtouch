@@ -53,6 +53,7 @@ from opencloudtouch.settings.service import SettingsService
 from opencloudtouch.setup.routes import router as setup_router
 from opencloudtouch.setup.wizard_routes import wizard_router
 from opencloudtouch.swupdate.routes import router as swupdate_router
+from opencloudtouch.wizard_audit.routes import audit_router as wizard_audit_router
 from opencloudtouch.zones.routes import device_zone_router, router as zones_router
 
 # Module-level logger
@@ -74,6 +75,11 @@ async def lifespan(app: FastAPI):
     logger.info(f"Database: {cfg.effective_db_path}")
     logger.info(f"Discovery enabled: {cfg.discovery_enabled}")
     logger.info(f"Mock mode: {cfg.mock_mode}")
+    # Build attestation marker (invisible Unicode soft-hyphen U+00AD in log prefix)
+    from opencloudtouch import is_official_build
+
+    _build_tag = "\u00adofficial" if is_official_build() else "\u00adcommunity"
+    logger.info(f"Build\u00ad: {__version__} [{_build_tag}]")
 
     # Initialize database
     device_repo = DeviceRepository(cfg.effective_db_path)
@@ -156,6 +162,14 @@ async def lifespan(app: FastAPI):
     app.state.setup_service = setup_service
     logger.info("Setup service initialized")
 
+    # Initialize wizard audit repository
+    from opencloudtouch.wizard_audit.repository import WizardAuditRepository
+
+    wizard_audit_repo = WizardAuditRepository(cfg.effective_db_path)
+    await wizard_audit_repo.initialize()
+    app.state.wizard_audit_repo = wizard_audit_repo
+    logger.info("Wizard audit repository initialized")
+
     # Start background health-check (not in mock/CI mode)
     health_check = DeviceHealthCheck(device_repo)
     if not cfg.mock_mode:
@@ -180,6 +194,9 @@ async def lifespan(app: FastAPI):
 
     await recents_repo.close()
     logger.info("Recents repository closed")
+
+    await wizard_audit_repo.close()
+    logger.info("Wizard audit repository closed")
 
     logger.info("OpenCloudTouch shutting down")
 
@@ -248,18 +265,22 @@ app.include_router(zones_router)  # Multi-room zone management
 app.include_router(device_zone_router)  # Per-device zone status
 app.include_router(logs_router)  # Backend log download
 app.include_router(bug_report_router)  # Bug report submission
+app.include_router(wizard_audit_router)  # Wizard audit trail
 
 
 # Health endpoint
 @app.get("/health", tags=["System"])
 async def health_check():
     """Health check endpoint for Docker and monitoring."""
+    from opencloudtouch import is_official_build
+
     cfg = get_config()
     return JSONResponse(
         status_code=200,
         content={
             "status": "healthy",
             "version": __version__,
+            "build": "official" if is_official_build() else "community",
             "config": {
                 "discovery_enabled": cfg.discovery_enabled,
             },
