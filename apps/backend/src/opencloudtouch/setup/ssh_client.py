@@ -19,6 +19,16 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+# Legacy SSH algorithms required by SoundTouch firmware (shared across all SSH callers)
+_SSH_HOST_KEY_ALGS = ["ssh-rsa", "rsa-sha2-512", "rsa-sha2-256", "ssh-dss"]
+_SSH_KEX_ALGS = [
+    "diffie-hellman-group1-sha1",
+    "diffie-hellman-group14-sha1",
+    "diffie-hellman-group-exchange-sha256",
+    "ecdh-sha2-nistp256",
+]
+_SSH_ENCRYPTION_ALGS = ["aes128-cbc", "3des-cbc", "aes128-ctr", "aes256-ctr"]
+
 
 @dataclass
 class SSHConnectionResult:
@@ -75,13 +85,6 @@ class SoundTouchSSHClient:
                 )
 
             logger.info("Connecting to %s:%s via SSH...", self.host, self.port)
-            logger.debug(
-                "SSH params: user=root, timeout=%.1fs, "
-                "host_key_algs=[ssh-rsa,rsa-sha2-512,rsa-sha2-256,ssh-dss], "
-                "kex=[dh-group1-sha1,dh-group14-sha1,dh-gex-sha256,ecdh-nistp256], "
-                "ciphers=[aes128-cbc,3des-cbc,aes128-ctr,aes256-ctr]",
-                timeout,
-            )
 
             # Connect with no password (SoundTouch root has no password)
             # Enable legacy algorithms for old SoundTouch firmware
@@ -93,25 +96,9 @@ class SoundTouchSSHClient:
                     username="root",
                     password="",
                     known_hosts=None,  # Skip host key verification for embedded devices
-                    # Legacy algorithms required by SoundTouch
-                    server_host_key_algs=[
-                        "ssh-rsa",
-                        "rsa-sha2-512",
-                        "rsa-sha2-256",
-                        "ssh-dss",
-                    ],
-                    kex_algs=[
-                        "diffie-hellman-group1-sha1",
-                        "diffie-hellman-group14-sha1",
-                        "diffie-hellman-group-exchange-sha256",
-                        "ecdh-sha2-nistp256",
-                    ],
-                    encryption_algs=[
-                        "aes128-cbc",
-                        "3des-cbc",
-                        "aes128-ctr",
-                        "aes256-ctr",
-                    ],
+                    server_host_key_algs=_SSH_HOST_KEY_ALGS,
+                    kex_algs=_SSH_KEX_ALGS,
+                    encryption_algs=_SSH_ENCRYPTION_ALGS,
                 ),
                 timeout=timeout,
             )
@@ -332,19 +319,9 @@ async def check_ssh_port(host: str, timeout: float = 5.0) -> bool:
                 username="root",
                 password="",
                 known_hosts=None,
-                server_host_key_algs=[
-                    "ssh-rsa",
-                    "rsa-sha2-512",
-                    "rsa-sha2-256",
-                    "ssh-dss",
-                ],
-                kex_algs=[
-                    "diffie-hellman-group1-sha1",
-                    "diffie-hellman-group14-sha1",
-                    "diffie-hellman-group-exchange-sha256",
-                    "ecdh-sha2-nistp256",
-                ],
-                encryption_algs=["aes128-cbc", "3des-cbc", "aes128-ctr", "aes256-ctr"],
+                server_host_key_algs=_SSH_HOST_KEY_ALGS,
+                kex_algs=_SSH_KEX_ALGS,
+                encryption_algs=_SSH_ENCRYPTION_ALGS,
             ),
             timeout=timeout,
         )

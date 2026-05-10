@@ -702,7 +702,7 @@ class TestKeyPressEndpoint:
         detail = response.json()["detail"]
         assert "0x7f3a" not in detail
         assert "pool exhausted" not in detail
-        assert "Failed to press key on device" in detail
+        assert "Failed to press key" in detail
 
 
 class TestDeleteAllDevicesEndpoint:

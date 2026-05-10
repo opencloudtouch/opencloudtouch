@@ -76,11 +76,9 @@ AGENTS.md
 .github/agents/
 .github/CHEATSHEET.md
 Debugging/
-docs/bose-config-files.md
-docs/worldwide.bose.com-updates-soundtouch-index.xml
+docs/
 .specify/
 specs/
 
 # === SECRET Files ===
 doc
-agent-work

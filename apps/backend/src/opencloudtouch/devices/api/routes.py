@@ -4,6 +4,8 @@ CRUD endpoints for device management. Discovery endpoints extracted to discovery
 """
 
 import logging
+from collections.abc import Awaitable
+from typing import TypeVar
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 
@@ -14,7 +16,29 @@ from opencloudtouch.devices.service import DeviceService
 
 logger = logging.getLogger(__name__)
 
+T = TypeVar("T")
+
 router = APIRouter(prefix="/api/devices", tags=["Devices"])
+
+
+async def _device_op(device_id: str, action: str, coro: Awaitable[T]) -> T:
+    """Execute a device service call with standardized error handling.
+
+    Maps ValueError("not found") → 404, ValueError → 400,
+    DeviceConnectionError → re-raise (handled by global handler),
+    other exceptions → 500.
+    """
+    try:
+        return await coro
+    except ValueError as e:
+        if "not found" in str(e).lower():
+            raise DeviceNotFoundError(device_id) from e
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except DeviceConnectionError:
+        raise
+    except Exception as e:
+        logger.error("Failed to %s for device %s: %s", action, device_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed to {action}") from e
 
 
 @router.get("")
@@ -120,19 +144,11 @@ async def get_device_capabilities_endpoint(
             "advanced": {...}
         }
     """
-    try:
-        capabilities = await device_service.get_device_capabilities(device_id)
-        return capabilities
-    except ValueError as e:
-        # ValueError from service means device not found
-        raise DeviceNotFoundError(device_id) from e
-    except DeviceConnectionError:
-        raise
-    except Exception as e:
-        logger.error("Failed to get capabilities for device %s: %s", device_id, e)
-        raise HTTPException(
-            status_code=500, detail=f"Failed to query device capabilities: {str(e)}"
-        ) from e
+    return await _device_op(
+        device_id,
+        "query device capabilities",
+        device_service.get_device_capabilities(device_id),
+    )
 
 
 @router.post("/{device_id}/key")
@@ -163,22 +179,12 @@ async def press_key(
     Example:
         POST /api/devices/AABBCC112233/key?key=PRESET_1&state=both
     """
-    try:
-        await device_service.press_key(device_id, key, state)
-        return {"message": f"Key {key} pressed successfully", "device_id": device_id}
-    except ValueError as e:
-        # Device not found
-        if "not found" in str(e).lower():
-            raise DeviceNotFoundError(device_id) from e
-        # Invalid key or state
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except DeviceConnectionError:
-        raise
-    except Exception as e:
-        logger.error("Failed to press key %s on device %s: %s", key, device_id, e)
-        raise HTTPException(
-            status_code=500, detail="Failed to press key on device"
-        ) from e
+    await _device_op(
+        device_id,
+        "press key",
+        device_service.press_key(device_id, key, state),
+    )
+    return {"message": f"Key {key} pressed successfully", "device_id": device_id}
 
 
 @router.get("/{device_id}/now-playing")
@@ -187,28 +193,20 @@ async def get_now_playing(
     device_service: DeviceService = Depends(get_device_service),
 ):
     """Get current playback status for a device."""
-    try:
-        info = await device_service.get_now_playing(device_id)
-        return {
-            "source": info.source,
-            "state": info.state,
-            "station_name": info.station_name,
-            "artist": info.artist,
-            "track": info.track,
-            "album": info.album,
-            "artwork_url": info.artwork_url,
-        }
-    except ValueError as e:
-        if "not found" in str(e).lower():
-            raise DeviceNotFoundError(device_id) from e
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except DeviceConnectionError:
-        raise
-    except Exception as e:
-        logger.error("Failed to get now playing for device %s: %s", device_id, e)
-        raise HTTPException(
-            status_code=500, detail="Failed to get playback status"
-        ) from e
+    info = await _device_op(
+        device_id,
+        "get playback status",
+        device_service.get_now_playing(device_id),
+    )
+    return {
+        "source": info.source,
+        "state": info.state,
+        "station_name": info.station_name,
+        "artist": info.artist,
+        "track": info.track,
+        "album": info.album,
+        "artwork_url": info.artwork_url,
+    }
 
 
 @router.get("/{device_id}/volume")
@@ -217,18 +215,12 @@ async def get_volume(
     device_service: DeviceService = Depends(get_device_service),
 ):
     """Get current volume state for a device."""
-    try:
-        vol = await device_service.get_volume(device_id)
-        return {"actual": vol.actual, "target": vol.target, "muted": vol.muted}
-    except ValueError as e:
-        if "not found" in str(e).lower():
-            raise DeviceNotFoundError(device_id) from e
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except DeviceConnectionError:
-        raise
-    except Exception as e:
-        logger.error("Failed to get volume for device %s: %s", device_id, e)
-        raise HTTPException(status_code=500, detail="Failed to get volume") from e
+    vol = await _device_op(
+        device_id,
+        "get volume",
+        device_service.get_volume(device_id),
+    )
+    return {"actual": vol.actual, "target": vol.target, "muted": vol.muted}
 
 
 @router.put("/{device_id}/volume")
@@ -238,18 +230,12 @@ async def set_volume(
     device_service: DeviceService = Depends(get_device_service),
 ):
     """Set volume level (0-100)."""
-    try:
-        vol = await device_service.set_volume(device_id, level)
-        return {"actual": vol.actual, "target": vol.target, "muted": vol.muted}
-    except ValueError as e:
-        if "not found" in str(e).lower():
-            raise DeviceNotFoundError(device_id) from e
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except DeviceConnectionError:
-        raise
-    except Exception as e:
-        logger.error("Failed to set volume for device %s: %s", device_id, e)
-        raise HTTPException(status_code=500, detail="Failed to set volume") from e
+    vol = await _device_op(
+        device_id,
+        "set volume",
+        device_service.set_volume(device_id, level),
+    )
+    return {"actual": vol.actual, "target": vol.target, "muted": vol.muted}
 
 
 @router.put("/{device_id}/mute")
@@ -259,15 +245,9 @@ async def set_mute(
     device_service: DeviceService = Depends(get_device_service),
 ):
     """Set mute state."""
-    try:
-        vol = await device_service.set_mute(device_id, muted)
-        return {"actual": vol.actual, "target": vol.target, "muted": vol.muted}
-    except ValueError as e:
-        if "not found" in str(e).lower():
-            raise DeviceNotFoundError(device_id) from e
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except DeviceConnectionError:
-        raise
-    except Exception as e:
-        logger.error("Failed to set mute for device %s: %s", device_id, e)
-        raise HTTPException(status_code=500, detail="Failed to set mute") from e
+    vol = await _device_op(
+        device_id,
+        "set mute",
+        device_service.set_mute(device_id, muted),
+    )
+    return {"actual": vol.actual, "target": vol.target, "muted": vol.muted}
