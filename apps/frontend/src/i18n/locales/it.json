@@ -120,6 +120,18 @@
       "devicesFound_one": "{{count}} nuovo dispositivo trovato",
       "devicesFound_other": "{{count}} nuovi dispositivi trovati",
       "noNewDevices": "Nessun nuovo dispositivo trovato"
+    },
+    "logging": {
+      "sectionTitle": "Registrazione",
+      "description": "Controllare il livello di dettaglio dei log e scaricare i log per la risoluzione dei problemi.",
+      "logLevel": "Livello di log",
+      "levelOff": "Disattivato",
+      "levelInfo": "Info",
+      "levelDebug": "Debug",
+      "downloadLogs": "Scarica log",
+      "downloadDescription": "Scarica le ultime 1000 voci del log backend come file di testo.",
+      "levelChanged": "Livello di log impostato su {{level}}",
+      "levelError": "Impossibile modificare il livello di log"
     }
   },
   "manualIpModal": {

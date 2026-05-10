@@ -120,6 +120,18 @@
       "devicesFound_one": "{{count}} nieuw apparaat gevonden",
       "devicesFound_other": "{{count}} nieuwe apparaten gevonden",
       "noNewDevices": "Geen nieuwe apparaten gevonden"
+    },
+    "logging": {
+      "sectionTitle": "Logboek",
+      "description": "Beheer het detailniveau van het logboek en download logs voor probleemoplossing.",
+      "logLevel": "Logniveau",
+      "levelOff": "Uit",
+      "levelInfo": "Info",
+      "levelDebug": "Debug",
+      "downloadLogs": "Logs downloaden",
+      "downloadDescription": "Download de laatste 1000 backend-logvermeldingen als tekstbestand.",
+      "levelChanged": "Logniveau ingesteld op {{level}}",
+      "levelError": "Logniveau kon niet worden gewijzigd"
     }
   },
   "manualIpModal": {

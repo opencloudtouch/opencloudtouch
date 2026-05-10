@@ -5,7 +5,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   getModelInstructions,
   checkConnectivity,
-  startSetup,
   getSetupStatus,
   verifySetup,
   getSupportedModels,
@@ -122,60 +121,6 @@ describe("Setup API Client", () => {
       await expect(checkConnectivity("invalid")).rejects.toThrow(
         "Ein unerwarteter Fehler ist aufgetreten"
       );
-    });
-  });
-
-  describe("startSetup", () => {
-    it("starts setup process successfully", async () => {
-      const mockResponse = {
-        device_id: "device123",
-        status: "pending",
-        message: "Setup started",
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
-
-      const result = await startSetup("device123", "192.168.1.100", "SoundTouch 30");
-
-      expect(mockFetch).toHaveBeenCalledWith("/api/setup/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          device_id: "device123",
-          ip: "192.168.1.100",
-          model: "SoundTouch 30",
-        }),
-      });
-      expect(result).toEqual(mockResponse);
-    });
-
-    it("throws error when setup start fails", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        statusText: "Conflict",
-        json: () => Promise.resolve({ detail: "Setup already in progress" }),
-      });
-
-      // getErrorMessage returns fallback for non-ApiError objects
-      await expect(
-        startSetup("device123", "192.168.1.100", "SoundTouch 30")
-      ).rejects.toThrow("Ein unerwarteter Fehler ist aufgetreten");
-    });
-
-    it("handles JSON parse failure", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        statusText: "Internal Server Error",
-        json: () => Promise.reject(new Error("JSON error")),
-      });
-
-      // getErrorMessage(null) returns fallback
-      await expect(
-        startSetup("device123", "192.168.1.100", "SoundTouch 30")
-      ).rejects.toThrow("Ein unerwarteter Fehler ist aufgetreten");
     });
   });
 

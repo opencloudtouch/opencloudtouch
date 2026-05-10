@@ -794,3 +794,118 @@ class TestSSHUnreachableReturns503:
             )
         assert response.status_code == 503
         assert "SSH" in response.json()["detail"]
+
+
+# ── _snapshot_config_files helper ─────────────────────────────────────────────
+
+
+class TestSnapshotConfigFiles:
+    """Unit tests for _snapshot_config_files audit helper."""
+
+    @pytest.mark.asyncio
+    async def test_snapshots_config_files(self):
+        from opencloudtouch.setup.wizard_routes import _snapshot_config_files
+
+        mock_ssh = AsyncMock()
+        mock_ssh.execute = AsyncMock(
+            return_value=MagicMock(success=True, output="<xml>config</xml>")
+        )
+        mock_repo = AsyncMock()
+        mock_repo.add_config_snapshot = AsyncMock()
+
+        await _snapshot_config_files(
+            ssh=mock_ssh,
+            audit_repo=mock_repo,
+            device_id="192.168.1.100",
+            file_paths=["/opt/Bose/etc/config.xml"],
+            trigger="before_modify",
+        )
+
+        mock_repo.add_config_snapshot.assert_called_once_with(
+            device_id="192.168.1.100",
+            file_path="/opt/Bose/etc/config.xml",
+            content="<xml>config</xml>",
+            trigger="before_modify",
+        )
+
+    @pytest.mark.asyncio
+    async def test_skips_when_no_audit_repo(self):
+        from opencloudtouch.setup.wizard_routes import _snapshot_config_files
+
+        mock_ssh = AsyncMock()
+        await _snapshot_config_files(
+            ssh=mock_ssh,
+            audit_repo=None,
+            device_id="192.168.1.100",
+            file_paths=["/etc/hosts"],
+            trigger="test",
+        )
+        mock_ssh.execute.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_skips_file_when_cat_fails(self):
+        from opencloudtouch.setup.wizard_routes import _snapshot_config_files
+
+        mock_ssh = AsyncMock()
+        mock_ssh.execute = AsyncMock(return_value=MagicMock(success=False, output=""))
+        mock_repo = AsyncMock()
+
+        await _snapshot_config_files(
+            ssh=mock_ssh,
+            audit_repo=mock_repo,
+            device_id="DEV1",
+            file_paths=["/nonexistent"],
+            trigger="test",
+        )
+        mock_repo.add_config_snapshot.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_handles_exception_gracefully(self):
+        from opencloudtouch.setup.wizard_routes import _snapshot_config_files
+
+        mock_ssh = AsyncMock()
+        mock_ssh.execute = AsyncMock(side_effect=RuntimeError("SSH error"))
+        mock_repo = AsyncMock()
+
+        await _snapshot_config_files(
+            ssh=mock_ssh,
+            audit_repo=mock_repo,
+            device_id="DEV1",
+            file_paths=["/etc/hosts"],
+            trigger="test",
+        )
+
+    @pytest.mark.asyncio
+    async def test_multiple_files_snapshot(self):
+        from opencloudtouch.setup.wizard_routes import _snapshot_config_files
+
+        mock_ssh = AsyncMock()
+        mock_ssh.execute = AsyncMock(
+            return_value=MagicMock(success=True, output="content")
+        )
+        mock_repo = AsyncMock()
+        mock_repo.add_config_snapshot = AsyncMock()
+
+        await _snapshot_config_files(
+            ssh=mock_ssh,
+            audit_repo=mock_repo,
+            device_id="DEV1",
+            file_paths=["/a.xml", "/b.xml", "/c.xml"],
+            trigger="before_test",
+        )
+        assert mock_repo.add_config_snapshot.call_count == 3
+
+
+# ── wizard/server-info ────────────────────────────────────────────────────────
+
+
+class TestWizardServerInfo:
+    """GET /api/setup/wizard/server-info"""
+
+    def test_returns_server_url(self, client):
+        response = client.get("/api/setup/wizard/server-info")
+        assert response.status_code == 200
+        body = response.json()
+        assert "server_url" in body
+        assert "server_ip" in body
+        assert body["default_port"] == 7777

@@ -74,5 +74,9 @@ AGENTS.md
 .github/copilot-instructions.md
 .github/prompts/
 .github/agents/
+.github/CHEATSHEET.md
+Debugging/
+docs/bose-config-files.md
+docs/worldwide.bose.com-updates-soundtouch-index.xml
 .specify/
 specs/

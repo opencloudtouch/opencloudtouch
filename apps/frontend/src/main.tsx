@@ -1,5 +1,9 @@
 import "./i18n";
+import { initLogBuffer } from "./utils/logBuffer";
 import { StrictMode } from "react";
+
+// Install console interceptors ASAP so all logs are captured
+initLogBuffer();
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";

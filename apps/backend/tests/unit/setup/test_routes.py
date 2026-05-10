@@ -114,55 +114,6 @@ class TestCheckConnectivity:
         assert data["ready_for_setup"] is True
 
 
-class TestStartSetup:
-    """Tests for POST /api/setup/start."""
-
-    def test_start_setup_request_validation(self, client):
-        """Test request validation."""
-        # Missing required fields
-        response = client.post("/api/setup/start", json={})
-        assert response.status_code == 422
-
-    def test_start_setup_success(self, client, mock_setup_service):
-        """Test successful setup start."""
-        mock_setup_service.get_setup_status.return_value = None  # No active setup
-        mock_setup_service.run_setup = AsyncMock()
-
-        response = client.post(
-            "/api/setup/start",
-            json={
-                "device_id": "DEVICE123",
-                "ip": "192.168.1.100",
-                "model": "SoundTouch 10",
-            },
-        )
-        assert response.status_code == 200
-
-        data = response.json()
-        assert data["device_id"] == "DEVICE123"
-        assert data["status"] == "started"
-
-    def test_start_setup_already_in_progress(self, client, mock_setup_service):
-        """Test starting setup when already in progress."""
-        # Return an existing pending setup
-        existing_progress = SetupProgress(
-            device_id="DEVICE123",
-            current_step=SetupStep.SSH_CONNECT,
-            status=SetupStatus.PENDING,
-        )
-        mock_setup_service.get_setup_status.return_value = existing_progress
-
-        response = client.post(
-            "/api/setup/start",
-            json={
-                "device_id": "DEVICE123",
-                "ip": "192.168.1.100",
-                "model": "SoundTouch 10",
-            },
-        )
-        assert response.status_code == 409  # Conflict
-
-
 class TestGetStatus:
     """Tests for GET /api/setup/status/{device_id}."""
 

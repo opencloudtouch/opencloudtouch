@@ -80,6 +80,8 @@ class DeviceService:
         devices = await self.discovery_adapter.discover(timeout=timeout)
 
         logger.info(f"Discovery complete: {len(devices)} device(s) found")
+        for d in devices:
+            logger.debug("Discovered: ip=%s, name=%s", d.ip, getattr(d, "name", "?"))
 
         return devices
 
@@ -214,7 +216,13 @@ class DeviceService:
 
         try:
             capabilities = await get_capabilities_for_ip(device.ip)
-            return get_feature_flags_for_ui(capabilities)
+            flags = get_feature_flags_for_ui(capabilities)
+            logger.debug(
+                "Capabilities for %s: %s",
+                device_id,
+                {k: v for k, v in flags.items() if v},
+            )
+            return flags
 
         except Exception as e:
             logger.error(f"Failed to get capabilities for device {device_id}: {e}")

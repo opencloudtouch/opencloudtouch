@@ -104,26 +104,6 @@ export async function checkConnectivity(ip: string): Promise<ConnectivityResult>
 }
 
 /**
- * Start device setup process
- */
-export async function startSetup(
-  deviceId: string,
-  ip: string,
-  model: string
-): Promise<{ device_id: string; status: string; message: string }> {
-  const response = await fetch(`${API_BASE_URL}/api/setup/start`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ device_id: deviceId, ip, model }),
-  });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(getErrorMessage(errorData) || `Failed to start setup: ${response.statusText}`);
-  }
-  return response.json();
-}
-
-/**
  * Get setup status for a device
  */
 export async function getSetupStatus(deviceId: string): Promise<SetupProgress | null> {

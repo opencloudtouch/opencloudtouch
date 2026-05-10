@@ -75,6 +75,13 @@ class SoundTouchSSHClient:
                 )
 
             logger.info(f"Connecting to {self.host}:{self.port} via SSH...")
+            logger.debug(
+                "SSH params: user=root, timeout=%.1fs, "
+                "host_key_algs=[ssh-rsa,rsa-sha2-512,rsa-sha2-256,ssh-dss], "
+                "kex=[dh-group1-sha1,dh-group14-sha1,dh-gex-sha256,ecdh-nistp256], "
+                "ciphers=[aes128-cbc,3des-cbc,aes128-ctr,aes256-ctr]",
+                timeout,
+            )
 
             # Connect with no password (SoundTouch root has no password)
             # Enable legacy algorithms for old SoundTouch firmware
@@ -113,11 +120,13 @@ class SoundTouchSSHClient:
             return SSHConnectionResult(success=True, output="Connected")
 
         except asyncio.TimeoutError:
-            error = f"SSH connection timeout after {timeout}s"
+            error = (
+                f"SSH connection timeout after {timeout}s to {self.host}:{self.port}"
+            )
             logger.error(error)
             return SSHConnectionResult(success=False, error=error)
         except Exception as e:
-            error = f"SSH connection failed: {str(e)}"
+            error = f"SSH connection failed to {self.host}:{self.port}: {type(e).__name__}: {e}"
             logger.error(error)
             return SSHConnectionResult(success=False, error=error)
 
@@ -129,7 +138,7 @@ class SoundTouchSSHClient:
             )
 
         try:
-            logger.debug(f"Executing: {command}")
+            logger.debug("SSH exec [%s]: %s", self.host, command)
 
             result = await asyncio.wait_for(
                 self._connection.run(command), timeout=timeout
@@ -141,19 +150,36 @@ class SoundTouchSSHClient:
             if stderr:
                 output += f"\n[stderr]: {stderr}"
 
-            logger.debug(f"Command output: {output[:200]}...")
+            exit_code = result.exit_status or 0
+            logger.debug(
+                "SSH result [%s]: exit=%d, stdout=%d bytes, stderr=%d bytes, out=%.200s",
+                self.host,
+                exit_code,
+                len(result.stdout or ""),
+                len(stderr),
+                output[:200],
+            )
 
             return CommandResult(
-                success=result.exit_status == 0,
+                success=exit_code == 0,
                 output=output,
-                exit_code=result.exit_status or 0,
+                exit_code=exit_code,
             )
 
         except asyncio.TimeoutError:
+            logger.error(
+                "SSH command timeout after %.0fs on %s: %s",
+                timeout,
+                self.host,
+                command[:100],
+            )
             return CommandResult(
                 success=False, error=f"Command timeout after {timeout}s"
             )
         except Exception as e:
+            logger.error(
+                "SSH command failed on %s: %s: %s", self.host, type(e).__name__, e
+            )
             return CommandResult(
                 success=False, error=f"Command execution failed: {str(e)}"
             )

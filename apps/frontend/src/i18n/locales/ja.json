@@ -116,6 +116,18 @@
       "devicesFound_one": "新しいデバイスが{{count}}台見つかりました",
       "devicesFound_other": "新しいデバイスが{{count}}台見つかりました",
       "noNewDevices": "新しいデバイスが見つかりません"
+    },
+    "logging": {
+      "sectionTitle": "ログ",
+      "description": "ログの詳細レベルを制御し、トラブルシューティング用にログをダウンロードします。",
+      "logLevel": "ログレベル",
+      "levelOff": "オフ",
+      "levelInfo": "Info",
+      "levelDebug": "Debug",
+      "downloadLogs": "ログをダウンロード",
+      "downloadDescription": "バックエンドの最新1000件のログエントリをテキストファイルとしてダウンロードします。",
+      "levelChanged": "ログレベルを{{level}}に設定しました",
+      "levelError": "ログレベルを変更できませんでした"
     }
   },
   "manualIpModal": {
