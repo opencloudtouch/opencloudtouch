@@ -98,7 +98,9 @@ class TestWizardBackup:
         mock_backup_service.backup_all = AsyncMock(return_value=[mock_result])
 
         with (
-            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
             patch(
                 "opencloudtouch.setup.wizard_routes.SoundTouchBackupService",
                 return_value=mock_backup_service,
@@ -119,7 +121,9 @@ class TestWizardBackup:
         mock_backup_service.backup_all = AsyncMock(return_value=[failed])
 
         with (
-            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
             patch(
                 "opencloudtouch.setup.wizard_routes.SoundTouchBackupService",
                 return_value=mock_backup_service,
@@ -149,7 +153,9 @@ class TestWizardModifyConfig:
         mock_config_service.modify_bmx_url = AsyncMock(return_value=mock_result)
 
         with (
-            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
             patch(
                 "opencloudtouch.setup.wizard_routes.SoundTouchConfigService",
                 return_value=mock_config_service,
@@ -173,7 +179,9 @@ class TestWizardModifyConfig:
         mock_config_service.modify_bmx_url = AsyncMock(return_value=mock_result)
 
         with (
-            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
             patch(
                 "opencloudtouch.setup.wizard_routes.SoundTouchConfigService",
                 return_value=mock_config_service,
@@ -191,7 +199,9 @@ class TestWizardModifyConfig:
     def test_config_modification_exception_returns_503(self, client):
         """SSH connection failure returns 503, not 500."""
         with (
-            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
         ):
             mock_ssh.return_value.__aenter__ = AsyncMock(
                 side_effect=ConnectionError("SSH down")
@@ -219,7 +229,9 @@ class TestWizardModifyHosts:
         mock_hosts_service.modify_hosts = AsyncMock(return_value=mock_result)
 
         with (
-            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
             patch(
                 "opencloudtouch.setup.wizard_routes.SoundTouchHostsService",
                 return_value=mock_hosts_service,
@@ -244,7 +256,9 @@ class TestWizardModifyHosts:
         mock_hosts_service.modify_hosts = AsyncMock(return_value=mock_result)
 
         with (
-            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
             patch(
                 "opencloudtouch.setup.wizard_routes.SoundTouchHostsService",
                 return_value=mock_hosts_service,
@@ -272,13 +286,15 @@ class TestWizardModifyHosts:
         mock_hosts_service.modify_hosts = AsyncMock(return_value=mock_result)
 
         with (
-            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
             patch(
                 "opencloudtouch.setup.wizard_routes.SoundTouchHostsService",
                 return_value=mock_hosts_service,
             ),
             patch(
-                "opencloudtouch.setup.wizard_routes.socket.gethostbyname",
+                "opencloudtouch.setup.wizard_helpers.socket.gethostbyname",
                 return_value="192.168.178.11",
             ),
         ):
@@ -306,7 +322,7 @@ class TestWizardModifyHosts:
         import socket as _socket
 
         with patch(
-            "opencloudtouch.setup.wizard_routes.socket.gethostbyname",
+            "opencloudtouch.setup.wizard_helpers.socket.gethostbyname",
             side_effect=_socket.gaierror("Name or service not known"),
         ):
             response = client.post(
@@ -332,7 +348,9 @@ class TestWizardRestoreConfig:
         mock_config_service.restore_config = AsyncMock(return_value=mock_result)
 
         with (
-            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
             patch(
                 "opencloudtouch.setup.wizard_routes.SoundTouchConfigService",
                 return_value=mock_config_service,
@@ -360,7 +378,9 @@ class TestWizardRestoreHosts:
         mock_hosts_service.restore_hosts = AsyncMock(return_value=mock_result)
 
         with (
-            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
             patch(
                 "opencloudtouch.setup.wizard_routes.SoundTouchHostsService",
                 return_value=mock_hosts_service,
@@ -389,7 +409,9 @@ class TestWizardListBackups:
         mock_hosts_service.list_backups = AsyncMock(return_value=["/usb/hosts1.bak"])
 
         with (
-            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
             patch(
                 "opencloudtouch.setup.wizard_routes.SoundTouchConfigService",
                 return_value=mock_config_service,
@@ -471,9 +493,11 @@ class TestWizardVerifyRedirect:
         mock_ssh_instance.execute = AsyncMock(return_value=mock_result)
 
         with (
-            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
             patch(
-                "opencloudtouch.setup.wizard_routes.socket.gethostbyname",
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.socket.gethostbyname",
                 return_value="192.168.1.50",
             ),
         ):
@@ -502,9 +526,11 @@ class TestWizardVerifyRedirect:
         mock_ssh_instance.execute = AsyncMock(return_value=mock_result)
 
         with (
-            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
             patch(
-                "opencloudtouch.setup.wizard_routes.socket.gethostbyname",
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.socket.gethostbyname",
                 return_value="192.168.1.50",
             ),
         ):
@@ -532,9 +558,11 @@ class TestWizardVerifyRedirect:
         mock_ssh_instance.execute = AsyncMock(return_value=mock_result)
 
         with (
-            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
             patch(
-                "opencloudtouch.setup.wizard_routes.socket.gethostbyname",
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.socket.gethostbyname",
                 return_value="192.168.1.50",
             ),
         ):
@@ -610,7 +638,7 @@ class TestWizardDetectStrategy:
 
     def test_proxy_available_returns_hosts_only(self, client):
         with patch(
-            "opencloudtouch.setup.wizard_routes._check_port_443",
+            "opencloudtouch.setup.wizard_routes.check_port_443",
             return_value=True,
         ):
             response = client.get("/api/setup/wizard/detect-strategy")
@@ -621,7 +649,7 @@ class TestWizardDetectStrategy:
 
     def test_no_proxy_returns_bmx_and_hosts(self, client):
         with patch(
-            "opencloudtouch.setup.wizard_routes._check_port_443",
+            "opencloudtouch.setup.wizard_routes.check_port_443",
             return_value=False,
         ):
             response = client.get("/api/setup/wizard/detect-strategy")
@@ -681,13 +709,13 @@ class TestCheckPort443:
     """
 
     def test_returns_true_when_ssl_handshake_succeeds(self):
-        from opencloudtouch.setup.wizard_routes import _check_port_443
+        from opencloudtouch.setup.wizard_helpers import check_port_443
 
         with (
             patch(
-                "opencloudtouch.setup.wizard_routes.socket.create_connection"
+                "opencloudtouch.setup.wizard_helpers.socket.create_connection"
             ) as mock_conn,
-            patch("opencloudtouch.setup.wizard_routes.ssl.SSLContext") as mock_ctx_cls,
+            patch("opencloudtouch.setup.wizard_helpers.ssl.SSLContext") as mock_ctx_cls,
         ):
             mock_sock = MagicMock()
             mock_conn.return_value.__enter__ = MagicMock(return_value=mock_sock)
@@ -701,31 +729,31 @@ class TestCheckPort443:
             )
             mock_ctx.wrap_socket.return_value.__exit__ = MagicMock(return_value=False)
 
-            result = _check_port_443("192.168.1.50")
+            result = check_port_443("192.168.1.50")
 
         assert result is True
         # Verify SSL context was configured for detection-only (no verification)
         assert mock_ctx.check_hostname is False
 
     def test_returns_false_when_connection_refused(self):
-        from opencloudtouch.setup.wizard_routes import _check_port_443
+        from opencloudtouch.setup.wizard_helpers import check_port_443
 
         with patch(
-            "opencloudtouch.setup.wizard_routes.socket.create_connection",
+            "opencloudtouch.setup.wizard_helpers.socket.create_connection",
             side_effect=ConnectionRefusedError("Connection refused"),
         ):
-            result = _check_port_443("192.168.1.50")
+            result = check_port_443("192.168.1.50")
 
         assert result is False
 
     def test_returns_false_on_timeout(self):
-        from opencloudtouch.setup.wizard_routes import _check_port_443
+        from opencloudtouch.setup.wizard_helpers import check_port_443
 
         with patch(
-            "opencloudtouch.setup.wizard_routes.socket.create_connection",
+            "opencloudtouch.setup.wizard_helpers.socket.create_connection",
             side_effect=TimeoutError("Connection timed out"),
         ):
-            result = _check_port_443("10.0.0.1")
+            result = check_port_443("10.0.0.1")
 
         assert result is False
 
@@ -738,7 +766,9 @@ class TestSSHUnreachableReturns503:
 
     def test_backup_returns_503_when_ssh_unreachable(self, client):
         with (
-            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
         ):
             mock_ssh.return_value.__aenter__ = AsyncMock(
                 side_effect=ConnectionError(
@@ -755,7 +785,9 @@ class TestSSHUnreachableReturns503:
 
     def test_modify_config_returns_503_when_ssh_unreachable(self, client):
         with (
-            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
         ):
             mock_ssh.return_value.__aenter__ = AsyncMock(
                 side_effect=ConnectionError(
@@ -772,9 +804,11 @@ class TestSSHUnreachableReturns503:
 
     def test_modify_hosts_returns_503_when_ssh_unreachable(self, client):
         with (
-            patch("opencloudtouch.setup.wizard_routes.SoundTouchSSHClient") as mock_ssh,
             patch(
-                "opencloudtouch.setup.wizard_routes.socket.gethostbyname",
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.socket.gethostbyname",
                 return_value="192.168.1.50",
             ),
         ):
@@ -804,7 +838,7 @@ class TestSnapshotConfigFiles:
 
     @pytest.mark.asyncio
     async def test_snapshots_config_files(self):
-        from opencloudtouch.setup.wizard_routes import _snapshot_config_files
+        from opencloudtouch.setup.wizard_helpers import snapshot_config_files
 
         mock_ssh = AsyncMock()
         mock_ssh.execute = AsyncMock(
@@ -813,7 +847,7 @@ class TestSnapshotConfigFiles:
         mock_repo = AsyncMock()
         mock_repo.add_config_snapshot = AsyncMock()
 
-        await _snapshot_config_files(
+        await snapshot_config_files(
             ssh=mock_ssh,
             audit_repo=mock_repo,
             device_id="192.168.1.100",
@@ -830,10 +864,10 @@ class TestSnapshotConfigFiles:
 
     @pytest.mark.asyncio
     async def test_skips_when_no_audit_repo(self):
-        from opencloudtouch.setup.wizard_routes import _snapshot_config_files
+        from opencloudtouch.setup.wizard_helpers import snapshot_config_files
 
         mock_ssh = AsyncMock()
-        await _snapshot_config_files(
+        await snapshot_config_files(
             ssh=mock_ssh,
             audit_repo=None,
             device_id="192.168.1.100",
@@ -844,13 +878,13 @@ class TestSnapshotConfigFiles:
 
     @pytest.mark.asyncio
     async def test_skips_file_when_cat_fails(self):
-        from opencloudtouch.setup.wizard_routes import _snapshot_config_files
+        from opencloudtouch.setup.wizard_helpers import snapshot_config_files
 
         mock_ssh = AsyncMock()
         mock_ssh.execute = AsyncMock(return_value=MagicMock(success=False, output=""))
         mock_repo = AsyncMock()
 
-        await _snapshot_config_files(
+        await snapshot_config_files(
             ssh=mock_ssh,
             audit_repo=mock_repo,
             device_id="DEV1",
@@ -861,13 +895,13 @@ class TestSnapshotConfigFiles:
 
     @pytest.mark.asyncio
     async def test_handles_exception_gracefully(self):
-        from opencloudtouch.setup.wizard_routes import _snapshot_config_files
+        from opencloudtouch.setup.wizard_helpers import snapshot_config_files
 
         mock_ssh = AsyncMock()
         mock_ssh.execute = AsyncMock(side_effect=RuntimeError("SSH error"))
         mock_repo = AsyncMock()
 
-        await _snapshot_config_files(
+        await snapshot_config_files(
             ssh=mock_ssh,
             audit_repo=mock_repo,
             device_id="DEV1",
@@ -877,7 +911,7 @@ class TestSnapshotConfigFiles:
 
     @pytest.mark.asyncio
     async def test_multiple_files_snapshot(self):
-        from opencloudtouch.setup.wizard_routes import _snapshot_config_files
+        from opencloudtouch.setup.wizard_helpers import snapshot_config_files
 
         mock_ssh = AsyncMock()
         mock_ssh.execute = AsyncMock(
@@ -886,7 +920,7 @@ class TestSnapshotConfigFiles:
         mock_repo = AsyncMock()
         mock_repo.add_config_snapshot = AsyncMock()
 
-        await _snapshot_config_files(
+        await snapshot_config_files(
             ssh=mock_ssh,
             audit_repo=mock_repo,
             device_id="DEV1",

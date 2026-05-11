@@ -4,6 +4,8 @@ import logging
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+
+from opencloudtouch.core.exceptions import DeviceNotFoundError
 from fastapi import Path as FastAPIPath
 from pydantic import BaseModel, Field
 
@@ -74,6 +76,8 @@ async def set_preset(
 
         return PresetResponse(**saved_preset.to_dict())
 
+    except DeviceNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

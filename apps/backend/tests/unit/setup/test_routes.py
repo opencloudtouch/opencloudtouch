@@ -20,6 +20,7 @@ from opencloudtouch.core.dependencies import get_setup_service
 from opencloudtouch.setup.routes import router
 from opencloudtouch.setup.service import SetupService
 from opencloudtouch.setup.wizard_routes import wizard_router
+from opencloudtouch.setup import wizard_helpers
 
 
 def create_mock_service():
@@ -381,8 +382,6 @@ class TestWizardVerifyRedirect:
         """Resolved IP matches expected → success=True, matches_expected=True."""
         import socket
 
-        from opencloudtouch.setup import wizard_routes as routes
-
         monkeypatch.setattr(socket, "gethostbyname", lambda h: "192.168.1.50")
 
         from opencloudtouch.setup.ssh_client import CommandResult
@@ -393,7 +392,7 @@ class TestWizardVerifyRedirect:
             exit_code=0,
         )
         monkeypatch.setattr(
-            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_ctx(result)
+            wizard_helpers, "SoundTouchSSHClient", lambda ip: _make_ssh_ctx(result)
         )
 
         response = client.post(self.ENDPOINT, json=self.PAYLOAD)
@@ -408,8 +407,6 @@ class TestWizardVerifyRedirect:
         """Resolved IP doesn't match expected → success=False, matches_expected=False."""
         import socket
 
-        from opencloudtouch.setup import wizard_routes as routes
-
         monkeypatch.setattr(socket, "gethostbyname", lambda h: "192.168.1.50")
 
         from opencloudtouch.setup.ssh_client import CommandResult
@@ -420,7 +417,7 @@ class TestWizardVerifyRedirect:
             exit_code=0,
         )
         monkeypatch.setattr(
-            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_ctx(result)
+            wizard_helpers, "SoundTouchSSHClient", lambda ip: _make_ssh_ctx(result)
         )
 
         response = client.post(self.ENDPOINT, json=self.PAYLOAD)
@@ -435,8 +432,6 @@ class TestWizardVerifyRedirect:
         """expected_ip as hostname ('myserver') is resolved server-side before comparison."""
         import socket
 
-        from opencloudtouch.setup import wizard_routes as routes
-
         monkeypatch.setattr(socket, "gethostbyname", lambda h: "10.0.0.99")
 
         from opencloudtouch.setup.ssh_client import CommandResult
@@ -447,7 +442,7 @@ class TestWizardVerifyRedirect:
             exit_code=0,
         )
         monkeypatch.setattr(
-            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_ctx(result)
+            wizard_helpers, "SoundTouchSSHClient", lambda ip: _make_ssh_ctx(result)
         )
 
         response = client.post(
@@ -463,8 +458,6 @@ class TestWizardVerifyRedirect:
         """If ping produces no match (domain unresolvable), success=False."""
         import socket
 
-        from opencloudtouch.setup import wizard_routes as routes
-
         monkeypatch.setattr(socket, "gethostbyname", lambda h: "192.168.1.50")
 
         from opencloudtouch.setup.ssh_client import CommandResult
@@ -475,7 +468,7 @@ class TestWizardVerifyRedirect:
             exit_code=1,
         )
         monkeypatch.setattr(
-            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_ctx(result)
+            wizard_helpers, "SoundTouchSSHClient", lambda ip: _make_ssh_ctx(result)
         )
 
         response = client.post(self.ENDPOINT, json=self.PAYLOAD)
@@ -500,7 +493,6 @@ class TestWizardVerifyRedirect:
         """
         import socket
 
-        from opencloudtouch.setup import wizard_routes as routes
         from opencloudtouch.setup.ssh_client import CommandResult
 
         monkeypatch.setattr(socket, "gethostbyname", lambda h: "192.168.1.50")
@@ -520,7 +512,7 @@ class TestWizardVerifyRedirect:
         ), "BUG-06: CommandResult must NOT have .stdout - routes.py must use .output"
 
         monkeypatch.setattr(
-            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_ctx(result)
+            wizard_helpers, "SoundTouchSSHClient", lambda ip: _make_ssh_ctx(result)
         )
 
         response = client.post(self.ENDPOINT, json=self.PAYLOAD)
@@ -855,7 +847,9 @@ class TestWizardBackupRoute:
         mock_backup_svc.backup_all = AsyncMock(return_value=mock_results)
 
         monkeypatch.setattr(
-            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_context(mock_ssh)
+            wizard_helpers,
+            "SoundTouchSSHClient",
+            lambda ip: _make_ssh_context(mock_ssh),
         )
         monkeypatch.setattr(
             routes, "SoundTouchBackupService", lambda ssh: mock_backup_svc
@@ -886,7 +880,9 @@ class TestWizardBackupRoute:
         mock_backup_svc.backup_all = AsyncMock(return_value=mock_results)
 
         monkeypatch.setattr(
-            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_context(mock_ssh)
+            wizard_helpers,
+            "SoundTouchSSHClient",
+            lambda ip: _make_ssh_context(mock_ssh),
         )
         monkeypatch.setattr(
             routes, "SoundTouchBackupService", lambda ssh: mock_backup_svc
@@ -900,7 +896,6 @@ class TestWizardBackupRoute:
 
     def test_backup_ssh_exception_returns_503(self, client, monkeypatch):
         """SSH connection failure returns 503 (Service Unavailable)."""
-        from opencloudtouch.setup import wizard_routes as routes
 
         def raise_on_enter(ip):
             ctx = MagicMock()
@@ -908,7 +903,7 @@ class TestWizardBackupRoute:
             ctx.__aexit__ = AsyncMock(return_value=False)
             return ctx
 
-        monkeypatch.setattr(routes, "SoundTouchSSHClient", raise_on_enter)
+        monkeypatch.setattr(wizard_helpers, "SoundTouchSSHClient", raise_on_enter)
 
         response = client.post(self.ENDPOINT, json={"device_ip": "192.168.1.100"})
         assert response.status_code == 503
@@ -936,7 +931,9 @@ class TestWizardModifyConfigRoute:
         mock_config_svc.modify_bmx_url = AsyncMock(return_value=mock_result)
 
         monkeypatch.setattr(
-            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_context(mock_ssh)
+            wizard_helpers,
+            "SoundTouchSSHClient",
+            lambda ip: _make_ssh_context(mock_ssh),
         )
         monkeypatch.setattr(
             routes, "SoundTouchConfigService", lambda ssh: mock_config_svc
@@ -966,7 +963,9 @@ class TestWizardModifyConfigRoute:
         mock_config_svc.modify_bmx_url = AsyncMock(return_value=mock_result)
 
         monkeypatch.setattr(
-            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_context(mock_ssh)
+            wizard_helpers,
+            "SoundTouchSSHClient",
+            lambda ip: _make_ssh_context(mock_ssh),
         )
         monkeypatch.setattr(
             routes, "SoundTouchConfigService", lambda ssh: mock_config_svc
@@ -982,7 +981,6 @@ class TestWizardModifyConfigRoute:
 
     def test_modify_config_ssh_exception_returns_503(self, client, monkeypatch):
         """SSH exception during config modification returns 503."""
-        from opencloudtouch.setup import wizard_routes as routes
 
         def fail_ctx(ip):
             ctx = MagicMock()
@@ -990,7 +988,7 @@ class TestWizardModifyConfigRoute:
             ctx.__aexit__ = AsyncMock(return_value=False)
             return ctx
 
-        monkeypatch.setattr(routes, "SoundTouchSSHClient", fail_ctx)
+        monkeypatch.setattr(wizard_helpers, "SoundTouchSSHClient", fail_ctx)
 
         response = client.post(
             self.ENDPOINT,
@@ -1020,7 +1018,9 @@ class TestWizardModifyHostsRoute:
         mock_hosts_svc.modify_hosts = AsyncMock(return_value=mock_result)
 
         monkeypatch.setattr(
-            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_context(mock_ssh)
+            wizard_helpers,
+            "SoundTouchSSHClient",
+            lambda ip: _make_ssh_context(mock_ssh),
         )
         monkeypatch.setattr(
             routes, "SoundTouchHostsService", lambda ssh: mock_hosts_svc
@@ -1046,7 +1046,9 @@ class TestWizardModifyHostsRoute:
         mock_hosts_svc.modify_hosts = AsyncMock(return_value=mock_result)
 
         monkeypatch.setattr(
-            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_context(mock_ssh)
+            wizard_helpers,
+            "SoundTouchSSHClient",
+            lambda ip: _make_ssh_context(mock_ssh),
         )
         monkeypatch.setattr(
             routes, "SoundTouchHostsService", lambda ssh: mock_hosts_svc
@@ -1061,7 +1063,6 @@ class TestWizardModifyHostsRoute:
 
     def test_modify_hosts_ssh_exception_returns_503(self, client, monkeypatch):
         """SSH exception returns 503."""
-        from opencloudtouch.setup import wizard_routes as routes
 
         def fail_ctx(ip):
             ctx = MagicMock()
@@ -1069,7 +1070,7 @@ class TestWizardModifyHostsRoute:
             ctx.__aexit__ = AsyncMock(return_value=False)
             return ctx
 
-        monkeypatch.setattr(routes, "SoundTouchSSHClient", fail_ctx)
+        monkeypatch.setattr(wizard_helpers, "SoundTouchSSHClient", fail_ctx)
 
         response = client.post(
             self.ENDPOINT,
@@ -1093,7 +1094,9 @@ class TestWizardRestoreRoutes:
         mock_config_svc.restore_config = AsyncMock(return_value=mock_result)
 
         monkeypatch.setattr(
-            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_context(mock_ssh)
+            wizard_helpers,
+            "SoundTouchSSHClient",
+            lambda ip: _make_ssh_context(mock_ssh),
         )
         monkeypatch.setattr(
             routes, "SoundTouchConfigService", lambda ssh: mock_config_svc
@@ -1121,7 +1124,9 @@ class TestWizardRestoreRoutes:
         mock_config_svc.restore_config = AsyncMock(return_value=mock_result)
 
         monkeypatch.setattr(
-            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_context(mock_ssh)
+            wizard_helpers,
+            "SoundTouchSSHClient",
+            lambda ip: _make_ssh_context(mock_ssh),
         )
         monkeypatch.setattr(
             routes, "SoundTouchConfigService", lambda ssh: mock_config_svc
@@ -1149,7 +1154,9 @@ class TestWizardRestoreRoutes:
         mock_hosts_svc.restore_hosts = AsyncMock(return_value=mock_result)
 
         monkeypatch.setattr(
-            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_context(mock_ssh)
+            wizard_helpers,
+            "SoundTouchSSHClient",
+            lambda ip: _make_ssh_context(mock_ssh),
         )
         monkeypatch.setattr(
             routes, "SoundTouchHostsService", lambda ssh: mock_hosts_svc
@@ -1177,7 +1184,9 @@ class TestWizardRestoreRoutes:
         mock_hosts_svc.restore_hosts = AsyncMock(return_value=mock_result)
 
         monkeypatch.setattr(
-            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_context(mock_ssh)
+            wizard_helpers,
+            "SoundTouchSSHClient",
+            lambda ip: _make_ssh_context(mock_ssh),
         )
         monkeypatch.setattr(
             routes, "SoundTouchHostsService", lambda ssh: mock_hosts_svc
@@ -1212,7 +1221,9 @@ class TestWizardListBackupsRoute:
         mock_hosts_svc.list_backups = AsyncMock(return_value=["/usb/backups/hosts.bak"])
 
         monkeypatch.setattr(
-            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_context(mock_ssh)
+            wizard_helpers,
+            "SoundTouchSSHClient",
+            lambda ip: _make_ssh_context(mock_ssh),
         )
         monkeypatch.setattr(
             routes, "SoundTouchConfigService", lambda ssh: mock_config_svc
@@ -1260,7 +1271,6 @@ class TestWizardRestoreExceptionPaths:
 
     def test_restore_config_ssh_exception_returns_503(self, client, monkeypatch):
         """SSH exception in restore-config returns 503."""
-        from opencloudtouch.setup import wizard_routes as routes
 
         def fail_ctx(ip):
             ctx = MagicMock()
@@ -1268,7 +1278,7 @@ class TestWizardRestoreExceptionPaths:
             ctx.__aexit__ = AsyncMock(return_value=False)
             return ctx
 
-        monkeypatch.setattr(routes, "SoundTouchSSHClient", fail_ctx)
+        monkeypatch.setattr(wizard_helpers, "SoundTouchSSHClient", fail_ctx)
 
         response = client.post(
             "/api/setup/wizard/restore-config",
@@ -1281,7 +1291,6 @@ class TestWizardRestoreExceptionPaths:
 
     def test_restore_hosts_ssh_exception_returns_503(self, client, monkeypatch):
         """SSH exception in restore-hosts returns 503."""
-        from opencloudtouch.setup import wizard_routes as routes
 
         def fail_ctx(ip):
             ctx = MagicMock()
@@ -1289,7 +1298,7 @@ class TestWizardRestoreExceptionPaths:
             ctx.__aexit__ = AsyncMock(return_value=False)
             return ctx
 
-        monkeypatch.setattr(routes, "SoundTouchSSHClient", fail_ctx)
+        monkeypatch.setattr(wizard_helpers, "SoundTouchSSHClient", fail_ctx)
 
         response = client.post(
             "/api/setup/wizard/restore-hosts",
@@ -1302,7 +1311,6 @@ class TestWizardRestoreExceptionPaths:
 
     def test_list_backups_ssh_exception_returns_503(self, client, monkeypatch):
         """SSH exception in list-backups returns 503."""
-        from opencloudtouch.setup import wizard_routes as routes
 
         def fail_ctx(ip):
             ctx = MagicMock()
@@ -1310,7 +1318,7 @@ class TestWizardRestoreExceptionPaths:
             ctx.__aexit__ = AsyncMock(return_value=False)
             return ctx
 
-        monkeypatch.setattr(routes, "SoundTouchSSHClient", fail_ctx)
+        monkeypatch.setattr(wizard_helpers, "SoundTouchSSHClient", fail_ctx)
 
         response = client.post(
             "/api/setup/wizard/list-backups",
@@ -1348,7 +1356,6 @@ class TestWizardVerifyRedirectExceptionPaths:
         """socket.gaierror during hostname resolution uses raw expected_ip."""
         import socket
 
-        from opencloudtouch.setup import wizard_routes as routes
         from opencloudtouch.setup.ssh_client import CommandResult
 
         def raise_gaierror(h):
@@ -1362,7 +1369,7 @@ class TestWizardVerifyRedirectExceptionPaths:
             exit_code=0,
         )
         monkeypatch.setattr(
-            routes, "SoundTouchSSHClient", lambda ip: _make_ssh_ctx(result)
+            wizard_helpers, "SoundTouchSSHClient", lambda ip: _make_ssh_ctx(result)
         )
 
         response = client.post(
@@ -1382,8 +1389,6 @@ class TestWizardVerifyRedirectExceptionPaths:
         """SSH connection failure in verify_redirect returns 503."""
         import socket
 
-        from opencloudtouch.setup import wizard_routes as routes
-
         monkeypatch.setattr(socket, "gethostbyname", lambda h: "192.168.1.50")
 
         def fail_ctx(ip):
@@ -1392,7 +1397,7 @@ class TestWizardVerifyRedirectExceptionPaths:
             ctx.__aexit__ = AsyncMock(return_value=False)
             return ctx
 
-        monkeypatch.setattr(routes, "SoundTouchSSHClient", fail_ctx)
+        monkeypatch.setattr(wizard_helpers, "SoundTouchSSHClient", fail_ctx)
 
         response = client.post(
             "/api/setup/wizard/verify-redirect",

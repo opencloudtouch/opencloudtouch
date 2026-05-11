@@ -246,14 +246,13 @@ class SoundTouchHostsService:
                 f"Failed to write hosts file: {write_result.error or write_result.output}"
             )
 
-    async def restore_hosts(
-        self, backup_path: str
-    ) -> RestoreResult:  # pragma: no cover
-        """
-        Restore hosts file from backup.
+    async def restore_hosts(self, backup_path: str) -> RestoreResult:
+        """Restore hosts file from backup.
+
+        Protocol: verify backup exists → remount rw → copy → remount ro.
 
         Args:
-            backup_path: Path to backup file
+            backup_path: Path to backup file on device
 
         Returns:
             Restoration result
@@ -261,14 +260,28 @@ class SoundTouchHostsService:
         self.logger.info("Restoring hosts from %s", backup_path)
 
         try:
-            # TODO: Implement actual restore logic
-            # 1. Verify backup exists
-            # 2. Upload backup to device
-            # 3. Replace current hosts file
-            # 4. Restart networking if needed
+            check = await self.ssh.execute(
+                f"test -f {backup_path} && echo 'exists' || echo 'missing'"
+            )
+            if "missing" in (check.output or ""):
+                return RestoreResult(
+                    success=False,
+                    error=f"Backup not found: {backup_path}",
+                )
 
-            self.logger.info("Hosts restored successfully")
-            return RestoreResult(success=True)
+            await self._remount_rw()
+            try:
+                result = await self.ssh.execute(f"cp {backup_path} {self.HOSTS_PATH}")
+                if not result.success:
+                    return RestoreResult(
+                        success=False,
+                        error=f"Copy failed: {result.error or result.output}",
+                    )
+
+                self.logger.info("Hosts restored successfully")
+                return RestoreResult(success=True)
+            finally:
+                await self._remount_ro()
 
         except Exception as e:
             self.logger.error("Hosts restore failed: %s", e)
@@ -277,25 +290,25 @@ class SoundTouchHostsService:
                 error=str(e),
             )
 
-    async def list_backups(self) -> List[str]:  # pragma: no cover
-        """
-        List available hosts backups.
+    async def list_backups(self) -> List[str]:
+        """List available hosts backups on the device.
 
         Returns:
-            List of backup file paths
+            List of backup file paths, sorted newest first
         """
         self.logger.info("Listing hosts backups")
 
         try:
-            # TODO: Implement actual backup listing
-            # 1. Connect to device
-            # 2. List files in backup directory
-            # 3. Filter hosts backups
-            # 4. Return sorted list
+            result = await self.ssh.execute(
+                f"ls -1t {self.BACKUP_DIR}/hosts_backup* 2>/dev/null"
+            )
+            if not result.success or not result.output:
+                return []
 
             return [
-                "/usb/backups/hosts_backup_2024-01-01",
-                "/usb/backups/hosts_backup_2024-01-02",
+                line.strip()
+                for line in result.output.strip().splitlines()
+                if line.strip()
             ]
 
         except Exception as e:

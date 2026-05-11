@@ -10,6 +10,7 @@ from typing import List, Optional
 
 import httpx
 
+from opencloudtouch.core.exceptions import DeviceNotFoundError
 from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.presets.models import Preset
@@ -94,7 +95,7 @@ class PresetService:
         try:
             device = await self.device_repository.get_by_device_id(device_id)
             if not device:
-                raise ValueError(f"Device {device_id} not found")
+                raise DeviceNotFoundError(device_id)
 
             from opencloudtouch.core.config import get_config
             from opencloudtouch.devices.adapter import get_device_client
@@ -216,7 +217,7 @@ class PresetService:
         """
         device = await self.device_repository.get_by_device_id(device_id)
         if not device:
-            raise ValueError(f"Device {device_id} not found")
+            raise DeviceNotFoundError(device_id)
 
         logger.info(
             "Syncing presets from device %s (%s)",
