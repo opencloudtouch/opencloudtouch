@@ -11,6 +11,7 @@ from typing import List, Optional
 import httpx
 
 from opencloudtouch.devices.repository import DeviceRepository
+from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.parser import DevicePresetParser
 from opencloudtouch.presets.repository import PresetRepository
@@ -102,7 +103,7 @@ class PresetService:
             cfg = get_config()
             oct_backend_url = cfg.station_descriptor_base_url
 
-            base_url = f"http://{device.ip}:8090"
+            base_url = f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"
             client = get_device_client(base_url)
 
             try:
@@ -260,7 +261,7 @@ class PresetService:
         Returns:
             Raw XML response bytes
         """
-        device_url = f"http://{device_ip}:8090/presets"
+        device_url = f"http://{device_ip}:{SOUNDTOUCH_HTTP_PORT}/presets"
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(device_url)
             response.raise_for_status()

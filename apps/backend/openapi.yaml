@@ -2722,6 +2722,13 @@ components:
         device_ip:
           type: string
           title: Device Ip
+        device_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Device Id
+          description: Device identifier for unique backup filenames
+          default: null
       type: object
       required:
       - device_ip

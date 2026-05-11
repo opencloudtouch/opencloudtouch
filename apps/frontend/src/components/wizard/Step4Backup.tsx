@@ -17,7 +17,7 @@ interface Step4Props {
 }
 
 export default function Step4Backup({
-  deviceId: _deviceId,
+  deviceId,
   deviceIp,
   deviceName,
   onNext,
@@ -36,6 +36,7 @@ export default function Step4Backup({
     try {
       const result = await createBackup({
         device_ip: deviceIp,
+        device_id: deviceId,
       });
 
       setBackupData(result);

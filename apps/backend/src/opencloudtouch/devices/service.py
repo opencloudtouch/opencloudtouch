@@ -23,7 +23,7 @@ from opencloudtouch.devices.interfaces import (
 )
 from opencloudtouch.devices.events import DiscoveryEvent, DiscoveryEventType
 from opencloudtouch.devices.models import KEY_MAPPING, KeyType, SyncResult
-from opencloudtouch.discovery import DiscoveredDevice
+from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT, DiscoveredDevice
 
 logger = logging.getLogger(__name__)
 
@@ -244,7 +244,7 @@ class DeviceService:
         device = await self.repository.get_by_device_id(device_id)
         if not device:
             raise ValueError(f"Device {device_id} not found")
-        base_url = f"http://{device.ip}:8090"
+        base_url = f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"
         client = await asyncio.to_thread(get_device_client, base_url)
         try:
             yield client

@@ -7,13 +7,16 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional
 
+# Default HTTP API port for Bose SoundTouch devices
+SOUNDTOUCH_HTTP_PORT = 8090
+
 
 @dataclass
 class DiscoveredDevice:
     """Ein durch Discovery gefundenes Gerät."""
 
     ip: str
-    port: int = 8090  # Default HTTP API port
+    port: int = SOUNDTOUCH_HTTP_PORT
     name: Optional[str] = None
     model: Optional[str] = None
     mac_address: Optional[str] = None

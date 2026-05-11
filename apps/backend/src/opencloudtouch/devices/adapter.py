@@ -11,7 +11,11 @@ from opencloudtouch.core.exceptions import DiscoveryError
 from opencloudtouch.devices.client import DeviceClient
 from opencloudtouch.devices.client_adapter import BoseDeviceClientAdapter  # re-export
 from opencloudtouch.devices.discovery.ssdp import SSDPDiscovery
-from opencloudtouch.discovery import DeviceDiscovery, DiscoveredDevice
+from opencloudtouch.discovery import (
+    SOUNDTOUCH_HTTP_PORT,
+    DeviceDiscovery,
+    DiscoveredDevice,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +50,11 @@ class BoseDeviceDiscoveryAdapter(DeviceDiscovery):
             for mac, device_info in devices_dict.items():
                 ip = device_info.get("ip", "")
                 name = device_info.get("name", "Unknown Device")
-                port = 8090  # Default HTTP API port
 
                 # Device details (model, mac, firmware) are fetched lazily in /api/devices/sync
-                discovered.append(DiscoveredDevice(ip=ip, port=port, name=name))
+                discovered.append(
+                    DiscoveredDevice(ip=ip, port=SOUNDTOUCH_HTTP_PORT, name=name)
+                )
 
             logger.info(
                 "Discovered %d device(s): %s",

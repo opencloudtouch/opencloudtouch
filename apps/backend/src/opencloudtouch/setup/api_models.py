@@ -73,6 +73,11 @@ class PortCheckResponse(BaseModel):
 class BackupRequest(WizardDeviceRequest):
     """Request to create device backup."""
 
+    device_id: str | None = Field(
+        default=None,
+        description="Device identifier for unique backup filenames",
+    )
+
 
 class BackupResponse(BaseModel):
     """Response with backup results."""

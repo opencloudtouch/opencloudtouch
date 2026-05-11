@@ -18,7 +18,15 @@ async def test_lifespan_initialization():
         "opencloudtouch.main.get_config"
     ) as mock_get_config, patch(
         "opencloudtouch.main.DeviceRepository"
-    ) as mock_repo_class:
+    ) as mock_repo_class, patch(
+        "opencloudtouch.main.SettingsRepository"
+    ) as mock_settings_class, patch(
+        "opencloudtouch.main.PresetRepository"
+    ) as mock_preset_class, patch(
+        "opencloudtouch.main.RecentsRepository"
+    ) as mock_recents_class, patch(
+        "opencloudtouch.main.WizardAuditRepository"
+    ) as mock_wizard_class:
 
         # Mock config
         mock_config = MagicMock(spec=AppConfig)
@@ -31,21 +39,32 @@ async def test_lifespan_initialization():
         mock_config.mock_mode = False
         mock_get_config.return_value = mock_config
 
-        # Mock repository
-        mock_repo = AsyncMock()
-        mock_repo.initialize = AsyncMock()
-        mock_repo.close = AsyncMock()
-        mock_repo_class.return_value = mock_repo
+        # Mock all repositories with same pattern
+        mock_repos = {}
+        for name, cls in [
+            ("device", mock_repo_class),
+            ("settings", mock_settings_class),
+            ("preset", mock_preset_class),
+            ("recents", mock_recents_class),
+            ("wizard", mock_wizard_class),
+        ]:
+            mock_repo = AsyncMock()
+            mock_repo.initialize = AsyncMock()
+            mock_repo.close = AsyncMock()
+            cls.return_value = mock_repo
+            mock_repos[name] = mock_repo
 
         # Run lifespan
         async with lifespan(app):
             # Verify startup
             mock_init_config.assert_called_once()
             mock_setup_logging.assert_called_once()
-            mock_repo.initialize.assert_called_once()
+            for name, repo in mock_repos.items():
+                repo.initialize.assert_called_once()
 
-        # Verify shutdown
-        mock_repo.close.assert_called_once()
+        # Verify shutdown — all repos closed
+        for name, repo in mock_repos.items():
+            repo.close.assert_called_once()
 
 
 def test_main_module_uses_config_port():

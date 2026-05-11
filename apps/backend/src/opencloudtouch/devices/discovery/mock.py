@@ -7,7 +7,11 @@ Provides predefined devices that simulate Bose® hardware.
 import logging
 from typing import List
 
-from opencloudtouch.discovery import DeviceDiscovery, DiscoveredDevice
+from opencloudtouch.discovery import (
+    SOUNDTOUCH_HTTP_PORT,
+    DeviceDiscovery,
+    DiscoveredDevice,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +77,7 @@ class MockDiscoveryAdapter(DeviceDiscovery):
             devices.append(
                 DiscoveredDevice(
                     ip=device_data["ip"],
-                    port=8090,
+                    port=SOUNDTOUCH_HTTP_PORT,
                     name=device_data["name"],
                     model=device_data["model"],
                     mac_address=mac,

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFoundError
 from opencloudtouch.devices.repository import DeviceRepository
+from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
 
 if TYPE_CHECKING:
@@ -24,7 +25,7 @@ class ZoneService:
         """Get a device client for the given IP (lazy import to avoid circular deps)."""
         from opencloudtouch.devices.adapter import get_device_client
 
-        return get_device_client(f"http://{ip}:8090")
+        return get_device_client(f"http://{ip}:{SOUNDTOUCH_HTTP_PORT}")
 
     async def _get_device_or_raise(self, device_id: str):
         """Get device from repo or raise DeviceNotFoundError."""

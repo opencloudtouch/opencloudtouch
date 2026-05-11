@@ -191,7 +191,7 @@ async def wizard_backup(request: BackupRequest):
 
     async with ssh_operation(request.device_ip, "backup") as ssh:
         backup_service = SoundTouchBackupService(ssh)
-        results = await backup_service.backup_all()
+        results = await backup_service.backup_all(device_id=request.device_id)
 
         failed = [r for r in results if not r.success]
         if failed:
