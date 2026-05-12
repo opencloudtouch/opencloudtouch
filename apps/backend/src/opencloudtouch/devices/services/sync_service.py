@@ -4,6 +4,7 @@ Orchestrates device discovery and database synchronization.
 """
 
 import logging
+import os
 from typing import TYPE_CHECKING, List, Optional
 
 from opencloudtouch.db import Device
@@ -318,10 +319,15 @@ class DeviceSyncService:
         Uses the existing account_pairing_service function which
         parses the raw /info XML for the <margeAccountUUID> element.
 
+        Skipped in mock mode — mock devices have no real /info endpoint.
+
         Returns:
             The UUID string if present, None otherwise.
             Never raises — logs warnings on failure.
         """
+        if os.getenv("OCT_MOCK_MODE", "false").lower() == "true":
+            return None
+
         try:
             from opencloudtouch.setup.account_pairing_service import (
                 check_marge_account_uuid,

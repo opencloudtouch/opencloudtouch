@@ -527,3 +527,12 @@ class TestBugfix188HardcodedDeviceIdInStreamingAccount:
         assert len(presets.findall("preset")) == 0
         # Must NOT have tried to load presets with some guessed device
         mock_preset_repo.get_all_presets.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_mock_mode_skips_marge_uuid_fetch(self, monkeypatch):
+        """In mock mode, _fetch_marge_account_uuid must skip HTTP call."""
+        from opencloudtouch.devices.services.sync_service import DeviceSyncService
+
+        monkeypatch.setenv("OCT_MOCK_MODE", "true")
+        result = await DeviceSyncService._fetch_marge_account_uuid("192.168.1.100")
+        assert result is None
