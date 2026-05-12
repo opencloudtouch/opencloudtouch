@@ -25,6 +25,43 @@ from opencloudtouch.presets.service import PresetService
 
 logger = logging.getLogger(__name__)
 
+
+def validate_stream_url(url: str) -> None:
+    """Validate a stream URL for SSRF protection.
+
+    Checks that the URL uses http/https and does not resolve to
+    loopback or link-local addresses.
+
+    Raises:
+        HTTPException(400): If URL scheme is invalid, hostname cannot be
+            resolved, or IP is in a blocked range.
+    """
+    parsed_url = urlparse(url)
+    if parsed_url.scheme not in ("http", "https"):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid stream URL scheme",
+        )
+    try:
+        resolved_ip = socket.getaddrinfo(parsed_url.hostname, None)[0][4][0]
+        addr = ipaddress.ip_address(resolved_ip)
+        if addr.is_loopback or addr.is_link_local:
+            logger.warning(
+                "[SSRF BLOCK] Blocked request to %s (%s)",
+                resolved_ip,
+                url,
+            )
+            raise HTTPException(
+                status_code=400,
+                detail="Stream URL resolves to a blocked network address",
+            )
+    except (socket.gaierror, ValueError):
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot resolve stream URL hostname",
+        )
+
+
 router = APIRouter(prefix="/device", tags=["device-presets"])
 descriptor_router = APIRouter(prefix="/descriptor/device", tags=["device-descriptors"])
 
@@ -109,31 +146,8 @@ async def stream_device_preset(
             },
         )
 
-        # SSRF protection: validate upstream URL scheme and block dangerous IPs
-        parsed_url = urlparse(preset.station_url)
-        if parsed_url.scheme not in ("http", "https"):
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid stream URL scheme",
-            )
-        try:
-            resolved_ip = socket.getaddrinfo(parsed_url.hostname, None)[0][4][0]
-            addr = ipaddress.ip_address(resolved_ip)
-            if addr.is_loopback or addr.is_link_local:
-                logger.warning(
-                    "[SSRF BLOCK] Blocked request to %s (%s)",
-                    resolved_ip,
-                    preset.station_url,
-                )
-                raise HTTPException(
-                    status_code=400,
-                    detail="Stream URL resolves to a blocked network address",
-                )
-        except (socket.gaierror, ValueError):
-            raise HTTPException(
-                status_code=400,
-                detail="Cannot resolve stream URL hostname",
-            )
+        # SSRF protection: validate upstream URL
+        validate_stream_url(preset.station_url)
 
         # Open upstream connection and check status BEFORE sending response headers.
         # This ensures we can return proper HTTP error codes (502) instead of
