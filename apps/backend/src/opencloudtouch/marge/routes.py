@@ -62,6 +62,12 @@ async def get_full_account(
 
     presets, recents = await marge.get_full_account(device_id)
 
+    logger.info(
+        "[MARGE] Returning %d presets, %d recents for %s",
+        len(presets),
+        len(recents),
+        device_id,
+    )
     for p in presets:
         logger.debug(
             "[MARGE] Preset %d: name=%s, source=%s, location=%.80s",
@@ -262,7 +268,8 @@ async def streaming_full_account(
     """Get full account sync via streaming endpoint.
 
     This is the streaming.bose.com version of the account sync endpoint.
-    Returns complete account with all devices, presets, recents, and sources.
+    Resolves the device_id from the account_id (margeAccountUUID) stored
+    during device discovery, then returns that device's presets.
 
     Args:
         account_id: Account ID (e.g., "3784726")
@@ -309,3 +316,75 @@ async def scmudc_reporting(device_id: str) -> Response:
     logger.debug("[SCMUDC] Report from device %s", device_id)
 
     return Response(status_code=200)
+
+
+# =============================================================================
+# Legacy Marge Compatibility Endpoints (firmware 27.x preset playback)
+# =============================================================================
+# These endpoints are called by the device during preset playback.
+# Without them, the device fails with CURL ErrorCode 7 → INVALID_SOURCE.
+# See: GitHub Issue #167, Zimbo88's analysis.
+
+
+@router.get("/streaming/device/{device_id}/streaming_token")
+async def streaming_token(device_id: str) -> Response:
+    """Return a dummy streaming token for device authentication.
+
+    SoundTouch firmware 27.x requests this token before playing a preset.
+    If the request fails, the device aborts playback with INVALID_SOURCE.
+    The token value is not validated — any non-empty response suffices.
+
+    Args:
+        device_id: Device MAC address
+
+    Returns:
+        JSON with a dummy access token
+    """
+    logger.info("[MARGE/COMPAT] Streaming token requested for device %s", device_id)
+
+    return Response(
+        content='{"access_token":"opencloudtouch","token":"opencloudtouch","expires_in":86400}',
+        media_type="application/json",
+    )
+
+
+@router.get("/v1/blacklist/{device_id}")
+@router.post("/v1/blacklist/{device_id}")
+async def blacklist_check(device_id: str) -> Response:
+    """Content blacklist check — always returns empty (nothing blacklisted).
+
+    The device checks this before playing content. If the endpoint is
+    unreachable, some firmware versions refuse playback.
+
+    Args:
+        device_id: Device MAC address
+
+    Returns:
+        JSON with empty blacklist
+    """
+    logger.debug("[MARGE/COMPAT] Blacklist check for device %s", device_id)
+
+    return Response(
+        content='{"blacklisted":false,"items":[]}',
+        media_type="application/json",
+    )
+
+
+@router.post("/setMargeAccount")
+async def set_marge_account() -> Response:
+    """Pair device with a Bose Cloud account (stub).
+
+    The SoundTouch app calls this to associate a device with an account.
+    OCT doesn't use real cloud accounts, but the device expects a 200 OK.
+    The actual margeAccountUUID is set via Telnet or device-side API.
+
+    Returns:
+        200 OK with status XML
+    """
+    logger.info("[MARGE] setMargeAccount called (stub — accepted)")
+
+    return Response(
+        content="<status>/setMargeAccount</status>",
+        media_type="application/xml",
+        status_code=200,
+    )

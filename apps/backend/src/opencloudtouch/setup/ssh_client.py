@@ -85,6 +85,13 @@ class SoundTouchSSHClient:
                 )
 
             logger.info("Connecting to %s:%s via SSH...", self.host, self.port)
+            logger.debug(
+                "SSH params: user=root, timeout=%.1fs, "
+                "host_key_algs=[ssh-rsa,rsa-sha2-512,rsa-sha2-256,ssh-dss], "
+                "kex=[dh-group1-sha1,dh-group14-sha1,dh-gex-sha256,ecdh-nistp256], "
+                "ciphers=[aes128-cbc,3des-cbc,aes128-ctr,aes256-ctr]",
+                timeout,
+            )
 
             # Connect with no password (SoundTouch root has no password)
             # Enable legacy algorithms for old SoundTouch firmware

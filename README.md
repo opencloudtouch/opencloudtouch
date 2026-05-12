@@ -1,16 +1,16 @@
-# OpenCloudTouch (OCT)
+﻿# OpenCloudTouch (OCT)
 
-> ## ⚠️ DISCLAIMER — USE AT YOUR OWN RISK / NUTZUNG AUF EIGENE GEFAHR
+> ## âš ï¸ DISCLAIMER â€” USE AT YOUR OWN RISK / NUTZUNG AUF EIGENE GEFAHR
 >
-> This software modifies your Bose® SoundTouch® device configuration. **The authors accept no liability whatsoever for any damage, malfunction, or permanent failure ("bricking") of your devices.** Use is entirely at your own risk. See **[DISCLAIMER.md](DISCLAIMER.md)** for full terms in English and German.
+> This software modifies your BoseÂ® SoundTouchÂ® device configuration. **The authors accept no liability whatsoever for any damage, malfunction, or permanent failure ("bricking") of your devices.** Use is entirely at your own risk. See **[DISCLAIMER.md](DISCLAIMER.md)** for full terms in English and German.
 >
-> Diese Software verändert die Konfiguration Ihrer Bose® SoundTouch®-Geräte. **Die Autoren übernehmen keinerlei Haftung für Schäden, Fehlfunktionen oder dauerhaftes Versagen („Bricking") Ihrer Geräte.** Die Nutzung erfolgt ausschließlich auf eigene Gefahr. Vollständige Bedingungen in Deutsch und Englisch: **[DISCLAIMER.md](DISCLAIMER.md)**
+> Diese Software verÃ¤ndert die Konfiguration Ihrer BoseÂ® SoundTouchÂ®-GerÃ¤te. **Die Autoren Ã¼bernehmen keinerlei Haftung fÃ¼r SchÃ¤den, Fehlfunktionen oder dauerhaftes Versagen (â€žBricking") Ihrer GerÃ¤te.** Die Nutzung erfolgt ausschlieÃŸlich auf eigene Gefahr. VollstÃ¤ndige Bedingungen in Deutsch und Englisch: **[DISCLAIMER.md](DISCLAIMER.md)**
 
-**OpenCloudTouch** is a local, open-source solution for **Bose® SoundTouch® speakers** after the official cloud shutdown.
+**OpenCloudTouch** is a local, open-source solution for **BoseÂ® SoundTouchÂ® speakers** after the official cloud shutdown.
 
-Keep your SoundTouch® speakers (e.g. SoundTouch® 10/30/300) running — without the Bose® cloud, without the proprietary app. One container, one web app, full local control.
+Keep your SoundTouchÂ® speakers (e.g. SoundTouchÂ® 10/30/300) running â€” without the BoseÂ® cloud, without the proprietary app. One container, one web app, full local control.
 
-> **Trademark Notice:** OpenCloudTouch is not affiliated with Bose® Corporation. Bose® and SoundTouch® are registered trademarks of Bose® Corporation. See [NOTICE](NOTICE).
+> **Trademark Notice:** OpenCloudTouch is not affiliated with BoseÂ® Corporation. BoseÂ® and SoundTouchÂ® are registered trademarks of BoseÂ® Corporation. See [NOTICE](NOTICE).
 
 | | |
 |---|---|
@@ -20,13 +20,13 @@ Keep your SoundTouch® speakers (e.g. SoundTouch® 10/30/300) running — withou
 
 ## Features
 
-- Internet radio with preset support (1–6 hardware buttons)
+- Internet radio with preset support (1â€“6 hardware buttons)
 - Responsive web UI for desktop and mobile
 - Device discovery via SSDP/UPnP + manual IP fallbacks
 - Preset programming with local descriptor and playlist endpoints
 - Setup wizard for manual device configuration (SSH/USB)
 - Multi-room zone management
-- BMX-compatible endpoints for SoundTouch® (including TuneIn stream resolver)
+- BMX-compatible endpoints for SoundTouchÂ® (including TuneIn stream resolver)
 - Docker deployment on three architectures (amd64, arm64, arm/v7)
 - Pre-built Raspberry Pi SD card images
 
@@ -34,17 +34,17 @@ Keep your SoundTouch® speakers (e.g. SoundTouch® 10/30/300) running — withou
 
 ```text
 Browser UI
-   →
+   â†’
 OpenCloudTouch (FastAPI + React, single container)
-   →
-SoundTouch® devices on the local network (HTTP / WebSocket)
+   â†’
+SoundTouchÂ® devices on the local network (HTTP / WebSocket)
 ```
 
 Radio providers are abstracted via adapters. RadioBrowser is the built-in search provider; TuneIn is supported as a stream resolver for existing device presets.
 
 ## Quick Start
 
-### Option 1 — Docker Run (recommended)
+### Option 1 â€” Docker Run (recommended)
 
 ```bash
 docker run -d \
@@ -52,12 +52,12 @@ docker run -d \
   --network host \
   -v opencloudtouch-data:/data \
   -e OCT_DISCOVERY_ENABLED=true \
-  ghcr.io/scheilch/opencloudtouch:stable
+  ghcr.io/scheilch/opencloudtouch:latest
 ```
 
 Open **http://localhost:7777** in your browser.
 
-### Option 2 — Docker Compose
+### Option 2 â€” Docker Compose
 
 ```bash
 docker run -d \
@@ -65,7 +65,7 @@ docker run -d \
   --network host \
   -v opencloudtouch-data:/data \
   -e OCT_DISCOVERY_ENABLED=true \
-  ghcr.io/scheilch/opencloudtouch:stable
+  ghcr.io/scheilch/opencloudtouch:latest
 ```
 
 Or use the provided compose file (pull mode, no build required):
@@ -87,23 +87,22 @@ docker compose -f deployment/docker-compose.yml down
 > Run `cd apps/frontend && npm install && npm run build` first, then
 > `docker compose -f deployment/docker-compose.yml up -d --build`.
 
-### Option 3 — Raspberry Pi (SD Card Image)
+### Option 3 â€” Raspberry Pi (SD Card Image)
 
 Pre-built images for Raspberry Pi 3/4/5 are available on the [Releases page](https://github.com/scheilch/opencloudtouch/releases).
 
 1. Download the `.img.xz` for your board
 2. Flash with [Raspberry Pi Imager](https://www.raspberrypi.com/software/)
-3. Boot — OpenCloudTouch starts automatically on port 7777
+3. Boot â€” OpenCloudTouch starts automatically on port 7777
 4. Default login: `oct` / `opencloudtouch`
 
 ### Docker Tags
 
 | Tag | Description |
 |-----|-------------|
-| `stable` | Latest stable release (recommended) |
-| `1.1.0` | Specific version |
-| `latest` | Latest build from `main` (may be unstable) |
-| `1.1` | Latest patch of minor version |
+| `latest` | Latest release (recommended) |
+| `1.2.5` | Specific version |
+
 
 ### Supported Architectures
 
@@ -125,19 +124,19 @@ New to OpenCloudTouch? Watch this step-by-step setup tutorial:
 
 ```text
 opencloudtouch/
-├── apps/
-│   ├── backend/                  # FastAPI REST API (Python 3.11+)
-│   │   ├── src/opencloudtouch/
-│   │   └── tests/
-│   └── frontend/                 # React + TypeScript (Vite 8)
-│       ├── src/
-│       └── tests/
-├── deployment/
-│   ├── Dockerfile                # Multi-stage production build
-│   ├── docker-compose.yml
-│   └── raspi-image/              # Raspberry Pi SD card build
-├── scripts/                      # Git hooks, E2E runner
-└── package.json                  # Monorepo root (npm workspaces)
+â”œâ”€â”€ apps/
+â”‚   â”œâ”€â”€ backend/                  # FastAPI REST API (Python 3.11+)
+â”‚   â”‚   â”œâ”€â”€ src/opencloudtouch/
+â”‚   â”‚   â””â”€â”€ tests/
+â”‚   â””â”€â”€ frontend/                 # React + TypeScript (Vite 8)
+â”‚       â”œâ”€â”€ src/
+â”‚       â””â”€â”€ tests/
+â”œâ”€â”€ deployment/
+â”‚   â”œâ”€â”€ Dockerfile                # Multi-stage production build
+â”‚   â”œâ”€â”€ docker-compose.yml
+â”‚   â””â”€â”€ raspi-image/              # Raspberry Pi SD card build
+â”œâ”€â”€ scripts/                      # Git hooks, E2E runner
+â””â”€â”€ package.json                  # Monorepo root (npm workspaces)
 ```
 
 ## Local Development
@@ -217,8 +216,8 @@ Contributions are welcome! See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for gu
 
 ## Community
 
-Join the conversation in [GitHub Discussions](https://github.com/scheilch/opencloudtouch/discussions) — ask questions, share your setup, or suggest features.
+Join the conversation in [GitHub Discussions](https://github.com/scheilch/opencloudtouch/discussions) â€” ask questions, share your setup, or suggest features.
 
 ## License
 
-[Apache License 2.0](LICENSE) — see [NOTICE](NOTICE) for trademark details.
+[Apache License 2.0](LICENSE) â€” see [NOTICE](NOTICE) for trademark details.

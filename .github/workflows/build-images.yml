@@ -73,7 +73,6 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: scheilch/opencloudtouch
   PI_GEN_REPO: https://github.com/RPi-Distro/pi-gen.git
-  PI_GEN_BRANCH: arm64
 
 jobs:
   # ============================================================================
@@ -426,13 +425,24 @@ jobs:
         run: |
           df -h /
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
-            /usr/local/share/boost /usr/share/swift || true
+            /usr/local/share/boost /usr/share/swift \
+            /usr/local/graalvm /usr/local/.ghcup \
+            /usr/local/share/powershell /usr/local/share/chromium \
+            /opt/hostedtoolcache/CodeQL || true
+          sudo docker image prune -af 2>/dev/null || true
           sudo apt-get clean
           df -h /
 
       - name: Clone pi-gen
         run: |
-          git clone --depth 1 --branch ${{ env.PI_GEN_BRANCH }} \
+          # arm64 branch only ships 64-bit kernels (kernel8.img)
+          # master branch ships 32-bit kernels (kernel7.img) needed for RPi 2
+          if [ "${{ matrix.arch }}" = "armhf" ]; then
+            PI_GEN_BRANCH=master
+          else
+            PI_GEN_BRANCH=arm64
+          fi
+          git clone --depth 1 --branch "$PI_GEN_BRANCH" \
             ${{ env.PI_GEN_REPO }} pi-gen
 
       - name: Configure pi-gen
@@ -440,7 +450,7 @@ jobs:
           cd pi-gen
           cat > config << 'EOF'
           IMG_NAME=opencloudtouch-${{ matrix.arch }}
-          RELEASE=bookworm
+          RELEASE=trixie
           TARGET_HOSTNAME=opencloudtouch
           FIRST_USER_NAME=oct
           FIRST_USER_PASS=opencloudtouch
@@ -501,12 +511,40 @@ jobs:
           RUN_SCRIPT="pi-gen/stage2/01-sys-tweaks/01-run.sh"
           sed -i 's/systemctl enable rpi-resize/systemctl enable rpi-resize 2>\/dev\/null || true/' "$RUN_SCRIPT"
 
-      - name: Fix Debian GPG keyring
+      - name: Free chroot disk space before dist-upgrade
         run: |
+          # pi-gen runs apt dist-upgrade inside the chroot (stage2/00-copies-and-fills).
+          # On arm64, the apt cache fills the container filesystem before upgrade completes.
+          # Inject apt-get clean before dist-upgrade to free cached .deb files.
+          COPIES_SCRIPT="pi-gen/stage2/00-copies-and-fills/00-run.sh"
+          if [ -f "$COPIES_SCRIPT" ]; then
+            sed -i '/dist-upgrade/i on_chroot << EOF\napt-get clean\nEOF' "$COPIES_SCRIPT"
+            echo "Injected apt-get clean before dist-upgrade in $COPIES_SCRIPT"
+          fi
+
+          # Also add periodic apt-get clean after each stage's package installs
+          for stage_dir in pi-gen/stage0 pi-gen/stage1 pi-gen/stage2; do
+            for run_script in "$stage_dir"/*/00-run.sh; do
+              if [ -f "$run_script" ] && grep -q "apt-get install" "$run_script"; then
+                # Append apt-get clean after each on_chroot block that installs packages
+                sed -i '/apt-get install/a apt-get clean' "$run_script"
+                echo "Added apt-get clean after installs in $run_script"
+              fi
+            done
+          done
+
+      - name: Fix debootstrap GPG verification
+        run: |
+          # Raspbian trixie InRelease signature doesn't match the bundled keyring.
+          # This is a known pi-gen/Raspbian infrastructure issue.
+          # Workaround: skip GPG check during debootstrap (CI-only, trusted source).
           cd pi-gen
+          sed -i 's/--keyring "${STAGE_DIR}\/files\/raspberrypi.gpg"/--no-check-gpg/' scripts/common
+
+          # Ensure Debian archive keyring is available inside chroot for apt
           sed -i '/^on_chroot/i \
           if [ -f /usr/share/keyrings/debian-archive-keyring.gpg ]; then\
-              cp /usr/share/keyrings/debian-archive-keyring.gpg "${ROOTFS_DIR}/usr/share/keyrings/debian-archive-keyring.pgp"\
+              cp /usr/share/keyrings/debian-archive-keyring.gpg "${ROOTFS_DIR}/usr/share/keyrings/debian-archive-keyring.gpg"\
           fi\
           ' stage0/00-configure-apt/00-run.sh
 

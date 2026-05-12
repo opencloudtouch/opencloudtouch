@@ -303,7 +303,14 @@ class AccountPairingResponse(BaseModel):
     """Response from account pairing."""
 
     success: bool
-    had_uuid: bool = False
-    uuid: str = ""
+    had_uuid: bool = Field(
+        default=False, description="True if UUID was already present"
+    )
+    uuid: str = Field(default="", description="The current or newly set UUID")
     message: str = ""
     error: Optional[str] = None
+
+
+# Aliases for backward compatibility with main's naming
+EnsureAccountRequest = AccountPairingRequest
+EnsureAccountResponse = AccountPairingResponse

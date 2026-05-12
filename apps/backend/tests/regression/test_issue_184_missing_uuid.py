@@ -198,20 +198,23 @@ class TestBug184DatabaseMigration:
         db_path = tmp_path / "test.db"
         repo = DeviceRepository(str(db_path))
         await repo.initialize()
-        device = Device(
-            device_id="F4E11EA01FE6",
-            ip="192.168.1.100",
-            name="Test ST20",
-            model="SoundTouch 20",
-            mac_address="F4E11EA01FE6",
-            firmware_version="27.0.6.46330",
-        )
-        await repo.upsert(device)
-        await repo.update_marge_account_uuid("F4E11EA01FE6", "3784726")
-        found = await repo.get_by_account_uuid("3784726")
-        assert found is not None
-        assert found.device_id == "F4E11EA01FE6"
-        assert found.marge_account_uuid == "3784726"
+        try:
+            device = Device(
+                device_id="F4E11EA01FE6",
+                ip="192.168.1.100",
+                name="Test ST20",
+                model="SoundTouch 20",
+                mac_address="F4E11EA01FE6",
+                firmware_version="27.0.6.46330",
+            )
+            await repo.upsert(device)
+            await repo.update_marge_account_uuid("F4E11EA01FE6", "3784726")
+            found = await repo.get_by_account_uuid("3784726")
+            assert found is not None
+            assert found.device_id == "F4E11EA01FE6"
+            assert found.marge_account_uuid == "3784726"
+        finally:
+            await repo.close()
 
     @pytest.mark.asyncio
     async def test_get_by_account_uuid_returns_none_for_unknown(self, tmp_path):
@@ -219,5 +222,8 @@ class TestBug184DatabaseMigration:
         db_path = tmp_path / "test.db"
         repo = DeviceRepository(str(db_path))
         await repo.initialize()
-        found = await repo.get_by_account_uuid("nonexistent")
-        assert found is None
+        try:
+            found = await repo.get_by_account_uuid("nonexistent")
+            assert found is None
+        finally:
+            await repo.close()

@@ -20,6 +20,8 @@ from opencloudtouch.setup.api_models import (
     ConfigModifyResponse,
     ConnectivityCheckRequest,
     DetectStrategyResponse,
+    EnsureAccountRequest,
+    EnsureAccountResponse,
     HostsModifyRequest,
     HostsModifyResponse,
     ListBackupsRequest,
@@ -300,6 +302,36 @@ async def wizard_account_pairing(
         uuid=result.get("uuid", ""),
         message=result.get("message", ""),
         error=result.get("error"),
+    )
+
+
+@wizard_router.post("/wizard/ensure-account", response_model=EnsureAccountResponse)
+async def wizard_ensure_account(request: EnsureAccountRequest):
+    """Ensure device has a margeAccountUUID (Wizard Step — after config/hosts).
+
+    Devices without a margeAccountUUID cannot play presets (INVALID_SOURCE).
+    This endpoint checks GET :8090/info and sets a UUID via Telnet if missing.
+
+    Safe to call multiple times — no-op if UUID already present.
+    """
+    from opencloudtouch.setup.account_pairing_service import ensure_account_uuid
+
+    logger.info("Ensuring account UUID on device %s", request.device_ip)
+
+    result = await ensure_account_uuid(request.device_ip)
+
+    if not result.success:
+        return EnsureAccountResponse(
+            success=False,
+            had_uuid=result.had_uuid,
+            message=result.error or "Account pairing failed",
+        )
+
+    return EnsureAccountResponse(
+        success=True,
+        had_uuid=result.had_uuid,
+        uuid=result.uuid,
+        message=result.message,
     )
 
 

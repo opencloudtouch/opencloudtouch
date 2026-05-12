@@ -7,9 +7,13 @@ The config file controls which cloud servers the device contacts:
 - bmxRegistryUrl: BMX service registry (stream resolution for presets)
 - margeServerUrl: Account/preset sync
 - swUpdateUrl: Firmware updates
+- statsServerUrl: Telemetry/analytics
 
-Critical: bmxRegistryUrl must be HTTP (not HTTPS) because SoundTouch
-devices cannot validate custom HTTPS certificates.
+Critical: ALL URLs must be HTTP (not HTTPS) because SoundTouch
+devices cannot validate custom HTTPS certificates. An unrewritten
+statsServerUrl (https://events.api.bosecm.com) causes the device to
+hang on a TLS handshake to the OCT IP, delaying boot and potentially
+blocking the BMX registry load. See GitHub Issue #167.
 """
 
 import base64
@@ -26,6 +30,7 @@ logger = logging.getLogger(__name__)
 _BMX_TAG = "bmxRegistryUrl"
 _MARGE_TAG = "margeServerUrl"
 _SWUPDATE_TAG = "swUpdateUrl"
+_STATS_TAG = "statsServerUrl"
 
 
 @dataclass
@@ -171,6 +176,15 @@ class SoundTouchConfigService:
         """Build the swupdate URL pointing to OCT."""
         return f"http://content.api.bose.io:{port}/updates/soundtouch"
 
+    @staticmethod
+    def build_stats_url(oct_host: str, port: int = 7777) -> str:
+        """Build the stats/telemetry URL pointing to OCT.
+
+        Without this, the device retains https://events.api.bosecm.com
+        and hangs on TLS handshake to OCT IP (Issue #167).
+        """
+        return f"http://content.api.bose.io:{port}"
+
     async def _read_config(self) -> str:
         """Read current config file from device."""
         path = await self._detect_config_path()
@@ -310,6 +324,11 @@ class SoundTouchConfigService:
                 modified, old = self._replace_tag_value(modified, _SWUPDATE_TAG, new_sw)
                 if old is not None:
                     diff.add(_SWUPDATE_TAG, old, new_sw)
+
+                new_stats = self.build_stats_url(oct_ip)
+                modified, old = self._replace_tag_value(modified, _STATS_TAG, new_stats)
+                if old is not None:
+                    diff.add(_STATS_TAG, old, new_stats)
 
                 if not diff.changes:
                     self.logger.info("No URL tags found in config — nothing to modify")

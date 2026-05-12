@@ -9,7 +9,7 @@ import socket
 from functools import lru_cache
 from pathlib import Path
 from typing import Optional
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse
 
 import yaml
 from pydantic import Field, field_validator, model_validator
@@ -129,22 +129,33 @@ class AppConfig(BaseSettings):
 
     @model_validator(mode="after")
     def _replace_localhost_in_base_url(self) -> "AppConfig":
-        """Replace localhost in station_descriptor_base_url with detected host IP.
+        """Replace localhost in station_descriptor_base_url with a device-reachable URL.
 
         Bose devices cannot reach 'localhost' — it points to themselves.
-        When the user hasn't explicitly configured a host IP, we auto-detect it.
-        See: https://github.com/scheilch/opencloudtouch/issues/43
+        When the user hasn't explicitly configured a URL, we use
+        ``content.api.bose.io`` which the device resolves via /etc/hosts
+        to the OCT server IP. This works regardless of Docker networking
+        mode (host, bridge, macvlan) and avoids Issue #167 where auto-detected
+        container IPs were unreachable from the device LAN.
+
+        Fallback: if no /etc/hosts redirect is expected (unusual), the user
+        can set OCT_STATION_DESCRIPTOR_BASE_URL to an explicit IP.
+
+        See: https://github.com/simonscheiblch/opencloudtouch/issues/43
+        See: https://github.com/simonscheiblch/opencloudtouch/issues/167
         """
         parsed = urlparse(self.station_descriptor_base_url)
         if parsed.hostname in ("localhost", "127.0.0.1"):
-            host_ip = _detect_host_ip()
-            if host_ip:
-                new_netloc = f"{host_ip}:{parsed.port}" if parsed.port else host_ip
-                new_url = urlunparse(parsed._replace(netloc=new_netloc))
-                object.__setattr__(self, "station_descriptor_base_url", new_url)
-                logger.info(
-                    f"Auto-detected host IP for preset URLs: {self.station_descriptor_base_url}"
-                )
+            port = parsed.port or 7777
+            # Use content.api.bose.io domain — resolved via /etc/hosts on device.
+            # This is the same domain used by config_service.py for BMX/Marge URLs.
+            new_url = f"http://content.api.bose.io:{port}"
+            object.__setattr__(self, "station_descriptor_base_url", new_url)
+            logger.info(
+                "Preset URLs will use domain-based URL: %s "
+                "(device resolves via /etc/hosts)",
+                self.station_descriptor_base_url,
+            )
         return self
 
     # Production Safety

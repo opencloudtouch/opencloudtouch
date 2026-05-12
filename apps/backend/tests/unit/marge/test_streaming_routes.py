@@ -12,6 +12,9 @@ from opencloudtouch.marge.routes import (
     streaming_full_account,
     streaming_power_on,
     streaming_sourceproviders,
+    streaming_token,
+    blacklist_check,
+    set_marge_account,
 )
 from opencloudtouch.marge.service import MargeService
 
@@ -115,6 +118,8 @@ class TestStreamingSourceproviders:
 
 
 class TestStreamingFullAccount:
+    """Tests for /streaming/account/{account_id}/full (fixes #188)."""
+
     @pytest.mark.asyncio
     async def test_returns_200_with_empty_presets(self):
         mock_marge = AsyncMock(spec=MargeService)
@@ -122,6 +127,19 @@ class TestStreamingFullAccount:
 
         result = await streaming_full_account("3784726", mock_marge)
         assert result.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_returns_empty_when_no_device_mapping(self):
+        """No device found for account UUID → empty presets, no crash."""
+        mock_marge = AsyncMock(spec=MargeService)
+        mock_marge.resolve_device_id_for_account = AsyncMock(return_value=None)
+
+        result = await streaming_full_account("9999999", mock_marge)
+        assert result.status_code == 200
+        root = ElementTree.fromstring(result.body.decode())
+        presets = root.find("presets")
+        assert presets is not None
+        assert len(presets.findall("preset")) == 0
 
     @pytest.mark.asyncio
     async def test_media_type_is_bose_streaming(self):
@@ -171,3 +189,74 @@ class TestScmudcReporting:
     async def test_accepts_any_device_id(self):
         result = await scmudc_reporting("ANYTHING")
         assert result.status_code == 200
+
+
+class TestStreamingToken:
+    """Tests for /streaming/device/{device_id}/streaming_token (Issue #167)."""
+
+    @pytest.mark.asyncio
+    async def test_returns_200_json(self):
+        result = await streaming_token("689E194F7D2F")
+        assert result.status_code == 200
+        assert result.media_type == "application/json"
+
+    @pytest.mark.asyncio
+    async def test_contains_access_token(self):
+        import json
+
+        result = await streaming_token("689E194F7D2F")
+        body = json.loads(result.body.decode())
+        assert "access_token" in body
+        assert body["access_token"] == "opencloudtouch"
+
+    @pytest.mark.asyncio
+    async def test_contains_expires_in(self):
+        import json
+
+        result = await streaming_token("AABBCCDDEEFF")
+        body = json.loads(result.body.decode())
+        assert body["expires_in"] == 86400
+
+    @pytest.mark.asyncio
+    async def test_accepts_any_device_id(self):
+        result = await streaming_token("ANYTHING")
+        assert result.status_code == 200
+
+
+class TestBlacklistCheck:
+    """Tests for /v1/blacklist/{device_id} (Issue #167)."""
+
+    @pytest.mark.asyncio
+    async def test_get_returns_200_json(self):
+        result = await blacklist_check("689E194F7D2F")
+        assert result.status_code == 200
+        assert result.media_type == "application/json"
+
+    @pytest.mark.asyncio
+    async def test_returns_not_blacklisted(self):
+        import json
+
+        result = await blacklist_check("689E194F7D2F")
+        body = json.loads(result.body.decode())
+        assert body["blacklisted"] is False
+        assert body["items"] == []
+
+    @pytest.mark.asyncio
+    async def test_accepts_any_device_id(self):
+        result = await blacklist_check("ANYTHING")
+        assert result.status_code == 200
+
+
+class TestSetMargeAccount:
+    """Tests for /setMargeAccount (Issue #167 — margeAccountUUID)."""
+
+    @pytest.mark.asyncio
+    async def test_returns_200_xml(self):
+        result = await set_marge_account()
+        assert result.status_code == 200
+        assert result.media_type == "application/xml"
+
+    @pytest.mark.asyncio
+    async def test_returns_status_xml(self):
+        result = await set_marge_account()
+        assert b"/setMargeAccount" in result.body
