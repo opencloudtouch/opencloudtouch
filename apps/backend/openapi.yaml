@@ -2197,6 +2197,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/account-pairing:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Account Pairing
+      description: 'Ensure device has a margeAccountUUID (Wizard Step - Account Pairing).
+
+
+        Checks if the device already has a UUID. If not, generates one and
+
+        sets it via Telnet. Persists the UUID in the device repository for
+
+        streaming endpoint resolution.'
+      operationId: wizard_account_pairing_api_setup_wizard_account_pairing_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountPairingRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountPairingResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/setup/wizard/verify-redirect:
     post:
       tags:
@@ -3334,6 +3367,49 @@ components:
       - msg
       - type
       title: ValidationError
+    AccountPairingRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+          description: Device IP address
+        device_id:
+          type: string
+          title: Device Id
+          description: Device ID (MAC address)
+      type: object
+      required:
+      - device_ip
+      - device_id
+      title: AccountPairingRequest
+      description: Request to ensure device has a margeAccountUUID.
+    AccountPairingResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        had_uuid:
+          type: boolean
+          title: Had Uuid
+          default: false
+        uuid:
+          type: string
+          title: Uuid
+          default: ''
+        message:
+          type: string
+          title: Message
+          default: ''
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+      type: object
+      required:
+      - success
+      title: AccountPairingResponse
+      description: Response from account pairing.
     VerifyRedirectRequest:
       properties:
         device_ip:

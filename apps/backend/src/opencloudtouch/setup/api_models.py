@@ -8,6 +8,8 @@ setup/models.py; this file holds only the request/response DTOs.
 import ipaddress
 import re
 
+from typing import Optional
+
 from pydantic import BaseModel, Field, field_validator
 
 # Hostname: letters, digits, hyphens, dots — NO shell metacharacters
@@ -288,3 +290,20 @@ class DetectStrategyResponse(BaseModel):
         description="Recommended strategy: 'hosts_only' or 'bmx_and_hosts'"
     )
     message: str
+
+
+class AccountPairingRequest(BaseModel):
+    """Request to ensure device has a margeAccountUUID."""
+
+    device_ip: str = Field(..., description="Device IP address")
+    device_id: str = Field(..., description="Device ID (MAC address)")
+
+
+class AccountPairingResponse(BaseModel):
+    """Response from account pairing."""
+
+    success: bool
+    had_uuid: bool = False
+    uuid: str = ""
+    message: str = ""
+    error: Optional[str] = None

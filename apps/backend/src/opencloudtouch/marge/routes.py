@@ -273,14 +273,20 @@ async def streaming_full_account(
     """
     logger.info("[MARGE/STREAMING] Full account sync for account %s", account_id)
 
-    # For now, return a generic device_id. In future, map account_id to device.
-    device_id = "689E194F7D2F"  # TODO: Get from account mapping
+    device_id = await marge.resolve_device_id_for_account(account_id)
+    if not device_id:
+        logger.warning(
+            "[MARGE/STREAMING] No device mapped to account %s - returning empty presets",
+            account_id,
+        )
+        return _xml_response(build_full_account_xml([], []), _MEDIA_STREAMING_XML)
 
     presets = await marge.get_presets(device_id)
 
     logger.info(
-        "[MARGE/STREAMING] Returning %d presets for account %s",
+        "[MARGE/STREAMING] Returning %d presets for device %s (account %s)",
         len(presets),
+        device_id,
         account_id,
     )
 

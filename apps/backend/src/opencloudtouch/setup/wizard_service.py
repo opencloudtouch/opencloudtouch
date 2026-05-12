@@ -11,6 +11,7 @@ import socket
 from datetime import UTC, datetime
 from urllib.parse import urlparse
 
+from opencloudtouch.setup.account_pairing_service import ensure_account_uuid
 from opencloudtouch.setup.backup_service import SoundTouchBackupService
 from opencloudtouch.setup.config_service import SoundTouchConfigService
 from opencloudtouch.setup.hosts_service import SoundTouchHostsService
@@ -231,6 +232,45 @@ class WizardService:
             return {"success": False, "error": f"Unexpected error: {str(e)}"}
         finally:
             await ssh_client.close()
+
+    async def ensure_account_pairing(self, device_ip: str, device_id: str) -> dict:
+        """Ensure device has a margeAccountUUID - set one via Telnet if missing.
+
+        After pairing, persists the UUID to the device repository so the
+        streaming endpoint can resolve account_id -> device_id.
+
+        Returns:
+            Dict with success, had_uuid, uuid, message
+        """
+        try:
+            result = await ensure_account_uuid(device_ip)
+
+            if result.success and result.uuid and self._device_repo:
+                await self._device_repo.update_marge_account_uuid(
+                    device_id, result.uuid
+                )
+                logger.info(
+                    "Persisted marge_account_uuid=%s for device %s",
+                    result.uuid,
+                    device_id,
+                )
+
+            return {
+                "success": result.success,
+                "had_uuid": result.had_uuid,
+                "uuid": result.uuid,
+                "message": result.message,
+                "error": result.error,
+            }
+        except Exception as e:
+            logger.exception("Account pairing failed for %s: %s", device_ip, e)
+            return {
+                "success": False,
+                "had_uuid": False,
+                "uuid": "",
+                "message": "",
+                "error": f"Account pairing failed: {e}",
+            }
 
     async def mark_complete(self, device_id: str) -> dict:
         """Mark wizard setup as complete for a device."""

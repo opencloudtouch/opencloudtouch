@@ -5,7 +5,9 @@ account sync protocol. Keeps route handlers thin.
 """
 
 import logging
+from typing import Optional
 
+from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.repository import PresetRepository
 from opencloudtouch.recents.models import RecentPlay
@@ -21,9 +23,39 @@ class MargeService:
         self,
         preset_repo: PresetRepository,
         recents_repo: RecentsRepository,
+        device_repo: Optional[DeviceRepository] = None,
     ) -> None:
         self._preset_repo = preset_repo
         self._recents_repo = recents_repo
+        self._device_repo = device_repo
+
+    async def resolve_device_id_for_account(self, account_id: str) -> Optional[str]:
+        """Resolve account_id (margeAccountUUID) to device_id (MAC).
+
+        Args:
+            account_id: The marge account UUID from the streaming request
+
+        Returns:
+            device_id if found, None otherwise
+        """
+        if not self._device_repo:
+            logger.warning(
+                "[MARGE] No device_repo - cannot resolve account %s", account_id
+            )
+            return None
+
+        device = await self._device_repo.get_by_account_uuid(account_id)
+        if device:
+            logger.info(
+                "[MARGE] Resolved account %s -> device %s (%s)",
+                account_id,
+                device.device_id,
+                device.name,
+            )
+            return device.device_id
+
+        logger.warning("[MARGE] No device found for account UUID %s", account_id)
+        return None
 
     async def get_full_account(
         self, device_id: str

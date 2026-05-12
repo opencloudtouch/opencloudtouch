@@ -32,6 +32,8 @@ from opencloudtouch.setup.api_models import (
     VerifyRedirectResponse,
     WizardCompleteRequest,
     WizardCompleteResponse,
+    AccountPairingRequest,
+    AccountPairingResponse,
 )
 from opencloudtouch.setup.wizard_helpers import check_port_443
 from opencloudtouch.setup.wizard_service import WizardService
@@ -273,6 +275,32 @@ async def wizard_reboot_device(
         "success": True,
         "message": "Neustart-Befehl gesendet. Das Gerät startet in wenigen Sekunden neu.",
     }
+
+
+@wizard_router.post("/wizard/account-pairing", response_model=AccountPairingResponse)
+async def wizard_account_pairing(
+    request: AccountPairingRequest,
+    wizard: WizardService = Depends(get_wizard_service),
+):
+    """Ensure device has a margeAccountUUID (Wizard Step - Account Pairing).
+
+    Checks if the device already has a UUID. If not, generates one and
+    sets it via Telnet. Persists the UUID in the device repository for
+    streaming endpoint resolution.
+    """
+    logger.info(
+        "Account pairing for %s (device %s)", request.device_ip, request.device_id
+    )
+
+    result = await wizard.ensure_account_pairing(request.device_ip, request.device_id)
+
+    return AccountPairingResponse(
+        success=result["success"],
+        had_uuid=result.get("had_uuid", False),
+        uuid=result.get("uuid", ""),
+        message=result.get("message", ""),
+        error=result.get("error"),
+    )
 
 
 @wizard_router.post("/wizard/complete", response_model=WizardCompleteResponse)

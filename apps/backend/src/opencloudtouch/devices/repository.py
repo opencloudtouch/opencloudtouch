@@ -31,6 +31,7 @@ class Device:
         setup_status: str = "unknown",
         ssh_permanent: bool = False,
         setup_completed_at: Optional[datetime] = None,
+        marge_account_uuid: Optional[str] = None,
     ):
         self.id = id
         self.device_id = device_id
@@ -46,6 +47,7 @@ class Device:
         self.setup_status = setup_status
         self.ssh_permanent = ssh_permanent
         self.setup_completed_at = setup_completed_at
+        self.marge_account_uuid = marge_account_uuid
 
     @staticmethod
     def _extract_schema_version(firmware_version: str) -> str:
@@ -81,6 +83,7 @@ class Device:
             "setup_completed_at": (
                 self.setup_completed_at.isoformat() if self.setup_completed_at else None
             ),
+            "marge_account_uuid": self.marge_account_uuid,
         }
 
 
@@ -130,6 +133,12 @@ class DeviceRepository(BaseRepository):
             version=102,
             description="Add setup_completed_at column to devices",
             sql="ALTER TABLE devices ADD COLUMN setup_completed_at TIMESTAMP",
+        )
+
+        await self._apply_migration(
+            version=103,
+            description="Add marge_account_uuid column to devices",
+            sql="ALTER TABLE devices ADD COLUMN marge_account_uuid TEXT",
         )
 
         # Indexes
@@ -195,7 +204,7 @@ class DeviceRepository(BaseRepository):
         cursor = await db.execute("""
             SELECT id, device_id, ip, name, model, mac_address, firmware_version,
                    schema_version, last_seen, setup_status, ssh_permanent,
-                   setup_completed_at
+                   setup_completed_at, marge_account_uuid
             FROM devices
             ORDER BY last_seen DESC
         """)
@@ -211,7 +220,7 @@ class DeviceRepository(BaseRepository):
             """
             SELECT id, device_id, ip, name, model, mac_address, firmware_version,
                    schema_version, last_seen, setup_status, ssh_permanent,
-                   setup_completed_at
+                   setup_completed_at, marge_account_uuid
             FROM devices
             WHERE device_id = ?
         """,
@@ -257,6 +266,41 @@ class DeviceRepository(BaseRepository):
         await db.commit()
         logger.info("Updated setup status for %s: %s", device_id, setup_status)
 
+    async def get_by_account_uuid(self, account_uuid: str) -> Optional[Device]:
+        """Get device by marge_account_uuid."""
+        db = self._ensure_initialized()
+
+        cursor = await db.execute(
+            """
+            SELECT id, device_id, ip, name, model, mac_address, firmware_version,
+                   schema_version, last_seen, setup_status, ssh_permanent,
+                   setup_completed_at, marge_account_uuid
+            FROM devices
+            WHERE marge_account_uuid = ?
+        """,
+            (account_uuid,),
+        )
+
+        row = await cursor.fetchone()
+        if not row:
+            return None
+        return self._row_to_device(row)
+
+    async def update_marge_account_uuid(
+        self, device_id: str, marge_account_uuid: str
+    ) -> None:
+        """Update marge_account_uuid for a device."""
+        db = self._ensure_initialized()
+
+        await db.execute(
+            "UPDATE devices SET marge_account_uuid = ?, updated_at = CURRENT_TIMESTAMP WHERE device_id = ?",
+            (marge_account_uuid, device_id),
+        )
+        await db.commit()
+        logger.info(
+            "Updated marge_account_uuid for %s: %s", device_id, marge_account_uuid
+        )
+
     async def delete_all(self) -> int:
         """Delete all devices from database. Returns number of deleted rows."""
         db = self._ensure_initialized()
@@ -275,7 +319,7 @@ class DeviceRepository(BaseRepository):
 
         Column order: id, device_id, ip, name, model, mac_address,
         firmware_version, schema_version, last_seen, setup_status,
-        ssh_permanent, setup_completed_at.
+        ssh_permanent, setup_completed_at, marge_account_uuid.
         """
         return Device(
             id=row[0],
@@ -290,4 +334,5 @@ class DeviceRepository(BaseRepository):
             setup_status=row[9] or "unknown",
             ssh_permanent=bool(row[10]) if row[10] is not None else False,
             setup_completed_at=(datetime.fromisoformat(row[11]) if row[11] else None),
+            marge_account_uuid=row[12] if len(row) > 12 else None,
         )
