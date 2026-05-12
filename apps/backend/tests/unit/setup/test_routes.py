@@ -1268,7 +1268,10 @@ class TestEnablePermanentSSHException:
             },
         )
         assert response.status_code == 500
-        assert "Unexpected error" in response.json()["detail"]
+        assert (
+            response.json()["detail"]
+            == "An unexpected error occurred while enabling permanent SSH"
+        )
 
 
 class TestWizardRestoreExceptionPaths:

@@ -76,6 +76,9 @@ class TestStreamDevicePreset:
         with patch(
             "opencloudtouch.devices.api.preset_stream_routes.httpx.AsyncClient",
             return_value=mock_http_client,
+        ), patch(
+            "opencloudtouch.devices.api.preset_stream_routes.socket.getaddrinfo",
+            return_value=[(None, None, None, None, ("93.184.216.34", 0))],
         ):
             with client.stream("GET", "/device/689E194F7D2F/preset/1") as response:
                 assert response.status_code == 200
@@ -99,6 +102,9 @@ class TestStreamDevicePreset:
         with patch(
             "opencloudtouch.devices.api.preset_stream_routes.httpx.AsyncClient",
             return_value=mock_http_client,
+        ), patch(
+            "opencloudtouch.devices.api.preset_stream_routes.socket.getaddrinfo",
+            return_value=[(None, None, None, None, ("93.184.216.34", 0))],
         ):
             response = client.get("/device/689E194F7D2F/preset/1")
             assert response.status_code == 502
@@ -120,6 +126,9 @@ class TestStreamDevicePreset:
         with patch(
             "opencloudtouch.devices.api.preset_stream_routes.httpx.AsyncClient",
             return_value=mock_http_client,
+        ), patch(
+            "opencloudtouch.devices.api.preset_stream_routes.socket.getaddrinfo",
+            return_value=[(None, None, None, None, ("93.184.216.34", 0))],
         ):
             response = client.get("/device/689E194F7D2F/preset/1")
             assert response.status_code == 502

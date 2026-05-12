@@ -192,7 +192,7 @@ async def bmx_tunein_playback(station_id: str) -> JSONResponse:
             "Access-Control-Allow-Headers": "Content-Type",
         }
 
-        return JSONResponse(content=response.model_dump(), headers=headers)
+        return JSONResponse(content=response.model_dump(by_alias=True), headers=headers)
     except Exception as e:
         logger.error("[BMX TUNEIN] Playback error: %s", e)
         return JSONResponse(
@@ -265,7 +265,7 @@ async def custom_stream_playback(request: Request) -> JSONResponse:
         )
 
         return JSONResponse(
-            content=response.model_dump(),
+            content=response.model_dump(by_alias=True),
             headers={"Access-Control-Allow-Origin": "*"},
         )
 
@@ -287,7 +287,7 @@ async def _resolve_tunein_for_orion(tunein_id: str) -> JSONResponse:
     try:
         response = await resolve_tunein_station(tunein_id)
         return JSONResponse(
-            content=response.model_dump(),
+            content=response.model_dump(by_alias=True),
             headers={"Access-Control-Allow-Origin": "*"},
         )
     except Exception as e:

@@ -137,6 +137,7 @@ async def discover_devices_stream(
 
     async def stream_discovery():
         """Stream discovery events to client."""
+        task = None
         try:
             # Start discovery in background task
             async with _discovery_lock:
@@ -154,6 +155,8 @@ async def discover_devices_stream(
 
         except asyncio.CancelledError:
             logger.info("Client disconnected from discovery stream")
+            if task and not task.done():
+                task.cancel()
             raise
         except Exception as e:
             logger.error("Discovery stream error: %s", e)

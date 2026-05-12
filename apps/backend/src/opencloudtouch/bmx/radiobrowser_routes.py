@@ -107,7 +107,7 @@ async def bmx_radiobrowser_playback(uuid: str) -> JSONResponse:
     logger.info("[BMX RADIOBROWSER] Resolved %s → %s", uuid, stream_url)
 
     return JSONResponse(
-        content=response.model_dump(),
+        content=response.model_dump(by_alias=True),
         headers={"Access-Control-Allow-Origin": "*"},
     )
 

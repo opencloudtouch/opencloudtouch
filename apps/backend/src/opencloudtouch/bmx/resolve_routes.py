@@ -8,6 +8,7 @@ import logging
 import os
 import re
 from xml.etree import ElementTree
+from xml.sax.saxutils import escape as xml_escape
 
 from fastapi import APIRouter, Request, Response
 
@@ -62,8 +63,8 @@ def _build_oct_resolved_xml(
     return (
         f'<ContentItem source="INTERNET_RADIO" type="stationurl"'
         f' location="{resolved_url}" isPresetable="true">\n'
-        f"  <itemName>{item_name}</itemName>\n"
-        f"  <stationName>{station_name}</stationName>\n"
+        f"  <itemName>{xml_escape(item_name)}</itemName>\n"
+        f"  <stationName>{xml_escape(station_name)}</stationName>\n"
         f"</ContentItem>"
     )
 

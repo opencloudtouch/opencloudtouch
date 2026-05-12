@@ -193,7 +193,7 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
             type="server_error",
             title="Internal Server Error",
             status=500,
-            detail=str(exc),
+            detail="An unexpected error occurred. Please try again later.",
             instance=str(request.url.path),
         ).model_dump(),
     )

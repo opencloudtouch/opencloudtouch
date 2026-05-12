@@ -140,7 +140,7 @@ async def enable_permanent_ssh(
         logger.exception("Unexpected error enabling permanent SSH: %s", e)
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Unexpected error: {str(e)}",
+            detail="An unexpected error occurred while enabling permanent SSH",
         )
     finally:
         await ssh_client.close()

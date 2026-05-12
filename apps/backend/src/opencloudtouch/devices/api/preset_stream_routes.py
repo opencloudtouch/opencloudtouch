@@ -10,7 +10,10 @@ acts as an HTTP proxy to fetch HTTPS streams from RadioBrowser.
 - OCT proxies the stream: Fetches HTTPS → Serves as HTTP to Bose ✅
 """
 
+import ipaddress
 import logging
+import socket
+from urllib.parse import urlparse
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
@@ -106,6 +109,32 @@ async def stream_device_preset(
             },
         )
 
+        # SSRF protection: validate upstream URL scheme and block dangerous IPs
+        parsed_url = urlparse(preset.station_url)
+        if parsed_url.scheme not in ("http", "https"):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid stream URL scheme",
+            )
+        try:
+            resolved_ip = socket.getaddrinfo(parsed_url.hostname, None)[0][4][0]
+            addr = ipaddress.ip_address(resolved_ip)
+            if addr.is_loopback or addr.is_link_local:
+                logger.warning(
+                    "[SSRF BLOCK] Blocked request to %s (%s)",
+                    resolved_ip,
+                    preset.station_url,
+                )
+                raise HTTPException(
+                    status_code=400,
+                    detail="Stream URL resolves to a blocked network address",
+                )
+        except (socket.gaierror, ValueError):
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot resolve stream URL hostname",
+            )
+
         # Open upstream connection and check status BEFORE sending response headers.
         # This ensures we can return proper HTTP error codes (502) instead of
         # failing inside a StreamingResponse generator (where headers are already sent).
@@ -136,7 +165,7 @@ async def stream_device_preset(
             )
             raise HTTPException(
                 status_code=502,
-                detail=f"Failed to connect to RadioBrowser: {e}",
+                detail="Failed to connect to upstream radio stream",
             )
 
         # Check upstream status before committing to StreamingResponse

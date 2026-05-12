@@ -10,6 +10,7 @@ import base64
 import json
 import logging
 from urllib.parse import urlparse
+from xml.sax.saxutils import escape as xml_escape
 
 import httpx
 from bosesoundtouchapi import SoundTouchClient as BoseClient
@@ -247,11 +248,12 @@ class BoseDeviceClientAdapter(DeviceClient):
             f"?data={base64_data}"
         )
 
+        safe_name = xml_escape(station_name)
         return (
             f'<preset id="{preset_number}" createdOn="0" updatedOn="0">'
             f'<ContentItem source="LOCAL_INTERNET_RADIO" type="stationurl" '
             f'location="{orion_url}" sourceAccount="" isPresetable="true">'
-            f"<itemName>{station_name}</itemName>"
+            f"<itemName>{safe_name}</itemName>"
             f"</ContentItem></preset>"
         )
 
