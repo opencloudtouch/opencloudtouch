@@ -9,6 +9,7 @@ import logging
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, List, Optional, Union
 
+from opencloudtouch.core.exceptions import DeviceNotFoundError, DomainValidationError
 from opencloudtouch.db import Device
 from opencloudtouch.devices.adapter import get_device_client
 from opencloudtouch.devices.capabilities import (
@@ -210,7 +211,7 @@ class DeviceService:
         device = await self.repository.get_by_device_id(device_id)
 
         if not device:
-            raise ValueError(f"Device not found: {device_id}")
+            raise DeviceNotFoundError(device_id)
 
         logger.info("Querying capabilities for device %s (%s)", device_id, device.ip)
 
@@ -243,7 +244,7 @@ class DeviceService:
         """
         device = await self.repository.get_by_device_id(device_id)
         if not device:
-            raise ValueError(f"Device {device_id} not found")
+            raise DeviceNotFoundError(device_id)
         base_url = f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"
         client = await asyncio.to_thread(get_device_client, base_url)
         try:
@@ -309,17 +310,20 @@ class DeviceService:
         try:
             key_enum = key if isinstance(key, KeyType) else KeyType(key)
         except Exception:
-            raise ValueError(f"Unsupported key: {key}") from None
+            raise DomainValidationError(
+                f"Unsupported key: {key}", field="key"
+            ) from None
 
         valid_states = {"press", "release", "both"}
         if state not in valid_states:
-            raise ValueError(
-                f"Invalid state: {state}. Must be one of {sorted(valid_states)}"
+            raise DomainValidationError(
+                f"Invalid state: {state}. Must be one of {sorted(valid_states)}",
+                field="state",
             )
 
         mapped = KEY_MAPPING.get(key_enum)
         if mapped is None:
-            raise ValueError(f"Unsupported key: {key}")
+            raise DomainValidationError(f"Unsupported key: {key}", field="key")
 
         key_value = mapped.value if hasattr(mapped, "value") else str(mapped)
 
@@ -341,7 +345,9 @@ class DeviceService:
     async def set_volume(self, device_id: str, level: int) -> VolumeInfo:
         """Set volume level and return updated state."""
         if not 0 <= level <= 100:
-            raise ValueError(f"Volume must be 0-100, got {level}")
+            raise DomainValidationError(
+                f"Volume must be 0-100, got {level}", field="level"
+            )
         async with self._device_client(device_id) as client:
             await client.set_volume(level)
             return await client.get_volume()

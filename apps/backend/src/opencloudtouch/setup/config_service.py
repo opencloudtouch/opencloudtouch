@@ -104,7 +104,7 @@ class SoundTouchConfigService:
                 "Probe %s → %s", candidate, "found" if found else "missing"
             )
             if found:
-                self.logger.info(f"Config file detected at {candidate}")
+                self.logger.info("Config file detected at %s", candidate)
                 self.config_path = candidate
                 return candidate
 
@@ -117,7 +117,9 @@ class SoundTouchConfigService:
         result = await self.ssh.execute("mount -o remount,rw /")
         if result.exit_code != 0:
             self.logger.warning(
-                f"remount rw returned exit_code={result.exit_code}: {result.stderr}"
+                "remount rw returned exit_code=%d: %s",
+                result.exit_code,
+                result.stderr,
             )
 
     async def _remount_ro(self) -> None:
@@ -125,7 +127,9 @@ class SoundTouchConfigService:
         result = await self.ssh.execute("mount -o remount,ro /")
         if result.exit_code != 0:
             self.logger.warning(
-                f"remount ro returned exit_code={result.exit_code}: {result.stderr}"
+                "remount ro returned exit_code=%d: %s",
+                result.exit_code,
+                result.stderr,
             )
 
     @staticmethod
@@ -222,7 +226,7 @@ class SoundTouchConfigService:
         if "missing" in (check.output or ""):
             result = await self.ssh.execute(f"cp {path} {backup_path}")
             if not result.success:
-                self.logger.warning(f"Backup may have failed: {result.error}")
+                self.logger.warning("Backup may have failed: %s", result.error)
 
     async def _sync_all_config_files(self, content: str) -> None:
         """Sync modified content to ALL config file locations.
@@ -246,7 +250,7 @@ class SoundTouchConfigService:
                 self.logger.debug("Skipping primary path %s", candidate)
                 continue
             try:
-                self.logger.info(f"Syncing config: {candidate}")
+                self.logger.info("Syncing config: %s", candidate)
                 b64 = base64.b64encode(content.encode()).decode()
                 write_cmd = (
                     f"echo '{b64}' | base64 -d > /tmp/cfg_sync.new && "
@@ -255,12 +259,14 @@ class SoundTouchConfigService:
                 result = await self.ssh.execute(write_cmd)
                 if not result.success:
                     self.logger.warning(
-                        f"Sync failed for {candidate} (best-effort): {result.error}"
+                        "Sync failed for %s (best-effort): %s",
+                        candidate,
+                        result.error,
                     )
                 else:
                     self.logger.debug("Sync OK: %s", candidate)
             except Exception as e:
-                self.logger.warning(f"Sync error for {candidate} (best-effort): {e}")
+                self.logger.warning("Sync error for %s (best-effort): %s", candidate, e)
 
     async def modify_bmx_url(self, oct_ip: str) -> ModifyResult:
         """Modify BMX URL (and optionally marge/swupdate) in config.
@@ -273,7 +279,7 @@ class SoundTouchConfigService:
         Returns:
             ModifyResult with backup path and diff
         """
-        self.logger.info(f"Modifying BMX URL to point to OCT at {oct_ip}")
+        self.logger.info("Modifying BMX URL to point to OCT at %s", oct_ip)
 
         try:
             await self._remount_rw()
@@ -323,7 +329,7 @@ class SoundTouchConfigService:
                 await self._sync_all_config_files(modified)
 
                 self.logger.info(
-                    f"Config modified successfully ({len(diff.changes)} tags)"
+                    "Config modified successfully (%d tags)", len(diff.changes)
                 )
                 return ModifyResult(
                     success=True,
@@ -334,7 +340,7 @@ class SoundTouchConfigService:
                 await self._remount_ro()
 
         except Exception as e:
-            self.logger.error(f"Config modification failed: {e}")
+            self.logger.error("Config modification failed: %s", e)
             return ModifyResult(success=False, error=str(e))
 
     async def restore_config(self, backup_path: str) -> RestoreResult:
@@ -348,7 +354,7 @@ class SoundTouchConfigService:
         Returns:
             RestoreResult
         """
-        self.logger.info(f"Restoring config from {backup_path}")
+        self.logger.info("Restoring config from %s", backup_path)
 
         try:
             # Verify backup exists
@@ -380,7 +386,7 @@ class SoundTouchConfigService:
                 await self._remount_ro()
 
         except Exception as e:
-            self.logger.error(f"Config restore failed: {e}")
+            self.logger.error("Config restore failed: %s", e)
             return RestoreResult(success=False, error=str(e))
 
     async def list_backups(self) -> list[str]:
@@ -406,5 +412,5 @@ class SoundTouchConfigService:
             return paths
 
         except Exception as e:
-            self.logger.error(f"Failed to list backups: {e}")
+            self.logger.error("Failed to list backups: %s", e)
             return []

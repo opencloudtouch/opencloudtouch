@@ -8,6 +8,7 @@ import logging
 import re
 from typing import List
 
+from opencloudtouch.core.exceptions import DomainValidationError
 from opencloudtouch.settings.repository import SettingsRepository
 
 logger = logging.getLogger(__name__)
@@ -49,10 +50,10 @@ class SettingsService:
             ValueError: If IP address is invalid
         """
         if not ip or not ip.strip():
-            raise ValueError("Invalid IP address: empty string")
+            raise DomainValidationError("Invalid IP address: empty string", field="ip")
 
         if not IP_PATTERN.match(ip):
-            raise ValueError(f"Invalid IP address: {ip}")
+            raise DomainValidationError(f"Invalid IP address: {ip}", field="ip")
 
     async def get_manual_ips(self) -> List[str]:
         """Get all manual device IP addresses.

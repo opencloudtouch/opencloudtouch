@@ -11,22 +11,16 @@ from typing import List
 from opencloudtouch.radio.models import RadioStation
 
 
-class RadioProviderError(Exception):
-    """Base exception for radio provider errors."""
+from opencloudtouch.core.exceptions import (
+    RadioConnectionError,
+    RadioError,
+    RadioTimeoutError,
+)
 
-    pass
-
-
-class RadioProviderTimeoutError(RadioProviderError):
-    """Raised when provider API times out."""
-
-    pass
-
-
-class RadioProviderConnectionError(RadioProviderError):
-    """Raised when connection to provider fails."""
-
-    pass
+# Aliases for backward compatibility — providers can use either name
+RadioProviderError = RadioError
+RadioProviderTimeoutError = RadioTimeoutError
+RadioProviderConnectionError = RadioConnectionError
 
 
 class RadioProvider(ABC):

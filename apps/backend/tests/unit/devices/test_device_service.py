@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from opencloudtouch.core.exceptions import DeviceNotFoundError, DomainValidationError
 from opencloudtouch.devices.client import NowPlayingInfo, VolumeInfo
 from opencloudtouch.devices.models import KeyType, SyncResult
 from opencloudtouch.devices.repository import Device
@@ -276,7 +277,7 @@ class TestDeviceServiceCapabilities:
         mock_repository.get_by_device_id.return_value = None
 
         # Act & Assert
-        with pytest.raises(ValueError, match="Device not found"):
+        with pytest.raises(DeviceNotFoundError):
             await device_service.get_device_capabilities("NONEXISTENT")
 
 
@@ -332,7 +333,7 @@ class TestDeviceServiceSendKey:
 
         mock_repository.get_by_device_id.return_value = sample_device
 
-        with pytest.raises(ValueError, match="Unsupported key"):
+        with pytest.raises(DomainValidationError):
             await device_service.send_key(sample_device.device_id, "INVALID")
 
     @pytest.mark.asyncio
@@ -341,7 +342,7 @@ class TestDeviceServiceSendKey:
 
         mock_repository.get_by_device_id.return_value = None
 
-        with pytest.raises(ValueError, match="Device NONEXISTENT not found"):
+        with pytest.raises(DeviceNotFoundError):
             await device_service.send_key("NONEXISTENT", KeyType.PAUSE)
 
 
@@ -446,7 +447,7 @@ class TestDeviceServicePressKey:
         """Test press_key raises ValueError when device not in DB."""
         mock_repository.get_by_device_id.return_value = None
 
-        with pytest.raises(ValueError, match="not found"):
+        with pytest.raises(DeviceNotFoundError):
             await device_service.press_key("NONEXISTENT", "PRESET_1", "both")
 
 
@@ -511,7 +512,7 @@ class TestDeviceServiceVolume:
         """Test get_volume raises ValueError for unknown device."""
         mock_repository.get_by_device_id.return_value = None
 
-        with pytest.raises(ValueError, match="not found"):
+        with pytest.raises(DeviceNotFoundError):
             await device_service.get_volume("NONEXISTENT")
 
     @pytest.mark.asyncio
@@ -540,10 +541,10 @@ class TestDeviceServiceVolume:
     @pytest.mark.asyncio
     async def test_set_volume_out_of_range(self, device_service):
         """Test set_volume raises ValueError for invalid level."""
-        with pytest.raises(ValueError, match="Volume must be 0-100"):
+        with pytest.raises(DomainValidationError):
             await device_service.set_volume("AABBCC112233", 150)
 
-        with pytest.raises(ValueError, match="Volume must be 0-100"):
+        with pytest.raises(DomainValidationError):
             await device_service.set_volume("AABBCC112233", -1)
 
     @pytest.mark.asyncio
@@ -573,7 +574,7 @@ class TestDeviceServiceVolume:
         """Test set_mute raises ValueError for unknown device."""
         mock_repository.get_by_device_id.return_value = None
 
-        with pytest.raises(ValueError, match="not found"):
+        with pytest.raises(DeviceNotFoundError):
             await device_service.set_mute("NONEXISTENT", True)
 
 
@@ -616,5 +617,5 @@ class TestDeviceServiceNowPlaying:
         """Test get_now_playing raises ValueError for unknown device."""
         mock_repository.get_by_device_id.return_value = None
 
-        with pytest.raises(ValueError, match="not found"):
+        with pytest.raises(DeviceNotFoundError):
             await device_service.get_now_playing("NONEXISTENT")

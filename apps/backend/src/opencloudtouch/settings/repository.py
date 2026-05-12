@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 import aiosqlite
 
+from opencloudtouch.core.exceptions import DomainValidationError
 from opencloudtouch.core.repository import BaseRepository
 
 logger = logging.getLogger(__name__)
@@ -44,14 +45,14 @@ class SettingsRepository(BaseRepository):
         # Basic IP validation
         parts = ip.split(".")
         if len(parts) != 4:
-            raise ValueError(f"Invalid IP address format: {ip}")
+            raise DomainValidationError(f"Invalid IP address format: {ip}", field="ip")
 
         try:
             for part in parts:
                 if not 0 <= int(part) <= 255:
-                    raise ValueError(f"Invalid IP address: {ip}")
-        except ValueError:
-            raise ValueError(f"Invalid IP address: {ip}")
+                    raise DomainValidationError(f"Invalid IP address: {ip}", field="ip")
+        except (DomainValidationError, ValueError):
+            raise DomainValidationError(f"Invalid IP address: {ip}", field="ip")
 
         try:
             await db.execute(
@@ -64,7 +65,9 @@ class SettingsRepository(BaseRepository):
             await db.commit()
             logger.info("Added manual IP: %s", ip)
         except aiosqlite.IntegrityError as e:
-            raise ValueError(f"IP address already exists: {ip}") from e
+            raise DomainValidationError(
+                f"IP address already exists: {ip}", field="ip"
+            ) from e
 
     async def remove_manual_ip(self, ip: str) -> None:
         """

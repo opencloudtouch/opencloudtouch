@@ -7,10 +7,8 @@ from xml.etree import ElementTree as ET
 from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 
-from opencloudtouch.core.dependencies import (
-    get_preset_repository,
-    get_recents_repository,
-)
+from opencloudtouch.core.dependencies import get_marge_service
+from opencloudtouch.marge.service import MargeService
 from opencloudtouch.marge.xml_builder import (
     build_devices_xml,
     build_full_account_xml,
@@ -18,8 +16,6 @@ from opencloudtouch.marge.xml_builder import (
     build_recents_xml,
     build_sources_xml,
 )
-from opencloudtouch.presets.repository import PresetRepository
-from opencloudtouch.recents.repository import RecentsRepository
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +42,7 @@ def _xml_response(element: ET.Element, media_type: str = _MEDIA_XML) -> Response
 @router.get("/v1/systems/devices/{device_id}")
 async def get_full_account(
     device_id: str,
-    preset_repo: PresetRepository = Depends(get_preset_repository),
-    recents_repo: RecentsRepository = Depends(get_recents_repository),
+    marge: MargeService = Depends(get_marge_service),
 ) -> Response:
     """Get full account sync for device.
 
@@ -58,20 +53,15 @@ async def get_full_account(
 
     Args:
         device_id: Device MAC address (e.g., "689E194F7D2F")
-        preset_repo: Preset repository dependency
-        recents_repo: Recents repository dependency
+        marge: Marge service dependency
 
     Returns:
         XML Response with <boseAccount> structure
     """
-    logger.info(f"[MARGE] Full account sync for device {device_id}")
+    logger.info("[MARGE] Full account sync for device %s", device_id)
 
-    presets = await preset_repo.get_all_presets(device_id)
-    recents = await recents_repo.get_recents(device_id)
+    presets, recents = await marge.get_full_account(device_id)
 
-    logger.info(
-        f"[MARGE] Returning {len(presets)} presets, {len(recents)} recents for {device_id}"
-    )
     for p in presets:
         logger.debug(
             "[MARGE] Preset %d: name=%s, source=%s, location=%.80s",
@@ -87,20 +77,20 @@ async def get_full_account(
 @router.get("/v1/systems/devices/{device_id}/presets")
 async def get_presets(
     device_id: str,
-    preset_repo: PresetRepository = Depends(get_preset_repository),
+    marge: MargeService = Depends(get_marge_service),
 ) -> Response:
     """Get presets for device.
 
     Args:
         device_id: Device MAC address
-        preset_repo: Preset repository dependency
+        marge: Marge service dependency
 
     Returns:
         XML Response with <presets> structure
     """
-    logger.info(f"[MARGE] Get presets for device {device_id}")
+    logger.info("[MARGE] Get presets for device %s", device_id)
 
-    presets = await preset_repo.get_all_presets(device_id)
+    presets = await marge.get_presets(device_id)
 
     return _xml_response(build_presets_xml(presets))
 
@@ -108,20 +98,20 @@ async def get_presets(
 @router.get("/v1/systems/devices/{device_id}/recents")
 async def get_recents(
     device_id: str,
-    recents_repo: RecentsRepository = Depends(get_recents_repository),
+    marge: MargeService = Depends(get_marge_service),
 ) -> Response:
     """Get recently played items for device.
 
     Args:
         device_id: Device MAC address
-        recents_repo: Recents repository dependency
+        marge: Marge service dependency
 
     Returns:
         XML Response with <recents> structure
     """
-    logger.info(f"[MARGE] Get recents for device {device_id}")
+    logger.info("[MARGE] Get recents for device %s", device_id)
 
-    recents = await recents_repo.get_recents(device_id)
+    recents = await marge.get_recents(device_id)
 
     return _xml_response(build_recents_xml(recents))
 
@@ -136,7 +126,7 @@ async def get_sources(device_id: str) -> Response:
     Returns:
         XML Response with <sources> structure
     """
-    logger.info(f"[MARGE] Get sources for device {device_id}")
+    logger.info("[MARGE] Get sources for device %s", device_id)
 
     sources_xml = build_sources_xml()
 
@@ -153,7 +143,7 @@ async def get_devices(device_id: str) -> Response:
     Returns:
         XML Response with <devices> structure
     """
-    logger.info(f"[MARGE] Get devices for device {device_id}")
+    logger.info("[MARGE] Get devices for device %s", device_id)
 
     # TODO: Implement multiroom device discovery
     devices: list[Any] = []
@@ -174,7 +164,7 @@ async def power_on(device_id: str) -> Response:
     Returns:
         204 No Content (acknowledgement)
     """
-    logger.info(f"[MARGE] Device {device_id} powered on")
+    logger.info("[MARGE] Device %s powered on", device_id)
 
     return Response(status_code=204)
 
@@ -189,7 +179,7 @@ async def get_sourceproviders(device_id: str) -> Response:
     Returns:
         XML Response with <sourceproviders> structure
     """
-    logger.info(f"[MARGE] Get sourceproviders for device {device_id}")
+    logger.info("[MARGE] Get sourceproviders for device %s", device_id)
 
     # Build XML manually (simple structure)
     root = ET.Element("sourceproviders")
@@ -267,7 +257,7 @@ async def streaming_sourceproviders() -> Response:
 @router.get("/streaming/account/{account_id}/full")
 async def streaming_full_account(
     account_id: str,
-    preset_repo: PresetRepository = Depends(get_preset_repository),
+    marge: MargeService = Depends(get_marge_service),
 ) -> Response:
     """Get full account sync via streaming endpoint.
 
@@ -276,22 +266,22 @@ async def streaming_full_account(
 
     Args:
         account_id: Account ID (e.g., "3784726")
-        preset_repo: Preset repository dependency
+        marge: Marge service dependency
 
     Returns:
         XML Response with <account> structure
     """
-    logger.info(f"[MARGE/STREAMING] Full account sync for account {account_id}")
+    logger.info("[MARGE/STREAMING] Full account sync for account %s", account_id)
 
     # For now, return a generic device_id. In future, map account_id to device.
-    # The device ID is typically its MAC address.
     device_id = "689E194F7D2F"  # TODO: Get from account mapping
 
-    # Load presets from database
-    presets = await preset_repo.get_all_presets(device_id)
+    presets = await marge.get_presets(device_id)
 
     logger.info(
-        f"[MARGE/STREAMING] Returning {len(presets)} presets for account {account_id}"
+        "[MARGE/STREAMING] Returning %d presets for account %s",
+        len(presets),
+        account_id,
     )
 
     return _xml_response(build_full_account_xml(presets, []), _MEDIA_STREAMING_XML)
@@ -310,6 +300,6 @@ async def scmudc_reporting(device_id: str) -> Response:
     Returns:
         200 OK
     """
-    logger.debug(f"[SCMUDC] Report from device {device_id}")
+    logger.debug("[SCMUDC] Report from device %s", device_id)
 
     return Response(status_code=200)

@@ -16,10 +16,11 @@ from opencloudtouch.setup.models import (
     SetupStep,
     get_model_instructions,
 )
-from opencloudtouch.core.dependencies import get_setup_service
+from opencloudtouch.core.dependencies import get_setup_service, get_wizard_service
 from opencloudtouch.setup.routes import router
 from opencloudtouch.setup.service import SetupService
 from opencloudtouch.setup.wizard_routes import wizard_router
+from opencloudtouch.setup.wizard_service import WizardService
 from opencloudtouch.setup import wizard_helpers
 
 
@@ -39,11 +40,15 @@ def mock_setup_service():
 @pytest.fixture
 def app(mock_setup_service):
     """Create test FastAPI app with setup router and mocked dependency."""
+    from opencloudtouch.core.exception_handlers import register_exception_handlers
+
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(router)
     app.include_router(wizard_router)
     # Override the dependency
     app.dependency_overrides[get_setup_service] = lambda: mock_setup_service
+    app.dependency_overrides[get_wizard_service] = lambda: WizardService()
     return app
 
 
@@ -558,7 +563,7 @@ class TestWizardRebootDevice:
         )
         mock_ssh_client.close = AsyncMock()
 
-        from opencloudtouch.setup import wizard_routes as routes
+        from opencloudtouch.setup import wizard_service as routes
 
         monkeypatch.setattr(
             routes, "SoundTouchSSHClient", lambda host, port: mock_ssh_client
@@ -582,7 +587,7 @@ class TestWizardRebootDevice:
         )
         mock_ssh_client.close = AsyncMock()
 
-        from opencloudtouch.setup import wizard_routes as routes
+        from opencloudtouch.setup import wizard_service as routes
 
         monkeypatch.setattr(
             routes, "SoundTouchSSHClient", lambda host, port: mock_ssh_client
@@ -658,7 +663,7 @@ class TestCheckPorts:
 
     def test_request_uses_device_ip(self, client, monkeypatch):
         """Endpoint must accept device_ip field (not device_id)."""
-        import opencloudtouch.setup.wizard_routes as routes
+        import opencloudtouch.setup.wizard_service as routes
 
         monkeypatch.setattr(routes, "check_ssh_port", AsyncMock(return_value=True))
 
@@ -678,7 +683,7 @@ class TestCheckPorts:
 
     def test_response_has_has_ssh_field(self, client, monkeypatch):
         """Response must use has_ssh field (not ssh_available)."""
-        import opencloudtouch.setup.wizard_routes as routes
+        import opencloudtouch.setup.wizard_service as routes
 
         monkeypatch.setattr(routes, "check_ssh_port", AsyncMock(return_value=True))
 
@@ -695,7 +700,7 @@ class TestCheckPorts:
 
     def test_ssh_available_returns_true_in_has_ssh(self, client, monkeypatch):
         """When SSH is open, has_ssh=True should be returned."""
-        import opencloudtouch.setup.wizard_routes as routes
+        import opencloudtouch.setup.wizard_service as routes
 
         monkeypatch.setattr(routes, "check_ssh_port", AsyncMock(return_value=True))
 
@@ -707,7 +712,7 @@ class TestCheckPorts:
 
     def test_no_ssh_returns_success_false(self, client, monkeypatch):
         """When SSH is not open, success=False."""
-        import opencloudtouch.setup.wizard_routes as routes
+        import opencloudtouch.setup.wizard_service as routes
 
         monkeypatch.setattr(routes, "check_ssh_port", AsyncMock(return_value=False))
 
@@ -829,7 +834,7 @@ class TestWizardBackupRoute:
 
     def test_backup_success(self, client, monkeypatch):
         """Successful backup returns 200 with volumes list."""
-        from opencloudtouch.setup import wizard_routes as routes
+        from opencloudtouch.setup import wizard_service as routes
         from opencloudtouch.setup.backup_service import BackupResult, VolumeType
 
         mock_ssh = AsyncMock()
@@ -864,7 +869,7 @@ class TestWizardBackupRoute:
 
     def test_backup_partial_failure_returns_success_false(self, client, monkeypatch):
         """Backup with failed volumes returns success=False."""
-        from opencloudtouch.setup import wizard_routes as routes
+        from opencloudtouch.setup import wizard_service as routes
         from opencloudtouch.setup.backup_service import BackupResult, VolumeType
 
         mock_ssh = AsyncMock()
@@ -917,7 +922,7 @@ class TestWizardModifyConfigRoute:
 
     def test_modify_config_success(self, client, monkeypatch):
         """Successful config modification returns 200."""
-        from opencloudtouch.setup import wizard_routes as routes
+        from opencloudtouch.setup import wizard_service as routes
         from opencloudtouch.setup.config_service import ModifyResult
 
         mock_ssh = AsyncMock()
@@ -953,7 +958,7 @@ class TestWizardModifyConfigRoute:
         self, client, monkeypatch
     ):
         """Failed modification returns 200 with success=False."""
-        from opencloudtouch.setup import wizard_routes as routes
+        from opencloudtouch.setup import wizard_service as routes
         from opencloudtouch.setup.config_service import ModifyResult
 
         mock_ssh = AsyncMock()
@@ -1004,7 +1009,7 @@ class TestWizardModifyHostsRoute:
 
     def test_modify_hosts_success(self, client, monkeypatch):
         """Successful hosts modification returns 200."""
-        from opencloudtouch.setup import wizard_routes as routes
+        from opencloudtouch.setup import wizard_service as routes
         from opencloudtouch.setup.hosts_service import ModifyResult
 
         mock_ssh = AsyncMock()
@@ -1036,7 +1041,7 @@ class TestWizardModifyHostsRoute:
 
     def test_modify_hosts_failure(self, client, monkeypatch):
         """Failed hosts modification returns 200 with success=False."""
-        from opencloudtouch.setup import wizard_routes as routes
+        from opencloudtouch.setup import wizard_service as routes
         from opencloudtouch.setup.hosts_service import ModifyResult
 
         mock_ssh = AsyncMock()
@@ -1084,7 +1089,7 @@ class TestWizardRestoreRoutes:
 
     def test_restore_config_success(self, client, monkeypatch):
         """POST /wizard/restore-config success returns 200."""
-        from opencloudtouch.setup import wizard_routes as routes
+        from opencloudtouch.setup import wizard_service as routes
         from opencloudtouch.setup.config_service import RestoreResult
 
         mock_ssh = AsyncMock()
@@ -1114,7 +1119,7 @@ class TestWizardRestoreRoutes:
 
     def test_restore_config_failure(self, client, monkeypatch):
         """POST /wizard/restore-config failure returns 200 with success=False."""
-        from opencloudtouch.setup import wizard_routes as routes
+        from opencloudtouch.setup import wizard_service as routes
         from opencloudtouch.setup.config_service import RestoreResult
 
         mock_ssh = AsyncMock()
@@ -1144,7 +1149,7 @@ class TestWizardRestoreRoutes:
 
     def test_restore_hosts_success(self, client, monkeypatch):
         """POST /wizard/restore-hosts success returns 200."""
-        from opencloudtouch.setup import wizard_routes as routes
+        from opencloudtouch.setup import wizard_service as routes
         from opencloudtouch.setup.hosts_service import RestoreResult
 
         mock_ssh = AsyncMock()
@@ -1174,7 +1179,7 @@ class TestWizardRestoreRoutes:
 
     def test_restore_hosts_failure(self, client, monkeypatch):
         """POST /wizard/restore-hosts failure returns 200 with success=False."""
-        from opencloudtouch.setup import wizard_routes as routes
+        from opencloudtouch.setup import wizard_service as routes
         from opencloudtouch.setup.hosts_service import RestoreResult
 
         mock_ssh = AsyncMock()
@@ -1210,7 +1215,7 @@ class TestWizardListBackupsRoute:
 
     def test_list_backups_success(self, client, monkeypatch):
         """Successful list-backups returns 200 with backup lists."""
-        from opencloudtouch.setup import wizard_routes as routes
+        from opencloudtouch.setup import wizard_service as routes
 
         mock_ssh = AsyncMock()
         mock_config_svc = AsyncMock()
@@ -1332,7 +1337,7 @@ class TestWizardRebootExceptionPath:
 
     def test_unexpected_exception_returns_500(self, client, monkeypatch):
         """Unexpected exception during reboot returns 500."""
-        from opencloudtouch.setup import wizard_routes as routes
+        from opencloudtouch.setup import wizard_service as routes
 
         mock_ssh = AsyncMock()
         mock_ssh.connect = AsyncMock(return_value=MagicMock(success=True))

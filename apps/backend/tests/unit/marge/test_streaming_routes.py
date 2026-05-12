@@ -13,6 +13,7 @@ from opencloudtouch.marge.routes import (
     streaming_power_on,
     streaming_sourceproviders,
 )
+from opencloudtouch.marge.service import MargeService
 
 
 class TestPowerOnEndpoint:
@@ -116,26 +117,26 @@ class TestStreamingSourceproviders:
 class TestStreamingFullAccount:
     @pytest.mark.asyncio
     async def test_returns_200_with_empty_presets(self):
-        mock_preset_repo = AsyncMock()
-        mock_preset_repo.get_all_presets = AsyncMock(return_value=[])
+        mock_marge = AsyncMock(spec=MargeService)
+        mock_marge.get_presets = AsyncMock(return_value=[])
 
-        result = await streaming_full_account("3784726", mock_preset_repo)
+        result = await streaming_full_account("3784726", mock_marge)
         assert result.status_code == 200
 
     @pytest.mark.asyncio
     async def test_media_type_is_bose_streaming(self):
-        mock_preset_repo = AsyncMock()
-        mock_preset_repo.get_all_presets = AsyncMock(return_value=[])
+        mock_marge = AsyncMock(spec=MargeService)
+        mock_marge.get_presets = AsyncMock(return_value=[])
 
-        result = await streaming_full_account("3784726", mock_preset_repo)
+        result = await streaming_full_account("3784726", mock_marge)
         assert "bose.streaming" in result.media_type
 
     @pytest.mark.asyncio
     async def test_returns_bose_account_xml(self):
-        mock_preset_repo = AsyncMock()
-        mock_preset_repo.get_all_presets = AsyncMock(return_value=[])
+        mock_marge = AsyncMock(spec=MargeService)
+        mock_marge.get_presets = AsyncMock(return_value=[])
 
-        result = await streaming_full_account("3784726", mock_preset_repo)
+        result = await streaming_full_account("3784726", mock_marge)
         root = ElementTree.fromstring(result.body.decode())
         assert root.tag == "boseAccount"
 
@@ -150,10 +151,10 @@ class TestStreamingFullAccount:
         mock_preset.created_at.timestamp.return_value = 1234567890
         mock_preset.updated_at.timestamp.return_value = 1234567890
 
-        mock_preset_repo = AsyncMock()
-        mock_preset_repo.get_all_presets = AsyncMock(return_value=[mock_preset])
+        mock_marge = AsyncMock(spec=MargeService)
+        mock_marge.get_presets = AsyncMock(return_value=[mock_preset])
 
-        result = await streaming_full_account("3784726", mock_preset_repo)
+        result = await streaming_full_account("3784726", mock_marge)
         root = ElementTree.fromstring(result.body.decode())
         presets = root.find("presets")
         assert presets is not None

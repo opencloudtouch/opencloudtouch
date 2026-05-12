@@ -10,9 +10,7 @@ import ssl
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
-from fastapi import HTTPException
-from fastapi import status as http_status
-
+from opencloudtouch.core.exceptions import SSHConnectionError, SSHOperationError
 from opencloudtouch.setup.ssh_client import SoundTouchSSHClient
 
 logger = logging.getLogger(__name__)
@@ -22,28 +20,25 @@ logger = logging.getLogger(__name__)
 async def ssh_operation(
     device_ip: str, operation_name: str
 ) -> AsyncIterator[SoundTouchSSHClient]:
-    """Async context manager: open SSH session, wrap errors as HTTPException.
+    """Async context manager: open SSH session, wrap errors as domain exceptions.
 
     Yields:
         Connected SoundTouchSSHClient ready for commands
 
     Raises:
-        HTTPException(503): When SSH connection is refused or unreachable
-        HTTPException(500): On any other unexpected error
+        SSHConnectionError: When SSH connection is refused or unreachable
+        SSHOperationError: On any other unexpected error during the operation
     """
     try:
         async with SoundTouchSSHClient(device_ip) as ssh:
             yield ssh
-    except HTTPException:
-        raise  # propagate intentional HTTP errors from business logic unchanged
+    except (SSHConnectionError, SSHOperationError):
+        raise  # propagate domain exceptions unchanged
     except (ConnectionError, ConnectionRefusedError, OSError) as e:
         logger.error(
             "[Wizard/%s] SSH unreachable on %s: %s", operation_name, device_ip, e
         )
-        raise HTTPException(
-            status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="SSH nicht erreichbar. Bitte USB-Stick prüfen oder SSH erneut aktivieren.",
-        )
+        raise SSHConnectionError(device_ip)
     except Exception as e:
         logger.error(
             "[Wizard/%s] failed on %s: %s",
@@ -52,10 +47,7 @@ async def ssh_operation(
             e,
             exc_info=True,
         )
-        raise HTTPException(
-            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Wizard operation '{operation_name}' failed. Check server logs for details.",
-        )
+        raise SSHOperationError(device_ip, operation_name, str(e))
 
 
 async def snapshot_config_files(

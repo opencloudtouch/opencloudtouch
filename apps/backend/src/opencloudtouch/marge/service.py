@@ -1,0 +1,52 @@
+"""Marge account sync service.
+
+Orchestrates preset and recents data for Bose streaming.bose.com
+account sync protocol. Keeps route handlers thin.
+"""
+
+import logging
+
+from opencloudtouch.presets.models import Preset
+from opencloudtouch.presets.repository import PresetRepository
+from opencloudtouch.recents.models import RecentPlay
+from opencloudtouch.recents.repository import RecentsRepository
+
+logger = logging.getLogger(__name__)
+
+
+class MargeService:
+    """Orchestrates account data assembly for Bose device sync."""
+
+    def __init__(
+        self,
+        preset_repo: PresetRepository,
+        recents_repo: RecentsRepository,
+    ) -> None:
+        self._preset_repo = preset_repo
+        self._recents_repo = recents_repo
+
+    async def get_full_account(
+        self, device_id: str
+    ) -> tuple[list[Preset], list[RecentPlay]]:
+        """Get full account data (presets + recents) for a device.
+
+        Returns:
+            Tuple of (presets, recents)
+        """
+        presets = await self._preset_repo.get_all_presets(device_id)
+        recents = await self._recents_repo.get_recents(device_id)
+        logger.info(
+            "[MARGE] Account sync: %d presets, %d recents for %s",
+            len(presets),
+            len(recents),
+            device_id,
+        )
+        return presets, recents
+
+    async def get_presets(self, device_id: str) -> list[Preset]:
+        """Get presets for a device."""
+        return await self._preset_repo.get_all_presets(device_id)
+
+    async def get_recents(self, device_id: str) -> list[RecentPlay]:
+        """Get recently played items for a device."""
+        return await self._recents_repo.get_recents(device_id)

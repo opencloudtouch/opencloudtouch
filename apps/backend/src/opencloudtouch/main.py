@@ -40,12 +40,14 @@ from opencloudtouch.devices.api.preset_stream_routes import (
 from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.services.sync_service import DeviceSyncService
 from opencloudtouch.marge.routes import router as marge_router
+from opencloudtouch.marge.service import MargeService
 from opencloudtouch.presets.api.playlist_routes import router as playlist_router
 from opencloudtouch.presets.api.routes import router as presets_router
 from opencloudtouch.presets.api.station_routes import router as stations_router
 from opencloudtouch.presets.repository import PresetRepository
 from opencloudtouch.presets.service import PresetService
 from opencloudtouch.recents.repository import RecentsRepository
+from opencloudtouch.recents.service import RecentsService
 from opencloudtouch.radio.api.routes import router as radio_router
 from opencloudtouch.settings.repository import SettingsRepository
 from opencloudtouch.settings.routes import router as settings_router
@@ -53,6 +55,7 @@ from opencloudtouch.settings.service import SettingsService
 from opencloudtouch.setup.routes import router as setup_router
 from opencloudtouch.setup.service import SetupService
 from opencloudtouch.setup.wizard_routes import wizard_router
+from opencloudtouch.setup.wizard_service import WizardService
 from opencloudtouch.swupdate.routes import router as swupdate_router
 from opencloudtouch.wizard_audit.repository import WizardAuditRepository
 from opencloudtouch.wizard_audit.routes import audit_router as wizard_audit_router
@@ -131,6 +134,15 @@ async def _init_services(
     device_repo = repos["device_repo"]
     settings_repo = repos["settings_repo"]
     preset_repo = repos["preset_repo"]
+    recents_repo = repos["recents_repo"]
+
+    # Recents service
+    app.state.recents_service = RecentsService(recents_repo)
+    logger.info("RecentsService initialized")
+
+    # Marge service (account sync orchestration)
+    app.state.marge_service = MargeService(preset_repo, recents_repo)
+    logger.info("MargeService initialized")
 
     # Preset service
     app.state.preset_service = PresetService(preset_repo, device_repo)
@@ -152,8 +164,13 @@ async def _init_services(
     app.state.device_service = device_service
     logger.info("DeviceService initialized")
 
-    # Zone service
-    app.state.zone_service = ZoneService(device_repo=device_repo)
+    # Zone service (with injected client factory to avoid circular deps)
+    from opencloudtouch.devices.adapter import get_device_client
+
+    app.state.zone_service = ZoneService(
+        device_repo=device_repo,
+        client_factory=get_device_client,
+    )
     logger.info("ZoneService initialized")
 
     # Auto-discover in mock mode
@@ -174,6 +191,13 @@ async def _init_services(
     # Setup service
     app.state.setup_service = SetupService(device_repo=device_repo)
     logger.info("SetupService initialized")
+
+    # Wizard service (orchestrates SSH wizard steps)
+    app.state.wizard_service = WizardService(
+        audit_repo=repos["wizard_audit_repo"],
+        device_repo=device_repo,
+    )
+    logger.info("WizardService initialized")
 
     # Background health-check (not in mock/CI mode)
     health_check = DeviceHealthCheck(device_repo)

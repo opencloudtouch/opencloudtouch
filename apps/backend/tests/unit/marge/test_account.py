@@ -12,6 +12,7 @@ from opencloudtouch.marge.routes import (
     get_recents,
     get_sources,
 )
+from opencloudtouch.marge.service import MargeService
 
 
 class TestMargeAccountEndpoints:
@@ -22,13 +23,11 @@ class TestMargeAccountEndpoints:
         """Test full account sync with no presets/recents."""
         # Arrange
         device_id = "689E194F7D2F"
-        mock_preset_repo = AsyncMock()
-        mock_preset_repo.get_all_presets = AsyncMock(return_value=[])
-        mock_recents_repo = AsyncMock()
-        mock_recents_repo.get_recents = AsyncMock(return_value=[])
+        mock_marge = AsyncMock(spec=MargeService)
+        mock_marge.get_full_account = AsyncMock(return_value=([], []))
 
         # Act
-        result = await get_full_account(device_id, mock_preset_repo, mock_recents_repo)
+        result = await get_full_account(device_id, mock_marge)
 
         # Assert
         assert result.status_code == 200
@@ -60,13 +59,11 @@ class TestMargeAccountEndpoints:
         mock_preset.created_at.timestamp.return_value = 1234567890
         mock_preset.updated_at.timestamp.return_value = 1234567890
 
-        mock_preset_repo = AsyncMock()
-        mock_preset_repo.get_all_presets = AsyncMock(return_value=[mock_preset])
-        mock_recents_repo = AsyncMock()
-        mock_recents_repo.get_recents = AsyncMock(return_value=[])
+        mock_marge = AsyncMock(spec=MargeService)
+        mock_marge.get_full_account = AsyncMock(return_value=([mock_preset], []))
 
         # Act
-        result = await get_full_account(device_id, mock_preset_repo, mock_recents_repo)
+        result = await get_full_account(device_id, mock_marge)
 
         # Assert
         assert result.status_code == 200
@@ -104,11 +101,11 @@ class TestMargeAccountEndpoints:
         mock_preset.created_at.timestamp.return_value = 1234567890
         mock_preset.updated_at.timestamp.return_value = 1234567890
 
-        mock_preset_repo = AsyncMock()
-        mock_preset_repo.get_all_presets = AsyncMock(return_value=[mock_preset])
+        mock_marge = AsyncMock(spec=MargeService)
+        mock_marge.get_presets = AsyncMock(return_value=[mock_preset])
 
         # Act
-        result = await get_presets(device_id, mock_preset_repo)
+        result = await get_presets(device_id, mock_marge)
 
         # Assert
         assert result.status_code == 200
@@ -124,11 +121,11 @@ class TestMargeAccountEndpoints:
         """Test recents endpoint with no history."""
         # Arrange
         device_id = "689E194F7D2F"
-        mock_recents_repo = AsyncMock()
-        mock_recents_repo.get_recents = AsyncMock(return_value=[])
+        mock_marge = AsyncMock(spec=MargeService)
+        mock_marge.get_recents = AsyncMock(return_value=[])
 
         # Act
-        result = await get_recents(device_id, mock_recents_repo)
+        result = await get_recents(device_id, mock_marge)
 
         # Assert
         assert result.status_code == 200
@@ -227,6 +224,7 @@ class TestMargeIntegration:
     async def test_full_account_with_db(self, test_db_path):
         """Test full account sync with real database."""
         from opencloudtouch.marge.routes import get_full_account
+        from opencloudtouch.marge.service import MargeService
         from opencloudtouch.presets.repository import PresetRepository
         from opencloudtouch.recents.repository import RecentsRepository
 
@@ -237,10 +235,11 @@ class TestMargeIntegration:
         await recents_repo.initialize()
 
         device_id = "TEST_DEVICE"
+        marge = MargeService(preset_repo, recents_repo)
 
         try:
             # Act
-            result = await get_full_account(device_id, preset_repo, recents_repo)
+            result = await get_full_account(device_id, marge)
 
             # Assert
             assert result.status_code == 200

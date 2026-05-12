@@ -11,7 +11,11 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 
 from opencloudtouch.core.config import AppConfig, get_config
 from opencloudtouch.core.dependencies import get_device_service
-from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFoundError
+from opencloudtouch.core.exceptions import (
+    DeviceConnectionError,
+    DeviceNotFoundError,
+    DomainValidationError,
+)
 from opencloudtouch.devices.service import DeviceService
 
 logger = logging.getLogger(__name__)
@@ -24,17 +28,13 @@ router = APIRouter(prefix="/api/devices", tags=["Devices"])
 async def _device_op(device_id: str, action: str, coro: Awaitable[T]) -> T:
     """Execute a device service call with standardized error handling.
 
-    Maps ValueError("not found") → 404, ValueError → 400,
-    DeviceConnectionError → re-raise (handled by global handler),
-    other exceptions → 500.
+    Domain exceptions (DeviceNotFoundError, DomainValidationError,
+    DeviceConnectionError) propagate to global handlers.
+    Only unexpected exceptions are wrapped in 500.
     """
     try:
         return await coro
-    except ValueError as e:
-        if "not found" in str(e).lower():
-            raise DeviceNotFoundError(device_id) from e
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except DeviceConnectionError:
+    except (DeviceNotFoundError, DomainValidationError, DeviceConnectionError):
         raise
     except Exception as e:
         logger.error("Failed to %s for device %s: %s", action, device_id, e)

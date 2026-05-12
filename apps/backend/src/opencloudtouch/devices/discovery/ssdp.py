@@ -17,6 +17,8 @@ from xml.etree.ElementTree import Element
 import httpx
 from defusedxml.ElementTree import fromstring as parse_xml_string
 
+from opencloudtouch.discovery import SOUNDTOUCH_WEBSERVER_PORT
+
 logger = logging.getLogger(__name__)
 
 
@@ -60,9 +62,8 @@ class SSDPDiscovery:
         logger.info("Starting SSDP discovery (timeout: %ds)", self.timeout)
 
         try:
-            # Run SSDP M-SEARCH in executor (blocking I/O)
-            loop = asyncio.get_event_loop()
-            locations = await loop.run_in_executor(None, self._ssdp_msearch)
+            # Run SSDP M-SEARCH in thread (blocking I/O)
+            locations = await asyncio.to_thread(self._ssdp_msearch)
 
             # Fetch and parse device descriptions
             devices = await self._fetch_device_descriptions(locations)
@@ -180,10 +181,11 @@ class SSDPDiscovery:
         devices = {}
 
         # Pre-filter: Only fetch Bose SoundTouch device URLs
-        # Bose devices use port 8091 and have characteristic BO5EBO5E UUID pattern
+        # Bose devices use the WebServer port and have characteristic BO5EBO5E UUID pattern
         # This avoids fetching XMLs from non-Bose devices (routers, printers, etc.)
+        bose_port = f":{SOUNDTOUCH_WEBSERVER_PORT}/"
         bose_locations = [
-            loc for loc in locations if ":8091/" in loc and "BO5EBO5E" in loc
+            loc for loc in locations if bose_port in loc and "BO5EBO5E" in loc
         ]
 
         if not bose_locations:
