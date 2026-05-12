@@ -31,6 +31,7 @@ class Device:
         setup_status: str = "unknown",
         ssh_permanent: bool = False,
         setup_completed_at: Optional[datetime] = None,
+        marge_account_uuid: Optional[str] = None,
     ):
         self.id = id
         self.device_id = device_id
@@ -46,6 +47,7 @@ class Device:
         self.setup_status = setup_status
         self.ssh_permanent = ssh_permanent
         self.setup_completed_at = setup_completed_at
+        self.marge_account_uuid = marge_account_uuid
 
     @staticmethod
     def _extract_schema_version(firmware_version: str) -> str:
@@ -81,6 +83,7 @@ class Device:
             "setup_completed_at": (
                 self.setup_completed_at.isoformat() if self.setup_completed_at else None
             ),
+            "marge_account_uuid": self.marge_account_uuid,
         }
 
 
@@ -131,6 +134,11 @@ class DeviceRepository(BaseRepository):
             description="Add setup_completed_at column to devices",
             sql="ALTER TABLE devices ADD COLUMN setup_completed_at TIMESTAMP",
         )
+        await self._apply_migration(
+            version=103,
+            description="Add marge_account_uuid column to devices",
+            sql="ALTER TABLE devices ADD COLUMN marge_account_uuid TEXT",
+        )
 
         # Indexes
         await self._conn.execute("""
@@ -156,8 +164,8 @@ class DeviceRepository(BaseRepository):
 
         cursor = await db.execute(
             """
-            INSERT INTO devices (device_id, ip, name, model, mac_address, firmware_version, schema_version, last_seen)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO devices (device_id, ip, name, model, mac_address, firmware_version, schema_version, last_seen, marge_account_uuid)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(device_id) DO UPDATE SET
                 ip = excluded.ip,
                 name = excluded.name,
@@ -165,6 +173,7 @@ class DeviceRepository(BaseRepository):
                 firmware_version = excluded.firmware_version,
                 schema_version = excluded.schema_version,
                 last_seen = excluded.last_seen,
+                marge_account_uuid = COALESCE(excluded.marge_account_uuid, devices.marge_account_uuid),
                 updated_at = CURRENT_TIMESTAMP
             RETURNING id
         """,
@@ -177,6 +186,7 @@ class DeviceRepository(BaseRepository):
                 device.firmware_version,
                 device.schema_version,
                 device.last_seen,
+                device.marge_account_uuid,
             ),
         )
 
@@ -195,7 +205,7 @@ class DeviceRepository(BaseRepository):
         cursor = await db.execute("""
             SELECT id, device_id, ip, name, model, mac_address, firmware_version,
                    schema_version, last_seen, setup_status, ssh_permanent,
-                   setup_completed_at
+                   setup_completed_at, marge_account_uuid
             FROM devices
             ORDER BY last_seen DESC
         """)
@@ -211,7 +221,7 @@ class DeviceRepository(BaseRepository):
             """
             SELECT id, device_id, ip, name, model, mac_address, firmware_version,
                    schema_version, last_seen, setup_status, ssh_permanent,
-                   setup_completed_at
+                   setup_completed_at, marge_account_uuid
             FROM devices
             WHERE device_id = ?
         """,
@@ -257,6 +267,38 @@ class DeviceRepository(BaseRepository):
         await db.commit()
         logger.info(f"Updated setup status for {device_id}: {setup_status}")
 
+    async def get_by_marge_account_uuid(
+        self, marge_account_uuid: str
+    ) -> Optional[Device]:
+        """Get device by its marge account UUID (margeAccountUUID).
+
+        This is the account ID that SoundTouch devices use when calling
+        /streaming/account/{account_id}/full on boot.
+
+        Args:
+            marge_account_uuid: The account UUID (e.g., "5522049")
+
+        Returns:
+            Device if found, None otherwise
+        """
+        db = self._ensure_initialized()
+
+        cursor = await db.execute(
+            """
+            SELECT id, device_id, ip, name, model, mac_address, firmware_version,
+                   schema_version, last_seen, setup_status, ssh_permanent,
+                   setup_completed_at, marge_account_uuid
+            FROM devices
+            WHERE marge_account_uuid = ?
+        """,
+            (marge_account_uuid,),
+        )
+
+        row = await cursor.fetchone()
+        if not row:
+            return None
+        return self._row_to_device(row)
+
     async def delete_all(self) -> int:
         """Delete all devices from database. Returns number of deleted rows."""
         db = self._ensure_initialized()
@@ -275,7 +317,7 @@ class DeviceRepository(BaseRepository):
 
         Column order: id, device_id, ip, name, model, mac_address,
         firmware_version, schema_version, last_seen, setup_status,
-        ssh_permanent, setup_completed_at.
+        ssh_permanent, setup_completed_at, marge_account_uuid.
         """
         return Device(
             id=row[0],
@@ -290,4 +332,5 @@ class DeviceRepository(BaseRepository):
             setup_status=row[9] or "unknown",
             ssh_permanent=bool(row[10]) if row[10] is not None else False,
             setup_completed_at=(datetime.fromisoformat(row[11]) if row[11] else None),
+            marge_account_uuid=row[12] if len(row) > 12 else None,
         )

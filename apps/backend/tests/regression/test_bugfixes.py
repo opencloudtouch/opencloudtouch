@@ -399,6 +399,11 @@ class TestNoDeviceCountLimit:
             "opencloudtouch.devices.services.sync_service.get_device_client",
             mock_client,
         )
+        monkeypatch.setattr(
+            DeviceSyncService,
+            "_fetch_marge_account_uuid",
+            staticmethod(AsyncMock(return_value=None)),
+        )
 
         repo = AsyncMock()
         repo.upsert = AsyncMock()
@@ -448,3 +453,77 @@ class TestBugfix003RadioSearchImportIncomplete:
         # - Tests verify error handling executes without import errors
         # - Tests verify ERROR_503 displays "Dienst nicht verfügbar"
         assert True, "RadioSearch error handling coverage exists in E2E suite"
+
+
+class TestBugfix188HardcodedDeviceIdInStreamingAccount:
+    """
+    BUGFIX 188: /streaming/account/{account_id}/full used hardcoded device_id.
+
+    Date: 2026-05-12
+    Issue: https://github.com/scheilch/opencloudtouch/issues/188
+    Reporter: Zimbo88
+    Symptom: Device boots, calls /streaming/account/5522049/full,
+             receives empty presets because code used hardcoded
+             device_id="689E194F7D2F" instead of resolving via
+             margeAccountUUID mapping.
+    Root Cause: streaming_full_account() had a TODO comment and
+                hardcoded device_id instead of looking up the device
+                by its margeAccountUUID from the database.
+    Fix: - Added marge_account_uuid column to devices table
+         - Sync service fetches UUID from device /info on discovery
+         - streaming_full_account resolves device via DB lookup
+    """
+
+    def test_no_hardcoded_device_id_in_streaming_route(self):
+        """Ensure streaming_full_account does not contain hardcoded device IDs."""
+        import inspect
+        from opencloudtouch.marge.routes import streaming_full_account
+
+        source = inspect.getsource(streaming_full_account)
+        assert (
+            "689E194F7D2F" not in source
+        ), "streaming_full_account must not contain hardcoded device ID"
+        assert "# TODO: Get from account mapping" not in source
+
+    @pytest.mark.asyncio
+    async def test_resolves_device_by_account_uuid(self):
+        """Account UUID maps to correct device → presets loaded for that device."""
+        from opencloudtouch.marge.routes import streaming_full_account
+
+        mock_device = MagicMock()
+        mock_device.device_id = "10CEA9A6FA71"
+
+        mock_device_repo = AsyncMock()
+        mock_device_repo.get_by_marge_account_uuid = AsyncMock(return_value=mock_device)
+
+        mock_preset_repo = AsyncMock()
+        mock_preset_repo.get_all_presets = AsyncMock(return_value=[])
+
+        await streaming_full_account("5522049", mock_preset_repo, mock_device_repo)
+
+        # Must have looked up by account UUID, not used hardcoded ID
+        mock_device_repo.get_by_marge_account_uuid.assert_called_once_with("5522049")
+        # Must have loaded presets for the RESOLVED device
+        mock_preset_repo.get_all_presets.assert_called_once_with("10CEA9A6FA71")
+
+    @pytest.mark.asyncio
+    async def test_unknown_account_returns_empty_not_crash(self):
+        """Unknown account UUID → empty presets, no crash, no guessing."""
+        from opencloudtouch.marge.routes import streaming_full_account
+        from xml.etree import ElementTree
+
+        mock_device_repo = AsyncMock()
+        mock_device_repo.get_by_marge_account_uuid = AsyncMock(return_value=None)
+
+        mock_preset_repo = AsyncMock()
+
+        result = await streaming_full_account(
+            "UNKNOWN", mock_preset_repo, mock_device_repo
+        )
+
+        assert result.status_code == 200
+        root = ElementTree.fromstring(result.body.decode())
+        presets = root.find("presets")
+        assert len(presets.findall("preset")) == 0
+        # Must NOT have tried to load presets with some guessed device
+        mock_preset_repo.get_all_presets.assert_not_called()

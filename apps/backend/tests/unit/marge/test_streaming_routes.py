@@ -117,28 +117,65 @@ class TestStreamingSourceproviders:
 
 
 class TestStreamingFullAccount:
+    """Tests for /streaming/account/{account_id}/full (fixes #188)."""
+
+    def _make_device_repo(self, device=None):
+        """Create mock device_repo that returns given device for UUID lookup."""
+        mock = AsyncMock()
+        mock.get_by_marge_account_uuid = AsyncMock(return_value=device)
+        return mock
+
+    def _make_device(self, device_id="689E194F7D2F"):
+        """Create a mock device with given device_id."""
+        device = MagicMock()
+        device.device_id = device_id
+        return device
+
     @pytest.mark.asyncio
-    async def test_returns_200_with_empty_presets(self):
+    async def test_returns_presets_for_mapped_device(self):
+        """Account UUID resolves to device → returns that device's presets."""
+        device = self._make_device("10CEA9A6FA71")
+        device_repo = self._make_device_repo(device)
+
         mock_preset_repo = AsyncMock()
         mock_preset_repo.get_all_presets = AsyncMock(return_value=[])
 
-        result = await streaming_full_account("3784726", mock_preset_repo)
+        result = await streaming_full_account("5522049", mock_preset_repo, device_repo)
         assert result.status_code == 200
+        mock_preset_repo.get_all_presets.assert_called_once_with("10CEA9A6FA71")
+
+    @pytest.mark.asyncio
+    async def test_returns_empty_when_no_device_mapping(self):
+        """No device found for account UUID → empty presets, no crash."""
+        device_repo = self._make_device_repo(None)
+        mock_preset_repo = AsyncMock()
+
+        result = await streaming_full_account("9999999", mock_preset_repo, device_repo)
+        assert result.status_code == 200
+        root = ElementTree.fromstring(result.body.decode())
+        presets = root.find("presets")
+        assert presets is not None
+        assert len(presets.findall("preset")) == 0
+        mock_preset_repo.get_all_presets.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_media_type_is_bose_streaming(self):
+        device = self._make_device()
+        device_repo = self._make_device_repo(device)
         mock_preset_repo = AsyncMock()
         mock_preset_repo.get_all_presets = AsyncMock(return_value=[])
 
-        result = await streaming_full_account("3784726", mock_preset_repo)
+        result = await streaming_full_account("3784726", mock_preset_repo, device_repo)
         assert "bose.streaming" in result.media_type
 
     @pytest.mark.asyncio
     async def test_returns_bose_account_xml(self):
+        device = self._make_device()
+        device_repo = self._make_device_repo(device)
         mock_preset_repo = AsyncMock()
         mock_preset_repo.get_all_presets = AsyncMock(return_value=[])
 
-        result = await streaming_full_account("3784726", mock_preset_repo)
+        result = await streaming_full_account("3784726", mock_preset_repo, device_repo)
         root = ElementTree.fromstring(result.body.decode())
         assert root.tag == "boseAccount"
 
@@ -153,10 +190,12 @@ class TestStreamingFullAccount:
         mock_preset.created_at.timestamp.return_value = 1234567890
         mock_preset.updated_at.timestamp.return_value = 1234567890
 
+        device = self._make_device()
+        device_repo = self._make_device_repo(device)
         mock_preset_repo = AsyncMock()
         mock_preset_repo.get_all_presets = AsyncMock(return_value=[mock_preset])
 
-        result = await streaming_full_account("3784726", mock_preset_repo)
+        result = await streaming_full_account("3784726", mock_preset_repo, device_repo)
         root = ElementTree.fromstring(result.body.decode())
         presets = root.find("presets")
         assert presets is not None

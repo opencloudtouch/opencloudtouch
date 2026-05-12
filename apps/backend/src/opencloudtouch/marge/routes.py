@@ -8,9 +8,11 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 
 from opencloudtouch.core.dependencies import (
+    get_device_repo,
     get_preset_repository,
     get_recents_repository,
 )
+from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.marge.xml_builder import (
     build_devices_xml,
     build_full_account_xml,
@@ -271,32 +273,49 @@ async def streaming_sourceproviders() -> Response:
 async def streaming_full_account(
     account_id: str,
     preset_repo: PresetRepository = Depends(get_preset_repository),
+    device_repo: DeviceRepository = Depends(get_device_repo),
 ) -> Response:
     """Get full account sync via streaming endpoint.
 
     This is the streaming.bose.com version of the account sync endpoint.
-    Returns complete account with all devices, presets, recents, and sources.
+    Resolves the device_id from the account_id (margeAccountUUID) stored
+    during device discovery, then returns that device's presets.
 
     Args:
-        account_id: Account ID (e.g., "3784726")
+        account_id: Marge account UUID (e.g., "5522049")
         preset_repo: Preset repository dependency
+        device_repo: Device repository dependency
 
     Returns:
         XML Response with <account> structure
     """
     logger.info("[MARGE/STREAMING] Full account sync for account %s", account_id)
 
-    # For now, return a generic device_id. In future, map account_id to device.
-    # The device ID is typically its MAC address.
-    device_id = "689E194F7D2F"  # TODO: Get from account mapping
+    # Resolve device_id from margeAccountUUID (fixes #188)
+    device = await device_repo.get_by_marge_account_uuid(account_id)
+    if not device:
+        logger.warning(
+            "[MARGE/STREAMING] No device found for account %s — "
+            "returning empty presets. Device may not have been synced yet.",
+            account_id,
+        )
+        return _xml_response(build_full_account_xml([], []), _MEDIA_STREAMING_XML)
+
+    device_id = device.device_id
+    logger.info(
+        "[MARGE/STREAMING] Resolved account %s → device %s",
+        account_id,
+        device_id,
+    )
 
     # Load presets from database
     presets = await preset_repo.get_all_presets(device_id)
 
     logger.info(
-        "[MARGE/STREAMING] Returning %d presets for account %s",
+        "[MARGE/STREAMING] Returning %d presets for account %s (device %s)",
         len(presets),
         account_id,
+        device_id,
     )
 
     return _xml_response(build_full_account_xml(presets, []), _MEDIA_STREAMING_XML)

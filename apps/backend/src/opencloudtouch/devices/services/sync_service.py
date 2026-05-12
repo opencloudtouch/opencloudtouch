@@ -283,6 +283,9 @@ class DeviceSyncService:
         """
         Query device for detailed info via /info endpoint.
 
+        Also fetches the margeAccountUUID from the device so that
+        /streaming/account/{account_id}/full can resolve the correct device.
+
         Args:
             discovered: Discovered device with base URL
 
@@ -295,6 +298,9 @@ class DeviceSyncService:
         client = get_device_client(discovered.base_url)
         info = await client.get_info()
 
+        # Fetch margeAccountUUID separately (parsed from /info XML)
+        marge_uuid = await self._fetch_marge_account_uuid(discovered.ip)
+
         return Device(
             device_id=info.device_id,
             ip=discovered.ip,
@@ -302,4 +308,28 @@ class DeviceSyncService:
             model=info.type,
             mac_address=info.mac_address,
             firmware_version=info.firmware_version,
+            marge_account_uuid=marge_uuid,
         )
+
+    @staticmethod
+    async def _fetch_marge_account_uuid(device_ip: str) -> Optional[str]:
+        """Fetch margeAccountUUID from device /info endpoint.
+
+        Uses the existing account_pairing_service function which
+        parses the raw /info XML for the <margeAccountUUID> element.
+
+        Returns:
+            The UUID string if present, None otherwise.
+            Never raises — logs warnings on failure.
+        """
+        try:
+            from opencloudtouch.setup.account_pairing_service import (
+                check_marge_account_uuid,
+            )
+
+            return await check_marge_account_uuid(device_ip)
+        except Exception:
+            logger.debug(
+                "Could not fetch margeAccountUUID from %s", device_ip, exc_info=True
+            )
+            return None
