@@ -36,11 +36,11 @@ class ZoneService:
             from opencloudtouch.devices.adapter import get_device_client
 
             return get_device_client(
-                f"http://{ip}:{SOUNDTOUCH_HTTP_PORT}"
-            )  # NOSONAR — Bose devices only support HTTP
+                f"http://{ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR — Bose devices only support HTTP
+            )
         return self._client_factory(
-            f"http://{ip}:{SOUNDTOUCH_HTTP_PORT}"
-        )  # NOSONAR — Bose devices only support HTTP
+            f"http://{ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR — Bose devices only support HTTP
+        )
 
     async def _get_device_or_raise(self, device_id: str):
         """Get device from repo or raise DeviceNotFoundError."""

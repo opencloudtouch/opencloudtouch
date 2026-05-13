@@ -43,7 +43,11 @@ class ChangeMasterRequest(BaseModel):
 # ============================================================================
 
 
-@router.get("", response_model=list[ZoneStatus])
+@router.get(
+    "",
+    response_model=list[ZoneStatus],
+    responses={500: {"description": "Failed to get zones"}},
+)
 async def get_all_zones(
     zone_service: ZoneServiceDep,
 ):
@@ -52,9 +56,7 @@ async def get_all_zones(
         return await zone_service.get_all_zones()
     except Exception as e:
         logger.exception("Failed to get zones")
-        raise HTTPException(
-            status_code=500, detail="Failed to get zones"
-        ) from e  # NOSONAR
+        raise HTTPException(status_code=500, detail="Failed to get zones") from e
 
 
 @router.post("", response_model=ZoneStatus, status_code=201)

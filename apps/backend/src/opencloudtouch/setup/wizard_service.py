@@ -31,15 +31,17 @@ class WizardService:
     - Result assembly
     """
 
+    SSH_TIMEOUT: float = 5.0
+
     def __init__(self, audit_repo=None, device_repo=None) -> None:
         self._audit_repo = audit_repo
         self._device_repo = device_repo
 
     async def check_ssh_port(
-        self, device_ip: str, timeout: float = 5.0
-    ) -> bool:  # NOSONAR
+        self, device_ip: str, timeout: float | None = None
+    ) -> bool:
         """Check if SSH port is accessible on device."""
-        return await check_ssh_port(device_ip, timeout=timeout)
+        return await check_ssh_port(device_ip, timeout=timeout or self.SSH_TIMEOUT)
 
     async def backup_all(self, device_ip: str, device_id: str) -> dict:
         """Create complete backup to USB stick.

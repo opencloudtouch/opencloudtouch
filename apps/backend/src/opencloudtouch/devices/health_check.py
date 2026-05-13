@@ -109,8 +109,8 @@ class DeviceHealthCheck:
         """Ping a single device via GET /info on the WebServer port."""
         try:
             resp = await client.get(
-                f"http://{ip}:{SOUNDTOUCH_WEBSERVER_PORT}/info"
-            )  # NOSONAR — Bose devices only support HTTP
+                f"http://{ip}:{SOUNDTOUCH_WEBSERVER_PORT}/info"  # NOSONAR — Bose devices only support HTTP
+            )
             return resp.status_code == 200
         except (httpx.ConnectError, httpx.TimeoutException, httpx.ReadError):
             return False

@@ -213,9 +213,7 @@ class DeviceService:
         if not device:
             raise DeviceNotFoundError(device_id)
 
-        logger.info(
-            "Querying capabilities for device %s (%s)", device_id, device.ip
-        )  # NOSONAR
+        logger.info("Querying capabilities for device %s", device_id)
 
         try:
             capabilities = await get_capabilities_for_ip(device.ip)
