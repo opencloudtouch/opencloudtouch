@@ -159,7 +159,7 @@ async def discover_devices_stream(
                 task.cancel()
             raise
         except Exception as e:
-            logger.error("Discovery stream error: %s", e)
+            logger.exception("Discovery stream error")
             # Send error event
             from opencloudtouch.devices.events import DiscoveryEvent
 

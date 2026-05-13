@@ -64,7 +64,7 @@ class BoseDeviceDiscoveryAdapter(DeviceDiscovery):
             return discovered
 
         except Exception as e:
-            logger.error("Discovery failed: %s", e, exc_info=True)
+            logger.exception("Discovery failed")
             raise DiscoveryError(f"Failed to discover devices: {e}") from e
 
 

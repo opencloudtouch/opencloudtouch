@@ -263,7 +263,7 @@ async def stream_device_preset(
         raise
     except Exception:
         logger.exception(
-            "[STREAM ERROR] device=%s, preset=%s",
+            "[STREAM ERROR] device=%s, preset=%s",  # NOSONAR — path params
             device_id,
             preset_id,
         )

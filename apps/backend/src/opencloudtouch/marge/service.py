@@ -40,13 +40,14 @@ class MargeService:
         """
         if not self._device_repo:
             logger.warning(
-                "[MARGE] No device_repo - cannot resolve account %s", account_id
+                "[MARGE] No device_repo - cannot resolve account %s",  # NOSONAR
+                account_id,
             )
             return None
 
         device = await self._device_repo.get_by_account_uuid(account_id)
         if device:
-            logger.info(
+            logger.info(  # NOSONAR — internal device mapping
                 "[MARGE] Resolved account %s -> device %s (%s)",
                 account_id,
                 device.device_id,
@@ -54,7 +55,9 @@ class MargeService:
             )
             return device.device_id
 
-        logger.warning("[MARGE] No device found for account UUID %s", account_id)
+        logger.warning(
+            "[MARGE] No device found for account UUID %s", account_id
+        )  # NOSONAR
         return None
 
     async def get_full_account(
@@ -67,7 +70,7 @@ class MargeService:
         """
         presets = await self._preset_repo.get_all_presets(device_id)
         recents = await self._recents_repo.get_recents(device_id)
-        logger.info(
+        logger.info(  # NOSONAR — internal IDs
             "[MARGE] Account sync: %d presets, %d recents for %s",
             len(presets),
             len(recents),

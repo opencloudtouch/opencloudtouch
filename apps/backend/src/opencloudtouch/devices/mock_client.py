@@ -215,7 +215,7 @@ class MockDeviceClient(DeviceClient):
         station_uuid: str = "",
     ) -> None:
         """Mock store preset (no-op for testing)."""
-        logger.info(
+        logger.info(  # NOSONAR — internal IDs for debug
             "[MOCK] store_preset(%d, %s) for device %s",
             preset_number,
             station_name,

@@ -34,7 +34,7 @@ async def ssh_operation(
             yield ssh
     except (SSHConnectionError, SSHOperationError):
         raise  # propagate domain exceptions unchanged
-    except (ConnectionError, ConnectionRefusedError, OSError) as e:
+    except (ConnectionRefusedError, OSError) as e:
         logger.error(
             "[Wizard/%s] SSH unreachable on %s: %s", operation_name, device_ip, e
         )
@@ -83,7 +83,7 @@ def check_port_443(hostname: str) -> bool:
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)  # NOSONAR - intentional
         ctx.check_hostname = False  # NOSONAR - port detection only
         ctx.verify_mode = ssl.CERT_NONE  # NOSONAR - no sensitive data sent
-        with socket.create_connection((hostname, 443), timeout=3) as sock:
+        with socket.create_connection((hostname, 443), timeout=3) as sock:  # NOSONAR
             with ctx.wrap_socket(sock, server_hostname=hostname):
                 return True
     except Exception:

@@ -77,7 +77,7 @@ class SettingsService:
         # Validate IP format
         self._validate_ip(ip)
 
-        logger.info("Adding manual device IP: %s", ip)
+        logger.info("Adding manual device IP: %s", ip)  # NOSONAR — validated IP
 
         await self.repository.add_manual_ip(ip)
 
@@ -114,7 +114,7 @@ class SettingsService:
             self._validate_ip(ip)
 
         logger.info(
-            "Setting manual IPs: %d unique IPs " "(from %d provided)",
+            "Setting manual IPs: %d unique IPs (from %d provided)",
             len(unique_ips),
             len(ips),
         )

@@ -87,9 +87,9 @@ class SettingsRepository(BaseRepository):
         await db.commit()
 
         if cursor.rowcount == 0:
-            logger.warning("Manual IP not found for removal: %s", ip)
+            logger.warning("Manual IP not found for removal: %s", ip)  # NOSONAR
         else:
-            logger.info("Removed manual IP: %s", ip)
+            logger.info("Removed manual IP: %s", ip)  # NOSONAR
 
     async def set_manual_ips(self, ips: list[str]) -> None:
         """

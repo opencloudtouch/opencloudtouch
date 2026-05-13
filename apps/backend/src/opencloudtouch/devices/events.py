@@ -119,8 +119,8 @@ class DiscoveryEventBus:
         ]:  # Copy list to avoid modification during iteration
             try:
                 await queue.put(event)
-            except Exception as e:
-                logger.error("Failed to publish event to subscriber: %s", e)
+            except Exception:
+                logger.exception("Failed to publish event to subscriber")
                 # Remove dead subscriber
                 self._subscribers.remove(queue)
 

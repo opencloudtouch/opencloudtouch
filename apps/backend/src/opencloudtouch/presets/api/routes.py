@@ -80,8 +80,8 @@ async def set_preset(
         raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error("Error setting preset: %s", e)
+    except Exception:
+        logger.exception("Error setting preset")
         raise HTTPException(status_code=500, detail="Failed to set preset")
 
 
@@ -103,8 +103,8 @@ async def get_device_presets(
 
         return [PresetResponse(**p.to_dict()) for p in presets]
 
-    except Exception as e:
-        logger.error("Error getting presets for device %s: %s", device_id, e)
+    except Exception:
+        logger.exception("Error getting presets for device %s", device_id)
         raise HTTPException(status_code=500, detail="Failed to get presets")
 
 
@@ -205,8 +205,8 @@ async def clear_all_presets(
             message=f"Cleared {count} presets for device {device_id}"
         )
 
-    except Exception as e:
-        logger.error("Error clearing all presets for device %s: %s", device_id, e)
+    except Exception:
+        logger.exception("Error clearing all presets for device %s", device_id)
         raise HTTPException(status_code=500, detail="Failed to clear presets")
 
 
@@ -237,10 +237,10 @@ async def sync_presets_from_device(
         )
 
     except ValueError as e:
-        logger.error("Device %s not found: %s", device_id, e)
+        logger.exception("Device %s not found", device_id)
         raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        logger.error("Error syncing presets from device %s: %s", device_id, e)
+    except Exception:
+        logger.exception("Error syncing presets from device %s", device_id)
         raise HTTPException(
             status_code=502, detail="Failed to sync presets from device"
         )

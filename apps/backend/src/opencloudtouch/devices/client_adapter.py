@@ -59,7 +59,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             )
             self._client = BoseClient(device)
         except Exception as e:
-            logger.error("Failed to connect to device at %s: %s", base_url, e)
+            logger.exception("Failed to connect to device at %s", base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     def _extract_firmware_version(self, info) -> str:
@@ -156,9 +156,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             )
 
         except Exception as e:
-            logger.error(
-                "Failed to get now_playing from %s: %s", self.base_url, e, exc_info=True
-            )
+            logger.exception("Failed to get now_playing from %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def press_key(self, key: str, state: str = "both") -> None:
@@ -207,9 +205,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             await asyncio.to_thread(self._client.Action, key_enum, state_enum)
 
         except Exception as e:
-            logger.error(
-                "Failed to press key %s on %s: %s", key, self.base_url, e, exc_info=True
-            )
+            logger.exception("Failed to press key %s on %s", key, self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     @staticmethod
@@ -323,23 +319,19 @@ class BoseDeviceClientAdapter(DeviceClient):
             )
 
         except httpx.HTTPStatusError as e:
-            logger.error(
-                "HTTP error storing preset %d on %s: %s",
+            logger.exception(
+                "HTTP error storing preset %d on %s",
                 preset_number,
                 self.base_url,
-                e,
-                exc_info=True,
             )
             raise DeviceConnectionError(
                 self.ip, f"HTTP {e.response.status_code}"
             ) from e
         except Exception as e:
-            logger.error(
-                "Failed to store preset %d on %s: %s",
+            logger.exception(
+                "Failed to store preset %d on %s",
                 preset_number,
                 self.base_url,
-                e,
-                exc_info=True,
             )
             raise DeviceConnectionError(self.ip, str(e)) from e
 
@@ -353,9 +345,7 @@ class BoseDeviceClientAdapter(DeviceClient):
                 muted=vol.IsMuted,
             )
         except Exception as e:
-            logger.error(
-                "Failed to get volume from %s: %s", self.base_url, e, exc_info=True
-            )
+            logger.exception("Failed to get volume from %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def set_volume(self, level: int) -> None:
@@ -363,9 +353,7 @@ class BoseDeviceClientAdapter(DeviceClient):
         try:
             await asyncio.to_thread(self._client.SetVolumeLevel, level)
         except Exception as e:
-            logger.error(
-                "Failed to set volume on %s: %s", self.base_url, e, exc_info=True
-            )
+            logger.exception("Failed to set volume on %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def set_mute(self, muted: bool) -> None:
@@ -424,9 +412,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             zone = await asyncio.to_thread(self._client.GetZoneStatus, refresh=True)
             return self._zone_to_status(zone)
         except Exception as e:
-            logger.error(
-                f"Failed to get zone status from {self.base_url}: {e}", exc_info=True
-            )
+            logger.exception("Failed to get zone status from %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def create_zone(
@@ -453,7 +439,9 @@ class BoseDeviceClientAdapter(DeviceClient):
                 zone.AddMember(ZoneMember(ipAddress=m.ip_address, deviceId=m.device_id))
 
             logger.info(
-                f"Creating zone on {self.ip} with {len(members)} slave(s)",
+                "Creating zone on %s with %d slave(s)",
+                self.ip,
+                len(members),
                 extra={"master_ip": master_ip, "member_count": len(members)},
             )
 
@@ -472,9 +460,7 @@ class BoseDeviceClientAdapter(DeviceClient):
                 ],
             )
         except Exception as e:
-            logger.error(
-                f"Failed to create zone on {self.base_url}: {e}", exc_info=True
-            )
+            logger.exception("Failed to create zone on %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def add_zone_members(self, members: list[ZoneMemberInfo]) -> None:
@@ -488,9 +474,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             ]
             await asyncio.to_thread(self._client.AddZoneMembers, zone_members, delay=3)
         except Exception as e:
-            logger.error(
-                f"Failed to add zone members on {self.base_url}: {e}", exc_info=True
-            )
+            logger.exception("Failed to add zone members on %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def remove_zone_members(self, members: list[ZoneMemberInfo]) -> None:
@@ -504,9 +488,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             ]
             await asyncio.to_thread(self._client.RemoveZoneMembers, zone_members, delay=3)  # fmt: skip
         except Exception as e:
-            logger.error(
-                f"Failed to remove zone members on {self.base_url}: {e}", exc_info=True
-            )
+            logger.exception("Failed to remove zone members on %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def remove_zone(self) -> None:
@@ -515,7 +497,5 @@ class BoseDeviceClientAdapter(DeviceClient):
             await asyncio.to_thread(self._client.RemoveZone, delay=3)
             logger.info("Zone removed on %s", self.base_url)
         except Exception as e:
-            logger.error(
-                f"Failed to remove zone on {self.base_url}: {e}", exc_info=True
-            )
+            logger.exception("Failed to remove zone on %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e

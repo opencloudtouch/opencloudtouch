@@ -1,13 +1,12 @@
-"""Zone API routes for multi-room management."""
+﻿"""Zone API routes for multi-room management."""
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from opencloudtouch.core.dependencies import get_zone_service
+from opencloudtouch.core.dependencies import ZoneServiceDep
 from opencloudtouch.zones.models import ZoneStatus
-from opencloudtouch.zones.service import ZoneService
 
 logger = logging.getLogger(__name__)
 
@@ -46,20 +45,20 @@ class ChangeMasterRequest(BaseModel):
 
 @router.get("", response_model=list[ZoneStatus])
 async def get_all_zones(
-    zone_service: ZoneService = Depends(get_zone_service),
+    zone_service: ZoneServiceDep,
 ):
     """Get all active multi-room zones."""
     try:
         return await zone_service.get_all_zones()
     except Exception as e:
-        logger.error("Failed to get zones: %s", e)
+        logger.exception("Failed to get zones")
         raise HTTPException(status_code=500, detail="Failed to get zones") from e
 
 
 @router.post("", response_model=ZoneStatus, status_code=201)
 async def create_zone(
     request: CreateZoneRequest,
-    zone_service: ZoneService = Depends(get_zone_service),
+    zone_service: ZoneServiceDep,
 ):
     """Create a new multi-room zone."""
     try:
@@ -71,7 +70,7 @@ async def create_zone(
 @router.delete("/{master_id}", status_code=204)
 async def dissolve_zone(
     master_id: str,
-    zone_service: ZoneService = Depends(get_zone_service),
+    zone_service: ZoneServiceDep,
 ):
     """Dissolve a multi-room zone."""
     await zone_service.dissolve_zone(master_id)
@@ -81,7 +80,7 @@ async def dissolve_zone(
 async def add_zone_members(
     master_id: str,
     request: ModifyMembersRequest,
-    zone_service: ZoneService = Depends(get_zone_service),
+    zone_service: ZoneServiceDep,
 ):
     """Add members to an existing zone."""
     await zone_service.add_members(master_id, request.device_ids)
@@ -92,7 +91,7 @@ async def add_zone_members(
 async def remove_zone_members(
     master_id: str,
     request: ModifyMembersRequest,
-    zone_service: ZoneService = Depends(get_zone_service),
+    zone_service: ZoneServiceDep,
 ):
     """Remove members from an existing zone."""
     await zone_service.remove_members(master_id, request.device_ids)
@@ -102,7 +101,7 @@ async def remove_zone_members(
 async def change_master(
     master_id: str,
     request: ChangeMasterRequest,
-    zone_service: ZoneService = Depends(get_zone_service),
+    zone_service: ZoneServiceDep,
 ):
     """Change the master of a zone."""
     try:
@@ -119,7 +118,7 @@ async def change_master(
 @device_zone_router.get("/{device_id}/zone", response_model=ZoneStatus | None)
 async def get_device_zone(
     device_id: str,
-    zone_service: ZoneService = Depends(get_zone_service),
+    zone_service: ZoneServiceDep,
 ):
     """Get zone status for a specific device."""
     return await zone_service.get_zone_status(device_id)

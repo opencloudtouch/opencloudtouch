@@ -193,8 +193,8 @@ class DeviceSyncService:
                     "SSDP device: ip=%s, name=%s", d.ip, getattr(d, "name", "?")
                 )
             return discovered
-        except Exception as e:
-            logger.error("SSDP discovery failed: %s", e)
+        except Exception:
+            logger.exception("SSDP discovery failed")
             return []
 
     async def _discover_via_manual_ips(self) -> List[DiscoveredDevice]:
@@ -223,8 +223,8 @@ class DeviceSyncService:
                     "Manual device: ip=%s, name=%s", d.ip, getattr(d, "name", "?")
                 )
             return discovered
-        except Exception as e:
-            logger.error("Manual discovery failed: %s", e)
+        except Exception:
+            logger.exception("Manual discovery failed")
             return []
 
     async def _sync_devices_to_db(
@@ -277,7 +277,7 @@ class DeviceSyncService:
             return True
         except Exception as e:
             device_ip = getattr(discovered, "ip", str(discovered))
-            logger.error("Failed to sync device %s: %s", device_ip, e)
+            logger.exception("Failed to sync device %s", device_ip)
             if on_failed:
                 await on_failed(discovered, e)
             return False

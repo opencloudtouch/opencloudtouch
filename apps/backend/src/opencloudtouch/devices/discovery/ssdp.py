@@ -71,8 +71,8 @@ class SSDPDiscovery:
             logger.info("SSDP discovery found %d Bose device(s)", len(devices))
             return devices
 
-        except Exception as e:
-            logger.error("SSDP discovery failed: %s", e, exc_info=True)
+        except Exception:
+            logger.exception("SSDP discovery failed")
             return {}
 
     def _ssdp_msearch(self) -> list[str]:
@@ -120,8 +120,8 @@ class SSDPDiscovery:
             try:
                 sock.sendto(msg, (self.SSDP_MULTICAST_ADDR, self.SSDP_PORT))
                 logger.debug("Sent SSDP M-SEARCH multicast")
-            except OSError as e:
-                logger.error("Failed to send SSDP M-SEARCH: %s", e)
+            except OSError:
+                logger.exception("Failed to send SSDP M-SEARCH")
                 return []
 
             # Collect responses until wall-clock deadline

@@ -122,7 +122,7 @@ class SoundTouchHostsService:
             )
 
         self.logger.info(
-            "Modifying hosts to redirect to OCT at %s " "(optional: %s)",
+            "Modifying hosts to redirect to OCT at %s (optional: %s)",
             oct_ip,
             include_optional,
         )

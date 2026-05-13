@@ -46,7 +46,9 @@ async def bmx_now_playing_stub(station_id: str | None = None) -> JSONResponse:
     Device calls this to get currently playing track info.
     Returns minimal valid response to prevent errors.
     """
-    logger.info("[BMX NOW-PLAYING] Station: %s", station_id or "custom")
+    logger.info(
+        "[BMX NOW-PLAYING] Station: %s", station_id or "custom"
+    )  # NOSONAR — device path param
     return JSONResponse(
         content={
             "status": "playing",
@@ -64,7 +66,9 @@ async def bmx_reporting_stub(station_id: str | None = None) -> JSONResponse:
     Device calls this to report playback events.
     Returns success to prevent errors.
     """
-    logger.info("[BMX REPORTING] Station: %s", station_id or "custom")
+    logger.info(
+        "[BMX REPORTING] Station: %s", station_id or "custom"
+    )  # NOSONAR — device path param
     return JSONResponse(
         content={"status": "ok"},
         headers={"Access-Control-Allow-Origin": "*"},

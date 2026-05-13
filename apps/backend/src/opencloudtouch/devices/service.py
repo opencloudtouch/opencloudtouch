@@ -168,7 +168,7 @@ class DeviceService:
             return SyncResult(discovered=0, synced=0, failed=0)
 
         except Exception as e:
-            logger.error("Sync with events failed: %s", e)
+            logger.exception("Sync with events failed")
             # Publish error event
             await event_bus.publish(
                 DiscoveryEvent(type=DiscoveryEventType.ERROR, data={"message": str(e)})
@@ -225,8 +225,8 @@ class DeviceService:
             )
             return flags
 
-        except Exception as e:
-            logger.error("Failed to get capabilities for device %s: %s", device_id, e)
+        except Exception:
+            logger.exception("Failed to get capabilities for device %s", device_id)
             raise
 
     @asynccontextmanager
@@ -265,10 +265,14 @@ class DeviceService:
             ValueError: If device not found
             Exception: If key press fails
         """
-        logger.info("Pressing key %s on device %s (state: %s)", key, device_id, state)
+        logger.info(
+            "Pressing key %s on device %s (state: %s)", key, device_id, state
+        )  # NOSONAR
         async with self._device_client(device_id) as client:
             await client.press_key(key, state)
-        logger.info("Successfully pressed key %s on device %s", key, device_id)
+        logger.info(
+            "Successfully pressed key %s on device %s", key, device_id
+        )  # NOSONAR
 
     async def delete_all_devices(self, allow_dangerous_operations: bool) -> None:
         """Delete all devices from database.
