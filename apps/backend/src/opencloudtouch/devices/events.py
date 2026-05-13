@@ -184,7 +184,7 @@ async def event_generator(
         logger.debug("Event generator cancelled")
         raise
     except Exception as e:
-        logger.error("Event generator error: %s", e)
+        logger.exception("Event generator error: %s", e)
         # Send error event to client
         error_event = DiscoveryEvent(
             type=DiscoveryEventType.ERROR,

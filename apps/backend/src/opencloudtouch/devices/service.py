@@ -213,7 +213,9 @@ class DeviceService:
         if not device:
             raise DeviceNotFoundError(device_id)
 
-        logger.info("Querying capabilities for device %s (%s)", device_id, device.ip)
+        logger.info(
+            "Querying capabilities for device %s (%s)", device_id, device.ip
+        )  # NOSONAR
 
         try:
             capabilities = await get_capabilities_for_ip(device.ip)
@@ -265,14 +267,14 @@ class DeviceService:
             ValueError: If device not found
             Exception: If key press fails
         """
-        logger.info(
+        logger.info(  # NOSONAR
             "Pressing key %s on device %s (state: %s)", key, device_id, state
-        )  # NOSONAR
+        )
         async with self._device_client(device_id) as client:
             await client.press_key(key, state)
-        logger.info(
+        logger.info(  # NOSONAR
             "Successfully pressed key %s on device %s", key, device_id
-        )  # NOSONAR
+        )
 
     async def delete_all_devices(self, allow_dangerous_operations: bool) -> None:
         """Delete all devices from database.

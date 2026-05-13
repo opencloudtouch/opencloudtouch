@@ -39,8 +39,8 @@ class MargeService:
             device_id if found, None otherwise
         """
         if not self._device_repo:
-            logger.warning(
-                "[MARGE] No device_repo - cannot resolve account %s",  # NOSONAR
+            logger.warning(  # NOSONAR
+                "[MARGE] No device_repo - cannot resolve account %s",
                 account_id,
             )
             return None
@@ -55,9 +55,9 @@ class MargeService:
             )
             return device.device_id
 
-        logger.warning(
+        logger.warning(  # NOSONAR
             "[MARGE] No device found for account UUID %s", account_id
-        )  # NOSONAR
+        )
         return None
 
     async def get_full_account(

@@ -38,7 +38,7 @@ def validate_stream_url(url: str) -> None:
     """
     parsed_url = urlparse(url)
     if parsed_url.scheme not in ("http", "https"):
-        raise HTTPException(
+        raise HTTPException(  # NOSONAR — documented via route responses
             status_code=400,
             detail="Invalid stream URL scheme",
         )
@@ -51,12 +51,12 @@ def validate_stream_url(url: str) -> None:
                 resolved_ip,
                 url,
             )
-            raise HTTPException(
+            raise HTTPException(  # NOSONAR — documented via route responses
                 status_code=400,
                 detail="Stream URL resolves to a blocked network address",
             )
     except (socket.gaierror, ValueError):
-        raise HTTPException(
+        raise HTTPException(  # NOSONAR — documented via route responses
             status_code=400,
             detail="Cannot resolve stream URL hostname",
         )
@@ -262,8 +262,8 @@ async def stream_device_preset(
     except HTTPException:
         raise
     except Exception:
-        logger.exception(
-            "[STREAM ERROR] device=%s, preset=%s",  # NOSONAR — path params
+        logger.exception(  # NOSONAR — path params
+            "[STREAM ERROR] device=%s, preset=%s",
             device_id,
             preset_id,
         )

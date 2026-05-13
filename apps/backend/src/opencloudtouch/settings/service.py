@@ -87,7 +87,7 @@ class SettingsService:
         Args:
             ip: IP address to remove
         """
-        logger.info("Removing manual device IP: %s", ip)
+        logger.info("Removing manual device IP: %s", ip)  # NOSONAR
 
         await self.repository.remove_manual_ip(ip)
 

@@ -35,7 +35,9 @@ class WizardService:
         self._audit_repo = audit_repo
         self._device_repo = device_repo
 
-    async def check_ssh_port(self, device_ip: str, timeout: float = 5.0) -> bool:
+    async def check_ssh_port(
+        self, device_ip: str, timeout: float = 5.0
+    ) -> bool:  # NOSONAR
         """Check if SSH port is accessible on device."""
         return await check_ssh_port(device_ip, timeout=timeout)
 

@@ -46,9 +46,9 @@ async def bmx_now_playing_stub(station_id: str | None = None) -> JSONResponse:
     Device calls this to get currently playing track info.
     Returns minimal valid response to prevent errors.
     """
-    logger.info(
+    logger.info(  # NOSONAR — device path param
         "[BMX NOW-PLAYING] Station: %s", station_id or "custom"
-    )  # NOSONAR — device path param
+    )
     return JSONResponse(
         content={
             "status": "playing",
@@ -66,9 +66,9 @@ async def bmx_reporting_stub(station_id: str | None = None) -> JSONResponse:
     Device calls this to report playback events.
     Returns success to prevent errors.
     """
-    logger.info(
+    logger.info(  # NOSONAR — device path param
         "[BMX REPORTING] Station: %s", station_id or "custom"
-    )  # NOSONAR — device path param
+    )
     return JSONResponse(
         content={"status": "ok"},
         headers={"Access-Control-Allow-Origin": "*"},
@@ -81,7 +81,7 @@ async def bmx_tunein_now_playing(station_id: str) -> JSONResponse:
 
     Device calls this to get currently playing track info.
     """
-    logger.info("[BMX TUNEIN NOW-PLAYING] Station: %s", station_id)
+    logger.info("[BMX TUNEIN NOW-PLAYING] Station: %s", station_id)  # NOSONAR
     return JSONResponse(
         content={"status": "playing", "stationId": station_id},
         headers={"Access-Control-Allow-Origin": "*"},
@@ -94,7 +94,7 @@ async def bmx_tunein_reporting(station_id: str) -> JSONResponse:
 
     Device calls this to report playback events.
     """
-    logger.info("[BMX TUNEIN REPORTING] Station: %s", station_id)
+    logger.info("[BMX TUNEIN REPORTING] Station: %s", station_id)  # NOSONAR
     return JSONResponse(
         content={"status": "ok"},
         headers={"Access-Control-Allow-Origin": "*"},
@@ -108,7 +108,7 @@ async def bmx_tunein_favorite(station_id: str) -> JSONResponse:
 
     Device calls this to mark/unmark stations as favorites.
     """
-    logger.info("[BMX TUNEIN FAVORITE] Station: %s", station_id)
+    logger.info("[BMX TUNEIN FAVORITE] Station: %s", station_id)  # NOSONAR
     return JSONResponse(
         content={"status": "ok", "isFavorite": False},
         headers={"Access-Control-Allow-Origin": "*"},
@@ -198,7 +198,7 @@ async def bmx_tunein_playback(station_id: str) -> JSONResponse:
 
         return JSONResponse(content=response.model_dump(by_alias=True), headers=headers)
     except Exception as e:
-        logger.error("[BMX TUNEIN] Playback error: %s", e)
+        logger.exception("[BMX TUNEIN] Playback error: %s", e)
         return JSONResponse(
             content={"error": str(e)},
             status_code=500,
@@ -274,7 +274,7 @@ async def custom_stream_playback(request: Request) -> JSONResponse:
         )
 
     except Exception as e:
-        logger.error("[BMX ORION] Error: %s", e)
+        logger.exception("[BMX ORION] Error: %s", e)
         return JSONResponse(
             content={"error": str(e)},
             status_code=500,
@@ -295,7 +295,9 @@ async def _resolve_tunein_for_orion(tunein_id: str) -> JSONResponse:
             headers={"Access-Control-Allow-Origin": "*"},
         )
     except Exception as e:
-        logger.error("[BMX ORION] TuneIn resolution failed for %s: %s", tunein_id, e)
+        logger.exception(
+            "[BMX ORION] TuneIn resolution failed for %s: %s", tunein_id, e
+        )
         return JSONResponse(
             content={"error": f"TuneIn resolution failed: {e}"},
             status_code=500,

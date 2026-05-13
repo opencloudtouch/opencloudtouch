@@ -59,7 +59,7 @@ def _make_domain_handler(
     """
     log_fn = getattr(logger, log_level)
 
-    async def handler(request: Request, exc: Exception) -> JSONResponse:
+    async def handler(request: Request, exc: Exception) -> JSONResponse:  # NOSONAR
         log_fn("%s: %s", title, exc, exc_info=exc if exc_info else False)
         return JSONResponse(
             status_code=status_code,

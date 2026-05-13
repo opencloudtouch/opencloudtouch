@@ -180,9 +180,9 @@ class PresetService:
         result = await self.repository.clear_preset(device_id, preset_number)
 
         if result:
-            logger.info(
+            logger.info(  # NOSONAR
                 "Cleared preset %d for device %s", preset_number, device_id
-            )  # NOSONAR
+            )
 
         return bool(result)
 

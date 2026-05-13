@@ -34,10 +34,8 @@ async def ssh_operation(
             yield ssh
     except (SSHConnectionError, SSHOperationError):
         raise  # propagate domain exceptions unchanged
-    except (ConnectionRefusedError, OSError) as e:
-        logger.error(
-            "[Wizard/%s] SSH unreachable on %s: %s", operation_name, device_ip, e
-        )
+    except OSError:
+        logger.exception("[Wizard/%s] SSH unreachable on %s", operation_name, device_ip)
         raise SSHConnectionError(device_ip)
     except Exception as e:
         logger.exception(

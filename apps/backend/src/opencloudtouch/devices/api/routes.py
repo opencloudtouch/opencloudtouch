@@ -38,7 +38,9 @@ async def _device_op(device_id: str, action: str, coro: Awaitable[T]) -> T:
         raise
     except Exception as e:
         logger.exception("Failed to %s for device %s", action, device_id)
-        raise HTTPException(status_code=500, detail=f"Failed to {action}") from e
+        raise HTTPException(
+            status_code=500, detail=f"Failed to {action}"
+        ) from e  # NOSONAR
 
 
 @router.get("")

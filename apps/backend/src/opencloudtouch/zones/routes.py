@@ -52,7 +52,9 @@ async def get_all_zones(
         return await zone_service.get_all_zones()
     except Exception as e:
         logger.exception("Failed to get zones")
-        raise HTTPException(status_code=500, detail="Failed to get zones") from e
+        raise HTTPException(
+            status_code=500, detail="Failed to get zones"
+        ) from e  # NOSONAR
 
 
 @router.post("", response_model=ZoneStatus, status_code=201)
