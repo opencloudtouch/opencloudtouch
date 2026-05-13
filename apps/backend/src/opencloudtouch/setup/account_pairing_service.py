@@ -55,7 +55,7 @@ async def check_marge_account_uuid(
     Returns:
         The UUID string if present and non-empty, None otherwise
     """
-    url = f"http://{device_ip}:{device_port}/info"
+    url = f"http://{device_ip}:{device_port}/info"  # NOSONAR — Bose devices only support HTTP
     try:
         async with httpx.AsyncClient(timeout=_INFO_TIMEOUT) as client:
             resp = await client.get(url)

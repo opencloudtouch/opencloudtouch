@@ -28,7 +28,9 @@ class DiscoveredDevice:
     @property
     def base_url(self) -> str:
         """Base URL für HTTP API calls."""
-        return f"http://{self.ip}:{self.port}"
+        return (
+            f"http://{self.ip}:{self.port}"  # NOSONAR — Bose devices only support HTTP
+        )
 
 
 class DeviceDiscovery(ABC):

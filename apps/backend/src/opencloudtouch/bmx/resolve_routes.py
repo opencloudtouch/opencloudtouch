@@ -134,8 +134,8 @@ async def resolve_stream(request: Request) -> Response:
             media_type="application/xml",
         )
 
-    except Exception as e:
-        logger.error("[BMX RESOLVE] Error: %s", e, exc_info=True)
+    except Exception:
+        logger.exception("[BMX RESOLVE] Error")
         return Response(
             content="<error>Resolution failed</error>",
             status_code=500,

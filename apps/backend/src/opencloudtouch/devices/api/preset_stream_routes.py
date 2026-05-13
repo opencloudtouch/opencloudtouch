@@ -167,15 +167,14 @@ async def stream_device_preset(
             )
         except httpx.RequestError as e:
             await http_client.aclose()
-            logger.error(
-                f"[502] Failed to fetch RadioBrowser stream: {e}",
+            logger.exception(
+                "[502] Failed to fetch RadioBrowser stream",
                 extra={
                     "device_id": device_id,
                     "preset_id": preset_id,
                     "upstream_url": preset.station_url,
                     "error": str(e),
                 },
-                exc_info=True,
             )
             raise HTTPException(
                 status_code=502,
@@ -231,11 +230,12 @@ async def stream_device_preset(
                     chunks += 1
                     total_bytes += len(chunk)
                     yield chunk
-            except Exception as e:
-                logger.error(
-                    f"[STREAM ERROR] Proxy interrupted after {chunks} chunks ({total_bytes} bytes): {e}",
+            except Exception:
+                logger.exception(
+                    "[STREAM ERROR] Proxy interrupted after %d chunks (%d bytes)",
+                    chunks,
+                    total_bytes,
                     extra={"device_id": device_id, "preset_id": preset_id},
-                    exc_info=True,
                 )
             finally:
                 logger.debug(
@@ -261,10 +261,11 @@ async def stream_device_preset(
 
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(
-            f"[STREAM ERROR] device={device_id}, preset={preset_id}: {e}",
-            exc_info=True,
+    except Exception:
+        logger.exception(
+            "[STREAM ERROR] device=%s, preset=%s",
+            device_id,
+            preset_id,
         )
         raise HTTPException(
             status_code=500,

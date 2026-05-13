@@ -80,7 +80,8 @@ class DiscoveryEventBus:
         queue: asyncio.Queue = asyncio.Queue()
         self._subscribers.append(queue)
         logger.debug(
-            f"Client subscribed to discovery events (total: {len(self._subscribers)})"
+            "Client subscribed to discovery events (total: %d)",
+            len(self._subscribers),
         )
         return queue
 

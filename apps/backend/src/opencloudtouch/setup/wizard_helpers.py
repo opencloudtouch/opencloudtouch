@@ -40,12 +40,10 @@ async def ssh_operation(
         )
         raise SSHConnectionError(device_ip)
     except Exception as e:
-        logger.error(
-            "[Wizard/%s] failed on %s: %s",
+        logger.exception(
+            "[Wizard/%s] failed on %s",
             operation_name,
             device_ip,
-            e,
-            exc_info=True,
         )
         raise SSHOperationError(device_ip, operation_name, str(e))
 

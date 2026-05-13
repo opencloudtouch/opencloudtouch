@@ -125,9 +125,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             return device_info
 
         except Exception as e:
-            logger.error(
-                "Failed to get info from %s: %s", self.base_url, e, exc_info=True
-            )
+            logger.exception("Failed to get info from %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def get_now_playing(self) -> NowPlayingInfo:
@@ -378,9 +376,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             else:
                 await asyncio.to_thread(self._client.MuteOff, refresh=False)
         except Exception as e:
-            logger.error(
-                "Failed to set mute on %s: %s", self.base_url, e, exc_info=True
-            )
+            logger.exception("Failed to set mute on %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def close(self) -> None:

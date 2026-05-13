@@ -245,7 +245,7 @@ class DeviceService:
         device = await self.repository.get_by_device_id(device_id)
         if not device:
             raise DeviceNotFoundError(device_id)
-        base_url = f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"
+        base_url = f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR — Bose devices only support HTTP
         client = await asyncio.to_thread(get_device_client, base_url)
         try:
             yield client

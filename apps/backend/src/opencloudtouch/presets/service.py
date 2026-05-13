@@ -104,7 +104,7 @@ class PresetService:
             cfg = get_config()
             oct_backend_url = cfg.station_descriptor_base_url
 
-            base_url = f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"
+            base_url = f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR — Bose devices only support HTTP
             client = get_device_client(base_url)
 
             try:
@@ -262,7 +262,7 @@ class PresetService:
         Returns:
             Raw XML response bytes
         """
-        device_url = f"http://{device_ip}:{SOUNDTOUCH_HTTP_PORT}/presets"
+        device_url = f"http://{device_ip}:{SOUNDTOUCH_HTTP_PORT}/presets"  # NOSONAR — Bose devices only support HTTP
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(device_url)
             response.raise_for_status()

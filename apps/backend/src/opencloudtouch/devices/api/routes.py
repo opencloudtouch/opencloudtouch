@@ -37,7 +37,7 @@ async def _device_op(device_id: str, action: str, coro: Awaitable[T]) -> T:
     except (DeviceNotFoundError, DomainValidationError, DeviceConnectionError):
         raise
     except Exception as e:
-        logger.error("Failed to %s for device %s: %s", action, device_id, e)
+        logger.exception("Failed to %s for device %s", action, device_id)
         raise HTTPException(status_code=500, detail=f"Failed to {action}") from e
 
 
