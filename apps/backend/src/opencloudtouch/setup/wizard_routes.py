@@ -111,7 +111,7 @@ async def wizard_check_ports(
     """Check if SSH port is accessible (Wizard Step 3)."""
     logger.info("Checking SSH port on %s", request.device_ip)
 
-    has_ssh = await wizard.check_ssh_port(request.device_ip, timeout=request.timeout)
+    has_ssh = await wizard.check_ssh_port(request.device_ip)
 
     if not has_ssh:
         return PortCheckResponse(

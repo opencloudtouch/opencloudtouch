@@ -213,20 +213,16 @@ class DeviceService:
         if not device:
             raise DeviceNotFoundError(device_id)
 
-        logger.info("Querying capabilities for device %s", device_id)
+        logger.info("Querying device capabilities")
 
         try:
             capabilities = await get_capabilities_for_ip(device.ip)
             flags = get_feature_flags_for_ui(capabilities)
-            logger.debug(
-                "Capabilities for %s: %s",
-                device_id,
-                {k: v for k, v in flags.items() if v},
-            )
+            logger.debug("Device capabilities resolved")
             return flags
 
         except Exception:
-            logger.exception("Failed to get capabilities for device %s", device_id)
+            logger.exception("Failed to get device capabilities")
             raise
 
     @asynccontextmanager
