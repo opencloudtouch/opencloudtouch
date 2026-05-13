@@ -14,6 +14,14 @@ from fastapi import HTTPException
 logger = logging.getLogger(__name__)
 
 
+def _github_headers(token: str) -> dict[str, str]:
+    return {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {token}",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+
+
 async def create_github_issue(
     token: str, repo: str, title: str, body: str, labels: list[str]
 ) -> tuple[str, int]:
@@ -21,11 +29,7 @@ async def create_github_issue(
     async with httpx.AsyncClient() as client:
         response = await client.post(
             f"https://api.github.com/repos/{repo}/issues",
-            headers={
-                "Accept": "application/vnd.github+json",
-                "Authorization": f"Bearer {token}",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
+            headers=_github_headers(token),
             json={"title": title, "body": body, "labels": labels},
             timeout=15.0,
         )
@@ -55,11 +59,7 @@ async def upload_screenshot(
     async with httpx.AsyncClient() as client:
         response = await client.put(
             f"https://api.github.com/repos/{repo}/contents/{path}",
-            headers={
-                "Accept": "application/vnd.github+json",
-                "Authorization": f"Bearer {token}",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
+            headers=_github_headers(token),
             json={
                 "message": f"screenshot for #{issue_number}",
                 "content": raw_b64,
@@ -83,11 +83,7 @@ async def update_issue_body(
     async with httpx.AsyncClient() as client:
         await client.patch(
             f"https://api.github.com/repos/{repo}/issues/{issue_number}",
-            headers={
-                "Accept": "application/vnd.github+json",
-                "Authorization": f"Bearer {token}",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
+            headers=_github_headers(token),
             json={"body": body},
             timeout=15.0,
         )
@@ -123,11 +119,7 @@ async def upload_log_file(
         async with httpx.AsyncClient() as client:
             resp = await client.put(
                 f"https://api.github.com/repos/{repo}/contents/{path}",
-                headers={
-                    "Accept": "application/vnd.github+json",
-                    "Authorization": f"Bearer {token}",
-                    "X-GitHub-Api-Version": "2022-11-28",
-                },
+                headers=_github_headers(token),
                 json={
                     "message": f"bug report logs for #{issue_number}",
                     "content": b64_content,
