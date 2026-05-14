@@ -243,11 +243,17 @@ class BoseDeviceClientAdapter(DeviceClient):
         )
 
         safe_name = xml_escape(station_name)
+        art_xml = (
+            f"<containerArt>{xml_escape(station_image_url)}</containerArt>"
+            if station_image_url
+            else ""
+        )
         return (
             f'<preset id="{preset_number}" createdOn="0" updatedOn="0">'
             f'<ContentItem source="LOCAL_INTERNET_RADIO" type="stationurl" '
             f'location="{orion_url}" sourceAccount="" isPresetable="true">'
             f"<itemName>{safe_name}</itemName>"
+            f"{art_xml}"
             f"</ContentItem></preset>"
         )
 

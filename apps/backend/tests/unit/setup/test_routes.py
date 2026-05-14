@@ -574,7 +574,7 @@ class TestWizardRebootDevice:
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
-        assert "Reboot" in data["message"]
+        assert "Neustart" in data["message"]
         mock_ssh_client.execute.assert_awaited_once_with("reboot", timeout=5.0)
         mock_ssh_client.close.assert_awaited_once()
 

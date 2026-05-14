@@ -7,9 +7,10 @@ XML helper functions live here to keep bmx/routes.py under 200 lines.
 import logging
 import os
 import re
-from xml.etree import ElementTree
+from xml.etree.ElementTree import Element
 from xml.sax.saxutils import escape as xml_escape
 
+from defusedxml.ElementTree import fromstring as parse_xml_string
 from fastapi import APIRouter, Request, Response
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ resolve_router = APIRouter(tags=["bmx"])
 # =============================================================================
 
 
-def _get_elem_text(elem: ElementTree.Element | None, default: str) -> str:
+def _get_elem_text(elem: Element | None, default: str) -> str:
     """Return element text or default if element is None."""
     return elem.text if elem is not None else default
 
@@ -49,7 +50,7 @@ def _build_oct_resolved_xml(
 
     device_id = match.group(1)
     preset_number = match.group(2)
-    oct_url = os.getenv("OCT_BACKEND_URL", "http://192.168.1.100:7777")
+    oct_url = os.getenv("OCT_BACKEND_URL", "http://content.api.bose.io:7777")
     resolved_url = f"{oct_url}/device/{device_id}/preset/{preset_number}"
 
     logger.info("[BMX RESOLVE] OCT location resolved: %s → %s", location, resolved_url)
@@ -103,7 +104,7 @@ async def resolve_stream(request: Request) -> Response:
         body_str = (await request.body()).decode("utf-8")
         logger.info("[BMX RESOLVE] Request body: %s", body_str)
 
-        root = ElementTree.fromstring(body_str)  # nosec B314
+        root = parse_xml_string(body_str)
         source = root.get("source", "")
         location = root.get("location", "")
         station_id = root.get("stationId", "")

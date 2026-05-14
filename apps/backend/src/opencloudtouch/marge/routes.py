@@ -192,6 +192,7 @@ async def get_sourceproviders(device_id: str) -> Response:
 
     providers = [
         "TUNEIN",
+        "LOCAL_INTERNET_RADIO",
         "STORED_MUSIC",
         "AUX",
         "BLUETOOTH",
@@ -261,7 +262,6 @@ async def streaming_sourceproviders() -> Response:
 
 
 @router.get("/streaming/account/{account_id}/full")
-@router.get("/accounts/{account_id}/full")
 async def streaming_full_account(
     account_id: str,
     marge: MargeService = Depends(get_marge_service),
@@ -316,6 +316,21 @@ async def scmudc_reporting(device_id: str) -> Response:
         200 OK
     """
     logger.debug("[SCMUDC] Report from device %s", device_id)
+
+    return Response(status_code=200)
+
+
+@router.post("/streaming/stats/usage")
+async def streaming_stats_usage() -> Response:
+    """Accept device usage statistics (stub).
+
+    Without this endpoint, the device retries repeatedly after
+    statsServerUrl is redirected to OCT.
+
+    Returns:
+        200 OK
+    """
+    logger.debug("[STATS] Usage stats received (stub)")
 
     return Response(status_code=200)
 

@@ -7,9 +7,9 @@ as a replacement for the Bose Cloud TuneIn integration.
 import logging
 import os
 import re
-from xml.etree import ElementTree
 
 import httpx
+from defusedxml.ElementTree import fromstring as parse_xml_string
 
 from opencloudtouch.bmx.models import BmxAudio, BmxPlaybackResponse, BmxStream
 from opencloudtouch.bmx.stream_utils import convert_https_to_http
@@ -37,7 +37,7 @@ def _parse_tunein_describe_xml(describe_xml: str) -> tuple[str, str]:
     Returns:
         Tuple of (station_name, logo_url), using sane defaults on missing data.
     """
-    root = ElementTree.fromstring(describe_xml)  # nosec B314
+    root = parse_xml_string(describe_xml)
     body = root.find("body")
     outline = body.find("outline") if body is not None else None
     station_elem = outline.find("station") if outline is not None else None

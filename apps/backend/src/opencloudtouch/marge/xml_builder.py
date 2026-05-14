@@ -2,9 +2,13 @@
 
 import base64
 import json
-import os
+import logging
 from typing import Any
 from xml.etree import ElementTree as ET
+
+from opencloudtouch.core.config import get_config
+
+logger = logging.getLogger(__name__)
 
 
 def _build_orion_location(station_url: str, station_name: str, image_url: str) -> str:
@@ -14,14 +18,14 @@ def _build_orion_location(station_url: str, station_name: str, image_url: str) -
     client_adapter._build_preset_payload(). This ensures the Marge boot-sync
     response produces the same ContentItem location as /storePreset.
     """
-    oct_base = os.getenv("OCT_BACKEND_URL", "http://content.api.bose.io:7777")
+    oct_base = get_config().station_descriptor_base_url
     stream_data = {
         "streamUrl": station_url,
         "name": station_name,
         "imageUrl": image_url,
     }
     b64 = base64.urlsafe_b64encode(json.dumps(stream_data).encode()).decode()
-    return f"{oct_base}/core02/svc-bmx-adapter-orion/prod/orion/station" f"?data={b64}"
+    return f"{oct_base}/core02/svc-bmx-adapter-orion/prod/orion/station?data={b64}"
 
 
 def build_preset_xml(preset: Any) -> ET.Element:
@@ -55,6 +59,12 @@ def build_preset_xml(preset: Any) -> ET.Element:
         # instead of attempting direct playback of raw stream URLs.
         if source == "TUNEIN":
             location = getattr(preset, "station_url", "") or ""
+            if location and not location.startswith("/"):
+                logger.warning(
+                    "TUNEIN preset %s has non-relative location: %s",
+                    preset_id,
+                    location[:80],
+                )
         else:
             location = _build_orion_location(preset.station_url, name, image_url)
 
@@ -138,6 +148,7 @@ def build_sources_xml() -> ET.Element:
     # Standard sources available in OCT
     available_sources = [
         "TUNEIN",
+        "LOCAL_INTERNET_RADIO",
         "BLUETOOTH",
         "AUX",
         "STORED_MUSIC",

@@ -85,8 +85,7 @@
           "build",
           "ci",
           "chore",
-          "revert",
-          "merge"
+          "revert"
         ]
       ],
       "type-case": [

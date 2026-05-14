@@ -168,7 +168,7 @@ class DevicePresetParser:
                 )
                 return None
 
-            data = json.loads(base64.b64decode(data_b64).decode("utf-8"))
+            data = json.loads(base64.urlsafe_b64decode(data_b64).decode("utf-8"))
             stream_url = data.get("streamUrl")
 
             if not stream_url:

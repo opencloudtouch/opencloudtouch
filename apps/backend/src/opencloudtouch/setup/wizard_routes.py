@@ -90,16 +90,16 @@ async def wizard_detect_strategy(request: Request) -> DetectStrategyResponse:
             proxy_available=True,
             strategy="hosts_only",
             message=(
-                "HTTPS reverse proxy detected on port 443. "
-                "Only the /etc/hosts file needs to be changed."
+                "HTTPS Reverse-Proxy auf Port 443 erkannt. "
+                "Es reicht, die /etc/hosts-Datei zu ändern."
             ),
         )
     return DetectStrategyResponse(
         proxy_available=False,
         strategy="bmx_and_hosts",
         message=(
-            "No reverse proxy detected on port 443. "
-            "The BMX URL must also be changed."
+            "Kein Reverse-Proxy auf Port 443 erkannt. "
+            "Die BMX-URL muss zusätzlich geändert werden."
         ),
     )
 
@@ -275,7 +275,7 @@ async def wizard_reboot_device(
     logger.info("Reboot command sent to %s", request.ip)
     return {
         "success": True,
-        "message": "Reboot command sent. The device will restart in a few seconds.",
+        "message": "Neustart-Befehl gesendet. Das Gerät startet in wenigen Sekunden neu.",
     }
 
 
@@ -306,34 +306,32 @@ async def wizard_account_pairing(
 
 
 @wizard_router.post("/wizard/ensure-account", response_model=EnsureAccountResponse)
-async def wizard_ensure_account(
-    request: EnsureAccountRequest,
-    wizard: WizardService = Depends(get_wizard_service),
-):
+async def wizard_ensure_account(request: EnsureAccountRequest):
     """Ensure device has a margeAccountUUID (Wizard Step — after config/hosts).
 
     Devices without a margeAccountUUID cannot play presets (INVALID_SOURCE).
     This endpoint checks GET :8090/info and sets a UUID via Telnet if missing.
-    The UUID is persisted in the device repository for Marge account resolution.
 
     Safe to call multiple times — no-op if UUID already present.
     """
+    from opencloudtouch.setup.account_pairing_service import ensure_account_uuid
+
     logger.info("Ensuring account UUID on device %s", request.device_ip)
 
-    result = await wizard.ensure_account_pairing(request.device_ip, request.device_id)
+    result = await ensure_account_uuid(request.device_ip)
 
-    if not result.get("success"):
+    if not result.success:
         return EnsureAccountResponse(
             success=False,
-            had_uuid=result.get("had_uuid", False),
-            message=result.get("error") or "Account pairing failed",
+            had_uuid=result.had_uuid,
+            message=result.error or "Account pairing failed",
         )
 
     return EnsureAccountResponse(
         success=True,
-        had_uuid=result.get("had_uuid", False),
-        uuid=result.get("uuid", ""),
-        message=result.get("message", ""),
+        had_uuid=result.had_uuid,
+        uuid=result.uuid,
+        message=result.message,
     )
 
 
@@ -357,7 +355,7 @@ async def wizard_complete(
         success=True,
         device_id=request.device_id,
         setup_status="configured",
-        message="Setup complete. Device is configured.",
+        message="Setup abgeschlossen. Gerät ist konfiguriert.",
     )
 
 
