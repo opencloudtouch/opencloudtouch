@@ -50,7 +50,9 @@ def _build_oct_resolved_xml(
 
     device_id = match.group(1)
     preset_number = match.group(2)
-    oct_url = os.getenv("OCT_BACKEND_URL", "http://content.api.bose.io:7777")
+    oct_url = os.getenv(
+        "OCT_BACKEND_URL", "http://content.api.bose.io:7777"
+    )  # NOSONAR — Bose devices use HTTP
     resolved_url = f"{oct_url}/device/{device_id}/preset/{preset_number}"
 
     logger.info("[BMX RESOLVE] OCT location resolved: %s → %s", location, resolved_url)

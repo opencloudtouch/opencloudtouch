@@ -4,6 +4,7 @@ Manages application settings including manual device IP addresses.
 Separates HTTP layer (routes) from business logic from data layer (repository).
 """
 
+import ipaddress
 import logging
 import re
 from typing import List
@@ -40,11 +41,14 @@ class SettingsService:
         """
         self.repository = repository
 
-    def _validate_ip(self, ip: str) -> None:
-        """Validate IP address format.
+    def _validate_ip(self, ip: str) -> str:
+        """Validate IP address format and return sanitized value.
 
         Args:
             ip: IP address to validate
+
+        Returns:
+            Sanitized IP address string (from ipaddress module)
 
         Raises:
             ValueError: If IP address is invalid
@@ -54,6 +58,8 @@ class SettingsService:
 
         if not IP_PATTERN.match(ip):
             raise DomainValidationError(f"Invalid IP address: {ip}", field="ip")
+
+        return str(ipaddress.ip_address(ip))
 
     async def get_manual_ips(self) -> List[str]:
         """Get all manual device IP addresses.
@@ -75,9 +81,9 @@ class SettingsService:
             ValueError: If IP address is invalid
         """
         # Validate IP format
-        self._validate_ip(ip)
+        safe_ip = self._validate_ip(ip)
 
-        logger.info("Adding manual device IP: %s", ip)  # NOSONAR — validated IP
+        logger.info("Adding manual device IP: %s", safe_ip)
 
         await self.repository.add_manual_ip(ip)
 
@@ -87,7 +93,8 @@ class SettingsService:
         Args:
             ip: IP address to remove
         """
-        logger.info("Removing manual device IP: %s", ip)
+        safe_ip = self._validate_ip(ip)
+        logger.info("Removing manual device IP: %s", safe_ip)
 
         await self.repository.remove_manual_ip(ip)
 
@@ -111,7 +118,7 @@ class SettingsService:
 
         # Validate ALL IPs before making any changes
         for ip in unique_ips:
-            self._validate_ip(ip)
+            self._validate_ip(ip)  # raises on invalid
 
         logger.info(
             "Setting manual IPs: %d unique IPs (from %d provided)",
