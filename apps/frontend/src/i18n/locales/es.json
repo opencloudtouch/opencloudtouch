@@ -46,7 +46,9 @@
     "muteOn": "Activar sonido",
     "muteOff": "Silenciar",
     "manageZone": "Gestionar zona",
-    "multiRoom": "Multisala"
+    "multiRoom": "Multisala",
+    "prevDevice": "Dispositivo anterior",
+    "nextDevice": "Dispositivo siguiente"
   },
   "presets": {
     "title": "Presets",
@@ -85,6 +87,12 @@
     "searchEmpty": "No se encontraron emisoras",
     "searchFailed": "La búsqueda de emisoras falló. Inténtelo de nuevo.",
     "deletePreset": "Eliminar preset",
+    "confirmOverwriteTitle": "Sobrescribir preset",
+    "confirmOverwriteMessage": "¿Realmente desea sobrescribir el preset {{preset}}?",
+    "confirmOverwrite": "Sobrescribir",
+    "confirmDeleteTitle": "Eliminar preset",
+    "confirmDeleteMessage": "¿Realmente desea eliminar el preset {{preset}}?",
+    "confirmDelete": "Eliminar",
     "searchTypeLabel": {
       "name": "Nombre",
       "country": "País",
@@ -222,7 +230,20 @@
     "noDevicesHint2": "Vaya a la página de inicio y haga clic en \"Buscar dispositivos ahora\".",
     "goHome": "Volver a la página de inicio",
     "homePage": "Página de inicio",
-    "step1": { "label": "USB", "description": "Preparar unidad USB como medio de configuración" },
+    "stepLabels": {
+      "usbInsert": "Insertar unidad USB",
+      "deviceReboot": "Reiniciar dispositivo",
+      "sshConnect": "Establecer conexión SSH",
+      "sshPersist": "Activar SSH permanentemente",
+      "configBackup": "Crear copia de seguridad",
+      "configModify": "Modificar configuración",
+      "verify": "Verificar",
+      "complete": "Completar"
+    },
+    "step1": {
+      "label": "USB",
+      "description": "Preparar unidad USB como medio de configuración"
+    },
     "step2": {
       "label": "Reinicio",
       "description": "Reiniciar el dispositivo y establecer acceso SSH"
@@ -235,12 +256,18 @@
       "label": "Conexión",
       "description": "Redirigir archivo de configuración al servidor OCT"
     },
-    "step5": { "label": "DNS", "description": "Configurar redirección de red para dominios Bose" },
+    "step5": {
+      "label": "DNS",
+      "description": "Configurar redirección de red para dominios Bose"
+    },
     "step6": {
       "label": "Verificación",
       "description": "Probar la configuración y verificar la redirección DNS"
     },
-    "step7": { "label": "Listo", "description": "Configuración completada" },
+    "step7": {
+      "label": "Listo",
+      "description": "Configuración completada"
+    },
     "skip": "Omitir",
     "stepLabel": "Paso {{step}}",
     "processing": "Procesando...",
@@ -385,6 +412,9 @@
         "reasonLabel": "Motivo:",
         "reasonValue": "El proxy inverso en el puerto 443 intercepta las solicitudes HTTPS y las reenvía a OpenCloudTouch.",
         "proxyHint": "Haga clic en 'Siguiente' para configurar el archivo /etc/hosts en el siguiente paso.",
+        "strategyMessageProxy": "Proxy inverso HTTPS detectado en el puerto 443. Solo es necesario modificar el archivo /etc/hosts.",
+        "strategyMessageBmx": "No se detectó proxy inverso en el puerto 443. También se debe modificar la URL BMX.",
+        "configApplied": "Configuración aplicada correctamente.",
         "configTitle": "URL del servidor OpenCloudTouch",
         "configDesc": "Introduzca la URL de su servidor OpenCloudTouch. Esta reemplaza la bmxRegistryUrl de Bose.",
         "urlLabel": "URL del servidor:",
@@ -425,7 +455,8 @@
         "changedEntries": "Entradas modificadas:",
         "backupLabel": "Copia de seg.:",
         "btnShowDiff": "▶ Mostrar diferencias",
-        "btnHideDiff": "▼ Ocultar diferencias"
+        "btnHideDiff": "▼ Ocultar diferencias",
+        "hostsApplied": "Archivo hosts modificado correctamente."
       },
       "step7": {
         "title": "Probar configuración",
@@ -531,7 +562,10 @@
     "errorDetails": "Detalles del error",
     "offlineTitle": "Dispositivo no accesible",
     "offlineDetail": "\"{{name}}\" está sin conexión o fuera de la red.",
-    "offlineDetailNoName": "El dispositivo está sin conexión o fuera de la red."
+    "offlineDetailNoName": "El dispositivo está sin conexión o fuera de la red.",
+    "tooManyRequests": "Demasiadas solicitudes — espere",
+    "badGateway": "Error de pasarela",
+    "serviceUnavailable": "Servicio no disponible"
   },
   "about": {
     "sectionTitle": "Acerca de",
@@ -575,5 +609,48 @@
     "helpRestart": "Reinicie los dispositivos y OpenCloudTouch",
     "helpManualAdd": "Añada IPs de dispositivos manualmente",
     "helpSetupWizard": "Siga el asistente de configuración para obtener instrucciones paso a paso"
+  },
+  "setupBadge": {
+    "unknown": "Configurar dispositivo",
+    "unconfigured": "Configuración requerida — haga clic para configurar",
+    "configured": "Dispositivo configurado",
+    "pending": "Configuración en curso...",
+    "failed": "Configuración fallida — haga clic para reintentar",
+    "outdated": "El dispositivo apunta a una instancia OCT anterior — haga clic para actualizar",
+    "offline": "Dispositivo no accesible"
+  },
+  "statusBadge": {
+    "unconfigured": "No configurado",
+    "pending": "Configuración en curso...",
+    "configured": "Configurado",
+    "failed": "Fallido",
+    "outdated": "Desactualizado",
+    "offline": "Sin conexión",
+    "unknown": "Desconocido"
+  },
+  "bugReport": {
+    "title": "Reportar un bug",
+    "description": "Descripción del bug",
+    "descriptionPlaceholder": "¿Qué salió mal?",
+    "steps": "Pasos para reproducir",
+    "stepsPlaceholder": "1. Ir a...\n2. Hacer clic en...\n3. Ver el error...",
+    "expected": "Comportamiento esperado",
+    "expectedPlaceholder": "¿Qué debería haber pasado?",
+    "installationType": "Tipo de instalación",
+    "whichInstallation": "¿Qué instalación?",
+    "hardware": "Hardware / Plataforma",
+    "whichHardware": "¿Qué hardware?",
+    "devices": "Dispositivo(s) SoundTouch",
+    "whichDevice": "¿Qué dispositivo?",
+    "networkConfig": "Configuración de red",
+    "additionalInfo": "Información adicional",
+    "submit": "Enviar reporte de bug",
+    "submitting": "Enviando...",
+    "downloadLogs": "Descargar registros",
+    "downloading": "Descargando...",
+    "submitSuccess": "¡Reporte de bug creado! {{url}}",
+    "submitFailed": "Error al enviar el reporte de bug: {{error}}",
+    "diagnosticsSuccess": "¡Diagnósticos descargados! Adjunte el archivo .log.gz a su issue de GitHub.",
+    "diagnosticsFailed": "Error al descargar diagnósticos: {{error}}"
   }
 }

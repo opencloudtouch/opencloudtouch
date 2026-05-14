@@ -46,7 +46,9 @@
     "muteOn": "Unmute",
     "muteOff": "Mute",
     "manageZone": "Manage zone",
-    "multiRoom": "Multi-Room"
+    "multiRoom": "Multi-room",
+    "prevDevice": "Previous device",
+    "nextDevice": "Next device"
   },
   "presets": {
     "title": "Presets",
@@ -85,6 +87,12 @@
     "searchEmpty": "No stations found",
     "searchFailed": "Station search failed. Please try again.",
     "deletePreset": "Delete preset",
+    "confirmOverwriteTitle": "Overwrite preset",
+    "confirmOverwriteMessage": "Do you really want to overwrite preset {{preset}}?",
+    "confirmOverwrite": "Overwrite",
+    "confirmDeleteTitle": "Delete preset",
+    "confirmDeleteMessage": "Do you really want to delete preset {{preset}}?",
+    "confirmDelete": "Delete",
     "searchTypeLabel": {
       "name": "Name",
       "country": "Country",
@@ -222,6 +230,16 @@
     "noDevicesHint2": "Go to the home page and click \"Search for devices now\".",
     "goHome": "Back to home page",
     "homePage": "Home page",
+    "stepLabels": {
+      "usbInsert": "Insert USB stick",
+      "deviceReboot": "Reboot device",
+      "sshConnect": "Establish SSH connection",
+      "sshPersist": "Enable SSH permanently",
+      "configBackup": "Create backup",
+      "configModify": "Modify configuration",
+      "verify": "Verify",
+      "complete": "Complete"
+    },
     "step1": {
       "label": "USB",
       "description": "Prepare USB drive as configuration medium"
@@ -394,6 +412,9 @@
         "reasonLabel": "Reason:",
         "reasonValue": "The reverse proxy on port 443 intercepts HTTPS requests and forwards them to OpenCloudTouch.",
         "proxyHint": "Click 'Next' to configure the /etc/hosts file in the next step.",
+        "strategyMessageProxy": "HTTPS reverse proxy detected on port 443. Only the /etc/hosts file needs to be changed.",
+        "strategyMessageBmx": "No reverse proxy detected on port 443. The BMX URL must also be changed.",
+        "configApplied": "Configuration successfully applied.",
         "configTitle": "OpenCloudTouch server URL",
         "configDesc": "Enter the URL of your OpenCloudTouch server. This replaces the Bose bmxRegistryUrl.",
         "urlLabel": "Server URL:",
@@ -434,7 +455,8 @@
         "changedEntries": "Changed entries:",
         "backupLabel": "Backup:",
         "btnShowDiff": "▶ Show diff",
-        "btnHideDiff": "▼ Hide diff"
+        "btnHideDiff": "▼ Hide diff",
+        "hostsApplied": "Hosts file successfully modified."
       },
       "step7": {
         "title": "Test configuration",
@@ -540,7 +562,10 @@
     "errorDetails": "Error details",
     "offlineTitle": "Device unreachable",
     "offlineDetail": "\"{{name}}\" is offline or not on the network.",
-    "offlineDetailNoName": "The device is offline or not on the network."
+    "offlineDetailNoName": "The device is offline or not on the network.",
+    "tooManyRequests": "Too many requests — please wait",
+    "badGateway": "Gateway error",
+    "serviceUnavailable": "Service unavailable"
   },
   "about": {
     "sectionTitle": "About",
@@ -584,5 +609,48 @@
     "helpRestart": "Restart the devices and OpenCloudTouch",
     "helpManualAdd": "Add device IPs manually",
     "helpSetupWizard": "Follow the Setup Wizard for step-by-step instructions"
+  },
+  "setupBadge": {
+    "unknown": "Set up device",
+    "unconfigured": "Setup required — click to configure",
+    "configured": "Device configured",
+    "pending": "Setup in progress...",
+    "failed": "Setup failed — click to retry",
+    "outdated": "Device points to old OCT instance — click to update",
+    "offline": "Device unreachable"
+  },
+  "statusBadge": {
+    "unconfigured": "Not configured",
+    "pending": "Setup in progress...",
+    "configured": "Configured",
+    "failed": "Failed",
+    "outdated": "Outdated",
+    "offline": "Offline",
+    "unknown": "Unknown"
+  },
+  "bugReport": {
+    "title": "Report a Bug",
+    "description": "Bug Description",
+    "descriptionPlaceholder": "What went wrong?",
+    "steps": "Steps to Reproduce",
+    "stepsPlaceholder": "1. Go to...\n2. Click on...\n3. See error...",
+    "expected": "Expected Behavior",
+    "expectedPlaceholder": "What should have happened?",
+    "installationType": "Installation Type",
+    "whichInstallation": "Which installation?",
+    "hardware": "Hardware / Platform",
+    "whichHardware": "Which hardware?",
+    "devices": "SoundTouch Device(s)",
+    "whichDevice": "Which device?",
+    "networkConfig": "Network Configuration",
+    "additionalInfo": "Additional Info",
+    "submit": "Submit Bug Report",
+    "submitting": "Submitting...",
+    "downloadLogs": "Download Logs",
+    "downloading": "Downloading...",
+    "submitSuccess": "Bug report created! {{url}}",
+    "submitFailed": "Failed to submit bug report: {{error}}",
+    "diagnosticsSuccess": "Diagnostics downloaded! Attach the .log.gz file to your GitHub issue.",
+    "diagnosticsFailed": "Failed to download diagnostics: {{error}}"
   }
 }

@@ -77,7 +77,10 @@ class TestBuildPresetXml:
         ci = elem.find("ContentItem")
         assert ci is not None
         assert ci.get("source") == "LOCAL_INTERNET_RADIO"
-        assert ci.get("location") == "http://stream.example.com/radio"
+        # Location must be Orion adapter URL, not raw stream URL
+        location = ci.get("location")
+        assert "core02/svc-bmx-adapter-orion/prod/orion/station" in location
+        assert "data=" in location
         item_name = ci.find("itemName")
         assert item_name is not None
         assert item_name.text == "OCT Radio"

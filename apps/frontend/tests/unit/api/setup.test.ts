@@ -9,7 +9,7 @@ import {
   verifySetup,
   getSupportedModels,
   calculateProgress,
-  STEP_LABELS,
+  getStepLabel,
   STEP_ORDER,
 } from "../../../src/api/setup";
 
@@ -340,10 +340,15 @@ describe("Setup API Client", () => {
   });
 
   describe("Constants", () => {
-    it("STEP_LABELS contains all steps", () => {
-      expect(Object.keys(STEP_LABELS)).toHaveLength(8);
-      expect(STEP_LABELS.usb_insert).toBe("USB-Stick einstecken");
-      expect(STEP_LABELS.complete).toBe("Abgeschlossen");
+    it("getStepLabel returns correct labels for all steps", () => {
+      expect(getStepLabel("usb_insert")).toBe("Insert USB stick");
+      expect(getStepLabel("device_reboot")).toBe("Reboot device");
+      expect(getStepLabel("ssh_connect")).toBe("Establish SSH connection");
+      expect(getStepLabel("ssh_persist")).toBe("Enable SSH permanently");
+      expect(getStepLabel("config_backup")).toBe("Create backup");
+      expect(getStepLabel("config_modify")).toBe("Modify configuration");
+      expect(getStepLabel("verify")).toBe("Verify");
+      expect(getStepLabel("complete")).toBe("Complete");
     });
 
     it("STEP_ORDER contains all steps in correct order", () => {

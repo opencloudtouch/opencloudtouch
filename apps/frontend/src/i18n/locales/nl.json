@@ -46,7 +46,9 @@
     "muteOn": "Geluid aan",
     "muteOff": "Dempen",
     "manageZone": "Zone beheren",
-    "multiRoom": "Meerkamers"
+    "multiRoom": "Meerkamers",
+    "prevDevice": "Vorig apparaat",
+    "nextDevice": "Volgend apparaat"
   },
   "presets": {
     "title": "Presets",
@@ -85,6 +87,12 @@
     "searchEmpty": "Geen stations gevonden",
     "searchFailed": "Stationzoektocht mislukt. Probeer het opnieuw.",
     "deletePreset": "Preset verwijderen",
+    "confirmOverwriteTitle": "Preset overschrijven",
+    "confirmOverwriteMessage": "Wilt u preset {{preset}} echt overschrijven?",
+    "confirmOverwrite": "Overschrijven",
+    "confirmDeleteTitle": "Preset verwijderen",
+    "confirmDeleteMessage": "Wilt u preset {{preset}} echt verwijderen?",
+    "confirmDelete": "Verwijderen",
     "searchTypeLabel": {
       "name": "Naam",
       "country": "Land",
@@ -222,8 +230,24 @@
     "noDevicesHint2": "Ga naar de startpagina en klik op \"Nu apparaten zoeken\".",
     "goHome": "Terug naar startpagina",
     "homePage": "Startpagina",
-    "step1": { "label": "USB", "description": "USB-stick voorbereiden als configuratiemedium" },
-    "step2": { "label": "Herstart", "description": "Apparaat herstarten en SSH-toegang instellen" },
+    "stepLabels": {
+      "usbInsert": "USB-stick invoegen",
+      "deviceReboot": "Apparaat herstarten",
+      "sshConnect": "SSH-verbinding maken",
+      "sshPersist": "SSH permanent inschakelen",
+      "configBackup": "Back-up maken",
+      "configModify": "Configuratie wijzigen",
+      "verify": "Verifiëren",
+      "complete": "Voltooien"
+    },
+    "step1": {
+      "label": "USB",
+      "description": "USB-stick voorbereiden als configuratiemedium"
+    },
+    "step2": {
+      "label": "Herstart",
+      "description": "Apparaat herstarten en SSH-toegang instellen"
+    },
     "step3": {
       "label": "Back-up",
       "description": "Apparaatgegevens back-uppen (sterk aanbevolen)"
@@ -240,7 +264,10 @@
       "label": "Verificatie",
       "description": "Configuratie testen en DNS-doorverwijzing verifiëren"
     },
-    "step7": { "label": "Klaar", "description": "Installatie voltooid" },
+    "step7": {
+      "label": "Klaar",
+      "description": "Installatie voltooid"
+    },
     "skip": "Overslaan",
     "stepLabel": "Stap {{step}}",
     "processing": "Verwerken...",
@@ -385,6 +412,9 @@
         "reasonLabel": "Reden:",
         "reasonValue": "De reverse proxy op poort 443 onderschept HTTPS-verzoeken en stuurt ze door naar OpenCloudTouch.",
         "proxyHint": "Klik op 'Volgende' om het /etc/hosts-bestand in de volgende stap te configureren.",
+        "strategyMessageProxy": "HTTPS reverse proxy gedetecteerd op poort 443. Alleen het /etc/hosts-bestand hoeft te worden gewijzigd.",
+        "strategyMessageBmx": "Geen reverse proxy gedetecteerd op poort 443. De BMX-URL moet ook worden gewijzigd.",
+        "configApplied": "Configuratie succesvol toegepast.",
         "configTitle": "OpenCloudTouch server URL",
         "configDesc": "Voer de URL van uw OpenCloudTouch-server in. Dit vervangt de Bose bmxRegistryUrl.",
         "urlLabel": "Server URL:",
@@ -425,7 +455,8 @@
         "changedEntries": "Gewijzigde vermeldingen:",
         "backupLabel": "Back-up:",
         "btnShowDiff": "▶ Diff tonen",
-        "btnHideDiff": "▼ Diff verbergen"
+        "btnHideDiff": "▼ Diff verbergen",
+        "hostsApplied": "Hosts-bestand succesvol gewijzigd."
       },
       "step7": {
         "title": "Configuratie testen",
@@ -531,7 +562,10 @@
     "errorDetails": "Foutdetails",
     "offlineTitle": "Apparaat niet bereikbaar",
     "offlineDetail": "\"{{name}}\" is offline of niet in het netwerk.",
-    "offlineDetailNoName": "Het apparaat is offline of niet in het netwerk."
+    "offlineDetailNoName": "Het apparaat is offline of niet in het netwerk.",
+    "tooManyRequests": "Te veel verzoeken — even wachten",
+    "badGateway": "Gatewayfout",
+    "serviceUnavailable": "Service niet beschikbaar"
   },
   "about": {
     "sectionTitle": "Over",
@@ -575,5 +609,48 @@
     "helpRestart": "Herstart de apparaten en OpenCloudTouch",
     "helpManualAdd": "Voeg apparaat-IPs handmatig toe",
     "helpSetupWizard": "Volg de installatiewizard voor stapsgewijze instructies"
+  },
+  "setupBadge": {
+    "unknown": "Apparaat instellen",
+    "unconfigured": "Installatie vereist — klik om te configureren",
+    "configured": "Apparaat geconfigureerd",
+    "pending": "Installatie bezig...",
+    "failed": "Installatie mislukt — klik om opnieuw te proberen",
+    "outdated": "Apparaat verwijst naar een oude OCT-instantie — klik om bij te werken",
+    "offline": "Apparaat niet bereikbaar"
+  },
+  "statusBadge": {
+    "unconfigured": "Niet geconfigureerd",
+    "pending": "Installatie bezig...",
+    "configured": "Geconfigureerd",
+    "failed": "Mislukt",
+    "outdated": "Verouderd",
+    "offline": "Offline",
+    "unknown": "Onbekend"
+  },
+  "bugReport": {
+    "title": "Bug melden",
+    "description": "Bugbeschrijving",
+    "descriptionPlaceholder": "Wat ging er mis?",
+    "steps": "Stappen om te reproduceren",
+    "stepsPlaceholder": "1. Ga naar...\n2. Klik op...\n3. Zie fout...",
+    "expected": "Verwacht gedrag",
+    "expectedPlaceholder": "Wat had er moeten gebeuren?",
+    "installationType": "Installatietype",
+    "whichInstallation": "Welke installatie?",
+    "hardware": "Hardware / Platform",
+    "whichHardware": "Welke hardware?",
+    "devices": "SoundTouch-apparaat(en)",
+    "whichDevice": "Welk apparaat?",
+    "networkConfig": "Netwerkconfiguratie",
+    "additionalInfo": "Aanvullende informatie",
+    "submit": "Bugrapport verzenden",
+    "submitting": "Verzenden...",
+    "downloadLogs": "Logs downloaden",
+    "downloading": "Downloaden...",
+    "submitSuccess": "Bugrapport aangemaakt! {{url}}",
+    "submitFailed": "Bugrapport verzenden mislukt: {{error}}",
+    "diagnosticsSuccess": "Diagnostiek gedownload! Voeg het .log.gz-bestand toe aan uw GitHub-issue.",
+    "diagnosticsFailed": "Diagnostiek downloaden mislukt: {{error}}"
   }
 }

@@ -46,7 +46,9 @@
     "muteOn": "Ton an",
     "muteOff": "Stumm",
     "manageZone": "Zone verwalten",
-    "multiRoom": "Multi-Room"
+    "multiRoom": "Multi-Room",
+    "prevDevice": "Vorheriges Gerät",
+    "nextDevice": "Nächstes Gerät"
   },
   "presets": {
     "title": "Presets",
@@ -85,6 +87,12 @@
     "searchEmpty": "Keine Sender gefunden",
     "searchFailed": "Sendersuche fehlgeschlagen. Bitte versuchen Sie es erneut.",
     "deletePreset": "Preset löschen",
+    "confirmOverwriteTitle": "Preset überschreiben",
+    "confirmOverwriteMessage": "Möchten Sie Preset {{preset}} wirklich überschreiben?",
+    "confirmOverwrite": "Überschreiben",
+    "confirmDeleteTitle": "Preset löschen",
+    "confirmDeleteMessage": "Möchten Sie Preset {{preset}} wirklich löschen?",
+    "confirmDelete": "Löschen",
     "searchTypeLabel": {
       "name": "Name",
       "country": "Land",
@@ -222,6 +230,16 @@
     "noDevicesHint2": "Gehen Sie zur Startseite und klicken Sie auf \"Jetzt Geräte suchen\".",
     "goHome": "Zurück zur Startseite",
     "homePage": "Startseite",
+    "stepLabels": {
+      "usbInsert": "USB-Stick einstecken",
+      "deviceReboot": "Gerät neu starten",
+      "sshConnect": "SSH-Verbindung herstellen",
+      "sshPersist": "SSH dauerhaft aktivieren",
+      "configBackup": "Backup erstellen",
+      "configModify": "Konfiguration anpassen",
+      "verify": "Verifizieren",
+      "complete": "Abgeschlossen"
+    },
     "step1": {
       "label": "USB",
       "description": "USB-Stick als Konfigurationsträger vorbereiten"
@@ -394,6 +412,9 @@
         "reasonLabel": "Grund:",
         "reasonValue": "Der Reverse-Proxy auf Port 443 fängt HTTPS-Anfragen ab und leitet sie an OpenCloudTouch weiter.",
         "proxyHint": "Klicken Sie auf 'Weiter', um die /etc/hosts-Datei im nächsten Schritt zu konfigurieren.",
+        "strategyMessageProxy": "HTTPS Reverse-Proxy auf Port 443 erkannt. Es reicht, die /etc/hosts-Datei zu ändern.",
+        "strategyMessageBmx": "Kein Reverse-Proxy auf Port 443 erkannt. Die BMX-URL muss zusätzlich geändert werden.",
+        "configApplied": "Konfiguration erfolgreich angewendet.",
         "configTitle": "OpenCloudTouch Server URL",
         "configDesc": "Geben Sie die URL Ihres OpenCloudTouch Servers an. Diese ersetzt die Bose bmxRegistryUrl.",
         "urlLabel": "Server URL:",
@@ -434,7 +455,8 @@
         "changedEntries": "Geänderte Einträge:",
         "backupLabel": "Backup:",
         "btnShowDiff": "▶ Diff anzeigen",
-        "btnHideDiff": "▼ Diff ausblenden"
+        "btnHideDiff": "▼ Diff ausblenden",
+        "hostsApplied": "Hosts-Datei erfolgreich geändert."
       },
       "step7": {
         "title": "Konfiguration testen",
@@ -540,7 +562,10 @@
     "errorDetails": "Fehlerdetails",
     "offlineTitle": "Gerät nicht erreichbar",
     "offlineDetail": "\"{{name}}\" ist offline oder nicht im Netzwerk.",
-    "offlineDetailNoName": "Das Gerät ist offline oder nicht im Netzwerk."
+    "offlineDetailNoName": "Das Gerät ist offline oder nicht im Netzwerk.",
+    "tooManyRequests": "Zu viele Anfragen — bitte warten",
+    "badGateway": "Gateway-Fehler",
+    "serviceUnavailable": "Dienst nicht verfügbar"
   },
   "about": {
     "sectionTitle": "Über diese App",
@@ -584,5 +609,48 @@
     "helpRestart": "Starte die Geräte und OpenCloudTouch neu",
     "helpManualAdd": "Füge Geräte-IPs manuell hinzu",
     "helpSetupWizard": "Folge dem Setup-Assistenten für eine Schritt-für-Schritt Anleitung"
+  },
+  "setupBadge": {
+    "unknown": "Gerät einrichten",
+    "unconfigured": "Setup erforderlich — Klicken zum Konfigurieren",
+    "configured": "Gerät konfiguriert",
+    "pending": "Setup läuft...",
+    "failed": "Setup fehlgeschlagen — Klicken zum Wiederholen",
+    "outdated": "Gerät zeigt auf alte OCT-Instanz — Klicken zum Aktualisieren",
+    "offline": "Gerät nicht erreichbar"
+  },
+  "statusBadge": {
+    "unconfigured": "Nicht konfiguriert",
+    "pending": "Setup läuft...",
+    "configured": "Konfiguriert",
+    "failed": "Fehlgeschlagen",
+    "outdated": "Veraltet",
+    "offline": "Offline",
+    "unknown": "Unbekannt"
+  },
+  "bugReport": {
+    "title": "Fehler melden",
+    "description": "Fehlerbeschreibung",
+    "descriptionPlaceholder": "Was ist schiefgelaufen?",
+    "steps": "Schritte zum Reproduzieren",
+    "stepsPlaceholder": "1. Gehe zu...\n2. Klicke auf...\n3. Fehler erscheint...",
+    "expected": "Erwartetes Verhalten",
+    "expectedPlaceholder": "Was hätte passieren sollen?",
+    "installationType": "Installationsart",
+    "whichInstallation": "Welche Installation?",
+    "hardware": "Hardware / Plattform",
+    "whichHardware": "Welche Hardware?",
+    "devices": "SoundTouch Gerät(e)",
+    "whichDevice": "Welches Gerät?",
+    "networkConfig": "Netzwerk-Konfiguration",
+    "additionalInfo": "Zusätzliche Informationen",
+    "submit": "Fehlerbericht senden",
+    "submitting": "Wird gesendet...",
+    "downloadLogs": "Logs herunterladen",
+    "downloading": "Wird heruntergeladen...",
+    "submitSuccess": "Fehlerbericht erstellt! {{url}}",
+    "submitFailed": "Fehlerbericht konnte nicht gesendet werden: {{error}}",
+    "diagnosticsSuccess": "Diagnose heruntergeladen! Hängen Sie die .log.gz-Datei an Ihr GitHub Issue an.",
+    "diagnosticsFailed": "Diagnose konnte nicht heruntergeladen werden: {{error}}"
   }
 }

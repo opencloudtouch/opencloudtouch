@@ -251,7 +251,7 @@ class TestEnablePermanentSSH:
         data = response.json()
         assert data["success"] is True
         assert data["permanent_enabled"] is True
-        assert "dauerhaft aktiviert" in data["message"]
+        assert "permanently enabled" in data["message"]
 
         # Verify SSH client was called correctly
         mock_ssh_client.connect.assert_awaited_once()
@@ -274,7 +274,7 @@ class TestEnablePermanentSSH:
         data = response.json()
         assert data["success"] is True
         assert data["permanent_enabled"] is False
-        assert "temporär" in data["message"]
+        assert "temporary" in data["message"]
 
     @pytest.mark.asyncio
     async def test_enable_permanent_ssh_connection_failed(self, client, monkeypatch):
@@ -574,7 +574,7 @@ class TestWizardRebootDevice:
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
-        assert "Neustart" in data["message"]
+        assert "Reboot" in data["message"]
         mock_ssh_client.execute.assert_awaited_once_with("reboot", timeout=5.0)
         mock_ssh_client.close.assert_awaited_once()
 

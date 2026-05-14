@@ -145,7 +145,7 @@ describe("Devices API Client", () => {
 
       // getErrorMessage returns fallback for non-ApiError objects
       await expect(syncDevices()).rejects.toThrow(
-        "Ein unerwarteter Fehler ist aufgetreten"
+        "An unexpected error occurred. Please try again."
       );
     });
 
@@ -158,7 +158,7 @@ describe("Devices API Client", () => {
 
       // getErrorMessage(null) returns fallback
       await expect(syncDevices()).rejects.toThrow(
-        "Ein unerwarteter Fehler ist aufgetreten"
+        "An unexpected error occurred. Please try again."
       );
     });
 

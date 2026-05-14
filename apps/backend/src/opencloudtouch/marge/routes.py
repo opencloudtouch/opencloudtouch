@@ -4,10 +4,11 @@ import logging
 from typing import Any
 from xml.etree import ElementTree as ET
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 
-from opencloudtouch.core.dependencies import MargeServiceDep
+from opencloudtouch.core.dependencies import get_marge_service
+from opencloudtouch.marge.service import MargeService
 from opencloudtouch.marge.xml_builder import (
     build_devices_xml,
     build_full_account_xml,
@@ -41,7 +42,7 @@ def _xml_response(element: ET.Element, media_type: str = _MEDIA_XML) -> Response
 @router.get("/v1/systems/devices/{device_id}")
 async def get_full_account(
     device_id: str,
-    marge: MargeServiceDep,
+    marge: MargeService = Depends(get_marge_service),
 ) -> Response:
     """Get full account sync for device.
 
@@ -82,7 +83,7 @@ async def get_full_account(
 @router.get("/v1/systems/devices/{device_id}/presets")
 async def get_presets(
     device_id: str,
-    marge: MargeServiceDep,
+    marge: MargeService = Depends(get_marge_service),
 ) -> Response:
     """Get presets for device.
 
@@ -103,7 +104,7 @@ async def get_presets(
 @router.get("/v1/systems/devices/{device_id}/recents")
 async def get_recents(
     device_id: str,
-    marge: MargeServiceDep,
+    marge: MargeService = Depends(get_marge_service),
 ) -> Response:
     """Get recently played items for device.
 
@@ -260,9 +261,10 @@ async def streaming_sourceproviders() -> Response:
 
 
 @router.get("/streaming/account/{account_id}/full")
+@router.get("/accounts/{account_id}/full")
 async def streaming_full_account(
     account_id: str,
-    marge: MargeServiceDep,
+    marge: MargeService = Depends(get_marge_service),
 ) -> Response:
     """Get full account sync via streaming endpoint.
 
@@ -287,16 +289,17 @@ async def streaming_full_account(
         )
         return _xml_response(build_full_account_xml([], []), _MEDIA_STREAMING_XML)
 
-    presets = await marge.get_presets(device_id)
+    presets, recents = await marge.get_full_account(device_id)
 
     logger.info(
-        "[MARGE/STREAMING] Returning %d presets for device %s (account %s)",
+        "[MARGE/STREAMING] Returning %d presets, %d recents for device %s (account %s)",
         len(presets),
+        len(recents),
         device_id,
         account_id,
     )
 
-    return _xml_response(build_full_account_xml(presets, []), _MEDIA_STREAMING_XML)
+    return _xml_response(build_full_account_xml(presets, recents), _MEDIA_STREAMING_XML)
 
 
 @router.post("/v1/scmudc/{device_id}")

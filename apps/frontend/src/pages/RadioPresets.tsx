@@ -265,7 +265,7 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
         {error && !deviceOffline && (
           <div className="error-message" data-testid="error-message">
             <p>{error}</p>
-            <button onClick={clearError} aria-label="Fehlermeldung schließen">
+            <button onClick={clearError} aria-label={t("common.close")}>
               ✕
             </button>
           </div>
@@ -275,7 +275,7 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
         {playError && (
           <div className="error-message" data-testid="play-error-message">
             <p>{playError}</p>
-            <button onClick={() => setPlayError(null)} aria-label="Fehlermeldung schließen">
+            <button onClick={() => setPlayError(null)} aria-label={t("common.close")}>
               ✕
             </button>
           </div>
@@ -303,7 +303,7 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
                   <PresetButton
                     key={num}
                     number={num}
-                    preset={{ station_name: "Nicht verfügbar" }}
+                    preset={{ station_name: t("errors.offlineTitle") }}
                     onAssign={() => {}}
                     onPlay={() => {}}
                     onClear={() => {}}
@@ -361,10 +361,10 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
       {/* Confirm Overwrite Dialog */}
       <ConfirmDialog
         open={pendingStation !== null}
-        title="Preset überschreiben"
-        message={`Möchten Sie Preset ${assigningPreset} wirklich überschreiben?`}
-        confirmLabel="Überschreiben"
-        cancelLabel="Abbrechen"
+        title={t("presets.confirmOverwriteTitle")}
+        message={t("presets.confirmOverwriteMessage", { preset: assigningPreset })}
+        confirmLabel={t("presets.confirmOverwrite")}
+        cancelLabel={t("common.cancel")}
         onConfirm={handleConfirmOverwrite}
         onCancel={() => setPendingStation(null)}
       />
@@ -372,10 +372,10 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
       {/* Confirm Clear Dialog */}
       <ConfirmDialog
         open={clearingPreset !== null}
-        title="Preset löschen"
-        message={`Möchten Sie Preset ${clearingPreset} wirklich löschen?`}
-        confirmLabel="Löschen"
-        cancelLabel="Abbrechen"
+        title={t("presets.confirmDeleteTitle")}
+        message={t("presets.confirmDeleteMessage", { preset: clearingPreset })}
+        confirmLabel={t("presets.confirmDelete")}
+        cancelLabel={t("common.cancel")}
         onConfirm={handleConfirmClear}
         onCancel={() => setClearingPreset(null)}
       />

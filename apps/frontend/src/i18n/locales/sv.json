@@ -46,7 +46,9 @@
     "muteOn": "Slå på ljud",
     "muteOff": "Tysta",
     "manageZone": "Hantera zon",
-    "multiRoom": "Flera rum"
+    "multiRoom": "Flera rum",
+    "prevDevice": "Föregående enhet",
+    "nextDevice": "Nästa enhet"
   },
   "presets": {
     "title": "Förinställningar",
@@ -85,7 +87,17 @@
     "searchEmpty": "Inga stationer hittades",
     "searchFailed": "Stationssökning misslyckades. Försök igen.",
     "deletePreset": "Ta bort förinställning",
-    "searchTypeLabel": { "name": "Namn", "country": "Land", "tag": "Genre" },
+    "confirmOverwriteTitle": "Skriv över förinställning",
+    "confirmOverwriteMessage": "Vill du verkligen skriva över förinställning {{preset}}?",
+    "confirmOverwrite": "Skriv över",
+    "confirmDeleteTitle": "Ta bort förinställning",
+    "confirmDeleteMessage": "Vill du verkligen ta bort förinställning {{preset}}?",
+    "confirmDelete": "Ta bort",
+    "searchTypeLabel": {
+      "name": "Namn",
+      "country": "Land",
+      "tag": "Genre"
+    },
     "searchPlaceholder": {
       "name": "t.ex. P3, BBC Radio…",
       "country": "t.ex. Sweden, Germany…",
@@ -218,8 +230,24 @@
     "noDevicesHint2": "Gå till startsidan och klicka på \"Sök efter enheter nu\".",
     "goHome": "Gå tillbaka till startsidan",
     "homePage": "Startsida",
-    "step1": { "label": "USB", "description": "Förbered USB-enhet som konfigurationsmedium" },
-    "step2": { "label": "Omstart", "description": "Starta om enheten och etablera SSH-åtkomst" },
+    "stepLabels": {
+      "usbInsert": "Sätt i USB-minne",
+      "deviceReboot": "Starta om enhet",
+      "sshConnect": "Upprätta SSH-anslutning",
+      "sshPersist": "Aktivera SSH permanent",
+      "configBackup": "Skapa säkerhetskopia",
+      "configModify": "Ändra konfiguration",
+      "verify": "Verifiera",
+      "complete": "Slutför"
+    },
+    "step1": {
+      "label": "USB",
+      "description": "Förbered USB-enhet som konfigurationsmedium"
+    },
+    "step2": {
+      "label": "Omstart",
+      "description": "Starta om enheten och etablera SSH-åtkomst"
+    },
     "step3": {
       "label": "Säkerhetskopia",
       "description": "Säkerhetskopiera enhetsdata (starkt rekommenderat)"
@@ -228,12 +256,18 @@
       "label": "Anslutning",
       "description": "Omdirigera konfigurationsfilen till OCT-servern"
     },
-    "step5": { "label": "DNS", "description": "Konfigurera nätverksomdirigering för Bose-domäner" },
+    "step5": {
+      "label": "DNS",
+      "description": "Konfigurera nätverksomdirigering för Bose-domäner"
+    },
     "step6": {
       "label": "Verifiering",
       "description": "Testa konfiguration och verifiera DNS-omdirigering"
     },
-    "step7": { "label": "Klart", "description": "Installation slutförd" },
+    "step7": {
+      "label": "Klart",
+      "description": "Installation slutförd"
+    },
     "skip": "Hoppa över",
     "stepLabel": "Steg {{step}}",
     "processing": "Bearbetar...",
@@ -378,6 +412,9 @@
         "reasonLabel": "Orsak:",
         "reasonValue": "Omvänd proxy på port 443 fångar upp HTTPS-förfrågningar och vidarebefordrar dem till OpenCloudTouch.",
         "proxyHint": "Klicka på 'Nästa' för att konfigurera /etc/hosts-filen i nästa steg.",
+        "strategyMessageProxy": "HTTPS reverse proxy upptäckt på port 443. Endast filen /etc/hosts behöver ändras.",
+        "strategyMessageBmx": "Ingen reverse proxy upptäckt på port 443. BMX-URL:en måste också ändras.",
+        "configApplied": "Konfigurationen har tillämpats.",
         "configTitle": "OpenCloudTouch-server URL",
         "configDesc": "Ange URL:en för din OpenCloudTouch-server. Det här ersätter Boses bmxRegistryUrl.",
         "urlLabel": "Server URL:",
@@ -418,7 +455,8 @@
         "changedEntries": "Ändrade poster:",
         "backupLabel": "Säkerhetskopia:",
         "btnShowDiff": "▶ Visa diff",
-        "btnHideDiff": "▼ Dölj diff"
+        "btnHideDiff": "▼ Dölj diff",
+        "hostsApplied": "Hosts-filen har ändrats."
       },
       "step7": {
         "title": "Testa konfiguration",
@@ -524,7 +562,10 @@
     "errorDetails": "Felinformation",
     "offlineTitle": "Enheten är inte tillgänglig",
     "offlineDetail": "\"{{name}}\" är offline eller ej i nätverket.",
-    "offlineDetailNoName": "Enheten är offline eller ej i nätverket."
+    "offlineDetailNoName": "Enheten är offline eller ej i nätverket.",
+    "tooManyRequests": "För många förfrågningar — vänta",
+    "badGateway": "Gateway-fel",
+    "serviceUnavailable": "Tjänsten är inte tillgänglig"
   },
   "about": {
     "sectionTitle": "Om appen",
@@ -568,5 +609,48 @@
     "helpRestart": "Starta om enheter och OpenCloudTouch",
     "helpManualAdd": "Lägg till enhets-IP-adresser manuellt",
     "helpSetupWizard": "Följ installationsguiden för steg-för-steg-instruktioner"
+  },
+  "setupBadge": {
+    "unknown": "Konfigurera enhet",
+    "unconfigured": "Konfiguration krävs — klicka för att konfigurera",
+    "configured": "Enhet konfigurerad",
+    "pending": "Konfiguration pågår...",
+    "failed": "Konfiguration misslyckades — klicka för att försöka igen",
+    "outdated": "Enheten pekar på en gammal OCT-instans — klicka för att uppdatera",
+    "offline": "Enhet ej nåbar"
+  },
+  "statusBadge": {
+    "unconfigured": "Ej konfigurerad",
+    "pending": "Konfiguration pågår...",
+    "configured": "Konfigurerad",
+    "failed": "Misslyckades",
+    "outdated": "Föråldrad",
+    "offline": "Offline",
+    "unknown": "Okänd"
+  },
+  "bugReport": {
+    "title": "Rapportera en bugg",
+    "description": "Buggbeskrivning",
+    "descriptionPlaceholder": "Vad gick fel?",
+    "steps": "Steg för att reproducera",
+    "stepsPlaceholder": "1. Gå till...\n2. Klicka på...\n3. Se felet...",
+    "expected": "Förväntat beteende",
+    "expectedPlaceholder": "Vad borde ha hänt?",
+    "installationType": "Installationstyp",
+    "whichInstallation": "Vilken installation?",
+    "hardware": "Hårdvara / Plattform",
+    "whichHardware": "Vilken hårdvara?",
+    "devices": "SoundTouch-enhet(er)",
+    "whichDevice": "Vilken enhet?",
+    "networkConfig": "Nätverkskonfiguration",
+    "additionalInfo": "Ytterligare information",
+    "submit": "Skicka buggrapport",
+    "submitting": "Skickar...",
+    "downloadLogs": "Ladda ner loggar",
+    "downloading": "Laddar ner...",
+    "submitSuccess": "Buggrapport skapad! {{url}}",
+    "submitFailed": "Kunde inte skicka buggrapport: {{error}}",
+    "diagnosticsSuccess": "Diagnostik nedladdad! Bifoga .log.gz-filen till ditt GitHub-ärende.",
+    "diagnosticsFailed": "Kunde inte ladda ner diagnostik: {{error}}"
   }
 }

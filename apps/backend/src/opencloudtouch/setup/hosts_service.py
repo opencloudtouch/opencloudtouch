@@ -37,7 +37,7 @@ class SoundTouchHostsService:
     """Service for modifying SoundTouch device hosts file."""
 
     HOSTS_PATH = "/etc/hosts"
-    BACKUP_DIR = "/usb/backups"
+    BACKUP_DIR = "/mnt/nv"
     OCT_MARKER_START = "# OCT-START"
     OCT_MARKER_END = "# OCT-END"
 

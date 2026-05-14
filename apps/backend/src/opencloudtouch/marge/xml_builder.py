@@ -1,7 +1,27 @@
 """XML builder functions for marge responses."""
 
+import base64
+import json
+import os
 from typing import Any
 from xml.etree import ElementTree as ET
+
+
+def _build_orion_location(station_url: str, station_name: str, image_url: str) -> str:
+    """Build Orion adapter location URL for LOCAL_INTERNET_RADIO presets.
+
+    Encodes stream data as base64 JSON, matching the format used by
+    client_adapter._build_preset_payload(). This ensures the Marge boot-sync
+    response produces the same ContentItem location as /storePreset.
+    """
+    oct_base = os.getenv("OCT_BACKEND_URL", "http://content.api.bose.io:7777")
+    stream_data = {
+        "streamUrl": station_url,
+        "name": station_name,
+        "imageUrl": image_url,
+    }
+    b64 = base64.urlsafe_b64encode(json.dumps(stream_data).encode()).decode()
+    return f"{oct_base}/core02/svc-bmx-adapter-orion/prod/orion/station" f"?data={b64}"
 
 
 def build_preset_xml(preset: Any) -> ET.Element:
@@ -28,11 +48,15 @@ def build_preset_xml(preset: Any) -> ET.Element:
     else:
         # RadioBrowser preset (real format)
         preset_id = str(preset.preset_number)
-        source = "LOCAL_INTERNET_RADIO"  # RadioBrowser stations use custom source
-        # Use station_url directly as location
-        location = preset.station_url
+        source = getattr(preset, "source", None) or "LOCAL_INTERNET_RADIO"
         name = preset.station_name
         image_url = preset.station_favicon or ""
+        # Build Orion adapter URL so the device resolves streams via BMX
+        # instead of attempting direct playback of raw stream URLs.
+        if source == "TUNEIN":
+            location = getattr(preset, "station_url", "") or ""
+        else:
+            location = _build_orion_location(preset.station_url, name, image_url)
 
     preset_elem = ET.Element("preset")
     preset_elem.set("id", preset_id)

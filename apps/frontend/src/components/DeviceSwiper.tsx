@@ -1,5 +1,6 @@
 import { useState, ReactNode } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import type { Device } from "../api/devices";
 import "./DeviceSwiper.css";
 
@@ -18,6 +19,7 @@ export default function DeviceSwiper({
   onIndexChange,
   children,
 }: DeviceSwiperProps) {
+  const { t } = useTranslation();
   const [dragDirection, setDragDirection] = useState(0);
 
   const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
@@ -78,7 +80,7 @@ export default function DeviceSwiper({
         className="swipe-arrow swipe-arrow-left"
         onClick={goToPrevious}
         disabled={currentIndex === 0}
-        aria-label="Vorheriges Gerät"
+        aria-label={t("player.prevDevice")}
         data-test="device-prev"
       >
         <svg
@@ -100,7 +102,7 @@ export default function DeviceSwiper({
         className="swipe-arrow swipe-arrow-right"
         onClick={goToNext}
         disabled={currentIndex === devices.length - 1}
-        aria-label="Nächstes Gerät"
+        aria-label={t("player.nextDevice")}
         data-test="device-next"
       >
         <svg

@@ -46,7 +46,9 @@
     "muteOn": "Réactiver le son",
     "muteOff": "Couper le son",
     "manageZone": "Gérer la zone",
-    "multiRoom": "Multi-pièces"
+    "multiRoom": "Multi-pièces",
+    "prevDevice": "Appareil précédent",
+    "nextDevice": "Appareil suivant"
   },
   "presets": {
     "title": "Préréglages",
@@ -85,6 +87,12 @@
     "searchEmpty": "Aucune station trouvée",
     "searchFailed": "La recherche de stations a échoué. Veuillez réessayer.",
     "deletePreset": "Supprimer le préréglage",
+    "confirmOverwriteTitle": "Écraser le préréglage",
+    "confirmOverwriteMessage": "Voulez-vous vraiment écraser le préréglage {{preset}} ?",
+    "confirmOverwrite": "Écraser",
+    "confirmDeleteTitle": "Supprimer le préréglage",
+    "confirmDeleteMessage": "Voulez-vous vraiment supprimer le préréglage {{preset}} ?",
+    "confirmDelete": "Supprimer",
     "searchTypeLabel": {
       "name": "Nom",
       "country": "Pays",
@@ -222,6 +230,16 @@
     "noDevicesHint2": "Allez sur la page d'accueil et cliquez sur \"Rechercher des appareils maintenant\".",
     "goHome": "Retour à la page d'accueil",
     "homePage": "Page d'accueil",
+    "stepLabels": {
+      "usbInsert": "Insérer la clé USB",
+      "deviceReboot": "Redémarrer l'appareil",
+      "sshConnect": "Établir la connexion SSH",
+      "sshPersist": "Activer SSH de façon permanente",
+      "configBackup": "Créer une sauvegarde",
+      "configModify": "Modifier la configuration",
+      "verify": "Vérifier",
+      "complete": "Terminer"
+    },
     "step1": {
       "label": "USB",
       "description": "Préparer la clé USB comme support de configuration"
@@ -394,6 +412,9 @@
         "reasonLabel": "Raison :",
         "reasonValue": "Le proxy inverse sur le port 443 intercepte les requêtes HTTPS et les redirige vers OpenCloudTouch.",
         "proxyHint": "Cliquez sur 'Suivant' pour configurer le fichier /etc/hosts à l'étape suivante.",
+        "strategyMessageProxy": "Proxy inverse HTTPS détecté sur le port 443. Il suffit de modifier le fichier /etc/hosts.",
+        "strategyMessageBmx": "Aucun proxy inverse détecté sur le port 443. L'URL BMX doit également être modifiée.",
+        "configApplied": "Configuration appliquée avec succès.",
         "configTitle": "URL du serveur OpenCloudTouch",
         "configDesc": "Entrez l'URL de votre serveur OpenCloudTouch. Elle remplace l'URL bmxRegistryUrl de Bose.",
         "urlLabel": "URL du serveur :",
@@ -434,7 +455,8 @@
         "changedEntries": "Entrées modifiées :",
         "backupLabel": "Sauvegarde :",
         "btnShowDiff": "▶ Afficher le diff",
-        "btnHideDiff": "▼ Masquer le diff"
+        "btnHideDiff": "▼ Masquer le diff",
+        "hostsApplied": "Fichier hosts modifié avec succès."
       },
       "step7": {
         "title": "Tester la configuration",
@@ -540,7 +562,10 @@
     "errorDetails": "Détails de l'erreur",
     "offlineTitle": "Appareil inaccessible",
     "offlineDetail": "\"{{name}}\" est hors ligne ou absent du réseau.",
-    "offlineDetailNoName": "L'appareil est hors ligne ou absent du réseau."
+    "offlineDetailNoName": "L'appareil est hors ligne ou absent du réseau.",
+    "tooManyRequests": "Trop de requêtes — veuillez patienter",
+    "badGateway": "Erreur de passerelle",
+    "serviceUnavailable": "Service indisponible"
   },
   "about": {
     "sectionTitle": "À propos",
@@ -584,5 +609,48 @@
     "helpRestart": "Redémarrez les appareils et OpenCloudTouch",
     "helpManualAdd": "Ajouter les IPs des appareils manuellement",
     "helpSetupWizard": "Suivez l'assistant de configuration pour des instructions étape par étape"
+  },
+  "setupBadge": {
+    "unknown": "Configurer l'appareil",
+    "unconfigured": "Configuration requise — cliquez pour configurer",
+    "configured": "Appareil configuré",
+    "pending": "Configuration en cours...",
+    "failed": "Configuration échouée — cliquez pour réessayer",
+    "outdated": "L'appareil pointe vers une ancienne instance OCT — cliquez pour mettre à jour",
+    "offline": "Appareil inaccessible"
+  },
+  "statusBadge": {
+    "unconfigured": "Non configuré",
+    "pending": "Configuration en cours...",
+    "configured": "Configuré",
+    "failed": "Échoué",
+    "outdated": "Obsolète",
+    "offline": "Hors ligne",
+    "unknown": "Inconnu"
+  },
+  "bugReport": {
+    "title": "Signaler un bug",
+    "description": "Description du bug",
+    "descriptionPlaceholder": "Qu'est-ce qui s'est mal passé ?",
+    "steps": "Étapes pour reproduire",
+    "stepsPlaceholder": "1. Aller à...\n2. Cliquer sur...\n3. Voir l'erreur...",
+    "expected": "Comportement attendu",
+    "expectedPlaceholder": "Qu'aurait-il dû se passer ?",
+    "installationType": "Type d'installation",
+    "whichInstallation": "Quelle installation ?",
+    "hardware": "Matériel / Plateforme",
+    "whichHardware": "Quel matériel ?",
+    "devices": "Appareil(s) SoundTouch",
+    "whichDevice": "Quel appareil ?",
+    "networkConfig": "Configuration réseau",
+    "additionalInfo": "Informations supplémentaires",
+    "submit": "Envoyer le rapport de bug",
+    "submitting": "Envoi en cours...",
+    "downloadLogs": "Télécharger les journaux",
+    "downloading": "Téléchargement...",
+    "submitSuccess": "Rapport de bug créé ! {{url}}",
+    "submitFailed": "Échec de l'envoi du rapport de bug : {{error}}",
+    "diagnosticsSuccess": "Diagnostics téléchargés ! Joignez le fichier .log.gz à votre issue GitHub.",
+    "diagnosticsFailed": "Échec du téléchargement des diagnostics : {{error}}"
   }
 }

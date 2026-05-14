@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import i18next from "i18next";
 import { getNowPlaying, isDeviceOfflineError, type NowPlayingState } from "../api/devices";
 import { isDeviceOffline, markDeviceOffline } from "../api/offlineDeviceStore";
 
@@ -35,7 +36,7 @@ export function useNowPlaying(deviceId: string | undefined): UseNowPlayingResult
           offlineRef.current = true;
           setDeviceOffline(true);
           setNowPlaying(null);
-          setError("Gerät nicht erreichbar");
+          setError(i18next.t("errors.offlineTitle"));
         }
         return;
       }
@@ -51,14 +52,14 @@ export function useNowPlaying(deviceId: string | undefined): UseNowPlayingResult
           setDeviceOffline(true);
           offlineRef.current = true;
           setNowPlaying(null);
-          setError("Gerät nicht erreichbar");
+          setError(i18next.t("errors.offlineTitle"));
           // Stop polling — device is offline
           if (intervalRef.current) {
             clearInterval(intervalRef.current);
             intervalRef.current = undefined;
           }
         } else {
-          setError(err instanceof Error ? err.message : "Unbekannter Fehler");
+          setError(err instanceof Error ? err.message : i18next.t("errors.unknown"));
         }
         console.warn("[useNowPlaying] Failed to fetch:", err);
       }
@@ -81,7 +82,7 @@ export function useNowPlaying(deviceId: string | undefined): UseNowPlayingResult
       setDeviceOffline(true);
       offlineRef.current = true;
       setNowPlaying(null);
-      setError("Gerät nicht erreichbar");
+      setError(i18next.t("errors.offlineTitle"));
       return;
     }
 

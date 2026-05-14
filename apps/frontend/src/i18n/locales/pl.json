@@ -46,7 +46,9 @@
     "muteOn": "Włącz dźwięk",
     "muteOff": "Wycisz",
     "manageZone": "Zarządzaj strefą",
-    "multiRoom": "Wiele pomieszczeń"
+    "multiRoom": "Wiele pomieszczeń",
+    "prevDevice": "Poprzednie urządzenie",
+    "nextDevice": "Następne urządzenie"
   },
   "presets": {
     "title": "Presety",
@@ -85,7 +87,17 @@
     "searchEmpty": "Nie znaleziono stacji",
     "searchFailed": "Wyszukiwanie stacji nie powiodło się. Spróbuj ponownie.",
     "deletePreset": "Usuń preset",
-    "searchTypeLabel": { "name": "Nazwa", "country": "Kraj", "tag": "Gatunek" },
+    "confirmOverwriteTitle": "Nadpisz preset",
+    "confirmOverwriteMessage": "Czy na pewno chcesz nadpisać preset {{preset}}?",
+    "confirmOverwrite": "Nadpisz",
+    "confirmDeleteTitle": "Usuń preset",
+    "confirmDeleteMessage": "Czy na pewno chcesz usunąć preset {{preset}}?",
+    "confirmDelete": "Usuń",
+    "searchTypeLabel": {
+      "name": "Nazwa",
+      "country": "Kraj",
+      "tag": "Gatunek"
+    },
     "searchPlaceholder": {
       "name": "np. RMF FM, BBC Radio…",
       "country": "np. Poland, Germany…",
@@ -218,8 +230,24 @@
     "noDevicesHint2": "Przejdź na stronę główną i kliknij \"Szukaj urządzeń teraz\".",
     "goHome": "Wróć do strony głównej",
     "homePage": "Strona główna",
-    "step1": { "label": "USB", "description": "Przygotuj dysk USB jako nośnik konfiguracji" },
-    "step2": { "label": "Restart", "description": "Restartuj urządzenie i ustanów dostęp SSH" },
+    "stepLabels": {
+      "usbInsert": "Włóż pamięć USB",
+      "deviceReboot": "Uruchom ponownie urządzenie",
+      "sshConnect": "Nawiąż połączenie SSH",
+      "sshPersist": "Włącz SSH na stałe",
+      "configBackup": "Utwórz kopię zapasową",
+      "configModify": "Zmodyfikuj konfigurację",
+      "verify": "Zweryfikuj",
+      "complete": "Zakończ"
+    },
+    "step1": {
+      "label": "USB",
+      "description": "Przygotuj dysk USB jako nośnik konfiguracji"
+    },
+    "step2": {
+      "label": "Restart",
+      "description": "Restartuj urządzenie i ustanów dostęp SSH"
+    },
     "step3": {
       "label": "Kopia zap.",
       "description": "Wykonaj kopię zapasową danych (zdecydowanie zalecane)"
@@ -228,12 +256,18 @@
       "label": "Połączenie",
       "description": "Przekieruj plik konfiguracyjny na serwer OCT"
     },
-    "step5": { "label": "DNS", "description": "Skonfiguruj przekierowanie sieci dla domen Bose" },
+    "step5": {
+      "label": "DNS",
+      "description": "Skonfiguruj przekierowanie sieci dla domen Bose"
+    },
     "step6": {
       "label": "Weryfikacja",
       "description": "Przetestuj konfigurację i zweryfikuj przekierowanie DNS"
     },
-    "step7": { "label": "Gotowe", "description": "Konfiguracja zakończona" },
+    "step7": {
+      "label": "Gotowe",
+      "description": "Konfiguracja zakończona"
+    },
     "skip": "Pomiń",
     "stepLabel": "Krok {{step}}",
     "processing": "Przetwarzanie...",
@@ -378,6 +412,9 @@
         "reasonLabel": "Powód:",
         "reasonValue": "Reverse proxy na porcie 443 przechwytuje żądania HTTPS i przekazuje je do OpenCloudTouch.",
         "proxyHint": "Kliknij 'Dalej', aby skonfigurować plik /etc/hosts w następnym kroku.",
+        "strategyMessageProxy": "Wykryto reverse proxy HTTPS na porcie 443. Wystarczy zmienić plik /etc/hosts.",
+        "strategyMessageBmx": "Nie wykryto reverse proxy na porcie 443. Adres URL BMX również musi zostać zmieniony.",
+        "configApplied": "Konfiguracja została pomyślnie zastosowana.",
         "configTitle": "URL serwera OpenCloudTouch",
         "configDesc": "Wprowadź URL swojego serwera OpenCloudTouch. Zastępuje to bmxRegistryUrl Bose.",
         "urlLabel": "URL serwera:",
@@ -418,7 +455,8 @@
         "changedEntries": "Zmienione wpisy:",
         "backupLabel": "Kopia zap.:",
         "btnShowDiff": "▶ Pokaż diff",
-        "btnHideDiff": "▼ Ukryj diff"
+        "btnHideDiff": "▼ Ukryj diff",
+        "hostsApplied": "Plik hosts został pomyślnie zmodyfikowany."
       },
       "step7": {
         "title": "Testuj konfigurację",
@@ -524,7 +562,10 @@
     "errorDetails": "Szczegóły błędu",
     "offlineTitle": "Urządzenie niedostępne",
     "offlineDetail": "\"{{name}}\" jest offline lub poza siecią.",
-    "offlineDetailNoName": "Urządzenie jest offline lub poza siecią."
+    "offlineDetailNoName": "Urządzenie jest offline lub poza siecią.",
+    "tooManyRequests": "Zbyt wiele żądań — proszę czekać",
+    "badGateway": "Błąd bramy",
+    "serviceUnavailable": "Usługa niedostępna"
   },
   "about": {
     "sectionTitle": "O aplikacji",
@@ -568,5 +609,48 @@
     "helpRestart": "Uruchom ponownie urządzenia i OpenCloudTouch",
     "helpManualAdd": "Dodaj ręcznie adresy IP urządzeń",
     "helpSetupWizard": "Postępuj zgodnie z kreatorem konfiguracji, aby uzyskać instrukcje krok po kroku"
+  },
+  "setupBadge": {
+    "unknown": "Skonfiguruj urządzenie",
+    "unconfigured": "Konfiguracja wymagana — kliknij, aby skonfigurować",
+    "configured": "Urządzenie skonfigurowane",
+    "pending": "Konfiguracja w toku...",
+    "failed": "Konfiguracja nieudana — kliknij, aby spróbować ponownie",
+    "outdated": "Urządzenie wskazuje na starą instancję OCT — kliknij, aby zaktualizować",
+    "offline": "Urządzenie niedostępne"
+  },
+  "statusBadge": {
+    "unconfigured": "Nieskonfigurowane",
+    "pending": "Konfiguracja w toku...",
+    "configured": "Skonfigurowane",
+    "failed": "Niepowodzenie",
+    "outdated": "Nieaktualne",
+    "offline": "Offline",
+    "unknown": "Nieznane"
+  },
+  "bugReport": {
+    "title": "Zgłoś błąd",
+    "description": "Opis błędu",
+    "descriptionPlaceholder": "Co poszło nie tak?",
+    "steps": "Kroki do odtworzenia",
+    "stepsPlaceholder": "1. Przejdź do...\n2. Kliknij na...\n3. Pojawia się błąd...",
+    "expected": "Oczekiwane zachowanie",
+    "expectedPlaceholder": "Co powinno się było wydarzyć?",
+    "installationType": "Typ instalacji",
+    "whichInstallation": "Która instalacja?",
+    "hardware": "Sprzęt / Platforma",
+    "whichHardware": "Jaki sprzęt?",
+    "devices": "Urządzenie(a) SoundTouch",
+    "whichDevice": "Które urządzenie?",
+    "networkConfig": "Konfiguracja sieci",
+    "additionalInfo": "Dodatkowe informacje",
+    "submit": "Wyślij zgłoszenie błędu",
+    "submitting": "Wysyłanie...",
+    "downloadLogs": "Pobierz logi",
+    "downloading": "Pobieranie...",
+    "submitSuccess": "Zgłoszenie błędu utworzone! {{url}}",
+    "submitFailed": "Nie udało się wysłać zgłoszenia błędu: {{error}}",
+    "diagnosticsSuccess": "Diagnostyka pobrana! Dołącz plik .log.gz do swojego zgłoszenia na GitHub.",
+    "diagnosticsFailed": "Nie udało się pobrać diagnostyki: {{error}}"
   }
 }

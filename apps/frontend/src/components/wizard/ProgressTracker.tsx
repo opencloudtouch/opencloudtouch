@@ -2,6 +2,7 @@
  * Progress Tracker for Setup Wizard
  * Shows current step and completion status
  */
+import { useTranslation } from "react-i18next";
 import "./ProgressTracker.css";
 
 export interface WizardStep {
@@ -18,6 +19,7 @@ interface ProgressTrackerProps {
 }
 
 export default function ProgressTracker({ steps, currentStep }: ProgressTrackerProps) {
+  const { t } = useTranslation();
   return (
     <div className="progress-tracker">
       <div className="progress-steps">
@@ -32,12 +34,28 @@ export default function ProgressTracker({ steps, currentStep }: ProgressTrackerP
                 title={step.description ?? step.label}
                 aria-label={
                   step.status === "completed"
-                    ? `Schritt ${step.id}: ${step.label}${step.description ? ` — ${step.description}` : ""} – abgeschlossen`
+                    ? t("setup.stepAriaCompleted", {
+                        id: step.id,
+                        label: step.label,
+                        description: step.description || "",
+                      })
                     : step.status === "error"
-                      ? `Schritt ${step.id}: ${step.label}${step.description ? ` — ${step.description}` : ""} – Fehler`
+                      ? t("setup.stepAriaError", {
+                          id: step.id,
+                          label: step.label,
+                          description: step.description || "",
+                        })
                       : step.status === "in-progress"
-                        ? `Schritt ${step.id}: ${step.label}${step.description ? ` — ${step.description}` : ""} – läuft`
-                        : `Schritt ${step.id}: ${step.label}${step.description ? ` — ${step.description}` : ""} – ausstehend`
+                        ? t("setup.stepAriaInProgress", {
+                            id: step.id,
+                            label: step.label,
+                            description: step.description || "",
+                          })
+                        : t("setup.stepAriaPending", {
+                            id: step.id,
+                            label: step.label,
+                            description: step.description || "",
+                          })
                 }
               >
                 {step.status === "completed" ? (

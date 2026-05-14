@@ -6,6 +6,7 @@
  * Click navigates to setup wizard for that device.
  */
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import "./SetupBadge.css";
 
 interface SetupBadgeProps {
@@ -22,41 +23,41 @@ type DisplayStatus =
   | "outdated"
   | "offline";
 
-const STATUS_CONFIG: Record<DisplayStatus, { cls: string; icon: string; title: string }> = {
+const STATUS_CONFIG: Record<DisplayStatus, { cls: string; icon: string; titleKey: string }> = {
   unknown: {
     cls: "setup-badge badge-unknown",
     icon: "⚙️",
-    title: "Gerät einrichten",
+    titleKey: "setupBadge.unknown",
   },
   unconfigured: {
     cls: "setup-badge badge-unconfigured",
     icon: "⚙️",
-    title: "Setup erforderlich - Klicken zum Konfigurieren",
+    titleKey: "setupBadge.unconfigured",
   },
   configured: {
     cls: "setup-badge badge-configured",
     icon: "✓",
-    title: "Gerät konfiguriert",
+    titleKey: "setupBadge.configured",
   },
   pending: {
     cls: "setup-badge badge-pending",
     icon: "⏳",
-    title: "Setup läuft...",
+    titleKey: "setupBadge.pending",
   },
   failed: {
     cls: "setup-badge badge-unconfigured",
     icon: "⚠️",
-    title: "Setup fehlgeschlagen - Klicken zum Wiederholen",
+    titleKey: "setupBadge.failed",
   },
   outdated: {
     cls: "setup-badge badge-outdated",
     icon: "⚠️",
-    title: "Gerät zeigt auf alte OCT-Instanz - Klicken zum Aktualisieren",
+    titleKey: "setupBadge.outdated",
   },
   offline: {
     cls: "setup-badge badge-offline",
     icon: "⚙️",
-    title: "Gerät nicht erreichbar",
+    titleKey: "setupBadge.offline",
   },
 };
 
@@ -64,6 +65,7 @@ const VALID_STATUSES = new Set<string>(Object.keys(STATUS_CONFIG));
 
 export default function SetupBadge({ deviceId, setupStatus }: Readonly<SetupBadgeProps>) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleClick = () => {
     navigate(`/setup-wizard?deviceId=${deviceId}`);
@@ -72,7 +74,8 @@ export default function SetupBadge({ deviceId, setupStatus }: Readonly<SetupBadg
   const displayStatus: DisplayStatus =
     setupStatus && VALID_STATUSES.has(setupStatus) ? (setupStatus as DisplayStatus) : "unknown";
 
-  const { cls, icon, title } = STATUS_CONFIG[displayStatus];
+  const { cls, icon, titleKey } = STATUS_CONFIG[displayStatus];
+  const title = t(titleKey);
 
   return (
     <button

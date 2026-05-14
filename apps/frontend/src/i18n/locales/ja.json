@@ -46,7 +46,9 @@
     "muteOn": "ミュート解除",
     "muteOff": "ミュート",
     "manageZone": "ゾーンを管理",
-    "multiRoom": "マルチルーム"
+    "multiRoom": "マルチルーム",
+    "prevDevice": "前のデバイス",
+    "nextDevice": "次のデバイス"
   },
   "presets": {
     "title": "プリセット",
@@ -85,7 +87,17 @@
     "searchEmpty": "ステーションが見つかりません",
     "searchFailed": "ステーション検索に失敗しました。もう一度お試しください。",
     "deletePreset": "プリセットを削除",
-    "searchTypeLabel": { "name": "名前", "country": "国", "tag": "ジャンル" },
+    "confirmOverwriteTitle": "プリセットを上書き",
+    "confirmOverwriteMessage": "プリセット {{preset}} を本当に上書きしますか？",
+    "confirmOverwrite": "上書き",
+    "confirmDeleteTitle": "プリセットを削除",
+    "confirmDeleteMessage": "プリセット {{preset}} を本当に削除しますか？",
+    "confirmDelete": "削除",
+    "searchTypeLabel": {
+      "name": "名前",
+      "country": "国",
+      "tag": "ジャンル"
+    },
     "searchPlaceholder": {
       "name": "例：NHK、BBC Radio…",
       "country": "例：Japan、Germany…",
@@ -218,13 +230,44 @@
     "noDevicesHint2": "ホームページに移動して「今すぐデバイスを検索」をクリックしてください。",
     "goHome": "ホームページに戻る",
     "homePage": "ホームページ",
-    "step1": { "label": "USB", "description": "設定メディアとしてUSBドライブを準備" },
-    "step2": { "label": "再起動", "description": "デバイスを再起動してSSHアクセスを確立" },
-    "step3": { "label": "バックアップ", "description": "デバイスデータをバックアップ（強く推奨）" },
-    "step4": { "label": "接続", "description": "設定ファイルをOCTサーバーにリダイレクト" },
-    "step5": { "label": "DNS", "description": "Boseドメインのネットワークリダイレクトを設定" },
-    "step6": { "label": "確認", "description": "設定をテストしてDNSリダイレクトを確認" },
-    "step7": { "label": "完了", "description": "セットアップ完了" },
+    "stepLabels": {
+      "usbInsert": "USBメモリを挿入",
+      "deviceReboot": "デバイスを再起動",
+      "sshConnect": "SSH接続を確立",
+      "sshPersist": "SSHを永続的に有効化",
+      "configBackup": "バックアップを作成",
+      "configModify": "設定を変更",
+      "verify": "確認",
+      "complete": "完了"
+    },
+    "step1": {
+      "label": "USB",
+      "description": "設定メディアとしてUSBドライブを準備"
+    },
+    "step2": {
+      "label": "再起動",
+      "description": "デバイスを再起動してSSHアクセスを確立"
+    },
+    "step3": {
+      "label": "バックアップ",
+      "description": "デバイスデータをバックアップ（強く推奨）"
+    },
+    "step4": {
+      "label": "接続",
+      "description": "設定ファイルをOCTサーバーにリダイレクト"
+    },
+    "step5": {
+      "label": "DNS",
+      "description": "Boseドメインのネットワークリダイレクトを設定"
+    },
+    "step6": {
+      "label": "確認",
+      "description": "設定をテストしてDNSリダイレクトを確認"
+    },
+    "step7": {
+      "label": "完了",
+      "description": "セットアップ完了"
+    },
     "skip": "スキップ",
     "stepLabel": "ステップ{{step}}",
     "processing": "処理中...",
@@ -369,6 +412,9 @@
         "reasonLabel": "理由：",
         "reasonValue": "ポート443のリバースプロキシがHTTPSリクエストをインターセプトしてOpenCloudTouchに転送します。",
         "proxyHint": "「次へ」をクリックして次のステップで/etc/hostsファイルを設定します。",
+        "strategyMessageProxy": "ポート443でHTTPSリバースプロキシが検出されました。/etc/hostsファイルの変更のみが必要です。",
+        "strategyMessageBmx": "ポート443でリバースプロキシが検出されませんでした。BMX URLも変更する必要があります。",
+        "configApplied": "設定が正常に適用されました。",
         "configTitle": "OpenCloudTouchサーバーURL",
         "configDesc": "OpenCloudTouchサーバーのURLを入力します。これはBoseのbmxRegistryUrlを置き換えます。",
         "urlLabel": "サーバーURL：",
@@ -409,7 +455,8 @@
         "changedEntries": "変更されたエントリ：",
         "backupLabel": "バックアップ：",
         "btnShowDiff": "▶ 差分を表示",
-        "btnHideDiff": "▼ 差分を非表示"
+        "btnHideDiff": "▼ 差分を非表示",
+        "hostsApplied": "hostsファイルが正常に変更されました。"
       },
       "step7": {
         "title": "設定をテスト",
@@ -515,7 +562,10 @@
     "errorDetails": "エラーの詳細",
     "offlineTitle": "デバイスにアクセスできません",
     "offlineDetail": "「{{name}}」はオフラインまたはネットワーク上にありません。",
-    "offlineDetailNoName": "デバイスはオフラインまたはネットワーク上にありません。"
+    "offlineDetailNoName": "デバイスはオフラインまたはネットワーク上にありません。",
+    "tooManyRequests": "リクエストが多すぎます — お待ちください",
+    "badGateway": "ゲートウェイエラー",
+    "serviceUnavailable": "サービス利用不可"
   },
   "about": {
     "sectionTitle": "このアプリについて",
@@ -559,5 +609,48 @@
     "helpRestart": "デバイスとOpenCloudTouchを再起動する",
     "helpManualAdd": "デバイスIPを手動で追加する",
     "helpSetupWizard": "ステップバイステップの手順についてはセットアップウィザードに従ってください"
+  },
+  "setupBadge": {
+    "unknown": "デバイスをセットアップ",
+    "unconfigured": "セットアップが必要 — クリックして設定",
+    "configured": "デバイス設定済み",
+    "pending": "セットアップ中...",
+    "failed": "セットアップ失敗 — クリックして再試行",
+    "outdated": "デバイスが古いOCTインスタンスを参照 — クリックして更新",
+    "offline": "デバイスに接続できません"
+  },
+  "statusBadge": {
+    "unconfigured": "未設定",
+    "pending": "セットアップ中...",
+    "configured": "設定済み",
+    "failed": "失敗",
+    "outdated": "古い",
+    "offline": "オフライン",
+    "unknown": "不明"
+  },
+  "bugReport": {
+    "title": "バグを報告",
+    "description": "バグの説明",
+    "descriptionPlaceholder": "何が問題でしたか？",
+    "steps": "再現手順",
+    "stepsPlaceholder": "1. ...へ移動\n2. ...をクリック\n3. エラーが表示...",
+    "expected": "期待される動作",
+    "expectedPlaceholder": "何が起こるべきでしたか？",
+    "installationType": "インストールタイプ",
+    "whichInstallation": "どのインストール？",
+    "hardware": "ハードウェア / プラットフォーム",
+    "whichHardware": "どのハードウェア？",
+    "devices": "SoundTouchデバイス",
+    "whichDevice": "どのデバイス？",
+    "networkConfig": "ネットワーク設定",
+    "additionalInfo": "追加情報",
+    "submit": "バグレポートを送信",
+    "submitting": "送信中...",
+    "downloadLogs": "ログをダウンロード",
+    "downloading": "ダウンロード中...",
+    "submitSuccess": "バグレポートが作成されました！ {{url}}",
+    "submitFailed": "バグレポートの送信に失敗しました: {{error}}",
+    "diagnosticsSuccess": "診断がダウンロードされました！.log.gzファイルをGitHub issueに添付してください。",
+    "diagnosticsFailed": "診断のダウンロードに失敗しました: {{error}}"
   }
 }

@@ -187,7 +187,7 @@ export default function Step6HostsModification({
           <div className="hosts-success">
             <div className="success-icon">✅</div>
             <h3 className="success-title">{t("setup.wizard.step6.successTitle")}</h3>
-            <p className="success-message">{modifyData.message}</p>
+            <p className="success-message">{t("setup.wizard.step6.hostsApplied")}</p>
 
             <div className="hosts-details">
               <div className="hosts-detail-item">

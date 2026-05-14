@@ -123,7 +123,7 @@ export default function Step4Backup({
               ✅
             </div>
             <h3 className="success-title">{t("setup.wizard.step4.successTitle")}</h3>
-            <p className="success-message">{backupData.message}</p>
+            <p className="success-message">{t("setup.wizard.step4.successHint")}</p>
 
             <div className="backup-location-hint">
               <span className="backup-location-icon">🔌</span>

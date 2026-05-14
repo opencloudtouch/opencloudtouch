@@ -24,24 +24,24 @@ describe("StatusBadge", () => {
 
     it("does not show label by default", () => {
       render(<StatusBadge status="configured" />);
-      expect(screen.queryByText("Konfiguriert")).not.toBeInTheDocument();
+      expect(screen.queryByText("Configured")).not.toBeInTheDocument();
     });
 
     it("shows label when showLabel is true", () => {
       render(<StatusBadge status="configured" showLabel />);
-      expect(screen.getByText("Konfiguriert")).toBeInTheDocument();
+      expect(screen.getByText("Configured")).toBeInTheDocument();
     });
   });
 
   describe("Status Labels", () => {
     const EXPECTED_LABELS: Record<SetupStatus, string> = {
-      unconfigured: "Nicht konfiguriert",
-      pending: "Setup läuft...",
-      configured: "Konfiguriert",
-      failed: "Fehlgeschlagen",
-      outdated: "Veraltet",
+      unconfigured: "Not configured",
+      pending: "Setup in progress...",
+      configured: "Configured",
+      failed: "Failed",
+      outdated: "Outdated",
       offline: "Offline",
-      unknown: "Unbekannt",
+      unknown: "Unknown",
     };
 
     it.each(Object.entries(EXPECTED_LABELS))(

@@ -55,6 +55,16 @@ class MargeService:
             )
             return device.device_id
 
+        # Fallback: account_id might be the device_id itself (MAC address)
+        device = await self._device_repo.get_by_device_id(account_id)
+        if device:
+            logger.info(  # NOSONAR
+                "[MARGE] Fallback: account_id %s is device_id (%s)",
+                account_id,
+                device.name,
+            )
+            return device.device_id
+
         logger.warning(  # NOSONAR
             "[MARGE] No device found for account UUID %s", account_id
         )

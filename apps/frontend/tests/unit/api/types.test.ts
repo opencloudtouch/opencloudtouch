@@ -49,16 +49,16 @@ describe("API Types", () => {
   describe("getErrorMessage", () => {
     it("maps HTTP status codes to user-friendly German messages", () => {
       const httpCodeTests: Array<[number, string]> = [
-        [400, "Ungültige Anfrage"],
-        [401, "Nicht autorisiert"],
-        [403, "Zugriff verweigert"],
-        [404, "Nicht gefunden"],
-        [429, "Zu viele Anfragen - bitte warten"],
-        [500, "Serverfehler"],
-        [502, "Gateway-Fehler"],
-        [503, "Dienst nicht verfügbar"],
-        [504, "Zeitüberschreitung"],
-        [418, "Ein Fehler ist aufgetreten"], // Unknown code -> generic message
+        [400, "Invalid request. Please check your inputs."],
+        [401, "Unauthorized. Please log in again."],
+        [403, "Access denied."],
+        [404, "The requested resource was not found."],
+        [429, "Too many requests — please wait"],
+        [500, "Server error. Please try again later."],
+        [502, "Gateway error"],
+        [503, "Service unavailable"],
+        [504, "The request took too long. Please try again."],
+        [418, "An error occurred"], // Unknown code -> generic message
       ];
 
       httpCodeTests.forEach(([status, expectedMessage]) => {
@@ -78,9 +78,9 @@ describe("API Types", () => {
     });
 
     it("returns fallback for unknown error types", () => {
-      expect(getErrorMessage("string")).toBe("Ein unerwarteter Fehler ist aufgetreten");
-      expect(getErrorMessage(42)).toBe("Ein unerwarteter Fehler ist aufgetreten");
-      expect(getErrorMessage(null)).toBe("Ein unerwarteter Fehler ist aufgetreten");
+      expect(getErrorMessage("string")).toBe("An unexpected error occurred. Please try again.");
+      expect(getErrorMessage(42)).toBe("An unexpected error occurred. Please try again.");
+      expect(getErrorMessage(null)).toBe("An unexpected error occurred. Please try again.");
     });
   });
 

@@ -4,6 +4,7 @@
  */
 
 import { throwIfNotOk } from "./types";
+import i18next from "i18next";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
@@ -141,18 +142,22 @@ export async function getSupportedModels(): Promise<ModelInstructions[]> {
 }
 
 /**
- * Human-readable step labels (German)
+ * Human-readable step labels
  */
-export const STEP_LABELS: Record<SetupStep, string> = {
-  usb_insert: "USB-Stick einstecken",
-  device_reboot: "Gerät neu starten",
-  ssh_connect: "SSH-Verbindung herstellen",
-  ssh_persist: "SSH dauerhaft aktivieren",
-  config_backup: "Backup erstellen",
-  config_modify: "Konfiguration anpassen",
-  verify: "Verifizieren",
-  complete: "Abgeschlossen",
-};
+export function getStepLabel(step: SetupStep): string {
+  const t = i18next.t.bind(i18next);
+  const labels: Record<SetupStep, string> = {
+    usb_insert: t("setup.stepLabels.usbInsert"),
+    device_reboot: t("setup.stepLabels.deviceReboot"),
+    ssh_connect: t("setup.stepLabels.sshConnect"),
+    ssh_persist: t("setup.stepLabels.sshPersist"),
+    config_backup: t("setup.stepLabels.configBackup"),
+    config_modify: t("setup.stepLabels.configModify"),
+    verify: t("setup.stepLabels.verify"),
+    complete: t("setup.stepLabels.complete"),
+  };
+  return labels[step];
+}
 
 /**
  * Step order for progress calculation

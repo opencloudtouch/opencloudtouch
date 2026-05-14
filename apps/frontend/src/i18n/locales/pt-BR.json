@@ -1,4 +1,4 @@
-﻿{
+{
   "common": {
     "save": "Salvar",
     "saving": "Salvando...",
@@ -46,7 +46,9 @@
     "muteOn": "Ativar som",
     "muteOff": "Silenciar",
     "manageZone": "Gerenciar zona",
-    "multiRoom": "Multissala"
+    "multiRoom": "Multissala",
+    "prevDevice": "Dispositivo anterior",
+    "nextDevice": "Próximo dispositivo"
   },
   "presets": {
     "title": "Presets",
@@ -85,7 +87,17 @@
     "searchEmpty": "Nenhuma estação encontrada",
     "searchFailed": "Pesquisa de estação falhou. Tente novamente.",
     "deletePreset": "Excluir preset",
-    "searchTypeLabel": { "name": "Nome", "country": "País", "tag": "Gênero" },
+    "confirmOverwriteTitle": "Sobrescrever preset",
+    "confirmOverwriteMessage": "Deseja realmente sobrescrever o preset {{preset}}?",
+    "confirmOverwrite": "Sobrescrever",
+    "confirmDeleteTitle": "Excluir preset",
+    "confirmDeleteMessage": "Deseja realmente excluir o preset {{preset}}?",
+    "confirmDelete": "Excluir",
+    "searchTypeLabel": {
+      "name": "Nome",
+      "country": "País",
+      "tag": "Gênero"
+    },
     "searchPlaceholder": {
       "name": "ex.: Band FM, BBC Radio…",
       "country": "ex.: Brazil, Portugal…",
@@ -218,7 +230,20 @@
     "noDevicesHint2": "Vá para a página inicial e clique em \"Buscar dispositivos agora\".",
     "goHome": "Voltar para a página inicial",
     "homePage": "Página inicial",
-    "step1": { "label": "USB", "description": "Preparar pendrive como meio de configuração" },
+    "stepLabels": {
+      "usbInsert": "Inserir pendrive USB",
+      "deviceReboot": "Reiniciar dispositivo",
+      "sshConnect": "Estabelecer conexão SSH",
+      "sshPersist": "Ativar SSH permanentemente",
+      "configBackup": "Criar backup",
+      "configModify": "Modificar configuração",
+      "verify": "Verificar",
+      "complete": "Concluir"
+    },
+    "step1": {
+      "label": "USB",
+      "description": "Preparar pendrive como meio de configuração"
+    },
     "step2": {
       "label": "Reinício",
       "description": "Reiniciar o dispositivo e estabelecer acesso SSH"
@@ -239,7 +264,10 @@
       "label": "Verificação",
       "description": "Testar configuração e verificar redirecionamento DNS"
     },
-    "step7": { "label": "Concluído", "description": "Configuração concluída" },
+    "step7": {
+      "label": "Concluído",
+      "description": "Configuração concluída"
+    },
     "skip": "Pular",
     "stepLabel": "Etapa {{step}}",
     "processing": "Processando...",
@@ -384,6 +412,9 @@
         "reasonLabel": "Motivo:",
         "reasonValue": "O proxy reverso na porta 443 intercepta solicitações HTTPS e as encaminha para o OpenCloudTouch.",
         "proxyHint": "Clique em 'Próximo' para configurar o arquivo /etc/hosts na próxima etapa.",
+        "strategyMessageProxy": "Proxy reverso HTTPS detectado na porta 443. Apenas o arquivo /etc/hosts precisa ser alterado.",
+        "strategyMessageBmx": "Nenhum proxy reverso detectado na porta 443. A URL BMX também precisa ser alterada.",
+        "configApplied": "Configuração aplicada com sucesso.",
         "configTitle": "URL do servidor OpenCloudTouch",
         "configDesc": "Digite a URL do seu servidor OpenCloudTouch. Isso substitui o bmxRegistryUrl da Bose.",
         "urlLabel": "URL do servidor:",
@@ -424,7 +455,8 @@
         "changedEntries": "Entradas modificadas:",
         "backupLabel": "Backup:",
         "btnShowDiff": "▶ Mostrar diff",
-        "btnHideDiff": "▼ Ocultar diff"
+        "btnHideDiff": "▼ Ocultar diff",
+        "hostsApplied": "Arquivo hosts modificado com sucesso."
       },
       "step7": {
         "title": "Testar configuração",
@@ -530,7 +562,10 @@
     "errorDetails": "Detalhes do erro",
     "offlineTitle": "Dispositivo inacessível",
     "offlineDetail": "\"{{name}}\" está offline ou fora da rede.",
-    "offlineDetailNoName": "O dispositivo está offline ou fora da rede."
+    "offlineDetailNoName": "O dispositivo está offline ou fora da rede.",
+    "tooManyRequests": "Muitas solicitações — aguarde",
+    "badGateway": "Erro de gateway",
+    "serviceUnavailable": "Serviço indisponível"
   },
   "about": {
     "sectionTitle": "Sobre",
@@ -574,5 +609,48 @@
     "helpRestart": "Reinicie os dispositivos e o OpenCloudTouch",
     "helpManualAdd": "Adicione IPs de dispositivos manualmente",
     "helpSetupWizard": "Siga o assistente de configuração para instruções passo a passo"
+  },
+  "setupBadge": {
+    "unknown": "Configurar dispositivo",
+    "unconfigured": "Configuração necessária — clique para configurar",
+    "configured": "Dispositivo configurado",
+    "pending": "Configuração em andamento...",
+    "failed": "Configuração falhou — clique para tentar novamente",
+    "outdated": "Dispositivo aponta para uma instância OCT antiga — clique para atualizar",
+    "offline": "Dispositivo inacessível"
+  },
+  "statusBadge": {
+    "unconfigured": "Não configurado",
+    "pending": "Configuração em andamento...",
+    "configured": "Configurado",
+    "failed": "Falhou",
+    "outdated": "Desatualizado",
+    "offline": "Offline",
+    "unknown": "Desconhecido"
+  },
+  "bugReport": {
+    "title": "Reportar um bug",
+    "description": "Descrição do bug",
+    "descriptionPlaceholder": "O que deu errado?",
+    "steps": "Passos para reproduzir",
+    "stepsPlaceholder": "1. Ir para...\n2. Clicar em...\n3. Ver o erro...",
+    "expected": "Comportamento esperado",
+    "expectedPlaceholder": "O que deveria ter acontecido?",
+    "installationType": "Tipo de instalação",
+    "whichInstallation": "Qual instalação?",
+    "hardware": "Hardware / Plataforma",
+    "whichHardware": "Qual hardware?",
+    "devices": "Dispositivo(s) SoundTouch",
+    "whichDevice": "Qual dispositivo?",
+    "networkConfig": "Configuração de rede",
+    "additionalInfo": "Informações adicionais",
+    "submit": "Enviar relatório de bug",
+    "submitting": "Enviando...",
+    "downloadLogs": "Baixar logs",
+    "downloading": "Baixando...",
+    "submitSuccess": "Relatório de bug criado! {{url}}",
+    "submitFailed": "Falha ao enviar relatório de bug: {{error}}",
+    "diagnosticsSuccess": "Diagnósticos baixados! Anexe o arquivo .log.gz à sua issue no GitHub.",
+    "diagnosticsFailed": "Falha ao baixar diagnósticos: {{error}}"
   }
 }

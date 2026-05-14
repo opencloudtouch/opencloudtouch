@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { submitBugReport, downloadDiagnostics } from "../api/bugReport";
 import { getLogEntries } from "../utils/logBuffer";
 import { useToast } from "../contexts/ToastContext";
@@ -44,6 +45,7 @@ const NETWORK_OPTIONS = [
 ];
 
 export default function BugReportModal({ open, onClose }: BugReportModalProps) {
+  const { t } = useTranslation();
   const { show: showToast } = useToast();
   const location = useLocation();
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -135,12 +137,12 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
         click_timestamp: clickTimestampRef.current,
       });
 
-      showToast(`Bug report created! ${result.issue_url}`, "success", 10000);
+      showToast(t("bugReport.submitSuccess", { url: result.issue_url }), "success", 10000);
       resetForm();
       onClose();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      showToast(`Failed to submit bug report: ${msg}`, "error", 8000);
+      const msg = err instanceof Error ? err.message : t("errors.unknown");
+      showToast(t("bugReport.submitFailed", { error: msg }), "error", 8000);
     } finally {
       setSubmitting(false);
     }
@@ -157,14 +159,10 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
         current_route: location.pathname,
         click_timestamp: clickTimestampRef.current,
       });
-      showToast(
-        "Diagnostics downloaded! Attach the .log.gz file to your GitHub issue.",
-        "success",
-        8000
-      );
+      showToast(t("bugReport.diagnosticsSuccess"), "success", 8000);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      showToast(`Failed to download diagnostics: ${msg}`, "error", 8000);
+      const msg = err instanceof Error ? err.message : t("errors.unknown");
+      showToast(t("bugReport.diagnosticsFailed", { error: msg }), "error", 8000);
     } finally {
       setDownloading(false);
     }
@@ -196,8 +194,13 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
     <div className="bug-modal-overlay">
       <dialog className="bug-modal" open aria-labelledby="bug-modal-title" onCancel={onClose}>
         <div className="bug-modal-header">
-          <h2 id="bug-modal-title">🐛 Report a Bug</h2>
-          <button ref={closeRef} className="bug-modal-close" onClick={onClose} aria-label="Close">
+          <h2 id="bug-modal-title">🐛 {t("bugReport.title")}</h2>
+          <button
+            ref={closeRef}
+            className="bug-modal-close"
+            onClick={onClose}
+            aria-label={t("common.close")}
+          >
             ✕
           </button>
         </div>
@@ -206,12 +209,12 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
           {/* 1. Bug Description */}
           <label className="bug-field">
             <span className="bug-label">
-              Bug Description <span className="bug-required">*</span>
+              {t("bugReport.description")} <span className="bug-required">*</span>
             </span>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="What went wrong?"
+              placeholder={t("bugReport.descriptionPlaceholder")}
               rows={3}
               required
               minLength={10}
@@ -222,12 +225,12 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
           {/* 2. Steps to Reproduce */}
           <label className="bug-field">
             <span className="bug-label">
-              Steps to Reproduce <span className="bug-required">*</span>
+              {t("bugReport.steps")} <span className="bug-required">*</span>
             </span>
             <textarea
               value={steps}
               onChange={(e) => setSteps(e.target.value)}
-              placeholder="1. Go to...&#10;2. Click on...&#10;3. See error..."
+              placeholder={t("bugReport.stepsPlaceholder")}
               rows={3}
               required
               minLength={10}
@@ -238,12 +241,12 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
           {/* 3. Expected Behavior */}
           <label className="bug-field">
             <span className="bug-label">
-              Expected Behavior <span className="bug-required">*</span>
+              {t("bugReport.expected")} <span className="bug-required">*</span>
             </span>
             <textarea
               value={expected}
               onChange={(e) => setExpected(e.target.value)}
-              placeholder="What should have happened?"
+              placeholder={t("bugReport.expectedPlaceholder")}
               rows={2}
               required
               minLength={5}
@@ -254,7 +257,7 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
           {/* 4. Installation Type */}
           <label className="bug-field">
             <span className="bug-label">
-              Installation Type <span className="bug-required">*</span>
+              {t("bugReport.installationType")} <span className="bug-required">*</span>
             </span>
             <select
               value={installationType}
@@ -272,7 +275,7 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
           {needsOtherInstallation && (
             <label className="bug-field bug-field--other">
               <span className="bug-label">
-                Which installation? <span className="bug-required">*</span>
+                {t("bugReport.whichInstallation")} <span className="bug-required">*</span>
               </span>
               <input
                 type="text"
@@ -288,7 +291,7 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
           {/* 5. Hardware / Platform */}
           <label className="bug-field">
             <span className="bug-label">
-              Hardware / Platform <span className="bug-required">*</span>
+              {t("bugReport.hardware")} <span className="bug-required">*</span>
             </span>
             <select value={hardware} onChange={(e) => setHardware(e.target.value)} required>
               <option value="">Select...</option>
@@ -302,7 +305,7 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
           {needsOtherHardware && (
             <label className="bug-field bug-field--other">
               <span className="bug-label">
-                Which hardware? <span className="bug-required">*</span>
+                {t("bugReport.whichHardware")} <span className="bug-required">*</span>
               </span>
               <input
                 type="text"
@@ -317,7 +320,7 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
 
           {/* 6. SoundTouch Devices */}
           <fieldset className="bug-field">
-            <legend className="bug-label">SoundTouch Device(s)</legend>
+            <legend className="bug-label">{t("bugReport.devices")}</legend>
             <div className="bug-checkbox-group">
               {DEVICE_OPTIONS.map((device) => (
                 <label key={device} className="bug-checkbox">
@@ -334,7 +337,7 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
           {needsOtherDevice && (
             <label className="bug-field bug-field--other">
               <span className="bug-label">
-                Which device? <span className="bug-required">*</span>
+                {t("bugReport.whichDevice")} <span className="bug-required">*</span>
               </span>
               <input
                 type="text"
@@ -349,7 +352,7 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
 
           {/* 7. Network Configuration */}
           <label className="bug-field">
-            <span className="bug-label">Network Configuration</span>
+            <span className="bug-label">{t("bugReport.networkConfig")}</span>
             <select value={networkConfig} onChange={(e) => setNetworkConfig(e.target.value)}>
               <option value="">Select...</option>
               {NETWORK_OPTIONS.map((o) => (
@@ -362,7 +365,7 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
 
           {/* 8. Additional Info */}
           <label className="bug-field">
-            <span className="bug-label">Additional Info</span>
+            <span className="bug-label">{t("bugReport.additionalInfo")}</span>
             <textarea
               value={additionalInfo}
               onChange={(e) => setAdditionalInfo(e.target.value)}
@@ -381,7 +384,7 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
               disabled={downloading || submitting}
               title="Download diagnostic logs as .log.gz file to attach to a GitHub issue manually"
             >
-              {downloading ? "Downloading..." : "\u2B07 Download Logs"}
+              {downloading ? t("bugReport.downloading") : `⬇ ${t("bugReport.downloadLogs")}`}
             </button>
             <button
               type="button"
@@ -389,14 +392,14 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
               onClick={onClose}
               disabled={submitting}
             >
-              Cancel
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
               className="bug-btn bug-btn--submit"
               disabled={!isValid || submitting}
             >
-              {submitting ? "Submitting..." : "Submit Bug Report"}
+              {submitting ? t("bugReport.submitting") : t("bugReport.submit")}
             </button>
           </div>
         </form>

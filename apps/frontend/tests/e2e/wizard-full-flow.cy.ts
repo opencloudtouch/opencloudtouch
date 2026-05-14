@@ -102,7 +102,7 @@ function setupDeviceMocks() {
     body: {
       proxy_available: false,
       strategy: "bmx_and_hosts",
-      message: "Kein Reverse-Proxy auf Port 443 erkannt. Die BMX-URL muss zusätzlich geändert werden.",
+      message: "No reverse proxy detected on port 443. The BMX URL must also be changed.",
     },
   }).as("detectStrategy");
 

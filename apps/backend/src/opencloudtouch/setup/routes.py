@@ -68,7 +68,7 @@ async def get_status(
         return {
             "device_id": device_id,
             "status": "not_found",
-            "message": "Kein aktives Setup für dieses Gerät",
+            "message": "No active setup for this device",
         }
 
     return progress.to_dict()
@@ -93,7 +93,7 @@ async def enable_permanent_ssh(
         return {
             "success": True,
             "permanent_enabled": False,
-            "message": "SSH bleibt temporär (USB-Stick erforderlich)",
+            "message": "SSH remains temporary (USB stick required)",
         }
 
     ssh_client = SoundTouchSSHClient(host=request.ip, port=22)
@@ -128,9 +128,9 @@ async def enable_permanent_ssh(
             "permanent_enabled": True,
             "device_id": request.device_id,
             "message": (
-                "SSH dauerhaft aktiviert. "
-                "Nach Neustart startet SSH automatisch ohne USB-Stick. "
-                "⚠️ Sicherheitsrisiko in unsicheren Netzen!"
+                "SSH permanently enabled. "
+                "After reboot, SSH starts automatically without USB stick. "
+                "⚠️ Security risk in untrusted networks!"
             ),
         }
 
