@@ -445,6 +445,7 @@ export interface paths {
      *     - **q**: Search query (required, min 1 character)
      *     - **search_type**: Type of search - name, country, or tag (default: name)
      *     - **limit**: Maximum results (1-100, default: 10)
+     *     - **provider**: Radio provider - radiobrowser or tunein (default: radiobrowser)
      */
     get: operations["search_stations_api_radio_search_get"];
     put?: never;
@@ -467,6 +468,7 @@ export interface paths {
      * @description Get radio station detail by UUID.
      *
      *     - **uuid**: Station UUID
+     *     - **provider**: Radio provider - radiobrowser or tunein (default: radiobrowser)
      */
     get: operations["get_station_detail_api_radio_station__uuid__get"];
     put?: never;
@@ -1338,6 +1340,105 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/streaming/device/{device_id}/streaming_token": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Streaming Token
+     * @description Return a dummy streaming token for device authentication.
+     *
+     *     SoundTouch firmware 27.x requests this token before playing a preset.
+     *     If the request fails, the device aborts playback with INVALID_SOURCE.
+     *     The token value is not validated — any non-empty response suffices.
+     *
+     *     Args:
+     *         device_id: Device MAC address
+     *
+     *     Returns:
+     *         JSON with a dummy access token
+     */
+    get: operations["streaming_token_streaming_device__device_id__streaming_token_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/blacklist/{device_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Blacklist Check
+     * @description Content blacklist check — always returns empty (nothing blacklisted).
+     *
+     *     The device checks this before playing content. If the endpoint is
+     *     unreachable, some firmware versions refuse playback.
+     *
+     *     Args:
+     *         device_id: Device MAC address
+     *
+     *     Returns:
+     *         JSON with empty blacklist
+     */
+    get: operations["blacklist_check_v1_blacklist__device_id__get"];
+    put?: never;
+    /**
+     * Blacklist Check
+     * @description Content blacklist check — always returns empty (nothing blacklisted).
+     *
+     *     The device checks this before playing content. If the endpoint is
+     *     unreachable, some firmware versions refuse playback.
+     *
+     *     Args:
+     *         device_id: Device MAC address
+     *
+     *     Returns:
+     *         JSON with empty blacklist
+     */
+    post: operations["blacklist_check_v1_blacklist__device_id__post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/setMargeAccount": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Set Marge Account
+     * @description Pair device with a Bose Cloud account (stub).
+     *
+     *     The SoundTouch app calls this to associate a device with an account.
+     *     OCT doesn't use real cloud accounts, but the device expects a 200 OK.
+     *     The actual margeAccountUUID is set via Telnet or device-side API.
+     *
+     *     Returns:
+     *         200 OK with status XML
+     */
+    post: operations["set_marge_account_setMargeAccount_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/playlist/{device_id}/{preset_number}.m3u": {
     parameters: {
       query?: never;
@@ -1460,35 +1561,6 @@ export interface paths {
      *     This should be called after user inserts USB stick and reboots device.
      */
     post: operations["check_connectivity_api_setup_check_connectivity_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/setup/start": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Start Setup
-     * @description Start the device setup process.
-     *
-     *     This runs the full setup flow:
-     *     1. Connect via SSH
-     *     2. Make SSH persistent
-     *     3. Backup config
-     *     4. Modify BMX URL
-     *     5. Verify configuration
-     *
-     *     The setup runs in background. Use GET /status/{device_id} to check progress.
-     */
-    post: operations["start_setup_api_setup_start_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -1803,6 +1875,58 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/setup/wizard/ensure-account": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Ensure Account
+     * @description Ensure device has a margeAccountUUID (Wizard Step — after config/hosts).
+     *
+     *     Devices without a margeAccountUUID cannot play presets (INVALID_SOURCE).
+     *     This endpoint checks GET :8090/info and sets a UUID via Telnet if missing.
+     *
+     *     Safe to call multiple times — no-op if UUID already present.
+     */
+    post: operations["wizard_ensure_account_api_setup_wizard_ensure_account_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/init-persistence": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Init Persistence
+     * @description Initialize persistence files on factory-reset devices (Wizard Step — after account pairing).
+     *
+     *     Factory-reset devices lack SystemConfigurationDB.xml and Sources.xml.
+     *     Without them, the firmware never fully initialises playback state,
+     *     causing INVALID_SOURCE on preset recall (GitHub Issue #167).
+     *
+     *     Only creates files that are missing — never overwrites existing ones.
+     *     Safe to call multiple times.
+     */
+    post: operations["wizard_init_persistence_api_setup_wizard_init_persistence_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/setup/wizard/complete": {
     parameters: {
       query?: never;
@@ -1860,8 +1984,8 @@ export interface paths {
      * Firmware Index
      * @description Return firmware INDEX.XML for SoundTouch devices.
      *
-     *     The device checks this endpoint at boot and periodically
-     *     to determine if a firmware update is available.
+     *     Serves the original Bose worldwide.bose.com index so devices recognise
+     *     their current firmware as up-to-date and don't attempt downloads.
      */
     get: operations["firmware_index_updates_soundtouch_get"];
     put?: never;
@@ -1880,18 +2004,34 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Firmware Download
-     * @description Redirect firmware download to device.
-     *
-     *     Firmware files are large (100+ MB). Instead of hosting them,
-     *     we return a 404 — OCT intentionally does NOT serve firmware
-     *     updates to prevent devices from updating to versions that
-     *     might break OCT compatibility.
-     *
-     *     In the future, this could proxy to archive.org for
-     *     specific firmware versions needed for downgrading.
+     * Firmware Download Legacy
+     * @description Block legacy firmware download path.
      */
-    get: operations["firmware_download_ced_eup_downloads_rel__filename__get"];
+    get: operations["firmware_download_legacy_ced_eup_downloads_rel__filename__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/ced/soundtouch/downloads_stockholm/{path}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Firmware Download
+     * @description Block real Bose firmware download path.
+     *
+     *     The real index XML references https://downloads.bose.com/ced/soundtouch/...
+     *     but since swUpdateUrl points to OCT, the device may try to fetch from here.
+     *     We return 404 to prevent unintended firmware updates.
+     */
+    get: operations["firmware_download_ced_soundtouch_downloads_stockholm__path__get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -2008,6 +2148,150 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/logs/level": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get current log level */
+    get: operations["get_log_level_api_logs_level_get"];
+    /** Set log level at runtime */
+    put: operations["put_log_level_api_logs_level_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/logs/backend": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Download backend log buffer (without frontend logs)
+     * @description Returns backend logs only. Use POST to include frontend console logs.
+     */
+    get: operations["download_backend_logs_get_api_logs_backend_get"];
+    put?: never;
+    /**
+     * Download backend + frontend logs
+     * @description Returns backend logs with frontend console logs included.
+     */
+    post: operations["download_backend_logs_post_api_logs_backend_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/bug-report": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create Bug Report
+     * @description Create a bug report as a GitHub Issue with auto-collected diagnostics.
+     */
+    post: operations["create_bug_report_api_bug_report_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/bug-report/diagnostics": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Download Diagnostics
+     * @description Download a gzipped diagnostic bundle — works without GitHub token.
+     *
+     *     The user can drag-drop the .log.gz file into a manually created GitHub issue.
+     */
+    post: operations["download_diagnostics_api_bug_report_diagnostics_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/wizard/audit-log": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Post Audit Entry
+     * @description Record a single wizard audit log entry.
+     */
+    post: operations["post_audit_entry_api_wizard_audit_log_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/wizard/audit-log/batch": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Post Audit Batch
+     * @description Record multiple wizard audit log entries in one request.
+     */
+    post: operations["post_audit_batch_api_wizard_audit_log_batch_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/wizard/config-snapshot": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Post Config Snapshot
+     * @description Store a config XML snapshot.
+     */
+    post: operations["post_config_snapshot_api_wizard_config_snapshot_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/health": {
     parameters: {
       query?: never;
@@ -2032,6 +2316,70 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /**
+     * AuditBatchRequest
+     * @description Batch of audit entries (reduces HTTP roundtrips).
+     */
+    AuditBatchRequest: {
+      /** Entries */
+      entries: components["schemas"]["AuditEntryRequest"][];
+    };
+    /**
+     * AuditBatchResponse
+     * @description Response for batch creation.
+     */
+    AuditBatchResponse: {
+      /** Success */
+      success: boolean;
+      /** Count */
+      count: number;
+    };
+    /**
+     * AuditEntryRequest
+     * @description Single wizard audit log entry from the frontend.
+     */
+    AuditEntryRequest: {
+      /**
+       * Device Id
+       * @description Device MAC/ID
+       */
+      device_id: string;
+      /**
+       * Category
+       * @description Event category: user_action, device_info, api_call, config_change, step_transition, checkbox, dropdown, error
+       */
+      category: string;
+      /**
+       * Event
+       * @description Short event name, e.g. 'button_click:next'
+       */
+      event: string;
+      /**
+       * Step
+       * @description Wizard step number (0=init)
+       */
+      step?: number | null;
+      /**
+       * Detail
+       * @description JSON-encoded extra data (free-form)
+       */
+      detail?: string | null;
+      /**
+       * Timestamp
+       * @description ISO-8601 timestamp from frontend
+       */
+      timestamp?: string | null;
+    };
+    /**
+     * AuditEntryResponse
+     * @description Response for single entry creation.
+     */
+    AuditEntryResponse: {
+      /** Success */
+      success: boolean;
+      /** Id */
+      id: number;
+    };
     /**
      * BackupRequest
      * @description Request to create device backup.
@@ -2071,6 +2419,79 @@ export interface components {
     Body_set_volume_api_devices__device_id__volume_put: {
       /** Level */
       level: number;
+    };
+    /** BugReportRequest */
+    BugReportRequest: {
+      /** Description */
+      description: string;
+      /** Steps To Reproduce */
+      steps_to_reproduce: string;
+      /** Expected Behavior */
+      expected_behavior: string;
+      /** Installation Type */
+      installation_type: string;
+      /** Hardware */
+      hardware: string;
+      /**
+       * Soundtouch Devices
+       * @default []
+       */
+      soundtouch_devices: string[];
+      /**
+       * Network Config
+       * @default
+       */
+      network_config: string;
+      /**
+       * Additional Info
+       * @default
+       */
+      additional_info: string;
+      /**
+       * Other Installation
+       * @default
+       */
+      other_installation: string;
+      /**
+       * Other Hardware
+       * @default
+       */
+      other_hardware: string;
+      /**
+       * Other Device
+       * @default
+       */
+      other_device: string;
+      /**
+       * Screenshot Data Url
+       * @default
+       */
+      screenshot_data_url: string;
+      /**
+       * Frontend Logs
+       * @default []
+       */
+      frontend_logs: Record<string, never>[];
+      /**
+       * Browser Info
+       * @default
+       */
+      browser_info: string;
+      /**
+       * Current Route
+       * @default
+       */
+      current_route: string;
+      /**
+       * Click Timestamp
+       * @default 0
+       */
+      click_timestamp: number;
+    };
+    /** BugReportResponse */
+    BugReportResponse: {
+      /** Issue Url */
+      issue_url: string;
     };
     /**
      * ChangeMasterRequest
@@ -2124,6 +2545,41 @@ export interface components {
       new_url: string;
     };
     /**
+     * ConfigSnapshotRequest
+     * @description Request to store a config XML snapshot.
+     */
+    ConfigSnapshotRequest: {
+      /** Device Id */
+      device_id: string;
+      /**
+       * File Path
+       * @description Config file path on device
+       */
+      file_path: string;
+      /**
+       * Content
+       * @description Full XML content
+       */
+      content: string;
+      /**
+       * Trigger
+       * @description What caused the snapshot, e.g. 'before_modify'
+       */
+      trigger?: string | null;
+      /** Timestamp */
+      timestamp?: string | null;
+    };
+    /**
+     * ConfigSnapshotResponse
+     * @description Response for snapshot creation.
+     */
+    ConfigSnapshotResponse: {
+      /** Success */
+      success: boolean;
+      /** Id */
+      id: number;
+    };
+    /**
      * ConnectivityCheckRequest
      * @description Request to check device connectivity.
      */
@@ -2160,6 +2616,37 @@ export interface components {
       message: string;
     };
     /**
+     * DiagnosticsRequest
+     * @description Request body for diagnostics download (no GitHub token needed).
+     */
+    DiagnosticsRequest: {
+      /**
+       * Frontend Logs
+       * @default []
+       */
+      frontend_logs: Record<string, never>[];
+      /**
+       * Description
+       * @default
+       */
+      description: string;
+      /**
+       * Browser Info
+       * @default
+       */
+      browser_info: string;
+      /**
+       * Current Route
+       * @default
+       */
+      current_route: string;
+      /**
+       * Click Timestamp
+       * @default 0
+       */
+      click_timestamp: number;
+    };
+    /**
      * EnablePermanentSSHRequest
      * @description Request to enable permanent SSH access on device.
      */
@@ -2180,6 +2667,59 @@ export interface components {
        * @default true
        */
       make_permanent: boolean;
+    };
+    /**
+     * EnsureAccountRequest
+     * @description Request to ensure device has a margeAccountUUID.
+     */
+    EnsureAccountRequest: {
+      /** Device Ip */
+      device_ip: string;
+    };
+    /**
+     * EnsureAccountResponse
+     * @description Response from account pairing check/fix.
+     */
+    EnsureAccountResponse: {
+      /** Success */
+      success: boolean;
+      /**
+       * Had Uuid
+       * @description True if UUID was already present
+       */
+      had_uuid: boolean;
+      /**
+       * Uuid
+       * @description The current or newly set UUID
+       * @default
+       */
+      uuid: string;
+      /**
+       * Message
+       * @default
+       */
+      message: string;
+    };
+    /**
+     * FrontendLogEntry
+     * @description A single frontend console log entry.
+     */
+    FrontendLogEntry: {
+      /**
+       * Timestamp
+       * @default
+       */
+      timestamp: string;
+      /**
+       * Level
+       * @default
+       */
+      level: string;
+      /**
+       * Message
+       * @default
+       */
+      message: string;
     };
     /** HTTPValidationError */
     HTTPValidationError: {
@@ -2225,6 +2765,41 @@ export interface components {
       diff: string;
     };
     /**
+     * InitPersistenceRequest
+     * @description Request to initialize persistence files on a factory-reset device.
+     */
+    InitPersistenceRequest: {
+      /** Device Ip */
+      device_ip: string;
+      /**
+       * Device Name
+       * @description Device name from GET :8090/info <name>
+       */
+      device_name: string;
+      /**
+       * Account Uuid
+       * @description margeAccountUUID (7-digit numeric, from account pairing)
+       */
+      account_uuid: string;
+    };
+    /**
+     * InitPersistenceResponse
+     * @description Response from persistence initialization.
+     */
+    InitPersistenceResponse: {
+      /** Success */
+      success: boolean;
+      /** Created Files */
+      created_files?: string[];
+      /** Skipped Files */
+      skipped_files?: string[];
+      /**
+       * Message
+       * @default
+       */
+      message: string;
+    };
+    /**
      * ListBackupsRequest
      * @description Request to list backups.
      */
@@ -2243,6 +2818,36 @@ export interface components {
       config_backups?: string[];
       /** Hosts Backups */
       hosts_backups?: string[];
+    };
+    /**
+     * LogDownloadRequest
+     * @description Optional body for POST /api/logs/backend with frontend logs.
+     */
+    LogDownloadRequest: {
+      /**
+       * Frontend Logs
+       * @default []
+       */
+      frontend_logs: components["schemas"]["FrontendLogEntry"][];
+    };
+    /**
+     * LogLevelRequest
+     * @description Request to change the log level at runtime.
+     */
+    LogLevelRequest: {
+      /**
+       * Level
+       * @enum {string}
+       */
+      level: "DEBUG" | "INFO" | "WARNING" | "ERROR" | "CRITICAL";
+    };
+    /**
+     * LogLevelResponse
+     * @description Current log level.
+     */
+    LogLevelResponse: {
+      /** Level */
+      level: string;
     };
     /**
      * ManualIPsResponse
@@ -2361,6 +2966,12 @@ export interface components {
       station_favicon?: string | null;
     };
     /**
+     * ProviderType
+     * @description Radio provider enum.
+     * @enum {string}
+     */
+    ProviderType: "radiobrowser" | "tunein";
+    /**
      * RadioSearchResponse
      * @description Search results response.
      */
@@ -2434,18 +3045,6 @@ export interface components {
        */
       ips: string[];
     };
-    /**
-     * SetupRequest
-     * @description Request to start device setup.
-     */
-    SetupRequest: {
-      /** Device Id */
-      device_id: string;
-      /** Ip */
-      ip: string;
-      /** Model */
-      model: string;
-    };
     /** ValidationError */
     ValidationError: {
       /** Location */
@@ -2454,6 +3053,10 @@ export interface components {
       msg: string;
       /** Error Type */
       type: string;
+      /** Input */
+      input?: unknown;
+      /** Context */
+      ctx?: Record<string, never>;
     };
     /**
      * VerifyRedirectRequest
@@ -3117,6 +3720,8 @@ export interface operations {
         search_type?: components["schemas"]["SearchType"];
         /** @description Maximum number of results */
         limit?: number;
+        /** @description Radio provider: radiobrowser or tunein */
+        provider?: components["schemas"]["ProviderType"];
       };
       header?: never;
       path?: never;
@@ -3146,7 +3751,10 @@ export interface operations {
   };
   get_station_detail_api_radio_station__uuid__get: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Radio provider: radiobrowser or tunein */
+        provider?: components["schemas"]["ProviderType"];
+      };
       header?: never;
       path: {
         uuid: string;
@@ -4163,6 +4771,119 @@ export interface operations {
       };
     };
   };
+  streaming_token_streaming_device__device_id__streaming_token_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  blacklist_check_v1_blacklist__device_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  blacklist_check_v1_blacklist__device_id__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  set_marge_account_setMargeAccount_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
   get_playlist_m3u_playlist__device_id___preset_number__m3u_get: {
     parameters: {
       query?: never;
@@ -4288,39 +5009,6 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": components["schemas"]["ConnectivityCheckRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": Record<string, never>;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  start_setup_api_setup_start_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["SetupRequest"];
       };
     };
     responses: {
@@ -4765,6 +5453,72 @@ export interface operations {
       };
     };
   };
+  wizard_ensure_account_api_setup_wizard_ensure_account_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EnsureAccountRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EnsureAccountResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  wizard_init_persistence_api_setup_wizard_init_persistence_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["InitPersistenceRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InitPersistenceResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   wizard_complete_api_setup_wizard_complete_post: {
     parameters: {
       query?: never;
@@ -4851,12 +5605,43 @@ export interface operations {
       };
     };
   };
-  firmware_download_ced_eup_downloads_rel__filename__get: {
+  firmware_download_legacy_ced_eup_downloads_rel__filename__get: {
     parameters: {
       query?: never;
       header?: never;
       path: {
         filename: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  firmware_download_ced_soundtouch_downloads_stockholm__path__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        path: string;
       };
       cookie?: never;
     };
@@ -5085,6 +5870,284 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ZoneStatus"] | null;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_log_level_api_logs_level_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LogLevelResponse"];
+        };
+      };
+    };
+  };
+  put_log_level_api_logs_level_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["LogLevelRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LogLevelResponse"];
+        };
+      };
+      /** @description Invalid log level */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  download_backend_logs_get_api_logs_backend_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "text/plain": string;
+        };
+      };
+    };
+  };
+  download_backend_logs_post_api_logs_backend_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["LogDownloadRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "text/plain": string;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_bug_report_api_bug_report_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BugReportRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BugReportResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  download_diagnostics_api_bug_report_diagnostics_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DiagnosticsRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  post_audit_entry_api_wizard_audit_log_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AuditEntryRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AuditEntryResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  post_audit_batch_api_wizard_audit_log_batch_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AuditBatchRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AuditBatchResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  post_config_snapshot_api_wizard_config_snapshot_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ConfigSnapshotRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ConfigSnapshotResponse"];
         };
       };
       /** @description Validation Error */

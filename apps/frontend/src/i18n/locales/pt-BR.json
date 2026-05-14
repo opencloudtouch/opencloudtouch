@@ -545,7 +545,9 @@
     "github": "GitHub",
     "reportIssue": "Relatar um problema",
     "support": "Apoiar",
-    "versionUnavailable": "Versão não disponível"
+    "versionUnavailable": "Versão não disponível",
+    "creditsTitle": "Colaboradores",
+    "creditsDescription": "Agradecimento especial aos membros da comunidade que contribuíram com pesquisa, testes e engenharia reversa."
   },
   "discovery": {
     "started": "Busca iniciada",

@@ -546,7 +546,9 @@
     "github": "GitHub",
     "reportIssue": "Een probleem melden",
     "support": "Ondersteunen",
-    "versionUnavailable": "Versie niet beschikbaar"
+    "versionUnavailable": "Versie niet beschikbaar",
+    "creditsTitle": "Bijdragers",
+    "creditsDescription": "Speciale dank aan de communityleden die hebben bijgedragen met onderzoek, testen en reverse engineering."
   },
   "discovery": {
     "started": "Zoeken gestart",

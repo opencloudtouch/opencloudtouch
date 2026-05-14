@@ -298,3 +298,25 @@ class EnsureAccountResponse(BaseModel):
     had_uuid: bool = Field(description="True if UUID was already present")
     uuid: str = Field(default="", description="The current or newly set UUID")
     message: str = ""
+
+
+class InitPersistenceRequest(WizardDeviceRequest):
+    """Request to initialize persistence files on a factory-reset device."""
+
+    device_name: str = Field(
+        max_length=100,
+        description="Device name from GET :8090/info <name>",
+    )
+    account_uuid: str = Field(
+        pattern=r"^\d{1,10}$",
+        description="margeAccountUUID (7-digit numeric, from account pairing)",
+    )
+
+
+class InitPersistenceResponse(BaseModel):
+    """Response from persistence initialization."""
+
+    success: bool
+    created_files: list[str] = Field(default_factory=list)
+    skipped_files: list[str] = Field(default_factory=list)
+    message: str = ""
