@@ -32,10 +32,10 @@ class TestBug184HardcodedDeviceIdInStreamingRoute:
         mock_marge.resolve_device_id_for_account = AsyncMock(
             return_value="F4E11EA01FE6"
         )
-        mock_marge.get_presets = AsyncMock(return_value=[mock_preset])
+        mock_marge.get_full_account = AsyncMock(return_value=([mock_preset], []))
         await streaming_full_account("3784726", mock_marge)
         mock_marge.resolve_device_id_for_account.assert_called_once_with("3784726")
-        mock_marge.get_presets.assert_called_once_with("F4E11EA01FE6")
+        mock_marge.get_full_account.assert_called_once_with("F4E11EA01FE6")
 
     @pytest.mark.asyncio
     async def test_streaming_route_returns_empty_when_no_device_mapped(self):
@@ -48,7 +48,7 @@ class TestBug184HardcodedDeviceIdInStreamingRoute:
         presets = root.find("presets")
         assert presets is not None
         assert len(presets.findall("preset")) == 0
-        mock_marge.get_presets.assert_not_called()
+        mock_marge.get_full_account.assert_not_called()
 
 
 class TestBug184AccountIdToDeviceIdMapping:
@@ -117,6 +117,7 @@ class TestBug184AccountIdToDeviceIdMapping:
         """Verify resolve returns None for unknown account_id."""
         mock_device_repo = AsyncMock(spec=DeviceRepository)
         mock_device_repo.get_by_account_uuid = AsyncMock(return_value=None)
+        mock_device_repo.get_by_device_id = AsyncMock(return_value=None)
         mock_preset_repo = AsyncMock(spec=PresetRepository)
         mock_recents_repo = AsyncMock(spec=RecentsRepository)
         service = MargeService(mock_preset_repo, mock_recents_repo, mock_device_repo)

@@ -1589,6 +1589,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /accounts/{account_id}/full:
+    get:
+      tags:
+      - marge
+      summary: Streaming Full Account (Accounts Path)
+      description: "Alias for /streaming/account/{account_id}/full.\n\nSome devices\
+        \ use this path instead of the streaming prefix."
+      operationId: streaming_full_account_accounts__account_id__full_get
+      parameters:
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Account Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /v1/scmudc/{device_id}:
     post:
       tags:

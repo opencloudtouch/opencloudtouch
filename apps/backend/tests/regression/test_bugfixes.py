@@ -495,14 +495,14 @@ class TestBugfix188HardcodedDeviceIdInStreamingAccount:
         mock_marge.resolve_device_id_for_account = AsyncMock(
             return_value="10CEA9A6FA71"
         )
-        mock_marge.get_presets = AsyncMock(return_value=[])
+        mock_marge.get_full_account = AsyncMock(return_value=([], []))
 
         await streaming_full_account("5522049", mock_marge)
 
         # Must have looked up by account UUID, not used hardcoded ID
         mock_marge.resolve_device_id_for_account.assert_called_once_with("5522049")
-        # Must have loaded presets for the RESOLVED device
-        mock_marge.get_presets.assert_called_once_with("10CEA9A6FA71")
+        # Must have loaded full account for the RESOLVED device
+        mock_marge.get_full_account.assert_called_once_with("10CEA9A6FA71")
 
     @pytest.mark.asyncio
     async def test_unknown_account_returns_empty_not_crash(self):
@@ -521,7 +521,7 @@ class TestBugfix188HardcodedDeviceIdInStreamingAccount:
         presets = root.find("presets")
         assert len(presets.findall("preset")) == 0
         # Must NOT have tried to load presets with some guessed device
-        mock_marge.get_presets.assert_not_called()
+        mock_marge.get_full_account.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_mock_mode_skips_marge_uuid_fetch(self, monkeypatch):
