@@ -1589,33 +1589,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /accounts/{account_id}/full:
-    get:
-      tags:
-      - marge
-      summary: Streaming Full Account (Accounts Path)
-      description: "Alias for /streaming/account/{account_id}/full.\n\nSome devices\
-        \ use this path instead of the streaming prefix."
-      operationId: streaming_full_account_accounts__account_id__full_get
-      parameters:
-      - name: account_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Account Id
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
   /v1/scmudc/{device_id}:
     post:
       tags:
@@ -1645,6 +1618,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /streaming/stats/usage:
+    post:
+      tags:
+      - marge
+      summary: Streaming Stats Usage
+      description: "Accept device usage statistics (stub).\n\nWithout this endpoint,\
+        \ the device retries repeatedly after\nstatsServerUrl is redirected to OCT.\n\
+        \nReturns:\n    200 OK"
+      operationId: streaming_stats_usage_streaming_stats_usage_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
   /streaming/device/{device_id}/streaming_token:
     get:
       tags:
