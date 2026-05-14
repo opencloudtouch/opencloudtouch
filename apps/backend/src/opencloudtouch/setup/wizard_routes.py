@@ -1,13 +1,14 @@
-﻿"""
-Setup Wizard API Routes — Thin Handlers
+"""
+Setup Wizard API Routes � Thin Handlers
 
 SSH-driven step-by-step wizard endpoints for device configuration.
 All business logic lives in WizardService; routes only handle HTTP concerns.
 """
 
+import asyncio
 import logging
 import socket
-from typing import Any, Dict
+from typing import Annotated, Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi import status as http_status
@@ -58,7 +59,7 @@ async def wizard_server_info(request: Request) -> Dict[str, Any]:
     hostname = url.hostname or "127.0.0.1"
     server_url = f"{url.scheme}://{hostname}:{url.port or 7777}"
 
-    # Resolve hostname → IP for /etc/hosts (requires numeric IP)
+    # Resolve hostname ? IP for /etc/hosts (requires numeric IP)
     try:
         server_ip = socket.gethostbyname(hostname)
     except socket.gaierror:
@@ -91,7 +92,7 @@ async def wizard_detect_strategy(request: Request) -> DetectStrategyResponse:
             strategy="hosts_only",
             message=(
                 "HTTPS Reverse-Proxy auf Port 443 erkannt. "
-                "Es reicht, die /etc/hosts-Datei zu ändern."
+                "Es reicht, die /etc/hosts-Datei zu �ndern."
             ),
         )
     return DetectStrategyResponse(
@@ -99,7 +100,7 @@ async def wizard_detect_strategy(request: Request) -> DetectStrategyResponse:
         strategy="bmx_and_hosts",
         message=(
             "Kein Reverse-Proxy auf Port 443 erkannt. "
-            "Die BMX-URL muss zusätzlich geändert werden."
+            "Die BMX-URL muss zus�tzlich ge�ndert werden."
         ),
     )
 
@@ -107,12 +108,13 @@ async def wizard_detect_strategy(request: Request) -> DetectStrategyResponse:
 @wizard_router.post("/wizard/check-ports", response_model=PortCheckResponse)
 async def wizard_check_ports(
     request: PortCheckRequest,
-    wizard: WizardService = Depends(get_wizard_service),
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
 ):
     """Check if SSH port is accessible (Wizard Step 3)."""
     logger.info("Checking SSH port on %s", request.device_ip)
 
-    has_ssh = await wizard.check_ssh_port(request.device_ip, timeout=request.timeout)
+    async with asyncio.timeout(request.timeout):
+        has_ssh = await wizard.check_ssh_port(request.device_ip)
 
     if not has_ssh:
         return PortCheckResponse(
@@ -131,7 +133,7 @@ async def wizard_check_ports(
 @wizard_router.post("/wizard/backup", response_model=BackupResponse)
 async def wizard_backup(
     request: BackupRequest,
-    wizard: WizardService = Depends(get_wizard_service),
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
 ):
     """Create complete backup to USB stick (Wizard Step 4)."""
     logger.info("Starting backup for %s", request.device_ip)
@@ -153,7 +155,7 @@ async def wizard_backup(
 @wizard_router.post("/wizard/modify-config", response_model=ConfigModifyResponse)
 async def wizard_modify_config(
     request: ConfigModifyRequest,
-    wizard: WizardService = Depends(get_wizard_service),
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
 ):
     """Modify OverrideSdkPrivateCfg.xml (Wizard Step 5)."""
     logger.info(
@@ -178,7 +180,7 @@ async def wizard_modify_config(
 @wizard_router.post("/wizard/modify-hosts", response_model=HostsModifyResponse)
 async def wizard_modify_hosts(
     request: HostsModifyRequest,
-    wizard: WizardService = Depends(get_wizard_service),
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
 ):
     """Modify /etc/hosts (Wizard Step 6)."""
     logger.info(
@@ -209,7 +211,7 @@ async def wizard_modify_hosts(
 @wizard_router.post("/wizard/restore-config", response_model=RestoreResponse)
 async def wizard_restore_config(
     request: RestoreRequest,
-    wizard: WizardService = Depends(get_wizard_service),
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
 ):
     """Restore config from backup (Wizard Step 8)."""
     logger.info("Restoring config from %s", request.backup_path)
@@ -224,7 +226,7 @@ async def wizard_restore_config(
 @wizard_router.post("/wizard/restore-hosts", response_model=RestoreResponse)
 async def wizard_restore_hosts(
     request: RestoreRequest,
-    wizard: WizardService = Depends(get_wizard_service),
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
 ):
     """Restore hosts from backup (Wizard Step 8)."""
     logger.info("Restoring hosts from %s", request.backup_path)
@@ -239,7 +241,7 @@ async def wizard_restore_hosts(
 @wizard_router.post("/wizard/list-backups", response_model=ListBackupsResponse)
 async def wizard_list_backups(
     request: ListBackupsRequest,
-    wizard: WizardService = Depends(get_wizard_service),
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
 ):
     """List available backups (Wizard Step 8)."""
     logger.info("Listing backups on %s", request.device_ip)
@@ -256,7 +258,7 @@ async def wizard_list_backups(
 @wizard_router.post("/wizard/reboot-device")
 async def wizard_reboot_device(
     request: ConnectivityCheckRequest,
-    wizard: WizardService = Depends(get_wizard_service),
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
 ) -> Dict[str, Any]:
     """Reboot SoundTouch device via SSH (Wizard Step 7)."""
     logger.info("Sending reboot command to %s", request.ip)
@@ -265,7 +267,7 @@ async def wizard_reboot_device(
 
     if not result["success"]:
         error_msg = result["error"]
-        # Connection failures → 503; unexpected errors → 500
+        # Connection failures ? 503; unexpected errors ? 500
         if "SSH connection failed" in error_msg:
             status_code = http_status.HTTP_503_SERVICE_UNAVAILABLE
         else:
@@ -275,14 +277,14 @@ async def wizard_reboot_device(
     logger.info("Reboot command sent to %s", request.ip)
     return {
         "success": True,
-        "message": "Neustart-Befehl gesendet. Das Gerät startet in wenigen Sekunden neu.",
+        "message": "Neustart-Befehl gesendet. Das Ger�t startet in wenigen Sekunden neu.",
     }
 
 
 @wizard_router.post("/wizard/account-pairing", response_model=AccountPairingResponse)
 async def wizard_account_pairing(
     request: AccountPairingRequest,
-    wizard: WizardService = Depends(get_wizard_service),
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
 ):
     """Ensure device has a margeAccountUUID (Wizard Step - Account Pairing).
 
@@ -307,12 +309,12 @@ async def wizard_account_pairing(
 
 @wizard_router.post("/wizard/ensure-account", response_model=EnsureAccountResponse)
 async def wizard_ensure_account(request: EnsureAccountRequest):
-    """Ensure device has a margeAccountUUID (Wizard Step — after config/hosts).
+    """Ensure device has a margeAccountUUID (Wizard Step � after config/hosts).
 
     Devices without a margeAccountUUID cannot play presets (INVALID_SOURCE).
     This endpoint checks GET :8090/info and sets a UUID via Telnet if missing.
 
-    Safe to call multiple times — no-op if UUID already present.
+    Safe to call multiple times � no-op if UUID already present.
     """
     from opencloudtouch.setup.account_pairing_service import ensure_account_uuid
 
@@ -338,7 +340,7 @@ async def wizard_ensure_account(request: EnsureAccountRequest):
 @wizard_router.post("/wizard/complete", response_model=WizardCompleteResponse)
 async def wizard_complete(
     request: WizardCompleteRequest,
-    wizard: WizardService = Depends(get_wizard_service),
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
 ):
     """Mark wizard setup as complete for a device."""
     logger.info("Marking wizard setup complete for device %s", request.device_id)
@@ -355,14 +357,14 @@ async def wizard_complete(
         success=True,
         device_id=request.device_id,
         setup_status="configured",
-        message="Setup abgeschlossen. Gerät ist konfiguriert.",
+        message="Setup abgeschlossen. Ger�t ist konfiguriert.",
     )
 
 
 @wizard_router.post("/wizard/verify-redirect", response_model=VerifyRedirectResponse)
 async def wizard_verify_redirect(
     request: VerifyRedirectRequest,
-    wizard: WizardService = Depends(get_wizard_service),
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
 ):
     """Verify a domain is redirected to OCT on the device (Wizard Step 7)."""
     logger.info(

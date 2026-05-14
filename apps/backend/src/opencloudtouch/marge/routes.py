@@ -1,7 +1,7 @@
 """Marge (streaming.bose.com) account sync routes."""
 
 import logging
-from typing import Any
+from typing import Annotated, Any
 from xml.etree import ElementTree as ET
 
 from fastapi import APIRouter, Depends
@@ -42,7 +42,7 @@ def _xml_response(element: ET.Element, media_type: str = _MEDIA_XML) -> Response
 @router.get("/v1/systems/devices/{device_id}")
 async def get_full_account(
     device_id: str,
-    marge: MargeService = Depends(get_marge_service),
+    marge: Annotated[MargeService, Depends(get_marge_service)],
 ) -> Response:
     """Get full account sync for device.
 
@@ -83,7 +83,7 @@ async def get_full_account(
 @router.get("/v1/systems/devices/{device_id}/presets")
 async def get_presets(
     device_id: str,
-    marge: MargeService = Depends(get_marge_service),
+    marge: Annotated[MargeService, Depends(get_marge_service)],
 ) -> Response:
     """Get presets for device.
 
@@ -104,7 +104,7 @@ async def get_presets(
 @router.get("/v1/systems/devices/{device_id}/recents")
 async def get_recents(
     device_id: str,
-    marge: MargeService = Depends(get_marge_service),
+    marge: Annotated[MargeService, Depends(get_marge_service)],
 ) -> Response:
     """Get recently played items for device.
 
@@ -264,7 +264,7 @@ async def streaming_sourceproviders() -> Response:
 @router.get("/streaming/account/{account_id}/full")
 async def streaming_full_account(
     account_id: str,
-    marge: MargeService = Depends(get_marge_service),
+    marge: Annotated[MargeService, Depends(get_marge_service)],
 ) -> Response:
     """Get full account sync via streaming endpoint.
 
