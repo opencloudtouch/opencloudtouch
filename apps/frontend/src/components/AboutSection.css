@@ -144,3 +144,27 @@
   font-size: 16px;
   color: var(--color-text-tertiary, #555);
 }
+
+/* Credits section */
+.about-credits-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm, 8px);
+  font-size: 15px;
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text-primary, #ffffff);
+  margin: 0 0 4px;
+}
+
+.about-credits-description {
+  font-size: 13px;
+  color: var(--color-text-secondary, #888);
+  line-height: 1.4;
+  margin: 0 0 var(--space-sm, 8px);
+}
+
+.about-contributor-detail {
+  font-weight: normal;
+  font-size: 12px;
+  color: var(--color-text-secondary, #888);
+}

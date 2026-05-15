@@ -555,7 +555,9 @@
     "github": "GitHub",
     "reportIssue": "Report a problem",
     "support": "Support",
-    "versionUnavailable": "Version unavailable"
+    "versionUnavailable": "Version unavailable",
+    "creditsTitle": "Contributors",
+    "creditsDescription": "Special thanks to the community members who contributed research, testing, and reverse engineering."
   },
   "discovery": {
     "started": "Discovery started",

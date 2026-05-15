@@ -530,7 +530,9 @@
     "github": "GitHub",
     "reportIssue": "問題を報告",
     "support": "サポート",
-    "versionUnavailable": "バージョン不明"
+    "versionUnavailable": "バージョン不明",
+    "creditsTitle": "貢献者",
+    "creditsDescription": "リサーチ、テスト、リバースエンジニアリングに貢献してくれたコミュニティメンバーに特別な感謝を。"
   },
   "discovery": {
     "started": "検索開始",

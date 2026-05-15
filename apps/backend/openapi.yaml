@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: OpenCloudTouch
   description: Open-Source replacement for discontinued streaming device cloud features
-  version: 1.2.4
+  version: dev-a3517ad
 paths:
   /api/devices/discover:
     get:
@@ -1625,7 +1625,8 @@ paths:
       summary: Streaming Token
       description: "Return a dummy streaming token for device authentication.\n\n\
         SoundTouch firmware 27.x requests this token before playing a preset.\nIf\
-        \ the request fails, the device aborts playback with INVALID_SOURCE.\n\nArgs:\n\
+        \ the request fails, the device aborts playback with INVALID_SOURCE.\nThe\
+        \ token value is not validated — any non-empty response suffices.\n\nArgs:\n\
         \    device_id: Device MAC address\n\nReturns:\n    JSON with a dummy access\
         \ token"
       operationId: streaming_token_streaming_device__device_id__streaming_token_get
@@ -1649,34 +1650,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
   /v1/blacklist/{device_id}:
-    get:
-      tags:
-      - marge
-      summary: Blacklist Check
-      description: "Content blacklist check — always returns empty (nothing blacklisted).\n\
-        \nThe device checks this before playing content. If the endpoint is\nunreachable,\
-        \ some firmware versions refuse playback.\n\nArgs:\n    device_id: Device\
-        \ MAC address\n\nReturns:\n    JSON with empty blacklist"
-      operationId: blacklist_check_v1_blacklist__device_id__get
-      parameters:
-      - name: device_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Device Id
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
     post:
       tags:
       - marge
@@ -1705,6 +1678,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - marge
+      summary: Blacklist Check
+      description: "Content blacklist check — always returns empty (nothing blacklisted).\n\
+        \nThe device checks this before playing content. If the endpoint is\nunreachable,\
+        \ some firmware versions refuse playback.\n\nArgs:\n    device_id: Device\
+        \ MAC address\n\nReturns:\n    JSON with empty blacklist"
+      operationId: blacklist_check_v1_blacklist__device_id__get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /setMargeAccount:
     post:
       tags:
@@ -1712,44 +1713,16 @@ paths:
       summary: Set Marge Account
       description: "Pair device with a Bose Cloud account (stub).\n\nThe SoundTouch\
         \ app calls this to associate a device with an account.\nOCT doesn't use real\
-        \ cloud accounts, but the device expects a 200 OK.\n\nReturns:\n    200 OK\
-        \ with status XML"
+        \ cloud accounts, but the device expects a 200 OK.\nThe actual margeAccountUUID\
+        \ is set via Telnet or device-side API.\n\nReturns:\n    200 OK with status\
+        \ XML"
       operationId: set_marge_account_setMargeAccount_post
       responses:
         '200':
           description: Successful Response
           content:
-            application/xml:
+            application/json:
               schema: {}
-  /api/setup/wizard/ensure-account:
-    post:
-      tags:
-      - setup-wizard
-      summary: Ensure Account UUID
-      description: "Ensure device has a margeAccountUUID (Wizard Step).\n\nDevices\
-        \ without a margeAccountUUID cannot play presets (INVALID_SOURCE).\nThis endpoint\
-        \ checks GET :8090/info and sets a UUID via Telnet if missing.\n\nSafe to\
-        \ call multiple times — no-op if UUID already present."
-      operationId: wizard_ensure_account_api_setup_wizard_ensure_account_post
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EnsureAccountRequest'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EnsureAccountResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
   /playlist/{device_id}/{preset_number}.m3u:
     get:
       tags:
@@ -1880,7 +1853,7 @@ paths:
       tags:
       - Device Setup
       summary: Check Connectivity
-      description: 'Check if device is ready for setup (SSH/Telnet available).
+      description: 'Check if device is ready for setup (SSH available).
 
 
         This should be called after user inserts USB stick and reboots device.'
@@ -2086,7 +2059,7 @@ paths:
       tags:
       - Setup Wizard
       summary: Wizard Check Ports
-      description: Check if SSH/Telnet ports accessible (Wizard Step 3).
+      description: Check if SSH port is accessible (Wizard Step 3).
       operationId: wizard_check_ports_api_setup_wizard_check_ports_post
       requestBody:
         content:
@@ -2298,6 +2271,79 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/ensure-account:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Ensure Account
+      description: 'Ensure device has a margeAccountUUID (Wizard Step — after config/hosts).
+
+
+        Devices without a margeAccountUUID cannot play presets (INVALID_SOURCE).
+
+        This endpoint checks GET :8090/info and sets a UUID via Telnet if missing.
+
+
+        Safe to call multiple times — no-op if UUID already present.'
+      operationId: wizard_ensure_account_api_setup_wizard_ensure_account_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnsureAccountRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnsureAccountResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/init-persistence:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Init Persistence
+      description: 'Initialize persistence files on factory-reset devices (Wizard
+        Step — after account pairing).
+
+
+        Factory-reset devices lack SystemConfigurationDB.xml and Sources.xml.
+
+        Without them, the firmware never fully initialises playback state,
+
+        causing INVALID_SOURCE on preset recall (GitHub Issue #167).
+
+
+        Only creates files that are missing — never overwrites existing ones.
+
+        Safe to call multiple times.'
+      operationId: wizard_init_persistence_api_setup_wizard_init_persistence_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitPersistenceRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InitPersistenceResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/setup/wizard/complete:
     post:
       tags:
@@ -2369,9 +2415,9 @@ paths:
       description: 'Return firmware INDEX.XML for SoundTouch devices.
 
 
-        The device checks this endpoint at boot and periodically
+        Serves the original Bose worldwide.bose.com index so devices recognise
 
-        to determine if a firmware update is available.'
+        their current firmware as up-to-date and don''t attempt downloads.'
       operationId: firmware_index_updates_soundtouch_get
       responses:
         '200':
@@ -2383,23 +2429,9 @@ paths:
     get:
       tags:
       - swupdate
-      summary: Firmware Download
-      description: 'Redirect firmware download to device.
-
-
-        Firmware files are large (100+ MB). Instead of hosting them,
-
-        we return a 404 — OCT intentionally does NOT serve firmware
-
-        updates to prevent devices from updating to versions that
-
-        might break OCT compatibility.
-
-
-        In the future, this could proxy to archive.org for
-
-        specific firmware versions needed for downgrading.'
-      operationId: firmware_download_ced_eup_downloads_rel__filename__get
+      summary: Firmware Download Legacy
+      description: Block legacy firmware download path.
+      operationId: firmware_download_legacy_ced_eup_downloads_rel__filename__get
       parameters:
       - name: filename
         in: path
@@ -2424,9 +2456,14 @@ paths:
       tags:
       - swupdate
       summary: Firmware Download
-      description: 'Block real Bose firmware download path (Stockholm devices).
+      description: 'Block real Bose firmware download path.
 
-        Returns 404 to prevent unintended firmware updates.'
+
+        The real index XML references https://downloads.bose.com/ced/soundtouch/...
+
+        but since swUpdateUrl points to OCT, the device may try to fetch from here.
+
+        We return 404 to prevent unintended firmware updates.'
       operationId: firmware_download_ced_soundtouch_downloads_stockholm__path__get
       parameters:
       - name: path
@@ -2635,6 +2672,217 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/logs/level:
+    get:
+      tags:
+      - logs
+      summary: Get current log level
+      operationId: get_log_level_api_logs_level_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogLevelResponse'
+    put:
+      tags:
+      - logs
+      summary: Set log level at runtime
+      operationId: put_log_level_api_logs_level_put
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogLevelRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogLevelResponse'
+        '400':
+          description: Invalid log level
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/logs/backend:
+    get:
+      tags:
+      - logs
+      summary: Download backend log buffer (without frontend logs)
+      description: Returns backend logs only. Use POST to include frontend console
+        logs.
+      operationId: download_backend_logs_get_api_logs_backend_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/plain:
+              schema:
+                type: string
+    post:
+      tags:
+      - logs
+      summary: Download backend + frontend logs
+      description: Returns backend logs with frontend console logs included.
+      operationId: download_backend_logs_post_api_logs_backend_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogDownloadRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/plain:
+              schema:
+                type: string
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/bug-report:
+    post:
+      tags:
+      - bug-report
+      summary: Create Bug Report
+      description: Create a bug report as a GitHub Issue with auto-collected diagnostics.
+      operationId: create_bug_report_api_bug_report_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BugReportRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BugReportResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/bug-report/diagnostics:
+    post:
+      tags:
+      - bug-report
+      summary: Download Diagnostics
+      description: 'Download a gzipped diagnostic bundle — works without GitHub token.
+
+
+        The user can drag-drop the .log.gz file into a manually created GitHub issue.'
+      operationId: download_diagnostics_api_bug_report_diagnostics_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiagnosticsRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/wizard/audit-log:
+    post:
+      tags:
+      - Wizard Audit
+      summary: Post Audit Entry
+      description: Record a single wizard audit log entry.
+      operationId: post_audit_entry_api_wizard_audit_log_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuditEntryRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEntryResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/wizard/audit-log/batch:
+    post:
+      tags:
+      - Wizard Audit
+      summary: Post Audit Batch
+      description: Record multiple wizard audit log entries in one request.
+      operationId: post_audit_batch_api_wizard_audit_log_batch_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuditBatchRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditBatchResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/wizard/config-snapshot:
+    post:
+      tags:
+      - Wizard Audit
+      summary: Post Config Snapshot
+      description: Store a config XML snapshot.
+      operationId: post_config_snapshot_api_wizard_config_snapshot_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigSnapshotRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigSnapshotResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /health:
     get:
       tags:
@@ -2648,207 +2896,93 @@ paths:
           content:
             application/json:
               schema: {}
-  /api/logs/level:
-    get:
-      tags:
-        - logs
-      summary: Get current log level
-      operationId: get_log_level_api_logs_level_get
-      responses:
-        '200':
-          description: Current log level
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LogLevelResponse'
-    put:
-      tags:
-        - logs
-      summary: Set log level at runtime
-      operationId: put_log_level_api_logs_level_put
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LogLevelRequest'
-      responses:
-        '200':
-          description: Updated log level
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LogLevelResponse'
-        '400':
-          description: Invalid log level
-  /api/logs/backend:
-    get:
-      tags:
-        - logs
-      summary: Download Backend Log
-      description: Returns the in-memory backend log as a plain-text file download.
-      operationId: download_backend_log_api_logs_backend_get
-      responses:
-        '200':
-          description: Plain-text log file download
-          content:
-            text/plain:
-              schema:
-                type: string
-    post:
-      tags:
-        - logs
-      summary: Download Logs with Frontend Console
-      description: Returns backend + frontend console logs as a plain-text file download.
-      operationId: download_backend_log_api_logs_backend_post
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LogDownloadRequest'
-      responses:
-        '200':
-          description: Plain-text log file download
-          content:
-            text/plain:
-              schema:
-                type: string
-  /api/bug-report:
-    post:
-      tags:
-        - bug-report
-      summary: Submit Bug Report
-      description: Submit a bug report that creates a GitHub issue with diagnostic data.
-      operationId: submit_bug_report_api_bug_report_post
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BugReportRequest'
-      responses:
-        '200':
-          description: Bug report submitted successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BugReportResponse'
-        '503':
-          description: GitHub token not configured
-  /api/bug-report/diagnostics:
-    post:
-      tags:
-        - bug-report
-      summary: Download Diagnostics
-      description: Download a gzipped diagnostic bundle without requiring a GitHub token.
-      operationId: download_diagnostics_api_bug_report_diagnostics_post
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DiagnosticsRequest'
-      responses:
-        '200':
-          description: Gzipped diagnostic log file
-          content:
-            application/gzip:
-              schema:
-                type: string
-                format: binary
-  /api/wizard/audit-log:
-    post:
-      tags:
-        - Wizard Audit
-      summary: Post Audit Entry
-      description: Record a single wizard audit log entry.
-      operationId: post_audit_entry_api_wizard_audit_log_post
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AuditEntryRequest'
-      responses:
-        '200':
-          description: Entry recorded
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuditEntryResponse'
-        '503':
-          description: Wizard audit repository not initialized
-  /api/wizard/audit-log/batch:
-    post:
-      tags:
-        - Wizard Audit
-      summary: Post Audit Batch
-      description: Record multiple wizard audit log entries in one request.
-      operationId: post_audit_batch_api_wizard_audit_log_batch_post
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AuditBatchRequest'
-      responses:
-        '200':
-          description: Batch recorded
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuditBatchResponse'
-        '503':
-          description: Wizard audit repository not initialized
-  /api/wizard/config-snapshot:
-    post:
-      tags:
-        - Wizard Audit
-      summary: Post Config Snapshot
-      description: Store a config XML snapshot for audit purposes.
-      operationId: post_config_snapshot_api_wizard_config_snapshot_post
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ConfigSnapshotRequest'
-      responses:
-        '200':
-          description: Snapshot stored
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ConfigSnapshotResponse'
-        '503':
-          description: Wizard audit repository not initialized
 components:
   schemas:
-    LogLevelResponse:
+    AuditBatchRequest:
       properties:
-        level:
-          type: string
-          title: Level
+        entries:
+          items:
+            $ref: '#/components/schemas/AuditEntryRequest'
+          type: array
+          maxItems: 200
+          minItems: 1
+          title: Entries
       type: object
       required:
-      - level
-      title: LogLevelResponse
-    LogLevelRequest:
+      - entries
+      title: AuditBatchRequest
+      description: Batch of audit entries (reduces HTTP roundtrips).
+    AuditBatchResponse:
       properties:
-        level:
-          type: string
-          enum:
-          - DEBUG
-          - INFO
-          - WARNING
-          - ERROR
-          - CRITICAL
-          title: Level
+        success:
+          type: boolean
+          title: Success
+        count:
+          type: integer
+          title: Count
       type: object
       required:
-      - level
-      title: LogLevelRequest
+      - success
+      - count
+      title: AuditBatchResponse
+      description: Response for batch creation.
+    AuditEntryRequest:
+      properties:
+        device_id:
+          type: string
+          title: Device Id
+          description: Device MAC/ID
+        category:
+          type: string
+          title: Category
+          description: 'Event category: user_action, device_info, api_call, config_change,
+            step_transition, checkbox, dropdown, error'
+        event:
+          type: string
+          title: Event
+          description: Short event name, e.g. 'button_click:next'
+        step:
+          anyOf:
+          - type: integer
+            maximum: 7.0
+            minimum: 0.0
+          - type: 'null'
+          title: Step
+          description: Wizard step number (0=init)
+        detail:
+          anyOf:
+          - type: string
+            maxLength: 10000
+          - type: 'null'
+          title: Detail
+          description: JSON-encoded extra data (free-form)
+        timestamp:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Timestamp
+          description: ISO-8601 timestamp from frontend
+      type: object
+      required:
+      - device_id
+      - category
+      - event
+      title: AuditEntryRequest
+      description: Single wizard audit log entry from the frontend.
+    AuditEntryResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        id:
+          type: integer
+          title: Id
+      type: object
+      required:
+      - success
+      - id
+      title: AuditEntryResponse
+      description: Response for single entry creation.
     BackupRequest:
       properties:
         device_ip:
@@ -2886,50 +3020,6 @@ components:
       - message
       title: BackupResponse
       description: Response with backup results.
-    BugReportRequest:
-      type: object
-      required:
-        - description
-        - steps_to_reproduce
-        - expected_behavior
-        - installation_type
-        - hardware
-      properties:
-        description:
-          type: string
-          minLength: 20
-        steps_to_reproduce:
-          type: string
-          minLength: 10
-        expected_behavior:
-          type: string
-          minLength: 10
-        installation_type:
-          type: string
-        hardware:
-          type: string
-        soundtouch_devices:
-          type: array
-          items:
-            type: string
-          default: []
-        other_installation:
-          type: string
-          default: ''
-        other_hardware:
-          type: string
-          default: ''
-      title: BugReportRequest
-    BugReportResponse:
-      type: object
-      properties:
-        issue_url:
-          type: string
-        issue_number:
-          type: integer
-        message:
-          type: string
-      title: BugReportResponse
     Body_set_mute_api_devices__device_id__mute_put:
       properties:
         muted:
@@ -2950,6 +3040,94 @@ components:
       required:
       - level
       title: Body_set_volume_api_devices__device_id__volume_put
+    BugReportRequest:
+      properties:
+        description:
+          type: string
+          maxLength: 2000
+          minLength: 10
+          title: Description
+        steps_to_reproduce:
+          type: string
+          maxLength: 2000
+          minLength: 10
+          title: Steps To Reproduce
+        expected_behavior:
+          type: string
+          maxLength: 1000
+          minLength: 5
+          title: Expected Behavior
+        installation_type:
+          type: string
+          title: Installation Type
+        hardware:
+          type: string
+          title: Hardware
+        soundtouch_devices:
+          items:
+            type: string
+          type: array
+          title: Soundtouch Devices
+          default: []
+        network_config:
+          type: string
+          title: Network Config
+          default: ''
+        additional_info:
+          type: string
+          title: Additional Info
+          default: ''
+        other_installation:
+          type: string
+          title: Other Installation
+          default: ''
+        other_hardware:
+          type: string
+          title: Other Hardware
+          default: ''
+        other_device:
+          type: string
+          title: Other Device
+          default: ''
+        screenshot_data_url:
+          type: string
+          title: Screenshot Data Url
+          default: ''
+        frontend_logs:
+          items:
+            type: object
+          type: array
+          title: Frontend Logs
+          default: []
+        browser_info:
+          type: string
+          title: Browser Info
+          default: ''
+        current_route:
+          type: string
+          title: Current Route
+          default: ''
+        click_timestamp:
+          type: number
+          title: Click Timestamp
+          default: 0.0
+      type: object
+      required:
+      - description
+      - steps_to_reproduce
+      - expected_behavior
+      - installation_type
+      - hardware
+      title: BugReportRequest
+    BugReportResponse:
+      properties:
+        issue_url:
+          type: string
+          title: Issue Url
+      type: object
+      required:
+      - issue_url
+      title: BugReportResponse
     ChangeMasterRequest:
       properties:
         new_master_id:
@@ -3005,6 +3183,52 @@ components:
       - message
       title: ConfigModifyResponse
       description: Response with config modification result.
+    ConfigSnapshotRequest:
+      properties:
+        device_id:
+          type: string
+          title: Device Id
+        file_path:
+          type: string
+          title: File Path
+          description: Config file path on device
+        content:
+          type: string
+          maxLength: 50000
+          title: Content
+          description: Full XML content
+        trigger:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Trigger
+          description: What caused the snapshot, e.g. 'before_modify'
+        timestamp:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Timestamp
+      type: object
+      required:
+      - device_id
+      - file_path
+      - content
+      title: ConfigSnapshotRequest
+      description: Request to store a config XML snapshot.
+    ConfigSnapshotResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        id:
+          type: integer
+          title: Id
+      type: object
+      required:
+      - success
+      - id
+      title: ConfigSnapshotResponse
+      description: Response for snapshot creation.
     ConnectivityCheckRequest:
       properties:
         ip:
@@ -3051,6 +3275,33 @@ components:
       - message
       title: DetectStrategyResponse
       description: Response with detected setup strategy.
+    DiagnosticsRequest:
+      properties:
+        frontend_logs:
+          items:
+            type: object
+          type: array
+          title: Frontend Logs
+          default: []
+        description:
+          type: string
+          title: Description
+          default: ''
+        browser_info:
+          type: string
+          title: Browser Info
+          default: ''
+        current_route:
+          type: string
+          title: Current Route
+          default: ''
+        click_timestamp:
+          type: number
+          title: Click Timestamp
+          default: 0.0
+      type: object
+      title: DiagnosticsRequest
+      description: Request body for diagnostics download (no GitHub token needed).
     EnablePermanentSSHRequest:
       properties:
         device_id:
@@ -3072,6 +3323,57 @@ components:
       - ip
       title: EnablePermanentSSHRequest
       description: Request to enable permanent SSH access on device.
+    EnsureAccountRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+      type: object
+      required:
+      - device_ip
+      title: EnsureAccountRequest
+      description: Request to ensure device has a margeAccountUUID.
+    EnsureAccountResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        had_uuid:
+          type: boolean
+          title: Had Uuid
+          description: True if UUID was already present
+        uuid:
+          type: string
+          title: Uuid
+          description: The current or newly set UUID
+          default: ''
+        message:
+          type: string
+          title: Message
+          default: ''
+      type: object
+      required:
+      - success
+      - had_uuid
+      title: EnsureAccountResponse
+      description: Response from account pairing check/fix.
+    FrontendLogEntry:
+      properties:
+        timestamp:
+          type: string
+          title: Timestamp
+          default: ''
+        level:
+          type: string
+          title: Level
+          default: ''
+        message:
+          type: string
+          title: Message
+          default: ''
+      type: object
+      title: FrontendLogEntry
+      description: A single frontend console log entry.
     HTTPValidationError:
       properties:
         detail:
@@ -3122,6 +3424,52 @@ components:
       - message
       title: HostsModifyResponse
       description: Response with hosts modification result.
+    InitPersistenceRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+        device_name:
+          type: string
+          maxLength: 100
+          title: Device Name
+          description: Device name from GET :8090/info <name>
+        account_uuid:
+          type: string
+          pattern: ^\d{1,10}$
+          title: Account Uuid
+          description: margeAccountUUID (7-digit numeric, from account pairing)
+      type: object
+      required:
+      - device_ip
+      - device_name
+      - account_uuid
+      title: InitPersistenceRequest
+      description: Request to initialize persistence files on a factory-reset device.
+    InitPersistenceResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        created_files:
+          items:
+            type: string
+          type: array
+          title: Created Files
+        skipped_files:
+          items:
+            type: string
+          type: array
+          title: Skipped Files
+        message:
+          type: string
+          title: Message
+          default: ''
+      type: object
+      required:
+      - success
+      title: InitPersistenceResponse
+      description: Response from persistence initialization.
     ListBackupsRequest:
       properties:
         device_ip:
@@ -3152,6 +3500,43 @@ components:
       - success
       title: ListBackupsResponse
       description: Response with backup list.
+    LogDownloadRequest:
+      properties:
+        frontend_logs:
+          items:
+            $ref: '#/components/schemas/FrontendLogEntry'
+          type: array
+          title: Frontend Logs
+          default: []
+      type: object
+      title: LogDownloadRequest
+      description: Optional body for POST /api/logs/backend with frontend logs.
+    LogLevelRequest:
+      properties:
+        level:
+          type: string
+          enum:
+          - DEBUG
+          - INFO
+          - WARNING
+          - ERROR
+          - CRITICAL
+          title: Level
+      type: object
+      required:
+      - level
+      title: LogLevelRequest
+      description: Request to change the log level at runtime.
+    LogLevelResponse:
+      properties:
+        level:
+          type: string
+          title: Level
+      type: object
+      required:
+      - level
+      title: LogLevelResponse
+      description: Current log level.
     ManualIPsResponse:
       properties:
         ips:
@@ -3192,7 +3577,7 @@ components:
       required:
       - device_ip
       title: PortCheckRequest
-      description: Request to check SSH/Telnet ports.
+      description: Request to check SSH port.
     PortCheckResponse:
       properties:
         success:
@@ -3506,197 +3891,6 @@ components:
       - domain
       - message
       title: VerifyRedirectResponse
-    DiagnosticsRequest:
-      properties:
-        frontend_logs:
-          type: array
-          items:
-            type: object
-          title: Frontend Logs
-          default: []
-        description:
-          type: string
-          title: Description
-          default: ''
-        browser_info:
-          type: string
-          title: Browser Info
-          default: ''
-        current_route:
-          type: string
-          title: Current Route
-          default: ''
-        click_timestamp:
-          type: number
-          title: Click Timestamp
-          default: 0.0
-      type: object
-      title: DiagnosticsRequest
-    AuditEntryRequest:
-      properties:
-        device_id:
-          type: string
-          title: Device Id
-        category:
-          type: string
-          title: Category
-        event:
-          type: string
-          title: Event
-        step:
-          type: integer
-          title: Step
-          minimum: 0
-          maximum: 7
-        detail:
-          type: string
-          title: Detail
-          maxLength: 10000
-        timestamp:
-          type: string
-          title: Timestamp
-      type: object
-      required:
-      - device_id
-      - category
-      - event
-      title: AuditEntryRequest
-    AuditEntryResponse:
-      properties:
-        success:
-          type: boolean
-          title: Success
-        id:
-          type: integer
-          title: Id
-      type: object
-      required:
-      - success
-      - id
-      title: AuditEntryResponse
-    AuditBatchRequest:
-      properties:
-        entries:
-          type: array
-          items:
-            $ref: '#/components/schemas/AuditEntryRequest'
-          title: Entries
-          minItems: 1
-          maxItems: 200
-      type: object
-      required:
-      - entries
-      title: AuditBatchRequest
-    AuditBatchResponse:
-      properties:
-        success:
-          type: boolean
-          title: Success
-        count:
-          type: integer
-          title: Count
-      type: object
-      required:
-      - success
-      - count
-      title: AuditBatchResponse
-    ConfigSnapshotRequest:
-      properties:
-        device_id:
-          type: string
-          title: Device Id
-        file_path:
-          type: string
-          title: File Path
-        content:
-          type: string
-          title: Content
-          maxLength: 50000
-        trigger:
-          type: string
-          title: Trigger
-        timestamp:
-          type: string
-          title: Timestamp
-      type: object
-      required:
-      - device_id
-      - file_path
-      - content
-      title: ConfigSnapshotRequest
-    ConfigSnapshotResponse:
-      properties:
-        success:
-          type: boolean
-          title: Success
-        id:
-          type: integer
-          title: Id
-      type: object
-      required:
-      - success
-      - id
-      title: ConfigSnapshotResponse
-    FrontendLogEntry:
-      properties:
-        timestamp:
-          type: string
-          title: Timestamp
-          default: ''
-        level:
-          type: string
-          title: Level
-          default: ''
-        message:
-          type: string
-          title: Message
-          default: ''
-      type: object
-      title: FrontendLogEntry
-    LogDownloadRequest:
-      properties:
-        frontend_logs:
-          type: array
-          items:
-            $ref: '#/components/schemas/FrontendLogEntry'
-          title: Frontend Logs
-          default: []
-      type: object
-      title: LogDownloadRequest
-    EnsureAccountRequest:
-      properties:
-        device_ip:
-          type: string
-          title: Device Ip
-      type: object
-      required:
-      - device_ip
-      title: EnsureAccountRequest
-      description: Request to ensure device has a margeAccountUUID.
-    EnsureAccountResponse:
-      properties:
-        success:
-          type: boolean
-          title: Success
-        had_uuid:
-          type: boolean
-          title: Had Uuid
-          description: True if UUID was already present
-        uuid:
-          type: string
-          title: Uuid
-          description: The current or newly set UUID
-          default: ''
-        message:
-          type: string
-          title: Message
-          default: ''
-      type: object
-      required:
-      - success
-      - had_uuid
-      title: EnsureAccountResponse
-      description: Response from account pairing check/fix.
       description: Response with domain redirect verification result.
     WizardCompleteRequest:
       properties:

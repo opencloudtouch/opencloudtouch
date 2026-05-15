@@ -539,7 +539,9 @@
     "github": "GitHub",
     "reportIssue": "Rapportera problem",
     "support": "Stöd",
-    "versionUnavailable": "Version ej tillgänglig"
+    "versionUnavailable": "Version ej tillgänglig",
+    "creditsTitle": "Bidragsgivare",
+    "creditsDescription": "Speciellt tack till communitymedlemmarna som bidragit med forskning, testning och reverse engineering."
   },
   "discovery": {
     "started": "Sökning startad",

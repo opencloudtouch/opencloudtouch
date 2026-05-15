@@ -9,6 +9,29 @@ const GITHUB_URL = "https://github.com/scheilch/opencloudtouch";
 const ISSUES_URL = "https://github.com/scheilch/opencloudtouch/issues/new?template=bug_report.yml";
 const BMC_URL = "https://buymeacoffee.com/b49rjg5k6vj";
 
+const CONTRIBUTORS = [
+  {
+    name: "Zimbo88",
+    url: "https://github.com/Zimbo88",
+    contribution: "Reverse engineering, factory-reset fix, persistence initialization",
+  },
+  {
+    name: "danielkohl",
+    url: "https://github.com/danielkohl",
+    contribution: "Root cause discovery (HTTPS→HTTP protocol fix), first working manual fix",
+  },
+  {
+    name: "ubittner",
+    url: "https://github.com/ubittner",
+    contribution: "margeAccountUUID correlation analysis, systematic debugging",
+  },
+  {
+    name: "bratwurstbraeter",
+    url: "https://github.com/bratwurstbraeter",
+    contribution: "Bosman app discovery that enabled the factory-reset fix",
+  },
+];
+
 export default function AboutSection() {
   const { t } = useTranslation();
   const { data: health, isLoading: healthLoading, isError: healthError } = useHealth();
@@ -81,6 +104,29 @@ export default function AboutSection() {
               >
                 <span className="about-link-icon">{link.icon}</span>
                 <span className="about-link-label">{link.label}</span>
+                <span className="about-link-chevron">{"\u203A"}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+
+        <hr className="about-divider" />
+
+        {/* Community contributors */}
+        <h3 className="about-credits-title">
+          <span className="about-meta-icon">{"\uD83C\uDFC6"}</span>
+          {t("about.creditsTitle")}
+        </h3>
+        <p className="about-credits-description">{t("about.creditsDescription")}</p>
+        <ul className="about-links">
+          {CONTRIBUTORS.map((c) => (
+            <li key={c.name}>
+              <a href={c.url} target="_blank" rel="noopener noreferrer" className="about-link-item">
+                <span className="about-link-icon">{"\uD83D\uDC64"}</span>
+                <span className="about-link-label">
+                  <strong>@{c.name}</strong>
+                  <span className="about-contributor-detail"> — {c.contribution}</span>
+                </span>
                 <span className="about-link-chevron">{"\u203A"}</span>
               </a>
             </li>

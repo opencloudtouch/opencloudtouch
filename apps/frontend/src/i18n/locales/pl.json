@@ -539,7 +539,9 @@
     "github": "GitHub",
     "reportIssue": "Zgłoś problem",
     "support": "Wesprzyj",
-    "versionUnavailable": "Wersja niedostępna"
+    "versionUnavailable": "Wersja niedostępna",
+    "creditsTitle": "Współtwórcy",
+    "creditsDescription": "Szczególne podziękowania dla członków społeczności, którzy przyczynili się do badań, testów i inżynierii wstecznej."
   },
   "discovery": {
     "started": "Wyszukiwanie rozpoczęte",
