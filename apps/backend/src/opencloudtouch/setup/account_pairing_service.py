@@ -10,7 +10,7 @@ If missing, it is set via Telnet port 17000 using:
 """
 
 import logging
-import random
+import secrets
 from dataclasses import dataclass
 from typing import Optional
 
@@ -40,7 +40,7 @@ class AccountPairingResult:
 
 def _generate_account_uuid() -> str:
     """Generate a 7-digit account UUID (matching Bose format)."""
-    return str(random.randint(1_000_000, 9_999_999))  # noqa: S311
+    return str(secrets.randbelow(9_000_000) + 1_000_000)
 
 
 async def check_marge_account_uuid(
