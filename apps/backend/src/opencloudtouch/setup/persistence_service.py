@@ -161,7 +161,7 @@ async def ensure_persistence_files(
         )
 
     except Exception as e:
-        logger.error("Persistence initialization failed: %s", e)
+        logger.exception("Persistence initialization failed")
         return PersistenceInitResult(
             success=False,
             created_files=created,
