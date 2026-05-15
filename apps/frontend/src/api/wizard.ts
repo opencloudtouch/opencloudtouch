@@ -6,6 +6,7 @@
  */
 
 import type { components } from "./generated/schema";
+import { throwIfNotOk } from "./types";
 
 // Re-export generated DTOs as convenient aliases
 export type CheckPortsRequest = components["schemas"]["PortCheckRequest"];
@@ -74,11 +75,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
  */
 export async function getServerInfo(): Promise<ServerInfoResponse> {
   const response = await fetch(`${API_BASE}/api/setup/wizard/server-info`);
-
-  if (!response.ok) {
-    throw new Error(`Server info fetch failed: ${response.statusText}`);
-  }
-
+  await throwIfNotOk(response, "Server info fetch failed");
   return response.json();
 }
 
@@ -87,11 +84,7 @@ export async function getServerInfo(): Promise<ServerInfoResponse> {
  */
 export async function detectStrategy(): Promise<DetectStrategyResponse> {
   const response = await fetch(`${API_BASE}/api/setup/wizard/detect-strategy`);
-
-  if (!response.ok) {
-    throw new Error(`Strategy detection failed: ${response.statusText}`);
-  }
-
+  await throwIfNotOk(response, "Strategy detection failed");
   return response.json();
 }
 
@@ -105,10 +98,7 @@ export async function checkPorts(request: CheckPortsRequest): Promise<CheckPorts
     body: JSON.stringify(request),
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Port check failed: ${error}`);
-  }
+  await throwIfNotOk(response, "Port check failed");
 
   return response.json();
 }
@@ -123,10 +113,7 @@ export async function createBackup(request: BackupRequest): Promise<BackupRespon
     body: JSON.stringify(request),
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Backup failed: ${error}`);
-  }
+  await throwIfNotOk(response, "Backup failed");
 
   return response.json();
 }
@@ -141,10 +128,7 @@ export async function modifyConfig(request: ModifyConfigRequest): Promise<Modify
     body: JSON.stringify(request),
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Config modification failed: ${error}`);
-  }
+  await throwIfNotOk(response, "Config modification failed");
 
   return response.json();
 }
@@ -159,10 +143,7 @@ export async function modifyHosts(request: ModifyHostsRequest): Promise<ModifyHo
     body: JSON.stringify(request),
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Hosts modification failed: ${error}`);
-  }
+  await throwIfNotOk(response, "Hosts modification failed");
 
   return response.json();
 }
@@ -177,10 +158,7 @@ export async function restoreConfig(request: RestoreRequest): Promise<RestoreRes
     body: JSON.stringify(request),
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Config restore failed: ${error}`);
-  }
+  await throwIfNotOk(response, "Config restore failed");
 
   return response.json();
 }
@@ -195,10 +173,7 @@ export async function restoreHosts(request: RestoreRequest): Promise<RestoreResp
     body: JSON.stringify(request),
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Hosts restore failed: ${error}`);
-  }
+  await throwIfNotOk(response, "Hosts restore failed");
 
   return response.json();
 }
@@ -213,10 +188,7 @@ export async function rebootDevice(request: RebootDeviceRequest): Promise<Reboot
     body: JSON.stringify(request),
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Reboot failed: ${error}`);
-  }
+  await throwIfNotOk(response, "Reboot failed");
 
   return response.json();
 }
@@ -233,10 +205,7 @@ export async function enablePermanentSsh(
     body: JSON.stringify(request),
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Enable permanent SSH failed: ${error}`);
-  }
+  await throwIfNotOk(response, "Enable permanent SSH failed");
 
   return response.json();
 }
@@ -253,10 +222,7 @@ export async function completeWizard(
     body: JSON.stringify(request),
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Complete wizard failed: ${error}`);
-  }
+  await throwIfNotOk(response, "Complete wizard failed");
 
   return response.json();
 }
@@ -273,10 +239,7 @@ export async function verifyRedirect(
     body: JSON.stringify(request),
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Redirect verification failed: ${error}`);
-  }
+  await throwIfNotOk(response, "Redirect verification failed");
 
   return response.json();
 }

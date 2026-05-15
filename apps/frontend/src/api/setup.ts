@@ -3,7 +3,8 @@
  * API calls for device setup wizard
  */
 
-import { getErrorMessage } from "./types";
+import { throwIfNotOk } from "./types";
+import i18next from "i18next";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
@@ -76,12 +77,7 @@ export async function getModelInstructions(model: string): Promise<ModelInstruct
   const response = await fetch(
     `${API_BASE_URL}/api/setup/instructions/${encodeURIComponent(model)}`
   );
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(
-      getErrorMessage(errorData) || `Failed to get instructions: ${response.statusText}`
-    );
-  }
+  await throwIfNotOk(response, "Failed to get instructions");
   return response.json();
 }
 
@@ -94,12 +90,7 @@ export async function checkConnectivity(ip: string): Promise<ConnectivityResult>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ip }),
   });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(
-      getErrorMessage(errorData) || `Connectivity check failed: ${response.statusText}`
-    );
-  }
+  await throwIfNotOk(response, "Connectivity check failed");
   return response.json();
 }
 
@@ -108,10 +99,7 @@ export async function checkConnectivity(ip: string): Promise<ConnectivityResult>
  */
 export async function getSetupStatus(deviceId: string): Promise<SetupProgress | null> {
   const response = await fetch(`${API_BASE_URL}/api/setup/status/${deviceId}`);
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(getErrorMessage(errorData) || `Failed to get status: ${response.statusText}`);
-  }
+  await throwIfNotOk(response, "Failed to get status");
   const data = await response.json();
   if (data.status === "not_found") {
     return null;
@@ -139,10 +127,7 @@ export async function verifySetup(
       method: "POST",
     }
   );
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(getErrorMessage(errorData) || `Verification failed: ${response.statusText}`);
-  }
+  await throwIfNotOk(response, "Verification failed");
   return response.json();
 }
 
@@ -151,27 +136,28 @@ export async function verifySetup(
  */
 export async function getSupportedModels(): Promise<ModelInstructions[]> {
   const response = await fetch(`${API_BASE_URL}/api/setup/models`);
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(getErrorMessage(errorData) || `Failed to get models: ${response.statusText}`);
-  }
+  await throwIfNotOk(response, "Failed to get models");
   const data = await response.json();
   return data.models || [];
 }
 
 /**
- * Human-readable step labels (German)
+ * Human-readable step labels
  */
-export const STEP_LABELS: Record<SetupStep, string> = {
-  usb_insert: "USB-Stick einstecken",
-  device_reboot: "Gerät neu starten",
-  ssh_connect: "SSH-Verbindung herstellen",
-  ssh_persist: "SSH dauerhaft aktivieren",
-  config_backup: "Backup erstellen",
-  config_modify: "Konfiguration anpassen",
-  verify: "Verifizieren",
-  complete: "Abgeschlossen",
-};
+export function getStepLabel(step: SetupStep): string {
+  const t = i18next.t.bind(i18next);
+  const labels: Record<SetupStep, string> = {
+    usb_insert: t("setup.stepLabels.usbInsert"),
+    device_reboot: t("setup.stepLabels.deviceReboot"),
+    ssh_connect: t("setup.stepLabels.sshConnect"),
+    ssh_persist: t("setup.stepLabels.sshPersist"),
+    config_backup: t("setup.stepLabels.configBackup"),
+    config_modify: t("setup.stepLabels.configModify"),
+    verify: t("setup.stepLabels.verify"),
+    complete: t("setup.stepLabels.complete"),
+  };
+  return labels[step];
+}
 
 /**
  * Step order for progress calculation

@@ -17,6 +17,8 @@ from xml.etree.ElementTree import Element
 import httpx
 from defusedxml.ElementTree import fromstring as parse_xml_string
 
+from opencloudtouch.discovery import SOUNDTOUCH_WEBSERVER_PORT
+
 logger = logging.getLogger(__name__)
 
 
@@ -57,21 +59,20 @@ class SSDPDiscovery:
                 }
             }
         """
-        logger.info(f"Starting SSDP discovery (timeout: {self.timeout}s)")
+        logger.info("Starting SSDP discovery (timeout: %ds)", self.timeout)
 
         try:
-            # Run SSDP M-SEARCH in executor (blocking I/O)
-            loop = asyncio.get_event_loop()
-            locations = await loop.run_in_executor(None, self._ssdp_msearch)
+            # Run SSDP M-SEARCH in thread (blocking I/O)
+            locations = await asyncio.to_thread(self._ssdp_msearch)
 
             # Fetch and parse device descriptions
             devices = await self._fetch_device_descriptions(locations)
 
-            logger.info(f"SSDP discovery found {len(devices)} Bose device(s)")
+            logger.info("SSDP discovery found %d Bose device(s)", len(devices))
             return devices
 
-        except Exception as e:
-            logger.error(f"SSDP discovery failed: {e}", exc_info=True)
+        except Exception:
+            logger.exception("SSDP discovery failed")
             return {}
 
     def _ssdp_msearch(self) -> list[str]:
@@ -119,8 +120,8 @@ class SSDPDiscovery:
             try:
                 sock.sendto(msg, (self.SSDP_MULTICAST_ADDR, self.SSDP_PORT))
                 logger.debug("Sent SSDP M-SEARCH multicast")
-            except OSError as e:
-                logger.error(f"Failed to send SSDP M-SEARCH: {e}")
+            except OSError:
+                logger.exception("Failed to send SSDP M-SEARCH")
                 return []
 
             # Collect responses until wall-clock deadline
@@ -136,18 +137,18 @@ class SSDPDiscovery:
                     location = self._parse_location(response)
                     if location:
                         locations.add(location)
-                        logger.debug(f"Found SSDP device at {location}")
+                        logger.debug("Found SSDP device at %s", location)
 
                 except socket.timeout:
                     continue  # Check deadline again
                 except Exception as e:
-                    logger.debug(f"Error receiving SSDP response: {e}")
+                    logger.debug("Error receiving SSDP response: %s", e)
                     break
 
         finally:
             sock.close()
 
-        logger.info(f"SSDP M-SEARCH found {len(locations)} device(s)")
+        logger.info("SSDP M-SEARCH found %d device(s)", len(locations))
         return list(locations)
 
     def _parse_location(self, response: str) -> Optional[str]:
@@ -180,21 +181,24 @@ class SSDPDiscovery:
         devices = {}
 
         # Pre-filter: Only fetch Bose SoundTouch device URLs
-        # Bose devices use port 8091 and have characteristic BO5EBO5E UUID pattern
+        # Bose devices use the WebServer port and have characteristic BO5EBO5E UUID pattern
         # This avoids fetching XMLs from non-Bose devices (routers, printers, etc.)
+        bose_port = f":{SOUNDTOUCH_WEBSERVER_PORT}/"
         bose_locations = [
-            loc for loc in locations if ":8091/" in loc and "BO5EBO5E" in loc
+            loc for loc in locations if bose_port in loc and "BO5EBO5E" in loc
         ]
 
         if not bose_locations:
             logger.info(
-                f"No Bose device URLs found in {len(locations)} SSDP response(s)"
+                "No Bose device URLs found in %d SSDP response(s)",
+                len(locations),
             )
             return {}
 
         logger.info(
-            f"Pre-filtered to {len(bose_locations)} Bose device(s) "
-            f"from {len(locations)} total SSDP response(s)"
+            "Pre-filtered to %d Bose device(s) from %d total SSDP response(s)",
+            len(bose_locations),
+            len(locations),
         )
 
         # Use higher connection limit to parallelize more aggressively
@@ -257,7 +261,9 @@ class SSDPDiscovery:
             # Format: AA:BB:CC:DD:EE:FF or AABBCCDDEEFF
             mac = serial.upper()
 
-            logger.info(f"Found Bose device: {friendly_name} ({model_name}) at {ip}")
+            logger.info(
+                "Found Bose device: %s (%s) at %s", friendly_name, model_name, ip
+            )
 
             return {
                 "ip": ip,
@@ -267,7 +273,7 @@ class SSDPDiscovery:
             }
 
         except Exception as e:
-            logger.debug(f"Failed to parse device at {location}: {e}")
+            logger.debug("Failed to parse device at %s: %s", location, e)
             return None
 
     def _find_xml_text(self, root: Element, path: str) -> Optional[str]:

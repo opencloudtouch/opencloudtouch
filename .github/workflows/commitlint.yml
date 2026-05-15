@@ -48,6 +48,11 @@ jobs:
           # Validate each commit
           EXIT_CODE=0
           while IFS= read -r commit; do
+            # Skip merge commits (not subject to Conventional Commits)
+            if echo "$commit" | grep -qE "^[Mm]erge[ :]"; then
+              echo "⏭️  Skipping merge commit: $commit"
+              continue
+            fi
             echo "Checking: $commit"
             if ! echo "$commit" | commitlint; then
               EXIT_CODE=1

@@ -7,9 +7,9 @@ as a replacement for the Bose Cloud TuneIn integration.
 import logging
 import os
 import re
-from xml.etree import ElementTree
 
 import httpx
+from defusedxml.ElementTree import fromstring as parse_xml_string
 
 from opencloudtouch.bmx.models import BmxAudio, BmxPlaybackResponse, BmxStream
 from opencloudtouch.bmx.stream_utils import convert_https_to_http
@@ -37,7 +37,7 @@ def _parse_tunein_describe_xml(describe_xml: str) -> tuple[str, str]:
     Returns:
         Tuple of (station_name, logo_url), using sane defaults on missing data.
     """
-    root = ElementTree.fromstring(describe_xml)  # nosec B314
+    root = parse_xml_string(describe_xml)
     body = root.find("body")
     outline = body.find("outline") if body is not None else None
     station_elem = outline.find("station") if outline is not None else None
@@ -85,7 +85,7 @@ async def resolve_tunein_station(station_id: str) -> BmxPlaybackResponse:
     Returns:
         BmxPlaybackResponse with stream URLs
     """
-    logger.info(f"[BMX TUNEIN] Resolving station: {station_id}")
+    logger.info("[BMX TUNEIN] Resolving station: %s", station_id)
 
     if not _STATION_ID_RE.match(station_id):
         raise ValueError(f"Invalid station ID format: {station_id}")
@@ -105,9 +105,9 @@ async def resolve_tunein_station(station_id: str) -> BmxPlaybackResponse:
             if not stream_urls:
                 raise ValueError(f"No stream URLs found for station {station_id}")
 
-            logger.info(f"[BMX TUNEIN] Resolved {station_id} → {stream_urls[0]}")
+            logger.info("[BMX TUNEIN] Resolved %s → %s", station_id, stream_urls[0])
             return _build_tunein_playback_response(station_id, stream_urls, name, logo)
 
     except Exception as e:
-        logger.error(f"[BMX TUNEIN] Error resolving {station_id}: {e}")
+        logger.error("[BMX TUNEIN] Error resolving %s: %s", station_id, e)
         raise

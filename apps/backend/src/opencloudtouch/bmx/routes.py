@@ -46,7 +46,9 @@ async def bmx_now_playing_stub(station_id: str | None = None) -> JSONResponse:
     Device calls this to get currently playing track info.
     Returns minimal valid response to prevent errors.
     """
-    logger.info(f"[BMX NOW-PLAYING] Station: {station_id or 'custom'}")
+    logger.info(  # NOSONAR — device path param
+        "[BMX NOW-PLAYING] Station: %s", station_id or "custom"
+    )
     return JSONResponse(
         content={
             "status": "playing",
@@ -64,7 +66,9 @@ async def bmx_reporting_stub(station_id: str | None = None) -> JSONResponse:
     Device calls this to report playback events.
     Returns success to prevent errors.
     """
-    logger.info(f"[BMX REPORTING] Station: {station_id or 'custom'}")
+    logger.info(  # NOSONAR — device path param
+        "[BMX REPORTING] Station: %s", station_id or "custom"
+    )
     return JSONResponse(
         content={"status": "ok"},
         headers={"Access-Control-Allow-Origin": "*"},
@@ -77,7 +81,7 @@ async def bmx_tunein_now_playing(station_id: str) -> JSONResponse:
 
     Device calls this to get currently playing track info.
     """
-    logger.info(f"[BMX TUNEIN NOW-PLAYING] Station: {station_id}")
+    logger.info("[BMX TUNEIN NOW-PLAYING] Station: %s", station_id)  # NOSONAR
     return JSONResponse(
         content={"status": "playing", "stationId": station_id},
         headers={"Access-Control-Allow-Origin": "*"},
@@ -90,7 +94,7 @@ async def bmx_tunein_reporting(station_id: str) -> JSONResponse:
 
     Device calls this to report playback events.
     """
-    logger.info(f"[BMX TUNEIN REPORTING] Station: {station_id}")
+    logger.info("[BMX TUNEIN REPORTING] Station: %s", station_id)  # NOSONAR
     return JSONResponse(
         content={"status": "ok"},
         headers={"Access-Control-Allow-Origin": "*"},
@@ -104,7 +108,7 @@ async def bmx_tunein_favorite(station_id: str) -> JSONResponse:
 
     Device calls this to mark/unmark stations as favorites.
     """
-    logger.info(f"[BMX TUNEIN FAVORITE] Station: {station_id}")
+    logger.info("[BMX TUNEIN FAVORITE] Station: %s", station_id)  # NOSONAR
     return JSONResponse(
         content={"status": "ok", "isFavorite": False},
         headers={"Access-Control-Allow-Origin": "*"},
@@ -155,7 +159,7 @@ async def bmx_services() -> JSONResponse:
 
     response = BmxServicesResponse(bmx_services=services)
 
-    logger.info(f"[BMX REGISTRY] Returning {len(services)} services")
+    logger.info("[BMX REGISTRY] Returning %d services", len(services))
     logger.debug(
         "[BMX REGISTRY] Services: %s",
         [s.id.name for s in services],
@@ -192,9 +196,9 @@ async def bmx_tunein_playback(station_id: str) -> JSONResponse:
             "Access-Control-Allow-Headers": "Content-Type",
         }
 
-        return JSONResponse(content=response.model_dump(), headers=headers)
+        return JSONResponse(content=response.model_dump(by_alias=True), headers=headers)
     except Exception as e:
-        logger.error(f"[BMX TUNEIN] Playback error: {e}")
+        logger.exception("[BMX TUNEIN] Playback error: %s", e)
         return JSONResponse(
             content={"error": str(e)},
             status_code=500,
@@ -236,13 +240,13 @@ async def custom_stream_playback(request: Request) -> JSONResponse:
 
         # TuneIn stations: resolve stream URL dynamically via TuneIn API
         if tunein_id and not stream_url:
-            logger.info(f"[BMX ORION] TuneIn station detected: {tunein_id} ({name})")
+            logger.info("[BMX ORION] TuneIn station detected: %s (%s)", tunein_id, name)
             return await _resolve_tunein_for_orion(tunein_id)
 
         # Convert HTTPS to HTTP - Bose devices can't play HTTPS streams
         stream_url = convert_https_to_http(stream_url)
 
-        logger.info(f"[BMX ORION] Custom stream: {name} → {stream_url}")
+        logger.info("[BMX ORION] Custom stream: %s → %s", name, stream_url)
 
         stream = BmxStream(streamUrl=stream_url)
         audio = BmxAudio(streamUrl=stream_url, streams=[stream])
@@ -265,12 +269,12 @@ async def custom_stream_playback(request: Request) -> JSONResponse:
         )
 
         return JSONResponse(
-            content=response.model_dump(),
+            content=response.model_dump(by_alias=True),
             headers={"Access-Control-Allow-Origin": "*"},
         )
 
     except Exception as e:
-        logger.error(f"[BMX ORION] Error: {e}")
+        logger.exception("[BMX ORION] Error: %s", e)
         return JSONResponse(
             content={"error": str(e)},
             status_code=500,
@@ -287,11 +291,13 @@ async def _resolve_tunein_for_orion(tunein_id: str) -> JSONResponse:
     try:
         response = await resolve_tunein_station(tunein_id)
         return JSONResponse(
-            content=response.model_dump(),
+            content=response.model_dump(by_alias=True),
             headers={"Access-Control-Allow-Origin": "*"},
         )
     except Exception as e:
-        logger.error(f"[BMX ORION] TuneIn resolution failed for {tunein_id}: {e}")
+        logger.exception(
+            "[BMX ORION] TuneIn resolution failed for %s: %s", tunein_id, e
+        )
         return JSONResponse(
             content={"error": f"TuneIn resolution failed: {e}"},
             status_code=500,

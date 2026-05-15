@@ -19,6 +19,11 @@ import httpx
 
 from opencloudtouch.radio.models import RadioStation
 from opencloudtouch.radio.provider import RadioProvider
+from opencloudtouch.core.exceptions import (
+    RadioConnectionError,
+    RadioError,
+    RadioTimeoutError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +33,15 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-class TuneInError(Exception):
+class TuneInError(RadioError):
     """Base exception for TuneIn provider errors."""
 
 
-class TuneInTimeoutError(TuneInError):
+class TuneInTimeoutError(TuneInError, RadioTimeoutError):
     """Request timeout error."""
 
 
-class TuneInConnectionError(TuneInError):
+class TuneInConnectionError(TuneInError, RadioConnectionError):
     """Connection error."""
 
 

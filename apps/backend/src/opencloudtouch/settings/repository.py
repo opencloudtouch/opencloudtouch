@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 import aiosqlite
 
+from opencloudtouch.core.exceptions import DomainValidationError
 from opencloudtouch.core.repository import BaseRepository
 
 logger = logging.getLogger(__name__)
@@ -44,14 +45,14 @@ class SettingsRepository(BaseRepository):
         # Basic IP validation
         parts = ip.split(".")
         if len(parts) != 4:
-            raise ValueError(f"Invalid IP address format: {ip}")
+            raise DomainValidationError(f"Invalid IP address format: {ip}", field="ip")
 
         try:
             for part in parts:
                 if not 0 <= int(part) <= 255:
-                    raise ValueError(f"Invalid IP address: {ip}")
-        except ValueError:
-            raise ValueError(f"Invalid IP address: {ip}")
+                    raise DomainValidationError(f"Invalid IP address: {ip}", field="ip")
+        except (DomainValidationError, ValueError):
+            raise DomainValidationError(f"Invalid IP address: {ip}", field="ip")
 
         try:
             await db.execute(
@@ -62,9 +63,11 @@ class SettingsRepository(BaseRepository):
                 (ip, datetime.now(UTC).isoformat()),
             )
             await db.commit()
-            logger.info(f"Added manual IP: {ip}")
+            logger.info("Added manual IP: %s", ip)
         except aiosqlite.IntegrityError as e:
-            raise ValueError(f"IP address already exists: {ip}") from e
+            raise DomainValidationError(
+                f"IP address already exists: {ip}", field="ip"
+            ) from e
 
     async def remove_manual_ip(self, ip: str) -> None:
         """
@@ -84,9 +87,9 @@ class SettingsRepository(BaseRepository):
         await db.commit()
 
         if cursor.rowcount == 0:
-            logger.warning(f"Manual IP not found for removal: {ip}")
+            logger.warning("Manual IP not found for removal: %s", ip)  # NOSONAR
         else:
-            logger.info(f"Removed manual IP: {ip}")
+            logger.info("Removed manual IP: %s", ip)  # NOSONAR
 
     async def set_manual_ips(self, ips: list[str]) -> None:
         """
@@ -108,7 +111,7 @@ class SettingsRepository(BaseRepository):
             )
 
         await db.commit()
-        logger.info(f"Set {len(ips)} manual IPs")
+        logger.info("Set %d manual IPs", len(ips))
 
     async def get_manual_ips(self) -> list[str]:
         """

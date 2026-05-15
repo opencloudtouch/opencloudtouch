@@ -11,7 +11,11 @@ from opencloudtouch.core.exceptions import DiscoveryError
 from opencloudtouch.devices.client import DeviceClient
 from opencloudtouch.devices.client_adapter import BoseDeviceClientAdapter  # re-export
 from opencloudtouch.devices.discovery.ssdp import SSDPDiscovery
-from opencloudtouch.discovery import DeviceDiscovery, DiscoveredDevice
+from opencloudtouch.discovery import (
+    SOUNDTOUCH_HTTP_PORT,
+    DeviceDiscovery,
+    DiscoveredDevice,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -32,32 +36,35 @@ class BoseDeviceDiscoveryAdapter(DeviceDiscovery):
         Raises:
             DiscoveryError: If discovery fails
         """
-        logger.info(f"Starting discovery via SSDP (timeout: {timeout}s)")
+        logger.info("Starting discovery via SSDP (timeout: %ss)", timeout)
 
         try:
             # Use SSDP discovery instead of mDNS (avoids port 5353 conflicts)
             ssdp = SSDPDiscovery(timeout=timeout)
             devices_dict = await ssdp.discover()
 
-            logger.info(f"Discovery completed: {len(devices_dict)} device(s) found")
+            logger.info("Discovery completed: %d device(s) found", len(devices_dict))
 
             discovered: List[DiscoveredDevice] = []
 
             for mac, device_info in devices_dict.items():
                 ip = device_info.get("ip", "")
                 name = device_info.get("name", "Unknown Device")
-                port = 8090  # Default HTTP API port
 
                 # Device details (model, mac, firmware) are fetched lazily in /api/devices/sync
-                discovered.append(DiscoveredDevice(ip=ip, port=port, name=name))
+                discovered.append(
+                    DiscoveredDevice(ip=ip, port=SOUNDTOUCH_HTTP_PORT, name=name)
+                )
 
             logger.info(
-                f"Discovered {len(discovered)} device(s): {[d.name for d in discovered]}"
+                "Discovered %d device(s): %s",
+                len(discovered),
+                [d.name for d in discovered],
             )
             return discovered
 
         except Exception as e:
-            logger.error(f"Discovery failed: {e}", exc_info=True)
+            logger.exception("Discovery failed")
             raise DiscoveryError(f"Failed to discover devices: {e}") from e
 
 
@@ -130,11 +137,11 @@ def get_device_client(base_url: str, timeout: float = 3.0) -> DeviceClient:
             # Fallback: Use first mock device
             device_id = list(MockDeviceClient.MOCK_DEVICES.keys())[0]
             logger.warning(
-                f"[MOCK MODE] No mock device found for IP {ip}, using {device_id}"
+                "[MOCK MODE] No mock device found for IP %s, using %s", ip, device_id
             )
 
-        logger.info(f"[MOCK MODE] Using MockDeviceClient for {device_id}")
+        logger.info("[MOCK MODE] Using MockDeviceClient for %s", device_id)
         return MockDeviceClient(device_id=device_id, ip_address=ip)
     else:
-        logger.info(f"[REAL MODE] Using BoseDeviceClientAdapter for {base_url}")
+        logger.info("[REAL MODE] Using BoseDeviceClientAdapter for %s", base_url)
         return BoseDeviceClientAdapter(base_url=base_url, timeout=timeout)

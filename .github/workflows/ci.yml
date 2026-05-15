@@ -42,7 +42,6 @@ jobs:
 
       - name: Run safety (Python vulnerabilities)
         run: safety check --file apps/backend/requirements.txt
-        continue-on-error: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -54,7 +53,6 @@ jobs:
       - name: Run npm audit (Frontend vulnerabilities)
         working-directory: apps/frontend
         run: npm audit --production --audit-level=high
-        continue-on-error: true
 
   # ============================================================================
   # CODE FORMATTING

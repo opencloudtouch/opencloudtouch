@@ -4,6 +4,8 @@ import logging
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+
+from opencloudtouch.core.exceptions import DeviceNotFoundError
 from fastapi import Path as FastAPIPath
 from pydantic import BaseModel, Field
 
@@ -74,10 +76,12 @@ async def set_preset(
 
         return PresetResponse(**saved_preset.to_dict())
 
+    except DeviceNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))  # NOSONAR
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error setting preset: {e}")
+    except Exception:
+        logger.exception("Error setting preset")
         raise HTTPException(status_code=500, detail="Failed to set preset")
 
 
@@ -95,12 +99,12 @@ async def get_device_presets(
     try:
         presets = await preset_service.get_all_presets(device_id)
 
-        logger.debug(f"Retrieved {len(presets)} presets for device {device_id}")
+        logger.debug("Retrieved %d presets for device %s", len(presets), device_id)
 
         return [PresetResponse(**p.to_dict()) for p in presets]
 
-    except Exception as e:
-        logger.error(f"Error getting presets for device {device_id}: {e}")
+    except Exception:
+        logger.exception("Error getting presets for device %s", device_id)
         raise HTTPException(status_code=500, detail="Failed to get presets")
 
 
@@ -131,8 +135,10 @@ async def get_preset(
             )
 
         logger.debug(
-            f"Retrieved preset {preset_number} for device {device_id}: "
-            f"{preset.station_name}"
+            "Retrieved preset %d for device %s: %s",
+            preset_number,
+            device_id,
+            preset.station_name,
         )
 
         return PresetResponse(**preset.to_dict())
@@ -141,7 +147,7 @@ async def get_preset(
         raise
     except Exception as e:
         logger.error(
-            f"Error getting preset {preset_number} for device {device_id}: {e}"
+            "Error getting preset %d for device %s: %s", preset_number, device_id, e
         )
         raise HTTPException(status_code=500, detail="Failed to get preset")
 
@@ -177,7 +183,7 @@ async def clear_preset(
         raise
     except Exception as e:
         logger.error(
-            f"Error clearing preset {preset_number} for device {device_id}: {e}"
+            "Error clearing preset %d for device %s: %s", preset_number, device_id, e
         )
         raise HTTPException(status_code=500, detail="Failed to clear preset")
 
@@ -199,8 +205,8 @@ async def clear_all_presets(
             message=f"Cleared {count} presets for device {device_id}"
         )
 
-    except Exception as e:
-        logger.error(f"Error clearing all presets for device {device_id}: {e}")
+    except Exception:
+        logger.exception("Error clearing all presets for device %s", device_id)
         raise HTTPException(status_code=500, detail="Failed to clear presets")
 
 
@@ -231,10 +237,10 @@ async def sync_presets_from_device(
         )
 
     except ValueError as e:
-        logger.error(f"Device {device_id} not found: {e}")
+        logger.exception("Device %s not found", device_id)
         raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error syncing presets from device {device_id}: {e}")
+    except Exception:
+        logger.exception("Error syncing presets from device %s", device_id)
         raise HTTPException(
             status_code=502, detail="Failed to sync presets from device"
         )

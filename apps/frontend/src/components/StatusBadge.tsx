@@ -4,6 +4,7 @@
  */
 
 import { SetupStatus } from "../api/setup";
+import { useTranslation } from "react-i18next";
 import "./StatusBadge.css";
 
 interface StatusBadgeProps {
@@ -12,40 +13,40 @@ interface StatusBadgeProps {
   showLabel?: boolean;
 }
 
-const STATUS_CONFIG: Record<SetupStatus, { icon: string; label: string; className: string }> = {
+const STATUS_CONFIG: Record<SetupStatus, { icon: string; labelKey: string; className: string }> = {
   unconfigured: {
     icon: "⚠️",
-    label: "Nicht konfiguriert",
+    labelKey: "statusBadge.unconfigured",
     className: "status-unconfigured",
   },
   pending: {
     icon: "⏳",
-    label: "Setup läuft...",
+    labelKey: "statusBadge.pending",
     className: "status-pending",
   },
   configured: {
     icon: "✅",
-    label: "Konfiguriert",
+    labelKey: "statusBadge.configured",
     className: "status-configured",
   },
   failed: {
     icon: "❌",
-    label: "Fehlgeschlagen",
+    labelKey: "statusBadge.failed",
     className: "status-failed",
   },
   outdated: {
     icon: "🔄",
-    label: "Veraltet",
+    labelKey: "statusBadge.outdated",
     className: "status-outdated",
   },
   offline: {
     icon: "📡",
-    label: "Offline",
+    labelKey: "statusBadge.offline",
     className: "status-offline",
   },
   unknown: {
     icon: "❓",
-    label: "Unbekannt",
+    labelKey: "statusBadge.unknown",
     className: "status-unknown",
   },
 };
@@ -55,12 +56,13 @@ export default function StatusBadge({
   size = "medium",
   showLabel = false,
 }: StatusBadgeProps) {
+  const { t } = useTranslation();
   const config = STATUS_CONFIG[status];
 
   return (
     <div className={`status-badge status-${size} ${config.className}`}>
       <span className="status-icon">{config.icon}</span>
-      {showLabel && <span className="status-label">{config.label}</span>}
+      {showLabel && <span className="status-label">{t(config.labelKey)}</span>}
     </div>
   );
 }

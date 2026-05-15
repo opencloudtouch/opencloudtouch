@@ -8,6 +8,8 @@ setup/models.py; this file holds only the request/response DTOs.
 import ipaddress
 import re
 
+from typing import Optional
+
 from pydantic import BaseModel, Field, field_validator
 
 # Hostname: letters, digits, hyphens, dots — NO shell metacharacters
@@ -72,6 +74,11 @@ class PortCheckResponse(BaseModel):
 
 class BackupRequest(WizardDeviceRequest):
     """Request to create device backup."""
+
+    device_id: str | None = Field(
+        default=None,
+        description="Device identifier for unique backup filenames",
+    )
 
 
 class BackupResponse(BaseModel):
@@ -285,19 +292,28 @@ class DetectStrategyResponse(BaseModel):
     message: str
 
 
-class EnsureAccountRequest(WizardDeviceRequest):
+class AccountPairingRequest(BaseModel):
     """Request to ensure device has a margeAccountUUID."""
 
-    pass
+    device_ip: str = Field(..., description="Device IP address")
+    device_id: str = Field(..., description="Device ID (MAC address)")
 
 
-class EnsureAccountResponse(BaseModel):
-    """Response from account pairing check/fix."""
+class AccountPairingResponse(BaseModel):
+    """Response from account pairing."""
 
     success: bool
-    had_uuid: bool = Field(description="True if UUID was already present")
+    had_uuid: bool = Field(
+        default=False, description="True if UUID was already present"
+    )
     uuid: str = Field(default="", description="The current or newly set UUID")
     message: str = ""
+    error: Optional[str] = None
+
+
+# Aliases for backward compatibility with main's naming
+EnsureAccountRequest = AccountPairingRequest
+EnsureAccountResponse = AccountPairingResponse
 
 
 class InitPersistenceRequest(WizardDeviceRequest):

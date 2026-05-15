@@ -1,24 +1,19 @@
 """
-Setup Wizard API Routes
+Setup Wizard API Routes � Thin Handlers
 
 SSH-driven step-by-step wizard endpoints for device configuration.
-Extracted from setup/routes.py (STORY-304) to separate the wizard
-concern from general setup routes.
-
-All endpoints require a reachable SoundTouch device with SSH access.
+All business logic lives in WizardService; routes only handle HTTP concerns.
 """
 
+import asyncio
 import logging
-import re
-import shlex
 import socket
-import ssl
-from contextlib import asynccontextmanager
-from typing import Any, AsyncIterator, Dict
+from typing import Annotated, Any, Dict
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi import status as http_status
 
+from opencloudtouch.core.dependencies import get_wizard_service
 from opencloudtouch.setup.api_models import (
     BackupRequest,
     BackupResponse,
@@ -42,54 +37,15 @@ from opencloudtouch.setup.api_models import (
     VerifyRedirectResponse,
     WizardCompleteRequest,
     WizardCompleteResponse,
+    AccountPairingRequest,
+    AccountPairingResponse,
 )
-from opencloudtouch.setup.backup_service import SoundTouchBackupService
-from opencloudtouch.setup.config_service import SoundTouchConfigService
-from opencloudtouch.setup.hosts_service import SoundTouchHostsService
-from opencloudtouch.setup.ssh_client import (
-    SoundTouchSSHClient,
-    check_ssh_port,
-)
+from opencloudtouch.setup.wizard_helpers import check_port_443, ssh_operation
+from opencloudtouch.setup.wizard_service import WizardService
 
 logger = logging.getLogger(__name__)
 
 wizard_router = APIRouter(prefix="/api/setup", tags=["Setup Wizard"])
-
-
-@asynccontextmanager
-async def ssh_operation(
-    device_ip: str, operation_name: str
-) -> AsyncIterator[SoundTouchSSHClient]:
-    """Async context manager: open SSH session, wrap errors as HTTPException.
-
-    Yields:
-        Connected SoundTouchSSHClient ready for commands
-
-    Raises:
-        HTTPException(503): When SSH connection is refused or unreachable
-        HTTPException(500): On any other unexpected error
-    """
-    try:
-        async with SoundTouchSSHClient(device_ip) as ssh:
-            yield ssh
-    except HTTPException:
-        raise  # propagate intentional HTTP errors from business logic unchanged
-    except (ConnectionError, ConnectionRefusedError, OSError) as e:
-        logger.error(
-            "[Wizard/%s] SSH unreachable on %s: %s", operation_name, device_ip, e
-        )
-        raise HTTPException(
-            status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="SSH nicht erreichbar. Bitte USB-Stick prüfen oder SSH erneut aktivieren.",
-        )
-    except Exception as e:
-        logger.error(
-            "[Wizard/%s] failed on %s: %s", operation_name, device_ip, e, exc_info=True
-        )
-        raise HTTPException(
-            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Wizard operation '{operation_name}' failed. Check server logs for details.",
-        )
 
 
 @wizard_router.get("/wizard/server-info")
@@ -105,7 +61,7 @@ async def wizard_server_info(request: Request) -> Dict[str, Any]:
     hostname = url.hostname or "127.0.0.1"
     server_url = f"{url.scheme}://{hostname}:{url.port or 7777}"
 
-    # Resolve hostname → IP for /etc/hosts (requires numeric IP)
+    # Resolve hostname ? IP for /etc/hosts (requires numeric IP)
     try:
         server_ip = socket.gethostbyname(hostname)
     except socket.gaierror:
@@ -130,7 +86,7 @@ async def wizard_detect_strategy(request: Request) -> DetectStrategyResponse:
     """
     hostname = request.url.hostname or "127.0.0.1"
 
-    proxy_available = _check_port_443(hostname)
+    proxy_available = check_port_443(hostname)
 
     if proxy_available:
         return DetectStrategyResponse(
@@ -138,7 +94,7 @@ async def wizard_detect_strategy(request: Request) -> DetectStrategyResponse:
             strategy="hosts_only",
             message=(
                 "HTTPS Reverse-Proxy auf Port 443 erkannt. "
-                "Es reicht, die /etc/hosts-Datei zu ändern."
+                "Es reicht, die /etc/hosts-Datei zu �ndern."
             ),
         )
     return DetectStrategyResponse(
@@ -146,35 +102,21 @@ async def wizard_detect_strategy(request: Request) -> DetectStrategyResponse:
         strategy="bmx_and_hosts",
         message=(
             "Kein Reverse-Proxy auf Port 443 erkannt. "
-            "Die BMX-URL muss zusätzlich geändert werden."
+            "Die BMX-URL muss zus�tzlich ge�ndert werden."
         ),
     )
 
 
-def _check_port_443(hostname: str) -> bool:
-    """Try an SSL handshake on port 443 to detect a reverse proxy.
-
-    SSL verification is intentionally disabled: this function only checks
-    whether *any* service responds on 443, without sending sensitive data.
-    The server may use a self-signed certificate.
-    """
-    try:
-        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)  # NOSONAR - intentional
-        ctx.check_hostname = False  # NOSONAR - port detection only
-        ctx.verify_mode = ssl.CERT_NONE  # NOSONAR - no sensitive data sent
-        with socket.create_connection((hostname, 443), timeout=3) as sock:
-            with ctx.wrap_socket(sock, server_hostname=hostname):
-                return True
-    except Exception:
-        return False
-
-
 @wizard_router.post("/wizard/check-ports", response_model=PortCheckResponse)
-async def wizard_check_ports(request: PortCheckRequest):
+async def wizard_check_ports(
+    request: PortCheckRequest,
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
+):
     """Check if SSH port is accessible (Wizard Step 3)."""
     logger.info("Checking SSH port on %s", request.device_ip)
 
-    has_ssh = await check_ssh_port(request.device_ip, timeout=request.timeout)
+    async with asyncio.timeout(request.timeout):
+        has_ssh = await wizard.check_ssh_port(request.device_ip)
 
     if not has_ssh:
         return PortCheckResponse(
@@ -191,249 +133,190 @@ async def wizard_check_ports(request: PortCheckRequest):
 
 
 @wizard_router.post("/wizard/backup", response_model=BackupResponse)
-async def wizard_backup(request: BackupRequest):
+async def wizard_backup(
+    request: BackupRequest,
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
+):
     """Create complete backup to USB stick (Wizard Step 4)."""
     logger.info("Starting backup for %s", request.device_ip)
 
-    async with ssh_operation(request.device_ip, "backup") as ssh:
-        backup_service = SoundTouchBackupService(ssh)
-        results = await backup_service.backup_all()
+    result = await wizard.backup_all(request.device_ip, request.device_id)
 
-        failed = [r for r in results if not r.success]
-        if failed:
-            return BackupResponse(
-                success=False,
-                message="; ".join(r.error or "Unknown" for r in failed),
-            )
+    if not result["success"]:
+        return BackupResponse(success=False, message=result["message"])
 
-        total_size = sum(r.size_bytes for r in results) / 1024 / 1024
-        total_duration = sum(r.duration_seconds for r in results)
-
-        return BackupResponse(
-            success=True,
-            message=f"Backup complete: {total_size:.2f} MB",
-            volumes=[
-                {
-                    "volume": r.volume.value,
-                    "path": r.backup_path,
-                    "size_mb": r.size_bytes / 1024 / 1024,
-                    "duration_seconds": r.duration_seconds,
-                }
-                for r in results
-            ],
-            total_size_mb=total_size,
-            total_duration_seconds=total_duration,
-        )
+    return BackupResponse(
+        success=True,
+        message=result["message"],
+        volumes=result.get("volumes"),
+        total_size_mb=result.get("total_size_mb"),
+        total_duration_seconds=result.get("total_duration_seconds"),
+    )
 
 
 @wizard_router.post("/wizard/modify-config", response_model=ConfigModifyResponse)
-async def wizard_modify_config(request: ConfigModifyRequest, http_request: Request):
+async def wizard_modify_config(
+    request: ConfigModifyRequest,
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
+):
     """Modify OverrideSdkPrivateCfg.xml (Wizard Step 5)."""
-    from urllib.parse import urlparse
-
     logger.info(
         "Modifying config on %s (OCT: %s)", request.device_ip, request.target_addr
     )
 
-    parsed = urlparse(request.target_addr)
-    target_host = parsed.hostname or parsed.netloc
+    result = await wizard.modify_config(request.device_ip, request.target_addr)
 
-    async with ssh_operation(request.device_ip, "modify-config") as ssh:
-        config_service = SoundTouchConfigService(ssh)
-        audit_repo = getattr(http_request.app.state, "wizard_audit_repo", None)
+    if not result["success"]:
+        return ConfigModifyResponse(success=False, message=result["message"])
 
-        await _snapshot_config_files(
-            ssh,
-            audit_repo,
-            request.device_ip,
-            config_service.CONFIG_CANDIDATES,
-            "before_modify_config",
-        )
-
-        result = await config_service.modify_bmx_url(target_host)
-
-        if result.success:
-            await _snapshot_config_files(
-                ssh,
-                audit_repo,
-                request.device_ip,
-                config_service.CONFIG_CANDIDATES,
-                "after_modify_config",
-            )
-
-        if not result.success:
-            return ConfigModifyResponse(
-                success=False, message=result.error or "Modification failed"
-            )
-
-        return ConfigModifyResponse(
-            success=True,
-            message="Config modified successfully",
-            backup_path=result.backup_path,
-            diff=result.diff,
-            old_url="bmx.bose.com",
-            new_url=target_host,
-        )
+    return ConfigModifyResponse(
+        success=True,
+        message=result["message"],
+        backup_path=result.get("backup_path", ""),
+        diff=result.get("diff", ""),
+        old_url=result.get("old_url", ""),
+        new_url=result.get("new_url", ""),
+    )
 
 
 @wizard_router.post("/wizard/modify-hosts", response_model=HostsModifyResponse)
-async def wizard_modify_hosts(request: HostsModifyRequest, http_request: Request):
+async def wizard_modify_hosts(
+    request: HostsModifyRequest,
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
+):
     """Modify /etc/hosts (Wizard Step 6)."""
-    from urllib.parse import urlparse
-
     logger.info(
         "Modifying hosts on %s (OCT: %s)", request.device_ip, request.target_addr
     )
 
-    parsed = urlparse(request.target_addr)
-    target_host = parsed.hostname or parsed.netloc
-
     try:
-        target_ip = socket.gethostbyname(target_host)
-    except socket.gaierror:
+        result = await wizard.modify_hosts(
+            request.device_ip, request.target_addr, request.include_optional
+        )
+    except ValueError as e:
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot resolve hostname '{target_host}' to an IP address.",
+            detail=str(e),
         )
 
-    async with ssh_operation(request.device_ip, "modify-hosts") as ssh:
-        audit_repo = getattr(http_request.app.state, "wizard_audit_repo", None)
+    if not result["success"]:
+        return HostsModifyResponse(success=False, message=result["message"])
 
-        await _snapshot_config_files(
-            ssh,
-            audit_repo,
-            request.device_ip,
-            ["/etc/hosts"],
-            "before_modify_hosts",
-        )
-
-        hosts_service = SoundTouchHostsService(ssh)
-        result = await hosts_service.modify_hosts(target_ip, request.include_optional)
-
-        if result.success:
-            await _snapshot_config_files(
-                ssh,
-                audit_repo,
-                request.device_ip,
-                ["/etc/hosts"],
-                "after_modify_hosts",
-            )
-
-        if not result.success:
-            return HostsModifyResponse(
-                success=False, message=result.error or "Modification failed"
-            )
-
-        return HostsModifyResponse(
-            success=True,
-            message="Hosts modified successfully",
-            backup_path=result.backup_path,
-            diff=result.diff,
-        )
+    return HostsModifyResponse(
+        success=True,
+        message=result["message"],
+        backup_path=result.get("backup_path", ""),
+        diff=result.get("diff", ""),
+    )
 
 
 @wizard_router.post("/wizard/restore-config", response_model=RestoreResponse)
-async def wizard_restore_config(request: RestoreRequest):
+async def wizard_restore_config(
+    request: RestoreRequest,
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
+):
     """Restore config from backup (Wizard Step 8)."""
     logger.info("Restoring config from %s", request.backup_path)
 
-    async with ssh_operation(request.device_ip, "restore-config") as ssh:
-        config_service = SoundTouchConfigService(ssh)
-        result = await config_service.restore_config(request.backup_path)
+    result = await wizard.restore_config(request.device_ip, request.backup_path)
 
-        if not result.success:
-            return RestoreResponse(
-                success=False, message=result.error or "Restore failed"
-            )
-
-        return RestoreResponse(success=True, message="Config restored")
+    if not result["success"]:
+        return RestoreResponse(success=False, message=result["message"])
+    return RestoreResponse(success=True, message=result["message"])
 
 
 @wizard_router.post("/wizard/restore-hosts", response_model=RestoreResponse)
-async def wizard_restore_hosts(request: RestoreRequest):
+async def wizard_restore_hosts(
+    request: RestoreRequest,
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
+):
     """Restore hosts from backup (Wizard Step 8)."""
     logger.info("Restoring hosts from %s", request.backup_path)
 
-    async with ssh_operation(request.device_ip, "restore-hosts") as ssh:
-        hosts_service = SoundTouchHostsService(ssh)
-        result = await hosts_service.restore_hosts(request.backup_path)
+    result = await wizard.restore_hosts(request.device_ip, request.backup_path)
 
-        if not result.success:
-            return RestoreResponse(
-                success=False, message=result.error or "Restore failed"
-            )
-
-        return RestoreResponse(success=True, message="Hosts restored")
+    if not result["success"]:
+        return RestoreResponse(success=False, message=result["message"])
+    return RestoreResponse(success=True, message=result["message"])
 
 
 @wizard_router.post("/wizard/list-backups", response_model=ListBackupsResponse)
-async def wizard_list_backups(request: ListBackupsRequest):
+async def wizard_list_backups(
+    request: ListBackupsRequest,
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
+):
     """List available backups (Wizard Step 8)."""
     logger.info("Listing backups on %s", request.device_ip)
 
-    async with ssh_operation(request.device_ip, "list-backups") as ssh:
-        config_service = SoundTouchConfigService(ssh)
-        hosts_service = SoundTouchHostsService(ssh)
+    result = await wizard.list_backups(request.device_ip)
 
-        config_backups = await config_service.list_backups()
-        hosts_backups = await hosts_service.list_backups()
-
-        return ListBackupsResponse(
-            success=True,
-            config_backups=config_backups,
-            hosts_backups=hosts_backups,
-        )
+    return ListBackupsResponse(
+        success=True,
+        config_backups=result["config_backups"],
+        hosts_backups=result["hosts_backups"],
+    )
 
 
 @wizard_router.post("/wizard/reboot-device")
-async def wizard_reboot_device(request: ConnectivityCheckRequest) -> Dict[str, Any]:
-    """Reboot SoundTouch device via SSH (Wizard Step 7).
-
-    Sends the `reboot` command via SSH. The device drops the SSH connection
-    immediately after receiving the command — this is expected and not an error.
-    Frontend should wait ~60s before attempting verify-redirect tests.
-    """
+async def wizard_reboot_device(
+    request: ConnectivityCheckRequest,
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
+) -> Dict[str, Any]:
+    """Reboot SoundTouch device via SSH (Wizard Step 7)."""
     logger.info("Sending reboot command to %s", request.ip)
 
-    ssh_client = SoundTouchSSHClient(host=request.ip, port=22)
-    try:
-        conn_result = await ssh_client.connect(timeout=10.0)
-        if not conn_result.success:
-            raise HTTPException(
-                status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"SSH connection failed: {conn_result.error}",
-            )
+    result = await wizard.reboot_device(request.ip)
 
-        # The device drops the connection immediately on reboot — that is expected.
-        # A short timeout avoids blocking the request for 30s.
-        await ssh_client.execute("reboot", timeout=5.0)
+    if not result["success"]:
+        error_msg = result["error"]
+        # Connection failures ? 503; unexpected errors ? 500
+        if "SSH connection failed" in error_msg:
+            status_code = http_status.HTTP_503_SERVICE_UNAVAILABLE
+        else:
+            status_code = http_status.HTTP_500_INTERNAL_SERVER_ERROR
+        raise HTTPException(status_code=status_code, detail=error_msg)
 
-        logger.info("Reboot command sent to %s", request.ip)
-        return {
-            "success": True,
-            "message": "Neustart-Befehl gesendet. Das Gerät startet in wenigen Sekunden neu.",
-        }
+    logger.info("Reboot command sent to %s", request.ip)
+    return {
+        "success": True,
+        "message": "Neustart-Befehl gesendet. Das Ger�t startet in wenigen Sekunden neu.",
+    }
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception("Unexpected error during reboot: %s", e)
-        raise HTTPException(
-            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Unexpected error: {str(e)}",
-        )
-    finally:
-        await ssh_client.close()
+
+@wizard_router.post("/wizard/account-pairing", response_model=AccountPairingResponse)
+async def wizard_account_pairing(
+    request: AccountPairingRequest,
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
+):
+    """Ensure device has a margeAccountUUID (Wizard Step - Account Pairing).
+
+    Checks if the device already has a UUID. If not, generates one and
+    sets it via Telnet. Persists the UUID in the device repository for
+    streaming endpoint resolution.
+    """
+    logger.info(
+        "Account pairing for %s (device %s)", request.device_ip, request.device_id
+    )
+
+    result = await wizard.ensure_account_pairing(request.device_ip, request.device_id)
+
+    return AccountPairingResponse(
+        success=result["success"],
+        had_uuid=result.get("had_uuid", False),
+        uuid=result.get("uuid", ""),
+        message=result.get("message", ""),
+        error=result.get("error"),
+    )
 
 
 @wizard_router.post("/wizard/ensure-account", response_model=EnsureAccountResponse)
 async def wizard_ensure_account(request: EnsureAccountRequest):
-    """Ensure device has a margeAccountUUID (Wizard Step — after config/hosts).
+    """Ensure device has a margeAccountUUID (Wizard Step � after config/hosts).
 
     Devices without a margeAccountUUID cannot play presets (INVALID_SOURCE).
     This endpoint checks GET :8090/info and sets a UUID via Telnet if missing.
 
-    Safe to call multiple times — no-op if UUID already present.
+    Safe to call multiple times � no-op if UUID already present.
     """
     from opencloudtouch.setup.account_pairing_service import ensure_account_uuid
 
@@ -504,45 +387,35 @@ async def wizard_init_persistence(request: InitPersistenceRequest):
 
 
 @wizard_router.post("/wizard/complete", response_model=WizardCompleteResponse)
-async def wizard_complete(request: WizardCompleteRequest, http_request: Request):
-    """Mark wizard setup as complete for a device.
-
-    Updates the device's setup_status to 'configured' in the database.
-    Called by the frontend when the user finishes the wizard.
-    """
-    from datetime import UTC, datetime
-
+async def wizard_complete(
+    request: WizardCompleteRequest,
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
+):
+    """Mark wizard setup as complete for a device."""
     logger.info("Marking wizard setup complete for device %s", request.device_id)
 
-    device_repo = http_request.app.state.device_repo
-    try:
-        await device_repo.update_setup_status(
-            device_id=request.device_id,
-            setup_status="configured",
-            setup_completed_at=datetime.now(UTC),
-        )
-    except Exception as e:
-        logger.exception("Failed to update setup status for %s", request.device_id)
+    result = await wizard.mark_complete(request.device_id)
+
+    if not result["success"]:
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update setup status: {e}",
+            detail=result["error"],
         )
 
     return WizardCompleteResponse(
         success=True,
         device_id=request.device_id,
         setup_status="configured",
-        message="Setup abgeschlossen. Gerät ist konfiguriert.",
+        message="Setup abgeschlossen. Ger�t ist konfiguriert.",
     )
 
 
 @wizard_router.post("/wizard/verify-redirect", response_model=VerifyRedirectResponse)
-async def wizard_verify_redirect(request: VerifyRedirectRequest):
-    """Verify a domain is redirected to OCT on the device (Wizard Step 7).
-
-    SSH into the device, run ping against the domain, and check whether
-    the resolved IP matches the OCT server's IP.
-    """
+async def wizard_verify_redirect(
+    request: VerifyRedirectRequest,
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
+):
+    """Verify a domain is redirected to OCT on the device (Wizard Step 7)."""
     logger.info(
         "Verifying redirect of %s on %s (expected: %s)",
         request.domain,
@@ -550,67 +423,15 @@ async def wizard_verify_redirect(request: VerifyRedirectRequest):
         request.expected_ip,
     )
 
-    # Resolve expected_ip on the server side (handles hostname like 'myserver')
-    try:
-        expected_resolved = socket.gethostbyname(request.expected_ip)
-    except socket.gaierror:
-        expected_resolved = request.expected_ip  # already an IP or unresolvable
+    result = await wizard.verify_redirect(
+        request.device_ip, request.domain, request.expected_ip
+    )
 
-    async with ssh_operation(request.device_ip, "verify-redirect") as ssh:
-        # Use ping -c1 -W2 — respects /etc/hosts on the device
-        result = await ssh.execute(
-            f"ping -c 1 -W 2 {shlex.quote(request.domain)} 2>&1 | head -2"
-        )
-        output = (result.output or "").strip()
-
-        # BusyBox ping first line: 'PING domain (resolved_ip): ...'
-        match = re.search(r"PING [^\(]*\(([^\)]+)\)", output)
-        if not match:
-            return VerifyRedirectResponse(
-                success=False,
-                domain=request.domain,
-                resolved_ip="",
-                expected_ip=expected_resolved,
-                matches_expected=False,
-                message=f"Could not resolve {request.domain} on device. Output: {output[:200]}",
-            )
-
-        resolved_ip = match.group(1).strip()
-        matches = resolved_ip == expected_resolved
-
-        return VerifyRedirectResponse(
-            success=matches,
-            domain=request.domain,
-            resolved_ip=resolved_ip,
-            expected_ip=expected_resolved,
-            matches_expected=matches,
-            message=(
-                f"{request.domain} → {resolved_ip} ✓"
-                if matches
-                else f"{request.domain} → {resolved_ip} (expected {expected_resolved})"
-            ),
-        )
-
-
-async def _snapshot_config_files(
-    ssh: SoundTouchSSHClient,
-    audit_repo,
-    device_id: str,
-    file_paths: list[str],
-    trigger: str,
-) -> None:
-    """Take config snapshots for audit trail (best-effort, never raises)."""
-    if not audit_repo:
-        return
-    try:
-        for path in file_paths:
-            r = await ssh.execute(f"cat {path} 2>/dev/null")
-            if r.success and r.output:
-                await audit_repo.add_config_snapshot(
-                    device_id=device_id,
-                    file_path=path,
-                    content=r.output,
-                    trigger=trigger,
-                )
-    except Exception as e:
-        logger.warning("Config snapshot (%s) failed: %s", trigger, e)
+    return VerifyRedirectResponse(
+        success=result["matches_expected"],
+        domain=result["domain"],
+        resolved_ip=result["resolved_ip"],
+        expected_ip=result["expected_ip"],
+        matches_expected=result["matches_expected"],
+        message=result["message"],
+    )

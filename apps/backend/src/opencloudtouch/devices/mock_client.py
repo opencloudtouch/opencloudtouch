@@ -121,7 +121,7 @@ class MockDeviceClient(DeviceClient):
                 f"Available: {list(self.MOCK_DEVICES.keys())}"
             )
 
-        logger.info(f"[MOCK] Initialized mock client for device {device_id}")
+        logger.info("[MOCK] Initialized mock client for device %s", device_id)
 
     async def get_info(self) -> DeviceInfo:
         """
@@ -130,7 +130,7 @@ class MockDeviceClient(DeviceClient):
         Returns:
             DeviceInfo object with predefined device details
         """
-        logger.debug(f"[MOCK] get_info() for device {self.device_id}")
+        logger.debug("[MOCK] get_info() for device %s", self.device_id)
         info = self.MOCK_DEVICES[self.device_id]["info"]
         assert isinstance(info, DeviceInfo)
         return info
@@ -142,7 +142,7 @@ class MockDeviceClient(DeviceClient):
         Returns:
             NowPlayingInfo object with predefined playback details
         """
-        logger.debug(f"[MOCK] get_now_playing() for device {self.device_id}")
+        logger.debug("[MOCK] get_now_playing() for device %s", self.device_id)
         now_playing = self.MOCK_DEVICES[self.device_id]["now_playing"]
         assert isinstance(now_playing, NowPlayingInfo)
         return now_playing
@@ -177,28 +177,31 @@ class MockDeviceClient(DeviceClient):
             )
 
         logger.info(
-            f"[MOCK] press_key({key}, {state}) for device {self.device_id}",
+            "[MOCK] press_key(%s, %s) for device %s",
+            key,
+            state,
+            self.device_id,
             extra={"device_id": self.device_id, "key": key, "state": state},
         )
 
     async def get_volume(self) -> VolumeInfo:
         """Get mock volume state."""
-        logger.debug(f"[MOCK] get_volume() for device {self.device_id}")
+        logger.debug("[MOCK] get_volume() for device %s", self.device_id)
         return VolumeInfo(actual=self._volume, target=self._volume, muted=self._muted)
 
     async def set_volume(self, level: int) -> None:
         """Mock set volume."""
-        logger.info(f"[MOCK] set_volume({level}) for device {self.device_id}")
+        logger.info("[MOCK] set_volume(%s) for device %s", level, self.device_id)
         self._volume = max(0, min(100, level))
 
     async def set_mute(self, muted: bool) -> None:
         """Mock set mute."""
-        logger.info(f"[MOCK] set_mute({muted}) for device {self.device_id}")
+        logger.info("[MOCK] set_mute(%s) for device %s", muted, self.device_id)
         self._muted = muted
 
     async def close(self) -> None:
         """Mock close (no-op)."""
-        logger.debug(f"[MOCK] close() for device {self.device_id}")
+        logger.debug("[MOCK] close() for device %s", self.device_id)
         pass
 
     async def store_preset(
@@ -212,7 +215,7 @@ class MockDeviceClient(DeviceClient):
         station_uuid: str = "",
     ) -> None:
         """Mock store preset (no-op for testing)."""
-        logger.info(
+        logger.info(  # NOSONAR — internal IDs for debug
             "[MOCK] store_preset(%d, %s) for device %s",
             preset_number,
             station_name,
@@ -223,14 +226,14 @@ class MockDeviceClient(DeviceClient):
 
     async def get_zone_status(self) -> ZoneStatus | None:
         """Mock get zone status."""
-        logger.debug(f"[MOCK] get_zone_status() for device {self.device_id}")
+        logger.debug("[MOCK] get_zone_status() for device %s", self.device_id)
         return self._zone
 
     async def create_zone(
         self, master_ip: str, members: list[ZoneMemberInfo]
     ) -> ZoneStatus:
         """Mock create zone."""
-        logger.info(f"[MOCK] create_zone() for device {self.device_id}")
+        logger.info("[MOCK] create_zone() for device %s", self.device_id)
         all_members = [
             ZoneMemberInfo(
                 device_id=self.device_id, ip_address=master_ip, role="master"
@@ -249,7 +252,7 @@ class MockDeviceClient(DeviceClient):
 
     async def add_zone_members(self, members: list[ZoneMemberInfo]) -> None:
         """Mock add zone members."""
-        logger.info(f"[MOCK] add_zone_members() for device {self.device_id}")
+        logger.info("[MOCK] add_zone_members() for device %s", self.device_id)
         if self._zone:
             existing_ids = {m.device_id for m in self._zone.members}
             for m in members:
@@ -262,7 +265,7 @@ class MockDeviceClient(DeviceClient):
 
     async def remove_zone_members(self, members: list[ZoneMemberInfo]) -> None:
         """Mock remove zone members."""
-        logger.info(f"[MOCK] remove_zone_members() for device {self.device_id}")
+        logger.info("[MOCK] remove_zone_members() for device %s", self.device_id)
         if self._zone:
             remove_ids = {m.device_id for m in members}
             self._zone.members = [
@@ -271,5 +274,5 @@ class MockDeviceClient(DeviceClient):
 
     async def remove_zone(self) -> None:
         """Mock remove zone."""
-        logger.info(f"[MOCK] remove_zone() for device {self.device_id}")
+        logger.info("[MOCK] remove_zone() for device %s", self.device_id)
         self._zone = None

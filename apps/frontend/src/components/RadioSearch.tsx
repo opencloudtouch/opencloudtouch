@@ -272,10 +272,10 @@ export default function RadioSearch({
                 <button
                   className="search-delete-btn"
                   onClick={onDelete}
-                  aria-label="Preset löschen"
-                  title="Preset löschen"
+                  aria-label={t("presets.deletePreset")}
+                  title={t("presets.deletePreset")}
                 >
-                  Preset löschen
+                  {t("presets.deletePreset")}
                 </button>
               </div>
             )}

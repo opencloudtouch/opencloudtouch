@@ -3,6 +3,8 @@
  * Centralized API calls for settings management
  */
 
+import { throwIfNotOk } from "./types";
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 export interface ManualIPsResponse {
@@ -14,9 +16,7 @@ export interface ManualIPsResponse {
  */
 export async function getManualIPs(): Promise<string[]> {
   const response = await fetch(`${API_BASE_URL}/api/settings/manual-ips`);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch manual IPs: ${response.statusText}`);
-  }
+  await throwIfNotOk(response, "Failed to fetch manual IPs");
   const data: ManualIPsResponse = await response.json();
   return data.ips;
 }
@@ -30,9 +30,7 @@ export async function setManualIPs(ips: string[]): Promise<string[]> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ips }),
   });
-  if (!response.ok) {
-    throw new Error(`Failed to set manual IPs: ${response.statusText}`);
-  }
+  await throwIfNotOk(response, "Failed to set manual IPs");
   const data: ManualIPsResponse = await response.json();
   return data.ips;
 }
@@ -44,7 +42,5 @@ export async function deleteManualIP(ip: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/api/settings/manual-ips/${ip}`, {
     method: "DELETE",
   });
-  if (!response.ok) {
-    throw new Error(`Failed to delete manual IP: ${response.statusText}`);
-  }
+  await throwIfNotOk(response, "Failed to delete manual IP");
 }

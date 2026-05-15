@@ -32,7 +32,7 @@ describe("useNowPlaying – device offline", () => {
 
     await waitFor(() => {
       expect(result.current.deviceOffline).toBe(true);
-      expect(result.current.error).toBe("Gerät nicht erreichbar");
+      expect(result.current.error).toBe("Device unreachable");
       expect(result.current.nowPlaying).toBeNull();
     });
   });
@@ -85,7 +85,7 @@ describe("useNowPlaying – device offline", () => {
 
     await waitFor(() => {
       expect(result.current.deviceOffline).toBe(true);
-      expect(result.current.error).toBe("Gerät nicht erreichbar");
+      expect(result.current.error).toBe("Device unreachable");
     });
   });
 

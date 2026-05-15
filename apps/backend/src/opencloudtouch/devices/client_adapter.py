@@ -6,9 +6,13 @@ Wraps bosesoundtouchapi BoseClient with our internal DeviceClient interface.
 """
 
 import asyncio
+import base64
+import json
 import logging
 from urllib.parse import urlparse
+from xml.sax.saxutils import escape as xml_escape
 
+import httpx
 from bosesoundtouchapi import SoundTouchClient as BoseClient
 from bosesoundtouchapi import SoundTouchDevice
 
@@ -55,7 +59,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             )
             self._client = BoseClient(device)
         except Exception as e:
-            logger.error(f"Failed to connect to device at {base_url}: {e}")
+            logger.exception("Failed to connect to device at %s", base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     def _extract_firmware_version(self, info) -> str:
@@ -107,7 +111,8 @@ class BoseDeviceClientAdapter(DeviceClient):
 
             # Structured logging with firmware details
             logger.info(
-                f"Device {device_info.name} initialized",
+                "Device %s initialized",
+                device_info.name,
                 extra={
                     "device_id": device_info.device_id,
                     "device_type": device_info.type,
@@ -120,7 +125,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             return device_info
 
         except Exception as e:
-            logger.error(f"Failed to get info from {self.base_url}: {e}", exc_info=True)
+            logger.exception("Failed to get info from %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def get_now_playing(self) -> NowPlayingInfo:
@@ -151,9 +156,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             )
 
         except Exception as e:
-            logger.error(
-                f"Failed to get now_playing from {self.base_url}: {e}", exc_info=True
-            )
+            logger.exception("Failed to get now_playing from %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def press_key(self, key: str, state: str = "both") -> None:
@@ -192,17 +195,67 @@ class BoseDeviceClientAdapter(DeviceClient):
             state_enum = state_map[state]
 
             logger.info(
-                f"Simulating key press on {self.ip}: {key} ({state})",
+                "Simulating key press on %s: %s (%s)",
+                self.ip,
+                key,
+                state,
                 extra={"device_ip": self.ip, "key": key, "state": state},
             )
 
             await asyncio.to_thread(self._client.Action, key_enum, state_enum)
 
         except Exception as e:
-            logger.error(
-                f"Failed to press key {key} on {self.base_url}: {e}", exc_info=True
-            )
+            logger.exception("Failed to press key %s on %s", key, self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
+
+    @staticmethod
+    def _build_preset_payload(
+        preset_number: int,
+        station_url: str,
+        station_name: str,
+        oct_backend_url: str,
+        station_image_url: str,
+        station_uuid: str,
+    ) -> str:
+        """Build XML payload for the /storePreset endpoint.
+
+        Encodes stream data as base64 JSON for the Orion adapter and wraps
+        it in the ContentItem XML expected by the Bose device.
+
+        Returns:
+            XML string for POST /storePreset.
+        """
+        stream_data = {
+            "streamUrl": station_url,
+            "name": station_name,
+            "imageUrl": station_image_url,
+        }
+        if not station_url and station_uuid:
+            stream_data["tuneinId"] = station_uuid
+
+        base64_data = base64.urlsafe_b64encode(
+            json.dumps(stream_data).encode()
+        ).decode()
+
+        orion_url = (
+            f"{oct_backend_url}/core02/svc-bmx-adapter-orion/prod/orion/station"
+            f"?data={base64_data}"
+        )
+
+        safe_name = xml_escape(station_name)
+        art_xml = (
+            f"<containerArt>{xml_escape(station_image_url)}</containerArt>"
+            if station_image_url
+            else ""
+        )
+        return (
+            f'<preset id="{preset_number}" createdOn="0" updatedOn="0">'
+            f'<ContentItem source="LOCAL_INTERNET_RADIO" type="stationurl" '
+            f'location="{orion_url}" sourceAccount="" isPresetable="true">'
+            f"<itemName>{safe_name}</itemName>"
+            f"{art_xml}"
+            f"</ContentItem></preset>"
+        )
 
     async def store_preset(
         self,
@@ -220,24 +273,6 @@ class BoseDeviceClientAdapter(DeviceClient):
         Programs the device's physical preset button to call OCT's BMX Orion adapter.
         The Orion adapter decodes the base64 payload and returns the stream URL.
 
-        **Flow:**
-        1. OCT encodes stream data as base64 JSON
-        2. OCT programs Bose with: LOCAL_INTERNET_RADIO source + orion location URL
-        3. User presses PRESET_N button on Bose device
-        4. Bose requests OCT: `GET /core02/svc-bmx-adapter-orion/prod/orion/station?data={base64}`
-        5. OCT decodes base64 → returns BmxPlaybackResponse with streamUrl
-        6. Bose plays the stream ✅
-
-        **Why LOCAL_INTERNET_RADIO + Orion?**
-        - ✅ TESTED 2026-02-22: Works reliably with base64-encoded stream data
-        - ❌ TESTED: TuneIn source returns 500 (device firmware issue)
-        - ❌ TESTED: Direct HTTPS URLs fail (LED white → orange)
-        - ❌ TESTED: HTTP 302 redirect to HTTPS fails
-
-        **Implementation Note:**
-        - Uses direct HTTP POST to /storePreset endpoint
-        - BoseSoundTouchAPI library's StorePreset() method silently fails (2026-02-22)
-
         Args:
             device_id: Bose device identifier
             preset_number: Preset slot (1-6)
@@ -245,36 +280,23 @@ class BoseDeviceClientAdapter(DeviceClient):
             station_name: Station display name
             oct_backend_url: OCT backend base URL (e.g., "http://192.168.1.108:7777")
             station_image_url: Optional station logo URL
+            station_uuid: Optional station UUID for TuneIn fallback
 
         Raises:
-            ConnectionError: If device is unreachable
+            DeviceConnectionError: If device is unreachable
             ValueError: If preset_number not in 1-6
         """
         if not 1 <= preset_number <= 6:
             raise ValueError(f"Preset number must be 1-6, got {preset_number}")
 
         try:
-            import base64
-            import json
-
-            import httpx
-
-            # Encode stream data as base64 JSON for Orion adapter
-            stream_data = {
-                "streamUrl": station_url,
-                "name": station_name,
-                "imageUrl": station_image_url,
-            }
-            # TuneIn stations have empty URL - store station ID for dynamic resolution
-            if not station_url and station_uuid:
-                stream_data["tuneinId"] = station_uuid
-            json_str = json.dumps(stream_data)
-            base64_data = base64.urlsafe_b64encode(json_str.encode()).decode()
-
-            # Build Orion adapter URL with base64 data
-            orion_url = (
-                f"{oct_backend_url}/core02/svc-bmx-adapter-orion/prod/orion/station"
-                f"?data={base64_data}"
+            xml_payload = self._build_preset_payload(
+                preset_number,
+                station_url,
+                station_name,
+                oct_backend_url,
+                station_image_url,
+                station_uuid,
             )
 
             logger.info(
@@ -288,17 +310,6 @@ class BoseDeviceClientAdapter(DeviceClient):
                 },
             )
 
-            # Build XML payload for /storePreset endpoint
-            # Direct HTTP is required - BoseSoundTouchAPI.StorePreset() silently fails
-            xml_payload = (
-                f'<preset id="{preset_number}" createdOn="0" updatedOn="0">'
-                f'<ContentItem source="LOCAL_INTERNET_RADIO" type="stationurl" '
-                f'location="{orion_url}" sourceAccount="" isPresetable="true">'
-                f"<itemName>{station_name}</itemName>"
-                f"</ContentItem></preset>"
-            )
-
-            # POST to device's /storePreset endpoint
             store_url = f"{self.base_url}/storePreset"
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(
@@ -314,17 +325,19 @@ class BoseDeviceClientAdapter(DeviceClient):
             )
 
         except httpx.HTTPStatusError as e:
-            logger.error(
-                f"HTTP error storing preset {preset_number} on {self.base_url}: {e}",
-                exc_info=True,
+            logger.exception(
+                "HTTP error storing preset %d on %s",
+                preset_number,
+                self.base_url,
             )
             raise DeviceConnectionError(
                 self.ip, f"HTTP {e.response.status_code}"
             ) from e
         except Exception as e:
-            logger.error(
-                f"Failed to store preset {preset_number} on {self.base_url}: {e}",
-                exc_info=True,
+            logger.exception(
+                "Failed to store preset %d on %s",
+                preset_number,
+                self.base_url,
             )
             raise DeviceConnectionError(self.ip, str(e)) from e
 
@@ -338,9 +351,7 @@ class BoseDeviceClientAdapter(DeviceClient):
                 muted=vol.IsMuted,
             )
         except Exception as e:
-            logger.error(
-                f"Failed to get volume from {self.base_url}: {e}", exc_info=True
-            )
+            logger.exception("Failed to get volume from %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def set_volume(self, level: int) -> None:
@@ -348,7 +359,7 @@ class BoseDeviceClientAdapter(DeviceClient):
         try:
             await asyncio.to_thread(self._client.SetVolumeLevel, level)
         except Exception as e:
-            logger.error(f"Failed to set volume on {self.base_url}: {e}", exc_info=True)
+            logger.exception("Failed to set volume on %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def set_mute(self, muted: bool) -> None:
@@ -359,7 +370,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             else:
                 await asyncio.to_thread(self._client.MuteOff, refresh=False)
         except Exception as e:
-            logger.error(f"Failed to set mute on {self.base_url}: {e}", exc_info=True)
+            logger.exception("Failed to set mute on %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def close(self) -> None:
@@ -407,9 +418,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             zone = await asyncio.to_thread(self._client.GetZoneStatus, refresh=True)
             return self._zone_to_status(zone)
         except Exception as e:
-            logger.error(
-                f"Failed to get zone status from {self.base_url}: {e}", exc_info=True
-            )
+            logger.exception("Failed to get zone status from %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def create_zone(
@@ -436,7 +445,9 @@ class BoseDeviceClientAdapter(DeviceClient):
                 zone.AddMember(ZoneMember(ipAddress=m.ip_address, deviceId=m.device_id))
 
             logger.info(
-                f"Creating zone on {self.ip} with {len(members)} slave(s)",
+                "Creating zone on %s with %d slave(s)",
+                self.ip,
+                len(members),
                 extra={"master_ip": master_ip, "member_count": len(members)},
             )
 
@@ -455,9 +466,7 @@ class BoseDeviceClientAdapter(DeviceClient):
                 ],
             )
         except Exception as e:
-            logger.error(
-                f"Failed to create zone on {self.base_url}: {e}", exc_info=True
-            )
+            logger.exception("Failed to create zone on %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def add_zone_members(self, members: list[ZoneMemberInfo]) -> None:
@@ -471,9 +480,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             ]
             await asyncio.to_thread(self._client.AddZoneMembers, zone_members, delay=3)
         except Exception as e:
-            logger.error(
-                f"Failed to add zone members on {self.base_url}: {e}", exc_info=True
-            )
+            logger.exception("Failed to add zone members on %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def remove_zone_members(self, members: list[ZoneMemberInfo]) -> None:
@@ -487,9 +494,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             ]
             await asyncio.to_thread(self._client.RemoveZoneMembers, zone_members, delay=3)  # fmt: skip
         except Exception as e:
-            logger.error(
-                f"Failed to remove zone members on {self.base_url}: {e}", exc_info=True
-            )
+            logger.exception("Failed to remove zone members on %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def remove_zone(self) -> None:
@@ -498,7 +503,5 @@ class BoseDeviceClientAdapter(DeviceClient):
             await asyncio.to_thread(self._client.RemoveZone, delay=3)
             logger.info("Zone removed on %s", self.base_url)
         except Exception as e:
-            logger.error(
-                f"Failed to remove zone on {self.base_url}: {e}", exc_info=True
-            )
+            logger.exception("Failed to remove zone on %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e

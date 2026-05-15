@@ -693,7 +693,7 @@ describe("RadioPresets Page", () => {
 
       // Should display error message
       await waitFor(() => {
-        expect(screen.getByTestId("error-message")).toHaveTextContent("Presets konnten nicht geladen werden");
+        expect(screen.getByTestId("error-message")).toHaveTextContent("Presets could not be loaded. Please try again.");
       });
     });
 
@@ -731,7 +731,7 @@ describe("RadioPresets Page", () => {
 
       // Should display error
       await waitFor(() => {
-        expect(screen.getByTestId("error-message")).toHaveTextContent("Preset konnte nicht gespeichert werden");
+        expect(screen.getByTestId("error-message")).toHaveTextContent("Preset could not be saved. Please try again.");
       });
     });
 
@@ -765,7 +765,7 @@ describe("RadioPresets Page", () => {
 
       // Should display user-friendly error
       await waitFor(() => {
-        expect(screen.getByTestId("error-message")).toHaveTextContent("Preset konnte nicht gespeichert werden");
+        expect(screen.getByTestId("error-message")).toHaveTextContent("Preset could not be saved. Please try again.");
       });
     });
   });

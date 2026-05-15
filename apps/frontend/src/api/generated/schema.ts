@@ -1031,8 +1031,7 @@ export interface paths {
      *
      *     Args:
      *         device_id: Device MAC address (e.g., "689E194F7D2F")
-     *         preset_repo: Preset repository dependency
-     *         recents_repo: Recents repository dependency
+     *         marge: Marge service dependency
      *
      *     Returns:
      *         XML Response with <boseAccount> structure
@@ -1059,7 +1058,7 @@ export interface paths {
      *
      *     Args:
      *         device_id: Device MAC address
-     *         preset_repo: Preset repository dependency
+     *         marge: Marge service dependency
      *
      *     Returns:
      *         XML Response with <presets> structure
@@ -1086,7 +1085,7 @@ export interface paths {
      *
      *     Args:
      *         device_id: Device MAC address
-     *         recents_repo: Recents repository dependency
+     *         marge: Marge service dependency
      *
      *     Returns:
      *         XML Response with <recents> structure
@@ -1293,11 +1292,12 @@ export interface paths {
      * @description Get full account sync via streaming endpoint.
      *
      *     This is the streaming.bose.com version of the account sync endpoint.
-     *     Returns complete account with all devices, presets, recents, and sources.
+     *     Resolves the device_id from the account_id (margeAccountUUID) stored
+     *     during device discovery, then returns that device's presets.
      *
      *     Args:
      *         account_id: Account ID (e.g., "3784726")
-     *         preset_repo: Preset repository dependency
+     *         marge: Marge service dependency
      *
      *     Returns:
      *         XML Response with <account> structure
@@ -1334,6 +1334,32 @@ export interface paths {
      *         200 OK
      */
     post: operations["scmudc_reporting_v1_scmudc__device_id__post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/streaming/stats/usage": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Streaming Stats Usage
+     * @description Accept device usage statistics (stub).
+     *
+     *     Without this endpoint, the device retries repeatedly after
+     *     statsServerUrl is redirected to OCT.
+     *
+     *     Returns:
+     *         200 OK
+     */
+    post: operations["streaming_stats_usage_streaming_stats_usage_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -1863,12 +1889,32 @@ export interface paths {
     /**
      * Wizard Reboot Device
      * @description Reboot SoundTouch device via SSH (Wizard Step 7).
-     *
-     *     Sends the `reboot` command via SSH. The device drops the SSH connection
-     *     immediately after receiving the command — this is expected and not an error.
-     *     Frontend should wait ~60s before attempting verify-redirect tests.
      */
     post: operations["wizard_reboot_device_api_setup_wizard_reboot_device_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/account-pairing": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Account Pairing
+     * @description Ensure device has a margeAccountUUID (Wizard Step - Account Pairing).
+     *
+     *     Checks if the device already has a UUID. If not, generates one and
+     *     sets it via Telnet. Persists the UUID in the device repository for
+     *     streaming endpoint resolution.
+     */
+    post: operations["wizard_account_pairing_api_setup_wizard_account_pairing_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -1886,12 +1932,12 @@ export interface paths {
     put?: never;
     /**
      * Wizard Ensure Account
-     * @description Ensure device has a margeAccountUUID (Wizard Step — after config/hosts).
+     * @description Ensure device has a margeAccountUUID (Wizard Step � after config/hosts).
      *
      *     Devices without a margeAccountUUID cannot play presets (INVALID_SOURCE).
      *     This endpoint checks GET :8090/info and sets a UUID via Telnet if missing.
      *
-     *     Safe to call multiple times — no-op if UUID already present.
+     *     Safe to call multiple times � no-op if UUID already present.
      */
     post: operations["wizard_ensure_account_api_setup_wizard_ensure_account_post"];
     delete?: never;
@@ -1939,9 +1985,6 @@ export interface paths {
     /**
      * Wizard Complete
      * @description Mark wizard setup as complete for a device.
-     *
-     *     Updates the device's setup_status to 'configured' in the database.
-     *     Called by the frontend when the user finishes the wizard.
      */
     post: operations["wizard_complete_api_setup_wizard_complete_post"];
     delete?: never;
@@ -1962,9 +2005,6 @@ export interface paths {
     /**
      * Wizard Verify Redirect
      * @description Verify a domain is redirected to OCT on the device (Wizard Step 7).
-     *
-     *     SSH into the device, run ping against the domain, and check whether
-     *     the resolved IP matches the OCT server's IP.
      */
     post: operations["wizard_verify_redirect_api_setup_wizard_verify_redirect_post"];
     delete?: never;
@@ -2317,6 +2357,49 @@ export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
     /**
+     * AccountPairingRequest
+     * @description Request to ensure device has a margeAccountUUID.
+     */
+    AccountPairingRequest: {
+      /**
+       * Device Ip
+       * @description Device IP address
+       */
+      device_ip: string;
+      /**
+       * Device Id
+       * @description Device ID (MAC address)
+       */
+      device_id: string;
+    };
+    /**
+     * AccountPairingResponse
+     * @description Response from account pairing.
+     */
+    AccountPairingResponse: {
+      /** Success */
+      success: boolean;
+      /**
+       * Had Uuid
+       * @description True if UUID was already present
+       * @default false
+       */
+      had_uuid: boolean;
+      /**
+       * Uuid
+       * @description The current or newly set UUID
+       * @default
+       */
+      uuid: string;
+      /**
+       * Message
+       * @default
+       */
+      message: string;
+      /** Error */
+      error?: string | null;
+    };
+    /**
      * AuditBatchRequest
      * @description Batch of audit entries (reduces HTTP roundtrips).
      */
@@ -2387,6 +2470,11 @@ export interface components {
     BackupRequest: {
       /** Device Ip */
       device_ip: string;
+      /**
+       * Device Id
+       * @description Device identifier for unique backup filenames
+       */
+      device_id?: string | null;
     };
     /**
      * BackupResponse
@@ -2667,38 +2755,6 @@ export interface components {
        * @default true
        */
       make_permanent: boolean;
-    };
-    /**
-     * EnsureAccountRequest
-     * @description Request to ensure device has a margeAccountUUID.
-     */
-    EnsureAccountRequest: {
-      /** Device Ip */
-      device_ip: string;
-    };
-    /**
-     * EnsureAccountResponse
-     * @description Response from account pairing check/fix.
-     */
-    EnsureAccountResponse: {
-      /** Success */
-      success: boolean;
-      /**
-       * Had Uuid
-       * @description True if UUID was already present
-       */
-      had_uuid: boolean;
-      /**
-       * Uuid
-       * @description The current or newly set UUID
-       * @default
-       */
-      uuid: string;
-      /**
-       * Message
-       * @default
-       */
-      message: string;
     };
     /**
      * FrontendLogEntry
@@ -4771,6 +4827,26 @@ export interface operations {
       };
     };
   };
+  streaming_stats_usage_streaming_stats_usage_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
   streaming_token_streaming_device__device_id__streaming_token_get: {
     parameters: {
       query?: never;
@@ -5453,7 +5529,7 @@ export interface operations {
       };
     };
   };
-  wizard_ensure_account_api_setup_wizard_ensure_account_post: {
+  wizard_account_pairing_api_setup_wizard_account_pairing_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -5462,7 +5538,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["EnsureAccountRequest"];
+        "application/json": components["schemas"]["AccountPairingRequest"];
       };
     };
     responses: {
@@ -5472,7 +5548,40 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["EnsureAccountResponse"];
+          "application/json": components["schemas"]["AccountPairingResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  wizard_ensure_account_api_setup_wizard_ensure_account_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AccountPairingRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AccountPairingResponse"];
         };
       };
       /** @description Validation Error */
@@ -5684,6 +5793,13 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["ZoneStatus"][];
         };
+      };
+      /** @description Failed to get zones */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

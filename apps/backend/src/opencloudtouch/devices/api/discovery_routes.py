@@ -57,7 +57,7 @@ async def discover_devices(
             ],
         }
     except Exception as e:
-        logger.error(f"Discovery failed: {e}")
+        logger.error("Discovery failed: %s", e)
         # Wrap generic exceptions in DiscoveryError
         raise DiscoveryError(f"Device discovery failed: {str(e)}") from e
 
@@ -83,7 +83,7 @@ async def sync_devices(
             result = await device_service.sync_devices()
             return result.to_dict()
         except Exception as e:
-            logger.error(f"Sync failed: {e}")
+            logger.error("Sync failed: %s", e)
             # Wrap generic exceptions in DiscoveryError
             raise DiscoveryError(f"Device sync failed: {str(e)}") from e
 
@@ -137,6 +137,7 @@ async def discover_devices_stream(
 
     async def stream_discovery():
         """Stream discovery events to client."""
+        task = None
         try:
             # Start discovery in background task
             async with _discovery_lock:
@@ -154,9 +155,11 @@ async def discover_devices_stream(
 
         except asyncio.CancelledError:
             logger.info("Client disconnected from discovery stream")
+            if task and not task.done():
+                task.cancel()
             raise
         except Exception as e:
-            logger.error(f"Discovery stream error: {e}")
+            logger.exception("Discovery stream error")
             # Send error event
             from opencloudtouch.devices.events import DiscoveryEvent
 

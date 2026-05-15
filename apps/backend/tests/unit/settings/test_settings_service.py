@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from opencloudtouch.core.exceptions import DomainValidationError
 from opencloudtouch.settings.service import SettingsService
 
 
@@ -87,7 +88,7 @@ class TestSettingsServiceManualIPs:
 
         # Act & Assert
         for invalid_ip in invalid_ips:
-            with pytest.raises(ValueError, match="Invalid IP address"):
+            with pytest.raises(DomainValidationError, match="Invalid IP address"):
                 await settings_service.add_manual_ip(invalid_ip)
 
         # Assert repository was never called
@@ -139,7 +140,7 @@ class TestSettingsServiceManualIPs:
         mock_repository.get_manual_ips.return_value = []
 
         # Act & Assert
-        with pytest.raises(ValueError, match="Invalid IP address"):
+        with pytest.raises(DomainValidationError, match="Invalid IP address"):
             await settings_service.set_manual_ips(mixed_ips)
 
         # Assert no repository changes were made
@@ -201,5 +202,5 @@ class TestSettingsServiceIPValidation:
 
         # Act & Assert
         for ip in invalid_ips:
-            with pytest.raises(ValueError, match="Invalid IP address"):
+            with pytest.raises(DomainValidationError, match="Invalid IP address"):
                 settings_service._validate_ip(ip)

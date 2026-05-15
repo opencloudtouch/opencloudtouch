@@ -7,14 +7,13 @@ are not supported.
 """
 
 import asyncio
+import logging
 from dataclasses import dataclass, field
 from typing import Any, List, Optional, Set
 
 from bosesoundtouchapi import SoundTouchClient, SoundTouchError
 
-from opencloudtouch.core.logging import get_logger
-
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 @dataclass

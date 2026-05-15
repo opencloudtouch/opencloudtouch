@@ -143,6 +143,29 @@ test_ssh_enabled() {
     [ -L "$ROOTFS/etc/systemd/system/sshd.service" ]
 }
 
+test_correct_kernel() {
+    # armhf needs kernel7.img (32-bit); arm64 needs kernel8.img (64-bit)
+    local bootdir
+    bootdir="$(find "$ROOTFS/boot" -name 'firmware' -type d 2>/dev/null | head -1)"
+    bootdir="${bootdir:-$ROOTFS/boot}"
+
+    if [ "$ARCH" = "armhf" ]; then
+        [ -f "$bootdir/kernel7.img" ] || [ -f "$bootdir/kernel7l.img" ] || {
+            local found
+            found="$(ls "$bootdir"/kernel*.img 2>/dev/null | xargs -I{} basename {} | tr '\n' ' ')"
+            echo "need kernel7.img, found: ${found:-none}"
+            return 1
+        }
+    else
+        [ -f "$bootdir/kernel8.img" ] || {
+            local found
+            found="$(ls "$bootdir"/kernel*.img 2>/dev/null | xargs -I{} basename {} | tr '\n' ' ')"
+            echo "need kernel8.img, found: ${found:-none}"
+            return 1
+        }
+    fi
+}
+
 # ============================================================================
 # Test registry — add new tests here
 # ============================================================================
@@ -168,6 +191,7 @@ run_test "Avahi daemon installed"             test_avahi_installed
 run_test "User 'oct' exists"                  test_user_oct_exists
 run_test "User 'oct' in docker group"         test_user_oct_docker_group
 run_test "SSH service enabled"                test_ssh_enabled
+run_test "Correct kernel for arch"            test_correct_kernel
 
 # ============================================================================
 # Summary

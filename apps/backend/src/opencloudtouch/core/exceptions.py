@@ -1,7 +1,24 @@
 """
 Custom exceptions for OpenCloudTouch
-Provides a unified exception hierarchy for better error handling
-Includes RFC 7807-inspired standardized error responses
+
+Unified exception hierarchy — all domain exceptions inherit from
+OpenCloudTouchError so they can be caught uniformly by global handlers.
+
+Hierarchy:
+    OpenCloudTouchError
+    ├── DeviceNotFoundError          → 404
+    ├── DeviceConnectionError        → 503
+    ├── DiscoveryError               → 500
+    ├── DomainValidationError        → 400
+    ├── RadioError                   → 500
+    │   ├── RadioTimeoutError        → 504
+    │   └── RadioConnectionError     → 503
+    ├── SSHError                     → 500
+    │   ├── SSHConnectionError       → 503
+    │   └── SSHOperationError        → 500
+    └── ExternalServiceError         → 502
+
+Includes RFC 7807-inspired standardized error responses.
 """
 
 from typing import Any
@@ -15,10 +32,17 @@ class OpenCloudTouchError(Exception):
     pass
 
 
-class DiscoveryError(OpenCloudTouchError):
-    """Raised when device discovery fails."""
+# ============================================================================
+# Device Exceptions
+# ============================================================================
 
-    pass
+
+class DeviceNotFoundError(OpenCloudTouchError):
+    """Raised when a requested device is not found in the database."""
+
+    def __init__(self, device_id: str):
+        self.device_id = device_id
+        super().__init__(f"Device not found: {device_id}")
 
 
 class DeviceConnectionError(OpenCloudTouchError):
@@ -29,12 +53,91 @@ class DeviceConnectionError(OpenCloudTouchError):
         super().__init__(f"{message}: {device_ip}")
 
 
-class DeviceNotFoundError(OpenCloudTouchError):
-    """Raised when a requested device is not found in the database."""
+class DiscoveryError(OpenCloudTouchError):
+    """Raised when device discovery fails."""
 
-    def __init__(self, device_id: str):
-        self.device_id = device_id
-        super().__init__(f"Device not found: {device_id}")
+    pass
+
+
+# ============================================================================
+# Domain Validation Exceptions (replaces bare ValueError in services)
+# ============================================================================
+
+
+class DomainValidationError(OpenCloudTouchError):
+    """Raised when domain-level validation fails (invalid input to service layer).
+
+    Maps to HTTP 400 Bad Request.
+    """
+
+    def __init__(self, message: str, field: str | None = None):
+        self.field = field
+        super().__init__(message)
+
+
+# ============================================================================
+# Radio Provider Exceptions
+# ============================================================================
+
+
+class RadioError(OpenCloudTouchError):
+    """Base exception for radio provider errors (RadioBrowser, TuneIn)."""
+
+    pass
+
+
+class RadioTimeoutError(RadioError):
+    """Raised when radio provider API times out. Maps to 504."""
+
+    pass
+
+
+class RadioConnectionError(RadioError):
+    """Raised when connection to radio provider fails. Maps to 503."""
+
+    pass
+
+
+# ============================================================================
+# SSH / Setup Exceptions
+# ============================================================================
+
+
+class SSHError(OpenCloudTouchError):
+    """Base exception for SSH operations."""
+
+    def __init__(self, device_ip: str, message: str = "SSH operation failed"):
+        self.device_ip = device_ip
+        super().__init__(f"{message}: {device_ip}")
+
+
+class SSHConnectionError(SSHError):
+    """Raised when SSH connection to device fails. Maps to 503."""
+
+    def __init__(self, device_ip: str, message: str = "SSH connection refused"):
+        super().__init__(device_ip, message)
+
+
+class SSHOperationError(SSHError):
+    """Raised when an SSH command fails on the device. Maps to 500."""
+
+    def __init__(self, device_ip: str, operation: str, message: str = ""):
+        self.operation = operation
+        detail = f"SSH operation '{operation}' failed"
+        if message:
+            detail += f": {message}"
+        super().__init__(device_ip, detail)
+
+
+# ============================================================================
+# External Service Exceptions
+# ============================================================================
+
+
+class ExternalServiceError(OpenCloudTouchError):
+    """Raised when an external service (GitHub, etc.) fails. Maps to 502."""
+
+    pass
 
 
 # ============================================================================

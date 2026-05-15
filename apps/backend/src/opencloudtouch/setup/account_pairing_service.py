@@ -17,11 +17,11 @@ from typing import Optional
 import httpx
 from defusedxml import ElementTree as ET
 
+from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT as _DEFAULT_DEVICE_HTTP_PORT
 from opencloudtouch.setup.ssh_client import SoundTouchTelnetClient
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_DEVICE_HTTP_PORT = 8090
 _DEFAULT_TELNET_PORT = 17000
 _INFO_TIMEOUT = 5.0
 _TELNET_TIMEOUT = 10.0
@@ -55,7 +55,7 @@ async def check_marge_account_uuid(
     Returns:
         The UUID string if present and non-empty, None otherwise
     """
-    url = f"http://{device_ip}:{device_port}/info"
+    url = f"http://{device_ip}:{device_port}/info"  # NOSONAR — Bose devices only support HTTP
     try:
         async with httpx.AsyncClient(timeout=_INFO_TIMEOUT) as client:
             resp = await client.get(url)

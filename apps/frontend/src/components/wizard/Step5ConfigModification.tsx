@@ -186,7 +186,13 @@ export default function Step5ConfigModification({
           <div className="config-success">
             <div className="success-icon">🔒</div>
             <h3 className="success-title">{t("setup.wizard.step5.proxySuccessTitle")}</h3>
-            <p className="success-message">{strategy.message}</p>
+            <p className="success-message">
+              {t(
+                strategy.proxy_available
+                  ? "setup.wizard.step5.strategyMessageProxy"
+                  : "setup.wizard.step5.strategyMessageBmx"
+              )}
+            </p>
             <div className="config-details">
               <div className="config-detail-item">
                 <strong>{t("setup.wizard.step5.strategyLabel")}</strong>
@@ -285,7 +291,7 @@ export default function Step5ConfigModification({
           <div className="config-success">
             <div className="success-icon">✅</div>
             <h3 className="success-title">{t("setup.wizard.step5.successTitle")}</h3>
-            <p className="success-message">{modifyData.message}</p>
+            <p className="success-message">{t("setup.wizard.step5.configApplied")}</p>
 
             <div className="config-details">
               <div className="config-detail-item">

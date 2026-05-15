@@ -25,6 +25,7 @@ to ensure mocks are active before the endpoint handler makes requests.
 import pytest
 import respx
 from httpx import AsyncClient, Response
+from unittest.mock import patch
 
 # Module-level respx router for external HTTP mocks
 external_mock = respx.mock(assert_all_called=False)
@@ -32,7 +33,11 @@ external_mock = respx.mock(assert_all_called=False)
 
 @pytest.fixture(autouse=True)
 def setup_external_mocks():
-    """Setup external HTTP mocks before each test."""
+    """Setup external HTTP mocks before each test.
+
+    Also patches validate_stream_url to skip DNS resolution in tests —
+    all stream URLs are mocked via respx, so SSRF checks are irrelevant here.
+    """
     # Define common external stream mocks
     external_mock.get(
         "https://edge71.live-sm.absolutradio.de/absolut-relax/stream/mp3"
@@ -88,7 +93,9 @@ def setup_external_mocks():
         return_value=Response(status_code=404, content=b"Not Found")
     )
 
-    with external_mock:
+    with external_mock, patch(
+        "opencloudtouch.devices.api.preset_stream_routes.validate_stream_url"
+    ):
         yield
 
     external_mock.reset()

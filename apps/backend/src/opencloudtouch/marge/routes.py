@@ -1,16 +1,14 @@
 """Marge (streaming.bose.com) account sync routes."""
 
 import logging
-from typing import Any
+from typing import Annotated, Any
 from xml.etree import ElementTree as ET
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 
-from opencloudtouch.core.dependencies import (
-    get_preset_repository,
-    get_recents_repository,
-)
+from opencloudtouch.core.dependencies import get_marge_service
+from opencloudtouch.marge.service import MargeService
 from opencloudtouch.marge.xml_builder import (
     build_devices_xml,
     build_full_account_xml,
@@ -18,8 +16,6 @@ from opencloudtouch.marge.xml_builder import (
     build_recents_xml,
     build_sources_xml,
 )
-from opencloudtouch.presets.repository import PresetRepository
-from opencloudtouch.recents.repository import RecentsRepository
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +42,7 @@ def _xml_response(element: ET.Element, media_type: str = _MEDIA_XML) -> Response
 @router.get("/v1/systems/devices/{device_id}")
 async def get_full_account(
     device_id: str,
-    preset_repo: PresetRepository = Depends(get_preset_repository),
-    recents_repo: RecentsRepository = Depends(get_recents_repository),
+    marge: Annotated[MargeService, Depends(get_marge_service)],
 ) -> Response:
     """Get full account sync for device.
 
@@ -58,16 +53,14 @@ async def get_full_account(
 
     Args:
         device_id: Device MAC address (e.g., "689E194F7D2F")
-        preset_repo: Preset repository dependency
-        recents_repo: Recents repository dependency
+        marge: Marge service dependency
 
     Returns:
         XML Response with <boseAccount> structure
     """
     logger.info("[MARGE] Full account sync for device %s", device_id)
 
-    presets = await preset_repo.get_all_presets(device_id)
-    recents = await recents_repo.get_recents(device_id)
+    presets, recents = await marge.get_full_account(device_id)
 
     logger.info(
         "[MARGE] Returning %d presets, %d recents for %s",
@@ -90,20 +83,20 @@ async def get_full_account(
 @router.get("/v1/systems/devices/{device_id}/presets")
 async def get_presets(
     device_id: str,
-    preset_repo: PresetRepository = Depends(get_preset_repository),
+    marge: Annotated[MargeService, Depends(get_marge_service)],
 ) -> Response:
     """Get presets for device.
 
     Args:
         device_id: Device MAC address
-        preset_repo: Preset repository dependency
+        marge: Marge service dependency
 
     Returns:
         XML Response with <presets> structure
     """
     logger.info("[MARGE] Get presets for device %s", device_id)
 
-    presets = await preset_repo.get_all_presets(device_id)
+    presets = await marge.get_presets(device_id)
 
     return _xml_response(build_presets_xml(presets))
 
@@ -111,20 +104,20 @@ async def get_presets(
 @router.get("/v1/systems/devices/{device_id}/recents")
 async def get_recents(
     device_id: str,
-    recents_repo: RecentsRepository = Depends(get_recents_repository),
+    marge: Annotated[MargeService, Depends(get_marge_service)],
 ) -> Response:
     """Get recently played items for device.
 
     Args:
         device_id: Device MAC address
-        recents_repo: Recents repository dependency
+        marge: Marge service dependency
 
     Returns:
         XML Response with <recents> structure
     """
     logger.info("[MARGE] Get recents for device %s", device_id)
 
-    recents = await recents_repo.get_recents(device_id)
+    recents = await marge.get_recents(device_id)
 
     return _xml_response(build_recents_xml(recents))
 
@@ -199,6 +192,7 @@ async def get_sourceproviders(device_id: str) -> Response:
 
     providers = [
         "TUNEIN",
+        "LOCAL_INTERNET_RADIO",
         "STORED_MUSIC",
         "AUX",
         "BLUETOOTH",
@@ -270,36 +264,42 @@ async def streaming_sourceproviders() -> Response:
 @router.get("/streaming/account/{account_id}/full")
 async def streaming_full_account(
     account_id: str,
-    preset_repo: PresetRepository = Depends(get_preset_repository),
+    marge: Annotated[MargeService, Depends(get_marge_service)],
 ) -> Response:
     """Get full account sync via streaming endpoint.
 
     This is the streaming.bose.com version of the account sync endpoint.
-    Returns complete account with all devices, presets, recents, and sources.
+    Resolves the device_id from the account_id (margeAccountUUID) stored
+    during device discovery, then returns that device's presets.
 
     Args:
         account_id: Account ID (e.g., "3784726")
-        preset_repo: Preset repository dependency
+        marge: Marge service dependency
 
     Returns:
         XML Response with <account> structure
     """
     logger.info("[MARGE/STREAMING] Full account sync for account %s", account_id)
 
-    # For now, return a generic device_id. In future, map account_id to device.
-    # The device ID is typically its MAC address.
-    device_id = "689E194F7D2F"  # TODO: Get from account mapping
+    device_id = await marge.resolve_device_id_for_account(account_id)
+    if not device_id:
+        logger.warning(
+            "[MARGE/STREAMING] No device mapped to account %s - returning empty presets",
+            account_id,
+        )
+        return _xml_response(build_full_account_xml([], []), _MEDIA_STREAMING_XML)
 
-    # Load presets from database
-    presets = await preset_repo.get_all_presets(device_id)
+    presets, recents = await marge.get_full_account(device_id)
 
     logger.info(
-        "[MARGE/STREAMING] Returning %d presets for account %s",
+        "[MARGE/STREAMING] Returning %d presets, %d recents for device %s (account %s)",
         len(presets),
+        len(recents),
+        device_id,
         account_id,
     )
 
-    return _xml_response(build_full_account_xml(presets, []), _MEDIA_STREAMING_XML)
+    return _xml_response(build_full_account_xml(presets, recents), _MEDIA_STREAMING_XML)
 
 
 @router.post("/v1/scmudc/{device_id}")
@@ -316,6 +316,21 @@ async def scmudc_reporting(device_id: str) -> Response:
         200 OK
     """
     logger.debug("[SCMUDC] Report from device %s", device_id)
+
+    return Response(status_code=200)
+
+
+@router.post("/streaming/stats/usage")
+async def streaming_stats_usage() -> Response:
+    """Accept device usage statistics (stub).
+
+    Without this endpoint, the device retries repeatedly after
+    statsServerUrl is redirected to OCT.
+
+    Returns:
+        200 OK
+    """
+    logger.debug("[STATS] Usage stats received (stub)")
 
     return Response(status_code=200)
 

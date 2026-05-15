@@ -1,7 +1,7 @@
 {
   "name": "opencloudtouch-frontend",
   "private": true,
-  "version": "1.2.4",
+  "version": "1.2.6",
   "type": "module",
   "description": "OpenCloudTouch - Local control for compatible streaming devices",
   "scripts": {

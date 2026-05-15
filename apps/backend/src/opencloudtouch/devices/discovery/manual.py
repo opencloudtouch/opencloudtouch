@@ -6,7 +6,11 @@ Allows users to specify device IPs manually when SSDP/UPnP doesn't work
 import logging
 from typing import List
 
-from opencloudtouch.discovery import DeviceDiscovery, DiscoveredDevice
+from opencloudtouch.discovery import (
+    SOUNDTOUCH_HTTP_PORT,
+    DeviceDiscovery,
+    DiscoveredDevice,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +37,11 @@ class ManualDiscovery(DeviceDiscovery):
         Returns:
             List of devices from manual IP list
         """
-        logger.info(f"Manual discovery: {len(self.device_ips)} device(s) configured")
+        logger.info("Manual discovery: %d device(s) configured", len(self.device_ips))
 
-        devices = [DiscoveredDevice(ip=ip, port=8090) for ip in self.device_ips]
+        devices = [
+            DiscoveredDevice(ip=ip, port=SOUNDTOUCH_HTTP_PORT) for ip in self.device_ips
+        ]
 
-        logger.info(f"Manual discovery: {len(devices)} device(s) created")
+        logger.info("Manual discovery: %d device(s) created", len(devices))
         return devices

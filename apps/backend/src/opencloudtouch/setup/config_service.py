@@ -113,7 +113,9 @@ class SoundTouchConfigService:
         result = await self.ssh.execute("mount -o remount,rw /")
         if result.exit_code != 0:
             self.logger.warning(
-                "remount rw returned exit_code=%s: %s", result.exit_code, result.stderr
+                "remount rw returned exit_code=%d: %s",
+                result.exit_code,
+                result.stderr,
             )
 
     async def _remount_ro(self) -> None:
@@ -121,7 +123,9 @@ class SoundTouchConfigService:
         result = await self.ssh.execute("mount -o remount,ro /")
         if result.exit_code != 0:
             self.logger.warning(
-                "remount ro returned exit_code=%s: %s", result.exit_code, result.stderr
+                "remount ro returned exit_code=%d: %s",
+                result.exit_code,
+                result.stderr,
             )
 
     @staticmethod
@@ -238,7 +242,9 @@ class SoundTouchConfigService:
                 result = await self.ssh.execute(write_cmd)
                 if not result.success:
                     self.logger.warning(
-                        "Sync failed for %s (best-effort): %s", candidate, result.error
+                        "Sync failed for %s (best-effort): %s",
+                        candidate,
+                        result.error,
                     )
             except Exception as e:
                 self.logger.warning("Sync error for %s (best-effort): %s", candidate, e)
@@ -332,6 +338,14 @@ class SoundTouchConfigService:
         self.logger.info("Restoring config from %s", backup_path)
 
         try:
+            # Path traversal protection
+            if ".." in backup_path or not backup_path.startswith(self.BACKUP_DIR + "/"):
+                self.logger.warning("Rejected invalid backup path: %s", backup_path)
+                return RestoreResult(
+                    success=False,
+                    error="Invalid backup path",
+                )
+
             # Verify backup exists
             check = await self.ssh.execute(
                 f"test -f {backup_path} && echo 'exists' || echo 'missing'"

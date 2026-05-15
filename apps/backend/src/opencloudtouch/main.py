@@ -17,7 +17,7 @@ from opencloudtouch.bmx.resolve_routes import resolve_router
 from opencloudtouch.devices.api.discovery_routes import discovery_router
 from opencloudtouch.bmx.routes import router as bmx_router
 from opencloudtouch.core.config import get_config, init_config
-from opencloudtouch import __version__
+from opencloudtouch import __version__, is_official_build
 from opencloudtouch.core.exception_handlers import (
     register_exception_handlers,  # re-exported for backward compat
 )
@@ -40,21 +40,27 @@ from opencloudtouch.devices.api.preset_stream_routes import (
 from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.services.sync_service import DeviceSyncService
 from opencloudtouch.marge.routes import router as marge_router
+from opencloudtouch.marge.service import MargeService
 from opencloudtouch.presets.api.playlist_routes import router as playlist_router
 from opencloudtouch.presets.api.routes import router as presets_router
 from opencloudtouch.presets.api.station_routes import router as stations_router
 from opencloudtouch.presets.repository import PresetRepository
 from opencloudtouch.presets.service import PresetService
 from opencloudtouch.recents.repository import RecentsRepository
+from opencloudtouch.recents.service import RecentsService
 from opencloudtouch.radio.api.routes import router as radio_router
 from opencloudtouch.settings.repository import SettingsRepository
 from opencloudtouch.settings.routes import router as settings_router
 from opencloudtouch.settings.service import SettingsService
 from opencloudtouch.setup.routes import router as setup_router
+from opencloudtouch.setup.service import SetupService
 from opencloudtouch.setup.wizard_routes import wizard_router
+from opencloudtouch.setup.wizard_service import WizardService
 from opencloudtouch.swupdate.routes import router as swupdate_router
+from opencloudtouch.wizard_audit.repository import WizardAuditRepository
 from opencloudtouch.wizard_audit.routes import audit_router as wizard_audit_router
 from opencloudtouch.zones.routes import device_zone_router, router as zones_router
+from opencloudtouch.zones.service import ZoneService
 
 # Module-level logger
 logger = logging.getLogger(__name__)
@@ -63,62 +69,86 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown."""
-    # Initialize configuration
     init_config()
-
-    # Setup structured logging
     setup_logging()
 
     logger = logging.getLogger(__name__)
     cfg = get_config()
-    logger.info(f"OpenCloudTouch starting on {cfg.host}:{cfg.port}")
-    logger.info(f"Database: {cfg.effective_db_path}")
-    logger.info(f"Discovery enabled: {cfg.discovery_enabled}")
-    logger.info(f"Mock mode: {cfg.mock_mode}")
-    # Build attestation marker (invisible Unicode soft-hyphen U+00AD in log prefix)
-    from opencloudtouch import is_official_build
+    _log_startup_info(logger, cfg)
 
+    # Startup: repositories → services → background tasks
+    repos = await _init_repositories(app, cfg, logger)
+    await _init_services(app, cfg, repos, logger)
+
+    yield
+
+    # Shutdown
+    await _shutdown(app, repos, logger)
+
+
+def _log_startup_info(logger: logging.Logger, cfg) -> None:
+    """Log startup configuration summary."""
+    logger.info("OpenCloudTouch starting on %s:%s", cfg.host, cfg.port)
+    logger.info("Database: %s", cfg.effective_db_path)
+    logger.info("Discovery enabled: %s", cfg.discovery_enabled)
+    logger.info("Mock mode: %s", cfg.mock_mode)
     _build_tag = "\u00adofficial" if is_official_build() else "\u00adcommunity"
-    logger.info(f"Build\u00ad: {__version__} [{_build_tag}]")
+    logger.info("Build\u00ad: %s [%s]", __version__, _build_tag)
 
-    # Initialize database
-    device_repo = DeviceRepository(cfg.effective_db_path)
-    await device_repo.initialize()
-    app.state.device_repo = device_repo
-    logger.info("Device repository initialized")
 
-    # Initialize settings repository (convert str to Path if needed)
-    from pathlib import Path
+async def _init_repositories(app: FastAPI, cfg, logger: logging.Logger) -> dict:
+    """Initialize all database repositories and attach to app.state.
 
+    Returns:
+        Dict mapping state attribute names to repository instances.
+    """
     db_path = (
         Path(cfg.effective_db_path)
         if isinstance(cfg.effective_db_path, str)
         else cfg.effective_db_path
     )
-    settings_repo = SettingsRepository(db_path)
-    await settings_repo.initialize()
-    app.state.settings_repo = settings_repo
-    logger.info("Settings repository initialized")
 
-    # Initialize preset repository
-    preset_repo = PresetRepository(cfg.effective_db_path)
-    await preset_repo.initialize()
-    app.state.preset_repo = preset_repo
-    logger.info("Preset repository initialized")
+    repo_classes = [
+        ("device_repo", DeviceRepository, cfg.effective_db_path),
+        ("settings_repo", SettingsRepository, db_path),
+        ("preset_repo", PresetRepository, cfg.effective_db_path),
+        ("recents_repo", RecentsRepository, cfg.effective_db_path),
+        ("wizard_audit_repo", WizardAuditRepository, cfg.effective_db_path),
+    ]
 
-    # Initialize recents repository
-    recents_repo = RecentsRepository(cfg.effective_db_path)
-    await recents_repo.initialize()
-    app.state.recents_repo = recents_repo
-    logger.info("Recents repository initialized")
+    repos = {}
+    for attr_name, repo_class, path in repo_classes:
+        repo = repo_class(path)
+        await repo.initialize()
+        setattr(app.state, attr_name, repo)
+        repos[attr_name] = repo
+        logger.info("%s initialized", attr_name)
 
-    # Initialize preset service (needs device_repo for /storePreset)
-    preset_service = PresetService(preset_repo, device_repo)
-    app.state.preset_service = preset_service
-    logger.info("Preset service initialized")
+    return repos
 
-    # Initialize device service
-    discovery_adapter = get_discovery_adapter()
+
+async def _init_services(
+    app: FastAPI, cfg, repos: dict, logger: logging.Logger
+) -> None:
+    """Initialize all services and attach to app.state."""
+    device_repo = repos["device_repo"]
+    settings_repo = repos["settings_repo"]
+    preset_repo = repos["preset_repo"]
+    recents_repo = repos["recents_repo"]
+
+    # Recents service
+    app.state.recents_service = RecentsService(recents_repo)
+    logger.info("RecentsService initialized")
+
+    # Marge service (account sync orchestration)
+    app.state.marge_service = MargeService(preset_repo, recents_repo, device_repo)
+    logger.info("MargeService initialized")
+
+    # Preset service
+    app.state.preset_service = PresetService(preset_repo, device_repo)
+    logger.info("PresetService initialized")
+
+    # Device service (with sync + discovery)
     sync_service = DeviceSyncService(
         repository=device_repo,
         discovery_timeout=cfg.discovery_timeout,
@@ -129,74 +159,62 @@ async def lifespan(app: FastAPI):
     device_service = DeviceService(
         repository=device_repo,
         sync_service=sync_service,
-        discovery_adapter=discovery_adapter,
+        discovery_adapter=get_discovery_adapter(),
     )
     app.state.device_service = device_service
-    logger.info("Device service initialized")
+    logger.info("DeviceService initialized")
 
-    # Initialize zone service
-    from opencloudtouch.zones.service import ZoneService
+    # Zone service (with injected client factory to avoid circular deps)
+    from opencloudtouch.devices.adapter import get_device_client
 
-    zone_service = ZoneService(device_repo=device_repo)
-    app.state.zone_service = zone_service
-    logger.info("Zone service initialized")
+    app.state.zone_service = ZoneService(
+        device_repo=device_repo,
+        client_factory=get_device_client,
+    )
+    logger.info("ZoneService initialized")
 
-    # Auto-discover devices on startup (especially mock devices)
+    # Auto-discover in mock mode
     if cfg.mock_mode:
         logger.info("[MOCK MODE] Auto-discovering devices on startup...")
         result = await device_service.sync_devices()
         logger.info(
-            f"[MOCK MODE] Device sync: {result.synced} synced, "
-            f"{result.failed} failed ({result.discovered} discovered)"
+            "[MOCK MODE] Device sync: %d synced, %d failed (%d discovered)",
+            result.synced,
+            result.failed,
+            result.discovered,
         )
 
-    # Initialize settings service
-    settings_service = SettingsService(settings_repo)
-    app.state.settings_service = settings_service
-    logger.info("Settings service initialized")
+    # Settings service
+    app.state.settings_service = SettingsService(settings_repo)
+    logger.info("SettingsService initialized")
 
-    # Initialize setup service (with device_repo for persistence)
-    from opencloudtouch.setup.service import SetupService
+    # Setup service
+    app.state.setup_service = SetupService(device_repo=device_repo)
+    logger.info("SetupService initialized")
 
-    setup_service = SetupService(device_repo=device_repo)
-    app.state.setup_service = setup_service
-    logger.info("Setup service initialized")
+    # Wizard service (orchestrates SSH wizard steps)
+    app.state.wizard_service = WizardService(
+        audit_repo=repos["wizard_audit_repo"],
+        device_repo=device_repo,
+    )
+    logger.info("WizardService initialized")
 
-    # Initialize wizard audit repository
-    from opencloudtouch.wizard_audit.repository import WizardAuditRepository
-
-    wizard_audit_repo = WizardAuditRepository(cfg.effective_db_path)
-    await wizard_audit_repo.initialize()
-    app.state.wizard_audit_repo = wizard_audit_repo
-    logger.info("Wizard audit repository initialized")
-
-    # Start background health-check (not in mock/CI mode)
+    # Background health-check (not in mock/CI mode)
     health_check = DeviceHealthCheck(device_repo)
     if not cfg.mock_mode:
         health_check.start()
         logger.info("Device health-check started")
     app.state.health_check = health_check
 
-    yield
 
-    # Shutdown
-    await health_check.stop()
+async def _shutdown(app: FastAPI, repos: dict, logger: logging.Logger) -> None:
+    """Graceful shutdown: stop background tasks, close repositories."""
+    await app.state.health_check.stop()
     logger.info("Device health-check stopped")
 
-    await device_repo.close()
-    logger.info("Device repository closed")
-
-    await settings_repo.close()
-    logger.info("Settings repository closed")
-
-    await preset_repo.close()
-    logger.info("Preset repository closed")
-
-    await recents_repo.close()
-    logger.info("Recents repository closed")
-
-    await wizard_audit_repo.close()
-    logger.info("Wizard audit repository closed")
+    for attr_name, repo in repos.items():
+        await repo.close()
+        logger.info("%s closed", type(repo).__name__)
 
     logger.info("OpenCloudTouch shutting down")
 
@@ -272,8 +290,6 @@ app.include_router(wizard_audit_router)  # Wizard audit trail
 @app.get("/health", tags=["System"])
 async def health_check():
     """Health check endpoint for Docker and monitoring."""
-    from opencloudtouch import is_official_build
-
     cfg = get_config()
     return JSONResponse(
         status_code=200,

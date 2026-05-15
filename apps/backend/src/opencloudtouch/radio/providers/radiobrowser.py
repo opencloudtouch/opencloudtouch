@@ -24,20 +24,27 @@ from opencloudtouch.radio.models import RadioStation
 from opencloudtouch.radio.provider import RadioProvider
 
 
-# Custom Exceptions
-class RadioBrowserError(Exception):
+from opencloudtouch.core.exceptions import (
+    RadioConnectionError,
+    RadioError,
+    RadioTimeoutError,
+)
+
+
+# Provider-specific aliases (inherit from unified hierarchy)
+class RadioBrowserError(RadioError):
     """Base exception for RadioBrowser errors."""
 
     pass
 
 
-class RadioBrowserTimeoutError(RadioBrowserError):
+class RadioBrowserTimeoutError(RadioBrowserError, RadioTimeoutError):
     """Request timeout error."""
 
     pass
 
 
-class RadioBrowserConnectionError(RadioBrowserError):
+class RadioBrowserConnectionError(RadioBrowserError, RadioConnectionError):
     """Connection error."""
 
     pass

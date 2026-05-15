@@ -37,7 +37,7 @@ class SoundTouchHostsService:
     """Service for modifying SoundTouch device hosts file."""
 
     HOSTS_PATH = "/etc/hosts"
-    BACKUP_DIR = "/usb/backups"
+    BACKUP_DIR = "/mnt/nv"
     OCT_MARKER_START = "# OCT-START"
     OCT_MARKER_END = "# OCT-END"
 
@@ -80,7 +80,7 @@ class SoundTouchHostsService:
         result = await self.ssh.execute("mount -o remount,rw /")
         if result.exit_code != 0:
             self.logger.warning(
-                f"remount rw returned exit_code={result.exit_code}: {result.stderr}"
+                "remount rw returned exit_code=%s: %s", result.exit_code, result.stderr
             )
 
     async def _remount_ro(self) -> None:
@@ -88,7 +88,7 @@ class SoundTouchHostsService:
         result = await self.ssh.execute("mount -o remount,ro /")
         if result.exit_code != 0:
             self.logger.warning(
-                f"remount ro returned exit_code={result.exit_code}: {result.stderr}"
+                "remount ro returned exit_code=%s: %s", result.exit_code, result.stderr
             )
 
     async def modify_hosts(
@@ -122,8 +122,9 @@ class SoundTouchHostsService:
             )
 
         self.logger.info(
-            f"Modifying hosts to redirect to OCT at {oct_ip} "
-            f"(optional: {include_optional})"
+            "Modifying hosts to redirect to OCT at %s (optional: %s)",
+            oct_ip,
+            include_optional,
         )
 
         try:
@@ -158,14 +159,14 @@ class SoundTouchHostsService:
 
                 diff = "\n".join(f"+ {oct_ip}\t{d}" for d in domains_to_add)
                 self.logger.info(
-                    f"Hosts modified successfully ({len(domains_to_add)} entries)"
+                    "Hosts modified successfully (%d entries)", len(domains_to_add)
                 )
                 return ModifyResult(success=True, backup_path=backup_path, diff=diff)
             finally:
                 await self._remount_ro()
 
         except Exception as e:
-            self.logger.error(f"Hosts modification failed: {e}")
+            self.logger.error("Hosts modification failed: %s", e)
             return ModifyResult(success=False, error=str(e))
 
     async def _read_hosts(self) -> str:
@@ -185,7 +186,7 @@ class SoundTouchHostsService:
                 f"cp {self.HOSTS_PATH} {backup_path}"
             )
             if not backup_result.success:
-                self.logger.warning(f"Backup may have failed: {backup_result.error}")
+                self.logger.warning("Backup may have failed: %s", backup_result.error)
 
     def _build_clean_lines(
         self, original_content: str, all_bose_domains: List[str]
@@ -245,58 +246,71 @@ class SoundTouchHostsService:
                 f"Failed to write hosts file: {write_result.error or write_result.output}"
             )
 
-    async def restore_hosts(
-        self, backup_path: str
-    ) -> RestoreResult:  # pragma: no cover
-        """
-        Restore hosts file from backup.
+    async def restore_hosts(self, backup_path: str) -> RestoreResult:
+        """Restore hosts file from backup.
+
+        Protocol: verify backup exists → remount rw → copy → remount ro.
 
         Args:
-            backup_path: Path to backup file
+            backup_path: Path to backup file on device
 
         Returns:
             Restoration result
         """
-        self.logger.info(f"Restoring hosts from {backup_path}")
+        self.logger.info("Restoring hosts from %s", backup_path)
 
         try:
-            # TODO: Implement actual restore logic
-            # 1. Verify backup exists
-            # 2. Upload backup to device
-            # 3. Replace current hosts file
-            # 4. Restart networking if needed
+            check = await self.ssh.execute(
+                f"test -f {backup_path} && echo 'exists' || echo 'missing'"
+            )
+            if "missing" in (check.output or ""):
+                return RestoreResult(
+                    success=False,
+                    error=f"Backup not found: {backup_path}",
+                )
 
-            self.logger.info("Hosts restored successfully")
-            return RestoreResult(success=True)
+            await self._remount_rw()
+            try:
+                result = await self.ssh.execute(f"cp {backup_path} {self.HOSTS_PATH}")
+                if not result.success:
+                    return RestoreResult(
+                        success=False,
+                        error=f"Copy failed: {result.error or result.output}",
+                    )
+
+                self.logger.info("Hosts restored successfully")
+                return RestoreResult(success=True)
+            finally:
+                await self._remount_ro()
 
         except Exception as e:
-            self.logger.error(f"Hosts restore failed: {e}")
+            self.logger.error("Hosts restore failed: %s", e)
             return RestoreResult(
                 success=False,
                 error=str(e),
             )
 
-    async def list_backups(self) -> List[str]:  # pragma: no cover
-        """
-        List available hosts backups.
+    async def list_backups(self) -> List[str]:
+        """List available hosts backups on the device.
 
         Returns:
-            List of backup file paths
+            List of backup file paths, sorted newest first
         """
         self.logger.info("Listing hosts backups")
 
         try:
-            # TODO: Implement actual backup listing
-            # 1. Connect to device
-            # 2. List files in backup directory
-            # 3. Filter hosts backups
-            # 4. Return sorted list
+            result = await self.ssh.execute(
+                f"ls -1t {self.BACKUP_DIR}/hosts_backup* 2>/dev/null"
+            )
+            if not result.success or not result.output:
+                return []
 
             return [
-                "/usb/backups/hosts_backup_2024-01-01",
-                "/usb/backups/hosts_backup_2024-01-02",
+                line.strip()
+                for line in result.output.strip().splitlines()
+                if line.strip()
             ]
 
         except Exception as e:
-            self.logger.error(f"Failed to list backups: {e}")
+            self.logger.error("Failed to list backups: %s", e)
             return []

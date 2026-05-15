@@ -17,8 +17,12 @@ describe("Radio Search Robustness", () => {
     // Clear devices
     cy.request("DELETE", `${apiUrl}/devices`);
 
-    // Discover devices
-    cy.visit("/welcome");
+    // Discover devices — force German locale for text assertions
+    cy.visit("/welcome", {
+      onBeforeLoad(win) {
+        win.localStorage.setItem("oct-lang", "de");
+      },
+    });
     cy.get('[data-test="discover-button"]').click();
 
     // Wait for device data to render

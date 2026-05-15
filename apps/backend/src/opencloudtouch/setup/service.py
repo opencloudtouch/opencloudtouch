@@ -108,7 +108,7 @@ class SetupService:
             config = get_config()
             our_server = (
                 config.station_descriptor_base_url
-                or f"http://{config.host}:{config.port}"
+                or f"http://{config.host}:{config.port}"  # NOSONAR — LAN only
             )
             result["bmx_configured"] = our_server in check.output
 
@@ -130,6 +130,6 @@ class SetupService:
             )
 
         except Exception as e:
-            logger.error(f"Verification failed: {e}")
+            logger.error("Verification failed: %s", e)
 
         return result

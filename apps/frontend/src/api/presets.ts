@@ -4,6 +4,8 @@
  * Provides methods to interact with the backend preset endpoints.
  */
 
+import { throwIfNotOk } from "./types";
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 export interface PresetSetRequest {
@@ -46,10 +48,7 @@ export async function setPreset(request: PresetSetRequest): Promise<PresetRespon
     body: JSON.stringify(request),
   });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: "Failed to set preset" }));
-    throw new Error(error.detail || "Failed to set preset");
-  }
+  await throwIfNotOk(response, "Failed to set preset");
 
   return response.json();
 }
@@ -60,10 +59,7 @@ export async function setPreset(request: PresetSetRequest): Promise<PresetRespon
 export async function getDevicePresets(deviceId: string): Promise<PresetResponse[]> {
   const response = await fetch(`${API_BASE_URL}/api/presets/${deviceId}`);
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: "Failed to get presets" }));
-    throw new Error(error.detail || "Failed to get presets");
-  }
+  await throwIfNotOk(response, "Failed to get presets");
 
   return response.json();
 }
@@ -78,8 +74,7 @@ export async function getPreset(deviceId: string, presetNumber: number): Promise
     if (response.status === 404) {
       throw new Error("Preset not found");
     }
-    const error = await response.json().catch(() => ({ detail: "Failed to get preset" }));
-    throw new Error(error.detail || "Failed to get preset");
+    await throwIfNotOk(response, "Failed to get preset");
   }
 
   return response.json();
@@ -96,10 +91,7 @@ export async function clearPreset(
     method: "DELETE",
   });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: "Failed to clear preset" }));
-    throw new Error(error.detail || "Failed to clear preset");
-  }
+  await throwIfNotOk(response, "Failed to clear preset");
 
   return response.json();
 }
@@ -112,10 +104,7 @@ export async function clearAllPresets(deviceId: string): Promise<MessageResponse
     method: "DELETE",
   });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: "Failed to clear all presets" }));
-    throw new Error(error.detail || "Failed to clear all presets");
-  }
+  await throwIfNotOk(response, "Failed to clear all presets");
 
   return response.json();
 }
@@ -131,12 +120,7 @@ export async function syncPresetsFromDevice(deviceId: string): Promise<MessageRe
     method: "POST",
   });
 
-  if (!response.ok) {
-    const error = await response
-      .json()
-      .catch(() => ({ detail: "Failed to sync presets from device" }));
-    throw new Error(error.detail || "Failed to sync presets from device");
-  }
+  await throwIfNotOk(response, "Failed to sync presets from device");
 
   return response.json();
 }

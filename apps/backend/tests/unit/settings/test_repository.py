@@ -1,10 +1,11 @@
-﻿"""Unit tests for Settings repository."""
+"""Unit tests for Settings repository."""
 
 import tempfile
 from pathlib import Path
 
 import pytest
 
+from opencloudtouch.core.exceptions import DomainValidationError
 from opencloudtouch.settings.repository import SettingsRepository
 
 
@@ -89,7 +90,7 @@ class TestSettingsRepository:
         await settings_repo.add_manual_ip(ip)
 
         # Act & Assert
-        with pytest.raises(ValueError, match="IP address already exists"):
+        with pytest.raises(DomainValidationError, match="IP address already exists"):
             await settings_repo.add_manual_ip(ip)
 
     @pytest.mark.asyncio
@@ -106,7 +107,7 @@ class TestSettingsRepository:
 
         # Act & Assert
         for invalid_ip in invalid_ips:
-            with pytest.raises(ValueError, match="Invalid IP address"):
+            with pytest.raises(DomainValidationError, match="Invalid IP address"):
                 await settings_repo.add_manual_ip(invalid_ip)
 
     @pytest.mark.asyncio

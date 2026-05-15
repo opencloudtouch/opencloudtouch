@@ -3,6 +3,8 @@
  * API calls for multi-room zone management
  */
 
+import { throwIfNotOk } from "./types";
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 // ---- Types ----
@@ -26,17 +28,13 @@ export interface ZoneInfo {
 
 export async function getZones(): Promise<ZoneInfo[]> {
   const response = await fetch(`${API_BASE_URL}/api/zones`);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch zones: ${response.statusText}`);
-  }
+  await throwIfNotOk(response, "Failed to fetch zones");
   return response.json();
 }
 
 export async function getDeviceZone(deviceId: string): Promise<ZoneInfo | null> {
   const response = await fetch(`${API_BASE_URL}/api/devices/${encodeURIComponent(deviceId)}/zone`);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch device zone: ${response.statusText}`);
-  }
+  await throwIfNotOk(response, "Failed to fetch device zone");
   return response.json();
 }
 
@@ -46,10 +44,7 @@ export async function createZone(masterId: string, slaveIds: string[]): Promise<
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ master_id: masterId, slave_ids: slaveIds }),
   });
-  if (!response.ok) {
-    const data = await response.json().catch(() => null);
-    throw new Error(data?.detail || `Failed to create zone: ${response.statusText}`);
-  }
+  await throwIfNotOk(response, "Failed to create zone");
   return response.json();
 }
 
@@ -57,10 +52,7 @@ export async function dissolveZone(masterId: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/api/zones/${encodeURIComponent(masterId)}`, {
     method: "DELETE",
   });
-  if (!response.ok) {
-    const data = await response.json().catch(() => null);
-    throw new Error(data?.detail || `Failed to dissolve zone: ${response.statusText}`);
-  }
+  await throwIfNotOk(response, "Failed to dissolve zone");
 }
 
 export async function addZoneMembers(masterId: string, deviceIds: string[]): Promise<ZoneInfo> {
@@ -72,10 +64,7 @@ export async function addZoneMembers(masterId: string, deviceIds: string[]): Pro
       body: JSON.stringify({ device_ids: deviceIds }),
     }
   );
-  if (!response.ok) {
-    const data = await response.json().catch(() => null);
-    throw new Error(data?.detail || `Failed to add members: ${response.statusText}`);
-  }
+  await throwIfNotOk(response, "Failed to add members");
   return response.json();
 }
 
@@ -88,10 +77,7 @@ export async function removeZoneMembers(masterId: string, deviceIds: string[]): 
       body: JSON.stringify({ device_ids: deviceIds }),
     }
   );
-  if (!response.ok) {
-    const data = await response.json().catch(() => null);
-    throw new Error(data?.detail || `Failed to remove members: ${response.statusText}`);
-  }
+  await throwIfNotOk(response, "Failed to remove members");
 }
 
 export async function changeMaster(
@@ -106,9 +92,6 @@ export async function changeMaster(
       body: JSON.stringify({ new_master_id: newMasterId }),
     }
   );
-  if (!response.ok) {
-    const data = await response.json().catch(() => null);
-    throw new Error(data?.detail || `Failed to change master: ${response.statusText}`);
-  }
+  await throwIfNotOk(response, "Failed to change master");
   return response.json();
 }

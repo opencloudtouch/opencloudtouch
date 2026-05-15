@@ -47,7 +47,7 @@ describe("StationDetail Component", () => {
     render(
       <StationDetail stationUuid="abc-123" onBack={mockOnBack} onSelect={mockOnSelect} />
     );
-    expect(screen.getByText("Lade Details…")).toBeInTheDocument();
+    expect(screen.getByText("Loading...")).toBeInTheDocument();
   });
 
   it("displays station details after loading", async () => {
@@ -128,7 +128,7 @@ describe("StationDetail Component", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Station konnte nicht geladen werden.")).toBeInTheDocument();
+      expect(screen.getByText("Failed to load. Please try again.")).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByText("← Back"));

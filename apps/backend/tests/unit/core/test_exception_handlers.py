@@ -279,7 +279,8 @@ class TestGenericExceptionHandler:
         data = _body(resp)
         assert data["type"] == "server_error"
         assert data["title"] == "Internal Server Error"
-        assert "totally unexpected" in data["detail"]
+        assert data["detail"] == "An unexpected error occurred. Please try again later."
+        assert "totally unexpected" not in data["detail"]
 
 
 # ---------------------------------------------------------------------------

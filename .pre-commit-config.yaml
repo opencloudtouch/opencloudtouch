@@ -96,7 +96,7 @@ repos:
       - id: pytest-unit
         name: Run backend unit tests (pre-commit)
         entry: .venv/Scripts/python.exe
-        args: [-m, pytest, apps/backend/tests/unit, -x, --tb=short, -q, -n, auto, --timeout=30]
+        args: [-m, pytest, apps/backend/tests/unit, -x, --tb=short, -q, -p, no:xdist, --timeout=30]
         language: system
         pass_filenames: false
         always_run: true

@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: OpenCloudTouch
   description: Open-Source replacement for discontinued streaming device cloud features
-  version: dev-a3517ad
+  version: dev-6b24c3b
 paths:
   /api/devices/discover:
     get:
@@ -1297,9 +1297,8 @@ paths:
       description: "Get full account sync for device.\n\nThis endpoint is called by\
         \ SoundTouch devices on boot to sync:\n- Presets (6 buttons)\n- Recents (recently\
         \ played)\n- Sources (available sources)\n\nArgs:\n    device_id: Device MAC\
-        \ address (e.g., \"689E194F7D2F\")\n    preset_repo: Preset repository dependency\n\
-        \    recents_repo: Recents repository dependency\n\nReturns:\n    XML Response\
-        \ with <boseAccount> structure"
+        \ address (e.g., \"689E194F7D2F\")\n    marge: Marge service dependency\n\n\
+        Returns:\n    XML Response with <boseAccount> structure"
       operationId: get_full_account_v1_systems_devices__device_id__get
       parameters:
       - name: device_id
@@ -1326,8 +1325,8 @@ paths:
       - marge
       summary: Get Presets
       description: "Get presets for device.\n\nArgs:\n    device_id: Device MAC address\n\
-        \    preset_repo: Preset repository dependency\n\nReturns:\n    XML Response\
-        \ with <presets> structure"
+        \    marge: Marge service dependency\n\nReturns:\n    XML Response with <presets>\
+        \ structure"
       operationId: get_presets_v1_systems_devices__device_id__presets_get
       parameters:
       - name: device_id
@@ -1354,8 +1353,8 @@ paths:
       - marge
       summary: Get Recents
       description: "Get recently played items for device.\n\nArgs:\n    device_id:\
-        \ Device MAC address\n    recents_repo: Recents repository dependency\n\n\
-        Returns:\n    XML Response with <recents> structure"
+        \ Device MAC address\n    marge: Marge service dependency\n\nReturns:\n  \
+        \  XML Response with <recents> structure"
       operationId: get_recents_v1_systems_devices__device_id__recents_get
       parameters:
       - name: device_id
@@ -1565,10 +1564,10 @@ paths:
       - marge
       summary: Streaming Full Account
       description: "Get full account sync via streaming endpoint.\n\nThis is the streaming.bose.com\
-        \ version of the account sync endpoint.\nReturns complete account with all\
-        \ devices, presets, recents, and sources.\n\nArgs:\n    account_id: Account\
-        \ ID (e.g., \"3784726\")\n    preset_repo: Preset repository dependency\n\n\
-        Returns:\n    XML Response with <account> structure"
+        \ version of the account sync endpoint.\nResolves the device_id from the account_id\
+        \ (margeAccountUUID) stored\nduring device discovery, then returns that device's\
+        \ presets.\n\nArgs:\n    account_id: Account ID (e.g., \"3784726\")\n    marge:\
+        \ Marge service dependency\n\nReturns:\n    XML Response with <account> structure"
       operationId: streaming_full_account_streaming_account__account_id__full_get
       parameters:
       - name: account_id
@@ -1618,6 +1617,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /streaming/stats/usage:
+    post:
+      tags:
+      - marge
+      summary: Streaming Stats Usage
+      description: "Accept device usage statistics (stub).\n\nWithout this endpoint,\
+        \ the device retries repeatedly after\nstatsServerUrl is redirected to OCT.\n\
+        \nReturns:\n    200 OK"
+      operationId: streaming_stats_usage_streaming_stats_usage_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
   /streaming/device/{device_id}/streaming_token:
     get:
       tags:
@@ -2241,14 +2255,7 @@ paths:
       tags:
       - Setup Wizard
       summary: Wizard Reboot Device
-      description: 'Reboot SoundTouch device via SSH (Wizard Step 7).
-
-
-        Sends the `reboot` command via SSH. The device drops the SSH connection
-
-        immediately after receiving the command — this is expected and not an error.
-
-        Frontend should wait ~60s before attempting verify-redirect tests.'
+      description: Reboot SoundTouch device via SSH (Wizard Step 7).
       operationId: wizard_reboot_device_api_setup_wizard_reboot_device_post
       requestBody:
         content:
@@ -2271,26 +2278,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /api/setup/wizard/ensure-account:
+  /api/setup/wizard/account-pairing:
     post:
       tags:
       - Setup Wizard
-      summary: Wizard Ensure Account
-      description: 'Ensure device has a margeAccountUUID (Wizard Step — after config/hosts).
+      summary: Wizard Account Pairing
+      description: 'Ensure device has a margeAccountUUID (Wizard Step - Account Pairing).
 
 
-        Devices without a margeAccountUUID cannot play presets (INVALID_SOURCE).
+        Checks if the device already has a UUID. If not, generates one and
 
-        This endpoint checks GET :8090/info and sets a UUID via Telnet if missing.
+        sets it via Telnet. Persists the UUID in the device repository for
 
-
-        Safe to call multiple times — no-op if UUID already present.'
-      operationId: wizard_ensure_account_api_setup_wizard_ensure_account_post
+        streaming endpoint resolution.'
+      operationId: wizard_account_pairing_api_setup_wizard_account_pairing_post
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EnsureAccountRequest'
+              $ref: '#/components/schemas/AccountPairingRequest'
         required: true
       responses:
         '200':
@@ -2298,7 +2304,41 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EnsureAccountResponse'
+                $ref: '#/components/schemas/AccountPairingResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/ensure-account:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Ensure Account
+      description: 'Ensure device has a margeAccountUUID (Wizard Step � after config/hosts).
+
+
+        Devices without a margeAccountUUID cannot play presets (INVALID_SOURCE).
+
+        This endpoint checks GET :8090/info and sets a UUID via Telnet if missing.
+
+
+        Safe to call multiple times � no-op if UUID already present.'
+      operationId: wizard_ensure_account_api_setup_wizard_ensure_account_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountPairingRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountPairingResponse'
         '422':
           description: Validation Error
           content:
@@ -2349,12 +2389,7 @@ paths:
       tags:
       - Setup Wizard
       summary: Wizard Complete
-      description: 'Mark wizard setup as complete for a device.
-
-
-        Updates the device''s setup_status to ''configured'' in the database.
-
-        Called by the frontend when the user finishes the wizard.'
+      description: Mark wizard setup as complete for a device.
       operationId: wizard_complete_api_setup_wizard_complete_post
       requestBody:
         content:
@@ -2380,13 +2415,8 @@ paths:
       tags:
       - Setup Wizard
       summary: Wizard Verify Redirect
-      description: 'Verify a domain is redirected to OCT on the device (Wizard Step
+      description: Verify a domain is redirected to OCT on the device (Wizard Step
         7).
-
-
-        SSH into the device, run ping against the domain, and check whether
-
-        the resolved IP matches the OCT server''s IP.'
       operationId: wizard_verify_redirect_api_setup_wizard_verify_redirect_post
       requestBody:
         content:
@@ -2501,6 +2531,8 @@ paths:
                   $ref: '#/components/schemas/ZoneStatus'
                 type: array
                 title: Response Get All Zones Api Zones Get
+        '500':
+          description: Failed to get zones
     post:
       tags:
       - Zones
@@ -2898,6 +2930,51 @@ paths:
               schema: {}
 components:
   schemas:
+    AccountPairingRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+          description: Device IP address
+        device_id:
+          type: string
+          title: Device Id
+          description: Device ID (MAC address)
+      type: object
+      required:
+      - device_ip
+      - device_id
+      title: AccountPairingRequest
+      description: Request to ensure device has a margeAccountUUID.
+    AccountPairingResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        had_uuid:
+          type: boolean
+          title: Had Uuid
+          description: True if UUID was already present
+          default: false
+        uuid:
+          type: string
+          title: Uuid
+          description: The current or newly set UUID
+          default: ''
+        message:
+          type: string
+          title: Message
+          default: ''
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+      type: object
+      required:
+      - success
+      title: AccountPairingResponse
+      description: Response from account pairing.
     AuditBatchRequest:
       properties:
         entries:
@@ -2988,6 +3065,12 @@ components:
         device_ip:
           type: string
           title: Device Ip
+        device_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Device Id
+          description: Device identifier for unique backup filenames
       type: object
       required:
       - device_ip
@@ -3323,40 +3406,6 @@ components:
       - ip
       title: EnablePermanentSSHRequest
       description: Request to enable permanent SSH access on device.
-    EnsureAccountRequest:
-      properties:
-        device_ip:
-          type: string
-          title: Device Ip
-      type: object
-      required:
-      - device_ip
-      title: EnsureAccountRequest
-      description: Request to ensure device has a margeAccountUUID.
-    EnsureAccountResponse:
-      properties:
-        success:
-          type: boolean
-          title: Success
-        had_uuid:
-          type: boolean
-          title: Had Uuid
-          description: True if UUID was already present
-        uuid:
-          type: string
-          title: Uuid
-          description: The current or newly set UUID
-          default: ''
-        message:
-          type: string
-          title: Message
-          default: ''
-      type: object
-      required:
-      - success
-      - had_uuid
-      title: EnsureAccountResponse
-      description: Response from account pairing check/fix.
     FrontendLogEntry:
       properties:
         timestamp:

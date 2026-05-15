@@ -53,13 +53,12 @@ async def test_press_preset_key_success():
 async def test_press_key_device_not_found():
     """Test key press for non-existent device."""
     from opencloudtouch.core.dependencies import get_device_service
+    from opencloudtouch.core.exceptions import DeviceNotFoundError
     from opencloudtouch.devices.service import DeviceService
 
-    # Mock DeviceService that raises ValueError for device not found
+    # Mock DeviceService that raises DeviceNotFoundError
     mock_service = AsyncMock(spec=DeviceService)
-    mock_service.press_key = AsyncMock(
-        side_effect=ValueError("Device NONEXISTENT not found")
-    )
+    mock_service.press_key = AsyncMock(side_effect=DeviceNotFoundError("NONEXISTENT"))
 
     async def get_mock_service():
         return mock_service
@@ -86,12 +85,13 @@ async def test_press_key_device_not_found():
 async def test_press_key_invalid_key():
     """Test key press with invalid key name."""
     from opencloudtouch.core.dependencies import get_device_service
+    from opencloudtouch.core.exceptions import DomainValidationError
     from opencloudtouch.devices.service import DeviceService
 
-    # Mock DeviceService that raises ValueError for invalid key
+    # Mock DeviceService that raises DomainValidationError for invalid key
     mock_service = AsyncMock(spec=DeviceService)
     mock_service.press_key = AsyncMock(
-        side_effect=ValueError("Invalid key: INVALID_KEY")
+        side_effect=DomainValidationError("Invalid key: INVALID_KEY", field="key")
     )
 
     async def get_mock_service():

@@ -117,11 +117,11 @@ class DevicePresetParser:
                 location, preset_number, station_name
             )
         if source == "TUNEIN":
-            logger.debug(f"Importing TUNEIN preset {preset_number}: {station_name}")
+            logger.debug("Importing TUNEIN preset %d: %s", preset_number, station_name)
             return f"tunein_{location}", location, "TUNEIN", station_name
         if source == "INTERNET_RADIO":
             logger.debug(
-                f"Importing INTERNET_RADIO preset {preset_number}: {station_name}"
+                "Importing INTERNET_RADIO preset %d: %s", preset_number, station_name
             )
             return (
                 f"internet_radio_{preset_number}",
@@ -131,7 +131,7 @@ class DevicePresetParser:
             )
 
         logger.warning(
-            f"Importing preset {preset_number} with unknown source '{source}'"
+            "Importing preset %d with unknown source '%s'", preset_number, source
         )
         return f"{source}_{preset_number}", location, source, station_name
 
@@ -164,16 +164,16 @@ class DevicePresetParser:
 
             if not data_b64:
                 logger.warning(
-                    f"Skipping preset {preset_number}: No data parameter in BMX URL"
+                    "Skipping preset %d: No data parameter in BMX URL", preset_number
                 )
                 return None
 
-            data = json.loads(base64.b64decode(data_b64).decode("utf-8"))
+            data = json.loads(base64.urlsafe_b64decode(data_b64).decode("utf-8"))
             stream_url = data.get("streamUrl")
 
             if not stream_url:
                 logger.warning(
-                    f"Skipping preset {preset_number}: No streamUrl in BMX data"
+                    "Skipping preset %d: No streamUrl in BMX data", preset_number
                 )
                 return None
 
@@ -182,13 +182,16 @@ class DevicePresetParser:
                 f"bmx_imported_{preset_number}_{hash(stream_url) & 0xFFFFFFFF:08x}"
             )
             logger.info(
-                f"Importing BMX preset {preset_number}: {name} → {stream_url[:50]}..."
+                "Importing BMX preset %d: %s → %s...",
+                preset_number,
+                name,
+                stream_url[:50],
             )
             return station_uuid, stream_url, "INTERNET_RADIO", name
 
         except (ValueError, KeyError, json.JSONDecodeError) as e:
             logger.warning(
-                f"Skipping preset {preset_number}: Failed to decode BMX URL: {e}"
+                "Skipping preset %d: Failed to decode BMX URL: %s", preset_number, e
             )
             return None
 
@@ -207,12 +210,17 @@ class DevicePresetParser:
         uuid_match = re.search(r"/stations/preset/([^/.]+)", location)
         if not uuid_match:
             logger.warning(
-                f"Skipping preset {preset_number}: Invalid LOCAL_INTERNET_RADIO location: {location}"
+                "Skipping preset %d: Invalid LOCAL_INTERNET_RADIO location: %s",
+                preset_number,
+                location,
             )
             return None
 
         station_uuid = uuid_match.group(1)
         logger.debug(
-            f"Importing LOCAL_INTERNET_RADIO preset {preset_number}: {station_name} (uuid: {station_uuid})"
+            "Importing LOCAL_INTERNET_RADIO preset %d: %s (uuid: %s)",
+            preset_number,
+            station_name,
+            station_uuid,
         )
         return station_uuid, location, "LOCAL_INTERNET_RADIO", station_name

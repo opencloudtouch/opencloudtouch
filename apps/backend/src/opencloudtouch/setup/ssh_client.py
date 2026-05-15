@@ -19,6 +19,16 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+# Legacy SSH algorithms required by SoundTouch firmware (shared across all SSH callers)
+_SSH_HOST_KEY_ALGS = ["ssh-rsa", "rsa-sha2-512", "rsa-sha2-256", "ssh-dss"]
+_SSH_KEX_ALGS = [
+    "diffie-hellman-group1-sha1",
+    "diffie-hellman-group14-sha1",
+    "diffie-hellman-group-exchange-sha256",
+    "ecdh-sha2-nistp256",
+]
+_SSH_ENCRYPTION_ALGS = ["aes128-cbc", "3des-cbc", "aes128-ctr", "aes256-ctr"]
+
 
 @dataclass
 class SSHConnectionResult:
@@ -74,7 +84,7 @@ class SoundTouchSSHClient:
                     error="asyncssh not installed. Run: pip install asyncssh",
                 )
 
-            logger.info(f"Connecting to {self.host}:{self.port} via SSH...")
+            logger.info("Connecting to %s:%s via SSH...", self.host, self.port)
             logger.debug(
                 "SSH params: user=root, timeout=%.1fs, "
                 "host_key_algs=[ssh-rsa,rsa-sha2-512,rsa-sha2-256,ssh-dss], "
@@ -93,30 +103,14 @@ class SoundTouchSSHClient:
                     username="root",
                     password="",
                     known_hosts=None,  # Skip host key verification for embedded devices
-                    # Legacy algorithms required by SoundTouch
-                    server_host_key_algs=[
-                        "ssh-rsa",
-                        "rsa-sha2-512",
-                        "rsa-sha2-256",
-                        "ssh-dss",
-                    ],
-                    kex_algs=[
-                        "diffie-hellman-group1-sha1",
-                        "diffie-hellman-group14-sha1",
-                        "diffie-hellman-group-exchange-sha256",
-                        "ecdh-sha2-nistp256",
-                    ],
-                    encryption_algs=[
-                        "aes128-cbc",
-                        "3des-cbc",
-                        "aes128-ctr",
-                        "aes256-ctr",
-                    ],
+                    server_host_key_algs=_SSH_HOST_KEY_ALGS,
+                    kex_algs=_SSH_KEX_ALGS,
+                    encryption_algs=_SSH_ENCRYPTION_ALGS,
                 ),
                 timeout=timeout,
             )
 
-            logger.info(f"SSH connection established to {self.host}")
+            logger.info("SSH connection established to %s", self.host)
             return SSHConnectionResult(success=True, output="Connected")
 
         except asyncio.TimeoutError:
@@ -190,7 +184,7 @@ class SoundTouchSSHClient:
             self._connection.close()
             await self._connection.wait_closed()
             self._connection = None
-            logger.info(f"SSH connection to {self.host} closed")
+            logger.info("SSH connection to %s closed", self.host)
 
     async def __aenter__(self):
         result = await self.connect()
@@ -220,7 +214,7 @@ class SoundTouchTelnetClient:
     async def connect(self, timeout: float = 10.0) -> SSHConnectionResult:
         """Establish telnet connection to device."""
         try:
-            logger.info(f"Connecting to {self.host}:{self.port} via Telnet...")
+            logger.info("Connecting to %s:%s via Telnet...", self.host, self.port)
 
             self._reader, self._writer = await asyncio.wait_for(
                 asyncio.open_connection(self.host, self.port), timeout=timeout
@@ -230,7 +224,7 @@ class SoundTouchTelnetClient:
             await asyncio.sleep(0.5)
             initial = await self._read_available()
 
-            logger.info(f"Telnet connection established to {self.host}")
+            logger.info("Telnet connection established to %s", self.host)
             return SSHConnectionResult(success=True, output=initial)
 
         except asyncio.TimeoutError:
@@ -261,7 +255,7 @@ class SoundTouchTelnetClient:
             )
 
         try:
-            logger.debug(f"Telnet executing: {command}")
+            logger.debug("Telnet executing: %s", command)
 
             # Send command
             self._writer.write(f"{command}\r\n".encode())
@@ -292,7 +286,7 @@ class SoundTouchTelnetClient:
             await self._writer.wait_closed()
             self._writer = None
             self._reader = None
-            logger.info(f"Telnet connection to {self.host} closed")
+            logger.info("Telnet connection to %s closed", self.host)
 
     async def __aenter__(self):
         await self.connect()
@@ -332,19 +326,9 @@ async def check_ssh_port(host: str, timeout: float = 5.0) -> bool:
                 username="root",
                 password="",
                 known_hosts=None,
-                server_host_key_algs=[
-                    "ssh-rsa",
-                    "rsa-sha2-512",
-                    "rsa-sha2-256",
-                    "ssh-dss",
-                ],
-                kex_algs=[
-                    "diffie-hellman-group1-sha1",
-                    "diffie-hellman-group14-sha1",
-                    "diffie-hellman-group-exchange-sha256",
-                    "ecdh-sha2-nistp256",
-                ],
-                encryption_algs=["aes128-cbc", "3des-cbc", "aes128-ctr", "aes256-ctr"],
+                server_host_key_algs=_SSH_HOST_KEY_ALGS,
+                kex_algs=_SSH_KEX_ALGS,
+                encryption_algs=_SSH_ENCRYPTION_ALGS,
             ),
             timeout=timeout,
         )

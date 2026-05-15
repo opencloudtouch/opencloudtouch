@@ -1,11 +1,11 @@
-﻿import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import DeviceSwiper from "../../src/components/DeviceSwiper";
 
 describe("DeviceSwiper Component", () => {
   const mockDevices = [
     { device_id: "1", name: "Living Room", ip: "192.168.1.10" },
-    { device_id: "2", name: "KÃ¼che", ip: "192.168.1.20" },
+    { device_id: "2", name: "Küche", ip: "192.168.1.20" },
     { device_id: "3", name: "Schlafzimmer", ip: "192.168.1.30" },
   ];
 
@@ -22,8 +22,8 @@ describe("DeviceSwiper Component", () => {
       </DeviceSwiper>
     );
 
-    expect(screen.getByLabelText("Vorheriges Gerät")).toBeInTheDocument();
-    expect(screen.getByLabelText("Nächstes Gerät")).toBeInTheDocument();
+    expect(screen.getByLabelText("Previous device")).toBeInTheDocument();
+    expect(screen.getByLabelText("Next device")).toBeInTheDocument();
   });
 
   it("renders dots for each device", () => {
@@ -46,7 +46,7 @@ describe("DeviceSwiper Component", () => {
       </DeviceSwiper>
     );
 
-    const prevButton = screen.getByLabelText("Vorheriges Gerät");
+    const prevButton = screen.getByLabelText("Previous device");
     expect(prevButton).toBeDisabled();
   });
 
@@ -57,7 +57,7 @@ describe("DeviceSwiper Component", () => {
       </DeviceSwiper>
     );
 
-    const nextButton = screen.getByLabelText("Nächstes Gerät");
+    const nextButton = screen.getByLabelText("Next device");
     expect(nextButton).toBeDisabled();
   });
 
@@ -70,7 +70,7 @@ describe("DeviceSwiper Component", () => {
       </DeviceSwiper>
     );
 
-    const prevButton = screen.getByLabelText("Vorheriges Gerät");
+    const prevButton = screen.getByLabelText("Previous device");
     fireEvent.click(prevButton);
 
     expect(mockOnIndexChange).toHaveBeenCalledWith(1);
@@ -83,7 +83,7 @@ describe("DeviceSwiper Component", () => {
       </DeviceSwiper>
     );
 
-    const nextButton = screen.getByLabelText("Nächstes Gerät");
+    const nextButton = screen.getByLabelText("Next device");
     fireEvent.click(nextButton);
 
     expect(mockOnIndexChange).toHaveBeenCalledWith(1);
@@ -96,7 +96,7 @@ describe("DeviceSwiper Component", () => {
       </DeviceSwiper>
     );
 
-    const prevButton = screen.getByLabelText("Vorheriges Gerät");
+    const prevButton = screen.getByLabelText("Previous device");
     fireEvent.click(prevButton);
 
     expect(mockOnIndexChange).not.toHaveBeenCalled();
@@ -109,7 +109,7 @@ describe("DeviceSwiper Component", () => {
       </DeviceSwiper>
     );
 
-    const nextButton = screen.getByLabelText("Nächstes Gerät");
+    const nextButton = screen.getByLabelText("Next device");
     fireEvent.click(nextButton);
 
     expect(mockOnIndexChange).not.toHaveBeenCalled();
@@ -149,7 +149,7 @@ describe("DeviceSwiper Component", () => {
     );
 
     expect(screen.getByLabelText("Switch to Living Room")).toBeInTheDocument();
-    expect(screen.getByLabelText("Switch to KÃ¼che")).toBeInTheDocument();
+    expect(screen.getByLabelText("Switch to Küche")).toBeInTheDocument();
     expect(screen.getByLabelText("Switch to Schlafzimmer")).toBeInTheDocument();
   });
 
@@ -177,8 +177,8 @@ describe("DeviceSwiper Component", () => {
       </DeviceSwiper>
     );
 
-    const prevButton = screen.getByLabelText("Vorheriges Gerät");
-    const nextButton = screen.getByLabelText("Nächstes Gerät");
+    const prevButton = screen.getByLabelText("Previous device");
+    const nextButton = screen.getByLabelText("Next device");
 
     expect(prevButton).toBeDisabled();
     expect(nextButton).toBeDisabled();

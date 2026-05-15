@@ -7,13 +7,19 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional
 
+# Default HTTP API port for Bose SoundTouch devices
+SOUNDTOUCH_HTTP_PORT = 8090
+
+# SoundTouch WebServer port (device description, /info endpoint)
+SOUNDTOUCH_WEBSERVER_PORT = 8091
+
 
 @dataclass
 class DiscoveredDevice:
     """Ein durch Discovery gefundenes Gerät."""
 
     ip: str
-    port: int = 8090  # Default HTTP API port
+    port: int = SOUNDTOUCH_HTTP_PORT
     name: Optional[str] = None
     model: Optional[str] = None
     mac_address: Optional[str] = None
@@ -22,7 +28,9 @@ class DiscoveredDevice:
     @property
     def base_url(self) -> str:
         """Base URL für HTTP API calls."""
-        return f"http://{self.ip}:{self.port}"
+        return (
+            f"http://{self.ip}:{self.port}"  # NOSONAR — Bose devices only support HTTP
+        )
 
 
 class DeviceDiscovery(ABC):

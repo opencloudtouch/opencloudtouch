@@ -22,6 +22,7 @@ BusyBox v1.19.4 limitations:
 import logging
 import time
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from enum import Enum
 from typing import List
 
@@ -52,11 +53,25 @@ _BACKUP_COMMANDS: dict[VolumeType, str] = {
     VolumeType.UPDATE: "tar czf {path} /mnt/update 2>/dev/null",
 }
 
-_BACKUP_FILENAMES: dict[VolumeType, str] = {
-    VolumeType.ROOTFS: "soundtouch-rootfs.tgz",
-    VolumeType.PERSISTENT: "soundtouch-nv.tgz",
-    VolumeType.UPDATE: "soundtouch-update.tgz",
+_BACKUP_VOLUME_SUFFIXES: dict[VolumeType, str] = {
+    VolumeType.ROOTFS: "rootfs",
+    VolumeType.PERSISTENT: "nv",
+    VolumeType.UPDATE: "update",
 }
+
+
+def _backup_filename(volume: VolumeType, device_id: str | None = None) -> str:
+    """Build a unique backup filename with device ID and date.
+
+    Format: soundtouch-{device_id}-{YYYYMMDD}-{volume}.tgz
+    Fallback (no device_id): soundtouch-{volume}.tgz (legacy)
+    """
+    suffix = _BACKUP_VOLUME_SUFFIXES[volume]
+    if device_id:
+        date_str = datetime.now(UTC).strftime("%Y%m%d")
+        safe_id = device_id.replace(":", "").replace(" ", "_")[:20]
+        return f"soundtouch-{safe_id}-{date_str}-{suffix}.tgz"
+    return f"soundtouch-{suffix}.tgz"
 
 
 @dataclass
@@ -83,40 +98,48 @@ class SoundTouchBackupService:
         self.ssh = ssh
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
-    async def backup_all(self) -> List[BackupResult]:
+    async def backup_all(self, device_id: str | None = None) -> List[BackupResult]:
         """
         Backup all device partitions to USB stick.
 
         Discovers the USB mount point, creates a backup directory,
         then runs tar for each volume (rootfs, persistent, update).
 
+        Args:
+            device_id: Optional device identifier for unique filenames.
+                       Prevents backups of different devices overwriting each other.
+
         Returns:
             List of BackupResult for each volume.
         """
-        self.logger.info("Starting backup of all partitions")
+        self.logger.info(
+            "Starting backup of all partitions (device=%s)", device_id or "unknown"
+        )
 
         usb_path = await self._find_usb_mount()
-        self.logger.info(f"USB mount point: {usb_path}")
+        self.logger.info("USB mount point: %s", usb_path)
 
         backup_dir = f"{usb_path}/oct-backup"
         mkdir_result = await self.ssh.execute(f"mkdir -p {backup_dir}")
         if not mkdir_result.success:
             self.logger.warning(
-                f"mkdir failed (may already exist): {mkdir_result.error}"
+                "mkdir failed (may already exist): %s", mkdir_result.error
             )
 
         results: List[BackupResult] = []
         for volume in [VolumeType.ROOTFS, VolumeType.PERSISTENT, VolumeType.UPDATE]:
             try:
-                result = await self._backup_volume(volume, backup_dir)
+                result = await self._backup_volume(volume, backup_dir, device_id)
                 results.append(result)
                 self.logger.info(
-                    f"Backed up {volume.value}: "
-                    f"{result.size_bytes / 1024 / 1024:.2f} MB in {result.duration_seconds:.1f}s"
+                    "Backed up %s: %.2f MB in %.1fs",
+                    volume.value,
+                    result.size_bytes / 1024 / 1024,
+                    result.duration_seconds,
                 )
             except Exception as e:
                 self.logger.error(
-                    f"Failed to backup {volume.value}: {e}", exc_info=True
+                    "Failed to backup %s: %s", volume.value, e, exc_info=True
                 )
                 results.append(BackupResult(volume=volume, success=False, error=str(e)))
 
@@ -134,7 +157,7 @@ class SoundTouchBackupService:
         )
         if result.success and result.output.strip():
             mount_path = result.output.strip()
-            self.logger.debug(f"Detected USB mount: {mount_path}")
+            self.logger.debug("Detected USB mount: %s", mount_path)
             return mount_path
 
         self.logger.warning(
@@ -142,22 +165,25 @@ class SoundTouchBackupService:
         )
         return "/media/sda1"
 
-    async def _backup_volume(self, volume: VolumeType, backup_dir: str) -> BackupResult:
+    async def _backup_volume(
+        self, volume: VolumeType, backup_dir: str, device_id: str | None = None
+    ) -> BackupResult:
         """
         Create a tar.gz backup of one volume on the device.
 
         Args:
             volume: Which partition to back up.
             backup_dir: Destination directory on USB (e.g. /media/sda1/oct-backup).
+            device_id: Optional device identifier for unique filenames.
 
         Returns:
             BackupResult with real size and duration.
         """
-        backup_file = f"{backup_dir}/{_BACKUP_FILENAMES[volume]}"
+        backup_file = f"{backup_dir}/{_backup_filename(volume, device_id)}"
         cmd = _BACKUP_COMMANDS[volume].format(path=backup_file)
         timeout = _BACKUP_TIMEOUTS[volume]
 
-        self.logger.info(f"Backing up {volume.value} → {backup_file}")
+        self.logger.info("Backing up %s → %s", volume.value, backup_file)
         start_time = time.time()
 
         tar_result = await self.ssh.execute(cmd, timeout=timeout)
@@ -176,7 +202,7 @@ class SoundTouchBackupService:
             error = (
                 tar_result.error or tar_result.output or "Archive is empty after tar"
             )
-            self.logger.error(f"Backup of {volume.value} failed: {error}")
+            self.logger.error("Backup of %s failed: %s", volume.value, error)
             return BackupResult(
                 volume=volume,
                 success=False,

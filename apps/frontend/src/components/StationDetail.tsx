@@ -63,7 +63,7 @@ export default function StationDetail({
           }
         );
         if (!res.ok) {
-          setError("Station konnte nicht geladen werden.");
+          setError(t("errors.loadFailed"));
           return;
         }
         const data: StationDetailData = await res.json();
@@ -83,7 +83,7 @@ export default function StationDetail({
   if (loading) {
     return (
       <div className="station-detail">
-        <div className="sd-loading">Lade Details…</div>
+        <div className="sd-loading">{t("common.loading")}</div>
       </div>
     );
   }

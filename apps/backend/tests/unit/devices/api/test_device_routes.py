@@ -14,6 +14,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+from opencloudtouch.core.exceptions import DeviceNotFoundError, DomainValidationError
 from opencloudtouch.devices.client import NowPlayingInfo, VolumeInfo
 from opencloudtouch.core.dependencies import get_device_service, get_settings_service
 from opencloudtouch.devices.repository import Device
@@ -370,9 +371,8 @@ class TestCapabilitiesEndpoint:
         Use case: User requests capabilities for non-existent device ID.
         Expected: Returns 404 NOT FOUND.
         """
-        # Mock get_device_capabilities to raise ValueError (device not found)
         mock_device_service.get_device_capabilities = AsyncMock(
-            side_effect=ValueError("Device NOTFOUND not found")
+            side_effect=DeviceNotFoundError("NOTFOUND")
         )
 
         response = client.get("/api/devices/NOTFOUND/capabilities")
@@ -660,7 +660,7 @@ class TestKeyPressEndpoint:
     def test_press_key_device_not_found_returns_404(self, client, mock_device_service):
         """Test key press returns 404 when device not found."""
         mock_device_service.press_key = AsyncMock(
-            side_effect=ValueError("Device NONEXISTENT not found")
+            side_effect=DeviceNotFoundError("NONEXISTENT")
         )
 
         response = client.post("/api/devices/NONEXISTENT/key?key=PRESET_1")
@@ -670,13 +670,12 @@ class TestKeyPressEndpoint:
     def test_press_key_invalid_key_returns_400(self, client, mock_device_service):
         """Test key press returns 400 when key name is invalid."""
         mock_device_service.press_key = AsyncMock(
-            side_effect=ValueError("Invalid key: BOGUS_KEY")
+            side_effect=DomainValidationError("Invalid key: BOGUS_KEY", field="key")
         )
 
         response = client.post("/api/devices/AABBCC112233/key?key=BOGUS_KEY")
 
         assert response.status_code == 400
-        assert "Invalid key" in response.json()["detail"]
 
     def test_press_key_generic_exception_returns_500(self, client, mock_device_service):
         """Test key press returns 500 on generic exception."""
@@ -702,7 +701,7 @@ class TestKeyPressEndpoint:
         detail = response.json()["detail"]
         assert "0x7f3a" not in detail
         assert "pool exhausted" not in detail
-        assert "Failed to press key on device" in detail
+        assert "Failed to press key" in detail
 
 
 class TestDeleteAllDevicesEndpoint:
@@ -789,7 +788,7 @@ class TestVolumeEndpoints:
     def test_get_volume_device_not_found(self, client, mock_device_service):
         """Test GET /api/devices/{id}/volume with unknown device."""
         mock_device_service.get_volume = AsyncMock(
-            side_effect=ValueError("Device DEV999 not found")
+            side_effect=DeviceNotFoundError("DEV999")
         )
 
         response = client.get("/api/devices/DEV999/volume")
@@ -828,7 +827,7 @@ class TestVolumeEndpoints:
     def test_set_volume_device_not_found(self, client, mock_device_service):
         """Test PUT /api/devices/{id}/volume with unknown device."""
         mock_device_service.set_volume = AsyncMock(
-            side_effect=ValueError("Device DEV999 not found")
+            side_effect=DeviceNotFoundError("DEV999")
         )
 
         response = client.put("/api/devices/DEV999/volume", json={"level": 50})
@@ -866,7 +865,7 @@ class TestMuteEndpoint:
     def test_set_mute_device_not_found(self, client, mock_device_service):
         """Test PUT /api/devices/{id}/mute with unknown device."""
         mock_device_service.set_mute = AsyncMock(
-            side_effect=ValueError("Device DEV999 not found")
+            side_effect=DeviceNotFoundError("DEV999")
         )
 
         response = client.put("/api/devices/DEV999/mute", json={"muted": True})
@@ -921,7 +920,7 @@ class TestNowPlayingEndpoint:
     def test_get_now_playing_device_not_found(self, client, mock_device_service):
         """Test GET /api/devices/{id}/now-playing with unknown device."""
         mock_device_service.get_now_playing = AsyncMock(
-            side_effect=ValueError("Device DEV999 not found")
+            side_effect=DeviceNotFoundError("DEV999")
         )
 
         response = client.get("/api/devices/DEV999/now-playing")

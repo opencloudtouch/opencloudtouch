@@ -2,6 +2,7 @@
  * API Type Definitions
  * Shared types for API communication
  */
+import i18next from "i18next";
 
 /**
  * Standardized API Error Response (RFC 7807-inspired)
@@ -44,46 +45,47 @@ export function isApiError(error: unknown): error is ApiError {
  * Map error status code or type to user-friendly German message
  */
 function getUserFriendlyMessage(statusOrType: number | string): string {
+  const t = i18next.t.bind(i18next);
   // Map by HTTP status code
   if (typeof statusOrType === "number") {
     switch (statusOrType) {
       case 400:
-        return "Ungültige Anfrage";
+        return t("errors.badRequest");
       case 401:
-        return "Nicht autorisiert";
+        return t("errors.unauthorized");
       case 403:
-        return "Zugriff verweigert";
+        return t("errors.forbidden");
       case 404:
-        return "Nicht gefunden";
+        return t("errors.notFound");
       case 429:
-        return "Zu viele Anfragen - bitte warten";
+        return t("errors.tooManyRequests");
       case 500:
-        return "Serverfehler";
+        return t("errors.serverError");
       case 502:
-        return "Gateway-Fehler";
+        return t("errors.badGateway");
       case 503:
-        return "Dienst nicht verfügbar";
+        return t("errors.serviceUnavailable");
       case 504:
-        return "Zeitüberschreitung";
+        return t("errors.timeout");
       default:
-        return "Ein Fehler ist aufgetreten";
+        return t("common.error");
     }
   }
 
   // Map by error type string
   switch (statusOrType) {
     case "service_unavailable":
-      return "Dienst nicht verfügbar";
+      return t("errors.serviceUnavailable");
     case "validation_error":
-      return "Ungültige Eingabe";
+      return t("errors.badRequest");
     case "not_found":
-      return "Nicht gefunden";
+      return t("errors.notFound");
     case "server_error":
-      return "Serverfehler";
+      return t("errors.serverError");
     case "bad_gateway":
-      return "Gateway-Fehler";
+      return t("errors.badGateway");
     default:
-      return "Ein Fehler ist aufgetreten";
+      return t("common.error");
   }
 }
 
@@ -105,7 +107,7 @@ export function getErrorMessage(error: unknown): string {
   }
 
   // Fallback
-  return "Ein unerwarteter Fehler ist aufgetreten";
+  return i18next.t("errors.unknown");
 }
 
 /**
@@ -126,6 +128,27 @@ export async function parseApiError(response: Response): Promise<ApiError | null
     console.error("Failed to parse error response:", parseError);
   }
   return null;
+}
+
+/**
+ * Throw a descriptive error if the response is not OK.
+ * Centralizes the `if (!response.ok)` pattern used across all API clients.
+ */
+export async function throwIfNotOk(response: Response, context: string): Promise<void> {
+  if (response.ok) return;
+  let detail: string | null = null;
+  try {
+    const errorData = await response.json();
+    detail = errorData?.detail || (isApiError(errorData) ? errorData.title : null);
+  } catch {
+    // JSON parse failed — try text
+    try {
+      detail = await response.text();
+    } catch {
+      // ignore
+    }
+  }
+  throw new Error(detail || `${context}: ${response.statusText}`);
 }
 
 /**

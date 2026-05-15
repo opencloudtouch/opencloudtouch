@@ -4,6 +4,7 @@ Orchestrates device discovery and database synchronization.
 """
 
 import logging
+import os
 from typing import TYPE_CHECKING, List, Optional
 
 from opencloudtouch.db import Device
@@ -162,16 +163,18 @@ class DeviceSyncService:
                 unique_devices.append(device)
             else:
                 logger.debug(
-                    f"Deduplicating device at {device.ip} (already found via another source)"
+                    "Deduplicating device at %s (already found via another source)",
+                    device.ip,
                 )
 
         if len(unique_devices) < len(devices):
             logger.info(
-                f"Deduplicated {len(devices) - len(unique_devices)} device(s) "
-                f"({len(unique_devices)} unique after deduplication)"
+                "Deduplicated %d device(s) (%d unique after deduplication)",
+                len(devices) - len(unique_devices),
+                len(unique_devices),
             )
 
-        logger.info(f"Discovered {len(unique_devices)} unique devices total")
+        logger.info("Discovered %d unique devices total", len(unique_devices))
         return unique_devices
 
     async def _discover_via_ssdp(self) -> List[DiscoveredDevice]:
@@ -184,14 +187,14 @@ class DeviceSyncService:
         try:
             discovery = get_discovery_adapter(timeout=self.discovery_timeout)
             discovered = await discovery.discover(timeout=self.discovery_timeout)
-            logger.info(f"SSDP discovered {len(discovered)} devices")
+            logger.info("SSDP discovered %d devices", len(discovered))
             for d in discovered:
                 logger.debug(
                     "SSDP device: ip=%s, name=%s", d.ip, getattr(d, "name", "?")
                 )
             return discovered
-        except Exception as e:
-            logger.error(f"SSDP discovery failed: {e}")
+        except Exception:
+            logger.exception("SSDP discovery failed")
             return []
 
     async def _discover_via_manual_ips(self) -> List[DiscoveredDevice]:
@@ -208,20 +211,20 @@ class DeviceSyncService:
         try:
             if self.settings_repo is not None:
                 ips = await self.settings_repo.get_manual_ips()
-                logger.info(f"Manual IPs from DB: {ips}")
+                logger.info("Manual IPs from DB: %s", ips)
             else:
                 ips = self.manual_ips
 
             manual = ManualDiscovery(ips)
             discovered = await manual.discover()
-            logger.info(f"Manual discovery found {len(discovered)} devices")
+            logger.info("Manual discovery found %d devices", len(discovered))
             for d in discovered:
                 logger.debug(
                     "Manual device: ip=%s, name=%s", d.ip, getattr(d, "name", "?")
                 )
             return discovered
-        except Exception as e:
-            logger.error(f"Manual discovery failed: {e}")
+        except Exception:
+            logger.exception("Manual discovery failed")
             return []
 
     async def _sync_devices_to_db(
@@ -268,13 +271,13 @@ class DeviceSyncService:
         try:
             device = await self._fetch_device_info(discovered)
             await self.repository.upsert(device)
-            logger.info(f"Synced device: {device.name} ({device.device_id})")
+            logger.info("Synced device: %s (%s)", device.name, device.device_id)
             if on_synced:
                 await on_synced(device)
             return True
         except Exception as e:
             device_ip = getattr(discovered, "ip", str(discovered))
-            logger.error(f"Failed to sync device {device_ip}: {e}")
+            logger.exception("Failed to sync device %s", device_ip)
             if on_failed:
                 await on_failed(discovered, e)
             return False
@@ -282,6 +285,9 @@ class DeviceSyncService:
     async def _fetch_device_info(self, discovered: DiscoveredDevice) -> Device:
         """
         Query device for detailed info via /info endpoint.
+
+        Also fetches the margeAccountUUID from the device so that
+        /streaming/account/{account_id}/full can resolve the correct device.
 
         Args:
             discovered: Discovered device with base URL
@@ -295,6 +301,9 @@ class DeviceSyncService:
         client = get_device_client(discovered.base_url)
         info = await client.get_info()
 
+        # Fetch margeAccountUUID separately (parsed from /info XML)
+        marge_uuid = await self._fetch_marge_account_uuid(discovered.ip)
+
         return Device(
             device_id=info.device_id,
             ip=discovered.ip,
@@ -302,4 +311,33 @@ class DeviceSyncService:
             model=info.type,
             mac_address=info.mac_address,
             firmware_version=info.firmware_version,
+            marge_account_uuid=marge_uuid,
         )
+
+    @staticmethod
+    async def _fetch_marge_account_uuid(device_ip: str) -> Optional[str]:
+        """Fetch margeAccountUUID from device /info endpoint.
+
+        Uses the existing account_pairing_service function which
+        parses the raw /info XML for the <margeAccountUUID> element.
+
+        Skipped in mock mode — mock devices have no real /info endpoint.
+
+        Returns:
+            The UUID string if present, None otherwise.
+            Never raises — logs warnings on failure.
+        """
+        if os.getenv("OCT_MOCK_MODE", "false").lower() == "true":
+            return None
+
+        try:
+            from opencloudtouch.setup.account_pairing_service import (
+                check_marge_account_uuid,
+            )
+
+            return await check_marge_account_uuid(device_ip)
+        except Exception:
+            logger.debug(
+                "Could not fetch margeAccountUUID from %s", device_ip, exc_info=True
+            )
+            return None

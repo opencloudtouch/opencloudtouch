@@ -255,7 +255,10 @@ class TestGenericExceptionHandler:
         assert error["type"] == "server_error"
         assert error["title"] == "Internal Server Error"
         assert error["status"] == 500
-        assert "ValueError" in error["detail"]
+        assert (
+            error["detail"] == "An unexpected error occurred. Please try again later."
+        )
+        assert "ValueError" not in error["detail"]
 
     @pytest.mark.asyncio
     async def test_zero_division_error_returns_500(self, mock_request):

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from opencloudtouch.core.dependencies import get_settings_service
+from opencloudtouch.core.exceptions import DomainValidationError
 from opencloudtouch.settings.service import SettingsService
 
 logger = logging.getLogger(__name__)
@@ -68,6 +69,8 @@ async def set_manual_ips(
     try:
         result_ips = await service.set_manual_ips(request.ips)
         return ManualIPsResponse(ips=result_ips)
+    except DomainValidationError:
+        raise
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

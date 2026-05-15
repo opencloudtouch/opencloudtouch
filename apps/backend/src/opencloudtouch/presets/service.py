@@ -10,7 +10,9 @@ from typing import List, Optional
 
 import httpx
 
+from opencloudtouch.core.exceptions import DeviceNotFoundError
 from opencloudtouch.devices.repository import DeviceRepository
+from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.parser import DevicePresetParser
 from opencloudtouch.presets.repository import PresetRepository
@@ -83,14 +85,17 @@ class PresetService:
         saved_preset = await self.repository.set_preset(preset)
 
         logger.info(
-            f"Set preset {preset_number} in database for device {device_id}: {station_name}"
+            "Set preset %d in database for device %s: %s",
+            preset_number,
+            device_id,
+            station_name,
         )
 
         # 2. Program Bose device via /storePreset API
         try:
             device = await self.device_repository.get_by_device_id(device_id)
             if not device:
-                raise ValueError(f"Device {device_id} not found")
+                raise DeviceNotFoundError(device_id)
 
             from opencloudtouch.core.config import get_config
             from opencloudtouch.devices.adapter import get_device_client
@@ -99,7 +104,7 @@ class PresetService:
             cfg = get_config()
             oct_backend_url = cfg.station_descriptor_base_url
 
-            base_url = f"http://{device.ip}:8090"
+            base_url = f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR — Bose devices only support HTTP
             client = get_device_client(base_url)
 
             try:
@@ -113,20 +118,25 @@ class PresetService:
                     station_uuid=station_uuid,
                 )
                 logger.info(
-                    f"✅ Bose device programmed: Preset {preset_number} = {station_name}"
+                    "✅ Bose device programmed: Preset %d = %s",
+                    preset_number,
+                    station_name,
                 )
             finally:
                 await client.close()
 
         except Exception as e:
             logger.error(
-                f"Failed to program Bose device for preset {preset_number}: {e}",
+                "Failed to program Bose device for preset %d: %s",
+                preset_number,
+                e,
                 exc_info=True,
             )
             # Don't fail the whole operation if Bose programming fails
             # Database record is still saved, user can retry
             logger.warning(
-                f"Preset {preset_number} saved to database but NOT programmed on Bose device"
+                "Preset %d saved to database but NOT programmed on Bose device",
+                preset_number,
             )
 
         return saved_preset
@@ -170,7 +180,9 @@ class PresetService:
         result = await self.repository.clear_preset(device_id, preset_number)
 
         if result:
-            logger.info(f"Cleared preset {preset_number} for device {device_id}")
+            logger.info(  # NOSONAR
+                "Cleared preset %d for device %s", preset_number, device_id
+            )
 
         return bool(result)
 
@@ -185,7 +197,7 @@ class PresetService:
         """
         count = await self.repository.clear_all_presets(device_id)
 
-        logger.info(f"Cleared {count} presets for device {device_id}")
+        logger.info("Cleared %d presets for device %s", count, device_id)  # NOSONAR
 
         return count
 
@@ -207,10 +219,12 @@ class PresetService:
         """
         device = await self.device_repository.get_by_device_id(device_id)
         if not device:
-            raise ValueError(f"Device {device_id} not found")
+            raise DeviceNotFoundError(device_id)
 
         logger.info(
-            f"Syncing presets from device {device_id} ({device.ip})",
+            "Syncing presets from device %s (%s)",
+            device_id,
+            device.ip,
             extra={"device_id": device_id, "device_ip": device.ip},
         )
 
@@ -222,7 +236,10 @@ class PresetService:
             await self.repository.set_preset(preset)
             synced_count += 1
             logger.info(
-                f"Synced preset {preset.preset_number}: {preset.station_name} (source: {preset.source})",
+                "Synced preset %d: %s (source: %s)",
+                preset.preset_number,
+                preset.station_name,
+                preset.source,
                 extra={
                     "device_id": device_id,
                     "preset_number": preset.preset_number,
@@ -231,7 +248,9 @@ class PresetService:
             )
 
         logger.info(
-            f"Synced {synced_count} presets from device {device_id}",
+            "Synced %d presets from device %s",
+            synced_count,
+            device_id,
             extra={"device_id": device_id, "synced_count": synced_count},
         )
         return synced_count
@@ -245,7 +264,7 @@ class PresetService:
         Returns:
             Raw XML response bytes
         """
-        device_url = f"http://{device_ip}:8090/presets"
+        device_url = f"http://{device_ip}:{SOUNDTOUCH_HTTP_PORT}/presets"  # NOSONAR — Bose devices only support HTTP
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(device_url)
             response.raise_for_status()

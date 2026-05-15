@@ -2,10 +2,11 @@
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFoundError
 from opencloudtouch.devices.repository import DeviceRepository
+from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
 
 if TYPE_CHECKING:
@@ -13,18 +14,33 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Type alias for the client factory function
+DeviceClientFactory = Callable[[str], "DeviceClient"]
+
 
 class ZoneService:
     """Service for managing multi-room zones."""
 
-    def __init__(self, device_repo: DeviceRepository) -> None:
+    def __init__(
+        self,
+        device_repo: DeviceRepository,
+        client_factory: DeviceClientFactory | None = None,
+    ) -> None:
         self.device_repo = device_repo
+        self._client_factory = client_factory
 
     def _get_client(self, ip: str) -> "DeviceClient":
-        """Get a device client for the given IP (lazy import to avoid circular deps)."""
-        from opencloudtouch.devices.adapter import get_device_client
+        """Get a device client for the given IP via injected factory."""
+        if self._client_factory is None:
+            # Fallback: lazy import (backward compat during transition)
+            from opencloudtouch.devices.adapter import get_device_client
 
-        return get_device_client(f"http://{ip}:8090")
+            return get_device_client(
+                f"http://{ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR — Bose devices only support HTTP
+            )
+        return self._client_factory(
+            f"http://{ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR — Bose devices only support HTTP
+        )
 
     async def _get_device_or_raise(self, device_id: str):
         """Get device from repo or raise DeviceNotFoundError."""

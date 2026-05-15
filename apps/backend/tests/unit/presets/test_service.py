@@ -12,6 +12,7 @@ from xml.etree import ElementTree as ET
 import httpx
 import pytest
 
+from opencloudtouch.core.exceptions import DeviceNotFoundError
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.service import PresetService
 
@@ -84,10 +85,10 @@ def service(mock_repo, mock_device_repo):
 
 @pytest.mark.asyncio
 async def test_sync_presets_raises_if_device_not_found(service, mock_device_repo):
-    """Device not in DB → ValueError raised."""
+    """Device not in DB → DeviceNotFoundError raised."""
     mock_device_repo.get_by_device_id = AsyncMock(return_value=None)
 
-    with pytest.raises(ValueError, match="not found"):
+    with pytest.raises(DeviceNotFoundError, match="not found"):
         await service.sync_presets_from_device("unknown-device")
 
 

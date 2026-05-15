@@ -9,7 +9,7 @@ import {
   verifySetup,
   getSupportedModels,
   calculateProgress,
-  STEP_LABELS,
+  getStepLabel,
   STEP_ORDER,
 } from "../../../src/api/setup";
 
@@ -55,7 +55,7 @@ describe("Setup API Client", () => {
 
       // getErrorMessage returns fallback for non-ApiError objects
       await expect(getModelInstructions("UnknownModel")).rejects.toThrow(
-        "Ein unerwarteter Fehler ist aufgetreten"
+        "Model not found"
       );
     });
 
@@ -68,7 +68,7 @@ describe("Setup API Client", () => {
 
       // getErrorMessage(null) returns fallback, so statusText not used
       await expect(getModelInstructions("BadModel")).rejects.toThrow(
-        "Ein unerwarteter Fehler ist aufgetreten"
+        "Failed to get instructions: Server Error"
       );
     });
   });
@@ -106,7 +106,7 @@ describe("Setup API Client", () => {
 
       // getErrorMessage returns fallback for non-ApiError objects
       await expect(checkConnectivity("192.168.1.99")).rejects.toThrow(
-        "Ein unerwarteter Fehler ist aufgetreten"
+        "Device unreachable"
       );
     });
 
@@ -119,7 +119,7 @@ describe("Setup API Client", () => {
 
       // getErrorMessage(null) returns fallback, so statusText not used
       await expect(checkConnectivity("invalid")).rejects.toThrow(
-        "Ein unerwarteter Fehler ist aufgetreten"
+        "Connectivity check failed: Bad Request"
       );
     });
   });
@@ -165,7 +165,7 @@ describe("Setup API Client", () => {
 
       // getErrorMessage returns fallback for non-ApiError objects
       await expect(getSetupStatus("bad_device")).rejects.toThrow(
-        "Ein unerwarteter Fehler ist aufgetreten"
+        "Device not found"
       );
     });
 
@@ -178,7 +178,7 @@ describe("Setup API Client", () => {
 
       // getErrorMessage(null) returns fallback
       await expect(getSetupStatus("device123")).rejects.toThrow(
-        "Ein unerwarteter Fehler ist aufgetreten"
+        "Failed to get status: Server Error"
       );
     });
   });
@@ -231,7 +231,7 @@ describe("Setup API Client", () => {
 
       // getErrorMessage returns fallback for non-ApiError objects
       await expect(verifySetup("device123", "192.168.1.100")).rejects.toThrow(
-        "Ein unerwarteter Fehler ist aufgetreten"
+        "SSH not accessible"
       );
     });
 
@@ -244,7 +244,7 @@ describe("Setup API Client", () => {
 
       // getErrorMessage(null) returns fallback
       await expect(verifySetup("device123", "192.168.1.100")).rejects.toThrow(
-        "Ein unerwarteter Fehler ist aufgetreten"
+        "Verification failed: Gateway Timeout"
       );
     });
   });
@@ -298,7 +298,7 @@ describe("Setup API Client", () => {
 
       // getErrorMessage returns fallback for non-ApiError objects
       await expect(getSupportedModels()).rejects.toThrow(
-        "Ein unerwarteter Fehler ist aufgetreten"
+        "Database error"
       );
     });
 
@@ -311,7 +311,7 @@ describe("Setup API Client", () => {
 
       // getErrorMessage(null) returns fallback
       await expect(getSupportedModels()).rejects.toThrow(
-        "Ein unerwarteter Fehler ist aufgetreten"
+        "Failed to get models: Service Unavailable"
       );
     });
   });
@@ -340,10 +340,15 @@ describe("Setup API Client", () => {
   });
 
   describe("Constants", () => {
-    it("STEP_LABELS contains all steps", () => {
-      expect(Object.keys(STEP_LABELS)).toHaveLength(8);
-      expect(STEP_LABELS.usb_insert).toBe("USB-Stick einstecken");
-      expect(STEP_LABELS.complete).toBe("Abgeschlossen");
+    it("getStepLabel returns correct labels for all steps", () => {
+      expect(getStepLabel("usb_insert")).toBe("Insert USB stick");
+      expect(getStepLabel("device_reboot")).toBe("Reboot device");
+      expect(getStepLabel("ssh_connect")).toBe("Establish SSH connection");
+      expect(getStepLabel("ssh_persist")).toBe("Enable SSH permanently");
+      expect(getStepLabel("config_backup")).toBe("Create backup");
+      expect(getStepLabel("config_modify")).toBe("Modify configuration");
+      expect(getStepLabel("verify")).toBe("Verify");
+      expect(getStepLabel("complete")).toBe("Complete");
     });
 
     it("STEP_ORDER contains all steps in correct order", () => {

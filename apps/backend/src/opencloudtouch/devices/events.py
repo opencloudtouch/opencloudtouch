@@ -80,7 +80,8 @@ class DiscoveryEventBus:
         queue: asyncio.Queue = asyncio.Queue()
         self._subscribers.append(queue)
         logger.debug(
-            f"Client subscribed to discovery events (total: {len(self._subscribers)})"
+            "Client subscribed to discovery events (total: %d)",
+            len(self._subscribers),
         )
         return queue
 
@@ -93,7 +94,7 @@ class DiscoveryEventBus:
         """
         if queue in self._subscribers:
             self._subscribers.remove(queue)
-            logger.debug(f"Client unsubscribed (remaining: {len(self._subscribers)})")
+            logger.debug("Client unsubscribed (remaining: %d)", len(self._subscribers))
 
     async def publish(self, event: DiscoveryEvent):
         """
@@ -103,11 +104,13 @@ class DiscoveryEventBus:
             event: Event to broadcast
         """
         if not self._subscribers:
-            logger.debug(f"No subscribers for event: {event.type}")
+            logger.debug("No subscribers for event: %s", event.type)
             return
 
         logger.debug(
-            f"Broadcasting event {event.type} to {len(self._subscribers)} subscriber(s)"
+            "Broadcasting event %s to %d subscriber(s)",
+            event.type,
+            len(self._subscribers),
         )
 
         # Broadcast to all subscribers
@@ -116,8 +119,8 @@ class DiscoveryEventBus:
         ]:  # Copy list to avoid modification during iteration
             try:
                 await queue.put(event)
-            except Exception as e:
-                logger.error(f"Failed to publish event to subscriber: {e}")
+            except Exception:
+                logger.exception("Failed to publish event to subscriber")
                 # Remove dead subscriber
                 self._subscribers.remove(queue)
 
@@ -181,7 +184,7 @@ async def event_generator(
         logger.debug("Event generator cancelled")
         raise
     except Exception as e:
-        logger.error(f"Event generator error: {e}")
+        logger.exception("Event generator error: %s", e)
         # Send error event to client
         error_event = DiscoveryEvent(
             type=DiscoveryEventType.ERROR,

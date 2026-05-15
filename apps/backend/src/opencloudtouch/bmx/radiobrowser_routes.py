@@ -35,21 +35,21 @@ async def bmx_radiobrowser_playback(uuid: str) -> JSONResponse:
     The device calls this with a station UUID and expects a BMX-format
     JSON response with stream URLs for playback.
     """
-    logger.info(f"[BMX RADIOBROWSER] Resolving station: {uuid}")
+    logger.info("[BMX RADIOBROWSER] Resolving station: %s", uuid)
 
     adapter = get_radio_adapter()
 
     try:
         station = await adapter.get_station_by_uuid(uuid)
     except RadioBrowserTimeoutError as e:
-        logger.error(f"[BMX RADIOBROWSER] Timeout: {e}")
+        logger.error("[BMX RADIOBROWSER] Timeout: %s", e)
         return JSONResponse(
             content={"error": f"RadioBrowser timeout: {e}"},
             status_code=504,
             headers={"Access-Control-Allow-Origin": "*"},
         )
     except RadioBrowserConnectionError as e:
-        logger.error(f"[BMX RADIOBROWSER] Connection error: {e}")
+        logger.error("[BMX RADIOBROWSER] Connection error: %s", e)
         return JSONResponse(
             content={"error": f"RadioBrowser unavailable: {e}"},
             status_code=503,
@@ -62,7 +62,7 @@ async def bmx_radiobrowser_playback(uuid: str) -> JSONResponse:
                 status_code=404,
                 headers={"Access-Control-Allow-Origin": "*"},
             )
-        logger.error(f"[BMX RADIOBROWSER] Error: {e}")
+        logger.error("[BMX RADIOBROWSER] Error: %s", e)
         return JSONResponse(
             content={"error": str(e)},
             status_code=500,
@@ -104,10 +104,10 @@ async def bmx_radiobrowser_playback(uuid: str) -> JSONResponse:
         name=station.name,
     )
 
-    logger.info(f"[BMX RADIOBROWSER] Resolved {uuid} → {stream_url}")
+    logger.info("[BMX RADIOBROWSER] Resolved %s → %s", uuid, stream_url)
 
     return JSONResponse(
-        content=response.model_dump(),
+        content=response.model_dump(by_alias=True),
         headers={"Access-Control-Allow-Origin": "*"},
     )
 
@@ -115,7 +115,7 @@ async def bmx_radiobrowser_playback(uuid: str) -> JSONResponse:
 @radiobrowser_router.get("/bmx/radiobrowser/v1/now-playing/station/{uuid}")
 async def bmx_radiobrowser_now_playing(uuid: str) -> JSONResponse:
     """Now-playing stub for RadioBrowser stations."""
-    logger.info(f"[BMX RADIOBROWSER NOW-PLAYING] Station: {uuid}")
+    logger.info("[BMX RADIOBROWSER NOW-PLAYING] Station: %s", uuid)
     return JSONResponse(
         content={"status": "playing", "stationId": uuid},
         headers={"Access-Control-Allow-Origin": "*"},
@@ -125,7 +125,7 @@ async def bmx_radiobrowser_now_playing(uuid: str) -> JSONResponse:
 @radiobrowser_router.post("/bmx/radiobrowser/v1/reporting/station/{uuid}")
 async def bmx_radiobrowser_reporting(uuid: str) -> JSONResponse:
     """Reporting stub for RadioBrowser stations."""
-    logger.info(f"[BMX RADIOBROWSER REPORTING] Station: {uuid}")
+    logger.info("[BMX RADIOBROWSER REPORTING] Station: %s", uuid)
     return JSONResponse(
         content={"status": "ok"},
         headers={"Access-Control-Allow-Origin": "*"},

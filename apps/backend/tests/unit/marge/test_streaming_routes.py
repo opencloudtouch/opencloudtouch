@@ -16,6 +16,7 @@ from opencloudtouch.marge.routes import (
     blacklist_check,
     set_marge_account,
 )
+from opencloudtouch.marge.service import MargeService
 
 
 class TestPowerOnEndpoint:
@@ -117,28 +118,43 @@ class TestStreamingSourceproviders:
 
 
 class TestStreamingFullAccount:
+    """Tests for /streaming/account/{account_id}/full (fixes #188)."""
+
     @pytest.mark.asyncio
     async def test_returns_200_with_empty_presets(self):
-        mock_preset_repo = AsyncMock()
-        mock_preset_repo.get_all_presets = AsyncMock(return_value=[])
+        mock_marge = AsyncMock(spec=MargeService)
+        mock_marge.get_full_account = AsyncMock(return_value=([], []))
 
-        result = await streaming_full_account("3784726", mock_preset_repo)
+        result = await streaming_full_account("3784726", mock_marge)
         assert result.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_media_type_is_bose_streaming(self):
-        mock_preset_repo = AsyncMock()
-        mock_preset_repo.get_all_presets = AsyncMock(return_value=[])
+    async def test_returns_empty_when_no_device_mapping(self):
+        """No device found for account UUID → empty presets, no crash."""
+        mock_marge = AsyncMock(spec=MargeService)
+        mock_marge.resolve_device_id_for_account = AsyncMock(return_value=None)
 
-        result = await streaming_full_account("3784726", mock_preset_repo)
+        result = await streaming_full_account("9999999", mock_marge)
+        assert result.status_code == 200
+        root = ElementTree.fromstring(result.body.decode())
+        presets = root.find("presets")
+        assert presets is not None
+        assert len(presets.findall("preset")) == 0
+
+    @pytest.mark.asyncio
+    async def test_media_type_is_bose_streaming(self):
+        mock_marge = AsyncMock(spec=MargeService)
+        mock_marge.get_full_account = AsyncMock(return_value=([], []))
+
+        result = await streaming_full_account("3784726", mock_marge)
         assert "bose.streaming" in result.media_type
 
     @pytest.mark.asyncio
     async def test_returns_bose_account_xml(self):
-        mock_preset_repo = AsyncMock()
-        mock_preset_repo.get_all_presets = AsyncMock(return_value=[])
+        mock_marge = AsyncMock(spec=MargeService)
+        mock_marge.get_full_account = AsyncMock(return_value=([], []))
 
-        result = await streaming_full_account("3784726", mock_preset_repo)
+        result = await streaming_full_account("3784726", mock_marge)
         root = ElementTree.fromstring(result.body.decode())
         assert root.tag == "boseAccount"
 
@@ -153,14 +169,31 @@ class TestStreamingFullAccount:
         mock_preset.created_at.timestamp.return_value = 1234567890
         mock_preset.updated_at.timestamp.return_value = 1234567890
 
-        mock_preset_repo = AsyncMock()
-        mock_preset_repo.get_all_presets = AsyncMock(return_value=[mock_preset])
+        mock_marge = AsyncMock(spec=MargeService)
+        mock_marge.get_full_account = AsyncMock(return_value=([mock_preset], []))
 
-        result = await streaming_full_account("3784726", mock_preset_repo)
+        result = await streaming_full_account("3784726", mock_marge)
         root = ElementTree.fromstring(result.body.decode())
         presets = root.find("presets")
         assert presets is not None
         assert len(presets.findall("preset")) == 1
+
+    @pytest.mark.asyncio
+    async def test_includes_recents_in_response(self):
+        """Streaming endpoint must include recents (not empty list)."""
+        mock_recent = MagicMock()
+        mock_recent.source = "TUNEIN"
+        mock_recent.location = "/v1/playback/station/s33828"
+        mock_recent.name = "WDR 2"
+
+        mock_marge = AsyncMock(spec=MargeService)
+        mock_marge.get_full_account = AsyncMock(return_value=([], [mock_recent]))
+
+        result = await streaming_full_account("3784726", mock_marge)
+        root = ElementTree.fromstring(result.body.decode())
+        recents = root.find("recents")
+        assert recents is not None
+        assert len(recents.findall("recent")) == 1
 
 
 class TestScmudcReporting:

@@ -124,8 +124,10 @@ class PresetRepository(BaseRepository):
 
         await db.commit()
         logger.debug(
-            f"Set preset {preset.preset_number} for device {preset.device_id}: "
-            f"{preset.station_name}"
+            "Set preset %d for device %s: %s",
+            preset.preset_number,
+            preset.device_id,
+            preset.station_name,
         )
 
         return preset
@@ -222,7 +224,7 @@ class PresetRepository(BaseRepository):
 
         deleted_count = cursor.rowcount
         if deleted_count > 0:
-            logger.debug(f"Cleared preset {preset_number} for device {device_id}")
+            logger.debug("Cleared preset %d for device %s", preset_number, device_id)
 
         return deleted_count
 

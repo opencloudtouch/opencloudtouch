@@ -4,10 +4,12 @@ Manages application settings including manual device IP addresses.
 Separates HTTP layer (routes) from business logic from data layer (repository).
 """
 
+import ipaddress
 import logging
 import re
 from typing import List
 
+from opencloudtouch.core.exceptions import DomainValidationError
 from opencloudtouch.settings.repository import SettingsRepository
 
 logger = logging.getLogger(__name__)
@@ -39,20 +41,25 @@ class SettingsService:
         """
         self.repository = repository
 
-    def _validate_ip(self, ip: str) -> None:
-        """Validate IP address format.
+    def _validate_ip(self, ip: str) -> str:
+        """Validate IP address format and return sanitized value.
 
         Args:
             ip: IP address to validate
+
+        Returns:
+            Sanitized IP address string (from ipaddress module)
 
         Raises:
             ValueError: If IP address is invalid
         """
         if not ip or not ip.strip():
-            raise ValueError("Invalid IP address: empty string")
+            raise DomainValidationError("Invalid IP address: empty string", field="ip")
 
         if not IP_PATTERN.match(ip):
-            raise ValueError(f"Invalid IP address: {ip}")
+            raise DomainValidationError(f"Invalid IP address: {ip}", field="ip")
+
+        return str(ipaddress.ip_address(ip))
 
     async def get_manual_ips(self) -> List[str]:
         """Get all manual device IP addresses.
@@ -74,9 +81,9 @@ class SettingsService:
             ValueError: If IP address is invalid
         """
         # Validate IP format
-        self._validate_ip(ip)
+        safe_ip = self._validate_ip(ip)
 
-        logger.info(f"Adding manual device IP: {ip}")
+        logger.info("Adding manual device IP: %s", safe_ip)
 
         await self.repository.add_manual_ip(ip)
 
@@ -86,7 +93,8 @@ class SettingsService:
         Args:
             ip: IP address to remove
         """
-        logger.info(f"Removing manual device IP: {ip}")
+        safe_ip = self._validate_ip(ip)
+        logger.info("Removing manual device IP: %s", safe_ip)
 
         await self.repository.remove_manual_ip(ip)
 
@@ -110,11 +118,12 @@ class SettingsService:
 
         # Validate ALL IPs before making any changes
         for ip in unique_ips:
-            self._validate_ip(ip)
+            self._validate_ip(ip)  # raises on invalid
 
         logger.info(
-            f"Setting manual IPs: {len(unique_ips)} unique IPs "
-            f"(from {len(ips)} provided)"
+            "Setting manual IPs: %d unique IPs (from %d provided)",
+            len(unique_ips),
+            len(ips),
         )
 
         # Get existing IPs
@@ -128,6 +137,6 @@ class SettingsService:
         for ip in unique_ips:
             await self.repository.add_manual_ip(ip)
 
-        logger.info(f"Manual IPs updated: {unique_ips}")
+        logger.info("Manual IPs updated: %s", unique_ips)
 
         return unique_ips

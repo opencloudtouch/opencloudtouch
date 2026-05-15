@@ -9,6 +9,7 @@ import logging
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, List, Optional, Union
 
+from opencloudtouch.core.exceptions import DeviceNotFoundError, DomainValidationError
 from opencloudtouch.db import Device
 from opencloudtouch.devices.adapter import get_device_client
 from opencloudtouch.devices.capabilities import (
@@ -23,7 +24,7 @@ from opencloudtouch.devices.interfaces import (
 )
 from opencloudtouch.devices.events import DiscoveryEvent, DiscoveryEventType
 from opencloudtouch.devices.models import KEY_MAPPING, KeyType, SyncResult
-from opencloudtouch.discovery import DiscoveredDevice
+from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT, DiscoveredDevice
 
 logger = logging.getLogger(__name__)
 
@@ -75,11 +76,11 @@ class DeviceService:
         Raises:
             Exception: If discovery fails
         """
-        logger.info(f"Starting device discovery (timeout: {timeout}s)")
+        logger.info("Starting device discovery (timeout: %ss)", timeout)
 
         devices = await self.discovery_adapter.discover(timeout=timeout)
 
-        logger.info(f"Discovery complete: {len(devices)} device(s) found")
+        logger.info("Discovery complete: %d device(s) found", len(devices))
         for d in devices:
             logger.debug("Discovered: ip=%s, name=%s", d.ip, getattr(d, "name", "?"))
 
@@ -167,7 +168,7 @@ class DeviceService:
             return SyncResult(discovered=0, synced=0, failed=0)
 
         except Exception as e:
-            logger.error(f"Sync with events failed: {e}")
+            logger.exception("Sync with events failed")
             # Publish error event
             await event_bus.publish(
                 DiscoveryEvent(type=DiscoveryEventType.ERROR, data={"message": str(e)})
@@ -210,22 +211,18 @@ class DeviceService:
         device = await self.repository.get_by_device_id(device_id)
 
         if not device:
-            raise ValueError(f"Device not found: {device_id}")
+            raise DeviceNotFoundError(device_id)
 
-        logger.info(f"Querying capabilities for device {device_id} ({device.ip})")
+        logger.info("Querying device capabilities")
 
         try:
             capabilities = await get_capabilities_for_ip(device.ip)
             flags = get_feature_flags_for_ui(capabilities)
-            logger.debug(
-                "Capabilities for %s: %s",
-                device_id,
-                {k: v for k, v in flags.items() if v},
-            )
+            logger.debug("Device capabilities resolved")
             return flags
 
-        except Exception as e:
-            logger.error(f"Failed to get capabilities for device {device_id}: {e}")
+        except Exception:
+            logger.exception("Failed to get device capabilities")
             raise
 
     @asynccontextmanager
@@ -243,8 +240,8 @@ class DeviceService:
         """
         device = await self.repository.get_by_device_id(device_id)
         if not device:
-            raise ValueError(f"Device {device_id} not found")
-        base_url = f"http://{device.ip}:8090"
+            raise DeviceNotFoundError(device_id)
+        base_url = f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR — Bose devices only support HTTP
         client = await asyncio.to_thread(get_device_client, base_url)
         try:
             yield client
@@ -264,10 +261,14 @@ class DeviceService:
             ValueError: If device not found
             Exception: If key press fails
         """
-        logger.info(f"Pressing key {key} on device {device_id} (state: {state})")
+        logger.info(  # NOSONAR
+            "Pressing key %s on device %s (state: %s)", key, device_id, state
+        )
         async with self._device_client(device_id) as client:
             await client.press_key(key, state)
-        logger.info(f"Successfully pressed key {key} on device {device_id}")
+        logger.info(  # NOSONAR
+            "Successfully pressed key %s on device %s", key, device_id
+        )
 
     async def delete_all_devices(self, allow_dangerous_operations: bool) -> None:
         """Delete all devices from database.
@@ -309,17 +310,20 @@ class DeviceService:
         try:
             key_enum = key if isinstance(key, KeyType) else KeyType(key)
         except Exception:
-            raise ValueError(f"Unsupported key: {key}") from None
+            raise DomainValidationError(
+                f"Unsupported key: {key}", field="key"
+            ) from None
 
         valid_states = {"press", "release", "both"}
         if state not in valid_states:
-            raise ValueError(
-                f"Invalid state: {state}. Must be one of {sorted(valid_states)}"
+            raise DomainValidationError(
+                f"Invalid state: {state}. Must be one of {sorted(valid_states)}",
+                field="state",
             )
 
         mapped = KEY_MAPPING.get(key_enum)
         if mapped is None:
-            raise ValueError(f"Unsupported key: {key}")
+            raise DomainValidationError(f"Unsupported key: {key}", field="key")
 
         key_value = mapped.value if hasattr(mapped, "value") else str(mapped)
 
@@ -341,7 +345,9 @@ class DeviceService:
     async def set_volume(self, device_id: str, level: int) -> VolumeInfo:
         """Set volume level and return updated state."""
         if not 0 <= level <= 100:
-            raise ValueError(f"Volume must be 0-100, got {level}")
+            raise DomainValidationError(
+                f"Volume must be 0-100, got {level}", field="level"
+            )
         async with self._device_client(device_id) as client:
             await client.set_volume(level)
             return await client.get_volume()

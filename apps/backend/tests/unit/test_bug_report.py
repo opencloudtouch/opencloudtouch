@@ -331,7 +331,7 @@ class TestBugReportRoute:
             response = client.post("/api/bug-report", json=self._make_payload())
             assert response.status_code == 503
 
-    @patch("opencloudtouch.api.bug_report._create_github_issue")
+    @patch("opencloudtouch.api.github_client.create_github_issue")
     @patch("opencloudtouch.api.bug_report._collect_diagnostics")
     @patch("opencloudtouch.api.bug_report.get_config")
     def test_success_returns_issue_url(self, mock_cfg, mock_diag, mock_create):
@@ -550,9 +550,9 @@ class TestBugReportRouteScreenshot:
         defaults.update(overrides)
         return defaults
 
-    @patch("opencloudtouch.api.bug_report._update_issue_body")
-    @patch("opencloudtouch.api.bug_report._upload_screenshot")
-    @patch("opencloudtouch.api.bug_report._create_github_issue")
+    @patch("opencloudtouch.api.github_client.update_issue_body")
+    @patch("opencloudtouch.api.github_client.upload_screenshot")
+    @patch("opencloudtouch.api.github_client.create_github_issue")
     @patch("opencloudtouch.api.bug_report._collect_diagnostics")
     @patch("opencloudtouch.api.bug_report.get_config")
     def test_screenshot_uploaded_and_issue_updated(
@@ -589,8 +589,8 @@ class TestBugReportRouteScreenshot:
         mock_upload.assert_called_once()
         mock_update.assert_called_once()
 
-    @patch("opencloudtouch.api.bug_report._upload_screenshot")
-    @patch("opencloudtouch.api.bug_report._create_github_issue")
+    @patch("opencloudtouch.api.github_client.upload_screenshot")
+    @patch("opencloudtouch.api.github_client.create_github_issue")
     @patch("opencloudtouch.api.bug_report._collect_diagnostics")
     @patch("opencloudtouch.api.bug_report.get_config")
     def test_screenshot_upload_failure_does_not_break_route(
@@ -625,8 +625,8 @@ class TestBugReportRouteScreenshot:
         assert response.status_code == 200
         assert response.json()["issue_url"] == "https://github.com/test/repo/issues/99"
 
-    @patch("opencloudtouch.api.bug_report._upload_screenshot")
-    @patch("opencloudtouch.api.bug_report._create_github_issue")
+    @patch("opencloudtouch.api.github_client.upload_screenshot")
+    @patch("opencloudtouch.api.github_client.create_github_issue")
     @patch("opencloudtouch.api.bug_report._collect_diagnostics")
     @patch("opencloudtouch.api.bug_report.get_config")
     def test_screenshot_exception_is_caught(
