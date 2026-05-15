@@ -125,30 +125,27 @@ async def ensure_persistence_files(
     created: list[str] = []
     skipped: list[str] = []
 
+    files_to_ensure = [
+        (
+            "SystemConfigurationDB.xml",
+            lambda: build_system_config_xml(device_name, account_uuid),
+        ),
+        ("Sources.xml", lambda: _SOURCES_XML),
+    ]
+
     try:
         # Ensure directory exists
         await ssh.execute(f"mkdir -p {_PERSISTENCE_DIR}")
 
-        # SystemConfigurationDB.xml
-        sys_path = f"{_PERSISTENCE_DIR}/SystemConfigurationDB.xml"
-        if await _file_exists(ssh, sys_path):
-            logger.info("SystemConfigurationDB.xml already exists — skipping")
-            skipped.append(sys_path)
-        else:
-            logger.info("Creating SystemConfigurationDB.xml (UUID=%s)", account_uuid)
-            xml = build_system_config_xml(device_name, account_uuid)
-            await _write_file_atomic(ssh, sys_path, xml)
-            created.append(sys_path)
-
-        # Sources.xml
-        src_path = f"{_PERSISTENCE_DIR}/Sources.xml"
-        if await _file_exists(ssh, src_path):
-            logger.info("Sources.xml already exists — skipping")
-            skipped.append(src_path)
-        else:
-            logger.info("Creating Sources.xml")
-            await _write_file_atomic(ssh, src_path, _SOURCES_XML)
-            created.append(src_path)
+        for filename, content_fn in files_to_ensure:
+            path = f"{_PERSISTENCE_DIR}/{filename}"
+            if await _file_exists(ssh, path):
+                logger.info("%s already exists — skipping", filename)
+                skipped.append(path)
+            else:
+                logger.info("Creating %s", filename)
+                await _write_file_atomic(ssh, path, content_fn())
+                created.append(path)
 
         msg_parts = []
         if created:
