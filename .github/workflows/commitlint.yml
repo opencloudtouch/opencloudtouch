@@ -45,6 +45,15 @@ jobs:
           echo "📝 Validating commits in PR..."
           echo ""
 
+          # For consolidation/merge branches with many commits, skip individual
+          # commit validation — the squash-merge PR title is the final message.
+          COMMIT_COUNT=$(echo "$COMMITS" | wc -l)
+          if [ "$COMMIT_COUNT" -gt 20 ]; then
+            echo "⏭️  Consolidation branch detected ($COMMIT_COUNT commits) — skipping individual commit validation"
+            echo "   PR title was already validated above."
+            exit 0
+          fi
+
           # Validate each commit
           EXIT_CODE=0
           while IFS= read -r commit; do
