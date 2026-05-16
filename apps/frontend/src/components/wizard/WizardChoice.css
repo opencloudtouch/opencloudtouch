@@ -1,0 +1,60 @@
+.wizard-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+.wizard-choice__title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.wizard-choice__cards {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.wizard-choice__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  border: 2px solid var(--border-color, #e0e0e0);
+  border-radius: 12px;
+  background: var(--bg-card, #fff);
+  cursor: pointer;
+  min-width: 240px;
+  max-width: 300px;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.wizard-choice__card:hover {
+  border-color: var(--primary, #3b82f6);
+}
+
+.wizard-choice__card--restore:hover {
+  border-color: var(--warning, #f59e0b);
+}
+
+.wizard-choice__icon {
+  font-size: 2.5rem;
+}
+
+.wizard-choice__card h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.wizard-choice__card p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #666);
+}

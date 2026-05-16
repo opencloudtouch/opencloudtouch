@@ -130,6 +130,31 @@ class SSHOperationError(SSHError):
 
 
 # ============================================================================
+# Restore Wizard Exceptions
+# ============================================================================
+
+
+class RestoreError(OpenCloudTouchError):
+    """Raised when a restore operation fails."""
+
+    def __init__(self, device_ip: str, step: str, message: str = ""):
+        self.device_ip = device_ip
+        self.step = step
+        detail = f"Restore step '{step}' failed on {device_ip}"
+        if message:
+            detail += f": {message}"
+        super().__init__(detail)
+
+
+class BackupScanError(OpenCloudTouchError):
+    """Raised when backup scan on USB stick fails."""
+
+    def __init__(self, device_ip: str, message: str = "Backup scan failed"):
+        self.device_ip = device_ip
+        super().__init__(f"{message}: {device_ip}")
+
+
+# ============================================================================
 # External Service Exceptions
 # ============================================================================
 

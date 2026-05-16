@@ -523,6 +523,61 @@
       }
     }
   },
+  "restore": {
+    "choice": {
+      "title": "Was möchten Sie tun?",
+      "setup_title": "Setup-Assistent",
+      "setup_desc": "Gerät für OpenCloudTouch konfigurieren",
+      "restore_title": "Wiederherstellungs-Assistent",
+      "restore_desc": "Alle OCT-Änderungen rückgängig machen und Werkszustand wiederherstellen"
+    },
+    "restore_choice": {
+      "title": "Wiederherstellungstyp wählen",
+      "description": "Wählen Sie, wie das Gerät wiederhergestellt werden soll.",
+      "clean_title": "Saubere Wiederherstellung",
+      "clean_desc": "Alle OCT-Änderungen entfernen. Kein Backup nötig.",
+      "backup_title": "Aus Backup wiederherstellen",
+      "backup_desc": "Original-Konfigurationsdateien vom USB-Backup wiederherstellen."
+    },
+    "backup_scan": {
+      "title": "Suche nach Backups",
+      "description": "USB-Stick wird nach Backup-Dateien durchsucht...",
+      "scanning": "USB-Stick wird durchsucht...",
+      "error": "Scan fehlgeschlagen: {{message}}",
+      "no_usb": "Kein USB-Stick erkannt. Bitte USB-Stick einstecken und erneut versuchen.",
+      "found": "Backup gefunden",
+      "legacy": "Legacy",
+      "use_backup": "Dieses Backup verwenden"
+    },
+    "execution": {
+      "title": "Gerät wird wiederhergestellt",
+      "description": "Alle OCT-Änderungen werden rückgängig gemacht...",
+      "running": "Wiederherstellung läuft...",
+      "error": "Wiederherstellung fehlgeschlagen: {{message}}",
+      "success": "Alle Schritte erfolgreich abgeschlossen! Gesamt: {{time}}s",
+      "continue": "Weiter"
+    },
+    "verification": {
+      "title": "Warte auf Gerät",
+      "description": "Gerät startet neu. Warte auf Rückmeldung...",
+      "countdown": "Prüfe in {{seconds}}s...",
+      "timeout": "Gerät nach 120s nicht gefunden. Möglicherweise hat es eine neue IP per DHCP erhalten.",
+      "manual_confirm": "Gerät ist zurück — ich kann es sehen",
+      "online": "Gerät ist wieder online!",
+      "continue": "Weiter"
+    },
+    "completion": {
+      "title": "Wiederherstellung abgeschlossen",
+      "description": "Das Gerät wurde erfolgreich wiederhergestellt.",
+      "clean_summary": "Zusammenfassung Saubere Wiederherstellung",
+      "backup_summary": "Zusammenfassung Backup-Wiederherstellung",
+      "restored": "Wiederhergestellt",
+      "skipped": "Übersprungen",
+      "failed": "Fehlgeschlagen",
+      "note": "Das Gerät ist jetzt im Originalzustand. Sie können es sicher trennen.",
+      "done": "Fertig"
+    }
+  },
   "errors": {
     "connectionFailed": "Verbindung zum Gerät konnte nicht hergestellt werden.",
     "discoveryFailed": "Suche fehlgeschlagen. Überprüfen Sie Ihre Netzwerkeinstellungen.",

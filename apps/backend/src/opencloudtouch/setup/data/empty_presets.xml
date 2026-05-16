@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<presets>
+  <preset id="1" createdOn="0" updatedOn="0">
+    <ContentItem source="" type="" location="" sourceAccount="" isPresetable="true">
+      <itemName></itemName>
+      <containerArt/>
+    </ContentItem>
+  </preset>
+  <preset id="2" createdOn="0" updatedOn="0">
+    <ContentItem source="" type="" location="" sourceAccount="" isPresetable="true">
+      <itemName></itemName>
+      <containerArt/>
+    </ContentItem>
+  </preset>
+  <preset id="3" createdOn="0" updatedOn="0">
+    <ContentItem source="" type="" location="" sourceAccount="" isPresetable="true">
+      <itemName></itemName>
+      <containerArt/>
+    </ContentItem>
+  </preset>
+  <preset id="4" createdOn="0" updatedOn="0">
+    <ContentItem source="" type="" location="" sourceAccount="" isPresetable="true">
+      <itemName></itemName>
+      <containerArt/>
+    </ContentItem>
+  </preset>
+  <preset id="5" createdOn="0" updatedOn="0">
+    <ContentItem source="" type="" location="" sourceAccount="" isPresetable="true">
+      <itemName></itemName>
+      <containerArt/>
+    </ContentItem>
+  </preset>
+  <preset id="6" createdOn="0" updatedOn="0">
+    <ContentItem source="" type="" location="" sourceAccount="" isPresetable="true">
+      <itemName></itemName>
+      <containerArt/>
+    </ContentItem>
+  </preset>
+</presets>

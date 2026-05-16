@@ -20,6 +20,7 @@ class SetupStatus(str, Enum):
     OUTDATED = "outdated"  # Device points to different/old OCT instance
     OFFLINE = "offline"  # Device not reachable (last_seen > threshold)
     UNKNOWN = "unknown"  # Initial state, not yet checked
+    RESTORED = "restored"  # Device restored to factory-like state via Restore Wizard
 
 
 class SetupStep(str, Enum):

@@ -21,6 +21,7 @@ from opencloudtouch.settings.service import SettingsService
 from opencloudtouch.zones.service import ZoneService
 
 if TYPE_CHECKING:
+    from opencloudtouch.setup.restore_service import RestoreService
     from opencloudtouch.setup.service import SetupService
     from opencloudtouch.setup.wizard_service import WizardService
 
@@ -92,6 +93,14 @@ MargeServiceDep = Annotated[MargeService, Depends(get_marge_service)]
 ZoneServiceDep = Annotated[ZoneService, Depends(get_zone_service)]
 SettingsServiceDep = Annotated[SettingsService, Depends(get_settings_service)]
 WizardServiceDep = Annotated["WizardService", Depends(get_wizard_service)]
+
+
+def get_restore_service(request: Request) -> "RestoreService":
+    """Get restore service instance from app.state (FastAPI dependency)."""
+    return request.app.state.restore_service
+
+
+RestoreServiceDep = Annotated["RestoreService", Depends(get_restore_service)]
 SetupServiceDep = Annotated["SetupService", Depends(get_setup_service)]
 RecentsServiceDep = Annotated[RecentsService, Depends(get_recents_service)]
 DeviceRepoDep = Annotated[DeviceRepository, Depends(get_device_repo)]

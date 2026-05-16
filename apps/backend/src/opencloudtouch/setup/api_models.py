@@ -338,3 +338,99 @@ class InitPersistenceResponse(BaseModel):
 # Aliases for backward compatibility with main's naming
 EnsureAccountRequest = AccountPairingRequest
 EnsureAccountResponse = AccountPairingResponse
+
+
+# ============================================================================
+# Restore Wizard Models (separate from existing RestoreRequest/RestoreResponse
+# which serve the granular restore-config/restore-hosts endpoints)
+# ============================================================================
+
+
+class ScanBackupsRequest(WizardDeviceRequest):
+    """Request to scan USB stick for backup files."""
+
+    device_id: str = Field(..., description="Target device ID for backup matching")
+
+
+class BackupFileInfoResponse(BaseModel):
+    """Single backup file info in scan response."""
+
+    filename: str
+    volume_type: str
+    file_path: str
+    size_bytes: int = 0
+    device_id: Optional[str] = None
+    backup_date: Optional[str] = None
+    is_pre_restore: bool = False
+    validation_status: str = "valid"
+    validation_message: str = ""
+
+
+class BackupSetResponse(BaseModel):
+    """Backup set in scan response."""
+
+    device_id: Optional[str] = None
+    backup_date: Optional[str] = None
+    files: list[BackupFileInfoResponse] = Field(default_factory=list)
+    is_legacy: bool = False
+    is_match: bool = False
+
+
+class ScanBackupsResponse(BaseModel):
+    """Response from backup scan."""
+
+    usb_mounted: bool
+    backup_dir: str = "/media/sda1/oct-backup"
+    selected_set: Optional[BackupSetResponse] = None
+    all_sets: list[BackupSetResponse] = Field(default_factory=list)
+    error: Optional[str] = None
+
+
+class RestoreWizardFileRef(BaseModel):
+    """Reference to a backup file for restore execution."""
+
+    file_path: str
+    volume_type: str
+
+
+class RestoreWizardBackupSet(BaseModel):
+    """Backup set reference for restore execution."""
+
+    device_id: Optional[str] = None
+    backup_date: Optional[str] = None
+    files: list[RestoreWizardFileRef] = Field(default_factory=list)
+
+
+class RestoreWizardRequest(WizardDeviceRequest):
+    """Request to execute restore wizard."""
+
+    device_id: str = Field(..., description="Target device ID")
+    restore_type: str = Field(
+        ..., description="'backup' or 'clean'", pattern=r"^(backup|clean)$"
+    )
+    backup_set: Optional[RestoreWizardBackupSet] = None
+    skip_snapshot: bool = Field(
+        default=False, description="Skip pre-restore safety snapshot"
+    )
+
+
+class RestoreStepResponse(BaseModel):
+    """Status of one restore step."""
+
+    name: str
+    status: str
+    message: str = ""
+    error: Optional[str] = None
+    duration_seconds: float = 0.0
+
+
+class RestoreWizardResponse(BaseModel):
+    """Response from restore wizard execution."""
+
+    success: bool
+    restore_type: str
+    steps: list[RestoreStepResponse] = Field(default_factory=list)
+    pre_restore_snapshot: Optional[dict] = None
+    snapshot_skipped: bool = False
+    device_rebooted: bool = False
+    total_duration_seconds: float = 0.0

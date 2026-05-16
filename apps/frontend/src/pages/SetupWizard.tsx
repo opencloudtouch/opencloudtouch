@@ -25,6 +25,13 @@ import Step5ConfigModification from "../components/wizard/Step5ConfigModificatio
 import Step6HostsModification from "../components/wizard/Step6HostsModification";
 import Step7Verification from "../components/wizard/Step7Verification";
 import Step8Completion from "../components/wizard/Step8Completion";
+import WizardChoice from "../components/wizard/WizardChoice";
+import RestoreChoice from "../components/wizard/RestoreChoice";
+import BackupScan from "../components/wizard/BackupScan";
+import RestoreExecution from "../components/wizard/RestoreExecution";
+import RestoreVerification from "../components/wizard/RestoreVerification";
+import RestoreCompletion from "../components/wizard/RestoreCompletion";
+import type { BackupSetResponse, RestoreStepResponse } from "../api/restore";
 import "./SetupWizard.css";
 
 interface SetupWizardProps {
@@ -86,6 +93,13 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   );
 
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  // Wizard mode: choice screen → setup or restore flow
+  const [wizardMode, setWizardMode] = useState<"choice" | "setup" | "restore">("choice");
+  // Restore flow state
+  const [restoreStep, setRestoreStep] = useState(1); // 1=RestoreChoice, 2=BackupScan, 3=Execution, 4=Verification, 5=Completion
+  const [restoreType, setRestoreType] = useState<"backup" | "clean">("clean");
+  const [selectedBackupSet, setSelectedBackupSet] = useState<BackupSetResponse | null>(null);
+  const [restoreResults, setRestoreResults] = useState<RestoreStepResponse[]>([]);
   // Step can be initialized via URL param ?step=N (N is 1-based, matching old step numbering where
   // step 1 was device selection; remaining steps 2-8 map to internal steps 1-7).
   const urlStep = Number.parseInt(searchParams.get("step") ?? "2", 10);
@@ -261,7 +275,110 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
     }
   };
 
+  const handleBackToChoice = () => {
+    setWizardMode("choice");
+    setRestoreStep(1);
+    setRestoreType("clean");
+    setSelectedBackupSet(null);
+    setRestoreResults([]);
+  };
+
+  const renderRestoreStep = () => {
+    const ip = selectedDevice?.ip || "";
+    const id = selectedDevice?.device_id || "";
+
+    switch (restoreStep) {
+      case 1:
+        return (
+          <RestoreChoice
+            stepNumber={1}
+            onCleanRestore={() => {
+              setRestoreType("clean");
+              setRestoreStep(3); // Skip backup scan
+            }}
+            onBackupRestore={() => {
+              setRestoreType("backup");
+              setRestoreStep(2); // Go to backup scan
+            }}
+            onPrevious={handleBackToChoice}
+          />
+        );
+
+      case 2: // Backup Scan
+        return (
+          <BackupScan
+            stepNumber={2}
+            deviceIp={ip}
+            deviceId={id}
+            onBackupSelected={(set) => {
+              setSelectedBackupSet(set);
+              setRestoreStep(3);
+            }}
+            onPrevious={() => setRestoreStep(1)}
+          />
+        );
+
+      case 3: // Execution
+        return (
+          <RestoreExecution
+            stepNumber={3}
+            deviceIp={ip}
+            deviceId={id}
+            restoreType={restoreType}
+            backupSet={selectedBackupSet}
+            onComplete={(steps) => {
+              setRestoreResults(steps);
+              setRestoreStep(4);
+            }}
+            onPrevious={() => setRestoreStep(restoreType === "backup" ? 2 : 1)}
+          />
+        );
+
+      case 4: // Verification
+        return (
+          <RestoreVerification
+            stepNumber={4}
+            deviceIp={ip}
+            onVerified={() => setRestoreStep(5)}
+            onPrevious={() => setRestoreStep(3)}
+          />
+        );
+
+      case 5: // Completion
+        return (
+          <RestoreCompletion
+            stepNumber={5}
+            restoreType={restoreType}
+            steps={restoreResults}
+            onFinish={() => navigate("/")}
+          />
+        );
+
+      default:
+        return null;
+    }
+  };
+
   const renderStep = () => {
+    // Show choice screen before entering any flow
+    if (wizardMode === "choice") {
+      return (
+        <WizardChoice
+          onSelectSetup={() => setWizardMode("setup")}
+          onSelectRestore={() => {
+            setWizardMode("restore");
+            setRestoreStep(1);
+          }}
+        />
+      );
+    }
+
+    // Restore flow
+    if (wizardMode === "restore") {
+      return renderRestoreStep();
+    }
+
+    // Setup flow (existing)
     const step = WIZARD_STEPS[currentStep - 1];
     if (!step) return null;
 

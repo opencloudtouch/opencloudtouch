@@ -96,6 +96,14 @@ vi.mock("../../../src/components/wizard/Step8Completion", () => ({
   ),
 }));
 
+vi.mock("../../../src/components/wizard/WizardChoice", () => ({
+  default: ({ onSelectSetup }: { onSelectSetup: () => void; onSelectRestore: () => void }) => (
+    <div data-testid="wizard-choice">
+      <button onClick={onSelectSetup}>Setup wählen</button>
+    </div>
+  ),
+}));
+
 vi.mock("../../../src/api/wizard", () => ({
   enablePermanentSsh: vi.fn().mockResolvedValue({}),
   getServerInfo: vi.fn().mockResolvedValue({
@@ -160,15 +168,26 @@ describe("SetupWizard (pages/SetupWizard)", () => {
   // -- Direct Wizard Start --
 
   describe("Direct Wizard Start", () => {
-    it("renders ProgressTracker and USB step immediately when devices are available", () => {
+    it("shows WizardChoice initially when devices are available", () => {
       render(<SetupWizard devices={mockDevices} />);
-      expect(screen.getByTestId("progress-tracker")).toBeInTheDocument();
-      expect(screen.getByTestId("step2-usb-preparation")).toBeInTheDocument();
+      expect(screen.getByTestId("wizard-choice")).toBeInTheDocument();
     });
 
-    it("ProgressTracker starts at step 1", () => {
+    it("renders ProgressTracker and USB step after selecting setup", async () => {
       render(<SetupWizard devices={mockDevices} />);
-      expect(screen.getByText("Step 1")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /setup wählen/i }));
+      await waitFor(() => {
+        expect(screen.getByTestId("progress-tracker")).toBeInTheDocument();
+        expect(screen.getByTestId("step2-usb-preparation")).toBeInTheDocument();
+      });
+    });
+
+    it("ProgressTracker starts at step 1 after selecting setup", async () => {
+      render(<SetupWizard devices={mockDevices} />);
+      fireEvent.click(screen.getByRole("button", { name: /setup wählen/i }));
+      await waitFor(() => {
+        expect(screen.getByText("Step 1")).toBeInTheDocument();
+      });
     });
 
     it("does not show PHASE 1 DEMO banner in production/test mode", () => {
@@ -182,7 +201,8 @@ describe("SetupWizard (pages/SetupWizard)", () => {
   describe("Step Navigation", () => {
     it("advances from USB Preparation to Power Cycle step", async () => {
       render(<SetupWizard devices={mockDevices} />);
-      expect(screen.getByTestId("step2-usb-preparation")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /setup wählen/i }));
+      await waitFor(() => expect(screen.getByTestId("step2-usb-preparation")).toBeInTheDocument());
       fireEvent.click(screen.getByRole("button", { name: /usb prep weiter/i }));
       await waitFor(() => {
         expect(screen.getByTestId("step3-power-cycle")).toBeInTheDocument();
@@ -191,6 +211,8 @@ describe("SetupWizard (pages/SetupWizard)", () => {
 
     it("advances from Power Cycle to Backup step", async () => {
       render(<SetupWizard devices={mockDevices} />);
+      fireEvent.click(screen.getByRole("button", { name: /setup wählen/i }));
+      await waitFor(() => expect(screen.getByTestId("step2-usb-preparation")).toBeInTheDocument());
       fireEvent.click(screen.getByRole("button", { name: /usb prep weiter/i }));
       await waitFor(() => expect(screen.getByTestId("step3-power-cycle")).toBeInTheDocument());
       fireEvent.click(screen.getByRole("button", { name: /power weiter/i }));
@@ -201,6 +223,7 @@ describe("SetupWizard (pages/SetupWizard)", () => {
 
     it("shows DeviceInfoHeader with device name", async () => {
       render(<SetupWizard devices={mockDevices} />);
+      fireEvent.click(screen.getByRole("button", { name: /setup wählen/i }));
       await waitFor(() => {
         expect(screen.getByTestId("device-info-header")).toBeInTheDocument();
         expect(screen.getByText("Living Room")).toBeInTheDocument();
@@ -217,6 +240,7 @@ describe("SetupWizard (pages/SetupWizard)", () => {
         { ...mockDevice, device_id: "ST30-002", name: "Bedroom" },
       ];
       render(<SetupWizard devices={multipleDevices} />);
+      fireEvent.click(screen.getByRole("button", { name: /setup wählen/i }));
       await waitFor(() => {
         expect(screen.getByTestId("device-info-header")).toBeInTheDocument();
         expect(screen.getByText("Living Room")).toBeInTheDocument();

@@ -2013,6 +2013,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/setup/wizard/scan-backups": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Scan Backups
+     * @description Scan USB stick for backup files and auto-select matching set.
+     */
+    post: operations["wizard_scan_backups_api_setup_wizard_scan_backups_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/restore-wizard": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Restore Wizard
+     * @description Execute full restore wizard sequence.
+     */
+    post: operations["wizard_restore_wizard_api_setup_wizard_restore_wizard_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/updates/soundtouch": {
     parameters: {
       query?: never;
@@ -2462,6 +2502,42 @@ export interface components {
       id: number;
     };
     /**
+     * BackupFileInfoResponse
+     * @description Single backup file info in scan response.
+     */
+    BackupFileInfoResponse: {
+      /** Filename */
+      filename: string;
+      /** Volume Type */
+      volume_type: string;
+      /** File Path */
+      file_path: string;
+      /**
+       * Size Bytes
+       * @default 0
+       */
+      size_bytes: number;
+      /** Device Id */
+      device_id?: string | null;
+      /** Backup Date */
+      backup_date?: string | null;
+      /**
+       * Is Pre Restore
+       * @default false
+       */
+      is_pre_restore: boolean;
+      /**
+       * Validation Status
+       * @default valid
+       */
+      validation_status: string;
+      /**
+       * Validation Message
+       * @default
+       */
+      validation_message: string;
+    };
+    /**
      * BackupRequest
      * @description Request to create device backup.
      */
@@ -2495,6 +2571,28 @@ export interface components {
        * @default 0
        */
       total_duration_seconds: number;
+    };
+    /**
+     * BackupSetResponse
+     * @description Backup set in scan response.
+     */
+    BackupSetResponse: {
+      /** Device Id */
+      device_id?: string | null;
+      /** Backup Date */
+      backup_date?: string | null;
+      /** Files */
+      files?: components["schemas"]["BackupFileInfoResponse"][];
+      /**
+       * Is Legacy
+       * @default false
+       */
+      is_legacy: boolean;
+      /**
+       * Is Match
+       * @default false
+       */
+      is_match: boolean;
     };
     /** Body_set_mute_api_devices__device_id__mute_put */
     Body_set_mute_api_devices__device_id__mute_put: {
@@ -3086,6 +3184,135 @@ export interface components {
       success: boolean;
       /** Message */
       message: string;
+    };
+    /**
+     * RestoreStepResponse
+     * @description Status of one restore step.
+     */
+    RestoreStepResponse: {
+      /** Name */
+      name: string;
+      /** Status */
+      status: string;
+      /**
+       * Message
+       * @default
+       */
+      message: string;
+      /** Error */
+      error?: string | null;
+      /**
+       * Duration Seconds
+       * @default 0
+       */
+      duration_seconds: number;
+    };
+    /**
+     * RestoreWizardBackupSet
+     * @description Backup set reference for restore execution.
+     */
+    RestoreWizardBackupSet: {
+      /** Device Id */
+      device_id?: string | null;
+      /** Backup Date */
+      backup_date?: string | null;
+      /** Files */
+      files?: components["schemas"]["RestoreWizardFileRef"][];
+    };
+    /**
+     * RestoreWizardFileRef
+     * @description Reference to a backup file for restore execution.
+     */
+    RestoreWizardFileRef: {
+      /** File Path */
+      file_path: string;
+      /** Volume Type */
+      volume_type: string;
+    };
+    /**
+     * RestoreWizardRequest
+     * @description Request to execute restore wizard.
+     */
+    RestoreWizardRequest: {
+      /** Device Ip */
+      device_ip: string;
+      /**
+       * Device Id
+       * @description Target device ID
+       */
+      device_id: string;
+      /**
+       * Restore Type
+       * @description 'backup' or 'clean'
+       */
+      restore_type: string;
+      backup_set?: components["schemas"]["RestoreWizardBackupSet"] | null;
+      /**
+       * Skip Snapshot
+       * @description Skip pre-restore safety snapshot
+       * @default false
+       */
+      skip_snapshot: boolean;
+    };
+    /**
+     * RestoreWizardResponse
+     * @description Response from restore wizard execution.
+     */
+    RestoreWizardResponse: {
+      /** Success */
+      success: boolean;
+      /** Restore Type */
+      restore_type: string;
+      /** Steps */
+      steps?: components["schemas"]["RestoreStepResponse"][];
+      /** Pre Restore Snapshot */
+      pre_restore_snapshot?: Record<string, never> | null;
+      /**
+       * Snapshot Skipped
+       * @default false
+       */
+      snapshot_skipped: boolean;
+      /**
+       * Device Rebooted
+       * @default false
+       */
+      device_rebooted: boolean;
+      /**
+       * Total Duration Seconds
+       * @default 0
+       */
+      total_duration_seconds: number;
+    };
+    /**
+     * ScanBackupsRequest
+     * @description Request to scan USB stick for backup files.
+     */
+    ScanBackupsRequest: {
+      /** Device Ip */
+      device_ip: string;
+      /**
+       * Device Id
+       * @description Target device ID for backup matching
+       */
+      device_id: string;
+    };
+    /**
+     * ScanBackupsResponse
+     * @description Response from backup scan.
+     */
+    ScanBackupsResponse: {
+      /** Usb Mounted */
+      usb_mounted: boolean;
+      /**
+       * Backup Dir
+       * @default /media/sda1/oct-backup
+       */
+      backup_dir: string;
+      selected_set?: components["schemas"]["BackupSetResponse"] | null;
+      /** All Sets */
+      all_sets?: components["schemas"]["BackupSetResponse"][];
+      /** Error */
+      error?: string | null;
     };
     /**
      * SearchType
@@ -5684,6 +5911,72 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["VerifyRedirectResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  wizard_scan_backups_api_setup_wizard_scan_backups_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ScanBackupsRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ScanBackupsResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  wizard_restore_wizard_api_setup_wizard_restore_wizard_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RestoreWizardRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RestoreWizardResponse"];
         };
       };
       /** @description Validation Error */

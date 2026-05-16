@@ -199,6 +199,15 @@ async def _init_services(
     )
     logger.info("WizardService initialized")
 
+    # Restore service (orchestrates restore wizard steps)
+    from opencloudtouch.setup.restore_service import RestoreService
+
+    app.state.restore_service = RestoreService(
+        wizard_service=app.state.wizard_service,
+        device_repo=device_repo,
+    )
+    logger.info("RestoreService initialized")
+
     # Background health-check (not in mock/CI mode)
     health_check = DeviceHealthCheck(device_repo)
     if not cfg.mock_mode:

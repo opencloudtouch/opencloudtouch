@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: OpenCloudTouch
   description: Open-Source replacement for discontinued streaming device cloud features
-  version: 1.2.7
+  version: dev-afe1b43
 paths:
   /api/devices/discover:
     get:
@@ -2437,6 +2437,58 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/scan-backups:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Scan Backups
+      description: Scan USB stick for backup files and auto-select matching set.
+      operationId: wizard_scan_backups_api_setup_wizard_scan_backups_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanBackupsRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanBackupsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/restore-wizard:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Restore Wizard
+      description: Execute full restore wizard sequence.
+      operationId: wizard_restore_wizard_api_setup_wizard_restore_wizard_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestoreWizardRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestoreWizardResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /updates/soundtouch:
     get:
       tags:
@@ -3055,6 +3107,50 @@ components:
       - id
       title: AuditEntryResponse
       description: Response for single entry creation.
+    BackupFileInfoResponse:
+      properties:
+        filename:
+          type: string
+          title: Filename
+        volume_type:
+          type: string
+          title: Volume Type
+        file_path:
+          type: string
+          title: File Path
+        size_bytes:
+          type: integer
+          title: Size Bytes
+          default: 0
+        device_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Device Id
+        backup_date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Backup Date
+        is_pre_restore:
+          type: boolean
+          title: Is Pre Restore
+          default: false
+        validation_status:
+          type: string
+          title: Validation Status
+          default: valid
+        validation_message:
+          type: string
+          title: Validation Message
+          default: ''
+      type: object
+      required:
+      - filename
+      - volume_type
+      - file_path
+      title: BackupFileInfoResponse
+      description: Single backup file info in scan response.
     BackupRequest:
       properties:
         device_ip:
@@ -3098,6 +3194,34 @@ components:
       - message
       title: BackupResponse
       description: Response with backup results.
+    BackupSetResponse:
+      properties:
+        device_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Device Id
+        backup_date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Backup Date
+        files:
+          items:
+            $ref: '#/components/schemas/BackupFileInfoResponse'
+          type: array
+          title: Files
+        is_legacy:
+          type: boolean
+          title: Is Legacy
+          default: false
+        is_match:
+          type: boolean
+          title: Is Match
+          default: false
+      type: object
+      title: BackupSetResponse
+      description: Backup set in scan response.
     Body_set_mute_api_devices__device_id__mute_put:
       properties:
         muted:
@@ -3847,6 +3971,176 @@ components:
       - message
       title: RestoreResponse
       description: Response with restore result.
+    RestoreStepResponse:
+      properties:
+        name:
+          type: string
+          title: Name
+        status:
+          type: string
+          title: Status
+        message:
+          type: string
+          title: Message
+          default: ''
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+        duration_seconds:
+          type: number
+          title: Duration Seconds
+          default: 0.0
+      type: object
+      required:
+      - name
+      - status
+      title: RestoreStepResponse
+      description: Status of one restore step.
+    RestoreWizardBackupSet:
+      properties:
+        device_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Device Id
+        backup_date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Backup Date
+        files:
+          items:
+            $ref: '#/components/schemas/RestoreWizardFileRef'
+          type: array
+          title: Files
+      type: object
+      title: RestoreWizardBackupSet
+      description: Backup set reference for restore execution.
+    RestoreWizardFileRef:
+      properties:
+        file_path:
+          type: string
+          title: File Path
+        volume_type:
+          type: string
+          title: Volume Type
+      type: object
+      required:
+      - file_path
+      - volume_type
+      title: RestoreWizardFileRef
+      description: Reference to a backup file for restore execution.
+    RestoreWizardRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+        device_id:
+          type: string
+          title: Device Id
+          description: Target device ID
+        restore_type:
+          type: string
+          pattern: ^(backup|clean)$
+          title: Restore Type
+          description: '''backup'' or ''clean'''
+        backup_set:
+          anyOf:
+          - $ref: '#/components/schemas/RestoreWizardBackupSet'
+          - type: 'null'
+        skip_snapshot:
+          type: boolean
+          title: Skip Snapshot
+          description: Skip pre-restore safety snapshot
+          default: false
+      type: object
+      required:
+      - device_ip
+      - device_id
+      - restore_type
+      title: RestoreWizardRequest
+      description: Request to execute restore wizard.
+    RestoreWizardResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        restore_type:
+          type: string
+          title: Restore Type
+        steps:
+          items:
+            $ref: '#/components/schemas/RestoreStepResponse'
+          type: array
+          title: Steps
+        pre_restore_snapshot:
+          anyOf:
+          - type: object
+          - type: 'null'
+          title: Pre Restore Snapshot
+        snapshot_skipped:
+          type: boolean
+          title: Snapshot Skipped
+          default: false
+        device_rebooted:
+          type: boolean
+          title: Device Rebooted
+          default: false
+        total_duration_seconds:
+          type: number
+          title: Total Duration Seconds
+          default: 0.0
+      type: object
+      required:
+      - success
+      - restore_type
+      title: RestoreWizardResponse
+      description: Response from restore wizard execution.
+    ScanBackupsRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+        device_id:
+          type: string
+          title: Device Id
+          description: Target device ID for backup matching
+      type: object
+      required:
+      - device_ip
+      - device_id
+      title: ScanBackupsRequest
+      description: Request to scan USB stick for backup files.
+    ScanBackupsResponse:
+      properties:
+        usb_mounted:
+          type: boolean
+          title: Usb Mounted
+        backup_dir:
+          type: string
+          title: Backup Dir
+          default: /media/sda1/oct-backup
+        selected_set:
+          anyOf:
+          - $ref: '#/components/schemas/BackupSetResponse'
+          - type: 'null'
+        all_sets:
+          items:
+            $ref: '#/components/schemas/BackupSetResponse'
+          type: array
+          title: All Sets
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+      type: object
+      required:
+      - usb_mounted
+      title: ScanBackupsResponse
+      description: Response from backup scan.
     SearchType:
       type: string
       enum:
