@@ -150,6 +150,18 @@ export async function playPreset(deviceId: string, presetNumber: number): Promis
   await throwIfNotOk(response, "Failed to play preset");
 }
 
+/**
+ * Delete a device by id
+ * @param deviceId - Id of the device you wish to delete
+ */
+export async function deleteDeviceById(deviceId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}`, {
+    method: "DELETE",
+  });
+
+  await throwIfNotOk(response, "Failed to delete device");
+}
+
 // ---- Volume API ----
 
 export interface VolumeState {

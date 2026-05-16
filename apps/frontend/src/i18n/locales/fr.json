@@ -93,6 +93,7 @@
     "confirmDeleteTitle": "Supprimer le préréglage",
     "confirmDeleteMessage": "Voulez-vous vraiment supprimer le préréglage {{preset}} ?",
     "confirmDelete": "Supprimer",
+    "deleteDevice": "Supprimer l'appareil",
     "searchTypeLabel": {
       "name": "Nom",
       "country": "Pays",

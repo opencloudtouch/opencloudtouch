@@ -93,6 +93,7 @@
     "confirmDeleteTitle": "Delete preset",
     "confirmDeleteMessage": "Do you really want to delete preset {{preset}}?",
     "confirmDelete": "Delete",
+    "deleteDevice": "Delete Device",
     "searchTypeLabel": {
       "name": "Name",
       "country": "Country",

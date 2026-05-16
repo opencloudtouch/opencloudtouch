@@ -27,8 +27,18 @@ interface AppRouterProps {
   onRetry: () => void;
 }
 
-function AppRouter({ devices, isLoading, error, onRetry }: AppRouterProps) {
+function AppRouter({ devices: initialDevices, isLoading, error, onRetry }: AppRouterProps) {
   const { t } = useTranslation();
+  const [devices, setDevices] = useState<Device[]>(initialDevices);
+
+  useEffect(() => {
+    setDevices(initialDevices);
+  }, [initialDevices]);
+
+  const handleRemoveDevice = (deviceId: string) => {
+    setDevices((prev) => prev.filter((d) => d.device_id !== deviceId));
+  };
+
   // REFACT-137: Show hint after 3s loading, retry hint after 8s
   const [loadingSeconds, setLoadingSeconds] = useState(0);
   useEffect(() => {
@@ -89,7 +99,6 @@ function AppRouter({ devices, isLoading, error, onRetry }: AppRouterProps) {
       </div>
     );
   }
-
   return (
     <div className="app">
       <Routes>
@@ -113,7 +122,12 @@ function AppRouter({ devices, isLoading, error, onRetry }: AppRouterProps) {
                 </header>
                 <main className="app-main">
                   <Routes>
-                    <Route path="/" element={<RadioPresets devices={devices} />} />
+                    <Route
+                      path="/"
+                      element={
+                        <RadioPresets devices={devices} onRemoveDevice={handleRemoveDevice} />
+                      }
+                    />
                     <Route path="/local" element={<LocalControl devices={devices} />} />
                     <Route path="/multiroom" element={<MultiRoom devices={devices} />} />
                     <Route path="/firmware" element={<Firmware devices={devices} />} />

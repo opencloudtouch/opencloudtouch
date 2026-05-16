@@ -293,6 +293,17 @@ class DeviceService:
 
         logger.info("All devices deleted")
 
+    async def delete_by_device_id(self, device_id: str) -> None:
+        """Delete device by id from database.
+
+        Args:
+            device_id: Id of the device to delete
+        """
+
+        await self.repository.delete_by_device_id(device_id)
+
+        logger.info("Successfully deleted device with id %s", device_id)
+
     async def send_key(
         self, device_id: str, key: Union[KeyType, str], state: str = "both"
     ) -> NowPlayingInfo:

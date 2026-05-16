@@ -352,6 +352,14 @@ class DeviceRepository(BaseRepository):
 
         return deleted_count
 
+    async def delete_by_device_id(self, device_id: str) -> None:
+        db = self._ensure_initialized()
+
+        await db.execute("DELETE FROM devices WHERE device_id = ? ", (device_id,))
+        await db.commit()
+
+        logger.debug("Deleted device %s from database", device_id)
+
     @staticmethod
     def _row_to_device(row: tuple | Any) -> Device:
         """Map a database row to a Device model.

@@ -11,7 +11,12 @@ import RadioSearch, { RadioStation } from "../components/RadioSearch";
 import VolumeSlider from "../components/VolumeSlider";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { PresetSkeleton } from "../components/LoadingSkeleton";
-import { playPreset as playPresetAPI, togglePlayPause, power } from "../api/devices";
+import {
+  playPreset as playPresetAPI,
+  togglePlayPause,
+  power,
+  deleteDeviceById,
+} from "../api/devices";
 import { isDeviceOffline } from "../api/offlineDeviceStore";
 import { usePresets } from "../hooks/usePresets";
 import { useVolume } from "../hooks/useVolume";
@@ -21,9 +26,10 @@ import "./RadioPresets.css";
 
 interface RadioPresetsProps {
   devices?: Device[];
+  onRemoveDevice?: (deviceId: string) => void;
 }
 
-export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
+export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPresetsProps) {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
@@ -147,6 +153,20 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
     }
   };
 
+  const deleteCurrentDevice = async () => {
+    if (!currentDevice?.device_id) return;
+    try {
+      await deleteDeviceById(currentDevice.device_id);
+      if (currentDeviceIndex >= devices.length - 1 && currentDeviceIndex > 0) {
+        setCurrentDeviceIndex(currentDeviceIndex - 1);
+      }
+
+      onRemoveDevice?.(currentDevice.device_id);
+    } catch (err) {
+      console.error("Failed to remove device:", err);
+    }
+  };
+
   if (devices.length === 0) {
     return (
       <div className="empty-container">
@@ -207,13 +227,18 @@ export default function RadioPresets({ devices = [] }: RadioPresetsProps) {
 
           {/* Device Offline Banner */}
           {deviceOffline && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <DeviceOfflineBanner deviceName={currentDevice?.name} />
-            </motion.div>
+            <>
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <DeviceOfflineBanner deviceName={currentDevice?.name} />
+              </motion.div>
+              <button className="btn btn-secondary" onClick={deleteCurrentDevice}>
+                {t("presets.deleteDevice")}
+              </button>
+            </>
           )}
 
           {!deviceOffline && (

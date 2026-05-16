@@ -93,6 +93,7 @@
     "confirmDeleteTitle": "Preset verwijderen",
     "confirmDeleteMessage": "Wilt u preset {{preset}} echt verwijderen?",
     "confirmDelete": "Verwijderen",
+    "deleteDevice": "Apparaat verwijderen",
     "searchTypeLabel": {
       "name": "Naam",
       "country": "Land",

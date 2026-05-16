@@ -69,6 +69,14 @@ class IDeviceRepository(Protocol):
         """
         ...
 
+    async def delete_by_device_id(id: str) -> None:
+        """Delete device by id from database.
+
+        Args:
+            devide_id: Id of device to delete
+        """
+        ...
+
 
 class IDiscoveryAdapter(Protocol):
     """Protocol for device discovery operations.

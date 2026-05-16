@@ -93,6 +93,7 @@
     "confirmDeleteTitle": "Excluir preset",
     "confirmDeleteMessage": "Deseja realmente excluir o preset {{preset}}?",
     "confirmDelete": "Excluir",
+    "deleteDevice": "Excluir dispositivo",
     "searchTypeLabel": {
       "name": "Nome",
       "country": "País",

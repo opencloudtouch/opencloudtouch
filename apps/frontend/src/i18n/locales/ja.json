@@ -93,6 +93,7 @@
     "confirmDeleteTitle": "プリセットを削除",
     "confirmDeleteMessage": "プリセット {{preset}} を本当に削除しますか？",
     "confirmDelete": "削除",
+    "deleteDevice": "デバイスを削除",
     "searchTypeLabel": {
       "name": "名前",
       "country": "国",

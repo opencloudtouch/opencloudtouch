@@ -93,6 +93,7 @@
     "confirmDeleteTitle": "Ta bort förinställning",
     "confirmDeleteMessage": "Vill du verkligen ta bort förinställning {{preset}}?",
     "confirmDelete": "Ta bort",
+    "deleteDevice": "Eliminar dispositivo",
     "searchTypeLabel": {
       "name": "Namn",
       "country": "Land",

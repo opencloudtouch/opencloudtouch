@@ -87,6 +87,24 @@ async def delete_all_devices(
         raise HTTPException(status_code=403, detail=str(e)) from e
 
 
+@router.delete("/{device_id}")
+async def delete_by_device_id(
+    device_id: str,
+    device_service: DeviceService = Depends(get_device_service),
+):
+    """
+    Delete device by id from database.
+
+    Args:
+        device_id: Device ID
+
+    Returns:
+        Confirmation message
+    """
+    await device_service.delete_by_device_id(device_id)
+    return {"message": "Device successfully deleted"}
+
+
 @router.get("/{device_id}")
 async def get_device(
     device_id: str, device_service: DeviceService = Depends(get_device_service)
