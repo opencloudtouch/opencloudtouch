@@ -295,25 +295,7 @@ class RestoreService:
 
         try:
             if restore_type == "backup" and backup_set:
-                # Extract config files from backup archives on device
-                for file_ref in backup_set.get("files", []):
-                    file_path = file_ref.get("file_path", "")
-                    vol = file_ref.get("volume_type", "")
-                    if vol == "rootfs":
-                        await ssh.execute(
-                            f"tar xzf {file_path} -C / "
-                            "opt/Bose/etc/SoundTouchSdkPrivateCfg.xml 2>/dev/null"
-                        )
-                    elif vol == "persistent":
-                        for override in override_paths:
-                            # Try extracting — may not exist in archive
-                            result = await ssh.execute(
-                                f"tar xzf {file_path} -C / "
-                                f"{override.lstrip('/')} 2>/dev/null"
-                            )
-                            if result.exit_code != 0:
-                                # Not in archive → delete override (OCT created it)
-                                await ssh.execute(f"rm -f {override}")
+                await self._restore_config_from_backup(ssh, backup_set, override_paths)
             else:
                 # Clean restore: delete overrides only, never firmware config
                 for override in override_paths:
@@ -328,6 +310,33 @@ class RestoreService:
 
         step.duration_seconds = time.time() - start
         return step
+
+    async def _restore_config_from_backup(
+        self, ssh, backup_set: dict, override_paths: list[str]
+    ) -> None:
+        """Extract config files from backup archives on device."""
+        for file_ref in backup_set.get("files", []):
+            file_path = file_ref.get("file_path", "")
+            vol = file_ref.get("volume_type", "")
+            if vol == "rootfs":
+                await ssh.execute(
+                    f"tar xzf {file_path} -C / "
+                    "opt/Bose/etc/SoundTouchSdkPrivateCfg.xml 2>/dev/null"
+                )
+            elif vol == "persistent":
+                await self._extract_or_delete_overrides(ssh, file_path, override_paths)
+
+    async def _extract_or_delete_overrides(
+        self, ssh, archive_path: str, override_paths: list[str]
+    ) -> None:
+        """Try extracting overrides from archive; delete if not present."""
+        for override in override_paths:
+            result = await ssh.execute(
+                f"tar xzf {archive_path} -C / " f"{override.lstrip('/')} 2>/dev/null"
+            )
+            if result.exit_code != 0:
+                # Not in archive → delete override (OCT created it)
+                await ssh.execute(f"rm -f {override}")
 
     async def _restore_presets(
         self, ssh, restore_type: str = "clean", backup_set: Optional[dict] = None

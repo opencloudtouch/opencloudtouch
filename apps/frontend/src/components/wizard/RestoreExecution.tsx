@@ -46,7 +46,7 @@ export default function RestoreExecution({
   backupSet,
   onComplete,
   onPrevious,
-}: RestoreExecutionProps) {
+}: Readonly<RestoreExecutionProps>) {
   const { t } = useTranslation();
   const { mutate: restore, data, isPending, error } = useExecuteRestore();
 
@@ -75,7 +75,7 @@ export default function RestoreExecution({
       stepNumber={stepNumber}
       title={t("restore.execution.title", "Restoring Device")}
       description={t("restore.execution.description", "Undoing all OCT modifications...")}
-      onPrevious={!isPending ? onPrevious : undefined}
+      onPrevious={isPending ? undefined : onPrevious}
       onNext={data?.success ? () => onComplete(data.steps) : undefined}
       isNextDisabled={!data?.success}
       isLoading={isPending}

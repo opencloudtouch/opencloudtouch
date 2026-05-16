@@ -10,7 +10,10 @@ interface WizardChoiceProps {
   onSelectRestore: () => void;
 }
 
-export default function WizardChoice({ onSelectSetup, onSelectRestore }: WizardChoiceProps) {
+export default function WizardChoice({
+  onSelectSetup,
+  onSelectRestore,
+}: Readonly<WizardChoiceProps>) {
   const { t } = useTranslation();
 
   return (

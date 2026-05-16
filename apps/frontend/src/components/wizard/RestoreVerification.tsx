@@ -17,7 +17,7 @@ export default function RestoreVerification({
   deviceIp,
   onVerified,
   onPrevious,
-}: RestoreVerificationProps) {
+}: Readonly<RestoreVerificationProps>) {
   const { t } = useTranslation();
   const [countdown, setCountdown] = useState(120);
   const [deviceOnline, setDeviceOnline] = useState(false);

@@ -4,7 +4,9 @@ Provides SSH context manager and config snapshot utility used
 across wizard route modules.
 """
 
+import ipaddress
 import logging
+import re
 import socket
 import ssl
 import urllib.request
@@ -71,6 +73,24 @@ async def snapshot_config_files(
         logger.debug("Snapshot failed (non-critical): %s", e)
 
 
+# Hostname validation: only allow RFC-952 hostnames and IP addresses.
+_HOSTNAME_RE = re.compile(
+    r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$"
+)
+
+
+def _validate_hostname(hostname: str) -> str:
+    """Validate hostname is a safe IP address or FQDN — no path injection."""
+    try:
+        ipaddress.ip_address(hostname)
+        return hostname
+    except ValueError:
+        pass
+    if _HOSTNAME_RE.match(hostname) and len(hostname) <= 253:
+        return hostname
+    raise ValueError(f"Invalid hostname: {hostname!r}")
+
+
 def check_port_443(hostname: str) -> bool:
     """Detect a reverse proxy on port 443 that actually fronts OCT.
 
@@ -99,7 +119,8 @@ def check_port_443(hostname: str) -> bool:
         # OCT's /health returns {"service": "opencloudtouch", ...}.
         # We match the unique "opencloudtouch" service identifier —
         # no other software will ever return this string.
-        url = f"https://{hostname}/health"
+        safe_host = _validate_hostname(hostname)
+        url = f"https://{safe_host}/health"
         req = urllib.request.Request(url, method="GET")
         with urllib.request.urlopen(
             req, timeout=5, context=ctx

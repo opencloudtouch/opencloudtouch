@@ -21,7 +21,7 @@ export default function BackupScan({
   deviceId,
   onBackupSelected,
   onPrevious,
-}: BackupScanProps) {
+}: Readonly<BackupScanProps>) {
   const { t } = useTranslation();
   const { mutate: scan, data, isPending, error } = useScanBackups();
 
