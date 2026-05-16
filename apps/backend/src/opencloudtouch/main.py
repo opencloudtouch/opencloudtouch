@@ -304,6 +304,7 @@ async def health_check():
         status_code=200,
         content={
             "status": "healthy",
+            "service": "opencloudtouch",
             "version": __version__,
             "build": "official" if is_official_build() else "community",
             "config": {

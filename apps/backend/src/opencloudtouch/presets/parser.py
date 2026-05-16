@@ -79,7 +79,9 @@ class DevicePresetParser:
         item_name_elem = content_item.find("itemName")
         station_name = item_name_elem.text if item_name_elem is not None else "Unknown"
 
-        resolved = self._resolve_source(source, location, preset_number, station_name)
+        resolved = self._resolve_source(
+            source, location, preset_number, station_name or "Unknown"
+        )
         if resolved is None:
             return None
 

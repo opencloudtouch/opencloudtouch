@@ -262,12 +262,12 @@ def register_exception_handlers(app: FastAPI) -> None:
     FastAPI matches the first registered handler whose exception type matches.
     """
     # HTTP layer
-    app.add_exception_handler(StarletteHTTPException, starlette_http_exception_handler)
-    app.add_exception_handler(HTTPException, http_exception_handler)
-    app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(StarletteHTTPException, starlette_http_exception_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(HTTPException, http_exception_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
 
     # Domain exceptions (specific → general)
-    app.add_exception_handler(DeviceNotFoundError, device_not_found_handler)
+    app.add_exception_handler(DeviceNotFoundError, device_not_found_handler)  # type: ignore[arg-type]
     app.add_exception_handler(DeviceConnectionError, device_connection_error_handler)
     app.add_exception_handler(DiscoveryError, discovery_error_handler)
     app.add_exception_handler(DomainValidationError, domain_validation_error_handler)

@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from opencloudtouch.core.repository import BaseRepository
 from opencloudtouch.presets.models import Preset
@@ -14,7 +14,7 @@ class PresetRepository(BaseRepository):
     """Repository for preset persistence using SQLite."""
 
     @staticmethod
-    def _row_to_preset(row: tuple) -> "Preset":
+    def _row_to_preset(row: tuple | Any) -> "Preset":
         """Map a database row tuple to a Preset model.
 
         Column order must match the SELECT column list used throughout this

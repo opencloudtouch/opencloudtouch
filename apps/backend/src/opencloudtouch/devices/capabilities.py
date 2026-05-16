@@ -11,7 +11,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, List, Optional, Set
 
-from bosesoundtouchapi import SoundTouchClient, SoundTouchError
+from bosesoundtouchapi import SoundTouchClient, SoundTouchError  # type: ignore[import-untyped]
 
 logger = logging.getLogger(__name__)
 

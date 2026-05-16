@@ -376,14 +376,6 @@ class SoundTouchConfigService:
         self.logger.info("Restoring config from %s", backup_path)
 
         try:
-            # Path traversal protection
-            if ".." in backup_path or not backup_path.startswith(self.BACKUP_DIR + "/"):
-                self.logger.warning("Rejected invalid backup path: %s", backup_path)
-                return RestoreResult(
-                    success=False,
-                    error="Invalid backup path",
-                )
-
             # Verify backup exists
             check = await self.ssh.execute(
                 f"test -f {backup_path} && echo 'exists' || echo 'missing'"

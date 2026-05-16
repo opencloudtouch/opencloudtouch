@@ -711,14 +711,17 @@ class TestWizardComplete:
 
 
 class TestCheckPort443:
-    """Direct tests for _check_port_443 SSL probe function.
+    """Direct tests for check_port_443 OCT reverse proxy detection.
 
-    The SSL context intentionally disables certificate verification because
-    this function only probes whether port 443 is open, without sending
-    sensitive data. These tests verify both the positive and negative paths.
+    Two-phase detection:
+    1. TLS handshake on port 443 (is anything listening?)
+    2. HTTPS GET /health — does OCT respond behind the proxy?
+
+    Only returns True when OCT is confirmed behind the proxy.
+    A random service on 443 (Portainer, Traefik, etc.) returns False.
     """
 
-    def test_returns_true_when_ssl_handshake_succeeds(self):
+    def test_returns_true_when_oct_health_responds(self):
         from opencloudtouch.setup.wizard_helpers import check_port_443
 
         with (
@@ -726,6 +729,9 @@ class TestCheckPort443:
                 "opencloudtouch.setup.wizard_helpers.socket.create_connection"
             ) as mock_conn,
             patch("opencloudtouch.setup.wizard_helpers.ssl.SSLContext") as mock_ctx_cls,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.urllib.request.urlopen"
+            ) as mock_urlopen,
         ):
             mock_sock = MagicMock()
             mock_conn.return_value.__enter__ = MagicMock(return_value=mock_sock)
@@ -739,11 +745,54 @@ class TestCheckPort443:
             )
             mock_ctx.wrap_socket.return_value.__exit__ = MagicMock(return_value=False)
 
+            # Phase 2: OCT /health returns 200 with unique fingerprint
+            mock_resp = MagicMock()
+            mock_resp.status = 200
+            mock_resp.read.return_value = b'{"status": "healthy", "service": "opencloudtouch", "version": "1.2.7"}'
+            mock_urlopen.return_value.__enter__ = MagicMock(return_value=mock_resp)
+            mock_urlopen.return_value.__exit__ = MagicMock(return_value=False)
+
             result = check_port_443("192.168.1.50")
 
         assert result is True
-        # Verify SSL context was configured for detection-only (no verification)
         assert mock_ctx.check_hostname is False
+
+    def test_returns_false_when_port_443_open_but_not_oct(self):
+        """Port 443 responds (e.g. Portainer) but /health is not OCT."""
+        from opencloudtouch.setup.wizard_helpers import check_port_443
+
+        with (
+            patch(
+                "opencloudtouch.setup.wizard_helpers.socket.create_connection"
+            ) as mock_conn,
+            patch("opencloudtouch.setup.wizard_helpers.ssl.SSLContext") as mock_ctx_cls,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.urllib.request.urlopen"
+            ) as mock_urlopen,
+        ):
+            mock_sock = MagicMock()
+            mock_conn.return_value.__enter__ = MagicMock(return_value=mock_sock)
+            mock_conn.return_value.__exit__ = MagicMock(return_value=False)
+
+            mock_ctx = MagicMock()
+            mock_ctx_cls.return_value = mock_ctx
+            mock_wrapped = MagicMock()
+            mock_ctx.wrap_socket.return_value.__enter__ = MagicMock(
+                return_value=mock_wrapped
+            )
+            mock_ctx.wrap_socket.return_value.__exit__ = MagicMock(return_value=False)
+
+            # Phase 2: Non-OCT service returns 404 or wrong body
+            mock_resp = MagicMock()
+            mock_resp.status = 404
+            mock_resp.read.return_value = b"Not Found"
+            # No "opencloudtouch" in body → False
+            mock_urlopen.return_value.__enter__ = MagicMock(return_value=mock_resp)
+            mock_urlopen.return_value.__exit__ = MagicMock(return_value=False)
+
+            result = check_port_443("192.168.1.50")
+
+        assert result is False
 
     def test_returns_false_when_connection_refused(self):
         from opencloudtouch.setup.wizard_helpers import check_port_443
@@ -764,6 +813,250 @@ class TestCheckPort443:
             side_effect=TimeoutError("Connection timed out"),
         ):
             result = check_port_443("10.0.0.1")
+
+        assert result is False
+
+    def test_returns_false_when_health_request_fails(self):
+        """TLS handshake OK, but HTTP request to /health throws."""
+        from opencloudtouch.setup.wizard_helpers import check_port_443
+
+        with (
+            patch(
+                "opencloudtouch.setup.wizard_helpers.socket.create_connection"
+            ) as mock_conn,
+            patch("opencloudtouch.setup.wizard_helpers.ssl.SSLContext") as mock_ctx_cls,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.urllib.request.urlopen",
+                side_effect=ConnectionResetError("Connection reset"),
+            ),
+        ):
+            mock_sock = MagicMock()
+            mock_conn.return_value.__enter__ = MagicMock(return_value=mock_sock)
+            mock_conn.return_value.__exit__ = MagicMock(return_value=False)
+
+            mock_ctx = MagicMock()
+            mock_ctx_cls.return_value = mock_ctx
+            mock_wrapped = MagicMock()
+            mock_ctx.wrap_socket.return_value.__enter__ = MagicMock(
+                return_value=mock_wrapped
+            )
+            mock_ctx.wrap_socket.return_value.__exit__ = MagicMock(return_value=False)
+
+            result = check_port_443("192.168.1.50")
+
+        assert result is False
+
+
+# ── Regression: Issue #184 — False-positive proxy detection ────────────────────
+
+
+class TestProxyDetectionRegression184:
+    """Regression tests for GitHub Issue #184.
+
+    Root cause: check_port_443 only did a TLS handshake. Any service on
+    port 443 (Portainer, Traefik, etc.) triggered a false positive,
+    causing the wizard to skip config modification. Devices kept factory
+    HTTPS URLs → INVALID_SOURCE on preset playback.
+
+    Fix: two-phase detection — TLS handshake + HTTPS GET /health.
+    Only a confirmed OCT response enables hosts_only strategy.
+
+    Scenarios:
+      1. Real OCT reverse proxy, OCT responds       → hosts_only (safe)
+      2. Real proxy, OCT unresponsive (502/timeout)  → bmx_and_hosts (safe fallback)
+      3. Random service on 443 (Portainer)           → bmx_and_hosts (was the bug!)
+      4. No service on 443 (connection refused)      → bmx_and_hosts
+      5. No service on 443 (timeout)                 → bmx_and_hosts
+    """
+
+    def test_scenario1_real_oct_proxy_hosts_only(self, client):
+        """S1: Real reverse proxy with OCT behind it → hosts_only."""
+        with patch(
+            "opencloudtouch.setup.wizard_routes.check_port_443",
+            return_value=True,  # Phase 1+2 both pass
+        ):
+            response = client.get("/api/setup/wizard/detect-strategy")
+        body = response.json()
+        assert body["strategy"] == "hosts_only"
+        assert body["proxy_available"] is True
+
+    def test_scenario2_broken_proxy_requires_config(self, client):
+        """S2: Proxy on 443, but OCT not responding (502/misconfigured) → bmx_and_hosts."""
+        with patch(
+            "opencloudtouch.setup.wizard_routes.check_port_443",
+            return_value=False,  # Phase 2 fails (OCT not behind proxy)
+        ):
+            response = client.get("/api/setup/wizard/detect-strategy")
+        body = response.json()
+        assert body["strategy"] == "bmx_and_hosts"
+        assert body["proxy_available"] is False
+
+    def test_scenario3_portainer_on_443_requires_config(self, client):
+        """S3: Random service (Portainer/Traefik) on 443 → bmx_and_hosts.
+
+        THIS WAS THE BUG: old code returned True here, skipping config modification.
+        """
+        with patch(
+            "opencloudtouch.setup.wizard_routes.check_port_443",
+            return_value=False,  # Phase 2 fails (/health not OCT)
+        ):
+            response = client.get("/api/setup/wizard/detect-strategy")
+        body = response.json()
+        assert body["strategy"] == "bmx_and_hosts"
+        assert body["proxy_available"] is False
+
+    def test_scenario4_no_proxy_connection_refused_requires_config(self, client):
+        """S4: Nothing on port 443 (refused) → bmx_and_hosts."""
+        with patch(
+            "opencloudtouch.setup.wizard_routes.check_port_443",
+            return_value=False,  # Phase 1 fails (connection refused)
+        ):
+            response = client.get("/api/setup/wizard/detect-strategy")
+        body = response.json()
+        assert body["strategy"] == "bmx_and_hosts"
+        assert body["proxy_available"] is False
+
+    def test_scenario5_no_proxy_timeout_requires_config(self, client):
+        """S5: Nothing on port 443 (timeout) → bmx_and_hosts."""
+        with patch(
+            "opencloudtouch.setup.wizard_routes.check_port_443",
+            return_value=False,  # Phase 1 fails (timeout)
+        ):
+            response = client.get("/api/setup/wizard/detect-strategy")
+        body = response.json()
+        assert body["strategy"] == "bmx_and_hosts"
+        assert body["proxy_available"] is False
+
+    # ── End-to-end: verify check_port_443 itself for each scenario ──
+
+    def test_scenario3_e2e_portainer_returns_false(self):
+        """S3 E2E: Port 443 open with non-OCT service → check_port_443 returns False."""
+        from opencloudtouch.setup.wizard_helpers import check_port_443
+
+        with (
+            patch(
+                "opencloudtouch.setup.wizard_helpers.socket.create_connection"
+            ) as mock_conn,
+            patch("opencloudtouch.setup.wizard_helpers.ssl.SSLContext") as mock_ctx_cls,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.urllib.request.urlopen"
+            ) as mock_urlopen,
+        ):
+            # Phase 1: TLS handshake succeeds (Portainer answers)
+            mock_sock = MagicMock()
+            mock_conn.return_value.__enter__ = MagicMock(return_value=mock_sock)
+            mock_conn.return_value.__exit__ = MagicMock(return_value=False)
+            mock_ctx = MagicMock()
+            mock_ctx_cls.return_value = mock_ctx
+            mock_ctx.wrap_socket.return_value.__enter__ = MagicMock()
+            mock_ctx.wrap_socket.return_value.__exit__ = MagicMock(return_value=False)
+
+            # Phase 2: Portainer responds with HTML, not OCT health
+            mock_resp = MagicMock()
+            mock_resp.status = 200
+            mock_resp.read.return_value = b"<html><title>Portainer</title></html>"
+            mock_urlopen.return_value.__enter__ = MagicMock(return_value=mock_resp)
+            mock_urlopen.return_value.__exit__ = MagicMock(return_value=False)
+
+            result = check_port_443("192.168.178.108")
+
+        # Must be False — "ok" not in Portainer HTML
+        assert result is False
+
+    def test_scenario2_e2e_proxy_502_returns_false(self):
+        """S2 E2E: Proxy on 443, but OCT down (502) → check_port_443 returns False."""
+        from opencloudtouch.setup.wizard_helpers import check_port_443
+        from urllib.error import HTTPError
+
+        with (
+            patch(
+                "opencloudtouch.setup.wizard_helpers.socket.create_connection"
+            ) as mock_conn,
+            patch("opencloudtouch.setup.wizard_helpers.ssl.SSLContext") as mock_ctx_cls,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.urllib.request.urlopen",
+                side_effect=HTTPError(
+                    "https://host/health", 502, "Bad Gateway", {}, None
+                ),
+            ),
+        ):
+            mock_sock = MagicMock()
+            mock_conn.return_value.__enter__ = MagicMock(return_value=mock_sock)
+            mock_conn.return_value.__exit__ = MagicMock(return_value=False)
+            mock_ctx = MagicMock()
+            mock_ctx_cls.return_value = mock_ctx
+            mock_ctx.wrap_socket.return_value.__enter__ = MagicMock()
+            mock_ctx.wrap_socket.return_value.__exit__ = MagicMock(return_value=False)
+
+            result = check_port_443("192.168.178.108")
+
+        assert result is False
+
+    def test_scenario1_e2e_real_oct_proxy_returns_true(self):
+        """S1 E2E: Real OCT proxy on 443, /health responds OK → True."""
+        from opencloudtouch.setup.wizard_helpers import check_port_443
+
+        with (
+            patch(
+                "opencloudtouch.setup.wizard_helpers.socket.create_connection"
+            ) as mock_conn,
+            patch("opencloudtouch.setup.wizard_helpers.ssl.SSLContext") as mock_ctx_cls,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.urllib.request.urlopen"
+            ) as mock_urlopen,
+        ):
+            mock_sock = MagicMock()
+            mock_conn.return_value.__enter__ = MagicMock(return_value=mock_sock)
+            mock_conn.return_value.__exit__ = MagicMock(return_value=False)
+            mock_ctx = MagicMock()
+            mock_ctx_cls.return_value = mock_ctx
+            mock_ctx.wrap_socket.return_value.__enter__ = MagicMock()
+            mock_ctx.wrap_socket.return_value.__exit__ = MagicMock(return_value=False)
+
+            # OCT /health responds with unique fingerprint
+            mock_resp = MagicMock()
+            mock_resp.status = 200
+            mock_resp.read.return_value = b'{"status": "healthy", "service": "opencloudtouch", "version": "1.2.7"}'
+            mock_urlopen.return_value.__enter__ = MagicMock(return_value=mock_resp)
+            mock_urlopen.return_value.__exit__ = MagicMock(return_value=False)
+
+            result = check_port_443("192.168.178.108")
+
+        assert result is True
+
+    def test_generic_health_service_with_ok_returns_false(self):
+        """Service on 443 returns {"status": "ok"} but no OCT fingerprint → False.
+
+        Regression guard: a generic health check must NOT be mistaken
+        for OCT. Only {"service": "opencloudtouch"} matches.
+        """
+        from opencloudtouch.setup.wizard_helpers import check_port_443
+
+        with (
+            patch(
+                "opencloudtouch.setup.wizard_helpers.socket.create_connection"
+            ) as mock_conn,
+            patch("opencloudtouch.setup.wizard_helpers.ssl.SSLContext") as mock_ctx_cls,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.urllib.request.urlopen"
+            ) as mock_urlopen,
+        ):
+            mock_sock = MagicMock()
+            mock_conn.return_value.__enter__ = MagicMock(return_value=mock_sock)
+            mock_conn.return_value.__exit__ = MagicMock(return_value=False)
+            mock_ctx = MagicMock()
+            mock_ctx_cls.return_value = mock_ctx
+            mock_ctx.wrap_socket.return_value.__enter__ = MagicMock()
+            mock_ctx.wrap_socket.return_value.__exit__ = MagicMock(return_value=False)
+
+            # Generic service: has "ok" but no "version" or "healthy"
+            mock_resp = MagicMock()
+            mock_resp.status = 200
+            mock_resp.read.return_value = b'{"status": "ok"}'
+            mock_urlopen.return_value.__enter__ = MagicMock(return_value=mock_resp)
+            mock_urlopen.return_value.__exit__ = MagicMock(return_value=False)
+
+            result = check_port_443("192.168.178.108")
 
         assert result is False
 

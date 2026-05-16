@@ -83,19 +83,19 @@ class RestoreService:
         """
         async with ssh_operation(device_ip, "find-backups") as ssh:
             # Check USB mount
-            result = await ssh.run("ls -d /media/sda1 2>/dev/null")
-            if result.returncode != 0 or not result.stdout.strip():
+            result = await ssh.execute("ls -d /media/sda1 2>/dev/null")
+            if result.exit_code != 0 or not result.output.strip():
                 return []
 
             # List backup directory
-            result = await ssh.run(
+            result = await ssh.execute(
                 "ls /media/sda1/oct-backup/*.tgz 2>/dev/null | xargs -n1 basename"
             )
-            if result.returncode != 0 or not result.stdout.strip():
+            if result.exit_code != 0 or not result.output.strip():
                 return []
 
             files = []
-            for line in result.stdout.strip().split("\n"):
+            for line in result.output.strip().split("\n"):
                 filename = line.strip()
                 if not filename:
                     continue
@@ -155,8 +155,8 @@ class RestoreService:
         if not files:
             # Determine if USB not mounted or just empty
             async with ssh_operation(device_ip, "check-usb") as ssh:
-                result = await ssh.run("ls -d /media/sda1 2>/dev/null")
-                usb_mounted = result.returncode == 0 and bool(result.stdout.strip())
+                result = await ssh.execute("ls -d /media/sda1 2>/dev/null")
+                usb_mounted = result.exit_code == 0 and bool(result.output.strip())
 
             if not usb_mounted:
                 return BackupScanResult(
@@ -209,8 +209,8 @@ class RestoreService:
 
         async with ssh_operation(device_ip, "restore") as ssh:
             # Remount read-write
-            await ssh.run("mount -o remount,rw /")
-            await ssh.run("mount -o remount,rw /mnt/nv")
+            await ssh.execute("mount -o remount,rw /")
+            await ssh.execute("mount -o remount,rw /mnt/nv")
 
             try:
                 # Pre-restore snapshot
@@ -236,8 +236,8 @@ class RestoreService:
 
             finally:
                 # Remount read-only
-                await ssh.run("mount -o remount,ro /mnt/nv")
-                await ssh.run("mount -o remount,ro /")
+                await ssh.execute("mount -o remount,ro /mnt/nv")
+                await ssh.execute("mount -o remount,ro /")
 
         # Update setup_status
         if self._device_repo:
@@ -300,24 +300,24 @@ class RestoreService:
                     file_path = file_ref.get("file_path", "")
                     vol = file_ref.get("volume_type", "")
                     if vol == "rootfs":
-                        await ssh.run(
+                        await ssh.execute(
                             f"tar xzf {file_path} -C / "
                             "opt/Bose/etc/SoundTouchSdkPrivateCfg.xml 2>/dev/null"
                         )
                     elif vol == "persistent":
                         for override in override_paths:
                             # Try extracting — may not exist in archive
-                            result = await ssh.run(
+                            result = await ssh.execute(
                                 f"tar xzf {file_path} -C / "
                                 f"{override.lstrip('/')} 2>/dev/null"
                             )
-                            if result.returncode != 0:
+                            if result.exit_code != 0:
                                 # Not in archive → delete override (OCT created it)
-                                await ssh.run(f"rm -f {override}")
+                                await ssh.execute(f"rm -f {override}")
             else:
                 # Clean restore: delete overrides only, never firmware config
                 for override in override_paths:
-                    await ssh.run(f"rm -f {override}")
+                    await ssh.execute(f"rm -f {override}")
 
             step.status = StepStatus.COMPLETED
             step.message = "Config files restored"
@@ -338,14 +338,14 @@ class RestoreService:
 
         try:
             # Find Presets.xml on device
-            result = await ssh.run("find /mnt/nv -name Presets.xml 2>/dev/null")
-            if result.returncode != 0 or not result.stdout.strip():
+            result = await ssh.execute("find /mnt/nv -name Presets.xml 2>/dev/null")
+            if result.exit_code != 0 or not result.output.strip():
                 step.status = StepStatus.SKIPPED
                 step.message = "No Presets.xml found on device (already clean)"
                 step.duration_seconds = time.time() - start
                 return step
 
-            preset_path = result.stdout.strip().split("\n")[0].strip()
+            preset_path = result.output.strip().split("\n")[0].strip()
 
             if restore_type == "backup" and backup_set:
                 # Try extracting from nv archive
@@ -353,11 +353,11 @@ class RestoreService:
                 for file_ref in backup_set.get("files", []):
                     if file_ref.get("volume_type") == "persistent":
                         file_path = file_ref.get("file_path", "")
-                        r = await ssh.run(
+                        r = await ssh.execute(
                             f"tar xzf {file_path} -C / "
                             f"{preset_path.lstrip('/')} 2>/dev/null"
                         )
-                        if r.returncode == 0:
+                        if r.exit_code == 0:
                             extracted = True
                             break
 
@@ -385,7 +385,7 @@ class RestoreService:
         template_path = Path(__file__).parent / "data" / "empty_presets.xml"
         content = template_path.read_bytes()
         b64 = base64.b64encode(content).decode("ascii")
-        await ssh.run(f"echo '{b64}' | base64 -d > {preset_path}")
+        await ssh.execute(f"echo '{b64}' | base64 -d > {preset_path}")
 
     async def _restore_hosts(self, ssh) -> RestoreStep:
         """Remove OCT block from /etc/hosts."""
@@ -393,14 +393,14 @@ class RestoreService:
         start = time.time()
 
         try:
-            result = await ssh.run("cat /etc/hosts")
-            if result.returncode != 0:
+            result = await ssh.execute("cat /etc/hosts")
+            if result.exit_code != 0:
                 step.status = StepStatus.FAILED
                 step.error = "Failed to read /etc/hosts"
                 step.duration_seconds = time.time() - start
                 return step
 
-            content = result.stdout
+            content = result.output
             if "# OCT-START" not in content:
                 step.status = StepStatus.SKIPPED
                 step.message = "No OCT block found in /etc/hosts (already clean)"
@@ -426,7 +426,7 @@ class RestoreService:
             import base64
 
             b64 = base64.b64encode(new_content.encode()).decode("ascii")
-            await ssh.run(f"echo '{b64}' | base64 -d > /etc/hosts")
+            await ssh.execute(f"echo '{b64}' | base64 -d > /etc/hosts")
 
             step.status = StepStatus.COMPLETED
             step.message = "OCT block removed from /etc/hosts"
@@ -444,7 +444,7 @@ class RestoreService:
         start = time.time()
 
         try:
-            await ssh.run("rm -f /mnt/nv/remote_services")
+            await ssh.execute("rm -f /mnt/nv/remote_services")
             step.status = StepStatus.COMPLETED
             step.message = "/mnt/nv/remote_services deleted"
         except Exception as e:
@@ -469,15 +469,17 @@ class RestoreService:
         if not expected:
             return
 
-        result = await ssh.run(f"tar tzf {file_info.file_path} 2>/dev/null | head -20")
-        if result.returncode != 0:
+        result = await ssh.execute(
+            f"tar tzf {file_info.file_path} 2>/dev/null | head -20"
+        )
+        if result.exit_code != 0:
             from opencloudtouch.setup.restore_models import ValidationStatus
 
             file_info.validation_status = ValidationStatus.INVALID
             file_info.validation_message = "Archive is corrupt or unreadable"
             return
 
-        listing = result.stdout.strip()
+        listing = result.output.strip()
         if not listing:
             from opencloudtouch.setup.restore_models import ValidationStatus
 
@@ -501,7 +503,7 @@ class RestoreService:
         try:
             # Send reboot command (may disconnect SSH)
             try:
-                await ssh.run("reboot")
+                await ssh.execute("reboot")
             except Exception:
                 # SSH disconnect on reboot is expected
                 pass

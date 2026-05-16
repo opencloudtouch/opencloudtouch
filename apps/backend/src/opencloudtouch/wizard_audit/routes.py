@@ -12,6 +12,8 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from opencloudtouch.wizard_audit.repository import WizardAuditRepository
+
 logger = logging.getLogger(__name__)
 
 audit_router = APIRouter(prefix="/api/wizard", tags=["Wizard Audit"])
@@ -98,7 +100,7 @@ def _get_audit_repo(request: Request):
     return repo
 
 
-AuditRepo = Annotated[object, Depends(_get_audit_repo)]
+AuditRepo = Annotated[WizardAuditRepository, Depends(_get_audit_repo)]
 
 
 # ---------------------------------------------------------------------------

@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from opencloudtouch.core.repository import BaseRepository
 from opencloudtouch.recents.models import RecentPlay
@@ -17,7 +17,7 @@ class RecentsRepository(BaseRepository):
     """Repository for recently played items using SQLite."""
 
     @staticmethod
-    def _row_to_recent(row: tuple) -> RecentPlay:
+    def _row_to_recent(row: tuple | Any) -> RecentPlay:
         """Map a database row to a RecentPlay model.
 
         Column order: id, device_id, source, location, name, image_url, played_at.

@@ -220,7 +220,7 @@ class TestFindUsbBackups:
     @pytest.mark.asyncio
     async def test_usb_not_mounted(self, service):
         mock_ssh = AsyncMock()
-        mock_ssh.run.return_value = MagicMock(stdout="", stderr="", returncode=1)
+        mock_ssh.execute.return_value = MagicMock(output="", stderr="", exit_code=1)
         mock_ctx = AsyncMock()
         mock_ctx.__aenter__.return_value = mock_ssh
         mock_ctx.__aexit__.return_value = False
@@ -235,12 +235,12 @@ class TestFindUsbBackups:
     @pytest.mark.asyncio
     async def test_lists_tgz_files(self, service):
         mock_ssh = AsyncMock()
-        mock_ssh.run.side_effect = [
-            MagicMock(stdout="/media/sda1", stderr="", returncode=0),
+        mock_ssh.execute.side_effect = [
+            MagicMock(output="/media/sda1", stderr="", exit_code=0),
             MagicMock(
-                stdout="soundtouch-ABC123-20250512-rootfs.tgz\nsoundtouch-ABC123-20250512-nv.tgz\n",
+                output="soundtouch-ABC123-20250512-rootfs.tgz\nsoundtouch-ABC123-20250512-nv.tgz\n",
                 stderr="",
-                returncode=0,
+                exit_code=0,
             ),
         ]
         mock_ctx = AsyncMock()
@@ -275,17 +275,17 @@ class TestRestoreHosts:
             "192.168.1.1 router\n"
         )
         mock_ssh = AsyncMock()
-        mock_ssh.run.side_effect = [
+        mock_ssh.execute.side_effect = [
             # Read /etc/hosts
-            MagicMock(stdout=hosts_content, returncode=0),
+            MagicMock(output=hosts_content, exit_code=0),
             # Write back
-            MagicMock(stdout="", returncode=0),
+            MagicMock(output="", exit_code=0),
         ]
 
         step = await service._restore_hosts(mock_ssh)
         assert step.status == StepStatus.COMPLETED
         # Verify the written content doesn't contain OCT block
-        write_call = mock_ssh.run.call_args_list[1]
+        write_call = mock_ssh.execute.call_args_list[1]
         written_cmd = write_call[0][0]  # command string
         # Extract base64 from "echo '<b64>' | base64 -d > /etc/hosts"
         import base64 as b64mod
@@ -300,7 +300,7 @@ class TestRestoreHosts:
     async def test_skips_if_no_oct_block(self, service):
         hosts_content = "127.0.0.1 localhost\n192.168.1.1 router\n"
         mock_ssh = AsyncMock()
-        mock_ssh.run.return_value = MagicMock(stdout=hosts_content, returncode=0)
+        mock_ssh.execute.return_value = MagicMock(output=hosts_content, exit_code=0)
 
         step = await service._restore_hosts(mock_ssh)
         assert step.status == StepStatus.SKIPPED
@@ -316,12 +316,12 @@ class TestRemoveRemoteServices:
     @pytest.mark.asyncio
     async def test_removes_file(self, service):
         mock_ssh = AsyncMock()
-        mock_ssh.run.return_value = MagicMock(stdout="", returncode=0)
+        mock_ssh.execute.return_value = MagicMock(output="", exit_code=0)
 
         step = await service._remove_remote_services(mock_ssh)
         assert step.status == StepStatus.COMPLETED
-        mock_ssh.run.assert_called_once()
-        cmd = mock_ssh.run.call_args[0][0]
+        mock_ssh.execute.assert_called_once()
+        cmd = mock_ssh.execute.call_args[0][0]
         assert "rm -f" in cmd
         assert "remote_services" in cmd
 
@@ -329,7 +329,7 @@ class TestRemoveRemoteServices:
     async def test_idempotent_no_error(self, service):
         mock_ssh = AsyncMock()
         # rm -f never errors even if file doesn't exist
-        mock_ssh.run.return_value = MagicMock(stdout="", returncode=0)
+        mock_ssh.execute.return_value = MagicMock(output="", exit_code=0)
 
         step = await service._remove_remote_services(mock_ssh)
         assert step.status == StepStatus.COMPLETED
@@ -345,14 +345,14 @@ class TestRestorePresets:
     @pytest.mark.asyncio
     async def test_clean_mode_copies_template(self, service):
         mock_ssh = AsyncMock()
-        mock_ssh.run.side_effect = [
+        mock_ssh.execute.side_effect = [
             # find Presets.xml
             MagicMock(
-                stdout="/mnt/nv/BoseApp-Persistence/1/Presets.xml\n",
-                returncode=0,
+                output="/mnt/nv/BoseApp-Persistence/1/Presets.xml\n",
+                exit_code=0,
             ),
             # write file (base64 pipe or scp)
-            MagicMock(stdout="", returncode=0),
+            MagicMock(output="", exit_code=0),
         ]
 
         step = await service._restore_presets(mock_ssh, restore_type="clean")
@@ -361,7 +361,7 @@ class TestRestorePresets:
     @pytest.mark.asyncio
     async def test_skips_if_no_presets_found(self, service):
         mock_ssh = AsyncMock()
-        mock_ssh.run.return_value = MagicMock(stdout="", returncode=1)
+        mock_ssh.execute.return_value = MagicMock(output="", exit_code=1)
 
         step = await service._restore_presets(mock_ssh, restore_type="clean")
         assert step.status == StepStatus.SKIPPED
@@ -377,9 +377,9 @@ class TestValidateArchive:
     @pytest.mark.asyncio
     async def test_valid_rootfs_archive(self, service):
         mock_ssh = AsyncMock()
-        mock_ssh.run.return_value = MagicMock(
-            stdout="opt/Bose/etc/SoundTouchSdkPrivateCfg.xml\nopt/Bose/bin/foo\n",
-            returncode=0,
+        mock_ssh.execute.return_value = MagicMock(
+            output="opt/Bose/etc/SoundTouchSdkPrivateCfg.xml\nopt/Bose/bin/foo\n",
+            exit_code=0,
         )
         info = BackupFileInfo(
             filename="soundtouch-ABC-20250512-rootfs.tgz",
@@ -392,9 +392,9 @@ class TestValidateArchive:
     @pytest.mark.asyncio
     async def test_valid_nv_archive(self, service):
         mock_ssh = AsyncMock()
-        mock_ssh.run.return_value = MagicMock(
-            stdout="mnt/nv/Presets.xml\nmnt/nv/SoundTouchSdkPrivateCfg.xml\n",
-            returncode=0,
+        mock_ssh.execute.return_value = MagicMock(
+            output="mnt/nv/Presets.xml\nmnt/nv/SoundTouchSdkPrivateCfg.xml\n",
+            exit_code=0,
         )
         info = BackupFileInfo(
             filename="soundtouch-ABC-20250512-nv.tgz",
@@ -407,7 +407,7 @@ class TestValidateArchive:
     @pytest.mark.asyncio
     async def test_corrupt_archive(self, service):
         mock_ssh = AsyncMock()
-        mock_ssh.run.return_value = MagicMock(stdout="", returncode=2)
+        mock_ssh.execute.return_value = MagicMock(output="", exit_code=2)
         info = BackupFileInfo(
             filename="soundtouch-ABC-20250512-rootfs.tgz",
             volume_type="rootfs",
@@ -420,7 +420,7 @@ class TestValidateArchive:
     @pytest.mark.asyncio
     async def test_empty_archive(self, service):
         mock_ssh = AsyncMock()
-        mock_ssh.run.return_value = MagicMock(stdout="", returncode=0)
+        mock_ssh.execute.return_value = MagicMock(output="", exit_code=0)
         info = BackupFileInfo(
             filename="soundtouch-ABC-20250512-rootfs.tgz",
             volume_type="rootfs",
@@ -433,9 +433,9 @@ class TestValidateArchive:
     @pytest.mark.asyncio
     async def test_wrong_paths_gives_warning(self, service):
         mock_ssh = AsyncMock()
-        mock_ssh.run.return_value = MagicMock(
-            stdout="usr/local/bin/something\nvar/log/test.log\n",
-            returncode=0,
+        mock_ssh.execute.return_value = MagicMock(
+            output="usr/local/bin/something\nvar/log/test.log\n",
+            exit_code=0,
         )
         info = BackupFileInfo(
             filename="soundtouch-ABC-20250512-rootfs.tgz",
@@ -498,18 +498,18 @@ class TestRebootDevice:
     @pytest.mark.asyncio
     async def test_reboot_success(self, service):
         mock_ssh = AsyncMock()
-        mock_ssh.run.return_value = MagicMock(stdout="", returncode=0)
+        mock_ssh.execute.return_value = MagicMock(output="", exit_code=0)
 
         step = await service._reboot_device(mock_ssh)
         assert step.status == StepStatus.COMPLETED
         assert step.name == RestoreStepName.REBOOT
-        mock_ssh.run.assert_called_once_with("reboot")
+        mock_ssh.execute.assert_called_once_with("reboot")
 
     @pytest.mark.asyncio
     async def test_reboot_ssh_disconnect_expected(self, service):
         """SSH disconnect on reboot is normal — should still complete."""
         mock_ssh = AsyncMock()
-        mock_ssh.run.side_effect = ConnectionResetError("Connection lost")
+        mock_ssh.execute.side_effect = ConnectionResetError("Connection lost")
 
         step = await service._reboot_device(mock_ssh)
         assert step.status == StepStatus.COMPLETED
@@ -527,7 +527,7 @@ class TestExecuteRestoreOrchestration:
         service = RestoreService(wizard_service=mock_wizard, device_repo=mock_repo)
 
         mock_ssh = AsyncMock()
-        mock_ssh.run.return_value = MagicMock(stdout="", returncode=0)
+        mock_ssh.execute.return_value = MagicMock(output="", exit_code=0)
         mock_ctx = AsyncMock()
         mock_ctx.__aenter__.return_value = mock_ssh
         mock_ctx.__aexit__.return_value = False
@@ -548,7 +548,7 @@ class TestExecuteRestoreOrchestration:
         service = RestoreService()
 
         mock_ssh = AsyncMock()
-        mock_ssh.run.return_value = MagicMock(stdout="", returncode=0)
+        mock_ssh.execute.return_value = MagicMock(output="", exit_code=0)
         mock_ctx = AsyncMock()
         mock_ctx.__aenter__.return_value = mock_ssh
         mock_ctx.__aexit__.return_value = False
@@ -571,16 +571,16 @@ class TestExecuteRestoreOrchestration:
 
         mock_ssh = AsyncMock()
         # cat /etc/hosts fails → _restore_hosts will fail
-        mock_ssh.run.side_effect = [
-            MagicMock(stdout="", returncode=0),  # remount rw /
-            MagicMock(stdout="", returncode=0),  # remount rw /mnt/nv
-            MagicMock(stdout="", returncode=0),  # rm -f overrides (config step1)
-            MagicMock(stdout="", returncode=0),  # rm -f overrides (config step2)
-            MagicMock(stdout="", returncode=1),  # find Presets.xml → not found
-            MagicMock(stdout="", returncode=1),  # cat /etc/hosts → fail
-            MagicMock(stdout="", returncode=0),  # rm -f remote_services
-            MagicMock(stdout="", returncode=0),  # remount ro /mnt/nv
-            MagicMock(stdout="", returncode=0),  # remount ro /
+        mock_ssh.execute.side_effect = [
+            MagicMock(output="", exit_code=0),  # remount rw /
+            MagicMock(output="", exit_code=0),  # remount rw /mnt/nv
+            MagicMock(output="", exit_code=0),  # rm -f overrides (config step1)
+            MagicMock(output="", exit_code=0),  # rm -f overrides (config step2)
+            MagicMock(output="", exit_code=1),  # find Presets.xml → not found
+            MagicMock(output="", exit_code=1),  # cat /etc/hosts → fail
+            MagicMock(output="", exit_code=0),  # rm -f remote_services
+            MagicMock(output="", exit_code=0),  # remount ro /mnt/nv
+            MagicMock(output="", exit_code=0),  # remount ro /
         ]
         mock_ctx = AsyncMock()
         mock_ctx.__aenter__.return_value = mock_ssh
@@ -613,7 +613,7 @@ class TestScanBackupsOrchestration:
 
         mock_ssh = AsyncMock()
         # _find_usb_backups: USB not mounted
-        mock_ssh.run.return_value = MagicMock(stdout="", returncode=1)
+        mock_ssh.execute.return_value = MagicMock(output="", exit_code=1)
         mock_ctx = AsyncMock()
         mock_ctx.__aenter__.return_value = mock_ssh
         mock_ctx.__aexit__.return_value = False
@@ -637,14 +637,14 @@ class TestScanBackupsOrchestration:
             mock_ssh = AsyncMock()
             if call_count[0] == 0:
                 # _find_usb_backups: USB mounted, no files
-                mock_ssh.run.side_effect = [
-                    MagicMock(stdout="/media/sda1", returncode=0),
-                    MagicMock(stdout="", returncode=1),
+                mock_ssh.execute.side_effect = [
+                    MagicMock(output="/media/sda1", exit_code=0),
+                    MagicMock(output="", exit_code=1),
                 ]
             else:
                 # check-usb: USB is mounted
-                mock_ssh.run.return_value = MagicMock(
-                    stdout="/media/sda1", returncode=0
+                mock_ssh.execute.return_value = MagicMock(
+                    output="/media/sda1", exit_code=0
                 )
             call_count[0] += 1
             ctx = AsyncMock()
@@ -671,17 +671,17 @@ class TestScanBackupsOrchestration:
             mock_ssh = AsyncMock()
             if call_count[0] == 0:
                 # _find_usb_backups: files found
-                mock_ssh.run.side_effect = [
-                    MagicMock(stdout="/media/sda1", returncode=0),
+                mock_ssh.execute.side_effect = [
+                    MagicMock(output="/media/sda1", exit_code=0),
                     MagicMock(
-                        stdout="soundtouch-ABC123-20260101-rootfs.tgz\nsoundtouch-ABC123-20260101-nv.tgz\n",
-                        returncode=0,
+                        output="soundtouch-ABC123-20260101-rootfs.tgz\nsoundtouch-ABC123-20260101-nv.tgz\n",
+                        exit_code=0,
                     ),
                 ]
             else:
                 # validate-archives: valid archives
-                mock_ssh.run.return_value = MagicMock(
-                    stdout="opt/Bose/etc/config.xml\n", returncode=0
+                mock_ssh.execute.return_value = MagicMock(
+                    output="opt/Bose/etc/config.xml\n", exit_code=0
                 )
             call_count[0] += 1
             ctx = AsyncMock()
@@ -709,16 +709,16 @@ class TestScanBackupsOrchestration:
         def create_ctx(*args, **kwargs):
             mock_ssh = AsyncMock()
             if call_count[0] == 0:
-                mock_ssh.run.side_effect = [
-                    MagicMock(stdout="/media/sda1", returncode=0),
+                mock_ssh.execute.side_effect = [
+                    MagicMock(output="/media/sda1", exit_code=0),
                     MagicMock(
-                        stdout="soundtouch-OTHER-20260101-rootfs.tgz\n",
-                        returncode=0,
+                        output="soundtouch-OTHER-20260101-rootfs.tgz\n",
+                        exit_code=0,
                     ),
                 ]
             else:
-                mock_ssh.run.return_value = MagicMock(
-                    stdout="opt/Bose/etc/config.xml\n", returncode=0
+                mock_ssh.execute.return_value = MagicMock(
+                    output="opt/Bose/etc/config.xml\n", exit_code=0
                 )
             call_count[0] += 1
             ctx = AsyncMock()
@@ -746,7 +746,7 @@ class TestRestoreConfigBackupMode:
     @pytest.mark.asyncio
     async def test_backup_mode_extracts_and_cleans(self, service):
         mock_ssh = AsyncMock()
-        mock_ssh.run.return_value = MagicMock(stdout="", returncode=0)
+        mock_ssh.execute.return_value = MagicMock(output="", exit_code=0)
 
         backup_set = {
             "files": [
@@ -764,18 +764,18 @@ class TestRestoreConfigBackupMode:
         step = await service._restore_config(mock_ssh, "backup", backup_set)
         assert step.status == StepStatus.COMPLETED
         # Should have called tar for rootfs and persistent
-        assert mock_ssh.run.call_count >= 3
+        assert mock_ssh.execute.call_count >= 3
 
     @pytest.mark.asyncio
     async def test_backup_mode_deletes_override_on_extract_fail(self, service):
         mock_ssh = AsyncMock()
         # First call (rootfs tar) succeeds, then persistent tar fails, then rm succeeds
-        mock_ssh.run.side_effect = [
-            MagicMock(stdout="", returncode=0),  # rootfs tar
-            MagicMock(stdout="", returncode=1),  # nv tar extract fail (override 1)
-            MagicMock(stdout="", returncode=0),  # rm -f override 1
-            MagicMock(stdout="", returncode=1),  # nv tar extract fail (override 2)
-            MagicMock(stdout="", returncode=0),  # rm -f override 2
+        mock_ssh.execute.side_effect = [
+            MagicMock(output="", exit_code=0),  # rootfs tar
+            MagicMock(output="", exit_code=1),  # nv tar extract fail (override 1)
+            MagicMock(output="", exit_code=0),  # rm -f override 1
+            MagicMock(output="", exit_code=1),  # nv tar extract fail (override 2)
+            MagicMock(output="", exit_code=0),  # rm -f override 2
         ]
 
         backup_set = {
@@ -791,7 +791,7 @@ class TestRestoreConfigBackupMode:
     @pytest.mark.asyncio
     async def test_config_exception_captured(self, service):
         mock_ssh = AsyncMock()
-        mock_ssh.run.side_effect = RuntimeError("SSH crashed")
+        mock_ssh.execute.side_effect = RuntimeError("SSH crashed")
 
         step = await service._restore_config(mock_ssh, "clean")
         assert step.status == StepStatus.FAILED
@@ -808,11 +808,11 @@ class TestRestorePresetsBackupMode:
     @pytest.mark.asyncio
     async def test_backup_mode_extract_success(self, service):
         mock_ssh = AsyncMock()
-        mock_ssh.run.side_effect = [
+        mock_ssh.execute.side_effect = [
             # find Presets.xml
-            MagicMock(stdout="/mnt/nv/BoseApp/Presets.xml\n", returncode=0),
+            MagicMock(output="/mnt/nv/BoseApp/Presets.xml\n", exit_code=0),
             # tar extract from nv archive succeeds
-            MagicMock(stdout="", returncode=0),
+            MagicMock(output="", exit_code=0),
         ]
 
         backup_set = {
@@ -827,13 +827,13 @@ class TestRestorePresetsBackupMode:
     @pytest.mark.asyncio
     async def test_backup_mode_fallback_to_clean(self, service):
         mock_ssh = AsyncMock()
-        mock_ssh.run.side_effect = [
+        mock_ssh.execute.side_effect = [
             # find Presets.xml
-            MagicMock(stdout="/mnt/nv/BoseApp/Presets.xml\n", returncode=0),
+            MagicMock(output="/mnt/nv/BoseApp/Presets.xml\n", exit_code=0),
             # tar extract fails (no Presets.xml in archive)
-            MagicMock(stdout="", returncode=1),
+            MagicMock(output="", exit_code=1),
             # write empty template (fallback)
-            MagicMock(stdout="", returncode=0),
+            MagicMock(output="", exit_code=0),
         ]
 
         backup_set = {
@@ -848,7 +848,7 @@ class TestRestorePresetsBackupMode:
     @pytest.mark.asyncio
     async def test_presets_exception_captured(self, service):
         mock_ssh = AsyncMock()
-        mock_ssh.run.side_effect = RuntimeError("Connection lost")
+        mock_ssh.execute.side_effect = RuntimeError("Connection lost")
 
         step = await service._restore_presets(mock_ssh, "clean")
         assert step.status == StepStatus.FAILED

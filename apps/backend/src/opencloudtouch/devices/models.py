@@ -7,7 +7,7 @@ Separates data structures from business logic and persistence.
 from dataclasses import dataclass
 from enum import Enum
 
-from bosesoundtouchapi import SoundTouchKeys
+from bosesoundtouchapi import SoundTouchKeys  # type: ignore[import-untyped]
 
 
 @dataclass

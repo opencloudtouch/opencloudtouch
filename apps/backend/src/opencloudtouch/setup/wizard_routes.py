@@ -146,7 +146,7 @@ async def wizard_backup(
     """Create complete backup to USB stick (Wizard Step 4)."""
     logger.info("Starting backup for %s", request.device_ip)
 
-    result = await wizard.backup_all(request.device_ip, request.device_id)
+    result = await wizard.backup_all(request.device_ip, request.device_id or "")
 
     if not result["success"]:
         return BackupResponse(success=False, message=result["message"])
@@ -154,9 +154,9 @@ async def wizard_backup(
     return BackupResponse(
         success=True,
         message=result["message"],
-        volumes=result.get("volumes"),
-        total_size_mb=result.get("total_size_mb"),
-        total_duration_seconds=result.get("total_duration_seconds"),
+        volumes=result.get("volumes") or [],
+        total_size_mb=result.get("total_size_mb") or 0.0,
+        total_duration_seconds=result.get("total_duration_seconds") or 0.0,
     )
 
 
@@ -311,7 +311,6 @@ async def wizard_account_pairing(
         had_uuid=result.get("had_uuid", False),
         uuid=result.get("uuid", ""),
         message=result.get("message", ""),
-        error=result.get("error"),
     )
 
 

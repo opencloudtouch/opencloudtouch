@@ -353,7 +353,7 @@ class DeviceRepository(BaseRepository):
         return deleted_count
 
     @staticmethod
-    def _row_to_device(row: tuple) -> Device:
+    def _row_to_device(row: tuple | Any) -> Device:
         """Map a database row to a Device model.
 
         Column order: id, device_id, ip, name, model, mac_address,

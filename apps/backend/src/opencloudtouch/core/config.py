@@ -158,6 +158,14 @@ class AppConfig(BaseSettings):
             )
         return self
 
+    # Bug Report (GitHub Integration)
+    github_token: str = Field(
+        default="", description="GitHub token for creating bug report issues"
+    )
+    github_repo: str = Field(
+        default="", description="GitHub repo (owner/name) for bug reports"
+    )
+
     # Production Safety
     allow_dangerous_operations: bool = Field(
         default=False,

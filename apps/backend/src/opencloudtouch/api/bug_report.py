@@ -190,7 +190,7 @@ async def _collect_diagnostics(request: Request, click_timestamp: float = 0.0) -
 
     devices = []
     device_id_lookup: dict[str, int] = {}  # device_id → DB id
-    db_stats = {"presets": "?", "recents": "?", "devices": "?"}
+    db_stats: dict[str, str | int] = {"presets": "?", "recents": "?", "devices": "?"}
 
     try:
         device_repo = request.app.state.device_repo

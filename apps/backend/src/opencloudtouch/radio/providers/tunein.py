@@ -304,7 +304,7 @@ class TuneInProvider(RadioProvider):
             return elem.text if elem is not None and elem.text else None
 
         guide_id = _text("guide_id") or station_id
-        name = _text("name") or outline.get("text", "Unknown")
+        name = _text("name") or outline.get("text") or "Unknown"
 
         return TuneInStation(
             guide_id=guide_id,

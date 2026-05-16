@@ -106,6 +106,7 @@ def test_health_endpoint():
 
     # Required fields
     assert data["status"] == "healthy"
+    assert data["service"] == "opencloudtouch"
     assert "version" in data
     assert "build" in data
     assert "config" in data
