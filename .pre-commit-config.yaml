@@ -89,6 +89,17 @@ repos:
   - repo: local
     hooks:
       # ========================================================================
+      # GUARD: Abort if formatters modified files (no point running tests)
+      # ========================================================================
+      - id: check-reformatted
+        name: "Guard: abort if formatters changed files"
+        entry: bash scripts/hooks/check-reformatted.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      # ========================================================================
       # PRE-COMMIT: UNIT TESTS ONLY (fast, <60s)
       # ========================================================================
 
@@ -132,12 +143,21 @@ repos:
         stages: [pre-commit]
 
       # ========================================================================
-      # PRE-PUSH: UNIT TESTS (Backend + Frontend)
+      # PRE-PUSH: UNIT TESTS (Backend + Frontend) + TYPE CHECK
       # ========================================================================
       - id: unit-tests-must-pass
         name: "MANDATORY: Run unit tests (Backend + Frontend) - 100% must pass"
         entry: npm
         args: [run, test:unit]
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      - id: mypy-check
+        name: "Type check Python (mypy)"
+        entry: .venv/Scripts/python.exe
+        args: [-m, mypy, apps/backend/src/opencloudtouch/, --no-error-summary]
         language: system
         pass_filenames: false
         always_run: true

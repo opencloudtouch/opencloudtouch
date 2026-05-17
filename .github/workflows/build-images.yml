@@ -1,4 +1,4 @@
-﻿# ==============================================================================
+# ==============================================================================
 # BUILD IMAGES - Docker multi-arch + Raspberry Pi SD card images
 #
 # Triggered by:
@@ -697,17 +697,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           RELEASE_TAG="v${{ inputs.version }}"
-          # Check if release exists
-          if ! gh api repos/${{ github.repository }}/releases/tags/${RELEASE_TAG} > /dev/null 2>&1; then
-            RELEASE_TAG=$(gh api repos/${{ github.repository }}/releases/latest \
-              --jq '.tag_name' 2>/dev/null || echo "")
-          fi
-          if [ -z "$RELEASE_TAG" ]; then
-            echo "::error::No release found to attach images to."
+
+          # Draft-Releases sind per /tags/ nicht erreichbar → per Liste suchen
+          RELEASE_ID=$(gh api repos/${{ github.repository }}/releases \
+            --jq ".[] | select(.tag_name == \"${RELEASE_TAG}\") | .id")
+
+          if [ -z "$RELEASE_ID" ]; then
+            echo "::error::Kein Release (auch kein Draft) mit Tag ${RELEASE_TAG} gefunden."
             exit 1
           fi
+
           echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
-          echo "Attaching to release: ${RELEASE_TAG}"
+          echo "Attaching to release: ${RELEASE_TAG} (ID: ${RELEASE_ID})"
 
       - name: Upload images to release
         env:

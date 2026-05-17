@@ -1,4 +1,4 @@
-"""Preset XML parser for Bose SoundTouch devices.
+﻿"""Preset XML parser for Bose SoundTouch devices.
 
 Parses the /presets endpoint XML response into Preset domain objects.
 This module has a single responsibility — parsing — with no I/O or DB access.
@@ -77,11 +77,13 @@ class DevicePresetParser:
         source = content_item.get("source", "")
         location = content_item.get("location", "")
         item_name_elem = content_item.find("itemName")
-        station_name = item_name_elem.text if item_name_elem is not None else "Unknown"
-
-        resolved = self._resolve_source(
-            source, location, preset_number, station_name or "Unknown"
+        station_name = (
+            (item_name_elem.text or "Unknown")
+            if item_name_elem is not None
+            else "Unknown"
         )
+
+        resolved = self._resolve_source(source, location, preset_number, station_name)
         if resolved is None:
             return None
 

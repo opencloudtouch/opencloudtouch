@@ -447,7 +447,11 @@ async def wizard_verify_redirect(
 # ============================================================================
 
 
-@wizard_router.post("/wizard/scan-backups", response_model=ScanBackupsResponse)
+@wizard_router.post(
+    "/wizard/scan-backups",
+    response_model=ScanBackupsResponse,
+    responses={500: {"description": "Backup scan failed"}},
+)
 async def wizard_scan_backups(
     request: ScanBackupsRequest,
     restore: RestoreServiceDep,
@@ -470,7 +474,11 @@ async def wizard_scan_backups(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@wizard_router.post("/wizard/restore-wizard", response_model=RestoreWizardResponse)
+@wizard_router.post(
+    "/wizard/restore-wizard",
+    response_model=RestoreWizardResponse,
+    responses={500: {"description": "Restore wizard execution failed"}},
+)
 async def wizard_restore_wizard(
     request: RestoreWizardRequest,
     restore: RestoreServiceDep,

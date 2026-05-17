@@ -422,14 +422,22 @@ jobs:
           TAG="v${VERSION}"
           echo "Image build succeeded — publishing release ${TAG}..."
 
-          RELEASE_ID=$(gh api "repos/${{ github.repository }}/releases/tags/${TAG}" --jq '.id')
+          # NOTE: /releases/tags/{tag} does NOT return draft releases (GitHub API limitation).
+          # Use /releases endpoint and filter by tag_name instead.
+          RELEASE_ID=$(gh api "repos/${{ github.repository }}/releases" \
+            --jq ".[] | select(.tag_name==\"${TAG}\") | .id")
+
+          if [ -z "$RELEASE_ID" ]; then
+            echo "::error::No release found for tag ${TAG}"
+            exit 1
+          fi
 
           gh api "repos/${{ github.repository }}/releases/${RELEASE_ID}" \
             --method PATCH \
             --field draft=false \
             --field make_latest=${{ !inputs.prerelease }}
 
-          echo "Release ${TAG} published"
+          echo "Release ${TAG} published (release_id=${RELEASE_ID})"
 
       - name: Step summary
         run: |

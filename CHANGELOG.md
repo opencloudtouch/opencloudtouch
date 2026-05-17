@@ -13,6 +13,14 @@ _No changes yet._
 
 ---
 
+## [1.2.8] - 2026-05-16
+
+### Added
+- restore-wizard): implement full restore wizard (005
+-  add post-release workflow for updating CHANGELOG and creating announcement discussions
+### Fixed
+- setup): prevent false-positive proxy detection in wizard (#184
+-  optimize Dockerfile with caching for apt and pip installations
 ## [1.1.1] - 2026-04-12
 
 ### Fixed

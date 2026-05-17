@@ -390,13 +390,15 @@ jobs:
             echo "**Frontend Coverage:** $FRONTEND_COV" >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: Fail if any job failed
+      - name: Fail if any core job failed
+        # NOTE: e2e-tests is NOT checked here — it has its own job status
+        # which keeps the overall run red when it fails. Summary only gates
+        # on core jobs to avoid redundant red marks.
         run: |
           if [[ "${{ needs.security.result }}" != "success" ]] || \
              [[ "${{ needs.format.result }}" != "success" ]] || \
              [[ "${{ needs.lint.result }}" != "success" ]] || \
              [[ "${{ needs.backend-tests.result }}" != "success" ]] || \
-             [[ "${{ needs.frontend-tests.result }}" != "success" ]] || \
-             [[ "${{ needs.e2e-tests.result }}" != "success" ]]; then
+             [[ "${{ needs.frontend-tests.result }}" != "success" ]]; then
             exit 1
           fi

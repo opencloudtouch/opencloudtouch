@@ -103,5 +103,6 @@ output = "../../.out/coverage/backend/coverage.xml"
 [tool.coverage.json]
 output = "../../.out/coverage/backend/coverage.json"
 
+
 [tool.ruff]
 cache-dir = "../../.out/.ruff_cache"

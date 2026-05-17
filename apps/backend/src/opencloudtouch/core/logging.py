@@ -8,26 +8,132 @@ import json
 import logging
 import sys
 from datetime import UTC, datetime
-from typing import Any, Dict, List
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from opencloudtouch.core.config import get_config
 
-# In-memory ring buffer: keeps the last 1000 formatted log entries
-# (~200 bytes/entry ≈ 200 KB RAM — fine for Raspberry Pi)
-_log_buffer: collections.deque[str] = collections.deque(maxlen=1000)
+# ---------------------------------------------------------------------------
+# Clustered ring buffer: each category gets its own 1000-entry deque.
+# This prevents noisy loggers (aiosqlite, bosesoundtouchapi) from
+# pushing diagnostic entries (marge, bmx, setup) out of the buffer.
+# 8 clusters × 1000 entries × ~214 bytes ≈ 1.7 MB RAM — fine for Pi.
+# ---------------------------------------------------------------------------
+
+CLUSTER_ENTRIES_PER_BUFFER = 1000
+
+CLUSTER_RULES: list[tuple[str, str]] = [
+    ("aiosqlite", "database"),
+    ("bosesoundtouchapi", "bose_api"),
+    ("opencloudtouch.devices", "devices"),
+    ("opencloudtouch.marge", "marge"),
+    ("opencloudtouch.bmx", "bmx"),
+    ("opencloudtouch.setup", "setup"),
+    ("opencloudtouch.presets", "presets"),
+]
+CLUSTER_DEFAULT = "general"
+
+CLUSTER_NAMES: list[str] = [rule[1] for rule in CLUSTER_RULES] + [CLUSTER_DEFAULT]
+
+# ---------------------------------------------------------------------------
+# Persistent cluster log files (opt-in via OCT_LOG_DIR)
+# RotatingFileHandler per cluster: maxBytes + backupCount
+# Noisy clusters (database, bose_api) only log WARNING+ to disk.
+# Max disk footprint: 8 × 500KB × 3 files = 12 MB
+# ---------------------------------------------------------------------------
+
+CLUSTER_FILE_MAX_BYTES = 512_000  # 500 KB per file
+CLUSTER_FILE_BACKUP_COUNT = 2  # .log + .log.1 + .log.2 = 3 files per cluster
+
+NOISY_CLUSTERS = frozenset({"database", "bose_api"})
+
+_log_clusters: Dict[str, collections.deque[str]] = {
+    name: collections.deque(maxlen=CLUSTER_ENTRIES_PER_BUFFER) for name in CLUSTER_NAMES
+}
+
+_persistent_log_dir: Optional[Path] = None
+
+
+def _resolve_cluster(logger_name: str) -> str:
+    for prefix, cluster in CLUSTER_RULES:
+        if logger_name.startswith(prefix):
+            return cluster
+    return CLUSTER_DEFAULT
 
 
 def get_log_entries() -> List[str]:
-    """Return a snapshot of the in-memory log buffer."""
-    return list(_log_buffer)
+    """Return all log entries merged across clusters (backward-compatible)."""
+    merged: list[str] = []
+    for entries in _log_clusters.values():
+        merged.extend(entries)
+    merged.sort()
+    return merged
 
 
-class MemoryLogHandler(logging.Handler):
-    """Logging handler that stores records in the module-level ring buffer."""
+def get_clustered_log_entries() -> Dict[str, List[str]]:
+    """Return a snapshot of each cluster's ring buffer."""
+    return {name: list(entries) for name, entries in _log_clusters.items()}
+
+
+def get_persistent_log_dir() -> Optional[Path]:
+    """Return the persistent log directory if configured, else None."""
+    return _persistent_log_dir
+
+
+class ClusterFileHandler(logging.Handler):
+    """Routes log records to per-cluster RotatingFileHandlers on disk.
+
+    Noisy clusters (database, bose_api) only accept WARNING+ to avoid
+    SD card wear. All other clusters log at the configured level.
+    """
+
+    def __init__(self, log_dir: Path, base_level: int) -> None:
+        super().__init__(level=base_level)
+        self._handlers: Dict[str, RotatingFileHandler] = {}
+        self._noisy_level = logging.WARNING
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        formatter = ContextFormatter(
+            fmt="%(asctime)s - %(levelname)-8s - %(name)-30s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+
+        for cluster_name in CLUSTER_NAMES:
+            file_path = log_dir / f"{cluster_name}.log"
+            rh = RotatingFileHandler(
+                str(file_path),
+                maxBytes=CLUSTER_FILE_MAX_BYTES,
+                backupCount=CLUSTER_FILE_BACKUP_COUNT,
+                encoding="utf-8",
+            )
+            rh.setFormatter(formatter)
+            self._handlers[cluster_name] = rh
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
-            _log_buffer.append(self.format(record))
+            cluster = _resolve_cluster(record.name)
+            if cluster in NOISY_CLUSTERS and record.levelno < self._noisy_level:
+                return
+            handler = self._handlers.get(cluster)
+            if handler:
+                handler.emit(record)
+        except Exception:  # pragma: no cover
+            self.handleError(record)
+
+    def close(self) -> None:
+        for handler in self._handlers.values():
+            handler.close()
+        super().close()
+
+
+class MemoryLogHandler(logging.Handler):
+    """Logging handler that routes records into category-specific ring buffers."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            cluster = _resolve_cluster(record.name)
+            _log_clusters[cluster].append(self.format(record))
         except Exception:  # pragma: no cover
             self.handleError(record)
 
@@ -89,6 +195,7 @@ class ContextFormatter(logging.Formatter):
 
 def setup_logging() -> None:
     """Configure application-wide logging."""
+    global _persistent_log_dir
     config = get_config()
 
     # Root logger configuration
@@ -126,7 +233,16 @@ def setup_logging() -> None:
     )
     root_logger.addHandler(memory_handler)
 
-    # Optional file handler
+    # Persistent cluster log files (opt-in via OCT_LOG_DIR)
+    if config.log_dir:
+        log_dir = Path(config.log_dir)
+        cluster_handler = ClusterFileHandler(
+            log_dir, base_level=getattr(logging, config.log_level, logging.INFO)
+        )
+        root_logger.addHandler(cluster_handler)
+        _persistent_log_dir = log_dir
+
+    # Optional single file handler (legacy)
     if config.log_file:
         file_handler = logging.FileHandler(config.log_file)
         file_handler.setLevel(config.log_level)
@@ -140,6 +256,7 @@ def setup_logging() -> None:
 
     logging.info(
         f"Logging configured: level={config.log_level}, format={config.log_format}"
+        + (f", log_dir={config.log_dir}" if config.log_dir else "")
     )
 
 
