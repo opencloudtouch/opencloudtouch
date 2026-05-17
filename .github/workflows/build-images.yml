@@ -692,6 +692,7 @@ jobs:
           merge-multiple: true
 
       - name: Get release tag
+        id: release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

@@ -6,10 +6,10 @@ import { useTranslation } from "react-i18next";
 import WizardStep from "./WizardStep";
 
 interface RestoreVerificationProps {
-  stepNumber: number;
-  deviceIp: string;
-  onVerified: () => void;
-  onPrevious: () => void;
+  readonly stepNumber: number;
+  readonly deviceIp: string;
+  readonly onVerified: () => void;
+  readonly onPrevious: () => void;
 }
 
 export default function RestoreVerification({

@@ -6,8 +6,8 @@ import { motion } from "framer-motion";
 import "./WizardChoice.css";
 
 interface WizardChoiceProps {
-  onSelectSetup: () => void;
-  onSelectRestore: () => void;
+  readonly onSelectSetup: () => void;
+  readonly onSelectRestore: () => void;
 }
 
 export default function WizardChoice({ onSelectSetup, onSelectRestore }: WizardChoiceProps) {

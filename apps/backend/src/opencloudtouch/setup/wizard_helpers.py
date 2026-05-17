@@ -5,6 +5,7 @@ across wizard route modules.
 """
 
 import logging
+import re
 import socket
 import ssl
 import urllib.request
@@ -15,6 +16,16 @@ from opencloudtouch.core.exceptions import SSHConnectionError, SSHOperationError
 from opencloudtouch.setup.ssh_client import SoundTouchSSHClient
 
 logger = logging.getLogger(__name__)
+
+# Hostname must be an IP address or valid DNS name — reject anything else
+_HOSTNAME_RE = re.compile(r"^[a-zA-Z0-9._:-]+$")
+
+
+def _sanitize_hostname(hostname: str) -> str:
+    """Validate hostname to prevent URL injection from user-controlled data."""
+    if not _HOSTNAME_RE.match(hostname):
+        raise ValueError(f"Invalid hostname: {hostname!r}")
+    return hostname
 
 
 @asynccontextmanager
@@ -99,7 +110,8 @@ def check_port_443(hostname: str) -> bool:
         # OCT's /health returns {"service": "opencloudtouch", ...}.
         # We match the unique "opencloudtouch" service identifier —
         # no other software will ever return this string.
-        url = f"https://{hostname}/health"
+        safe_host = _sanitize_hostname(hostname)
+        url = f"https://{safe_host}/health"
         req = urllib.request.Request(url, method="GET")
         with urllib.request.urlopen(
             req, timeout=5, context=ctx
