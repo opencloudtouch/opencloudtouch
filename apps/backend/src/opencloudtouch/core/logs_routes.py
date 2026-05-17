@@ -1,16 +1,21 @@
 """Log download and runtime log-level routes for OpenCloudTouch."""
 
 import datetime
+import io
 import logging
+import zipfile
+from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, Response
 from pydantic import BaseModel
 
 from opencloudtouch.core.logging import (
+    CLUSTER_NAMES,
+    get_clustered_log_entries,
     get_current_log_level,
-    get_log_entries,
+    get_persistent_log_dir,
     set_log_level,
 )
 
@@ -75,43 +80,112 @@ class LogDownloadRequest(BaseModel):
 
 @router.get(
     "/backend",
-    response_class=PlainTextResponse,
     summary="Download backend log buffer (without frontend logs)",
-    description="Returns backend logs only. Use POST to include frontend console logs.",
+    description="Returns backend logs as plain text, or ZIP if persistent log files exist.",
 )
-async def download_backend_logs_get(request: Request) -> PlainTextResponse:
+async def download_backend_logs_get(request: Request) -> Response:
     """GET handler for backward compatibility (no frontend logs)."""
     return await _build_log_response(request, frontend_logs=[])
 
 
 @router.post(
     "/backend",
-    response_class=PlainTextResponse,
     summary="Download backend + frontend logs",
-    description="Returns backend logs with frontend console logs included.",
+    description="Returns backend + frontend logs as plain text, or ZIP if persistent log files exist.",
 )
 async def download_backend_logs_post(
     request: Request, body: LogDownloadRequest
-) -> PlainTextResponse:
+) -> Response:
     """POST handler that accepts frontend logs in the request body."""
     return await _build_log_response(request, frontend_logs=body.frontend_logs)
 
 
 async def _build_log_response(
     request: Request, frontend_logs: list[FrontendLogEntry]
-) -> PlainTextResponse:
-    entries = get_log_entries()
+) -> Response:
+    log_dir = get_persistent_log_dir()
+    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
-    # --- Section 1: Backend Ring Buffer ---
-    content = "=" * 80
-    content += f"\n BACKEND LOG BUFFER ({len(entries)} entries, max 1000)"
-    content += "\n" + "=" * 80 + "\n\n"
-    content += (
-        "\n".join(entries) if entries else "(no backend log entries captured yet)"
+    if log_dir and log_dir.exists():
+        return await _build_zip_response(request, frontend_logs, log_dir, timestamp)
+    return await _build_plaintext_response(request, frontend_logs, timestamp)
+
+
+async def _build_plaintext_response(
+    request: Request,
+    frontend_logs: list[FrontendLogEntry],
+    timestamp: str,
+) -> PlainTextResponse:
+    content = _build_ram_buffer_text()
+    content += _build_frontend_section(frontend_logs)
+    content += await _build_audit_trail_section(request)
+
+    filename = f"oct-backend-{timestamp}.log"
+    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+    logger.debug("Backend log download (plain text)")
+    return PlainTextResponse(content=content, headers=headers)
+
+
+async def _build_zip_response(
+    request: Request,
+    frontend_logs: list[FrontendLogEntry],
+    log_dir: Path,
+    timestamp: str,
+) -> Response:
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        # Add persistent cluster log files (including rotated backups)
+        for log_file in sorted(log_dir.glob("*.log*")):
+            if log_file.is_file():
+                zf.write(str(log_file), f"logs/{log_file.name}")
+
+        # Add in-memory ring buffer as ram-buffer.log
+        ram_text = _build_ram_buffer_text()
+        zf.writestr("ram-buffer.log", ram_text)
+
+        # Add frontend logs
+        if frontend_logs:
+            frontend_text = "".join(
+                f"[{e.timestamp}] {e.level}: {e.message}\n" for e in frontend_logs
+            )
+            zf.writestr("frontend-console.log", frontend_text)
+
+        # Add audit trail
+        audit_text = await _build_audit_trail_section(request)
+        zf.writestr("wizard-audit.log", audit_text)
+
+    buf.seek(0)
+    filename = f"oct-logs-{timestamp}.zip"
+    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+    logger.debug("Backend log download (ZIP with persistent logs)")
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/zip",
+        headers=headers,
     )
 
-    # --- Section 2: Frontend Console Logs ---
-    content += "\n\n" + "=" * 80
+
+def _build_ram_buffer_text() -> str:
+    clusters = get_clustered_log_entries()
+    total = sum(len(v) for v in clusters.values())
+
+    content = "=" * 80
+    content += f"\n BACKEND LOG BUFFER — CLUSTERED ({total} entries total)"
+    content += "\n" + "=" * 80 + "\n"
+
+    for cluster_name in CLUSTER_NAMES:
+        entries = clusters.get(cluster_name, [])
+        content += "\n" + "-" * 60
+        content += f"\n [{cluster_name.upper()}] ({len(entries)} entries, max 1000)"
+        content += "\n" + "-" * 60 + "\n"
+        content += "\n".join(entries) if entries else "(empty)"
+        content += "\n"
+
+    return content
+
+
+def _build_frontend_section(frontend_logs: list[FrontendLogEntry]) -> str:
+    content = "\n\n" + "=" * 80
     content += f"\n FRONTEND CONSOLE LOGS ({len(frontend_logs)} entries, max 500)"
     content += "\n" + "=" * 80 + "\n\n"
     if frontend_logs:
@@ -122,15 +196,7 @@ async def _build_log_response(
     else:
         content += "(no frontend logs received — use the Download button in Settings\n"
         content += " or the Bug Report button to include browser console logs)\n"
-
-    # --- Section 3: Wizard Audit Trail ---
-    content += await _build_audit_trail_section(request)
-
-    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    filename = f"oct-backend-{timestamp}.log"
-    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
-    logger.debug("Backend log download requested: %d entries", len(entries))
-    return PlainTextResponse(content=content, headers=headers)
+    return content
 
 
 async def _build_audit_trail_section(request: Request) -> str:

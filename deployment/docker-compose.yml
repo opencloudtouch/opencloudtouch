@@ -9,11 +9,13 @@ services:
     network_mode: host
     volumes:
       - oct-data:/data
+      - oct-logs:/logs
     environment:
       - OCT_HOST=0.0.0.0
       - OCT_PORT=7777
       - OCT_DB_PATH=/data/oct.db
       - OCT_LOG_LEVEL=INFO
+      - OCT_LOG_DIR=/logs
       - OCT_MOCK_MODE=false  # Production: Use real devices
       - OCT_DISCOVERY_ENABLED=true
       - OCT_DISCOVERY_TIMEOUT=3
@@ -30,4 +32,6 @@ services:
 
 volumes:
   oct-data:
+    driver: local
+  oct-logs:
     driver: local

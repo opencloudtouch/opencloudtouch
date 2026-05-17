@@ -1,4 +1,4 @@
-"""Legacy BMX Resolve Endpoint.
+﻿"""Legacy BMX Resolve Endpoint.
 
 Extracted from bmx/routes.py (STORY-306): POST /bmx/resolve and its
 XML helper functions live here to keep bmx/routes.py under 200 lines.
@@ -25,7 +25,7 @@ resolve_router = APIRouter(tags=["bmx"])
 
 def _get_elem_text(elem: Element | None, default: str) -> str:
     """Return element text or default if element is None."""
-    return elem.text if elem is not None else default
+    return (elem.text or default) if elem is not None else default
 
 
 def _build_oct_resolved_xml(
@@ -52,10 +52,12 @@ def _build_oct_resolved_xml(
     preset_number = match.group(2)
     oct_url = os.getenv(
         "OCT_BACKEND_URL", "http://content.api.bose.io:7777"
-    )  # NOSONAR — Bose devices use HTTP
+    )  # NOSONAR â€” Bose devices use HTTP
     resolved_url = f"{oct_url}/device/{device_id}/preset/{preset_number}"
 
-    logger.info("[BMX RESOLVE] OCT location resolved: %s → %s", location, resolved_url)
+    logger.info(
+        "[BMX RESOLVE] OCT location resolved: %s â†’ %s", location, resolved_url
+    )
     logger.debug(
         "[BMX RESOLVE] Resolved details: device=%s, preset=%s, item=%s, station=%s",
         device_id,
@@ -96,9 +98,9 @@ async def resolve_stream(request: Request) -> Response:
     """Resolve ContentItem to playable stream URL.
 
     Bose devices call this endpoint with a ContentItem XML to resolve:
-    - TuneIn station IDs → direct stream URLs
-    - Direct stream URLs → pass through
-    - OCT stream proxy URLs → pass through
+    - TuneIn station IDs â†’ direct stream URLs
+    - Direct stream URLs â†’ pass through
+    - OCT stream proxy URLs â†’ pass through
 
     This mimics the original Bose BMX server (bmx.bose.com).
     """
