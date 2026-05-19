@@ -158,3 +158,94 @@ async def ensure_account_uuid(
         uuid,
     )
     return await set_account_uuid_via_telnet(device_ip, uuid, telnet_port)
+
+
+async def ensure_account_uuid_unique(
+    device_ip: str,
+    device_id: str,
+    device_repo,
+    device_port: int = _DEFAULT_DEVICE_HTTP_PORT,
+    telnet_port: int = _DEFAULT_TELNET_PORT,
+    max_retries: int = 5,
+) -> AccountPairingResult:
+    """Ensure device has a unique margeAccountUUID with collision detection.
+
+    Unlike ensure_account_uuid() which only checks presence, this function
+    also verifies the UUID is not used by another device in the OCT database.
+
+    Flow:
+    1. GET /info -> read existing UUID
+    2. If UUID exists: check for collision in device_repo
+    3. If collision or no UUID: generate new, set via Telnet
+    4. Retry if generated UUID also collides (up to max_retries)
+
+    Args:
+        device_ip: Device IP address
+        device_id: Device MAC address (stable identifier)
+        device_repo: Device repository for collision detection
+        device_port: Device HTTP API port
+        telnet_port: Device Telnet port
+        max_retries: Max attempts if generated UUID collides
+
+    Returns:
+        AccountPairingResult with collision info
+    """
+    existing = await check_marge_account_uuid(device_ip, device_port)
+
+    if existing:
+        # Check if another device owns this UUID
+        owner = await device_repo.get_by_account_uuid(existing)
+        if owner is None or owner.device_id == device_id:
+            # UUID is unique (or belongs to this device already)
+            logger.info("Device %s has unique UUID=%s", device_id, existing)
+            return AccountPairingResult(
+                success=True,
+                had_uuid=True,
+                uuid=existing,
+                message=f"Device has unique account UUID: {existing}",
+            )
+
+        # Collision: another device owns this UUID
+        logger.warning(
+            "UUID collision: %s owns UUID=%s, generating new for %s",
+            owner.device_id,
+            existing,
+            device_id,
+        )
+
+    # Generate new UUID (with collision retry)
+    for attempt in range(1, max_retries + 1):
+        new_uuid = _generate_account_uuid()
+
+        # Check if the new UUID is already taken
+        collision = await device_repo.get_by_account_uuid(new_uuid)
+        if collision is not None and collision.device_id != device_id:
+            logger.warning(
+                "Generated UUID=%s also collides (attempt %d/%d)",
+                new_uuid,
+                attempt,
+                max_retries,
+            )
+            if attempt == max_retries:
+                return AccountPairingResult(
+                    success=False,
+                    had_uuid=existing is not None,
+                    error=f"UUID collision after {max_retries} attempts",
+                )
+            continue
+
+        # Set via Telnet
+        result = await set_account_uuid_via_telnet(device_ip, new_uuid, telnet_port)
+        if not result.success:
+            return result
+
+        # Override had_uuid to reflect original state
+        result.had_uuid = existing is not None
+        return result
+
+    # Should not reach here, but satisfy type checker
+    return AccountPairingResult(
+        success=False,
+        had_uuid=existing is not None,
+        error="UUID generation exhausted",
+    )

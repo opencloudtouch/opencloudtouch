@@ -24,6 +24,8 @@ from opencloudtouch.setup.api_models import (
     DetectStrategyResponse,
     EnsureAccountRequest,
     EnsureAccountResponse,
+    FinalizeRequest,
+    FinalizeResponse,
     InitPersistenceRequest,
     InitPersistenceResponse,
     HostsModifyRequest,
@@ -41,6 +43,8 @@ from opencloudtouch.setup.api_models import (
     RestoreStepResponse,
     VerifyRedirectRequest,
     VerifyRedirectResponse,
+    VerifySetupRequest,
+    VerifySetupResponse,
     WizardCompleteRequest,
     WizardCompleteResponse,
     AccountPairingRequest,
@@ -439,6 +443,76 @@ async def wizard_verify_redirect(
         expected_ip=result["expected_ip"],
         matches_expected=result["matches_expected"],
         message=result["message"],
+    )
+
+
+@wizard_router.post(
+    "/wizard/finalize",
+    response_model=FinalizeResponse,
+    responses={500: {"description": "Finalization failed"}},
+)
+async def wizard_finalize(
+    request: FinalizeRequest,
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
+):
+    """Finalize device setup: set UUID + write Sources.xml (Issue #184).
+
+    Atomic operation that ensures the device has a unique margeAccountUUID
+    and a complete Sources.xml. Safe to call multiple times (idempotent).
+    """
+    logger.info("Finalizing device %s (%s)", request.device_id, request.device_ip)
+
+    result = await wizard.finalize_device(request.device_ip, request.device_id)
+
+    if not result["success"]:
+        return FinalizeResponse(
+            success=False,
+            error=result.get("error", "Finalization failed"),
+        )
+
+    return FinalizeResponse(
+        success=True,
+        uuid=result.get("uuid", ""),
+        had_uuid=result.get("had_uuid", False),
+        uuid_was_collision=result.get("uuid_was_collision", False),
+        sources_written=result.get("sources_written", False),
+        sources_backup_path=result.get("sources_backup_path", ""),
+        system_config_written=result.get("system_config_written", False),
+        message=result.get("message", ""),
+    )
+
+
+@wizard_router.post(
+    "/wizard/verify-setup",
+    response_model=VerifySetupResponse,
+    responses={500: {"description": "Verification failed"}},
+)
+async def wizard_verify_setup(
+    request: VerifySetupRequest,
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
+):
+    """Comprehensive post-setup health check (Issue #184).
+
+    Read-only validation: checks UUID, Sources.xml, config files,
+    hosts entries, and SystemConfigurationDB.xml. Never modifies device.
+    """
+    logger.info(
+        "Verifying setup for %s (%s, expected OCT IP: %s)",
+        request.device_id,
+        request.device_ip,
+        request.expected_oct_ip,
+    )
+
+    result = await wizard.verify_setup(
+        request.device_ip, request.device_id, request.expected_oct_ip
+    )
+
+    return VerifySetupResponse(
+        success=result["success"],
+        checks=result.get("checks", []),
+        passed_count=result.get("passed_count", 0),
+        failed_count=result.get("failed_count", 0),
+        message=result.get("message", ""),
     )
 
 

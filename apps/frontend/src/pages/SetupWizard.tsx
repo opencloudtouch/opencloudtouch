@@ -450,6 +450,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
         return (
           <Step7Verification
             deviceIp={selectedDevice?.ip || ""}
+            deviceId={selectedDevice?.device_id || ""}
             deviceName={selectedDevice?.name || "Device"}
             octIp={octIp}
             onNext={handleNext}

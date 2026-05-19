@@ -434,3 +434,59 @@ class RestoreWizardResponse(BaseModel):
     snapshot_skipped: bool = False
     device_rebooted: bool = False
     total_duration_seconds: float = 0.0
+
+
+# ============================================================================
+# Finalize & Verify Models (Issue #184 — post-wizard device setup)
+# ============================================================================
+
+
+class FinalizeRequest(WizardDeviceRequest):
+    """Request to finalize device setup (UUID + Sources.xml)."""
+
+    device_id: str = Field(..., description="Device ID (MAC address)")
+
+
+class FinalizeResponse(BaseModel):
+    """Response from device finalization."""
+
+    success: bool
+    uuid: str = ""
+    had_uuid: bool = False
+    uuid_was_collision: bool = False
+    sources_written: bool = False
+    sources_backup_path: str = ""
+    system_config_written: bool = False
+    message: str = ""
+    error: Optional[str] = None
+
+
+class VerifyCheck(BaseModel):
+    """Single verification check result."""
+
+    name: str
+    passed: bool
+    message: str
+    details: dict = Field(default_factory=dict)
+
+
+class VerifySetupRequest(WizardDeviceRequest):
+    """Request to verify device setup completeness."""
+
+    device_id: str = Field(..., description="Device ID (MAC address)")
+    expected_oct_ip: str = Field(..., description="Expected OCT server IP")
+
+    @field_validator("expected_oct_ip")
+    @classmethod
+    def validate_oct_ip(cls, v: str) -> str:
+        return _validate_ip_field(v)
+
+
+class VerifySetupResponse(BaseModel):
+    """Response from device setup verification."""
+
+    success: bool
+    checks: list[VerifyCheck] = Field(default_factory=list)
+    passed_count: int = 0
+    failed_count: int = 0
+    message: str = ""

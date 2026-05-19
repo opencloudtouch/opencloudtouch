@@ -77,8 +77,91 @@ _SOURCES_XML = """\
     <source displayName="TUNEIN" secret="" secretType="token">
         <sourceKey type="TUNEIN" account="" />
     </source>
+    <source displayName="BLUETOOTH" secret="" secretType="">
+        <sourceKey type="BLUETOOTH" account="" />
+    </source>
+    <source displayName="STORED_MUSIC" secret="" secretType="">
+        <sourceKey type="STORED_MUSIC" account="" />
+    </source>
 </sources>
 """
+
+# Source types that firmware requires for preset playback
+REQUIRED_SOURCE_TYPES = {
+    "AUX",
+    "LOCAL_INTERNET_RADIO",
+    "TUNEIN",
+    "BLUETOOTH",
+    "STORED_MUSIC",
+}
+
+
+@dataclass
+class ForceWriteResult:
+    """Result of a force-write operation."""
+
+    success: bool
+    backup_path: str = ""
+    written_path: str = ""
+    had_existing: bool = False
+    message: str = ""
+    error: Optional[str] = None
+
+
+async def force_write_sources_xml(
+    ssh: SoundTouchSSHClient,
+    backup: bool = True,
+) -> ForceWriteResult:
+    """Force-write Sources.xml with the full template, backing up existing file.
+
+    Unlike ensure_persistence_files() which skips existing files, this
+    function ALWAYS overwrites -- needed when existing Sources.xml is
+    incomplete (e.g. only has AUX, missing TUNEIN).
+
+    Args:
+        ssh: Connected SSH client (filesystem must be mounted rw)
+        backup: If True, back up existing file to Sources.xml.bak
+
+    Returns:
+        ForceWriteResult with backup path and written path
+    """
+    path = f"{_PERSISTENCE_DIR}/Sources.xml"
+    backup_path = f"{path}.bak"
+    had_existing = False
+
+    try:
+        await ssh.execute(f"mkdir -p {_PERSISTENCE_DIR}")
+        had_existing = await _file_exists(ssh, path)
+
+        if had_existing and backup:
+            result = await ssh.execute(f"cp {path} {backup_path}")
+            if not result.success:
+                logger.warning("Failed to backup Sources.xml: %s", result.error)
+
+        await _write_file_atomic(ssh, path, _SOURCES_XML)
+        logger.info(
+            "Force-wrote Sources.xml (backup=%s, had_existing=%s)",
+            backup,
+            had_existing,
+        )
+
+        return ForceWriteResult(
+            success=True,
+            backup_path=backup_path if had_existing and backup else "",
+            written_path=path,
+            had_existing=had_existing,
+            message=(
+                f"Sources.xml written to {path}"
+                + (f" (backup: {backup_path})" if had_existing else "")
+            ),
+        )
+    except Exception as e:
+        logger.exception("Failed to force-write Sources.xml")
+        return ForceWriteResult(
+            success=False,
+            had_existing=had_existing,
+            error=str(e),
+        )
 
 
 async def _file_exists(ssh: SoundTouchSSHClient, path: str) -> bool:

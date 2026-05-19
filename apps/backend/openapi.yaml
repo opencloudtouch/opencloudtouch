@@ -2489,6 +2489,59 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/finalize:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Finalize Device
+      description: Finalize device setup by ensuring UUID, writing Sources.xml,
+        and creating SystemConfigurationDB.xml.
+      operationId: wizard_finalize_api_setup_wizard_finalize_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinalizeRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinalizeResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/verify-setup:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Verify Setup
+      description: Run read-only verification checks on device setup completeness.
+      operationId: wizard_verify_setup_api_setup_wizard_verify_setup_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifySetupRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifySetupResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /updates/soundtouch:
     get:
       tags:
@@ -4236,6 +4289,125 @@ components:
       - message
       title: VerifyRedirectResponse
       description: Response with domain redirect verification result.
+    FinalizeRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+        device_id:
+          type: string
+          description: Device ID (MAC address)
+          title: Device Id
+      type: object
+      required:
+      - device_ip
+      - device_id
+      title: FinalizeRequest
+    FinalizeResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        uuid:
+          type: string
+          title: Uuid
+          default: ''
+        had_uuid:
+          type: boolean
+          title: Had Uuid
+          default: false
+        uuid_was_collision:
+          type: boolean
+          title: Uuid Was Collision
+          default: false
+        sources_written:
+          type: boolean
+          title: Sources Written
+          default: false
+        sources_backup_path:
+          type: string
+          title: Sources Backup Path
+          default: ''
+        system_config_written:
+          type: boolean
+          title: System Config Written
+          default: false
+        message:
+          type: string
+          title: Message
+          default: ''
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+      type: object
+      required:
+      - success
+      title: FinalizeResponse
+    VerifyCheck:
+      properties:
+        name:
+          type: string
+          title: Name
+        passed:
+          type: boolean
+          title: Passed
+        message:
+          type: string
+          title: Message
+        details:
+          type: object
+          title: Details
+          default: {}
+      type: object
+      required:
+      - name
+      - passed
+      - message
+      title: VerifyCheck
+    VerifySetupRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+        device_id:
+          type: string
+          description: Device ID (MAC address)
+          title: Device Id
+        expected_oct_ip:
+          type: string
+          description: Expected OCT server IP
+          title: Expected Oct Ip
+      type: object
+      required:
+      - device_ip
+      - device_id
+      - expected_oct_ip
+      title: VerifySetupRequest
+    VerifySetupResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        checks:
+          items:
+            $ref: '#/components/schemas/VerifyCheck'
+          type: array
+          title: Checks
+          default: []
+        passed_count:
+          type: integer
+          title: Passed Count
+          default: 0
+        total_count:
+          type: integer
+          title: Total Count
+          default: 0
+      type: object
+      required:
+      - success
+      title: VerifySetupResponse
     WizardCompleteRequest:
       properties:
         device_id:
