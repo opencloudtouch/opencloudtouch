@@ -69,35 +69,45 @@ jobs:
         id: platforms
         run: |
           # Docker platforms
-          DOCKER_PLATFORMS='[]'
-          ITEMS=()
-          if [ "${{ inputs.docker_amd64 }}" = "true" ]; then ITEMS+='"linux/amd64"'; fi
-          if [ "${{ inputs.docker_arm64 }}" = "true" ]; then ITEMS+='"linux/arm64"'; fi
-          if [ "${{ inputs.docker_armv7 }}" = "true" ]; then ITEMS+='"linux/arm/v7"'; fi
-
-          if [ ${#ITEMS[@]} -gt 0 ]; then
-            DOCKER_PLATFORMS="[$(IFS=,; echo "${ITEMS[*]}")]"
-            echo "has_docker=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_docker=false" >> "$GITHUB_OUTPUT"
+          DOCKER_LIST=""
+          if [ "${{ inputs.docker_amd64 }}" = "true" ]; then
+            DOCKER_LIST="${DOCKER_LIST:+$DOCKER_LIST,}\"linux/amd64\""
           fi
-          echo "docker_platforms=$DOCKER_PLATFORMS" >> "$GITHUB_OUTPUT"
-          echo "Docker platforms: $DOCKER_PLATFORMS"
+          if [ "${{ inputs.docker_arm64 }}" = "true" ]; then
+            DOCKER_LIST="${DOCKER_LIST:+$DOCKER_LIST,}\"linux/arm64\""
+          fi
+          if [ "${{ inputs.docker_armv7 }}" = "true" ]; then
+            DOCKER_LIST="${DOCKER_LIST:+$DOCKER_LIST,}\"linux/arm/v7\""
+          fi
+
+          if [ -n "$DOCKER_LIST" ]; then
+            echo "docker_platforms=[${DOCKER_LIST}]" >> "$GITHUB_OUTPUT"
+            echo "has_docker=true" >> "$GITHUB_OUTPUT"
+            echo "Docker platforms: [${DOCKER_LIST}]"
+          else
+            echo "docker_platforms=[]" >> "$GITHUB_OUTPUT"
+            echo "has_docker=false" >> "$GITHUB_OUTPUT"
+            echo "Docker platforms: none"
+          fi
 
           # Raspi architectures
-          RASPI_ARCHS='[]'
-          RITEMS=()
-          if [ "${{ inputs.raspi_arm64 }}" = "true" ]; then RITEMS+='"arm64"'; fi
-          if [ "${{ inputs.raspi_armhf }}" = "true" ]; then RITEMS+='"armhf"'; fi
-
-          if [ ${#RITEMS[@]} -gt 0 ]; then
-            RASPI_ARCHS="[$(IFS=,; echo "${RITEMS[*]}")]"
-            echo "has_raspi=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_raspi=false" >> "$GITHUB_OUTPUT"
+          RASPI_LIST=""
+          if [ "${{ inputs.raspi_arm64 }}" = "true" ]; then
+            RASPI_LIST="${RASPI_LIST:+$RASPI_LIST,}\"arm64\""
           fi
-          echo "raspi_archs=$RASPI_ARCHS" >> "$GITHUB_OUTPUT"
-          echo "Raspi architectures: $RASPI_ARCHS"
+          if [ "${{ inputs.raspi_armhf }}" = "true" ]; then
+            RASPI_LIST="${RASPI_LIST:+$RASPI_LIST,}\"armhf\""
+          fi
+
+          if [ -n "$RASPI_LIST" ]; then
+            echo "raspi_archs=[${RASPI_LIST}]" >> "$GITHUB_OUTPUT"
+            echo "has_raspi=true" >> "$GITHUB_OUTPUT"
+            echo "Raspi architectures: [${RASPI_LIST}]"
+          else
+            echo "raspi_archs=[]" >> "$GITHUB_OUTPUT"
+            echo "has_raspi=false" >> "$GITHUB_OUTPUT"
+            echo "Raspi architectures: none"
+          fi
 
       - name: Check at least one target selected
         run: |
