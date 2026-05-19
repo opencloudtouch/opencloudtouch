@@ -251,7 +251,7 @@ class WizardService:
             await ssh_client.close()
 
     async def ensure_account_pairing(self, device_ip: str, device_id: str) -> dict:
-        """Ensure device has a margeAccountUUID - set one via Telnet if missing.
+        """Ensure device has a margeAccountUUID — set one via SSH if missing.
 
         After pairing, persists the UUID to the device repository so the
         streaming endpoint can resolve account_id -> device_id.
@@ -431,6 +431,9 @@ class WizardService:
                         await _write_file_atomic(ssh, sys_config_path, xml_content)
                         sys_config_written = True
                         logger.info("Created SystemConfigurationDB.xml")
+
+                    # Verify SystemConfigurationDB.xml content
+                    verification = await self._verify_sys_config(ssh, uuid_result.uuid)
                 finally:
                     await ssh.execute("sync")
                     await ssh.execute("mount -o remount,ro /")
@@ -443,6 +446,7 @@ class WizardService:
                 "sources_written": sources_result.success,
                 "sources_backup_path": sources_result.backup_path,
                 "system_config_written": sys_config_written,
+                "verification": verification,
                 "message": (
                     f"Device finalized: UUID={uuid_result.uuid}, "
                     f"Sources={'written' if sources_result.success else 'FAILED'}, "
@@ -464,6 +468,58 @@ class WizardService:
                 "message": "",
                 "error": f"Finalize failed: {e}",
             }
+
+    @staticmethod
+    async def _verify_sys_config(ssh: SoundTouchSSHClient, expected_uuid: str) -> dict:
+        """Read back SystemConfigurationDB.xml and verify UUID, acctMode, isMultiDeviceAccount."""
+        sys_config_path = f"{_PERSISTENCE_DIR}/SystemConfigurationDB.xml"
+        result = await ssh.execute(f"cat {sys_config_path} 2>/dev/null")
+        if not result.success or not result.output:
+            logger.warning("Verification: SystemConfigurationDB.xml not readable")
+            return {"passed": False, "error": "File not readable"}
+
+        content = result.output.strip()
+        checks = {}
+
+        try:
+            root = ET.fromstring(content)
+
+            uuid_elem = root.find("AccountUUID")
+            uuid_val = (
+                uuid_elem.text.strip()
+                if uuid_elem is not None and uuid_elem.text
+                else ""
+            )
+            checks["uuid_match"] = uuid_val == expected_uuid
+            if not checks["uuid_match"]:
+                logger.warning(
+                    "Verification: UUID mismatch — expected=%s, got=%s",
+                    expected_uuid,
+                    uuid_val,
+                )
+
+            acct_elem = root.find("acctMode")
+            acct_val = (
+                acct_elem.text.strip()
+                if acct_elem is not None and acct_elem.text
+                else ""
+            )
+            checks["acct_mode_global"] = acct_val == "global"
+
+            multi_elem = root.find("isMultiDeviceAccount")
+            multi_val = (
+                multi_elem.text.strip()
+                if multi_elem is not None and multi_elem.text
+                else ""
+            )
+            checks["multi_device"] = multi_val == "true"
+
+            checks["passed"] = all(checks.values())
+        except Exception as e:
+            logger.warning("Verification: XML parse failed: %s", e)
+            return {"passed": False, "error": f"XML parse failed: {e}"}
+
+        return checks
 
     async def verify_setup(
         self, device_ip: str, device_id: str, expected_oct_ip: str
@@ -704,21 +760,43 @@ class WizardService:
                 else:
                     _add("hosts_ip_correct", False, "Skipped: no OCT block", {})
 
-                # Check 10: SystemConfigurationDB.xml present
+                # Check 10: SystemConfigurationDB.xml present + UUID verification
                 sys_config_path = f"{_PERSISTENCE_DIR}/SystemConfigurationDB.xml"
                 r = await ssh.execute(
                     f"test -f {sys_config_path} && echo exists || echo missing"
                 )
+                sys_config_exists = "exists" in (r.output or "")
                 _add(
                     "system_config_present",
-                    "exists" in (r.output or ""),
+                    sys_config_exists,
                     (
                         "SystemConfigurationDB.xml present"
-                        if "exists" in (r.output or "")
+                        if sys_config_exists
                         else "SystemConfigurationDB.xml missing. Device may not initialize properly."
                     ),
                     {},
                 )
+
+                # Check 11: UUID in SystemConfigurationDB.xml matches DB
+                if sys_config_exists and device_uuid:
+                    verification = await self._verify_sys_config(ssh, device_uuid)
+                    uuid_file_match = verification.get("uuid_match", False)
+                    _add(
+                        "system_config_uuid_match",
+                        uuid_file_match,
+                        (
+                            "UUID in SystemConfigurationDB.xml matches device"
+                            if uuid_file_match
+                            else "UUID in SystemConfigurationDB.xml does not match device UUID"
+                        ),
+                        verification,
+                    )
+                elif not sys_config_exists:
+                    _add("system_config_uuid_match", False, "Skipped: file missing", {})
+                else:
+                    _add(
+                        "system_config_uuid_match", False, "Skipped: no device UUID", {}
+                    )
 
         except Exception as e:
             logger.exception("Verify setup failed for %s: %s", device_ip, e)

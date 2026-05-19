@@ -31,6 +31,13 @@ BOSE_CONFIG = """<?xml version="1.0" ?>
   <bmxRegistryUrl>https://bmx.bose.com</bmxRegistryUrl>
 </SoundTouchSdkPrivateCfg>"""
 
+GOOD_SYS_CONFIG = """<?xml version="1.0" encoding="UTF-8" ?>
+<SystemConfiguration>
+    <AccountUUID>5448503</AccountUUID>
+    <acctMode>global</acctMode>
+    <isMultiDeviceAccount>true</isMultiDeviceAccount>
+</SystemConfiguration>"""
+
 GOOD_HOSTS = """127.0.0.1 localhost
 # OCT-START
 192.168.1.50 bose.vtuner.com
@@ -91,6 +98,7 @@ class TestVerifySetupAllPass:
                 "cat /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml": GOOD_CONFIG,
                 "cat /etc/hosts": GOOD_HOSTS,
                 f"test -f {_PERSISTENCE_DIR}/SystemConfigurationDB.xml": "exists",
+                f"cat {_PERSISTENCE_DIR}/SystemConfigurationDB.xml": GOOD_SYS_CONFIG,
             }
         )
 
@@ -113,7 +121,7 @@ class TestVerifySetupAllPass:
 
         assert result["success"] is True
         assert result["failed_count"] == 0
-        assert result["passed_count"] == 10
+        assert result["passed_count"] == 11
 
 
 class TestVerifyUUIDMissing:

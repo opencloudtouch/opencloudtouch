@@ -47,7 +47,7 @@ class TestFinalizeDeviceNoUUID:
                     success=True,
                     had_uuid=False,
                     uuid="1234567",
-                    message="UUID set via Telnet",
+                    message="UUID set via SSH",
                 ),
             ),
             patch(
@@ -209,13 +209,13 @@ class TestFinalizeDeviceUUIDFails:
             return_value=AccountPairingResult(
                 success=False,
                 had_uuid=False,
-                error="Telnet failed",
+                error="SSH failed",
             ),
         ):
             result = await service.finalize_device("192.168.1.100", "AABBCCDDEEFF")
 
             assert result["success"] is False
-            assert "Telnet failed" in result["error"]
+            assert "SSH failed" in result["error"]
 
 
 class TestFinalizeDeviceNoRepo:
