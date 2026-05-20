@@ -240,12 +240,24 @@ describe("Wizard Step 6 — Hosts Modification (emoji rendering)", () => {
 describe("Wizard Step 7 — Verification (emoji rendering)", () => {
   beforeEach(() => {
     setupWizardMocks();
+    cy.intercept("POST", "/api/setup/wizard/finalize", {
+      statusCode: 200,
+      body: { success: true, uuid: "test-uuid-1234", had_uuid: false, uuid_was_collision: false, sources_written: true, sources_backup_path: "/tmp/backup", system_config_written: true, message: "Device finalized" },
+    }).as("finalizeDevice");
+    cy.intercept("POST", "/api/setup/wizard/verify-setup", {
+      statusCode: 200,
+      body: { success: true, checks: [{ name: "uuid", passed: true, message: "UUID set", details: {} }], passed_count: 1, failed_count: 0, message: "All checks passed" },
+    }).as("verifySetup");
     cy.intercept("POST", "/api/setup/wizard/verify-redirect", {
       statusCode: 200,
       body: { success: true, resolved_ip: "192.168.1.100", expected_ip: "192.168.1.100", matches_expected: true, message: "OK" },
     }).as("verifyRedirect");
     cy.visit(`${FRONTEND_BASE}/setup-wizard?step=7&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
     cy.wait("@getDevices");
+    // Click Finalize to transition setupPhase from idle to dns
+    cy.contains("button", "Finalize Device Setup").click();
+    cy.wait("@finalizeDevice");
+    cy.wait("@verifySetup");
   });
 
   it("does not render any mojibake characters", () => {
