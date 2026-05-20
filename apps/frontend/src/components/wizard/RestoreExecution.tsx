@@ -12,13 +12,13 @@ import type {
 import { useEffect } from "react";
 
 interface RestoreExecutionProps {
-  stepNumber: number;
-  deviceIp: string;
-  deviceId: string;
-  restoreType: "backup" | "clean";
-  backupSet: BackupSetResponse | null;
-  onComplete: (steps: RestoreStepResponse[]) => void;
-  onPrevious: () => void;
+  readonly stepNumber: number;
+  readonly deviceIp: string;
+  readonly deviceId: string;
+  readonly restoreType: "backup" | "clean";
+  readonly backupSet: BackupSetResponse | null;
+  readonly onComplete: (steps: RestoreStepResponse[]) => void;
+  readonly onPrevious: () => void;
 }
 
 const STEP_LABELS: Record<string, string> = {
@@ -75,7 +75,7 @@ export default function RestoreExecution({
       stepNumber={stepNumber}
       title={t("restore.execution.title", "Restoring Device")}
       description={t("restore.execution.description", "Undoing all OCT modifications...")}
-      onPrevious={!isPending ? onPrevious : undefined}
+      onPrevious={isPending ? undefined : onPrevious}
       onNext={data?.success ? () => onComplete(data.steps) : undefined}
       isNextDisabled={!data?.success}
       isLoading={isPending}

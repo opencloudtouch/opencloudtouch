@@ -395,6 +395,65 @@ async def test_delete_all_without_initialization():
         await repo.delete_all()
 
 
+# ---------------------------------------------------------------------------
+# Marge Account UUID operations
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_update_and_get_by_account_uuid(repo):
+    """update_marge_account_uuid persists UUID and get_by_account_uuid retrieves it."""
+    device = Device(
+        device_id="UUID_TEST",
+        ip="10.0.0.1",
+        name="UUID Device",
+        model="SoundTouch 20",
+        mac_address="11:22:33:44:55:66",
+        firmware_version="2.0",
+    )
+    await repo.upsert(device)
+
+    await repo.update_marge_account_uuid("UUID_TEST", "5522049")
+
+    found = await repo.get_by_account_uuid("5522049")
+    assert found is not None
+    assert found.device_id == "UUID_TEST"
+    assert found.marge_account_uuid == "5522049"
+
+
+@pytest.mark.asyncio
+async def test_get_by_account_uuid_not_found(repo):
+    """get_by_account_uuid returns None for non-existent UUID."""
+    result = await repo.get_by_account_uuid("9999999")
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_by_marge_account_uuid(repo):
+    """get_by_marge_account_uuid returns device with matching UUID."""
+    device = Device(
+        device_id="MARGE_TEST",
+        ip="10.0.0.2",
+        name="Marge Device",
+        model="SoundTouch 30",
+        mac_address="AA:BB:CC:DD:EE:FF",
+        firmware_version="3.0",
+        marge_account_uuid="8866380",
+    )
+    await repo.upsert(device)
+
+    found = await repo.get_by_marge_account_uuid("8866380")
+    assert found is not None
+    assert found.device_id == "MARGE_TEST"
+
+
+@pytest.mark.asyncio
+async def test_get_by_marge_account_uuid_not_found(repo):
+    """get_by_marge_account_uuid returns None for non-existent UUID."""
+    result = await repo.get_by_marge_account_uuid("0000000")
+    assert result is None
+
+
 class TestDatabaseConnectionErrors:
     """Tests for database connection failures and timeouts."""
 

@@ -94,7 +94,16 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
 
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   // Wizard mode: choice screen → setup or restore flow
-  const [wizardMode, setWizardMode] = useState<"choice" | "setup" | "restore">("choice");
+  // Auto-skip choice screen when ?step= or ?mode= is present in URL
+  const urlMode = searchParams.get("mode");
+  const urlStepParam = searchParams.get("step");
+  let initialMode: "choice" | "setup" | "restore" = "choice";
+  if (urlMode === "restore") {
+    initialMode = "restore";
+  } else if (urlStepParam || urlMode === "setup") {
+    initialMode = "setup";
+  }
+  const [wizardMode, setWizardMode] = useState<"choice" | "setup" | "restore">(initialMode);
   // Restore flow state
   const [restoreStep, setRestoreStep] = useState(1); // 1=RestoreChoice, 2=BackupScan, 3=Execution, 4=Verification, 5=Completion
   const [restoreType, setRestoreType] = useState<"backup" | "clean">("clean");
@@ -102,7 +111,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   const [restoreResults, setRestoreResults] = useState<RestoreStepResponse[]>([]);
   // Step can be initialized via URL param ?step=N (N is 1-based, matching old step numbering where
   // step 1 was device selection; remaining steps 2-8 map to internal steps 1-7).
-  const urlStep = Number.parseInt(searchParams.get("step") ?? "2", 10);
+  const urlStep = Number.parseInt(urlStepParam ?? "2", 10);
   const [currentStep, setCurrentStep] = useState(
     Number.isNaN(urlStep) ? 1 : Math.max(1, Math.min(urlStep - 1, 7))
   );
@@ -450,7 +459,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
         return (
           <Step7Verification
             deviceIp={selectedDevice?.ip || ""}
-            deviceName={selectedDevice?.name || "Device"}
+            deviceId={selectedDevice?.device_id || ""}
             octIp={octIp}
             onNext={handleNext}
             onPrevious={handlePrevious}

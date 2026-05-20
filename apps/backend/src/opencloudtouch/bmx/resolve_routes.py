@@ -1,4 +1,4 @@
-"""Legacy BMX Resolve Endpoint.
+﻿"""Legacy BMX Resolve Endpoint.
 
 Extracted from bmx/routes.py (STORY-306): POST /bmx/resolve and its
 XML helper functions live here to keep bmx/routes.py under 200 lines.
@@ -25,7 +25,7 @@ resolve_router = APIRouter(tags=["bmx"])
 
 def _get_elem_text(elem: Element | None, default: str) -> str:
     """Return element text or default if element is None."""
-    return elem.text or default if elem is not None else default
+    return (elem.text or default) if elem is not None else default
 
 
 def _build_oct_resolved_xml(

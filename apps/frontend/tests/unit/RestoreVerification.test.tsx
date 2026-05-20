@@ -63,7 +63,7 @@ describe("RestoreVerification", () => {
   it("shows online message when device is found", async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve([{ ip: "192.168.1.100" }]),
+      json: () => Promise.resolve({ devices: [{ ip: "192.168.1.100" }] }),
     });
     render(<RestoreVerification {...defaultProps} />);
     await act(async () => {

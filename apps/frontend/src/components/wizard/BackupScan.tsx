@@ -8,11 +8,11 @@ import type { ScanBackupsResponse, BackupSetResponse } from "../../api/restore";
 import { useEffect } from "react";
 
 interface BackupScanProps {
-  stepNumber: number;
-  deviceIp: string;
-  deviceId: string;
-  onBackupSelected: (backupSet: BackupSetResponse) => void;
-  onPrevious: () => void;
+  readonly stepNumber: number;
+  readonly deviceIp: string;
+  readonly deviceId: string;
+  readonly onBackupSelected: (backupSet: BackupSetResponse) => void;
+  readonly onPrevious: () => void;
 }
 
 export default function BackupScan({

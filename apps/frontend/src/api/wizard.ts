@@ -243,3 +243,75 @@ export async function verifyRedirect(
 
   return response.json();
 }
+
+// ============================================================================
+// Finalize & Verify (Issue #184)
+// ============================================================================
+
+export interface FinalizeRequest {
+  device_ip: string;
+  device_id: string;
+}
+
+export interface FinalizeResponse {
+  success: boolean;
+  uuid: string;
+  had_uuid: boolean;
+  uuid_was_collision: boolean;
+  sources_written: boolean;
+  sources_backup_path: string;
+  system_config_written: boolean;
+  message: string;
+  error?: string;
+}
+
+export interface VerifyCheck {
+  name: string;
+  passed: boolean;
+  message: string;
+  details: Record<string, unknown>;
+}
+
+export interface VerifySetupRequest {
+  device_ip: string;
+  device_id: string;
+  expected_oct_ip: string;
+}
+
+export interface VerifySetupResponse {
+  success: boolean;
+  checks: VerifyCheck[];
+  passed_count: number;
+  failed_count: number;
+  message: string;
+}
+
+/**
+ * Finalize device setup: set UUID + write Sources.xml
+ */
+export async function finalizeDevice(request: FinalizeRequest): Promise<FinalizeResponse> {
+  const response = await fetch(`${API_BASE}/api/setup/wizard/finalize`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  await throwIfNotOk(response, "Device finalization failed");
+
+  return response.json();
+}
+
+/**
+ * Comprehensive post-setup health check
+ */
+export async function verifySetup(request: VerifySetupRequest): Promise<VerifySetupResponse> {
+  const response = await fetch(`${API_BASE}/api/setup/wizard/verify-setup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  await throwIfNotOk(response, "Setup verification failed");
+
+  return response.json();
+}

@@ -6,10 +6,10 @@ import { useTranslation } from "react-i18next";
 import WizardStep from "./WizardStep";
 
 interface RestoreVerificationProps {
-  stepNumber: number;
-  deviceIp: string;
-  onVerified: () => void;
-  onPrevious: () => void;
+  readonly stepNumber: number;
+  readonly deviceIp: string;
+  readonly onVerified: () => void;
+  readonly onPrevious: () => void;
 }
 
 export default function RestoreVerification({
@@ -27,8 +27,9 @@ export default function RestoreVerification({
     try {
       const response = await fetch(`/api/devices`);
       if (response.ok) {
-        const devices = await response.json();
-        const found = devices.some((d: { ip: string }) => d.ip === deviceIp);
+        const data = await response.json();
+        const devicesList: { ip: string }[] = data.devices || [];
+        const found = devicesList.some((d) => d.ip === deviceIp);
         if (found) {
           setDeviceOnline(true);
           setChecking(false);

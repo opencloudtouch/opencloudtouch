@@ -1,4 +1,4 @@
-"""Tests for account_pairing_service — margeAccountUUID check & Telnet pairing."""
+"""Tests for account_pairing_service — margeAccountUUID check & SSH pairing."""
 
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
@@ -6,10 +6,12 @@ from unittest.mock import AsyncMock, patch, MagicMock
 from opencloudtouch.setup.account_pairing_service import (
     check_marge_account_uuid,
     ensure_account_uuid,
-    set_account_uuid_via_telnet,
+    ensure_account_uuid_unique,
+    set_account_uuid_via_ssh,
     _generate_account_uuid,
+    _update_uuid_in_xml,
 )
-from opencloudtouch.setup.ssh_client import CommandResult, SSHConnectionResult
+from opencloudtouch.setup.ssh_client import CommandResult
 
 # ── Fixtures ──────────────────────────────────────────────────────
 
@@ -38,6 +40,15 @@ _INFO_NO_TAG = """<?xml version="1.0" encoding="UTF-8" ?>
   <type>SoundTouch 10</type>
   <components/>
 </info>"""
+
+_EXISTING_SYS_CONFIG = """<?xml version="1.0" encoding="UTF-8" ?>
+<SystemConfiguration>
+    <Password />
+    <DeviceName>Kitchen</DeviceName>
+    <AccountUUID>9999999</AccountUUID>
+    <acctMode>local</acctMode>
+    <isMultiDeviceAccount>false</isMultiDeviceAccount>
+</SystemConfiguration>"""
 
 
 # ── check_marge_account_uuid ─────────────────────────────────────
@@ -116,76 +127,143 @@ class TestCheckMargeAccountUUID:
             result = await check_marge_account_uuid("192.168.1.100")
             assert result is None
 
+    @pytest.mark.asyncio
+    async def test_returns_none_on_invalid_xml(self):
+        mock_resp = MagicMock()
+        mock_resp.text = "NOT VALID XML {{{"
+        mock_resp.raise_for_status = MagicMock()
 
-# ── set_account_uuid_via_telnet ──────────────────────────────────
+        with patch(
+            "opencloudtouch.setup.account_pairing_service.httpx.AsyncClient"
+        ) as mock_cls:
+            mock_client = AsyncMock()
+            mock_client.get = AsyncMock(return_value=mock_resp)
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_cls.return_value = mock_client
+
+            result = await check_marge_account_uuid("192.168.1.100")
+            assert result is None
 
 
-class TestSetAccountUuidViaTelnet:
-    """Tests for setting UUID via Telnet envswitch."""
+# ── _update_uuid_in_xml ──────────────────────────────────────────
+
+
+class TestUpdateUuidInXml:
+    """Tests for in-place XML update of AccountUUID."""
+
+    def test_updates_existing_uuid(self):
+        result = _update_uuid_in_xml(_EXISTING_SYS_CONFIG, "1234567")
+        assert "1234567" in result
+        assert "9999999" not in result
+        assert "global" in result
+        assert ">true<" in result
+
+    def test_adds_missing_elements(self):
+        xml = "<SystemConfiguration><DeviceName>Test</DeviceName></SystemConfiguration>"
+        result = _update_uuid_in_xml(xml, "7654321")
+        assert "7654321" in result
+        assert "global" in result
+        assert ">true<" in result
+
+
+# ── set_account_uuid_via_ssh ─────────────────────────────────────
+
+
+class TestSetAccountUuidViaSSH:
+    """Tests for setting UUID via SSH file write."""
 
     @pytest.mark.asyncio
-    async def test_success(self):
-        with patch(
-            "opencloudtouch.setup.account_pairing_service.SoundTouchTelnetClient"
-        ) as mock_cls:
-            mock_telnet = AsyncMock()
-            mock_telnet.connect = AsyncMock(
-                return_value=SSHConnectionResult(success=True)
-            )
-            mock_telnet.execute = AsyncMock(
-                return_value=CommandResult(success=True, output="OK")
-            )
-            mock_telnet.close = AsyncMock()
-            mock_cls.return_value = mock_telnet
+    async def test_success_file_exists(self):
+        ssh = AsyncMock()
+        ssh.execute = AsyncMock(
+            side_effect=[
+                CommandResult(success=True, output="", exit_code=0),  # mkdir
+                CommandResult(
+                    success=True, output=_EXISTING_SYS_CONFIG, exit_code=0
+                ),  # cat (read existing)
+                CommandResult(
+                    success=True,
+                    output="<AccountUUID>1234567</AccountUUID>",
+                    exit_code=0,
+                ),  # verify cat
+            ]
+        )
 
-            result = await set_account_uuid_via_telnet("192.168.1.100", "1234567")
+        with patch(
+            "opencloudtouch.setup.account_pairing_service._file_exists",
+            new_callable=AsyncMock,
+            return_value=True,
+        ), patch(
+            "opencloudtouch.setup.account_pairing_service._write_file_atomic",
+            new_callable=AsyncMock,
+        ):
+            result = await set_account_uuid_via_ssh(ssh, "1234567")
             assert result.success is True
             assert result.uuid == "1234567"
-            assert result.had_uuid is False
-
-            # Verify correct command was sent
-            mock_telnet.execute.assert_called_once_with(
-                "envswitch accountid set 1234567", timeout=5.0
-            )
 
     @pytest.mark.asyncio
-    async def test_telnet_connection_fails(self):
-        with patch(
-            "opencloudtouch.setup.account_pairing_service.SoundTouchTelnetClient"
-        ) as mock_cls:
-            mock_telnet = AsyncMock()
-            mock_telnet.connect = AsyncMock(
-                return_value=SSHConnectionResult(
-                    success=False, error="Connection refused"
-                )
-            )
-            mock_telnet.close = AsyncMock()
-            mock_cls.return_value = mock_telnet
+    async def test_success_file_missing_creates_new(self):
+        ssh = AsyncMock()
+        ssh.execute = AsyncMock(
+            side_effect=[
+                CommandResult(success=True, output="", exit_code=0),  # mkdir
+                CommandResult(
+                    success=True,
+                    output="<AccountUUID>1234567</AccountUUID>",
+                    exit_code=0,
+                ),  # verify cat
+            ]
+        )
 
-            result = await set_account_uuid_via_telnet("192.168.1.100", "1234567")
-            assert result.success is False
-            assert "Connection refused" in result.error
+        with patch(
+            "opencloudtouch.setup.account_pairing_service._file_exists",
+            new_callable=AsyncMock,
+            return_value=False,
+        ), patch(
+            "opencloudtouch.setup.account_pairing_service._write_file_atomic",
+            new_callable=AsyncMock,
+        ):
+            result = await set_account_uuid_via_ssh(ssh, "1234567")
+            assert result.success is True
+            assert result.uuid == "1234567"
+            assert "SSH" in result.message
 
     @pytest.mark.asyncio
-    async def test_envswitch_command_fails(self):
+    async def test_verification_fails(self):
+        ssh = AsyncMock()
+        ssh.execute = AsyncMock(
+            side_effect=[
+                CommandResult(success=True, output="", exit_code=0),  # mkdir
+                CommandResult(
+                    success=True, output="<AccountUUID>WRONG</AccountUUID>", exit_code=0
+                ),  # verify
+            ]
+        )
+
         with patch(
-            "opencloudtouch.setup.account_pairing_service.SoundTouchTelnetClient"
-        ) as mock_cls:
-            mock_telnet = AsyncMock()
-            mock_telnet.connect = AsyncMock(
-                return_value=SSHConnectionResult(success=True)
-            )
-            mock_telnet.execute = AsyncMock(
-                return_value=CommandResult(success=False, error="Command not found")
-            )
-            mock_telnet.close = AsyncMock()
-            mock_cls.return_value = mock_telnet
-
-            result = await set_account_uuid_via_telnet("192.168.1.100", "1234567")
+            "opencloudtouch.setup.account_pairing_service._file_exists",
+            new_callable=AsyncMock,
+            return_value=False,
+        ), patch(
+            "opencloudtouch.setup.account_pairing_service._write_file_atomic",
+            new_callable=AsyncMock,
+        ):
+            result = await set_account_uuid_via_ssh(ssh, "1234567")
             assert result.success is False
+            assert "Verification failed" in result.error
+
+    @pytest.mark.asyncio
+    async def test_ssh_exception(self):
+        ssh = AsyncMock()
+        ssh.execute = AsyncMock(side_effect=RuntimeError("SSH broken"))
+
+        result = await set_account_uuid_via_ssh(ssh, "1234567")
+        assert result.success is False
+        assert "SSH write failed" in result.error
 
 
-# ── ensure_account_uuid (integration logic) ──────────────────────
+# ── ensure_account_uuid ──────────────────────────────────────────
 
 
 class TestEnsureAccountUuid:
@@ -193,13 +271,12 @@ class TestEnsureAccountUuid:
 
     @pytest.mark.asyncio
     async def test_skips_when_uuid_already_present(self):
-        """CRITICAL: Must NOT modify device if UUID already exists."""
         with patch(
             "opencloudtouch.setup.account_pairing_service.check_marge_account_uuid",
             new_callable=AsyncMock,
             return_value="5448503",
         ), patch(
-            "opencloudtouch.setup.account_pairing_service.set_account_uuid_via_telnet",
+            "opencloudtouch.setup.account_pairing_service.set_account_uuid_via_ssh",
             new_callable=AsyncMock,
         ) as mock_set:
             result = await ensure_account_uuid("192.168.1.100")
@@ -207,19 +284,18 @@ class TestEnsureAccountUuid:
             assert result.success is True
             assert result.had_uuid is True
             assert result.uuid == "5448503"
-
-            # Must NOT call Telnet — device already has UUID
             mock_set.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_sets_uuid_when_missing(self):
-        """Sets UUID via Telnet when device has empty margeAccountUUID."""
+    async def test_sets_uuid_when_missing_with_provided_ssh(self):
+        ssh = AsyncMock()
+
         with patch(
             "opencloudtouch.setup.account_pairing_service.check_marge_account_uuid",
             new_callable=AsyncMock,
             return_value=None,
         ), patch(
-            "opencloudtouch.setup.account_pairing_service.set_account_uuid_via_telnet",
+            "opencloudtouch.setup.account_pairing_service.set_account_uuid_via_ssh",
             new_callable=AsyncMock,
         ) as mock_set:
             from opencloudtouch.setup.account_pairing_service import (
@@ -227,30 +303,55 @@ class TestEnsureAccountUuid:
             )
 
             mock_set.return_value = AccountPairingResult(
-                success=True, had_uuid=False, uuid="9876543", message="Set via Telnet"
+                success=True, had_uuid=False, uuid="9876543", message="Set via SSH"
+            )
+
+            result = await ensure_account_uuid("192.168.1.100", ssh=ssh)
+
+            assert result.success is True
+            assert result.uuid == "9876543"
+            mock_set.assert_called_once()
+            assert mock_set.call_args[0][0] is ssh
+
+    @pytest.mark.asyncio
+    async def test_sets_uuid_when_missing_creates_ssh(self):
+        with patch(
+            "opencloudtouch.setup.account_pairing_service.check_marge_account_uuid",
+            new_callable=AsyncMock,
+            return_value=None,
+        ), patch(
+            "opencloudtouch.setup.account_pairing_service.set_account_uuid_via_ssh",
+            new_callable=AsyncMock,
+        ) as mock_set, patch(
+            "opencloudtouch.setup.account_pairing_service.SoundTouchSSHClient",
+        ) as mock_ssh_cls:
+            from opencloudtouch.setup.account_pairing_service import (
+                AccountPairingResult,
+            )
+
+            mock_ssh = AsyncMock()
+            mock_ssh_cls.return_value.__aenter__ = AsyncMock(return_value=mock_ssh)
+            mock_ssh_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+            mock_set.return_value = AccountPairingResult(
+                success=True, had_uuid=False, uuid="9876543", message="Set via SSH"
             )
 
             result = await ensure_account_uuid("192.168.1.100")
 
             assert result.success is True
-            assert result.had_uuid is False
-            assert result.uuid == "9876543"
-
-            # Telnet MUST be called exactly once
             mock_set.assert_called_once()
-            call_args = mock_set.call_args
-            assert call_args[0][0] == "192.168.1.100"  # device_ip
-            assert len(call_args[0][1]) == 7  # 7-digit UUID
 
     @pytest.mark.asyncio
-    async def test_returns_error_when_telnet_fails(self):
-        """Returns failure when UUID is missing AND Telnet fails."""
+    async def test_returns_error_when_ssh_fails(self):
+        ssh = AsyncMock()
+
         with patch(
             "opencloudtouch.setup.account_pairing_service.check_marge_account_uuid",
             new_callable=AsyncMock,
             return_value=None,
         ), patch(
-            "opencloudtouch.setup.account_pairing_service.set_account_uuid_via_telnet",
+            "opencloudtouch.setup.account_pairing_service.set_account_uuid_via_ssh",
             new_callable=AsyncMock,
         ) as mock_set:
             from opencloudtouch.setup.account_pairing_service import (
@@ -258,25 +359,23 @@ class TestEnsureAccountUuid:
             )
 
             mock_set.return_value = AccountPairingResult(
-                success=False, had_uuid=False, error="Port 17000 closed"
+                success=False, had_uuid=False, error="SSH write failed"
             )
 
-            result = await ensure_account_uuid("192.168.1.100")
+            result = await ensure_account_uuid("192.168.1.100", ssh=ssh)
 
             assert result.success is False
 
     @pytest.mark.asyncio
     async def test_idempotent_multiple_calls(self):
-        """Calling ensure twice with existing UUID never triggers Telnet."""
         with patch(
             "opencloudtouch.setup.account_pairing_service.check_marge_account_uuid",
             new_callable=AsyncMock,
             return_value="5448503",
         ), patch(
-            "opencloudtouch.setup.account_pairing_service.set_account_uuid_via_telnet",
+            "opencloudtouch.setup.account_pairing_service.set_account_uuid_via_ssh",
             new_callable=AsyncMock,
         ) as mock_set:
-            # Call twice
             r1 = await ensure_account_uuid("192.168.1.100")
             r2 = await ensure_account_uuid("192.168.1.100")
 
@@ -284,8 +383,6 @@ class TestEnsureAccountUuid:
             assert r2.success is True
             assert r1.had_uuid is True
             assert r2.had_uuid is True
-
-            # Telnet must NEVER be called
             mock_set.assert_not_called()
 
 
@@ -301,3 +398,143 @@ class TestGenerateAccountUuid:
 
     def test_is_string(self):
         assert isinstance(_generate_account_uuid(), str)
+
+
+# ── ensure_account_uuid_unique ───────────────────────────────────
+
+
+class TestEnsureAccountUuidUnique:
+    """Tests for ensure_account_uuid_unique — collision-safe UUID assignment."""
+
+    @pytest.mark.asyncio
+    async def test_keeps_existing_unique_uuid(self):
+        device_repo = AsyncMock()
+        device_repo.get_by_account_uuid = AsyncMock(return_value=None)
+
+        with patch(
+            "opencloudtouch.setup.account_pairing_service.check_marge_account_uuid",
+            return_value="5448503",
+        ):
+            result = await ensure_account_uuid_unique(
+                device_ip="192.168.1.100",
+                device_id="AABBCCDDEEFF",
+                device_repo=device_repo,
+            )
+            assert result.success is True
+            assert result.had_uuid is True
+            assert result.uuid == "5448503"
+
+    @pytest.mark.asyncio
+    async def test_keeps_uuid_owned_by_same_device(self):
+        owner = MagicMock()
+        owner.device_id = "AABBCCDDEEFF"
+        device_repo = AsyncMock()
+        device_repo.get_by_account_uuid = AsyncMock(return_value=owner)
+
+        with patch(
+            "opencloudtouch.setup.account_pairing_service.check_marge_account_uuid",
+            return_value="5448503",
+        ):
+            result = await ensure_account_uuid_unique(
+                device_ip="192.168.1.100",
+                device_id="AABBCCDDEEFF",
+                device_repo=device_repo,
+            )
+            assert result.success is True
+            assert result.had_uuid is True
+
+    @pytest.mark.asyncio
+    async def test_generates_new_uuid_on_collision(self):
+        """When existing UUID is owned by another device, generate a new one."""
+        other_owner = MagicMock()
+        other_owner.device_id = "OTHER_DEVICE"
+        device_repo = AsyncMock()
+        # First call returns the other owner (collision), second call returns None (no collision for new UUID)
+        device_repo.get_by_account_uuid = AsyncMock(side_effect=[other_owner, None])
+
+        mock_ssh = AsyncMock()
+        mock_ssh.execute = AsyncMock(
+            return_value=CommandResult(
+                success=True, output="<AccountUUID>1234567</AccountUUID>", exit_code=0
+            )
+        )
+        mock_ssh.__aenter__ = AsyncMock(return_value=mock_ssh)
+        mock_ssh.__aexit__ = AsyncMock(return_value=False)
+
+        with patch(
+            "opencloudtouch.setup.account_pairing_service.check_marge_account_uuid",
+            return_value="5448503",
+        ), patch(
+            "opencloudtouch.setup.account_pairing_service.SoundTouchSSHClient",
+            return_value=mock_ssh,
+        ), patch(
+            "opencloudtouch.setup.account_pairing_service._generate_account_uuid",
+            return_value="1234567",
+        ):
+            result = await ensure_account_uuid_unique(
+                device_ip="192.168.1.100",
+                device_id="AABBCCDDEEFF",
+                device_repo=device_repo,
+            )
+            assert result.success is True
+            assert result.had_uuid is True
+
+    @pytest.mark.asyncio
+    async def test_generates_new_uuid_when_no_existing(self):
+        """When device has no UUID, generate one."""
+        device_repo = AsyncMock()
+        device_repo.get_by_account_uuid = AsyncMock(return_value=None)
+
+        mock_ssh = AsyncMock()
+        mock_ssh.execute = AsyncMock(
+            return_value=CommandResult(
+                success=True, output="<AccountUUID>7654321</AccountUUID>", exit_code=0
+            )
+        )
+        mock_ssh.__aenter__ = AsyncMock(return_value=mock_ssh)
+        mock_ssh.__aexit__ = AsyncMock(return_value=False)
+
+        with patch(
+            "opencloudtouch.setup.account_pairing_service.check_marge_account_uuid",
+            return_value=None,
+        ), patch(
+            "opencloudtouch.setup.account_pairing_service.SoundTouchSSHClient",
+            return_value=mock_ssh,
+        ), patch(
+            "opencloudtouch.setup.account_pairing_service._generate_account_uuid",
+            return_value="7654321",
+        ):
+            result = await ensure_account_uuid_unique(
+                device_ip="192.168.1.100",
+                device_id="AABBCCDDEEFF",
+                device_repo=device_repo,
+            )
+            assert result.success is True
+            assert result.had_uuid is False
+
+    @pytest.mark.asyncio
+    async def test_fails_after_max_retries_on_persistent_collision(self):
+        """When every generated UUID collides, return failure."""
+        other_device = MagicMock()
+        other_device.device_id = "OTHER_DEVICE"
+        device_repo = AsyncMock()
+        # Always return a collision
+        device_repo.get_by_account_uuid = AsyncMock(
+            side_effect=[other_device, other_device, other_device, other_device]
+        )
+
+        with patch(
+            "opencloudtouch.setup.account_pairing_service.check_marge_account_uuid",
+            return_value="5448503",
+        ), patch(
+            "opencloudtouch.setup.account_pairing_service._generate_account_uuid",
+            return_value="9999999",
+        ):
+            result = await ensure_account_uuid_unique(
+                device_ip="192.168.1.100",
+                device_id="AABBCCDDEEFF",
+                device_repo=device_repo,
+                max_retries=3,
+            )
+            assert result.success is False
+            assert "collision" in result.error.lower()

@@ -52,6 +52,11 @@ class AppConfig(BaseSettings):
     log_level: str = Field(default="INFO", description="Logging level")
     log_format: str = Field(default="text", description="Log format: 'text' or 'json'")
     log_file: Optional[str] = Field(default=None, description="Optional log file path")
+    log_dir: Optional[str] = Field(
+        default=None,
+        description="Directory for persistent clustered log files (e.g. /logs). "
+        "If set, each log cluster writes a RotatingFileHandler here.",
+    )
 
     # CORS
     cors_origins: list[str] = Field(

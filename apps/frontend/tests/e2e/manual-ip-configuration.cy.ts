@@ -7,7 +7,7 @@
  * - MockDiscoveryAdapter returns 3 predefined devices (192.168.1.100-102)
  */
 
-/** Force German locale â€” CI defaults to English (navigator.language='en') */
+/** Force German locale — CI defaults to English (navigator.language='en') */
 function visitDe(url: string, options?: Partial<Cypress.VisitOptions>) {
   cy.visit(url, {
     ...options,
@@ -144,7 +144,7 @@ describe("Manual IP Configuration", () => {
   });
 
   describe("Complete User Journey", () => {
-    it("should complete full flow: EmptyState â†’ Add IPs â†’ Discover â†’ Dashboard", () => {
+    it("should complete full flow: EmptyState → Add IPs → Discover → Dashboard", () => {
       const ips = ["192.168.1.100", "192.168.1.101"];
 
       // Start at welcome

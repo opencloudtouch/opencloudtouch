@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field, field_validator
 # Hostname: letters, digits, hyphens, dots — NO shell metacharacters
 _HOSTNAME_RE = re.compile(r"^[a-zA-Z0-9]([a-zA-Z0-9.-]{0,253}[a-zA-Z0-9])?$")
 _DEVICE_IP_DESC = "Device IP address"
+_DEVICE_ID_DESC = "Device ID (MAC address)"
 
 
 def _validate_ip_field(v: str) -> str:
@@ -297,7 +298,7 @@ class AccountPairingRequest(BaseModel):
     """Request to ensure device has a margeAccountUUID."""
 
     device_ip: str = Field(..., description=_DEVICE_IP_DESC)
-    device_id: str = Field(..., description="Device ID (MAC address)")
+    device_id: str = Field(..., description=_DEVICE_ID_DESC)
 
 
 class AccountPairingResponse(BaseModel):
@@ -434,3 +435,59 @@ class RestoreWizardResponse(BaseModel):
     snapshot_skipped: bool = False
     device_rebooted: bool = False
     total_duration_seconds: float = 0.0
+
+
+# ============================================================================
+# Finalize & Verify Models (Issue #184 — post-wizard device setup)
+# ============================================================================
+
+
+class FinalizeRequest(WizardDeviceRequest):
+    """Request to finalize device setup (UUID + Sources.xml)."""
+
+    device_id: str = Field(..., description=_DEVICE_ID_DESC)
+
+
+class FinalizeResponse(BaseModel):
+    """Response from device finalization."""
+
+    success: bool
+    uuid: str = ""
+    had_uuid: bool = False
+    uuid_was_collision: bool = False
+    sources_written: bool = False
+    sources_backup_path: str = ""
+    system_config_written: bool = False
+    message: str = ""
+    error: Optional[str] = None
+
+
+class VerifyCheck(BaseModel):
+    """Single verification check result."""
+
+    name: str
+    passed: bool
+    message: str
+    details: dict = Field(default_factory=dict)
+
+
+class VerifySetupRequest(WizardDeviceRequest):
+    """Request to verify device setup completeness."""
+
+    device_id: str = Field(..., description=_DEVICE_ID_DESC)
+    expected_oct_ip: str = Field(..., description="Expected OCT server IP")
+
+    @field_validator("expected_oct_ip")
+    @classmethod
+    def validate_oct_ip(cls, v: str) -> str:
+        return _validate_ip_field(v)
+
+
+class VerifySetupResponse(BaseModel):
+    """Response from device setup verification."""
+
+    success: bool
+    checks: list[VerifyCheck] = Field(default_factory=list)
+    passed_count: int = 0
+    failed_count: int = 0
+    message: str = ""

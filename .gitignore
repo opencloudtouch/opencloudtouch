@@ -80,6 +80,9 @@ docs/
 .specify/
 specs/
 
+# === Case Management ===
+bugs/
+
 # === SECRET Files ===
 doc
 memories

@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock
 from opencloudtouch.setup.persistence_service import (
     build_system_config_xml,
     ensure_persistence_files,
+    force_write_sources_xml,
     _PERSISTENCE_DIR,
     _SOURCES_XML,
 )
@@ -213,6 +214,62 @@ class TestEnsurePersistenceFiles:
         decoded = base64.b64decode(b64_payload).decode()
         assert "5551234" in decoded
         assert "Kitchen" in decoded
+
+
+# —— force_write_sources_xml ———————————————————————————
+
+
+class TestForceWriteSourcesXml:
+    """Tests for force-write Sources.xml (always overwrite, backup existing)."""
+
+    @pytest.mark.asyncio
+    async def test_writes_sources_no_existing(self):
+        ssh = _mock_ssh({})
+        result = await force_write_sources_xml(ssh)
+
+        assert result.success is True
+        assert result.had_existing is False
+        assert result.backup_path == ""
+        assert result.written_path == f"{_PERSISTENCE_DIR}/Sources.xml"
+
+    @pytest.mark.asyncio
+    async def test_writes_sources_with_backup(self):
+        ssh = _mock_ssh({f"{_PERSISTENCE_DIR}/Sources.xml": True})
+        result = await force_write_sources_xml(ssh, backup=True)
+
+        assert result.success is True
+        assert result.had_existing is True
+        assert result.backup_path == f"{_PERSISTENCE_DIR}/Sources.xml.bak"
+
+    @pytest.mark.asyncio
+    async def test_writes_sources_skip_backup(self):
+        ssh = _mock_ssh({f"{_PERSISTENCE_DIR}/Sources.xml": True})
+        result = await force_write_sources_xml(ssh, backup=False)
+
+        assert result.success is True
+        assert result.had_existing is True
+        assert result.backup_path == ""
+
+    @pytest.mark.asyncio
+    async def test_returns_error_on_write_failure(self):
+        ssh = _mock_ssh({})
+
+        async def failing_execute(cmd: str) -> CommandResult:
+            if "base64 -d" in cmd:
+                return CommandResult(
+                    success=False, output="", exit_code=1, error="disk full"
+                )
+            if cmd.startswith("mkdir"):
+                return CommandResult(success=True, output="", exit_code=0)
+            if "test -f" in cmd:
+                return CommandResult(success=True, output="missing", exit_code=0)
+            return CommandResult(success=True, output="", exit_code=0)
+
+        ssh.execute = AsyncMock(side_effect=failing_execute)
+        result = await force_write_sources_xml(ssh)
+
+        assert result.success is False
+        assert result.error is not None
 
 
 class TestXmlEscaping:
