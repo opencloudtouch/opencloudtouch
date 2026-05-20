@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch, MagicMock
 from opencloudtouch.setup.account_pairing_service import (
     check_marge_account_uuid,
     ensure_account_uuid,
+    ensure_account_uuid_unique,
     set_account_uuid_via_ssh,
     _generate_account_uuid,
     _update_uuid_in_xml,
@@ -119,6 +120,24 @@ class TestCheckMargeAccountUUID:
         ) as mock_cls:
             mock_client = AsyncMock()
             mock_client.get = AsyncMock(side_effect=_httpx.ConnectError("refused"))
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_cls.return_value = mock_client
+
+            result = await check_marge_account_uuid("192.168.1.100")
+            assert result is None
+
+    @pytest.mark.asyncio
+    async def test_returns_none_on_invalid_xml(self):
+        mock_resp = MagicMock()
+        mock_resp.text = "NOT VALID XML {{{"
+        mock_resp.raise_for_status = MagicMock()
+
+        with patch(
+            "opencloudtouch.setup.account_pairing_service.httpx.AsyncClient"
+        ) as mock_cls:
+            mock_client = AsyncMock()
+            mock_client.get = AsyncMock(return_value=mock_resp)
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=False)
             mock_cls.return_value = mock_client
@@ -379,3 +398,143 @@ class TestGenerateAccountUuid:
 
     def test_is_string(self):
         assert isinstance(_generate_account_uuid(), str)
+
+
+# ── ensure_account_uuid_unique ───────────────────────────────────
+
+
+class TestEnsureAccountUuidUnique:
+    """Tests for ensure_account_uuid_unique — collision-safe UUID assignment."""
+
+    @pytest.mark.asyncio
+    async def test_keeps_existing_unique_uuid(self):
+        device_repo = AsyncMock()
+        device_repo.get_by_account_uuid = AsyncMock(return_value=None)
+
+        with patch(
+            "opencloudtouch.setup.account_pairing_service.check_marge_account_uuid",
+            return_value="5448503",
+        ):
+            result = await ensure_account_uuid_unique(
+                device_ip="192.168.1.100",
+                device_id="AABBCCDDEEFF",
+                device_repo=device_repo,
+            )
+            assert result.success is True
+            assert result.had_uuid is True
+            assert result.uuid == "5448503"
+
+    @pytest.mark.asyncio
+    async def test_keeps_uuid_owned_by_same_device(self):
+        owner = MagicMock()
+        owner.device_id = "AABBCCDDEEFF"
+        device_repo = AsyncMock()
+        device_repo.get_by_account_uuid = AsyncMock(return_value=owner)
+
+        with patch(
+            "opencloudtouch.setup.account_pairing_service.check_marge_account_uuid",
+            return_value="5448503",
+        ):
+            result = await ensure_account_uuid_unique(
+                device_ip="192.168.1.100",
+                device_id="AABBCCDDEEFF",
+                device_repo=device_repo,
+            )
+            assert result.success is True
+            assert result.had_uuid is True
+
+    @pytest.mark.asyncio
+    async def test_generates_new_uuid_on_collision(self):
+        """When existing UUID is owned by another device, generate a new one."""
+        other_owner = MagicMock()
+        other_owner.device_id = "OTHER_DEVICE"
+        device_repo = AsyncMock()
+        # First call returns the other owner (collision), second call returns None (no collision for new UUID)
+        device_repo.get_by_account_uuid = AsyncMock(side_effect=[other_owner, None])
+
+        mock_ssh = AsyncMock()
+        mock_ssh.execute = AsyncMock(
+            return_value=CommandResult(
+                success=True, output="<AccountUUID>1234567</AccountUUID>", exit_code=0
+            )
+        )
+        mock_ssh.__aenter__ = AsyncMock(return_value=mock_ssh)
+        mock_ssh.__aexit__ = AsyncMock(return_value=False)
+
+        with patch(
+            "opencloudtouch.setup.account_pairing_service.check_marge_account_uuid",
+            return_value="5448503",
+        ), patch(
+            "opencloudtouch.setup.account_pairing_service.SoundTouchSSHClient",
+            return_value=mock_ssh,
+        ), patch(
+            "opencloudtouch.setup.account_pairing_service._generate_account_uuid",
+            return_value="1234567",
+        ):
+            result = await ensure_account_uuid_unique(
+                device_ip="192.168.1.100",
+                device_id="AABBCCDDEEFF",
+                device_repo=device_repo,
+            )
+            assert result.success is True
+            assert result.had_uuid is True
+
+    @pytest.mark.asyncio
+    async def test_generates_new_uuid_when_no_existing(self):
+        """When device has no UUID, generate one."""
+        device_repo = AsyncMock()
+        device_repo.get_by_account_uuid = AsyncMock(return_value=None)
+
+        mock_ssh = AsyncMock()
+        mock_ssh.execute = AsyncMock(
+            return_value=CommandResult(
+                success=True, output="<AccountUUID>7654321</AccountUUID>", exit_code=0
+            )
+        )
+        mock_ssh.__aenter__ = AsyncMock(return_value=mock_ssh)
+        mock_ssh.__aexit__ = AsyncMock(return_value=False)
+
+        with patch(
+            "opencloudtouch.setup.account_pairing_service.check_marge_account_uuid",
+            return_value=None,
+        ), patch(
+            "opencloudtouch.setup.account_pairing_service.SoundTouchSSHClient",
+            return_value=mock_ssh,
+        ), patch(
+            "opencloudtouch.setup.account_pairing_service._generate_account_uuid",
+            return_value="7654321",
+        ):
+            result = await ensure_account_uuid_unique(
+                device_ip="192.168.1.100",
+                device_id="AABBCCDDEEFF",
+                device_repo=device_repo,
+            )
+            assert result.success is True
+            assert result.had_uuid is False
+
+    @pytest.mark.asyncio
+    async def test_fails_after_max_retries_on_persistent_collision(self):
+        """When every generated UUID collides, return failure."""
+        other_device = MagicMock()
+        other_device.device_id = "OTHER_DEVICE"
+        device_repo = AsyncMock()
+        # Always return a collision
+        device_repo.get_by_account_uuid = AsyncMock(
+            side_effect=[other_device, other_device, other_device, other_device]
+        )
+
+        with patch(
+            "opencloudtouch.setup.account_pairing_service.check_marge_account_uuid",
+            return_value="5448503",
+        ), patch(
+            "opencloudtouch.setup.account_pairing_service._generate_account_uuid",
+            return_value="9999999",
+        ):
+            result = await ensure_account_uuid_unique(
+                device_ip="192.168.1.100",
+                device_id="AABBCCDDEEFF",
+                device_repo=device_repo,
+                max_retries=3,
+            )
+            assert result.success is False
+            assert "collision" in result.error.lower()
