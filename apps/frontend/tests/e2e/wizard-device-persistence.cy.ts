@@ -231,8 +231,9 @@ describe('Wizard Device Persistence', () => {
     // Wait for devices to load
     cy.wait('@getDevices');
     cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
+    cy.contains('Setup-Assistent').click();
 
-    // Header must show the correct device (mode selector was removed, wizard starts directly)
+    // Header must show the correct device
     cy.get('.device-info-header').should('contain', 'Küche');
     cy.get('.device-info-header').should('contain', '192.168.1.84');
 
