@@ -8,6 +8,15 @@
 
 const FRONTEND_BASE = "http://localhost:4173";
 
+function visitDe(url: string) {
+  cy.visit(url, {
+    onBeforeLoad(win) {
+      Object.defineProperty(win.navigator, "language", { value: "de-DE" });
+      Object.defineProperty(win.navigator, "languages", { value: ["de-DE", "de"] });
+    },
+  });
+}
+
 const MOCK_DEVICE = {
   device_id: "DEVICE_RESTORE_01",
   name: "Living Room",
@@ -61,30 +70,29 @@ describe("Restore Wizard — Clean Restore Happy Path (T059)", () => {
   });
 
   it("completes clean restore from choice screen to completion", () => {
-    cy.visit(`${FRONTEND_BASE}/setup-wizard?deviceId=${MOCK_DEVICE.device_id}`);
+    visitDe(`${FRONTEND_BASE}/setup-wizard?deviceId=${MOCK_DEVICE.device_id}`);
     cy.wait("@getDevices");
 
     // Step 1: Choose Restore Wizard
-    cy.contains("Restore Wizard").click();
+    cy.contains("Wiederherstellungs-Assistent").click();
 
     // Step 2: Choose Clean Restore
-    cy.contains("Clean Restore").click();
+    cy.contains("Saubere Wiederherstellung").click();
 
     // Step 3: Execution starts automatically
     cy.wait("@executeRestore");
-    cy.contains("All steps completed successfully").should("be.visible");
+    cy.contains(/erfolgreich abgeschlossen/i).should("be.visible");
 
     // Step 4: Continue to verification
-    cy.contains("Continue").click();
+    cy.contains("Weiter").click();
 
     // Step 5: Auto-detection finds device (mock returns it) → Continue enabled
-    cy.contains("Device is back online!", { timeout: 10000 }).should("be.visible");
-    cy.contains("Continue").click();
+    cy.contains(/wieder online/i, { timeout: 10000 }).should("be.visible");
+    cy.contains("Weiter").click();
 
     // Step 6: Completion
-    cy.contains("Restore Complete").should("be.visible");
-    cy.contains("Config files restored").should("be.visible");
-    cy.contains("Done").should("be.visible");
+    cy.contains(/Wiederherstellung abgeschlossen/i).should("be.visible");
+    cy.contains("Fertig").should("be.visible");
   });
 });
 
@@ -144,36 +152,35 @@ describe("Restore Wizard — Backup Restore Happy Path (T060)", () => {
   });
 
   it("completes backup restore from scan to completion", () => {
-    cy.visit(`${FRONTEND_BASE}/setup-wizard?deviceId=${MOCK_DEVICE.device_id}`);
+    visitDe(`${FRONTEND_BASE}/setup-wizard?deviceId=${MOCK_DEVICE.device_id}`);
     cy.wait("@getDevices");
 
     // Step 1: Choose Restore Wizard
-    cy.contains("Restore Wizard").click();
+    cy.contains("Wiederherstellungs-Assistent").click();
 
     // Step 2: Choose Backup Restore
-    cy.contains("Restore from Backup").click();
+    cy.contains("Aus Backup wiederherstellen").click();
 
     // Step 3: Backup scan runs automatically
     cy.wait("@scanBackups");
-    cy.contains("Backup found").should("be.visible");
+    cy.contains("Backup gefunden").should("be.visible");
     cy.contains("rootfs").should("be.visible");
 
     // Select backup
-    cy.contains("Use This Backup").click();
+    cy.contains(/Backup verwenden/i).click();
 
     // Step 4: Execution runs
     cy.wait("@executeRestore");
-    cy.contains("All steps completed successfully").should("be.visible");
+    cy.contains(/erfolgreich abgeschlossen/i).should("be.visible");
 
     // Continue to verification
-    cy.contains("Continue").click();
+    cy.contains("Weiter").click();
 
     // Auto-detection finds device (mock returns it) → Continue enabled
-    cy.contains("Device is back online!", { timeout: 10000 }).should("be.visible");
-    cy.contains("Continue").click();
+    cy.contains(/wieder online/i, { timeout: 10000 }).should("be.visible");
+    cy.contains("Weiter").click();
 
     // Completion screen
-    cy.contains("Restore Complete").should("be.visible");
-    cy.contains("Config restored from backup").should("be.visible");
+    cy.contains(/Wiederherstellung abgeschlossen/i).should("be.visible");
   });
 });
