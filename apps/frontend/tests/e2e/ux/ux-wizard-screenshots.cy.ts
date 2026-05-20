@@ -252,6 +252,35 @@ function setupWizardMocks() {
     body: { success: true, message: "Neustart eingeleitet" },
   }).as("rebootDevice");
 
+  cy.intercept("POST", "/api/setup/wizard/finalize", {
+    statusCode: 200,
+    body: {
+      success: true,
+      uuid: "TEST-UUID-1234",
+      had_uuid: false,
+      uuid_was_collision: false,
+      sources_written: true,
+      sources_backup_path: "/usb/backups/sources_backup.xml",
+      system_config_written: true,
+      message: "Device setup finalized successfully",
+    },
+  }).as("finalizeDevice");
+
+  cy.intercept("POST", "/api/setup/wizard/verify-setup", {
+    statusCode: 200,
+    body: {
+      success: true,
+      checks: [
+        { name: "ssh_accessible", passed: true, message: "SSH erreichbar", details: {} },
+        { name: "sources_xml", passed: true, message: "Sources.xml korrekt", details: {} },
+        { name: "uuid_set", passed: true, message: "UUID gesetzt", details: {} },
+      ],
+      passed_count: 3,
+      failed_count: 0,
+      message: "All checks passed",
+    },
+  }).as("verifySetup");
+
   // Intercept detect-strategy and server-info to prevent real backend calls
   // that could return proxy_available=true and hide the config modification button
   cy.intercept("GET", "/api/setup/wizard/detect-strategy", {
@@ -602,6 +631,13 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
     });
 
     it("wiz_06b — Verifikation: DNS-Check erfolgreich (IP stimmt überein)", () => {
+      // First click "Finalize" to go through finalize/verify phases
+      cy.contains("button", /abschließen|finalize/i, { timeout: 8000 }).click({
+        force: true,
+      });
+      cy.wait("@finalizeDevice");
+      cy.wait("@verifySetup");
+      // Now the DNS test button should appear
       cy.contains("button", /tests jetzt ausführen|ausführen|verify/i, { timeout: 8000 }).click({
         force: true,
       });
@@ -623,6 +659,13 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
         },
       });
 
+      // First click "Finalize" to go through finalize/verify phases
+      cy.contains("button", /abschließen|finalize/i, { timeout: 8000 }).click({
+        force: true,
+      });
+      cy.wait("@finalizeDevice");
+      cy.wait("@verifySetup");
+      // Now the DNS test button should appear
       cy.contains("button", /tests jetzt ausführen|ausführen|verify/i, { timeout: 8000 }).click({
         force: true,
       });
