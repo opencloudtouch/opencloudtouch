@@ -35,13 +35,13 @@ jobs:
           python-version: '3.13'
 
       - name: Install security tools
-        run: pip install bandit safety
+        run: pip install bandit pip-audit
 
       - name: Run bandit (Python security)
         run: bandit -r apps/backend/src --severity-level medium
 
-      - name: Run safety (Python vulnerabilities)
-        run: safety check --file apps/backend/requirements.txt
+      - name: Run pip-audit (Python vulnerabilities)
+        run: pip-audit -r apps/backend/requirements.txt --ignore-vuln CVE-2026-32889  # tinytag DoS via crafted MP3 (pinned by bosesoundtouchapi)
 
       - name: Setup Node.js
         uses: actions/setup-node@v6

@@ -1,0 +1,580 @@
+# ==============================================================================
+# TEST BUILD - Docker + Raspi images from any branch for testing
+#
+# Trigger: workflow_dispatch on any branch
+# Purpose: Build & push images with a custom tag (e.g. "test", "bug-184")
+#          so testers can pull and verify before merging.
+#
+# Docker images pushed to GHCR with the chosen tag ONLY (never "latest"/"stable").
+# Raspi images uploaded as workflow artifacts (30 day retention).
+# No version bump, no git tag, no GitHub Release.
+# ==============================================================================
+
+name: Test Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag (e.g. "test", "bug-184", "feature-xyz")'
+        required: true
+        type: string
+      docker_amd64:
+        description: 'Docker: linux/amd64 (Desktop, Server, NAS)'
+        required: false
+        type: boolean
+        default: true
+      docker_arm64:
+        description: 'Docker: linux/arm64 (Raspberry Pi 4/5)'
+        required: false
+        type: boolean
+        default: false
+      docker_armv7:
+        description: 'Docker: linux/arm/v7 (Raspberry Pi 2/3)'
+        required: false
+        type: boolean
+        default: false
+      raspi_arm64:
+        description: 'Raspi SD Image: arm64'
+        required: false
+        type: boolean
+        default: false
+      raspi_armhf:
+        description: 'Raspi SD Image: armhf'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: scheilch/opencloudtouch
+  PI_GEN_REPO: https://github.com/RPi-Distro/pi-gen.git
+
+jobs:
+  # ============================================================================
+  # VALIDATE INPUTS
+  # ============================================================================
+  validate:
+    name: Validate Inputs
+    runs-on: ubuntu-latest
+
+    outputs:
+      docker_platforms: ${{ steps.platforms.outputs.docker_platforms }}
+      has_docker: ${{ steps.platforms.outputs.has_docker }}
+      raspi_archs: ${{ steps.platforms.outputs.raspi_archs }}
+      has_raspi: ${{ steps.platforms.outputs.has_raspi }}
+
+    steps:
+      - name: Compute platform matrix
+        id: platforms
+        run: |
+          # Docker platforms
+          DOCKER_PLATFORMS='[]'
+          ITEMS=()
+          if [ "${{ inputs.docker_amd64 }}" = "true" ]; then ITEMS+='"linux/amd64"'; fi
+          if [ "${{ inputs.docker_arm64 }}" = "true" ]; then ITEMS+='"linux/arm64"'; fi
+          if [ "${{ inputs.docker_armv7 }}" = "true" ]; then ITEMS+='"linux/arm/v7"'; fi
+
+          if [ ${#ITEMS[@]} -gt 0 ]; then
+            DOCKER_PLATFORMS="[$(IFS=,; echo "${ITEMS[*]}")]"
+            echo "has_docker=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_docker=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "docker_platforms=$DOCKER_PLATFORMS" >> "$GITHUB_OUTPUT"
+          echo "Docker platforms: $DOCKER_PLATFORMS"
+
+          # Raspi architectures
+          RASPI_ARCHS='[]'
+          RITEMS=()
+          if [ "${{ inputs.raspi_arm64 }}" = "true" ]; then RITEMS+='"arm64"'; fi
+          if [ "${{ inputs.raspi_armhf }}" = "true" ]; then RITEMS+='"armhf"'; fi
+
+          if [ ${#RITEMS[@]} -gt 0 ]; then
+            RASPI_ARCHS="[$(IFS=,; echo "${RITEMS[*]}")]"
+            echo "has_raspi=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_raspi=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "raspi_archs=$RASPI_ARCHS" >> "$GITHUB_OUTPUT"
+          echo "Raspi architectures: $RASPI_ARCHS"
+
+      - name: Check at least one target selected
+        run: |
+          if [ "${{ steps.platforms.outputs.has_docker }}" = "false" ] && \
+             [ "${{ steps.platforms.outputs.has_raspi }}" = "false" ]; then
+            echo "::error::No build target selected. Check at least one architecture."
+            exit 1
+          fi
+
+  # ============================================================================
+  # BUILD FRONTEND
+  # ============================================================================
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    needs: [validate]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm install @rollup/rollup-linux-x64-gnu --save-optional
+
+      - name: Build frontend
+        working-directory: apps/frontend
+        run: npm run build
+
+      - name: Upload frontend dist
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-dist
+          path: .out/dist
+          retention-days: 1
+
+  # ============================================================================
+  # DOCKER BUILD (per-platform)
+  # ============================================================================
+  build-docker:
+    name: Build Docker (${{ matrix.platform }})
+    runs-on: ubuntu-latest
+    needs: [validate, build-frontend]
+    if: needs.validate.outputs.has_docker == 'true'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(needs.validate.outputs.docker_platforms) }}
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Download pre-built frontend
+        uses: actions/download-artifact@v8
+        with:
+          name: frontend-dist
+          path: .out/dist
+
+      - name: Set up QEMU
+        if: matrix.platform != 'linux/amd64'
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute build signature
+        id: sign
+        run: |
+          TAG="${{ inputs.image_tag }}"
+          SIG=$(echo -n "$TAG" | openssl dgst -sha256 -hmac "${{ secrets.BUILD_SIGNING_KEY }}" | awk '{print $NF}' | cut -c1-16)
+          echo "signature=$SIG" >> $GITHUB_OUTPUT
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deployment/Dockerfile
+          platforms: ${{ matrix.platform }}
+          push: true
+          build-args: |
+            OCT_BUILD_SIGNATURE=${{ steps.sign.outputs.signature }}
+          labels: |
+            org.opencontainers.image.title=OpenCloudTouch
+            org.opencontainers.image.description=Test build from ${{ github.ref_name }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=test-${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=test-${{ matrix.platform }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ strategy.job-index }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # ============================================================================
+  # DOCKER PUSH (merge digests into multi-arch manifest)
+  # ============================================================================
+  push-docker:
+    name: Push Docker Manifest
+    runs-on: ubuntu-latest
+    needs: [validate, build-docker]
+    if: needs.validate.outputs.has_docker == 'true'
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v8
+        with:
+          pattern: digests-*
+          path: /tmp/digests
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.image_tag }}"
+          echo "Creating manifest for tag: $TAG"
+          docker buildx imagetools create -t "$TAG" \
+            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.image_tag }}
+
+  # ============================================================================
+  # RASPI BUILD (per-arch, reuses Docker image)
+  # ============================================================================
+  build-raspi:
+    name: Build Raspi ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    needs: [validate, build-frontend]
+    if: always() && needs.validate.outputs.has_raspi == 'true' && needs.build-frontend.result == 'success'
+    timeout-minutes: 90
+
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ${{ fromJSON(needs.validate.outputs.raspi_archs) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Free disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /usr/local/share/boost /usr/share/swift \
+            /usr/local/graalvm /usr/local/.ghcup \
+            /usr/local/share/powershell /usr/local/share/chromium \
+            /opt/hostedtoolcache/CodeQL || true
+          sudo docker image prune -af 2>/dev/null || true
+          sudo apt-get clean
+          df -h /
+
+      - name: Clone pi-gen
+        run: |
+          if [ "${{ matrix.arch }}" = "armhf" ]; then
+            PI_GEN_BRANCH=master
+          else
+            PI_GEN_BRANCH=arm64
+          fi
+          git clone --depth 1 --branch "$PI_GEN_BRANCH" \
+            ${{ env.PI_GEN_REPO }} pi-gen
+
+      - name: Configure pi-gen
+        run: |
+          cd pi-gen
+          cat > config << 'EOF'
+          IMG_NAME=opencloudtouch-${{ matrix.arch }}
+          RELEASE=trixie
+          TARGET_HOSTNAME=opencloudtouch
+          FIRST_USER_NAME=oct
+          FIRST_USER_PASS=opencloudtouch
+          ENABLE_SSH=1
+          LOCALE_DEFAULT=en_GB.UTF-8
+          KEYBOARD_KEYMAP=us
+          KEYBOARD_LAYOUT="English (US)"
+          TIMEZONE_DEFAULT=Europe/Berlin
+          WPA_COUNTRY=DE
+          STAGE_LIST="stage0 stage1 stage2 stage-opencloudtouch"
+          EOF
+          sed -i 's/^          //' config
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            echo "ARCH=arm64" >> config
+          else
+            echo "ARCH=armhf" >> config
+          fi
+          cat config
+
+      - name: Install OpenCloudTouch stage
+        run: |
+          cp -r deployment/raspi-image/stage-opencloudtouch pi-gen/stage-opencloudtouch
+          find pi-gen/stage-opencloudtouch -name "*.sh" -exec chmod +x {} \;
+          mkdir -p pi-gen/stage-opencloudtouch/01-configure-oct/files
+          cp deployment/raspi-image/files/* pi-gen/stage-opencloudtouch/01-configure-oct/files/
+
+          OCT_TAG="${{ inputs.image_tag }}"
+          sed -i "s|ghcr.io/scheilch/opencloudtouch:latest|ghcr.io/scheilch/opencloudtouch:${OCT_TAG}|g" \
+            pi-gen/stage-opencloudtouch/01-configure-oct/files/docker-compose.yml
+
+          touch pi-gen/stage-opencloudtouch/EXPORT_IMAGE
+          touch pi-gen/stage-opencloudtouch/EXPORT_NOOBS
+          touch pi-gen/stage0/SKIP_IMAGES
+          touch pi-gen/stage1/SKIP_IMAGES
+          touch pi-gen/stage2/SKIP_IMAGES
+          touch pi-gen/stage3/SKIP 2>/dev/null || true
+          touch pi-gen/stage4/SKIP 2>/dev/null || true
+          touch pi-gen/stage5/SKIP 2>/dev/null || true
+
+      - name: Patch pi-gen package lists
+        run: |
+          PKGFILE="pi-gen/stage2/01-sys-tweaks/00-packages"
+          sed -i '/rpi-/d' "$PKGFILE"
+          sed -i '/^raspberrypi-sys-mods$/d' "$PKGFILE"
+          sed -i '/^raspi-utils$/d' "$PKGFILE"
+          sed -i '/^kms++-utils$/d' "$PKGFILE"
+          sed -i '/^libpam-chksshpwd$/d' "$PKGFILE"
+
+          NETPKGFILE="pi-gen/stage2/02-net-tweaks/00-packages"
+          sed -i '/raspberrypi-net-mods/d' "$NETPKGFILE"
+          sed -i '/^firmware-marvell/d' "$NETPKGFILE"
+
+          touch pi-gen/stage2/04-cloud-init/SKIP
+          touch pi-gen/export-image/01-user-rename/SKIP
+
+          RUN_SCRIPT="pi-gen/stage2/01-sys-tweaks/01-run.sh"
+          sed -i 's/systemctl enable rpi-resize/systemctl enable rpi-resize 2>\/dev\/null || true/' "$RUN_SCRIPT"
+
+      - name: Free chroot disk space before dist-upgrade
+        run: |
+          COPIES_SCRIPT="pi-gen/stage2/00-copies-and-fills/00-run.sh"
+          if [ -f "$COPIES_SCRIPT" ]; then
+            sed -i '/dist-upgrade/i on_chroot << EOF\napt-get clean\nEOF' "$COPIES_SCRIPT"
+          fi
+          for stage_dir in pi-gen/stage0 pi-gen/stage1 pi-gen/stage2; do
+            for run_script in "$stage_dir"/*/00-run.sh; do
+              if [ -f "$run_script" ] && grep -q "apt-get install" "$run_script"; then
+                sed -i '/apt-get install/a apt-get clean' "$run_script"
+              fi
+            done
+          done
+
+      - name: Fix debootstrap GPG verification
+        run: |
+          cd pi-gen
+          sed -i 's/--keyring "${STAGE_DIR}\/files\/raspberrypi.gpg"/--no-check-gpg/' scripts/common
+          sed -i '/^on_chroot/i \
+          if [ -f /usr/share/keyrings/debian-archive-keyring.gpg ]; then\
+              cp /usr/share/keyrings/debian-archive-keyring.gpg "${ROOTFS_DIR}/usr/share/keyrings/debian-archive-keyring.gpg"\
+          fi\
+          ' stage0/00-configure-apt/00-run.sh
+
+      - name: Set up QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static binfmt-support
+          sudo update-binfmts --enable
+          sudo ln -sf /usr/bin/qemu-aarch64-static /usr/bin/qemu-aarch64
+          sudo ln -sf /usr/bin/qemu-arm-static /usr/bin/qemu-arm
+
+      - name: Build image with pi-gen
+        run: |
+          cd pi-gen
+          chmod +x build-docker.sh
+          ./build-docker.sh
+        timeout-minutes: 60
+
+      - name: Compress and checksum image
+        id: image
+        run: |
+          OCT_TAG="${{ inputs.image_tag }}"
+
+          IMG_FILE=$(find pi-gen/deploy -name "*.img" -type f | head -1)
+          if [ -z "$IMG_FILE" ]; then
+            ZIP_FILE=$(find pi-gen/deploy -name "*.zip" -type f | head -1)
+            if [ -n "$ZIP_FILE" ]; then
+              unzip -o "$ZIP_FILE" -d pi-gen/deploy/
+              IMG_FILE=$(find pi-gen/deploy -name "*.img" -type f | head -1)
+            fi
+          fi
+
+          if [ -z "$IMG_FILE" ]; then
+            echo "::error::No image file found!"
+            ls -laR pi-gen/deploy/ || true
+            exit 1
+          fi
+
+          OUTPUT_NAME="opencloudtouch-${{ matrix.arch }}-${OCT_TAG}.img.xz"
+          xz -9 -T0 "$IMG_FILE"
+          mkdir -p output
+          mv "${IMG_FILE}.xz" "output/${OUTPUT_NAME}"
+          cd output
+          sha256sum "${OUTPUT_NAME}" > "${OUTPUT_NAME}.sha256"
+          echo "output_name=${OUTPUT_NAME}" >> "$GITHUB_OUTPUT"
+          ls -lh .
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: raspi-image-${{ matrix.arch }}
+          path: |
+            output/*.img.xz
+            output/*.sha256
+          retention-days: 30
+          compression-level: 0
+
+  # ============================================================================
+  # TEST RASPI IMAGES (QEMU chroot smoke test)
+  # ============================================================================
+  test-raspi:
+    name: Test Raspi ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    needs: [validate, build-raspi]
+    if: needs.validate.outputs.has_raspi == 'true'
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ${{ fromJSON(needs.validate.outputs.raspi_archs) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Download image artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: raspi-image-${{ matrix.arch }}
+          path: images
+
+      - name: Set up QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static binfmt-support xz-utils
+          sudo update-binfmts --enable
+
+      - name: Mount image
+        id: mount
+        run: |
+          set -euo pipefail
+          OCT_TAG="${{ inputs.image_tag }}"
+          IMG_XZ="images/opencloudtouch-${{ matrix.arch }}-${OCT_TAG}.img.xz"
+
+          echo "=== Decompressing image ==="
+          xz -d "$IMG_XZ"
+          IMG_FILE="${IMG_XZ%.xz}"
+
+          echo "=== Mounting image ==="
+          LOOP=$(sudo losetup --find --show --partscan "$IMG_FILE")
+          echo "Loop device: $LOOP"
+          lsblk "$LOOP"
+
+          sudo mkdir -p /mnt/raspi
+          sudo mount "${LOOP}p2" /mnt/raspi
+          sudo mount "${LOOP}p1" /mnt/raspi/boot/firmware || \
+            sudo mount "${LOOP}p1" /mnt/raspi/boot || true
+
+          echo "loop=$LOOP" >> "$GITHUB_OUTPUT"
+
+      - name: Run smoke tests
+        run: |
+          chmod +x deployment/raspi-image/test-image.sh
+          sudo deployment/raspi-image/test-image.sh \
+            /mnt/raspi \
+            "${{ inputs.image_tag }}" \
+            "${{ matrix.arch }}"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          sudo umount -R /mnt/raspi 2>/dev/null || true
+          sudo losetup -d "${{ steps.mount.outputs.loop }}" 2>/dev/null || true
+
+  # ============================================================================
+  # SUMMARY
+  # ============================================================================
+  summary:
+    name: Build Summary
+    runs-on: ubuntu-latest
+    needs: [validate, push-docker, build-raspi, test-raspi]
+    if: always() && needs.validate.result == 'success'
+
+    steps:
+      - name: Step summary
+        run: |
+          TAG="${{ inputs.image_tag }}"
+          BRANCH="${{ github.ref_name }}"
+          SHA="${{ github.sha }}"
+
+          cat >> $GITHUB_STEP_SUMMARY << 'HEADER'
+          # Test Build Summary
+          HEADER
+
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          | | |
+          |---|---|
+          | **Tag** | \`${TAG}\` |
+          | **Branch** | \`${BRANCH}\` |
+          | **Commit** | \`${SHA:0:7}\` |
+          EOF
+
+          # Docker section
+          if [ "${{ needs.validate.outputs.has_docker }}" = "true" ]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          ## Docker Image
+
+          \`\`\`bash
+          docker pull ghcr.io/${{ env.IMAGE_NAME }}:${TAG}
+          \`\`\`
+
+          \`\`\`bash
+          docker run -d \\
+            --name opencloudtouch-test \\
+            --network host \\
+            -v oct-test-data:/data \\
+            -e OCT_DISCOVERY_ENABLED=true \\
+            ghcr.io/${{ env.IMAGE_NAME }}:${TAG}
+          \`\`\`
+          EOF
+          fi
+
+          # Raspi section
+          if [ "${{ needs.validate.outputs.has_raspi }}" = "true" ]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          ## Raspberry Pi Images
+
+          Download from the **Artifacts** section of this workflow run.
+          Flash with: \`xzcat opencloudtouch-arm64-${TAG}.img.xz | sudo dd of=/dev/sdX bs=4M status=progress\`
+          EOF
+          fi

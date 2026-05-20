@@ -260,11 +260,11 @@ class TestModifyBmxUrl:
 
     @pytest.mark.asyncio
     async def test_happy_path_modifies_bmx_url(self, service, mock_ssh):
-        """Full flow: remount rw â†’ read â†’ backup â†’ write â†’ verify â†’ sync override â†’ remount ro."""
+        """Full flow: remount rw → read → backup → write → verify → sync override → remount ro."""
         mock_ssh.execute.side_effect = [
             _ok(),  # remount rw
             _ok(SAMPLE_CONFIG_XML),  # read config (cat)
-            _ok("missing"),  # backup check (test -f â†’ missing)
+            _ok("missing"),  # backup check (test -f → missing)
             _ok(),  # cp backup
             _ok(),  # write config (base64 pipe)
             _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify read-back
@@ -319,7 +319,7 @@ class TestModifyBmxUrl:
         mock_ssh.execute.side_effect = [
             _ok(),  # remount rw
             _ok(SAMPLE_CONFIG_XML),  # read config
-            _ok("exists"),  # backup check â†’ already exists
+            _ok("exists"),  # backup check → already exists
             _ok(),  # write config
             _ok(SAMPLE_CONFIG_ALREADY_MODIFIED),  # verify
             _ok(),  # sync: write Override
@@ -365,7 +365,7 @@ class TestModifyBmxUrl:
             _ok(SAMPLE_CONFIG_XML),  # read config
             _ok("exists"),  # backup exists
             _ok(),  # write config
-            _ok("corrupted garbage"),  # verify â†’ missing closing tag!
+            _ok("corrupted garbage"),  # verify → missing closing tag!
             _ok(),  # remount ro
         ]
 
@@ -399,7 +399,7 @@ class TestModifyBmxUrl:
         """remount ro must happen even when modification fails (finally block)."""
         mock_ssh.execute.side_effect = [
             _ok(),  # remount rw
-            _fail("cannot read"),  # read config fails â†’ RuntimeError
+            _fail("cannot read"),  # read config fails → RuntimeError
             _ok(),  # remount ro (finally)
         ]
 
@@ -433,7 +433,7 @@ class TestModifyBmxUrl:
             _ok(),  # remount rw
             _ok(minimal_xml),  # read config
             _ok("exists"),  # backup check
-            _ok(),  # remount ro (no write â€” no changes)
+            _ok(),  # remount ro (no write — no changes)
         ]
 
         result = await service.modify_bmx_url("192.168.1.50")
@@ -500,7 +500,7 @@ class TestRestoreConfig:
 
     @pytest.mark.asyncio
     async def test_restore_success(self, service, mock_ssh):
-        """Happy path: backup exists â†’ cp â†’ verify â†’ success."""
+        """Happy path: backup exists → cp → verify → success."""
         mock_ssh.execute.side_effect = [
             _ok("exists"),  # backup check
             _ok(),  # remount rw
@@ -518,7 +518,7 @@ class TestRestoreConfig:
 
     @pytest.mark.asyncio
     async def test_restore_backup_not_found(self, service, mock_ssh):
-        """Backup missing â†’ fail without modifying anything."""
+        """Backup missing → fail without modifying anything."""
         mock_ssh.execute.side_effect = [
             _ok("missing"),  # backup check
         ]
@@ -530,7 +530,7 @@ class TestRestoreConfig:
 
     @pytest.mark.asyncio
     async def test_restore_copy_failure(self, service, mock_ssh):
-        """cp fails â†’ fail result."""
+        """cp fails → fail result."""
         mock_ssh.execute.side_effect = [
             _ok("exists"),  # backup check
             _ok(),  # remount rw
@@ -545,12 +545,12 @@ class TestRestoreConfig:
 
     @pytest.mark.asyncio
     async def test_restore_verify_failure(self, service, mock_ssh):
-        """Verification after copy fails â†’ error result."""
+        """Verification after copy fails → error result."""
         mock_ssh.execute.side_effect = [
             _ok("exists"),  # backup check
             _ok(),  # remount rw
             _ok(),  # cp
-            _ok("garbage"),  # verify â†’ missing XML tag
+            _ok("garbage"),  # verify → missing XML tag
             _ok(),  # remount ro
         ]
 
@@ -576,7 +576,7 @@ class TestRestoreConfig:
 
     @pytest.mark.asyncio
     async def test_restore_ssh_exception(self, service, mock_ssh):
-        """SSH exception â†’ clean error result."""
+        """SSH exception → clean error result."""
         mock_ssh.execute.side_effect = OSError("network unreachable")
 
         result = await service.restore_config("/mnt/nv/backup.xml")
@@ -607,7 +607,7 @@ class TestListBackups:
 
     @pytest.mark.asyncio
     async def test_list_backups_empty(self, service, mock_ssh):
-        """No backups â†’ empty list."""
+        """No backups → empty list."""
         mock_ssh.execute.return_value = _fail("No such file")
 
         result = await service.list_backups()
@@ -637,7 +637,7 @@ class TestListBackups:
 
     @pytest.mark.asyncio
     async def test_list_backups_ssh_exception(self, service, mock_ssh):
-        """SSH exception â†’ empty list."""
+        """SSH exception → empty list."""
         mock_ssh.execute.side_effect = OSError("timeout")
 
         result = await service.list_backups()
@@ -774,7 +774,7 @@ class TestModifyDirectWrite:
 
     @pytest.mark.asyncio
     async def test_writes_directly_no_copy(self, service, mock_ssh):
-        """Config is written directly to /opt/Bose/etc/ â€” no copy to /mnt/nv/."""
+        """Config is written directly to /opt/Bose/etc/ — no copy to /mnt/nv/."""
         mock_ssh.execute.side_effect = [
             _ok(),  # remount rw
             _ok(SAMPLE_CONFIG_XML),  # read config
@@ -836,7 +836,7 @@ class TestSyncAllConfigFiles:
 
         source = inspect.getsource(SoundTouchConfigService)
         assert "rm -f" not in source, (
-            "rm -f found in SoundTouchConfigService â€” "
+            "rm -f found in SoundTouchConfigService — "
             "config files must NEVER be deleted"
         )
 
@@ -978,7 +978,7 @@ class TestRestoreWithCanonicalPath:
         mock_ssh.execute.side_effect = [
             _ok("exists"),  # backup check
             _ok(),  # remount rw
-            _ok(),  # cp backup â†’ /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml
+            _ok(),  # cp backup → /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml
             _ok(SAMPLE_OPT_BOSE_CONFIG),  # verify
             _ok(),  # remount ro
         ]
@@ -994,7 +994,7 @@ class TestRestoreWithCanonicalPath:
 
 
 class TestDetectConfigPathFullFlow:
-    """End-to-end tests: auto-detect path â†’ modify â†’ verify correct paths."""
+    """End-to-end tests: auto-detect path → modify → verify correct paths."""
 
     @pytest.fixture
     def fresh(self, mock_ssh):
@@ -1005,7 +1005,7 @@ class TestDetectConfigPathFullFlow:
         """Full flow when /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml is found."""
         mock_ssh.execute.side_effect = [
             _ok(),  # remount rw
-            _ok("found"),  # probe: /opt/Bose/etc/ â†’ found
+            _ok("found"),  # probe: /opt/Bose/etc/ → found
             _ok(SAMPLE_OPT_BOSE_CONFIG),  # cat config
             _ok("missing"),  # backup check
             _ok(),  # cp backup
@@ -1023,12 +1023,12 @@ class TestDetectConfigPathFullFlow:
 
     @pytest.mark.asyncio
     async def test_no_config_found(self, fresh, mock_ssh):
-        """Probe fails â†’ returns failure."""
+        """Probe fails → returns failure."""
         mock_ssh.execute.side_effect = [
             _ok(),  # remount rw
-            _ok("missing"),  # probe: /opt/Bose/etc/ â†’ miss
-            _ok("missing"),  # probe: Override â†’ miss
-            _ok("missing"),  # probe: /mnt/nv/SoundTouch â†’ miss
+            _ok("missing"),  # probe: /opt/Bose/etc/ → miss
+            _ok("missing"),  # probe: Override → miss
+            _ok("missing"),  # probe: /mnt/nv/SoundTouch → miss
             _ok(),  # remount ro (finally)
         ]
 
