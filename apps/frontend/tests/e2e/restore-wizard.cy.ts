@@ -57,7 +57,7 @@ describe("Restore Wizard — Clean Restore Happy Path (T059)", () => {
         statusCode: 200,
         body: { devices: [MOCK_DEVICE] },
       });
-    });
+    }).as("getDevices");
   });
 
   it("completes clean restore from choice screen to completion", () => {

@@ -108,7 +108,7 @@ describe('Wizard Device Persistence', () => {
     cy.url().should('include', '/setup-wizard?deviceId=DEVICE_KITCHEN');
     cy.reload();
     cy.wait('@getDevices');
-    cy.contains('Setup Wizard').click();
+    cy.contains('Setup-Assistent').click();
 
     // Header must now show the correct device
     cy.get('.device-info-header', { timeout: 10000 }).should('contain', 'Küche');
@@ -143,7 +143,7 @@ describe('Wizard Device Persistence', () => {
     cy.reload();
     cy.wait('@getDevices');
     cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
-    cy.contains('Setup Wizard').click();
+    cy.contains('Setup-Assistent').click();
 
     // Check the "USB-Stick ist bereit" checkbox (last checkbox in Step 1)
     // to enable the Weiter button
@@ -175,7 +175,7 @@ describe('Wizard Device Persistence', () => {
     cy.reload();
     cy.wait('@getDevices');
     cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
-    cy.contains('Setup Wizard').click();
+    cy.contains('Setup-Assistent').click();
 
     // Click back button on first step
     cy.contains('button', 'Zurück').click({ force: true });
@@ -208,7 +208,7 @@ describe('Wizard Device Persistence', () => {
     cy.reload();
     cy.wait('@getDevices');
     cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
-    cy.contains('Setup Wizard').click();
+    cy.contains('Setup-Assistent').click();
 
     // Wizard header must show the device selected via arrow button, not the URL default
     cy.get('.device-info-header').should('contain', 'Küche');
