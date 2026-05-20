@@ -35,6 +35,8 @@ from opencloudtouch.setup.wizard_helpers import snapshot_config_files, ssh_opera
 
 logger = logging.getLogger(__name__)
 
+_ERR_DEVICE_REPO_UNAVAILABLE = "Device repository not available"
+
 
 class WizardService:
     """Orchestrates the device setup wizard steps.
@@ -292,7 +294,7 @@ class WizardService:
     async def mark_complete(self, device_id: str) -> dict:
         """Mark wizard setup as complete for a device."""
         if not self._device_repo:
-            return {"success": False, "error": "Device repository not available"}
+            return {"success": False, "error": _ERR_DEVICE_REPO_UNAVAILABLE}
 
         try:
             await self._device_repo.update_setup_status(
@@ -368,7 +370,7 @@ class WizardService:
             message, error
         """
         if not self._device_repo:
-            return {"success": False, "error": "Device repository not available"}
+            return {"success": False, "error": _ERR_DEVICE_REPO_UNAVAILABLE}
 
         try:
             # 1. UUID handling with collision detection
@@ -543,260 +545,22 @@ class WizardService:
             )
 
         try:
-            # Check 1: UUID present on device
-            device_uuid = await check_marge_account_uuid(device_ip)
-            _add(
-                "uuid_present",
-                device_uuid is not None and len(device_uuid) > 0,
-                (
-                    f"Device UUID: {device_uuid}"
-                    if device_uuid
-                    else "Device has no account UUID. Boot sync will not work."
-                ),
-                {"uuid": device_uuid or ""},
-            )
+            device_uuid = await self._check_uuid_present(device_ip, _add)
+            await self._check_uuid_in_db(device_id, device_uuid, _add)
 
-            # Check 2: UUID in OCT DB
-            if self._device_repo and device_uuid:
-                db_device = await self._device_repo.get_by_account_uuid(device_uuid)
-                db_match = db_device is not None and db_device.device_id == device_id
-                _add(
-                    "uuid_in_db",
-                    db_match,
-                    (
-                        f"UUID registered for {device_id}"
-                        if db_match
-                        else "UUID not registered in OCT database. Streaming endpoint cannot resolve this device."
-                    ),
-                    {"db_device_id": db_device.device_id if db_device else ""},
-                )
-            elif not device_uuid:
-                _add("uuid_in_db", False, "Skipped: no UUID to check", {})
-            else:
-                _add("uuid_in_db", False, "Device repository not available", {})
-
-            # Checks 3-10: SSH-based checks
             async with ssh_operation(device_ip, "verify-setup") as ssh:
-                # Check 3: Sources.xml complete
-                sources_path = f"{_PERSISTENCE_DIR}/Sources.xml"
-                r = await ssh.execute(f"cat {sources_path} 2>/dev/null")
-                if r.success and r.output:
-                    found_types = set()
-                    for line in r.output.splitlines():
-                        if 'type="' in line:
-                            m = re.search(r'type="([^"]+)"', line)
-                            if m:
-                                found_types.add(m.group(1))
-                    missing = REQUIRED_SOURCE_TYPES - found_types
-                    _add(
-                        "sources_complete",
-                        len(missing) == 0,
-                        (
-                            f"All {len(REQUIRED_SOURCE_TYPES)} required sources present"
-                            if not missing
-                            else f"Missing sources: {', '.join(sorted(missing))}. Preset playback may fail for these source types."
-                        ),
-                        {"found": sorted(found_types), "missing": sorted(missing)},
-                    )
-                else:
-                    _add(
-                        "sources_complete",
-                        False,
-                        "Sources.xml not found or empty",
-                        {},
-                    )
-
-                # Check 4: Config files present
-                config_paths = SoundTouchConfigService.CONFIG_CANDIDATES
-                missing_configs = []
-                for path in config_paths:
-                    r = await ssh.execute(
-                        f"test -f {path} && echo exists || echo missing"
-                    )
-                    if "missing" in (r.output or ""):
-                        missing_configs.append(path)
-                _add(
-                    "config_files_present",
-                    len(missing_configs) == 0,
-                    (
-                        f"All {len(config_paths)} config files present"
-                        if not missing_configs
-                        else f"Missing config file: {', '.join(missing_configs)}. Firmware may not find OCT redirect on reboot."
-                    ),
-                    {"missing": missing_configs},
+                await self._check_sources_complete(ssh, _add)
+                missing_configs = await self._check_config_files_present(ssh, _add)
+                await self._check_config_files_identical(ssh, missing_configs, _add)
+                await self._check_bmx_url(ssh, _add)
+                hosts_content = await self._read_hosts(ssh)
+                has_oct_block = self._check_hosts_oct_block(hosts_content, _add)
+                self._check_hosts_domains(hosts_content, has_oct_block, _add)
+                self._check_hosts_ip(
+                    hosts_content, has_oct_block, expected_oct_ip, _add
                 )
-
-                # Check 5: Config files identical (md5sum)
-                if not missing_configs:
-                    r = await ssh.execute(
-                        f"md5sum {' '.join(config_paths)} 2>/dev/null"
-                    )
-                    if r.success and r.output:
-                        hashes = []
-                        for line in r.output.strip().splitlines():
-                            parts = line.split()
-                            if parts:
-                                hashes.append(parts[0])
-                        all_same = len(set(hashes)) <= 1
-                        _add(
-                            "config_files_identical",
-                            all_same,
-                            (
-                                "All config files have identical content"
-                                if all_same
-                                else "Config files differ. Device may use wrong BMX URL after reboot."
-                            ),
-                            {"hashes": hashes},
-                        )
-                    else:
-                        _add(
-                            "config_files_identical",
-                            False,
-                            "Could not read config files for comparison",
-                            {},
-                        )
-                else:
-                    _add(
-                        "config_files_identical",
-                        False,
-                        "Skipped: config files missing",
-                        {},
-                    )
-
-                # Check 6: BMX URL points to OCT
-                r = await ssh.execute(f"cat {config_paths[0]} 2>/dev/null")
-                if r.success and r.output:
-                    bmx_match = re.search(r'bmxRegistryUrl["\s>]*([^<"]+)', r.output)
-                    if bmx_match:
-                        bmx_url = bmx_match.group(1).strip()
-                        points_to_oct = "bmx.bose.com" not in bmx_url
-                        _add(
-                            "config_bmx_url",
-                            points_to_oct,
-                            (
-                                f"BMX URL: {bmx_url}"
-                                if points_to_oct
-                                else f"BMX URL still points to Bose cloud ({bmx_url}). Device will not contact OCT."
-                            ),
-                            {"bmx_url": bmx_url},
-                        )
-                    else:
-                        _add(
-                            "config_bmx_url",
-                            False,
-                            "bmxRegistryUrl not found in config",
-                            {},
-                        )
-                else:
-                    _add("config_bmx_url", False, "Could not read config file", {})
-
-                # Check 7: OCT block in /etc/hosts
-                r = await ssh.execute("cat /etc/hosts 2>/dev/null")
-                hosts_content = r.output or "" if r.success else ""
-                has_oct_block = (
-                    SoundTouchHostsService.OCT_MARKER_START in hosts_content
-                    and SoundTouchHostsService.OCT_MARKER_END in hosts_content
-                )
-                _add(
-                    "hosts_oct_block",
-                    has_oct_block,
-                    (
-                        "OCT block present in /etc/hosts"
-                        if has_oct_block
-                        else "No OCT block in /etc/hosts. Domain redirects are missing."
-                    ),
-                    {},
-                )
-
-                # Check 8: All required domains in hosts
-                if has_oct_block:
-                    all_required = (
-                        SoundTouchHostsService.VTUNER_HOSTS
-                        + SoundTouchHostsService.REQUIRED_HOSTS
-                    )
-                    missing_domains = [
-                        d for d in all_required if d not in hosts_content
-                    ]
-                    _add(
-                        "hosts_domains_complete",
-                        len(missing_domains) == 0,
-                        (
-                            f"All {len(all_required)} required domains present"
-                            if not missing_domains
-                            else f"Missing host entries: {', '.join(missing_domains)}. Some Bose services will not be redirected."
-                        ),
-                        {"missing": missing_domains},
-                    )
-                else:
-                    _add("hosts_domains_complete", False, "Skipped: no OCT block", {})
-
-                # Check 9: Host entries point to correct IP
-                if has_oct_block:
-                    wrong_ips = []
-                    for line in hosts_content.splitlines():
-                        line = line.strip()
-                        if (
-                            line
-                            and not line.startswith("#")
-                            and any(
-                                d in line
-                                for d in SoundTouchHostsService.VTUNER_HOSTS
-                                + SoundTouchHostsService.REQUIRED_HOSTS
-                            )
-                        ):
-                            parts = line.split()
-                            if len(parts) >= 2 and parts[0] != expected_oct_ip:
-                                wrong_ips.append(f"{parts[1]}={parts[0]}")
-                    _add(
-                        "hosts_ip_correct",
-                        len(wrong_ips) == 0,
-                        (
-                            f"All host entries point to {expected_oct_ip}"
-                            if not wrong_ips
-                            else f"Host entries point to wrong IP: {', '.join(wrong_ips)} (expected {expected_oct_ip}). Check for stale entries."
-                        ),
-                        {"wrong": wrong_ips},
-                    )
-                else:
-                    _add("hosts_ip_correct", False, "Skipped: no OCT block", {})
-
-                # Check 10: SystemConfigurationDB.xml present + UUID verification
-                sys_config_path = f"{_PERSISTENCE_DIR}/SystemConfigurationDB.xml"
-                r = await ssh.execute(
-                    f"test -f {sys_config_path} && echo exists || echo missing"
-                )
-                sys_config_exists = "exists" in (r.output or "")
-                _add(
-                    "system_config_present",
-                    sys_config_exists,
-                    (
-                        "SystemConfigurationDB.xml present"
-                        if sys_config_exists
-                        else "SystemConfigurationDB.xml missing. Device may not initialize properly."
-                    ),
-                    {},
-                )
-
-                # Check 11: UUID in SystemConfigurationDB.xml matches DB
-                if sys_config_exists and device_uuid:
-                    verification = await self._verify_sys_config(ssh, device_uuid)
-                    uuid_file_match = verification.get("uuid_match", False)
-                    _add(
-                        "system_config_uuid_match",
-                        uuid_file_match,
-                        (
-                            "UUID in SystemConfigurationDB.xml matches device"
-                            if uuid_file_match
-                            else "UUID in SystemConfigurationDB.xml does not match device UUID"
-                        ),
-                        verification,
-                    )
-                elif not sys_config_exists:
-                    _add("system_config_uuid_match", False, "Skipped: file missing", {})
-                else:
-                    _add(
-                        "system_config_uuid_match", False, "Skipped: no device UUID", {}
-                    )
+                sys_exists = await self._check_system_config_present(ssh, _add)
+                await self._check_system_config_uuid(ssh, sys_exists, device_uuid, _add)
 
         except Exception as e:
             logger.exception("Verify setup failed for %s: %s", device_ip, e)
@@ -813,3 +577,253 @@ class WizardService:
             "message": f"{passed}/{len(checks)} checks passed"
             + ("" if failed == 0 else f" ({failed} failed)"),
         }
+
+    # ── verify_setup helpers ──────────────────────────────────────────────
+
+    async def _check_uuid_present(self, device_ip, _add):
+        """Check 1: UUID present on device."""
+        device_uuid = await check_marge_account_uuid(device_ip)
+        _add(
+            "uuid_present",
+            device_uuid is not None and len(device_uuid) > 0,
+            (
+                f"Device UUID: {device_uuid}"
+                if device_uuid
+                else "Device has no account UUID. Boot sync will not work."
+            ),
+            {"uuid": device_uuid or ""},
+        )
+        return device_uuid
+
+    async def _check_uuid_in_db(self, device_id, device_uuid, _add):
+        """Check 2: UUID registered in OCT database."""
+        if self._device_repo and device_uuid:
+            db_device = await self._device_repo.get_by_account_uuid(device_uuid)
+            db_match = db_device is not None and db_device.device_id == device_id
+            _add(
+                "uuid_in_db",
+                db_match,
+                (
+                    f"UUID registered for {device_id}"
+                    if db_match
+                    else "UUID not registered in OCT database. Streaming endpoint cannot resolve this device."
+                ),
+                {"db_device_id": db_device.device_id if db_device else ""},
+            )
+        elif not device_uuid:
+            _add("uuid_in_db", False, "Skipped: no UUID to check", {})
+        else:
+            _add("uuid_in_db", False, _ERR_DEVICE_REPO_UNAVAILABLE, {})
+
+    async def _check_sources_complete(self, ssh, _add):
+        """Check 3: Sources.xml has all required source types."""
+        sources_path = f"{_PERSISTENCE_DIR}/Sources.xml"
+        r = await ssh.execute(f"cat {sources_path} 2>/dev/null")
+        if not (r.success and r.output):
+            _add("sources_complete", False, "Sources.xml not found or empty", {})
+            return
+        found_types = set()
+        for line in r.output.splitlines():
+            if 'type="' in line:
+                m = re.search(r'type="([^"]+)"', line)
+                if m:
+                    found_types.add(m.group(1))
+        missing = REQUIRED_SOURCE_TYPES - found_types
+        _add(
+            "sources_complete",
+            len(missing) == 0,
+            (
+                f"All {len(REQUIRED_SOURCE_TYPES)} required sources present"
+                if not missing
+                else f"Missing sources: {', '.join(sorted(missing))}. Preset playback may fail for these source types."
+            ),
+            {"found": sorted(found_types), "missing": sorted(missing)},
+        )
+
+    async def _check_config_files_present(self, ssh, _add):
+        """Check 4: Config files exist on device. Returns list of missing paths."""
+        config_paths = SoundTouchConfigService.CONFIG_CANDIDATES
+        missing_configs = []
+        for path in config_paths:
+            r = await ssh.execute(f"test -f {path} && echo exists || echo missing")
+            if "missing" in (r.output or ""):
+                missing_configs.append(path)
+        _add(
+            "config_files_present",
+            len(missing_configs) == 0,
+            (
+                f"All {len(config_paths)} config files present"
+                if not missing_configs
+                else f"Missing config file: {', '.join(missing_configs)}. Firmware may not find OCT redirect on reboot."
+            ),
+            {"missing": missing_configs},
+        )
+        return missing_configs
+
+    async def _check_config_files_identical(self, ssh, missing_configs, _add):
+        """Check 5: All config files have identical content (md5sum)."""
+        if missing_configs:
+            _add("config_files_identical", False, "Skipped: config files missing", {})
+            return
+        config_paths = SoundTouchConfigService.CONFIG_CANDIDATES
+        r = await ssh.execute(f"md5sum {' '.join(config_paths)} 2>/dev/null")
+        if not (r.success and r.output):
+            _add(
+                "config_files_identical",
+                False,
+                "Could not read config files for comparison",
+                {},
+            )
+            return
+        hashes = []
+        for line in r.output.strip().splitlines():
+            parts = line.split()
+            if parts:
+                hashes.append(parts[0])
+        all_same = len(set(hashes)) <= 1
+        _add(
+            "config_files_identical",
+            all_same,
+            (
+                "All config files have identical content"
+                if all_same
+                else "Config files differ. Device may use wrong BMX URL after reboot."
+            ),
+            {"hashes": hashes},
+        )
+
+    async def _check_bmx_url(self, ssh, _add):
+        """Check 6: BMX URL in config points to OCT, not Bose cloud."""
+        config_path = SoundTouchConfigService.CONFIG_CANDIDATES[0]
+        r = await ssh.execute(f"cat {config_path} 2>/dev/null")
+        if not (r.success and r.output):
+            _add("config_bmx_url", False, "Could not read config file", {})
+            return
+        bmx_match = re.search(r'bmxRegistryUrl["\s>]*([^<"]+)', r.output)
+        if not bmx_match:
+            _add("config_bmx_url", False, "bmxRegistryUrl not found in config", {})
+            return
+        bmx_url = bmx_match.group(1).strip()
+        points_to_oct = "bmx.bose.com" not in bmx_url
+        _add(
+            "config_bmx_url",
+            points_to_oct,
+            (
+                f"BMX URL: {bmx_url}"
+                if points_to_oct
+                else f"BMX URL still points to Bose cloud ({bmx_url}). Device will not contact OCT."
+            ),
+            {"bmx_url": bmx_url},
+        )
+
+    async def _read_hosts(self, ssh):
+        """Read /etc/hosts content from device."""
+        r = await ssh.execute("cat /etc/hosts 2>/dev/null")
+        return r.output or "" if r.success else ""
+
+    def _check_hosts_oct_block(self, hosts_content, _add):
+        """Check 7: OCT block present in /etc/hosts."""
+        has_oct_block = (
+            SoundTouchHostsService.OCT_MARKER_START in hosts_content
+            and SoundTouchHostsService.OCT_MARKER_END in hosts_content
+        )
+        _add(
+            "hosts_oct_block",
+            has_oct_block,
+            (
+                "OCT block present in /etc/hosts"
+                if has_oct_block
+                else "No OCT block in /etc/hosts. Domain redirects are missing."
+            ),
+            {},
+        )
+        return has_oct_block
+
+    def _check_hosts_domains(self, hosts_content, has_oct_block, _add):
+        """Check 8: All required domains present in hosts."""
+        if not has_oct_block:
+            _add("hosts_domains_complete", False, "Skipped: no OCT block", {})
+            return
+        all_required = (
+            SoundTouchHostsService.VTUNER_HOSTS + SoundTouchHostsService.REQUIRED_HOSTS
+        )
+        missing_domains = [d for d in all_required if d not in hosts_content]
+        _add(
+            "hosts_domains_complete",
+            len(missing_domains) == 0,
+            (
+                f"All {len(all_required)} required domains present"
+                if not missing_domains
+                else f"Missing host entries: {', '.join(missing_domains)}. Some Bose services will not be redirected."
+            ),
+            {"missing": missing_domains},
+        )
+
+    def _check_hosts_ip(self, hosts_content, has_oct_block, expected_oct_ip, _add):
+        """Check 9: Host entries point to the correct OCT IP."""
+        if not has_oct_block:
+            _add("hosts_ip_correct", False, "Skipped: no OCT block", {})
+            return
+        all_hosts = (
+            SoundTouchHostsService.VTUNER_HOSTS + SoundTouchHostsService.REQUIRED_HOSTS
+        )
+        wrong_ips = []
+        for line in hosts_content.splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            if not any(d in stripped for d in all_hosts):
+                continue
+            parts = stripped.split()
+            if len(parts) >= 2 and parts[0] != expected_oct_ip:
+                wrong_ips.append(f"{parts[1]}={parts[0]}")
+        _add(
+            "hosts_ip_correct",
+            len(wrong_ips) == 0,
+            (
+                f"All host entries point to {expected_oct_ip}"
+                if not wrong_ips
+                else f"Host entries point to wrong IP: {', '.join(wrong_ips)} (expected {expected_oct_ip}). Check for stale entries."
+            ),
+            {"wrong": wrong_ips},
+        )
+
+    async def _check_system_config_present(self, ssh, _add):
+        """Check 10: SystemConfigurationDB.xml exists on device."""
+        sys_config_path = f"{_PERSISTENCE_DIR}/SystemConfigurationDB.xml"
+        r = await ssh.execute(
+            f"test -f {sys_config_path} && echo exists || echo missing"
+        )
+        sys_config_exists = "exists" in (r.output or "")
+        _add(
+            "system_config_present",
+            sys_config_exists,
+            (
+                "SystemConfigurationDB.xml present"
+                if sys_config_exists
+                else "SystemConfigurationDB.xml missing. Device may not initialize properly."
+            ),
+            {},
+        )
+        return sys_config_exists
+
+    async def _check_system_config_uuid(self, ssh, sys_exists, device_uuid, _add):
+        """Check 11: UUID in SystemConfigurationDB.xml matches device."""
+        if not sys_exists:
+            _add("system_config_uuid_match", False, "Skipped: file missing", {})
+            return
+        if not device_uuid:
+            _add("system_config_uuid_match", False, "Skipped: no device UUID", {})
+            return
+        verification = await self._verify_sys_config(ssh, device_uuid)
+        uuid_file_match = verification.get("uuid_match", False)
+        _add(
+            "system_config_uuid_match",
+            uuid_file_match,
+            (
+                "UUID in SystemConfigurationDB.xml matches device"
+                if uuid_file_match
+                else "UUID in SystemConfigurationDB.xml does not match device UUID"
+            ),
+            verification,
+        )

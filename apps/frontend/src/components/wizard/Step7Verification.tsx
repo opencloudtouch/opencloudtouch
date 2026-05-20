@@ -11,7 +11,6 @@ import "./Step7Verification.css";
 interface Step7Props {
   readonly deviceIp: string;
   readonly deviceId: string;
-  readonly deviceName: string;
   readonly octIp: string;
   readonly onNext: () => void;
   readonly onPrevious: () => void;
@@ -34,7 +33,6 @@ interface TestResult {
 export default function Step7Verification({
   deviceIp,
   deviceId,
-  // deviceName,
   octIp,
   onNext,
   onPrevious,

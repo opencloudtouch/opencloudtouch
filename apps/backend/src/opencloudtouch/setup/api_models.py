@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field, field_validator
 # Hostname: letters, digits, hyphens, dots — NO shell metacharacters
 _HOSTNAME_RE = re.compile(r"^[a-zA-Z0-9]([a-zA-Z0-9.-]{0,253}[a-zA-Z0-9])?$")
 _DEVICE_IP_DESC = "Device IP address"
+_DEVICE_ID_DESC = "Device ID (MAC address)"
 
 
 def _validate_ip_field(v: str) -> str:
@@ -297,7 +298,7 @@ class AccountPairingRequest(BaseModel):
     """Request to ensure device has a margeAccountUUID."""
 
     device_ip: str = Field(..., description=_DEVICE_IP_DESC)
-    device_id: str = Field(..., description="Device ID (MAC address)")
+    device_id: str = Field(..., description=_DEVICE_ID_DESC)
 
 
 class AccountPairingResponse(BaseModel):
@@ -444,7 +445,7 @@ class RestoreWizardResponse(BaseModel):
 class FinalizeRequest(WizardDeviceRequest):
     """Request to finalize device setup (UUID + Sources.xml)."""
 
-    device_id: str = Field(..., description="Device ID (MAC address)")
+    device_id: str = Field(..., description=_DEVICE_ID_DESC)
 
 
 class FinalizeResponse(BaseModel):
@@ -473,7 +474,7 @@ class VerifyCheck(BaseModel):
 class VerifySetupRequest(WizardDeviceRequest):
     """Request to verify device setup completeness."""
 
-    device_id: str = Field(..., description="Device ID (MAC address)")
+    device_id: str = Field(..., description=_DEVICE_ID_DESC)
     expected_oct_ip: str = Field(..., description="Expected OCT server IP")
 
     @field_validator("expected_oct_ip")
