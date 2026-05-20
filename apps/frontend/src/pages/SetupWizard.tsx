@@ -97,8 +97,12 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   // Auto-skip choice screen when ?step= or ?mode= is present in URL
   const urlMode = searchParams.get("mode");
   const urlStepParam = searchParams.get("step");
-  const initialMode: "choice" | "setup" | "restore" =
-    urlMode === "restore" ? "restore" : urlStepParam || urlMode === "setup" ? "setup" : "choice";
+  let initialMode: "choice" | "setup" | "restore" = "choice";
+  if (urlMode === "restore") {
+    initialMode = "restore";
+  } else if (urlStepParam || urlMode === "setup") {
+    initialMode = "setup";
+  }
   const [wizardMode, setWizardMode] = useState<"choice" | "setup" | "restore">(initialMode);
   // Restore flow state
   const [restoreStep, setRestoreStep] = useState(1); // 1=RestoreChoice, 2=BackupScan, 3=Execution, 4=Verification, 5=Completion
