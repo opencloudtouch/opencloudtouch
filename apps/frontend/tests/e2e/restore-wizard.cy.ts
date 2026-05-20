@@ -77,8 +77,9 @@ describe("Restore Wizard — Clean Restore Happy Path (T059)", () => {
     // Step 4: Continue to verification
     cy.contains("Continue").click();
 
-    // Step 5: Device comes back → manually confirm
-    cy.contains("Device is back").click();
+    // Step 5: Auto-detection finds device (mock returns it) → Continue enabled
+    cy.contains("Device is back online!", { timeout: 10000 }).should("be.visible");
+    cy.contains("Continue").click();
 
     // Step 6: Completion
     cy.contains("Restore Complete").should("be.visible");
@@ -167,8 +168,9 @@ describe("Restore Wizard — Backup Restore Happy Path (T060)", () => {
     // Continue to verification
     cy.contains("Continue").click();
 
-    // Device back → manual confirm
-    cy.contains("Device is back").click();
+    // Auto-detection finds device (mock returns it) → Continue enabled
+    cy.contains("Device is back online!", { timeout: 10000 }).should("be.visible");
+    cy.contains("Continue").click();
 
     // Completion screen
     cy.contains("Restore Complete").should("be.visible");

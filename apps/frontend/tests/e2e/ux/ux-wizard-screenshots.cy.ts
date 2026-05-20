@@ -275,6 +275,7 @@ function setupWizardMocks() {
 /** Wait for wizard to be ready at Step 1 (mode selector was removed; wizard starts directly) */
 function selectManualMode() {
   cy.get(".setup-wizard-page-v2", { timeout: 8000 }).should("exist");
+  cy.contains("Setup Wizard").click();
   cy.wait(400);
 }
 

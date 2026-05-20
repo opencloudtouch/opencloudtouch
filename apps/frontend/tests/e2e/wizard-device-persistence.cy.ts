@@ -104,11 +104,11 @@ describe('Wizard Device Persistence', () => {
     // Click setup button
     cy.get('[data-test="setup-button"]').click();
 
-    // Wizard starts directly at Step 1 (mode selector was removed)
-    // DeviceInfoHeader is rendered immediately with selectedDevice
+    // Navigate through WizardChoice to Setup path
     cy.url().should('include', '/setup-wizard?deviceId=DEVICE_KITCHEN');
     cy.reload();
     cy.wait('@getDevices');
+    cy.contains('Setup Wizard').click();
 
     // Header must now show the correct device
     cy.get('.device-info-header', { timeout: 10000 }).should('contain', 'Küche');
@@ -138,12 +138,12 @@ describe('Wizard Device Persistence', () => {
     // Start wizard
     cy.get('[data-test="setup-button"]').click();
 
-    // Wizard starts directly at Step 1 (mode selector was removed)
-    // Verify URL + reload to bypass v7_startTransition SPA deferred rendering
+    // Navigate through WizardChoice to Setup path
     cy.url().should('include', '/setup-wizard?deviceId=DEVICE_KITCHEN');
     cy.reload();
     cy.wait('@getDevices');
     cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
+    cy.contains('Setup Wizard').click();
 
     // Check the "USB-Stick ist bereit" checkbox (last checkbox in Step 1)
     // to enable the Weiter button
@@ -170,11 +170,12 @@ describe('Wizard Device Persistence', () => {
 
     // Start wizard
     cy.get('[data-test="setup-button"]').click();
-    // Verify URL + reload to bypass v7_startTransition SPA deferred rendering
+    // Navigate through WizardChoice to Setup path
     cy.url().should('include', '/setup-wizard?deviceId=DEVICE_BEDROOM');
     cy.reload();
     cy.wait('@getDevices');
     cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
+    cy.contains('Setup Wizard').click();
 
     // Click back button on first step
     cy.contains('button', 'Zurück').click({ force: true });
@@ -200,13 +201,14 @@ describe('Wizard Device Persistence', () => {
 
     cy.get('[data-test="device-swiper"]').should('contain', 'Küche');
 
-    // Start wizard – DeviceInfoHeader visible immediately (mode selector was removed)
+    // Start wizard – navigate through WizardChoice to Setup path
     cy.get('[data-test="setup-button"]').click();
     // Reload to bypass v7_startTransition SPA deferred rendering
     cy.url().should('include', '/setup-wizard?deviceId=DEVICE_KITCHEN');
     cy.reload();
     cy.wait('@getDevices');
     cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
+    cy.contains('Setup Wizard').click();
 
     // Wizard header must show the device selected via arrow button, not the URL default
     cy.get('.device-info-header').should('contain', 'Küche');
