@@ -1,8 +1,8 @@
 /**
- * Tests for Step7Verification — finalize, verify, reboot, DNS checks
+ * Tests for Step7Verification — finalize, reboot, full verification
  *
- * Tests the new Issue #184 functionality: finalize device (UUID + Sources.xml),
- * verify setup (11-point check), and the existing reboot + DNS verification flow.
+ * Tests the Issue #184 flow: finalize device (UUID + Sources.xml + SystemConfig),
+ * mandatory reboot with countdown, then full verification (verify_setup + DNS).
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
@@ -93,10 +93,14 @@ describe("Step7Verification", () => {
     expect(screen.getByRole("button", { name: /next/i })).toBeDisabled();
   });
 
-  it("renders device restart section", () => {
+  it("does not show reboot section before finalize", () => {
     render(<Step7Verification {...defaultProps} />);
-    // "Device restart" is the i18n translation of rebootHeader
-    expect(document.body.textContent).toMatch(/device restart|reboot/i);
+    // Reboot section only appears after finalize succeeds
+    const buttons = screen.getAllByRole("button");
+    const rebootBtn = buttons.find((b) =>
+      (b.textContent || "").toLowerCase().includes("restart device")
+    );
+    expect(rebootBtn).toBeFalsy();
   });
 
   // ===================================================================
@@ -118,7 +122,7 @@ describe("Step7Verification", () => {
     });
   });
 
-  it("calls verifySetup after successful finalize", async () => {
+  it("does not call verifySetup immediately after finalize (needs reboot first)", async () => {
     mockSuccessFlow();
 
     render(<Step7Verification {...defaultProps} />);
@@ -127,10 +131,26 @@ describe("Step7Verification", () => {
       fireEvent.click(screen.getByRole("button", { name: /finalize/i }));
     });
 
-    expect(mockVerifySetup).toHaveBeenCalledWith({
-      device_ip: "192.168.1.100",
-      device_id: "AABBCCDDEEFF",
-      expected_oct_ip: "192.168.1.50",
+    // verifySetup must NOT be called right after finalize — reboot is required first
+    expect(mockVerifySetup).not.toHaveBeenCalled();
+  });
+
+  it("shows reboot button after successful finalize", async () => {
+    mockSuccessFlow();
+
+    render(<Step7Verification {...defaultProps} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /finalize/i }));
+    });
+
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("Device finalized");
+      const buttons = screen.getAllByRole("button");
+      const rebootBtn = buttons.find((b) =>
+        (b.textContent || "").toLowerCase().includes("restart")
+      );
+      expect(rebootBtn).toBeTruthy();
     });
   });
 
@@ -148,13 +168,49 @@ describe("Step7Verification", () => {
     });
   });
 
-  it("displays verify check results", async () => {
+  it("displays verify check results after full verification", async () => {
+    vi.useFakeTimers();
     mockSuccessFlow();
+    mockRebootDevice.mockResolvedValue({});
 
     render(<Step7Verification {...defaultProps} />);
 
+    // 1. Finalize
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /finalize/i }));
+    });
+
+    // 2. Reboot
+    const buttons = screen.getAllByRole("button");
+    const rebootBtn = buttons.find((b) =>
+      (b.textContent || "").toLowerCase().includes("restart")
+    );
+    await act(async () => {
+      fireEvent.click(rebootBtn!);
+    });
+
+    // 3. Fast-forward countdown
+    await act(async () => {
+      vi.advanceTimersByTime(61000);
+    });
+
+    vi.useRealTimers();
+
+    // 4. Click full verification
+    await waitFor(() => {
+      const btns = screen.getAllByRole("button");
+      const verifyBtn = btns.find((b) =>
+        (b.textContent || "").toLowerCase().includes("verification")
+      );
+      expect(verifyBtn).toBeTruthy();
+    });
+
+    const btns2 = screen.getAllByRole("button");
+    const verifyBtn = btns2.find((b) =>
+      (b.textContent || "").toLowerCase().includes("verification")
+    );
+    await act(async () => {
+      fireEvent.click(verifyBtn!);
     });
 
     await waitFor(() => {
@@ -228,81 +284,12 @@ describe("Step7Verification", () => {
   });
 
   // ===================================================================
-  // Reboot
+  // Reboot (after finalize)
   // ===================================================================
 
-  it("calls rebootDevice with device IP", async () => {
+  it("calls rebootDevice with device IP after finalize", async () => {
+    mockSuccessFlow();
     mockRebootDevice.mockResolvedValue({});
-
-    render(<Step7Verification {...defaultProps} />);
-
-    // Find reboot button by text content (includes emoji)
-    const buttons = screen.getAllByRole("button");
-    const rebootBtn = buttons.find((b) =>
-      (b.textContent || "").toLowerCase().includes("reboot")
-    );
-
-    if (rebootBtn) {
-      await act(async () => {
-        fireEvent.click(rebootBtn);
-      });
-
-      expect(mockRebootDevice).toHaveBeenCalledWith({ ip: "192.168.1.100" });
-    }
-  });
-
-  it("shows error message when reboot fails", async () => {
-    mockRebootDevice.mockRejectedValue(new Error("Connection lost"));
-
-    render(<Step7Verification {...defaultProps} />);
-
-    const buttons = screen.getAllByRole("button");
-    const rebootBtn = buttons.find((b) =>
-      (b.textContent || "").toLowerCase().includes("reboot")
-    );
-
-    if (rebootBtn) {
-      await act(async () => {
-        fireEvent.click(rebootBtn);
-      });
-
-      await waitFor(() => {
-        expect(document.body.textContent).toContain("Connection lost");
-      });
-    }
-  });
-
-  // ===================================================================
-  // DNS verification tests (after finalize+verify completes)
-  // ===================================================================
-
-  it("shows test button after successful finalize+verify", async () => {
-    mockSuccessFlow();
-
-    render(<Step7Verification {...defaultProps} />);
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /finalize/i }));
-    });
-
-    await waitFor(() => {
-      const buttons = screen.getAllByRole("button");
-      const testBtn = buttons.find((b) =>
-        (b.textContent || "").toLowerCase().includes("test")
-      );
-      expect(testBtn).toBeTruthy();
-    });
-  });
-
-  it("calls verifyRedirect for each test domain", async () => {
-    mockSuccessFlow();
-    mockVerifyRedirect.mockResolvedValue({
-      success: true,
-      resolved_ip: "192.168.1.50",
-      expected_ip: "192.168.1.50",
-      matches_expected: true,
-      message: "OK",
-    });
 
     render(<Step7Verification {...defaultProps} />);
 
@@ -311,52 +298,151 @@ describe("Step7Verification", () => {
       fireEvent.click(screen.getByRole("button", { name: /finalize/i }));
     });
 
-    // Wait for test button to appear
-    let testBtn: HTMLElement | undefined;
+    // Find reboot/restart button
+    const buttons = screen.getAllByRole("button");
+    const rebootBtn = buttons.find((b) =>
+      (b.textContent || "").toLowerCase().includes("restart")
+    );
+    expect(rebootBtn).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(rebootBtn!);
+    });
+
+    expect(mockRebootDevice).toHaveBeenCalledWith({ ip: "192.168.1.100" });
+  });
+
+  it("shows error message when reboot fails", async () => {
+    mockSuccessFlow();
+    mockRebootDevice.mockRejectedValue(new Error("Connection lost"));
+
+    render(<Step7Verification {...defaultProps} />);
+
+    // Finalize first
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /finalize/i }));
+    });
+
+    const buttons = screen.getAllByRole("button");
+    const rebootBtn = buttons.find((b) =>
+      (b.textContent || "").toLowerCase().includes("restart")
+    );
+
+    expect(rebootBtn).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(rebootBtn!);
+    });
+
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("Connection lost");
+    });
+  });
+
+  // ===================================================================
+  // Full verification (after reboot)
+  // ===================================================================
+
+  /** Helper: finalize + reboot + countdown to reach verification phase */
+  async function reachVerificationPhase() {
+    vi.useFakeTimers();
+    mockSuccessFlow();
+    mockRebootDevice.mockResolvedValue({});
+
+    render(<Step7Verification {...defaultProps} />);
+
+    // Finalize
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /finalize/i }));
+    });
+
+    // Reboot
+    const buttons = screen.getAllByRole("button");
+    const rebootBtn = buttons.find((b) =>
+      (b.textContent || "").toLowerCase().includes("restart")
+    );
+    await act(async () => {
+      fireEvent.click(rebootBtn!);
+    });
+
+    // Fast-forward countdown
+    await act(async () => {
+      vi.advanceTimersByTime(61000);
+    });
+
+    // Switch back to real timers so waitFor works
+    vi.useRealTimers();
+  }
+
+  it("shows full verification button after reboot completes", async () => {
+    await reachVerificationPhase();
+
     await waitFor(() => {
       const buttons = screen.getAllByRole("button");
-      testBtn = buttons.find((b) =>
-        (b.textContent || "").toLowerCase().includes("test")
+      const verifyBtn = buttons.find((b) =>
+        (b.textContent || "").toLowerCase().includes("verification")
       );
-      expect(testBtn).toBeTruthy();
+      expect(verifyBtn).toBeTruthy();
+    });
+  });
+
+  it("calls verifySetup and verifyRedirect during full verification", async () => {
+    await reachVerificationPhase();
+
+    mockVerifyRedirect.mockResolvedValue({
+      success: true,
+      resolved_ip: "192.168.1.50",
+      expected_ip: "192.168.1.50",
+      matches_expected: true,
+      message: "OK",
     });
 
-    // Click test button
+    // Click full verification button
+    let verifyBtn: HTMLElement | undefined;
+    await waitFor(() => {
+      const buttons = screen.getAllByRole("button");
+      verifyBtn = buttons.find((b) =>
+        (b.textContent || "").toLowerCase().includes("verification")
+      );
+      expect(verifyBtn).toBeTruthy();
+    });
+
     await act(async () => {
-      fireEvent.click(testBtn!);
+      fireEvent.click(verifyBtn!);
     });
 
     await waitFor(() => {
+      expect(mockVerifySetup).toHaveBeenCalledWith({
+        device_ip: "192.168.1.100",
+        device_id: "AABBCCDDEEFF",
+        expected_oct_ip: "192.168.1.50",
+      });
       // verifyRedirect called for each test domain (bose.vtuner.com, streaming.bose.com)
       expect(mockVerifyRedirect).toHaveBeenCalledTimes(2);
     });
   });
 
   it("displays DNS test error in results (not crash)", async () => {
-    mockSuccessFlow();
+    await reachVerificationPhase();
+
     mockVerifyRedirect.mockRejectedValue(new Error("DNS resolution failed"));
 
-    render(<Step7Verification {...defaultProps} />);
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /finalize/i }));
-    });
-
-    let testBtn: HTMLElement | undefined;
+    let verifyBtn: HTMLElement | undefined;
     await waitFor(() => {
       const buttons = screen.getAllByRole("button");
-      testBtn = buttons.find((b) =>
-        (b.textContent || "").toLowerCase().includes("test")
+      verifyBtn = buttons.find((b) =>
+        (b.textContent || "").toLowerCase().includes("verification")
       );
-      expect(testBtn).toBeTruthy();
+      expect(verifyBtn).toBeTruthy();
     });
 
     await act(async () => {
-      fireEvent.click(testBtn!);
+      fireEvent.click(verifyBtn!);
     });
 
     await waitFor(() => {
-      expect(document.body.textContent).toContain("DNS resolution failed");
+      // DNS errors are caught and shown as failed checks with N/A resolved IP
+      expect(document.body.textContent).toContain("N/A");
+      expect(document.body.textContent).toContain("Some checks failed");
     });
   });
 });

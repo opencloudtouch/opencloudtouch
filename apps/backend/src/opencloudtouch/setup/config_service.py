@@ -243,25 +243,39 @@ class SoundTouchConfigService:
                 self.logger.warning("Backup may have failed: %s", result.error)
 
     async def _sync_all_config_files(self, content: str) -> None:
-        """Sync modified content to ALL config file locations.
+        """Sync modified content to existing config file locations only.
 
-        We don't fully understand which file firmware reads on each model.
-        Rather than guess, we write the modified content to every config
-        candidate path — creating override files that don't yet exist.
-        This ensures persistence across reboots on devices where /opt/Bose/etc/
-        lives on a read-only SquashFS overlay.
+        Only overwrites candidate files that already exist on the device.
+        Does NOT create override files that don't exist — firmware on
+        ST10/ST300 ignores OverrideSdkPrivateCfg.xml anyway, and creating
+        unexpected files can confuse other tools.
 
         Best-effort: failure here must not abort the main modify flow.
         """
         primary = await self._detect_config_path()
+        non_primary = [c for c in self.CONFIG_CANDIDATES if c != primary]
+        if not non_primary:
+            return
+
         self.logger.debug(
             "Syncing config from primary %s to %d candidates",
             primary,
-            len(self.CONFIG_CANDIDATES) - 1,
+            len(non_primary),
         )
-        for candidate in self.CONFIG_CANDIDATES:
-            if candidate == primary:
-                self.logger.debug("Skipping primary path %s", candidate)
+
+        # Batch existence check: single SSH call for all candidates
+        check_parts = [
+            f'test -f {c} && echo "{c}:found" || echo "{c}:missing"'
+            for c in non_primary
+        ]
+        check_result = await self.ssh.execute("; ".join(check_parts))
+        check_output = check_result.output or ""
+
+        existing = {c for c in non_primary if f"{c}:found" in check_output}
+
+        for candidate in non_primary:
+            if candidate not in existing:
+                self.logger.debug("Skipping %s (does not exist)", candidate)
                 continue
             try:
                 self.logger.info("Syncing config: %s", candidate)

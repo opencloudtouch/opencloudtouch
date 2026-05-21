@@ -67,13 +67,13 @@ class TestFinalizeDeviceNoUUID:
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient",
             ) as mock_ssh_cls,
             patch(
-                "opencloudtouch.setup.wizard_service._file_exists",
-                new_callable=AsyncMock,
-                return_value=False,
-            ),
-            patch(
                 "opencloudtouch.setup.wizard_service._write_file_atomic",
                 new_callable=AsyncMock,
+            ),
+            patch(
+                "opencloudtouch.setup.wizard_service._read_file_content",
+                new_callable=AsyncMock,
+                return_value=None,
             ),
             patch("httpx.AsyncClient") as mock_http,
         ):
@@ -137,9 +137,14 @@ class TestFinalizeDeviceExistingUUID:
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient",
             ) as mock_ssh_cls,
             patch(
-                "opencloudtouch.setup.wizard_service._file_exists",
+                "opencloudtouch.setup.wizard_service._write_file_atomic",
                 new_callable=AsyncMock,
-                return_value=True,
+                return_value=0,
+            ),
+            patch(
+                "opencloudtouch.setup.wizard_service._read_file_content",
+                new_callable=AsyncMock,
+                return_value=None,
             ),
             patch("httpx.AsyncClient") as mock_http,
         ):
@@ -263,14 +268,15 @@ class TestFinalizeSystemConfig:
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient",
             ) as mock_ssh_cls,
             patch(
-                "opencloudtouch.setup.wizard_service._file_exists",
-                new_callable=AsyncMock,
-                return_value=False,
-            ),
-            patch(
                 "opencloudtouch.setup.wizard_service._write_file_atomic",
                 new_callable=AsyncMock,
+                return_value=0,
             ) as mock_write,
+            patch(
+                "opencloudtouch.setup.wizard_service._read_file_content",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
             patch("httpx.AsyncClient") as mock_http,
         ):
             mock_ssh = _mock_ssh()
@@ -290,6 +296,69 @@ class TestFinalizeSystemConfig:
             assert result["success"] is True
             assert result["system_config_written"] is True
             mock_write.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_overwrites_sysconfig_when_existing(self):
+        """Existing SystemConfigurationDB.xml with wrong content must be overwritten."""
+        repo = _make_device_repo()
+        service = WizardService(device_repo=repo)
+
+        with (
+            patch(
+                "opencloudtouch.setup.wizard_service.ensure_account_uuid_unique",
+                new_callable=AsyncMock,
+                return_value=AccountPairingResult(
+                    success=True,
+                    had_uuid=False,
+                    uuid="1234567",
+                ),
+            ),
+            patch(
+                "opencloudtouch.setup.wizard_service.force_write_sources_xml",
+                new_callable=AsyncMock,
+                return_value=ForceWriteResult(success=True),
+            ),
+            patch(
+                "opencloudtouch.setup.wizard_service.check_marge_account_uuid",
+                new_callable=AsyncMock,
+                return_value="1234567",
+            ),
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient",
+            ) as mock_ssh_cls,
+            patch(
+                "opencloudtouch.setup.wizard_service._write_file_atomic",
+                new_callable=AsyncMock,
+                return_value=0,
+            ) as mock_write,
+            patch(
+                "opencloudtouch.setup.wizard_service._read_file_content",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch("httpx.AsyncClient") as mock_http,
+        ):
+            mock_ssh = _mock_ssh()
+            mock_ssh_cls.return_value.__aenter__ = AsyncMock(return_value=mock_ssh)
+            mock_ssh_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+            mock_client = AsyncMock()
+            mock_resp = MagicMock()
+            mock_resp.text = "<info><name>Büro</name><margeAccountUUID>1234567</margeAccountUUID></info>"
+            mock_client.get = AsyncMock(return_value=mock_resp)
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_http.return_value = mock_client
+
+            result = await service.finalize_device("192.168.1.100", "AABBCCDDEEFF")
+
+            assert result["success"] is True
+            assert result["system_config_written"] is True
+            mock_write.assert_called_once()
+            # Verify correct content was written
+            written_content = mock_write.call_args.args[2]
+            assert "<AccountUUID>1234567</AccountUUID>" in written_content
+            assert "<acctMode>local</acctMode>" in written_content
 
 
 class TestFinalizeIdempotent:
@@ -324,9 +393,14 @@ class TestFinalizeIdempotent:
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient",
             ) as mock_ssh_cls,
             patch(
-                "opencloudtouch.setup.wizard_service._file_exists",
+                "opencloudtouch.setup.wizard_service._write_file_atomic",
                 new_callable=AsyncMock,
-                return_value=True,
+                return_value=0,
+            ),
+            patch(
+                "opencloudtouch.setup.wizard_service._read_file_content",
+                new_callable=AsyncMock,
+                return_value=None,
             ),
             patch("httpx.AsyncClient") as mock_http,
         ):
@@ -348,3 +422,5 @@ class TestFinalizeIdempotent:
             assert r1["success"] is True
             assert r2["success"] is True
             assert r1["uuid"] == r2["uuid"]
+            assert r1["system_config_written"] is True
+            assert r2["system_config_written"] is True

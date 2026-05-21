@@ -20,8 +20,9 @@ from opencloudtouch.setup.persistence_service import (
     REQUIRED_SOURCE_TYPES,
     build_system_config_xml,
     force_write_sources_xml,
+    parse_system_config_xml,
     _PERSISTENCE_DIR,
-    _file_exists,
+    _read_file_content,
     _write_file_atomic,
 )
 from opencloudtouch.setup.backup_service import SoundTouchBackupService
@@ -400,39 +401,92 @@ class WizardService:
 
             uuid_was_collision = not uuid_result.had_uuid and uuid_result.uuid != ""
 
-            # 2. SSH operations: Sources.xml + SystemConfigurationDB.xml
+            # 2. Fetch /info for device metadata (name, variant, module_type)
+            device_name = "SoundTouch"
+            has_bluetooth = True  # safe default: include BLUETOOTH source
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    resp = await client.get(f"http://{device_ip}:8090/info")
+                    root = ET.fromstring(resp.text)
+                    name_elem = root.find("name")
+                    if name_elem is not None and name_elem.text:
+                        device_name = name_elem.text.strip()
+                    # Determine Bluetooth capability from hardware profile
+                    variant = root.findtext("variant", "").strip()
+                    module_type = root.findtext("moduleType", "").strip()
+                    device_type = root.findtext("type", "").strip()
+                    if module_type:
+                        from opencloudtouch.devices.hardware import get_hardware_profile
+
+                        profile = get_hardware_profile(
+                            variant or None, module_type, device_type or None
+                        )
+                        if profile is not None:
+                            has_bluetooth = profile.has_bluetooth
+                            logger.info(
+                                "Hardware profile: %s (bluetooth=%s)",
+                                profile.product_name,
+                                has_bluetooth,
+                            )
+            except Exception:
+                logger.debug(
+                    "Could not fetch /info for hardware profile, using defaults"
+                )
+
+            # 3. SSH operations: Sources.xml + SystemConfigurationDB.xml
             async with ssh_operation(device_ip, "finalize") as ssh:
                 await ssh.execute("mount -o remount,rw /")
                 try:
-                    # Force-write Sources.xml (backup existing)
-                    sources_result = await force_write_sources_xml(ssh, backup=True)
-
-                    # Get device name for SystemConfigurationDB.xml
-                    device_name = "SoundTouch"
-                    info_uuid = await check_marge_account_uuid(device_ip)
-                    if info_uuid:
-                        # Try to get device name from /info
-                        try:
-                            async with httpx.AsyncClient(timeout=5.0) as client:
-                                resp = await client.get(f"http://{device_ip}:8090/info")
-                                root = ET.fromstring(resp.text)
-                                name_elem = root.find("name")
-                                if name_elem is not None and name_elem.text:
-                                    device_name = name_elem.text.strip()
-                        except Exception:
-                            pass
-
-                    # Create SystemConfigurationDB.xml if missing
-                    sys_config_path = f"{_PERSISTENCE_DIR}/SystemConfigurationDB.xml"
-                    sys_config_written = False
-                    await ssh.execute(f"mkdir -p {_PERSISTENCE_DIR}")
-                    if not await _file_exists(ssh, sys_config_path):
-                        xml_content = build_system_config_xml(
-                            device_name, uuid_result.uuid
+                    # Force-write Sources.xml (backup existing, hardware-tailored)
+                    sources_result = await force_write_sources_xml(
+                        ssh,
+                        backup=True,
+                        has_bluetooth=has_bluetooth,
+                    )
+                    if not sources_result.success:
+                        logger.error(
+                            "Sources.xml write failed: %s", sources_result.error
                         )
-                        await _write_file_atomic(ssh, sys_config_path, xml_content)
-                        sys_config_written = True
-                        logger.info("Created SystemConfigurationDB.xml")
+
+                    # Read existing SystemConfigurationDB.xml to preserve
+                    # DeviceName and AccountUUID if present
+                    sys_config_path = f"{_PERSISTENCE_DIR}/SystemConfigurationDB.xml"
+                    await ssh.execute(f"mkdir -p {_PERSISTENCE_DIR}")
+
+                    existing_content = await _read_file_content(ssh, sys_config_path)
+                    if existing_content:
+                        existing = parse_system_config_xml(existing_content)
+                        if existing["device_name"]:
+                            device_name = existing["device_name"]
+                            logger.info(
+                                "Preserved DeviceName from existing config: %s",
+                                device_name,
+                            )
+                        if existing["account_uuid"]:
+                            logger.info(
+                                "Existing AccountUUID found: %s (authoritative: %s)",
+                                existing["account_uuid"],
+                                uuid_result.uuid,
+                            )
+
+                    xml_content = build_system_config_xml(device_name, uuid_result.uuid)
+                    exit_code = await _write_file_atomic(
+                        ssh, sys_config_path, xml_content
+                    )
+                    sys_config_written = True
+                    if exit_code != 0:
+                        logger.error(
+                            "SystemConfigurationDB.xml write returned exit code %d",
+                            exit_code,
+                        )
+                        sys_config_written = False
+                    else:
+                        logger.info(
+                            "%s SystemConfigurationDB.xml (uuid=%s, name=%s)",
+                            "Overwrote" if existing_content else "Created",
+                            uuid_result.uuid,
+                            device_name,
+                        )
 
                     # Verify SystemConfigurationDB.xml content
                     verification = await self._verify_sys_config(ssh, uuid_result.uuid)
@@ -506,7 +560,7 @@ class WizardService:
                 if acct_elem is not None and acct_elem.text
                 else ""
             )
-            checks["acct_mode_global"] = acct_val == "global"
+            checks["acct_mode_local"] = acct_val == "local"
 
             multi_elem = root.find("isMultiDeviceAccount")
             multi_val = (

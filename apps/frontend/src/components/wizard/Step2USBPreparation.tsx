@@ -1,9 +1,10 @@
 /**
  * Step 2: USB Preparation
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import WizardStep from "./WizardStep";
+import { getModelInstructions, type ModelInstructions } from "../../api/setup";
 import "./Step2USBPreparation.css";
 
 interface Step2Props {
@@ -23,12 +24,41 @@ function detectPlatform(): Platform {
   return "unknown";
 }
 
+/** Map i18n language to Amazon marketplace domain. */
+const AMAZON_DOMAINS: Record<string, string> = {
+  de: "amazon.de",
+  en: "amazon.com",
+  fr: "amazon.fr",
+  es: "amazon.es",
+  it: "amazon.it",
+  nl: "amazon.nl",
+  pl: "amazon.pl",
+  sv: "amazon.se",
+  ja: "amazon.co.jp",
+  "pt-BR": "amazon.com.br",
+};
+
+function getAmazonSearchUrl(query: string, lang: string): string {
+  const domain = AMAZON_DOMAINS[lang] ?? AMAZON_DOMAINS["en"] ?? "amazon.com";
+  return `https://www.${domain}/s?k=${encodeURIComponent(query)}`;
+}
+
 export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }: Step2Props) {
   const { t } = useTranslation();
   const [platform, setPlatform] = useState<Platform>(detectPlatform);
   const [usbReady, setUsbReady] = useState(false);
+  const [instructions, setInstructions] = useState<ModelInstructions | null>(null);
 
-  const usbPort = deviceModel.includes("30") || deviceModel.includes("300") ? "USB-A" : "Micro-USB";
+  useEffect(() => {
+    getModelInstructions(deviceModel)
+      .then(setInstructions)
+      .catch(() => {}); // fallback to deviceModel string
+  }, [deviceModel]);
+
+  const usbTypes = instructions?.usb_port_types ?? [instructions?.usb_port_type ?? "micro-usb"];
+  const hasBothTypes = usbTypes.length > 1;
+  const portLocation = instructions?.usb_port_location ?? "";
+  const adapterNeeded = instructions?.adapter_needed ?? true;
 
   const getFormatInstructions = (): { title: string; steps: string[] } => {
     switch (platform) {
@@ -76,6 +106,10 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
     }
   };
 
+  const needsMicroUsbAdapter = adapterNeeded && usbTypes.includes("micro-usb");
+  const { i18n } = useTranslation();
+  const lang = i18n.language;
+
   const formatInstructions = getFormatInstructions();
 
   return (
@@ -94,11 +128,78 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
         <div className="usb-device-info">
           <div className="usb-icon">🔌</div>
           <div className="usb-device-details">
-            <strong>{t("setup.wizard.step2.deviceNeeds")}</strong> {usbPort}
+            <strong>{t("setup.wizard.step2.deviceNeeds")}</strong>{" "}
+            {hasBothTypes
+              ? usbTypes.map((u) => u.toUpperCase()).join(` ${t("common.or", "oder")} `)
+              : usbTypes[0]?.toUpperCase()}
+            {portLocation && (
+              <>
+                <br />
+                <small>📍 {portLocation}</small>
+              </>
+            )}
             <br />
             <small>
               {t("setup.wizard.step2.model")} {deviceModel}
             </small>
+            {hasBothTypes && (
+              <div className="usb-dual-hint">
+                ℹ️{" "}
+                {t(
+                  "setup.wizard.step2.dualUsbHint",
+                  "Dein Gerät hat je nach Baujahr Micro-USB oder USB-A. Schau auf die Rückseite welcher Port vorhanden ist."
+                )}
+              </div>
+            )}
+            {needsMicroUsbAdapter && (
+              <div className="usb-adapter-hint">
+                🔌{" "}
+                {t(
+                  "setup.wizard.step2.adapterNeeded",
+                  "Dein Gerät hat einen Micro-USB Port. Du brauchst einen OTG-Adapter:"
+                )}
+                <ul className="usb-adapter-links">
+                  <li>
+                    <a
+                      href={getAmazonSearchUrl(
+                        t(
+                          "setup.wizard.step2.adapterSearchUsba",
+                          "USB-A auf Micro-USB OTG Adapter"
+                        ),
+                        lang
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t("setup.wizard.step2.adapterUsba", "USB-A → Micro-USB OTG Adapter")}
+                    </a>
+                    <span className="usb-adapter-price">
+                      {" "}
+                      (~{t("setup.wizard.step2.adapterUsbaPriceHint", "6 €")})
+                    </span>
+                  </li>
+                  <li>
+                    <a
+                      href={getAmazonSearchUrl(
+                        t(
+                          "setup.wizard.step2.adapterSearchUsbc",
+                          "USB-C auf Micro-USB OTG Adapter"
+                        ),
+                        lang
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t("setup.wizard.step2.adapterUsbc", "USB-C → Micro-USB OTG Adapter")}
+                    </a>
+                    <span className="usb-adapter-price">
+                      {" "}
+                      (~{t("setup.wizard.step2.adapterUsbcPriceHint", "10 €")})
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            )}
           </div>
         </div>
 

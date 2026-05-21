@@ -9,6 +9,7 @@ from opencloudtouch.setup.wizard_service import WizardService
 
 FULL_SOURCES_XML = """<?xml version="1.0" encoding="UTF-8" ?>
 <sources>
+    <source displayName="AIRPLAY"><sourceKey type="AIRPLAY" account="" /></source>
     <source displayName="AUX IN"><sourceKey type="AUX" account="AUX" /></source>
     <source displayName="LIR"><sourceKey type="LOCAL_INTERNET_RADIO" account="" /></source>
     <source displayName="TUNEIN"><sourceKey type="TUNEIN" account="" /></source>
@@ -34,7 +35,7 @@ BOSE_CONFIG = """<?xml version="1.0" ?>
 GOOD_SYS_CONFIG = """<?xml version="1.0" encoding="UTF-8" ?>
 <SystemConfiguration>
     <AccountUUID>5448503</AccountUUID>
-    <acctMode>global</acctMode>
+    <acctMode>local</acctMode>
     <isMultiDeviceAccount>true</isMultiDeviceAccount>
 </SystemConfiguration>"""
 

@@ -278,9 +278,19 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   const handleBackupComplete = (backupData: unknown) => {
     audit?.logDetail("config", "backup_complete", 3, { data: JSON.stringify(backupData) });
     console.log("Backup completed:", backupData);
-    // Store backup path for Step 8 display
-    if (backupData && typeof backupData === "object" && "path" in backupData) {
-      setBackupPath(backupData.path as string);
+    // Extract backup directory from first successful volume
+    if (backupData && typeof backupData === "object" && "volumes" in backupData) {
+      const volumes = (backupData as Record<string, unknown>).volumes as
+        | Array<Record<string, unknown>>
+        | undefined;
+      const firstPath = volumes?.find((v) => v.backup_path)?.backup_path as string | undefined;
+      if (firstPath) {
+        // Show directory, not individual file
+        const dir = firstPath.substring(0, firstPath.lastIndexOf("/"));
+        setBackupPath(dir || firstPath);
+      } else if ((backupData as Record<string, unknown>).success) {
+        setBackupPath("USB:/oct-backup");
+      }
     }
   };
 

@@ -10,6 +10,7 @@ from fastapi.responses import Response
 from opencloudtouch.core.dependencies import get_marge_service
 from opencloudtouch.marge.service import MargeService
 from opencloudtouch.marge.xml_builder import (
+    KNOWN_SOURCE_PROVIDERS,
     build_devices_xml,
     build_full_account_xml,
     build_presets_xml,
@@ -187,20 +188,11 @@ async def get_sourceproviders(device_id: str) -> Response:
     """
     logger.info("[MARGE] Get sourceproviders for device %s", device_id)
 
-    # Build XML manually (simple structure)
     root = ET.Element("sourceproviders")
 
-    providers = [
-        "TUNEIN",
-        "LOCAL_INTERNET_RADIO",
-        "STORED_MUSIC",
-        "AUX",
-        "BLUETOOTH",
-    ]
-
-    for provider in providers:
+    for _, name, _ in KNOWN_SOURCE_PROVIDERS:
         provider_elem = ET.SubElement(root, "sourceProvider")
-        provider_elem.set("source", provider)
+        provider_elem.set("source", name)
         provider_elem.set("status", "AVAILABLE")
 
     return _xml_response(root)
@@ -241,22 +233,13 @@ async def streaming_sourceproviders() -> Response:
     """
     logger.info("[MARGE/STREAMING] Get sourceproviders")
 
-    # Build XML per ueberboese-api.yaml spec
     root = ET.Element("sourceProviders")
-
-    # TuneIn provider (id=25)
-    tunein = ET.SubElement(root, "sourceprovider")
-    tunein.set("id", "25")
-    ET.SubElement(tunein, "createdOn").text = "2012-09-19T12:43:00.000+00:00"
-    ET.SubElement(tunein, "name").text = "TUNEIN"
-    ET.SubElement(tunein, "updatedOn").text = "2012-09-19T12:43:00.000+00:00"
-
-    # LOCAL_INTERNET_RADIO (id=11)
-    local_radio = ET.SubElement(root, "sourceprovider")
-    local_radio.set("id", "11")
-    ET.SubElement(local_radio, "createdOn").text = "2014-01-01T00:00:00.000+00:00"
-    ET.SubElement(local_radio, "name").text = "LOCAL_INTERNET_RADIO"
-    ET.SubElement(local_radio, "updatedOn").text = "2014-01-01T00:00:00.000+00:00"
+    for pid, name, ts in KNOWN_SOURCE_PROVIDERS:
+        elem = ET.SubElement(root, "sourceprovider")
+        elem.set("id", pid)
+        ET.SubElement(elem, "createdOn").text = ts
+        ET.SubElement(elem, "name").text = name
+        ET.SubElement(elem, "updatedOn").text = ts
 
     return _xml_response(root, _MEDIA_STREAMING_XML)
 

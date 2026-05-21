@@ -108,12 +108,17 @@ COPY LICENSE NOTICE DISCLAIMER.md ./
 COPY apps/backend/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Create data directory
-RUN mkdir -p /data
+# Create data and log directories
+RUN mkdir -p /data /logs
 
-# Run as non-root user
-RUN useradd -m -u 1000 oct && chown -R oct:oct /app /data
-USER oct
+# Create non-root user (entrypoint fixes volume permissions then drops to oct)
+RUN useradd -m -u 1000 oct && chown -R oct:oct /app /data /logs
+
+# Install su-exec for dropping privileges in entrypoint (tiny, no deps)
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends gosu && \
+    rm -rf /var/lib/apt/lists/*
 
 # Environment defaults
 ENV OCT_HOST=0.0.0.0

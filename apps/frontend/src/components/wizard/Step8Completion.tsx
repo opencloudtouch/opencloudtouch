@@ -58,7 +58,7 @@ export default function Step8Completion({ deviceName, backupPath, onFinish }: St
 
         {/* Backup Info */}
         <div className="completion-backup-info">
-          <div className="backup-info-icon">{backupPath ? "💾" : "� ️"}</div>
+          <div className="backup-info-icon">{backupPath ? "💾" : "⚠️"}</div>
           <div className="backup-info-content">
             {backupPath ? (
               <>
@@ -106,7 +106,7 @@ export default function Step8Completion({ deviceName, backupPath, onFinish }: St
         {/* Actions */}
         <div className="completion-actions">
           <button className="btn btn-primary completion-btn-home" onClick={handleGoHome}>
-            � {t("setup.wizard.step8.btnHome")}
+            🏠 {t("setup.wizard.step8.btnHome")}
           </button>
           <button
             className="btn btn-secondary completion-btn-another"
@@ -121,7 +121,7 @@ export default function Step8Completion({ deviceName, backupPath, onFinish }: St
           <p>
             {t("setup.wizard.step8.supportText")}{" "}
             <a
-              href="https://github.com/yourusername/soundtouch-bridge/issues"
+              href="https://github.com/scheilch/opencloudtouch/issues"
               target="_blank"
               rel="noopener noreferrer"
               className="completion-support-link"

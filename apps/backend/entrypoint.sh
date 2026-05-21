@@ -100,11 +100,31 @@ shutdown() {
     exit 0
 }
 
+# Fix volume permissions (runs as root, before dropping to oct)
+fix_permissions() {
+    if [ "$(id -u)" = "0" ]; then
+        chown -R oct:oct /data 2>/dev/null || true
+        if [ -n "${OCT_LOG_DIR:-}" ] && [ -d "${OCT_LOG_DIR}" ]; then
+            chown -R oct:oct "${OCT_LOG_DIR}" 2>/dev/null || true
+        fi
+        chown -R oct:oct /logs 2>/dev/null || true
+    fi
+}
+
 # Main entrypoint logic
 main() {
     log_info "OpenCloudTouch starting..."
     log_info "Version: 0.2.0"
     log_info "Python: $(python --version)"
+
+    # Fix volume permissions before dropping privileges
+    fix_permissions
+
+    # Drop to non-root user if running as root
+    if [ "$(id -u)" = "0" ]; then
+        log_info "Dropping privileges to oct user"
+        exec gosu oct "$0" "$@"
+    fi
 
     # Run validations
     validate_env

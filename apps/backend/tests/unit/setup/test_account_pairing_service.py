@@ -156,14 +156,14 @@ class TestUpdateUuidInXml:
         result = _update_uuid_in_xml(_EXISTING_SYS_CONFIG, "1234567")
         assert "1234567" in result
         assert "9999999" not in result
-        assert "global" in result
+        assert "local" in result
         assert ">true<" in result
 
     def test_adds_missing_elements(self):
         xml = "<SystemConfiguration><DeviceName>Test</DeviceName></SystemConfiguration>"
         result = _update_uuid_in_xml(xml, "7654321")
         assert "7654321" in result
-        assert "global" in result
+        assert "local" in result
         assert ">true<" in result
 
 

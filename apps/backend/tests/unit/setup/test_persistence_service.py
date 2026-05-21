@@ -6,11 +6,12 @@ import pytest
 from unittest.mock import AsyncMock
 
 from opencloudtouch.setup.persistence_service import (
+    build_sources_xml,
     build_system_config_xml,
     ensure_persistence_files,
     force_write_sources_xml,
+    parse_system_config_xml,
     _PERSISTENCE_DIR,
-    _SOURCES_XML,
 )
 from opencloudtouch.setup.ssh_client import CommandResult
 
@@ -36,9 +37,9 @@ class TestBuildSystemConfigXml:
         xml = build_system_config_xml("Test", "1234567")
         assert "</SystemConfiguration>" in xml
 
-    def test_global_acct_mode(self):
+    def test_local_acct_mode(self):
         xml = build_system_config_xml("Test", "1234567")
-        assert "<acctMode>global</acctMode>" in xml
+        assert "<acctMode>local</acctMode>" in xml
 
     def test_multi_device_account_true(self):
         xml = build_system_config_xml("Test", "1234567")
@@ -46,22 +47,46 @@ class TestBuildSystemConfigXml:
 
 
 class TestSourcesXml:
-    """Tests for the static Sources.xml template."""
+    """Tests for the Sources.xml builder."""
 
     def test_contains_local_internet_radio(self):
-        assert 'type="LOCAL_INTERNET_RADIO"' in _SOURCES_XML
+        xml = build_sources_xml()
+        assert 'type="LOCAL_INTERNET_RADIO"' in xml
 
     def test_contains_tunein(self):
-        assert 'type="TUNEIN"' in _SOURCES_XML
+        xml = build_sources_xml()
+        assert 'type="TUNEIN"' in xml
 
     def test_contains_radio_browser(self):
-        assert 'type="RADIO_BROWSER"' in _SOURCES_XML
+        xml = build_sources_xml()
+        assert 'type="RADIO_BROWSER"' in xml
 
     def test_contains_aux(self):
-        assert 'type="AUX"' in _SOURCES_XML
+        xml = build_sources_xml()
+        assert 'type="AUX"' in xml
+
+    def test_contains_airplay(self):
+        xml = build_sources_xml()
+        assert 'type="AIRPLAY"' in xml
 
     def test_has_xml_declaration(self):
-        assert _SOURCES_XML.startswith('<?xml version="1.0"')
+        xml = build_sources_xml()
+        assert xml.startswith('<?xml version="1.0"')
+
+    def test_includes_bluetooth_by_default(self):
+        xml = build_sources_xml()
+        assert 'type="BLUETOOTH"' in xml
+
+    def test_excludes_bluetooth_when_disabled(self):
+        xml = build_sources_xml(has_bluetooth=False)
+        assert 'type="BLUETOOTH"' not in xml
+        # Other sources still present
+        assert 'type="TUNEIN"' in xml
+        assert 'type="AUX"' in xml
+
+    def test_includes_bluetooth_explicitly(self):
+        xml = build_sources_xml(has_bluetooth=True)
+        assert 'type="BLUETOOTH"' in xml
 
 
 # —— Helpers ———————————————————————————————————————————
@@ -296,3 +321,49 @@ class TestXmlEscaping:
         root = ET.fromstring(xml)
         assert root.find("DeviceName").text == "Böse <Lautsprecher> & Mehr"
         assert root.find("AccountUUID").text == "9876543"
+
+
+class TestParseSystemConfigXml:
+    """Tests for extracting values from existing SystemConfigurationDB.xml."""
+
+    def test_extracts_device_name_and_uuid(self):
+        xml = build_system_config_xml("Büro", "1234567")
+        result = parse_system_config_xml(xml)
+        assert result["device_name"] == "Büro"
+        assert result["account_uuid"] == "1234567"
+
+    def test_handles_empty_uuid(self):
+        xml = build_system_config_xml("Büro", "")
+        result = parse_system_config_xml(xml)
+        assert result["device_name"] == "Büro"
+        assert result["account_uuid"] == ""
+
+    def test_handles_empty_device_name(self):
+        xml = build_system_config_xml("", "1234567")
+        result = parse_system_config_xml(xml)
+        assert result["device_name"] == ""
+        assert result["account_uuid"] == "1234567"
+
+    def test_handles_malformed_xml(self):
+        result = parse_system_config_xml("<broken>xml")
+        assert result["device_name"] == ""
+        assert result["account_uuid"] == ""
+
+    def test_handles_real_device_xml(self):
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8" ?>\n'
+            "<SystemConfiguration>\n"
+            "    <Password />\n"
+            "    <DeviceName>Büro</DeviceName>\n"
+            "    <AccountAssociatedEMail />\n"
+            "    <AccountUUID></AccountUUID>\n"
+            "    <Locale />\n"
+            "    <acctMode>local</acctMode>\n"
+            "    <isMultiDeviceAccount>true</isMultiDeviceAccount>\n"
+            "    <margeAuthServerToken />\n"
+            '    <powerSavingSettings powersaving_en="true" />\n'
+            "</SystemConfiguration>\n"
+        )
+        result = parse_system_config_xml(xml)
+        assert result["device_name"] == "Büro"
+        assert result["account_uuid"] == ""

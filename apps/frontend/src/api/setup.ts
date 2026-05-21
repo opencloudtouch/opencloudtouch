@@ -53,6 +53,7 @@ export interface ModelInstructions {
   model_name: string;
   display_name: string;
   usb_port_type: string;
+  usb_port_types: string[];
   usb_port_location: string;
   adapter_needed: boolean;
   adapter_recommendation: string;

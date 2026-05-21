@@ -1,5 +1,9 @@
 /**
  * Step 7: Verification & Test
+ *
+ * Flow: Finalize → Reboot (mandatory) → Post-reboot full verification
+ * The full verification runs verify_setup (11 checks) + DNS redirect tests
+ * to give a comprehensive health report.
  */
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -38,7 +42,6 @@ export default function Step7Verification({
   onPrevious,
 }: Step7Props) {
   const { t } = useTranslation();
-  const [testing, setTesting] = useState(false);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [allTestsPassed, setAllTestsPassed] = useState(false);
 
@@ -49,7 +52,14 @@ export default function Step7Verification({
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Finalize & Verify state (Issue #184)
-  type SetupPhase = "idle" | "finalizing" | "verifying" | "dns" | "done" | "error";
+  type SetupPhase =
+    | "idle"
+    | "finalizing"
+    | "done_finalize"
+    | "rebooting"
+    | "post_reboot_verify"
+    | "done"
+    | "error";
   const [setupPhase, setSetupPhase] = useState<SetupPhase>("idle");
   const [finalizeResult, setFinalizeResult] = useState<FinalizeResponse | null>(null);
   const [verifyChecks, setVerifyChecks] = useState<VerifyCheck[]>([]);
@@ -68,7 +78,7 @@ export default function Step7Verification({
     setVerifyChecks([]);
 
     try {
-      // Phase 1: Finalize (UUID + Sources.xml)
+      // Phase 1: Finalize (UUID + Sources.xml + SystemConfigurationDB.xml)
       const finResult = await finalizeDevice({
         device_ip: deviceIp,
         device_id: deviceId,
@@ -81,17 +91,8 @@ export default function Step7Verification({
         return;
       }
 
-      // Phase 2: Verify setup
-      setSetupPhase("verifying");
-      const verResult = await verifySetup({
-        device_ip: deviceIp,
-        device_id: deviceId,
-        expected_oct_ip: octIp,
-      });
-      setVerifyChecks(verResult.checks);
-
-      // Phase 3: DNS checks phase
-      setSetupPhase("dns");
+      // Finalize succeeded — move to reboot phase
+      setSetupPhase("done_finalize");
     } catch (err) {
       const msg = err instanceof Error ? err.message : t("errors.unknown");
       setSetupError(msg);
@@ -123,45 +124,62 @@ export default function Step7Verification({
     }
   };
 
-  const handleRunTests = async () => {
-    setTesting(true);
+  const handleFullVerification = async () => {
+    setSetupPhase("post_reboot_verify");
+    setVerifyChecks([]);
     setTestResults([]);
     setAllTestsPassed(false);
+    setSetupError("");
 
-    const results: TestResult[] = [];
+    try {
+      // Phase 1: Run verify_setup (11 comprehensive checks)
+      const verResult = await verifySetup({
+        device_ip: deviceIp,
+        device_id: deviceId,
+        expected_oct_ip: octIp,
+      });
+      setVerifyChecks(verResult.checks);
 
-    for (const { domain } of TEST_DOMAINS) {
-      try {
-        const result = await verifyRedirect({
-          device_ip: deviceIp,
-          domain,
-          expected_ip: octIp,
-        });
-
-        results.push({
-          domain,
-          success: result.success,
-          resolved_ip: result.resolved_ip,
-          expected_ip: result.expected_ip || octIp,
-          matches_expected: result.matches_expected,
-          message: result.message,
-        });
-      } catch (err) {
-        const message = err instanceof Error ? err.message : t("errors.unknown");
-        results.push({
-          domain,
-          success: false,
-          resolved_ip: "N/A",
-          expected_ip: octIp,
-          matches_expected: false,
-          message: `${t("common.error")}: ${message}`,
-        });
+      // Phase 2: Run DNS redirect tests
+      const dnsResults: TestResult[] = [];
+      for (const { domain } of TEST_DOMAINS) {
+        try {
+          const result = await verifyRedirect({
+            device_ip: deviceIp,
+            domain,
+            expected_ip: octIp,
+          });
+          dnsResults.push({
+            domain,
+            success: result.success,
+            resolved_ip: result.resolved_ip,
+            expected_ip: result.expected_ip || octIp,
+            matches_expected: result.matches_expected,
+            message: result.message,
+          });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : t("errors.unknown");
+          dnsResults.push({
+            domain,
+            success: false,
+            resolved_ip: "N/A",
+            expected_ip: octIp,
+            matches_expected: false,
+            message: `${t("common.error")}: ${message}`,
+          });
+        }
       }
-    }
+      setTestResults(dnsResults);
 
-    setTestResults(results);
-    setAllTestsPassed(results.every((r) => r.success && r.matches_expected));
-    setTesting(false);
+      const allVerifyPassed = verResult.checks.every((c: VerifyCheck) => c.passed);
+      const allDnsPassed = dnsResults.every((r) => r.success && r.matches_expected);
+      setAllTestsPassed(allVerifyPassed && allDnsPassed);
+      setSetupPhase("done");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : t("errors.unknown");
+      setSetupError(msg);
+      setSetupPhase("error");
+    }
   };
 
   return (
@@ -175,7 +193,7 @@ export default function Step7Verification({
       isNextDisabled={!allTestsPassed}
     >
       <div className="verification">
-        {/* Finalize & Verify Section (Issue #184) */}
+        {/* Phase 1: Finalize Section */}
         {setupPhase === "idle" && (
           <div className="finalize-section">
             <button className="btn btn-primary" onClick={handleFinalizeAndVerify}>
@@ -191,16 +209,9 @@ export default function Step7Verification({
           </div>
         )}
 
-        {setupPhase === "verifying" && (
-          <div className="verify-status">
-            <span className="spinner-small" />
-            {t("setup.wizard.step7.verifying", "Verifying setup...")}
-          </div>
-        )}
-
         {setupPhase === "error" && (
           <div className="setup-error">
-            <div className="failed-icon">\u26a0\ufe0f</div>
+            <div className="failed-icon">{"\u26a0\ufe0f"}</div>
             <p>{setupError}</p>
             <button className="btn btn-secondary" onClick={handleFinalizeAndVerify}>
               {t("setup.wizard.step7.btnRetryFinalize", "Retry")}
@@ -210,169 +221,180 @@ export default function Step7Verification({
 
         {finalizeResult?.success && (
           <div className="finalize-result">
-            <div className="success-icon">\u2705</div>
+            <div className="success-icon">{"\u2705"}</div>
             <p>{finalizeResult.message}</p>
           </div>
         )}
 
-        {verifyChecks.length > 0 && (
-          <div className="verify-checklist">
-            <h3>{t("setup.wizard.step7.verifyTitle", "Setup Verification")}</h3>
-            {verifyChecks.map((check) => (
-              <div
-                key={check.name}
-                className={`verify-check-item ${check.passed ? "passed" : "failed"}`}
-              >
-                <span className="check-icon">{check.passed ? "\u2705" : "\u274c"}</span>
-                <span className="check-message">{check.message}</span>
+        {/* Phase 2: Reboot Section — visible after finalize succeeds */}
+        {(setupPhase === "done_finalize" || rebootState !== "idle") && (
+          <div className="reboot-section">
+            <div className="reboot-header">
+              <span className="reboot-icon">🔄</span>
+              <div>
+                <strong>{t("setup.wizard.step7.rebootHeader")}</strong>
+                <p className="reboot-hint">
+                  {t(
+                    "setup.wizard.step7.rebootMandatoryHint",
+                    "A reboot is required for the configuration changes to take effect. The device must restart before verification."
+                  )}
+                </p>
               </div>
-            ))}
+            </div>
+
+            {rebootState === "idle" && setupPhase === "done_finalize" && (
+              <div className="reboot-action">
+                <button className="btn btn-primary reboot-btn" onClick={handleReboot}>
+                  🔄 {t("setup.wizard.step7.btnReboot")}
+                </button>
+              </div>
+            )}
+
+            {rebootState === "rebooting" && (
+              <div className="reboot-status reboot-status--progress">
+                <span className="spinner-small" />
+                {t("setup.wizard.step7.rebootRebooting")}
+              </div>
+            )}
+
+            {rebootState === "waiting" && (
+              <div className="reboot-status reboot-status--waiting">
+                <span className="reboot-countdown">{rebootCountdown}s</span>
+                {t("setup.wizard.step7.rebootWaiting")}
+              </div>
+            )}
+
+            {rebootState === "done" && (
+              <div className="reboot-status reboot-status--done">
+                ✅ {t("setup.wizard.step7.rebootDone")}
+              </div>
+            )}
+
+            {rebootState === "error" && (
+              <div className="reboot-status reboot-status--error">
+                ❌ {rebootError}
+                <button className="btn btn-secondary reboot-retry" onClick={handleReboot}>
+                  {t("setup.wizard.step7.btnRetryReboot")}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Reboot Section */}
-        <div className="reboot-section">
-          <div className="reboot-header">
-            <span className="reboot-icon">🔄</span>
-            <div>
-              <strong>{t("setup.wizard.step7.rebootHeader")}</strong>
-              <p className="reboot-hint">{t("setup.wizard.step7.rebootHint")}</p>
-            </div>
-          </div>
-
-          {rebootState === "idle" && (
-            <div className="reboot-action">
-              <button className="btn btn-secondary reboot-btn" onClick={handleReboot}>
-                🔄 {t("setup.wizard.step7.btnReboot")}
-              </button>
-              <small className="reboot-action-hint">
-                {t("setup.wizard.step7.rebootActionHint")}
-              </small>
-            </div>
-          )}
-
-          {rebootState === "rebooting" && (
-            <div className="reboot-status reboot-status--progress">
-              <span className="spinner-small" />
-              {t("setup.wizard.step7.rebootRebooting")}
-            </div>
-          )}
-
-          {rebootState === "waiting" && (
-            <div className="reboot-status reboot-status--waiting">
-              <span className="reboot-countdown">{rebootCountdown}s</span>
-              {t("setup.wizard.step7.rebootWaiting")}
-            </div>
-          )}
-
-          {rebootState === "done" && (
-            <div className="reboot-status reboot-status--done">
-              ✅ {t("setup.wizard.step7.rebootDone")}
-            </div>
-          )}
-
-          {rebootState === "error" && (
-            <div className="reboot-status reboot-status--error">
-              ❌ {rebootError}
-              <button className="btn btn-secondary reboot-retry" onClick={handleReboot}>
-                {t("setup.wizard.step7.btnRetryReboot")}
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Test Button */}
-        {setupPhase === "dns" && testResults.length === 0 && (
+        {/* Phase 3: Post-reboot Full Verification — visible after reboot completes */}
+        {rebootState === "done" && setupPhase !== "post_reboot_verify" && setupPhase !== "done" && (
           <div className="verification-start">
             <div className="verification-info">
               <div className="info-icon">🔍</div>
               <div className="info-content">
-                <h3>{t("setup.wizard.step7.testInfoTitle")}</h3>
+                <h3>{t("setup.wizard.step7.fullVerifyTitle", "Full System Verification")}</h3>
                 <ul>
-                  <li>{t("setup.wizard.step7.testInfoItem1")}</li>
-                  <li>{t("setup.wizard.step7.testInfoItem2")}</li>
-                  <li>{t("setup.wizard.step7.testInfoItem3")}</li>
+                  <li>
+                    {t("setup.wizard.step7.fullVerifyItem1", "Account UUID visible in device info")}
+                  </li>
+                  <li>
+                    {t(
+                      "setup.wizard.step7.fullVerifyItem2",
+                      "All music sources registered (AUX, TuneIn, Bluetooth, ...)"
+                    )}
+                  </li>
+                  <li>
+                    {t(
+                      "setup.wizard.step7.fullVerifyItem3",
+                      "Configuration files intact after reboot"
+                    )}
+                  </li>
+                  <li>
+                    {t(
+                      "setup.wizard.step7.fullVerifyItem4",
+                      "DNS redirects resolve to OpenCloudTouch server"
+                    )}
+                  </li>
                 </ul>
               </div>
             </div>
 
             <button
               className="btn btn-primary verification-test-btn"
-              onClick={handleRunTests}
-              disabled={testing}
+              onClick={handleFullVerification}
             >
-              {testing ? (
-                <>
-                  <span className="spinner-small" />
-                  {t("setup.wizard.step7.btnRunning")}
-                </>
-              ) : (
-                <>🚀 {t("setup.wizard.step7.btnRunTests")}</>
-              )}
+              🚀 {t("setup.wizard.step7.btnRunFullVerify", "Run Full Verification")}
             </button>
           </div>
         )}
 
-        {/* Test Results */}
-        {testResults.length > 0 && (
-          <div className="verification-results">
-            <h3 className="verification-title">{t("setup.wizard.step7.resultsTitle")}</h3>
+        {setupPhase === "post_reboot_verify" && (
+          <div className="verify-status">
+            <span className="spinner-small" />
+            {t("setup.wizard.step7.fullVerifying", "Running full system verification...")}
+          </div>
+        )}
 
-            <div className="verification-test-list">
-              {testResults.map((result, index) => (
-                <div
-                  key={result.domain}
-                  className={`verification-test-item ${result.success && result.matches_expected ? "success" : "failed"}`}
-                >
-                  <div className="test-item-header">
-                    <div className="test-item-icon">
-                      {result.success && result.matches_expected ? "✅" : "❌"}
-                    </div>
-                    <div className="test-item-info">
-                      <strong className="test-item-domain">{result.domain}</strong>
-                      <small className="test-item-description">
-                        {TEST_DOMAINS[index]?.descriptionKey
-                          ? t(TEST_DOMAINS[index].descriptionKey)
-                          : ""}
-                      </small>
-                    </div>
+        {/* Combined Results: verify_setup checks + DNS tests */}
+        {setupPhase === "done" && (
+          <>
+            {/* System Checks (verify_setup) */}
+            {verifyChecks.length > 0 && (
+              <div className="verify-checklist">
+                <h3>{t("setup.wizard.step7.systemChecksTitle", "System Checks")}</h3>
+                {verifyChecks.map((check) => (
+                  <div
+                    key={check.name}
+                    className={`verify-check-item ${check.passed ? "passed" : "failed"}`}
+                  >
+                    <span className="check-icon">{check.passed ? "\u2705" : "\u274c"}</span>
+                    <span className="check-message">{check.message}</span>
                   </div>
+                ))}
+              </div>
+            )}
 
-                  <div className="test-item-details">
-                    <div className="test-detail-row">
-                      <span className="test-detail-label">
-                        {t("setup.wizard.step7.resolvedIp")}
-                      </span>
-                      <code className="test-detail-value">{result.resolved_ip}</code>
-                    </div>
-                    <div className="test-detail-row">
-                      <span className="test-detail-label">
-                        {t("setup.wizard.step7.expectedIp")}
-                      </span>
-                      <code className="test-detail-value">{result.expected_ip}</code>
-                    </div>
-                    <div className="test-detail-row">
-                      <span className="test-detail-label">
-                        {t("setup.wizard.step7.statusLabel")}
-                      </span>
-                      <span
-                        className={`test-detail-status ${result.matches_expected ? "match" : "mismatch"}`}
-                      >
-                        {result.matches_expected
-                          ? t("setup.wizard.step7.statusCorrect")
-                          : t("setup.wizard.step7.statusFailed")}
-                      </span>
-                    </div>
-                  </div>
+            {/* DNS Redirect Tests */}
+            {testResults.length > 0 && (
+              <div className="verification-results">
+                <h3 className="verification-title">
+                  {t("setup.wizard.step7.dnsTestsTitle", "DNS Redirect Tests")}
+                </h3>
 
-                  {result.message && (
-                    <div className="test-item-message">
-                      <small>{result.message}</small>
+                <div className="verification-test-list">
+                  {testResults.map((result, index) => (
+                    <div
+                      key={result.domain}
+                      className={`verification-test-item ${result.success && result.matches_expected ? "success" : "failed"}`}
+                    >
+                      <div className="test-item-header">
+                        <div className="test-item-icon">
+                          {result.success && result.matches_expected ? "✅" : "❌"}
+                        </div>
+                        <div className="test-item-info">
+                          <strong className="test-item-domain">{result.domain}</strong>
+                          <small className="test-item-description">
+                            {TEST_DOMAINS[index]?.descriptionKey
+                              ? t(TEST_DOMAINS[index].descriptionKey)
+                              : ""}
+                          </small>
+                        </div>
+                      </div>
+
+                      <div className="test-item-details">
+                        <div className="test-detail-row">
+                          <span className="test-detail-label">
+                            {t("setup.wizard.step7.resolvedIp")}
+                          </span>
+                          <code className="test-detail-value">{result.resolved_ip}</code>
+                        </div>
+                        <div className="test-detail-row">
+                          <span className="test-detail-label">
+                            {t("setup.wizard.step7.expectedIp")}
+                          </span>
+                          <code className="test-detail-value">{result.expected_ip}</code>
+                        </div>
+                      </div>
                     </div>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
 
             {/* Overall Result */}
             {allTestsPassed ? (
@@ -383,23 +405,18 @@ export default function Step7Verification({
               </div>
             ) : (
               <div className="verification-failed">
-                <div className="failed-icon">� ️</div>
+                <div className="failed-icon">⚠️</div>
                 <h3 className="failed-title">{t("setup.wizard.step7.someFailedTitle")}</h3>
                 <p className="failed-message">{t("setup.wizard.step7.someFailedMessage")}</p>
-                <ul className="failed-steps">
-                  <li>{t("setup.wizard.step7.failedStep1")}</li>
-                  <li>{t("setup.wizard.step7.failedStep2")}</li>
-                  <li>{t("setup.wizard.step7.failedStep3")}</li>
-                </ul>
                 <button
                   className="btn btn-secondary verification-retry-btn"
-                  onClick={handleRunTests}
+                  onClick={handleFullVerification}
                 >
-                  🔄 {t("setup.wizard.step7.btnRetryTests")}
+                  🔄 {t("setup.wizard.step7.btnRetryFullVerify", "Run Verification Again")}
                 </button>
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
     </WizardStep>

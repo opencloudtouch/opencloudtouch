@@ -601,3 +601,33 @@ class TestClusterFileHandler:
             h for h in root.handlers if isinstance(h, ClusterFileHandler)
         ]
         assert len(cluster_handlers) == 0
+
+    def test_permission_error_falls_back_to_ram_only(self, tmp_path: Path, monkeypatch):
+        """Log dir with bad permissions degrades gracefully instead of crashing."""
+        from opencloudtouch.core.config import AppConfig
+
+        log_dir = tmp_path / "no-access"
+        log_dir.mkdir()
+        mock_config = AppConfig(
+            log_level="INFO", log_format="text", log_file=None, log_dir=str(log_dir)
+        )
+        monkeypatch.setattr(
+            "opencloudtouch.core.logging.get_config", lambda: mock_config
+        )
+
+        def raise_permission_error(self, *args, **kwargs):
+            raise PermissionError("Permission denied: '/logs/database.log'")
+
+        monkeypatch.setattr(
+            "opencloudtouch.core.logging.ClusterFileHandler.__init__",
+            raise_permission_error,
+        )
+
+        # Must not crash
+        setup_logging()
+
+        root = logging.getLogger()
+        cluster_handlers = [
+            h for h in root.handlers if isinstance(h, ClusterFileHandler)
+        ]
+        assert len(cluster_handlers) == 0

@@ -96,7 +96,7 @@ def _update_uuid_in_xml(xml_content: str, uuid: str) -> str:
     acct_elem = root.find("acctMode")
     if acct_elem is None:
         acct_elem = SubElement(root, "acctMode")
-    acct_elem.text = "global"
+    acct_elem.text = "local"
 
     multi_elem = root.find("isMultiDeviceAccount")
     if multi_elem is None:
@@ -116,7 +116,7 @@ async def set_account_uuid_via_ssh(
     """Set margeAccountUUID on device via SSH by writing SystemConfigurationDB.xml.
 
     Reads existing file (if present) and updates UUID in-place,
-    or creates from template if missing. Also sets acctMode=global
+    or creates from template if missing. Also sets acctMode=local
     and isMultiDeviceAccount=true. Verifies write by reading back.
 
     /mnt/nv is always writable — no remount needed.

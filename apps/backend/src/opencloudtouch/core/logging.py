@@ -236,11 +236,18 @@ def setup_logging() -> None:
     # Persistent cluster log files (opt-in via OCT_LOG_DIR)
     if config.log_dir:
         log_dir = Path(config.log_dir)
-        cluster_handler = ClusterFileHandler(
-            log_dir, base_level=getattr(logging, config.log_level, logging.INFO)
-        )
-        root_logger.addHandler(cluster_handler)
-        _persistent_log_dir = log_dir
+        try:
+            cluster_handler = ClusterFileHandler(
+                log_dir, base_level=getattr(logging, config.log_level, logging.INFO)
+            )
+            root_logger.addHandler(cluster_handler)
+            _persistent_log_dir = log_dir
+        except PermissionError:
+            logging.warning(
+                f"Cannot write to log directory {log_dir} (permission denied). "
+                "Falling back to RAM-only logging. Fix volume permissions: "
+                "chown -R 1000:1000 <volume-mount-path>"
+            )
 
     # Optional single file handler (legacy)
     if config.log_file:

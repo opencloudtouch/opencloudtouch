@@ -10,6 +10,28 @@ from opencloudtouch.core.config import get_config
 
 logger = logging.getLogger(__name__)
 
+# All source types known from real SoundTouch device dumps.
+# Tuples: (streaming_id, name, created_on_timestamp)
+# IDs: TUNEIN=25, LOCAL_INTERNET_RADIO=11 from ueberboese-api.yaml;
+# remaining IDs are synthetic (no official registry exists).
+KNOWN_SOURCE_PROVIDERS: list[tuple[str, str, str]] = [
+    ("25", "TUNEIN", "2012-09-19T12:43:00.000+00:00"),
+    ("11", "LOCAL_INTERNET_RADIO", "2014-01-01T00:00:00.000+00:00"),
+    ("12", "INTERNET_RADIO", "2014-01-01T00:00:00.000+00:00"),
+    ("30", "SPOTIFY", "2014-06-01T00:00:00.000+00:00"),
+    ("31", "AMAZON", "2015-01-01T00:00:00.000+00:00"),
+    ("32", "DEEZER", "2015-01-01T00:00:00.000+00:00"),
+    ("40", "BLUETOOTH", "2013-01-01T00:00:00.000+00:00"),
+    ("41", "AUX", "2013-01-01T00:00:00.000+00:00"),
+    ("42", "AIRPLAY", "2018-01-01T00:00:00.000+00:00"),
+    ("43", "ALEXA", "2017-01-01T00:00:00.000+00:00"),
+    ("50", "STORED_MUSIC", "2014-01-01T00:00:00.000+00:00"),
+    ("51", "STORED_MUSIC_MEDIA_RENDERER", "2014-01-01T00:00:00.000+00:00"),
+    ("52", "UPNP", "2014-01-01T00:00:00.000+00:00"),
+    ("53", "QPLAY", "2014-01-01T00:00:00.000+00:00"),
+    ("60", "NOTIFICATION", "2013-01-01T00:00:00.000+00:00"),
+]
+
 
 def _build_orion_location(station_url: str, station_name: str, image_url: str) -> str:
     """Build Orion adapter location URL for LOCAL_INTERNET_RADIO presets.
@@ -145,16 +167,7 @@ def build_sources_xml() -> ET.Element:
     """
     sources_elem = ET.Element("sources")
 
-    # Standard sources available in OCT
-    available_sources = [
-        "TUNEIN",
-        "LOCAL_INTERNET_RADIO",
-        "BLUETOOTH",
-        "AUX",
-        "STORED_MUSIC",
-    ]
-
-    for source_name in available_sources:
+    for _, source_name, _ in KNOWN_SOURCE_PROVIDERS:
         source_elem = ET.SubElement(sources_elem, "source")
         source_elem.set("source", source_name)
         source_elem.set("status", "AVAILABLE")
