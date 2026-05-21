@@ -354,3 +354,265 @@ class TestContentApiBoseIoPresent:
             "BUG-04: content.api.bose.io not in hosts diff. "
             "Preset playback will fail after setup wizard completes."
         )
+
+
+# ---------------------------------------------------------------------------
+# restore_hosts
+# ---------------------------------------------------------------------------
+
+
+class TestRestoreHosts:
+    """Tests for hosts file restoration from backup."""
+
+    @pytest.mark.asyncio
+    async def test_restore_success(self, service, mock_ssh):
+        """Successful restore copies backup to /etc/hosts."""
+        mock_ssh.execute.return_value = _ok("exists")
+
+        result = await service.restore_hosts("/mnt/nv/hosts_backup")
+
+        assert result.success is True
+        calls = [c[0][0] for c in mock_ssh.execute.call_args_list]
+        cp_calls = [c for c in calls if "cp" in c and "/etc/hosts" in c]
+        assert len(cp_calls) >= 1
+
+    @pytest.mark.asyncio
+    async def test_restore_backup_not_found(self, service, mock_ssh):
+        """Restore fails gracefully when backup file doesn't exist."""
+        mock_ssh.execute.return_value = _ok("missing")
+
+        result = await service.restore_hosts("/mnt/nv/hosts_backup")
+
+        assert result.success is False
+        assert "Backup not found" in (result.error or "")
+
+    @pytest.mark.asyncio
+    async def test_restore_copy_failure(self, service, mock_ssh):
+        """Restore reports error when cp command fails."""
+
+        async def side_effect(cmd, **kwargs):
+            if "test -f" in cmd:
+                return _ok("exists")
+            if "remount,rw" in cmd or "remount,ro" in cmd:
+                return _ok()
+            if "cp" in cmd:
+                return _fail("Permission denied")
+            return _ok()
+
+        mock_ssh.execute = AsyncMock(side_effect=side_effect)
+        result = await service.restore_hosts("/mnt/nv/hosts_backup")
+
+        assert result.success is False
+        assert "Copy failed" in (result.error or "")
+
+    @pytest.mark.asyncio
+    async def test_restore_remounts_rw_then_ro(self, service, mock_ssh):
+        """Restore remounts rw before copy, ro after."""
+        mock_ssh.execute.return_value = _ok("exists")
+
+        await service.restore_hosts("/mnt/nv/hosts_backup")
+
+        calls = [c[0][0] for c in mock_ssh.execute.call_args_list]
+        rw = [c for c in calls if "remount,rw" in c]
+        ro = [c for c in calls if "remount,ro" in c]
+        assert len(rw) >= 1
+        assert len(ro) >= 1
+
+    @pytest.mark.asyncio
+    async def test_restore_handles_ssh_exception(self, service, mock_ssh):
+        """Restore catches unexpected SSH exceptions."""
+        mock_ssh.execute = AsyncMock(side_effect=ConnectionError("lost"))
+
+        result = await service.restore_hosts("/mnt/nv/hosts_backup")
+
+        assert result.success is False
+        assert "lost" in (result.error or "")
+
+
+# ---------------------------------------------------------------------------
+# list_backups
+# ---------------------------------------------------------------------------
+
+
+class TestListBackups:
+    """Tests for listing available hosts backups."""
+
+    @pytest.mark.asyncio
+    async def test_returns_backup_paths(self, service, mock_ssh):
+        """Returns sorted list of backup file paths."""
+        mock_ssh.execute.return_value = _ok(
+            "/mnt/nv/hosts_backup\n/mnt/nv/hosts_backup.1\n"
+        )
+
+        result = await service.list_backups()
+
+        assert result == ["/mnt/nv/hosts_backup", "/mnt/nv/hosts_backup.1"]
+
+    @pytest.mark.asyncio
+    async def test_returns_empty_when_no_backups(self, service, mock_ssh):
+        """Returns empty list when no backup files exist."""
+        mock_ssh.execute.return_value = _ok("")
+
+        result = await service.list_backups()
+
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_returns_empty_on_ssh_failure(self, service, mock_ssh):
+        """Returns empty list if SSH command fails."""
+        mock_ssh.execute.return_value = _fail("No such file")
+
+        result = await service.list_backups()
+
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_handles_exception(self, service, mock_ssh):
+        """Returns empty list on unexpected exception."""
+        mock_ssh.execute = AsyncMock(side_effect=RuntimeError("boom"))
+
+        result = await service.list_backups()
+
+        assert result == []
+
+
+# ---------------------------------------------------------------------------
+# _build_clean_lines — OCT block removal
+# ---------------------------------------------------------------------------
+
+
+class TestBuildCleanLines:
+    """Tests for stripping existing OCT blocks and Bose domain entries."""
+
+    def test_removes_existing_oct_block(self, service):
+        """Existing OCT block is stripped from hosts content."""
+        content = (
+            "127.0.0.1 localhost\n"
+            "# OCT-START\n"
+            "192.168.1.50\tbose.vtuner.com\n"
+            "# OCT-END\n"
+            "::1 localhost\n"
+        )
+        all_domains = (
+            service.VTUNER_HOSTS + service.REQUIRED_HOSTS + service.OPTIONAL_HOSTS
+        )
+        result = service._build_clean_lines(content, all_domains)
+
+        assert "127.0.0.1 localhost" in result
+        assert "::1 localhost" in result
+        assert not any("OCT-START" in line for line in result)
+        assert not any("bose.vtuner.com" in line for line in result)
+
+    def test_removes_bare_bose_domain_entries(self, service):
+        """Bare Bose domain entries outside OCT block are also removed."""
+        content = (
+            "127.0.0.1 localhost\n"
+            "1.2.3.4 bose.vtuner.com\n"
+            "5.6.7.8 streaming.bose.com\n"
+        )
+        all_domains = (
+            service.VTUNER_HOSTS + service.REQUIRED_HOSTS + service.OPTIONAL_HOSTS
+        )
+        result = service._build_clean_lines(content, all_domains)
+
+        assert len(result) == 1
+        assert result[0] == "127.0.0.1 localhost"
+
+    def test_preserves_unrelated_entries(self, service):
+        """Non-Bose entries are preserved."""
+        content = "127.0.0.1 localhost\n192.168.1.1 router.local\n"
+        all_domains = (
+            service.VTUNER_HOSTS + service.REQUIRED_HOSTS + service.OPTIONAL_HOSTS
+        )
+        result = service._build_clean_lines(content, all_domains)
+
+        assert len(result) == 2
+
+
+# ---------------------------------------------------------------------------
+# modify_hosts — optional domains
+# ---------------------------------------------------------------------------
+
+
+class TestModifyHostsOptionalDomains:
+    """Tests for include_optional parameter."""
+
+    @pytest.mark.asyncio
+    async def test_includes_optional_domains_by_default(self, service, mock_ssh):
+        """Optional domains (analytics, telemetry) included by default."""
+        mock_ssh.execute.return_value = _ok("127.0.0.1 localhost")
+
+        result = await service.modify_hosts(oct_ip="10.0.0.1", include_optional=True)
+
+        assert result.success is True
+        for domain in SoundTouchHostsService.OPTIONAL_HOSTS:
+            assert domain in result.diff
+
+    @pytest.mark.asyncio
+    async def test_excludes_optional_domains_when_disabled(self, service, mock_ssh):
+        """Optional domains excluded when include_optional=False."""
+        mock_ssh.execute.return_value = _ok("127.0.0.1 localhost")
+
+        result = await service.modify_hosts(oct_ip="10.0.0.1", include_optional=False)
+
+        assert result.success is True
+        for domain in SoundTouchHostsService.OPTIONAL_HOSTS:
+            assert domain not in result.diff
+
+
+# ---------------------------------------------------------------------------
+# _build_oct_block
+# ---------------------------------------------------------------------------
+
+
+class TestBuildOctBlock:
+    """Tests for OCT marker block generation."""
+
+    def test_block_has_markers(self, service):
+        """Block starts with OCT-START and ends with OCT-END."""
+        block = service._build_oct_block("10.0.0.1", ["bose.vtuner.com"])
+
+        assert block[0] == "# OCT-START"
+        assert block[-1] == "# OCT-END"
+
+    def test_block_entries_have_correct_format(self, service):
+        """Each entry has IP, tab, domain, tab, comment."""
+        block = service._build_oct_block("10.0.0.1", ["bose.vtuner.com"])
+
+        assert "10.0.0.1\tbose.vtuner.com\t# OpenCloudTouch redirect" in block[1]
+
+
+# ---------------------------------------------------------------------------
+# _ensure_backup — backup already exists
+# ---------------------------------------------------------------------------
+
+
+class TestEnsureBackup:
+    """Tests for backup creation logic."""
+
+    @pytest.mark.asyncio
+    async def test_skips_backup_if_already_exists(self, service, mock_ssh):
+        """No copy if backup file already exists."""
+        mock_ssh.execute.return_value = _ok("exists")
+
+        await service._ensure_backup("/mnt/nv/hosts_backup")
+
+        calls = [c[0][0] for c in mock_ssh.execute.call_args_list]
+        cp_calls = [c for c in calls if c.startswith("cp")]
+        assert len(cp_calls) == 0
+
+    @pytest.mark.asyncio
+    async def test_creates_backup_if_missing(self, service, mock_ssh):
+        """Creates backup copy when no backup exists yet."""
+
+        async def side_effect(cmd, **kwargs):
+            if "test -f" in cmd:
+                return _ok("missing")
+            return _ok()
+
+        mock_ssh.execute = AsyncMock(side_effect=side_effect)
+        await service._ensure_backup("/mnt/nv/hosts_backup")
+
+        calls = [c[0][0] for c in mock_ssh.execute.call_args_list]
+        cp_calls = [c for c in calls if c.startswith("cp")]
+        assert len(cp_calls) == 1

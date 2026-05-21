@@ -135,8 +135,9 @@ describe("Setup Wizard — Bug Regression Suite", () => {
     setupDeviceMocks();
     visitDe("/setup-wizard?deviceId=DEVICE_WOHNZIMMER");
     cy.wait("@getDevices");
-    // Wizard starts directly at Step 1 (mode selector was removed)
+    // Wizard starts directly at Step 1 after clicking through WizardChoice
     cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
+    cy.contains("Setup-Assistent").click();
   });
 
   // ─── BUG-12: Hardcodierte OCT-URL ──────────────────────────────────────────

@@ -27,8 +27,9 @@ export default function RestoreVerification({
     try {
       const response = await fetch(`/api/devices`);
       if (response.ok) {
-        const devices = await response.json();
-        const found = devices.some((d: { ip: string }) => d.ip === deviceIp);
+        const data = await response.json();
+        const devicesList: { ip: string }[] = data.devices || [];
+        const found = devicesList.some((d) => d.ip === deviceIp);
         if (found) {
           setDeviceOnline(true);
           setChecking(false);

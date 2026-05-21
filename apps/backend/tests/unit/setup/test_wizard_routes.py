@@ -1246,3 +1246,140 @@ class TestWizardServerInfo:
         assert "server_url" in body
         assert "server_ip" in body
         assert body["default_port"] == 7777
+
+
+# ── wizard/finalize ──────────────────────────────────────────────────────────
+
+
+class TestWizardFinalize:
+    """POST /api/setup/wizard/finalize"""
+
+    def test_finalize_success(self, client):
+        with patch.object(
+            __import__(
+                "opencloudtouch.setup.wizard_service", fromlist=["WizardService"]
+            ).WizardService,
+            "finalize_device",
+            new_callable=AsyncMock,
+            return_value={
+                "success": True,
+                "uuid": "1234567",
+                "had_uuid": False,
+                "uuid_was_collision": False,
+                "sources_written": True,
+                "sources_backup_path": "/tmp/backup",
+                "system_config_written": True,
+                "message": "Finalized",
+            },
+        ):
+            response = client.post(
+                "/api/setup/wizard/finalize",
+                json={"device_ip": "192.168.1.100", "device_id": "AABBCCDDEEFF"},
+            )
+            assert response.status_code == 200
+            body = response.json()
+            assert body["success"] is True
+            assert body["uuid"] == "1234567"
+            assert body["sources_written"] is True
+
+    def test_finalize_failure(self, client):
+        with patch.object(
+            __import__(
+                "opencloudtouch.setup.wizard_service", fromlist=["WizardService"]
+            ).WizardService,
+            "finalize_device",
+            new_callable=AsyncMock,
+            return_value={"success": False, "error": "SSH connection failed"},
+        ):
+            response = client.post(
+                "/api/setup/wizard/finalize",
+                json={"device_ip": "192.168.1.100", "device_id": "AABBCCDDEEFF"},
+            )
+            assert response.status_code == 200
+            body = response.json()
+            assert body["success"] is False
+            assert "SSH" in body["error"]
+
+
+# ── wizard/verify-setup ──────────────────────────────────────────────────────
+
+
+class TestWizardVerifySetup:
+    """POST /api/setup/wizard/verify-setup"""
+
+    def test_verify_all_passed(self, client):
+        with patch.object(
+            __import__(
+                "opencloudtouch.setup.wizard_service", fromlist=["WizardService"]
+            ).WizardService,
+            "verify_setup",
+            new_callable=AsyncMock,
+            return_value={
+                "success": True,
+                "checks": [
+                    {
+                        "name": "uuid_present",
+                        "passed": True,
+                        "message": "OK",
+                        "details": {},
+                    },
+                ],
+                "passed_count": 1,
+                "failed_count": 0,
+                "message": "1/1 checks passed",
+            },
+        ):
+            response = client.post(
+                "/api/setup/wizard/verify-setup",
+                json={
+                    "device_ip": "192.168.1.100",
+                    "device_id": "AABBCCDDEEFF",
+                    "expected_oct_ip": "192.168.1.50",
+                },
+            )
+            assert response.status_code == 200
+            body = response.json()
+            assert body["success"] is True
+            assert body["passed_count"] == 1
+            assert body["failed_count"] == 0
+
+    def test_verify_with_failures(self, client):
+        with patch.object(
+            __import__(
+                "opencloudtouch.setup.wizard_service", fromlist=["WizardService"]
+            ).WizardService,
+            "verify_setup",
+            new_callable=AsyncMock,
+            return_value={
+                "success": False,
+                "checks": [
+                    {
+                        "name": "uuid_present",
+                        "passed": True,
+                        "message": "OK",
+                        "details": {},
+                    },
+                    {
+                        "name": "hosts_oct_block",
+                        "passed": False,
+                        "message": "Missing",
+                        "details": {},
+                    },
+                ],
+                "passed_count": 1,
+                "failed_count": 1,
+                "message": "1/2 checks passed (1 failed)",
+            },
+        ):
+            response = client.post(
+                "/api/setup/wizard/verify-setup",
+                json={
+                    "device_ip": "192.168.1.100",
+                    "device_id": "AABBCCDDEEFF",
+                    "expected_oct_ip": "192.168.1.50",
+                },
+            )
+            assert response.status_code == 200
+            body = response.json()
+            assert body["success"] is False
+            assert body["failed_count"] == 1
