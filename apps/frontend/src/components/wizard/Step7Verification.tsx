@@ -110,7 +110,7 @@ export default function Step7Verification({
       countdownRef.current = setInterval(() => {
         setRebootCountdown((prev) => {
           if (prev <= 1) {
-            clearInterval(countdownRef.current!);
+            if (countdownRef.current) clearInterval(countdownRef.current);
             setRebootState("done");
             return 0;
           }

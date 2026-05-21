@@ -358,6 +358,69 @@ class WizardService:
     # Finalize & Verify (Issue #184)
     # ========================================================================
 
+    @staticmethod
+    async def _fetch_device_metadata(
+        device_ip: str,
+    ) -> tuple[str, bool]:
+        """Fetch device name and Bluetooth capability from /info endpoint."""
+        device_name = "SoundTouch"
+        has_bluetooth = True
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(f"http://{device_ip}:8090/info")
+                root = ET.fromstring(resp.text)
+                name_elem = root.find("name")
+                if name_elem is not None and name_elem.text:
+                    device_name = name_elem.text.strip()
+                variant = root.findtext("variant", "").strip()
+                module_type = root.findtext("moduleType", "").strip()
+                device_type = root.findtext("type", "").strip()
+                if module_type:
+                    from opencloudtouch.devices.hardware import get_hardware_profile
+
+                    profile = get_hardware_profile(
+                        variant or None, module_type, device_type or None
+                    )
+                    if profile is not None:
+                        has_bluetooth = profile.has_bluetooth
+                        logger.info(
+                            "Hardware profile: %s (bluetooth=%s)",
+                            profile.product_name,
+                            has_bluetooth,
+                        )
+        except Exception:
+            logger.debug("Could not fetch /info for hardware profile, using defaults")
+        return device_name, has_bluetooth
+
+    @staticmethod
+    def _apply_existing_config(
+        existing_content: str,
+        device_name: str,
+        device_id: str,
+        authoritative_uuid: str,
+    ) -> str:
+        """Merge DeviceName from existing SystemConfigurationDB.xml, validate UUID."""
+        existing = parse_system_config_xml(existing_content)
+        if existing["device_name"]:
+            device_name = existing["device_name"]
+            logger.info(
+                "Preserved DeviceName from existing config: %s",
+                device_name,
+            )
+        if existing["account_uuid"]:
+            if is_valid_account_uuid(existing["account_uuid"]):
+                logger.info(
+                    "Existing AccountUUID found: %s (authoritative: %s)",
+                    existing["account_uuid"],
+                    authoritative_uuid,
+                )
+            else:
+                logger.warning(
+                    "Existing AccountUUID=%s is invalid (not 7+ digits), ignoring",
+                    existing["account_uuid"],
+                )
+        return device_name
+
     async def finalize_device(self, device_ip: str, device_id: str) -> dict:
         """Finalize device setup: set UUID + force-write Sources.xml.
 
@@ -403,36 +466,7 @@ class WizardService:
             uuid_was_collision = not uuid_result.had_uuid and uuid_result.uuid != ""
 
             # 2. Fetch /info for device metadata (name, variant, module_type)
-            device_name = "SoundTouch"
-            has_bluetooth = True  # safe default: include BLUETOOTH source
-            try:
-                async with httpx.AsyncClient(timeout=5.0) as client:
-                    resp = await client.get(f"http://{device_ip}:8090/info")
-                    root = ET.fromstring(resp.text)
-                    name_elem = root.find("name")
-                    if name_elem is not None and name_elem.text:
-                        device_name = name_elem.text.strip()
-                    # Determine Bluetooth capability from hardware profile
-                    variant = root.findtext("variant", "").strip()
-                    module_type = root.findtext("moduleType", "").strip()
-                    device_type = root.findtext("type", "").strip()
-                    if module_type:
-                        from opencloudtouch.devices.hardware import get_hardware_profile
-
-                        profile = get_hardware_profile(
-                            variant or None, module_type, device_type or None
-                        )
-                        if profile is not None:
-                            has_bluetooth = profile.has_bluetooth
-                            logger.info(
-                                "Hardware profile: %s (bluetooth=%s)",
-                                profile.product_name,
-                                has_bluetooth,
-                            )
-            except Exception:
-                logger.debug(
-                    "Could not fetch /info for hardware profile, using defaults"
-                )
+            device_name, has_bluetooth = await self._fetch_device_metadata(device_ip)
 
             # 3. SSH operations: Sources.xml + SystemConfigurationDB.xml
             async with ssh_operation(device_ip, "finalize") as ssh:
@@ -456,25 +490,12 @@ class WizardService:
 
                     existing_content = await _read_file_content(ssh, sys_config_path)
                     if existing_content:
-                        existing = parse_system_config_xml(existing_content)
-                        if existing["device_name"]:
-                            device_name = existing["device_name"]
-                            logger.info(
-                                "Preserved DeviceName from existing config: %s",
-                                device_name,
-                            )
-                        if existing["account_uuid"]:
-                            if is_valid_account_uuid(existing["account_uuid"]):
-                                logger.info(
-                                    "Existing AccountUUID found: %s (authoritative: %s)",
-                                    existing["account_uuid"],
-                                    uuid_result.uuid,
-                                )
-                            else:
-                                logger.warning(
-                                    "Existing AccountUUID=%s is invalid (not 7+ digits), ignoring",
-                                    existing["account_uuid"],
-                                )
+                        device_name = self._apply_existing_config(
+                            existing_content,
+                            device_name,
+                            device_id,
+                            uuid_result.uuid,
+                        )
 
                     # Fallback: use device_id as DeviceName if still default
                     if device_name == "SoundTouch" and device_id:
