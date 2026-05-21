@@ -7,6 +7,7 @@ from opencloudtouch.setup.account_pairing_service import (
     check_marge_account_uuid,
     ensure_account_uuid,
     ensure_account_uuid_unique,
+    is_valid_account_uuid,
     set_account_uuid_via_ssh,
     _generate_account_uuid,
     _update_uuid_in_xml,
@@ -38,6 +39,14 @@ _INFO_NO_TAG = """<?xml version="1.0" encoding="UTF-8" ?>
 <info deviceID="AABBCCDDEEFF">
   <name>SoundTouch 10</name>
   <type>SoundTouch 10</type>
+  <components/>
+</info>"""
+
+_INFO_INVALID_UUID = """<?xml version="1.0" encoding="UTF-8" ?>
+<info deviceID="AABBCCDDEEFF">
+  <name>SoundTouch 10</name>
+  <type>SoundTouch 10</type>
+  <margeAccountUUID>abc</margeAccountUUID>
   <components/>
 </info>"""
 
@@ -538,3 +547,49 @@ class TestEnsureAccountUuidUnique:
             )
             assert result.success is False
             assert "collision" in result.error.lower()
+
+
+# ── is_valid_account_uuid ────────────────────────────────────────
+
+
+class TestIsValidAccountUUID:
+    """Tests for UUID format validation."""
+
+    @pytest.mark.parametrize(
+        "uuid",
+        ["1234567", "5448503", "9999999", "1000000", "12345678"],
+    )
+    def test_valid_uuids(self, uuid):
+        assert is_valid_account_uuid(uuid) is True
+
+    @pytest.mark.parametrize(
+        "uuid",
+        ["", "abc", "123", "123456", "abcdefg", "123456a", "12 3456", " 1234567"],
+    )
+    def test_invalid_uuids(self, uuid):
+        assert is_valid_account_uuid(uuid) is False
+
+
+# ── check_marge_account_uuid with invalid UUID ───────────────────
+
+
+class TestCheckMargeAccountUUIDInvalid:
+    """check_marge_account_uuid returns None for invalid UUID formats."""
+
+    @pytest.mark.asyncio
+    async def test_returns_none_for_non_digit_uuid(self):
+        mock_resp = MagicMock()
+        mock_resp.text = _INFO_INVALID_UUID
+        mock_resp.raise_for_status = MagicMock()
+
+        with patch(
+            "opencloudtouch.setup.account_pairing_service.httpx.AsyncClient"
+        ) as mock_cls:
+            mock_client = AsyncMock()
+            mock_client.get = AsyncMock(return_value=mock_resp)
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_cls.return_value = mock_client
+
+            result = await check_marge_account_uuid("192.168.1.100")
+            assert result is None

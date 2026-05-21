@@ -15,6 +15,7 @@ from opencloudtouch.setup.account_pairing_service import (
     check_marge_account_uuid,
     ensure_account_uuid,
     ensure_account_uuid_unique,
+    is_valid_account_uuid,
 )
 from opencloudtouch.setup.persistence_service import (
     REQUIRED_SOURCE_TYPES,
@@ -463,11 +464,25 @@ class WizardService:
                                 device_name,
                             )
                         if existing["account_uuid"]:
-                            logger.info(
-                                "Existing AccountUUID found: %s (authoritative: %s)",
-                                existing["account_uuid"],
-                                uuid_result.uuid,
-                            )
+                            if is_valid_account_uuid(existing["account_uuid"]):
+                                logger.info(
+                                    "Existing AccountUUID found: %s (authoritative: %s)",
+                                    existing["account_uuid"],
+                                    uuid_result.uuid,
+                                )
+                            else:
+                                logger.warning(
+                                    "Existing AccountUUID=%s is invalid (not 7+ digits), ignoring",
+                                    existing["account_uuid"],
+                                )
+
+                    # Fallback: use device_id as DeviceName if still default
+                    if device_name == "SoundTouch" and device_id:
+                        device_name = device_id
+                        logger.info(
+                            "Using device_id as DeviceName fallback: %s",
+                            device_name,
+                        )
 
                     xml_content = build_system_config_xml(device_name, uuid_result.uuid)
                     exit_code = await _write_file_atomic(
