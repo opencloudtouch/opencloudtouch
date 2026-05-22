@@ -646,7 +646,7 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
       // After finalize, result section shows UUID and success status
       cy.contains("button", /abschließen|finalize/i, { timeout: 8000 }).click({ force: true });
       cy.wait("@finalizeDevice");
-      cy.get(".finalize-result", { timeout: 5000 }).should("exist");
+      cy.get(".verify-checklist", { timeout: 5000 }).should("exist");
       screenshotBoth("wiz_06c_verification__finalize-result");
     });
 
