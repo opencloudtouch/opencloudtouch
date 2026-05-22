@@ -513,7 +513,57 @@
         "btnRunFullVerify": "Volledige verificatie starten",
         "fullVerifying": "Volledige systeemverificatie wordt uitgevoerd...",
         "systemChecksTitle": "Systeemcontroles",
-        "dnsTestsTitle": "DNS-doorleidingstests",
+        "check": {
+          "uuid_present": {
+            "pass": "Apparaat-UUID: {{uuid}}",
+            "fail": "Apparaat heeft geen account-UUID. Opstartsynchronisatie werkt niet."
+          },
+          "uuid_in_db": {
+            "pass": "UUID geregistreerd voor {{db_device_id}}",
+            "fail": "UUID niet geregistreerd in OCT-database. Streaming-eindpunt kan dit apparaat niet oplossen."
+          },
+          "sources_complete": {
+            "pass": "Alle vereiste bronnen aanwezig",
+            "fail": "Ontbrekende bronnen: {{missing}}. Presetweergave kan mislukken voor deze brontypes."
+          },
+          "config_files_present": {
+            "pass": "Alle configuratiebestanden aanwezig",
+            "fail": "Ontbrekend configuratiebestand: {{missing}}. Firmware vindt mogelijk de OCT-doorleiding niet bij herstart."
+          },
+          "config_files_identical": {
+            "pass": "Alle configuratiebestanden hebben identieke inhoud",
+            "fail": "Configuratiebestanden verschillen. Apparaat gebruikt mogelijk de verkeerde BMX-URL na herstart."
+          },
+          "config_bmx_url": {
+            "pass": "BMX-URL: {{bmx_url}}",
+            "fail": "BMX-URL verwijst nog naar Bose-cloud ({{bmx_url}}). Apparaat zal geen contact opnemen met OCT."
+          },
+          "hosts_oct_block": {
+            "pass": "OCT-blok aanwezig in /etc/hosts",
+            "fail": "Geen OCT-blok in /etc/hosts. Domeindoorleidingen ontbreken."
+          },
+          "hosts_domains_complete": {
+            "pass": "Alle vereiste domeinen aanwezig",
+            "fail": "Ontbrekende hostinvoeren: {{missing}}. Sommige Bose-diensten worden niet doorgeleid."
+          },
+          "hosts_ip_correct": {
+            "pass": "Alle hostinvoeren verwijzen naar het juiste IP",
+            "fail": "Hostinvoeren verwijzen naar het verkeerde IP. Controleer op verouderde invoeren."
+          },
+          "system_config_present": {
+            "pass": "SystemConfigurationDB.xml aanwezig",
+            "fail": "SystemConfigurationDB.xml ontbreekt. Apparaat wordt mogelijk niet correct geïnitialiseerd."
+          },
+          "system_config_uuid_match": {
+            "pass": "UUID in SystemConfigurationDB.xml komt overeen met apparaat",
+            "fail": "UUID in SystemConfigurationDB.xml komt niet overeen met apparaat-UUID"
+          },
+          "connection": {
+            "pass": "Verbinding OK",
+            "fail": "Verbinding mislukt"
+          }
+        },
+        "dnsTestsTitle": "DNS-doorleidingscontroles",
         "btnRetryFullVerify": "Verificatie opnieuw uitvoeren"
       },
       "step8": {
@@ -539,8 +589,7 @@
         "nextStep2Desc": "Uw apparaat heeft nu toegang tot internetradio en presets via OpenCloudTouch.",
         "nextStep3Title": "Meer apparaten configureren",
         "nextStep3Desc": "Herhaal de wizard voor extra SoundTouch-apparaten.",
-        "btnHome": "Naar startpagina",
-        "btnAnother": "Nog een apparaat configureren",
+        "btnDone": "Gereed",
         "supportText": "Problemen of vragen?",
         "supportLink": "Contact opnemen met ondersteuning →"
       }

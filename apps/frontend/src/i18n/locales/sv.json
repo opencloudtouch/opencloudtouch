@@ -513,7 +513,57 @@
         "btnRunFullVerify": "Starta fullständig verifiering",
         "fullVerifying": "Fullständig systemverifiering pågår...",
         "systemChecksTitle": "Systemkontroller",
-        "dnsTestsTitle": "DNS-omdirigeringstest",
+        "check": {
+          "uuid_present": {
+            "pass": "Enhets-UUID: {{uuid}}",
+            "fail": "Enheten har inget konto-UUID. Startsynkronisering fungerar inte."
+          },
+          "uuid_in_db": {
+            "pass": "UUID registrerat för {{db_device_id}}",
+            "fail": "UUID inte registrerat i OCT-databasen. Streaming-slutpunkten kan inte lösa denna enhet."
+          },
+          "sources_complete": {
+            "pass": "Alla nödvändiga källor finns",
+            "fail": "Saknade källor: {{missing}}. Uppspelning av förinställningar kan misslyckas för dessa källtyper."
+          },
+          "config_files_present": {
+            "pass": "Alla konfigurationsfiler finns",
+            "fail": "Saknad konfigurationsfil: {{missing}}. Firmware kanske inte hittar OCT-omdirigering vid omstart."
+          },
+          "config_files_identical": {
+            "pass": "Alla konfigurationsfiler har identiskt innehåll",
+            "fail": "Konfigurationsfilerna skiljer sig åt. Enheten kan använda fel BMX-URL efter omstart."
+          },
+          "config_bmx_url": {
+            "pass": "BMX-URL: {{bmx_url}}",
+            "fail": "BMX-URL pekar fortfarande på Bose-molnet ({{bmx_url}}). Enheten kontaktar inte OCT."
+          },
+          "hosts_oct_block": {
+            "pass": "OCT-block finns i /etc/hosts",
+            "fail": "Inget OCT-block i /etc/hosts. Domänomdirigeringar saknas."
+          },
+          "hosts_domains_complete": {
+            "pass": "Alla nödvändiga domäner finns",
+            "fail": "Saknade värdposter: {{missing}}. Vissa Bose-tjänster omdirigeras inte."
+          },
+          "hosts_ip_correct": {
+            "pass": "Alla värdposter pekar på rätt IP",
+            "fail": "Värdposter pekar på fel IP. Kontrollera föråldrade poster."
+          },
+          "system_config_present": {
+            "pass": "SystemConfigurationDB.xml finns",
+            "fail": "SystemConfigurationDB.xml saknas. Enheten kanske inte initialiseras korrekt."
+          },
+          "system_config_uuid_match": {
+            "pass": "UUID i SystemConfigurationDB.xml matchar enheten",
+            "fail": "UUID i SystemConfigurationDB.xml matchar inte enhetens UUID"
+          },
+          "connection": {
+            "pass": "Anslutning OK",
+            "fail": "Anslutning misslyckades"
+          }
+        },
+        "dnsTestsTitle": "DNS-omdirigeringskontroller",
         "btnRetryFullVerify": "Kör verifiering igen"
       },
       "step8": {
@@ -539,8 +589,7 @@
         "nextStep2Desc": "Din enhet kan nu komma åt internetradio och förinställningar via OpenCloudTouch.",
         "nextStep3Title": "Konfigurera fler enheter",
         "nextStep3Desc": "Upprepa guiden för ytterligare SoundTouch-enheter.",
-        "btnHome": "Gå till startsidan",
-        "btnAnother": "Konfigurera en annan enhet",
+        "btnDone": "Klar",
         "supportText": "Problem eller frågor?",
         "supportLink": "Kontakta support →"
       }

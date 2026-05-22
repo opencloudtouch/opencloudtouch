@@ -513,7 +513,57 @@
         "btnRunFullVerify": "Uruchom pełną weryfikację",
         "fullVerifying": "Trwa pełna weryfikacja systemu...",
         "systemChecksTitle": "Sprawdzenia systemowe",
-        "dnsTestsTitle": "Testy przekierowań DNS",
+        "check": {
+          "uuid_present": {
+            "pass": "UUID urządzenia: {{uuid}}",
+            "fail": "Urządzenie nie ma UUID konta. Synchronizacja przy starcie nie będzie działać."
+          },
+          "uuid_in_db": {
+            "pass": "UUID zarejestrowany dla {{db_device_id}}",
+            "fail": "UUID nie jest zarejestrowany w bazie danych OCT. Punkt końcowy streamingu nie może rozwiązać tego urządzenia."
+          },
+          "sources_complete": {
+            "pass": "Wszystkie wymagane źródła obecne",
+            "fail": "Brakujące źródła: {{missing}}. Odtwarzanie presetów może nie działać dla tych typów źródeł."
+          },
+          "config_files_present": {
+            "pass": "Wszystkie pliki konfiguracyjne obecne",
+            "fail": "Brakujący plik konfiguracyjny: {{missing}}. Firmware może nie znaleźć przekierowania OCT po restarcie."
+          },
+          "config_files_identical": {
+            "pass": "Wszystkie pliki konfiguracyjne mają identyczną zawartość",
+            "fail": "Pliki konfiguracyjne różnią się. Urządzenie może używać złego URL BMX po restarcie."
+          },
+          "config_bmx_url": {
+            "pass": "URL BMX: {{bmx_url}}",
+            "fail": "URL BMX nadal wskazuje na chmurę Bose ({{bmx_url}}). Urządzenie nie skontaktuje się z OCT."
+          },
+          "hosts_oct_block": {
+            "pass": "Blok OCT obecny w /etc/hosts",
+            "fail": "Brak bloku OCT w /etc/hosts. Brakuje przekierowań domen."
+          },
+          "hosts_domains_complete": {
+            "pass": "Wszystkie wymagane domeny obecne",
+            "fail": "Brakujące wpisy hosta: {{missing}}. Niektóre usługi Bose nie będą przekierowane."
+          },
+          "hosts_ip_correct": {
+            "pass": "Wszystkie wpisy hosta wskazują na prawidłowy IP",
+            "fail": "Wpisy hosta wskazują na zły IP. Sprawdź nieaktualne wpisy."
+          },
+          "system_config_present": {
+            "pass": "SystemConfigurationDB.xml obecny",
+            "fail": "SystemConfigurationDB.xml brakuje. Urządzenie może się nie zainicjalizować poprawnie."
+          },
+          "system_config_uuid_match": {
+            "pass": "UUID w SystemConfigurationDB.xml odpowiada urządzeniu",
+            "fail": "UUID w SystemConfigurationDB.xml nie odpowiada UUID urządzenia"
+          },
+          "connection": {
+            "pass": "Połączenie OK",
+            "fail": "Połączenie nie powiodło się"
+          }
+        },
+        "dnsTestsTitle": "Weryfikacje przekierowań DNS",
         "btnRetryFullVerify": "Uruchom weryfikację ponownie"
       },
       "step8": {
@@ -539,8 +589,7 @@
         "nextStep2Desc": "Twoje urządzenie może teraz uzyskiwać dostęp do radia internetowego i presetów przez OpenCloudTouch.",
         "nextStep3Title": "Konfiguruj więcej urządzeń",
         "nextStep3Desc": "Powtórz kreator dla dodatkowych urządzeń SoundTouch.",
-        "btnHome": "Przejdź do strony głównej",
-        "btnAnother": "Skonfiguruj inne urządzenie",
+        "btnDone": "Gotowe",
         "supportText": "Problemy lub pytania?",
         "supportLink": "Skontaktuj się z pomocą techniczną →"
       }

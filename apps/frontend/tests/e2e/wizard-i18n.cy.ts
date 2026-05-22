@@ -167,8 +167,8 @@ describe("Wizard i18n — English (default)", () => {
   it("Step 7 (verification) renders English title", () => {
     visitEn(`${FRONTEND_BASE}/setup-wizard?step=7&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
     cy.wait("@getDevices");
-    cy.contains("Test configuration").should("exist");
-    cy.contains("Konfiguration testen").should("not.exist");
+    cy.contains("Verification & Test").should("exist");
+    cy.contains("Überprüfung & Test").should("not.exist");
   });
 
   it("Step 8 (completion) renders English title", () => {

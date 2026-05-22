@@ -490,8 +490,58 @@
         "fullVerifyItem4": "DNS-Umleitungen zum OpenCloudTouch-Server aufgelöst",
         "btnRunFullVerify": "Vollständige Überprüfung starten",
         "fullVerifying": "Vollständige Systemprüfung läuft...",
-        "systemChecksTitle": "System-Checks",
-        "dnsTestsTitle": "DNS-Umleitungstests",
+        "systemChecksTitle": "Systemprüfungen",
+        "check": {
+          "uuid_present": {
+            "pass": "Geräte-UUID: {{uuid}}",
+            "fail": "Gerät hat keine Account-UUID. Boot-Synchronisierung funktioniert nicht."
+          },
+          "uuid_in_db": {
+            "pass": "UUID registriert für {{db_device_id}}",
+            "fail": "UUID nicht in OCT-Datenbank registriert. Streaming-Endpunkt kann dieses Gerät nicht auflösen."
+          },
+          "sources_complete": {
+            "pass": "Alle benötigten Quellen vorhanden",
+            "fail": "Fehlende Quellen: {{missing}}. Preset-Wiedergabe kann für diese Quelltypen fehlschlagen."
+          },
+          "config_files_present": {
+            "pass": "Alle Konfigurationsdateien vorhanden",
+            "fail": "Fehlende Konfigurationsdatei: {{missing}}. Firmware findet OCT-Umleitung nach Neustart möglicherweise nicht."
+          },
+          "config_files_identical": {
+            "pass": "Alle Konfigurationsdateien haben identischen Inhalt",
+            "fail": "Konfigurationsdateien unterscheiden sich. Gerät könnte nach Neustart falsche BMX-URL verwenden."
+          },
+          "config_bmx_url": {
+            "pass": "BMX-URL: {{bmx_url}}",
+            "fail": "BMX-URL verweist noch auf Bose Cloud ({{bmx_url}}). Gerät wird OCT nicht kontaktieren."
+          },
+          "hosts_oct_block": {
+            "pass": "OCT-Block in /etc/hosts vorhanden",
+            "fail": "Kein OCT-Block in /etc/hosts. Domain-Umleitungen fehlen."
+          },
+          "hosts_domains_complete": {
+            "pass": "Alle benötigten Domains vorhanden",
+            "fail": "Fehlende Host-Einträge: {{missing}}. Einige Bose-Dienste werden nicht umgeleitet."
+          },
+          "hosts_ip_correct": {
+            "pass": "Alle Host-Einträge verweisen auf korrekte IP",
+            "fail": "Host-Einträge verweisen auf falsche IP. Prüfen Sie veraltete Einträge."
+          },
+          "system_config_present": {
+            "pass": "SystemConfigurationDB.xml vorhanden",
+            "fail": "SystemConfigurationDB.xml fehlt. Gerät wird möglicherweise nicht korrekt initialisiert."
+          },
+          "system_config_uuid_match": {
+            "pass": "UUID in SystemConfigurationDB.xml stimmt mit Gerät überein",
+            "fail": "UUID in SystemConfigurationDB.xml stimmt nicht mit Geräte-UUID überein"
+          },
+          "connection": {
+            "pass": "Verbindung OK",
+            "fail": "Verbindung fehlgeschlagen"
+          }
+        },
+        "dnsTestsTitle": "DNS-Umleitungsprüfungen",
         "btnRetryFullVerify": "Überprüfung erneut ausführen",
         "testInfoTitle": "Was wird getestet?",
         "testInfoItem1": "DNS-Auflösung der Bose-Domains",
@@ -539,8 +589,7 @@
         "nextStep2Desc": "Ihr Gerät kann nun über OpenCloudTouch auf Internet-Radio und Presets zugreifen.",
         "nextStep3Title": "Weitere Geräte konfigurieren",
         "nextStep3Desc": "Wiederholen Sie den Wizard für weitere SoundTouch-Geräte.",
-        "btnHome": "Zur Startseite",
-        "btnAnother": "Weiteres Gerät konfigurieren",
+        "btnDone": "Fertig",
         "supportText": "Probleme oder Fragen?",
         "supportLink": "Support kontaktieren →"
       }

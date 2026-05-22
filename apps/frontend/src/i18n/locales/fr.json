@@ -513,7 +513,57 @@
         "btnRunFullVerify": "Lancer la vérification complète",
         "fullVerifying": "Vérification complète du système en cours...",
         "systemChecksTitle": "Vérifications du système",
-        "dnsTestsTitle": "Tests de redirection DNS",
+        "check": {
+          "uuid_present": {
+            "pass": "UUID de l'appareil : {{uuid}}",
+            "fail": "L'appareil n'a pas d'UUID de compte. La synchronisation au démarrage ne fonctionnera pas."
+          },
+          "uuid_in_db": {
+            "pass": "UUID enregistré pour {{db_device_id}}",
+            "fail": "UUID non enregistré dans la base de données OCT. Le point de streaming ne peut pas résoudre cet appareil."
+          },
+          "sources_complete": {
+            "pass": "Toutes les sources requises présentes",
+            "fail": "Sources manquantes : {{missing}}. La lecture des presets peut échouer pour ces types de sources."
+          },
+          "config_files_present": {
+            "pass": "Tous les fichiers de configuration présents",
+            "fail": "Fichier de configuration manquant : {{missing}}. Le firmware pourrait ne pas trouver la redirection OCT au redémarrage."
+          },
+          "config_files_identical": {
+            "pass": "Tous les fichiers de configuration ont un contenu identique",
+            "fail": "Les fichiers de configuration diffèrent. L'appareil pourrait utiliser la mauvaise URL BMX après le redémarrage."
+          },
+          "config_bmx_url": {
+            "pass": "URL BMX : {{bmx_url}}",
+            "fail": "L'URL BMX pointe encore vers le cloud Bose ({{bmx_url}}). L'appareil ne contactera pas OCT."
+          },
+          "hosts_oct_block": {
+            "pass": "Bloc OCT présent dans /etc/hosts",
+            "fail": "Pas de bloc OCT dans /etc/hosts. Les redirections de domaines sont manquantes."
+          },
+          "hosts_domains_complete": {
+            "pass": "Tous les domaines requis présents",
+            "fail": "Entrées d'hôtes manquantes : {{missing}}. Certains services Bose ne seront pas redirigés."
+          },
+          "hosts_ip_correct": {
+            "pass": "Toutes les entrées d'hôtes pointent vers la bonne IP",
+            "fail": "Les entrées d'hôtes pointent vers la mauvaise IP. Vérifiez les entrées obsolètes."
+          },
+          "system_config_present": {
+            "pass": "SystemConfigurationDB.xml présent",
+            "fail": "SystemConfigurationDB.xml manquant. L'appareil pourrait ne pas s'initialiser correctement."
+          },
+          "system_config_uuid_match": {
+            "pass": "L'UUID dans SystemConfigurationDB.xml correspond à l'appareil",
+            "fail": "L'UUID dans SystemConfigurationDB.xml ne correspond pas à l'UUID de l'appareil"
+          },
+          "connection": {
+            "pass": "Connexion OK",
+            "fail": "Échec de la connexion"
+          }
+        },
+        "dnsTestsTitle": "Vérifications de redirection DNS",
         "btnRetryFullVerify": "Relancer la vérification"
       },
       "step8": {
@@ -539,8 +589,7 @@
         "nextStep2Desc": "Votre appareil peut maintenant accéder à la radio Internet et aux presets via OpenCloudTouch.",
         "nextStep3Title": "Configurer d'autres appareils",
         "nextStep3Desc": "Répétez l'assistant pour d'autres appareils SoundTouch.",
-        "btnHome": "Aller à la page d'accueil",
-        "btnAnother": "Configurer un autre appareil",
+        "btnDone": "Terminé",
         "supportText": "Problèmes ou questions ?",
         "supportLink": "Contacter le support →"
       }

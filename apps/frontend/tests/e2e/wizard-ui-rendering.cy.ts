@@ -244,6 +244,10 @@ describe("Wizard Step 7 — Verification (emoji rendering)", () => {
       statusCode: 200,
       body: { success: true, uuid: "test-uuid-1234", had_uuid: false, uuid_was_collision: false, sources_written: true, sources_backup_path: "/tmp/backup", system_config_written: true, message: "Device finalized" },
     }).as("finalizeDevice");
+    cy.intercept("POST", "/api/setup/wizard/reboot-device", {
+      statusCode: 200,
+      body: { success: true, message: "Reboot initiated" },
+    }).as("rebootDevice");
     cy.intercept("POST", "/api/setup/wizard/verify-setup", {
       statusCode: 200,
       body: { success: true, checks: [{ name: "uuid", passed: true, message: "UUID set", details: {} }], passed_count: 1, failed_count: 0, message: "All checks passed" },
@@ -254,26 +258,26 @@ describe("Wizard Step 7 — Verification (emoji rendering)", () => {
     }).as("verifyRedirect");
     cy.visit(`${FRONTEND_BASE}/setup-wizard?step=7&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
     cy.wait("@getDevices");
-    // Click Finalize to transition setupPhase from idle to dns
-    cy.contains("button", "Finalize Device Setup").click();
+    // Click Finalize to transition setupPhase from idle to done_finalize
+    cy.contains("button", /finalize|abschließen/i).click();
     cy.wait("@finalizeDevice");
-    cy.wait("@verifySetup");
   });
 
   it("does not render any mojibake characters", () => {
     assertNoMojibake();
   });
 
-  it("rocket icon on run-tests button renders correctly (🚀 not ðŸš€)", () => {
-    cy.get(".verification-test-btn").invoke("text").then((text) => {
-      expect(text).not.to.include("ðŸš");
+  it("reboot icon renders correctly (🔄 not mojibake)", () => {
+    // After finalize, reboot section becomes visible with 🔄 icon
+    cy.get(".reboot-section", { timeout: 5000 }).should("exist");
+    cy.get(".reboot-icon").invoke("text").then((text) => {
+      expect(text).not.to.include("ðŸ");
     });
   });
 
-  it("check mark renders correctly after successful test (✅ not âœ…)", () => {
-    cy.get(".verification-test-btn").click();
-    cy.wait("@verifyRedirect");
-    cy.get(".test-item-icon").first().invoke("text").then((text) => {
+  it("success icon renders correctly after finalize (✅ not âœ…)", () => {
+    // Finalize result shows ✅ on success
+    cy.get(".finalize-result .success-icon", { timeout: 5000 }).invoke("text").then((text) => {
       expect(text).to.include("✅");
       expect(text).not.to.include("âœ");
     });
@@ -305,9 +309,9 @@ describe("Wizard Step 8 — Completion (emoji rendering)", () => {
     });
   });
 
-  it("home button renders correctly (🏠 not ðŸ )", () => {
-    cy.get(".completion-btn-home").invoke("text").then((text) => {
-      expect(text).not.to.include("ðŸ");
+  it("done button renders with correct text", () => {
+    cy.get(".completion-btn-done").invoke("text").then((text) => {
+      expect(text.trim()).to.match(/Done|Fertig/);
     });
   });
 });

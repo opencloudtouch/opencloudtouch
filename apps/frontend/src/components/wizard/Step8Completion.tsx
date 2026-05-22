@@ -105,14 +105,11 @@ export default function Step8Completion({ deviceName, backupPath, onFinish }: St
 
         {/* Actions */}
         <div className="completion-actions">
-          <button className="btn btn-primary completion-btn-home" onClick={handleGoHome}>
-            🏠 {t("setup.wizard.step8.btnHome")}
-          </button>
           <button
-            className="btn btn-secondary completion-btn-another"
-            onClick={() => window.location.reload()}
+            className="btn btn-primary wizard-btn-next completion-btn-done"
+            onClick={handleGoHome}
           >
-            ➕ {t("setup.wizard.step8.btnAnother")}
+            {t("setup.wizard.step8.btnDone")}
           </button>
         </div>
 

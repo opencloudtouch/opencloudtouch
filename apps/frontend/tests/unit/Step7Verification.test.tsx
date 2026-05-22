@@ -59,8 +59,8 @@ function mockSuccessFlow() {
   mockVerifySetup.mockResolvedValue({
     success: true,
     checks: [
-      { name: "uuid_present", passed: true, message: "Device UUID: 5522049", details: {} },
-      { name: "sources_complete", passed: true, message: "All 5 required sources present", details: {} },
+      { name: "uuid_present", passed: true, message: "Device UUID: 5522049", details: { uuid: "5522049" } },
+      { name: "sources_complete", passed: true, message: "All 5 required sources present", details: { found: ["AUX","BLUETOOTH","QPLAY","TUNEIN","STORED_MUSIC","PRODUCT"], missing: [] } },
     ],
     passed_count: 2,
     failed_count: 0,
@@ -215,7 +215,7 @@ describe("Step7Verification", () => {
 
     await waitFor(() => {
       expect(document.body.textContent).toContain("Device UUID: 5522049");
-      expect(document.body.textContent).toContain("All 5 required sources present");
+      expect(document.body.textContent).toContain("All required sources present");
     });
   });
 

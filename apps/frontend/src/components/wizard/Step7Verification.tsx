@@ -337,15 +337,24 @@ export default function Step7Verification({
             {verifyChecks.length > 0 && (
               <div className="verify-checklist">
                 <h3>{t("setup.wizard.step7.systemChecksTitle", "System Checks")}</h3>
-                {verifyChecks.map((check) => (
-                  <div
-                    key={check.name}
-                    className={`verify-check-item ${check.passed ? "passed" : "failed"}`}
-                  >
-                    <span className="check-icon">{check.passed ? "\u2705" : "\u274c"}</span>
-                    <span className="check-message">{check.message}</span>
-                  </div>
-                ))}
+                {verifyChecks.map((check) => {
+                  const passKey = `setup.wizard.step7.check.${check.name}.pass`;
+                  const failKey = `setup.wizard.step7.check.${check.name}.fail`;
+                  const i18nKey = check.passed ? passKey : failKey;
+                  const translated = t(i18nKey, {
+                    defaultValue: check.message,
+                    ...check.details,
+                  });
+                  return (
+                    <div
+                      key={check.name}
+                      className={`verify-check-item ${check.passed ? "passed" : "failed"}`}
+                    >
+                      <span className="check-icon">{check.passed ? "\u2705" : "\u274c"}</span>
+                      <span className="check-message">{translated}</span>
+                    </div>
+                  );
+                })}
               </div>
             )}
 

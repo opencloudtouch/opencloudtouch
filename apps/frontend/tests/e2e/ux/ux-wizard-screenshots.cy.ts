@@ -630,58 +630,39 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
       screenshotBoth("wiz_06a_verification__initial");
     });
 
-    it("wiz_06b — Verifikation: DNS-Check erfolgreich (IP stimmt überein)", () => {
-      // First click "Finalize" to go through finalize/verify phases
-      cy.contains("button", /abschließen|finalize/i, { timeout: 8000 }).click({
-        force: true,
-      });
+    it("wiz_06b — Verifikation: Reboot eingeleitet (Countdown läuft)", () => {
+      // Flow: Finalize → Reboot section appears → click Reboot → countdown starts
+      cy.contains("button", /abschließen|finalize/i, { timeout: 8000 }).click({ force: true });
       cy.wait("@finalizeDevice");
-      cy.wait("@verifySetup");
-      // Now the DNS test button should appear
-      cy.contains("button", /tests jetzt ausführen|ausführen|verify/i, { timeout: 8000 }).click({
-        force: true,
-      });
-      cy.contains(/192.168.1.11|bose.vtuner.com|\u2713|stimmt überein|verifiziert/i, {
-        timeout: 10000,
-      }).should("exist");
-      screenshotBoth("wiz_06b_verification__dns-match-success");
+      // After finalize, reboot section appears
+      cy.get(".reboot-btn", { timeout: 5000 }).click({ force: true });
+      cy.wait("@rebootDevice");
+      // Reboot is in progress — countdown visible
+      cy.get(".reboot-status", { timeout: 5000 }).should("exist");
+      screenshotBoth("wiz_06b_verification__reboot-countdown");
     });
 
-    it("wiz_06c — Verifikation FEHLER: DNS zeigt noch alte IP", () => {
-      cy.intercept("POST", "/api/setup/wizard/verify-redirect", {
-        statusCode: 200,
-        body: {
-          success: false,
-          domain: "bose.vtuner.com",
-          resolved_ip: "208.97.182.102",
-          matches_expected: false,
-          message: "bose.vtuner.com → 208.97.182.102 (erwartet: 192.168.1.11)",
-        },
-      });
-
-      // First click "Finalize" to go through finalize/verify phases
-      cy.contains("button", /abschließen|finalize/i, { timeout: 8000 }).click({
-        force: true,
-      });
+    it("wiz_06c — Verifikation: Finalize-Ergebnis sichtbar", () => {
+      // After finalize, result section shows UUID and success status
+      cy.contains("button", /abschließen|finalize/i, { timeout: 8000 }).click({ force: true });
       cy.wait("@finalizeDevice");
-      cy.wait("@verifySetup");
-      // Now the DNS test button should appear
-      cy.contains("button", /tests jetzt ausführen|ausführen|verify/i, { timeout: 8000 }).click({
-        force: true,
-      });
-      cy.contains(/208.97.182.102|stimmt nicht|fehlgeschlagen|mismatch/i, {
-        timeout: 10000,
-      }).should("exist");
-      screenshotBoth("wiz_06c_verification__dns-mismatch-error");
+      cy.get(".finalize-result", { timeout: 5000 }).should("exist");
+      screenshotBoth("wiz_06c_verification__finalize-result");
     });
 
-    it("wiz_06d — Verifikation: Neustart-Button sichtbar", () => {
-      cy.contains("button", /neu.*start|reboot/i, { timeout: 8000 }).should("exist");
+    it("wiz_06d — Verifikation: Neustart-Button sichtbar nach Finalize", () => {
+      cy.contains("button", /abschließen|finalize/i, { timeout: 8000 }).click({ force: true });
+      cy.wait("@finalizeDevice");
+      // After finalize, reboot button appears
+      cy.get(".reboot-btn", { timeout: 5000 }).should("exist");
       screenshotBoth("wiz_06d_verification__reboot-button-visible");
     });
 
     it("wiz_06e — Verifikation: Nach Neustart-Klick", () => {
-      cy.contains("button", /neu.*start|reboot/i, { timeout: 8000 }).click({ force: true });
+      cy.contains("button", /abschließen|finalize/i, { timeout: 8000 }).click({ force: true });
+      cy.wait("@finalizeDevice");
+      cy.get(".reboot-btn", { timeout: 5000 }).click({ force: true });
+      cy.wait("@rebootDevice");
       cy.wait(1000);
       screenshotBoth("wiz_06e_verification__reboot-initiated");
     });

@@ -211,14 +211,12 @@
 /* Actions */
 .completion-actions {
   display: flex;
-  gap: 1rem;
+  justify-content: center;
   margin: 2rem 0;
 }
 
-.completion-btn-home,
-.completion-btn-another {
-  flex: 1;
-  padding: 1rem;
+.completion-btn-done {
+  padding: 1rem 2rem;
   font-size: 1.125rem;
   font-weight: 600;
 }
@@ -257,10 +255,6 @@
 
   .completion-message {
     font-size: 1rem;
-  }
-
-  .completion-actions {
-    flex-direction: column;
   }
 
   .completion-backup-info {

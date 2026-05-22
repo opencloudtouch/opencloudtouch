@@ -513,7 +513,57 @@
         "btnRunFullVerify": "完全な検証を開始",
         "fullVerifying": "完全なシステム検証を実行中...",
         "systemChecksTitle": "システムチェック",
-        "dnsTestsTitle": "DNSリダイレクトテスト",
+        "check": {
+          "uuid_present": {
+            "pass": "デバイスUUID: {{uuid}}",
+            "fail": "デバイスにアカウントUUIDがありません。起動同期が機能しません。"
+          },
+          "uuid_in_db": {
+            "pass": "UUIDが{{db_device_id}}に登録済み",
+            "fail": "UUIDがOCTデータベースに登録されていません。ストリーミングエンドポイントがこのデバイスを解決できません。"
+          },
+          "sources_complete": {
+            "pass": "必要なソースがすべて存在",
+            "fail": "不足しているソース: {{missing}}。これらのソースタイプのプリセット再生が失敗する可能性があります。"
+          },
+          "config_files_present": {
+            "pass": "すべての設定ファイルが存在",
+            "fail": "設定ファイルが不足: {{missing}}。再起動時にファームウェアがOCTリダイレクトを見つけられない可能性があります。"
+          },
+          "config_files_identical": {
+            "pass": "すべての設定ファイルの内容が一致",
+            "fail": "設定ファイルの内容が異なります。再起動後にデバイスが間違ったBMX URLを使用する可能性があります。"
+          },
+          "config_bmx_url": {
+            "pass": "BMX URL: {{bmx_url}}",
+            "fail": "BMX URLがまだBoseクラウドを指しています ({{bmx_url}})。デバイスはOCTに接続しません。"
+          },
+          "hosts_oct_block": {
+            "pass": "OCTブロックが/etc/hostsに存在",
+            "fail": "/etc/hostsにOCTブロックがありません。ドメインリダイレクトが不足しています。"
+          },
+          "hosts_domains_complete": {
+            "pass": "必要なドメインがすべて存在",
+            "fail": "ホストエントリが不足: {{missing}}。一部のBoseサービスがリダイレクトされません。"
+          },
+          "hosts_ip_correct": {
+            "pass": "すべてのホストエントリが正しいIPを指定",
+            "fail": "ホストエントリが間違ったIPを指しています。古いエントリを確認してください。"
+          },
+          "system_config_present": {
+            "pass": "SystemConfigurationDB.xmlが存在",
+            "fail": "SystemConfigurationDB.xmlが不足。デバイスが正しく初期化されない可能性があります。"
+          },
+          "system_config_uuid_match": {
+            "pass": "SystemConfigurationDB.xml内のUUIDがデバイスと一致",
+            "fail": "SystemConfigurationDB.xml内のUUIDがデバイスUUIDと一致しません"
+          },
+          "connection": {
+            "pass": "接続OK",
+            "fail": "接続に失敗しました"
+          }
+        },
+        "dnsTestsTitle": "DNSリダイレクト検証",
         "btnRetryFullVerify": "検証を再実行"
       },
       "step8": {
@@ -539,8 +589,7 @@
         "nextStep2Desc": "デバイスはOpenCloudTouch経由でインターネットラジオとプリセットにアクセスできるようになりました。",
         "nextStep3Title": "さらにデバイスを設定する",
         "nextStep3Desc": "追加のSoundTouchデバイスに対してウィザードを繰り返します。",
-        "btnHome": "ホームページに移動",
-        "btnAnother": "別のデバイスを設定",
+        "btnDone": "完了",
         "supportText": "問題や質問がありますか？",
         "supportLink": "サポートに連絡 →"
       }
