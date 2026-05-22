@@ -152,6 +152,12 @@ describe("SetupWizard (pages/SetupWizard)", () => {
       expect(screen.getByText("No devices found")).toBeInTheDocument();
     });
 
+    it("shows loading spinner when isLoading is true", () => {
+      render(<SetupWizard devices={[]} isLoading={true} />);
+      expect(screen.getByRole("status")).toBeInTheDocument();
+      expect(screen.queryByText("No devices found")).not.toBeInTheDocument();
+    });
+
     it("shows back-to-home button in empty state", () => {
       render(<SetupWizard devices={[]} />);
       expect(
