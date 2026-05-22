@@ -447,4 +447,166 @@ describe("Step7Verification", () => {
       expect(document.body.textContent).toContain("Some checks failed");
     });
   });
+
+  it("shows error when verifySetup itself throws", async () => {
+    await reachVerificationPhase();
+
+    mockVerifySetup.mockRejectedValue(new Error("Server unreachable"));
+
+    let verifyBtn: HTMLElement | undefined;
+    await waitFor(() => {
+      const buttons = screen.getAllByRole("button");
+      verifyBtn = buttons.find((b) =>
+        (b.textContent || "").toLowerCase().includes("verification")
+      );
+      expect(verifyBtn).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.click(verifyBtn!);
+    });
+
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("Server unreachable");
+    });
+  });
+
+  it("falls back to backend message when config_bmx_url has no bmx_url detail", async () => {
+    await reachVerificationPhase();
+
+    mockVerifySetup.mockResolvedValue({
+      success: true,
+      checks: [
+        { name: "config_bmx_url", passed: true, message: "BMX URL correct", details: {} },
+      ],
+      passed_count: 1,
+      failed_count: 0,
+      message: "1/1 checks passed",
+    });
+    mockVerifyRedirect.mockResolvedValue({
+      success: true,
+      resolved_ip: "192.168.1.50",
+      expected_ip: "192.168.1.50",
+      matches_expected: true,
+      message: "OK",
+    });
+
+    let verifyBtn: HTMLElement | undefined;
+    await waitFor(() => {
+      const buttons = screen.getAllByRole("button");
+      verifyBtn = buttons.find((b) =>
+        (b.textContent || "").toLowerCase().includes("verification")
+      );
+      expect(verifyBtn).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.click(verifyBtn!);
+    });
+
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("BMX URL correct");
+    });
+  });
+
+  it("renders ungrouped checks that are not in any defined group", async () => {
+    await reachVerificationPhase();
+
+    mockVerifySetup.mockResolvedValue({
+      success: true,
+      checks: [
+        { name: "some_unknown_check", passed: true, message: "Custom check OK", details: {} },
+      ],
+      passed_count: 1,
+      failed_count: 0,
+      message: "1/1 checks passed",
+    });
+    mockVerifyRedirect.mockResolvedValue({
+      success: true,
+      resolved_ip: "192.168.1.50",
+      expected_ip: "192.168.1.50",
+      matches_expected: true,
+      message: "OK",
+    });
+
+    let verifyBtn: HTMLElement | undefined;
+    await waitFor(() => {
+      const buttons = screen.getAllByRole("button");
+      verifyBtn = buttons.find((b) =>
+        (b.textContent || "").toLowerCase().includes("verification")
+      );
+      expect(verifyBtn).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.click(verifyBtn!);
+    });
+
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("Custom check OK");
+    });
+  });
+
+  it("renders skip button after verification and calls onSkip when clicked", async () => {
+    vi.useFakeTimers();
+    mockSuccessFlow();
+    mockRebootDevice.mockResolvedValue({});
+    mockVerifyRedirect.mockResolvedValue({
+      success: false,
+      resolved_ip: "1.2.3.4",
+      expected_ip: "192.168.1.50",
+      matches_expected: false,
+      message: "Mismatch",
+    });
+
+    const onSkip = vi.fn();
+    render(<Step7Verification {...defaultProps} onSkip={onSkip} />);
+
+    // Finalize
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /finalize/i }));
+    });
+
+    // Reboot
+    const rebootBtn = screen.getAllByRole("button").find((b) =>
+      (b.textContent || "").toLowerCase().includes("restart")
+    );
+    await act(async () => {
+      fireEvent.click(rebootBtn!);
+    });
+
+    // Countdown
+    await act(async () => {
+      vi.advanceTimersByTime(61000);
+    });
+    vi.useRealTimers();
+
+    // Full verification
+    let verifyBtn: HTMLElement | undefined;
+    await waitFor(() => {
+      const buttons = screen.getAllByRole("button");
+      verifyBtn = buttons.find((b) =>
+        (b.textContent || "").toLowerCase().includes("verification")
+      );
+      expect(verifyBtn).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.click(verifyBtn!);
+    });
+
+    // Wait for skip button to appear
+    await waitFor(() => {
+      const skipBtn = screen.getAllByRole("button").find((b) =>
+        (b.textContent || "").toLowerCase().includes("continue anyway")
+      );
+      expect(skipBtn).toBeTruthy();
+    });
+
+    const skipBtn = screen.getAllByRole("button").find((b) =>
+      (b.textContent || "").toLowerCase().includes("continue anyway")
+    );
+    fireEvent.click(skipBtn!);
+    expect(onSkip).toHaveBeenCalledTimes(1);
+  });
 });
