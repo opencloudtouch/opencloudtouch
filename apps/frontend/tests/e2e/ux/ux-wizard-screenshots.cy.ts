@@ -683,13 +683,24 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
       completeConfigStep();
       completeHostsStep();
 
-      // Verification step: finalize → reboot → wait → verify → advance
+      // Verification step: finalize → reboot → countdown → full verify → advance
       cy.contains("button", /abschließen|finalize/i, { timeout: 8000 }).click({ force: true });
       cy.wait("@finalizeDevice");
+
+      // Reboot — use cy.clock to skip 60s countdown
+      cy.clock();
       cy.get(".reboot-btn", { timeout: 5000 }).click({ force: true });
       cy.wait("@rebootDevice");
-      // Wait for reboot countdown to finish and verification to complete
-      cy.get(".verify-checklist", { timeout: 30000 }).should("exist");
+
+      // Fast-forward the 60s reboot countdown
+      cy.tick(61000);
+      cy.clock().then((clock) => clock.restore());
+
+      // Click "Run Full Verification"
+      cy.contains("button", /überprüfung starten|full verification/i, { timeout: 8000 }).click({ force: true });
+      cy.wait("@verifySetup");
+
+      // Wait for verification results, then advance
       cy.contains("button", /weiter/i, { timeout: 8000 }).should("not.be.disabled").click({ force: true });
       cy.wait(600);
 
