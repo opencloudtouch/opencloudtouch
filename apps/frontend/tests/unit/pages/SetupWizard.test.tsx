@@ -81,9 +81,10 @@ vi.mock("../../../src/components/wizard/Step6HostsModification", () => ({
 }));
 
 vi.mock("../../../src/components/wizard/Step7Verification", () => ({
-  default: ({ onNext }: { onNext: () => void }) => (
+  default: ({ onNext, onSkip }: { onNext: () => void; onSkip?: () => void }) => (
     <div data-testid="step7-verify">
       <button onClick={onNext}>Verify weiter</button>
+      {onSkip && <button onClick={onSkip}>Verify überspringen</button>}
     </div>
   ),
 }));
@@ -251,6 +252,31 @@ describe("SetupWizard (pages/SetupWizard)", () => {
         expect(screen.getByTestId("device-info-header")).toBeInTheDocument();
         expect(screen.getByText("Living Room")).toBeInTheDocument();
       });
+    });
+  });
+
+  // -- Skip Verification --
+
+  describe("Skip Verification", () => {
+    it("navigates home when skip button is clicked on verification step", async () => {
+      render(<SetupWizard devices={mockDevices} />);
+      // Navigate: Choice → USB → Power → Backup → Config → Hosts → Verify
+      fireEvent.click(screen.getByRole("button", { name: /setup wählen/i }));
+      await waitFor(() => expect(screen.getByTestId("step2-usb-preparation")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /usb prep weiter/i }));
+      await waitFor(() => expect(screen.getByTestId("step3-power-cycle")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /power weiter/i }));
+      await waitFor(() => expect(screen.getByTestId("step4-backup")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /step4 weiter/i }));
+      await waitFor(() => expect(screen.getByTestId("step5-config")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /config weiter/i }));
+      await waitFor(() => expect(screen.getByTestId("step6-hosts")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /hosts weiter/i }));
+      await waitFor(() => expect(screen.getByTestId("step7-verify")).toBeInTheDocument());
+
+      // Click skip
+      fireEvent.click(screen.getByRole("button", { name: /verify überspringen/i }));
+      // onSkip triggers navigate — no error expected
     });
   });
 });

@@ -683,11 +683,17 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
       completeConfigStep();
       completeHostsStep();
 
-      // Navigate to completion (Step 7)
-      cy.contains("button", /weiter/i, { timeout: 8000 }).click({ force: true });
+      // Verification step: finalize → reboot → wait → verify → advance
+      cy.contains("button", /abschließen|finalize/i, { timeout: 8000 }).click({ force: true });
+      cy.wait("@finalizeDevice");
+      cy.get(".reboot-btn", { timeout: 5000 }).click({ force: true });
+      cy.wait("@rebootDevice");
+      // Wait for reboot countdown to finish and verification to complete
+      cy.get(".verify-checklist", { timeout: 30000 }).should("exist");
+      cy.contains("button", /weiter/i, { timeout: 8000 }).should("not.be.disabled").click({ force: true });
       cy.wait(600);
 
-      // Take screenshot of completion/verification step
+      // Take screenshot of completion step
       screenshotBoth("wiz_07a_completion__wizard-done");
     });
   });

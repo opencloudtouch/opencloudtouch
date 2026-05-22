@@ -276,8 +276,8 @@ describe("Wizard Step 7 — Verification (emoji rendering)", () => {
   });
 
   it("success icon renders correctly after finalize (✅ not âœ…)", () => {
-    // Finalize result shows ✅ on success
-    cy.get(".finalize-result .success-icon", { timeout: 5000 }).invoke("text").then((text) => {
+    // Finalize result shows ✅ in verify-checklist
+    cy.get(".verify-checklist .check-icon", { timeout: 5000 }).first().invoke("text").then((text) => {
       expect(text).to.include("✅");
       expect(text).not.to.include("âœ");
     });
