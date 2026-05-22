@@ -145,7 +145,9 @@ describe("Step7Verification", () => {
     });
 
     await waitFor(() => {
-      expect(document.body.textContent).toContain("Device finalized");
+      expect(document.body.textContent).toContain("Device UUID set: 5522049");
+      expect(document.body.textContent).toContain("Sources.xml written");
+      expect(document.body.textContent).toContain("SystemConfigurationDB.xml present");
       const buttons = screen.getAllByRole("button");
       const rebootBtn = buttons.find((b) =>
         (b.textContent || "").toLowerCase().includes("restart")
@@ -154,7 +156,7 @@ describe("Step7Verification", () => {
     });
   });
 
-  it("displays finalize success message", async () => {
+  it("displays finalize checklist items", async () => {
     mockSuccessFlow();
 
     render(<Step7Verification {...defaultProps} />);
@@ -164,7 +166,9 @@ describe("Step7Verification", () => {
     });
 
     await waitFor(() => {
-      expect(document.body.textContent).toContain("Device finalized");
+      expect(document.body.textContent).toContain("Device UUID set: 5522049");
+      expect(document.body.textContent).toContain("Sources.xml written");
+      expect(document.body.textContent).toContain("SystemConfigurationDB.xml present");
     });
   });
 
@@ -214,7 +218,7 @@ describe("Step7Verification", () => {
     });
 
     await waitFor(() => {
-      expect(document.body.textContent).toContain("Device UUID: 5522049");
+      // uuid_present is hidden (duplicate of finalizeUuid), only sources_complete shown
       expect(document.body.textContent).toContain("All required sources present");
     });
   });
@@ -440,8 +444,6 @@ describe("Step7Verification", () => {
     });
 
     await waitFor(() => {
-      // DNS errors are caught and shown as failed checks with N/A resolved IP
-      expect(document.body.textContent).toContain("N/A");
       expect(document.body.textContent).toContain("Some checks failed");
     });
   });

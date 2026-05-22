@@ -473,6 +473,12 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
             octIp={octIp}
             onNext={handleNext}
             onPrevious={handlePrevious}
+            onSkip={() => {
+              audit?.logDetail("wizard", "verification_skipped", 6, {
+                device_id: selectedDevice?.device_id,
+              });
+              navigate(selectedDevice ? `/?device=${selectedDevice.device_id}` : "/");
+            }}
           />
         );
 

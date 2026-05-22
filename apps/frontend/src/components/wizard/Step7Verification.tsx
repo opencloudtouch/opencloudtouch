@@ -18,12 +18,31 @@ interface Step7Props {
   readonly octIp: string;
   readonly onNext: () => void;
   readonly onPrevious: () => void;
+  readonly onSkip?: () => void;
 }
 
 const TEST_DOMAINS = [
   { domain: "bose.vtuner.com", descriptionKey: "setup.wizard.step7.domainInternetRadio" },
   { domain: "streaming.bose.com", descriptionKey: "setup.wizard.step7.domainStreaming" },
 ];
+
+// Checks already shown by finalize results — hide from verify list
+const HIDDEN_CHECKS = new Set(["uuid_present", "system_config_present"]);
+
+// Group verify checks by file/category for tree display
+const CHECK_GROUPS = [
+  { labelKey: "setup.wizard.step7.groupSources", checks: ["sources_complete"] },
+  {
+    labelKey: "setup.wizard.step7.groupConfig",
+    checks: ["config_files_present", "config_files_identical", "config_bmx_url"],
+  },
+  {
+    labelKey: "setup.wizard.step7.groupHosts",
+    checks: ["hosts_oct_block", "hosts_domains_complete", "hosts_ip_correct"],
+  },
+  { labelKey: "setup.wizard.step7.groupSystemConfig", checks: ["system_config_uuid_match"] },
+];
+const GROUPED_CHECKS = new Set(CHECK_GROUPS.flatMap((g) => g.checks));
 
 interface TestResult {
   domain: string;
@@ -40,6 +59,7 @@ export default function Step7Verification({
   octIp,
   onNext,
   onPrevious,
+  onSkip,
 }: Step7Props) {
   const { t } = useTranslation();
   const [testResults, setTestResults] = useState<TestResult[]>([]);
@@ -64,6 +84,44 @@ export default function Step7Verification({
   const [finalizeResult, setFinalizeResult] = useState<FinalizeResponse | null>(null);
   const [verifyChecks, setVerifyChecks] = useState<VerifyCheck[]>([]);
   const [setupError, setSetupError] = useState("");
+
+  /** Translate verify check messages (passed state uses i18n, failed falls back to backend message) */
+  const getCheckMessage = (check: VerifyCheck): string => {
+    if (!check.passed) return check.message;
+
+    // BMX URL → show HOST:PORT instead of full URL
+    if (check.name === "config_bmx_url") {
+      const bmxUrl = check.details?.bmx_url as string;
+      if (bmxUrl) {
+        try {
+          const parsed = new URL(bmxUrl);
+          const hostPort = parsed.port ? `${parsed.hostname}:${parsed.port}` : parsed.hostname;
+          return t("setup.wizard.step7.checkBmxUrl", { hostPort });
+        } catch {
+          /* fall through */
+        }
+      }
+      return check.message;
+    }
+
+    // hosts IP → use octIp prop
+    if (check.name === "hosts_ip_correct") {
+      return t("setup.wizard.step7.checkHostsIp", { ip: octIp });
+    }
+
+    const keyMap: Record<string, string> = {
+      uuid_in_db: "setup.wizard.step7.checkUuidInDb",
+      sources_complete: "setup.wizard.step7.checkSourcesComplete",
+      config_files_present: "setup.wizard.step7.checkConfigPresent",
+      config_files_identical: "setup.wizard.step7.checkConfigIdentical",
+      hosts_oct_block: "setup.wizard.step7.checkHostsOctBlock",
+      hosts_domains_complete: "setup.wizard.step7.checkHostsDomains",
+      system_config_uuid_match: "setup.wizard.step7.checkSysConfigUuid",
+    };
+
+    const key = keyMap[check.name];
+    return key ? t(key) : check.message;
+  };
 
   useEffect(() => {
     return () => {
@@ -182,6 +240,15 @@ export default function Step7Verification({
     }
   };
 
+  // Pre-compute summary flags for test results section
+  const configChecks = verifyChecks.filter((c) =>
+    ["config_files_present", "config_files_identical", "config_bmx_url"].includes(c.name)
+  );
+  const summaryConfigPassed = configChecks.length > 0 && configChecks.every((c) => c.passed);
+  const summaryRedirectsPassed = testResults.every((r) => r.success && r.matches_expected);
+  const summarySourcesPassed =
+    verifyChecks.find((c) => c.name === "sources_complete")?.passed ?? false;
+
   return (
     <WizardStep
       stepNumber={6}
@@ -220,9 +287,25 @@ export default function Step7Verification({
         )}
 
         {finalizeResult?.success && (
-          <div className="finalize-result">
-            <div className="success-icon">{"\u2705"}</div>
-            <p>{finalizeResult.message}</p>
+          <div className="verify-checklist">
+            <div className="verify-check-item passed">
+              <span className="check-icon">{"\u2705"}</span>
+              <span className="check-message">
+                {t("setup.wizard.step7.finalizeUuid", { uuid: finalizeResult.uuid })}
+              </span>
+            </div>
+            <div
+              className={`verify-check-item ${finalizeResult.sources_written ? "passed" : "failed"}`}
+            >
+              <span className="check-icon">
+                {finalizeResult.sources_written ? "\u2705" : "\u274c"}
+              </span>
+              <span className="check-message">{t("setup.wizard.step7.finalizeSources")}</span>
+            </div>
+            <div className="verify-check-item passed">
+              <span className="check-icon">{"\u2705"}</span>
+              <span className="check-message">{t("setup.wizard.step7.finalizeSystemConfig")}</span>
+            </div>
           </div>
         )}
 
@@ -333,74 +416,78 @@ export default function Step7Verification({
         {/* Combined Results: verify_setup checks + DNS tests */}
         {setupPhase === "done" && (
           <>
-            {/* System Checks (verify_setup) */}
+            {/* Grouped Verify Checks */}
             {verifyChecks.length > 0 && (
               <div className="verify-checklist">
-                <h3>{t("setup.wizard.step7.systemChecksTitle", "System Checks")}</h3>
-                {verifyChecks.map((check) => {
-                  const passKey = `setup.wizard.step7.check.${check.name}.pass`;
-                  const failKey = `setup.wizard.step7.check.${check.name}.fail`;
-                  const i18nKey = check.passed ? passKey : failKey;
-                  const translated = t(i18nKey, {
-                    defaultValue: check.message,
-                    ...check.details,
-                  });
-                  return (
+                <h3>{t("setup.wizard.step7.verifyTitle", "Setup Verification")}</h3>
+                {/* Ungrouped checks (not hidden, not in any group) */}
+                {verifyChecks
+                  .filter((c) => !HIDDEN_CHECKS.has(c.name) && !GROUPED_CHECKS.has(c.name))
+                  .map((check) => (
                     <div
                       key={check.name}
                       className={`verify-check-item ${check.passed ? "passed" : "failed"}`}
                     >
                       <span className="check-icon">{check.passed ? "\u2705" : "\u274c"}</span>
-                      <span className="check-message">{translated}</span>
+                      <span className="check-message">{getCheckMessage(check)}</span>
+                    </div>
+                  ))}
+                {/* Grouped checks by file */}
+                {CHECK_GROUPS.map((group) => {
+                  const groupChecks = verifyChecks.filter(
+                    (c) => group.checks.includes(c.name) && !HIDDEN_CHECKS.has(c.name)
+                  );
+                  if (groupChecks.length === 0) return null;
+                  return (
+                    <div key={group.labelKey} className="verify-group">
+                      <div className="verify-group-header">{t(group.labelKey)}:</div>
+                      <div className="verify-group-items">
+                        {groupChecks.map((check) => (
+                          <div
+                            key={check.name}
+                            className={`verify-check-item ${check.passed ? "passed" : "failed"}`}
+                          >
+                            <span className="check-icon">{check.passed ? "\u2705" : "\u274c"}</span>
+                            <span className="check-message">{getCheckMessage(check)}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   );
                 })}
               </div>
             )}
 
-            {/* DNS Redirect Tests */}
+            {/* Test Results — Summary */}
             {testResults.length > 0 && (
               <div className="verification-results">
-                <h3 className="verification-title">
-                  {t("setup.wizard.step7.dnsTestsTitle", "DNS Redirect Tests")}
-                </h3>
+                <h3 className="verification-title">{t("setup.wizard.step7.resultsTitle")}</h3>
 
-                <div className="verification-test-list">
-                  {testResults.map((result, index) => (
-                    <div
-                      key={result.domain}
-                      className={`verification-test-item ${result.success && result.matches_expected ? "success" : "failed"}`}
-                    >
-                      <div className="test-item-header">
-                        <div className="test-item-icon">
-                          {result.success && result.matches_expected ? "✅" : "❌"}
-                        </div>
-                        <div className="test-item-info">
-                          <strong className="test-item-domain">{result.domain}</strong>
-                          <small className="test-item-description">
-                            {TEST_DOMAINS[index]?.descriptionKey
-                              ? t(TEST_DOMAINS[index].descriptionKey)
-                              : ""}
-                          </small>
-                        </div>
-                      </div>
-
-                      <div className="test-item-details">
-                        <div className="test-detail-row">
-                          <span className="test-detail-label">
-                            {t("setup.wizard.step7.resolvedIp")}
-                          </span>
-                          <code className="test-detail-value">{result.resolved_ip}</code>
-                        </div>
-                        <div className="test-detail-row">
-                          <span className="test-detail-label">
-                            {t("setup.wizard.step7.expectedIp")}
-                          </span>
-                          <code className="test-detail-value">{result.expected_ip}</code>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="verification-summary-list">
+                  <div className={`verify-check-item ${summaryConfigPassed ? "passed" : "failed"}`}>
+                    <span className="check-icon">{summaryConfigPassed ? "\u2705" : "\u274c"}</span>
+                    <span className="check-message">
+                      {t("setup.wizard.step7.summaryConfigCorrect")}
+                    </span>
+                  </div>
+                  <div
+                    className={`verify-check-item ${summaryRedirectsPassed ? "passed" : "failed"}`}
+                  >
+                    <span className="check-icon">
+                      {summaryRedirectsPassed ? "\u2705" : "\u274c"}
+                    </span>
+                    <span className="check-message">
+                      {t("setup.wizard.step7.summaryRedirectsCorrect")}
+                    </span>
+                  </div>
+                  <div
+                    className={`verify-check-item ${summarySourcesPassed ? "passed" : "failed"}`}
+                  >
+                    <span className="check-icon">{summarySourcesPassed ? "\u2705" : "\u274c"}</span>
+                    <span className="check-message">
+                      {t("setup.wizard.step7.summarySourcesPresent")}
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
@@ -408,21 +495,27 @@ export default function Step7Verification({
             {/* Overall Result */}
             {allTestsPassed ? (
               <div className="verification-success">
-                <div className="success-icon">🎉</div>
+                <div className="success-icon">{"\ud83c\udf89"}</div>
                 <h3 className="success-title">{t("setup.wizard.step7.allPassedTitle")}</h3>
                 <p className="success-message">{t("setup.wizard.step7.allPassedMessage")}</p>
               </div>
             ) : (
               <div className="verification-failed">
-                <div className="failed-icon">⚠️</div>
+                <div className="failed-icon">{"\u26a0\ufe0f"}</div>
                 <h3 className="failed-title">{t("setup.wizard.step7.someFailedTitle")}</h3>
                 <p className="failed-message">{t("setup.wizard.step7.someFailedMessage")}</p>
                 <button
                   className="btn btn-secondary verification-retry-btn"
                   onClick={handleFullVerification}
                 >
-                  🔄 {t("setup.wizard.step7.btnRetryFullVerify", "Run Verification Again")}
+                  {"\ud83d\udd04"}{" "}
+                  {t("setup.wizard.step7.btnRetryFullVerify", "Run Verification Again")}
                 </button>
+                {onSkip && (
+                  <button className="btn btn-ghost verification-skip-btn" onClick={onSkip}>
+                    {t("setup.wizard.step7.btnSkip")}
+                  </button>
+                )}
               </div>
             )}
           </>
