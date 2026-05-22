@@ -85,20 +85,20 @@ export default function Step7Verification({
   const [verifyChecks, setVerifyChecks] = useState<VerifyCheck[]>([]);
   const [setupError, setSetupError] = useState("");
 
-  /** Translate verify check messages (passed state uses i18n, failed falls back to backend message) */
+  /** Translate verify check messages — both passed and failed use i18n when available */
   const getCheckMessage = (check: VerifyCheck): string => {
-    if (!check.passed) return check.message;
-
     // BMX URL → show HOST:PORT instead of full URL
     if (check.name === "config_bmx_url") {
-      const bmxUrl = check.details?.bmx_url as string;
-      if (bmxUrl) {
-        try {
-          const parsed = new URL(bmxUrl);
-          const hostPort = parsed.port ? `${parsed.hostname}:${parsed.port}` : parsed.hostname;
-          return t("setup.wizard.step7.checkBmxUrl", { hostPort });
-        } catch {
-          /* fall through */
+      if (check.passed) {
+        const bmxUrl = check.details?.bmx_url as string;
+        if (bmxUrl) {
+          try {
+            const parsed = new URL(bmxUrl);
+            const hostPort = parsed.port ? `${parsed.hostname}:${parsed.port}` : parsed.hostname;
+            return t("setup.wizard.step7.checkBmxUrl", { hostPort });
+          } catch {
+            /* fall through */
+          }
         }
       }
       return check.message;
@@ -106,7 +106,27 @@ export default function Step7Verification({
 
     // hosts IP → use octIp prop
     if (check.name === "hosts_ip_correct") {
-      return t("setup.wizard.step7.checkHostsIp", { ip: octIp });
+      return check.passed ? t("setup.wizard.step7.checkHostsIp", { ip: octIp }) : check.message;
+    }
+
+    // Failed checks with details → translate with interpolation
+    if (!check.passed) {
+      const failKeyMap: Record<string, string> = {
+        sources_complete: "setup.wizard.step7.checkSourcesMissing",
+        config_files_present: "setup.wizard.step7.checkConfigMissing",
+        config_files_identical: "setup.wizard.step7.checkConfigDiffer",
+        hosts_oct_block: "setup.wizard.step7.checkHostsOctBlockMissing",
+        hosts_domains_complete: "setup.wizard.step7.checkHostsDomainsMissing",
+        hosts_ip_correct: "setup.wizard.step7.checkHostsIpWrong",
+        system_config_uuid_match: "setup.wizard.step7.checkSysConfigUuidMismatch",
+        uuid_in_db: "setup.wizard.step7.checkUuidNotInDb",
+      };
+      const failKey = failKeyMap[check.name];
+      if (failKey) {
+        const missing = (check.details?.missing as string[])?.join(", ");
+        return t(failKey, { missing: missing || "", defaultValue: check.message });
+      }
+      return check.message;
     }
 
     const keyMap: Record<string, string> = {
