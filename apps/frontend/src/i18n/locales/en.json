@@ -468,7 +468,7 @@
       "step7": {
         "title": "Verification & Test",
         "description": "Finalize device configuration, reboot, and verify everything works.",
-        "warning": "All checks must pass before you can proceed.",
+        "warning": "We recommend that all checks pass before you continue.",
         "rebootHeader": "Device restart",
         "rebootHint": "The /etc/hosts changes only take effect after a restart. Restart the device before running the tests.",
         "rebootMandatoryHint": "A reboot is required for the configuration changes to take effect. The device must restart before verification.",

@@ -120,6 +120,21 @@
   text-align: center;
 }
 
+/* Override warning banner to info style for verification step */
+.wizard-step:has(.verification) .wizard-warning {
+  background: rgba(33, 150, 243, 0.1);
+  border-color: #2196f3;
+}
+
+.wizard-step:has(.verification) .wizard-warning-icon {
+  font-size: 0;
+}
+
+.wizard-step:has(.verification) .wizard-warning-icon::after {
+  content: "\2139\FE0F";
+  font-size: 1.5rem;
+}
+
 /* Verify Checklist */
 .verify-checklist {
   display: flex;
@@ -413,17 +428,21 @@
 
 .verification-skip-btn {
   width: 100%;
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
   background: none;
-  border: 1px solid var(--color-border, #ccc);
-  color: var(--color-text-muted, #888);
-  font-size: 0.85rem;
+  border: 1px solid var(--color-border, #999);
+  color: var(--text-secondary, #aaa);
+  font-size: 0.9rem;
+  padding: 0.6rem 1rem;
   cursor: pointer;
+  transition:
+    border-color 0.2s,
+    color 0.2s;
 }
 
 .verification-skip-btn:hover {
-  color: var(--color-text, #333);
-  border-color: var(--color-text-muted, #888);
+  color: var(--text-primary, #e0e0e0);
+  border-color: #ef5350;
 }
 
 /* Responsive */

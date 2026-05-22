@@ -200,15 +200,13 @@
 
 .hosts-detail-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   margin-bottom: 1rem;
 }
 
 .hosts-detail-item:last-child {
   margin-bottom: 0;
-  flex-direction: column;
-  align-items: flex-start;
 }
 
 .hosts-detail-item strong {
@@ -218,9 +216,19 @@
 }
 
 .hosts-detail-value {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--primary-color);
+  display: block;
+  font-family: "Courier New", monospace;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  padding: 0.5rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin-top: 0.5rem;
+  width: 100%;
 }
 
 .hosts-detail-item code {

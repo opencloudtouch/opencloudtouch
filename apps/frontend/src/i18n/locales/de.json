@@ -468,7 +468,7 @@
       "step7": {
         "title": "Überprüfung & Test",
         "description": "Geräte-Konfiguration abschließen, neu starten und alles überprüfen.",
-        "warning": "Alle Checks müssen bestanden werden, bevor Sie fortfahren können.",
+        "warning": "Wir empfehlen, dass alle Checks bestanden werden, bevor Sie fortfahren.",
         "rebootHeader": "Geräte-Neustart",
         "rebootHint": "Die /etc/hosts-Änderungen werden erst nach einem Neustart wirksam. Starten Sie das Gerät neu, bevor Sie die Tests ausführen.",
         "rebootMandatoryHint": "Ein Neustart ist erforderlich, damit die Konfigurationsänderungen wirksam werden. Das Gerät muss vor der Überprüfung neu gestartet werden.",
