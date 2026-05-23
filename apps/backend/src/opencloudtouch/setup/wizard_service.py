@@ -466,17 +466,16 @@ class WizardService:
             uuid_was_collision = not uuid_result.had_uuid and uuid_result.uuid != ""
 
             # 2. Fetch /info for device metadata (name, variant, module_type)
-            device_name, has_bluetooth = await self._fetch_device_metadata(device_ip)
+            device_name, _has_bluetooth = await self._fetch_device_metadata(device_ip)
 
             # 3. SSH operations: Sources.xml + SystemConfigurationDB.xml
             async with ssh_operation(device_ip, "finalize") as ssh:
                 await ssh.execute("mount -o remount,rw /")
                 try:
-                    # Force-write Sources.xml (backup existing, hardware-tailored)
+                    # Force-write Sources.xml (backup existing)
                     sources_result = await force_write_sources_xml(
                         ssh,
                         backup=True,
-                        has_bluetooth=has_bluetooth,
                     )
                     if not sources_result.success:
                         logger.error(
@@ -731,32 +730,47 @@ class WizardService:
         )
 
     async def _check_config_files_present(self, ssh, _add):
-        """Check 4: Config files exist on device. Returns list of missing paths."""
+        """Check 4: Primary config file exists. Returns list of missing paths."""
         config_paths = SoundTouchConfigService.CONFIG_CANDIDATES
+        existing_configs = []
         missing_configs = []
         for path in config_paths:
             r = await ssh.execute(f"test -f {path} && echo exists || echo missing")
             if "missing" in (r.output or ""):
                 missing_configs.append(path)
+            else:
+                existing_configs.append(path)
+
+        # Primary config (/opt/Bose/etc/...) MUST exist.
+        # The /mnt/nv/ copies are optional — firmware on some models
+        # (e.g. ST10, ST300) only reads the primary path.
+        primary = config_paths[0]
+        primary_exists = primary in existing_configs
         _add(
             "config_files_present",
-            len(missing_configs) == 0,
+            primary_exists,
             (
-                f"All {len(config_paths)} config files present"
-                if not missing_configs
-                else f"Missing config file: {', '.join(missing_configs)}. Firmware may not find OCT redirect on reboot."
+                f"Primary config present ({len(existing_configs)}/{len(config_paths)} files exist)"
+                if primary_exists
+                else f"Primary config missing: {primary}. Firmware will not find OCT redirect."
             ),
-            {"missing": missing_configs},
+            {"existing": existing_configs, "missing": missing_configs},
         )
         return missing_configs
 
     async def _check_config_files_identical(self, ssh, missing_configs, _add):
-        """Check 5: All config files have identical content (md5sum)."""
-        if missing_configs:
-            _add("config_files_identical", False, "Skipped: config files missing", {})
-            return
+        """Check 5: All existing config files have identical content (md5sum)."""
         config_paths = SoundTouchConfigService.CONFIG_CANDIDATES
-        r = await ssh.execute(f"md5sum {' '.join(config_paths)} 2>/dev/null")
+        existing = [p for p in config_paths if p not in missing_configs]
+        if len(existing) <= 1:
+            _add(
+                "config_files_identical",
+                True,
+                f"Only {len(existing)} config file(s) present, no comparison needed",
+                {},
+            )
+            return
+        r = await ssh.execute(f"md5sum {' '.join(existing)} 2>/dev/null")
         if not (r.success and r.output):
             _add(
                 "config_files_identical",

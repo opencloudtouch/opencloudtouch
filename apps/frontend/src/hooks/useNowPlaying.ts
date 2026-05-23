@@ -42,6 +42,17 @@ export function useNowPlaying(deviceId: string | undefined): UseNowPlayingResult
       }
       try {
         const data = await getNowPlaying(deviceId);
+        console.debug(
+          "[NowPlaying] poll response:",
+          JSON.stringify({
+            source: data.source,
+            state: data.state,
+            track: data.track,
+            artist: data.artist,
+            station_name: data.station_name,
+            artwork_url: data.artwork_url,
+          })
+        );
         setNowPlaying(data);
         setDeviceOffline(false);
         offlineRef.current = false;
@@ -91,17 +102,25 @@ export function useNowPlaying(deviceId: string | undefined): UseNowPlayingResult
     offlineRef.current = false;
     setError(null);
 
+    // Cancelled flag prevents orphaned intervals when deviceId changes
+    // before the initial fetch completes (race condition on page load)
+    let cancelled = false;
+
     setLoading(true);
     fetchNowPlaying()
       .then(() => {
+        if (cancelled) return;
         // Only start polling if device is still online after initial fetch
         if (!offlineRef.current) {
           intervalRef.current = setInterval(fetchNowPlaying, POLL_INTERVAL_MS);
         }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
     return () => {
+      cancelled = true;
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = undefined;

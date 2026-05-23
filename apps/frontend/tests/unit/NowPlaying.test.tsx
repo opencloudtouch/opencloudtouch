@@ -67,7 +67,7 @@ describe("NowPlaying Component", () => {
       expect(img).toHaveAttribute("src", "https://example.com/art.jpg");
     });
 
-    it("should show music placeholder when no album art", () => {
+    it("should show default artwork when no album art", () => {
       const nowPlaying = {
         station: "Test Station",
         track: "Test Track",
@@ -76,7 +76,28 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-art-placeholder svg")).toBeInTheDocument();
+      const img = container.querySelector(".np-art img");
+      expect(img).toBeInTheDocument();
+      expect(img?.getAttribute("src")).toMatch(/\/images\/default-artwork-[1-3]\.jpg/);
+    });
+
+    it("should fall back to default artwork on image load error", () => {
+      const nowPlaying = {
+        station: "Test Station",
+        art_url: "https://broken-url.example.com/nope",
+        play_status: "PLAY_STATE",
+      };
+
+      const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
+
+      const img = container.querySelector(".np-art img") as HTMLImageElement;
+      expect(img).toBeInTheDocument();
+      expect(img.src).toContain("broken-url.example.com");
+
+      // Simulate image load error
+      fireEvent.error(img);
+
+      expect(img.getAttribute("src")).toMatch(/\/images\/default-artwork-[1-3]\.jpg/);
     });
   });
 
@@ -219,7 +240,9 @@ describe("NowPlaying Component", () => {
 
       expect(screen.getByText("No station")).toBeInTheDocument();
       expect(screen.getByText("Unknown Artist Song")).toBeInTheDocument();
-      expect(container.querySelector(".np-art-placeholder svg")).toBeInTheDocument();
+      const img = container.querySelector(".np-art img");
+      expect(img).toBeInTheDocument();
+      expect(img?.getAttribute("src")).toMatch(/\/images\/default-artwork-[1-3]\.jpg/);
       expect(screen.getByRole("button", { name: "Play" })).toBeInTheDocument();
     });
   });
@@ -272,7 +295,7 @@ describe("NowPlaying Component", () => {
       expect(container.querySelector(".np-source-badge")).not.toBeInTheDocument();
     });
 
-    it("should render badge SVG at 16px size", () => {
+    it("should render badge SVG at 20px size", () => {
       const nowPlaying = {
         station: "My Phone",
         source: "BLUETOOTH",
@@ -282,13 +305,69 @@ describe("NowPlaying Component", () => {
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
       const svg = container.querySelector(".np-source-badge svg");
 
-      expect(svg).toHaveAttribute("width", "16");
-      expect(svg).toHaveAttribute("height", "16");
+      expect(svg).toHaveAttribute("width", "20");
+      expect(svg).toHaveAttribute("height", "20");
+    });
+
+    it("should show Radio badge for LOCAL_INTERNET_RADIO", () => {
+      const nowPlaying = {
+        station: "Local Radio",
+        source: "LOCAL_INTERNET_RADIO",
+        play_status: "PLAY_STATE",
+      };
+
+      const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
+
+      expect(container.querySelector(".np-source-badge.radio")).toBeInTheDocument();
+    });
+
+    it("should show AUX badge for AUX source", () => {
+      const nowPlaying = {
+        source: "AUX",
+        play_status: "PLAY_STATE",
+      };
+
+      const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
+
+      expect(container.querySelector(".np-source-badge.aux")).toBeInTheDocument();
+    });
+
+    it("should show AirPlay badge for AIRPLAY source", () => {
+      const nowPlaying = {
+        source: "AIRPLAY",
+        play_status: "PLAY_STATE",
+      };
+
+      const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
+
+      expect(container.querySelector(".np-source-badge.airplay")).toBeInTheDocument();
+    });
+
+    it("should show TV badge for TV source", () => {
+      const nowPlaying = {
+        source: "TV",
+        play_status: "PLAY_STATE",
+      };
+
+      const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
+
+      expect(container.querySelector(".np-source-badge.tv")).toBeInTheDocument();
+    });
+
+    it("should show streaming badge for SPOTIFY source", () => {
+      const nowPlaying = {
+        source: "SPOTIFY",
+        play_status: "PLAY_STATE",
+      };
+
+      const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
+
+      expect(container.querySelector(".np-source-badge.streaming")).toBeInTheDocument();
     });
   });
 
   describe("Bluetooth Source Display", () => {
-    it('should show "No device connected" for BLUETOOTH source without station', () => {
+    it('should show "Bluetooth" for BLUETOOTH source without station', () => {
       const nowPlaying = {
         source: "BLUETOOTH",
         play_status: "PLAY_STATE",
@@ -296,10 +375,10 @@ describe("NowPlaying Component", () => {
 
       render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(screen.getByText("No device connected")).toBeInTheDocument();
+      expect(screen.getByText("Bluetooth")).toBeInTheDocument();
     });
 
-    it("should show device name for BLUETOOTH source with station", () => {
+    it("should show source and device name for BLUETOOTH source with station", () => {
       const nowPlaying = {
         station: "iPhone von Max",
         source: "BLUETOOTH",
@@ -308,7 +387,7 @@ describe("NowPlaying Component", () => {
 
       render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(screen.getByText("iPhone von Max")).toBeInTheDocument();
+      expect(screen.getByText("Bluetooth · iPhone von Max")).toBeInTheDocument();
     });
 
     it('should show "No station" for non-BLUETOOTH source without station', () => {
@@ -320,6 +399,50 @@ describe("NowPlaying Component", () => {
       render(<NowPlaying nowPlaying={nowPlaying} />);
 
       expect(screen.getByText("No station")).toBeInTheDocument();
+    });
+
+    it('should show "AUX" for AUX source', () => {
+      const nowPlaying = {
+        source: "AUX",
+        play_status: "PLAY_STATE",
+      };
+
+      render(<NowPlaying nowPlaying={nowPlaying} />);
+
+      expect(screen.getByText("AUX")).toBeInTheDocument();
+    });
+
+    it('should show "AirPlay" for AIRPLAY source', () => {
+      const nowPlaying = {
+        source: "AIRPLAY",
+        play_status: "PLAY_STATE",
+      };
+
+      render(<NowPlaying nowPlaying={nowPlaying} />);
+
+      expect(screen.getByText("AirPlay")).toBeInTheDocument();
+    });
+
+    it('should show "DLNA" for DLNA source', () => {
+      const nowPlaying = {
+        source: "DLNA",
+        play_status: "PLAY_STATE",
+      };
+
+      render(<NowPlaying nowPlaying={nowPlaying} />);
+
+      expect(screen.getByText("DLNA")).toBeInTheDocument();
+    });
+
+    it('should show "TV / HDMI" for TV source', () => {
+      const nowPlaying = {
+        source: "TV",
+        play_status: "PLAY_STATE",
+      };
+
+      render(<NowPlaying nowPlaying={nowPlaying} />);
+
+      expect(screen.getByText("TV / HDMI")).toBeInTheDocument();
     });
   });
 

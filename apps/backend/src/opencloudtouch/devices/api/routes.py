@@ -10,17 +10,23 @@ from typing import TypeVar
 from fastapi import APIRouter, Body, Depends, HTTPException
 
 from opencloudtouch.core.config import AppConfig, get_config
-from opencloudtouch.core.dependencies import get_device_service
+from opencloudtouch.core.dependencies import get_device_service, get_preset_service
 from opencloudtouch.core.exceptions import (
     DeviceConnectionError,
     DeviceNotFoundError,
     DomainValidationError,
 )
 from opencloudtouch.devices.service import DeviceService
+from opencloudtouch.presets.service import PresetService
+from opencloudtouch.streaming.icy_metadata import probe_stream
+from opencloudtouch.streaming.metadata_cache import MISSING, MetadataCache
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+# Module-level singleton — no DB, no DI needed
+_metadata_cache = MetadataCache(ttl=15.0)
 
 router = APIRouter(prefix="/api/devices", tags=["Devices"])
 
@@ -207,10 +213,45 @@ async def press_key(
     return {"message": f"Key {key} pressed successfully", "device_id": device_id}
 
 
+_RADIO_SOURCES = {"LOCAL_INTERNET_RADIO", "INTERNET_RADIO"}
+
+_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico", ".bmp"}
+
+
+def _is_image_url(url: str) -> bool:
+    """Heuristic check whether a URL likely points to an image."""
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    path_lower = parsed.path.lower().rstrip("/")
+
+    # Check file extension
+    for ext in _IMAGE_EXTENSIONS:
+        if path_lower.endswith(ext):
+            return True
+
+    # Known image CDN patterns
+    host = parsed.hostname or ""
+    if any(
+        pattern in host
+        for pattern in ("cdn-profiles.tunein.com", "cdn-radiotime", "cloudfront.net")
+    ):
+        return True
+
+    # URL path contains typical image path segments
+    if any(
+        seg in path_lower for seg in ("/images/", "/img/", "/logo", "/favicon", "/icon")
+    ):
+        return True
+
+    return False
+
+
 @router.get("/{device_id}/now-playing")
 async def get_now_playing(
     device_id: str,
     device_service: DeviceService = Depends(get_device_service),
+    preset_service: PresetService = Depends(get_preset_service),
 ):
     """Get current playback status for a device."""
     info = await _device_op(
@@ -218,7 +259,7 @@ async def get_now_playing(
         "get playback status",
         device_service.get_now_playing(device_id),
     )
-    return {
+    result = {
         "source": info.source,
         "state": info.state,
         "station_name": info.station_name,
@@ -227,6 +268,81 @@ async def get_now_playing(
         "album": info.album,
         "artwork_url": info.artwork_url,
     }
+
+    # Filter out non-image artwork URLs (e.g. station homepages)
+    if result["artwork_url"] and not _is_image_url(result["artwork_url"]):
+        logger.debug(
+            "[NowPlaying] Filtered non-image artwork_url: %s", result["artwork_url"]
+        )
+        result["artwork_url"] = None
+
+    # Enrich from preset DB when device returns no artwork for radio sources
+    matched_preset = None
+    if info.source in _RADIO_SOURCES and info.station_name:
+        try:
+            presets = await preset_service.get_all_presets(device_id)
+            for preset in presets:
+                if preset.station_name == info.station_name:
+                    matched_preset = preset
+                    if not result["artwork_url"] and preset.station_favicon:
+                        result["artwork_url"] = preset.station_favicon
+                        logger.debug(
+                            "[NowPlaying] Enriched artwork from preset DB: %s",
+                            preset.station_favicon,
+                        )
+                    break
+        except Exception:
+            logger.debug(
+                "[NowPlaying] Preset lookup failed for %s", device_id, exc_info=True
+            )
+
+    # Enrich artist/track/artwork from ICY metadata probe (cached)
+    needs_icy = (
+        info.source in _RADIO_SOURCES
+        and matched_preset
+        and (not info.artist or not info.track or not result["artwork_url"])
+    )
+    if needs_icy:
+        stream_url = matched_preset.station_url
+        cached = _metadata_cache.get(stream_url)
+        if cached is MISSING:
+            # Cache miss — probe inline (fast, typically <200ms)
+            try:
+                icy = await probe_stream(
+                    stream_url, timeout=3.0, station_name=info.station_name
+                )
+                _metadata_cache.put(stream_url, icy)
+                if icy:
+                    if not info.artist and icy.artist:
+                        result["artist"] = icy.artist
+                    if not info.track and icy.track:
+                        result["track"] = icy.track
+                    if not result["artwork_url"] and icy.station_logo_url:
+                        result["artwork_url"] = icy.station_logo_url
+            except Exception:
+                logger.debug(
+                    "[NowPlaying] ICY probe failed for %s", stream_url, exc_info=True
+                )
+        elif cached is not None:
+            # Cache hit with metadata
+            if not info.artist and cached.artist:
+                result["artist"] = cached.artist
+            if not info.track and cached.track:
+                result["track"] = cached.track
+            if not result["artwork_url"] and cached.station_logo_url:
+                result["artwork_url"] = cached.station_logo_url
+
+    logger.debug(
+        "[NowPlaying] device=%s source=%s state=%s track=%r artist=%r art=%r station=%r",
+        device_id,
+        info.source,
+        info.state,
+        info.track,
+        info.artist,
+        result["artwork_url"],
+        info.station_name,
+    )
+    return result
 
 
 @router.get("/{device_id}/volume")

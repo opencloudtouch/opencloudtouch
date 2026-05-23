@@ -152,7 +152,7 @@ class BoseDeviceClientAdapter(DeviceClient):
                 artist=getattr(now_playing, "Artist", None),
                 track=getattr(now_playing, "Track", None),
                 album=getattr(now_playing, "Album", None),
-                artwork_url=getattr(now_playing, "ArtUrl", None),
+                artwork_url=getattr(now_playing, "ContainerArtUrl", None),
             )
 
         except Exception as e:

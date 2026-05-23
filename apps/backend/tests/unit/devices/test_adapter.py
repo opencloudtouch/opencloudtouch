@@ -307,6 +307,7 @@ async def test_client_get_now_playing_success():
     mock_status.Track = "Track Title"
     mock_status.Album = "Album Name"
     mock_status.ArtUrl = "http://example.com/art.jpg"
+    mock_status.ContainerArtUrl = "http://example.com/art.jpg"
 
     with patch("opencloudtouch.devices.client_adapter.SoundTouchDevice"):
         with patch(
