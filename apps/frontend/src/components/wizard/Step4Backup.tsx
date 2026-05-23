@@ -61,7 +61,7 @@ export default function Step4Backup({
       warning={t("setup.wizard.step4.warning")}
       onNext={onNext}
       onPrevious={onPrevious}
-      isNextDisabled={false}
+      isNextDisabled={creating}
     >
       <div className="backup">
         {/* Backup Action */}
