@@ -258,6 +258,70 @@ describe("Step4Backup — render", () => {
     );
     expect(document.body).toBeInTheDocument();
   });
+
+  it("disables next button while backup is in progress", async () => {
+    // createBackup that never resolves — simulates in-progress backup
+    const { createBackup } = await import("../../src/api/wizard");
+    (createBackup as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
+
+    const { default: Step4 } = await import(
+      "../../src/components/wizard/Step4Backup"
+    );
+    render(
+      <Step4
+        deviceId="device-1"
+        deviceIp="192.168.1.1"
+        deviceName="SoundTouch 10"
+        onNext={vi.fn()}
+        onPrevious={vi.fn()}
+        onBackupComplete={vi.fn()}
+      />
+    );
+
+    const nextBtn = screen.getByRole("button", { name: /next/i });
+    expect(nextBtn).not.toBeDisabled();
+
+    // Click "create backup"
+    const backupBtn = screen.getByRole("button", { name: /create backup/i });
+    await act(async () => {
+      backupBtn.click();
+    });
+
+    expect(nextBtn).toBeDisabled();
+  });
+
+  it("re-enables next button after backup completes", async () => {
+    const { createBackup } = await import("../../src/api/wizard");
+    (createBackup as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      message: "OK",
+      volumes: [],
+      total_size_mb: 1.0,
+      total_duration_seconds: 2.0,
+    });
+
+    const { default: Step4 } = await import(
+      "../../src/components/wizard/Step4Backup"
+    );
+    render(
+      <Step4
+        deviceId="device-1"
+        deviceIp="192.168.1.1"
+        deviceName="SoundTouch 10"
+        onNext={vi.fn()}
+        onPrevious={vi.fn()}
+        onBackupComplete={vi.fn()}
+      />
+    );
+
+    const backupBtn = screen.getByRole("button", { name: /create backup/i });
+    await act(async () => {
+      backupBtn.click();
+    });
+
+    const nextBtn = screen.getByRole("button", { name: /next/i });
+    expect(nextBtn).not.toBeDisabled();
+  });
 });
 
 // ------------------------------------------------------------------

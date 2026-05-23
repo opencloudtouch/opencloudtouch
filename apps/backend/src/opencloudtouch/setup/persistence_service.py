@@ -64,30 +64,27 @@ def build_system_config_xml(
 
 # Source entries for Sources.xml, ordered by type.
 # Each tuple: (displayName, type, account, secretType)
+#
+# IMPORTANT: Only include source types the Bose firmware recognises.
+# BLUETOOTH is managed by firmware separately — adding it here breaks
+# the physical source-cycle button (AUX/BT become unreachable).
+# RADIO_BROWSER is an OCT-internal concept, not a Bose source type.
 _BASE_SOURCES: list[tuple[str, str, str, str]] = [
     ("AIRPLAY", "AIRPLAY", "", ""),
     ("AUX IN", "AUX", "AUX", ""),
     ("LOCAL_INTERNET_RADIO", "LOCAL_INTERNET_RADIO", "", "token"),
-    ("RADIO_BROWSER", "RADIO_BROWSER", "", "token"),
-    ("TUNEIN", "TUNEIN", "", "token"),
     ("STORED_MUSIC", "STORED_MUSIC", "", ""),
+    ("TUNEIN", "TUNEIN", "", "token"),
 ]
 
-_BLUETOOTH_SOURCE = ("BLUETOOTH", "BLUETOOTH", "", "")
 
+def build_sources_xml() -> str:
+    """Build Sources.xml content for Bose SoundTouch devices.
 
-def build_sources_xml(has_bluetooth: bool = True) -> str:
-    """Build Sources.xml content tailored to device capabilities.
-
-    Args:
-        has_bluetooth: Include BLUETOOTH source entry.
-            SCM (Gen I) devices have no Bluetooth hardware;
-            including it is harmless but clutters the source list.
+    Uses only firmware-recognised source types. BLUETOOTH is managed
+    by the firmware independently and must NOT appear here.
     """
     sources = list(_BASE_SOURCES)
-    if has_bluetooth:
-        # Insert before STORED_MUSIC to keep alphabetical-ish order
-        sources.insert(5, _BLUETOOTH_SOURCE)
 
     lines = ['<?xml version="1.0" encoding="UTF-8" ?>', "<sources>"]
     for display_name, source_type, account, secret_type in sources:
@@ -100,11 +97,11 @@ def build_sources_xml(has_bluetooth: bool = True) -> str:
     return "\n".join(lines) + "\n"
 
 
-# Source types that firmware requires for preset playback
+# Source types that firmware requires for preset playback.
+# BLUETOOTH is managed by firmware separately and must NOT be in Sources.xml.
 REQUIRED_SOURCE_TYPES = {
     "AIRPLAY",
     "AUX",
-    "BLUETOOTH",
     "LOCAL_INTERNET_RADIO",
     "STORED_MUSIC",
     "TUNEIN",
@@ -126,18 +123,12 @@ class ForceWriteResult:
 async def force_write_sources_xml(
     ssh: SoundTouchSSHClient,
     backup: bool = True,
-    has_bluetooth: bool = True,
 ) -> ForceWriteResult:
-    """Force-write Sources.xml with hardware-tailored content.
+    """Force-write Sources.xml with firmware-safe content.
 
     Unlike ensure_persistence_files() which skips existing files, this
     function ALWAYS overwrites -- needed when existing Sources.xml is
     incomplete (e.g. only has AUX, missing TUNEIN).
-
-    Args:
-        ssh: Connected SSH client (filesystem must be mounted rw)
-        backup: If True, back up existing file to Sources.xml.bak
-        has_bluetooth: Include BLUETOOTH source (False for SCM/Gen I devices)
 
     Args:
         ssh: Connected SSH client (filesystem must be mounted rw)
@@ -159,13 +150,12 @@ async def force_write_sources_xml(
             if not result.success:
                 logger.warning("Failed to backup Sources.xml: %s", result.error)
 
-        content = build_sources_xml(has_bluetooth=has_bluetooth)
+        content = build_sources_xml()
         exit_code = await _write_file_atomic(ssh, path, content)
         logger.info(
-            "Force-wrote Sources.xml (backup=%s, had_existing=%s, bluetooth=%s, exit_code=%d)",
+            "Force-wrote Sources.xml (backup=%s, had_existing=%s, exit_code=%d)",
             backup,
             had_existing,
-            has_bluetooth,
             exit_code,
         )
 

@@ -57,9 +57,9 @@ class TestSourcesXml:
         xml = build_sources_xml()
         assert 'type="TUNEIN"' in xml
 
-    def test_contains_radio_browser(self):
+    def test_contains_radio_browser_excluded(self):
         xml = build_sources_xml()
-        assert 'type="RADIO_BROWSER"' in xml
+        assert 'type="RADIO_BROWSER"' not in xml
 
     def test_contains_aux(self):
         xml = build_sources_xml()
@@ -73,20 +73,10 @@ class TestSourcesXml:
         xml = build_sources_xml()
         assert xml.startswith('<?xml version="1.0"')
 
-    def test_includes_bluetooth_by_default(self):
+    def test_excludes_bluetooth(self):
+        """BLUETOOTH is managed by firmware separately — must not appear in Sources.xml."""
         xml = build_sources_xml()
-        assert 'type="BLUETOOTH"' in xml
-
-    def test_excludes_bluetooth_when_disabled(self):
-        xml = build_sources_xml(has_bluetooth=False)
         assert 'type="BLUETOOTH"' not in xml
-        # Other sources still present
-        assert 'type="TUNEIN"' in xml
-        assert 'type="AUX"' in xml
-
-    def test_includes_bluetooth_explicitly(self):
-        xml = build_sources_xml(has_bluetooth=True)
-        assert 'type="BLUETOOTH"' in xml
 
 
 # —— Helpers ———————————————————————————————————————————
