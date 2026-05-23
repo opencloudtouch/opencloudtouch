@@ -384,7 +384,7 @@ class TestProbeStream:
             "opencloudtouch.streaming.icy_metadata.httpx.AsyncClient",
             return_value=mock_client_ctx,
         ):
-            result = await probe_stream("http://stream.example.com/radio", timeout=2.0)
+            result = await probe_stream("http://stream.example.com/radio")
 
         assert result is not None
         assert result.artist == "Artist"
@@ -403,7 +403,7 @@ class TestProbeStream:
             mock_ctx.__aexit__ = AsyncMock(return_value=False)
             mock_cls.return_value = mock_ctx
 
-            result = await probe_stream("http://stream.example.com/radio", timeout=0.1)
+            result = await probe_stream("http://stream.example.com/radio")
             assert result is None
 
     @pytest.mark.asyncio

@@ -199,9 +199,11 @@ async def _read_icy_stream(
     return None
 
 
+_DEFAULT_PROBE_TIMEOUT = 5.0
+
+
 async def probe_stream(
     url: str,
-    timeout: float = 5.0,
     station_name: str | None = None,
 ) -> IcyMetadata | None:
     """Probe a radio stream for ICY metadata.
@@ -219,9 +221,9 @@ async def probe_stream(
         support ICY or no metadata block was found within limits.
     """
     try:
-        async with asyncio.timeout(timeout):
+        async with asyncio.timeout(_DEFAULT_PROBE_TIMEOUT):
             async with httpx.AsyncClient(
-                timeout=httpx.Timeout(timeout, connect=3.0),
+                timeout=httpx.Timeout(_DEFAULT_PROBE_TIMEOUT, connect=3.0),
                 follow_redirects=True,
             ) as client:
                 async with client.stream(
@@ -248,7 +250,7 @@ async def probe_stream(
         return None
 
     except (httpx.TimeoutException, TimeoutError):
-        logger.debug("ICY probe timeout for %s (%.1fs)", url, timeout)
+        logger.debug("ICY probe timeout for %s (%.1fs)", url, _DEFAULT_PROBE_TIMEOUT)
         return None
     except httpx.ConnectError:
         logger.debug("ICY probe connection failed for %s", url)
