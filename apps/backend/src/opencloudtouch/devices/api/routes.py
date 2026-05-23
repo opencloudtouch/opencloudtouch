@@ -5,7 +5,7 @@ CRUD endpoints for device management. Discovery endpoints extracted to discovery
 
 import logging
 from collections.abc import Awaitable
-from typing import TypeVar
+from typing import Annotated, TypeVar
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 
@@ -18,7 +18,7 @@ from opencloudtouch.core.exceptions import (
 )
 from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.presets.service import PresetService
-from opencloudtouch.streaming.icy_metadata import probe_stream
+from opencloudtouch.streaming.icy_metadata import IcyMetadata, probe_stream
 from opencloudtouch.streaming.metadata_cache import MISSING, MetadataCache, _Missing
 
 logger = logging.getLogger(__name__)
@@ -247,19 +247,57 @@ def _is_image_url(url: str) -> bool:
     return False
 
 
+def _apply_icy_metadata(
+    result: dict[str, object],
+    icy: IcyMetadata,
+    artist: str | None,
+    track: str | None,
+) -> None:
+    """Apply ICY metadata fields to the result dict when missing."""
+    if not artist and icy.artist:
+        result["artist"] = icy.artist
+    if not track and icy.track:
+        result["track"] = icy.track
+    if not result["artwork_url"] and icy.station_logo_url:
+        result["artwork_url"] = icy.station_logo_url
+
+
+async def _enrich_from_icy(
+    result: dict[str, object],
+    stream_url: str,
+    station_name: str | None,
+    artist: str | None,
+    track: str | None,
+) -> None:
+    """Enrich result dict with ICY metadata (cached or probed)."""
+    cached = _metadata_cache.get(stream_url)
+    if cached is MISSING:
+        try:
+            icy = await probe_stream(stream_url, timeout=3.0, station_name=station_name)
+            _metadata_cache.put(stream_url, icy)
+            if icy:
+                _apply_icy_metadata(result, icy, artist, track)
+        except Exception:
+            logger.debug(
+                "[NowPlaying] ICY probe failed for %s", stream_url, exc_info=True
+            )
+    elif cached is not None and not isinstance(cached, _Missing):
+        _apply_icy_metadata(result, cached, artist, track)
+
+
 @router.get("/{device_id}/now-playing")
 async def get_now_playing(
     device_id: str,
-    device_service: DeviceService = Depends(get_device_service),
-    preset_service: PresetService = Depends(get_preset_service),
-):
+    device_service: Annotated[DeviceService, Depends(get_device_service)],
+    preset_service: Annotated[PresetService, Depends(get_preset_service)],
+) -> dict[str, object]:
     """Get current playback status for a device."""
     info = await _device_op(
         device_id,
         "get playback status",
         device_service.get_now_playing(device_id),
     )
-    result = {
+    result: dict[str, object] = {
         "source": info.source,
         "state": info.state,
         "station_name": info.station_name,
@@ -270,7 +308,8 @@ async def get_now_playing(
     }
 
     # Filter out non-image artwork URLs (e.g. station homepages)
-    if result["artwork_url"] and not _is_image_url(result["artwork_url"]):
+    artwork_url = result["artwork_url"]
+    if isinstance(artwork_url, str) and not _is_image_url(artwork_url):
         logger.debug(
             "[NowPlaying] Filtered non-image artwork_url: %s", result["artwork_url"]
         )
@@ -297,41 +336,18 @@ async def get_now_playing(
             )
 
     # Enrich artist/track/artwork from ICY metadata probe (cached)
-    needs_icy = (
+    if (
         info.source in _RADIO_SOURCES
         and matched_preset
         and (not info.artist or not info.track or not result["artwork_url"])
-    )
-    if needs_icy:
-        assert matched_preset is not None  # guarded by needs_icy
-        stream_url = matched_preset.station_url
-        cached = _metadata_cache.get(stream_url)
-        if cached is MISSING:
-            # Cache miss — probe inline (fast, typically <200ms)
-            try:
-                icy = await probe_stream(
-                    stream_url, timeout=3.0, station_name=info.station_name
-                )
-                _metadata_cache.put(stream_url, icy)
-                if icy:
-                    if not info.artist and icy.artist:
-                        result["artist"] = icy.artist
-                    if not info.track and icy.track:
-                        result["track"] = icy.track
-                    if not result["artwork_url"] and icy.station_logo_url:
-                        result["artwork_url"] = icy.station_logo_url
-            except Exception:
-                logger.debug(
-                    "[NowPlaying] ICY probe failed for %s", stream_url, exc_info=True
-                )
-        elif cached is not None and not isinstance(cached, _Missing):
-            # Cache hit with metadata
-            if not info.artist and cached.artist:
-                result["artist"] = cached.artist
-            if not info.track and cached.track:
-                result["track"] = cached.track
-            if not result["artwork_url"] and cached.station_logo_url:
-                result["artwork_url"] = cached.station_logo_url
+    ):
+        await _enrich_from_icy(
+            result,
+            matched_preset.station_url,
+            info.station_name,
+            info.artist,
+            info.track,
+        )
 
     logger.debug(
         "[NowPlaying] device=%s source=%s state=%s track=%r artist=%r art=%r station=%r",

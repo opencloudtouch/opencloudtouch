@@ -9,6 +9,7 @@ stream proxy in preset_stream_routes.py.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from dataclasses import dataclass
@@ -110,6 +111,94 @@ def _decode_icy_bytes(raw: bytes) -> str:
         return raw.decode("latin-1").rstrip("\x00")
 
 
+def _parse_metadata_block(
+    buffer: bytearray,
+    station_name: str | None,
+    icy_logo_url: str | None,
+) -> tuple[bytearray, int, IcyMetadata | None]:
+    """Parse a single metadata block from the buffer.
+
+    Returns:
+        Tuple of (remaining buffer, bytes consumed, metadata or None).
+    """
+    meta_length = buffer[0] * 16
+    if meta_length == 0:
+        return buffer[1:], 1, None
+
+    if len(buffer) < 1 + meta_length:
+        return buffer, 0, None  # need more data
+
+    raw_meta = bytes(buffer[1 : 1 + meta_length])
+    remaining = buffer[1 + meta_length :]
+    consumed = 1 + meta_length
+
+    meta_text = _decode_icy_bytes(raw_meta)
+    if not meta_text:
+        return remaining, consumed, None
+
+    title = _extract_stream_title(meta_text)
+    if title is None:
+        return remaining, consumed, None
+
+    result = parse_stream_title(title, station_name)
+    if icy_logo_url:
+        result = IcyMetadata(
+            artist=result.artist,
+            track=result.track,
+            raw_title=result.raw_title,
+            station_logo_url=icy_logo_url,
+        )
+    return remaining, consumed, result
+
+
+async def _read_icy_stream(
+    response: httpx.Response,
+    station_name: str | None,
+) -> IcyMetadata | None:
+    """Read ICY metadata from an open stream response."""
+    icy_logo_url = response.headers.get("icy-url") or None
+    metaint_str = response.headers.get("icy-metaint")
+    if not metaint_str:
+        logger.debug("No icy-metaint header")
+        return None
+
+    try:
+        metaint = int(metaint_str)
+    except ValueError:
+        logger.debug("Invalid icy-metaint value %r", metaint_str)
+        return None
+
+    if metaint <= 0:
+        logger.debug("icy-metaint <= 0")
+        return None
+
+    buffer = bytearray()
+    bytes_consumed = 0
+
+    async for chunk in response.aiter_bytes(4096):
+        buffer.extend(chunk)
+
+        while len(buffer) > metaint:
+            buffer = buffer[metaint:]
+            bytes_consumed += metaint
+
+            if not buffer:
+                break
+
+            buffer, consumed, metadata = _parse_metadata_block(
+                buffer, station_name, icy_logo_url
+            )
+            bytes_consumed += consumed
+            if metadata:
+                return metadata
+
+        if bytes_consumed > _MAX_PROBE_BYTES:
+            logger.debug("ICY probe hit %d byte limit", _MAX_PROBE_BYTES)
+            break
+
+    return None
+
+
 async def probe_stream(
     url: str,
     timeout: float = 5.0,
@@ -130,107 +219,35 @@ async def probe_stream(
         support ICY or no metadata block was found within limits.
     """
     try:
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(timeout, connect=3.0),
-            follow_redirects=True,
-        ) as client:
-            async with client.stream(
-                "GET",
-                url,
-                headers={
-                    "Icy-MetaData": "1",
-                    "User-Agent": "OCT-ICY-Probe/1.0",
-                },
-            ) as response:
-                # Extract station logo URL from icy-url header
-                icy_logo_url = response.headers.get("icy-url") or None
-
-                metaint_str = response.headers.get("icy-metaint")
-                if not metaint_str:
-                    logger.debug("No icy-metaint header for %s", url)
-                    return None
-
-                try:
-                    metaint = int(metaint_str)
-                except ValueError:
-                    logger.debug(
-                        "Invalid icy-metaint value %r for %s", metaint_str, url
-                    )
-                    return None
-
-                if metaint <= 0:
-                    logger.debug("icy-metaint <= 0 for %s", url)
-                    return None
-
-                # Read stream and find first non-empty metadata block
-                buffer = bytearray()
-                bytes_consumed = 0
-
-                async for chunk in response.aiter_bytes(4096):
-                    buffer.extend(chunk)
-
-                    # Process complete audio+metadata cycles
-                    while len(buffer) > metaint:
-                        # Skip audio data
-                        buffer = buffer[metaint:]
-                        bytes_consumed += metaint
-
-                        if not buffer:
-                            break
-
-                        # Read metadata length byte
-                        meta_length = buffer[0] * 16
-                        if meta_length == 0:
-                            # Empty metadata block — skip length byte, continue
-                            buffer = buffer[1:]
-                            bytes_consumed += 1
-                            continue
-
-                        if len(buffer) < 1 + meta_length:
-                            # Need more data for the full metadata block
-                            break
-
-                        # Extract and decode metadata
-                        raw_meta = bytes(buffer[1 : 1 + meta_length])
-                        buffer = buffer[1 + meta_length :]
-                        bytes_consumed += 1 + meta_length
-
-                        meta_text = _decode_icy_bytes(raw_meta)
-                        if not meta_text:
-                            continue
-
-                        title = _extract_stream_title(meta_text)
-                        if title is not None:
-                            result = parse_stream_title(title, station_name)
-                            # Attach station logo from icy-url header
-                            if icy_logo_url:
-                                result = IcyMetadata(
-                                    artist=result.artist,
-                                    track=result.track,
-                                    raw_title=result.raw_title,
-                                    station_logo_url=icy_logo_url,
-                                )
-                            logger.debug(
-                                "ICY probe %s: artist=%r track=%r logo=%r (raw=%r)",
-                                url,
-                                result.artist,
-                                result.track,
-                                result.station_logo_url,
-                                result.raw_title,
-                            )
-                            return result
-
-                    # Safety limit
-                    if bytes_consumed > _MAX_PROBE_BYTES:
+        async with asyncio.timeout(timeout):
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(timeout, connect=3.0),
+                follow_redirects=True,
+            ) as client:
+                async with client.stream(
+                    "GET",
+                    url,
+                    headers={
+                        "Icy-MetaData": "1",
+                        "User-Agent": "OCT-ICY-Probe/1.0",
+                    },
+                ) as response:
+                    result = await _read_icy_stream(response, station_name)
+                    if result:
                         logger.debug(
-                            "ICY probe hit %d byte limit for %s", _MAX_PROBE_BYTES, url
+                            "ICY probe %s: artist=%r track=%r logo=%r (raw=%r)",
+                            url,
+                            result.artist,
+                            result.track,
+                            result.station_logo_url,
+                            result.raw_title,
                         )
-                        break
+                        return result
 
         logger.debug("ICY probe found no metadata for %s", url)
         return None
 
-    except httpx.TimeoutException:
+    except (httpx.TimeoutException, TimeoutError):
         logger.debug("ICY probe timeout for %s (%.1fs)", url, timeout)
         return None
     except httpx.ConnectError:

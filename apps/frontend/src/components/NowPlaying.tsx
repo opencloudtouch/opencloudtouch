@@ -19,8 +19,8 @@ export interface NowPlayingData {
 }
 
 interface NowPlayingProps {
-  nowPlaying?: NowPlayingData | null;
-  onPlayPause?: () => void;
+  readonly nowPlaying?: NowPlayingData | null;
+  readonly onPlayPause?: () => void;
 }
 
 const BT_ICON =
@@ -74,11 +74,10 @@ function getSourceBadge(source?: string) {
   );
 }
 
-function ArtworkImage({ artUrl }: { artUrl?: string }) {
-  const fallback = useMemo(
-    () => DEFAULT_ARTWORKS[Math.floor(Math.random() * DEFAULT_ARTWORKS.length)],
-    []
-  );
+let _artworkCounter = 0;
+
+function ArtworkImage({ artUrl }: Readonly<{ artUrl?: string }>) {
+  const fallback = useMemo(() => DEFAULT_ARTWORKS[_artworkCounter++ % DEFAULT_ARTWORKS.length], []);
   const [src, setSrc] = useState(artUrl || fallback);
   const [failed, setFailed] = useState(false);
 
@@ -102,36 +101,26 @@ function ArtworkImage({ artUrl }: { artUrl?: string }) {
   return <img src={src} alt="" onError={handleError} />;
 }
 
+const SOURCE_LABELS: Record<string, string> = {
+  BLUETOOTH: "Bluetooth",
+  AUX: "AUX",
+  AIRPLAY: "AirPlay",
+  DLNA: "DLNA",
+  TV: "TV / HDMI",
+  HDMI_1: "TV / HDMI",
+  SPOTIFY: "Spotify",
+  DEEZER: "Deezer",
+  PANDORA: "Pandora",
+  AMAZON: "Amazon Music",
+  STORED_MUSIC: "Media Library",
+};
+
+function getSourceLabel(source?: string): string | null {
+  return source ? (SOURCE_LABELS[source] ?? null) : null;
+}
+
 export default function NowPlaying({ nowPlaying, onPlayPause }: NowPlayingProps) {
   const { t } = useTranslation();
-
-  function getSourceLabel(source?: string): string | null {
-    switch (source) {
-      case "BLUETOOTH":
-        return "Bluetooth";
-      case "AUX":
-        return "AUX";
-      case "AIRPLAY":
-        return "AirPlay";
-      case "DLNA":
-        return "DLNA";
-      case "TV":
-      case "HDMI_1":
-        return "TV / HDMI";
-      case "SPOTIFY":
-        return "Spotify";
-      case "DEEZER":
-        return "Deezer";
-      case "PANDORA":
-        return "Pandora";
-      case "AMAZON":
-        return "Amazon Music";
-      case "STORED_MUSIC":
-        return "Media Library";
-      default:
-        return null;
-    }
-  }
 
   function getHeaderDisplay(station?: string, source?: string): string {
     // For non-radio sources, show source label (e.g. "Bluetooth", "AUX")
