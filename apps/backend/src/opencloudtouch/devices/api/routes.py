@@ -19,7 +19,7 @@ from opencloudtouch.core.exceptions import (
 from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.presets.service import PresetService
 from opencloudtouch.streaming.icy_metadata import probe_stream
-from opencloudtouch.streaming.metadata_cache import MISSING, MetadataCache
+from opencloudtouch.streaming.metadata_cache import MISSING, MetadataCache, _Missing
 
 logger = logging.getLogger(__name__)
 
@@ -303,6 +303,7 @@ async def get_now_playing(
         and (not info.artist or not info.track or not result["artwork_url"])
     )
     if needs_icy:
+        assert matched_preset is not None  # guarded by needs_icy
         stream_url = matched_preset.station_url
         cached = _metadata_cache.get(stream_url)
         if cached is MISSING:
@@ -323,7 +324,7 @@ async def get_now_playing(
                 logger.debug(
                     "[NowPlaying] ICY probe failed for %s", stream_url, exc_info=True
                 )
-        elif cached is not None:
+        elif cached is not None and not isinstance(cached, _Missing):
             # Cache hit with metadata
             if not info.artist and cached.artist:
                 result["artist"] = cached.artist
