@@ -126,6 +126,9 @@ ENV OCT_PORT=7777
 ENV OCT_DB_PATH=/data/oct.db
 ENV OCT_LOG_LEVEL=INFO
 ENV OCT_DISCOVERY_ENABLED=true
+# USER is required by asyncssh (getpass.getuser()) — without it, SSH
+# connections crash on container runtimes that don't set it (TrueNAS, etc.)
+ENV USER=oct
 
 # Build signature — HMAC of version, only CI can produce a valid one
 ARG OCT_BUILD_SIGNATURE=""
