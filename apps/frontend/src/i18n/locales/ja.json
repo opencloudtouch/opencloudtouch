@@ -1,7 +1,5 @@
 {
   "common": {
-    "save": "保存",
-    "saving": "保存中...",
     "cancel": "キャンセル",
     "loading": "読み込み中...",
     "error": "エラーが発生しました",
@@ -9,7 +7,6 @@
     "back": "戻る",
     "close": "閉じる",
     "confirm": "確認",
-    "search": "検索",
     "openCloudTouchLoading": "OpenCloudTouchを読み込んでいます...",
     "connectingToServer": "サーバーに接続しています...",
     "loadingTimeout": "予想より時間がかかっています。しばらくお待ちいただくか、ページを再読み込みしてください。",
@@ -17,27 +14,21 @@
     "retryHint": "問題が解決しない場合：OpenCloudTouchサーバーに接続できることを確認してページを再読み込みしてください。",
     "reloadPage": "ページを再読み込み",
     "stationNotFound": "ステーションが見つかりません。",
-    "saveAsPreset": "プリセットとして保存"
+    "saveAsPreset": "プリセットとして保存",
+    "or": "または"
   },
   "nav": {
     "presets": "プリセット",
     "zones": "ゾーン",
-    "settings": "設定",
-    "selectLanguage": "言語を選択"
+    "settings": "設定"
   },
   "player": {
-    "volume": "音量",
-    "nowPlaying": "再生中",
-    "noSource": "ソースなし",
     "noPlayback": "再生なし",
     "play": "再生",
     "pause": "一時停止",
     "noStation": "ステーションなし",
-    "bluetoothNoDevice": "デバイスが接続されていません",
     "noDevices": "デバイスが見つかりません",
     "powerButton": "電源オン/オフ",
-    "powerFailed": "状態を変更できませんでした",
-    "playbackFailed": "再生コントロールに失敗しました。もう一度お試しください。",
     "localControl": "ローカルコントロール",
     "sourceTitle": "ソース",
     "playbackTitle": "再生",
@@ -51,7 +42,6 @@
     "nextDevice": "次のデバイス"
   },
   "presets": {
-    "title": "プリセット",
     "pageTitle": "ラジオプリセット",
     "empty": "プリセットが設定されていません",
     "playPreset": "プリセット{{name}}を再生",
@@ -103,7 +93,8 @@
       "name": "例：NHK、BBC Radio…",
       "country": "例：Japan、Germany…",
       "tag": "例：Rock、Jazz、pop…"
-    }
+    },
+    "searchTitle": "ラジオ局を検索"
   },
   "settings": {
     "title": "設定",
@@ -127,8 +118,7 @@
     },
     "discovery": {
       "devicesFound_one": "新しいデバイスが{{count}}台見つかりました",
-      "devicesFound_other": "新しいデバイスが{{count}}台見つかりました",
-      "noNewDevices": "新しいデバイスが見つかりません"
+      "devicesFound_other": "新しいデバイスが{{count}}台見つかりました"
     },
     "logging": {
       "sectionTitle": "ログ",
@@ -145,9 +135,7 @@
   },
   "manualIpModal": {
     "title": "手動IP設定",
-    "close": "閉じる",
     "description": "デバイスのIPアドレスを入力します（1行に1つ、またはカンマ区切り）。",
-    "placeholder": "例：\n192.168.1.100\n192.168.1.101\n192.168.1.102",
     "invalidFormat": "無効な形式：{{ips}}",
     "saveError": "IPアドレスの保存エラー",
     "save": "保存",
@@ -155,13 +143,10 @@
     "hint": "IPアドレスは関連アプリの設定→情報、またはルーターで確認できます。"
   },
   "multiroom": {
-    "title": "ゾーン",
     "pageTitle": "マルチルームゾーン",
-    "noZones": "ゾーンが設定されていません",
     "createZone": "ゾーンを作成",
     "updateZone": "ゾーンを更新",
     "creating": "作成中...",
-    "removeZone": "ゾーンを削除",
     "standby": "スタンバイ",
     "loadingZones": "ゾーンを読み込んでいます...",
     "errorLoading": "読み込みエラー",
@@ -196,14 +181,12 @@
   },
   "firmware": {
     "title": "ファームウェアアップデート",
-    "description": "SoundTouchデバイスのファームウェアアップデートを管理します。",
     "noDevices": "デバイスが見つかりません",
     "currentDevice": "現在のデバイス",
     "currentVersion": "現在のバージョン：",
     "statusLabel": "ステータス：",
     "updateAvailable": "アップデートあり",
     "upToDate": "最新",
-    "comingSoon": "近日公開",
     "allDevices": "すべてのデバイス",
     "unknownVersion": "不明",
     "unknownModel": "不明なモデル",
@@ -220,17 +203,14 @@
     "infoItem4": "アップデート後、デバイスは自動的に再起動します"
   },
   "setup": {
-    "title": "セットアップウィザード",
     "next": "次へ",
     "back": "戻る",
-    "finish": "完了",
     "loading": "デバイスを読み込んでいます...",
     "loadingAriaLabel": "読み込み中",
     "noDevices": "デバイスが見つかりません",
     "noDevicesHint": "最初にSoundTouchデバイスを同期してください。",
     "noDevicesHint2": "ホームページに移動して「今すぐデバイスを検索」をクリックしてください。",
     "goHome": "ホームページに戻る",
-    "homePage": "ホームページ",
     "stepLabels": {
       "usbInsert": "USBメモリを挿入",
       "deviceReboot": "デバイスを再起動",
@@ -271,7 +251,6 @@
     },
     "skip": "スキップ",
     "stepLabel": "ステップ{{step}}",
-    "processing": "処理中...",
     "stepAriaCompleted": "ステップ{{id}}：{{label}} — {{description}} – 完了",
     "stepAriaError": "ステップ{{id}}：{{label}} — {{description}} – エラー",
     "stepAriaInProgress": "ステップ{{id}}：{{label}} — {{description}} – 進行中",
@@ -322,7 +301,8 @@
         "sectionVerify": "確認",
         "checkFat32": "USBドライブはFAT32でフォーマットされています",
         "checkFileEmpty": "「remote_services」ファイルがルートディレクトリにあり空です",
-        "checkReady": "USBドライブはデバイスに挿入する準備ができています"
+        "checkReady": "USBドライブはデバイスに挿入する準備ができています",
+        "dualUsbHint": "お使いのデバイスは製造年によりMicro-USBまたはUSB-Aを搭載しています。デバイスの背面を確認してください。"
       },
       "step3": {
         "title": "デバイスを再起動",
@@ -471,16 +451,13 @@
         "description": "ドメインリダイレクトが正しく機能することを確認します。",
         "warning": "テストが失敗した場合、デバイスの再起動が必要な場合があります。",
         "rebootHeader": "デバイスの再起動",
-        "rebootHint": "/etc/hostsの変更は再起動後にのみ有効になります。テストを実行する前にデバイスを再起動してください。",
         "btnReboot": "今すぐデバイスを再起動",
-        "rebootActionHint": "テストが失敗し、再起動が必要であることが確かな場合のみ",
         "rebootRebooting": "再起動コマンドを送信中...",
         "rebootWaiting": "デバイスが再起動しています — お待ちください...",
         "rebootDone": "再起動完了 — デバイスに再度アクセスできるはずです。",
         "btnRetryReboot": "再試行",
         "btnFinalize": "デバイスセットアップを完了",
         "finalizing": "デバイスを設定中...",
-        "verifying": "セットアップを確認中...",
         "btnRetryFinalize": "再試行",
         "finalizeUuid": "デバイスUUID設定済み: {{uuid}}",
         "finalizeSources": "Sources.xml 書き込み済み",
@@ -510,28 +487,13 @@
         "summaryRedirectsCorrect": "すべてのリダイレクトが検証済みで正常",
         "summarySourcesPresent": "必要なソースがすべて存在",
         "verifyTitle": "セットアップの確認",
-        "testInfoTitle": "何がテストされますか？",
-        "testInfoItem1": "BoseドメインのDNS解決",
-        "testInfoItem2": "OpenCloudTouchサーバーへのリダイレクト",
-        "testInfoItem3": "IPアドレスの正確性",
-        "btnRunTests": "今すぐテストを実行",
-        "btnRunning": "設定をテスト中...",
         "resultsTitle": "テスト結果",
-        "resolvedIp": "解決されたIP：",
-        "expectedIp": "期待されるIP：",
-        "statusLabel": "ステータス：",
-        "statusCorrect": "✓ 正常",
-        "statusFailed": "✗ 失敗",
         "domainInternetRadio": "インターネットラジオ",
         "domainStreaming": "ストリーミングサービス",
         "allPassedTitle": "すべてのテストに合格しました！",
         "allPassedMessage": "ドメインリダイレクトは正しく機能しています。デバイスは使用準備ができています。",
         "someFailedTitle": "一部のテストが失敗しました",
         "someFailedMessage": "DNS変更がまだ有効になっていない可能性があります。次の手順を試してください：",
-        "failedStep1": "デバイスを再起動する（電源を切断して再接続）",
-        "failedStep2": "再起動後60秒待つ",
-        "failedStep3": "テストを再実行する",
-        "btnRetryTests": "テストを再実行",
         "btnSkip": "このまま続行 — デバイスは設定済みとしてマークされません",
         "rebootMandatoryHint": "設定変更を有効にするには再起動が必要です。検証前にデバイスを再起動する必要があります。",
         "fullVerifyTitle": "完全なシステム検証",
@@ -541,58 +503,6 @@
         "fullVerifyItem4": "DNSリダイレクトがOpenCloudTouchサーバーに解決されている",
         "btnRunFullVerify": "完全な検証を開始",
         "fullVerifying": "完全なシステム検証を実行中...",
-        "systemChecksTitle": "システムチェック",
-        "check": {
-          "uuid_present": {
-            "pass": "デバイスUUID: {{uuid}}",
-            "fail": "デバイスにアカウントUUIDがありません。起動同期が機能しません。"
-          },
-          "uuid_in_db": {
-            "pass": "UUIDが{{db_device_id}}に登録済み",
-            "fail": "UUIDがOCTデータベースに登録されていません。ストリーミングエンドポイントがこのデバイスを解決できません。"
-          },
-          "sources_complete": {
-            "pass": "必要なソースがすべて存在",
-            "fail": "不足しているソース: {{missing}}。これらのソースタイプのプリセット再生が失敗する可能性があります。"
-          },
-          "config_files_present": {
-            "pass": "すべての設定ファイルが存在",
-            "fail": "設定ファイルが不足: {{missing}}。再起動時にファームウェアがOCTリダイレクトを見つけられない可能性があります。"
-          },
-          "config_files_identical": {
-            "pass": "すべての設定ファイルの内容が一致",
-            "fail": "設定ファイルの内容が異なります。再起動後にデバイスが間違ったBMX URLを使用する可能性があります。"
-          },
-          "config_bmx_url": {
-            "pass": "BMX URL: {{bmx_url}}",
-            "fail": "BMX URLがまだBoseクラウドを指しています ({{bmx_url}})。デバイスはOCTに接続しません。"
-          },
-          "hosts_oct_block": {
-            "pass": "OCTブロックが/etc/hostsに存在",
-            "fail": "/etc/hostsにOCTブロックがありません。ドメインリダイレクトが不足しています。"
-          },
-          "hosts_domains_complete": {
-            "pass": "必要なドメインがすべて存在",
-            "fail": "ホストエントリが不足: {{missing}}。一部のBoseサービスがリダイレクトされません。"
-          },
-          "hosts_ip_correct": {
-            "pass": "すべてのホストエントリが正しいIPを指定",
-            "fail": "ホストエントリが間違ったIPを指しています。古いエントリを確認してください。"
-          },
-          "system_config_present": {
-            "pass": "SystemConfigurationDB.xmlが存在",
-            "fail": "SystemConfigurationDB.xmlが不足。デバイスが正しく初期化されない可能性があります。"
-          },
-          "system_config_uuid_match": {
-            "pass": "SystemConfigurationDB.xml内のUUIDがデバイスと一致",
-            "fail": "SystemConfigurationDB.xml内のUUIDがデバイスUUIDと一致しません"
-          },
-          "connection": {
-            "pass": "接続OK",
-            "fail": "接続に失敗しました"
-          }
-        },
-        "dnsTestsTitle": "DNSリダイレクト検証",
         "btnRetryFullVerify": "検証を再実行"
       },
       "step8": {
@@ -680,8 +590,6 @@
     }
   },
   "errors": {
-    "connectionFailed": "デバイスに接続できませんでした。",
-    "discoveryFailed": "検索に失敗しました。ネットワーク設定を確認してください。",
     "loadFailed": "読み込みに失敗しました。もう一度お試しください。",
     "unknown": "予期しないエラーが発生しました。もう一度お試しください。",
     "networkFailed": "サーバーに接続できませんでした。ネットワーク接続を確認してください。",
@@ -741,9 +649,6 @@
     "creditsDescription": "リサーチ、テスト、リバースエンジニアリングに貢献してくださったコミュニティメンバーに特別な感謝を。"
   },
   "discovery": {
-    "started": "検索開始",
-    "completed": "検索完了",
-    "searching": "デバイスを検索中...",
     "alreadyRunning": "デバイス検索はすでに実行中です。お待ちください...",
     "failed": "デバイス検索中にエラーが発生しました。もう一度お試しください。",
     "noDevicesNetwork": "デバイスが見つかりません。デバイスの電源が入っており、同じネットワークにあるか確認してください。",

@@ -1,7 +1,5 @@
 {
   "common": {
-    "save": "Guardar",
-    "saving": "Guardando...",
     "cancel": "Cancelar",
     "loading": "Cargando...",
     "error": "Se produjo un error",
@@ -9,7 +7,6 @@
     "back": "Atrás",
     "close": "Cerrar",
     "confirm": "Confirmar",
-    "search": "Buscar",
     "openCloudTouchLoading": "Cargando OpenCloudTouch...",
     "connectingToServer": "Conectando al servidor...",
     "loadingTimeout": "Esto está tardando más de lo esperado. Espere o recargue la página.",
@@ -17,27 +14,21 @@
     "retryHint": "Si el problema persiste: asegúrese de que su servidor OpenCloudTouch sea accesible y recargue la página.",
     "reloadPage": "Recargar página",
     "stationNotFound": "Emisora no encontrada.",
-    "saveAsPreset": "Guardar como preset"
+    "saveAsPreset": "Guardar como preset",
+    "or": "o"
   },
   "nav": {
     "presets": "Presets",
     "zones": "Zonas",
-    "settings": "Ajustes",
-    "selectLanguage": "Seleccionar idioma"
+    "settings": "Ajustes"
   },
   "player": {
-    "volume": "Volumen",
-    "nowPlaying": "En reproducción",
-    "noSource": "Sin fuente",
     "noPlayback": "Sin reproducción",
     "play": "Reproducir",
     "pause": "Pausar",
     "noStation": "Sin emisora",
-    "bluetoothNoDevice": "Ningún dispositivo conectado",
     "noDevices": "No se encontraron dispositivos",
     "powerButton": "Encender/apagar",
-    "powerFailed": "No se pudo cambiar el estado",
-    "playbackFailed": "Error en el control de reproducción. Inténtelo de nuevo.",
     "localControl": "Control local",
     "sourceTitle": "Fuente",
     "playbackTitle": "Reproducción",
@@ -51,7 +42,6 @@
     "nextDevice": "Dispositivo siguiente"
   },
   "presets": {
-    "title": "Presets",
     "pageTitle": "Presets de radio",
     "empty": "Sin presets configurados",
     "playPreset": "Reproducir preset {{name}}",
@@ -103,7 +93,8 @@
       "name": "p. ej. SWR3, BBC Radio…",
       "country": "p. ej. Germany, Spain…",
       "tag": "p. ej. Rock, Jazz, pop…"
-    }
+    },
+    "searchTitle": "Buscar emisoras de radio"
   },
   "settings": {
     "title": "Ajustes",
@@ -127,8 +118,7 @@
     },
     "discovery": {
       "devicesFound_one": "{{count}} nuevo dispositivo encontrado",
-      "devicesFound_other": "{{count}} nuevos dispositivos encontrados",
-      "noNewDevices": "No se encontraron nuevos dispositivos"
+      "devicesFound_other": "{{count}} nuevos dispositivos encontrados"
     },
     "logging": {
       "sectionTitle": "Registro",
@@ -145,9 +135,7 @@
   },
   "manualIpModal": {
     "title": "Configuración manual de IP",
-    "close": "Cerrar",
     "description": "Introduzca las direcciones IP de sus dispositivos (una por línea o separadas por comas).",
-    "placeholder": "Ejemplo:\n192.168.1.100\n192.168.1.101\n192.168.1.102",
     "invalidFormat": "Formato no válido: {{ips}}",
     "saveError": "Error al guardar las direcciones IP",
     "save": "Guardar",
@@ -155,13 +143,10 @@
     "hint": "Puede encontrar la dirección IP en la aplicación asociada en Ajustes → Info o en su router."
   },
   "multiroom": {
-    "title": "Zonas",
     "pageTitle": "Zonas multisala",
-    "noZones": "No hay zonas configuradas",
     "createZone": "Crear zona",
     "updateZone": "Actualizar zona",
     "creating": "Creando...",
-    "removeZone": "Eliminar zona",
     "standby": "En espera",
     "loadingZones": "Cargando zonas...",
     "errorLoading": "Error al cargar",
@@ -196,14 +181,12 @@
   },
   "firmware": {
     "title": "Actualizaciones de firmware",
-    "description": "Gestione las actualizaciones de firmware de sus dispositivos SoundTouch.",
     "noDevices": "No se encontraron dispositivos",
     "currentDevice": "Dispositivo actual",
     "currentVersion": "Versión actual:",
     "statusLabel": "Estado:",
     "updateAvailable": "Actualización disponible",
     "upToDate": "Actualizado",
-    "comingSoon": "Próximamente",
     "allDevices": "Todos los dispositivos",
     "unknownVersion": "Desconocido",
     "unknownModel": "Modelo desconocido",
@@ -220,17 +203,14 @@
     "infoItem4": "El dispositivo se reinicia automáticamente después de la actualización"
   },
   "setup": {
-    "title": "Asistente de configuración",
     "next": "Siguiente",
     "back": "Atrás",
-    "finish": "Finalizar",
     "loading": "Cargando dispositivos...",
     "loadingAriaLabel": "Cargando",
     "noDevices": "No se encontraron dispositivos",
     "noDevicesHint": "Primero sincronice sus dispositivos SoundTouch.",
     "noDevicesHint2": "Vaya a la página de inicio y haga clic en \"Buscar dispositivos ahora\".",
     "goHome": "Volver a la página de inicio",
-    "homePage": "Página de inicio",
     "stepLabels": {
       "usbInsert": "Insertar unidad USB",
       "deviceReboot": "Reiniciar dispositivo",
@@ -271,7 +251,6 @@
     },
     "skip": "Omitir",
     "stepLabel": "Paso {{step}}",
-    "processing": "Procesando...",
     "stepAriaCompleted": "Paso {{id}}: {{label}} — {{description}} – completado",
     "stepAriaError": "Paso {{id}}: {{label}} — {{description}} – error",
     "stepAriaInProgress": "Paso {{id}}: {{label}} — {{description}} – en curso",
@@ -322,7 +301,8 @@
         "sectionVerify": "Verificación",
         "checkFat32": "La unidad USB está formateada con FAT32",
         "checkFileEmpty": "El archivo 'remote_services' está en el directorio raíz y vacío",
-        "checkReady": "La unidad USB está lista para insertar en el dispositivo"
+        "checkReady": "La unidad USB está lista para insertar en el dispositivo",
+        "dualUsbHint": "Tu dispositivo tiene Micro-USB o USB-A según el año de fabricación. Revisa la parte trasera del dispositivo."
       },
       "step3": {
         "title": "Reiniciar el dispositivo",
@@ -471,16 +451,13 @@
         "description": "Verifique que las redirecciones de dominio funcionen correctamente.",
         "warning": "Si las pruebas fallan, puede ser necesario reiniciar el dispositivo.",
         "rebootHeader": "Reinicio del dispositivo",
-        "rebootHint": "Los cambios en /etc/hosts solo surten efecto después de un reinicio. Reinicie el dispositivo antes de ejecutar las pruebas.",
         "btnReboot": "Reiniciar el dispositivo ahora",
-        "rebootActionHint": "Solo si las pruebas fallan y está seguro de que es necesario un reinicio",
         "rebootRebooting": "Enviando comando de reinicio...",
         "rebootWaiting": "El dispositivo se está reiniciando — espere...",
         "rebootDone": "Reinicio completado — el dispositivo debería ser accesible de nuevo.",
         "btnRetryReboot": "Reintentar",
         "btnFinalize": "Finalizar configuración",
         "finalizing": "Configurando dispositivo...",
-        "verifying": "Verificando configuración...",
         "btnRetryFinalize": "Reintentar",
         "finalizeUuid": "UUID del dispositivo establecido: {{uuid}}",
         "finalizeSources": "Sources.xml escrito",
@@ -510,28 +487,13 @@
         "summaryRedirectsCorrect": "Todas las redirecciones verificadas y correctas",
         "summarySourcesPresent": "Todas las fuentes requeridas presentes",
         "verifyTitle": "Verificación de configuración",
-        "testInfoTitle": "¿Qué se prueba?",
-        "testInfoItem1": "Resolución DNS de dominios Bose",
-        "testInfoItem2": "Redirección a su servidor OpenCloudTouch",
-        "testInfoItem3": "Corrección de direcciones IP",
-        "btnRunTests": "Ejecutar pruebas ahora",
-        "btnRunning": "Probando configuración...",
         "resultsTitle": "Resultados de las pruebas",
-        "resolvedIp": "IP resuelta:",
-        "expectedIp": "IP esperada:",
-        "statusLabel": "Estado:",
-        "statusCorrect": "✓ Correcto",
-        "statusFailed": "✗ Fallido",
         "domainInternetRadio": "Radio por Internet",
         "domainStreaming": "Servicios de streaming",
         "allPassedTitle": "¡Todas las pruebas superadas!",
         "allPassedMessage": "Las redirecciones de dominio funcionan correctamente. Su dispositivo está listo para usar.",
         "someFailedTitle": "Algunas pruebas fallaron",
         "someFailedMessage": "Es posible que los cambios DNS aún no estén activos. Pruebe los siguientes pasos:",
-        "failedStep1": "Reinicie el dispositivo (desconecte y vuelva a conectar la alimentación)",
-        "failedStep2": "Espere 60 segundos después del reinicio",
-        "failedStep3": "Ejecute las pruebas de nuevo",
-        "btnRetryTests": "Ejecutar pruebas de nuevo",
         "btnSkip": "Continuar de todos modos — el dispositivo no se marcará como configurado",
         "rebootMandatoryHint": "Es necesario reiniciar para que los cambios de configuración surtan efecto. El dispositivo debe reiniciarse antes de la verificación.",
         "fullVerifyTitle": "Verificación completa del sistema",
@@ -541,58 +503,6 @@
         "fullVerifyItem4": "Redirecciones DNS resueltas hacia el servidor OpenCloudTouch",
         "btnRunFullVerify": "Iniciar verificación completa",
         "fullVerifying": "Ejecutando verificación completa del sistema...",
-        "systemChecksTitle": "Comprobaciones del sistema",
-        "check": {
-          "uuid_present": {
-            "pass": "UUID del dispositivo: {{uuid}}",
-            "fail": "El dispositivo no tiene UUID de cuenta. La sincronización de arranque no funcionará."
-          },
-          "uuid_in_db": {
-            "pass": "UUID registrado para {{db_device_id}}",
-            "fail": "UUID no registrado en la base de datos OCT. El punto de streaming no puede resolver este dispositivo."
-          },
-          "sources_complete": {
-            "pass": "Todas las fuentes requeridas presentes",
-            "fail": "Fuentes faltantes: {{missing}}. La reproducción de presets puede fallar para estos tipos de fuentes."
-          },
-          "config_files_present": {
-            "pass": "Todos los archivos de configuración presentes",
-            "fail": "Archivo de configuración faltante: {{missing}}. El firmware podría no encontrar la redirección OCT al reiniciar."
-          },
-          "config_files_identical": {
-            "pass": "Todos los archivos de configuración tienen contenido idéntico",
-            "fail": "Los archivos de configuración difieren. El dispositivo podría usar la URL BMX incorrecta después del reinicio."
-          },
-          "config_bmx_url": {
-            "pass": "URL BMX: {{bmx_url}}",
-            "fail": "La URL BMX aún apunta a la nube de Bose ({{bmx_url}}). El dispositivo no contactará OCT."
-          },
-          "hosts_oct_block": {
-            "pass": "Bloque OCT presente en /etc/hosts",
-            "fail": "No hay bloque OCT en /etc/hosts. Faltan las redirecciones de dominio."
-          },
-          "hosts_domains_complete": {
-            "pass": "Todos los dominios requeridos presentes",
-            "fail": "Entradas de host faltantes: {{missing}}. Algunos servicios de Bose no serán redirigidos."
-          },
-          "hosts_ip_correct": {
-            "pass": "Todas las entradas de host apuntan a la IP correcta",
-            "fail": "Las entradas de host apuntan a la IP incorrecta. Verifique las entradas obsoletas."
-          },
-          "system_config_present": {
-            "pass": "SystemConfigurationDB.xml presente",
-            "fail": "SystemConfigurationDB.xml faltante. El dispositivo podría no inicializarse correctamente."
-          },
-          "system_config_uuid_match": {
-            "pass": "El UUID en SystemConfigurationDB.xml coincide con el dispositivo",
-            "fail": "El UUID en SystemConfigurationDB.xml no coincide con el UUID del dispositivo"
-          },
-          "connection": {
-            "pass": "Conexión OK",
-            "fail": "Conexión fallida"
-          }
-        },
-        "dnsTestsTitle": "Verificaciones de redirección DNS",
         "btnRetryFullVerify": "Ejecutar verificación de nuevo"
       },
       "step8": {
@@ -680,8 +590,6 @@
     }
   },
   "errors": {
-    "connectionFailed": "No se pudo conectar al dispositivo.",
-    "discoveryFailed": "La búsqueda falló. Compruebe la configuración de red.",
     "loadFailed": "Error al cargar. Inténtelo de nuevo.",
     "unknown": "Se produjo un error inesperado. Inténtelo de nuevo.",
     "networkFailed": "No se pudo conectar al servidor. Compruebe su conexión de red.",
@@ -741,9 +649,6 @@
     "creditsDescription": "Agradecimiento especial a los miembros de la comunidad que contribuyeron con investigación, pruebas e ingeniería inversa."
   },
   "discovery": {
-    "started": "Búsqueda iniciada",
-    "completed": "Búsqueda completada",
-    "searching": "Buscando dispositivos...",
     "alreadyRunning": "La búsqueda de dispositivos ya está en curso. Espere...",
     "failed": "Error durante la búsqueda de dispositivos. Inténtelo de nuevo.",
     "noDevicesNetwork": "No se encontraron dispositivos. Compruebe si están encendidos y en la misma red.",

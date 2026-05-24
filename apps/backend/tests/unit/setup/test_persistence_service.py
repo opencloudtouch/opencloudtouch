@@ -10,7 +10,6 @@ from opencloudtouch.setup.persistence_service import (
     build_system_config_xml,
     ensure_persistence_files,
     force_write_sources_xml,
-    parse_system_config_xml,
     _PERSISTENCE_DIR,
 )
 from opencloudtouch.setup.ssh_client import CommandResult
@@ -37,9 +36,9 @@ class TestBuildSystemConfigXml:
         xml = build_system_config_xml("Test", "1234567")
         assert "</SystemConfiguration>" in xml
 
-    def test_local_acct_mode(self):
+    def test_global_acct_mode(self):
         xml = build_system_config_xml("Test", "1234567")
-        assert "<acctMode>local</acctMode>" in xml
+        assert "<acctMode>global</acctMode>" in xml
 
     def test_multi_device_account_true(self):
         xml = build_system_config_xml("Test", "1234567")
@@ -57,25 +56,30 @@ class TestSourcesXml:
         xml = build_sources_xml()
         assert 'type="TUNEIN"' in xml
 
-    def test_contains_radio_browser_excluded(self):
+    def test_contains_radio_browser(self):
         xml = build_sources_xml()
-        assert 'type="RADIO_BROWSER"' not in xml
+        assert 'type="RADIO_BROWSER"' in xml
 
     def test_contains_aux(self):
         xml = build_sources_xml()
         assert 'type="AUX"' in xml
 
-    def test_contains_airplay(self):
+    def test_excludes_airplay(self):
         xml = build_sources_xml()
-        assert 'type="AIRPLAY"' in xml
+        assert 'type="AIRPLAY"' not in xml
 
     def test_has_xml_declaration(self):
         xml = build_sources_xml()
         assert xml.startswith('<?xml version="1.0"')
 
-    def test_excludes_bluetooth(self):
-        """BLUETOOTH is managed by firmware separately — must not appear in Sources.xml."""
+    def test_contains_bluetooth_by_default(self):
+        """BLUETOOTH is included by default (has_bluetooth=True)."""
         xml = build_sources_xml()
+        assert 'type="BLUETOOTH"' in xml
+
+    def test_excludes_bluetooth_when_disabled(self):
+        """BLUETOOTH excluded when has_bluetooth=False (SCM/Gen I devices)."""
+        xml = build_sources_xml(has_bluetooth=False)
         assert 'type="BLUETOOTH"' not in xml
 
 
@@ -311,49 +315,3 @@ class TestXmlEscaping:
         root = ET.fromstring(xml)
         assert root.find("DeviceName").text == "Böse <Lautsprecher> & Mehr"
         assert root.find("AccountUUID").text == "9876543"
-
-
-class TestParseSystemConfigXml:
-    """Tests for extracting values from existing SystemConfigurationDB.xml."""
-
-    def test_extracts_device_name_and_uuid(self):
-        xml = build_system_config_xml("Büro", "1234567")
-        result = parse_system_config_xml(xml)
-        assert result["device_name"] == "Büro"
-        assert result["account_uuid"] == "1234567"
-
-    def test_handles_empty_uuid(self):
-        xml = build_system_config_xml("Büro", "")
-        result = parse_system_config_xml(xml)
-        assert result["device_name"] == "Büro"
-        assert result["account_uuid"] == ""
-
-    def test_handles_empty_device_name(self):
-        xml = build_system_config_xml("", "1234567")
-        result = parse_system_config_xml(xml)
-        assert result["device_name"] == ""
-        assert result["account_uuid"] == "1234567"
-
-    def test_handles_malformed_xml(self):
-        result = parse_system_config_xml("<broken>xml")
-        assert result["device_name"] == ""
-        assert result["account_uuid"] == ""
-
-    def test_handles_real_device_xml(self):
-        xml = (
-            '<?xml version="1.0" encoding="UTF-8" ?>\n'
-            "<SystemConfiguration>\n"
-            "    <Password />\n"
-            "    <DeviceName>Büro</DeviceName>\n"
-            "    <AccountAssociatedEMail />\n"
-            "    <AccountUUID></AccountUUID>\n"
-            "    <Locale />\n"
-            "    <acctMode>local</acctMode>\n"
-            "    <isMultiDeviceAccount>true</isMultiDeviceAccount>\n"
-            "    <margeAuthServerToken />\n"
-            '    <powerSavingSettings powersaving_en="true" />\n'
-            "</SystemConfiguration>\n"
-        )
-        result = parse_system_config_xml(xml)
-        assert result["device_name"] == "Büro"
-        assert result["account_uuid"] == ""

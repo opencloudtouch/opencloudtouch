@@ -1,7 +1,5 @@
 {
   "common": {
-    "save": "Speichern",
-    "saving": "Speichere...",
     "cancel": "Abbrechen",
     "loading": "Laden...",
     "error": "Ein Fehler ist aufgetreten",
@@ -9,7 +7,6 @@
     "back": "Zurück",
     "close": "Schließen",
     "confirm": "Bestätigen",
-    "search": "Suche",
     "openCloudTouchLoading": "OpenCloudTouch wird geladen...",
     "connectingToServer": "Verbindung zum Server wird hergestellt...",
     "loadingTimeout": "Dies dauert länger als erwartet. Bitte warten oder Seite neu laden.",
@@ -17,32 +14,26 @@
     "retryHint": "Falls das Problem anhält: Stellen Sie sicher, dass Ihr OpenCloudTouch-Server erreichbar ist und aktualisieren Sie die Seite.",
     "reloadPage": "Seite neu laden",
     "stationNotFound": "Sender nicht gefunden.",
-    "saveAsPreset": "Als Preset speichern"
+    "saveAsPreset": "Als Preset speichern",
+    "or": "oder"
   },
   "nav": {
     "presets": "Presets",
     "zones": "Zonen",
-    "settings": "Einstellungen",
-    "selectLanguage": "Sprache wählen"
+    "settings": "Einstellungen"
   },
   "player": {
-    "volume": "Lautstärke",
-    "nowPlaying": "Jetzt läuft",
-    "noSource": "Keine Quelle",
     "noPlayback": "Keine Wiedergabe",
     "play": "Abspielen",
     "pause": "Pause",
     "noStation": "Kein Sender",
-    "bluetoothNoDevice": "Kein Gerät verbunden",
     "noDevices": "Keine Geräte gefunden",
     "powerButton": "Ein/Ausschalten",
-    "powerFailed": "Schalten fehlgeschlagen",
-    "playbackFailed": "Wiedergabesteuerung fehlgeschlagen. Bitte versuchen Sie es erneut.",
     "localControl": "Lokale Steuerung",
     "sourceTitle": "Quelle",
     "playbackTitle": "Wiedergabe",
     "prevTrack": "Vorheriger Track",
-    "nextTrack": "N\u00e4chster Track",
+    "nextTrack": "Nächster Track",
     "muteOn": "Ton an",
     "muteOff": "Stumm",
     "manageZone": "Zone verwalten",
@@ -51,27 +42,26 @@
     "nextDevice": "Nächstes Gerät"
   },
   "presets": {
-    "title": "Presets",
     "pageTitle": "Radio Presets",
     "empty": "Keine Presets konfiguriert",
     "playPreset": "Preset {{name}} abspielen",
     "presetSaved": "Preset {{number}} gespeichert.",
-    "presetDeleted": "Preset {{number}} gel\u00f6scht.",
+    "presetDeleted": "Preset {{number}} gelöscht.",
     "playFailed": "Preset konnte nicht abgespielt werden. Bitte versuchen Sie es erneut.",
-    "noDevices": "Keine Ger\u00e4te gefunden",
-    "syncedFromDevice": "Presets erfolgreich vom Ger\u00e4t geladen.",
+    "noDevices": "Keine Geräte gefunden",
+    "syncedFromDevice": "Presets erfolgreich vom Gerät geladen.",
     "savedStations": "Gespeicherte Sender",
-    "syncFromDevice": "Vom Ger\u00e4t laden",
+    "syncFromDevice": "Vom Gerät laden",
     "syncFromDeviceSyncing": "Sync...",
-    "deviceOffline": "Ger\u00e4t offline",
-    "syncFromDeviceTitle": "Presets vom Ger\u00e4t synchronisieren",
+    "deviceOffline": "Gerät offline",
+    "syncFromDeviceTitle": "Presets vom Gerät synchronisieren",
     "infoTitle": "Preset Hinweise",
     "infoItem1": "Klicke auf ein leeres Preset um einen Sender zuzuweisen",
-    "infoItem2": "Klicke auf einen belegten Sender um ihn zu \u00e4ndern oder zu l\u00f6schen",
-    "infoItem3": "\u25ba spielt den gespeicherten Sender direkt ab",
-    "infoItem4": "\u2713 = Cloud-unabh\u00e4ngig, \u2601 = Bose Cloud erforderlich",
-    "infoItem5": "\u2699\ufe0f \u00f6ffnet den Setup-Wizard f\u00fcr das Ger\u00e4t",
-    "infoItem6": "\"Vom Ger\u00e4t laden\" synchronisiert die Presets vom SoundTouch",
+    "infoItem2": "Klicke auf einen belegten Sender um ihn zu ändern oder zu löschen",
+    "infoItem3": "► spielt den gespeicherten Sender direkt ab",
+    "infoItem4": "✓ = Cloud-unabhängig, ☁ = Bose Cloud erforderlich",
+    "infoItem5": "⚙️ öffnet den Setup-Wizard für das Gerät",
+    "infoItem6": "\"Vom Gerät laden\" synchronisiert die Presets vom SoundTouch",
     "changeStation": "Klicken um Sender zu ändern",
     "assignPreset": "Preset zuweisen",
     "nowPlaying": "Wird abgespielt",
@@ -103,7 +93,8 @@
       "name": "z.B. SWR3, BBC Radio…",
       "country": "z.B. Germany, Austria…",
       "tag": "z.B. rock, jazz, pop…"
-    }
+    },
+    "searchTitle": "Radiosender suchen"
   },
   "settings": {
     "title": "Einstellungen",
@@ -127,8 +118,7 @@
     },
     "discovery": {
       "devicesFound_one": "{{count}} neues Gerät gefunden",
-      "devicesFound_other": "{{count}} neue Geräte gefunden",
-      "noNewDevices": "Keine neuen Geräte gefunden"
+      "devicesFound_other": "{{count}} neue Geräte gefunden"
     },
     "logging": {
       "sectionTitle": "Logging",
@@ -145,9 +135,7 @@
   },
   "manualIpModal": {
     "title": "Manuelle IP-Konfiguration",
-    "close": "Schließen",
     "description": "Geben Sie die IP-Adressen Ihrer Geräte ein (eine pro Zeile oder kommagetrennt).",
-    "placeholder": "Beispiel:\n192.168.1.100\n192.168.1.101\n192.168.1.102",
     "invalidFormat": "Ungültiges Format: {{ips}}",
     "saveError": "Fehler beim Speichern der IP-Adressen",
     "save": "Speichern",
@@ -155,13 +143,10 @@
     "hint": "Die IP-Adresse finden Sie in der zugehörigen App unter Einstellungen → Info oder in Ihrem Router."
   },
   "multiroom": {
-    "title": "Zonen",
     "pageTitle": "Multi-Room Zonen",
-    "noZones": "Keine Zonen konfiguriert",
     "createZone": "Zone erstellen",
     "updateZone": "Zone aktualisieren",
     "creating": "Wird erstellt...",
-    "removeZone": "Zone entfernen",
     "standby": "Standby",
     "loadingZones": "Lade Zonen...",
     "errorLoading": "Fehler beim Laden",
@@ -196,14 +181,12 @@
   },
   "firmware": {
     "title": "Firmware Updates",
-    "description": "Verwalten Sie Firmware-Updates für Ihre SoundTouch-Geräte.",
     "noDevices": "Keine Geräte gefunden",
     "currentDevice": "Aktuelles Gerät",
     "currentVersion": "Aktuelle Version:",
     "statusLabel": "Status:",
     "updateAvailable": "Update verfügbar",
     "upToDate": "Aktuell",
-    "comingSoon": "Demnächst verfügbar",
     "allDevices": "Alle Geräte",
     "unknownVersion": "Unbekannt",
     "unknownModel": "Unbekanntes Modell",
@@ -220,17 +203,14 @@
     "infoItem4": "Nach dem Update startet das Gerät automatisch neu"
   },
   "setup": {
-    "title": "Einrichtungsassistent",
     "next": "Weiter",
     "back": "Zurück",
-    "finish": "Fertigstellen",
     "loading": "Geräte werden geladen...",
     "loadingAriaLabel": "Ladevorgang",
     "noDevices": "Keine Geräte gefunden",
     "noDevicesHint": "Bitte synchronisieren Sie zuerst Ihre SoundTouch-Geräte.",
     "noDevicesHint2": "Gehen Sie zur Startseite und klicken Sie auf \"Jetzt Geräte suchen\".",
     "goHome": "Zurück zur Startseite",
-    "homePage": "Startseite",
     "stepLabels": {
       "usbInsert": "USB-Stick einstecken",
       "deviceReboot": "Gerät neu starten",
@@ -271,7 +251,6 @@
     },
     "skip": "Überspringen",
     "stepLabel": "Schritt {{step}}",
-    "processing": "Verarbeite...",
     "stepAriaCompleted": "Schritt {{id}}: {{label}} — {{description}} – abgeschlossen",
     "stepAriaError": "Schritt {{id}}: {{label}} — {{description}} – Fehler",
     "stepAriaInProgress": "Schritt {{id}}: {{label}} — {{description}} – läuft",
@@ -322,7 +301,8 @@
         "sectionVerify": "Überprüfung",
         "checkFat32": "USB-Stick ist mit FAT32 formatiert",
         "checkFileEmpty": "Datei 'remote_services' ist im Root-Verzeichnis und leer",
-        "checkReady": "USB-Stick ist bereit zum Einstecken in das Gerät"
+        "checkReady": "USB-Stick ist bereit zum Einstecken in das Gerät",
+        "dualUsbHint": "Dein Gerät hat je nach Baujahr Micro-USB oder USB-A. Schau auf die Rückseite welcher Port vorhanden ist."
       },
       "step3": {
         "title": "Gerät neu starten",
@@ -471,17 +451,14 @@
         "description": "Geräte-Konfiguration abschließen, neu starten und alles überprüfen.",
         "warning": "Wir empfehlen, dass alle Checks bestanden werden, bevor Sie fortfahren.",
         "rebootHeader": "Geräte-Neustart",
-        "rebootHint": "Die /etc/hosts-Änderungen werden erst nach einem Neustart wirksam. Starten Sie das Gerät neu, bevor Sie die Tests ausführen.",
         "rebootMandatoryHint": "Ein Neustart ist erforderlich, damit die Konfigurationsänderungen wirksam werden. Das Gerät muss vor der Überprüfung neu gestartet werden.",
         "btnReboot": "Gerät jetzt neu starten",
-        "rebootActionHint": "Nur wenn Tests fehlschlagen und Sie sicher sind, dass der Neustart nötig ist",
         "rebootRebooting": "Neustart-Befehl wird gesendet...",
         "rebootWaiting": "Gerät startet neu – bitte warten...",
         "rebootDone": "Neustart abgeschlossen – Gerät sollte wieder erreichbar sein.",
         "btnRetryReboot": "Erneut versuchen",
         "btnFinalize": "Geräte-Setup abschließen",
         "finalizing": "Gerät wird eingerichtet...",
-        "verifying": "Setup wird überprüft...",
         "btnRetryFinalize": "Erneut versuchen",
         "finalizeUuid": "Geräte-UUID gesetzt: {{uuid}}",
         "finalizeSources": "Sources.xml geschrieben",
@@ -518,81 +495,14 @@
         "fullVerifyItem4": "DNS-Umleitungen zum OpenCloudTouch-Server aufgelöst",
         "btnRunFullVerify": "Vollständige Überprüfung starten",
         "fullVerifying": "Vollständige Systemprüfung läuft...",
-        "systemChecksTitle": "Systemprüfungen",
-        "check": {
-          "uuid_present": {
-            "pass": "Geräte-UUID: {{uuid}}",
-            "fail": "Gerät hat keine Account-UUID. Boot-Synchronisierung funktioniert nicht."
-          },
-          "uuid_in_db": {
-            "pass": "UUID registriert für {{db_device_id}}",
-            "fail": "UUID nicht in OCT-Datenbank registriert. Streaming-Endpunkt kann dieses Gerät nicht auflösen."
-          },
-          "sources_complete": {
-            "pass": "Alle benötigten Quellen vorhanden",
-            "fail": "Fehlende Quellen: {{missing}}. Preset-Wiedergabe kann für diese Quelltypen fehlschlagen."
-          },
-          "config_files_present": {
-            "pass": "Alle Konfigurationsdateien vorhanden",
-            "fail": "Fehlende Konfigurationsdatei: {{missing}}. Firmware findet OCT-Umleitung nach Neustart möglicherweise nicht."
-          },
-          "config_files_identical": {
-            "pass": "Alle Konfigurationsdateien haben identischen Inhalt",
-            "fail": "Konfigurationsdateien unterscheiden sich. Gerät könnte nach Neustart falsche BMX-URL verwenden."
-          },
-          "config_bmx_url": {
-            "pass": "BMX-URL: {{bmx_url}}",
-            "fail": "BMX-URL verweist noch auf Bose Cloud ({{bmx_url}}). Gerät wird OCT nicht kontaktieren."
-          },
-          "hosts_oct_block": {
-            "pass": "OCT-Block in /etc/hosts vorhanden",
-            "fail": "Kein OCT-Block in /etc/hosts. Domain-Umleitungen fehlen."
-          },
-          "hosts_domains_complete": {
-            "pass": "Alle benötigten Domains vorhanden",
-            "fail": "Fehlende Host-Einträge: {{missing}}. Einige Bose-Dienste werden nicht umgeleitet."
-          },
-          "hosts_ip_correct": {
-            "pass": "Alle Host-Einträge verweisen auf korrekte IP",
-            "fail": "Host-Einträge verweisen auf falsche IP. Prüfen Sie veraltete Einträge."
-          },
-          "system_config_present": {
-            "pass": "SystemConfigurationDB.xml vorhanden",
-            "fail": "SystemConfigurationDB.xml fehlt. Gerät wird möglicherweise nicht korrekt initialisiert."
-          },
-          "system_config_uuid_match": {
-            "pass": "UUID in SystemConfigurationDB.xml stimmt mit Gerät überein",
-            "fail": "UUID in SystemConfigurationDB.xml stimmt nicht mit Geräte-UUID überein"
-          },
-          "connection": {
-            "pass": "Verbindung OK",
-            "fail": "Verbindung fehlgeschlagen"
-          }
-        },
-        "dnsTestsTitle": "DNS-Umleitungsprüfungen",
         "btnRetryFullVerify": "Überprüfung erneut ausführen",
-        "testInfoTitle": "Was wird getestet?",
-        "testInfoItem1": "DNS-Auflösung der Bose-Domains",
-        "testInfoItem2": "Umleitung zu Ihrem OpenCloudTouch Server",
-        "testInfoItem3": "Korrektheit der IP-Adressen",
-        "btnRunTests": "Tests jetzt ausführen",
-        "btnRunning": "Teste Konfiguration...",
         "resultsTitle": "Test-Ergebnisse",
-        "resolvedIp": "Aufgelöste IP:",
-        "expectedIp": "Erwartete IP:",
-        "statusLabel": "Status:",
-        "statusCorrect": "✓ Korrekt",
-        "statusFailed": "✗ Fehlerhaft",
         "domainInternetRadio": "Internet-Radio",
         "domainStreaming": "Streaming-Services",
         "allPassedTitle": "Alle Checks bestanden!",
         "allPassedMessage": "Ihr Gerät ist vollständig konfiguriert und einsatzbereit. Alle System-Checks und DNS-Umleitungen funktionieren korrekt.",
         "someFailedTitle": "Einige Checks sind fehlgeschlagen",
         "someFailedMessage": "Nicht alle Überprüfungen waren erfolgreich. Prüfen Sie die Ergebnisse oben und versuchen Sie es erneut.",
-        "failedStep1": "Starten Sie das Gerät neu (Stromversorgung trennen und wieder verbinden)",
-        "failedStep2": "Warten Sie 60 Sekunden nach dem Neustart",
-        "failedStep3": "Führen Sie die Tests erneut aus",
-        "btnRetryTests": "Tests erneut ausführen",
         "btnSkip": "Trotzdem fortfahren — Gerät wird nicht als konfiguriert markiert"
       },
       "step8": {
@@ -680,8 +590,6 @@
     }
   },
   "errors": {
-    "connectionFailed": "Verbindung zum Gerät konnte nicht hergestellt werden.",
-    "discoveryFailed": "Suche fehlgeschlagen. Überprüfen Sie Ihre Netzwerkeinstellungen.",
     "loadFailed": "Laden fehlgeschlagen. Bitte erneut versuchen.",
     "unknown": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
     "networkFailed": "Verbindung zum Server fehlgeschlagen. Bitte prüfen Sie Ihre Netzwerkverbindung.",
@@ -741,9 +649,6 @@
     "creditsDescription": "Besonderer Dank an die Community-Mitglieder, die durch Forschung, Tests und Reverse Engineering beigetragen haben."
   },
   "discovery": {
-    "started": "Suche gestartet",
-    "completed": "Suche abgeschlossen",
-    "searching": "Geräte werden gesucht...",
     "alreadyRunning": "Gerätesuche läuft bereits. Bitte warten...",
     "failed": "Fehler bei der Gerätesuche. Bitte versuche es erneut.",
     "noDevicesNetwork": "Keine Geräte gefunden. Prüfe ob deine Geräte eingeschaltet und im gleichen Netzwerk sind.",
