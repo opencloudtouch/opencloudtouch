@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { HAS_EXT_RESOLVER } from "../config/capabilities";
+import { HAS_TUNEIN_SUPPORT } from "../config/capabilities";
 import "./NowPlaying.css";
 
 const DEFAULT_ARTWORKS = [
@@ -62,7 +62,7 @@ const SOURCE_BADGE_MAP: Record<string, SourceBadgeConfig> = {
 function getSourceBadge(source?: string) {
   if (!source) return null;
   // TUNEIN only gets a badge when resolver is active
-  if (source === "TUNEIN" && !HAS_EXT_RESOLVER) return null;
+  if (source === "TUNEIN" && !HAS_TUNEIN_SUPPORT) return null;
   const config = source === "TUNEIN" ? SOURCE_BADGE_MAP.INTERNET_RADIO : SOURCE_BADGE_MAP[source];
   if (!config) return null;
   return (

@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-declare const __OCT_EXT_RESOLVER__: boolean;
+declare const __TUNEIN_SUPPORTED__: boolean;
 
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string;

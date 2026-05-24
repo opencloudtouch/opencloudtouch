@@ -397,10 +397,10 @@ describe("RadioSearch Component", () => {
     expect(nativeDialog).not.toBeInTheDocument();
   });
 
-  describe("Feature Toggle (HAS_EXT_RESOLVER)", () => {
-    it("should hide provider row when HAS_EXT_RESOLVER is false (only 1 provider)", async () => {
+  describe("Feature Toggle (HAS_TUNEIN_SUPPORT)", () => {
+    it("should hide provider row when HAS_TUNEIN_SUPPORT is false (only 1 provider)", async () => {
       vi.resetModules();
-      vi.doMock("../../src/config/capabilities", () => ({ HAS_EXT_RESOLVER: false }));
+      vi.doMock("../../src/config/capabilities", () => ({ HAS_TUNEIN_SUPPORT: false }));
       const { default: RadioSearchGated } = await import("../../src/components/RadioSearch");
 
       const { container } = render(
@@ -418,7 +418,7 @@ describe("RadioSearch Component", () => {
       vi.doUnmock("../../src/config/capabilities");
     });
 
-    it("should show provider row with TuneIn chip when HAS_EXT_RESOLVER is true", () => {
+    it("should show provider row with TuneIn chip when HAS_TUNEIN_SUPPORT is true", () => {
       const { container } = render(
         <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
       );

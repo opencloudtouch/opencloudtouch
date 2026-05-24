@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { HAS_EXT_RESOLVER } from "../config/capabilities";
+import { HAS_TUNEIN_SUPPORT } from "../config/capabilities";
 import { getErrorMessage, parseApiError } from "../api/types";
 import { getAvatarColor, getStationInitials } from "../utils/stationAvatar";
 import StationDetail from "./StationDetail";
@@ -58,11 +58,11 @@ const SEARCH_TYPES: { value: SearchType }[] = [
 ];
 
 const ALL_PROVIDERS: { value: RadioProviderType; label: string }[] = [
-  { value: "radiobrowser", label: "RadioBrowser" },
   { value: "tunein", label: "TuneIn" },
+  { value: "radiobrowser", label: "RadioBrowser" },
 ];
 
-const PROVIDERS = HAS_EXT_RESOLVER
+const PROVIDERS = HAS_TUNEIN_SUPPORT
   ? ALL_PROVIDERS
   : ALL_PROVIDERS.filter((p) => p.value !== "tunein");
 
@@ -80,7 +80,9 @@ export default function RadioSearch({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchType, setSearchType] = useState<SearchType>("name");
-  const [radioProvider, setRadioProvider] = useState<RadioProviderType>("radiobrowser");
+  const [radioProvider, setRadioProvider] = useState<RadioProviderType>(
+    HAS_TUNEIN_SUPPORT ? "tunein" : "radiobrowser"
+  );
   const [detailUuid, setDetailUuid] = useState<string | null>(null);
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);

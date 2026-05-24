@@ -13,7 +13,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { HAS_EXT_RESOLVER } from "../config/capabilities";
+import { HAS_TUNEIN_SUPPORT } from "../config/capabilities";
 import "./CloudBadge.css";
 
 interface CloudBadgeProps {
@@ -25,7 +25,7 @@ export default function CloudBadge({ isCloudDependent, source }: CloudBadgeProps
   const { t } = useTranslation();
   const [showTooltip, setShowTooltip] = useState(false);
 
-  if (!HAS_EXT_RESOLVER && isCloudDependent && source === "TUNEIN") {
+  if (!HAS_TUNEIN_SUPPORT && isCloudDependent && source === "TUNEIN") {
     return null;
   }
 
