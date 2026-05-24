@@ -9,8 +9,8 @@ from fastapi.responses import Response
 
 from opencloudtouch.core.dependencies import get_marge_service
 from opencloudtouch.marge.service import MargeService
+from opencloudtouch.core.source_types import BASE_SOURCES
 from opencloudtouch.marge.xml_builder import (
-    KNOWN_SOURCE_PROVIDERS,
     build_devices_xml,
     build_full_account_xml,
     build_presets_xml,
@@ -190,9 +190,9 @@ async def get_sourceproviders(device_id: str) -> Response:
 
     root = ET.Element("sourceproviders")
 
-    for _, name, _ in KNOWN_SOURCE_PROVIDERS:
+    for src in BASE_SOURCES:
         provider_elem = ET.SubElement(root, "sourceProvider")
-        provider_elem.set("source", name)
+        provider_elem.set("source", src.source_type)
         provider_elem.set("status", "AVAILABLE")
 
     return _xml_response(root)
@@ -234,12 +234,12 @@ async def streaming_sourceproviders() -> Response:
     logger.info("[MARGE/STREAMING] Get sourceproviders")
 
     root = ET.Element("sourceProviders")
-    for pid, name, ts in KNOWN_SOURCE_PROVIDERS:
+    for src in BASE_SOURCES:
         elem = ET.SubElement(root, "sourceprovider")
-        elem.set("id", pid)
-        ET.SubElement(elem, "createdOn").text = ts
-        ET.SubElement(elem, "name").text = name
-        ET.SubElement(elem, "updatedOn").text = ts
+        elem.set("id", src.streaming_id)
+        ET.SubElement(elem, "createdOn").text = src.created_on
+        ET.SubElement(elem, "name").text = src.source_type
+        ET.SubElement(elem, "updatedOn").text = src.created_on
 
     return _xml_response(root, _MEDIA_STREAMING_XML)
 

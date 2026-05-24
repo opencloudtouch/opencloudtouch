@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from typing import Optional
 from xml.sax.saxutils import escape as xml_escape
 
+from opencloudtouch.core.source_types import BASE_SOURCES
 from opencloudtouch.setup.ssh_client import SoundTouchSSHClient
 
 logger = logging.getLogger(__name__)
@@ -62,50 +63,26 @@ def build_system_config_xml(
     )
 
 
-# Source entries for Sources.xml, ordered by type.
-# Each tuple: (displayName, type, account, secretType)
-#
-# IMPORTANT: Only include source types the Bose firmware recognises.
-# BLUETOOTH is managed by firmware separately — adding it here breaks
-# the physical source-cycle button (AUX/BT become unreachable).
-# RADIO_BROWSER is an OCT-internal concept, not a Bose source type.
-_BASE_SOURCES: list[tuple[str, str, str, str]] = [
-    ("AIRPLAY", "AIRPLAY", "", ""),
-    ("AUX IN", "AUX", "AUX", ""),
-    ("LOCAL_INTERNET_RADIO", "LOCAL_INTERNET_RADIO", "", "token"),
-    ("STORED_MUSIC", "STORED_MUSIC", "", ""),
-    ("TUNEIN", "TUNEIN", "", "token"),
-]
-
-
 def build_sources_xml() -> str:
     """Build Sources.xml content for Bose SoundTouch devices.
 
-    Uses only firmware-recognised source types. BLUETOOTH is managed
-    by the firmware independently and must NOT appear here.
+    Uses the centrally defined BASE_SOURCES from core.source_types.
+    BLUETOOTH is deliberately excluded there.
     """
-    sources = list(_BASE_SOURCES)
-
     lines = ['<?xml version="1.0" encoding="UTF-8" ?>', "<sources>"]
-    for display_name, source_type, account, secret_type in sources:
+    for src in BASE_SOURCES:
         lines.append(
-            f'    <source displayName="{display_name}" secret="" secretType="{secret_type}">'
+            f'    <source displayName="{src.display_name}" secret="" secretType="{src.secret_type}">'
         )
-        lines.append(f'        <sourceKey type="{source_type}" account="{account}" />')
+        lines.append(f'        <sourceKey type="{src.source_type}" account="{src.account}" />')
         lines.append("    </source>")
     lines.append("</sources>")
     return "\n".join(lines) + "\n"
 
 
 # Source types that firmware requires for preset playback.
-# BLUETOOTH is managed by firmware separately and must NOT be in Sources.xml.
-REQUIRED_SOURCE_TYPES = {
-    "AIRPLAY",
-    "AUX",
-    "LOCAL_INTERNET_RADIO",
-    "STORED_MUSIC",
-    "TUNEIN",
-}
+# Subset of BASE_SOURCES — these are checked during setup verification.
+REQUIRED_SOURCE_TYPES = {src.source_type for src in BASE_SOURCES}
 
 
 @dataclass

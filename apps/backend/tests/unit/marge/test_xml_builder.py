@@ -160,7 +160,8 @@ class TestBuildSourcesXml:
         sources = elem.findall("source")
         source_names = [s.get("source") for s in sources]
         assert "TUNEIN" in source_names
-        assert "BLUETOOTH" in source_names
+        assert "AIRPLAY" in source_names
+        assert "BLUETOOTH" not in source_names
 
     def test_all_available(self):
         elem = build_sources_xml()
