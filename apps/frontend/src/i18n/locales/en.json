@@ -17,7 +17,8 @@
     "retryHint": "If the problem persists: make sure your OpenCloudTouch server is reachable and reload the page.",
     "reloadPage": "Reload page",
     "stationNotFound": "Station not found.",
-    "saveAsPreset": "Save as preset"
+    "saveAsPreset": "Save as preset",
+    "or": "or"
   },
   "nav": {
     "presets": "Presets",
@@ -68,9 +69,9 @@
     "infoTitle": "Preset Notes",
     "infoItem1": "Click an empty preset to assign a station",
     "infoItem2": "Click an assigned station to change or delete it",
-    "infoItem3": "\u25ba plays the saved station directly",
-    "infoItem4": "\u2713 = Cloud-independent, \u2601 = Bose Cloud required",
-    "infoItem5": "\u2699\ufe0f opens the Setup Wizard for the device",
+    "infoItem3": "► plays the saved station directly",
+    "infoItem4": "✓ = Cloud-independent, ☁ = Bose Cloud required",
+    "infoItem5": "⚙️ opens the Setup Wizard for the device",
     "infoItem6": "\"Load from device\" syncs presets from SoundTouch",
     "changeStation": "Click to change station",
     "assignPreset": "Assign preset",
@@ -322,7 +323,8 @@
         "sectionVerify": "Verification",
         "checkFat32": "USB drive is formatted with FAT32",
         "checkFileEmpty": "File 'remote_services' is in the root directory and empty",
-        "checkReady": "USB drive is ready to insert into the device"
+        "checkReady": "USB drive is ready to insert into the device",
+        "dualUsbHint": "Your device has either Micro-USB or USB-A depending on the production year. Check the back of the device to see which port is available."
       },
       "step3": {
         "title": "Restart device",

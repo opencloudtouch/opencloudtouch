@@ -17,7 +17,8 @@
     "retryHint": "Om problemet kvarstår: kontrollera att OpenCloudTouch-servern är tillgänglig och ladda om sidan.",
     "reloadPage": "Ladda om sidan",
     "stationNotFound": "Station hittades inte.",
-    "saveAsPreset": "Spara som förinställning"
+    "saveAsPreset": "Spara som förinställning",
+    "or": "eller"
   },
   "nav": {
     "presets": "Förinställningar",
@@ -322,7 +323,8 @@
         "sectionVerify": "Verifiering",
         "checkFat32": "USB-enheten är formaterad med FAT32",
         "checkFileEmpty": "Filen 'remote_services' finns i rotkatalogen och är tom",
-        "checkReady": "USB-enheten är redo att sättas in i enheten"
+        "checkReady": "USB-enheten är redo att sättas in i enheten",
+        "dualUsbHint": "Din enhet har antingen Micro-USB eller USB-A beroende på tillverkningsår. Kontrollera baksidan av enheten för att se vilken port som finns tillgänglig."
       },
       "step3": {
         "title": "Starta om enheten",
@@ -425,7 +427,7 @@
         "configApplied": "Konfigurationen har tillämpats.",
         "configTitle": "OpenCloudTouch-server URL",
         "configDesc": "Ange URL:en för din OpenCloudTouch-server. Det här ersätter Boses bmxRegistryUrl.",
-        "urlLabel": "Server URL:",
+        "urlLabel": "Server-URL:",
         "urlHint": "Exempel: http://192.168.1.100:7777, oct.local, 192.168.1.100:8080\nStandardport: 7777, standardprotokoll: http",
         "validationEmpty": "Server-URL kan inte vara tom",
         "validationInvalid": "Ogiltigt format. Förväntat: (http://)hostname(:port) eller (http://)IP(:port).\nExempel:\n  • http://192.168.1.100:7777\n  • oct.local\n  • 192.168.1.100:8080\n  • http://myserver:7777",
@@ -626,56 +628,56 @@
   },
   "restore": {
     "choice": {
-      "title": "What would you like to do?",
-      "setup_title": "Setup Wizard",
+      "title": "Vad vill du göra?",
+      "setup_title": "Installationsguide",
       "setup_desc": "Configure device for OpenCloudTouch",
-      "restore_title": "Restore Wizard",
-      "restore_desc": "Undo all OCT changes and restore factory state"
+      "restore_title": "Återställningsguide",
+      "restore_desc": "Ångra alla OCT-ändringar och återställ fabriksinställningarna"
     },
     "restore_choice": {
-      "title": "Choose Restore Type",
-      "description": "Select how you want to restore the device.",
-      "clean_title": "Clean Restore",
-      "clean_desc": "Remove all OCT modifications. No backup needed.",
-      "backup_title": "Restore from Backup",
-      "backup_desc": "Restore original config files from USB backup."
+      "title": "Välj återställningstyp",
+      "description": "Välj hur du vill återställa enheten.",
+      "clean_title": "Ren återställning",
+      "clean_desc": "Ta bort alla OCT-ändringar. Ingen säkerhetskopia behövs.",
+      "backup_title": "Återställ från säkerhetskopia",
+      "backup_desc": "Återställ originalfiler från USB-säkerhetskopia."
     },
     "backup_scan": {
-      "title": "Scanning for Backups",
-      "description": "Searching USB stick for backup files...",
-      "scanning": "Scanning USB stick...",
+      "title": "Söker efter säkerhetskopior",
+      "description": "Söker på USB-minne efter säkerhetskopior...",
+      "scanning": "Skannar USB-minne...",
       "error": "Scan failed: {{message}}",
-      "no_usb": "No USB stick detected. Please insert USB stick and retry.",
-      "found": "Backup found",
-      "legacy": "legacy",
-      "use_backup": "Use This Backup"
+      "no_usb": "Inget USB-minne upptäckt. Sätt in USB-minnet och försök igen.",
+      "found": "Säkerhetskopia hittad",
+      "legacy": "äldre",
+      "use_backup": "Använd denna säkerhetskopia"
     },
     "execution": {
-      "title": "Restoring Device",
-      "description": "Undoing all OCT modifications...",
-      "running": "Restore in progress...",
+      "title": "Återställer enhet",
+      "description": "Ångrar alla OCT-ändringar...",
+      "running": "Återställning pågår...",
       "error": "Restore failed: {{message}}",
       "success": "All steps completed successfully! Total: {{time}}s",
-      "continue": "Continue"
+      "continue": "Fortsätt"
     },
     "verification": {
-      "title": "Waiting for Device",
-      "description": "Device is rebooting. Waiting for it to come back online...",
+      "title": "Väntar på enhet",
+      "description": "Enheten startar om. Väntar på att den ska bli tillgänglig igen...",
       "countdown": "Checking in {{seconds}}s...",
-      "timeout": "Device not detected after 120s. It may have received a new IP via DHCP.",
-      "manual_confirm": "Device is back — I can see it",
-      "online": "Device is back online!",
-      "continue": "Continue"
+      "timeout": "Enheten upptäcktes inte efter 120s. Den kan ha fått en ny IP-adress via DHCP.",
+      "manual_confirm": "Enheten är tillbaka — jag kan se den",
+      "online": "Enheten är online igen!",
+      "continue": "Fortsätt"
     },
     "completion": {
-      "title": "Restore Complete",
-      "description": "Device has been restored successfully.",
-      "clean_summary": "Clean Restore Summary",
-      "backup_summary": "Backup Restore Summary",
-      "restored": "Restored",
-      "skipped": "Skipped",
-      "failed": "Failed",
-      "note": "The device is now in its original state. You can safely disconnect it.",
+      "title": "Återställning klar",
+      "description": "Enheten har återställts framgångsrikt.",
+      "clean_summary": "Sammanfattning ren återställning",
+      "backup_summary": "Sammanfattning säkerhetskopieåterställning",
+      "restored": "Återställd",
+      "skipped": "Överhoppad",
+      "failed": "Misslyckades",
+      "note": "Enheten är nu i sitt ursprungliga tillstånd. Du kan säkert koppla bort den.",
       "done": "Done"
     }
   },
