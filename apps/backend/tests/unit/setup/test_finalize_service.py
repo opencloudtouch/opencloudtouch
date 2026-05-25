@@ -358,7 +358,7 @@ class TestFinalizeSystemConfig:
             # Verify correct content was written
             written_content = mock_write.call_args.args[2]
             assert "<AccountUUID>1234567</AccountUUID>" in written_content
-            assert "<acctMode>global</acctMode>" in written_content
+            assert "<acctMode>local</acctMode>" in written_content
 
 
 class TestFinalizeIdempotent:

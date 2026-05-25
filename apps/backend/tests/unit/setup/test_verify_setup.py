@@ -11,10 +11,13 @@ FULL_SOURCES_XML = """<?xml version="1.0" encoding="UTF-8" ?>
 <sources>
     <source displayName="AIRPLAY"><sourceKey type="AIRPLAY" account="" /></source>
     <source displayName="AUX IN"><sourceKey type="AUX" account="AUX" /></source>
-    <source displayName="LIR"><sourceKey type="LOCAL_INTERNET_RADIO" account="" /></source>
-    <source displayName="TUNEIN"><sourceKey type="TUNEIN" account="" /></source>
-    <source displayName="BLUETOOTH"><sourceKey type="BLUETOOTH" account="" /></source>
+    <source displayName="LOCAL_INTERNET_RADIO"><sourceKey type="LOCAL_INTERNET_RADIO" account="" /></source>
+    <source displayName="QPLAY"><sourceKey type="QPLAY" account="" /></source>
+    <source displayName="SPOTIFY"><sourceKey type="SPOTIFY" account="" /></source>
     <source displayName="STORED_MUSIC"><sourceKey type="STORED_MUSIC" account="" /></source>
+    <source displayName="STORED_MUSIC_MEDIA_RENDERER"><sourceKey type="STORED_MUSIC_MEDIA_RENDERER" account="" /></source>
+    <source displayName="TUNEIN"><sourceKey type="TUNEIN" account="" /></source>
+    <source displayName="UPNP"><sourceKey type="UPNP" account="" /></source>
 </sources>"""
 
 AUX_ONLY_SOURCES = """<?xml version="1.0" encoding="UTF-8" ?>

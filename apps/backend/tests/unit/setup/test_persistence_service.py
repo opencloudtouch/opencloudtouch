@@ -38,7 +38,7 @@ class TestBuildSystemConfigXml:
 
     def test_global_acct_mode(self):
         xml = build_system_config_xml("Test", "1234567")
-        assert "<acctMode>global</acctMode>" in xml
+        assert "<acctMode>local</acctMode>" in xml
 
     def test_multi_device_account_true(self):
         xml = build_system_config_xml("Test", "1234567")
@@ -56,30 +56,22 @@ class TestSourcesXml:
         xml = build_sources_xml()
         assert 'type="TUNEIN"' in xml
 
-    def test_contains_radio_browser(self):
-        xml = build_sources_xml()
-        assert 'type="RADIO_BROWSER"' in xml
-
     def test_contains_aux(self):
         xml = build_sources_xml()
         assert 'type="AUX"' in xml
 
-    def test_excludes_airplay(self):
+    def test_contains_airplay(self):
+        """AIRPLAY is in BASE_SOURCES."""
         xml = build_sources_xml()
-        assert 'type="AIRPLAY"' not in xml
+        assert 'type="AIRPLAY"' in xml
 
     def test_has_xml_declaration(self):
         xml = build_sources_xml()
         assert xml.startswith('<?xml version="1.0"')
 
-    def test_contains_bluetooth_by_default(self):
-        """BLUETOOTH is included by default (has_bluetooth=True)."""
+    def test_excludes_bluetooth(self):
+        """BLUETOOTH is deliberately excluded from BASE_SOURCES."""
         xml = build_sources_xml()
-        assert 'type="BLUETOOTH"' in xml
-
-    def test_excludes_bluetooth_when_disabled(self):
-        """BLUETOOTH excluded when has_bluetooth=False (SCM/Gen I devices)."""
-        xml = build_sources_xml(has_bluetooth=False)
         assert 'type="BLUETOOTH"' not in xml
 
 

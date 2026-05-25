@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from typing import Optional
 from xml.sax.saxutils import escape as xml_escape
 
+from opencloudtouch.core.source_types import BASE_SOURCES
 from opencloudtouch.setup.ssh_client import SoundTouchSSHClient
 
 logger = logging.getLogger(__name__)
@@ -54,7 +55,7 @@ def build_system_config_xml(
         "    <AccountAssociatedEMail />\n"
         f"    <AccountUUID>{xml_escape(account_uuid)}</AccountUUID>\n"
         "    <Locale />\n"
-        "    <acctMode>global</acctMode>\n"
+        "    <acctMode>local</acctMode>\n"
         "    <isMultiDeviceAccount>true</isMultiDeviceAccount>\n"
         "    <margeAuthServerToken />\n"
         '    <powerSavingSettings powersaving_en="true" />\n'
@@ -62,51 +63,28 @@ def build_system_config_xml(
     )
 
 
-# Source entries for Sources.xml, ordered by type.
-# Each tuple: (displayName, type, account, secretType)
-_BASE_SOURCES: list[tuple[str, str, str, str]] = [
-    ("AUX IN", "AUX", "AUX", ""),
-    ("LOCAL_INTERNET_RADIO", "LOCAL_INTERNET_RADIO", "", "token"),
-    ("RADIO_BROWSER", "RADIO_BROWSER", "", "token"),
-    ("TUNEIN", "TUNEIN", "", "token"),
-    ("STORED_MUSIC", "STORED_MUSIC", "", ""),
-]
+def build_sources_xml() -> str:
+    """Build Sources.xml content for Bose SoundTouch devices.
 
-_BLUETOOTH_SOURCE = ("BLUETOOTH", "BLUETOOTH", "", "")
-
-
-def build_sources_xml(has_bluetooth: bool = True) -> str:
-    """Build Sources.xml content tailored to device capabilities.
-
-    Args:
-        has_bluetooth: Include BLUETOOTH source entry.
-            SCM (Gen I) devices have no Bluetooth hardware;
-            including it is harmless but clutters the source list.
+    Uses the centrally defined BASE_SOURCES from core.source_types.
+    BLUETOOTH is deliberately excluded there.
     """
-    sources = list(_BASE_SOURCES)
-    if has_bluetooth:
-        # Insert before STORED_MUSIC to keep alphabetical-ish order
-        sources.insert(4, _BLUETOOTH_SOURCE)
-
     lines = ['<?xml version="1.0" encoding="UTF-8" ?>', "<sources>"]
-    for display_name, source_type, account, secret_type in sources:
+    for src in BASE_SOURCES:
         lines.append(
-            f'    <source displayName="{display_name}" secret="" secretType="{secret_type}">'
+            f'    <source displayName="{src.display_name}" secret="" secretType="{src.secret_type}">'
         )
-        lines.append(f'        <sourceKey type="{source_type}" account="{account}" />')
+        lines.append(
+            f'        <sourceKey type="{src.source_type}" account="{src.account}" />'
+        )
         lines.append("    </source>")
     lines.append("</sources>")
     return "\n".join(lines) + "\n"
 
 
-# Source types that firmware requires for preset playback
-REQUIRED_SOURCE_TYPES = {
-    "AUX",
-    "LOCAL_INTERNET_RADIO",
-    "TUNEIN",
-    "BLUETOOTH",
-    "STORED_MUSIC",
-}
+# Source types that firmware requires for preset playback.
+# Subset of BASE_SOURCES — these are checked during setup verification.
+REQUIRED_SOURCE_TYPES = {src.source_type for src in BASE_SOURCES}
 
 
 @dataclass
@@ -124,18 +102,12 @@ class ForceWriteResult:
 async def force_write_sources_xml(
     ssh: SoundTouchSSHClient,
     backup: bool = True,
-    has_bluetooth: bool = True,
 ) -> ForceWriteResult:
     """Force-write Sources.xml with hardware-tailored content.
 
     Unlike ensure_persistence_files() which skips existing files, this
     function ALWAYS overwrites -- needed when existing Sources.xml is
     incomplete (e.g. only has AUX, missing TUNEIN).
-
-    Args:
-        ssh: Connected SSH client (filesystem must be mounted rw)
-        backup: If True, back up existing file to Sources.xml.bak
-        has_bluetooth: Include BLUETOOTH source (False for SCM/Gen I devices)
 
     Args:
         ssh: Connected SSH client (filesystem must be mounted rw)
@@ -157,13 +129,12 @@ async def force_write_sources_xml(
             if not result.success:
                 logger.warning("Failed to backup Sources.xml: %s", result.error)
 
-        content = build_sources_xml(has_bluetooth=has_bluetooth)
+        content = build_sources_xml()
         await _write_file_atomic(ssh, path, content)
         logger.info(
-            "Force-wrote Sources.xml (backup=%s, had_existing=%s, bluetooth=%s)",
+            "Force-wrote Sources.xml (backup=%s, had_existing=%s)",
             backup,
             had_existing,
-            has_bluetooth,
         )
 
         return ForceWriteResult(

@@ -440,7 +440,6 @@ class WizardService:
                     sources_result = await force_write_sources_xml(
                         ssh,
                         backup=True,
-                        has_bluetooth=has_bluetooth,
                     )
 
                     # Create SystemConfigurationDB.xml if missing

@@ -22,7 +22,7 @@ class TestBuildSystemConfigXmlAcctMode:
 
     def test_acct_mode_is_global(self):
         xml = build_system_config_xml("TestDevice", "1234567")
-        assert "<acctMode>global</acctMode>" in xml
+        assert "<acctMode>local</acctMode>" in xml
 
     def test_device_name_embedded(self):
         xml = build_system_config_xml("Kitchen", "9999999")
