@@ -270,3 +270,157 @@ class TestStateManagerOnEvent:
         state = mgr.get_state("D1")
         # State not created because no data to store
         assert state is None
+
+    @pytest.mark.asyncio
+    async def test_on_event_metadata_enriched_updates_now_playing(self):
+        """METADATA_ENRICHED event should update now_playing state."""
+        mgr = DeviceStateManager()
+        queue = mgr.subscribe()
+
+        enriched_info = NowPlayingInfo(
+            source="INTERNET_RADIO",
+            state="PLAY_STATE",
+            station_name="WDR 2",
+            artwork_url="https://cdn.example.com/logo.png",
+            artist="Enriched Artist",
+        )
+        event = DeviceEvent(
+            device_id="D1",
+            event_type=EventType.METADATA_ENRICHED,
+            now_playing=enriched_info,
+        )
+        await mgr.on_event(event)
+
+        state = mgr.get_state("D1")
+        assert state is not None
+        assert state.now_playing is enriched_info
+        assert state.now_playing.artwork_url == "https://cdn.example.com/logo.png"
+
+        received = await queue.get()
+        assert received.event_type == EventType.METADATA_ENRICHED
+
+    @pytest.mark.asyncio
+    async def test_on_event_metadata_enriched_without_data_no_crash(self):
+        """METADATA_ENRICHED event with now_playing=None should not crash."""
+        mgr = DeviceStateManager()
+        event = DeviceEvent(
+            device_id="D1", event_type=EventType.METADATA_ENRICHED, now_playing=None
+        )
+        await mgr.on_event(event)
+        state = mgr.get_state("D1")
+        assert state is None
+
+
+class TestDeviceStateManagerIcyIntegration:
+    """Tests for ICY worker integration in DeviceStateManager."""
+
+    @pytest.mark.asyncio
+    async def test_set_icy_worker(self):
+        """set_icy_worker should attach worker."""
+        from unittest.mock import MagicMock
+
+        mgr = DeviceStateManager()
+        worker = MagicMock()
+        mgr.set_icy_worker(worker)
+        assert mgr._icy_worker is worker
+
+    @pytest.mark.asyncio
+    async def test_icy_probe_publishes_enriched_event(self):
+        """ICY worker success should publish metadata_enriched event."""
+        from unittest.mock import AsyncMock
+
+        enriched_info = NowPlayingInfo(
+            source="INTERNET_RADIO",
+            state="PLAY_STATE",
+            station_name="WDR 2",
+            artwork_url="https://cdn.example.com/icy.png",
+        )
+        enriched_event = DeviceEvent(
+            device_id="D1",
+            event_type=EventType.METADATA_ENRICHED,
+            now_playing=enriched_info,
+        )
+
+        worker = AsyncMock()
+        worker.on_event = AsyncMock(return_value=enriched_event)
+
+        mgr = DeviceStateManager()
+        mgr.set_icy_worker(worker)
+        queue = mgr.subscribe()
+
+        # Trigger with a now_playing event
+        np_event = DeviceEvent(
+            device_id="D1",
+            event_type=EventType.NOW_PLAYING,
+            now_playing=NowPlayingInfo(
+                source="INTERNET_RADIO", state="PLAY_STATE", station_name="WDR 2"
+            ),
+        )
+        await mgr.on_event(np_event)
+
+        # Wait for background task
+        await asyncio.sleep(0.05)
+
+        # Should have received: now_playing + metadata_enriched
+        events = []
+        while not queue.empty():
+            events.append(await queue.get())
+
+        types = [e.event_type for e in events]
+        assert EventType.NOW_PLAYING in types
+        assert EventType.METADATA_ENRICHED in types
+
+        # State should be updated to enriched version
+        state = mgr.get_state("D1")
+        assert state is not None
+        assert state.now_playing is not None
+        assert state.now_playing.artwork_url == "https://cdn.example.com/icy.png"
+
+    @pytest.mark.asyncio
+    async def test_icy_probe_failure_does_not_block(self):
+        """ICY worker exception should not break the event pipeline."""
+        from unittest.mock import AsyncMock
+
+        worker = AsyncMock()
+        worker.on_event = AsyncMock(side_effect=RuntimeError("probe crash"))
+
+        mgr = DeviceStateManager()
+        mgr.set_icy_worker(worker)
+        queue = mgr.subscribe()
+
+        np_event = DeviceEvent(
+            device_id="D1",
+            event_type=EventType.NOW_PLAYING,
+            now_playing=NowPlayingInfo(
+                source="INTERNET_RADIO", state="PLAY_STATE", station_name="WDR 2"
+            ),
+        )
+        # Should not raise
+        await mgr.on_event(np_event)
+        await asyncio.sleep(0.05)
+
+        # Original event should still have been published
+        received = await queue.get()
+        assert received.event_type == EventType.NOW_PLAYING
+
+    @pytest.mark.asyncio
+    async def test_no_icy_probe_for_non_radio(self):
+        """ICY worker should not be called for non-radio events."""
+        from unittest.mock import AsyncMock
+
+        worker = AsyncMock()
+        worker.on_event = AsyncMock(return_value=None)
+
+        mgr = DeviceStateManager()
+        mgr.set_icy_worker(worker)
+
+        vol_event = DeviceEvent(
+            device_id="D1",
+            event_type=EventType.VOLUME,
+            volume=VolumeInfo(actual=50, target=50, muted=False),
+        )
+        await mgr.on_event(vol_event)
+        await asyncio.sleep(0.05)
+
+        # Worker should not have been called for volume events
+        worker.on_event.assert_not_called()

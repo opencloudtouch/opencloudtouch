@@ -30,6 +30,7 @@ class EventType(str, Enum):
     ZONE = "zone"
     CONNECTION = "connection"
     BASS = "bass"
+    METADATA_ENRICHED = "metadata_enriched"
     UNKNOWN = "unknown"
 
 

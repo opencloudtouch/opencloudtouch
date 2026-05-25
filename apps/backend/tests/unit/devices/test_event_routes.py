@@ -60,6 +60,31 @@ class TestEventToSSE:
         data = json.loads(sse.split("data: ")[1].strip())
         assert data["device_id"] == "D3"
 
+    def test_metadata_enriched_event(self):
+        """metadata_enriched should format like now_playing with enriched type."""
+        event = DeviceEvent(
+            device_id="D4",
+            event_type=EventType.METADATA_ENRICHED,
+            now_playing=NowPlayingInfo(
+                source="INTERNET_RADIO",
+                state="PLAY_STATE",
+                station_name="WDR 2",
+                artwork_url="https://cdn.example.com/logo.png",
+                artist="ICY Artist",
+                track="ICY Track",
+            ),
+        )
+        sse = _event_to_sse(event)
+        assert sse.startswith("event: metadata_enriched\n")
+        assert sse.endswith("\n\n")
+
+        data = json.loads(sse.split("data: ")[1].strip())
+        assert data["device_id"] == "D4"
+        assert data["source"] == "INTERNET_RADIO"
+        assert data["artwork_url"] == "https://cdn.example.com/logo.png"
+        assert data["artist"] == "ICY Artist"
+        assert data["track"] == "ICY Track"
+
 
 class TestSnapshotToSSE:
     def test_full_snapshot(self):

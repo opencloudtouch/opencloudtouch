@@ -10,7 +10,13 @@ import { useEffect, useRef, useCallback } from "react";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 const SSE_URL = `${API_BASE_URL}/api/events/device-stream`;
 
-export type DeviceEventType = "volume" | "now_playing" | "presets" | "zone" | "connection";
+export type DeviceEventType =
+  | "volume"
+  | "now_playing"
+  | "presets"
+  | "zone"
+  | "connection"
+  | "metadata_enriched";
 
 export interface DeviceSSEEvent {
   device_id: string;
@@ -75,6 +81,7 @@ export function useDeviceEvents(): UseDeviceEventsReturn {
       "presets",
       "zone",
       "connection",
+      "metadata_enriched",
     ];
 
     const handlers: Record<string, (e: MessageEvent) => void> = {};

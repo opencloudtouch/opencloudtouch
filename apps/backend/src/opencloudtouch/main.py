@@ -219,7 +219,24 @@ async def _init_services(
 
     # Device state manager (WebSocket push → state cache → SSE relay)
     app.state.device_state_manager = DeviceStateManager()
-    logger.info("DeviceStateManager initialized")
+
+    # ICY metadata worker — enriches radio now-playing events with artwork
+    from opencloudtouch.devices.websocket.icy_worker import IcyWorker
+
+    async def _get_stream_url(device_id: str, station_name: str) -> str | None:
+        """Resolve station_name to stream URL via preset DB."""
+        try:
+            presets = await app.state.preset_service.get_all_presets(device_id)
+            for preset in presets:
+                if preset.station_name == station_name:
+                    return preset.station_url
+        except Exception:
+            pass
+        return None
+
+    icy_worker = IcyWorker(get_stream_url=_get_stream_url)
+    app.state.device_state_manager.set_icy_worker(icy_worker)
+    logger.info("DeviceStateManager initialized (with ICY worker)")
 
 
 async def _shutdown(app: FastAPI, repos: dict, logger: logging.Logger) -> None:
