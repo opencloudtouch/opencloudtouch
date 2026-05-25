@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useRef, useCallback } from "react";
+import { octDebug } from "../utils/debug";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 const SSE_URL = `${API_BASE_URL}/api/events/device-stream`;
@@ -63,8 +64,15 @@ export function useDeviceEvents(): UseDeviceEventsReturn {
 
   // Dispatch incoming event to matching subscribers
   const dispatch = useCallback((eventType: DeviceEventType, data: DeviceSSEEvent) => {
+    const matchCount = subscriptionsRef.current.filter(
+      (s) => s.eventType === eventType && (s.deviceId === "*" || s.deviceId === data.device_id)
+    ).length;
+    octDebug("SSE", `← ${eventType} for ${data.device_id} (${matchCount} subscribers)`, data);
     for (const sub of subscriptionsRef.current) {
-      if (sub.eventType === eventType && sub.deviceId === data.device_id) {
+      if (
+        sub.eventType === eventType &&
+        (sub.deviceId === "*" || sub.deviceId === data.device_id)
+      ) {
         sub.callback(data);
       }
     }
@@ -98,10 +106,12 @@ export function useDeviceEvents(): UseDeviceEventsReturn {
 
     eventSource.onopen = () => {
       connectedRef.current = true;
+      octDebug("SSE", "EventSource connected to " + SSE_URL);
     };
 
     eventSource.onerror = () => {
       connectedRef.current = false;
+      octDebug("SSE", "EventSource error — will auto-reconnect");
       // EventSource auto-reconnects on error
     };
 

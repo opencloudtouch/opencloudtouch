@@ -1,9 +1,12 @@
 import "./i18n";
 import { initLogBuffer } from "./utils/logBuffer";
+import { initDebugFromBackend } from "./utils/debug";
 import { StrictMode } from "react";
 
 // Install console interceptors ASAP so all logs are captured
 initLogBuffer();
+// Sync frontend debug flag from backend log level
+initDebugFromBackend();
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";

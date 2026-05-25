@@ -64,12 +64,20 @@ def mount_static_files(app: FastAPI, static_dir: Path) -> None:
         )
         return
 
-    # Serve static assets (CSS, JS, images)
+    # Serve static assets (CSS, JS, images) — filenames are content-hashed by Vite,
+    # so they can be cached aggressively (new build = new filename = cache miss).
     app.mount(
         "/assets",
         StaticFiles(directory=str(static_dir / "assets")),
         name="assets",
     )
+
+    @app.middleware("http")
+    async def _asset_cache_headers(request: Request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith("/assets/"):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
 
     # Capture in a local variable so the closure is stable
     _static_dir = static_dir.resolve()
@@ -118,11 +126,17 @@ def mount_static_files(app: FastAPI, static_dir: Path) -> None:
                 str(requested_path).startswith(str(_static_dir))
                 and requested_path.is_file()
             ):
-                return FileResponse(requested_path)
+                headers = {}
+                if requested_path.name == "index.html":
+                    headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+                return FileResponse(requested_path, headers=headers)
         except (ValueError, OSError):
             pass
 
-        # Fallback: SPA entry point
-        return FileResponse(_static_dir / "index.html")
+        # Fallback: SPA entry point — never cache so deploys take effect immediately
+        return FileResponse(
+            _static_dir / "index.html",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
 
     logger.info("Frontend static files mounted from %s", static_dir)

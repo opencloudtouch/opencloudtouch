@@ -106,6 +106,8 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-xs);
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .np-header {
@@ -114,6 +116,8 @@
   justify-content: center;
   gap: var(--space-sm);
   min-height: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .np-station {
@@ -124,6 +128,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: center;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .np-track {
@@ -132,6 +138,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
 }
 
 .np-artist {
@@ -140,6 +147,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
 }
 
 /* Source mode badge (Bluetooth / Radio) */

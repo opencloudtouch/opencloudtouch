@@ -23,6 +23,7 @@ from opencloudtouch.core.exceptions import (
 )
 from opencloudtouch.devices.client import NowPlayingInfo
 from opencloudtouch.devices.service import DeviceService
+from opencloudtouch.devices.websocket.icy_worker import RADIO_SOURCES
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.service import PresetService
 from opencloudtouch.streaming.icy_metadata import IcyMetadata, probe_stream
@@ -38,16 +39,29 @@ _metadata_cache = MetadataCache(ttl=15.0)
 router = APIRouter(prefix="/api/devices", tags=["Devices"])
 
 
-async def _device_op(device_id: str, action: str, coro: Awaitable[T]) -> T:
+async def _device_op(
+    device_id: str,
+    action: str,
+    coro: Awaitable[T],
+    state_manager: DeviceStateManager | None = None,
+) -> T:
     """Execute a device service call with standardized error handling.
 
     Domain exceptions (DeviceNotFoundError, DomainValidationError,
     DeviceConnectionError) propagate to global handlers.
     Only unexpected exceptions are wrapped in 500.
+
+    When *state_manager* is provided and a DeviceConnectionError occurs,
+    the device is marked offline via SSE so all connected clients learn
+    immediately.
     """
     try:
         return await coro
-    except (DeviceNotFoundError, DomainValidationError, DeviceConnectionError):
+    except DeviceConnectionError:
+        if state_manager:
+            await state_manager.mark_device_offline(device_id)
+        raise
+    except (DeviceNotFoundError, DomainValidationError):
         raise
     except Exception as e:
         logger.exception("Failed to %s for device %s", action, device_id)
@@ -220,8 +234,6 @@ async def press_key(
     return {"message": f"Key {key} pressed successfully", "device_id": device_id}
 
 
-_RADIO_SOURCES = {"LOCAL_INTERNET_RADIO", "INTERNET_RADIO"}
-
 _IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico", ".bmp"}
 
 
@@ -299,7 +311,7 @@ async def _enrich_from_presets(
     preset_service: PresetService,
 ) -> Preset | None:
     """Enrich artwork from preset DB for radio sources. Returns matched preset or None."""
-    if info.source not in _RADIO_SOURCES:
+    if info.source not in RADIO_SOURCES:
         return None
     if not info.station_name:
         return None
@@ -338,6 +350,7 @@ async def get_now_playing(
             device_id,
             "get playback status",
             device_service.get_now_playing(device_id),
+            state_manager=state_manager,
         )
     result: dict[str, object] = {
         "source": info.source,
@@ -370,13 +383,30 @@ async def get_now_playing(
             info.track,
         )
 
+    # Write enriched data back to state cache so SSE snapshots include it
+    enriched_info = NowPlayingInfo(
+        source=info.source,
+        state=info.state,
+        station_name=info.station_name,
+        artist=result.get("artist") or info.artist,
+        track=result.get("track") or info.track,
+        album=info.album,
+        artwork_url=result.get("artwork_url") or info.artwork_url,
+    )
+    if enriched_info.artist != info.artist or enriched_info.track != info.track:
+        state_manager.update_now_playing(device_id, enriched_info)
+        logger.debug(
+            "[NowPlaying] Wrote enriched data back to state cache for %s",
+            device_id,
+        )
+
     logger.debug(
         "[NowPlaying] device=%s source=%s state=%s track=%r artist=%r art=%r station=%r",
         device_id,
         info.source,
         info.state,
-        info.track,
-        info.artist,
+        result.get("track", info.track),
+        result.get("artist", info.artist),
         result["artwork_url"],
         info.station_name,
     )
@@ -399,6 +429,7 @@ async def get_volume(
             device_id,
             "get volume",
             device_service.get_volume(device_id),
+            state_manager=state_manager,
         )
     return {"actual": vol.actual, "target": vol.target, "muted": vol.muted}
 

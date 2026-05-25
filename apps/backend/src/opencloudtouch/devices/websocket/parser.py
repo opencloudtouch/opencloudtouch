@@ -10,13 +10,16 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from xml.etree.ElementTree import Element
 
 from defusedxml import ElementTree as ET
 
 from opencloudtouch.devices.client import NowPlayingInfo, VolumeInfo
+
+if TYPE_CHECKING:
+    from opencloudtouch.devices.websocket.connection import ConnectionState
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +56,7 @@ class DeviceEvent:
     event_type: EventType
     now_playing: Optional[NowPlayingInfo] = None
     volume: Optional[VolumeInfo] = None
+    connection_state: Optional[ConnectionState] = None
     raw_xml: str = ""
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -96,6 +100,8 @@ def parse_event(xml_string: str) -> DeviceEvent | None:
         )
 
     event_type = _TAG_MAP.get(child.tag, EventType.UNKNOWN)
+    if event_type == EventType.UNKNOWN:
+        logger.debug("Device %s unknown event tag: %s", device_id, child.tag)
 
     event = DeviceEvent(
         device_id=device_id,
@@ -105,8 +111,27 @@ def parse_event(xml_string: str) -> DeviceEvent | None:
 
     if event_type == EventType.NOW_PLAYING:
         event.now_playing = _parse_now_playing(child)
+        logger.debug(
+            "Device %s parsed now_playing: source=%s state=%s station=%s artist=%s track=%s art=%s",
+            device_id,
+            event.now_playing.source,
+            event.now_playing.state,
+            event.now_playing.station_name,
+            event.now_playing.artist,
+            event.now_playing.track,
+            bool(event.now_playing.artwork_url),
+        )
     elif event_type == EventType.VOLUME:
         event.volume = _parse_volume(child)
+        logger.debug(
+            "Device %s parsed volume: actual=%s target=%s muted=%s",
+            device_id,
+            event.volume.actual,
+            event.volume.target,
+            event.volume.muted,
+        )
+    else:
+        logger.debug("Device %s parsed event: %s", device_id, event_type.value)
 
     return event
 

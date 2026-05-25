@@ -13,8 +13,7 @@ import { QueryWrapper } from "../utils/reactQueryTestUtils";
 // Mock DeviceEventContext — hooks depend on it
 vi.mock("../../src/contexts/DeviceEventContext", () => ({
   useDeviceEventContext: () => ({
-    subscribe: vi.fn(),
-    unsubscribe: vi.fn(),
+    subscribe: vi.fn(() => vi.fn()),
     connected: true,
   }),
   DeviceEventProvider: ({ children }: { children: React.ReactNode }) => children,

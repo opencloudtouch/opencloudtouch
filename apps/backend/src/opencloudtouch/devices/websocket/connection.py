@@ -193,6 +193,12 @@ class DeviceWebSocket:
             if event is None:
                 continue
 
+            logger.debug(
+                "Device %s received %s event",
+                self.device_id,
+                event.event_type.value,
+            )
+
             if self._on_event:
                 try:
                     await self._on_event(event)

@@ -148,7 +148,9 @@ export default function NowPlaying({ nowPlaying, onPlayPause }: NowPlayingProps)
     <div className="now-playing">
       <div className="np-header">
         {getSourceBadge(nowPlaying.source)}
-        <div className="np-station">{getHeaderDisplay(nowPlaying.station, nowPlaying.source)}</div>
+        <div className="np-station" title={nowPlaying.station ?? undefined}>
+          {getHeaderDisplay(nowPlaying.station, nowPlaying.source)}
+        </div>
       </div>
       <div className="np-art">
         <ArtworkImage artUrl={nowPlaying.art_url} />
@@ -169,8 +171,16 @@ export default function NowPlaying({ nowPlaying, onPlayPause }: NowPlayingProps)
         )}
       </div>
       <div className="np-info">
-        {nowPlaying.track && <div className="np-track">{nowPlaying.track}</div>}
-        {nowPlaying.artist && <div className="np-artist">{nowPlaying.artist}</div>}
+        {nowPlaying.track && (
+          <div className="np-track" title={nowPlaying.track}>
+            {nowPlaying.track}
+          </div>
+        )}
+        {nowPlaying.artist && (
+          <div className="np-artist" title={nowPlaying.artist}>
+            {nowPlaying.artist}
+          </div>
+        )}
       </div>
     </div>
   );

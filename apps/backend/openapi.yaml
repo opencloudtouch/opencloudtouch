@@ -4,6 +4,25 @@ info:
   description: Open-Source replacement for discontinued streaming device cloud features
   version: 1.4.1
 paths:
+  /api/events/device-stream:
+    get:
+      tags:
+      - Events
+      summary: Device Event Stream
+      description: "Stream device events via Server-Sent Events (SSE).\n\nPushes\
+        \ an initial snapshot of all known device states, then streams real-time updates.\
+        \ A keepalive comment is sent every 15 seconds.\n\nEvent Types:\n    - snapshot:\
+        \ Initial state of all devices\n    - nowPlaying: Now-playing update for a\
+        \ device\n    - volume: Volume change for a device\n    - zones: Zone membership\
+        \ change\n    - connectionState: WebSocket connection state change"
+      operationId: device_event_stream_api_events_device_stream_get
+      responses:
+        '200':
+          description: SSE event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
   /api/devices/discover:
     get:
       tags:

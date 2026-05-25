@@ -22,6 +22,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_ICY_POLL_INTERVAL = 3.0  # seconds
+
 
 @dataclass
 class DeviceState:
@@ -51,10 +53,29 @@ class DeviceStateManager:
         self._states: dict[str, DeviceState] = {}
         self._subscribers: list[asyncio.Queue[DeviceEvent]] = []
         self._icy_worker: IcyWorker | None = None
+        self._icy_poll_task: asyncio.Task | None = None
 
     def set_icy_worker(self, worker: IcyWorker) -> None:
         """Attach an ICY metadata worker for radio enrichment."""
         self._icy_worker = worker
+
+    def start_icy_polling(self) -> None:
+        """Start periodic ICY metadata polling for radio-playing devices."""
+        if self._icy_poll_task is not None:
+            return
+        self._icy_poll_task = asyncio.create_task(self._icy_poll_loop())
+        logger.info("ICY periodic polling started (%.0fs interval)", _ICY_POLL_INTERVAL)
+
+    async def stop_icy_polling(self) -> None:
+        """Stop periodic ICY metadata polling."""
+        if self._icy_poll_task is not None:
+            self._icy_poll_task.cancel()
+            try:
+                await self._icy_poll_task
+            except asyncio.CancelledError:
+                pass
+            self._icy_poll_task = None
+            logger.info("ICY periodic polling stopped")
 
     # -- State updates -------------------------------------------------------
 
@@ -121,8 +142,19 @@ class DeviceStateManager:
     async def publish(self, event: DeviceEvent) -> None:
         """Broadcast *event* to all subscribers, pruning dead queues."""
         if not self._subscribers:
+            logger.debug(
+                "Device %s %s event dropped — no SSE subscribers",
+                event.device_id,
+                event.event_type.value,
+            )
             return
 
+        logger.debug(
+            "Device %s publishing %s to %d subscriber(s)",
+            event.device_id,
+            event.event_type.value,
+            len(self._subscribers),
+        )
         for queue in self._subscribers[:]:  # iterate over copy
             try:
                 await queue.put(event)
@@ -139,11 +171,40 @@ class DeviceStateManager:
         For ``now_playing`` radio events, fires ICY probe in background.
         """
         if event.event_type == EventType.NOW_PLAYING and event.now_playing:
+            logger.debug(
+                "Device %s now_playing: source=%s station=%s artist=%s track=%s state=%s",
+                event.device_id,
+                event.now_playing.source,
+                event.now_playing.station_name,
+                event.now_playing.artist,
+                event.now_playing.track,
+                event.now_playing.state,
+            )
             self.update_now_playing(event.device_id, event.now_playing)
         elif event.event_type == EventType.VOLUME and event.volume:
+            logger.debug(
+                "Device %s volume: actual=%d target=%d muted=%s",
+                event.device_id,
+                event.volume.actual,
+                event.volume.target,
+                event.volume.muted,
+            )
             self.update_volume(event.device_id, event.volume)
         elif event.event_type == EventType.METADATA_ENRICHED and event.now_playing:
+            logger.debug(
+                "Device %s metadata_enriched: artist=%s track=%s art=%s",
+                event.device_id,
+                event.now_playing.artist,
+                event.now_playing.track,
+                bool(event.now_playing.artwork_url),
+            )
             self.update_now_playing(event.device_id, event.now_playing)
+        else:
+            logger.debug(
+                "Device %s unhandled event type: %s",
+                event.device_id,
+                event.event_type.value,
+            )
 
         await self.publish(event)
 
@@ -164,6 +225,43 @@ class DeviceStateManager:
                 await self.on_event(enriched)
         except Exception:
             logger.debug("ICY probe background task failed", exc_info=True)
+
+    async def _icy_poll_loop(self) -> None:
+        """Periodically re-probe ICY metadata for radio-playing devices."""
+        from opencloudtouch.devices.websocket.icy_worker import RADIO_SOURCES
+
+        while True:
+            await asyncio.sleep(_ICY_POLL_INTERVAL)
+            if not self._icy_worker:
+                continue
+            for device_id, state in list(self._states.items()):
+                if not state.now_playing:
+                    continue
+                if state.now_playing.source not in RADIO_SOURCES:
+                    continue
+                if state.now_playing.state != "PLAY_STATE":
+                    continue
+                try:
+                    event = DeviceEvent(
+                        device_id=device_id,
+                        event_type=EventType.NOW_PLAYING,
+                        now_playing=state.now_playing,
+                    )
+                    enriched = await self._icy_worker.poll_stream(event)
+                    if enriched:
+                        await self.on_event(enriched)
+                except Exception:
+                    logger.debug("ICY poll failed for %s", device_id, exc_info=True)
+
+    async def mark_device_offline(self, device_id: str) -> None:
+        """Mark a device as offline and publish connection event via SSE."""
+        self.update_connection(device_id, ConnectionState.FAILED)
+        event = DeviceEvent(
+            device_id=device_id,
+            event_type=EventType.CONNECTION,
+            connection_state=ConnectionState.FAILED,
+        )
+        await self.publish(event)
 
     # -- Internals -----------------------------------------------------------
 

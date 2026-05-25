@@ -236,11 +236,43 @@ async def _init_services(
 
     icy_worker = IcyWorker(get_stream_url=_get_stream_url)
     app.state.device_state_manager.set_icy_worker(icy_worker)
-    logger.info("DeviceStateManager initialized (with ICY worker)")
+    app.state.device_state_manager.start_icy_polling()
+    logger.info("DeviceStateManager initialized (with ICY worker + periodic polling)")
+
+    # WebSocket manager — connects to SoundTouch device WS ports
+    # and forwards events to DeviceStateManager
+    from opencloudtouch.devices.websocket.manager import WebSocketManager
+
+    ws_manager = WebSocketManager(
+        on_event=app.state.device_state_manager.on_event,
+    )
+    app.state.ws_manager = ws_manager
+
+    # Connect to all known devices
+    if not cfg.mock_mode:
+        devices = await device_repo.get_all()
+        device_list = [{"device_id": d.device_id, "ip": d.ip} for d in devices]
+        if device_list:
+            await ws_manager.start(device_list)
+            logger.info("WebSocketManager started for %d device(s)", len(device_list))
+        else:
+            logger.info("WebSocketManager: no devices to connect to")
+    else:
+        logger.info("WebSocketManager: skipped (mock mode)")
 
 
 async def _shutdown(app: FastAPI, repos: dict, logger: logging.Logger) -> None:
     """Graceful shutdown: stop background tasks, close repositories."""
+    # Stop WebSocket manager first (stops pushing events)
+    if hasattr(app.state, "ws_manager"):
+        await app.state.ws_manager.stop()
+        logger.info("WebSocketManager stopped")
+
+    # Stop ICY polling
+    if hasattr(app.state, "device_state_manager"):
+        await app.state.device_state_manager.stop_icy_polling()
+        logger.info("ICY polling stopped")
+
     await app.state.health_check.stop()
     logger.info("Device health-check stopped")
 

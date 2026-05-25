@@ -6,14 +6,17 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 import { useNowPlaying } from "../../src/hooks/useNowPlaying";
 import { _resetOfflineStore } from "../../src/api/offlineDeviceStore";
 
-// Track subscribe/unsubscribe calls for SSE assertions
-const mockSubscribe = vi.fn();
-const mockUnsubscribe = vi.fn();
+// Track subscribe calls and the unsubscribe functions they return
+let mockUnsubFns: ReturnType<typeof vi.fn>[] = [];
+const mockSubscribe = vi.fn((..._args: unknown[]) => {
+  const unsub = vi.fn();
+  mockUnsubFns.push(unsub);
+  return unsub;
+});
 
 vi.mock("../../src/contexts/DeviceEventContext", () => ({
   useDeviceEventContext: () => ({
     subscribe: mockSubscribe,
-    unsubscribe: mockUnsubscribe,
     connected: true,
   }),
 }));
@@ -24,8 +27,8 @@ describe("useNowPlaying – device offline", () => {
   beforeEach(() => {
     _resetOfflineStore();
     mockFetch.mockReset();
-    mockSubscribe.mockReset();
-    mockUnsubscribe.mockReset();
+    mockSubscribe.mockClear();
+    mockUnsubFns = [];
     vi.stubGlobal("fetch", mockFetch);
   });
 
@@ -127,8 +130,8 @@ describe("useNowPlaying – SSE push events", () => {
   beforeEach(() => {
     _resetOfflineStore();
     mockFetch.mockReset();
-    mockSubscribe.mockReset();
-    mockUnsubscribe.mockReset();
+    mockSubscribe.mockClear();
+    mockUnsubFns = [];
     vi.stubGlobal("fetch", mockFetch);
   });
 
@@ -170,16 +173,10 @@ describe("useNowPlaying – SSE push events", () => {
 
     unmount();
 
-    expect(mockUnsubscribe).toHaveBeenCalledWith(
-      "now_playing",
-      "device-42",
-      expect.any(Function),
-    );
-    expect(mockUnsubscribe).toHaveBeenCalledWith(
-      "metadata_enriched",
-      "device-42",
-      expect.any(Function),
-    );
+    // Each subscribe returned an unsub fn — all should be called
+    for (const unsub of mockUnsubFns) {
+      expect(unsub).toHaveBeenCalled();
+    }
   });
 
   it("updates nowPlaying on SSE now_playing event", async () => {
@@ -309,21 +306,19 @@ describe("useNowPlaying – SSE push events", () => {
     const { unmount } = renderHook(() => useNowPlaying("device-99"));
     await waitFor(() => expect(mockSubscribe).toHaveBeenCalled());
 
-    const subscribeCountMount1 = mockSubscribe.mock.calls.length;
-    const unsubscribeCountMount1 = mockUnsubscribe.mock.calls.length;
+    const unsubFnsMount1 = [...mockUnsubFns];
 
     // Unmount (StrictMode first unmount)
     unmount();
 
-    // All subscriptions from mount1 should be unsubscribed
-    const unsubscribeCountAfterUnmount = mockUnsubscribe.mock.calls.length;
-    expect(unsubscribeCountAfterUnmount - unsubscribeCountMount1).toBe(
-      subscribeCountMount1 - unsubscribeCountMount1,
-    );
+    // All unsub fns from mount1 called
+    for (const unsub of unsubFnsMount1) {
+      expect(unsub).toHaveBeenCalled();
+    }
 
     // Remount (StrictMode second mount)
     mockSubscribe.mockClear();
-    mockUnsubscribe.mockClear();
+    mockUnsubFns = [];
 
     const { unmount: unmount2 } = renderHook(() => useNowPlaying("device-99"));
     await waitFor(() => expect(mockSubscribe).toHaveBeenCalled());
@@ -343,6 +338,8 @@ describe("useNowPlaying – SSE push events", () => {
     unmount2();
 
     // All subscriptions cleaned up
-    expect(mockUnsubscribe.mock.calls.length).toBe(mockSubscribe.mock.calls.length);
+    for (const unsub of mockUnsubFns) {
+      expect(unsub).toHaveBeenCalled();
+    }
   });
 });

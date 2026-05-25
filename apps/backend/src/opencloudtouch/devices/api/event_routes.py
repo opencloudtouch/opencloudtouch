@@ -55,6 +55,9 @@ def _event_to_sse(event: DeviceEvent) -> str:
             }
         )
 
+    if event.connection_state is not None:
+        data["connection_state"] = event.connection_state.value
+
     return f"event: {event.event_type.value}\ndata: {json.dumps(data)}\n\n"
 
 
@@ -105,19 +108,27 @@ async def _stream_events(
         # Stream events with keepalive
         while True:
             if await request.is_disconnected():
+                logger.debug("SSE client disconnected (request closed)")
                 break
             try:
                 event: DeviceEvent = await asyncio.wait_for(
                     queue.get(), timeout=_KEEPALIVE_INTERVAL
                 )
-                yield _event_to_sse(event)
+                sse_msg = _event_to_sse(event)
+                logger.debug(
+                    "SSE → %s for device %s",
+                    event.event_type.value,
+                    event.device_id,
+                )
+                yield sse_msg
             except asyncio.TimeoutError:
                 # 2.3.3: Keepalive comment
                 yield ": keepalive\n\n"
     except asyncio.CancelledError:
-        logger.debug("SSE client disconnected")
+        logger.debug("SSE client disconnected (cancelled)")
     finally:
         state_manager.unsubscribe(queue)
+        logger.debug("SSE subscriber cleaned up")
 
 
 @event_router.get("/api/events/device-stream")

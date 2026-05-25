@@ -258,7 +258,7 @@ class TestIcyWorkerEnrichmentLogic:
 
         assert result is not None
         assert result.now_playing is not None
-        # Original artist should be preserved
-        assert result.now_playing.artist == "Original Artist"
+        # ICY data takes precedence (more current than device cache)
+        assert result.now_playing.artist == "ICY Artist"
         # ICY track should fill in missing track
         assert result.now_playing.track == "ICY Track"

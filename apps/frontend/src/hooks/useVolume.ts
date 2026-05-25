@@ -15,8 +15,9 @@ import {
 } from "../api/devices";
 import { isDeviceOffline, markDeviceOffline } from "../api/offlineDeviceStore";
 import { useDeviceEventContext } from "../contexts/DeviceEventContext";
+import { octDebug } from "../utils/debug";
 
-const DEBOUNCE_MS = 300;
+const THROTTLE_MS = 150;
 
 export interface UseVolumeResult {
   volume: number;
@@ -94,10 +95,15 @@ export function useVolume(deviceId: string | undefined): UseVolumeResult {
 
     const unsubscribe = subscribe("volume", deviceId, (data) => {
       // Suppress push updates during active drag
-      if (pendingVolumeRef.current) return;
+      if (pendingVolumeRef.current) {
+        octDebug("Volume", "suppressed SSE during drag", data);
+        return;
+      }
 
       const actual = data.actual as number | undefined;
       const isMuted = data.muted as boolean | undefined;
+
+      octDebug("Volume", `← SSE volume for ${deviceId}`, { actual, muted: isMuted });
 
       if (actual !== undefined) setVolume(actual);
       if (isMuted !== undefined) setMuted(isMuted);
@@ -109,10 +115,22 @@ export function useVolume(deviceId: string | undefined): UseVolumeResult {
       }
     });
 
-    return unsubscribe;
+    const unsubConnection = subscribe("connection", deviceId, (data) => {
+      if ((data as Record<string, unknown>).connection_state === "FAILED") {
+        octDebug("Volume", "← SSE connection FAILED → offline", data);
+        markDeviceOffline(deviceId);
+        setDeviceOffline(true);
+        offlineRef.current = true;
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      unsubConnection();
+    };
   }, [deviceId, subscribe]);
 
-  // Debounced volume setter — auto-unmutes when muted
+  // Throttled volume setter — sends API calls during drag, not just on drop
   const setDeviceVolume = useCallback(
     (level: number) => {
       if (!deviceId) return;
@@ -137,7 +155,7 @@ export function useVolume(deviceId: string | undefined): UseVolumeResult {
         } finally {
           pendingVolumeRef.current = false;
         }
-      }, DEBOUNCE_MS);
+      }, THROTTLE_MS);
     },
     [deviceId]
   );
