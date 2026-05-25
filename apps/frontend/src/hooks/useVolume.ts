@@ -1,7 +1,7 @@
 /**
  * Custom hook for device volume control.
  *
- * Syncs volume slider with backend device state.
+ * Uses SSE push events for real-time volume updates.
  * Debounces volume changes to avoid flooding the device API.
  */
 
@@ -14,8 +14,8 @@ import {
   type VolumeState,
 } from "../api/devices";
 import { isDeviceOffline, markDeviceOffline } from "../api/offlineDeviceStore";
+import { useDeviceEventContext } from "../contexts/DeviceEventContext";
 
-const POLL_INTERVAL_MS = 5000;
 const DEBOUNCE_MS = 300;
 
 export interface UseVolumeResult {
@@ -35,44 +35,37 @@ export function useVolume(deviceId: string | undefined): UseVolumeResult {
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const pendingVolumeRef = useRef(false);
   const offlineRef = useRef(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
-  // Fetch volume from device
-  const fetchVolume = useCallback(
-    async (force = false) => {
-      if (!deviceId || pendingVolumeRef.current || (!force && offlineRef.current)) return;
-      // Session-level offline check
-      if (isDeviceOffline(deviceId)) {
-        if (!offlineRef.current) {
-          offlineRef.current = true;
-          setDeviceOffline(true);
-        }
-        return;
-      }
-      try {
-        const vol: VolumeState = await getVolume(deviceId);
-        setVolume(vol.actual);
-        setMuted(vol.muted);
-        setDeviceOffline(false);
-        offlineRef.current = false;
-      } catch (err) {
-        if (isDeviceOfflineError(err)) {
-          markDeviceOffline(deviceId);
-          setDeviceOffline(true);
-          offlineRef.current = true;
-          // Stop polling — device is offline
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = undefined;
-          }
-        }
-        console.warn("[useVolume] Failed to fetch volume:", err);
-      }
-    },
-    [deviceId]
-  );
+  const { subscribe } = useDeviceEventContext();
 
-  // Initial fetch + polling
+  // Fetch volume from device (initial load only)
+  const fetchVolume = useCallback(async () => {
+    if (!deviceId) return;
+    // Session-level offline check
+    if (isDeviceOffline(deviceId)) {
+      if (!offlineRef.current) {
+        offlineRef.current = true;
+        setDeviceOffline(true);
+      }
+      return;
+    }
+    try {
+      const vol: VolumeState = await getVolume(deviceId);
+      setVolume(vol.actual);
+      setMuted(vol.muted);
+      setDeviceOffline(false);
+      offlineRef.current = false;
+    } catch (err) {
+      if (isDeviceOfflineError(err)) {
+        markDeviceOffline(deviceId);
+        setDeviceOffline(true);
+        offlineRef.current = true;
+      }
+      console.warn("[useVolume] Failed to fetch volume:", err);
+    }
+  }, [deviceId]);
+
+  // Initial fetch on mount / device change
   useEffect(() => {
     if (!deviceId) {
       setDeviceOffline(false);
@@ -92,22 +85,32 @@ export function useVolume(deviceId: string | undefined): UseVolumeResult {
     offlineRef.current = false;
 
     setLoading(true);
-    fetchVolume()
-      .then(() => {
-        // Only start polling if device is still online after initial fetch
-        if (!offlineRef.current) {
-          intervalRef.current = setInterval(fetchVolume, POLL_INTERVAL_MS);
-        }
-      })
-      .finally(() => setLoading(false));
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = undefined;
-      }
-    };
+    fetchVolume().finally(() => setLoading(false));
   }, [deviceId, fetchVolume]);
+
+  // SSE subscription for volume push events
+  useEffect(() => {
+    if (!deviceId) return;
+
+    const unsubscribe = subscribe("volume", deviceId, (data) => {
+      // Suppress push updates during active drag
+      if (pendingVolumeRef.current) return;
+
+      const actual = data.actual as number | undefined;
+      const isMuted = data.muted as boolean | undefined;
+
+      if (actual !== undefined) setVolume(actual);
+      if (isMuted !== undefined) setMuted(isMuted);
+
+      // Device is responding via SSE — it's online
+      if (offlineRef.current) {
+        offlineRef.current = false;
+        setDeviceOffline(false);
+      }
+    });
+
+    return unsubscribe;
+  }, [deviceId, subscribe]);
 
   // Debounced volume setter — auto-unmutes when muted
   const setDeviceVolume = useCallback(
