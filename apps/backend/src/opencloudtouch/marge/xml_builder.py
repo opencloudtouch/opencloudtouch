@@ -7,32 +7,9 @@ from typing import Any
 from xml.etree import ElementTree as ET
 
 from opencloudtouch.core.config import get_config
+from opencloudtouch.core.source_types import BASE_SOURCES
 
 logger = logging.getLogger(__name__)
-
-# All source types known from real SoundTouch device dumps.
-# Tuples: (streaming_id, name, created_on_timestamp)
-# IDs: TUNEIN=25, LOCAL_INTERNET_RADIO=11 from ueberboese-api.yaml;
-# remaining IDs are synthetic (no official registry exists).
-_TS_2013 = "2013-01-01T00:00:00.000+00:00"
-_TS_2014 = "2014-01-01T00:00:00.000+00:00"
-KNOWN_SOURCE_PROVIDERS: list[tuple[str, str, str]] = [
-    ("25", "TUNEIN", "2012-09-19T12:43:00.000+00:00"),
-    ("11", "LOCAL_INTERNET_RADIO", _TS_2014),
-    ("12", "INTERNET_RADIO", _TS_2014),
-    ("30", "SPOTIFY", "2014-06-01T00:00:00.000+00:00"),
-    ("31", "AMAZON", "2015-01-01T00:00:00.000+00:00"),
-    ("32", "DEEZER", "2015-01-01T00:00:00.000+00:00"),
-    ("40", "BLUETOOTH", _TS_2013),
-    ("41", "AUX", _TS_2013),
-    ("42", "AIRPLAY", "2018-01-01T00:00:00.000+00:00"),
-    ("43", "ALEXA", "2017-01-01T00:00:00.000+00:00"),
-    ("50", "STORED_MUSIC", _TS_2014),
-    ("51", "STORED_MUSIC_MEDIA_RENDERER", _TS_2014),
-    ("52", "UPNP", _TS_2014),
-    ("53", "QPLAY", _TS_2014),
-    ("60", "NOTIFICATION", _TS_2013),
-]
 
 
 def _build_orion_location(station_url: str, station_name: str, image_url: str) -> str:
@@ -169,9 +146,9 @@ def build_sources_xml() -> ET.Element:
     """
     sources_elem = ET.Element("sources")
 
-    for _, source_name, _ in KNOWN_SOURCE_PROVIDERS:
+    for src in BASE_SOURCES:
         source_elem = ET.SubElement(sources_elem, "source")
-        source_elem.set("source", source_name)
+        source_elem.set("source", src.source_type)
         source_elem.set("status", "AVAILABLE")
 
     return sources_elem
