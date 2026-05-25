@@ -18,6 +18,7 @@ from opencloudtouch.core.exceptions import DeviceNotFoundError, DomainValidation
 from opencloudtouch.devices.client import NowPlayingInfo, VolumeInfo
 from opencloudtouch.core.dependencies import (
     get_device_service,
+    get_device_state_manager,
     get_preset_service,
     get_settings_service,
 )
@@ -51,9 +52,13 @@ def mock_preset_service():
 @pytest.fixture
 def client(mock_device_service, mock_settings_service, mock_preset_service):
     """FastAPI test client with dependency override."""
+    from opencloudtouch.devices.state import DeviceStateManager
+
+    state_manager = DeviceStateManager()
     app.dependency_overrides[get_device_service] = lambda: mock_device_service
     app.dependency_overrides[get_settings_service] = lambda: mock_settings_service
     app.dependency_overrides[get_preset_service] = lambda: mock_preset_service
+    app.dependency_overrides[get_device_state_manager] = lambda: state_manager
     yield TestClient(app)
     app.dependency_overrides.clear()
 

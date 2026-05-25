@@ -15,6 +15,7 @@ from opencloudtouch.api import devices_router
 from opencloudtouch.bmx.radiobrowser_routes import radiobrowser_router
 from opencloudtouch.bmx.resolve_routes import resolve_router
 from opencloudtouch.devices.api.discovery_routes import discovery_router
+from opencloudtouch.devices.api.event_routes import event_router
 from opencloudtouch.bmx.routes import router as bmx_router
 from opencloudtouch.core.config import get_config, init_config
 from opencloudtouch import __version__, is_official_build
@@ -31,6 +32,7 @@ from opencloudtouch.core.static_files import (
 from opencloudtouch.db import DeviceRepository
 from opencloudtouch.devices.adapter import get_discovery_adapter
 from opencloudtouch.devices.health_check import DeviceHealthCheck
+from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.devices.api.preset_stream_routes import (
     descriptor_router as device_descriptor_router,
 )
@@ -215,6 +217,10 @@ async def _init_services(
         logger.info("Device health-check started")
     app.state.health_check = health_check
 
+    # Device state manager (WebSocket push → state cache → SSE relay)
+    app.state.device_state_manager = DeviceStateManager()
+    logger.info("DeviceStateManager initialized")
+
 
 async def _shutdown(app: FastAPI, repos: dict, logger: logging.Logger) -> None:
     """Graceful shutdown: stop background tasks, close repositories."""
@@ -293,6 +299,7 @@ app.include_router(device_zone_router)  # Per-device zone status
 app.include_router(logs_router)  # Backend log download
 app.include_router(bug_report_router)  # Bug report submission
 app.include_router(wizard_audit_router)  # Wizard audit trail
+app.include_router(event_router)  # SSE device event stream
 
 
 # Health endpoint

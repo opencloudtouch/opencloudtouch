@@ -10,7 +10,12 @@ from typing import Annotated, TypeVar
 from fastapi import APIRouter, Body, Depends, HTTPException
 
 from opencloudtouch.core.config import AppConfig, get_config
-from opencloudtouch.core.dependencies import get_device_service, get_preset_service
+from opencloudtouch.core.dependencies import (
+    get_device_service,
+    get_device_state_manager,
+    get_preset_service,
+)
+from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.core.exceptions import (
     DeviceConnectionError,
     DeviceNotFoundError,
@@ -321,13 +326,19 @@ async def get_now_playing(
     device_id: str,
     device_service: Annotated[DeviceService, Depends(get_device_service)],
     preset_service: Annotated[PresetService, Depends(get_preset_service)],
+    state_manager: DeviceStateManager = Depends(get_device_state_manager),
 ) -> dict[str, object]:
     """Get current playback status for a device."""
-    info = await _device_op(
-        device_id,
-        "get playback status",
-        device_service.get_now_playing(device_id),
-    )
+    cfg = get_config()
+    cached = state_manager.get_state(device_id)
+    if cached and cached.now_playing and cached.is_fresh(cfg.state_cache_max_age):
+        info = cached.now_playing
+    else:
+        info = await _device_op(
+            device_id,
+            "get playback status",
+            device_service.get_now_playing(device_id),
+        )
     result: dict[str, object] = {
         "source": info.source,
         "state": info.state,
@@ -376,13 +387,19 @@ async def get_now_playing(
 async def get_volume(
     device_id: str,
     device_service: DeviceService = Depends(get_device_service),
+    state_manager: DeviceStateManager = Depends(get_device_state_manager),
 ):
     """Get current volume state for a device."""
-    vol = await _device_op(
-        device_id,
-        "get volume",
-        device_service.get_volume(device_id),
-    )
+    cfg = get_config()
+    cached = state_manager.get_state(device_id)
+    if cached and cached.volume and cached.is_fresh(cfg.state_cache_max_age):
+        vol = cached.volume
+    else:
+        vol = await _device_op(
+            device_id,
+            "get volume",
+            device_service.get_volume(device_id),
+        )
     return {"actual": vol.actual, "target": vol.target, "muted": vol.muted}
 
 
