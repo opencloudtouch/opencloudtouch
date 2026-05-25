@@ -64,9 +64,9 @@ FROM python:3.11-slim@sha256:0b23cfb7425d065008b778022a17b1551c82f8b4866ee5a7a20
 # OCI Image Labels
 LABEL org.opencontainers.image.title="OpenCloudTouch" \
       org.opencontainers.image.description="Local control for Bose SoundTouch devices after cloud shutdown" \
-      org.opencontainers.image.url="https://github.com/scheilch/opencloudtouch" \
-      org.opencontainers.image.source="https://github.com/scheilch/opencloudtouch" \
-      org.opencontainers.image.documentation="https://github.com/scheilch/opencloudtouch/wiki" \
+      org.opencontainers.image.url="https://github.com/opencloudtouch/opencloudtouch" \
+      org.opencontainers.image.source="https://github.com/opencloudtouch/opencloudtouch" \
+      org.opencontainers.image.documentation="https://github.com/opencloudtouch/opencloudtouch/wiki" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.vendor="OpenCloudTouch"
 

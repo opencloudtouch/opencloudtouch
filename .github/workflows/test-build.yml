@@ -47,8 +47,11 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: scheilch/opencloudtouch
+  IMAGE_NAME: opencloudtouch/opencloudtouch
   PI_GEN_REPO: https://github.com/RPi-Distro/pi-gen.git
+
+# Least-privilege: no default permissions. Jobs declare what they need.
+permissions: {}
 
 jobs:
   # ============================================================================
@@ -351,7 +354,7 @@ jobs:
           cp deployment/raspi-image/files/* pi-gen/stage-opencloudtouch/01-configure-oct/files/
 
           OCT_TAG="${{ inputs.image_tag }}"
-          sed -i "s|ghcr.io/scheilch/opencloudtouch:latest|ghcr.io/scheilch/opencloudtouch:${OCT_TAG}|g" \
+          sed -i "s|ghcr.io/opencloudtouch/opencloudtouch:latest|ghcr.io/opencloudtouch/opencloudtouch:${OCT_TAG}|g" \
             pi-gen/stage-opencloudtouch/01-configure-oct/files/docker-compose.yml
 
           touch pi-gen/stage-opencloudtouch/EXPORT_IMAGE

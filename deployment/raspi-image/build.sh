@@ -192,7 +192,7 @@ install_stage() {
 
     # Set OCT version in compose file
     if [[ "$OCT_VERSION" != "latest" ]]; then
-        sed -i "s|ghcr.io/scheilch/opencloudtouch:latest|ghcr.io/scheilch/opencloudtouch:${OCT_VERSION}|g" \
+        sed -i "s|ghcr.io/opencloudtouch/opencloudtouch:latest|ghcr.io/opencloudtouch/opencloudtouch:${OCT_VERSION}|g" \
             "${stage_target}/01-configure-oct/files/docker-compose.yml"
     fi
 

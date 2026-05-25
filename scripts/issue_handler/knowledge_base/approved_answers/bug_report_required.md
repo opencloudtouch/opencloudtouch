@@ -24,6 +24,6 @@ Thank you for taking the time to report a bug! To help us investigate and fix th
 
 ## Bug Report Template
 
-You can use our [bug report template](https://github.com/scheilch/opencloudtouch/issues/new?template=bug_report.yml) for a structured report.
+You can use our [bug report template](https://github.com/opencloudtouch/opencloudtouch/issues/new?template=bug_report.yml) for a structured report.
 
 The more details you provide, the faster we can identify and fix the issue!

@@ -68,11 +68,19 @@ on:
         required: false
         default: false
         type: boolean
+    secrets:
+      BUILD_SIGNING_KEY:
+        required: true
+      GITHUB_TOKEN:
+        required: true
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: scheilch/opencloudtouch
+  IMAGE_NAME: opencloudtouch/opencloudtouch
   PI_GEN_REPO: https://github.com/RPi-Distro/pi-gen.git
+
+# Least-privilege: no default permissions. Jobs declare what they need.
+permissions: {}
 
 jobs:
   # ============================================================================
@@ -156,7 +164,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=trivy-scan
 
       - name: Run Trivy vulnerability scanner (blocking)
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: 'opencloudtouch:test'
           format: 'table'
@@ -165,7 +173,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Run Trivy with JSON output (artifact)
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         if: always()
         with:
           image-ref: 'opencloudtouch:test'
@@ -479,7 +487,7 @@ jobs:
 
           OCT_VERSION="${{ inputs.version }}"
           if [ -n "$OCT_VERSION" ] && [ "$OCT_VERSION" != "latest" ]; then
-            sed -i "s|ghcr.io/scheilch/opencloudtouch:latest|ghcr.io/scheilch/opencloudtouch:${OCT_VERSION}|g" \
+            sed -i "s|ghcr.io/opencloudtouch/opencloudtouch:latest|ghcr.io/opencloudtouch/opencloudtouch:${OCT_VERSION}|g" \
               pi-gen/stage-opencloudtouch/01-configure-oct/files/docker-compose.yml
           fi
 

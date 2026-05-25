@@ -17,6 +17,9 @@ on:
 
   workflow_dispatch:
 
+# Least-privilege: no default permissions. Jobs declare what they need.
+permissions: {}
+
 jobs:
   # ============================================================================
   # SECURITY SCANNING
@@ -165,15 +168,6 @@ jobs:
           OCT_HAS_DEVICES: "false"
           CI: "true"
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
-        with:
-          files: ./.out/coverage/backend/coverage.xml
-          flags: backend
-          name: backend-coverage
-          fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
-
       - name: Upload coverage JSON (for summary)
         uses: actions/upload-artifact@v7
         if: always()
@@ -211,15 +205,6 @@ jobs:
       - name: Run unit tests with coverage
         working-directory: apps/frontend
         run: npm run test:coverage
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
-        with:
-          files: ./.out/coverage/frontend/lcov.info
-          flags: frontend
-          name: frontend-coverage
-          fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload coverage JSON (for summary)
         uses: actions/upload-artifact@v7
@@ -312,6 +297,11 @@ jobs:
     name: SonarCloud
     runs-on: ubuntu-latest
     needs: [backend-tests, frontend-tests]
+    # Skip for fork PRs — SONAR_TOKEN is not available in fork context.
+    # Sonar analysis runs on main via sonar.yml after merge instead.
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
       - name: Checkout code
@@ -337,8 +327,8 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v8
         with:
           args: >
-            -Dsonar.projectKey=scheilch_opencloudtouch
-            -Dsonar.organization=scheilscm
+            -Dsonar.projectKey=opencloudtouch_opencloudtouch
+            -Dsonar.organization=opencloudtouch
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -351,6 +341,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [security, format, lint, backend-tests, frontend-tests, e2e-tests]
     if: always()
+    permissions:
+      pull-requests: write
 
     steps:
       - name: Download backend coverage
@@ -402,3 +394,56 @@ jobs:
              [[ "${{ needs.frontend-tests.result }}" != "success" ]]; then
             exit 1
           fi
+
+      - name: Post CI summary as PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const statusIcon = (result) => result === 'success' ? '✅' : result === 'skipped' ? '⏭️' : '❌';
+            const jobs = [
+              ['Security Scan', '${{ needs.security.result }}'],
+              ['Format Check', '${{ needs.format.result }}'],
+              ['Lint', '${{ needs.lint.result }}'],
+              ['Backend Tests', '${{ needs.backend-tests.result }}'],
+              ['Frontend Tests', '${{ needs.frontend-tests.result }}'],
+              ['E2E Tests', '${{ needs.e2e-tests.result }}'],
+            ];
+
+            const allPassed = jobs.every(([_, r]) => r === 'success');
+            const header = allPassed ? '## ✅ CI Passed' : '## ❌ CI Failed';
+
+            let body = `${header}\n\n`;
+            body += '| Job | Status |\n';
+            body += '|-----|--------|\n';
+            for (const [name, result] of jobs) {
+              body += `| ${name} | ${statusIcon(result)} ${result} |\n`;
+            }
+            body += `\n🔗 [Full details](${context.payload.pull_request.html_url}/checks)\n`;
+
+            // Use sticky comment (update existing instead of spamming)
+            const marker = '<!-- ci-summary -->';
+            body = marker + '\n' + body;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body,
+              });
+            }

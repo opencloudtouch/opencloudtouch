@@ -6,7 +6,7 @@ body:
         ## Setup & Installation Help
 
         Please provide as much detail as possible so we can help you quickly.
-        **For bug reports**, please use [Bug Report](https://github.com/scheilch/opencloudtouch/issues/new?template=bug_report.yml) instead.
+        **For bug reports**, please use [Bug Report](https://github.com/opencloudtouch/opencloudtouch/issues/new?template=bug_report.yml) instead.
 
   - type: dropdown
     id: install-method

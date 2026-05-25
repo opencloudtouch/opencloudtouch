@@ -5,8 +5,9 @@ import { useDevices } from "../hooks/useDevices";
 import { Skeleton } from "./LoadingSkeleton";
 import "./AboutSection.css";
 
-const GITHUB_URL = "https://github.com/scheilch/opencloudtouch";
-const ISSUES_URL = "https://github.com/scheilch/opencloudtouch/issues/new?template=bug_report.yml";
+const GITHUB_URL = "https://github.com/opencloudtouch/opencloudtouch";
+const ISSUES_URL =
+  "https://github.com/opencloudtouch/opencloudtouch/issues/new?template=bug_report.yml";
 const BMC_URL = "https://buymeacoffee.com/b49rjg5k6vj";
 
 const CONTRIBUTORS = [

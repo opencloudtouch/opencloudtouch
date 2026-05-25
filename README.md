@@ -14,9 +14,9 @@ Keep your SoundTouch® speakers (e.g. SoundTouch® 10/30/300) running — withou
 
 | | |
 |---|---|
-| **Documentation** | [GitHub Wiki](https://github.com/scheilch/opencloudtouch/wiki) (Deutsch / English) |
-| **Discussions** | [GitHub Discussions](https://github.com/scheilch/opencloudtouch/discussions) |
-| **Releases** | [GitHub Releases](https://github.com/scheilch/opencloudtouch/releases) |
+| **Documentation** | [GitHub Wiki](https://github.com/opencloudtouch/opencloudtouch/wiki) (Deutsch / English) |
+| **Discussions** | [GitHub Discussions](https://github.com/opencloudtouch/opencloudtouch/discussions) |
+| **Releases** | [GitHub Releases](https://github.com/opencloudtouch/opencloudtouch/releases) |
 
 ## Features
 
@@ -52,7 +52,7 @@ docker run -d \
   --network host \
   -v opencloudtouch-data:/data \
   -e OCT_DISCOVERY_ENABLED=true \
-  ghcr.io/scheilch/opencloudtouch:latest
+  ghcr.io/opencloudtouch/opencloudtouch:latest
 ```
 
 Open **http://localhost:7777** in your browser.
@@ -65,7 +65,7 @@ docker run -d \
   --network host \
   -v opencloudtouch-data:/data \
   -e OCT_DISCOVERY_ENABLED=true \
-  ghcr.io/scheilch/opencloudtouch:latest
+  ghcr.io/opencloudtouch/opencloudtouch:latest
 ```
 
 Or use the provided compose file (pull mode, no build required):
@@ -89,7 +89,7 @@ docker compose -f deployment/docker-compose.yml down
 
 ### Option 3 — Raspberry Pi (SD Card Image)
 
-Pre-built images for Raspberry Pi 3/4/5 are available on the [Releases page](https://github.com/scheilch/opencloudtouch/releases).
+Pre-built images for Raspberry Pi 3/4/5 are available on the [Releases page](https://github.com/opencloudtouch/opencloudtouch/releases).
 
 1. Download the `.img.xz` for your board
 2. Flash with [Raspberry Pi Imager](https://www.raspberrypi.com/software/)
@@ -216,7 +216,7 @@ Contributions are welcome! See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for gu
 
 ## Community
 
-Join the conversation in [GitHub Discussions](https://github.com/scheilch/opencloudtouch/discussions) — ask questions, share your setup, or suggest features.
+Join the conversation in [GitHub Discussions](https://github.com/opencloudtouch/opencloudtouch/discussions) — ask questions, share your setup, or suggest features.
 
 ## License
 

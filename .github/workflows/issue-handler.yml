@@ -25,18 +25,18 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
       - name: Install dependencies
         run: pip install -r scripts/issue_handler/requirements.txt
 
       - name: Restore cost tracker cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: /tmp/ai-cost-tracker
           key: ai-cost-tracker-${{ github.run_id }}
@@ -54,7 +54,7 @@ jobs:
 
       - name: Save cost tracker cache
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: /tmp/ai-cost-tracker
           key: ai-cost-tracker-${{ github.run_id }}

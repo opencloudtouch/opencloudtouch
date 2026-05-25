@@ -15,7 +15,7 @@ class TestWebhookEventFromIssueOpened:
         assert event.sender_login == "community-user"
         assert event.sender_type == "User"
         assert event.author_association == "NONE"
-        assert event.repo_owner == "scheilch"
+        assert event.repo_owner == "opencloudtouch"
         assert event.repo_name == "opencloudtouch"
         assert event.issue_number == 42
         assert "firmware update" in event.title

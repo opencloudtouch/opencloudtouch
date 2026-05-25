@@ -37,6 +37,9 @@ env:
   REPO_NODE_ID: "R_kgDORCYFTw"
   ANNOUNCEMENT_CATEGORY_ID: "DIC_kwDORCYFT84C5HnX"
 
+# Least-privilege: no default permissions. Jobs declare what they need.
+permissions: {}
+
 jobs:
   # ============================================================================
   # RESOLVE VERSION (from event or input)

@@ -28,7 +28,7 @@ User needed help installing Docker for OpenCloudTouch.
 2. Run the container
 
 ## See Also
-- [README](https://github.com/scheilch/opencloudtouch#readme)
+- [README](https://github.com/opencloudtouch/opencloudtouch#readme)
 """
 
 
