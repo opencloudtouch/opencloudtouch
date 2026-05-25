@@ -128,7 +128,11 @@ export function useNowPlaying(deviceId: string | undefined): UseNowPlayingResult
             prevTrack: prev.track,
             newTrack: incoming.track,
           });
-          return incoming;
+          // Preserve artwork if incoming has none (same station, new song)
+          return {
+            ...incoming,
+            artwork_url: incoming.artwork_url || prev.artwork_url,
+          };
         }
 
         octDebug("NowPlaying", "same station+track → merge (preserve metadata)", {
