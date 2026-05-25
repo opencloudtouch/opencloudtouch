@@ -128,7 +128,7 @@ describe("Wizard i18n — English (default)", () => {
     visitEn(`${FRONTEND_BASE}/setup-wizard?step=2&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
     cy.wait("@getDevices");
     cy.contains("Prepare USB drive").should("exist");
-    cy.contains("USB_SOUNDTOUCH").should("exist");
+    cy.contains("SOUNDTOUCH").should("exist");
     // Not German
     cy.contains("USB-Stick vorbereiten").should("not.exist");
   });

@@ -174,9 +174,9 @@ class GitHubClient:
         )
 
     async def get_issue_state(self, issue_number: int) -> str:
-        """Get current issue state. Returns 'deleted' if 404."""
+        """Get current issue state. Returns 'deleted' if 404/410."""
         response = await self._bot_client.get(self._repo_url(f"/issues/{issue_number}"))
-        if response.status_code == 404:
+        if response.status_code in (404, 410):
             return "deleted"
         response.raise_for_status()
         return response.json().get("state", "unknown")

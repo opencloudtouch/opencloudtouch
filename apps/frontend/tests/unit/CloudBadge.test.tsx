@@ -3,7 +3,7 @@ import { render } from "@testing-library/react";
 import CloudBadge from "../../src/components/CloudBadge";
 
 describe("CloudBadge Component", () => {
-  describe("Default behavior (HAS_EXT_RESOLVER=true)", () => {
+  describe("Default behavior (HAS_TUNEIN_SUPPORT=true)", () => {
     it("should render compatible badge when not cloud-dependent", () => {
       const { container } = render(
         <CloudBadge isCloudDependent={false} />
@@ -29,10 +29,10 @@ describe("CloudBadge Component", () => {
     });
   });
 
-  describe("Feature Toggle (HAS_EXT_RESOLVER=false)", () => {
+  describe("Feature Toggle (HAS_TUNEIN_SUPPORT=false)", () => {
     it("should render nothing for TUNEIN cloud-dependent source when flag is false", async () => {
       vi.resetModules();
-      vi.doMock("../../src/config/capabilities", () => ({ HAS_EXT_RESOLVER: false }));
+      vi.doMock("../../src/config/capabilities", () => ({ HAS_TUNEIN_SUPPORT: false }));
       const { default: CloudBadgeGated } = await import("../../src/components/CloudBadge");
 
       const { container } = render(
@@ -47,7 +47,7 @@ describe("CloudBadge Component", () => {
 
     it("should still render compatible badge when flag is false and not cloud-dependent", async () => {
       vi.resetModules();
-      vi.doMock("../../src/config/capabilities", () => ({ HAS_EXT_RESOLVER: false }));
+      vi.doMock("../../src/config/capabilities", () => ({ HAS_TUNEIN_SUPPORT: false }));
       const { default: CloudBadgeGated } = await import("../../src/components/CloudBadge");
 
       const { container } = render(
@@ -61,7 +61,7 @@ describe("CloudBadge Component", () => {
 
     it("should still render dependent badge for non-TUNEIN source when flag is false", async () => {
       vi.resetModules();
-      vi.doMock("../../src/config/capabilities", () => ({ HAS_EXT_RESOLVER: false }));
+      vi.doMock("../../src/config/capabilities", () => ({ HAS_TUNEIN_SUPPORT: false }));
       const { default: CloudBadgeGated } = await import("../../src/components/CloudBadge");
 
       const { container } = render(

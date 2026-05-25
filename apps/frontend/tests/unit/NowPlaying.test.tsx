@@ -446,10 +446,10 @@ describe("NowPlaying Component", () => {
     });
   });
 
-  describe("Feature Toggle (HAS_EXT_RESOLVER)", () => {
-    it("should not show badge for TUNEIN source when HAS_EXT_RESOLVER is false", async () => {
+  describe("Feature Toggle (HAS_TUNEIN_SUPPORT)", () => {
+    it("should not show badge for TUNEIN source when HAS_TUNEIN_SUPPORT is false", async () => {
       vi.resetModules();
-      vi.doMock("../../src/config/capabilities", () => ({ HAS_EXT_RESOLVER: false }));
+      vi.doMock("../../src/config/capabilities", () => ({ HAS_TUNEIN_SUPPORT: false }));
       const { default: NowPlayingGated } = await import("../../src/components/NowPlaying");
 
       const nowPlaying = {
@@ -465,7 +465,7 @@ describe("NowPlaying Component", () => {
       vi.doUnmock("../../src/config/capabilities");
     });
 
-    it("should show Radio badge for TUNEIN source when HAS_EXT_RESOLVER is true", () => {
+    it("should show Radio badge for TUNEIN source when HAS_TUNEIN_SUPPORT is true", () => {
       const nowPlaying = {
         station: "TuneIn Station",
         source: "TUNEIN",
@@ -479,7 +479,7 @@ describe("NowPlaying Component", () => {
 
     it("should always show Radio badge for INTERNET_RADIO regardless of flag", async () => {
       vi.resetModules();
-      vi.doMock("../../src/config/capabilities", () => ({ HAS_EXT_RESOLVER: false }));
+      vi.doMock("../../src/config/capabilities", () => ({ HAS_TUNEIN_SUPPORT: false }));
       const { default: NowPlayingGated } = await import("../../src/components/NowPlaying");
 
       const nowPlaying = {

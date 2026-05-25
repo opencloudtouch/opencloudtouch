@@ -161,6 +161,12 @@ class TestIssueStateCheck:
             assert state == "deleted"
 
     @pytest.mark.asyncio
+    async def test_get_issue_state_gone(self, client: GitHubClient) -> None:
+        with patch.object(client._bot_client, "get", new_callable=AsyncMock, return_value=_resp(410, {"message": "Gone"}, "GET")):
+            state = await client.get_issue_state(42)
+            assert state == "deleted"
+
+    @pytest.mark.asyncio
     async def test_get_issue_state_closed(self, client: GitHubClient) -> None:
         with patch.object(client._bot_client, "get", new_callable=AsyncMock, return_value=_resp(200, {"state": "closed"}, "GET")):
             state = await client.get_issue_state(42)
