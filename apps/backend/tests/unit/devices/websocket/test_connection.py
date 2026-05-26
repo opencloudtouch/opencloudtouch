@@ -47,6 +47,13 @@ class TestDeviceWebSocketInit:
     def test_uri(self, device_ws):
         assert device_ws.uri == "ws://192.168.1.10:8080/"
 
+    def test_health_info_disconnected(self, device_ws):
+        info = device_ws.health_info()
+        assert info["state"] == "disconnected"
+        assert info["events_received"] == 0
+        assert "uptime_s" not in info
+        assert "attempt" not in info
+
 
 class TestDeviceWebSocketConnect:
     @pytest.mark.asyncio

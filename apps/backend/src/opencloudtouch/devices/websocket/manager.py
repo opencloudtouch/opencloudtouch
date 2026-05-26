@@ -76,7 +76,9 @@ class WebSocketManager:
                 await asyncio.sleep(_STAGGER_DELAY)
 
         logger.info(
-            "WebSocket manager started for %d device(s)", len(self._connections)
+            "ws.manager.started for %d device(s)",
+            len(self._connections),
+            extra={"device_count": len(self._connections)},
         )
 
     async def stop(self) -> None:
@@ -85,7 +87,7 @@ class WebSocketManager:
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
         self._connections.clear()
-        logger.info("WebSocket manager stopped")
+        logger.info("ws.manager.stopped")
 
     async def connect_device(self, device_id: str, ip: str) -> None:
         """Connect to a single device.
@@ -108,7 +110,12 @@ class WebSocketManager:
         )
         self._connections[device_id] = ws
         await ws.connect()
-        logger.info("Device %s WebSocket connected at %s", device_id, ip)
+        logger.info(
+            "ws.connected %s at %s",
+            device_id,
+            ip,
+            extra={"device_id": device_id, "ip": ip},
+        )
 
     async def disconnect_device(self, device_id: str) -> None:
         """Disconnect a single device.
@@ -119,7 +126,11 @@ class WebSocketManager:
         ws = self._connections.pop(device_id, None)
         if ws:
             await ws.disconnect()
-            logger.info("Device %s WebSocket disconnected", device_id)
+            logger.info(
+                "ws.disconnected %s",
+                device_id,
+                extra={"device_id": device_id},
+            )
 
     async def reconnect_device(self, device_id: str, new_ip: str) -> None:
         """Reconnect a device with a new IP address.
@@ -130,7 +141,32 @@ class WebSocketManager:
         """
         await self.disconnect_device(device_id)
         await self.connect_device(device_id, new_ip)
-        logger.info("Device %s WebSocket reconnected at %s", device_id, new_ip)
+        logger.info(
+            "ws.reconnected %s at %s",
+            device_id,
+            new_ip,
+            extra={"device_id": device_id, "ip": new_ip},
+        )
+
+    async def ensure_connection(self, device_id: str, ip: str) -> None:
+        """Ensure device is connected at the given IP.
+
+        If the device is already connected at the same IP, this is a no-op.
+        If the IP changed, reconnects. If the device is new, connects.
+        """
+        existing = self._connections.get(device_id)
+        if existing is None:
+            await self.connect_device(device_id, ip)
+            return
+        if existing.ip != ip:
+            logger.info(
+                "ws.ip_changed %s %s → %s",
+                device_id,
+                existing.ip,
+                ip,
+                extra={"device_id": device_id, "old_ip": existing.ip, "new_ip": ip},
+            )
+            await self.reconnect_device(device_id, ip)
 
     def get_status(self) -> dict[str, ConnectionState]:
         """Get connection state for all managed devices.
@@ -139,3 +175,17 @@ class WebSocketManager:
             Dict mapping device_id to ConnectionState.
         """
         return {device_id: ws.state for device_id, ws in self._connections.items()}
+
+    def get_health(self) -> dict:
+        """Get detailed health info for all managed connections."""
+        connections = {
+            device_id: ws.health_info() for device_id, ws in self._connections.items()
+        }
+        total_connected = sum(
+            1 for info in connections.values() if info["state"] == "connected"
+        )
+        return {
+            "connections": connections,
+            "total_connected": total_connected,
+            "total_devices": len(connections),
+        }

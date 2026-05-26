@@ -188,3 +188,98 @@ class TestWebSocketManagerStatus:
     @pytest.mark.asyncio
     async def test_get_status_empty(self, manager):
         assert manager.get_status() == {}
+
+    @pytest.mark.asyncio
+    async def test_get_health(self, manager):
+        with patch(
+            "opencloudtouch.devices.websocket.manager.DeviceWebSocket"
+        ) as MockWS:
+            mock1 = MagicMock()
+            mock1.connect = AsyncMock()
+            mock1.health_info.return_value = {
+                "state": "connected",
+                "uptime_s": 120,
+                "events_received": 42,
+            }
+            mock2 = MagicMock()
+            mock2.connect = AsyncMock()
+            mock2.health_info.return_value = {
+                "state": "reconnecting",
+                "attempt": 3,
+                "events_received": 10,
+            }
+            MockWS.side_effect = [mock1, mock2]
+
+            await manager.connect_device("DEV1", "10.0.0.1")
+            await manager.connect_device("DEV2", "10.0.0.2")
+            health = manager.get_health()
+
+            assert health["total_connected"] == 1
+            assert health["total_devices"] == 2
+            assert health["connections"]["DEV1"]["state"] == "connected"
+            assert health["connections"]["DEV2"]["attempt"] == 3
+
+    @pytest.mark.asyncio
+    async def test_get_health_empty(self, manager):
+        health = manager.get_health()
+        assert health == {"connections": {}, "total_connected": 0, "total_devices": 0}
+
+
+class TestWebSocketManagerEnsureConnection:
+    @pytest.mark.asyncio
+    async def test_ensure_new_device_connects(self, manager):
+        """ensure_connection for unknown device creates new connection."""
+        with patch(
+            "opencloudtouch.devices.websocket.manager.DeviceWebSocket"
+        ) as MockWS:
+            mock_instance = MagicMock()
+            mock_instance.connect = AsyncMock()
+            MockWS.return_value = mock_instance
+
+            await manager.ensure_connection("DEV1", "10.0.0.1")
+            assert "DEV1" in manager.device_ids
+            mock_instance.connect.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_ensure_same_ip_is_noop(self, manager):
+        """ensure_connection with same IP does nothing."""
+        with patch(
+            "opencloudtouch.devices.websocket.manager.DeviceWebSocket"
+        ) as MockWS:
+            mock_instance = MagicMock()
+            mock_instance.connect = AsyncMock()
+            mock_instance.disconnect = AsyncMock()
+            mock_instance.ip = "10.0.0.1"
+            MockWS.return_value = mock_instance
+
+            await manager.connect_device("DEV1", "10.0.0.1")
+            assert MockWS.call_count == 1
+
+            await manager.ensure_connection("DEV1", "10.0.0.1")
+            # No new connection created
+            assert MockWS.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_ensure_changed_ip_reconnects(self, manager):
+        """ensure_connection with different IP triggers reconnect."""
+        with patch(
+            "opencloudtouch.devices.websocket.manager.DeviceWebSocket"
+        ) as MockWS:
+            mock_old = MagicMock()
+            mock_old.connect = AsyncMock()
+            mock_old.disconnect = AsyncMock()
+            mock_old.ip = "10.0.0.1"
+
+            mock_new = MagicMock()
+            mock_new.connect = AsyncMock()
+            mock_new.ip = "10.0.0.99"
+
+            MockWS.side_effect = [mock_old, mock_new]
+
+            await manager.connect_device("DEV1", "10.0.0.1")
+            await manager.ensure_connection("DEV1", "10.0.0.99")
+
+            # Old connection disconnected
+            mock_old.disconnect.assert_called_once()
+            # New connection established
+            mock_new.connect.assert_called_once()

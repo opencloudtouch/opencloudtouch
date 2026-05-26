@@ -7,7 +7,7 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -248,6 +248,9 @@ async def _init_services(
     )
     app.state.ws_manager = ws_manager
 
+    # Wire device sync → WS reconnect for IP changes
+    app.state.device_service.set_on_device_synced(ws_manager.ensure_connection)
+
     # Connect to all known devices
     if not cfg.mock_mode:
         devices = await device_repo.get_all()
@@ -368,6 +371,18 @@ async def health_check():
             },
         },
     )
+
+
+@app.get("/api/health/websockets", tags=["System"])
+async def websocket_health(request: Request):
+    """WebSocket connection health for all managed devices."""
+    ws_manager = getattr(request.app.state, "ws_manager", None)
+    if ws_manager is None:
+        return JSONResponse(
+            status_code=200,
+            content={"connections": {}, "total_connected": 0, "total_devices": 0},
+        )
+    return JSONResponse(status_code=200, content=ws_manager.get_health())
 
 
 # Static files (frontend) — SPA 404 handler

@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 from opencloudtouch.devices.client import NowPlayingInfo, VolumeInfo
 from opencloudtouch.devices.websocket.connection import ConnectionState
 from opencloudtouch.devices.websocket.parser import DeviceEvent, EventType
+from opencloudtouch.devices.websocket.throttle import EventThrottle
 
 if TYPE_CHECKING:
     from opencloudtouch.devices.websocket.icy_worker import IcyWorker
@@ -54,6 +55,7 @@ class DeviceStateManager:
         self._subscribers: list[asyncio.Queue[DeviceEvent]] = []
         self._icy_worker: IcyWorker | None = None
         self._icy_poll_task: asyncio.Task | None = None
+        self._throttle = EventThrottle(publish=self.publish)
 
     def set_icy_worker(self, worker: IcyWorker) -> None:
         """Attach an ICY metadata worker for radio enrichment."""
@@ -68,6 +70,7 @@ class DeviceStateManager:
 
     async def stop_icy_polling(self) -> None:
         """Stop periodic ICY metadata polling."""
+        await self._throttle.stop()
         if self._icy_poll_task is not None:
             self._icy_poll_task.cancel()
             try:
@@ -143,17 +146,26 @@ class DeviceStateManager:
         """Broadcast *event* to all subscribers, pruning dead queues."""
         if not self._subscribers:
             logger.debug(
-                "Device %s %s event dropped — no SSE subscribers",
+                "sse.dropped %s %s — no subscribers",
                 event.device_id,
                 event.event_type.value,
+                extra={
+                    "device_id": event.device_id,
+                    "event_type": event.event_type.value,
+                },
             )
             return
 
         logger.debug(
-            "Device %s publishing %s to %d subscriber(s)",
+            "sse.publish %s %s to %d subscriber(s)",
             event.device_id,
             event.event_type.value,
             len(self._subscribers),
+            extra={
+                "device_id": event.device_id,
+                "event_type": event.event_type.value,
+                "subscribers": len(self._subscribers),
+            },
         )
         for queue in self._subscribers[:]:  # iterate over copy
             try:
@@ -172,31 +184,51 @@ class DeviceStateManager:
         """
         if event.event_type == EventType.NOW_PLAYING and event.now_playing:
             logger.debug(
-                "Device %s now_playing: source=%s station=%s artist=%s track=%s state=%s",
+                "ws.now_playing %s source=%s station=%s artist=%s track=%s state=%s",
                 event.device_id,
                 event.now_playing.source,
                 event.now_playing.station_name,
                 event.now_playing.artist,
                 event.now_playing.track,
                 event.now_playing.state,
+                extra={
+                    "device_id": event.device_id,
+                    "source": event.now_playing.source,
+                    "station": event.now_playing.station_name,
+                    "artist": event.now_playing.artist,
+                    "track": event.now_playing.track,
+                    "play_state": event.now_playing.state,
+                },
             )
             self.update_now_playing(event.device_id, event.now_playing)
         elif event.event_type == EventType.VOLUME and event.volume:
             logger.debug(
-                "Device %s volume: actual=%d target=%d muted=%s",
+                "ws.volume %s actual=%d target=%d muted=%s",
                 event.device_id,
                 event.volume.actual,
                 event.volume.target,
                 event.volume.muted,
+                extra={
+                    "device_id": event.device_id,
+                    "actual": event.volume.actual,
+                    "target": event.volume.target,
+                    "muted": event.volume.muted,
+                },
             )
             self.update_volume(event.device_id, event.volume)
         elif event.event_type == EventType.METADATA_ENRICHED and event.now_playing:
             logger.debug(
-                "Device %s metadata_enriched: artist=%s track=%s art=%s",
+                "ws.metadata_enriched %s artist=%s track=%s art=%s",
                 event.device_id,
                 event.now_playing.artist,
                 event.now_playing.track,
                 bool(event.now_playing.artwork_url),
+                extra={
+                    "device_id": event.device_id,
+                    "artist": event.now_playing.artist,
+                    "track": event.now_playing.track,
+                    "has_artwork": bool(event.now_playing.artwork_url),
+                },
             )
             self.update_now_playing(event.device_id, event.now_playing)
         else:
@@ -206,7 +238,7 @@ class DeviceStateManager:
                 event.event_type.value,
             )
 
-        await self.publish(event)
+        await self._throttle.submit(event)
 
         # Fire ICY probe in background for radio events
         if (

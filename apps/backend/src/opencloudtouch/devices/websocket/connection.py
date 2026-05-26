@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+import time
 from enum import Enum
 from typing import Awaitable, Callable, Optional
 
@@ -68,6 +69,8 @@ class DeviceWebSocket:
         self._state = ConnectionState.DISCONNECTED
         self._should_run = False
         self._backoff_attempt = 0
+        self._connected_at: float | None = None
+        self._events_received: int = 0
 
     @property
     def state(self) -> ConnectionState:
@@ -79,16 +82,33 @@ class DeviceWebSocket:
         """WebSocket URI for this device."""
         return f"ws://{self.ip}:{self.port}/"
 
+    def health_info(self) -> dict:
+        """Return health/status info for this connection."""
+        info: dict = {
+            "state": self._state.value,
+            "events_received": self._events_received,
+        }
+        if self._connected_at is not None and self._state == ConnectionState.CONNECTED:
+            info["uptime_s"] = round(time.monotonic() - self._connected_at)
+        if self._state == ConnectionState.RECONNECTING:
+            info["attempt"] = self._backoff_attempt
+        return info
+
     async def _set_state(self, new_state: ConnectionState) -> None:
         """Update state and notify callback."""
         old = self._state
         self._state = new_state
         if old != new_state:
             logger.info(
-                "Device %s WebSocket state: %s → %s",
+                "ws.state %s %s → %s",
                 self.device_id,
                 old.value,
                 new_state.value,
+                extra={
+                    "device_id": self.device_id,
+                    "old_state": old.value,
+                    "new_state": new_state.value,
+                },
             )
             if self._on_state_change:
                 try:
@@ -144,14 +164,16 @@ class DeviceWebSocket:
                 )
                 await self._set_state(ConnectionState.CONNECTED)
                 self._backoff_attempt = 0
+                self._connected_at = time.monotonic()
 
                 await self._listen_loop()
 
             except InvalidHandshake as e:
                 logger.error(
-                    "Device %s rejected WebSocket handshake: %s — marking FAILED",
+                    "ws.handshake_failed %s: %s",
                     self.device_id,
                     e,
+                    extra={"device_id": self.device_id, "error": str(e)},
                 )
                 await self._set_state(ConnectionState.FAILED)
                 return
@@ -160,9 +182,10 @@ class DeviceWebSocket:
                 if not self._should_run:
                     break
                 logger.warning(
-                    "Device %s WebSocket closed: %s — will reconnect",
+                    "ws.closed %s: %s — will reconnect",
                     self.device_id,
                     e,
+                    extra={"device_id": self.device_id, "error": str(e)},
                 )
                 await self._reconnect_delay()
 
@@ -193,10 +216,15 @@ class DeviceWebSocket:
             if event is None:
                 continue
 
+            self._events_received += 1
             logger.debug(
-                "Device %s received %s event",
+                "ws.event %s %s",
                 self.device_id,
                 event.event_type.value,
+                extra={
+                    "device_id": self.device_id,
+                    "event_type": event.event_type.value,
+                },
             )
 
             if self._on_event:
@@ -219,9 +247,14 @@ class DeviceWebSocket:
         self._backoff_attempt += 1
 
         logger.info(
-            "Device %s reconnecting in %.1fs (attempt %d)",
+            "ws.reconnecting %s in %.1fs (attempt %d)",
             self.device_id,
             total,
             self._backoff_attempt,
+            extra={
+                "device_id": self.device_id,
+                "backoff_s": round(total, 1),
+                "attempt": self._backoff_attempt,
+            },
         )
         await asyncio.sleep(total)
