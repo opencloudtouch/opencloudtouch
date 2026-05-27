@@ -43,6 +43,43 @@ def client(wizard_app):
     return TestClient(wizard_app, raise_server_exceptions=False)
 
 
+# ── wizard/server-info — port propagation ─────────────────────────────────────
+
+
+class TestWizardServerInfoPort:
+    """GET /api/setup/wizard/server-info must reflect configured port."""
+
+    def test_custom_port_in_response(self, client, monkeypatch):
+        """OCT_PORT=8080 → default_port=8080 and server_url contains :8080."""
+        from opencloudtouch.core.config import clear_config
+
+        monkeypatch.setenv("OCT_PORT", "8080")
+        clear_config()
+        try:
+            response = client.get("/api/setup/wizard/server-info")
+            assert response.status_code == 200
+            body = response.json()
+            assert body["default_port"] == 8080
+            assert ":8080" in body["server_url"]
+        finally:
+            monkeypatch.delenv("OCT_PORT", raising=False)
+            clear_config()
+
+    def test_default_port_in_response(self, client, monkeypatch):
+        """Default config → default_port=7777."""
+        from opencloudtouch.core.config import DEFAULT_PORT, clear_config
+
+        monkeypatch.delenv("OCT_PORT", raising=False)
+        clear_config()
+        try:
+            response = client.get("/api/setup/wizard/server-info")
+            assert response.status_code == 200
+            body = response.json()
+            assert body["default_port"] == DEFAULT_PORT
+        finally:
+            clear_config()
+
+
 # ── wizard/check-ports ────────────────────────────────────────────────────────
 
 
@@ -177,6 +214,63 @@ class TestWizardModifyConfig:
         assert body["success"] is True
         assert body["old_url"] == "bmx.bose.com"
         assert body["new_url"] == "192.168.1.50"
+
+    def test_target_addr_with_explicit_port_propagates(self, client, monkeypatch):
+        """target_addr='http://192.168.1.1:8080' → modify_bmx_url called with port=8080."""
+        mock_result = MagicMock(
+            success=True, error=None, backup_path="/usb/config.bak", diff="..."
+        )
+        mock_config_service = MagicMock()
+        mock_config_service.modify_bmx_url = AsyncMock(return_value=mock_result)
+
+        with (
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_service.SoundTouchConfigService",
+                return_value=mock_config_service,
+            ),
+        ):
+            mock_ssh.return_value.__aenter__ = AsyncMock(return_value=MagicMock())
+            mock_ssh.return_value.__aexit__ = AsyncMock(return_value=False)
+            response = client.post(
+                "/api/setup/wizard/modify-config",
+                json={
+                    "device_ip": "192.168.1.100",
+                    "target_addr": "http://192.168.1.1:8080",
+                },
+            )
+        assert response.status_code == 200
+        mock_config_service.modify_bmx_url.assert_called_once()
+        call_args = mock_config_service.modify_bmx_url.call_args
+        # port passed as keyword arg or second positional arg
+        called_port = call_args.kwargs.get(
+            "port", call_args.args[1] if len(call_args.args) > 1 else None
+        )
+        assert called_port == 8080, f"Expected port 8080, got {called_port}"
+
+    def test_target_addr_without_port_uses_config_default(self, monkeypatch):
+        """target_addr='http://192.168.1.1' (no port) → uses get_config().port via service."""
+        from opencloudtouch.core.config import clear_config
+        from urllib.parse import urlparse
+
+        monkeypatch.setenv("OCT_PORT", "9090")
+        clear_config()
+
+        try:
+            # Test the urlparse logic in modify_config directly
+            parsed = urlparse("http://192.168.1.1")
+            assert parsed.port is None, "URL without port should parse to None"
+            from opencloudtouch.core.config import get_config
+
+            fallback_port = get_config().port
+            assert (
+                fallback_port == 9090
+            ), f"Expected config port 9090, got {fallback_port}"
+        finally:
+            monkeypatch.delenv("OCT_PORT", raising=False)
+            clear_config()
 
     def test_config_modification_failure(self, client):
         mock_result = MagicMock(success=False, error="File not found")

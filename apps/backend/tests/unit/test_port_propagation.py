@@ -130,6 +130,29 @@ class TestResolveRoutesFallback:
             clear_config()
 
 
+class TestCorsValidatorPort:
+    """_ensure_cors_includes_port adds port-specific origin when needed."""
+
+    def test_custom_port_added_to_cors(self, monkeypatch):
+        """OCT_PORT=8080 → http://localhost:8080 must appear in cors_origins."""
+        monkeypatch.setenv("OCT_PORT", "8080")
+        config = AppConfig(_env_file=None)
+        assert "http://localhost:8080" in config.cors_origins
+
+    def test_default_port_no_duplication(self, monkeypatch):
+        """OCT_PORT=7777 (default) → no duplicate http://localhost:7777."""
+        monkeypatch.delenv("OCT_PORT", raising=False)
+        config = AppConfig(_env_file=None)
+        count = config.cors_origins.count(f"http://localhost:{DEFAULT_PORT}")
+        assert count == 1, f"Expected exactly 1 entry, got {count}"
+
+    def test_wildcard_cors_skips_validator(self, monkeypatch):
+        """cors_origins=['*'] → validator returns early, no modification."""
+        monkeypatch.setenv("OCT_CORS_ORIGINS", '["*"]')
+        config = AppConfig(_env_file=None)
+        assert config.cors_origins == ["*"]
+
+
 class TestTuneInFallback:
     """get_oct_base_url fallback must use configured port."""
 
@@ -145,6 +168,19 @@ class TestTuneInFallback:
             assert ":7777" not in url
         finally:
             monkeypatch.delenv("OCT_PORT", raising=False)
+            clear_config()
+
+    def test_explicit_env_var_honored(self, monkeypatch):
+        """OCT_BACKEND_URL set explicitly → used as-is."""
+        monkeypatch.setenv("OCT_BACKEND_URL", "http://myproxy.local:9999")
+        clear_config()
+        try:
+            from opencloudtouch.bmx.tunein import get_oct_base_url
+
+            url = get_oct_base_url()
+            assert url == "http://myproxy.local:9999"
+        finally:
+            monkeypatch.delenv("OCT_BACKEND_URL", raising=False)
             clear_config()
 
 
