@@ -89,9 +89,11 @@ async def wizard_server_info(request: Request) -> Dict[str, Any]:
     if server_ip.startswith("127."):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(("8.8.8.8", 80))
-            server_ip = s.getsockname()[0]
-            s.close()
+            try:
+                s.connect(("8.8.8.8", 80))
+                server_ip = s.getsockname()[0]
+            finally:
+                s.close()
         except OSError:
             # UDP trick failed — fall back to request hostname
             if not hostname.startswith("127."):
