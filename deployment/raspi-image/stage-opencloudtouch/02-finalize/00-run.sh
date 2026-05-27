@@ -14,7 +14,7 @@ on_chroot << 'CHROOT'
 
 if systemctl is-active docker &>/dev/null; then
     echo "Pre-pulling OpenCloudTouch Docker image..."
-    docker pull ghcr.io/scheilch/opencloudtouch:latest || \
+    docker pull ghcr.io/opencloudtouch/opencloudtouch:latest || \
         echo "[WARN] Could not pre-pull image. Will be downloaded on first boot."
 else
     echo "[INFO] Docker not running during build. Image will be pulled on first boot."

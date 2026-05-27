@@ -173,4 +173,4 @@ See [UPGRADING.md](UPGRADING.md) for version-specific migration guides.
 
 **Maintained by:** OpenCloudTouch Contributors  
 **License:** Apache License 2.0  
-**Repository:** https://github.com/scheilch/opencloudtouch
+**Repository:** https://github.com/opencloudtouch/opencloudtouch

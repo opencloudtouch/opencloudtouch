@@ -39,7 +39,7 @@ log_info "Current image: ${CURRENT}"
 
 # Update image tag in compose file
 if [[ "$VERSION" != "latest" ]]; then
-    sed -i "s|ghcr.io/scheilch/opencloudtouch:.*|ghcr.io/scheilch/opencloudtouch:${VERSION}|" "$COMPOSE_FILE"
+    sed -i "s|ghcr.io/opencloudtouch/opencloudtouch:.*|ghcr.io/opencloudtouch/opencloudtouch:${VERSION}|" "$COMPOSE_FILE"
     log_info "Updated compose file to version ${VERSION}"
 fi
 

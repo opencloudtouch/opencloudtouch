@@ -460,7 +460,7 @@ class TestBugfix188HardcodedDeviceIdInStreamingAccount:
     BUGFIX 188: /streaming/account/{account_id}/full used hardcoded device_id.
 
     Date: 2026-05-12
-    Issue: https://github.com/scheilch/opencloudtouch/issues/188
+    Issue: https://github.com/opencloudtouch/opencloudtouch/issues/188
     Reporter: Zimbo88
     Symptom: Device boots, calls /streaming/account/5522049/full,
              receives empty presets because code used hardcoded

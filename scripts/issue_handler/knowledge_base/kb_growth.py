@@ -131,7 +131,7 @@ async def main() -> int:
     """Entry point for KB growth scan."""
     github_token = os.environ.get("GITHUB_TOKEN", "")
     bot_pat = os.environ.get("BOT_PAT", "")
-    repo_owner = os.environ.get("REPO_OWNER", "scheilch")
+    repo_owner = os.environ.get("REPO_OWNER", "opencloudtouch")
     repo_name = os.environ.get("REPO_NAME", "opencloudtouch")
 
     if not github_token or not bot_pat:

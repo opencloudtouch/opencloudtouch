@@ -17,7 +17,8 @@
     "retryHint": "Se il problema persiste: assicurarsi che il server OpenCloudTouch sia raggiungibile e ricaricare la pagina.",
     "reloadPage": "Ricarica pagina",
     "stationNotFound": "Stazione non trovata.",
-    "saveAsPreset": "Salva come preset"
+    "saveAsPreset": "Salva come preset",
+    "or": "o"
   },
   "nav": {
     "presets": "Preset",
@@ -322,7 +323,8 @@
         "sectionVerify": "Verifica",
         "checkFat32": "La chiavetta USB è formattata con FAT32",
         "checkFileEmpty": "Il file 'remote_services' è nella directory radice ed è vuoto",
-        "checkReady": "La chiavetta USB è pronta per essere inserita nel dispositivo"
+        "checkReady": "La chiavetta USB è pronta per essere inserita nel dispositivo",
+        "dualUsbHint": "Il tuo dispositivo ha Micro-USB o USB-A a seconda dell'anno di produzione. Controlla il retro del dispositivo per vedere quale porta è disponibile."
       },
       "step3": {
         "title": "Riavviare il dispositivo",
@@ -626,56 +628,56 @@
   },
   "restore": {
     "choice": {
-      "title": "What would you like to do?",
-      "setup_title": "Setup Wizard",
+      "title": "Cosa vorresti fare?",
+      "setup_title": "Procedura guidata di configurazione",
       "setup_desc": "Configure device for OpenCloudTouch",
-      "restore_title": "Restore Wizard",
-      "restore_desc": "Undo all OCT changes and restore factory state"
+      "restore_title": "Procedura guidata di ripristino",
+      "restore_desc": "Annulla tutte le modifiche OCT e ripristina lo stato di fabbrica"
     },
     "restore_choice": {
-      "title": "Choose Restore Type",
-      "description": "Select how you want to restore the device.",
-      "clean_title": "Clean Restore",
-      "clean_desc": "Remove all OCT modifications. No backup needed.",
-      "backup_title": "Restore from Backup",
-      "backup_desc": "Restore original config files from USB backup."
+      "title": "Scegli il tipo di ripristino",
+      "description": "Seleziona come desideri ripristinare il dispositivo.",
+      "clean_title": "Ripristino pulito",
+      "clean_desc": "Rimuovi tutte le modifiche OCT. Nessun backup necessario.",
+      "backup_title": "Ripristina dal backup",
+      "backup_desc": "Ripristina i file di configurazione originali dal backup USB."
     },
     "backup_scan": {
-      "title": "Scanning for Backups",
-      "description": "Searching USB stick for backup files...",
-      "scanning": "Scanning USB stick...",
+      "title": "Ricerca backup",
+      "description": "Ricerca di file di backup sulla chiavetta USB...",
+      "scanning": "Scansione chiavetta USB...",
       "error": "Scan failed: {{message}}",
-      "no_usb": "No USB stick detected. Please insert USB stick and retry.",
-      "found": "Backup found",
+      "no_usb": "Nessuna chiavetta USB rilevata. Inserisci la chiavetta USB e riprova.",
+      "found": "Backup trovato",
       "legacy": "legacy",
-      "use_backup": "Use This Backup"
+      "use_backup": "Usa questo backup"
     },
     "execution": {
-      "title": "Restoring Device",
-      "description": "Undoing all OCT modifications...",
-      "running": "Restore in progress...",
+      "title": "Ripristino del dispositivo",
+      "description": "Annullamento di tutte le modifiche OCT...",
+      "running": "Ripristino in corso...",
       "error": "Restore failed: {{message}}",
       "success": "All steps completed successfully! Total: {{time}}s",
-      "continue": "Continue"
+      "continue": "Continua"
     },
     "verification": {
-      "title": "Waiting for Device",
-      "description": "Device is rebooting. Waiting for it to come back online...",
+      "title": "In attesa del dispositivo",
+      "description": "Il dispositivo si sta riavviando. In attesa che torni online...",
       "countdown": "Checking in {{seconds}}s...",
-      "timeout": "Device not detected after 120s. It may have received a new IP via DHCP.",
-      "manual_confirm": "Device is back — I can see it",
-      "online": "Device is back online!",
-      "continue": "Continue"
+      "timeout": "Dispositivo non rilevato dopo 120s. Potrebbe aver ricevuto un nuovo indirizzo IP tramite DHCP.",
+      "manual_confirm": "Il dispositivo è tornato — lo vedo",
+      "online": "Il dispositivo è di nuovo online!",
+      "continue": "Continua"
     },
     "completion": {
-      "title": "Restore Complete",
-      "description": "Device has been restored successfully.",
-      "clean_summary": "Clean Restore Summary",
-      "backup_summary": "Backup Restore Summary",
-      "restored": "Restored",
-      "skipped": "Skipped",
-      "failed": "Failed",
-      "note": "The device is now in its original state. You can safely disconnect it.",
+      "title": "Ripristino completato",
+      "description": "Il dispositivo è stato ripristinato con successo.",
+      "clean_summary": "Riepilogo ripristino pulito",
+      "backup_summary": "Riepilogo ripristino dal backup",
+      "restored": "Ripristinato",
+      "skipped": "Saltato",
+      "failed": "Fallito",
+      "note": "Il dispositivo è ora nel suo stato originale. Puoi scollegarlo in sicurezza.",
       "done": "Done"
     }
   },

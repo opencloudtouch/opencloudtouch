@@ -17,7 +17,8 @@
     "retryHint": "Als het probleem aanhoudt: zorg ervoor dat uw OpenCloudTouch-server bereikbaar is en laad de pagina opnieuw.",
     "reloadPage": "Pagina opnieuw laden",
     "stationNotFound": "Station niet gevonden.",
-    "saveAsPreset": "Opslaan als preset"
+    "saveAsPreset": "Opslaan als preset",
+    "or": "of"
   },
   "nav": {
     "presets": "Presets",
@@ -322,7 +323,8 @@
         "sectionVerify": "Verificatie",
         "checkFat32": "USB-stick is geformatteerd met FAT32",
         "checkFileEmpty": "Bestand 'remote_services' staat in de hoofdmap en is leeg",
-        "checkReady": "USB-stick is klaar om in het apparaat te steken"
+        "checkReady": "USB-stick is klaar om in het apparaat te steken",
+        "dualUsbHint": "Je apparaat heeft afhankelijk van het bouwjaar Micro-USB of USB-A. Controleer de achterkant van het apparaat om te zien welke poort beschikbaar is."
       },
       "step3": {
         "title": "Apparaat herstarten",
@@ -626,56 +628,56 @@
   },
   "restore": {
     "choice": {
-      "title": "What would you like to do?",
-      "setup_title": "Setup Wizard",
+      "title": "Wat wil je doen?",
+      "setup_title": "Installatiewizard",
       "setup_desc": "Configure device for OpenCloudTouch",
-      "restore_title": "Restore Wizard",
-      "restore_desc": "Undo all OCT changes and restore factory state"
+      "restore_title": "Herstelwizard",
+      "restore_desc": "Alle OCT-wijzigingen ongedaan maken en fabrieksinstellingen herstellen"
     },
     "restore_choice": {
-      "title": "Choose Restore Type",
-      "description": "Select how you want to restore the device.",
-      "clean_title": "Clean Restore",
-      "clean_desc": "Remove all OCT modifications. No backup needed.",
-      "backup_title": "Restore from Backup",
-      "backup_desc": "Restore original config files from USB backup."
+      "title": "Kies hersteltype",
+      "description": "Selecteer hoe je het apparaat wilt herstellen.",
+      "clean_title": "Schoon herstel",
+      "clean_desc": "Alle OCT-aanpassingen verwijderen. Geen back-up nodig.",
+      "backup_title": "Herstellen vanuit back-up",
+      "backup_desc": "Originele configuratiebestanden herstellen van USB-back-up."
     },
     "backup_scan": {
-      "title": "Scanning for Backups",
-      "description": "Searching USB stick for backup files...",
-      "scanning": "Scanning USB stick...",
+      "title": "Zoeken naar back-ups",
+      "description": "USB-stick doorzoeken op back-upbestanden...",
+      "scanning": "USB-stick scannen...",
       "error": "Scan failed: {{message}}",
-      "no_usb": "No USB stick detected. Please insert USB stick and retry.",
-      "found": "Backup found",
-      "legacy": "legacy",
-      "use_backup": "Use This Backup"
+      "no_usb": "Geen USB-stick gedetecteerd. Steek de USB-stick in en probeer opnieuw.",
+      "found": "Back-up gevonden",
+      "legacy": "verouderd",
+      "use_backup": "Deze back-up gebruiken"
     },
     "execution": {
-      "title": "Restoring Device",
-      "description": "Undoing all OCT modifications...",
-      "running": "Restore in progress...",
+      "title": "Apparaat herstellen",
+      "description": "Alle OCT-aanpassingen ongedaan maken...",
+      "running": "Herstel bezig...",
       "error": "Restore failed: {{message}}",
       "success": "All steps completed successfully! Total: {{time}}s",
-      "continue": "Continue"
+      "continue": "Doorgaan"
     },
     "verification": {
-      "title": "Waiting for Device",
-      "description": "Device is rebooting. Waiting for it to come back online...",
+      "title": "Wachten op apparaat",
+      "description": "Apparaat wordt opnieuw opgestart. Wachten tot het weer online is...",
       "countdown": "Checking in {{seconds}}s...",
-      "timeout": "Device not detected after 120s. It may have received a new IP via DHCP.",
-      "manual_confirm": "Device is back — I can see it",
-      "online": "Device is back online!",
-      "continue": "Continue"
+      "timeout": "Apparaat niet gedetecteerd na 120s. Het heeft mogelijk een nieuw IP-adres via DHCP ontvangen.",
+      "manual_confirm": "Apparaat is terug — ik kan het zien",
+      "online": "Apparaat is weer online!",
+      "continue": "Doorgaan"
     },
     "completion": {
-      "title": "Restore Complete",
-      "description": "Device has been restored successfully.",
-      "clean_summary": "Clean Restore Summary",
-      "backup_summary": "Backup Restore Summary",
-      "restored": "Restored",
-      "skipped": "Skipped",
-      "failed": "Failed",
-      "note": "The device is now in its original state. You can safely disconnect it.",
+      "title": "Herstel voltooid",
+      "description": "Het apparaat is succesvol hersteld.",
+      "clean_summary": "Samenvatting schoon herstel",
+      "backup_summary": "Samenvatting back-upherstel",
+      "restored": "Hersteld",
+      "skipped": "Overgeslagen",
+      "failed": "Mislukt",
+      "note": "Het apparaat is nu in de oorspronkelijke staat. Je kunt het veilig loskoppelen.",
       "done": "Done"
     }
   },

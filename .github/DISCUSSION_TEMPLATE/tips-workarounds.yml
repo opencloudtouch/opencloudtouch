@@ -9,8 +9,8 @@ body:
         This is a community knowledge base — your experience might save someone else hours of troubleshooting!
 
         **Not a workaround?** Use the right channel:
-        - 🐛 Bug? → [Bug Report](https://github.com/scheilch/opencloudtouch/issues/new?template=bug_report.yml)
-        - 🔧 Setup help? → [Setup & Installation](https://github.com/scheilch/opencloudtouch/discussions/new?category=setup-installation)
+        - 🐛 Bug? → [Bug Report](https://github.com/opencloudtouch/opencloudtouch/issues/new?template=bug_report.yml)
+        - 🔧 Setup help? → [Setup & Installation](https://github.com/opencloudtouch/opencloudtouch/discussions/new?category=setup-installation)
 
   - type: input
     id: applies-to

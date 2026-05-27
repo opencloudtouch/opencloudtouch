@@ -17,7 +17,8 @@
     "retryHint": "問題が解決しない場合：OpenCloudTouchサーバーに接続できることを確認してページを再読み込みしてください。",
     "reloadPage": "ページを再読み込み",
     "stationNotFound": "ステーションが見つかりません。",
-    "saveAsPreset": "プリセットとして保存"
+    "saveAsPreset": "プリセットとして保存",
+    "or": "または"
   },
   "nav": {
     "presets": "プリセット",
@@ -322,7 +323,8 @@
         "sectionVerify": "確認",
         "checkFat32": "USBドライブはFAT32でフォーマットされています",
         "checkFileEmpty": "「remote_services」ファイルがルートディレクトリにあり空です",
-        "checkReady": "USBドライブはデバイスに挿入する準備ができています"
+        "checkReady": "USBドライブはデバイスに挿入する準備ができています",
+        "dualUsbHint": "お使いのデバイスは製造年によりMicro-USBまたはUSB-Aポートを搭載しています。デバイスの背面を確認して、どのポートが利用可能か確認してください。"
       },
       "step3": {
         "title": "デバイスを再起動",
@@ -626,56 +628,56 @@
   },
   "restore": {
     "choice": {
-      "title": "What would you like to do?",
-      "setup_title": "Setup Wizard",
+      "title": "何をしますか？",
+      "setup_title": "セットアップウィザード",
       "setup_desc": "Configure device for OpenCloudTouch",
-      "restore_title": "Restore Wizard",
-      "restore_desc": "Undo all OCT changes and restore factory state"
+      "restore_title": "復元ウィザード",
+      "restore_desc": "すべてのOCT変更を元に戻し、工場出荷時の状態に復元します"
     },
     "restore_choice": {
-      "title": "Choose Restore Type",
-      "description": "Select how you want to restore the device.",
-      "clean_title": "Clean Restore",
-      "clean_desc": "Remove all OCT modifications. No backup needed.",
-      "backup_title": "Restore from Backup",
-      "backup_desc": "Restore original config files from USB backup."
+      "title": "復元タイプを選択",
+      "description": "デバイスの復元方法を選択してください。",
+      "clean_title": "クリーン復元",
+      "clean_desc": "すべてのOCT変更を削除します。バックアップは不要です。",
+      "backup_title": "バックアップから復元",
+      "backup_desc": "USBバックアップから元の設定ファイルを復元します。"
     },
     "backup_scan": {
-      "title": "Scanning for Backups",
-      "description": "Searching USB stick for backup files...",
-      "scanning": "Scanning USB stick...",
+      "title": "バックアップを検索中",
+      "description": "USBメモリでバックアップファイルを検索中...",
+      "scanning": "USBメモリをスキャン中...",
       "error": "Scan failed: {{message}}",
-      "no_usb": "No USB stick detected. Please insert USB stick and retry.",
-      "found": "Backup found",
-      "legacy": "legacy",
-      "use_backup": "Use This Backup"
+      "no_usb": "USBメモリが検出されません。USBメモリを挿入して再試行してください。",
+      "found": "バックアップが見つかりました",
+      "legacy": "レガシー",
+      "use_backup": "このバックアップを使用"
     },
     "execution": {
-      "title": "Restoring Device",
-      "description": "Undoing all OCT modifications...",
-      "running": "Restore in progress...",
+      "title": "デバイスを復元中",
+      "description": "すべてのOCT変更を元に戻しています...",
+      "running": "復元中...",
       "error": "Restore failed: {{message}}",
       "success": "All steps completed successfully! Total: {{time}}s",
-      "continue": "Continue"
+      "continue": "続行"
     },
     "verification": {
-      "title": "Waiting for Device",
-      "description": "Device is rebooting. Waiting for it to come back online...",
+      "title": "デバイスを待機中",
+      "description": "デバイスが再起動中です。オンラインに戻るのを待っています...",
       "countdown": "Checking in {{seconds}}s...",
-      "timeout": "Device not detected after 120s. It may have received a new IP via DHCP.",
-      "manual_confirm": "Device is back — I can see it",
-      "online": "Device is back online!",
-      "continue": "Continue"
+      "timeout": "120秒後にデバイスが検出されませんでした。DHCPにより新しいIPアドレスを取得した可能性があります。",
+      "manual_confirm": "デバイスが戻りました — 確認できます",
+      "online": "デバイスがオンラインに戻りました！",
+      "continue": "続行"
     },
     "completion": {
-      "title": "Restore Complete",
-      "description": "Device has been restored successfully.",
-      "clean_summary": "Clean Restore Summary",
-      "backup_summary": "Backup Restore Summary",
-      "restored": "Restored",
-      "skipped": "Skipped",
-      "failed": "Failed",
-      "note": "The device is now in its original state. You can safely disconnect it.",
+      "title": "復元完了",
+      "description": "デバイスが正常に復元されました。",
+      "clean_summary": "クリーン復元の概要",
+      "backup_summary": "バックアップ復元の概要",
+      "restored": "復元済み",
+      "skipped": "スキップ",
+      "failed": "失敗",
+      "note": "デバイスは元の状態に戻りました。安全に切断できます。",
       "done": "Done"
     }
   },

@@ -13,6 +13,6 @@
     },
     "sonarlint.connectedMode.project": {
         "connectionId": "scheilscm",
-        "projectKey": "scheilch_opencloudtouch"
+        "projectKey": "opencloudtouch_opencloudtouch"
     }
 }

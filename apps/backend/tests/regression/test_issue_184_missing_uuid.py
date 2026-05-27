@@ -1,7 +1,7 @@
 """
 Regression tests for Issue #184: ST20 III presets not working.
 Date: 2026-05-12
-Issue: https://github.com/scheilch/opencloudtouch/issues/184
+Issue: https://github.com/opencloudtouch/opencloudtouch/issues/184
 """
 
 from unittest.mock import AsyncMock, MagicMock, patch
