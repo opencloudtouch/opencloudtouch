@@ -1,7 +1,7 @@
 name: "\U0001FAA4 Bug Report"
 description: "Report a bug or unexpected behaviour in OpenCloudTouch."
 title: "[Bug]: "
-labels: []
+labels: ["bug"]
 body:
   - type: markdown
     attributes:
