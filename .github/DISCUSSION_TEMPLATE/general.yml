@@ -8,10 +8,10 @@ body:
         This is the place for open-ended conversations about OpenCloudTouch.
 
         **Please use the right channel:**
-        - 🐛 Bug? → [Bug Report](https://github.com/scheilch/opencloudtouch/issues/new?template=bug_report.yml)
-        - 💡 Feature idea? → [Feature Request](https://github.com/scheilch/opencloudtouch/issues/new?template=feature_request.yml)
-        - 🔧 Setup help? → [Setup & Installation](https://github.com/scheilch/opencloudtouch/discussions/new?category=setup-installation)
-        - 🔊 Speaker question? → [Speaker Compatibility](https://github.com/scheilch/opencloudtouch/discussions/new?category=speaker-compatibility)
+        - 🐛 Bug? → [Bug Report](https://github.com/opencloudtouch/opencloudtouch/issues/new?template=bug_report.yml)
+        - 💡 Feature idea? → [Feature Request](https://github.com/opencloudtouch/opencloudtouch/issues/new?template=feature_request.yml)
+        - 🔧 Setup help? → [Setup & Installation](https://github.com/opencloudtouch/opencloudtouch/discussions/new?category=setup-installation)
+        - 🔊 Speaker question? → [Speaker Compatibility](https://github.com/opencloudtouch/opencloudtouch/discussions/new?category=speaker-compatibility)
 
   - type: textarea
     id: discussion

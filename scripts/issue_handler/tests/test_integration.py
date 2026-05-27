@@ -202,7 +202,7 @@ class TestCategoryIntegration:
     def _make_event(self, **kw) -> WebhookEvent:
         defaults = dict(
             event_type="issues", action="opened", sender_login="user", sender_type="User",
-            author_association="NONE", repo_owner="scheilch", repo_name="opencloudtouch",
+            author_association="NONE", repo_owner="opencloudtouch", repo_name="opencloudtouch",
             issue_number=42, title="Test", body="Body text with enough content here.", existing_labels=[], is_discussion=False,
         )
         defaults.update(kw)
@@ -263,7 +263,7 @@ class TestEdgeCaseIntegration:
         }
         event = WebhookEvent(
             event_type="issues", action="opened", sender_login="user", sender_type="User",
-            author_association="NONE", repo_owner="scheilch", repo_name="opencloudtouch",
+            author_association="NONE", repo_owner="opencloudtouch", repo_name="opencloudtouch",
             issue_number=99, title="Test", body="Test body content", existing_labels=[],
         )
         decision = await classifier_stage(event, context)
@@ -288,7 +288,7 @@ class TestEdgeCaseIntegration:
         }
         event = WebhookEvent(
             event_type="issues", action="opened", sender_login="user", sender_type="User",
-            author_association="NONE", repo_owner="scheilch", repo_name="opencloudtouch",
+            author_association="NONE", repo_owner="opencloudtouch", repo_name="opencloudtouch",
             issue_number=99, title="Bug", body="Crash", existing_labels=[],
         )
         decision = await action_stage(event, context)

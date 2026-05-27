@@ -1,0 +1,79 @@
+# ==============================================================================
+# COMMUNITY PR WELCOME & FEEDBACK
+#
+# Uses pull_request_target to run immediately on fork PRs (no approval needed).
+# SECURITY: Never checks out or executes PR code — read-only PR metadata only.
+# ==============================================================================
+
+name: Community PR
+
+on:
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  welcome:
+    name: Welcome & Guide
+    runs-on: ubuntu-latest
+    # Only for external contributors (fork PRs)
+    if: github.event.pull_request.head.repo.full_name != github.repository
+
+    steps:
+      - name: Welcome comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const author = pr.user.login;
+
+            // Check if this is the contributor's first PR
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              sort: 'created',
+              direction: 'asc',
+              per_page: 5,
+            });
+            const prsByAuthor = prs.filter(p => p.user.login === author);
+            const isFirstPR = prsByAuthor.length <= 1;
+
+            let body = '';
+            if (isFirstPR) {
+              body += `### 👋 Welcome @${author}!\n\n`;
+              body += `Thanks for your first contribution to OpenCloudTouch! We're glad to have you.\n\n`;
+            } else {
+              body += `### 👋 Hey @${author}, welcome back!\n\n`;
+              body += `Thanks for another contribution!\n\n`;
+            }
+
+            body += `#### ⏳ CI Pipeline\n\n`;
+            body += `Our CI runs automatically once a maintainer approves the workflow. `;
+            body += `This is a GitHub security requirement for first-time contributors. `;
+            body += `We'll approve it shortly.\n\n`;
+            body += `In the meantime, you can run the checks locally:\n\n`;
+            body += `\`\`\`bash\n`;
+            body += `# Backend\n`;
+            body += `cd apps/backend && pip install -r requirements-dev.txt\n`;
+            body += `pytest tests/unit -x -q\n`;
+            body += `ruff check src/\n\n`;
+            body += `# Frontend\n`;
+            body += `cd apps/frontend && npm ci\n`;
+            body += `npm test\n`;
+            body += `npx eslint src/\n`;
+            body += `\`\`\`\n\n`;
+            body += `#### ✅ PR Checklist\n\n`;
+            body += `- [ ] Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) format\n`;
+            body += `- [ ] Tests added/updated for changed code\n`;
+            body += `- [ ] Code formatted (Python: \`black\`, TypeScript: \`prettier\`)\n\n`;
+            body += `📖 See [CONTRIBUTING.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/.github/CONTRIBUTING.md) for details.\n`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: body,
+            });

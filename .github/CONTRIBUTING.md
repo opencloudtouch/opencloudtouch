@@ -422,7 +422,7 @@ Rules:
 
 ### Contributing a new language
 
-Use the **[Translation Contribution](https://github.com/scheilch/opencloudtouch/issues/new?template=translation_contribution.yml)** issue template.
+Use the **[Translation Contribution](https://github.com/opencloudtouch/opencloudtouch/issues/new?template=translation_contribution.yml)** issue template.
 You do not need to open a PR — paste your translated JSON into the issue and a maintainer will create the locale file.
 
 ---

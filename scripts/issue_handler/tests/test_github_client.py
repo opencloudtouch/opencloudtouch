@@ -20,7 +20,7 @@ def client() -> GitHubClient:
     return GitHubClient(
         bot_pat="fake-bot-pat",
         github_token="fake-gh-token",
-        repo_owner="scheilch",
+        repo_owner="opencloudtouch",
         repo_name="opencloudtouch",
     )
 
@@ -58,7 +58,7 @@ class TestSetAssignee:
             await client.set_assignee(42, "oct-support")
             client._bot_client.post.assert_called_once()
             call_args = client._bot_client.post.call_args
-            assert call_args[0][0] == "/repos/scheilch/opencloudtouch/issues/42/assignees"
+            assert call_args[0][0] == "/repos/opencloudtouch/opencloudtouch/issues/42/assignees"
             assert call_args[1]["json"] == {"assignees": ["oct-support"]}
 
     @pytest.mark.asyncio

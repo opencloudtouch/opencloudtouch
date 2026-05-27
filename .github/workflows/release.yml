@@ -34,6 +34,9 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
+# Least-privilege: no default permissions. Jobs declare what they need.
+permissions: {}
+
 jobs:
   # ============================================================================
   # PRE-FLIGHT CHECKS
@@ -41,6 +44,8 @@ jobs:
   preflight:
     name: Pre-flight Checks
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     outputs:
       version: ${{ steps.calc.outputs.version }}
@@ -399,7 +404,9 @@ jobs:
       architectures: all
       attach_to_release: true
       checkout_ref: ${{ needs.tag.outputs.tag }}
-    secrets: inherit
+    secrets:
+      BUILD_SIGNING_KEY: ${{ secrets.BUILD_SIGNING_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ============================================================================
   # PUBLISH RELEASE (draft → public, only after successful image build)

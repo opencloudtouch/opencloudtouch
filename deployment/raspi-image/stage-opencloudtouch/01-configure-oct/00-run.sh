@@ -93,7 +93,7 @@ cat > /etc/motd << 'MOTD'
   ║  Web UI: http://opencloudtouch.local:7777 ║
   ║  Update: sudo /opt/opencloudtouch/        ║
   ║          oct-update.sh                    ║
-  ║  Docs:   https://github.com/scheilch/    ║
+  ║  Docs:   https://github.com/opencloudtouch/ ║
   ║          opencloudtouch/wiki              ║
   ╚═══════════════════════════════════════════╝
 

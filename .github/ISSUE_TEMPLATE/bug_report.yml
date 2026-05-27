@@ -92,9 +92,9 @@ body:
     id: custom-build
     attributes:
       label: Did you build the image yourself?
-      description: "Did you build the Docker image from source (`docker build`) or did you pull the official image (`docker pull ghcr.io/scheilch/opencloudtouch:stable`)? **We only support the official pre-built image.**"
+      description: "Did you build the Docker image from source (`docker build`) or did you pull the official image (`docker pull ghcr.io/opencloudtouch/opencloudtouch:stable`)? **We only support the official pre-built image.**"
       options:
-        - "No — I pulled the official image (ghcr.io/scheilch/opencloudtouch)"
+        - "No — I pulled the official image (ghcr.io/opencloudtouch/opencloudtouch)"
         - "Yes — I built it myself from source"
     validations:
       required: true

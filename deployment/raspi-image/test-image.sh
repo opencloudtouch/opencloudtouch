@@ -68,7 +68,7 @@ test_docker_compose_exists() {
 }
 
 test_docker_compose_image_ref() {
-    grep -q "ghcr.io/scheilch/opencloudtouch" \
+    grep -q "ghcr.io/opencloudtouch/opencloudtouch" \
         "$ROOTFS/opt/opencloudtouch/docker-compose.yml"
 }
 
@@ -78,7 +78,7 @@ test_docker_compose_version_match() {
         return 0  # skip check for dev builds
     fi
     local actual
-    actual=$(grep -oP 'ghcr\.io/scheilch/opencloudtouch:\K[^\s"]+' \
+    actual=$(grep -oP 'ghcr\.io/opencloudtouch/opencloudtouch:\K[^\s"]+' \
         "$ROOTFS/opt/opencloudtouch/docker-compose.yml" | head -1)
     [ "$actual" = "$VERSION" ] || {
         echo "expected '$VERSION', got '$actual'"
