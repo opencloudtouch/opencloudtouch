@@ -14,7 +14,7 @@ interface Step6Props {
   octIp: string;
   onNext: () => void;
   onPrevious: () => void;
-  onHostsModified: (data: ModifyHostsResponse) => void;
+  onHostsModified: (data: ModifyHostsResponse, effectiveIp: string) => void;
 }
 
 const REQUIRED_DOMAINS = [
@@ -65,7 +65,7 @@ export default function Step6HostsModification({
       });
 
       setModifyData(result);
-      onHostsModified(result);
+      onHostsModified(result, customIp);
 
       if (!result.success) {
         setError(result.message || t("setup.wizard.step6.errorTitle"));

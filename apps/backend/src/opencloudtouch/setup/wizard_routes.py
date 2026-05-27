@@ -71,11 +71,17 @@ async def wizard_server_info(request: Request) -> Dict[str, Any]:
     hostname = url.hostname or "127.0.0.1"
     server_url = f"{url.scheme}://{hostname}:{url.port or 7777}"
 
-    # Resolve hostname ? IP for /etc/hosts (requires numeric IP)
+    # Resolve actual LAN IP for /etc/hosts (requires numeric IP).
+    # Do NOT use the request hostname — behind Docker/port-forwarding it's
+    # "localhost" which resolves to 127.0.0.1 and breaks device hosts entries.
     try:
-        server_ip = socket.gethostbyname(hostname)
+        server_ip = socket.gethostbyname(socket.gethostname())
     except socket.gaierror:
-        server_ip = hostname
+        # Fallback: try resolving request hostname (better than nothing)
+        try:
+            server_ip = socket.gethostbyname(hostname)
+        except socket.gaierror:
+            server_ip = hostname
 
     return {
         "server_url": server_url,

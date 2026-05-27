@@ -1247,6 +1247,33 @@ class TestWizardServerInfo:
         assert "server_ip" in body
         assert body["default_port"] == 7777
 
+    def test_server_ip_uses_machine_hostname_not_request(self, client):
+        """Bug #200: Server IP must reflect actual LAN IP, not request hostname."""
+        with patch("opencloudtouch.setup.wizard_routes.socket") as mock_socket:
+            mock_socket.gethostname.return_value = "myserver"
+            mock_socket.gethostbyname.return_value = "192.168.1.50"
+            mock_socket.gaierror = OSError
+
+            response = client.get("/api/setup/wizard/server-info")
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["server_ip"] == "192.168.1.50"
+        mock_socket.gethostbyname.assert_called_with("myserver")
+
+    def test_server_ip_fallback_on_hostname_failure(self, client):
+        """Bug #200: When gethostname resolution fails, fall back to request hostname."""
+        with patch("opencloudtouch.setup.wizard_routes.socket") as mock_socket:
+            mock_socket.gethostname.return_value = "unresolvable-host"
+            mock_socket.gaierror = OSError
+            mock_socket.gethostbyname.side_effect = [OSError("no host"), "10.0.0.1"]
+
+            response = client.get("/api/setup/wizard/server-info")
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["server_ip"] == "10.0.0.1"
+
 
 # ── wizard/finalize ──────────────────────────────────────────────────────────
 
