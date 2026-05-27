@@ -67,7 +67,7 @@ class AppConfig(BaseSettings):
             "http://localhost:3000",
             "http://localhost:4173",  # Vite preview (E2E tests)
             "http://localhost:5173",  # Vite dev
-            "http://localhost:7777",
+            f"http://localhost:{DEFAULT_PORT}",
         ],
         description="Allowed CORS origins (use ['*'] for development only)",
     )
@@ -134,6 +134,21 @@ class AppConfig(BaseSettings):
         description="Base URL for OCT backend (used in Bose preset programming). "
         "If set to localhost, auto-detected host IP is substituted at startup.",
     )
+
+    @model_validator(mode="after")
+    def _ensure_cors_includes_port(self) -> "AppConfig":
+        """Ensure the CORS origins list includes the configured server port.
+
+        When the user sets OCT_PORT to a non-default value, the default
+        CORS list won't contain that port.  This validator adds it so
+        the frontend running on the same host can reach the API.
+        """
+        if self.cors_origins == ["*"]:
+            return self
+        port_origin = f"http://localhost:{self.port}"
+        if port_origin not in self.cors_origins:
+            self.cors_origins.append(port_origin)
+        return self
 
     @model_validator(mode="after")
     def _replace_localhost_in_base_url(self) -> "AppConfig":
