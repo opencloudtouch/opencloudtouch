@@ -13,6 +13,7 @@ from defusedxml.ElementTree import fromstring as parse_xml_string
 
 from opencloudtouch.bmx.models import BmxAudio, BmxPlaybackResponse, BmxStream
 from opencloudtouch.bmx.stream_utils import convert_https_to_http
+from opencloudtouch.core.config import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,9 @@ def get_oct_base_url() -> str:
     Returns hostname-based URL so device can resolve via /etc/hosts.
     Device knows 'content.api.bose.io' from modified /etc/hosts.
     """
-    return os.getenv("OCT_BACKEND_URL", "http://content.api.bose.io:7777")
+    return os.getenv(
+        "OCT_BACKEND_URL", f"http://content.api.bose.io:{get_config().port}"
+    )
 
 
 def _parse_tunein_describe_xml(describe_xml: str) -> tuple[str, str]:

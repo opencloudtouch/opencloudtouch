@@ -22,6 +22,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Optional
 
+from opencloudtouch.core.config import DEFAULT_PORT
 from opencloudtouch.setup.ssh_client import SoundTouchSSHClient
 
 logger = logging.getLogger(__name__)
@@ -158,7 +159,7 @@ class SoundTouchConfigService:
         return new_xml, old_value
 
     @staticmethod
-    def build_bmx_url(oct_host: str, port: int = 7777) -> str:
+    def build_bmx_url(oct_host: str, port: int = DEFAULT_PORT) -> str:
         """Build the BMX registry URL pointing to OCT.
 
         Always uses HTTP because SoundTouch cannot validate custom HTTPS certs.
@@ -167,17 +168,17 @@ class SoundTouchConfigService:
         return f"http://content.api.bose.io:{port}/bmx/registry/v1/services"
 
     @staticmethod
-    def build_marge_url(oct_host: str, port: int = 7777) -> str:
+    def build_marge_url(oct_host: str, port: int = DEFAULT_PORT) -> str:
         """Build the marge server URL pointing to OCT."""
         return f"http://content.api.bose.io:{port}"
 
     @staticmethod
-    def build_swupdate_url(oct_host: str, port: int = 7777) -> str:
+    def build_swupdate_url(oct_host: str, port: int = DEFAULT_PORT) -> str:
         """Build the swupdate URL pointing to OCT."""
         return f"http://content.api.bose.io:{port}/updates/soundtouch"
 
     @staticmethod
-    def build_stats_url(oct_host: str, port: int = 7777) -> str:
+    def build_stats_url(oct_host: str, port: int = DEFAULT_PORT) -> str:
         """Build the stats/telemetry URL pointing to OCT.
 
         Without this, the device retains https://events.api.bosecm.com
@@ -296,7 +297,9 @@ class SoundTouchConfigService:
             except Exception as e:
                 self.logger.warning("Sync error for %s (best-effort): %s", candidate, e)
 
-    async def modify_bmx_url(self, oct_ip: str) -> ModifyResult:
+    async def modify_bmx_url(
+        self, oct_ip: str, port: int = DEFAULT_PORT
+    ) -> ModifyResult:
         """Modify BMX URL (and optionally marge/swupdate) in config.
 
         Protocol: remount rw → backup → read → modify → write → verify → remount ro.
@@ -324,22 +327,22 @@ class SoundTouchConfigService:
                 diff = ConfigDiff()
                 modified = original
 
-                new_bmx = self.build_bmx_url(oct_ip)
+                new_bmx = self.build_bmx_url(oct_ip, port=port)
                 modified, old = self._replace_tag_value(modified, _BMX_TAG, new_bmx)
                 if old is not None:
                     diff.add(_BMX_TAG, old, new_bmx)
 
-                new_marge = self.build_marge_url(oct_ip)
+                new_marge = self.build_marge_url(oct_ip, port=port)
                 modified, old = self._replace_tag_value(modified, _MARGE_TAG, new_marge)
                 if old is not None:
                     diff.add(_MARGE_TAG, old, new_marge)
 
-                new_sw = self.build_swupdate_url(oct_ip)
+                new_sw = self.build_swupdate_url(oct_ip, port=port)
                 modified, old = self._replace_tag_value(modified, _SWUPDATE_TAG, new_sw)
                 if old is not None:
                     diff.add(_SWUPDATE_TAG, old, new_sw)
 
-                new_stats = self.build_stats_url(oct_ip)
+                new_stats = self.build_stats_url(oct_ip, port=port)
                 modified, old = self._replace_tag_value(modified, _STATS_TAG, new_stats)
                 if old is not None:
                     diff.add(_STATS_TAG, old, new_stats)

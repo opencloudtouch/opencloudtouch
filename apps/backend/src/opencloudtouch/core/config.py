@@ -17,6 +17,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
 
+#: Default port for the OCT backend server.
+DEFAULT_PORT = 7777
+
 
 def _detect_host_ip() -> str | None:
     """Detect the local network IP address.
@@ -48,7 +51,7 @@ class AppConfig(BaseSettings):
 
     # Server
     host: str = Field(default="0.0.0.0", description="API bind address")  # nosec B104
-    port: int = Field(default=7777, description="API port")
+    port: int = Field(default=DEFAULT_PORT, description="API port")
     log_level: str = Field(default="INFO", description="Logging level")
     log_format: str = Field(default="text", description="Log format: 'text' or 'json'")
     log_file: Optional[str] = Field(default=None, description="Optional log file path")
@@ -127,7 +130,7 @@ class AppConfig(BaseSettings):
 
     # Station Descriptor
     station_descriptor_base_url: str = Field(
-        default="http://localhost:7777",
+        default=f"http://localhost:{DEFAULT_PORT}",
         description="Base URL for OCT backend (used in Bose preset programming). "
         "If set to localhost, auto-detected host IP is substituted at startup.",
     )
@@ -151,10 +154,9 @@ class AppConfig(BaseSettings):
         """
         parsed = urlparse(self.station_descriptor_base_url)
         if parsed.hostname in ("localhost", "127.0.0.1"):
-            port = parsed.port or 7777
-            # Use content.api.bose.io domain — resolved via /etc/hosts on device.
-            # This is the same domain used by config_service.py for BMX/Marge URLs.
-            new_url = f"http://content.api.bose.io:{port}"
+            # Always use self.port — the default URL has DEFAULT_PORT baked in,
+            # but if OCT_PORT differs, self.port is the authoritative value.
+            new_url = f"http://content.api.bose.io:{self.port}"
             object.__setattr__(self, "station_descriptor_base_url", new_url)
             logger.info(
                 "Preset URLs will use domain-based URL: %s "
