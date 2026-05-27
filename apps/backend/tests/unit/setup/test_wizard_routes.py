@@ -1261,6 +1261,7 @@ class TestWizardServerInfo:
         assert response.status_code == 200
         body = response.json()
         assert body["server_ip"] == "192.168.1.50"
+        assert body["server_url"] == "http://192.168.1.50:7777"
         mock_socket.gethostbyname.assert_called_with("myserver")
 
     def test_server_ip_fallback_on_hostname_failure(self, client):
