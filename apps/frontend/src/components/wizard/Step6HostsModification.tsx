@@ -65,7 +65,7 @@ export default function Step6HostsModification({
       });
 
       setModifyData(result);
-      onHostsModified(result, customIp);
+      onHostsModified(result, customIp.trim());
 
       if (!result.success) {
         setError(result.message || t("setup.wizard.step6.errorTitle"));

@@ -15,6 +15,8 @@ Covers all 9 wizard endpoints:
   POST /api/setup/wizard/verify-redirect
 """
 
+import socket
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -1273,6 +1275,43 @@ class TestWizardServerInfo:
         assert response.status_code == 200
         body = response.json()
         assert body["server_ip"] == "10.0.0.1"
+
+    def test_server_ip_double_fallback_returns_raw_hostname(self, client):
+        """Bug #200: When BOTH gethostbyname calls fail, raw hostname is returned."""
+        with patch("opencloudtouch.setup.wizard_routes.socket") as mock_socket:
+            mock_socket.gethostname.return_value = "broken-host"
+            mock_socket.gaierror = OSError
+            mock_socket.gethostbyname.side_effect = OSError("no resolution")
+            mock_socket.AF_INET = socket.AF_INET
+            mock_socket.SOCK_DGRAM = socket.SOCK_DGRAM
+
+            response = client.get(
+                "/api/setup/wizard/server-info",
+                headers={"host": "my-oct-server:7777"},
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["server_ip"] == "my-oct-server"
+
+    def test_server_ip_loopback_triggers_udp_fallback(self, client):
+        """Bug #200: Loopback IP from Docker triggers UDP socket fallback."""
+        mock_udp_socket = MagicMock()
+        mock_udp_socket.getsockname.return_value = ("192.168.1.99", 0)
+
+        with patch("opencloudtouch.setup.wizard_routes.socket") as mock_socket:
+            mock_socket.gethostname.return_value = "container-abc123"
+            mock_socket.gethostbyname.return_value = "127.0.0.1"
+            mock_socket.gaierror = OSError
+            mock_socket.AF_INET = socket.AF_INET
+            mock_socket.SOCK_DGRAM = socket.SOCK_DGRAM
+            mock_socket.socket.return_value = mock_udp_socket
+
+            response = client.get("/api/setup/wizard/server-info")
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["server_ip"] == "192.168.1.99"
 
 
 # ── wizard/finalize ──────────────────────────────────────────────────────────

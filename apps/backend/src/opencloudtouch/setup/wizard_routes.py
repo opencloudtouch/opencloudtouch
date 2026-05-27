@@ -83,6 +83,20 @@ async def wizard_server_info(request: Request) -> Dict[str, Any]:
         except socket.gaierror:
             server_ip = hostname
 
+    # Guard against loopback IPs (common in Docker where /etc/hosts maps
+    # the container ID to 127.0.0.1).  Use a UDP connect trick to find
+    # the real outgoing interface IP without sending any traffic.
+    if server_ip.startswith("127."):
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            server_ip = s.getsockname()[0]
+            s.close()
+        except OSError:
+            # UDP trick failed — fall back to request hostname
+            if not hostname.startswith("127."):
+                server_ip = hostname
+
     return {
         "server_url": server_url,
         "server_ip": server_ip,

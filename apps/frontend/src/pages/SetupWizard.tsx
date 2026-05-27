@@ -269,7 +269,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
     setDetectedStrategy(strategy);
   };
 
-  const handleHostsModified = (data: unknown, effectiveIp?: string) => {
+  const handleHostsModified = (data: unknown, effectiveIp: string) => {
     audit?.logDetail("config", "hosts_modified", 5, { data: JSON.stringify(data) });
     console.log("Hosts modified:", data);
     // Propagate user-overridden IP so Step7 verification uses the correct address
