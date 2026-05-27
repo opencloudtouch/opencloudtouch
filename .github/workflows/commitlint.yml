@@ -30,11 +30,11 @@ jobs:
           npm install -g @commitlint/cli @commitlint/config-conventional
 
       - name: Validate PR title
-        run: |
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          echo "$PR_TITLE" | commitlint
         env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$PR_TITLE" | commitlint
 
       - name: Validate commit messages
         run: |

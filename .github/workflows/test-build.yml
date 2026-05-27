@@ -50,6 +50,9 @@ env:
   IMAGE_NAME: scheilch/opencloudtouch
   PI_GEN_REPO: https://github.com/RPi-Distro/pi-gen.git
 
+# Least-privilege: no default permissions. Jobs declare what they need.
+permissions: {}
+
 jobs:
   # ============================================================================
   # VALIDATE INPUTS

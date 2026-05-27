@@ -24,6 +24,9 @@ on:
       - 'apps/backend/requirements-dev.txt'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   license-check:
     name: License Check
