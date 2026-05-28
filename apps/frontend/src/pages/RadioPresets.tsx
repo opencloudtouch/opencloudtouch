@@ -338,6 +338,7 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
                     preset={presets[num]}
                     onAssign={() => handleAssignClick(num)}
                     onPlay={() => handlePlayPreset(num)}
+                    onPause={() => currentDevice && togglePlayPause(currentDevice.device_id)}
                     isCurrentlyPlaying={
                       npState?.state === "PLAY_STATE" &&
                       npState?.station_name === presets[num]?.station_name

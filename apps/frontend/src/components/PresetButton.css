@@ -108,12 +108,13 @@
 
 .preset-play-btn.playing {
   background-color: #2e7d32;
-  cursor: default;
-  opacity: 0.7;
+  cursor: pointer;
+  opacity: 0.85;
 }
 
-.preset-play-btn[aria-disabled="true"] {
-  cursor: default;
+.preset-play-btn.playing:hover {
+  background-color: #1b5e20;
+  opacity: 1;
 }
 
 /* Cloud-warning background */

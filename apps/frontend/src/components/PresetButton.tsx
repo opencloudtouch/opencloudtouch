@@ -15,6 +15,7 @@ interface PresetButtonProps {
   preset?: Preset | null;
   onAssign: () => void;
   onPlay: () => void;
+  onPause?: () => void;
   isCurrentlyPlaying?: boolean;
   disabled?: boolean;
 }
@@ -76,6 +77,7 @@ export default function PresetButton({
   preset,
   onAssign,
   onPlay,
+  onPause,
   isCurrentlyPlaying,
   disabled = false,
 }: PresetButtonProps) {
@@ -138,16 +140,19 @@ export default function PresetButton({
               className={`preset-play-btn${isCurrentlyPlaying ? " playing" : ""}`}
               onClick={(e) => {
                 e.stopPropagation();
-                if (!isCurrentlyPlaying) onPlay();
+                if (isCurrentlyPlaying) {
+                  onPause?.();
+                } else {
+                  onPlay();
+                }
               }}
               aria-label={
                 isCurrentlyPlaying
-                  ? t("presets.nowPlaying")
+                  ? t("player.pause")
                   : t("presets.playPreset", { name: preset.station_name })
               }
               data-testid={`preset-action-${number}`}
-              aria-disabled={isCurrentlyPlaying}
-              title={isCurrentlyPlaying ? t("presets.nowPlaying") : t("player.play")}
+              title={isCurrentlyPlaying ? t("player.pause") : t("player.play")}
             >
               {isCurrentlyPlaying ? (
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">

@@ -136,8 +136,9 @@ describe("PresetButton Component", () => {
         />
       );
 
-      const playButton = screen.getByLabelText("Now playing");
-      expect(playButton).toHaveAttribute("aria-disabled", "true");
+      const pauseButton = screen.getByLabelText("Pause");
+      expect(pauseButton).toBeInTheDocument();
+      expect(pauseButton).toHaveClass("playing");
     });
 
   });
