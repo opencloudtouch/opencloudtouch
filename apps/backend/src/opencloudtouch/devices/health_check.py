@@ -1,8 +1,10 @@
 """Background health-check service for SoundTouch devices.
 
-Periodically pings devices via the SoundTouch API (port 8091) to update
-``last_seen`` and detect offline devices.  For devices with
-``ssh_permanent=True``, also verifies the BMX URL via SSH every 30 min.
+Periodically pings devices via the SoundTouch HTTP API to update
+``last_seen`` and detect offline devices.  The port used for the ping is
+``device_http_port`` from the application config (default 8090, override via
+``OCT_DEVICE_HTTP_PORT``).  For devices with ``ssh_permanent=True``, also
+verifies the BMX URL via SSH every 30 min.
 """
 
 import asyncio
@@ -13,7 +15,6 @@ import httpx
 
 from opencloudtouch.core.config import get_config
 from opencloudtouch.devices.repository import DeviceRepository
-from opencloudtouch.discovery import SOUNDTOUCH_WEBSERVER_PORT
 from opencloudtouch.setup.ssh_client import SoundTouchSSHClient, check_ssh_port
 
 logger = logging.getLogger(__name__)
@@ -106,10 +107,11 @@ class DeviceHealthCheck:
 
     @staticmethod
     async def _ping_device(client: httpx.AsyncClient, ip: str) -> bool:
-        """Ping a single device via GET /info on the WebServer port."""
+        """Ping a single device via GET /info on the configured HTTP port."""
+        port = get_config().device_http_port
         try:
             resp = await client.get(
-                f"http://{ip}:{SOUNDTOUCH_WEBSERVER_PORT}/info"  # NOSONAR — Bose devices only support HTTP
+                f"http://{ip}:{port}/info"  # NOSONAR — Bose devices only support HTTP
             )
             return resp.status_code == 200
         except (httpx.ConnectError, httpx.TimeoutException, httpx.ReadError):

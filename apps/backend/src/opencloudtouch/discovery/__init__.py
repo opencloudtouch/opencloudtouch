@@ -7,11 +7,13 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional
 
-# Default HTTP API port for Bose SoundTouch devices
+# Default HTTP API port for Bose SoundTouch devices (/info, /volume, /now_playing, …)
 SOUNDTOUCH_HTTP_PORT = 8090
 
-# SoundTouch WebServer port (device description, /info endpoint)
-SOUNDTOUCH_WEBSERVER_PORT = 8091
+# Port alias kept for backward compatibility — resolves to the same value as
+# SOUNDTOUCH_HTTP_PORT.  The /info endpoint is served on port 8090 on all
+# known SoundTouch devices; use OCT_DEVICE_HTTP_PORT to override at runtime.
+SOUNDTOUCH_WEBSERVER_PORT = SOUNDTOUCH_HTTP_PORT
 
 
 @dataclass
