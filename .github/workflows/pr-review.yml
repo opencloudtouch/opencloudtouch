@@ -127,8 +127,9 @@ jobs:
         || github.event.comment.body == '/approve-check'
       )
       && (
-        github.event.comment.user.login == github.repository_owner
-        || github.event.comment.user.login == 'oct-support'
+        github.event.comment.author_association == 'MEMBER'
+        || github.event.comment.author_association == 'OWNER'
+        || github.event.comment.author_association == 'COLLABORATOR'
       )
 
     steps:

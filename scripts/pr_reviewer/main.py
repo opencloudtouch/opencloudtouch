@@ -586,6 +586,12 @@ async def submit_review(
             print(f"[INFO] AI verdict was APPROVE but CI is not green ({failure_list}). Downgrading to COMMENT.")
             event = "COMMENT"
 
+    # Hint for the PR author on how to trigger approve-check after resolving threads
+    approve_hint = (
+        "\n\n---\n"
+        "💡 Once you've resolved all review threads, comment `/approve-check` to trigger auto-approval."
+    )
+
     # Don't auto-approve on first review — always provide feedback first
     if event == "APPROVE" and not review_result.get("comments"):
         event = "APPROVE"
@@ -595,6 +601,7 @@ async def submit_review(
             body = f"✅ **AI Review — Approved with comments**\n\n{review_result.get('summary', '')}"
         else:
             body = f"🔍 **AI Review — Changes requested**\n\n{review_result.get('summary', '')}"
+            body += approve_hint
 
     # Build review comments — only keep those on valid diff lines
     comments = []

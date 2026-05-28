@@ -22,6 +22,10 @@ jobs:
   triage:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # Skip PR comments — those are handled by pr-review.yml
+    if: >-
+      github.event_name != 'issue_comment'
+      || !github.event.issue.pull_request
 
     steps:
       - name: Checkout repository
