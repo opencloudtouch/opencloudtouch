@@ -86,6 +86,11 @@ async def wizard_server_info(request: Request) -> Dict[str, Any]:
     # Guard against loopback IPs (common in Docker where /etc/hosts maps
     # the container ID to 127.0.0.1).  Use a UDP connect trick to find
     # the real outgoing interface IP without sending any traffic.
+    #
+    # How: Opening a UDP socket and connect()ing to an external address
+    # (here 8.8.8.8) causes the OS to select the outgoing network interface
+    # without actually sending a packet.  getsockname() then returns the
+    # local IP of that interface — i.e. the LAN IP the device can reach.
     if server_ip.startswith("127."):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
