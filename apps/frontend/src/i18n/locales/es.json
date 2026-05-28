@@ -104,7 +104,11 @@
       "name": "p. ej. SWR3, BBC Radio…",
       "country": "p. ej. Germany, Spain…",
       "tag": "p. ej. Rock, Jazz, pop…"
-    }
+    },
+    "loadMore": "Cargar más",
+    "loadingMore": "Cargando...",
+    "maxReached": "Máximo ({{count}}) alcanzado",
+    "maxReachedTooltip": "Refine su búsqueda para encontrar emisoras específicas"
   },
   "settings": {
     "title": "Ajustes",

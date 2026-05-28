@@ -104,7 +104,11 @@
       "name": "ex.: Band FM, BBC Radio…",
       "country": "ex.: Brazil, Portugal…",
       "tag": "ex.: Rock, Jazz, pop…"
-    }
+    },
+    "loadMore": "Carregar mais",
+    "loadingMore": "Carregando...",
+    "maxReached": "Máximo ({{count}}) atingido",
+    "maxReachedTooltip": "Refine sua pesquisa para encontrar estações específicas"
   },
   "settings": {
     "title": "Configurações",

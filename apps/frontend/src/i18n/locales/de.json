@@ -104,7 +104,11 @@
       "name": "z.B. SWR3, BBC Radio…",
       "country": "z.B. Germany, Austria…",
       "tag": "z.B. rock, jazz, pop…"
-    }
+    },
+    "loadMore": "Mehr anzeigen",
+    "loadingMore": "Lädt...",
+    "maxReached": "Maximum ({{count}}) erreicht",
+    "maxReachedTooltip": "Grenzen Sie Ihre Suche weiter ein, um bestimmte Sender zu finden"
   },
   "settings": {
     "title": "Einstellungen",

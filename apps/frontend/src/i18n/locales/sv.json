@@ -104,7 +104,11 @@
       "name": "t.ex. P3, BBC Radio…",
       "country": "t.ex. Sweden, Germany…",
       "tag": "t.ex. Rock, Jazz, pop…"
-    }
+    },
+    "loadMore": "Ladda fler",
+    "loadingMore": "Laddar...",
+    "maxReached": "Maximum ({{count}}) nått",
+    "maxReachedTooltip": "Förfina din sökning för att hitta specifika stationer"
   },
   "settings": {
     "title": "Inställningar",

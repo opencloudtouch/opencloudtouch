@@ -104,7 +104,11 @@
       "name": "np. RMF FM, BBC Radio…",
       "country": "np. Poland, Germany…",
       "tag": "np. Rock, Jazz, pop…"
-    }
+    },
+    "loadMore": "Załaduj więcej",
+    "loadingMore": "Ładowanie...",
+    "maxReached": "Osiągnięto maksimum ({{count}})",
+    "maxReachedTooltip": "Zawęź wyszukiwanie, aby znaleźć konkretne stacje"
   },
   "settings": {
     "title": "Ustawienia",
