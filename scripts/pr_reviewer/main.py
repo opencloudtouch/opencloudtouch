@@ -6,8 +6,8 @@ Modes:
 
 Environment variables:
   BOT_PAT          — oct-support PAT (needs repo, pull_request write)
-  GITHUB_TOKEN     — Actions token for read operations
-  OPENAI_API_KEY   — OpenAI API key for AI review
+  GITHUB_TOKEN     — Actions token (also used for GitHub Models free tier)
+  OPENAI_API_KEY   — OpenAI API key (fallback only)
   PR_NUMBER        — Pull request number
   REPO_FULL_NAME   — owner/repo
   MODE             — "review" or "approve"
@@ -20,6 +20,8 @@ import json
 import os
 import random
 import sys
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
@@ -31,6 +33,7 @@ BACKOFF_FACTOR = 2.0
 JITTER_MS = 500
 
 API_BASE = "https://api.github.com"
+GITHUB_MODELS_BASE = "https://models.inference.ai.azure.com"
 HEADERS = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
 
 # Files to skip in review (generated, lock files, etc.)
@@ -49,7 +52,123 @@ MAX_FILE_DIFF_CHARS = 8000
 # Max total diff size sent to AI
 MAX_TOTAL_DIFF_CHARS = 60000
 
+# Cost tracking — GPT-4o-mini pricing
+INPUT_COST_PER_TOKEN = 0.15 / 1_000_000
+OUTPUT_COST_PER_TOKEN = 0.60 / 1_000_000
+MONTHLY_BUDGET_USD = 0.90
+
+# Rate limiting — cooldown per PR (seconds)
+REVIEW_COOLDOWN_SECONDS = 300  # 5 min between reviews on same PR
+
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "oct-support")
+
+
+# =============================================================================
+# Cost Tracker (adapted from issue_handler/cost_tracker.py)
+# =============================================================================
+
+@dataclass
+class CostRecord:
+    """Tracks monthly AI cost."""
+
+    month: str
+    total_cost_usd: float = 0.0
+    call_count: int = 0
+    last_updated: str = ""
+
+
+class CostTracker:
+    """Track monthly AI API costs with budget enforcement."""
+
+    def __init__(self, cost_file: Path, budget_usd: float = MONTHLY_BUDGET_USD) -> None:
+        self._cost_file = cost_file
+        self._budget_usd = budget_usd
+        self._month: str = datetime.now(timezone.utc).strftime("%Y-%m")
+        self._record = CostRecord(month=self._month)
+        self._load()
+
+    @property
+    def total_cost_usd(self) -> float:
+        return self._record.total_cost_usd
+
+    @property
+    def call_count(self) -> int:
+        return self._record.call_count
+
+    def _load(self) -> None:
+        if not self._cost_file.exists():
+            return
+        try:
+            data = json.loads(self._cost_file.read_text())
+            if data.get("month") == self._month:
+                self._record.total_cost_usd = data.get("total_cost_usd", 0.0)
+                self._record.call_count = data.get("call_count", 0)
+                self._record.last_updated = data.get("last_updated", "")
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    def save(self) -> None:
+        self._cost_file.parent.mkdir(parents=True, exist_ok=True)
+        self._record.last_updated = datetime.now(timezone.utc).isoformat()
+        data = {
+            "month": self._record.month,
+            "total_cost_usd": self._record.total_cost_usd,
+            "call_count": self._record.call_count,
+            "last_updated": self._record.last_updated,
+        }
+        self._cost_file.write_text(json.dumps(data, indent=2))
+
+    def record_call(self, input_tokens: int, output_tokens: int) -> None:
+        cost = (input_tokens * INPUT_COST_PER_TOKEN) + (output_tokens * OUTPUT_COST_PER_TOKEN)
+        self._record.total_cost_usd += cost
+        self._record.call_count += 1
+
+    def is_budget_exceeded(self) -> bool:
+        return self._record.total_cost_usd >= self._budget_usd
+
+
+# =============================================================================
+# Rate Limiter
+# =============================================================================
+
+class ReviewRateLimiter:
+    """Enforce cooldown between reviews on the same PR."""
+
+    def __init__(self, state_file: Path) -> None:
+        self._state_file = state_file
+        self._state: dict[str, str] = {}
+        self._load()
+
+    def _load(self) -> None:
+        if not self._state_file.exists():
+            return
+        try:
+            self._state = json.loads(self._state_file.read_text())
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    def save(self) -> None:
+        self._state_file.parent.mkdir(parents=True, exist_ok=True)
+        self._state_file.write_text(json.dumps(self._state, indent=2))
+
+    def check_and_record(self, pr_key: str) -> bool:
+        """Return True if review is allowed, False if rate-limited."""
+        now = datetime.now(timezone.utc)
+        last_str = self._state.get(pr_key)
+        if last_str:
+            try:
+                last = datetime.fromisoformat(last_str)
+                elapsed = (now - last).total_seconds()
+                if elapsed < REVIEW_COOLDOWN_SECONDS:
+                    print(
+                        f"[RATE-LIMIT] PR {pr_key} was reviewed {elapsed:.0f}s ago "
+                        f"(cooldown: {REVIEW_COOLDOWN_SECONDS}s). Skipping."
+                    )
+                    return False
+            except ValueError:
+                pass
+        self._state[pr_key] = now.isoformat()
+        return True
 
 
 async def _request_with_retry(
@@ -240,28 +359,65 @@ Use "comment" for style suggestions or minor improvements.
 """
 
 
-async def run_ai_review(prompt: str) -> dict:
-    """Send the review prompt to OpenAI and parse the response."""
+async def run_ai_review(prompt: str, cost_tracker: CostTracker) -> dict:
+    """Send the review prompt to AI. GitHub Models primary, OpenAI fallback."""
     from openai import AsyncOpenAI
 
-    api_key = os.environ.get("OPENAI_API_KEY", "")
-    if not api_key:
-        print("[ERROR] OPENAI_API_KEY not set", file=sys.stderr)
+    github_token = os.environ.get("GITHUB_TOKEN", "")
+    openai_api_key = os.environ.get("OPENAI_API_KEY", "")
+
+    messages = [
+        {"role": "system", "content": "You are a precise code reviewer. Respond only with valid JSON."},
+        {"role": "user", "content": prompt},
+    ]
+    kwargs = {
+        "model": "gpt-4o-mini",
+        "messages": messages,
+        "temperature": 0.1,
+        "max_tokens": 4000,
+        "response_format": {"type": "json_object"},
+    }
+
+    # Try GitHub Models first (free tier, 150 req/day)
+    if github_token:
+        try:
+            client = AsyncOpenAI(
+                base_url=GITHUB_MODELS_BASE,
+                api_key=github_token,
+            )
+            response = await client.chat.completions.create(**kwargs)
+            content = response.choices[0].message.content or "{}"
+            print("[OK] Review generated via GitHub Models (free tier)")
+            return json.loads(content)
+        except Exception as e:
+            print(f"[WARN] GitHub Models failed: {e}, falling back to OpenAI", file=sys.stderr)
+
+    # Fallback: OpenAI (with cost tracking + budget check)
+    if not openai_api_key:
+        print("[ERROR] No AI provider available (GitHub Models failed, OPENAI_API_KEY not set)", file=sys.stderr)
         sys.exit(1)
 
-    client = AsyncOpenAI(api_key=api_key)
-    response = await client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "You are a precise code reviewer. Respond only with valid JSON."},
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.1,
-        max_tokens=4000,
-        response_format={"type": "json_object"},
-    )
+    if cost_tracker.is_budget_exceeded():
+        print(
+            f"[BUDGET] Monthly budget exceeded (${cost_tracker.total_cost_usd:.4f} / "
+            f"${MONTHLY_BUDGET_USD:.2f}). Skipping review.",
+            file=sys.stderr,
+        )
+        sys.exit(0)
 
+    client = AsyncOpenAI(api_key=openai_api_key)
+    response = await client.chat.completions.create(**kwargs)
     content = response.choices[0].message.content or "{}"
+
+    # Track cost
+    usage = response.usage
+    if usage:
+        cost_tracker.record_call(usage.prompt_tokens, usage.completion_tokens)
+        print(
+            f"[COST] OpenAI fallback: {usage.prompt_tokens}+{usage.completion_tokens} tokens, "
+            f"month total: ${cost_tracker.total_cost_usd:.4f}"
+        )
+
     return json.loads(content)
 
 
@@ -400,11 +556,25 @@ async def run() -> int:
 
     pr_number = int(pr_number_str)
 
+    # Initialize cost tracker
+    cost_file = Path("/tmp/ai-cost-tracker/pr-review-cost.json")
+    cost_tracker = CostTracker(cost_file)
+
+    # Initialize rate limiter
+    rate_file = Path("/tmp/ai-cost-tracker/pr-review-rate.json")
+    rate_limiter = ReviewRateLimiter(rate_file)
+
     async with httpx.AsyncClient(
         headers={**HEADERS, "Authorization": f"Bearer {bot_pat}"},
         timeout=60.0,
     ) as client:
         if mode == "review":
+            # Rate limit check
+            pr_key = f"{repo}#{pr_number}"
+            if not rate_limiter.check_and_record(pr_key):
+                rate_limiter.save()
+                return 0
+
             print(f"[INFO] Reviewing PR #{pr_number} in {repo}...")
             pr_details = await get_pr_details(client, repo, pr_number)
             files = await get_pr_files(client, repo, pr_number)
@@ -415,9 +585,13 @@ async def run() -> int:
                 return 0
 
             prompt = build_review_prompt(pr_details, files)
-            review_result = await run_ai_review(prompt)
+            review_result = await run_ai_review(prompt, cost_tracker)
             commit_sha = pr_details["head"]["sha"]
             await submit_review(client, repo, pr_number, commit_sha, review_result)
+
+            # Persist state
+            cost_tracker.save()
+            rate_limiter.save()
 
         elif mode == "approve":
             print(f"[INFO] Checking approval status for PR #{pr_number} in {repo}...")

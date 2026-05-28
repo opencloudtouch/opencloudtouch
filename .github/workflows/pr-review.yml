@@ -52,14 +52,30 @@ jobs:
       - name: Install dependencies
         run: pip install -r scripts/pr_reviewer/requirements.txt
 
+      - name: Restore cost tracker cache
+        uses: actions/cache/restore@v5
+        with:
+          path: /tmp/ai-cost-tracker
+          key: pr-review-cost-${{ github.run_id }}
+          restore-keys: |
+            pr-review-cost-
+
       - name: Run AI review
         env:
           BOT_PAT: ${{ secrets.BOT_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           REPO_FULL_NAME: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           MODE: review
         run: python scripts/pr_reviewer/main.py
+
+      - name: Save cost tracker cache
+        if: always()
+        uses: actions/cache/save@v5
+        with:
+          path: /tmp/ai-cost-tracker
+          key: pr-review-cost-${{ github.run_id }}
 
   # ============================================================================
   # PHASE 2: AUTO-APPROVE — when new commits are pushed to a reviewed PR
@@ -107,8 +123,8 @@ jobs:
       github.event_name == 'issue_comment'
       && github.event.issue.pull_request
       && (
-        startsWith(github.event.comment.body, '/review')
-        || startsWith(github.event.comment.body, '/approve-check')
+        github.event.comment.body == '/review'
+        || github.event.comment.body == '/approve-check'
       )
       && (
         github.event.comment.user.login == github.repository_owner
@@ -127,6 +143,14 @@ jobs:
       - name: Install dependencies
         run: pip install -r scripts/pr_reviewer/requirements.txt
 
+      - name: Restore cost tracker cache
+        uses: actions/cache/restore@v5
+        with:
+          path: /tmp/ai-cost-tracker
+          key: pr-review-cost-${{ github.run_id }}
+          restore-keys: |
+            pr-review-cost-
+
       - name: Determine mode
         id: mode
         env:
@@ -141,8 +165,16 @@ jobs:
       - name: Run PR reviewer
         env:
           BOT_PAT: ${{ secrets.BOT_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           REPO_FULL_NAME: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.issue.number }}
           MODE: ${{ steps.mode.outputs.mode }}
         run: python scripts/pr_reviewer/main.py
+
+      - name: Save cost tracker cache
+        if: always()
+        uses: actions/cache/save@v5
+        with:
+          path: /tmp/ai-cost-tracker
+          key: pr-review-cost-${{ github.run_id }}
