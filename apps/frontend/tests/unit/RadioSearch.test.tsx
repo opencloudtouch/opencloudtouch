@@ -430,4 +430,188 @@ describe("RadioSearch Component", () => {
       expect(container.textContent).toContain("RadioBrowser");
     });
   });
+
+  describe("Pagination / Load More", () => {
+    const makePage = (count: number, startIndex: number, hasMore: boolean) => {
+      const stations = Array.from({ length: count }, (_, i) => ({
+        uuid: `station-${startIndex + i}`,
+        name: `Station ${startIndex + i}`,
+        country: "Testland",
+      }));
+      return { stations, has_more: hasMore };
+    };
+
+    const searchAndWait = async (value: string) => {
+      const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
+      fireEvent.change(searchInput, { target: { value } });
+      await waitFor(
+        () => {
+          expect(screen.getByText("Station 0")).toBeInTheDocument();
+        },
+        { timeout: 700 }
+      );
+    };
+
+    it("shows Load More button when has_more is true", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => ({
+          ok: true,
+          status: 200,
+          json: async () => makePage(10, 0, true),
+        } as Response))
+      );
+
+      render(
+        <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+      );
+
+      await searchAndWait("test");
+
+      const loadMoreBtn = document.querySelector(".load-more-btn");
+      expect(loadMoreBtn).toBeInTheDocument();
+      expect(loadMoreBtn).toHaveTextContent("Load more");
+    });
+
+    it("loads more results when Load More is clicked", async () => {
+      const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+        const urlString = String(input);
+        const url = new URL(urlString, "http://localhost");
+        const offsetParam = parseInt(url.searchParams.get("offset") || "0", 10);
+
+        if (offsetParam === 0) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => makePage(10, 0, true),
+          } as Response;
+        }
+        return {
+          ok: true,
+          status: 200,
+          json: async () => makePage(10, 10, false),
+        } as Response;
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      render(
+        <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+      );
+
+      await searchAndWait("test");
+
+      const loadMoreBtn = document.querySelector(".load-more-btn")!;
+      fireEvent.click(loadMoreBtn);
+
+      await waitFor(() => {
+        expect(screen.getByText("Station 10")).toBeInTheDocument();
+      });
+
+      // Verify second fetch used offset=10
+      const secondCall = fetchMock.mock.calls.find((call) => {
+        const u = new URL(String(call[0]), "http://localhost");
+        return u.searchParams.get("offset") === "10";
+      });
+      expect(secondCall).toBeDefined();
+
+      // All 20 results visible
+      expect(screen.getByText("Station 0")).toBeInTheDocument();
+      expect(screen.getByText("Station 19")).toBeInTheDocument();
+
+      // Load More hidden after has_more=false
+      expect(document.querySelector(".load-more-btn")).not.toBeInTheDocument();
+    });
+
+    it("hides Load More button when has_more is false", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => ({
+          ok: true,
+          status: 200,
+          json: async () => makePage(5, 0, false),
+        } as Response))
+      );
+
+      render(
+        <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+      );
+
+      const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
+      fireEvent.change(searchInput, { target: { value: "test" } });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Station 0")).toBeInTheDocument();
+        },
+        { timeout: 700 }
+      );
+
+      expect(document.querySelector(".load-more-btn")).not.toBeInTheDocument();
+    });
+
+    it("shows max reached message when results >= 200", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => ({
+          ok: true,
+          status: 200,
+          json: async () => makePage(200, 0, true),
+        } as Response))
+      );
+
+      render(
+        <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+      );
+
+      const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
+      fireEvent.change(searchInput, { target: { value: "test" } });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Station 0")).toBeInTheDocument();
+        },
+        { timeout: 700 }
+      );
+
+      const maxReached = document.querySelector(".max-reached");
+      expect(maxReached).toBeInTheDocument();
+      // Load More should NOT appear even though has_more=true (MAX_RESULTS reached)
+      expect(document.querySelector(".load-more-btn")).not.toBeInTheDocument();
+    });
+
+    it("handles load more API error", async () => {
+      let callCount = 0;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => {
+          callCount++;
+          if (callCount === 1) {
+            return {
+              ok: true,
+              status: 200,
+              json: async () => makePage(10, 0, true),
+            } as Response;
+          }
+          return {
+            ok: false,
+            status: 500,
+            json: async () => ({ detail: "Internal server error" }),
+          } as Response;
+        })
+      );
+
+      render(
+        <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+      );
+
+      await searchAndWait("test");
+
+      const loadMoreBtn = document.querySelector(".load-more-btn")!;
+      fireEvent.click(loadMoreBtn);
+
+      await waitFor(() => {
+        expect(document.querySelector(".search-error")).toBeInTheDocument();
+      });
+    });
+  });
 });
