@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next";
-import CloudBadge from "./CloudBadge";
 import { getAvatarColor, getStationInitials } from "../utils/stationAvatar";
 import "./PresetButton.css";
 
@@ -16,7 +15,6 @@ interface PresetButtonProps {
   preset?: Preset | null;
   onAssign: () => void;
   onPlay: () => void;
-  onClear?: () => void;
   isCurrentlyPlaying?: boolean;
   disabled?: boolean;
 }
@@ -78,7 +76,6 @@ export default function PresetButton({
   preset,
   onAssign,
   onPlay,
-  onClear,
   isCurrentlyPlaying,
   disabled = false,
 }: PresetButtonProps) {
@@ -101,7 +98,7 @@ export default function PresetButton({
       {preset ? (
         <>
           <button
-            className="preset-info"
+            className={`preset-info${isCloudDependent(preset) ? " cloud-warning" : ""}`}
             onClick={onAssign}
             data-testid={`preset-play-${number}`}
             title={t("presets.changeStation")}
@@ -136,41 +133,32 @@ export default function PresetButton({
               </span>
             </div>
             <span className="preset-name">{preset.station_name}</span>
-            <CloudBadge isCloudDependent={isCloudDependent(preset)} source={preset.source} />
-          </button>
-          <button
-            className="preset-clear-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClear?.();
-            }}
-            aria-label={t("presets.deletePreset")}
-            title={t("presets.deletePreset")}
-            data-testid={`preset-clear-${number}`}
-          >
-            ✕
-          </button>
-          <button
-            className={`preset-play-btn${isCurrentlyPlaying ? " playing" : ""}`}
-            onClick={onPlay}
-            aria-label={
-              isCurrentlyPlaying
-                ? t("presets.nowPlaying")
-                : t("presets.playPreset", { name: preset.station_name })
-            }
-            data-testid={`preset-action-${number}`}
-            disabled={isCurrentlyPlaying}
-            title={isCurrentlyPlaying ? t("presets.nowPlaying") : t("player.play")}
-          >
-            {isCurrentlyPlaying ? (
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            )}
+            <span
+              role="button"
+              className={`preset-play-btn${isCurrentlyPlaying ? " playing" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!isCurrentlyPlaying) onPlay();
+              }}
+              aria-label={
+                isCurrentlyPlaying
+                  ? t("presets.nowPlaying")
+                  : t("presets.playPreset", { name: preset.station_name })
+              }
+              data-testid={`preset-action-${number}`}
+              aria-disabled={isCurrentlyPlaying}
+              title={isCurrentlyPlaying ? t("presets.nowPlaying") : t("player.play")}
+            >
+              {isCurrentlyPlaying ? (
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              )}
+            </span>
           </button>
         </>
       ) : (

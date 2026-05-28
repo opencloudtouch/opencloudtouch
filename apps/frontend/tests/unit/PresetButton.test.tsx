@@ -94,7 +94,7 @@ describe("PresetButton Component", () => {
       expect(mockOnPlay).not.toHaveBeenCalled();
     });
 
-    it("calls onPlay when play button is clicked", () => {
+    it("calls onPlay when play button is clicked (not onAssign)", () => {
       render(
         <PresetButton
           number={1}
@@ -125,7 +125,7 @@ describe("PresetButton Component", () => {
       expect(screen.getByText("BR")).toBeInTheDocument();
     });
 
-    it("disables play button when currently playing", () => {
+    it("shows playing state when currently playing", () => {
       render(
         <PresetButton
           number={1}
@@ -137,7 +137,7 @@ describe("PresetButton Component", () => {
       );
 
       const playButton = screen.getByLabelText("Now playing");
-      expect(playButton).toBeDisabled();
+      expect(playButton).toHaveAttribute("aria-disabled", "true");
     });
 
   });
@@ -189,7 +189,7 @@ describe("PresetButton Component", () => {
       };
     };
 
-    it("shows compatible badge for BMX preset with shoutcast stream URL", () => {
+    it("shows no cloud-warning for BMX preset with shoutcast stream URL", () => {
       const preset = makeBmxPreset("http://shoutcast.example.com/stream.mp3");
 
       render(
@@ -201,16 +201,12 @@ describe("PresetButton Component", () => {
         />
       );
 
-      // Compatible badge should be shown (not cloud-dependent)
-      expect(
-        screen.queryByRole("img", { name: /Compatible after cloud shutdown/i })
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByRole("img", { name: /Cloud-dependent/i })
-      ).not.toBeInTheDocument();
+      // Cloud-independent → no cloud-warning class
+      const infoButton = screen.getByText("SHOUTcast Radio via BMX").closest("button");
+      expect(infoButton).not.toHaveClass("cloud-warning");
     });
 
-    it("shows cloud-dependent badge for BMX preset pointing to streaming.bose.com", () => {
+    it("shows cloud-warning for BMX preset pointing to streaming.bose.com", () => {
       const preset = makeBmxPreset("http://streaming.bose.com/some-stream");
 
       render(
@@ -222,12 +218,11 @@ describe("PresetButton Component", () => {
         />
       );
 
-      expect(
-        screen.queryByRole("img", { name: /Cloud-dependent/i })
-      ).toBeInTheDocument();
+      const infoButton = screen.getByText("SHOUTcast Radio via BMX").closest("button");
+      expect(infoButton).toHaveClass("cloud-warning");
     });
 
-    it("shows cloud-dependent badge when BMX base64 payload cannot be decoded", () => {
+    it("shows cloud-warning when BMX base64 payload cannot be decoded", () => {
       const preset: Preset = {
         station_name: "BMX Broken Payload",
         source: "INTERNET_RADIO",
@@ -243,13 +238,11 @@ describe("PresetButton Component", () => {
         />
       );
 
-      // Safe default: cloud-dependent when we can't determine the real URL
-      expect(
-        screen.queryByRole("img", { name: /Cloud-dependent/i })
-      ).toBeInTheDocument();
+      const infoButton = screen.getByText("BMX Broken Payload").closest("button");
+      expect(infoButton).toHaveClass("cloud-warning");
     });
 
-    it("TUNEIN source is always cloud-dependent (not affected by BUG-33 fix)", () => {
+    it("TUNEIN source always gets cloud-warning (not affected by BUG-33 fix)", () => {
       const preset: Preset = {
         station_name: "TuneIn Station",
         source: "TUNEIN",
@@ -265,12 +258,11 @@ describe("PresetButton Component", () => {
         />
       );
 
-      expect(
-        screen.queryByRole("img", { name: /Cloud-dependent/i })
-      ).toBeInTheDocument();
+      const infoButton = screen.getByText("TuneIn Station").closest("button");
+      expect(infoButton).toHaveClass("cloud-warning");
     });
 
-    it("LOCAL_INTERNET_RADIO source is always cloud-independent", () => {
+    it("LOCAL_INTERNET_RADIO source never gets cloud-warning", () => {
       const preset: Preset = {
         station_name: "OCT Local Station",
         source: "LOCAL_INTERNET_RADIO",
@@ -286,9 +278,8 @@ describe("PresetButton Component", () => {
         />
       );
 
-      expect(
-        screen.queryByRole("img", { name: /Compatible after cloud shutdown/i })
-      ).toBeInTheDocument();
+      const infoButton = screen.getByText("OCT Local Station").closest("button");
+      expect(infoButton).not.toHaveClass("cloud-warning");
     });
   });
 
