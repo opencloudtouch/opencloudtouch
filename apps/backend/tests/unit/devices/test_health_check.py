@@ -108,7 +108,7 @@ class TestPingDevice:
         result = await DeviceHealthCheck._ping_device(mock_client, "192.168.1.100")
 
         assert result is True
-        mock_client.get.assert_called_once_with("http://192.168.1.100:8091/info")
+        mock_client.get.assert_called_once_with("http://192.168.1.100:8090/info")
 
     async def test_non_200_returns_false(self):
         """Device returning non-200 status is not reachable."""

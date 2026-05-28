@@ -13,7 +13,7 @@ import httpx
 
 from opencloudtouch.core.config import get_config
 from opencloudtouch.devices.repository import DeviceRepository
-from opencloudtouch.discovery import SOUNDTOUCH_WEBSERVER_PORT
+from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.setup.ssh_client import SoundTouchSSHClient, check_ssh_port
 
 logger = logging.getLogger(__name__)
@@ -109,7 +109,7 @@ class DeviceHealthCheck:
         """Ping a single device via GET /info on the WebServer port."""
         try:
             resp = await client.get(
-                f"http://{ip}:{SOUNDTOUCH_WEBSERVER_PORT}/info"  # NOSONAR — Bose devices only support HTTP
+                f"http://{ip}:{SOUNDTOUCH_HTTP_PORT}/info"  # NOSONAR — Bose devices only support HTTP
             )
             return resp.status_code == 200
         except (httpx.ConnectError, httpx.TimeoutException, httpx.ReadError):
