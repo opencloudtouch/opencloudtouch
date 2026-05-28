@@ -141,9 +141,9 @@ class DeviceRepository(BaseRepository):
         )
 
         await self._apply_migration(
-            version=103,
-            description="Add marge_account_uuid column to devices",
-            sql="ALTER TABLE devices ADD COLUMN marge_account_uuid TEXT",
+            version=104,
+            description="Set pre-existing devices to configured after upgrade",
+            sql="UPDATE devices SET setup_status = 'configured' WHERE setup_status = 'unknown'",
         )
 
         # Indexes

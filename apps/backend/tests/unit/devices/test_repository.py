@@ -608,3 +608,146 @@ class TestDatabaseConnectionErrors:
 
         finally:
             await repo.close()
+
+
+# ---------------------------------------------------------------------------
+# Migration v104: Pre-existing devices set to 'configured'
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_migration_v104_sets_unknown_to_configured():
+    """Migration v104 sets pre-existing 'unknown' devices to 'configured'.
+
+    Regression test for bug #267: after upgrade, all devices shown as unconfigured.
+    Devices that existed before the setup_status column was added get 'unknown'
+    from the DEFAULT in migration v100. Migration v104 corrects them to 'configured'.
+    """
+    repo = DeviceRepository(":memory:")
+    await repo.initialize()
+
+    try:
+        db = repo._db
+
+        # Simulate pre-v104 state: insert devices with setup_status='unknown'
+        # (as migration v100 DEFAULT would have set them)
+        await db.execute(
+            "INSERT INTO devices (device_id, ip, name, model, mac_address, firmware_version, last_seen, setup_status) "
+            "VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?)",
+            (
+                "DEV_OLD1",
+                "192.168.1.10",
+                "Living Room",
+                "SoundTouch 30",
+                "AA:BB:CC:DD:EE:01",
+                "28.0.3",
+                "unknown",
+            ),
+        )
+        await db.execute(
+            "INSERT INTO devices (device_id, ip, name, model, mac_address, firmware_version, last_seen, setup_status) "
+            "VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?)",
+            (
+                "DEV_OLD2",
+                "192.168.1.11",
+                "Kitchen",
+                "SoundTouch 10",
+                "AA:BB:CC:DD:EE:02",
+                "27.0.6",
+                "unknown",
+            ),
+        )
+        await db.commit()
+
+        # Re-run migration v104 by resetting it in schema_versions
+        await db.execute("DELETE FROM schema_versions WHERE version = 104")
+        await db.commit()
+
+        await repo._apply_migration(
+            version=104,
+            description="Set pre-existing devices to configured after upgrade",
+            sql="UPDATE devices SET setup_status = 'configured' WHERE setup_status = 'unknown'",
+        )
+
+        # Verify both devices are now 'configured'
+        devices = await repo.get_all()
+        assert len(devices) == 2
+        for device in devices:
+            assert (
+                device.setup_status == "configured"
+            ), f"Device {device.device_id} should be 'configured', got '{device.setup_status}'"
+    finally:
+        await repo.close()
+
+
+@pytest.mark.asyncio
+async def test_migration_v104_does_not_affect_other_statuses():
+    """Migration v104 only changes 'unknown' devices, not others."""
+    repo = DeviceRepository(":memory:")
+    await repo.initialize()
+
+    try:
+        db = repo._db
+
+        # Insert devices with various statuses
+        for status, dev_id in [
+            ("configured", "DEV_CFG"),
+            ("unconfigured", "DEV_UNCFG"),
+            ("outdated", "DEV_OUT"),
+        ]:
+            await db.execute(
+                "INSERT INTO devices (device_id, ip, name, model, mac_address, firmware_version, last_seen, setup_status) "
+                "VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?)",
+                (
+                    dev_id,
+                    "192.168.1.10",
+                    "Test",
+                    "SoundTouch 30",
+                    "AA:BB:CC:DD:EE:FF",
+                    "28.0.3",
+                    status,
+                ),
+            )
+        await db.commit()
+
+        # Re-run migration v104
+        await db.execute("DELETE FROM schema_versions WHERE version = 104")
+        await db.commit()
+        await repo._apply_migration(
+            version=104,
+            description="Set pre-existing devices to configured after upgrade",
+            sql="UPDATE devices SET setup_status = 'configured' WHERE setup_status = 'unknown'",
+        )
+
+        # Verify statuses unchanged
+        dev_cfg = await repo.get_by_device_id("DEV_CFG")
+        assert dev_cfg.setup_status == "configured"
+
+        dev_uncfg = await repo.get_by_device_id("DEV_UNCFG")
+        assert dev_uncfg.setup_status == "unconfigured"
+
+        dev_out = await repo.get_by_device_id("DEV_OUT")
+        assert dev_out.setup_status == "outdated"
+    finally:
+        await repo.close()
+
+
+@pytest.mark.asyncio
+async def test_migration_v104_fresh_install_noop():
+    """Migration v104 is a no-op on fresh install (no devices exist)."""
+    repo = DeviceRepository(":memory:")
+    await repo.initialize()
+
+    try:
+        # Fresh install: no devices
+        devices = await repo.get_all()
+        assert len(devices) == 0
+
+        # Migration ran during initialize(), verify no side effects
+        cursor = await repo._db.execute(
+            "SELECT version FROM schema_versions WHERE version = 104"
+        )
+        row = await cursor.fetchone()
+        assert row is not None, "Migration v104 should be recorded in schema_versions"
+    finally:
+        await repo.close()
