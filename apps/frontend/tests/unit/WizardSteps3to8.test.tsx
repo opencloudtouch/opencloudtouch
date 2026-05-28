@@ -5,7 +5,7 @@
  * covers the useTranslation / t() calls added in the i18n migration.
  */
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, act } from "@testing-library/react";
+import { render, screen, act, waitFor } from "@testing-library/react";
 import React from "react";
 
 // Mock the wizard API to prevent async state updates during render
@@ -369,6 +369,39 @@ describe("Step6HostsModification — render", () => {
       />
     );
     expect(document.body).toBeInTheDocument();
+  });
+
+  it("calls onHostsModified with result and trimmed custom IP", async () => {
+    const mockResult = { success: true, message: "OK" };
+    const { modifyHosts } = await import("../../src/api/wizard");
+    (modifyHosts as ReturnType<typeof vi.fn>).mockResolvedValue(mockResult);
+
+    const onHostsModified = vi.fn();
+    const { default: Step6 } = await import(
+      "../../src/components/wizard/Step6HostsModification"
+    );
+
+    render(
+      <Step6
+        deviceId="device-1"
+        deviceIp="192.168.1.1"
+        deviceName="SoundTouch 10"
+        octIp="  10.0.0.5  "
+        onNext={vi.fn()}
+        onPrevious={vi.fn()}
+        onHostsModified={onHostsModified}
+      />
+    );
+
+    // Click the modify-hosts button
+    const modifyBtn = screen.getByRole("button", { name: /🌐/i });
+    await act(async () => {
+      modifyBtn.click();
+    });
+
+    await waitFor(() => {
+      expect(onHostsModified).toHaveBeenCalledWith(mockResult, "10.0.0.5");
+    });
   });
 });
 

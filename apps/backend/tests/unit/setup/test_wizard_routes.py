@@ -1314,6 +1314,52 @@ class TestWizardServerInfo:
         body = response.json()
         assert body["server_ip"] == "192.168.1.99"
 
+    def test_udp_fallback_oserror_uses_request_hostname(self, client):
+        """Bug #200: When UDP trick raises OSError, fall back to request hostname."""
+        mock_udp_socket = MagicMock()
+        mock_udp_socket.connect.side_effect = OSError("network unreachable")
+
+        with patch("opencloudtouch.setup.wizard_routes.socket") as mock_socket:
+            mock_socket.gethostname.return_value = "container-id"
+            mock_socket.gethostbyname.return_value = "127.0.0.1"
+            mock_socket.gaierror = OSError
+            mock_socket.AF_INET = socket.AF_INET
+            mock_socket.SOCK_DGRAM = socket.SOCK_DGRAM
+            mock_socket.socket.return_value = mock_udp_socket
+
+            response = client.get(
+                "/api/setup/wizard/server-info",
+                headers={"host": "my-server:7777"},
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["server_ip"] == "my-server"
+
+    def test_udp_fallback_oserror_keeps_loopback_when_hostname_also_loopback(
+        self, client
+    ):
+        """Bug #200: When UDP trick fails and hostname is also loopback, keep 127.x."""
+        mock_udp_socket = MagicMock()
+        mock_udp_socket.connect.side_effect = OSError("network unreachable")
+
+        with patch("opencloudtouch.setup.wizard_routes.socket") as mock_socket:
+            mock_socket.gethostname.return_value = "container-id"
+            mock_socket.gethostbyname.return_value = "127.0.0.1"
+            mock_socket.gaierror = OSError
+            mock_socket.AF_INET = socket.AF_INET
+            mock_socket.SOCK_DGRAM = socket.SOCK_DGRAM
+            mock_socket.socket.return_value = mock_udp_socket
+
+            response = client.get(
+                "/api/setup/wizard/server-info",
+                headers={"host": "127.0.0.2:7777"},
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["server_ip"] == "127.0.0.1"
+
 
 # ── wizard/finalize ──────────────────────────────────────────────────────────
 
