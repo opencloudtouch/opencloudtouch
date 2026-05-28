@@ -28,6 +28,7 @@ build/
 .env.local
 .envrc
 .idea/
+docs/ideas/
 .ruff_cache/
 config.yaml
 data-local/
