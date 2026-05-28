@@ -18,6 +18,8 @@ from main import (
     BOT_USERNAME,
     CostTracker,
     ReviewRateLimiter,
+    _build_valid_lines_map,
+    _parse_diff_lines,
     _should_skip,
     build_review_prompt,
     check_and_approve,
@@ -262,3 +264,57 @@ class TestCheckAndApprove:
         await check_and_approve(client, "owner/repo", 1)
         # Only GraphQL call, no approval
         assert client.post.call_count == 1
+
+
+# =============================================================================
+# Diff Line Parsing Tests
+# =============================================================================
+
+
+class TestParseDiffLines:
+    def test_simple_addition(self):
+        patch = "@@ -10,3 +10,5 @@\n context\n+added1\n+added2\n context\n context"
+        result = _parse_diff_lines(patch)
+        assert 10 in result  # context
+        assert 11 in result  # added1
+        assert 12 in result  # added2
+        assert 13 in result  # context
+        assert 14 in result  # context
+
+    def test_deletion_not_included(self):
+        patch = "@@ -10,4 +10,3 @@\n context\n-deleted\n context\n context"
+        result = _parse_diff_lines(patch)
+        assert 10 in result
+        assert 11 in result
+        assert 12 in result
+        # Only 3 new-side lines (deletion doesn't count)
+        assert len(result) == 3
+
+    def test_multiple_hunks(self):
+        patch = "@@ -1,3 +1,3 @@\n-old\n+new\n ctx\n ctx\n@@ -20,3 +20,3 @@\n-old2\n+new2\n ctx\n ctx"
+        result = _parse_diff_lines(patch)
+        assert 1 in result   # new (from first hunk)
+        assert 2 in result   # ctx
+        assert 3 in result   # ctx
+        assert 20 in result  # new2 (from second hunk)
+        assert 21 in result  # ctx
+        assert 22 in result  # ctx
+
+    def test_empty_patch(self):
+        assert _parse_diff_lines("") == set()
+
+
+class TestBuildValidLinesMap:
+    def test_builds_map(self):
+        files = [
+            {"filename": "a.py", "patch": "@@ -1,2 +1,3 @@\n ctx\n+new\n ctx"},
+            {"filename": "b.py", "patch": ""},
+            {"filename": "c.py"},
+        ]
+        result = _build_valid_lines_map(files)
+        assert "a.py" in result
+        assert 1 in result["a.py"]
+        assert 2 in result["a.py"]
+        assert 3 in result["a.py"]
+        assert "b.py" not in result
+        assert "c.py" not in result

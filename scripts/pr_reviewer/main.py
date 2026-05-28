@@ -205,6 +205,42 @@ def _should_skip(filename: str) -> bool:
     return filename.endswith((".lock", ".sum", ".map"))
 
 
+def _parse_diff_lines(patch: str) -> set[int]:
+    """Extract valid NEW-side line numbers from a unified diff patch.
+
+    GitHub only allows review comments on lines visible in the diff.
+    Returns the set of line numbers (in the new file) that appear in diff hunks.
+    """
+    import re
+    valid_lines: set[int] = set()
+    current_line = 0
+    for raw_line in patch.split("\n"):
+        hunk_match = re.match(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@", raw_line)
+        if hunk_match:
+            current_line = int(hunk_match.group(1))
+            continue
+        if current_line == 0:
+            continue
+        if raw_line.startswith("-"):
+            # Deleted line — not in new file, skip
+            continue
+        if raw_line.startswith("+") or not raw_line.startswith("\\"):
+            # Added or context line — valid in new file
+            valid_lines.add(current_line)
+            current_line += 1
+    return valid_lines
+
+
+def _build_valid_lines_map(files: list[dict]) -> dict[str, set[int]]:
+    """Build a map of filename → set of valid diff line numbers."""
+    result: dict[str, set[int]] = {}
+    for f in files:
+        patch = f.get("patch", "")
+        if patch:
+            result[f["filename"]] = _parse_diff_lines(patch)
+    return result
+
+
 async def get_pr_details(client: httpx.AsyncClient, repo: str, pr_number: int) -> dict:
     """Fetch PR metadata."""
     resp = await _request_with_retry(client, "get", f"{API_BASE}/repos/{repo}/pulls/{pr_number}", headers=HEADERS)
@@ -433,6 +469,7 @@ async def submit_review(
     pr_number: int,
     commit_sha: str,
     review_result: dict,
+    valid_lines_map: dict[str, set[int]],
 ) -> None:
     """Submit the AI review as a GitHub PR review from oct-support."""
     event_map = {
@@ -449,22 +486,41 @@ async def submit_review(
         body = f"✅ **AI Review — No issues found**\n\n{review_result.get('summary', 'Code looks good.')}"
     else:
         if event == "APPROVE":
-            # Has comments but still approves
             body = f"✅ **AI Review — Approved with comments**\n\n{review_result.get('summary', '')}"
         else:
             body = f"🔍 **AI Review — Changes requested**\n\n{review_result.get('summary', '')}"
 
-    # Build review comments
+    # Build review comments — only keep those on valid diff lines
     comments = []
+    dropped = []
     for c in review_result.get("comments", []):
         if not c.get("path") or not c.get("line"):
             continue
+        path = c["path"]
+        line = c["line"]
+        valid_lines = valid_lines_map.get(path, set())
+        if valid_lines and line not in valid_lines:
+            # Find nearest valid line in the diff
+            nearest = min(valid_lines, key=lambda vl: abs(vl - line)) if valid_lines else None
+            if nearest and abs(nearest - line) <= 5:
+                print(f"[INFO] Adjusted comment line {path}:{line} → {nearest} (nearest valid diff line)")
+                line = nearest
+            else:
+                dropped.append(c)
+                print(f"[WARN] Dropping comment on {path}:{line} — not in diff (valid: {sorted(valid_lines)[:10]}...)")
+                continue
         comments.append({
-            "path": c["path"],
-            "line": c["line"],
+            "path": path,
+            "line": line,
             "side": c.get("side", "RIGHT"),
             "body": c["body"],
         })
+
+    # Append dropped comments to body so nothing is lost
+    if dropped:
+        body += "\n\n---\n**Additional comments (not in diff, shown here):**\n"
+        for c in dropped:
+            body += f"\n**`{c['path']}` line {c['line']}:** {c['body']}\n"
 
     payload: dict = {"body": body, "event": event, "commit_id": commit_sha}
     if comments:
@@ -477,13 +533,17 @@ async def submit_review(
     )
 
     if resp.status_code == 422 and comments:
-        # Retry without inline comments if positions are invalid
-        print("[WARN] Inline comments failed, submitting review without them", file=sys.stderr)
+        # Log the actual error for debugging
+        error_body = resp.text
+        print(f"[WARN] Inline comments rejected (422): {error_body[:500]}", file=sys.stderr)
+        print("[WARN] Retrying review without inline comments", file=sys.stderr)
+
+        # Move all inline comments to body
         fallback_body = body
-        if comments:
+        if "\n**Additional comments" not in fallback_body:
             fallback_body += "\n\n---\n**Inline comments (could not attach to diff):**\n"
-            for c in comments:
-                fallback_body += f"\n**`{c['path']}` line {c['line']}:** {c['body']}\n"
+        for c in comments:
+            fallback_body += f"\n**`{c['path']}` line {c['line']}:** {c['body']}\n"
 
         payload = {"body": fallback_body, "event": event, "commit_id": commit_sha}
         resp = await client.post(
@@ -493,7 +553,8 @@ async def submit_review(
         )
 
     resp.raise_for_status()
-    print(f"[OK] Review submitted: {event} with {len(comments)} inline comments")
+    print(f"[OK] Review submitted: {event} with {len(comments)} inline comments"
+          + (f" ({len(dropped)} dropped)" if dropped else ""))
 
 
 async def check_and_approve(client: httpx.AsyncClient, repo: str, pr_number: int) -> None:
@@ -593,7 +654,8 @@ async def run() -> int:
             prompt = build_review_prompt(pr_details, files)
             review_result = await run_ai_review(prompt, cost_tracker)
             commit_sha = pr_details["head"]["sha"]
-            await submit_review(client, repo, pr_number, commit_sha, review_result)
+            valid_lines_map = _build_valid_lines_map(files)
+            await submit_review(client, repo, pr_number, commit_sha, review_result, valid_lines_map)
 
             # Persist state
             cost_tracker.save()
