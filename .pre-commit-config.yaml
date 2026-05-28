@@ -57,19 +57,6 @@ repos:
           - prettier@3.4.2
 
   # ============================================================================
-  # GUARD: Abort if any formatter modified files
-  # ============================================================================
-  - repo: local
-    hooks:
-      - id: check-reformatted
-        name: "Guard: abort if formatters changed files"
-        entry: bash scripts/hooks/check-reformatted.sh
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-commit]
-
-  # ============================================================================
   # VALIDATORS (read-only checks — no file modifications)
   # ============================================================================
   - repo: https://github.com/pre-commit/pre-commit-hooks

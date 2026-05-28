@@ -71,6 +71,7 @@
 
 .preset-name {
   flex: 1;
+  min-width: 0;
   color: var(--color-text-primary);
   font-weight: var(--font-weight-medium);
   overflow: hidden;
