@@ -107,7 +107,7 @@ async def wizard_server_info(request: Request) -> Dict[str, Any]:
 
     # Build server_url using the resolved IP so the frontend gets a
     # reachable address, not the browser hostname (e.g. "hera").
-    server_url = f"{url.scheme}://{server_ip}:{port}"
+    server_url = f"{url.scheme}://{server_ip}:{url.port or get_config().port}"
 
     return {
         "server_url": server_url,
