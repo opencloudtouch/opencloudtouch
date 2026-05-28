@@ -1,6 +1,10 @@
 # Pre-commit hooks configuration
 # See https://pre-commit.com for more information
 
+# Abort immediately on first hook failure (don't waste time on tests if
+# formatters/line-ending fixers modified files — just re-stage and retry).
+fail_fast: true
+
 repos:
   # ============================================================================
   # GIT USER VALIDATION (PREVENT CORPORATE IDS)

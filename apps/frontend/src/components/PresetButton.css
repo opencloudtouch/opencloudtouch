@@ -58,14 +58,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   background-color: var(--color-accent);
   color: white;
   border-radius: 50%;
   font-weight: var(--font-weight-bold);
-  font-size: 16px;
+  font-size: 13px;
   flex-shrink: 0;
+  line-height: 1;
 }
 
 .preset-name {
@@ -146,4 +147,43 @@
 .disabled-text {
   color: var(--color-text-secondary);
   font-style: italic;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .preset-info,
+  .preset-empty {
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    min-height: 52px;
+  }
+
+  .preset-station-logo {
+    width: 32px;
+    height: 32px;
+  }
+
+  .preset-avatar-fallback {
+    font-size: 12px;
+  }
+
+  .preset-number {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+  }
+
+  .preset-play-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .preset-play-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .preset-name {
+    font-size: 14px;
+  }
 }
