@@ -71,8 +71,6 @@ on:
     secrets:
       BUILD_SIGNING_KEY:
         required: true
-      GITHUB_TOKEN:
-        required: true
 
 env:
   REGISTRY: ghcr.io

@@ -11,10 +11,16 @@ interface Step6Props {
   deviceId: string;
   deviceIp: string;
   deviceName: string;
+  /** Pre-filled OCT server IP from /server-info (may be overridden by user). */
   octIp: string;
   onNext: () => void;
   onPrevious: () => void;
-  onHostsModified: (data: ModifyHostsResponse) => void;
+  /**
+   * Called after hosts modification completes.
+   * `effectiveIp` is the IP actually written into /etc/hosts — either the
+   * pre-filled `octIp` or a user-entered override (the custom IP field).
+   */
+  onHostsModified: (data: ModifyHostsResponse, effectiveIp: string) => void;
 }
 
 const REQUIRED_DOMAINS = [
@@ -65,7 +71,7 @@ export default function Step6HostsModification({
       });
 
       setModifyData(result);
-      onHostsModified(result);
+      onHostsModified(result, customIp.trim());
 
       if (!result.success) {
         setError(result.message || t("setup.wizard.step6.errorTitle"));

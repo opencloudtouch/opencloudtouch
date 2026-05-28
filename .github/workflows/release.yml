@@ -406,7 +406,6 @@ jobs:
       checkout_ref: ${{ needs.tag.outputs.tag }}
     secrets:
       BUILD_SIGNING_KEY: ${{ secrets.BUILD_SIGNING_KEY }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ============================================================================
   # PUBLISH RELEASE (draft → public, only after successful image build)

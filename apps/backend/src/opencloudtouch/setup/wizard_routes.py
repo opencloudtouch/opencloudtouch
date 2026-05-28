@@ -72,11 +72,42 @@ async def wizard_server_info(request: Request) -> Dict[str, Any]:
     hostname = url.hostname or "127.0.0.1"
     server_url = f"{url.scheme}://{hostname}:{url.port or get_config().port}"
 
-    # Resolve hostname ? IP for /etc/hosts (requires numeric IP)
+    # Resolve actual LAN IP for /etc/hosts (requires numeric IP).
+    # Do NOT use the request hostname — behind Docker/port-forwarding it's
+    # "localhost" which resolves to 127.0.0.1 and breaks device hosts entries.
     try:
-        server_ip = socket.gethostbyname(hostname)
+        server_ip = socket.gethostbyname(socket.gethostname())
     except socket.gaierror:
-        server_ip = hostname
+        # Fallback: try resolving request hostname (better than nothing)
+        try:
+            server_ip = socket.gethostbyname(hostname)
+        except socket.gaierror:
+            server_ip = hostname
+
+    # Guard against loopback IPs (common in Docker where /etc/hosts maps
+    # the container ID to 127.0.0.1).  Use a UDP connect trick to find
+    # the real outgoing interface IP without sending any traffic.
+    #
+    # How: Opening a UDP socket and connect()ing to an external address
+    # (here 8.8.8.8) causes the OS to select the outgoing network interface
+    # without actually sending a packet.  getsockname() then returns the
+    # local IP of that interface — i.e. the LAN IP the device can reach.
+    if server_ip.startswith("127."):
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            try:
+                s.connect(("8.8.8.8", 80))
+                server_ip = s.getsockname()[0]
+            finally:
+                s.close()
+        except OSError:
+            # UDP trick failed — fall back to request hostname
+            if not hostname.startswith("127."):
+                server_ip = hostname
+
+    # Build server_url using the resolved IP so the frontend gets a
+    # reachable address, not the browser hostname (e.g. "hera").
+    server_url = f"{url.scheme}://{server_ip}:{port}"
 
     return {
         "server_url": server_url,

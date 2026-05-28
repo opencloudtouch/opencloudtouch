@@ -15,6 +15,8 @@ Covers all 9 wizard endpoints:
   POST /api/setup/wizard/verify-redirect
 """
 
+import socket
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -1340,6 +1342,117 @@ class TestWizardServerInfo:
         assert "server_url" in body
         assert "server_ip" in body
         assert body["default_port"] == 7777
+
+    def test_server_ip_uses_machine_hostname_not_request(self, client):
+        """Bug #200: Server IP must reflect actual LAN IP, not request hostname."""
+        with patch("opencloudtouch.setup.wizard_routes.socket") as mock_socket:
+            mock_socket.gethostname.return_value = "myserver"
+            mock_socket.gethostbyname.return_value = "192.168.1.50"
+            mock_socket.gaierror = OSError
+
+            response = client.get("/api/setup/wizard/server-info")
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["server_ip"] == "192.168.1.50"
+        assert body["server_url"] == "http://192.168.1.50:7777"
+        mock_socket.gethostbyname.assert_called_with("myserver")
+
+    def test_server_ip_fallback_on_hostname_failure(self, client):
+        """Bug #200: When gethostname resolution fails, fall back to request hostname."""
+        with patch("opencloudtouch.setup.wizard_routes.socket") as mock_socket:
+            mock_socket.gethostname.return_value = "unresolvable-host"
+            mock_socket.gaierror = OSError
+            mock_socket.gethostbyname.side_effect = [OSError("no host"), "10.0.0.1"]
+
+            response = client.get("/api/setup/wizard/server-info")
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["server_ip"] == "10.0.0.1"
+
+    def test_server_ip_double_fallback_returns_raw_hostname(self, client):
+        """Bug #200: When BOTH gethostbyname calls fail, raw hostname is returned."""
+        with patch("opencloudtouch.setup.wizard_routes.socket") as mock_socket:
+            mock_socket.gethostname.return_value = "broken-host"
+            mock_socket.gaierror = OSError
+            mock_socket.gethostbyname.side_effect = OSError("no resolution")
+            mock_socket.AF_INET = socket.AF_INET
+            mock_socket.SOCK_DGRAM = socket.SOCK_DGRAM
+
+            response = client.get(
+                "/api/setup/wizard/server-info",
+                headers={"host": "my-oct-server:7777"},
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["server_ip"] == "my-oct-server"
+
+    def test_server_ip_loopback_triggers_udp_fallback(self, client):
+        """Bug #200: Loopback IP from Docker triggers UDP socket fallback."""
+        mock_udp_socket = MagicMock()
+        mock_udp_socket.getsockname.return_value = ("192.168.1.99", 0)
+
+        with patch("opencloudtouch.setup.wizard_routes.socket") as mock_socket:
+            mock_socket.gethostname.return_value = "container-abc123"
+            mock_socket.gethostbyname.return_value = "127.0.0.1"
+            mock_socket.gaierror = OSError
+            mock_socket.AF_INET = socket.AF_INET
+            mock_socket.SOCK_DGRAM = socket.SOCK_DGRAM
+            mock_socket.socket.return_value = mock_udp_socket
+
+            response = client.get("/api/setup/wizard/server-info")
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["server_ip"] == "192.168.1.99"
+
+    def test_udp_fallback_oserror_uses_request_hostname(self, client):
+        """Bug #200: When UDP trick raises OSError, fall back to request hostname."""
+        mock_udp_socket = MagicMock()
+        mock_udp_socket.connect.side_effect = OSError("network unreachable")
+
+        with patch("opencloudtouch.setup.wizard_routes.socket") as mock_socket:
+            mock_socket.gethostname.return_value = "container-id"
+            mock_socket.gethostbyname.return_value = "127.0.0.1"
+            mock_socket.gaierror = OSError
+            mock_socket.AF_INET = socket.AF_INET
+            mock_socket.SOCK_DGRAM = socket.SOCK_DGRAM
+            mock_socket.socket.return_value = mock_udp_socket
+
+            response = client.get(
+                "/api/setup/wizard/server-info",
+                headers={"host": "my-server:7777"},
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["server_ip"] == "my-server"
+
+    def test_udp_fallback_oserror_keeps_loopback_when_hostname_also_loopback(
+        self, client
+    ):
+        """Bug #200: When UDP trick fails and hostname is also loopback, keep 127.x."""
+        mock_udp_socket = MagicMock()
+        mock_udp_socket.connect.side_effect = OSError("network unreachable")
+
+        with patch("opencloudtouch.setup.wizard_routes.socket") as mock_socket:
+            mock_socket.gethostname.return_value = "container-id"
+            mock_socket.gethostbyname.return_value = "127.0.0.1"
+            mock_socket.gaierror = OSError
+            mock_socket.AF_INET = socket.AF_INET
+            mock_socket.SOCK_DGRAM = socket.SOCK_DGRAM
+            mock_socket.socket.return_value = mock_udp_socket
+
+            response = client.get(
+                "/api/setup/wizard/server-info",
+                headers={"host": "127.0.0.2:7777"},
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["server_ip"] == "127.0.0.1"
 
 
 # ── wizard/finalize ──────────────────────────────────────────────────────────

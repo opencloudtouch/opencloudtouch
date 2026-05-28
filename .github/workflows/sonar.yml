@@ -11,6 +11,7 @@ permissions:
   # NOTE: PR analysis is handled by the sonar job in ci.yml (which uses
   # pre-built coverage artifacts). Do NOT add pull_request trigger here
   # — it would create a competing scan that overwrites coverage results.
+
 jobs:
   sonarqube:
     name: SonarQube
