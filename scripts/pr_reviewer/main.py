@@ -105,7 +105,8 @@ class CostTracker:
                 self._record.call_count = data.get("call_count", 0)
                 self._record.last_updated = data.get("last_updated", "")
         except (json.JSONDecodeError, KeyError):
-            pass
+            # Ignore malformed or unexpected cost-file contents and keep defaults.
+            return
 
     def save(self) -> None:
         self._cost_file.parent.mkdir(parents=True, exist_ok=True)
@@ -144,8 +145,10 @@ class ReviewRateLimiter:
             return
         try:
             self._state = json.loads(self._state_file.read_text())
-        except (json.JSONDecodeError, KeyError):
-            pass
+        except (json.JSONDecodeError, KeyError) as exc:
+            # Fail open: ignore invalid persisted state and continue with empty state.
+            print(f"[WARN] Failed to load review rate limiter state from {self._state_file}: {exc}")
+            self._state = {}
 
     def save(self) -> None:
         self._state_file.parent.mkdir(parents=True, exist_ok=True)
@@ -166,7 +169,10 @@ class ReviewRateLimiter:
                     )
                     return False
             except ValueError:
-                pass
+                print(
+                    f"[WARN] Invalid stored review timestamp for PR {pr_key}: "
+                    f"{last_str!r}. Treating as no previous review."
+                )
         self._state[pr_key] = now.isoformat()
         return True
 
