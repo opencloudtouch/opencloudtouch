@@ -45,7 +45,6 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
   const { nowPlaying: npState } = useNowPlaying(currentDevice?.device_id);
   const { show: showToast } = useToast();
   const [playError, setPlayError] = useState<string | null>(null);
-  const [playLoading, setPlayLoading] = useState(false);
   const [powerLoading, setPowerLoading] = useState(false);
   const [pendingStation, setPendingStation] = useState<RadioStation | null>(null);
   const [clearingPreset, setClearingPreset] = useState<number | null>(null);
@@ -140,7 +139,6 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
   const handlePlayPreset = async (presetNumber: number) => {
     if (!currentDevice?.device_id) return;
 
-    setPlayLoading(true);
     setPlayError(null);
 
     try {
@@ -148,8 +146,6 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
     } catch (err) {
       console.error("Failed to play preset:", err);
       setPlayError(t("presets.playFailed"));
-    } finally {
-      setPlayLoading(false);
     }
   };
 
@@ -307,7 +303,7 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
         )}
 
         {/* Loading Indicator / Skeleton — REFACT-112 */}
-        {(loading || playLoading) && (
+        {loading && (
           <div
             className="loading-indicator"
             data-testid="loading-indicator"
