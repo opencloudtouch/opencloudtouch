@@ -1,0 +1,180 @@
+# ==============================================================================
+# AI PR REVIEW — oct-support bot
+#
+# Phase 1 (review): Triggered when oct-support is requested as reviewer.
+#   → AI analyzes the diff and submits a qualified review with inline comments.
+#
+# Phase 2 (approve): Triggered on new pushes to reviewed PRs.
+#   → Checks if all oct-support review threads are resolved.
+#   → If yes, auto-approves the PR.
+#
+# Manual: Comment "/review" on any PR to trigger a new review.
+#         Comment "/approve-check" to trigger approval check.
+# ==============================================================================
+
+name: PR Review (oct-support)
+
+on:
+  pull_request_target:
+    types: [review_requested, synchronize]
+
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: read
+  models: read
+
+jobs:
+  # ============================================================================
+  # PHASE 1: AI REVIEW — when oct-support is requested as reviewer
+  # ============================================================================
+  review:
+    name: AI Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: >-
+      github.event_name == 'pull_request_target'
+      && github.event.requested_reviewer.login == 'oct-support'
+
+    steps:
+      - name: "Checkout base branch (security: never run PR code)"
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: pip install -r scripts/pr_reviewer/requirements.txt
+
+      - name: Restore cost tracker cache
+        uses: actions/cache/restore@v5
+        with:
+          path: /tmp/ai-cost-tracker
+          key: pr-review-cost-${{ github.run_id }}
+          restore-keys: |
+            pr-review-cost-
+
+      - name: Run AI review
+        env:
+          BOT_PAT: ${{ secrets.BOT_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          REPO_FULL_NAME: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          MODE: review
+        run: python scripts/pr_reviewer/main.py
+
+      - name: Save cost tracker cache
+        if: always()
+        uses: actions/cache/save@v5
+        with:
+          path: /tmp/ai-cost-tracker
+          key: pr-review-cost-${{ github.run_id }}
+
+  # ============================================================================
+  # PHASE 2: AUTO-APPROVE — when new commits are pushed to a reviewed PR
+  # Uses pull_request_target to always run code from base branch (main),
+  # preventing malicious PR code from manipulating the approve logic.
+  # ============================================================================
+  approve-check:
+    name: Approve Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    if: >-
+      github.event_name == 'pull_request_target'
+      && github.event.action == 'synchronize'
+
+    steps:
+      - name: "Checkout base branch (security: never run PR code)"
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: pip install -r scripts/pr_reviewer/requirements.txt
+
+      - name: Check and approve
+        env:
+          BOT_PAT: ${{ secrets.BOT_PAT }}
+          REPO_FULL_NAME: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          MODE: approve
+        run: python scripts/pr_reviewer/main.py
+
+  # ============================================================================
+  # COMMAND TRIGGER: /review or /approve-check via PR comment
+  # ============================================================================
+  comment-trigger:
+    name: Comment Trigger
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: >-
+      github.event_name == 'issue_comment'
+      && github.event.issue.pull_request
+      && (
+        github.event.comment.body == '/review'
+        || github.event.comment.body == '/approve-check'
+      )
+      && (
+        github.event.comment.user.login == github.repository_owner
+        || github.event.comment.user.login == 'oct-support'
+      )
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: pip install -r scripts/pr_reviewer/requirements.txt
+
+      - name: Restore cost tracker cache
+        uses: actions/cache/restore@v5
+        with:
+          path: /tmp/ai-cost-tracker
+          key: pr-review-cost-${{ github.run_id }}
+          restore-keys: |
+            pr-review-cost-
+
+      - name: Determine mode
+        id: mode
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          if echo "$COMMENT_BODY" | grep -q '/approve-check'; then
+            echo "mode=approve" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=review" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run PR reviewer
+        env:
+          BOT_PAT: ${{ secrets.BOT_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          REPO_FULL_NAME: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          MODE: ${{ steps.mode.outputs.mode }}
+        run: python scripts/pr_reviewer/main.py
+
+      - name: Save cost tracker cache
+        if: always()
+        uses: actions/cache/save@v5
+        with:
+          path: /tmp/ai-cost-tracker
+          key: pr-review-cost-${{ github.run_id }}
