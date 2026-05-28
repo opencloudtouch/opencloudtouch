@@ -1,6 +1,6 @@
 """Background health-check service for SoundTouch devices.
 
-Periodically pings devices via the SoundTouch API (port 8091) to update
+Periodically pings devices via the SoundTouch API (port 8090) to update
 ``last_seen`` and detect offline devices.  For devices with
 ``ssh_permanent=True``, also verifies the BMX URL via SSH every 30 min.
 """

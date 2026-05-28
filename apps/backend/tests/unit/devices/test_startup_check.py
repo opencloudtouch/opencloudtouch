@@ -143,3 +143,32 @@ async def test_startup_check_sets_completed_at(mock_repo):
     completed_at = call_kwargs.kwargs["setup_completed_at"]
     assert completed_at is not None
     assert before <= completed_at <= after
+
+
+@pytest.mark.asyncio
+async def test_startup_check_skips_device_without_ip(mock_repo):
+    """Device with ip=None is skipped entirely."""
+    device = _make_device(setup_status="unknown")
+    device.ip = None
+    mock_repo.get_all.return_value = [device]
+
+    checker = StartupCheck(mock_repo)
+    await checker.run()
+
+    mock_repo.update_setup_status.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_startup_check_handles_malformed_xml(mock_repo):
+    """Malformed XML response → device stays unknown, no crash."""
+    device = _make_device(setup_status="unknown")
+    mock_repo.get_all.return_value = [device]
+
+    with respx.mock:
+        respx.get(f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}/info").mock(
+            return_value=httpx.Response(200, text="<not>valid xml<")
+        )
+        checker = StartupCheck(mock_repo)
+        await checker.run()
+
+    mock_repo.update_setup_status.assert_not_called()

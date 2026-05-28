@@ -137,6 +137,6 @@ class StartupCheck:
         """Determine setup_status from margeURL value."""
         if "content.api.bose.io" in marge_url:
             return "configured"
-        if marge_url == "https://streaming.bose.com":
+        if "streaming.bose.com" in marge_url:
             return "unconfigured"
         return None
