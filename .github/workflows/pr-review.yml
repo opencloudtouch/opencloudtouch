@@ -16,10 +16,7 @@ name: PR Review (oct-support)
 
 on:
   pull_request_target:
-    types: [review_requested]
-
-  pull_request:
-    types: [synchronize]
+    types: [review_requested, synchronize]
 
   issue_comment:
     types: [created]
@@ -42,8 +39,10 @@ jobs:
       && github.event.requested_reviewer.login == 'oct-support'
 
     steps:
-      - name: Checkout repository
+      - name: "Checkout base branch (security: never run PR code)"
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -64,18 +63,22 @@ jobs:
 
   # ============================================================================
   # PHASE 2: AUTO-APPROVE — when new commits are pushed to a reviewed PR
+  # Uses pull_request_target to always run code from base branch (main),
+  # preventing malicious PR code from manipulating the approve logic.
   # ============================================================================
   approve-check:
     name: Approve Check
     runs-on: ubuntu-latest
     timeout-minutes: 2
     if: >-
-      github.event_name == 'pull_request'
+      github.event_name == 'pull_request_target'
       && github.event.action == 'synchronize'
 
     steps:
-      - name: Checkout repository
+      - name: "Checkout base branch (security: never run PR code)"
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -104,8 +107,8 @@ jobs:
       github.event_name == 'issue_comment'
       && github.event.issue.pull_request
       && (
-        contains(github.event.comment.body, '/review')
-        || contains(github.event.comment.body, '/approve-check')
+        startsWith(github.event.comment.body, '/review')
+        || startsWith(github.event.comment.body, '/approve-check')
       )
       && (
         github.event.comment.user.login == github.repository_owner

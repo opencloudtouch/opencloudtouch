@@ -18,10 +18,17 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import random
 import sys
 from pathlib import Path
 
 import httpx
+
+# --- Retry config ---
+MAX_RETRIES = 3
+BASE_DELAY = 1.0
+BACKOFF_FACTOR = 2.0
+JITTER_MS = 500
 
 API_BASE = "https://api.github.com"
 HEADERS = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
@@ -42,7 +49,27 @@ MAX_FILE_DIFF_CHARS = 8000
 # Max total diff size sent to AI
 MAX_TOTAL_DIFF_CHARS = 60000
 
-BOT_USERNAME = "oct-support"
+BOT_USERNAME = os.environ.get("BOT_USERNAME", "oct-support")
+
+
+async def _request_with_retry(
+    client: httpx.AsyncClient, method: str, url: str, **kwargs: object
+) -> httpx.Response:
+    """Execute request with exponential backoff on 403/429."""
+    last_response: httpx.Response | None = None
+    for attempt in range(MAX_RETRIES + 1):
+        last_response = await getattr(client, method)(url, **kwargs)
+        if last_response.status_code not in (403, 429):
+            return last_response
+        if attempt < MAX_RETRIES:
+            delay = BASE_DELAY * (BACKOFF_FACTOR**attempt)
+            jitter = random.uniform(-JITTER_MS / 1000, JITTER_MS / 1000)
+            wait = max(0.1, delay + jitter)
+            print(f"[WARN] {last_response.status_code} on {method.upper()} {url}, retry {attempt + 1}/{MAX_RETRIES} in {wait:.1f}s")
+            await asyncio.sleep(wait)
+    assert last_response is not None
+    last_response.raise_for_status()
+    return last_response  # unreachable, but satisfies type checker
 
 
 def _should_skip(filename: str) -> bool:
@@ -55,7 +82,7 @@ def _should_skip(filename: str) -> bool:
 
 async def get_pr_details(client: httpx.AsyncClient, repo: str, pr_number: int) -> dict:
     """Fetch PR metadata."""
-    resp = await client.get(f"{API_BASE}/repos/{repo}/pulls/{pr_number}", headers=HEADERS)
+    resp = await _request_with_retry(client, "get", f"{API_BASE}/repos/{repo}/pulls/{pr_number}", headers=HEADERS)
     resp.raise_for_status()
     return resp.json()
 
@@ -63,7 +90,7 @@ async def get_pr_details(client: httpx.AsyncClient, repo: str, pr_number: int) -
 async def get_pr_diff(client: httpx.AsyncClient, repo: str, pr_number: int) -> str:
     """Fetch PR diff as unified diff text."""
     headers = {**HEADERS, "Accept": "application/vnd.github.v3.diff"}
-    resp = await client.get(f"{API_BASE}/repos/{repo}/pulls/{pr_number}", headers=headers)
+    resp = await _request_with_retry(client, "get", f"{API_BASE}/repos/{repo}/pulls/{pr_number}", headers=headers)
     resp.raise_for_status()
     return resp.text
 
@@ -73,7 +100,8 @@ async def get_pr_files(client: httpx.AsyncClient, repo: str, pr_number: int) -> 
     files = []
     page = 1
     while True:
-        resp = await client.get(
+        resp = await _request_with_retry(
+            client, "get",
             f"{API_BASE}/repos/{repo}/pulls/{pr_number}/files",
             headers=HEADERS,
             params={"per_page": 100, "page": page},
@@ -114,7 +142,8 @@ async def get_review_threads(client: httpx.AsyncClient, repo: str, pr_number: in
       }
     }
     """
-    resp = await client.post(
+    resp = await _request_with_retry(
+        client, "post",
         f"{API_BASE}/graphql",
         headers=HEADERS,
         json={"query": query, "variables": {"owner": owner, "name": name, "pr": pr_number}},
@@ -132,7 +161,8 @@ async def get_review_threads(client: httpx.AsyncClient, repo: str, pr_number: in
 
 async def get_existing_reviews(client: httpx.AsyncClient, repo: str, pr_number: int) -> list[dict]:
     """Get all reviews on a PR."""
-    resp = await client.get(
+    resp = await _request_with_retry(
+        client, "get",
         f"{API_BASE}/repos/{repo}/pulls/{pr_number}/reviews",
         headers=HEADERS,
     )
