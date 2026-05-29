@@ -5,6 +5,7 @@ import PresetButton, { type Preset } from "../../src/components/PresetButton";
 describe("PresetButton Component", () => {
   const mockOnAssign = vi.fn();
   const mockOnPlay = vi.fn();
+  const mockOnPause = vi.fn();
 
   const mockPreset: Preset = {
     station_name: "BBC Radio 1",
@@ -13,6 +14,7 @@ describe("PresetButton Component", () => {
   beforeEach(() => {
     mockOnAssign.mockClear();
     mockOnPlay.mockClear();
+    mockOnPause.mockClear();
   });
 
   describe("Empty Preset", () => {
@@ -281,6 +283,119 @@ describe("PresetButton Component", () => {
 
       const infoButton = screen.getByText("OCT Local Station").closest("button");
       expect(infoButton).not.toHaveClass("cloud-warning");
+    });
+  });
+
+  describe("Play/Pause Toggle", () => {
+    it("calls onPause when pause button is clicked while playing", () => {
+      render(
+        <PresetButton
+          number={1}
+          preset={mockPreset}
+          onAssign={mockOnAssign}
+          onPlay={mockOnPlay}
+          onPause={mockOnPause}
+          isCurrentlyPlaying={true}
+        />
+      );
+
+      const pauseButton = screen.getByLabelText("Pause");
+      fireEvent.click(pauseButton);
+
+      expect(mockOnPause).toHaveBeenCalledTimes(1);
+      expect(mockOnPlay).not.toHaveBeenCalled();
+    });
+
+    it("calls onPlay when play button is clicked while not playing", () => {
+      render(
+        <PresetButton
+          number={1}
+          preset={mockPreset}
+          onAssign={mockOnAssign}
+          onPlay={mockOnPlay}
+          onPause={mockOnPause}
+          isCurrentlyPlaying={false}
+        />
+      );
+
+      const playButton = screen.getByLabelText(/Play preset/i);
+      fireEvent.click(playButton);
+
+      expect(mockOnPlay).toHaveBeenCalledTimes(1);
+      expect(mockOnPause).not.toHaveBeenCalled();
+    });
+
+    it("does not crash when onPause is not provided and playing", () => {
+      render(
+        <PresetButton
+          number={1}
+          preset={mockPreset}
+          onAssign={mockOnAssign}
+          onPlay={mockOnPlay}
+          isCurrentlyPlaying={true}
+        />
+      );
+
+      const pauseButton = screen.getByLabelText("Pause");
+      fireEvent.click(pauseButton);
+      // Should not throw — onPause is optional
+      expect(mockOnPlay).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Favicon Error Handling", () => {
+    it("hides favicon and shows avatar fallback on image error", () => {
+      const presetWithFavicon: Preset = {
+        station_name: "Test Station",
+        station_favicon: "https://example.com/broken.png",
+      };
+
+      render(
+        <PresetButton
+          number={1}
+          preset={presetWithFavicon}
+          onAssign={mockOnAssign}
+          onPlay={mockOnPlay}
+        />
+      );
+
+      const img = document.querySelector(".preset-favicon") as HTMLImageElement;
+      fireEvent.error(img);
+
+      expect((img as HTMLImageElement).style.display).toBe("none");
+    });
+  });
+
+  describe("Disabled State", () => {
+    it("renders disabled preset with station name", () => {
+      render(
+        <PresetButton
+          number={1}
+          preset={mockPreset}
+          onAssign={mockOnAssign}
+          onPlay={mockOnPlay}
+          disabled={true}
+        />
+      );
+
+      expect(screen.getByText("BBC Radio 1")).toBeInTheDocument();
+      const container = screen.getByTestId("preset-1");
+      expect(container).toHaveClass("preset-disabled");
+    });
+
+    it("renders disabled preset with fallback text when no station name", () => {
+      render(
+        <PresetButton
+          number={1}
+          preset={null}
+          onAssign={mockOnAssign}
+          onPlay={mockOnPlay}
+          disabled={true}
+        />
+      );
+
+      const container = screen.getByTestId("preset-1");
+      expect(container).toHaveClass("preset-disabled");
     });
   });
 

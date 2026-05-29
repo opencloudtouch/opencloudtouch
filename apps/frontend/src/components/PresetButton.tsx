@@ -72,6 +72,15 @@ function isCloudDependent(preset: Preset): boolean {
   return true;
 }
 
+function handleFaviconError(e: React.SyntheticEvent<HTMLImageElement>) {
+  (e.target as HTMLImageElement).style.display = "none";
+  const parent = (e.target as HTMLImageElement).parentElement;
+  if (parent) {
+    const fallback = parent.querySelector(".preset-avatar-fallback") as HTMLElement;
+    if (fallback) fallback.style.display = "flex";
+  }
+}
+
 export default function PresetButton({
   number,
   preset,
@@ -82,15 +91,6 @@ export default function PresetButton({
   disabled = false,
 }: PresetButtonProps) {
   const { t } = useTranslation();
-
-  const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    (e.target as HTMLImageElement).style.display = "none";
-    const parent = (e.target as HTMLImageElement).parentElement;
-    if (parent) {
-      const fallback = parent.querySelector(".preset-avatar-fallback") as HTMLElement;
-      if (fallback) fallback.style.display = "flex";
-    }
-  };
 
   if (disabled) {
     return (
