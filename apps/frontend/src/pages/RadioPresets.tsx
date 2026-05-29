@@ -128,12 +128,11 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
     }
   };
 
-  const handleDeletePreset = async () => {
-    if (!assigningPreset || !currentDevice?.device_id) return;
-    await removePreset(assigningPreset, currentDevice.device_id);
+  const handleDeletePreset = () => {
+    if (!assigningPreset) return;
     setSearchOpen(false);
+    setClearingPreset(assigningPreset);
     setAssigningPreset(null);
-    showToast(t("presets.presetDeleted", { number: assigningPreset }), "success");
   };
 
   const handlePlayPreset = async (presetNumber: number) => {
