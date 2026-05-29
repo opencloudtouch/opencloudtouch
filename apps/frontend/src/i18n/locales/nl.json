@@ -69,8 +69,8 @@
     "infoTitle": "Preset notities",
     "infoItem1": "Klik op een lege preset om een station toe te wijzen",
     "infoItem2": "Klik op een toegewezen station om het te wijzigen of te verwijderen",
-    "infoItem3": "▶ speelt het opgeslagen station direct af",
-    "infoItem4": "✓ = cloudOnafhankelijk, ☁ = Bose Cloud vereist",
+    "infoItem3": "De groene ► knop speelt het station direct af",
+    "infoItem4": "Geel gemarkeerde presets zijn afhankelijk van Bose Cloud — herconfiguratie aanbevolen",
     "infoItem5": "⚙️ opent de installatiewizard voor het apparaat",
     "infoItem6": "\"Laden van apparaat\" synchroniseert presets van SoundTouch",
     "changeStation": "Klik om station te wijzigen",
@@ -104,7 +104,11 @@
       "name": "bijv. Radio 1, BBC Radio…",
       "country": "bijv. Netherlands, Belgium…",
       "tag": "bijv. Rock, Jazz, pop…"
-    }
+    },
+    "loadMore": "Meer laden",
+    "loadingMore": "Laden...",
+    "maxReached": "Maximum ({{count}}) bereikt",
+    "maxReachedTooltip": "Verfijn uw zoekopdracht om specifieke stations te vinden"
   },
   "settings": {
     "title": "Instellingen",

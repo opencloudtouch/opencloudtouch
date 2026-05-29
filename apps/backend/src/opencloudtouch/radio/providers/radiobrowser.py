@@ -178,28 +178,32 @@ class RadioBrowserAdapter(RadioProvider):
         """Unique identifier for this provider."""
         return "radiobrowser"
 
-    def _default_params(self, limit: int) -> Dict[str, Any]:
+    def _default_params(self, limit: int, offset: int = 0) -> Dict[str, Any]:
         """Build default query params for RadioBrowser API requests."""
         return {
             "limit": limit,
+            "offset": offset,
             "hidebroken": "true",
             "order": "votes",
             "reverse": "true",
         }
 
-    async def search_by_name(self, name: str, limit: int = 10) -> List[RadioStation]:
+    async def search_by_name(
+        self, name: str, limit: int = 10, offset: int = 0
+    ) -> List[RadioStation]:
         """
         Search stations by name.
 
         Args:
             name: Station name to search for
             limit: Maximum number of results
+            offset: Offset for pagination
 
         Returns:
             List of matching RadioStation objects
         """
         endpoint = f"/json/stations/byname/{name}"
-        params = self._default_params(limit)
+        params = self._default_params(limit, offset)
 
         try:
             data = await self._make_request(endpoint, params)
@@ -217,7 +221,7 @@ class RadioBrowserAdapter(RadioProvider):
             ) from e
 
     async def search_by_country(
-        self, country: str, limit: int = 10
+        self, country: str, limit: int = 10, offset: int = 0
     ) -> List[RadioStation]:
         """
         Search stations by country.
@@ -225,12 +229,13 @@ class RadioBrowserAdapter(RadioProvider):
         Args:
             country: Country name to search for
             limit: Maximum number of results
+            offset: Offset for pagination
 
         Returns:
             List of matching RadioStation objects
         """
         endpoint = f"/json/stations/bycountry/{country}"
-        params = self._default_params(limit)
+        params = self._default_params(limit, offset)
 
         try:
             data = await self._make_request(endpoint, params)
@@ -247,19 +252,22 @@ class RadioBrowserAdapter(RadioProvider):
                 f"HTTP error {e.response.status_code}: {e.response.text}"
             ) from e
 
-    async def search_by_tag(self, tag: str, limit: int = 10) -> List[RadioStation]:
+    async def search_by_tag(
+        self, tag: str, limit: int = 10, offset: int = 0
+    ) -> List[RadioStation]:
         """
         Search stations by tag/genre.
 
         Args:
             tag: Tag/genre to search for
             limit: Maximum number of results
+            offset: Offset for pagination
 
         Returns:
             List of matching RadioStation objects
         """
         endpoint = f"/json/stations/bytag/{tag}"
-        params = self._default_params(limit)
+        params = self._default_params(limit, offset)
 
         try:
             data = await self._make_request(endpoint, params)

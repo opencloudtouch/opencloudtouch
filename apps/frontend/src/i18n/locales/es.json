@@ -69,8 +69,8 @@
     "infoTitle": "Notas sobre presets",
     "infoItem1": "Haga clic en un preset vacío para asignar una emisora",
     "infoItem2": "Haga clic en una emisora asignada para cambiarla o eliminarla",
-    "infoItem3": "▶ reproduce la emisora guardada directamente",
-    "infoItem4": "✓ = independiente de la nube, ☁ = requiere Bose Cloud",
+    "infoItem3": "El botón verde ► reproduce la emisora directamente",
+    "infoItem4": "Presets resaltados en amarillo dependen de Bose Cloud — se recomienda reconfigurar",
     "infoItem5": "⚙️ abre el asistente de configuración del dispositivo",
     "infoItem6": "\"Cargar desde dispositivo\" sincroniza los presets del SoundTouch",
     "changeStation": "Haga clic para cambiar la emisora",
@@ -104,7 +104,11 @@
       "name": "p. ej. SWR3, BBC Radio…",
       "country": "p. ej. Germany, Spain…",
       "tag": "p. ej. Rock, Jazz, pop…"
-    }
+    },
+    "loadMore": "Cargar más",
+    "loadingMore": "Cargando...",
+    "maxReached": "Máximo ({{count}}) alcanzado",
+    "maxReachedTooltip": "Refine su búsqueda para encontrar emisoras específicas"
   },
   "settings": {
     "title": "Ajustes",

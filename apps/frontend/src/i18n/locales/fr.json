@@ -69,8 +69,8 @@
     "infoTitle": "Notes sur les préréglages",
     "infoItem1": "Cliquez sur un préréglage vide pour attribuer une station",
     "infoItem2": "Cliquez sur une station attribuée pour la modifier ou la supprimer",
-    "infoItem3": "▶ lit directement la station enregistrée",
-    "infoItem4": "✓ = indépendant du cloud, ☁ = Bose Cloud requis",
+    "infoItem3": "Le bouton vert ► lit la station directement",
+    "infoItem4": "Les préréglages surlignés en jaune dépendent de Bose Cloud — reconfiguration recommandée",
     "infoItem5": "⚙️ ouvre l'assistant de configuration pour l'appareil",
     "infoItem6": "\"Charger depuis l'appareil\" synchronise les préréglages depuis SoundTouch",
     "changeStation": "Cliquer pour changer de station",
@@ -104,7 +104,11 @@
       "name": "ex. SWR3, BBC Radio…",
       "country": "ex. Allemagne, Autriche…",
       "tag": "ex. Rock, Jazz, pop…"
-    }
+    },
+    "loadMore": "Charger plus",
+    "loadingMore": "Chargement...",
+    "maxReached": "Maximum ({{count}}) atteint",
+    "maxReachedTooltip": "Affinez votre recherche pour trouver des stations spécifiques"
   },
   "settings": {
     "title": "Paramètres",

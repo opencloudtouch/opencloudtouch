@@ -51,6 +51,9 @@ function getApiBaseUrl(): string {
 type SearchType = "name" | "country" | "tag";
 type RadioProviderType = "radiobrowser" | "tunein";
 
+const RESULTS_PER_PAGE = 10;
+const MAX_RESULTS = 200;
+
 const SEARCH_TYPES: { value: SearchType }[] = [
   { value: "name" },
   { value: "country" },
@@ -84,12 +87,17 @@ export default function RadioSearch({
     HAS_TUNEIN_SUPPORT ? "tunein" : "radiobrowser"
   );
   const [detailUuid, setDetailUuid] = useState<string | null>(null);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const handleSearch = async (searchQuery: string) => {
     setQuery(searchQuery);
     setError(null);
+    setOffset(0);
+    setHasMore(false);
     if (!searchQuery.trim()) {
       setResults([]);
       setLoading(false);
@@ -129,7 +137,7 @@ export default function RadioSearch({
       try {
         const baseUrl = getApiBaseUrl();
         const response = await fetch(
-          `${baseUrl}/api/radio/search?q=${encodeURIComponent(searchQuery)}&search_type=${searchType}&limit=10&provider=${radioProvider}`,
+          `${baseUrl}/api/radio/search?q=${encodeURIComponent(searchQuery)}&search_type=${searchType}&limit=${RESULTS_PER_PAGE}&offset=0&provider=${radioProvider}`,
           { signal: controller.signal }
         );
 
@@ -145,6 +153,7 @@ export default function RadioSearch({
             setError(t("presets.searchFailed"));
           }
           setResults([]);
+          setHasMore(false);
           return;
         }
 
@@ -160,18 +169,69 @@ export default function RadioSearch({
         }));
 
         setResults(normalized);
+        setHasMore(data?.has_more === true);
         setError(null);
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") {
           return;
         }
         setResults([]);
+        setHasMore(false);
         setError(getErrorMessage(err));
         console.error("Radio search error:", err);
       } finally {
         setLoading(false);
       }
     }, 500);
+  };
+
+  const handleLoadMore = async () => {
+    const newOffset = offset + RESULTS_PER_PAGE;
+    setLoadingMore(true);
+
+    const controller = new AbortController();
+
+    try {
+      const baseUrl = getApiBaseUrl();
+      const response = await fetch(
+        `${baseUrl}/api/radio/search?q=${encodeURIComponent(query)}&search_type=${searchType}&limit=${RESULTS_PER_PAGE}&offset=${newOffset}&provider=${radioProvider}`,
+        { signal: controller.signal }
+      );
+
+      if (!response.ok) {
+        const apiError = await parseApiError(response);
+        if (apiError) {
+          setError(getErrorMessage(apiError));
+        } else {
+          setError(t("presets.searchFailed"));
+        }
+        return;
+      }
+
+      const data = await response.json();
+      const stations = Array.isArray(data?.stations) ? data.stations : [];
+      const normalized: RadioStation[] = stations.map((station: RawStationData) => ({
+        stationuuid: station.uuid,
+        name: station.name,
+        country: station.country,
+        url: station.url,
+        homepage: station.homepage,
+        favicon: station.favicon,
+      }));
+
+      setResults((prev) => [...prev, ...normalized]);
+      setOffset(newOffset);
+      setHasMore(data?.has_more === true);
+      setError(null);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return;
+      }
+      setError(getErrorMessage(err));
+      console.error("Radio load more error:", err);
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   const handleSelect = async (station: RadioStation) => {
@@ -328,6 +388,16 @@ export default function RadioSearch({
                   </div>
                 </button>
               ))}
+              {hasMore && results.length < MAX_RESULTS && (
+                <button className="load-more-btn" onClick={handleLoadMore} disabled={loadingMore}>
+                  {loadingMore ? t("presets.loadingMore") : t("presets.loadMore")}
+                </button>
+              )}
+              {results.length >= MAX_RESULTS && (
+                <div className="max-reached" title={t("presets.maxReachedTooltip")}>
+                  {t("presets.maxReached", { count: MAX_RESULTS })}
+                </div>
+              )}
             </div>
           </>
         )}

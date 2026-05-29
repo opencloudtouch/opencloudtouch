@@ -69,8 +69,8 @@
     "infoTitle": "Preset Hinweise",
     "infoItem1": "Klicke auf ein leeres Preset um einen Sender zuzuweisen",
     "infoItem2": "Klicke auf einen belegten Sender um ihn zu ändern oder zu löschen",
-    "infoItem3": "► spielt den gespeicherten Sender direkt ab",
-    "infoItem4": "✓ = Cloud-unabhängig, ☁ = Bose Cloud erforderlich",
+    "infoItem3": "Der grüne ► Button spielt den Sender direkt ab",
+    "infoItem4": "Gelb hinterlegte Presets sind Cloud-abhängig — Neukonfiguration empfohlen",
     "infoItem5": "⚙️ öffnet den Setup-Wizard für das Gerät",
     "infoItem6": "\"Vom Gerät laden\" synchronisiert die Presets vom SoundTouch",
     "changeStation": "Klicken um Sender zu ändern",
@@ -104,7 +104,11 @@
       "name": "z.B. SWR3, BBC Radio…",
       "country": "z.B. Germany, Austria…",
       "tag": "z.B. rock, jazz, pop…"
-    }
+    },
+    "loadMore": "Mehr anzeigen",
+    "loadingMore": "Lädt...",
+    "maxReached": "Maximum ({{count}}) erreicht",
+    "maxReachedTooltip": "Grenzen Sie Ihre Suche weiter ein, um bestimmte Sender zu finden"
   },
   "settings": {
     "title": "Einstellungen",

@@ -69,8 +69,8 @@
     "infoTitle": "プリセットについて",
     "infoItem1": "空のプリセットをクリックしてステーションを割り当てる",
     "infoItem2": "割り当て済みのステーションをクリックして変更または削除する",
-    "infoItem3": "▶ 保存済みステーションを直接再生",
-    "infoItem4": "✓ = クラウド不要、☁ = Bose Cloudが必要",
+    "infoItem3": "緑色の ► ボタンでステーションを直接再生",
+    "infoItem4": "黄色のプリセットはBose Cloudに依存 — 再設定を推奨",
     "infoItem5": "⚙️ デバイスのセットアップウィザードを開く",
     "infoItem6": "「デバイスから読み込む」でSoundTouchからプリセットを同期",
     "changeStation": "クリックしてステーションを変更",
@@ -104,7 +104,11 @@
       "name": "例：NHK、BBC Radio…",
       "country": "例：Japan、Germany…",
       "tag": "例：Rock、Jazz、pop…"
-    }
+    },
+    "loadMore": "もっと読み込む",
+    "loadingMore": "読み込み中...",
+    "maxReached": "最大件数 ({{count}}) に到達",
+    "maxReachedTooltip": "特定のステーションを見つけるには検索を絞り込んでください"
   },
   "settings": {
     "title": "設定",

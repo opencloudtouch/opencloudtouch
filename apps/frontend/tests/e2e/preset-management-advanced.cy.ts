@@ -141,8 +141,9 @@ describe("Preset Management Advanced", () => {
       cy.contains(".presets-grid [data-testid^='preset-play-']", stationA.name, { timeout: 10000 }).should("exist");
       cy.get(".presets-grid [data-testid^='preset-play-']").eq(0).should("contain", stationA.name);
 
-      // Clear preset using data-testid
-      cy.get('[data-testid="preset-clear-2"]').click({ force: true });
+      // Clear preset: click filled preset to open modal, then click delete
+      cy.get('[data-testid="preset-play-2"]').click({ force: true });
+      cy.get('.search-delete-btn', { timeout: 10000 }).should('be.visible').click();
 
       // Confirm deletion via ConfirmDialog
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
@@ -165,8 +166,9 @@ describe("Preset Management Advanced", () => {
       cy.reload();
       waitForPresetsReady();
 
-      // Clear preset 3
-      cy.get('[data-testid="preset-clear-3"]').click({ force: true });
+      // Clear preset 3: click filled preset to open modal, then click delete
+      cy.get('[data-testid="preset-play-3"]').click({ force: true });
+      cy.get('.search-delete-btn', { timeout: 10000 }).should('be.visible').click();
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
 
       // Now assign new station to cleared preset
@@ -205,8 +207,9 @@ describe("Preset Management Advanced", () => {
         .should("exist")
         .and("contain", stationA.name);
 
-      // Clear preset first
-      cy.get('[data-testid="preset-clear-4"]').click({ force: true });
+      // Clear preset first: click filled preset to open modal, then click delete
+      cy.get('[data-testid="preset-play-4"]').click({ force: true });
+      cy.get('.search-delete-btn', { timeout: 10000 }).should('be.visible').click();
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
       waitForPresetsReady();
 
@@ -231,8 +234,9 @@ describe("Preset Management Advanced", () => {
 
       stations.forEach((station, index) => {
         if (index > 0) {
-          // Clear previous preset using data-testid
-          cy.get(`[data-testid="preset-clear-${presetNumber}"]`).click({ force: true });
+          // Clear previous preset: click filled preset to open modal, then click delete
+          cy.get(`[data-testid="preset-play-${presetNumber}"]`).click({ force: true });
+          cy.get('.search-delete-btn', { timeout: 10000 }).should('be.visible').click();
           cy.get('[data-testid="confirm-dialog-confirm"]').click();
           waitForPresetsReady();
         }
@@ -271,14 +275,9 @@ describe("Preset Management Advanced", () => {
 
       cy.reload();
 
-      // Attempt to overwrite by clearing first
-      cy.get(".presets-grid").within(() => {
-        cy.contains("button", stationA.name)
-          .scrollIntoView()
-          .parent()
-          .find('[class*="clear"]')
-          .click({ force: true });
-      });
+      // Attempt to overwrite by clearing first: click filled preset to open modal, then click delete
+      cy.get('[data-testid="preset-play-6"]').click({ force: true });
+      cy.get('.search-delete-btn', { timeout: 10000 }).should('be.visible').click();
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
 
       waitForPresetsReady();
@@ -332,8 +331,13 @@ describe("Preset Management Advanced", () => {
         .should("exist")
         .and("contain", stationA.name);
 
-      // Should have clear button
-      cy.get('[data-testid="preset-clear-3"]').should("exist");
+      // Should have delete option accessible via modal
+      cy.get('[data-testid="preset-play-3"]').click({ force: true });
+      cy.get('.radio-search-modal', { timeout: 10000 }).should('be.visible');
+      cy.get('.search-delete-btn', { timeout: 10000 }).should('be.visible');
+      // Close modal without deleting (press Escape)
+      cy.get('body').type('{esc}');
+      cy.get('.radio-search-modal', { timeout: 10000 }).should('not.exist');
 
       // Should have play button
       cy.get('[data-testid="preset-play-3"]').should("exist");
@@ -494,7 +498,8 @@ describe("Preset Management Advanced", () => {
         body: { detail: "Delete failed" },
       }).as("clearPresetFail");
 
-      cy.get('[data-testid="preset-clear-2"]').click({ force: true });
+      cy.get('[data-testid="preset-play-2"]').click({ force: true });
+      cy.get('.search-delete-btn', { timeout: 10000 }).should('be.visible').click();
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
       cy.wait("@clearPresetFail");
 

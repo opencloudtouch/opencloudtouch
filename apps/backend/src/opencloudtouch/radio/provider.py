@@ -43,7 +43,9 @@ class RadioProvider(ABC):
         pass  # pragma: no cover
 
     @abstractmethod
-    async def search_by_name(self, name: str, limit: int = 20) -> List[RadioStation]:
+    async def search_by_name(
+        self, name: str, limit: int = 20, offset: int = 0
+    ) -> List[RadioStation]:
         """
         Search stations by name.
 
@@ -63,7 +65,7 @@ class RadioProvider(ABC):
 
     @abstractmethod
     async def search_by_country(
-        self, country: str, limit: int = 20
+        self, country: str, limit: int = 20, offset: int = 0
     ) -> List[RadioStation]:
         """
         Search stations by country.
@@ -81,7 +83,9 @@ class RadioProvider(ABC):
         pass  # pragma: no cover
 
     @abstractmethod
-    async def search_by_tag(self, tag: str, limit: int = 20) -> List[RadioStation]:
+    async def search_by_tag(
+        self, tag: str, limit: int = 20, offset: int = 0
+    ) -> List[RadioStation]:
         """
         Search stations by genre/tag.
 

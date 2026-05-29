@@ -1,6 +1,10 @@
 # Pre-commit hooks configuration
 # See https://pre-commit.com for more information
 
+# Abort immediately on first hook failure (don't waste time on tests if
+# formatters/line-ending fixers modified files — just re-stage and retry).
+fail_fast: true
+
 repos:
   # ============================================================================
   # GIT USER VALIDATION (PREVENT CORPORATE IDS)
@@ -15,16 +19,7 @@ repos:
         pass_filenames: false
 
   # ============================================================================
-  # COMMIT MESSAGE VALIDATION
-  # ============================================================================
-  - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.13.6
-    hooks:
-      - id: commitizen
-        stages: [commit-msg]
-
-  # ============================================================================
-  # GENERAL FILE CHECKS
+  # FORMATTERS & FIXERS (run FIRST — may modify files, fail_fast aborts early)
   # ============================================================================
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -33,19 +28,9 @@ repos:
         exclude: '\.md$'
       - id: end-of-file-fixer
         exclude: '\.min\.(js|css)$'
-      - id: check-yaml
-        args: ['--unsafe']  # Allow custom YAML tags
-      - id: check-json
-        exclude: 'tsconfig.*\.json$'  # Exclude TypeScript config (allows comments)
-      - id: check-merge-conflict
-      - id: check-case-conflict
       - id: mixed-line-ending
         args: ['--fix=lf']
-      - id: detect-private-key
 
-  # ============================================================================
-  # PYTHON BACKEND CHECKS
-  # ============================================================================
   - repo: https://github.com/psf/black
     rev: 26.1.0
     hooks:
@@ -62,18 +47,6 @@ repos:
         files: ^apps/backend/
         args: [--fix, --exit-non-zero-on-fix]
 
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.9.3
-    hooks:
-      - id: bandit
-        name: Security check Python (bandit)
-        files: ^apps/backend/src/
-        args: [-ll, -r]
-        exclude: ^apps/backend/tests/
-
-  # ============================================================================
-  # JAVASCRIPT/TYPESCRIPT FRONTEND CHECKS
-  # ============================================================================
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v4.0.0-alpha.8
     hooks:
@@ -84,25 +57,42 @@ repos:
           - prettier@3.4.2
 
   # ============================================================================
-  # LOCAL HOOKS (Custom scripts)
+  # VALIDATORS (read-only checks — no file modifications)
+  # ============================================================================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+        args: ['--unsafe']  # Allow custom YAML tags
+      - id: check-json
+        exclude: 'tsconfig.*\.json$'  # Exclude TypeScript config (allows comments)
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.3
+    hooks:
+      - id: bandit
+        name: Security check Python (bandit)
+        files: ^apps/backend/src/
+        args: [-ll, -r]
+        exclude: ^apps/backend/tests/
+
+  # ============================================================================
+  # COMMIT MESSAGE VALIDATION
+  # ============================================================================
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.13.6
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+
+  # ============================================================================
+  # TESTS & LINTERS (only run if all formatters passed cleanly)
   # ============================================================================
   - repo: local
     hooks:
-      # ========================================================================
-      # GUARD: Abort if formatters modified files (no point running tests)
-      # ========================================================================
-      - id: check-reformatted
-        name: "Guard: abort if formatters changed files"
-        entry: bash scripts/hooks/check-reformatted.sh
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-commit]
-
-      # ========================================================================
-      # PRE-COMMIT: UNIT TESTS ONLY (fast, <60s)
-      # ========================================================================
-
       # Backend Unit Tests (pre-commit)
       - id: pytest-unit
         name: Run backend unit tests (pre-commit)

@@ -131,7 +131,7 @@ class TestRadioSearchEndpoint:
         response = client.get("/api/radio/search", params={"q": "test", "limit": 25})
 
         assert response.status_code == 200
-        mock_adapter.search_by_name.assert_called_once_with("test", limit=25)
+        mock_adapter.search_by_name.assert_called_once_with("test", limit=25, offset=0)
 
     def test_search_default_limit(self, client, mock_adapter, mock_radio_stations):
         """Test default limit is 10."""
@@ -140,7 +140,7 @@ class TestRadioSearchEndpoint:
         response = client.get("/api/radio/search", params={"q": "test"})
 
         assert response.status_code == 200
-        mock_adapter.search_by_name.assert_called_once_with("test", limit=10)
+        mock_adapter.search_by_name.assert_called_once_with("test", limit=10, offset=0)
 
     def test_search_missing_query_parameter(self, client):
         """Test that missing 'q' parameter returns 422."""
@@ -170,8 +170,8 @@ class TestRadioSearchEndpoint:
         assert response.status_code == 422
 
     def test_search_limit_max_value(self, client):
-        """Test that limit has maximum value of 100."""
-        response = client.get("/api/radio/search", params={"q": "test", "limit": 101})
+        """Test that limit has maximum value of 50."""
+        response = client.get("/api/radio/search", params={"q": "test", "limit": 51})
 
         assert response.status_code == 422
 
@@ -384,6 +384,106 @@ class TestRadioAPIErrorHandling:
     # The error handling is already covered by test_get_station_not_found().
 
 
+class TestRadioSearchPagination:
+    """Tests for offset/pagination behavior."""
+
+    def test_search_with_offset(self, client, mock_adapter, mock_radio_stations):
+        """Test that offset parameter is passed to adapter."""
+        mock_adapter.search_by_name.return_value = mock_radio_stations
+
+        response = client.get("/api/radio/search", params={"q": "test", "offset": 10})
+
+        assert response.status_code == 200
+        mock_adapter.search_by_name.assert_called_once_with("test", limit=10, offset=10)
+
+    def test_search_offset_default_zero(
+        self, client, mock_adapter, mock_radio_stations
+    ):
+        """Test that default offset is 0."""
+        mock_adapter.search_by_name.return_value = mock_radio_stations
+
+        response = client.get("/api/radio/search", params={"q": "test"})
+
+        assert response.status_code == 200
+        mock_adapter.search_by_name.assert_called_once_with("test", limit=10, offset=0)
+
+    def test_search_negative_offset_rejected(self, client):
+        """Test that negative offset returns 422."""
+        response = client.get("/api/radio/search", params={"q": "test", "offset": -1})
+        assert response.status_code == 422
+
+    def test_search_has_more_true_when_full_page(self, client, mock_adapter):
+        """Test has_more=True when results count equals limit."""
+        # Return exactly `limit` stations → has_more should be True
+        stations = [
+            RadioStation(
+                station_id=f"uuid-{i}",
+                name=f"Station {i}",
+                url=f"http://stream{i}.example.com/radio.mp3",
+                country="Germany",
+                provider="radiobrowser",
+            )
+            for i in range(10)
+        ]
+        mock_adapter.search_by_name.return_value = stations
+
+        response = client.get("/api/radio/search", params={"q": "test", "limit": 10})
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["has_more"] is True
+
+    def test_search_has_more_false_when_partial_page(
+        self, client, mock_adapter, mock_radio_stations
+    ):
+        """Test has_more=False when results count is less than limit."""
+        mock_adapter.search_by_name.return_value = mock_radio_stations  # 2 stations
+
+        response = client.get("/api/radio/search", params={"q": "test", "limit": 10})
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["has_more"] is False
+
+    def test_search_has_more_false_when_empty(self, client, mock_adapter):
+        """Test has_more=False when no results."""
+        mock_adapter.search_by_name.return_value = []
+
+        response = client.get("/api/radio/search", params={"q": "nothing"})
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["has_more"] is False
+
+    def test_search_offset_with_country(
+        self, client, mock_adapter, mock_radio_stations
+    ):
+        """Test offset works with country search type."""
+        mock_adapter.search_by_country.return_value = mock_radio_stations
+
+        response = client.get(
+            "/api/radio/search",
+            params={"q": "Germany", "search_type": "country", "offset": 20},
+        )
+
+        assert response.status_code == 200
+        mock_adapter.search_by_country.assert_called_once_with(
+            "Germany", limit=10, offset=20
+        )
+
+    def test_search_offset_with_tag(self, client, mock_adapter, mock_radio_stations):
+        """Test offset works with tag search type."""
+        mock_adapter.search_by_tag.return_value = mock_radio_stations
+
+        response = client.get(
+            "/api/radio/search",
+            params={"q": "jazz", "search_type": "tag", "offset": 5},
+        )
+
+        assert response.status_code == 200
+        mock_adapter.search_by_tag.assert_called_once_with("jazz", limit=10, offset=5)
+
+
 class TestRadioAPIIntegration:
     """Integration tests combining search and station detail endpoints."""
 
@@ -542,7 +642,7 @@ class TestConcurrentRadioRequests:
         """
 
         # Mock adapter to return different results based on query
-        def mock_search(query, limit=20):
+        def mock_search(query, limit=20, offset=0):
             if query == "rock":
                 return [mock_radio_stations[0]]
             elif query == "jazz":

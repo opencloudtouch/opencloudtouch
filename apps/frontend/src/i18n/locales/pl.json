@@ -69,8 +69,8 @@
     "infoTitle": "Informacje o presetach",
     "infoItem1": "Kliknij pusty preset, aby przypisać stację",
     "infoItem2": "Kliknij przypisaną stację, aby ją zmienić lub usunąć",
-    "infoItem3": "▶ odtwarza zapisaną stację bezpośrednio",
-    "infoItem4": "✓ = niezależny od chmury, ☁ = wymaga Bose Cloud",
+    "infoItem3": "Zielony przycisk ► odtwarza stację bezpośrednio",
+    "infoItem4": "Presety podświetlone na żółto zależą od Bose Cloud — zalecana rekonfiguracja",
     "infoItem5": "⚙️ otwiera kreator konfiguracji urządzenia",
     "infoItem6": "\"Załaduj z urządzenia\" synchronizuje presety z SoundTouch",
     "changeStation": "Kliknij, aby zmienić stację",
@@ -104,7 +104,11 @@
       "name": "np. RMF FM, BBC Radio…",
       "country": "np. Poland, Germany…",
       "tag": "np. Rock, Jazz, pop…"
-    }
+    },
+    "loadMore": "Załaduj więcej",
+    "loadingMore": "Ładowanie...",
+    "maxReached": "Osiągnięto maksimum ({{count}})",
+    "maxReachedTooltip": "Zawęź wyszukiwanie, aby znaleźć konkretne stacje"
   },
   "settings": {
     "title": "Ustawienia",

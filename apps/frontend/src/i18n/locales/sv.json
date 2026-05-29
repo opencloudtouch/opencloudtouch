@@ -69,8 +69,8 @@
     "infoTitle": "Om förinställningar",
     "infoItem1": "Klicka på en tom förinställning för att tilldela en station",
     "infoItem2": "Klicka på en tilldelad station för att ändra eller ta bort den",
-    "infoItem3": "▶ spelar den sparade stationen direkt",
-    "infoItem4": "✓ = molnoberoende, ☁ = kräver Bose Cloud",
+    "infoItem3": "Den gröna ► knappen spelar stationen direkt",
+    "infoItem4": "Gult markerade förinställningar beror på Bose Cloud — omkonfigurering rekommenderas",
     "infoItem5": "⚙️ öppnar enhetens installationsguide",
     "infoItem6": "\"Hämta från enhet\" synkroniserar förinställningar från SoundTouch",
     "changeStation": "Klicka för att byta station",
@@ -104,7 +104,11 @@
       "name": "t.ex. P3, BBC Radio…",
       "country": "t.ex. Sweden, Germany…",
       "tag": "t.ex. Rock, Jazz, pop…"
-    }
+    },
+    "loadMore": "Ladda fler",
+    "loadingMore": "Laddar...",
+    "maxReached": "Maximum ({{count}}) nått",
+    "maxReachedTooltip": "Förfina din sökning för att hitta specifika stationer"
   },
   "settings": {
     "title": "Inställningar",

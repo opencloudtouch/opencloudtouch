@@ -69,8 +69,8 @@
     "infoTitle": "Notas sobre presets",
     "infoItem1": "Clique em um preset vazio para atribuir uma estação",
     "infoItem2": "Clique em uma estação atribuída para alterá-la ou excluí-la",
-    "infoItem3": "▶ reproduz a estação salva diretamente",
-    "infoItem4": "✓ = independente da nuvem, ☁ = requer Bose Cloud",
+    "infoItem3": "O botão verde ► reproduz a estação diretamente",
+    "infoItem4": "Presets destacados em amarelo dependem do Bose Cloud — reconfiguração recomendada",
     "infoItem5": "⚙️ abre o assistente de configuração do dispositivo",
     "infoItem6": "\"Carregar do dispositivo\" sincroniza os presets do SoundTouch",
     "changeStation": "Clique para mudar a estação",
@@ -104,7 +104,11 @@
       "name": "ex.: Band FM, BBC Radio…",
       "country": "ex.: Brazil, Portugal…",
       "tag": "ex.: Rock, Jazz, pop…"
-    }
+    },
+    "loadMore": "Carregar mais",
+    "loadingMore": "Carregando...",
+    "maxReached": "Máximo ({{count}}) atingido",
+    "maxReachedTooltip": "Refine sua pesquisa para encontrar estações específicas"
   },
   "settings": {
     "title": "Configurações",
