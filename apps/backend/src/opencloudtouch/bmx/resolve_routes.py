@@ -13,6 +13,8 @@ from xml.sax.saxutils import escape as xml_escape
 from defusedxml.ElementTree import fromstring as parse_xml_string
 from fastapi import APIRouter, Request, Response
 
+from opencloudtouch.core.config import get_config
+
 logger = logging.getLogger(__name__)
 
 resolve_router = APIRouter(tags=["bmx"])
@@ -51,7 +53,7 @@ def _build_oct_resolved_xml(
     device_id = match.group(1)
     preset_number = match.group(2)
     oct_url = os.getenv(
-        "OCT_BACKEND_URL", "http://content.api.bose.io:7777"
+        "OCT_BACKEND_URL", f"http://content.api.bose.io:{get_config().port}"
     )  # NOSONAR — Bose devices use HTTP
     resolved_url = f"{oct_url}/device/{device_id}/preset/{preset_number}"
 

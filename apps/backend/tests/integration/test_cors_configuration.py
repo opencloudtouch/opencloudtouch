@@ -18,7 +18,7 @@ This test ensures the CORS configuration includes all necessary development port
 import pytest
 from fastapi.testclient import TestClient
 
-from opencloudtouch.core.config import get_config
+from opencloudtouch.core.config import DEFAULT_PORT, get_config
 from opencloudtouch.main import app
 
 
@@ -48,7 +48,7 @@ class TestCORSConfiguration:
         required_origins = [
             "http://localhost:4173",  # Vite preview (E2E tests)
             "http://localhost:5173",  # Vite dev server
-            "http://localhost:7777",  # Backend API
+            f"http://localhost:{DEFAULT_PORT}",  # Backend API
         ]
 
         for origin in required_origins:

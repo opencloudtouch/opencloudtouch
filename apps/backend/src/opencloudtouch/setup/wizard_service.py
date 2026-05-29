@@ -26,6 +26,7 @@ from opencloudtouch.setup.persistence_service import (
     _read_file_content,
     _write_file_atomic,
 )
+from opencloudtouch.core.config import get_config
 from opencloudtouch.setup.backup_service import SoundTouchBackupService
 from opencloudtouch.setup.config_service import SoundTouchConfigService
 from opencloudtouch.setup.hosts_service import SoundTouchHostsService
@@ -104,6 +105,7 @@ class WizardService:
         """
         parsed = urlparse(target_addr)
         target_host = parsed.hostname or parsed.netloc
+        target_port = parsed.port or get_config().port
 
         async with ssh_operation(device_ip, "modify-config") as ssh:
             config_service = SoundTouchConfigService(ssh)
@@ -116,7 +118,7 @@ class WizardService:
                 "before_modify_config",
             )
 
-            result = await config_service.modify_bmx_url(target_host)
+            result = await config_service.modify_bmx_url(target_host, port=target_port)
 
             if result.success:
                 await snapshot_config_files(

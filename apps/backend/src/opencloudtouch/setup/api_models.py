@@ -10,6 +10,7 @@ import re
 
 from typing import Optional
 
+from opencloudtouch.core.config import DEFAULT_PORT
 from pydantic import BaseModel, Field, field_validator
 
 # Hostname: letters, digits, hyphens, dots — NO shell metacharacters
@@ -122,7 +123,7 @@ def _normalize_target_addr(v: str) -> str:
 
     protocol = match.group("protocol") or "http"
     host = match.group("host")
-    port = match.group("port") or "7777"
+    port = match.group("port") or str(DEFAULT_PORT)
 
     # Validate hostname/IP
     if "." in host and all(c.isdigit() or c == "." for c in host):

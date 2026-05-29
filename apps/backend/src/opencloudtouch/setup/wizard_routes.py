@@ -13,6 +13,7 @@ from typing import Annotated, Any, Dict
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi import status as http_status
 
+from opencloudtouch.core.config import get_config
 from opencloudtouch.core.dependencies import get_wizard_service
 from opencloudtouch.core.dependencies import RestoreServiceDep
 from opencloudtouch.setup.api_models import (
@@ -69,7 +70,6 @@ async def wizard_server_info(request: Request) -> Dict[str, Any]:
     # Extract from actual HTTP request
     url = request.url
     hostname = url.hostname or "127.0.0.1"
-    port = url.port or 7777
 
     # Resolve actual LAN IP for /etc/hosts (requires numeric IP).
     # Do NOT use the request hostname — behind Docker/port-forwarding it's
@@ -106,12 +106,12 @@ async def wizard_server_info(request: Request) -> Dict[str, Any]:
 
     # Build server_url using the resolved IP so the frontend gets a
     # reachable address, not the browser hostname (e.g. "hera").
-    server_url = f"{url.scheme}://{server_ip}:{port}"
+    server_url = f"{url.scheme}://{server_ip}:{url.port or get_config().port}"
 
     return {
         "server_url": server_url,
         "server_ip": server_ip,
-        "default_port": 7777,
+        "default_port": get_config().port,
         "supported_protocols": ["http", "https"],
     }
 
