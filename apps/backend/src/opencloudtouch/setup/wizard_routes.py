@@ -70,7 +70,6 @@ async def wizard_server_info(request: Request) -> Dict[str, Any]:
     # Extract from actual HTTP request
     url = request.url
     hostname = url.hostname or "127.0.0.1"
-    server_url = f"{url.scheme}://{hostname}:{url.port or get_config().port}"
 
     # Resolve actual LAN IP for /etc/hosts (requires numeric IP).
     # Do NOT use the request hostname — behind Docker/port-forwarding it's
