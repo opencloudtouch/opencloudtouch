@@ -7,7 +7,7 @@ Separates HTTP layer (routes) from business logic from data layer (repository).
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import AsyncIterator, List, Optional, Union
+from typing import Any, AsyncIterator, Callable, List, Optional, Union
 
 from opencloudtouch.core.exceptions import DeviceNotFoundError, DomainValidationError
 from opencloudtouch.db import Device
@@ -28,8 +28,8 @@ from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT, DiscoveredDevice
 
 logger = logging.getLogger(__name__)
 
-# Type for post-sync callback: (device_id, ip) → awaitable
-OnDeviceSynced = Optional["asyncio.coroutines.CoroFunction"]
+# Type for post-sync callback: async (device_id, ip) → None
+OnDeviceSynced = Optional[Callable[[str, str], Any]]
 
 
 class DeviceService:
@@ -64,7 +64,7 @@ class DeviceService:
         self.repository = repository
         self.sync_service = sync_service
         self.discovery_adapter = discovery_adapter
-        self._on_device_synced: Optional[asyncio.coroutines.CoroFunction] = None
+        self._on_device_synced: OnDeviceSynced = None
 
     def set_on_device_synced(self, callback) -> None:
         """Register callback invoked after each device sync: callback(device_id, ip)."""

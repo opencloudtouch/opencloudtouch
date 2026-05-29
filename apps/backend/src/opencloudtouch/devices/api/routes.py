@@ -388,10 +388,14 @@ async def get_now_playing(
         source=info.source,
         state=info.state,
         station_name=info.station_name,
-        artist=result.get("artist") or info.artist,
-        track=result.get("track") or info.track,
+        artist=str(result["artist"]) if result.get("artist") else info.artist,
+        track=str(result["track"]) if result.get("track") else info.track,
         album=info.album,
-        artwork_url=result.get("artwork_url") or info.artwork_url,
+        artwork_url=(
+            str(result["artwork_url"])
+            if result.get("artwork_url")
+            else info.artwork_url
+        ),
     )
     if enriched_info.artist != info.artist or enriched_info.track != info.track:
         state_manager.update_now_playing(device_id, enriched_info)

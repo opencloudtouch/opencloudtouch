@@ -2988,6 +2988,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/health/websockets:
+    get:
+      tags:
+      - System
+      summary: WebSocket Health
+      description: WebSocket connection health for all managed devices.
+      operationId: websocket_health_api_health_websockets_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connections:
+                    type: object
+                    additionalProperties:
+                      type: object
+                  total_connected:
+                    type: integer
+                  total_devices:
+                    type: integer
   /api/wizard/audit-log:
     post:
       tags:
