@@ -509,7 +509,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ steps.ref.outputs.branch }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_WORKFLOW_WRITE }}
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -541,17 +541,17 @@ jobs:
 
       - name: Fix trailing whitespace & line endings
         run: |
-          # Trailing whitespace (exclude markdown, binary, node_modules, .git)
+          # Trailing whitespace (exclude markdown, binary, node_modules, .git, .github)
           find . -type f \( -name '*.py' -o -name '*.ts' -o -name '*.tsx' \
             -o -name '*.js' -o -name '*.jsx' -o -name '*.css' \
             -o -name '*.yml' -o -name '*.yaml' -o -name '*.json' \) \
-            -not -path '*/node_modules/*' -not -path '*/.git/*' \
+            -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/.github/*' \
             -exec sed -i 's/[[:space:]]*$//' {} + || true
 
-          # Ensure final newline
+          # Ensure final newline (exclude .github workflows)
           find . -type f \( -name '*.py' -o -name '*.ts' -o -name '*.tsx' \
             -o -name '*.js' -o -name '*.jsx' \) \
-            -not -path '*/node_modules/*' -not -path '*/.git/*' \
+            -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/.github/*' \
             -exec bash -c 'for f; do [ -s "$f" ] && [ "$(tail -c1 "$f")" != "" ] && echo >> "$f"; done' _ {} + || true
 
       - name: Commit and push if changed
