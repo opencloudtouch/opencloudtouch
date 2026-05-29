@@ -31,6 +31,7 @@ from opencloudtouch.core.static_files import (
 from opencloudtouch.db import DeviceRepository
 from opencloudtouch.devices.adapter import get_discovery_adapter
 from opencloudtouch.devices.health_check import DeviceHealthCheck
+from opencloudtouch.devices.startup_check import StartupCheck
 from opencloudtouch.devices.api.preset_stream_routes import (
     descriptor_router as device_descriptor_router,
 )
@@ -207,6 +208,12 @@ async def _init_services(
         device_repo=device_repo,
     )
     logger.info("RestoreService initialized")
+
+    # One-time startup check: verify setup_status for 'unknown' devices
+    if not cfg.mock_mode:
+        startup_check = StartupCheck(device_repo)
+        await startup_check.run()
+        logger.info("Startup device check completed")
 
     # Background health-check (not in mock/CI mode)
     health_check = DeviceHealthCheck(device_repo)

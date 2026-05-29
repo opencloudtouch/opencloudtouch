@@ -140,12 +140,6 @@ class DeviceRepository(BaseRepository):
             sql="ALTER TABLE devices ADD COLUMN marge_account_uuid TEXT",
         )
 
-        await self._apply_migration(
-            version=103,
-            description="Add marge_account_uuid column to devices",
-            sql="ALTER TABLE devices ADD COLUMN marge_account_uuid TEXT",
-        )
-
         # Indexes
         await self._conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_devices_device_id ON devices(device_id)

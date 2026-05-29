@@ -10,7 +10,7 @@ from typing import List, Optional
 # Default HTTP API port for Bose SoundTouch devices
 SOUNDTOUCH_HTTP_PORT = 8090
 
-# SoundTouch WebServer port (device description, /info endpoint)
+# SoundTouch WebServer port (SSDP device description)
 SOUNDTOUCH_WEBSERVER_PORT = 8091
 
 
