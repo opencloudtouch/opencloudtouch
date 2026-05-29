@@ -28,7 +28,7 @@
     "clean": "rimraf node_modules dist .vite coverage cypress/screenshots cypress/videos"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.95.2",
+    "@tanstack/react-query": "^5.100.14",
     "flag-icons": "^7.5.0",
     "framer-motion": "^12.38.0",
     "html2canvas": "^1.4.1",
