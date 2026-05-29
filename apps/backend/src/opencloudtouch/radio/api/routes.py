@@ -6,7 +6,7 @@ Provides REST API for searching and retrieving radio stations.
 
 import os
 from enum import Enum
-from typing import List
+from typing import Annotated, List
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -89,8 +89,10 @@ async def search_stations(
     search_type: SearchType = Query(
         SearchType.NAME, description="Search type: name, country, or tag"
     ),
-    limit: int = Query(10, ge=1, le=50, description="Maximum number of results"),
-    offset: int = Query(0, ge=0, description="Offset for pagination"),
+    limit: Annotated[
+        int, Query(ge=1, le=50, description="Maximum number of results")
+    ] = 10,
+    offset: Annotated[int, Query(ge=0, description="Offset for pagination")] = 0,
     provider: ProviderType = Query(
         ProviderType.RADIOBROWSER, description="Radio provider: radiobrowser or tunein"
     ),

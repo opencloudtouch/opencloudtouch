@@ -82,6 +82,16 @@ export default function PresetButton({
   disabled = false,
 }: PresetButtonProps) {
   const { t } = useTranslation();
+
+  const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    (e.target as HTMLImageElement).style.display = "none";
+    const parent = (e.target as HTMLImageElement).parentElement;
+    if (parent) {
+      const fallback = parent.querySelector(".preset-avatar-fallback") as HTMLElement;
+      if (fallback) fallback.style.display = "flex";
+    }
+  };
+
   if (disabled) {
     return (
       <div className="preset-button preset-disabled" data-testid={`preset-${number}`}>
@@ -112,16 +122,7 @@ export default function PresetButton({
                   src={preset.station_favicon}
                   alt=""
                   className="preset-favicon"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = "none";
-                    const parent = (e.target as HTMLImageElement).parentElement;
-                    if (parent) {
-                      const fallback = parent.querySelector(
-                        ".preset-avatar-fallback"
-                      ) as HTMLElement;
-                      if (fallback) fallback.style.display = "flex";
-                    }
-                  }}
+                  onError={handleFaviconError}
                 />
               ) : null}
               <span
@@ -135,35 +136,34 @@ export default function PresetButton({
               </span>
             </div>
             <span className="preset-name">{preset.station_name}</span>
-            <span
-              role="button"
-              className={`preset-play-btn${isCurrentlyPlaying ? " playing" : ""}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (isCurrentlyPlaying) {
-                  onPause?.();
-                } else {
-                  onPlay();
-                }
-              }}
-              aria-label={
-                isCurrentlyPlaying
-                  ? t("player.pause")
-                  : t("presets.playPreset", { name: preset.station_name })
+          </button>
+          <button
+            type="button"
+            className={`preset-play-btn${isCurrentlyPlaying ? " playing" : ""}`}
+            onClick={() => {
+              if (isCurrentlyPlaying) {
+                onPause?.();
+              } else {
+                onPlay();
               }
-              data-testid={`preset-action-${number}`}
-              title={isCurrentlyPlaying ? t("player.pause") : t("player.play")}
-            >
-              {isCurrentlyPlaying ? (
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                  <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              )}
-            </span>
+            }}
+            aria-label={
+              isCurrentlyPlaying
+                ? t("player.pause")
+                : t("presets.playPreset", { name: preset.station_name })
+            }
+            data-testid={`preset-action-${number}`}
+            title={isCurrentlyPlaying ? t("player.pause") : t("player.play")}
+          >
+            {isCurrentlyPlaying ? (
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            )}
           </button>
         </>
       ) : (

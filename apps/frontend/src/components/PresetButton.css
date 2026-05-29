@@ -89,6 +89,7 @@
 .preset-play-btn {
   width: 36px;
   height: 36px;
+  padding: 0;
   flex-shrink: 0;
   background-color: #2e7d32;
   border: none;
