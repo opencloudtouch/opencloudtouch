@@ -13,6 +13,30 @@ _No changes yet._
 
 ---
 
+## [1.4.2] - 2026-05-29
+
+### Added
+- ci): show computed version in release workflow run title
+- kb-growth): add Pattern & Quality Scan script and update workflow
+- pr-review): upgrade to gpt-4o with enhanced review prompt
+-  improve PR review quality based on production data
+-  add AI-powered PR review automation via oct-support (#278
+### Fixed
+- ci): update trivy-action from deleted 0.28.0 to v0.36.0
+-  propagate OCT_PORT to all device-facing URLs (#268) (#277
+-  detect device config status via /info margeURL at startup (#267) (#281
+- pr-review): filter legacy 'AI Review' job name from CI status checks
+-  prevent issue-handler from hijacking PR comments and fix comment-trigger auth
+-  PR review waits for CI completion before reviewing/approving
+-  resolve actual LAN IP for wizard server-info (#200) (#276
+-  validate diff line numbers for inline review comments
+-  use base.ref instead of base.sha for PR review checkout
+- i18n): translate missing wizard and restore keys for all locales (#265
+- issue-handler): handle 410 Gone for deleted issues (#264
+- issue-handler): handle 410 Gone for deleted issues
+- i18n): shorten USB volume label to SOUNDTOUCH for FAT32 compatibility (#253
+### Changed
+-  rename AI Review job to PR Review
 ## [1.2.8] - 2026-05-16
 
 ### Added
