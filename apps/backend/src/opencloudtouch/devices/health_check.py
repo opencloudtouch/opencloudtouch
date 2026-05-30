@@ -76,7 +76,7 @@ class DeviceHealthCheck:
             await asyncio.sleep(PING_INTERVAL)
 
     async def _ping_all_devices(self) -> None:
-        """Ping all devices via SoundTouch HTTP API (port 8091)."""
+        """Ping all devices via SoundTouch HTTP API (port 8090)."""
         devices = await self._device_repo.get_all()
         if not devices:
             return
@@ -89,29 +89,40 @@ class DeviceHealthCheck:
                     continue
                 reachable, device_name = await self._ping_device(client, device.ip)
                 if reachable:
-                    device.last_seen = now
-                    if device_name and device_name != device.name:
-                        logger.info(
-                            "Device %s name changed: '%s' -> '%s'",
-                            device.device_id,
-                            device.name,
-                            device_name,
-                        )
-                        device.name = device_name
-                    await self._device_repo.upsert(device)
+                    await self._handle_reachable(device, device_name, now)
                 else:
-                    # Check if device should be marked offline
-                    if device.last_seen:
-                        seconds_since = (now - device.last_seen).total_seconds()
-                        if seconds_since > OFFLINE_THRESHOLD:
-                            logger.warning(
-                                "Device %s (%s) offline for %.0fs",
-                                device.name,
-                                device.ip,
-                                seconds_since,
-                            )
+                    self._handle_unreachable(device, now)
 
         logger.debug("Health-check ping completed for %d devices", len(devices))
+
+    async def _handle_reachable(
+        self, device, device_name: str | None, now: datetime
+    ) -> None:
+        """Update a reachable device: refresh last_seen and name if changed."""
+        device.last_seen = now
+        if device_name and device_name != device.name:
+            logger.info(
+                "Device %s name changed: '%s' -> '%s'",
+                device.device_id,
+                device.name,
+                device_name,
+            )
+            device.name = device_name
+        await self._device_repo.upsert(device)
+
+    @staticmethod
+    def _handle_unreachable(device, now: datetime) -> None:
+        """Log a warning if the device has been offline beyond the threshold."""
+        if not device.last_seen:
+            return
+        seconds_since = (now - device.last_seen).total_seconds()
+        if seconds_since > OFFLINE_THRESHOLD:
+            logger.warning(
+                "Device %s (%s) offline for %.0fs",
+                device.name,
+                device.ip,
+                seconds_since,
+            )
 
     @staticmethod
     async def _ping_device(
