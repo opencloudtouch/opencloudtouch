@@ -46,6 +46,8 @@ from opencloudtouch.setup.api_models import (
     VerifyRedirectResponse,
     VerifySetupRequest,
     VerifySetupResponse,
+    ValidateHostnameRequest,
+    ValidateHostnameResponse,
     WizardCompleteRequest,
     WizardCompleteResponse,
     AccountPairingRequest,
@@ -146,6 +148,63 @@ async def wizard_detect_strategy(request: Request) -> DetectStrategyResponse:
             "Die BMX-URL muss zus�tzlich ge�ndert werden."
         ),
     )
+
+
+@wizard_router.post(
+    "/wizard/validate-hostname", response_model=ValidateHostnameResponse
+)
+async def wizard_validate_hostname(
+    request: ValidateHostnameRequest,
+) -> ValidateHostnameResponse:
+    """Validate a hostname via DNS resolution.
+
+    Used by Wizard Step 5 when the user enters a hostname instead of an IP.
+    Returns whether the hostname resolves and if the resolved IP matches
+    the expected OCT server IP.
+    """
+    hostname = request.hostname
+    logger.info("Validating hostname DNS resolution: %s", hostname)
+
+    try:
+        result = await asyncio.to_thread(socket.getaddrinfo, hostname, None)
+        if not result:
+            return ValidateHostnameResponse(
+                resolvable=False,
+                error=f"DNS resolution returned no results for '{hostname}'",
+            )
+
+        resolved_ip = result[0][4][0]
+
+        matches = None
+        if request.expected_ip is not None:
+            matches = resolved_ip == request.expected_ip
+
+        logger.info(
+            "Hostname '%s' resolved to %s (expected: %s, match: %s)",
+            hostname,
+            resolved_ip,
+            request.expected_ip,
+            matches,
+        )
+
+        return ValidateHostnameResponse(
+            resolvable=True,
+            resolved_ip=resolved_ip,
+            matches_expected=matches,
+        )
+
+    except socket.gaierror as e:
+        logger.warning("DNS resolution failed for '%s': %s", hostname, e)
+        return ValidateHostnameResponse(
+            resolvable=False,
+            error=f"DNS resolution failed: {e}",
+        )
+    except Exception as e:
+        logger.error("Unexpected error during DNS validation: %s", e)
+        return ValidateHostnameResponse(
+            resolvable=False,
+            error=f"Unexpected error: {e}",
+        )
 
 
 @wizard_router.post("/wizard/check-ports", response_model=PortCheckResponse)

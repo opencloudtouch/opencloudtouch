@@ -13,6 +13,8 @@ import {
   getServerInfo,
   detectStrategy,
   DetectStrategyResponse,
+  validateHostname,
+  ValidateHostnameResponse,
 } from "../../api/wizard";
 import WizardStep from "./WizardStep";
 import "./Step5ConfigModification.css";
@@ -69,6 +71,8 @@ export default function Step5ConfigModification({
   const [showDiff, setShowDiff] = useState(false);
   const [strategy, setStrategy] = useState<DetectStrategyResponse | null>(null);
   const [detecting, setDetecting] = useState(true);
+  const [dnsWarning, setDnsWarning] = useState<ValidateHostnameResponse | null>(null);
+  const [serverIp, setServerIp] = useState<string | null>(null);
 
   // Auto-detect strategy and fill server URL on mount
   useEffect(() => {
@@ -77,6 +81,7 @@ export default function Step5ConfigModification({
       try {
         const [info, detected] = await Promise.all([getServerInfo(), detectStrategy()]);
         setCustomUrl(info.server_url);
+        setServerIp(info.server_ip);
         setStrategy(detected);
         onStrategyDetected?.(detected);
       } catch {
@@ -96,7 +101,18 @@ export default function Step5ConfigModification({
 
   const handleInputChange = (value: string) => {
     setCustomUrl(value);
-    setValidationError(""); // Clear validation error on change
+    setValidationError("");
+    setDnsWarning(null);
+  };
+
+  /** Extract hostname from URL string (strip protocol and port). */
+  const extractHostname = (url: string): string | null => {
+    const match = url.trim().match(/^(?:https?:\/\/)?([a-zA-Z0-9][a-zA-Z0-9.-]*)(?::\d+)?$/);
+    if (!match || !match[1]) return null;
+    const host = match[1];
+    // Return null for pure IP addresses — no DNS check needed
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(host)) return null;
+    return host;
   };
 
   const handleModifyConfig = async () => {
@@ -110,6 +126,32 @@ export default function Step5ConfigModification({
     setModifying(true);
     setError("");
     setValidationError("");
+
+    // DNS validation for hostnames (skip for pure IPs)
+    const hostname = extractHostname(customUrl);
+    if (hostname && !dnsWarning) {
+      try {
+        const dnsResult = await validateHostname({
+          hostname,
+          expected_ip: serverIp,
+        });
+        if (!dnsResult.resolvable || dnsResult.matches_expected === false) {
+          setDnsWarning(dnsResult);
+          setModifying(false);
+          return; // Show warning, don't proceed yet
+        }
+      } catch {
+        // DNS check failed — show warning but allow proceed
+        setDnsWarning({
+          resolvable: false,
+          resolved_ip: null,
+          matches_expected: null,
+          error: t("setup.wizard.step5.dnsCheckFailed"),
+        });
+        setModifying(false);
+        return;
+      }
+    }
 
     try {
       const result = await modifyConfig({
@@ -242,7 +284,56 @@ export default function Step5ConfigModification({
                 </div>
               </div>
             )}
-
+            {/* DNS Warning */}
+            {dnsWarning && (
+              <div className="config-dns-warning" data-test="dns-warning">
+                <div className="warning-icon">⚠️</div>
+                <div className="warning-content">
+                  <strong>{t("setup.wizard.step5.dnsWarningTitle")}</strong>
+                  {!dnsWarning.resolvable && (
+                    <p>{dnsWarning.error || t("setup.wizard.step5.dnsUnresolvable")}</p>
+                  )}
+                  {dnsWarning.resolvable && dnsWarning.matches_expected === false && (
+                    <p>
+                      {t("setup.wizard.step5.dnsMismatch", {
+                        resolved: dnsWarning.resolved_ip,
+                        expected: serverIp,
+                      })}
+                    </p>
+                  )}
+                  <div className="dns-warning-actions">
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        setDnsWarning(null);
+                        // Re-trigger apply — dnsWarning is now null so it will proceed
+                        setTimeout(() => handleModifyConfig(), 0);
+                      }}
+                      data-test="dns-proceed"
+                    >
+                      {t("setup.wizard.step5.dnsProceed")}
+                    </button>
+                    {dnsWarning.resolved_ip && (
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => {
+                          setCustomUrl(
+                            customUrl.replace(
+                              extractHostname(customUrl) || "",
+                              dnsWarning.resolved_ip!
+                            )
+                          );
+                          setDnsWarning(null);
+                        }}
+                        data-test="dns-use-ip"
+                      >
+                        {t("setup.wizard.step5.dnsUseResolvedIp")}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="config-change-preview">
               <h4 className="config-preview-title">{t("setup.wizard.step5.changePreviewTitle")}</h4>
               <div className="config-change-item">

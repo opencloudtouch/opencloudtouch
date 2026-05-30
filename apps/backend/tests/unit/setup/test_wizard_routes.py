@@ -1590,3 +1590,80 @@ class TestWizardVerifySetup:
             body = response.json()
             assert body["success"] is False
             assert body["failed_count"] == 1
+
+
+# ── validate-hostname — DNS resolution ────────────────────────────────────────
+
+
+class TestValidateHostname:
+    """POST /api/setup/wizard/validate-hostname"""
+
+    def test_resolvable_hostname_matching_ip(self, client):
+        """Hostname resolves to expected IP → resolvable=True, matches=True."""
+        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+            mock_dns.return_value = [
+                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.100", 0))
+            ]
+            response = client.post(
+                "/api/setup/wizard/validate-hostname",
+                json={"hostname": "myserver", "expected_ip": "192.168.1.100"},
+            )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["resolvable"] is True
+        assert body["resolved_ip"] == "192.168.1.100"
+        assert body["matches_expected"] is True
+        assert body["error"] is None
+
+    def test_resolvable_hostname_mismatching_ip(self, client):
+        """Hostname resolves to different IP → matches=False."""
+        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+            mock_dns.return_value = [
+                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.5", 0))
+            ]
+            response = client.post(
+                "/api/setup/wizard/validate-hostname",
+                json={"hostname": "myserver", "expected_ip": "192.168.1.100"},
+            )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["resolvable"] is True
+        assert body["resolved_ip"] == "10.0.0.5"
+        assert body["matches_expected"] is False
+
+    def test_resolvable_hostname_no_expected_ip(self, client):
+        """Hostname resolves, no expected_ip → matches=null."""
+        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+            mock_dns.return_value = [
+                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.100", 0))
+            ]
+            response = client.post(
+                "/api/setup/wizard/validate-hostname",
+                json={"hostname": "myserver", "expected_ip": None},
+            )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["resolvable"] is True
+        assert body["matches_expected"] is None
+
+    def test_unresolvable_hostname(self, client):
+        """DNS lookup fails → resolvable=False with error."""
+        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+            mock_dns.side_effect = socket.gaierror("Name or service not known")
+            response = client.post(
+                "/api/setup/wizard/validate-hostname",
+                json={"hostname": "nonexistent.invalid", "expected_ip": None},
+            )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["resolvable"] is False
+        assert body["resolved_ip"] is None
+        assert "failed" in body["error"].lower() or "not known" in body["error"].lower()
+
+    def test_invalid_hostname_rejected(self, client):
+        """Invalid hostname (shell metacharacters) → 422."""
+        response = client.post(
+            "/api/setup/wizard/validate-hostname",
+            json={"hostname": "$(whoami)", "expected_ip": None},
+        )
+        assert response.status_code == 422

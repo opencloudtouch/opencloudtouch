@@ -311,3 +311,45 @@
     transform: translateY(0);
   }
 }
+
+/* DNS Warning */
+.config-dns-warning {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  background: rgba(251, 188, 5, 0.12);
+  border: 1px solid #fbc005;
+  margin: 1rem 0 2rem;
+  animation: slideIn 0.3s ease-out;
+}
+
+.config-dns-warning .warning-icon {
+  flex-shrink: 0;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.config-dns-warning .warning-content {
+  flex: 1;
+}
+
+.config-dns-warning strong {
+  display: block;
+  color: #f57c00;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.config-dns-warning p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 1rem;
+}
+
+.dns-warning-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
