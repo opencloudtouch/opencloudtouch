@@ -18,7 +18,9 @@
     "reloadPage": "Reload page",
     "stationNotFound": "Station not found.",
     "saveAsPreset": "Save as preset",
-    "or": "or"
+    "or": "or",
+    "enabled": "Enabled",
+    "disabled": "Disabled"
   },
   "nav": {
     "presets": "Presets",
@@ -816,5 +818,24 @@
     "submitFailed": "Failed to submit bug report: {{error}}",
     "diagnosticsSuccess": "Diagnostics downloaded! Attach the .log.gz file to your GitHub issue.",
     "diagnosticsFailed": "Failed to download diagnostics: {{error}}"
+  },
+  "diagnostics": {
+    "title": "Diagnostics",
+    "serverInfo": "Server Information",
+    "version": "Version",
+    "python": "Python",
+    "platform": "Platform",
+    "discovery": "Discovery",
+    "logLevel": "Log Level",
+    "manualIPs": "Manual IPs",
+    "database": "Database",
+    "devicesCount": "Devices",
+    "presetsCount": "Presets",
+    "devices": "Devices",
+    "noDevices": "No devices found",
+    "firmware": "Firmware",
+    "setupStatus": "Setup Status",
+    "lastSeen": "Last Seen",
+    "downloadBundle": "Download Support Bundle"
   }
 }

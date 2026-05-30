@@ -11,6 +11,7 @@ import MultiRoom from "./pages/MultiRoom";
 import Firmware from "./pages/Firmware";
 import Settings from "./pages/Settings";
 import Licenses from "./pages/Licenses";
+import Diagnostics from "./pages/Diagnostics";
 import SetupWizard from "./pages/SetupWizard";
 import NotFound from "./pages/NotFound";
 import { Device } from "./api/devices";
@@ -131,6 +132,7 @@ function AppRouter({ devices: initialDevices, isLoading, error, onRetry }: AppRo
                     <Route path="/multiroom" element={<MultiRoom devices={devices} />} />
                     <Route path="/firmware" element={<Firmware devices={devices} />} />
                     <Route path="/settings" element={<Settings />} />
+                    <Route path="/diagnostics" element={<Diagnostics />} />
                     <Route path="/licenses" element={<Licenses />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>

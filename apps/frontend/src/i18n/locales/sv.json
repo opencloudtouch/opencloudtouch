@@ -18,7 +18,9 @@
     "reloadPage": "Ladda om sidan",
     "stationNotFound": "Station hittades inte.",
     "saveAsPreset": "Spara som förinställning",
-    "or": "eller"
+    "or": "eller",
+    "enabled": "Aktiverad",
+    "disabled": "Inaktiverad"
   },
   "nav": {
     "presets": "Förinställningar",
@@ -816,5 +818,24 @@
     "submitFailed": "Kunde inte skicka buggrapport: {{error}}",
     "diagnosticsSuccess": "Diagnostik nedladdad! Bifoga .log.gz-filen till ditt GitHub-ärende.",
     "diagnosticsFailed": "Kunde inte ladda ner diagnostik: {{error}}"
+  },
+  "diagnostics": {
+    "title": "Diagnostik",
+    "serverInfo": "Serverinformation",
+    "version": "Version",
+    "python": "Python",
+    "platform": "Plattform",
+    "discovery": "Upptäckt",
+    "logLevel": "Loggnivå",
+    "manualIPs": "Manuella IP-adresser",
+    "database": "Databas",
+    "devicesCount": "Enheter",
+    "presetsCount": "Förinställningar",
+    "devices": "Enheter",
+    "noDevices": "Inga enheter hittades",
+    "firmware": "Firmware",
+    "setupStatus": "Konfigurationsstatus",
+    "lastSeen": "Senast sedd",
+    "downloadBundle": "Ladda ner supportpaket"
   }
 }

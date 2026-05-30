@@ -18,7 +18,9 @@
     "reloadPage": "Seite neu laden",
     "stationNotFound": "Sender nicht gefunden.",
     "saveAsPreset": "Als Preset speichern",
-    "or": "oder"
+    "or": "oder",
+    "enabled": "Aktiviert",
+    "disabled": "Deaktiviert"
   },
   "nav": {
     "presets": "Presets",
@@ -816,5 +818,24 @@
     "submitFailed": "Fehlerbericht konnte nicht gesendet werden: {{error}}",
     "diagnosticsSuccess": "Diagnose heruntergeladen! Hängen Sie die .log.gz-Datei an Ihr GitHub Issue an.",
     "diagnosticsFailed": "Diagnose konnte nicht heruntergeladen werden: {{error}}"
+  },
+  "diagnostics": {
+    "title": "Diagnose",
+    "serverInfo": "Server-Informationen",
+    "version": "Version",
+    "python": "Python",
+    "platform": "Plattform",
+    "discovery": "Erkennung",
+    "logLevel": "Log-Level",
+    "manualIPs": "Manuelle IPs",
+    "database": "Datenbank",
+    "devicesCount": "Geräte",
+    "presetsCount": "Presets",
+    "devices": "Geräte",
+    "noDevices": "Keine Geräte gefunden",
+    "firmware": "Firmware",
+    "setupStatus": "Setup-Status",
+    "lastSeen": "Zuletzt gesehen",
+    "downloadBundle": "Support-Bundle herunterladen"
   }
 }
