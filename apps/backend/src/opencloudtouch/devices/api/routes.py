@@ -17,6 +17,7 @@ from opencloudtouch.core.exceptions import (
     DomainValidationError,
 )
 from opencloudtouch.devices.client import NowPlayingInfo
+from opencloudtouch.devices.rename_service import rename_device_via_ssh
 from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.service import PresetService
@@ -213,6 +214,67 @@ async def press_key(
         device_service.press_key(device_id, key, state),
     )
     return {"message": f"Key {key} pressed successfully", "device_id": device_id}
+
+
+@router.put("/{device_id}/name")
+async def rename_device(
+    device_id: str,
+    body: dict = Body(...),
+    device_service: DeviceService = Depends(get_device_service),
+):
+    """
+    Rename a SoundTouch device.
+
+    Updates the device name on the speaker via SSH (SystemConfigurationDB.xml)
+    and in the local database.
+
+    Args:
+        device_id: Device ID (MAC address)
+        body: {"name": "New Name"} — 1-30 characters
+
+    Returns:
+        Updated device info with previous name
+
+    Raises:
+        DeviceNotFoundError: If device does not exist
+        HTTPException(422): If name validation fails
+        HTTPException(502): If SSH connection fails
+    """
+    name = body.get("name", "").strip()
+
+    if not name:
+        raise HTTPException(status_code=422, detail="Device name must not be empty")
+    if len(name) > 30:
+        raise HTTPException(
+            status_code=422, detail="Device name must be 30 characters or fewer"
+        )
+
+    device = await device_service.get_device_by_id(device_id)
+    if not device:
+        raise DeviceNotFoundError(device_id)
+
+    previous_name = device.name
+
+    # Update name on device via SSH
+    try:
+        await rename_device_via_ssh(device.ip, name)
+    except Exception as e:
+        logger.error("SSH rename failed for %s: %s", device_id, e)
+        raise HTTPException(
+            status_code=502, detail="Could not connect to device via SSH"
+        ) from e
+
+    # Update local DB
+    device.name = name
+    await device_service.repository.upsert(device)
+
+    logger.info("Device %s renamed: '%s' -> '%s'", device_id, previous_name, name)
+
+    return {
+        "device_id": device_id,
+        "name": name,
+        "previous_name": previous_name,
+    }
 
 
 _RADIO_SOURCES = {"LOCAL_INTERNET_RADIO", "INTERNET_RADIO"}

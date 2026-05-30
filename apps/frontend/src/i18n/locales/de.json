@@ -816,5 +816,11 @@
     "submitFailed": "Fehlerbericht konnte nicht gesendet werden: {{error}}",
     "diagnosticsSuccess": "Diagnose heruntergeladen! Hängen Sie die .log.gz-Datei an Ihr GitHub Issue an.",
     "diagnosticsFailed": "Diagnose konnte nicht heruntergeladen werden: {{error}}"
+  },
+  "deviceRename": {
+    "clickToEdit": "Klicken zum Umbenennen",
+    "inputLabel": "Gerätename",
+    "tooLong": "Name darf maximal 30 Zeichen lang sein",
+    "failed": "Umbenennung fehlgeschlagen"
   }
 }

@@ -949,3 +949,96 @@ class TestNowPlayingEndpoint:
         response = client.get("/api/devices/DEV123/now-playing")
 
         assert response.status_code == 500
+
+
+class TestRenameDeviceEndpoint:
+    """Tests for PUT /api/devices/{id}/name endpoint."""
+
+    def test_rename_success(self, client, mock_device_service, sample_devices):
+        """Test successful device rename."""
+        device = sample_devices[0]
+        mock_device_service.get_device_by_id = AsyncMock(return_value=device)
+        mock_device_service.repository = AsyncMock()
+
+        with patch(
+            "opencloudtouch.devices.api.routes.rename_device_via_ssh"
+        ) as mock_ssh:
+            mock_ssh.return_value = None
+
+            response = client.put(
+                f"/api/devices/{device.device_id}/name",
+                json={"name": "New Name"},
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["name"] == "New Name"
+        assert data["previous_name"] == "Living Room"
+        assert data["device_id"] == device.device_id
+        mock_ssh.assert_awaited_once_with(device.ip, "New Name")
+
+    def test_rename_empty_name(self, client, mock_device_service):
+        """Test rename with empty name returns 422."""
+        response = client.put(
+            "/api/devices/12345ABC/name",
+            json={"name": "   "},
+        )
+
+        assert response.status_code == 422
+
+    def test_rename_name_too_long(self, client, mock_device_service):
+        """Test rename with name > 30 chars returns 422."""
+        response = client.put(
+            "/api/devices/12345ABC/name",
+            json={"name": "A" * 31},
+        )
+
+        assert response.status_code == 422
+
+    def test_rename_device_not_found(self, client, mock_device_service):
+        """Test rename for non-existent device returns 404."""
+        mock_device_service.get_device_by_id = AsyncMock(return_value=None)
+
+        response = client.put(
+            "/api/devices/NONEXIST/name",
+            json={"name": "New Name"},
+        )
+
+        assert response.status_code == 404
+
+    def test_rename_ssh_failure(self, client, mock_device_service, sample_devices):
+        """Test rename when SSH connection fails returns 502."""
+        device = sample_devices[0]
+        mock_device_service.get_device_by_id = AsyncMock(return_value=device)
+
+        with patch(
+            "opencloudtouch.devices.api.routes.rename_device_via_ssh"
+        ) as mock_ssh:
+            mock_ssh.side_effect = RuntimeError("SSH connection refused")
+
+            response = client.put(
+                f"/api/devices/{device.device_id}/name",
+                json={"name": "New Name"},
+            )
+
+        assert response.status_code == 502
+
+    def test_rename_strips_whitespace(self, client, mock_device_service, sample_devices):
+        """Test that leading/trailing whitespace is stripped from name."""
+        device = sample_devices[0]
+        mock_device_service.get_device_by_id = AsyncMock(return_value=device)
+        mock_device_service.repository = AsyncMock()
+
+        with patch(
+            "opencloudtouch.devices.api.routes.rename_device_via_ssh"
+        ) as mock_ssh:
+            mock_ssh.return_value = None
+
+            response = client.put(
+                f"/api/devices/{device.device_id}/name",
+                json={"name": "  Trimmed  "},
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["name"] == "Trimmed"

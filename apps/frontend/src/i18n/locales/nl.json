@@ -816,5 +816,11 @@
     "submitFailed": "Bugrapport verzenden mislukt: {{error}}",
     "diagnosticsSuccess": "Diagnostiek gedownload! Voeg het .log.gz-bestand toe aan uw GitHub-issue.",
     "diagnosticsFailed": "Diagnostiek downloaden mislukt: {{error}}"
+  },
+  "deviceRename": {
+    "clickToEdit": "Klik om te hernoemen",
+    "inputLabel": "Apparaatnaam",
+    "tooLong": "Naam mag maximaal 30 tekens bevatten",
+    "failed": "Hernoemen mislukt"
   }
 }
