@@ -103,10 +103,14 @@ class TestPingDevice:
     async def test_reachable_device_returns_true(self):
         """Device returning 200 on /info is considered reachable."""
         mock_client = AsyncMock()
-        mock_resp = MagicMock(status_code=200, content=b"<info><name>Living Room</name></info>")
+        mock_resp = MagicMock(
+            status_code=200, content=b"<info><name>Living Room</name></info>"
+        )
         mock_client.get.return_value = mock_resp
 
-        reachable, name = await DeviceHealthCheck._ping_device(mock_client, "192.168.1.100")
+        reachable, name = await DeviceHealthCheck._ping_device(
+            mock_client, "192.168.1.100"
+        )
 
         assert reachable is True
         assert name == "Living Room"
@@ -117,7 +121,9 @@ class TestPingDevice:
         mock_client = AsyncMock()
         mock_client.get.return_value = MagicMock(status_code=500)
 
-        reachable, name = await DeviceHealthCheck._ping_device(mock_client, "192.168.1.100")
+        reachable, name = await DeviceHealthCheck._ping_device(
+            mock_client, "192.168.1.100"
+        )
 
         assert reachable is False
         assert name is None
@@ -127,7 +133,9 @@ class TestPingDevice:
         mock_client = AsyncMock()
         mock_client.get.side_effect = httpx.ConnectError("Connection refused")
 
-        reachable, name = await DeviceHealthCheck._ping_device(mock_client, "192.168.1.100")
+        reachable, name = await DeviceHealthCheck._ping_device(
+            mock_client, "192.168.1.100"
+        )
 
         assert reachable is False
         assert name is None
@@ -137,7 +145,9 @@ class TestPingDevice:
         mock_client = AsyncMock()
         mock_client.get.side_effect = httpx.TimeoutException("Timeout")
 
-        reachable, name = await DeviceHealthCheck._ping_device(mock_client, "192.168.1.100")
+        reachable, name = await DeviceHealthCheck._ping_device(
+            mock_client, "192.168.1.100"
+        )
 
         assert reachable is False
         assert name is None
@@ -148,7 +158,9 @@ class TestPingDevice:
         mock_resp = MagicMock(status_code=200, content=b"not xml at all")
         mock_client.get.return_value = mock_resp
 
-        reachable, name = await DeviceHealthCheck._ping_device(mock_client, "192.168.1.100")
+        reachable, name = await DeviceHealthCheck._ping_device(
+            mock_client, "192.168.1.100"
+        )
 
         assert reachable is True
         assert name is None
@@ -156,10 +168,14 @@ class TestPingDevice:
     async def test_xml_without_name_element(self):
         """XML without <name> element returns None for name."""
         mock_client = AsyncMock()
-        mock_resp = MagicMock(status_code=200, content=b"<info><type>ST300</type></info>")
+        mock_resp = MagicMock(
+            status_code=200, content=b"<info><type>ST300</type></info>"
+        )
         mock_client.get.return_value = mock_resp
 
-        reachable, name = await DeviceHealthCheck._ping_device(mock_client, "192.168.1.100")
+        reachable, name = await DeviceHealthCheck._ping_device(
+            mock_client, "192.168.1.100"
+        )
 
         assert reachable is True
         assert name is None
@@ -194,7 +210,9 @@ class TestPingAllDevices:
         device = _make_device(last_seen=recent)
         mock_repo.get_all.return_value = [device]
 
-        with patch.object(DeviceHealthCheck, "_ping_device", return_value=(False, None)):
+        with patch.object(
+            DeviceHealthCheck, "_ping_device", return_value=(False, None)
+        ):
             await health_check._ping_all_devices()
 
         mock_repo.upsert.assert_not_called()
@@ -262,9 +280,7 @@ class TestPingAllDevices:
         device = _make_device(name="Original")
         mock_repo.get_all.return_value = [device]
 
-        with patch.object(
-            DeviceHealthCheck, "_ping_device", return_value=(True, None)
-        ):
+        with patch.object(DeviceHealthCheck, "_ping_device", return_value=(True, None)):
             await health_check._ping_all_devices()
 
         mock_repo.upsert.assert_called_once()
