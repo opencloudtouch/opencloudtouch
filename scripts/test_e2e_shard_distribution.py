@@ -15,45 +15,45 @@ import pytest
 def calculate_shard_distribution(total_specs: int) -> list[int]:
     """
     Calculate E2E test distribution across 10 shards.
-    
+
     Pattern: Fill even-position shards first (2,4,6,8,10 = indices 1,3,5,7,9),
     then odd-position shards (1,3,5,7,9 = indices 0,2,4,6,8).
-    
+
     Args:
         total_specs: Total number of E2E spec files
-        
+
     Returns:
         List of 10 integers representing specs per shard
     """
     dist = [0] * 10
     remaining = total_specs
-    
+
     # Phase 1: Fill even-position shards (indices 1,3,5,7,9)
     even_positions = [1, 3, 5, 7, 9]
     for pos in even_positions:
         if remaining > 0:
             dist[pos] = 1
             remaining -= 1
-    
+
     # Phase 2: Fill odd-position shards (indices 0,2,4,6,8)
     odd_positions = [0, 2, 4, 6, 8]
     for pos in odd_positions:
         if remaining > 0:
             dist[pos] = 1
             remaining -= 1
-    
+
     # Phase 3: Increment even-positions again (1→2)
     for pos in even_positions:
         if remaining > 0:
             dist[pos] += 1
             remaining -= 1
-    
+
     # Phase 4: Increment odd-positions (1→2)
     for pos in odd_positions:
         if remaining > 0:
             dist[pos] += 1
             remaining -= 1
-    
+
     # Continue pattern for higher counts
     while remaining > 0:
         for pos in even_positions:
@@ -64,7 +64,7 @@ def calculate_shard_distribution(total_specs: int) -> list[int]:
             if remaining > 0:
                 dist[pos] += 1
                 remaining -= 1
-    
+
     return dist
 
 
@@ -72,13 +72,13 @@ def calculate_shard_distribution(total_specs: int) -> list[int]:
 def test_all_spec_counts(total_specs):
     """Test distribution for all spec counts from 0 to 100."""
     dist = calculate_shard_distribution(total_specs)
-    
+
     # Always 10 shards
     assert len(dist) == 10, f"Distribution has {len(dist)} shards, expected 10"
-    
+
     # Sum must equal total
     assert sum(dist) == total_specs, f"Distribution {dist} doesn't sum to {total_specs}"
-    
+
     # Balance check: max difference ≤1 (for active shards)
     active_shards = [d for d in dist if d > 0]
     if len(active_shards) > 0:
