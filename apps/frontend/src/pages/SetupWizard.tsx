@@ -164,7 +164,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   // Inner content transitions: loading → empty → main wizard.
   if (devices.length === 0) {
     return (
-      <div className="setup-wizard-page-v2">
+      <div className="page setup-wizard-page">
         {isLoading ? (
           <div
             className="wizard-loading"
@@ -500,7 +500,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   };
 
   return (
-    <div className="setup-wizard-page-v2">
+    <div className="page setup-wizard-page">
       {/* Dev Banner - only visible in development mode, not in production */}
       {import.meta.env.DEV && (
         <div className="global-demo-banner">

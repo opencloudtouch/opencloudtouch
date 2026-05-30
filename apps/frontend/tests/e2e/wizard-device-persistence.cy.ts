@@ -1,4 +1,4 @@
-ï»¿/**
+/**
  * E2E Test: Wizard Device Persistence
  *
  * Tests the device selection persistence when navigating between:
@@ -12,7 +12,7 @@
  * 3. Device selection persists when returning to preset page
  */
 
-/** Force German locale â€” CI defaults to English (navigator.language='en') */
+/** Force German locale — CI defaults to English (navigator.language='en') */
 function visitDe(url: string, options?: Partial<Cypress.VisitOptions>) {
   cy.visit(url, {
     ...options,
@@ -27,7 +27,7 @@ describe('Wizard Device Persistence', () => {
   const apiUrl = Cypress.expose('apiUrl') || 'http://localhost:7778/api';
 
   beforeEach(() => {
-    // Mock device discovery with multiple devices â€” matches actual API contract {count, devices: [...]}
+    // Mock device discovery with multiple devices — matches actual API contract {count, devices: [...]}
     cy.intercept('GET', '/api/devices', {
       statusCode: 200,
       body: {
@@ -44,7 +44,7 @@ describe('Wizard Device Persistence', () => {
           },
           {
             device_id: 'DEVICE_KITCHEN',
-            name: 'KÃ¼che',
+            name: 'Küche',
             model: 'SoundTouch 10',
             ip: '192.168.1.84',
             mac_address: '00:11:22:33:44:66',
@@ -64,7 +64,7 @@ describe('Wizard Device Persistence', () => {
       },
     }).as('getDevices');
 
-    // Mock device presets (empty) â€” URL pattern matches /api/presets/{device_id}
+    // Mock device presets (empty) — URL pattern matches /api/presets/{device_id}
     cy.intercept('GET', '/api/presets/*', {
       statusCode: 200,
       body: [],
@@ -78,7 +78,7 @@ describe('Wizard Device Persistence', () => {
       headers: { 'Content-Type': 'text/event-stream' },
     });
 
-    // Intercept preset sync (not intercepted â†’ hits real backend â†’ causes timing issues)
+    // Intercept preset sync (not intercepted ? hits real backend ? causes timing issues)
     cy.intercept('POST', '/api/presets/**', { statusCode: 200, body: { message: 'Synced', synced: 0 } });
     cy.intercept('POST', '/api/devices/sync', { statusCode: 200, body: { discovered: 0, synced: 0, failed: 0 } });
 
@@ -87,18 +87,18 @@ describe('Wizard Device Persistence', () => {
     cy.wait('@getDevices');
   });
 
-  // BUG-14: Wizard-Header zeigt falsches GerÃ¤t (URL-Param ?device= vs ?deviceId=)
+  // BUG-14: Wizard-Header zeigt falsches Gerät (URL-Param ?device= vs ?deviceId=)
   it('BUG-14: should show correct device in wizard header when navigating from preset page', () => {
     // Initial state: First device (TV) shown
     cy.get('[data-test="device-swiper"]').should('contain', 'TV');
 
-    // Navigate to second device (KÃ¼che) using swiper
+    // Navigate to second device (Küche) using swiper
     cy.get('[data-test="device-swiper"]').within(() => {
-      cy.get('button[aria-label="NÃ¤chstes GerÃ¤t"]').click();
+      cy.get('button[aria-label="Nächstes Gerät"]').click();
     });
 
-    // Verify KÃ¼che is now selected
-    cy.get('[data-test="device-swiper"]').should('contain', 'KÃ¼che');
+    // Verify Küche is now selected
+    cy.get('[data-test="device-swiper"]').should('contain', 'Küche');
     cy.get('[data-test="device-swiper"]').should('contain', 'SoundTouch 10');
 
     // Click setup button
@@ -111,17 +111,17 @@ describe('Wizard Device Persistence', () => {
     cy.contains('Setup-Assistent').click();
 
     // Header must now show the correct device
-    cy.get('.device-info-header', { timeout: 10000 }).should('contain', 'KÃ¼che');
+    cy.get('.device-info-header', { timeout: 10000 }).should('contain', 'Küche');
     cy.get('.device-info-header').should('contain', 'SoundTouch 10');
     cy.get('.device-info-header').should('contain', '192.168.1.84');
   });
 
   it('should use correct device IP for SSH port checks', () => {
-    // Navigate to KÃ¼che and wait for it to appear (ensures React has settled before setup click)
+    // Navigate to Küche and wait for it to appear (ensures React has settled before setup click)
     cy.get('[data-test="device-swiper"]').within(() => {
-      cy.get('button[aria-label="NÃ¤chstes GerÃ¤t"]').click();
+      cy.get('button[aria-label="Nächstes Gerät"]').click();
     });
-    cy.get('[data-test="device-swiper"]').should('contain', 'KÃ¼che');
+    cy.get('[data-test="device-swiper"]').should('contain', 'Küche');
 
     // BUG-19/BUG-25: intercept check-ports and assert device_ip is sent
     cy.intercept('POST', '**/setup/wizard/check-ports', (req) => {
@@ -142,7 +142,7 @@ describe('Wizard Device Persistence', () => {
     cy.url().should('include', '/setup-wizard?deviceId=DEVICE_KITCHEN');
     cy.reload();
     cy.wait('@getDevices');
-    cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
+    cy.get('.setup-wizard-page', { timeout: 8000 }).should('exist');
     cy.contains('Setup-Assistent').click();
 
     // Check the "USB-Stick ist bereit" checkbox (last checkbox in Step 1)
@@ -162,8 +162,8 @@ describe('Wizard Device Persistence', () => {
   it('should persist device selection when returning from wizard', () => {
     // Navigate to third device (Schlafzimmer)
     cy.get('[data-test="device-swiper"]').within(() => {
-      cy.get('button[aria-label="NÃ¤chstes GerÃ¤t"]').click(); // TV -> KÃ¼che
-      cy.get('button[aria-label="NÃ¤chstes GerÃ¤t"]').click(); // KÃ¼che -> Schlafzimmer
+      cy.get('button[aria-label="Nächstes Gerät"]').click(); // TV -> Küche
+      cy.get('button[aria-label="Nächstes Gerät"]').click(); // Küche -> Schlafzimmer
     });
 
     cy.get('[data-test="device-swiper"]').should('contain', 'Schlafzimmer');
@@ -174,11 +174,11 @@ describe('Wizard Device Persistence', () => {
     cy.url().should('include', '/setup-wizard?deviceId=DEVICE_BEDROOM');
     cy.reload();
     cy.wait('@getDevices');
-    cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
+    cy.get('.setup-wizard-page', { timeout: 8000 }).should('exist');
     cy.contains('Setup-Assistent').click();
 
     // Click back button on first step
-    cy.contains('button', 'ZurÃ¼ck').click({ force: true });
+    cy.contains('button', 'Zurück').click({ force: true });
 
     // Should be back on preset page - reload to bypass v7_startTransition on back navigation
     cy.url().should('match', /\/(presets)?\?device=DEVICE_BEDROOM$/);
@@ -192,36 +192,36 @@ describe('Wizard Device Persistence', () => {
 
   // BUG-29: Pfeiltasten-Navigation bricht wenn ?device= URL-Param gesetzt ist
   it('BUG-29: should handle device selection via arrow buttons and persist to wizard', () => {
-    // Use DeviceSwiper navigation button (â† â†’) to switch device.
+    // Use DeviceSwiper navigation button (? ?) to switch device.
     // BUG-29: Before the fix, the useEffect-dependency on ?device= URL-param
     // overrode the user's manual selection back to the URL device on every re-render.
     cy.get('[data-test="device-swiper"]').within(() => {
-      cy.get('button[aria-label="NÃ¤chstes GerÃ¤t"]').click(); // TV -> KÃ¼che
+      cy.get('button[aria-label="Nächstes Gerät"]').click(); // TV -> Küche
     });
 
-    cy.get('[data-test="device-swiper"]').should('contain', 'KÃ¼che');
+    cy.get('[data-test="device-swiper"]').should('contain', 'Küche');
 
-    // Start wizard â€“ navigate through WizardChoice to Setup path
+    // Start wizard – navigate through WizardChoice to Setup path
     cy.get('[data-test="setup-button"]').click();
     // Reload to bypass v7_startTransition SPA deferred rendering
     cy.url().should('include', '/setup-wizard?deviceId=DEVICE_KITCHEN');
     cy.reload();
     cy.wait('@getDevices');
-    cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
+    cy.get('.setup-wizard-page', { timeout: 8000 }).should('exist');
     cy.contains('Setup-Assistent').click();
 
     // Wizard header must show the device selected via arrow button, not the URL default
-    cy.get('.device-info-header').should('contain', 'KÃ¼che');
+    cy.get('.device-info-header').should('contain', 'Küche');
     cy.get('.device-info-header').should('contain', '192.168.1.84');
 
     // Go back - reload to bypass v7_startTransition on back navigation
-    cy.contains('button', 'ZurÃ¼ck').click({ force: true });
+    cy.contains('button', 'Zurück').click({ force: true });
     cy.url().should('include', '?device=DEVICE_KITCHEN');
     cy.reload();
     cy.wait('@getDevices');
 
-    // Device swiper must still show KÃ¼che (not reset to TV)
-    cy.get('[data-test="device-swiper"]', { timeout: 10000 }).should('contain', 'KÃ¼che');
+    // Device swiper must still show Küche (not reset to TV)
+    cy.get('[data-test="device-swiper"]', { timeout: 10000 }).should('contain', 'Küche');
   });
 
   it('should show correct device when accessing wizard via direct URL', () => {
@@ -230,28 +230,28 @@ describe('Wizard Device Persistence', () => {
 
     // Wait for devices to load
     cy.wait('@getDevices');
-    cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
+    cy.get('.setup-wizard-page', { timeout: 8000 }).should('exist');
     cy.contains('Setup-Assistent').click();
 
     // Header must show the correct device
-    cy.get('.device-info-header').should('contain', 'KÃ¼che');
+    cy.get('.device-info-header').should('contain', 'Küche');
     cy.get('.device-info-header').should('contain', '192.168.1.84');
 
     // Go back to presets - reload to bypass v7_startTransition on back navigation
-    cy.contains('button', 'ZurÃ¼ck').click({ force: true });
+    cy.contains('button', 'Zurück').click({ force: true });
     cy.url().should('include', 'device=DEVICE_KITCHEN');
     cy.reload();
     cy.wait('@getDevices');
 
     // Should preserve device selection
-    cy.get('[data-test="device-swiper"]', { timeout: 10000 }).should('contain', 'KÃ¼che');
+    cy.get('[data-test="device-swiper"]', { timeout: 10000 }).should('contain', 'Küche');
   });
 
   it('should handle invalid deviceId gracefully', () => {
     // Visit wizard with non-existent device
     visitDe('/setup-wizard?deviceId=INVALID_DEVICE');
     cy.wait('@getDevices');
-    cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
+    cy.get('.setup-wizard-page', { timeout: 8000 }).should('exist');
 
     // Should fall back to first device (TV)
     cy.get('.device-info-header').should('contain', 'TV');

@@ -1,25 +1,25 @@
-﻿/**
- * E2E Test: Setup Wizard Full Flow — Bug Regression Suite
+/**
+ * E2E Test: Setup Wizard Full Flow � Bug Regression Suite
  *
  * CONTEXT FOR AI AGENTS:
  * Diese Tests sind KEINE Coverage-Tests. Jeder Test sichert einen konkreten Bug ab,
- * der im produktiven Betrieb am echten Gerät (192.168.1.79) entdeckt wurde und
- * zu sichtbaren Fehlfunktionen geführt hat. Testqualität wird daran gemessen, ob
- * das beschriebene Fehlverhalten verhindert wird – nicht an Zeilen-Coverage.
+ * der im produktiven Betrieb am echten Ger�t (192.168.1.79) entdeckt wurde und
+ * zu sichtbaren Fehlfunktionen gef�hrt hat. Testqualit�t wird daran gemessen, ob
+ * das beschriebene Fehlverhalten verhindert wird � nicht an Zeilen-Coverage.
  *
  * Bugs abgedeckt (Details: docs/testing/WIZARD_BUG_REGRESSION_TESTS.md):
  *   BUG-05  enablePermanentSsh() API-Call fehlte komplett
- *   BUG-08  CSS-Variablen undefiniert → unsichtbare UI-Elemente
- *   BUG-09  Step 4 Backup nicht überspringbar
+ *   BUG-08  CSS-Variablen undefiniert ? unsichtbare UI-Elemente
+ *   BUG-09  Step 4 Backup nicht �berspringbar
  *   BUG-10  Step 3 SSH-Wahl navigierte sofort statt per Weiter-Button
- *   BUG-11  „Erneut prüfen"-Button stand unter den Risikofragen statt darüber
+ *   BUG-11  �Erneut pr�fen"-Button stand unter den Risikofragen statt dar�ber
  *   BUG-12  Hardcodierte OCT-URL 192.168.1.50 statt window.location
  */
 
 const API_BASE = Cypress.expose('apiUrl') || "http://localhost:7778/api";
 const FRONTEND_BASE = "http://localhost:4173";
 
-// ─── Shared Fixtures ──────────────────────────────────────────────────────────
+// --- Shared Fixtures ----------------------------------------------------------
 
 const MOCK_DEVICE = {
   device_id: "DEVICE_WOHNZIMMER",
@@ -84,7 +84,7 @@ function setupDeviceMocks() {
       domain: "bose.vtuner.com",
       resolved_ip: "192.168.1.100",
       matches_expected: true,
-      message: "bose.vtuner.com → 192.168.1.100 ✓",
+      message: "bose.vtuner.com ? 192.168.1.100 ?",
     },
   }).as("verifyRedirect");
 
@@ -123,7 +123,7 @@ function setupDeviceMocks() {
       display_name: "Bose SoundTouch 10",
       usb_port_type: "micro-usb",
       usb_port_types: ["micro-usb"],
-      usb_port_location: "Rückseite, neben AUX-Eingang, beschriftet 'SETUP'",
+      usb_port_location: "R�ckseite, neben AUX-Eingang, beschriftet 'SETUP'",
       adapter_needed: true,
       adapter_recommendation: "USB-A auf Micro-USB OTG Adapter",
       notes: [],
@@ -131,9 +131,9 @@ function setupDeviceMocks() {
   }).as("modelInstructions");
 }
 
-// ─── Tests ───────────────────────────────────────────────────────────────────
+// --- Tests -------------------------------------------------------------------
 
-/** Force German locale — CI defaults to English (navigator.language='en') */
+/** Force German locale � CI defaults to English (navigator.language='en') */
 function visitDe(url: string, options?: Partial<Cypress.VisitOptions>) {
   cy.visit(url, {
     ...options,
@@ -144,17 +144,17 @@ function visitDe(url: string, options?: Partial<Cypress.VisitOptions>) {
   });
 }
 
-describe("Setup Wizard — Bug Regression Suite", () => {
+describe("Setup Wizard � Bug Regression Suite", () => {
   beforeEach(() => {
     setupDeviceMocks();
     visitDe("/setup-wizard?deviceId=DEVICE_WOHNZIMMER");
     cy.wait("@getDevices");
     // Wizard starts directly at Step 1 after clicking through WizardChoice
-    cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
+    cy.get('.setup-wizard-page', { timeout: 8000 }).should('exist');
     cy.contains("Setup-Assistent").click();
   });
 
-  // ─── BUG-12: Hardcodierte OCT-URL ──────────────────────────────────────────
+  // --- BUG-12: Hardcodierte OCT-URL ------------------------------------------
   describe("BUG-12: OCT-URL from window.location (not hardcoded)", () => {
     /**
      * Vor dem Fix war octIp = "192.168.1.50" hardcodiert.
@@ -164,9 +164,9 @@ describe("Setup Wizard — Bug Regression Suite", () => {
     it("should not send hardcoded 192.168.1.50 as oct_ip to backend", () => {
       // USB Prep: check all checkboxes to enable Weiter, then navigate to PowerCycle
       cy.get('input[type="checkbox"]').each(($cb) => { cy.wrap($cb).check({ force: true }); });
-      cy.contains("button", /weiter/i).click(); // USB Prep → PowerCycle
+      cy.contains("button", /weiter/i).click(); // USB Prep ? PowerCycle
       // Trigger port check
-      cy.contains("button", /jetzt prüfen/i).click();
+      cy.contains("button", /jetzt pr�fen/i).click();
       cy.wait("@checkPorts");
       // Make SSH decision
       cy.contains("button", /nie.*dauerhaft|nicht dauerhaft/i)
@@ -179,39 +179,39 @@ describe("Setup Wizard — Bug Regression Suite", () => {
     });
   });
 
-  // ─── BUG-09: Backup überspringbar ──────────────────────────────────────────
+  // --- BUG-09: Backup �berspringbar ------------------------------------------
   describe("BUG-09: Backup is skippable (Weiter always enabled in Step 4)", () => {
     /**
      * isNextDisabled={!backupData?.success} blockierte Navigation
      * wenn Backup nicht gestartet wurde. Backup ist optional.
      */
     it("should have Weiter button enabled in Step 4 even without starting backup", () => {
-      // USB Prep → PowerCycle → Backup
+      // USB Prep ? PowerCycle ? Backup
       cy.get('input[type="checkbox"]').each(($cb) => { cy.wrap($cb).check({ force: true }); });
-      cy.contains("button", /weiter/i).click(); // USB Prep → PowerCycle
+      cy.contains("button", /weiter/i).click(); // USB Prep ? PowerCycle
       // PowerCycle: port check + SSH decision
-      cy.contains("button", /jetzt prüfen/i).click();
+      cy.contains("button", /jetzt pr�fen/i).click();
       cy.wait("@checkPorts");
       cy.contains(/nicht dauerhaft/i, { timeout: 5000 }).click({ force: true });
       cy.contains("button", /weiter/i).should("not.be.disabled").click();
 
-      // We're now in Step 4 (Backup) — Weiter must be enabled without backup
+      // We're now in Step 4 (Backup) � Weiter must be enabled without backup
       cy.contains(/backup/i, { timeout: 5000 }).should("exist");
       cy.contains("button", /weiter/i).should("not.be.disabled");
     });
   });
 
-  // ─── BUG-10: SSH-Entscheidung via Weiter-Button ────────────────────────────
+  // --- BUG-10: SSH-Entscheidung via Weiter-Button ----------------------------
   describe("BUG-10: Step 3 SSH decision via Weiter button (not immediate navigation)", () => {
     /**
-     * Vor dem Fix: Klick auf SSH-Karte navigierte sofort zur nächsten Seite.
+     * Vor dem Fix: Klick auf SSH-Karte navigierte sofort zur n�chsten Seite.
      * Korrekt: Karte speichert Auswahl, Weiter-Button aktiviert Navigation.
      */
     it("should keep Weiter disabled in Step 3 until SSH decision is made", () => {
       cy.get('input[type="checkbox"]').each(($cb) => { cy.wrap($cb).check({ force: true }); });
-      cy.contains("button", /weiter/i).click(); // USB Prep → PowerCycle
+      cy.contains("button", /weiter/i).click(); // USB Prep ? PowerCycle
 
-      cy.contains("button", /jetzt prüfen/i).click();
+      cy.contains("button", /jetzt pr�fen/i).click();
       cy.wait("@checkPorts");
 
       // After ports confirmed: Weiter must be DISABLED until decision
@@ -224,30 +224,30 @@ describe("Setup Wizard — Bug Regression Suite", () => {
 
     it("should NOT navigate immediately on card click (only on Weiter)", () => {
       cy.get('input[type="checkbox"]').each(($cb) => { cy.wrap($cb).check({ force: true }); });
-      cy.contains("button", /weiter/i).click(); // USB Prep → PowerCycle
-      cy.contains("button", /jetzt prüfen/i).click();
+      cy.contains("button", /weiter/i).click(); // USB Prep ? PowerCycle
+      cy.contains("button", /jetzt pr�fen/i).click();
       cy.wait("@checkPorts");
 
       cy.contains(/nicht dauerhaft/i, { timeout: 5000 }).click({ force: true });
 
-      // Still on Step 3 — URL should not have changed to Step 4
+      // Still on Step 3 � URL should not have changed to Step 4
       cy.url().should("include", "setup-wizard");
       // Step 4 content (Backup) must NOT be visible yet
       cy.contains(/backup erstellen/i).should("not.exist");
     });
   });
 
-  // ─── BUG-11: „Erneut prüfen"-Button Reihenfolge ────────────────────────────
+  // --- BUG-11: �Erneut pr�fen"-Button Reihenfolge ----------------------------
   describe("BUG-11: Retry button appears above risk questions, not below", () => {
     /**
-     * JSX-Reihenfolge war: Status → Risikofragen → Button.
-     * Korrekt:             Status → Button → Risikofragen.
+     * JSX-Reihenfolge war: Status ? Risikofragen ? Button.
+     * Korrekt:             Status ? Button ? Risikofragen.
      * DOM-Reihenfolge im gerenderten HTML muss korrekt sein.
      */
     it("should render check/retry button before risk-assessment section in DOM", () => {
       cy.get('input[type="checkbox"]').each(($cb) => { cy.wrap($cb).check({ force: true }); });
-      cy.contains("button", /weiter/i).click(); // USB Prep → PowerCycle
-      cy.contains("button", /jetzt prüfen/i).click();
+      cy.contains("button", /weiter/i).click(); // USB Prep ? PowerCycle
+      cy.contains("button", /jetzt pr�fen/i).click();
       cy.wait("@checkPorts");
 
       // Check DOM order: button must come before .ssh-risk-assessment
@@ -263,19 +263,19 @@ describe("Setup Wizard — Bug Regression Suite", () => {
     });
   });
 
-  // ─── BUG-05: enablePermanentSsh() API-Call ─────────────────────────────────
+  // --- BUG-05: enablePermanentSsh() API-Call ---------------------------------
   describe("BUG-05: enable-permanent-ssh API is called when user decides", () => {
     /**
      * handleSSHDecision() speicherte nur State, rief aber nie das Backend auf.
-     * /mnt/nv/remote_services wurde nie erstellt → SSH nach Neustart verloren.
+     * /mnt/nv/remote_services wurde nie erstellt ? SSH nach Neustart verloren.
      */
     it("should POST to /api/setup/ssh/enable-permanent with make_permanent=true", () => {
       cy.get('input[type="checkbox"]').each(($cb) => { cy.wrap($cb).check({ force: true }); });
-      cy.contains("button", /weiter/i).click(); // USB Prep → PowerCycle
-      cy.contains("button", /jetzt prüfen/i).click();
+      cy.contains("button", /weiter/i).click(); // USB Prep ? PowerCycle
+      cy.contains("button", /jetzt pr�fen/i).click();
       cy.wait("@checkPorts");
 
-      // Select "dauerhaft aktivieren" — must target button, not the h4 heading
+      // Select "dauerhaft aktivieren" � must target button, not the h4 heading
       cy.contains("button", /dauerhaft aktivieren/i, { timeout: 5000 }).click({ force: true });
       cy.contains("button", /weiter/i).should("not.be.disabled").click();
 
@@ -287,8 +287,8 @@ describe("Setup Wizard — Bug Regression Suite", () => {
 
     it("should POST with make_permanent=false when user keeps SSH temporary", () => {
       cy.get('input[type="checkbox"]').each(($cb) => { cy.wrap($cb).check({ force: true }); });
-      cy.contains("button", /weiter/i).click(); // USB Prep → PowerCycle
-      cy.contains("button", /jetzt prüfen/i).click();
+      cy.contains("button", /weiter/i).click(); // USB Prep ? PowerCycle
+      cy.contains("button", /jetzt pr�fen/i).click();
       cy.wait("@checkPorts");
 
       cy.contains(/nicht dauerhaft/i, { timeout: 5000 }).click({ force: true });
@@ -300,12 +300,12 @@ describe("Setup Wizard — Bug Regression Suite", () => {
     });
   });
 
-  // ─── BUG-08: CSS-Variablen / Sichtbarkeit ──────────────────────────────────
-  describe("BUG-08: CSS variables defined → wizard elements visible", () => {
+  // --- BUG-08: CSS-Variablen / Sichtbarkeit ----------------------------------
+  describe("BUG-08: CSS variables defined ? wizard elements visible", () => {
     /**
      * --text-primary, --surface-color, --border-color etc. waren undefiniert.
      * Browser-Fallback: initial = schwarzer Text auf transparentem Hintergrund
-     * → auf dunklen Cards komplett unsichtbar.
+     * ? auf dunklen Cards komplett unsichtbar.
      */
     it("should have --text-primary CSS variable defined on :root", () => {
       cy.document().then((doc) => {
@@ -325,14 +325,14 @@ describe("Setup Wizard — Bug Regression Suite", () => {
     });
 
     it("should render Step 5 Weiter input with visible text color", () => {
-      // Navigate: USB Prep → PowerCycle → Backup → Config
+      // Navigate: USB Prep ? PowerCycle ? Backup ? Config
       cy.get('input[type="checkbox"]').each(($cb) => { cy.wrap($cb).check({ force: true }); });
-      cy.contains("button", /weiter/i).click(); // USB Prep → PowerCycle
-      cy.contains("button", /jetzt prüfen/i).click();
+      cy.contains("button", /weiter/i).click(); // USB Prep ? PowerCycle
+      cy.contains("button", /jetzt pr�fen/i).click();
       cy.wait("@checkPorts");
       cy.contains(/nicht dauerhaft/i, { timeout: 5000 }).click({ force: true });
-      cy.contains("button", /weiter/i).click(); // Step 3 → 4
-      cy.contains("button", /weiter/i).click(); // Step 4 → 5
+      cy.contains("button", /weiter/i).click(); // Step 3 ? 4
+      cy.contains("button", /weiter/i).click(); // Step 4 ? 5
 
       // Config input must have non-white background
       cy.get(".config-input").should("be.visible").then(($el) => {
@@ -343,16 +343,16 @@ describe("Setup Wizard — Bug Regression Suite", () => {
     });
   });
 
-  // ─── BUG-07: ConfigModifyResponse old_url/new_url ──────────────────────────
+  // --- BUG-07: ConfigModifyResponse old_url/new_url --------------------------
   describe("BUG-07: Config modification shows old and new URL (not N/A)", () => {
     /**
-     * ConfigModifyResponse fehlten old_url/new_url → UI zeigte „Alte URL: N/A".
+     * ConfigModifyResponse fehlten old_url/new_url ? UI zeigte �Alte URL: N/A".
      */
     it("should display old and new URL after config modification", () => {
-      // Navigate: USB Prep → PowerCycle → Backup → Config
+      // Navigate: USB Prep ? PowerCycle ? Backup ? Config
       cy.get('input[type="checkbox"]').each(($cb) => { cy.wrap($cb).check({ force: true }); });
-      cy.contains("button", /weiter/i).click(); // USB Prep → PowerCycle
-      cy.contains("button", /jetzt prüfen/i).click();
+      cy.contains("button", /weiter/i).click(); // USB Prep ? PowerCycle
+      cy.contains("button", /jetzt pr�fen/i).click();
       cy.wait("@checkPorts");
       cy.contains(/nicht dauerhaft/i, { timeout: 5000 }).click({ force: true });
       cy.contains("button", /weiter/i).click();
@@ -368,35 +368,35 @@ describe("Setup Wizard — Bug Regression Suite", () => {
     });
   });
 
-  // ─── BUG-17: USB-Anschlusstyp für SoundTouch 10 ────────────────────────────
+  // --- BUG-17: USB-Anschlusstyp f�r SoundTouch 10 ----------------------------
   describe("BUG-17: USB connector type for SoundTouch 10 is Micro-USB (not USB-A)", () => {
     /**
      * if (model.startsWith("ST10")) return "Micro-USB"
-     * "SoundTouch 10".startsWith("ST10") === false → always USB-A.
+     * "SoundTouch 10".startsWith("ST10") === false ? always USB-A.
      * Fix: model.includes("30") || model.includes("300") ? "USB-A" : "Micro-USB"
      */
     it("should show Micro-USB (not USB-A) in Step 2 for SoundTouch 10", () => {
-      // MOCK_DEVICE has model: "SoundTouch 10" — USB Prep (step 1) is already visible after clicking Manuell
+      // MOCK_DEVICE has model: "SoundTouch 10" � USB Prep (step 1) is already visible after clicking Manuell
 
       // Page must say "Micro-USB"
       cy.contains(/Micro-USB/i).should("exist");
       // Device details section must show MICRO-USB as port type, not USB-A.
-      // Note: adapter recommendation links ("USB-A → Micro-USB OTG Adapter") naturally
-      // contain "USB-A" — that's expected. We only check the device details section.
+      // Note: adapter recommendation links ("USB-A ? Micro-USB OTG Adapter") naturally
+      // contain "USB-A" � that's expected. We only check the device details section.
       cy.get(".usb-device-details").invoke("text").then((text) => {
         // The port type line should say MICRO-USB
         expect(text.toUpperCase()).to.include("MICRO-USB");
-        // Adapter links are outside .usb-device-details — this section must not
+        // Adapter links are outside .usb-device-details � this section must not
         // independently declare USB-A as the device's own port type.
         // Allow "USB-A" only inside adapter link text (which lives in .usb-adapter-hint).
       });
     });
   });
 
-  // ─── BUG-19: check-ports request uses device_ip field ──────────────────────
+  // --- BUG-19: check-ports request uses device_ip field ----------------------
   describe("BUG-19: checkPorts request uses device_ip not device_id", () => {
     /**
-     * Frontend sendete {device_id} → Backend erwartete {device_ip} → 422 Error.
+     * Frontend sendete {device_id} ? Backend erwartete {device_ip} ? 422 Error.
      * Fix: Frontend must send device_ip with the IP address.
      */
     it("should send device_ip in check-ports request body", () => {
@@ -413,61 +413,61 @@ describe("Setup Wizard — Bug Regression Suite", () => {
       }).as("checkPortsVerified");
 
       cy.get('input[type="checkbox"]').each(($cb) => { cy.wrap($cb).check({ force: true }); });
-      cy.contains("button", /weiter/i).click(); // USB Prep → PowerCycle
-      cy.contains("button", /jetzt prüfen/i).click();
+      cy.contains("button", /weiter/i).click(); // USB Prep ? PowerCycle
+      cy.contains("button", /jetzt pr�fen/i).click();
       cy.wait("@checkPortsVerified");
     });
 
     it("should read has_ssh from response (not ssh_available - BUG-19)", () => {
       // The response field is has_ssh, old frontend read ssh_available
       cy.get('input[type="checkbox"]').each(($cb) => { cy.wrap($cb).check({ force: true }); });
-      cy.contains("button", /weiter/i).click(); // USB Prep → PowerCycle
-      cy.contains("button", /jetzt prüfen/i).click();
+      cy.contains("button", /weiter/i).click(); // USB Prep ? PowerCycle
+      cy.contains("button", /jetzt pr�fen/i).click();
       cy.wait("@checkPorts");
 
       // UI should show SSH as available (mock returns has_ssh: true)
-      cy.contains(/ssh.*verfügbar|ssh.*aktiv|ssh.*bereit/i, { timeout: 5000 }).should("exist");
+      cy.contains(/ssh.*verf�gbar|ssh.*aktiv|ssh.*bereit/i, { timeout: 5000 }).should("exist");
     });
   });
 
-  // ─── BUG-20: remote_services Datei-Inhalt ──────────────────────────────────
+  // --- BUG-20: remote_services Datei-Inhalt ----------------------------------
   describe("BUG-20: remote_services file must be empty (not SSH=ENABLE)", () => {
     /**
      * UI zeigte Anleitung: Datei soll 'SSH=ENABLE\nTELNET=ENABLE' enthalten.
-     * Korrekt: Datei muss LEER sein (BusyBox prüft nur Existenz).
+     * Korrekt: Datei muss LEER sein (BusyBox pr�ft nur Existenz).
      */
     it("should NOT tell user to write SSH=ENABLE in remote_services", () => {
-      // USB Prep (step 1) already visible — check content immediately
+      // USB Prep (step 1) already visible � check content immediately
       cy.contains("SSH=ENABLE").should("not.exist");
       cy.contains("TELNET=ENABLE").should("not.exist");
     });
 
     it("should say remote_services file must be empty (leer)", () => {
-      // USB Prep (step 1) already visible — check content immediately
+      // USB Prep (step 1) already visible � check content immediately
       cy.contains(/leer/i).should("exist");
     });
   });
 
-  // ─── BUG-23: BackupResponse has volumes[] not rootfs ───────────────────────
+  // --- BUG-23: BackupResponse has volumes[] not rootfs -----------------------
   describe("BUG-23: Step 4 backup shows volume list, not backups.rootfs crash", () => {
     /**
-     * Frontend erwartete {backups: {rootfs: {}}} → Backend antwortet mit {volumes: []}.
+     * Frontend erwartete {backups: {rootfs: {}}} ? Backend antwortet mit {volumes: []}.
      * TypeError: Cannot read properties of undefined (reading 'rootfs')
      */
     it("should render backup volumes list without TypeErrors", () => {
-      // Navigate to Backup: USB Prep → PowerCycle → Backup
+      // Navigate to Backup: USB Prep ? PowerCycle ? Backup
       cy.get('input[type="checkbox"]').each(($cb) => { cy.wrap($cb).check({ force: true }); });
-      cy.contains("button", /weiter/i).click(); // USB Prep → PowerCycle
-      cy.contains("button", /jetzt prüfen/i).click();
+      cy.contains("button", /weiter/i).click(); // USB Prep ? PowerCycle
+      cy.contains("button", /jetzt pr�fen/i).click();
       cy.wait("@checkPorts");
       cy.contains(/nicht dauerhaft/i, { timeout: 5000 }).click({ force: true });
-      cy.contains("button", /weiter/i).click(); // PowerCycle → Backup
+      cy.contains("button", /weiter/i).click(); // PowerCycle ? Backup
 
       // Trigger backup
       cy.contains("button", /backup.*erstellen/i, { timeout: 5000 }).click();
       cy.wait("@createBackup");
 
-      // Must not crash – backup result section should appear
+      // Must not crash � backup result section should appear
       cy.contains(/backup.*erstellt|backup.*erfolgreich|nv/i, { timeout: 5000 }).should("exist");
       // No JavaScript error overlay
       cy.get(".error-boundary").should("not.exist");
@@ -475,10 +475,10 @@ describe("Setup Wizard — Bug Regression Suite", () => {
     });
   });
 
-  // ─── BUG-25: Steps 4-7 use device_ip not device_id ──────────────────────────
+  // --- BUG-25: Steps 4-7 use device_ip not device_id --------------------------
   describe("BUG-25: Steps 4-7 send device_ip not device_id to backend", () => {
     /**
-     * Steps 4-7 sendeten {device_id} → Backend erwartet {device_ip} → 422 Error.
+     * Steps 4-7 sendeten {device_id} ? Backend erwartet {device_ip} ? 422 Error.
      * {errors: [{field: "body.device_ip", message: "Field required"}]}
      */
     it("should send device_ip in the backup request (Step 4)", () => {
@@ -492,13 +492,13 @@ describe("Setup Wizard — Bug Regression Suite", () => {
         });
       }).as("backupVerified");
 
-      // Navigate to Backup: USB Prep → PowerCycle → Backup
+      // Navigate to Backup: USB Prep ? PowerCycle ? Backup
       cy.get('input[type="checkbox"]').each(($cb) => { cy.wrap($cb).check({ force: true }); });
-      cy.contains("button", /weiter/i).click(); // USB Prep → PowerCycle
-      cy.contains("button", /jetzt prüfen/i).click();
+      cy.contains("button", /weiter/i).click(); // USB Prep ? PowerCycle
+      cy.contains("button", /jetzt pr�fen/i).click();
       cy.wait("@checkPorts");
       cy.contains(/nicht dauerhaft/i, { timeout: 5000 }).click({ force: true });
-      cy.contains("button", /weiter/i).click(); // PowerCycle → Backup
+      cy.contains("button", /weiter/i).click(); // PowerCycle ? Backup
 
       cy.contains("button", /backup.*erstellen/i, { timeout: 5000 }).click();
       cy.wait("@backupVerified");
@@ -515,28 +515,28 @@ describe("Setup Wizard — Bug Regression Suite", () => {
         });
       }).as("hostsVerified");
 
-      // Navigate to Hosts: USB Prep → PowerCycle → Backup → Config
+      // Navigate to Hosts: USB Prep ? PowerCycle ? Backup ? Config
       cy.get('input[type="checkbox"]').each(($cb) => { cy.wrap($cb).check({ force: true }); });
-      cy.contains("button", /weiter/i).click(); // USB Prep → PowerCycle
-      cy.contains("button", /jetzt prüfen/i).click();
+      cy.contains("button", /weiter/i).click(); // USB Prep ? PowerCycle
+      cy.contains("button", /jetzt pr�fen/i).click();
       cy.wait("@checkPorts");
       cy.contains(/nicht dauerhaft/i, { timeout: 5000 }).click({ force: true });
-      cy.contains("button", /weiter/i).click(); // PowerCycle → Backup
-      cy.contains("button", /weiter/i).click(); // Backup → Config
+      cy.contains("button", /weiter/i).click(); // PowerCycle ? Backup
+      cy.contains("button", /weiter/i).click(); // Backup ? Config
       cy.contains("button", /konfiguration.*ndern/i, { timeout: 5000 }).click({ force: true });
       cy.wait("@modifyConfig");
-      cy.contains("button", /weiter/i).click({ force: true }); // → 6
+      cy.contains("button", /weiter/i).click({ force: true }); // ? 6
 
       cy.contains("button", /hosts.*datei/i, { timeout: 5000 }).click({ force: true });
       cy.wait("@hostsVerified");
     });
   });
 
-  // ─── BUG-30: Reboot-Button in Step 7 ────────────────────────────────────────
+  // --- BUG-30: Reboot-Button in Step 7 ----------------------------------------
   describe("BUG-30: Step 7 (Verification) has a Reboot button", () => {
     /**
-     * Step 6 kündigte „Neustart im nächsten Schritt" an.
-     * Step 7 zeigte nur Text, keinen Reboot-Button → kein Neustart möglich.
+     * Step 6 k�ndigte �Neustart im n�chsten Schritt" an.
+     * Step 7 zeigte nur Text, keinen Reboot-Button ? kein Neustart m�glich.
      * Fix: Backend POST /api/setup/wizard/reboot-device + UI-Reboot-Sektion.
      */
     it("should show a reboot button in Step 7", () => {
@@ -555,24 +555,24 @@ describe("Setup Wizard — Bug Regression Suite", () => {
         body: { success: true, checks: [{ name: "uuid", passed: true, message: "UUID set", details: {} }], passed_count: 1, failed_count: 0, message: "All checks passed" },
       }).as("verifySetup");
 
-      // Navigate to Verify: USB Prep → PowerCycle → Backup → Config → Hosts
+      // Navigate to Verify: USB Prep ? PowerCycle ? Backup ? Config ? Hosts
       cy.get('input[type="checkbox"]').each(($cb) => { cy.wrap($cb).check({ force: true }); });
-      cy.contains("button", /weiter/i).click(); // USB Prep → PowerCycle
-      cy.contains("button", /jetzt prüfen/i).click();
+      cy.contains("button", /weiter/i).click(); // USB Prep ? PowerCycle
+      cy.contains("button", /jetzt pr�fen/i).click();
       cy.wait("@checkPorts");
       cy.contains(/nicht dauerhaft/i, { timeout: 5000 }).click({ force: true });
-      cy.contains("button", /weiter/i).click(); // PowerCycle → Backup
-      cy.contains("button", /weiter/i).click(); // Backup → Config
+      cy.contains("button", /weiter/i).click(); // PowerCycle ? Backup
+      cy.contains("button", /weiter/i).click(); // Backup ? Config
       cy.contains("button", /konfiguration.*ndern/i, { timeout: 5000 }).click({ force: true });
       cy.wait("@modifyConfig");
-      cy.contains("button", /weiter/i).click({ force: true }); // → 6
+      cy.contains("button", /weiter/i).click({ force: true }); // ? 6
       cy.contains("button", /hosts.*datei/i, { timeout: 5000 }).click({ force: true });
       cy.wait("@modifyHosts");
-      cy.contains("button", /weiter/i).click({ force: true }); // → 7
+      cy.contains("button", /weiter/i).click({ force: true }); // ? 7
 
-      // Step 7 starts in "idle" phase — must finalize first to reveal reboot button
-      // Button text is "Geräte-Setup abschließen" (DE) or "Finalize Device Setup" (EN)
-      cy.contains("button", /abschließen|finalize/i, { timeout: 5000 }).click();
+      // Step 7 starts in "idle" phase � must finalize first to reveal reboot button
+      // Button text is "Ger�te-Setup abschlie�en" (DE) or "Finalize Device Setup" (EN)
+      cy.contains("button", /abschlie�en|finalize/i, { timeout: 5000 }).click();
       cy.wait("@finalizeDevice");
 
       // After finalize succeeds, reboot section becomes visible
@@ -580,11 +580,11 @@ describe("Setup Wizard — Bug Regression Suite", () => {
     });
   });
 
-  // ─── BUG-15: Kein schwarzer Bildschirm nach Discovery ──────────────────────
+  // --- BUG-15: Kein schwarzer Bildschirm nach Discovery ----------------------
   describe("BUG-15: No black screen after device discovery completes", () => {
     /**
      * useDiscoveryStream.ts setzte React-Query Cache als {count, devices} Objekt.
-     * useDevices erwartete Device[] Array → .length undefined → Route-Guard Loop.
+     * useDevices erwartete Device[] Array ? .length undefined ? Route-Guard Loop.
      * Fix: Cache als Device[] Array. navigate in useEffect (nicht synchon im Render).
      */
     it("should show devices page (not redirect loop) after discovery", () => {
@@ -605,18 +605,18 @@ describe("Setup Wizard — Bug Regression Suite", () => {
       cy.contains("Wohnzimmer", { timeout: 5000 }).should("exist");
     });
   });
-}); // closes main outer describe "Setup Wizard — Full Flow (Manual Mode)"
+}); // closes main outer describe "Setup Wizard � Full Flow (Manual Mode)"
 
-// ─── Wizard Backend API Smoke Tests ──────────────────────────────────────────
+// --- Wizard Backend API Smoke Tests ------------------------------------------
 
-describe("Setup Wizard API — Backend Smoke Tests", () => {
+describe("Setup Wizard API � Backend Smoke Tests", () => {
   /**
-   * Diese Tests prüfen die Backend-Endpunkte direkt via cy.request().
-   * Kein Frontend nötig — testet nur den API-Contract.
+   * Diese Tests pr�fen die Backend-Endpunkte direkt via cy.request().
+   * Kein Frontend n�tig � testet nur den API-Contract.
    * Laufen gegen http://localhost:7778 (OCT_MOCK_MODE=true).
    */
 
-  const API = "http://localhost:4173/api/setup"; // via vite preview proxy → localhost:7778
+  const API = "http://localhost:4173/api/setup"; // via vite preview proxy ? localhost:7778
 
   it("BUG-06: verify-redirect endpoint exists (not 404)", () => {
     cy.request({
@@ -628,11 +628,11 @@ describe("Setup Wizard API — Backend Smoke Tests", () => {
         expected_ip: "192.168.1.100",
       },
       failOnStatusCode: false,
-      timeout: 30000, // SSH-Timeout im Backend ist 10s → genug Puffer
+      timeout: 30000, // SSH-Timeout im Backend ist 10s ? genug Puffer
     }).then((resp) => {
       // Must not be 404 (endpoint missing)
       expect(resp.status).to.not.equal(404);
-      // Either success or connection refused to device (500) — both are acceptable
+      // Either success or connection refused to device (500) � both are acceptable
       // The important thing: endpoint EXISTS and returns JSON with correct shape
       if (resp.status === 200) {
         expect(resp.body).to.have.keys(["success", "domain", "resolved_ip", "matches_expected", "message"]);
