@@ -24,6 +24,7 @@
     "presets": "Presets",
     "zones": "Zonen",
     "settings": "Einstellungen",
+    "about": "Über",
     "selectLanguage": "Sprache wählen"
   },
   "player": {
@@ -743,8 +744,25 @@
     "reportIssue": "Problem melden",
     "support": "Unterstützen",
     "versionUnavailable": "Version nicht verfügbar",
-    "creditsTitle": "Mitwirkende",
-    "creditsDescription": "Besonderer Dank an die Community-Mitglieder, die durch Forschung, Tests und Reverse Engineering beigetragen haben."
+    "hallOfFameTitle": "Hall of Fame",
+    "hallOfFameDescription": "Top 3 Mitwirkende aller Zeiten — anerkannt für außergewöhnlichen technischen Impact.",
+    "spotlightTitle": "Community Spotlight — {{month}}",
+    "spotlightDescription": "Die wertvollsten Beitragenden dieses Monats. Vielen Dank für eure Unterstützung!",
+    "supportersTitle": "Unterstützer",
+    "supportersDescription": "Vielen Dank an alle, die OpenCloudTouch finanziell unterstützen. Eure Beiträge helfen das Projekt am Leben zu erhalten!",
+    "supportersMonthly": "Monatliche Unterstützer",
+    "supportersOneTime": "Einmalige Unterstützer",
+    "buildTime": "Erstellt am {{time}}",
+    "checkingUpdates": "Suche nach Updates...",
+    "updateAvailable": "Update verfügbar: {{version}}",
+    "viewRelease": "Release ansehen",
+    "upToDate": "Du bist auf dem neuesten Stand!",
+    "total": "gesamt",
+    "monthlySupporters": "Monatliche Unterstützer",
+    "oneTimeSupporters": "Einmalige Unterstützer",
+    "noSupportersYet": "Noch keine Unterstützer",
+    "supportCTA": "Möchtest du helfen, dieses Projekt am Leben zu erhalten?",
+    "supportButton": "Kauf mir einen Kaffee"
   },
   "discovery": {
     "started": "Suche gestartet",

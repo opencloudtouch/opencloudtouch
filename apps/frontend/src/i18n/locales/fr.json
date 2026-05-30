@@ -24,6 +24,7 @@
     "presets": "Préréglages",
     "zones": "Zones",
     "settings": "Paramètres",
+    "about": "À propos",
     "selectLanguage": "Choisir la langue"
   },
   "player": {
@@ -743,8 +744,25 @@
     "reportIssue": "Signaler un problème",
     "support": "Assistance",
     "versionUnavailable": "Version non disponible",
-    "creditsTitle": "Contributeurs",
-    "creditsDescription": "Remerciements particuliers aux membres de la communauté qui ont contribué par leurs recherches, tests et rétro-ingénierie."
+    "hallOfFameTitle": "Panthéon",
+    "hallOfFameDescription": "Les 3 meilleurs contributeurs de tous les temps — reconnus pour leur impact technique exceptionnel.",
+    "spotlightTitle": "Contributeurs du mois — {{month}}",
+    "spotlightDescription": "Les contributeurs les plus précieux de ce mois. Merci pour votre soutien !",
+    "supportersTitle": "Supporters",
+    "supportersDescription": "Merci à tous ceux qui soutiennent OpenCloudTouch financièrement. Vos contributions aident à maintenir le projet en vie !",
+    "supportersMonthly": "Supporters Mensuels",
+    "supportersOneTime": "Supporters ponctuels",
+    "buildTime": "Créé le {{time}}",
+    "checkingUpdates": "Vérification des mises à jour...",
+    "updateAvailable": "Mise à jour disponible : {{version}}",
+    "viewRelease": "Voir la version",
+    "upToDate": "Vous êtes à jour !",
+    "total": "total",
+    "monthlySupporters": "Supporters mensuels",
+    "oneTimeSupporters": "Supporters ponctuels",
+    "noSupportersYet": "Pas encore de supporters",
+    "supportCTA": "Vous souhaitez aider à maintenir ce projet en vie ?",
+    "supportButton": "Offrez-moi un café"
   },
   "discovery": {
     "started": "Détection démarrée",

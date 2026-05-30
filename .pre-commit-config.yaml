@@ -76,7 +76,7 @@ repos:
         args: [-m, pytest, apps/backend/tests/unit, -x, --tb=short, -q, -p, no:xdist, --timeout=30]
         language: system
         pass_filenames: false
-        always_run: true
+        files: ^(apps/backend/|pyproject.toml|requirements.*\.txt)
         stages: [pre-commit]
 
       # Frontend Unit Tests (pre-commit)
@@ -86,7 +86,7 @@ repos:
         args: [run, test, --prefix, apps/frontend]
         language: system
         pass_filenames: false
-        always_run: true
+        files: ^(apps/frontend/|package.json|apps/backend/openapi.yaml)
         stages: [pre-commit]
 
       # Frontend ESLint (pre-commit)
@@ -96,7 +96,7 @@ repos:
         args: [run, lint, --prefix, apps/frontend]
         language: system
         pass_filenames: false
-        always_run: true
+        files: ^apps/frontend/
         stages: [pre-commit]
 
       # Block deprecated .js test files (TypeScript migration complete)
@@ -117,7 +117,7 @@ repos:
         args: [run, test:unit]
         language: system
         pass_filenames: false
-        always_run: true
+        files: ^(apps/backend/|apps/frontend/|package.json|pyproject.toml|requirements.*\.txt|apps/backend/openapi.yaml)
         stages: [pre-push]
 
       - id: mypy-check
@@ -126,5 +126,5 @@ repos:
         args: [-m, mypy, apps/backend/src/opencloudtouch/, --no-error-summary]
         language: system
         pass_filenames: false
-        always_run: true
+        files: ^(apps/backend/|pyproject.toml)
         stages: [pre-push]

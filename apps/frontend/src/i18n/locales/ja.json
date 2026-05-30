@@ -24,6 +24,7 @@
     "presets": "プリセット",
     "zones": "ゾーン",
     "settings": "設定",
+    "about": "について",
     "selectLanguage": "言語を選択"
   },
   "player": {
@@ -743,8 +744,25 @@
     "reportIssue": "問題を報告",
     "support": "サポート",
     "versionUnavailable": "バージョン不明",
-    "creditsTitle": "貢献者",
-    "creditsDescription": "リサーチ、テスト、リバースエンジニアリングに貢献してくださったコミュニティメンバーに特別な感謝を。"
+    "hallOfFameTitle": "殿堂入り",
+    "hallOfFameDescription": "歴代トップ3の貢献者 — 卓越した技術的影響力で認められています。",
+    "spotlightTitle": "今月の貢献者 — {{month}}",
+    "spotlightDescription": "今月最も価値ある貢献者の皆様。ご支援ありがとうございます！",
+    "supportersTitle": "支援者",
+    "supportersDescription": "OpenCloudTouchを財政的に支援してくださる皆様に感謝します。皆様の貢献がプロジェクトを支えています！",
+    "supportersMonthly": "月額支援者",
+    "supportersOneTime": "一回限りの支援者",
+    "buildTime": "ビルド日時：{{time}}",
+    "checkingUpdates": "アップデート確認中...",
+    "updateAvailable": "アップデート可能：{{version}}",
+    "viewRelease": "リリースを表示",
+    "upToDate": "最新版です！",
+    "total": "合計",
+    "monthlySupporters": "月額支援者",
+    "oneTimeSupporters": "一回限りの支援者",
+    "noSupportersYet": "まだ支援者はいません",
+    "supportCTA": "このプロジェクトを支援しますか？",
+    "supportButton": "コーヒーをおごる"
   },
   "discovery": {
     "started": "検索開始",

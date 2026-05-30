@@ -24,6 +24,7 @@
     "presets": "Presets",
     "zones": "Zones",
     "settings": "Settings",
+    "about": "About",
     "selectLanguage": "Select language"
   },
   "player": {
@@ -743,8 +744,25 @@
     "reportIssue": "Report a problem",
     "support": "Support",
     "versionUnavailable": "Version unavailable",
-    "creditsTitle": "Contributors",
-    "creditsDescription": "Special thanks to the community members who contributed research, testing, and reverse engineering."
+    "hallOfFameTitle": "Hall of Fame",
+    "hallOfFameDescription": "Top 3 contributors of all time — recognized for exceptional technical impact.",
+    "spotlightTitle": "Community Spotlight — {{month}}",
+    "spotlightDescription": "This month's most valuable contributors. Thank you for your support!",
+    "supportersTitle": "Supporters",
+    "supportersDescription": "Thank you to everyone who supports OpenCloudTouch financially. Your contributions help keep the project alive!",
+    "supportersMonthly": "Monthly Supporters",
+    "supportersOneTime": "One-Time Supporters",
+    "buildTime": "Built on {{time}}",
+    "checkingUpdates": "Checking for updates...",
+    "updateAvailable": "Update available: {{version}}",
+    "viewRelease": "View Release",
+    "upToDate": "You're up to date!",
+    "total": "total",
+    "monthlySupporters": "Monthly Supporters",
+    "oneTimeSupporters": "One-Time Supporters",
+    "noSupportersYet": "No supporters yet",
+    "supportCTA": "Want to help keep this project alive?",
+    "supportButton": "Buy Me a Coffee"
   },
   "discovery": {
     "started": "Discovery started",

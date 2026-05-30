@@ -24,6 +24,7 @@
     "presets": "Presets",
     "zones": "Zones",
     "settings": "Instellingen",
+    "about": "Over",
     "selectLanguage": "Taal selecteren"
   },
   "player": {
@@ -743,8 +744,25 @@
     "reportIssue": "Een probleem melden",
     "support": "Ondersteunen",
     "versionUnavailable": "Versie niet beschikbaar",
-    "creditsTitle": "Bijdragers",
-    "creditsDescription": "Speciale dank aan de communityleden die hebben bijgedragen met onderzoek, testen en reverse engineering."
+    "hallOfFameTitle": "Eregalerij",
+    "hallOfFameDescription": "Top 3 bijdragers aller tijden — erkend voor uitzonderlijke technische impact.",
+    "spotlightTitle": "Community Spotlight — {{month}}",
+    "spotlightDescription": "De meest waardevolle bijdragers van deze maand. Bedankt voor jullie steun!",
+    "supportersTitle": "Supporters",
+    "supportersDescription": "Dank aan iedereen die OpenCloudTouch financieel steunt. Jullie bijdragen helpen het project levend te houden!",
+    "supportersMonthly": "Maandelijkse Supporters",
+    "supportersOneTime": "Eenmalige supporters",
+    "buildTime": "Gebouwd op {{time}}",
+    "checkingUpdates": "Controleren op updates...",
+    "updateAvailable": "Update beschikbaar: {{version}}",
+    "viewRelease": "Release bekijken",
+    "upToDate": "Je bent up-to-date!",
+    "total": "totaal",
+    "monthlySupporters": "Maandelijkse supporters",
+    "oneTimeSupporters": "Eenmalige supporters",
+    "noSupportersYet": "Nog geen supporters",
+    "supportCTA": "Wil je helpen dit project in leven te houden?",
+    "supportButton": "Koop me een koffie"
   },
   "discovery": {
     "started": "Zoeken gestart",

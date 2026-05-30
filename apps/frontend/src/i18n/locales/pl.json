@@ -24,6 +24,7 @@
     "presets": "Presety",
     "zones": "Strefy",
     "settings": "Ustawienia",
+    "about": "O programie",
     "selectLanguage": "Wybierz język"
   },
   "player": {
@@ -743,8 +744,25 @@
     "reportIssue": "Zgłoś problem",
     "support": "Wesprzyj",
     "versionUnavailable": "Wersja niedostępna",
-    "creditsTitle": "Współtwórcy",
-    "creditsDescription": "Szczególne podziękowania dla członków społeczności, którzy przyczynili się do badań, testów i inżynierii wstecznej."
+    "hallOfFameTitle": "Galeria Sław",
+    "hallOfFameDescription": "Top 3 współtwórców wszech czasów — uznanych za wyjątkowy wpływ techniczny.",
+    "spotlightTitle": "Wyróżnieni Współtwórcy — {{month}}",
+    "spotlightDescription": "Najcenniejsi współtwórcy tego miesiąca. Dziękujemy za wsparcie!",
+    "supportersTitle": "Sponsorzy",
+    "supportersDescription": "Dziękujemy wszystkim, którzy wspierają OpenCloudTouch finansowo. Wasze wkłady pomagają utrzymać projekt przy życiu!",
+    "supportersMonthly": "Miesięczni Sponsorzy",
+    "supportersOneTime": "Jednorazowi Sponsorzy",
+    "buildTime": "Zbudowano {{time}}",
+    "checkingUpdates": "Sprawdzanie aktualizacji...",
+    "updateAvailable": "Dostępna aktualizacja: {{version}}",
+    "viewRelease": "Zobacz wydanie",
+    "upToDate": "Jesteś na bieżąco!",
+    "total": "razem",
+    "monthlySupporters": "Miesięczni Sponsorzy",
+    "oneTimeSupporters": "Jednorazowi Sponsorzy",
+    "noSupportersYet": "Jeszcze brak sponsorów",
+    "supportCTA": "Chcesz pomóc utrzymać ten projekt?",
+    "supportButton": "Postaw mi kawę"
   },
   "discovery": {
     "started": "Wyszukiwanie rozpoczęte",

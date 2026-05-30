@@ -23,8 +23,7 @@
   "nav": {
     "presets": "Preset",
     "zones": "Zone",
-    "settings": "Impostazioni",
-    "selectLanguage": "Seleziona lingua"
+    "settings": "Impostazioni",    "about": "Informazioni",    "selectLanguage": "Seleziona lingua"
   },
   "player": {
     "volume": "Volume",
@@ -743,8 +742,25 @@
     "reportIssue": "Segnala un problema",
     "support": "Supporto",
     "versionUnavailable": "Versione non disponibile",
-    "creditsTitle": "Contributori",
-    "creditsDescription": "Un ringraziamento speciale ai membri della community che hanno contribuito con ricerca, test e reverse engineering."
+    "hallOfFameTitle": "Hall of Fame",
+    "hallOfFameDescription": "I 3 migliori contributori di sempre — riconosciuti per il loro eccezionale impatto tecnico.",
+    "spotlightTitle": "Contributori del mese — {{month}}",
+    "spotlightDescription": "I contributori più preziosi di questo mese. Grazie per il vostro supporto!",
+    "supportersTitle": "Sostenitori",
+    "supportersDescription": "Grazie a tutti coloro che sostengono OpenCloudTouch finanziariamente. I vostri contributi aiutano a mantenere vivo il progetto!",
+    "supportersMonthly": "Sostenitori Mensili",
+    "supportersOneTime": "Sostenitori Una Tantum",
+    "buildTime": "Creato il {{time}}",
+    "checkingUpdates": "Controllo aggiornamenti...",
+    "updateAvailable": "Aggiornamento disponibile: {{version}}",
+    "viewRelease": "Visualizza versione",
+    "upToDate": "Sei aggiornato!",
+    "total": "totale",
+    "monthlySupporters": "Sostenitori Mensili",
+    "oneTimeSupporters": "Sostenitori Una Tantum",
+    "noSupportersYet": "Nessun sostenitore ancora",
+    "supportCTA": "Vuoi aiutare a mantenere questo progetto in vita?",
+    "supportButton": "Offrimi un caffè"
   },
   "discovery": {
     "started": "Rilevamento avviato",

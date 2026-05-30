@@ -10,6 +10,7 @@ import LocalControl from "./pages/LocalControl";
 import MultiRoom from "./pages/MultiRoom";
 import Firmware from "./pages/Firmware";
 import Settings from "./pages/Settings";
+import About from "./pages/About";
 import Licenses from "./pages/Licenses";
 import SetupWizard from "./pages/SetupWizard";
 import NotFound from "./pages/NotFound";
@@ -131,6 +132,7 @@ function AppRouter({ devices: initialDevices, isLoading, error, onRetry }: AppRo
                     <Route path="/multiroom" element={<MultiRoom devices={devices} />} />
                     <Route path="/firmware" element={<Firmware devices={devices} />} />
                     <Route path="/settings" element={<Settings />} />
+                    <Route path="/about" element={<About />} />
                     <Route path="/licenses" element={<Licenses />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>

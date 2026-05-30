@@ -24,6 +24,7 @@
     "presets": "Förinställningar",
     "zones": "Zoner",
     "settings": "Inställningar",
+    "about": "Om",
     "selectLanguage": "Välj språk"
   },
   "player": {
@@ -743,8 +744,25 @@
     "reportIssue": "Rapportera problem",
     "support": "Stöd",
     "versionUnavailable": "Version ej tillgänglig",
-    "creditsTitle": "Bidragsgivare",
-    "creditsDescription": "Speciellt tack till communitymedlemmarna som bidragit med forskning, testning och reverse engineering."
+    "hallOfFameTitle": "Hall of Fame",
+    "hallOfFameDescription": "Topp 3 bidragsgivare genom tiderna — erkända för exceptionell teknisk påverkan.",
+    "spotlightTitle": "Community Spotlight — {{month}}",
+    "spotlightDescription": "Månadens mest värdefulla bidragsgivare. Tack för ert stöd!",
+    "supportersTitle": "Supportrar",
+    "supportersDescription": "Tack till alla som stödjer OpenCloudTouch ekonomiskt. Era bidrag hjälper till att hålla projektet vid liv!",
+    "supportersMonthly": "Månatliga Supportrar",
+    "supportersOneTime": "Engångssupportrar",
+    "buildTime": "Skapad {{time}}",
+    "checkingUpdates": "Söker efter uppdateringar...",
+    "updateAvailable": "Uppdatering tillgänglig: {{version}}",
+    "viewRelease": "Visa version",
+    "upToDate": "Du är uppdaterad!",
+    "total": "totalt",
+    "monthlySupporters": "Månatliga supportrar",
+    "oneTimeSupporters": "Engångssupportrar",
+    "noSupportersYet": "Inga supportrar ännu",
+    "supportCTA": "Vill du hjälpa till att hålla detta projekt vid liv?",
+    "supportButton": "Bjud mig på en kaffe"
   },
   "discovery": {
     "started": "Sökning startad",
