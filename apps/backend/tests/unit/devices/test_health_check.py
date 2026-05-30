@@ -103,11 +103,17 @@ class TestPingDevice:
     async def test_reachable_device_returns_true(self):
         """Device returning 200 on /info is considered reachable."""
         mock_client = AsyncMock()
-        mock_client.get.return_value = MagicMock(status_code=200)
+        mock_resp = MagicMock(
+            status_code=200, content=b"<info><name>Living Room</name></info>"
+        )
+        mock_client.get.return_value = mock_resp
 
-        result = await DeviceHealthCheck._ping_device(mock_client, "192.168.1.100")
+        reachable, name = await DeviceHealthCheck._ping_device(
+            mock_client, "192.168.1.100"
+        )
 
-        assert result is True
+        assert reachable is True
+        assert name == "Living Room"
         mock_client.get.assert_called_once_with("http://192.168.1.100:8090/info")
 
     async def test_non_200_returns_false(self):
@@ -115,27 +121,64 @@ class TestPingDevice:
         mock_client = AsyncMock()
         mock_client.get.return_value = MagicMock(status_code=500)
 
-        result = await DeviceHealthCheck._ping_device(mock_client, "192.168.1.100")
+        reachable, name = await DeviceHealthCheck._ping_device(
+            mock_client, "192.168.1.100"
+        )
 
-        assert result is False
+        assert reachable is False
+        assert name is None
 
     async def test_connection_error_returns_false(self):
         """Connection error (device powered off) returns False."""
         mock_client = AsyncMock()
         mock_client.get.side_effect = httpx.ConnectError("Connection refused")
 
-        result = await DeviceHealthCheck._ping_device(mock_client, "192.168.1.100")
+        reachable, name = await DeviceHealthCheck._ping_device(
+            mock_client, "192.168.1.100"
+        )
 
-        assert result is False
+        assert reachable is False
+        assert name is None
 
     async def test_timeout_returns_false(self):
         """Timeout (device unreachable) returns False."""
         mock_client = AsyncMock()
         mock_client.get.side_effect = httpx.TimeoutException("Timeout")
 
-        result = await DeviceHealthCheck._ping_device(mock_client, "192.168.1.100")
+        reachable, name = await DeviceHealthCheck._ping_device(
+            mock_client, "192.168.1.100"
+        )
 
-        assert result is False
+        assert reachable is False
+        assert name is None
+
+    async def test_malformed_xml_returns_true_without_name(self):
+        """Malformed XML still reports device as reachable, name is None."""
+        mock_client = AsyncMock()
+        mock_resp = MagicMock(status_code=200, content=b"not xml at all")
+        mock_client.get.return_value = mock_resp
+
+        reachable, name = await DeviceHealthCheck._ping_device(
+            mock_client, "192.168.1.100"
+        )
+
+        assert reachable is True
+        assert name is None
+
+    async def test_xml_without_name_element(self):
+        """XML without <name> element returns None for name."""
+        mock_client = AsyncMock()
+        mock_resp = MagicMock(
+            status_code=200, content=b"<info><type>ST300</type></info>"
+        )
+        mock_client.get.return_value = mock_resp
+
+        reachable, name = await DeviceHealthCheck._ping_device(
+            mock_client, "192.168.1.100"
+        )
+
+        assert reachable is True
+        assert name is None
 
 
 class TestPingAllDevices:
@@ -154,7 +197,7 @@ class TestPingAllDevices:
         device = _make_device(last_seen=datetime(2026, 1, 1, tzinfo=UTC))
         mock_repo.get_all.return_value = [device]
 
-        with patch.object(DeviceHealthCheck, "_ping_device", return_value=True):
+        with patch.object(DeviceHealthCheck, "_ping_device", return_value=(True, None)):
             await health_check._ping_all_devices()
 
         mock_repo.upsert.assert_called_once()
@@ -167,7 +210,9 @@ class TestPingAllDevices:
         device = _make_device(last_seen=recent)
         mock_repo.get_all.return_value = [device]
 
-        with patch.object(DeviceHealthCheck, "_ping_device", return_value=False):
+        with patch.object(
+            DeviceHealthCheck, "_ping_device", return_value=(False, None)
+        ):
             await health_check._ping_all_devices()
 
         mock_repo.upsert.assert_not_called()
@@ -178,7 +223,7 @@ class TestPingAllDevices:
         mock_repo.get_all.return_value = [device]
 
         with patch.object(
-            DeviceHealthCheck, "_ping_device", return_value=True
+            DeviceHealthCheck, "_ping_device", return_value=(True, None)
         ) as mock_ping:
             await health_check._ping_all_devices()
 
@@ -191,13 +236,56 @@ class TestPingAllDevices:
         mock_repo.get_all.return_value = [device]
 
         with (
-            patch.object(DeviceHealthCheck, "_ping_device", return_value=False),
+            patch.object(DeviceHealthCheck, "_ping_device", return_value=(False, None)),
             patch("opencloudtouch.devices.health_check.logger") as mock_logger,
         ):
             await health_check._ping_all_devices()
 
         mock_logger.warning.assert_called_once()
         assert "offline" in mock_logger.warning.call_args[0][0].lower()
+
+    async def test_name_change_updates_device(self, health_check, mock_repo):
+        """Device name changed in Bose app gets synced to DB."""
+        device = _make_device(name="Old Name")
+        mock_repo.get_all.return_value = [device]
+
+        with patch.object(
+            DeviceHealthCheck, "_ping_device", return_value=(True, "New Name")
+        ):
+            await health_check._ping_all_devices()
+
+        mock_repo.upsert.assert_called_once()
+        updated_device = mock_repo.upsert.call_args[0][0]
+        assert updated_device.name == "New Name"
+
+    async def test_same_name_not_logged(self, health_check, mock_repo):
+        """Device with unchanged name does not trigger name change log."""
+        device = _make_device(name="Living Room")
+        mock_repo.get_all.return_value = [device]
+
+        with (
+            patch.object(
+                DeviceHealthCheck, "_ping_device", return_value=(True, "Living Room")
+            ),
+            patch("opencloudtouch.devices.health_check.logger") as mock_logger,
+        ):
+            await health_check._ping_all_devices()
+
+        # info() should not be called for name change
+        for call in mock_logger.info.call_args_list:
+            assert "name changed" not in call[0][0].lower()
+
+    async def test_none_name_preserves_existing(self, health_check, mock_repo):
+        """If device name cannot be parsed, existing name is preserved."""
+        device = _make_device(name="Original")
+        mock_repo.get_all.return_value = [device]
+
+        with patch.object(DeviceHealthCheck, "_ping_device", return_value=(True, None)):
+            await health_check._ping_all_devices()
+
+        mock_repo.upsert.assert_called_once()
+        updated_device = mock_repo.upsert.call_args[0][0]
+        assert updated_device.name == "Original"
 
 
 class TestSSHVerification:
