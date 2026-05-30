@@ -22,10 +22,14 @@ jobs:
   triage:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    # Skip PR comments (handled by pr-review.yml) and bot's own comments (prevent loops)
+    # Skip:
+    # - PR comments (handled by pr-review.yml)
+    # - Bot's own comments (prevent loops)
+    # - Issues with 'spec' label (internal planning, not user-facing)
     if: >-
       (github.event_name != 'issue_comment' || !github.event.issue.pull_request)
       && (github.event_name != 'issue_comment' || github.event.comment.user.login != 'scheilch')
+      && !contains(github.event.issue.labels.*.name, 'spec')
 
     steps:
       - name: Checkout repository
