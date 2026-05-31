@@ -816,5 +816,11 @@
     "submitFailed": "Invio segnalazione bug fallito: {{error}}",
     "diagnosticsSuccess": "Diagnostica scaricata! Allega il file .log.gz alla tua issue GitHub.",
     "diagnosticsFailed": "Download diagnostica fallito: {{error}}"
+  },
+  "deviceRename": {
+    "clickToEdit": "Clicca per rinominare",
+    "inputLabel": "Nome dispositivo",
+    "tooLong": "Il nome deve avere al massimo 30 caratteri",
+    "failed": "Rinominazione non riuscita"
   }
 }

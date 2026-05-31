@@ -816,5 +816,11 @@
     "submitFailed": "バグレポートの送信に失敗しました: {{error}}",
     "diagnosticsSuccess": "診断がダウンロードされました！.log.gzファイルをGitHub issueに添付してください。",
     "diagnosticsFailed": "診断のダウンロードに失敗しました: {{error}}"
+  },
+  "deviceRename": {
+    "clickToEdit": "クリックして名前を変更",
+    "inputLabel": "デバイス名",
+    "tooLong": "名前は30文字以内にしてください",
+    "failed": "名前の変更に失敗しました"
   }
 }

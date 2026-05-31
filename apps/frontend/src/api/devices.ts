@@ -162,6 +162,25 @@ export async function deleteDeviceById(deviceId: string): Promise<void> {
   await throwIfNotOk(response, "Failed to delete device");
 }
 
+// ---- Device Rename API ----
+
+export interface RenameDeviceResponse {
+  device_id: string;
+  name: string;
+  previous_name: string;
+}
+
+export async function renameDevice(deviceId: string, name: string): Promise<RenameDeviceResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}/name`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+
+  await throwIfNotOk(response, "Failed to rename device");
+  return response.json();
+}
+
 // ---- Volume API ----
 
 export interface VolumeState {

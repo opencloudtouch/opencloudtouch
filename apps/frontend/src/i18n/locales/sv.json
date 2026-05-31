@@ -816,5 +816,11 @@
     "submitFailed": "Kunde inte skicka buggrapport: {{error}}",
     "diagnosticsSuccess": "Diagnostik nedladdad! Bifoga .log.gz-filen till ditt GitHub-ärende.",
     "diagnosticsFailed": "Kunde inte ladda ner diagnostik: {{error}}"
+  },
+  "deviceRename": {
+    "clickToEdit": "Klicka för att byta namn",
+    "inputLabel": "Enhetsnamn",
+    "tooLong": "Namnet får vara högst 30 tecken",
+    "failed": "Det gick inte att byta namn"
   }
 }

@@ -816,5 +816,11 @@
     "submitFailed": "Nie udało się wysłać zgłoszenia błędu: {{error}}",
     "diagnosticsSuccess": "Diagnostyka pobrana! Dołącz plik .log.gz do swojego zgłoszenia na GitHub.",
     "diagnosticsFailed": "Nie udało się pobrać diagnostyki: {{error}}"
+  },
+  "deviceRename": {
+    "clickToEdit": "Kliknij, aby zmienić nazwę",
+    "inputLabel": "Nazwa urządzenia",
+    "tooLong": "Nazwa musi mieć maksymalnie 30 znaków",
+    "failed": "Nie udało się zmienić nazwy"
   }
 }

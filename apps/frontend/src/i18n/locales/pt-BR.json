@@ -816,5 +816,11 @@
     "submitFailed": "Falha ao enviar relatório de bug: {{error}}",
     "diagnosticsSuccess": "Diagnósticos baixados! Anexe o arquivo .log.gz à sua issue no GitHub.",
     "diagnosticsFailed": "Falha ao baixar diagnósticos: {{error}}"
+  },
+  "deviceRename": {
+    "clickToEdit": "Clique para renomear",
+    "inputLabel": "Nome do dispositivo",
+    "tooLong": "O nome deve ter no máximo 30 caracteres",
+    "failed": "Falha ao renomear o dispositivo"
   }
 }

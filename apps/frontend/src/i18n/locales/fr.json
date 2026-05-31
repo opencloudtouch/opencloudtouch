@@ -816,5 +816,11 @@
     "submitFailed": "Échec de l'envoi du rapport de bug : {{error}}",
     "diagnosticsSuccess": "Diagnostics téléchargés ! Joignez le fichier .log.gz à votre issue GitHub.",
     "diagnosticsFailed": "Échec du téléchargement des diagnostics : {{error}}"
+  },
+  "deviceRename": {
+    "clickToEdit": "Cliquer pour renommer",
+    "inputLabel": "Nom de l'appareil",
+    "tooLong": "Le nom doit comporter 30 caractères maximum",
+    "failed": "Échec du renommage"
   }
 }
