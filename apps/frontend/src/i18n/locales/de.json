@@ -115,8 +115,6 @@
     "loading": "Einstellungen werden geladen...",
     "errorTitle": "Fehler beim Laden",
     "manualIps": {
-      "sectionTitle": "Manuelle Geräte-IPs",
-      "description": "Fügen Sie IP-Adressen von Geräten manuell hinzu, falls die automatische Erkennung nicht funktioniert.",
       "placeholder": "192.168.1.10",
       "addButton": "+ Hinzufügen",
       "emptyList": "Keine manuellen IPs konfiguriert",
@@ -127,13 +125,21 @@
       "alreadyExists": "Diese IP-Adresse existiert bereits",
       "enterIp": "Bitte geben Sie eine IP-Adresse ein",
       "discoverButton": "Geräte suchen",
-      "discovering": "Suche läuft...",
-      "infoHint": "Klicken Sie auf \"Geräte suchen\", um die Erkennung manuell zu starten. Gefundene Geräte erscheinen auf der Startseite."
+      "discovering": "Suche läuft..."
     },
     "discovery": {
       "devicesFound_one": "{{count}} neues Gerät gefunden",
       "devicesFound_other": "{{count}} neue Geräte gefunden",
       "noNewDevices": "Keine neuen Geräte gefunden"
+    },
+    "deviceDiscovery": {
+      "sectionTitle": "Geräte finden",
+      "autoTitle": "Automatische Suche",
+      "autoDescription": "Sucht SoundTouch-Geräte im lokalen Netzwerk.",
+      "scanButton": "Jetzt suchen",
+      "scanning": "Suche läuft...",
+      "manualTitle": "Manuelle IP-Adresse",
+      "manualDescription": "Nutze diesen Weg, wenn die automatische Suche wegen VLAN, Docker-Netzwerk oder Firewall nichts findet."
     },
     "logging": {
       "sectionTitle": "Logging",

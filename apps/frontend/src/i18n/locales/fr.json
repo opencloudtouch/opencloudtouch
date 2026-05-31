@@ -115,8 +115,6 @@
     "loading": "Chargement des paramètres...",
     "errorTitle": "Erreur de chargement",
     "manualIps": {
-      "sectionTitle": "IPs d'appareils manuelles",
-      "description": "Ajoutez manuellement les adresses IP des appareils si la détection automatique ne fonctionne pas.",
       "placeholder": "192.168.1.10",
       "addButton": "+ Ajouter",
       "emptyList": "Aucune IP manuelle configurée",
@@ -126,14 +124,22 @@
       "invalidFormat": "Adresse IP invalide (format : 192.168.1.10)",
       "alreadyExists": "Cette adresse IP existe déjà",
       "enterIp": "Veuillez saisir une adresse IP",
-      "discoverButton": "Détecter les appareils",
-      "discovering": "Recherche...",
-      "infoHint": "Cliquez sur \"Détecter les appareils\" pour lancer la détection manuellement. Les appareils trouvés apparaîtront sur l'écran d'accueil."
+      "discoverButton": "Rechercher",
+      "discovering": "Recherche..."
     },
     "discovery": {
       "devicesFound_one": "{{count}} nouvel appareil trouvé",
       "devicesFound_other": "{{count}} nouveaux appareils trouvés",
       "noNewDevices": "Aucun nouvel appareil trouvé"
+    },
+    "deviceDiscovery": {
+      "sectionTitle": "Trouver des appareils",
+      "autoTitle": "Recherche automatique",
+      "autoDescription": "Recherche des appareils SoundTouch sur votre réseau local.",
+      "scanButton": "Rechercher",
+      "scanning": "Recherche en cours...",
+      "manualTitle": "Adresse IP manuelle",
+      "manualDescription": "Utilisez cette option si la recherche automatique échoue à cause d'un VLAN, réseau Docker ou pare-feu."
     },
     "logging": {
       "sectionTitle": "Journalisation",

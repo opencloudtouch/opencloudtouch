@@ -1,9 +1,8 @@
 ﻿/**
- * TDD tests for the Discover Button feature in the Settings page.
- * Written BEFORE implementation (RED phase).
+ * TDD tests for the Scan Button feature in the Settings page.
  *
  * Feature requirements:
- * - Discover button visible only when manualIPs.length >= 1
+ * - Scan button always visible in the Automatic Search card
  * - Button disabled while discovery is running
  * - On completion: toast with count of NEW devices (not pre-existing ones)
  * - Singular vs. plural phrasing in toast message
@@ -94,8 +93,43 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 // Visibility
 // ---------------------------------------------------------------------------
-describe("Settings — Discover Button visibility", () => {
-  it("does NOT show discover button when IP list is empty", async () => {
+describe("Settings — Scan Button visibility", () => {
+  it("shows scan button even when IP list is empty", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
+
+    renderSettings();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /scan now/i })).toBeInTheDocument();
+    });
+  });
+
+  it("shows scan button when IPs are configured", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: ["192.168.1.10"] }) });
+
+    renderSettings();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /scan now/i })).toBeInTheDocument();
+    });
+  });
+
+  it("shows scan button even if IPs match already-known devices", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: ["192.168.1.10"] }) });
+
+    renderSettings([{ device_id: "AAA", ip: "192.168.1.10" }]);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /scan now/i })).toBeInTheDocument();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Manual Discover Button visibility
+// ---------------------------------------------------------------------------
+describe("Settings — Manual Discover Button visibility", () => {
+  it("does NOT show manual discover button when IP list is empty", async () => {
     mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
 
     renderSettings();
@@ -104,39 +138,16 @@ describe("Settings — Discover Button visibility", () => {
       expect(screen.getByText("No manual IPs configured")).toBeInTheDocument();
     });
 
-    expect(screen.queryByRole("button", { name: /gerät(e)? such|discover/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /discover devices/i })).toBeNull();
   });
 
-  it("shows discover button when at least 1 IP is configured", async () => {
+  it("shows manual discover button when at least 1 IP is configured", async () => {
     mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: ["192.168.1.10"] }) });
 
     renderSettings();
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /gerät(e)? such|discover/i })).toBeInTheDocument();
-    });
-  });
-
-  it("shows discover button for multiple IPs", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ ips: ["192.168.1.10", "192.168.1.20", "192.168.1.30"] }),
-    });
-
-    renderSettings();
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /gerät(e)? such|discover/i })).toBeInTheDocument();
-    });
-  });
-
-  it("shows discover button even if those IPs match already-known devices", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: ["192.168.1.10"] }) });
-
-    renderSettings([{ device_id: "AAA", ip: "192.168.1.10" }]);
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /gerät(e)? such|discover/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /discover devices/i })).toBeInTheDocument();
     });
   });
 });
@@ -144,28 +155,28 @@ describe("Settings — Discover Button visibility", () => {
 // ---------------------------------------------------------------------------
 // Trigger
 // ---------------------------------------------------------------------------
-describe("Settings — Discover Button trigger", () => {
+describe("Settings — Scan Button trigger", () => {
   it("calls startDiscovery when button is clicked", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: ["192.168.1.10"] }) });
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
 
     renderSettings();
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /gerät(e)? such|discover/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /scan now/i })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /gerät(e)? such|discover/i }));
+    fireEvent.click(screen.getByRole("button", { name: /scan now/i }));
 
     expect(mockStartDiscovery).toHaveBeenCalledTimes(1);
   });
 
-  it("button is enabled when discovery is idle and IPs are present", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: ["192.168.1.10"] }) });
+  it("button is enabled when discovery is idle", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
 
     renderSettings();
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /gerät(e)? such|discover/i })).not.toBeDisabled();
+      expect(screen.getByRole("button", { name: /scan now/i })).not.toBeDisabled();
     });
   });
 
@@ -176,12 +187,12 @@ describe("Settings — Discover Button trigger", () => {
       startDiscovery: mockStartDiscovery,
     });
 
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: ["192.168.1.10"] }) });
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
 
     renderSettings();
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /gerät(e)? such|discover/i })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /scan now/i })).toBeDisabled();
     });
   });
 });
@@ -189,7 +200,7 @@ describe("Settings — Discover Button trigger", () => {
 // ---------------------------------------------------------------------------
 // Page reload during discovery
 // ---------------------------------------------------------------------------
-describe("Settings — Discover Button on page reload", () => {
+describe("Settings — Scan Button on page reload", () => {
   it("button is disabled on mount if discovery already running (page reload)", async () => {
     const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
     (useDiscoveryStream as Mock).mockReturnValue({
@@ -197,12 +208,12 @@ describe("Settings — Discover Button on page reload", () => {
       startDiscovery: mockStartDiscovery,
     });
 
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: ["192.168.1.10"] }) });
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
 
     renderSettings();
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /gerät(e)? such|discover/i })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /scan now/i })).toBeDisabled();
     });
   });
 
@@ -214,13 +225,13 @@ describe("Settings — Discover Button on page reload", () => {
       startDiscovery: mockStartDiscovery,
     });
 
-    mockFetch.mockResolvedValue({ ok: true, json: async () => ({ ips: ["192.168.1.10"] }) });
+    mockFetch.mockResolvedValue({ ok: true, json: async () => ({ ips: [] }) });
 
     const qc = buildQueryClient();
     const { rerender } = render(<Wrapper qc={qc}><Settings /></Wrapper>);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /gerät(e)? such|discover/i })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /scan now/i })).toBeDisabled();
     });
 
     // Discovery finishes — update mock and force re-render with same QueryClient
@@ -231,7 +242,7 @@ describe("Settings — Discover Button on page reload", () => {
     rerender(<Wrapper qc={qc}><Settings /></Wrapper>);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /gerät(e)? such|discover/i })).not.toBeDisabled();
+      expect(screen.getByRole("button", { name: /scan now/i })).not.toBeDisabled();
     });
   });
 });
@@ -342,7 +353,7 @@ describe("Settings — Discover Button completion toast", () => {
     renderSettings([]);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /gerät(e)? such|discover/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /scan now/i })).toBeInTheDocument();
     });
 
     expect(screen.queryByText(/new devices found/i)).toBeNull();
@@ -356,12 +367,12 @@ describe("Settings — Discover Button completion toast", () => {
       startDiscovery: mockStartDiscovery,
     });
 
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: ["192.168.1.10"] }) });
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
 
     renderSettings([]);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /gerät(e)? such|discover/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /scan now/i })).toBeInTheDocument();
     });
 
     expect(screen.queryByText(/new devices found/i)).toBeNull();
@@ -412,7 +423,7 @@ describe("Settings — Discover Button with existing devices", () => {
     ]);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /gerät(e)? such|discover/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /scan now/i })).toBeInTheDocument();
     });
   });
 });

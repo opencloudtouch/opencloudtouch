@@ -115,8 +115,6 @@
     "loading": "Caricamento impostazioni...",
     "errorTitle": "Errore di caricamento",
     "manualIps": {
-      "sectionTitle": "IP dispositivi manuali",
-      "description": "Aggiungere manualmente gli indirizzi IP dei dispositivi se il rilevamento automatico non funziona.",
       "placeholder": "192.168.1.10",
       "addButton": "+ Aggiungi",
       "emptyList": "Nessun IP manuale configurato",
@@ -126,14 +124,22 @@
       "invalidFormat": "Indirizzo IP non valido (formato: 192.168.1.10)",
       "alreadyExists": "Questo indirizzo IP esiste già",
       "enterIp": "Inserire un indirizzo IP",
-      "discoverButton": "Rileva dispositivi",
-      "discovering": "Ricerca...",
-      "infoHint": "Clicca su \"Rileva dispositivi\" per avviare il rilevamento manualmente. I dispositivi trovati appariranno nella schermata principale."
+      "discoverButton": "Cerca dispositivi",
+      "discovering": "Ricerca..."
     },
     "discovery": {
       "devicesFound_one": "{{count}} nuovo dispositivo trovato",
       "devicesFound_other": "{{count}} nuovi dispositivi trovati",
       "noNewDevices": "Nessun nuovo dispositivo trovato"
+    },
+    "deviceDiscovery": {
+      "sectionTitle": "Trova dispositivi",
+      "autoTitle": "Ricerca automatica",
+      "autoDescription": "Cerca dispositivi SoundTouch nella rete locale.",
+      "scanButton": "Cerca ora",
+      "scanning": "Ricerca in corso...",
+      "manualTitle": "Indirizzo IP manuale",
+      "manualDescription": "Usa questa opzione se la ricerca automatica non trova nulla a causa di VLAN, rete Docker o firewall."
     },
     "logging": {
       "sectionTitle": "Registrazione",

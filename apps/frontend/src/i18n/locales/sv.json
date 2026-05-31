@@ -115,8 +115,6 @@
     "loading": "Laddar inställningar...",
     "errorTitle": "Laddningsfel",
     "manualIps": {
-      "sectionTitle": "Manuella enhets-IP-adresser",
-      "description": "Lägg till enhets-IP-adresser manuellt om automatisk identifiering inte fungerar.",
       "placeholder": "192.168.1.10",
       "addButton": "+ Lägg till",
       "emptyList": "Inga manuella IP-adresser konfigurerade",
@@ -126,14 +124,22 @@
       "invalidFormat": "Ogiltig IP-adress (format: 192.168.1.10)",
       "alreadyExists": "Denna IP-adress finns redan",
       "enterIp": "Ange IP-adress",
-      "discoverButton": "Sök efter enheter",
-      "discovering": "Söker...",
-      "infoHint": "Klicka på \"Sök efter enheter\" för att manuellt starta identifiering. Hittade enheter visas på startsidan."
+      "discoverButton": "Sök enheter",
+      "discovering": "Söker..."
     },
     "discovery": {
       "devicesFound_one": "{{count}} ny enhet hittad",
       "devicesFound_other": "{{count}} nya enheter hittade",
       "noNewDevices": "Inga nya enheter hittades"
+    },
+    "deviceDiscovery": {
+      "sectionTitle": "Hitta enheter",
+      "autoTitle": "Automatisk sökning",
+      "autoDescription": "Söker efter SoundTouch-enheter i ditt lokala nätverk.",
+      "scanButton": "Sök nu",
+      "scanning": "Söker...",
+      "manualTitle": "Manuell IP-adress",
+      "manualDescription": "Använd detta om automatisk sökning inte hittar något på grund av VLAN, Docker-nätverk eller brandvägg."
     },
     "logging": {
       "sectionTitle": "Loggning",

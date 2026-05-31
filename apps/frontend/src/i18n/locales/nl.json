@@ -115,8 +115,6 @@
     "loading": "Instellingen laden...",
     "errorTitle": "Fout bij laden",
     "manualIps": {
-      "sectionTitle": "Handmatige apparaat-IPs",
-      "description": "Voeg IP-adressen van apparaten handmatig toe als automatische detectie niet werkt.",
       "placeholder": "192.168.1.10",
       "addButton": "+ Toevoegen",
       "emptyList": "Geen handmatige IPs geconfigureerd",
@@ -127,13 +125,21 @@
       "alreadyExists": "Dit IP-adres bestaat al",
       "enterIp": "Voer een IP-adres in",
       "discoverButton": "Apparaten zoeken",
-      "discovering": "Zoeken...",
-      "infoHint": "Klik op \"Apparaten zoeken\" om detectie handmatig te starten. Gevonden apparaten verschijnen op het startscherm."
+      "discovering": "Zoeken..."
     },
     "discovery": {
       "devicesFound_one": "{{count}} nieuw apparaat gevonden",
       "devicesFound_other": "{{count}} nieuwe apparaten gevonden",
       "noNewDevices": "Geen nieuwe apparaten gevonden"
+    },
+    "deviceDiscovery": {
+      "sectionTitle": "Apparaten zoeken",
+      "autoTitle": "Automatisch zoeken",
+      "autoDescription": "Zoekt SoundTouch-apparaten in je lokale netwerk.",
+      "scanButton": "Nu zoeken",
+      "scanning": "Zoeken...",
+      "manualTitle": "Handmatig IP-adres",
+      "manualDescription": "Gebruik deze optie als automatisch zoeken niets vindt vanwege VLAN, Docker-netwerk of firewall."
     },
     "logging": {
       "sectionTitle": "Logboek",
