@@ -18,7 +18,9 @@
     "reloadPage": "Załaduj stronę ponownie",
     "stationNotFound": "Nie znaleziono stacji.",
     "saveAsPreset": "Zapisz jako preset",
-    "or": "lub"
+    "or": "lub",
+    "enabled": "Włączono",
+    "disabled": "Wyłączono"
   },
   "nav": {
     "presets": "Presety",
@@ -816,5 +818,24 @@
     "submitFailed": "Nie udało się wysłać zgłoszenia błędu: {{error}}",
     "diagnosticsSuccess": "Diagnostyka pobrana! Dołącz plik .log.gz do swojego zgłoszenia na GitHub.",
     "diagnosticsFailed": "Nie udało się pobrać diagnostyki: {{error}}"
+  },
+  "diagnostics": {
+    "title": "Diagnostyka",
+    "serverInfo": "Informacje o serwerze",
+    "version": "Wersja",
+    "python": "Python",
+    "platform": "Platforma",
+    "discovery": "Wykrywanie",
+    "logLevel": "Poziom logów",
+    "manualIPs": "Ręczne adresy IP",
+    "database": "Baza danych",
+    "devicesCount": "Urządzenia",
+    "presetsCount": "Presety",
+    "devices": "Urządzenia",
+    "noDevices": "Nie znaleziono urządzeń",
+    "firmware": "Firmware",
+    "setupStatus": "Status konfiguracji",
+    "lastSeen": "Ostatnio widziany",
+    "downloadBundle": "Pobierz pakiet wsparcia"
   }
 }

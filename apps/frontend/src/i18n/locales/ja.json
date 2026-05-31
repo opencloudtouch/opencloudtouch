@@ -18,7 +18,9 @@
     "reloadPage": "ページを再読み込み",
     "stationNotFound": "ステーションが見つかりません。",
     "saveAsPreset": "プリセットとして保存",
-    "or": "または"
+    "or": "または",
+    "enabled": "有効",
+    "disabled": "無効"
   },
   "nav": {
     "presets": "プリセット",
@@ -816,5 +818,24 @@
     "submitFailed": "バグレポートの送信に失敗しました: {{error}}",
     "diagnosticsSuccess": "診断がダウンロードされました！.log.gzファイルをGitHub issueに添付してください。",
     "diagnosticsFailed": "診断のダウンロードに失敗しました: {{error}}"
+  },
+  "diagnostics": {
+    "title": "診断",
+    "serverInfo": "サーバー情報",
+    "version": "バージョン",
+    "python": "Python",
+    "platform": "プラットフォーム",
+    "discovery": "検出",
+    "logLevel": "ログレベル",
+    "manualIPs": "手動IP",
+    "database": "データベース",
+    "devicesCount": "デバイス",
+    "presetsCount": "プリセット",
+    "devices": "デバイス",
+    "noDevices": "デバイスが見つかりません",
+    "firmware": "ファームウェア",
+    "setupStatus": "セットアップ状況",
+    "lastSeen": "最終確認",
+    "downloadBundle": "サポートバンドルをダウンロード"
   }
 }

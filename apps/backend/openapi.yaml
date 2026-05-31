@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: OpenCloudTouch
   description: Open-Source replacement for discontinued streaming device cloud features
-  version: 1.4.3
+  version: dev-adb3a83
 paths:
   /api/devices/discover:
     get:
@@ -92,6 +92,32 @@ paths:
             application/json:
               schema: {}
   /api/devices/{device_id}:
+    delete:
+      tags:
+      - Devices
+      summary: Delete By Device Id
+      description: "Delete device by id from database.\n\nArgs:\n    device_id: Device\
+        \ ID\n\nReturns:\n    Confirmation message"
+      operationId: delete_by_device_id_api_devices__device_id__delete
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
     get:
       tags:
       - Devices
@@ -119,33 +145,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-    delete:
-      tags:
-      - Devices
-      summary: Delete Device
-      description: Delete device by id
-      operationId: delete_device_api__device_id__delete
-      parameters:
-      - name: device_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Device Id
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-
-
   /api/devices/{device_id}/capabilities:
     get:
       tags:
@@ -246,7 +245,10 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                type: object
+                title: Response Get Now Playing Api Devices  Device Id  Now Playing
+                  Get
         '422':
           description: Validation Error
           content:
@@ -573,7 +575,9 @@ paths:
 
         - **search_type**: Type of search - name, country, or tag (default: name)
 
-        - **limit**: Maximum results (1-100, default: 10)
+        - **limit**: Maximum results (1-50, default: 10)
+
+        - **offset**: Offset for pagination (default: 0)
 
         - **provider**: Radio provider - radiobrowser or tunein (default: radiobrowser)'
       operationId: search_stations_api_radio_search_get
@@ -600,12 +604,22 @@ paths:
         required: false
         schema:
           type: integer
-          maximum: 100
+          maximum: 50
           minimum: 1
           description: Maximum number of results
           default: 10
           title: Limit
         description: Maximum number of results
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          description: Offset for pagination
+          default: 0
+          title: Offset
+        description: Offset for pagination
       - name: provider
         in: query
         required: false
@@ -2464,6 +2478,72 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/finalize:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Finalize
+      description: 'Finalize device setup: set UUID + write Sources.xml (Issue #184).
+
+
+        Atomic operation that ensures the device has a unique margeAccountUUID
+
+        and a complete Sources.xml. Safe to call multiple times (idempotent).'
+      operationId: wizard_finalize_api_setup_wizard_finalize_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinalizeRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinalizeResponse'
+        '500':
+          description: Finalization failed
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/verify-setup:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Verify Setup
+      description: 'Comprehensive post-setup health check (Issue #184).
+
+
+        Read-only validation: checks UUID, Sources.xml, config files,
+
+        hosts entries, and SystemConfigurationDB.xml. Never modifies device.'
+      operationId: wizard_verify_setup_api_setup_wizard_verify_setup_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifySetupRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifySetupResponse'
+        '500':
+          description: Verification failed
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/setup/wizard/scan-backups:
     post:
       tags:
@@ -2484,6 +2564,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ScanBackupsResponse'
+        '500':
+          description: Backup scan failed
         '422':
           description: Validation Error
           content:
@@ -2510,59 +2592,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RestoreWizardResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /api/setup/wizard/finalize:
-    post:
-      tags:
-      - Setup Wizard
-      summary: Wizard Finalize Device
-      description: Finalize device setup by ensuring UUID, writing Sources.xml,
-        and creating SystemConfigurationDB.xml.
-      operationId: wizard_finalize_api_setup_wizard_finalize_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FinalizeRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FinalizeResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /api/setup/wizard/verify-setup:
-    post:
-      tags:
-      - Setup Wizard
-      summary: Wizard Verify Setup
-      description: Run read-only verification checks on device setup completeness.
-      operationId: wizard_verify_setup_api_setup_wizard_verify_setup_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/VerifySetupRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/VerifySetupResponse'
+        '500':
+          description: Restore wizard execution failed
         '422':
           description: Validation Error
           content:
@@ -2880,21 +2911,21 @@ paths:
       tags:
       - logs
       summary: Download backend log buffer (without frontend logs)
-      description: Returns backend logs only. Use POST to include frontend console
-        logs.
+      description: Returns backend logs as plain text, or ZIP if persistent log files
+        exist.
       operationId: download_backend_logs_get_api_logs_backend_get
       responses:
         '200':
           description: Successful Response
           content:
-            text/plain:
-              schema:
-                type: string
+            application/json:
+              schema: {}
     post:
       tags:
       - logs
       summary: Download backend + frontend logs
-      description: Returns backend logs with frontend console logs included.
+      description: Returns backend + frontend logs as plain text, or ZIP if persistent
+        log files exist.
       operationId: download_backend_logs_post_api_logs_backend_post
       requestBody:
         content:
@@ -2906,9 +2937,8 @@ paths:
         '200':
           description: Successful Response
           content:
-            text/plain:
-              schema:
-                type: string
+            application/json:
+              schema: {}
         '422':
           description: Validation Error
           content:
@@ -2969,6 +2999,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/diagnostics:
+    get:
+      tags:
+      - diagnostics
+      summary: Get Diagnostics
+      description: 'Collect server and device diagnostics for the diagnostics page.
+
+
+        Returns server info (version, platform, config) and device status
+
+        with health indicators.'
+      operationId: get_diagnostics_api_diagnostics_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
   /api/wizard/audit-log:
     post:
       tags:
@@ -3605,6 +3653,64 @@ components:
       - ip
       title: EnablePermanentSSHRequest
       description: Request to enable permanent SSH access on device.
+    FinalizeRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+        device_id:
+          type: string
+          title: Device Id
+          description: Device ID (MAC address)
+      type: object
+      required:
+      - device_ip
+      - device_id
+      title: FinalizeRequest
+      description: Request to finalize device setup (UUID + Sources.xml).
+    FinalizeResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        uuid:
+          type: string
+          title: Uuid
+          default: ''
+        had_uuid:
+          type: boolean
+          title: Had Uuid
+          default: false
+        uuid_was_collision:
+          type: boolean
+          title: Uuid Was Collision
+          default: false
+        sources_written:
+          type: boolean
+          title: Sources Written
+          default: false
+        sources_backup_path:
+          type: string
+          title: Sources Backup Path
+          default: ''
+        system_config_written:
+          type: boolean
+          title: System Config Written
+          default: false
+        message:
+          type: string
+          title: Message
+          default: ''
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+      type: object
+      required:
+      - success
+      title: FinalizeResponse
+      description: Response from device finalization.
     FrontendLogEntry:
       properties:
         timestamp:
@@ -3965,6 +4071,10 @@ components:
             $ref: '#/components/schemas/RadioStationResponse'
           type: array
           title: Stations
+        has_more:
+          type: boolean
+          title: Has More
+          default: false
       type: object
       required:
       - stations
@@ -4268,6 +4378,27 @@ components:
       - msg
       - type
       title: ValidationError
+    VerifyCheck:
+      properties:
+        name:
+          type: string
+          title: Name
+        passed:
+          type: boolean
+          title: Passed
+        message:
+          type: string
+          title: Message
+        details:
+          type: object
+          title: Details
+      type: object
+      required:
+      - name
+      - passed
+      - message
+      title: VerifyCheck
+      description: Single verification check result.
     VerifyRedirectRequest:
       properties:
         device_ip:
@@ -4316,83 +4447,6 @@ components:
       - message
       title: VerifyRedirectResponse
       description: Response with domain redirect verification result.
-    FinalizeRequest:
-      properties:
-        device_ip:
-          type: string
-          title: Device Ip
-        device_id:
-          type: string
-          description: Device ID (MAC address)
-          title: Device Id
-      type: object
-      required:
-      - device_ip
-      - device_id
-      title: FinalizeRequest
-    FinalizeResponse:
-      properties:
-        success:
-          type: boolean
-          title: Success
-        uuid:
-          type: string
-          title: Uuid
-          default: ''
-        had_uuid:
-          type: boolean
-          title: Had Uuid
-          default: false
-        uuid_was_collision:
-          type: boolean
-          title: Uuid Was Collision
-          default: false
-        sources_written:
-          type: boolean
-          title: Sources Written
-          default: false
-        sources_backup_path:
-          type: string
-          title: Sources Backup Path
-          default: ''
-        system_config_written:
-          type: boolean
-          title: System Config Written
-          default: false
-        message:
-          type: string
-          title: Message
-          default: ''
-        error:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Error
-      type: object
-      required:
-      - success
-      title: FinalizeResponse
-    VerifyCheck:
-      properties:
-        name:
-          type: string
-          title: Name
-        passed:
-          type: boolean
-          title: Passed
-        message:
-          type: string
-          title: Message
-        details:
-          type: object
-          title: Details
-          default: {}
-      type: object
-      required:
-      - name
-      - passed
-      - message
-      title: VerifyCheck
     VerifySetupRequest:
       properties:
         device_ip:
@@ -4400,18 +4454,19 @@ components:
           title: Device Ip
         device_id:
           type: string
-          description: Device ID (MAC address)
           title: Device Id
+          description: Device ID (MAC address)
         expected_oct_ip:
           type: string
-          description: Expected OCT server IP
           title: Expected Oct Ip
+          description: Expected OCT server IP
       type: object
       required:
       - device_ip
       - device_id
       - expected_oct_ip
       title: VerifySetupRequest
+      description: Request to verify device setup completeness.
     VerifySetupResponse:
       properties:
         success:
@@ -4422,19 +4477,23 @@ components:
             $ref: '#/components/schemas/VerifyCheck'
           type: array
           title: Checks
-          default: []
         passed_count:
           type: integer
           title: Passed Count
           default: 0
-        total_count:
+        failed_count:
           type: integer
-          title: Total Count
+          title: Failed Count
           default: 0
+        message:
+          type: string
+          title: Message
+          default: ''
       type: object
       required:
       - success
       title: VerifySetupResponse
+      description: Response from device setup verification.
     WizardCompleteRequest:
       properties:
         device_id:

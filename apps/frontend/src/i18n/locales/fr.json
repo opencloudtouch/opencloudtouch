@@ -18,7 +18,9 @@
     "reloadPage": "Recharger la page",
     "stationNotFound": "Station introuvable.",
     "saveAsPreset": "Enregistrer comme préréglage",
-    "or": "ou"
+    "or": "ou",
+    "enabled": "Activé",
+    "disabled": "Désactivé"
   },
   "nav": {
     "presets": "Préréglages",
@@ -816,5 +818,24 @@
     "submitFailed": "Échec de l'envoi du rapport de bug : {{error}}",
     "diagnosticsSuccess": "Diagnostics téléchargés ! Joignez le fichier .log.gz à votre issue GitHub.",
     "diagnosticsFailed": "Échec du téléchargement des diagnostics : {{error}}"
+  },
+  "diagnostics": {
+    "title": "Diagnostics",
+    "serverInfo": "Informations serveur",
+    "version": "Version",
+    "python": "Python",
+    "platform": "Plateforme",
+    "discovery": "Découverte",
+    "logLevel": "Niveau de log",
+    "manualIPs": "IPs manuelles",
+    "database": "Base de données",
+    "devicesCount": "Appareils",
+    "presetsCount": "Préréglages",
+    "devices": "Appareils",
+    "noDevices": "Aucun appareil trouvé",
+    "firmware": "Firmware",
+    "setupStatus": "Statut de configuration",
+    "lastSeen": "Dernière activité",
+    "downloadBundle": "Télécharger le bundle de support"
   }
 }

@@ -18,7 +18,9 @@
     "reloadPage": "Pagina opnieuw laden",
     "stationNotFound": "Station niet gevonden.",
     "saveAsPreset": "Opslaan als preset",
-    "or": "of"
+    "or": "of",
+    "enabled": "Ingeschakeld",
+    "disabled": "Uitgeschakeld"
   },
   "nav": {
     "presets": "Presets",
@@ -816,5 +818,24 @@
     "submitFailed": "Bugrapport verzenden mislukt: {{error}}",
     "diagnosticsSuccess": "Diagnostiek gedownload! Voeg het .log.gz-bestand toe aan uw GitHub-issue.",
     "diagnosticsFailed": "Diagnostiek downloaden mislukt: {{error}}"
+  },
+  "diagnostics": {
+    "title": "Diagnostiek",
+    "serverInfo": "Serverinformatie",
+    "version": "Versie",
+    "python": "Python",
+    "platform": "Platform",
+    "discovery": "Detectie",
+    "logLevel": "Logniveau",
+    "manualIPs": "Handmatige IPs",
+    "database": "Database",
+    "devicesCount": "Apparaten",
+    "presetsCount": "Presets",
+    "devices": "Apparaten",
+    "noDevices": "Geen apparaten gevonden",
+    "firmware": "Firmware",
+    "setupStatus": "Configuratiestatus",
+    "lastSeen": "Laatst gezien",
+    "downloadBundle": "Ondersteuningsbundel downloaden"
   }
 }
