@@ -126,6 +126,33 @@ describe("Settings — Scan Button visibility", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Manual Discover Button visibility
+// ---------------------------------------------------------------------------
+describe("Settings — Manual Discover Button visibility", () => {
+  it("does NOT show manual discover button when IP list is empty", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
+
+    renderSettings();
+
+    await waitFor(() => {
+      expect(screen.getByText("No manual IPs configured")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole("button", { name: /discover devices/i })).toBeNull();
+  });
+
+  it("shows manual discover button when at least 1 IP is configured", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: ["192.168.1.10"] }) });
+
+    renderSettings();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /discover devices/i })).toBeInTheDocument();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Trigger
 // ---------------------------------------------------------------------------
 describe("Settings — Scan Button trigger", () => {

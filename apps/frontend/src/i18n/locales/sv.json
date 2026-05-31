@@ -123,7 +123,9 @@
       "ipRemoved": "IP {{ip}} borttagen",
       "invalidFormat": "Ogiltig IP-adress (format: 192.168.1.10)",
       "alreadyExists": "Denna IP-adress finns redan",
-      "enterIp": "Ange IP-adress"
+      "enterIp": "Ange IP-adress",
+      "discoverButton": "Sök enheter",
+      "discovering": "Söker..."
     },
     "discovery": {
       "devicesFound_one": "{{count}} ny enhet hittad",

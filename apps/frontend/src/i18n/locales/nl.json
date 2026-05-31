@@ -123,7 +123,9 @@
       "ipRemoved": "IP {{ip}} verwijderd",
       "invalidFormat": "Ongeldig IP-adres (formaat: 192.168.1.10)",
       "alreadyExists": "Dit IP-adres bestaat al",
-      "enterIp": "Voer een IP-adres in"
+      "enterIp": "Voer een IP-adres in",
+      "discoverButton": "Apparaten zoeken",
+      "discovering": "Zoeken..."
     },
     "discovery": {
       "devicesFound_one": "{{count}} nieuw apparaat gevonden",

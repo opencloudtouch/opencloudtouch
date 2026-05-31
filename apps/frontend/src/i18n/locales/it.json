@@ -123,7 +123,9 @@
       "ipRemoved": "IP {{ip}} rimosso",
       "invalidFormat": "Indirizzo IP non valido (formato: 192.168.1.10)",
       "alreadyExists": "Questo indirizzo IP esiste già",
-      "enterIp": "Inserire un indirizzo IP"
+      "enterIp": "Inserire un indirizzo IP",
+      "discoverButton": "Cerca dispositivi",
+      "discovering": "Ricerca..."
     },
     "discovery": {
       "devicesFound_one": "{{count}} nuovo dispositivo trovato",

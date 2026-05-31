@@ -245,6 +245,22 @@ export default function Settings() {
                 </ul>
               )}
             </div>
+
+            {/* Discover Button for manual IPs */}
+            {manualIPs.length > 0 && (
+              <div className="discover-action">
+                <button
+                  className="btn btn-primary"
+                  onClick={() => void startDiscovery()}
+                  disabled={isDiscovering}
+                  aria-label={t("settings.manualIps.discoverButton")}
+                >
+                  {isDiscovering
+                    ? t("settings.manualIps.discovering")
+                    : t("settings.manualIps.discoverButton")}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </motion.section>
