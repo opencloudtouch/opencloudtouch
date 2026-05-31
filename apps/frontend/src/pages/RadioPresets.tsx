@@ -204,10 +204,7 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
             </button>
             <div className="device-info">
               {currentDevice ? (
-                <DeviceNameEditor
-                  deviceId={currentDevice.device_id}
-                  name={currentDevice.name}
-                />
+                <DeviceNameEditor deviceId={currentDevice.device_id} name={currentDevice.name} />
               ) : (
                 <h2 className="device-name" data-test="device-name">
                   Unknown Device

@@ -127,10 +127,7 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
             </div>
             <div className="device-header-info">
               {currentDevice ? (
-                <DeviceNameEditor
-                  deviceId={currentDevice.device_id}
-                  name={currentDevice.name}
-                />
+                <DeviceNameEditor deviceId={currentDevice.device_id} name={currentDevice.name} />
               ) : (
                 <h2 className="device-name">Unknown Device</h2>
               )}

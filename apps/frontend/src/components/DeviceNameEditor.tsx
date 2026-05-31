@@ -10,11 +10,7 @@ interface DeviceNameEditorProps {
   onRenamed?: (newName: string) => void;
 }
 
-export default function DeviceNameEditor({
-  deviceId,
-  name,
-  onRenamed,
-}: DeviceNameEditorProps) {
+export default function DeviceNameEditor({ deviceId, name, onRenamed }: DeviceNameEditorProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);

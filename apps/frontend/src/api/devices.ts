@@ -170,10 +170,7 @@ export interface RenameDeviceResponse {
   previous_name: string;
 }
 
-export async function renameDevice(
-  deviceId: string,
-  name: string
-): Promise<RenameDeviceResponse> {
+export async function renameDevice(deviceId: string, name: string): Promise<RenameDeviceResponse> {
   const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}/name`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },

@@ -1023,7 +1023,9 @@ class TestRenameDeviceEndpoint:
 
         assert response.status_code == 502
 
-    def test_rename_strips_whitespace(self, client, mock_device_service, sample_devices):
+    def test_rename_strips_whitespace(
+        self, client, mock_device_service, sample_devices
+    ):
         """Test that leading/trailing whitespace is stripped from name."""
         device = sample_devices[0]
         mock_device_service.get_device_by_id = AsyncMock(return_value=device)

@@ -14,9 +14,7 @@ from opencloudtouch.setup.wizard_helpers import ssh_operation
 logger = logging.getLogger(__name__)
 
 _SYS_CONFIG_PATH = "/mnt/nv/BoseApp-Persistence/1/SystemConfigurationDB.xml"
-_DEVICE_NAME_RE = re.compile(
-    r"(<DeviceName>)(.*?)(</DeviceName>)", re.DOTALL
-)
+_DEVICE_NAME_RE = re.compile(r"(<DeviceName>)(.*?)(</DeviceName>)", re.DOTALL)
 
 
 async def rename_device_via_ssh(device_ip: str, new_name: str) -> None:
@@ -46,9 +44,7 @@ async def rename_device_via_ssh(device_ip: str, new_name: str) -> None:
 
         # Replace DeviceName
         if _DEVICE_NAME_RE.search(xml_content):
-            new_xml = _DEVICE_NAME_RE.sub(
-                rf"\g<1>{escaped_name}\g<3>", xml_content
-            )
+            new_xml = _DEVICE_NAME_RE.sub(rf"\g<1>{escaped_name}\g<3>", xml_content)
         else:
             raise RuntimeError(
                 "<DeviceName> tag not found in SystemConfigurationDB.xml"
@@ -67,6 +63,4 @@ async def rename_device_via_ssh(device_ip: str, new_name: str) -> None:
         finally:
             await ssh.execute("mount -o remount,ro /")
 
-        logger.info(
-            "Device %s renamed to '%s' via SSH", device_ip, new_name
-        )
+        logger.info("Device %s renamed to '%s' via SSH", device_ip, new_name)
