@@ -38,7 +38,9 @@ export default function Diagnostics() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleDownload = async () => {
@@ -166,9 +168,7 @@ export default function Diagnostics() {
                     <tr>
                       <td>{t("diagnostics.lastSeen")}</td>
                       <td>
-                        {device.last_seen
-                          ? new Date(device.last_seen).toLocaleString()
-                          : "—"}
+                        {device.last_seen ? new Date(device.last_seen).toLocaleString() : "—"}
                       </td>
                     </tr>
                     <tr>

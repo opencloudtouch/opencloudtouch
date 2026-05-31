@@ -42,19 +42,23 @@ async def get_diagnostics(request: Request):
         device_repo = request.app.state.device_repo
         all_devices = await device_repo.get_all()
         for d in all_devices:
-            devices.append({
-                "device_id": d.device_id,
-                "name": d.name,
-                "model": d.model,
-                "ip": d.ip,
-                "firmware_version": d.firmware_version,
-                "setup_status": d.setup_status,
-                "last_seen": d.last_seen.isoformat() if d.last_seen else None,
-                "setup_completed_at": (
-                    d.setup_completed_at.isoformat() if d.setup_completed_at else None
-                ),
-                "ssh_permanent": d.ssh_permanent,
-            })
+            devices.append(
+                {
+                    "device_id": d.device_id,
+                    "name": d.name,
+                    "model": d.model,
+                    "ip": d.ip,
+                    "firmware_version": d.firmware_version,
+                    "setup_status": d.setup_status,
+                    "last_seen": d.last_seen.isoformat() if d.last_seen else None,
+                    "setup_completed_at": (
+                        d.setup_completed_at.isoformat()
+                        if d.setup_completed_at
+                        else None
+                    ),
+                    "ssh_permanent": d.ssh_permanent,
+                }
+            )
     except Exception:
         logger.debug("Could not collect device info for diagnostics")
 
