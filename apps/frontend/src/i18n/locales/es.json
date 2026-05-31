@@ -115,8 +115,6 @@
     "loading": "Cargando ajustes...",
     "errorTitle": "Error al cargar",
     "manualIps": {
-      "sectionTitle": "IPs de dispositivos manuales",
-      "description": "Añada las direcciones IP de los dispositivos manualmente si la detección automática no funciona.",
       "placeholder": "192.168.1.10",
       "addButton": "+ Añadir",
       "emptyList": "No hay IPs manuales configuradas",
@@ -125,22 +123,21 @@
       "ipRemoved": "IP {{ip}} eliminada",
       "invalidFormat": "Dirección IP no válida (formato: 192.168.1.10)",
       "alreadyExists": "Esta dirección IP ya existe",
-      "enterIp": "Por favor, introduzca una dirección IP",
-      "discoverButton": "Buscar dispositivos",
-      "discovering": "Buscando...",
-      "infoHint": "Haga clic en \"Buscar dispositivos\" para iniciar la detección manualmente. Los dispositivos encontrados aparecerán en la pantalla de inicio."
+      "enterIp": "Por favor, introduzca una dirección IP"
     },
     "discovery": {
       "devicesFound_one": "{{count}} nuevo dispositivo encontrado",
       "devicesFound_other": "{{count}} nuevos dispositivos encontrados",
       "noNewDevices": "No se encontraron nuevos dispositivos"
     },
-    "networkDiscovery": {
-      "sectionTitle": "Descubrimiento de red",
-      "description": "Buscar nuevos dispositivos SoundTouch en su red local mediante SSDP multicast.",
-      "scanButton": "Buscar en la red",
-      "scanning": "Buscando en la red...",
-      "hint": "Usa SSDP para encontrar dispositivos en su red local automáticamente. Esto puede tardar unos segundos."
+    "deviceDiscovery": {
+      "sectionTitle": "Buscar dispositivos",
+      "autoTitle": "Búsqueda automática",
+      "autoDescription": "Busca dispositivos SoundTouch en tu red local.",
+      "scanButton": "Buscar ahora",
+      "scanning": "Buscando...",
+      "manualTitle": "Dirección IP manual",
+      "manualDescription": "Usa esta opción si la búsqueda automática no encuentra nada debido a VLAN, red Docker o firewall."
     },
     "logging": {
       "sectionTitle": "Registro",

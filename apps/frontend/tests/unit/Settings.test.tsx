@@ -353,7 +353,7 @@ describe("Settings Page", () => {
     expect(screen.getByText("192.168.1.10")).toBeInTheDocument();
   });
 
-  it("shows info box", async () => {
+  it("renders unified device discovery section with two method cards", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: [] }),
@@ -362,8 +362,11 @@ describe("Settings Page", () => {
     renderWithProviders(<Settings />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Click.*Discover Devices/i)).toBeInTheDocument();
+      expect(screen.getByText("Find Devices")).toBeInTheDocument();
     });
+
+    expect(screen.getByText("Automatic Search")).toBeInTheDocument();
+    expect(screen.getByText("Manual IP Address")).toBeInTheDocument();
   });
 
   it("rejects empty IP input", async () => {
@@ -477,7 +480,7 @@ describe("Settings Page", () => {
     });
   });
 
-  it("renders the network discovery section", async () => {
+  it("shows scan button in automatic search card", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: [] }),
@@ -486,30 +489,13 @@ describe("Settings Page", () => {
     renderWithProviders(<Settings />);
 
     await waitFor(() => {
-      expect(screen.getByText("Network Discovery")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Scan Now" })).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/Scan your local network/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Scan Network" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Scan Now" })).not.toBeDisabled();
   });
 
-  it("shows scan button as disabled while discovering", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ ips: ["192.168.1.10"] }),
-    });
-
-    renderWithProviders(<Settings />);
-
-    await waitFor(() => {
-      expect(screen.getByText("192.168.1.10")).toBeInTheDocument();
-    });
-
-    const scanButton = screen.getByRole("button", { name: "Scan Network" });
-    expect(scanButton).not.toBeDisabled();
-  });
-
-  it("shows network discovery hint text", async () => {
+  it("shows manual IP fallback description", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: [] }),
@@ -518,7 +504,7 @@ describe("Settings Page", () => {
     renderWithProviders(<Settings />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Uses SSDP to find devices/)).toBeInTheDocument();
+      expect(screen.getByText(/automatic search doesn.*t find anything/i)).toBeInTheDocument();
     });
   });
 });

@@ -158,127 +158,93 @@ export default function Settings() {
     <div className="page settings-page">
       <h1 className="page-title">{t("settings.title")}</h1>
 
-      {/* Manual IPs Section */}
+      {/* Device Discovery Section */}
       <motion.section
         className="settings-section"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-      >
-        <h2 className="section-title">
-          <span className="section-icon">🌐</span>
-          {t("settings.manualIps.sectionTitle")}
-        </h2>
-
-        <div className="settings-card">
-          <p className="section-description">{t("settings.manualIps.description")}</p>
-
-          {/* Add IP Form */}
-          <form onSubmit={handleAddIP} className="ip-add-form">
-            <input
-              type="text"
-              value={newIP}
-              onChange={(e) => setNewIP(e.target.value)}
-              placeholder={t("settings.manualIps.placeholder")}
-              className="ip-input"
-              pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-            />
-            <button type="submit" className="btn btn-primary">
-              {t("settings.manualIps.addButton")}
-            </button>
-          </form>
-
-          {/* Error/Success Messages */}
-          {error && <div className="alert alert-error">{error}</div>}
-          {success && <div className="alert alert-success">{success}</div>}
-
-          {/* IP List */}
-          <div className="ip-list">
-            {manualIPs.length === 0 ? (
-              <p className="empty-message">{t("settings.manualIps.emptyList")}</p>
-            ) : (
-              <ul className="ip-items">
-                {manualIPs.map((ip) => (
-                  <motion.li
-                    key={ip}
-                    className="ip-item"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                  >
-                    <span className="ip-address">{ip}</span>
-                    <button
-                      onClick={() => handleDeleteIP(ip)}
-                      className="btn btn-delete"
-                      title={t("settings.manualIps.removeIp")}
-                    >
-                      ×
-                    </button>
-                  </motion.li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {/* Discover Button */}
-          {manualIPs.length > 0 && (
-            <div className="discover-action">
-              <button
-                className="btn btn-primary"
-                onClick={() => void startDiscovery()}
-                disabled={isDiscovering}
-                aria-label={t("settings.manualIps.discoverButton")}
-              >
-                {isDiscovering
-                  ? t("settings.manualIps.discovering")
-                  : t("settings.manualIps.discoverButton")}
-              </button>
-            </div>
-          )}
-
-          {/* Info Box */}
-          <div className="info-box">
-            <strong>ℹ️</strong>
-            <p>{t("settings.manualIps.infoHint")}</p>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* Network Discovery Section */}
-      <motion.section
-        className="settings-section"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
       >
         <h2 className="section-title">
           <span className="section-icon">🔍</span>
-          {t("settings.networkDiscovery.sectionTitle")}
+          {t("settings.deviceDiscovery.sectionTitle")}
         </h2>
 
-        <div className="settings-card">
-          <p className="section-description">{t("settings.networkDiscovery.description")}</p>
+        <div className="settings-card device-discovery-options">
+          {/* Primary: Automatic Discovery */}
+          <div className="discovery-method-card primary-method">
+            <h3 className="method-title">{t("settings.deviceDiscovery.autoTitle")}</h3>
+            <p className="method-description">{t("settings.deviceDiscovery.autoDescription")}</p>
 
-          <div className="discover-action">
-            <button
-              className="btn btn-primary network-scan-btn"
-              onClick={() => void startDiscovery()}
-              disabled={isDiscovering}
-              aria-label={t("settings.networkDiscovery.scanButton")}
-            >
-              {isDiscovering ? (
-                <>
-                  <span className="spinner-inline" aria-hidden="true" />
-                  {t("settings.networkDiscovery.scanning")}
-                </>
-              ) : (
-                t("settings.networkDiscovery.scanButton")
-              )}
-            </button>
+            <div className="discover-action">
+              <button
+                className="btn btn-primary network-scan-btn"
+                onClick={() => void startDiscovery()}
+                disabled={isDiscovering}
+                aria-label={t("settings.deviceDiscovery.scanButton")}
+              >
+                {isDiscovering ? (
+                  <>
+                    <span className="spinner-inline" aria-hidden="true" />
+                    {t("settings.deviceDiscovery.scanning")}
+                  </>
+                ) : (
+                  t("settings.deviceDiscovery.scanButton")
+                )}
+              </button>
+            </div>
           </div>
 
-          <div className="info-box">
-            <strong>ℹ️</strong>
-            <p>{t("settings.networkDiscovery.hint")}</p>
+          {/* Secondary: Manual IPs */}
+          <div className="discovery-method-card secondary-method">
+            <h3 className="method-title">{t("settings.deviceDiscovery.manualTitle")}</h3>
+            <p className="method-description">{t("settings.deviceDiscovery.manualDescription")}</p>
+
+            {/* Add IP Form */}
+            <form onSubmit={handleAddIP} className="ip-add-form">
+              <input
+                type="text"
+                value={newIP}
+                onChange={(e) => setNewIP(e.target.value)}
+                placeholder={t("settings.manualIps.placeholder")}
+                className="ip-input"
+                pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+              />
+              <button type="submit" className="btn btn-primary">
+                {t("settings.manualIps.addButton")}
+              </button>
+            </form>
+
+            {/* Error/Success Messages */}
+            {error && <div className="alert alert-error">{error}</div>}
+            {success && <div className="alert alert-success">{success}</div>}
+
+            {/* IP List */}
+            <div className="ip-list">
+              {manualIPs.length === 0 ? (
+                <p className="empty-message">{t("settings.manualIps.emptyList")}</p>
+              ) : (
+                <ul className="ip-items">
+                  {manualIPs.map((ip) => (
+                    <motion.li
+                      key={ip}
+                      className="ip-item"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                    >
+                      <span className="ip-address">{ip}</span>
+                      <button
+                        onClick={() => handleDeleteIP(ip)}
+                        className="btn btn-delete"
+                        title={t("settings.manualIps.removeIp")}
+                      >
+                        ×
+                      </button>
+                    </motion.li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </div>
       </motion.section>
