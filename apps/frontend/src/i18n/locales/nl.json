@@ -135,6 +135,13 @@
       "devicesFound_other": "{{count}} nieuwe apparaten gevonden",
       "noNewDevices": "Geen nieuwe apparaten gevonden"
     },
+    "networkDiscovery": {
+      "sectionTitle": "Netwerk ontdekking",
+      "description": "Zoek naar nieuwe SoundTouch-apparaten op uw lokale netwerk via SSDP-multicast.",
+      "scanButton": "Netwerk scannen",
+      "scanning": "Netwerk wordt gescand...",
+      "hint": "Gebruikt SSDP om apparaten op uw lokale netwerk automatisch te vinden. Dit kan enkele seconden duren."
+    },
     "logging": {
       "sectionTitle": "Logboek",
       "description": "Beheer het detailniveau van het logboek en download logs voor probleemoplossing.",

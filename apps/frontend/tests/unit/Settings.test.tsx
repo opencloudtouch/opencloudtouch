@@ -36,6 +36,7 @@ describe("Settings Page", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
@@ -473,6 +474,51 @@ describe("Settings Page", () => {
         "/api/logs/backend",
         expect.objectContaining({ method: "POST" }),
       );
+    });
+  });
+
+  it("renders the network discovery section", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ips: [] }),
+    });
+
+    renderWithProviders(<Settings />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Network Discovery")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/Scan your local network/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Scan Network" })).toBeInTheDocument();
+  });
+
+  it("shows scan button as disabled while discovering", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ips: ["192.168.1.10"] }),
+    });
+
+    renderWithProviders(<Settings />);
+
+    await waitFor(() => {
+      expect(screen.getByText("192.168.1.10")).toBeInTheDocument();
+    });
+
+    const scanButton = screen.getByRole("button", { name: "Scan Network" });
+    expect(scanButton).not.toBeDisabled();
+  });
+
+  it("shows network discovery hint text", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ips: [] }),
+    });
+
+    renderWithProviders(<Settings />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Uses SSDP to find devices/)).toBeInTheDocument();
     });
   });
 });

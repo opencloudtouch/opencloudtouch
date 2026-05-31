@@ -135,6 +135,13 @@
       "devicesFound_other": "{{count}} nya enheter hittade",
       "noNewDevices": "Inga nya enheter hittades"
     },
+    "networkDiscovery": {
+      "sectionTitle": "Nätverksupptäckt",
+      "description": "Sök efter nya SoundTouch-enheter i ditt lokala nätverk via SSDP-multicast.",
+      "scanButton": "Skanna nätverk",
+      "scanning": "Skannar nätverket...",
+      "hint": "Använder SSDP för att automatiskt hitta enheter i ditt lokala nätverk. Det kan ta några sekunder."
+    },
     "logging": {
       "sectionTitle": "Loggning",
       "description": "Styr detaljnivån för loggar och ladda ned loggar för felsökning.",

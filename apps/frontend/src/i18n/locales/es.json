@@ -135,6 +135,13 @@
       "devicesFound_other": "{{count}} nuevos dispositivos encontrados",
       "noNewDevices": "No se encontraron nuevos dispositivos"
     },
+    "networkDiscovery": {
+      "sectionTitle": "Descubrimiento de red",
+      "description": "Buscar nuevos dispositivos SoundTouch en su red local mediante SSDP multicast.",
+      "scanButton": "Buscar en la red",
+      "scanning": "Buscando en la red...",
+      "hint": "Usa SSDP para encontrar dispositivos en su red local automáticamente. Esto puede tardar unos segundos."
+    },
     "logging": {
       "sectionTitle": "Registro",
       "description": "Controle el nivel de detalle del registro y descargue los registros para la resolución de problemas.",

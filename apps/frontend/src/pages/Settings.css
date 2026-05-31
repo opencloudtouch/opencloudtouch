@@ -656,3 +656,24 @@
   margin-bottom: 0;
   flex: 1;
 }
+
+/* Network Discovery */
+.discover-action {
+  margin-top: var(--space-md);
+}
+
+.network-scan-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.spinner-inline {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}

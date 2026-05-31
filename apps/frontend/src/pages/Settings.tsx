@@ -243,6 +243,46 @@ export default function Settings() {
         </div>
       </motion.section>
 
+      {/* Network Discovery Section */}
+      <motion.section
+        className="settings-section"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+      >
+        <h2 className="section-title">
+          <span className="section-icon">🔍</span>
+          {t("settings.networkDiscovery.sectionTitle")}
+        </h2>
+
+        <div className="settings-card">
+          <p className="section-description">{t("settings.networkDiscovery.description")}</p>
+
+          <div className="discover-action">
+            <button
+              className="btn btn-primary network-scan-btn"
+              onClick={() => void startDiscovery()}
+              disabled={isDiscovering}
+              aria-label={t("settings.networkDiscovery.scanButton")}
+            >
+              {isDiscovering ? (
+                <>
+                  <span className="spinner-inline" aria-hidden="true" />
+                  {t("settings.networkDiscovery.scanning")}
+                </>
+              ) : (
+                t("settings.networkDiscovery.scanButton")
+              )}
+            </button>
+          </div>
+
+          <div className="info-box">
+            <strong>ℹ️</strong>
+            <p>{t("settings.networkDiscovery.hint")}</p>
+          </div>
+        </div>
+      </motion.section>
+
       {/* Logging Section */}
       <motion.section
         className="settings-section"
