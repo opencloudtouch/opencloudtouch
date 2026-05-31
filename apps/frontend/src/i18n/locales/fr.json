@@ -447,7 +447,13 @@
         "oldUrl": "Ancienne URL :",
         "newUrl": "Nouvelle URL :",
         "backupLabel": "Sauvegarde :",
-        "errorTitle": "Échec de la modification"
+        "errorTitle": "Échec de la modification",
+        "dnsWarningTitle": "DNS Warning",
+        "dnsUnresolvable": "This hostname could not be resolved via DNS. The speaker may not be able to reach your server.",
+        "dnsMismatch": "Hostname resolved to {{resolved}}, but the expected server IP is {{expected}}. This mismatch may cause connection issues.",
+        "dnsProceed": "Proceed anyway",
+        "dnsUseResolvedIp": "Use resolved IP instead",
+        "dnsCheckFailed": "DNS validation could not be performed."
       },
       "step6": {
         "title": "Modifier le fichier hosts",

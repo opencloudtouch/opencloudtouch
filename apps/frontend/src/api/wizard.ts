@@ -89,6 +89,33 @@ export async function detectStrategy(): Promise<DetectStrategyResponse> {
 }
 
 /**
+ * Validate hostname via DNS resolution (Wizard Step 5)
+ */
+export interface ValidateHostnameRequest {
+  hostname: string;
+  expected_ip: string | null;
+}
+
+export interface ValidateHostnameResponse {
+  resolvable: boolean;
+  resolved_ip: string | null;
+  matches_expected: boolean | null;
+  error: string | null;
+}
+
+export async function validateHostname(
+  request: ValidateHostnameRequest
+): Promise<ValidateHostnameResponse> {
+  const response = await fetch(`${API_BASE}/api/setup/wizard/validate-hostname`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+  await throwIfNotOk(response, "Hostname validation failed");
+  return response.json();
+}
+
+/**
  * Check if SSH port is available on device
  */
 export async function checkPorts(request: CheckPortsRequest): Promise<CheckPortsResponse> {
