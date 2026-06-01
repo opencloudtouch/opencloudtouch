@@ -22,11 +22,12 @@ describe("Navigation Component", () => {
   it("provides navigation links to all app sections", () => {
     renderNavigation();
 
-    // Presets, Zones, and Settings are visible in Navigation
+    // Devices & Presets, Zones, Settings, and About are visible in Navigation
     const expectedLinks = [
-      { text: "Presets", path: "/" },
+      { text: "Devices & Presets", path: "/" },
       { text: "Zones", path: "/multiroom" },
       { text: "Settings", path: "/settings" },
+      { text: "About", path: "/about" },
     ];
 
     expectedLinks.forEach(({ text, path }) => {
