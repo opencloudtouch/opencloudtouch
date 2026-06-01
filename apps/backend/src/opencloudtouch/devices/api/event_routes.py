@@ -126,6 +126,7 @@ async def _stream_events(
                 yield ": keepalive\n\n"
     except asyncio.CancelledError:
         logger.debug("SSE client disconnected (cancelled)")
+        raise
     finally:
         state_manager.unsubscribe(queue)
         logger.debug("SSE subscriber cleaned up")

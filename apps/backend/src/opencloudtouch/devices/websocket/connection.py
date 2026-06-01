@@ -7,6 +7,7 @@ including connect, listen, reconnect with exponential backoff, and disconnect.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import random
 import time
@@ -136,10 +137,8 @@ class DeviceWebSocket:
 
         if self._listen_task and not self._listen_task.done():
             self._listen_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._listen_task
-            except asyncio.CancelledError:
-                pass
 
         if self._ws:
             try:
@@ -190,7 +189,7 @@ class DeviceWebSocket:
                 await self._reconnect_delay()
 
             except asyncio.CancelledError:
-                break
+                raise
 
             except Exception:
                 if not self._should_run:

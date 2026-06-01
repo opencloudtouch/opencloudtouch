@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -276,7 +277,8 @@ class TestDeviceWebSocketConnectionLoop:
                 on_state_change=on_state_change,
             )
             ws._should_run = True
-            await ws._connection_loop()
+            with contextlib.suppress(asyncio.CancelledError):
+                await ws._connection_loop()
 
         # Should have called sleep for reconnect delay
         mock_sleep.assert_called_once()
@@ -312,7 +314,8 @@ class TestDeviceWebSocketConnectionLoop:
                 on_state_change=on_state_change,
             )
             ws._should_run = True
-            await ws._connection_loop()
+            with contextlib.suppress(asyncio.CancelledError):
+                await ws._connection_loop()
 
         mock_sleep.assert_called_once()
 
@@ -344,7 +347,8 @@ class TestDeviceWebSocketConnectionLoop:
                 on_state_change=on_state_change,
             )
             ws._should_run = True
-            await ws._connection_loop()
+            with contextlib.suppress(asyncio.CancelledError):
+                await ws._connection_loop()
 
         mock_sleep.assert_called_once()
 

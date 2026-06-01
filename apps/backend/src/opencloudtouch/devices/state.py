@@ -8,6 +8,7 @@ direct HTTP queries.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import time
 from dataclasses import dataclass, field
@@ -55,6 +56,7 @@ class DeviceStateManager:
         self._subscribers: list[asyncio.Queue[DeviceEvent]] = []
         self._icy_worker: IcyWorker | None = None
         self._icy_poll_task: asyncio.Task | None = None
+        self._background_tasks: set[asyncio.Task[None]] = set()
         self._throttle = EventThrottle(publish=self.publish)
 
     def set_icy_worker(self, worker: IcyWorker) -> None:
@@ -73,10 +75,8 @@ class DeviceStateManager:
         await self._throttle.stop()
         if self._icy_poll_task is not None:
             self._icy_poll_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._icy_poll_task
-            except asyncio.CancelledError:
-                pass
             self._icy_poll_task = None
             logger.info("ICY periodic polling stopped")
 
@@ -246,7 +246,9 @@ class DeviceStateManager:
             and event.event_type == EventType.NOW_PLAYING
             and event.now_playing
         ):
-            asyncio.create_task(self._run_icy_probe(event))
+            task = asyncio.create_task(self._run_icy_probe(event))
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
 
     async def _run_icy_probe(self, event: DeviceEvent) -> None:
         """Run ICY probe and publish enriched event if successful."""
