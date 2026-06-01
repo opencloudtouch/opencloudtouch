@@ -2,7 +2,13 @@
  * React Query hooks for settings management
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getManualIPs, setManualIPs, deleteManualIP, probeDevice, ProbeResult } from "../api/settings";
+import {
+  getManualIPs,
+  setManualIPs,
+  deleteManualIP,
+  probeDevice,
+  ProbeResult,
+} from "../api/settings";
 
 /**
  * Fetch manual IP configuration
