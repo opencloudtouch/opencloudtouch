@@ -35,7 +35,9 @@ def app(mock_device_service, mock_settings_service):
     application = FastAPI()
     application.include_router(discovery_router)
     application.dependency_overrides[get_device_service] = lambda: mock_device_service
-    application.dependency_overrides[get_settings_service] = lambda: mock_settings_service
+    application.dependency_overrides[get_settings_service] = (
+        lambda: mock_settings_service
+    )
     return application
 
 
@@ -140,9 +142,7 @@ class TestProbeEndpoint:
         assert response.status_code == 422
         assert "Invalid IP address format" in response.json()["detail"]
 
-    def test_probe_unreachable_device_returns_404(
-        self, client, mock_device_service
-    ):
+    def test_probe_unreachable_device_returns_404(self, client, mock_device_service):
         """Probe returns 404 when device is not reachable."""
         mock_device_service.probe_single_device = AsyncMock(
             side_effect=Exception("Connection refused")
