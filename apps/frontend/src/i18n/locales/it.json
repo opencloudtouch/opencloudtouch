@@ -25,7 +25,9 @@
   "nav": {
     "presets": "Dispositivi e Preset",
     "zones": "Zone",
-    "settings": "Impostazioni",    "about": "Informazioni",    "selectLanguage": "Seleziona lingua"
+    "settings": "Impostazioni",
+    "about": "Informazioni",
+    "selectLanguage": "Seleziona lingua"
   },
   "player": {
     "volume": "Volume",
