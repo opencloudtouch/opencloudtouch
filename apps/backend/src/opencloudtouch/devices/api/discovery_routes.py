@@ -7,7 +7,7 @@ SSE stream endpoints live here so routes.py stays focused on CRUD + capabilities
 import asyncio
 import ipaddress
 import logging
-from typing import Any, Dict
+from typing import Annotated, Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -191,11 +191,17 @@ class ProbeRequest(BaseModel):
     ip: str = Field(..., description="IP address of the device to probe")
 
 
-@discovery_router.post("/probe")
+@discovery_router.post(
+    "/probe",
+    responses={
+        422: {"description": "Invalid IP address format"},
+        404: {"description": "Device not reachable at the given IP"},
+    },
+)
 async def probe_device(
     request: ProbeRequest,
-    device_service: DeviceService = Depends(get_device_service),
-    settings_service: SettingsService = Depends(get_settings_service),
+    device_service: Annotated[DeviceService, Depends(get_device_service)],
+    settings_service: Annotated[SettingsService, Depends(get_settings_service)],
 ) -> Dict[str, Any]:
     """
     Probe a single device by IP address.
@@ -225,7 +231,7 @@ async def probe_device(
     try:
         device = await device_service.probe_single_device(ip)
     except Exception as e:
-        logger.warning("Probe failed for %s: %s", ip, e)
+        logger.warning("Probe failed for %r: %s", ip, e)
         raise HTTPException(
             status_code=404,
             detail=f"Device not reachable at {ip}",
@@ -237,7 +243,7 @@ async def probe_device(
         if ip not in current_ips:
             await settings_service.set_manual_ips([*current_ips, ip])
     except Exception:
-        logger.warning("Failed to save manual IP %s", ip, exc_info=True)
+        logger.warning("Failed to save manual IP %r", ip, exc_info=True)
 
     return {
         "device_id": device.device_id,
