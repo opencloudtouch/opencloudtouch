@@ -13,9 +13,7 @@ from opencloudtouch.devices.models import SyncResult
 from opencloudtouch.devices.service import DeviceService
 
 
-def _make_service(
-    repo=None, sync_svc=None, discovery=None
-) -> DeviceService:
+def _make_service(repo=None, sync_svc=None, discovery=None) -> DeviceService:
     return DeviceService(
         repository=repo or AsyncMock(),
         sync_service=sync_svc or AsyncMock(),
@@ -112,9 +110,7 @@ class TestSyncDevicesWithEvents:
     @pytest.mark.asyncio
     async def test_sync_with_events_exception(self):
         sync_svc = AsyncMock()
-        sync_svc.sync_with_events = AsyncMock(
-            side_effect=RuntimeError("sync failed")
-        )
+        sync_svc.sync_with_events = AsyncMock(side_effect=RuntimeError("sync failed"))
         event_bus = AsyncMock()
 
         svc = _make_service(sync_svc=sync_svc)

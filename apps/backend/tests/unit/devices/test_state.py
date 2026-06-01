@@ -511,8 +511,6 @@ class TestDeviceStateManagerBackgroundTasks:
     async def test_on_event_volume_without_data_falls_to_else(self):
         """VOLUME with volume=None goes to else branch."""
         mgr = DeviceStateManager()
-        event = DeviceEvent(
-            device_id="D1", event_type=EventType.VOLUME, volume=None
-        )
+        event = DeviceEvent(device_id="D1", event_type=EventType.VOLUME, volume=None)
         await mgr.on_event(event)
         assert mgr.get_state("D1") is None

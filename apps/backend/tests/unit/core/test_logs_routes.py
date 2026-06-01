@@ -509,7 +509,9 @@ class TestBuildFrontendSection:
 
         buffers = {
             "websocket": [
-                FrontendLogEntry(timestamp="12:00", level="INFO", message="ws connected"),
+                FrontendLogEntry(
+                    timestamp="12:00", level="INFO", message="ws connected"
+                ),
             ],
             "api": [],
         }
@@ -572,7 +574,9 @@ class TestPostWithStructuredBuffers:
         assert "FRONTEND [WEBSOCKET]" in response.text
         assert "ws ok" in response.text
 
-    def test_post_with_frontend_log_buffers_zip(self, client: TestClient, tmp_path: Path):
+    def test_post_with_frontend_log_buffers_zip(
+        self, client: TestClient, tmp_path: Path
+    ):
         log_dir = tmp_path / "logs"
         log_dir.mkdir()
         (log_dir / "general.log").write_text("line\n", encoding="utf-8")
@@ -662,16 +666,18 @@ class TestAuditTrailSection:
         app.include_router(router)
 
         audit_repo = AsyncMock()
-        audit_repo.get_entries = AsyncMock(return_value=[
-            {
-                "timestamp": "2025-01-01T12:00:00",
-                "device_id": "DEV1",
-                "step": 1,
-                "category": "setup",
-                "event": "started",
-                "detail": None,
-            }
-        ])
+        audit_repo.get_entries = AsyncMock(
+            return_value=[
+                {
+                    "timestamp": "2025-01-01T12:00:00",
+                    "device_id": "DEV1",
+                    "step": 1,
+                    "category": "setup",
+                    "event": "started",
+                    "detail": None,
+                }
+            ]
+        )
         audit_repo.get_config_snapshots = AsyncMock(return_value=[])
         app.state.wizard_audit_repo = audit_repo
 

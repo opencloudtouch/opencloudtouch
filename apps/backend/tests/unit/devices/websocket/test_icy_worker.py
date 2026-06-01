@@ -60,7 +60,9 @@ class TestIcyWorkerOnEvent:
     @pytest.mark.asyncio
     async def test_skip_local_internet_radio_with_artwork(self):
         worker = IcyWorker(get_stream_url=AsyncMock())
-        event = _event(np=_np(source="LOCAL_INTERNET_RADIO", artwork_url="http://art.png"))
+        event = _event(
+            np=_np(source="LOCAL_INTERNET_RADIO", artwork_url="http://art.png")
+        )
         result = await worker.on_event(event)
         assert result is None
 
