@@ -18,9 +18,11 @@
     "or": "or"
   },
   "nav": {
-    "presets": "Presets",
+    "presets": "Devices & Presets",
     "zones": "Zones",
-    "settings": "Settings"
+    "settings": "Settings",
+    "about": "About",
+    "selectLanguage": "Select language"
   },
   "player": {
     "noPlayback": "No playback",
@@ -58,8 +60,8 @@
     "infoTitle": "Preset Notes",
     "infoItem1": "Click an empty preset to assign a station",
     "infoItem2": "Click an assigned station to change or delete it",
-    "infoItem3": "► plays the saved station directly",
-    "infoItem4": "✓ = Cloud-independent, ☁ = Bose Cloud required",
+    "infoItem3": "The green ► button plays the station directly",
+    "infoItem4": "Yellow highlighted presets depend on Bose Cloud — reconfigure recommended",
     "infoItem5": "⚙️ opens the Setup Wizard for the device",
     "infoItem6": "\"Load from device\" syncs presets from SoundTouch",
     "changeStation": "Click to change station",
@@ -95,6 +97,10 @@
       "tag": "e.g. Rock, Jazz, pop…"
     },
     "searchTitle": "Search Radio Stations"
+    "loadMore": "Load more",
+    "loadingMore": "Loading...",
+    "maxReached": "Maximum ({{count}}) reached",
+    "maxReachedTooltip": "Refine your search to find specific stations"
   },
   "settings": {
     "title": "Settings",
@@ -645,8 +651,25 @@
     "reportIssue": "Report a problem",
     "support": "Support",
     "versionUnavailable": "Version unavailable",
-    "creditsTitle": "Contributors",
-    "creditsDescription": "Special thanks to the community members who contributed research, testing, and reverse engineering."
+    "hallOfFameTitle": "Hall of Fame",
+    "hallOfFameDescription": "Top 3 contributors of all time — recognized for exceptional technical impact.",
+    "spotlightTitle": "Community Spotlight — {{month}}",
+    "spotlightDescription": "This month's most valuable contributors. Thank you for your support!",
+    "supportersTitle": "Supporters",
+    "supportersDescription": "Thank you to everyone who supports OpenCloudTouch financially. Your contributions help keep the project alive!",
+    "supportersMonthly": "Monthly Supporters",
+    "supportersOneTime": "One-Time Supporters",
+    "buildTime": "Built on {{time}}",
+    "checkingUpdates": "Checking for updates...",
+    "updateAvailable": "Update available: {{version}}",
+    "viewRelease": "View Release",
+    "upToDate": "You're up to date!",
+    "total": "total",
+    "monthlySupporters": "Monthly Supporters",
+    "oneTimeSupporters": "One-Time Supporters",
+    "noSupportersYet": "No supporters yet",
+    "supportCTA": "Want to help keep this project alive?",
+    "supportButton": "Buy Me a Coffee"
   },
   "discovery": {
     "alreadyRunning": "Device search already running. Please wait...",

@@ -86,14 +86,14 @@ BUG_CLEAR_TEMPLATE = (
     "We've labeled this as a **bug** and it's on our radar. A maintainer will investigate "
     "and follow up here.\n\n"
     "In the meantime, please make sure you're running the "
-    "[latest version](https://github.com/scheilch/opencloudtouch/releases/latest)."
+    "[latest version](https://github.com/opencloudtouch/opencloudtouch/releases/latest)."
 )
 
 FEATURE_TEMPLATE = (
     "Thank you for the feature suggestion! 💡\n\n"
     "We've noted this as an **enhancement** request. The maintainer will review it and "
     "decide on prioritization.\n\n"
-    "You can check our [existing issues](https://github.com/scheilch/opencloudtouch/issues?q=is%3Aissue+label%3Aenhancement) "
+    "You can check our [existing issues](https://github.com/opencloudtouch/opencloudtouch/issues?q=is%3Aissue+label%3Aenhancement) "
     "to see if a similar feature has been discussed before."
 )
 

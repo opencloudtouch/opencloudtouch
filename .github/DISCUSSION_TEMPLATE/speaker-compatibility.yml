@@ -6,7 +6,7 @@ body:
         ## Speaker Compatibility
 
         Ask questions about supported Bose SoundTouch models, firmware versions, or network setup.
-        Check the [supported models list](https://github.com/scheilch/opencloudtouch#supported-models) first.
+        Check the [supported models list](https://github.com/opencloudtouch/opencloudtouch#supported-models) first.
 
   - type: input
     id: speaker-model

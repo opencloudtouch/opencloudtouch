@@ -89,12 +89,9 @@ async def run() -> int:
                     return 0
 
             # Skip if bot already commented on this issue (prevent duplicate responses)
+            # Must run for ALL events (issues, issue_comment) to prevent loops
             bot_username = settings.get("bot_username", "oct-support-bot")
-            if (
-                event.issue_number is not None
-                and not event.is_discussion
-                and event_name == "issue_comment"
-            ):
+            if event.issue_number is not None and not event.is_discussion:
                 if await github_client.bot_has_commented(event.issue_number, bot_username):
                     print(json.dumps({
                         "stage": "pre_check",

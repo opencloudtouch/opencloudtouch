@@ -54,7 +54,9 @@ class MockRadioAdapter(RadioProvider):
     def provider_name(self) -> str:
         return "mock"
 
-    async def search_by_name(self, query: str, limit: int = 10) -> List[RadioStation]:
+    async def search_by_name(
+        self, query: str, limit: int = 10, offset: int = 0
+    ) -> List[RadioStation]:
         """
         Filter mock stations by name (case-insensitive).
 
@@ -85,10 +87,10 @@ class MockRadioAdapter(RadioProvider):
         results = [s for s in self.MOCK_STATIONS if query_lower in s.name.lower()]
 
         logger.info("[MOCK] Found %d stations matching '%s'", len(results), query)
-        return results[:limit]
+        return results[offset : offset + limit]
 
     async def search_by_country(
-        self, query: str, limit: int = 10
+        self, query: str, limit: int = 10, offset: int = 0
     ) -> List[RadioStation]:
         """
         Filter mock stations by country (case-insensitive).
@@ -106,9 +108,11 @@ class MockRadioAdapter(RadioProvider):
         results = [s for s in self.MOCK_STATIONS if query_lower in s.country.lower()]
 
         logger.info("[MOCK] Found %d stations in %s", len(results), query)
-        return results[:limit]
+        return results[offset : offset + limit]
 
-    async def search_by_tag(self, query: str, limit: int = 10) -> List[RadioStation]:
+    async def search_by_tag(
+        self, query: str, limit: int = 10, offset: int = 0
+    ) -> List[RadioStation]:
         """
         Filter mock stations by tag (case-insensitive).
 
@@ -129,7 +133,7 @@ class MockRadioAdapter(RadioProvider):
         ]
 
         logger.info("[MOCK] Found %d stations with tag '%s'", len(results), query)
-        return results[:limit]
+        return results[offset : offset + limit]
 
     async def get_by_uuid(self, uuid: str) -> RadioStation:
         """

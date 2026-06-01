@@ -18,9 +18,11 @@
     "or": "oder"
   },
   "nav": {
-    "presets": "Presets",
+    "presets": "Geräte und Presets",
     "zones": "Zonen",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "about": "Über",
+    "selectLanguage": "Sprache wählen"
   },
   "player": {
     "noPlayback": "Keine Wiedergabe",
@@ -58,8 +60,8 @@
     "infoTitle": "Preset Hinweise",
     "infoItem1": "Klicke auf ein leeres Preset um einen Sender zuzuweisen",
     "infoItem2": "Klicke auf einen belegten Sender um ihn zu ändern oder zu löschen",
-    "infoItem3": "► spielt den gespeicherten Sender direkt ab",
-    "infoItem4": "✓ = Cloud-unabhängig, ☁ = Bose Cloud erforderlich",
+    "infoItem3": "Der grüne ► Button spielt den Sender direkt ab",
+    "infoItem4": "Gelb hinterlegte Presets sind Cloud-abhängig — Neukonfiguration empfohlen",
     "infoItem5": "⚙️ öffnet den Setup-Wizard für das Gerät",
     "infoItem6": "\"Vom Gerät laden\" synchronisiert die Presets vom SoundTouch",
     "changeStation": "Klicken um Sender zu ändern",
@@ -95,6 +97,10 @@
       "tag": "z.B. rock, jazz, pop…"
     },
     "searchTitle": "Radiosender suchen"
+    "loadMore": "Mehr anzeigen",
+    "loadingMore": "Lädt...",
+    "maxReached": "Maximum ({{count}}) erreicht",
+    "maxReachedTooltip": "Grenzen Sie Ihre Suche weiter ein, um bestimmte Sender zu finden"
   },
   "settings": {
     "title": "Einstellungen",
@@ -645,8 +651,25 @@
     "reportIssue": "Problem melden",
     "support": "Unterstützen",
     "versionUnavailable": "Version nicht verfügbar",
-    "creditsTitle": "Mitwirkende",
-    "creditsDescription": "Besonderer Dank an die Community-Mitglieder, die durch Forschung, Tests und Reverse Engineering beigetragen haben."
+    "hallOfFameTitle": "Hall of Fame",
+    "hallOfFameDescription": "Top 3 Mitwirkende aller Zeiten — anerkannt für außergewöhnlichen technischen Impact.",
+    "spotlightTitle": "Community Spotlight — {{month}}",
+    "spotlightDescription": "Die wertvollsten Beitragenden dieses Monats. Vielen Dank für eure Unterstützung!",
+    "supportersTitle": "Unterstützer",
+    "supportersDescription": "Vielen Dank an alle, die OpenCloudTouch finanziell unterstützen. Eure Beiträge helfen das Projekt am Leben zu erhalten!",
+    "supportersMonthly": "Monatliche Unterstützer",
+    "supportersOneTime": "Einmalige Unterstützer",
+    "buildTime": "Erstellt am {{time}}",
+    "checkingUpdates": "Suche nach Updates...",
+    "updateAvailable": "Update verfügbar: {{version}}",
+    "viewRelease": "Release ansehen",
+    "upToDate": "Du bist auf dem neuesten Stand!",
+    "total": "gesamt",
+    "monthlySupporters": "Monatliche Unterstützer",
+    "oneTimeSupporters": "Einmalige Unterstützer",
+    "noSupportersYet": "Noch keine Unterstützer",
+    "supportCTA": "Möchtest du helfen, dieses Projekt am Leben zu erhalten?",
+    "supportButton": "Kauf mir einen Kaffee"
   },
   "discovery": {
     "alreadyRunning": "Gerätesuche läuft bereits. Bitte warten...",

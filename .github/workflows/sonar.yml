@@ -5,9 +5,13 @@ on:
       - main
   schedule:
     - cron: '0 6 * * 1'  # Every Monday 6:00 UTC
+
+permissions:
+  contents: read
   # NOTE: PR analysis is handled by the sonar job in ci.yml (which uses
   # pre-built coverage artifacts). Do NOT add pull_request trigger here
   # — it would create a competing scan that overwrites coverage results.
+
 jobs:
   sonarqube:
     name: SonarQube
@@ -37,7 +41,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
@@ -53,8 +57,8 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v8
         with:
           args: >
-            -Dsonar.projectKey=scheilch_opencloudtouch
-            -Dsonar.organization=scheilscm
+            -Dsonar.projectKey=opencloudtouch_opencloudtouch
+            -Dsonar.organization=opencloudtouch
             -Dsonar.qualitygate.wait=false
             -Dsonar.projectName=opencloudtouch
             -Dsonar.sources=apps/backend/src,apps/frontend/src

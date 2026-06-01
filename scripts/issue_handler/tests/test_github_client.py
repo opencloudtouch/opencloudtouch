@@ -20,7 +20,7 @@ def client() -> GitHubClient:
     return GitHubClient(
         bot_pat="fake-bot-pat",
         github_token="fake-gh-token",
-        repo_owner="scheilch",
+        repo_owner="opencloudtouch",
         repo_name="opencloudtouch",
     )
 
@@ -36,9 +36,31 @@ class TestAddLabels:
 class TestPostComment:
     @pytest.mark.asyncio
     async def test_posts_comment(self, client: GitHubClient) -> None:
-        with patch.object(client._bot_client, "post", new_callable=AsyncMock, return_value=_resp(201, {"id": 1})):
-            await client.post_comment(42, "Hello, thanks for reporting!")
-            client._bot_client.post.assert_called_once()
+        # Mock _get_bot_login to return None (skip safety net)
+        with patch.object(client, "_get_bot_login", new_callable=AsyncMock, return_value=None):
+            with patch.object(client._bot_client, "post", new_callable=AsyncMock, return_value=_resp(201, {"id": 1})):
+                await client.post_comment(42, "Hello, thanks for reporting!")
+                client._bot_client.post.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_blocks_duplicate_comment(self, client: GitHubClient) -> None:
+        """Safety net: if bot already commented, post_comment silently returns."""
+        existing_comments = [{"user": {"login": "oct-bot"}, "body": "Already here"}]
+        with patch.object(client, "_get_bot_login", new_callable=AsyncMock, return_value="oct-bot"):
+            with patch.object(client._search_client, "get", new_callable=AsyncMock, return_value=_resp(200, existing_comments, "GET")):
+                with patch.object(client._bot_client, "post", new_callable=AsyncMock) as mock_post:
+                    await client.post_comment(42, "This should be blocked")
+                    mock_post.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_allows_first_comment(self, client: GitHubClient) -> None:
+        """Safety net: if no prior bot comment, post_comment proceeds."""
+        existing_comments = [{"user": {"login": "some-user"}, "body": "User comment"}]
+        with patch.object(client, "_get_bot_login", new_callable=AsyncMock, return_value="oct-bot"):
+            with patch.object(client._search_client, "get", new_callable=AsyncMock, return_value=_resp(200, existing_comments, "GET")):
+                with patch.object(client._bot_client, "post", new_callable=AsyncMock, return_value=_resp(201, {"id": 1})):
+                    await client.post_comment(42, "First bot comment")
+                    client._bot_client.post.assert_called_once()
 
 
 class TestCloseIssue:
@@ -58,7 +80,7 @@ class TestSetAssignee:
             await client.set_assignee(42, "oct-support")
             client._bot_client.post.assert_called_once()
             call_args = client._bot_client.post.call_args
-            assert call_args[0][0] == "/repos/scheilch/opencloudtouch/issues/42/assignees"
+            assert call_args[0][0] == "/repos/opencloudtouch/opencloudtouch/issues/42/assignees"
             assert call_args[1]["json"] == {"assignees": ["oct-support"]}
 
     @pytest.mark.asyncio

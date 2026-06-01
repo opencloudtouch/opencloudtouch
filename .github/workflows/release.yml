@@ -12,6 +12,7 @@
 # ==============================================================================
 
 name: Release
+run-name: "Release · v${{ inputs.release_type == 'patch' && vars.NEXT_PATCH || inputs.release_type == 'minor' && vars.NEXT_MINOR || vars.NEXT_MAJOR }} · ${{ github.ref_name }}"
 
 on:
   workflow_dispatch:
@@ -29,10 +30,18 @@ on:
         required: false
         type: boolean
         default: false
+      mark_as_stable:
+        description: 'Tag Docker image as "stable"'
+        required: false
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+
+# Least-privilege: no default permissions. Jobs declare what they need.
+permissions: {}
 
 jobs:
   # ============================================================================
@@ -41,6 +50,8 @@ jobs:
   preflight:
     name: Pre-flight Checks
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     outputs:
       version: ${{ steps.calc.outputs.version }}
@@ -161,18 +172,22 @@ jobs:
           sed -i "s/^  version: .*/  version: $VERSION/" apps/backend/openapi.yaml
           echo "  apps/backend/openapi.yaml"
 
+          sed -i "s/^sonar.projectVersion=.*/sonar.projectVersion=$VERSION/" sonar-project.properties
+          echo "  sonar-project.properties"
+
           echo ""
           echo "Verification:"
           grep '"version"' package.json | head -1
           grep '"version"' apps/frontend/package.json | head -1
           grep '^version' apps/backend/pyproject.toml | head -1
           grep '^  version:' apps/backend/openapi.yaml | head -1
+          grep '^sonar.projectVersion' sonar-project.properties
 
       - name: Commit and push version bump
         id: commit
         run: |
           VERSION="${{ needs.preflight.outputs.version }}"
-          git add package.json package-lock.json apps/frontend/package.json apps/backend/pyproject.toml apps/backend/openapi.yaml
+          git add package.json package-lock.json apps/frontend/package.json apps/backend/pyproject.toml apps/backend/openapi.yaml sonar-project.properties
           if git diff --cached --quiet; then
             echo "Nothing to commit (versions already at $VERSION)"
           else
@@ -336,7 +351,6 @@ jobs:
 
           | Tag | Description |
           |-----|-------------|
-          | \`stable\` | Latest stable release (recommended) |
           | \`${VERSION}\` | This specific version |
           | \`latest\` | Latest build from main branch |
 
@@ -352,6 +366,11 @@ jobs:
 
           ${COMPARE_TEXT}
           DOCKER_EOF
+
+          # Add stable tag row if this release is marked as stable
+          if [ "${{ inputs.mark_as_stable }}" = "true" ] && [ "${{ inputs.prerelease }}" != "true" ]; then
+            sed -i "/| \`latest\`/i\\          | \`stable\` | Latest stable release (recommended) |" release-notes.md
+          fi
 
           echo "=== Release Notes Preview ==="
           head -30 release-notes.md
@@ -399,7 +418,9 @@ jobs:
       architectures: all
       attach_to_release: true
       checkout_ref: ${{ needs.tag.outputs.tag }}
-    secrets: inherit
+      mark_as_stable: ${{ inputs.mark_as_stable && !inputs.prerelease }}
+    secrets:
+      BUILD_SIGNING_KEY: ${{ secrets.BUILD_SIGNING_KEY }}
 
   # ============================================================================
   # PUBLISH RELEASE (draft → public, only after successful image build)
@@ -454,3 +475,21 @@ jobs:
 
           **Release**: https://github.com/${{ github.repository }}/releases/tag/v${VERSION}
           EOF
+
+      - name: Update next-version variables
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.gh-release.outputs.version }}"
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+
+          gh variable set NEXT_PATCH --body "${MAJOR}.${MINOR}.$((PATCH + 1)}" --repo ${{ github.repository }}
+          gh variable set NEXT_MINOR --body "${MAJOR}.$((MINOR + 1)).0" --repo ${{ github.repository }}
+          gh variable set NEXT_MAJOR --body "$((MAJOR + 1)).0.0" --repo ${{ github.repository }}
+
+          echo "Updated version variables:"
+          echo "  NEXT_PATCH = ${MAJOR}.${MINOR}.$((PATCH + 1))"
+          echo "  NEXT_MINOR = ${MAJOR}.$((MINOR + 1)).0"
+          echo "  NEXT_MAJOR = $((MAJOR + 1)).0.0"

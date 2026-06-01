@@ -7,10 +7,13 @@ GITHUB_TOKEN for search queries (rate limiting).
 from __future__ import annotations
 
 import asyncio
+import logging
 import random
 from typing import Any
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 # Retry configuration per spec: base 1s, factor 2×, max 3, jitter ±500ms
 MAX_RETRIES = 3
@@ -83,6 +86,24 @@ class GitHubClient:
         response.raise_for_status()
 
     async def post_comment(self, issue_number: int, body: str) -> None:
+        # Safety net: check if bot already commented (prevent duplicate spam)
+        bot_login = await self._get_bot_login()
+        if bot_login:
+            existing = await self._request_with_retry(
+                self._search_client,
+                "get",
+                self._repo_url(f"/issues/{issue_number}/comments"),
+                params={"per_page": 100},
+            )
+            if existing.status_code == 200:
+                comments = existing.json()
+                if any(c.get("user", {}).get("login") == bot_login for c in comments):
+                    logger.warning(
+                        "Duplicate comment blocked: bot '%s' already commented on #%d",
+                        bot_login, issue_number,
+                    )
+                    return
+
         response = await self._request_with_retry(
             self._bot_client,
             "post",
@@ -90,6 +111,19 @@ class GitHubClient:
             json={"body": body},
         )
         response.raise_for_status()
+
+    async def _get_bot_login(self) -> str | None:
+        """Get the authenticated bot's login name. Cached after first call."""
+        if not hasattr(self, "_bot_login_cached"):
+            try:
+                response = await self._bot_client.get("/user")
+                if response.status_code == 200:
+                    self._bot_login_cached: str | None = response.json().get("login")
+                else:
+                    self._bot_login_cached = None
+            except Exception:
+                self._bot_login_cached = None
+        return self._bot_login_cached
 
     async def close_issue(self, issue_number: int) -> None:
         response = await self._request_with_retry(

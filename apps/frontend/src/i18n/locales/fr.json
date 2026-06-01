@@ -18,9 +18,11 @@
     "or": "ou"
   },
   "nav": {
-    "presets": "Préréglages",
+    "presets": "Appareils et Préréglages",
     "zones": "Zones",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "about": "À propos",
+    "selectLanguage": "Choisir la langue"
   },
   "player": {
     "noPlayback": "Pas de lecture",
@@ -58,8 +60,8 @@
     "infoTitle": "Notes sur les préréglages",
     "infoItem1": "Cliquez sur un préréglage vide pour attribuer une station",
     "infoItem2": "Cliquez sur une station attribuée pour la modifier ou la supprimer",
-    "infoItem3": "▶ lit directement la station enregistrée",
-    "infoItem4": "✓ = indépendant du cloud, ☁ = Bose Cloud requis",
+    "infoItem3": "Le bouton vert ► lit la station directement",
+    "infoItem4": "Les préréglages surlignés en jaune dépendent de Bose Cloud — reconfiguration recommandée",
     "infoItem5": "⚙️ ouvre l'assistant de configuration pour l'appareil",
     "infoItem6": "\"Charger depuis l'appareil\" synchronise les préréglages depuis SoundTouch",
     "changeStation": "Cliquer pour changer de station",
@@ -95,6 +97,10 @@
       "tag": "ex. Rock, Jazz, pop…"
     },
     "searchTitle": "Rechercher des stations radio"
+    "loadMore": "Charger plus",
+    "loadingMore": "Chargement...",
+    "maxReached": "Maximum ({{count}}) atteint",
+    "maxReachedTooltip": "Affinez votre recherche pour trouver des stations spécifiques"
   },
   "settings": {
     "title": "Paramètres",
@@ -302,7 +308,7 @@
         "checkFat32": "La clé USB est formatée en FAT32",
         "checkFileEmpty": "Le fichier 'remote_services' est dans le répertoire racine et vide",
         "checkReady": "La clé USB est prête à être insérée dans l'appareil",
-        "dualUsbHint": "Votre appareil dispose soit du Micro-USB, soit de l'USB-A selon l'année de production. Vérifiez à l'arrière de l'appareil."
+        "dualUsbHint": "Votre appareil dispose soit d'un Micro-USB soit d'un USB-A selon l'année de fabrication. Vérifiez l'arrière de l'appareil pour voir quel port est disponible."
       },
       "step3": {
         "title": "Redémarrer l'appareil",
@@ -536,56 +542,56 @@
   },
   "restore": {
     "choice": {
-      "title": "What would you like to do?",
-      "setup_title": "Setup Wizard",
+      "title": "Que souhaitez-vous faire ?",
+      "setup_title": "Assistant d'installation",
       "setup_desc": "Configure device for OpenCloudTouch",
-      "restore_title": "Restore Wizard",
-      "restore_desc": "Undo all OCT changes and restore factory state"
+      "restore_title": "Assistant de restauration",
+      "restore_desc": "Annuler toutes les modifications OCT et restaurer l'état d'usine"
     },
     "restore_choice": {
-      "title": "Choose Restore Type",
-      "description": "Select how you want to restore the device.",
-      "clean_title": "Clean Restore",
-      "clean_desc": "Remove all OCT modifications. No backup needed.",
-      "backup_title": "Restore from Backup",
-      "backup_desc": "Restore original config files from USB backup."
+      "title": "Choisir le type de restauration",
+      "description": "Sélectionnez comment vous souhaitez restaurer l'appareil.",
+      "clean_title": "Restauration propre",
+      "clean_desc": "Supprimer toutes les modifications OCT. Aucune sauvegarde nécessaire.",
+      "backup_title": "Restaurer depuis la sauvegarde",
+      "backup_desc": "Restaurer les fichiers de configuration d'origine depuis la sauvegarde USB."
     },
     "backup_scan": {
-      "title": "Scanning for Backups",
-      "description": "Searching USB stick for backup files...",
-      "scanning": "Scanning USB stick...",
+      "title": "Recherche de sauvegardes",
+      "description": "Recherche de fichiers de sauvegarde sur la clé USB...",
+      "scanning": "Analyse de la clé USB...",
       "error": "Scan failed: {{message}}",
-      "no_usb": "No USB stick detected. Please insert USB stick and retry.",
-      "found": "Backup found",
-      "legacy": "legacy",
-      "use_backup": "Use This Backup"
+      "no_usb": "Aucune clé USB détectée. Veuillez insérer la clé USB et réessayer.",
+      "found": "Sauvegarde trouvée",
+      "legacy": "ancien",
+      "use_backup": "Utiliser cette sauvegarde"
     },
     "execution": {
-      "title": "Restoring Device",
-      "description": "Undoing all OCT modifications...",
-      "running": "Restore in progress...",
+      "title": "Restauration de l'appareil",
+      "description": "Annulation de toutes les modifications OCT...",
+      "running": "Restauration en cours...",
       "error": "Restore failed: {{message}}",
       "success": "All steps completed successfully! Total: {{time}}s",
-      "continue": "Continue"
+      "continue": "Continuer"
     },
     "verification": {
-      "title": "Waiting for Device",
-      "description": "Device is rebooting. Waiting for it to come back online...",
+      "title": "En attente de l'appareil",
+      "description": "L'appareil redémarre. En attente de reconnexion...",
       "countdown": "Checking in {{seconds}}s...",
-      "timeout": "Device not detected after 120s. It may have received a new IP via DHCP.",
-      "manual_confirm": "Device is back — I can see it",
-      "online": "Device is back online!",
-      "continue": "Continue"
+      "timeout": "Appareil non détecté après 120s. Il a peut-être reçu une nouvelle adresse IP via DHCP.",
+      "manual_confirm": "L'appareil est de retour — je le vois",
+      "online": "L'appareil est de nouveau en ligne !",
+      "continue": "Continuer"
     },
     "completion": {
-      "title": "Restore Complete",
-      "description": "Device has been restored successfully.",
-      "clean_summary": "Clean Restore Summary",
-      "backup_summary": "Backup Restore Summary",
-      "restored": "Restored",
-      "skipped": "Skipped",
-      "failed": "Failed",
-      "note": "The device is now in its original state. You can safely disconnect it.",
+      "title": "Restauration terminée",
+      "description": "L'appareil a été restauré avec succès.",
+      "clean_summary": "Résumé de la restauration propre",
+      "backup_summary": "Résumé de la restauration par sauvegarde",
+      "restored": "Restauré",
+      "skipped": "Ignoré",
+      "failed": "Échoué",
+      "note": "L'appareil est maintenant dans son état d'origine. Vous pouvez le déconnecter en toute sécurité.",
       "done": "Done"
     }
   },
@@ -645,8 +651,25 @@
     "reportIssue": "Signaler un problème",
     "support": "Assistance",
     "versionUnavailable": "Version non disponible",
-    "creditsTitle": "Contributeurs",
-    "creditsDescription": "Remerciements particuliers aux membres de la communauté qui ont contribué par leurs recherches, tests et rétro-ingénierie."
+    "hallOfFameTitle": "Panthéon",
+    "hallOfFameDescription": "Les 3 meilleurs contributeurs de tous les temps — reconnus pour leur impact technique exceptionnel.",
+    "spotlightTitle": "Contributeurs du mois — {{month}}",
+    "spotlightDescription": "Les contributeurs les plus précieux de ce mois. Merci pour votre soutien !",
+    "supportersTitle": "Supporters",
+    "supportersDescription": "Merci à tous ceux qui soutiennent OpenCloudTouch financièrement. Vos contributions aident à maintenir le projet en vie !",
+    "supportersMonthly": "Supporters Mensuels",
+    "supportersOneTime": "Supporters ponctuels",
+    "buildTime": "Créé le {{time}}",
+    "checkingUpdates": "Vérification des mises à jour...",
+    "updateAvailable": "Mise à jour disponible : {{version}}",
+    "viewRelease": "Voir la version",
+    "upToDate": "Vous êtes à jour !",
+    "total": "total",
+    "monthlySupporters": "Supporters mensuels",
+    "oneTimeSupporters": "Supporters ponctuels",
+    "noSupportersYet": "Pas encore de supporters",
+    "supportCTA": "Vous souhaitez aider à maintenir ce projet en vie ?",
+    "supportButton": "Offrez-moi un café"
   },
   "discovery": {
     "alreadyRunning": "Recherche d'appareils déjà en cours. Veuillez patienter...",

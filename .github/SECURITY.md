@@ -6,16 +6,17 @@ Security updates are provided for the following versions:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.2.x   | :white_check_mark: |
-| < 0.2   | :x:                |
+| 1.x     | :white_check_mark: |
+| < 1.0   | :x:                |
 
 ## Reporting Vulnerabilities
 
 **DO NOT** create public GitHub issues for security vulnerabilities.
 
-Instead, please report security issues privately by emailing:
+Instead, please use one of these channels:
 
-**security@opencloudtouch.org** *(replace with actual contact)*
+1. **GitHub Private Vulnerability Reporting** (preferred): Click "Report a vulnerability" on the [Security Advisories](https://github.com/opencloudtouch/opencloudtouch/security/advisories) page
+2. **Email**: security@opencloudtouch.org
 
 You should receive a response within 48 hours. If the issue is confirmed, we will:
 
@@ -101,7 +102,7 @@ Only `/data` volume needs write access.
 
 - Exposed port: **7777 only** (HTTP API + frontend)
 - No SSH, no shell access by default
-- Minimal base image (python:3.11-slim-bookworm)
+- Minimal base image (python:3.13-slim-bookworm)
 
 ---
 
@@ -109,21 +110,21 @@ Only `/data` volume needs write access.
 
 #### Automated Scanning
 
-- **Dependabot:** Weekly dependency updates (Mondays 06:00 UTC)
+- **Dependabot:** Quarterly version updates, immediate security updates
 - **Trivy:** Container vulnerability scanning in CI/CD
 - **Bandit:** Python security linter (pre-commit hook)
 
 #### Pinned Dependencies
 
-All production dependencies are pinned to exact versions:
+Production dependencies use minimum version constraints:
 
 ```python
 # requirements.txt
-fastapi==0.115.0
-uvicorn[standard]==0.32.0
+fastapi >=0.115
+uvicorn[standard] >=0.32
 ```
 
-This prevents supply-chain attacks via unexpected updates.
+Exact versions are locked via `pip freeze` in the Docker build for reproducibility.
 
 ---
 
@@ -196,7 +197,7 @@ version: 2
 updates:
   - package-ecosystem: "pip"
     schedule:
-      interval: "weekly"
+      interval: "quarterly"  # security updates are immediate
 ```
 
 #### 4. Container Image Verification

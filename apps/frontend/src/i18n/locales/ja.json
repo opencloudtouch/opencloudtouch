@@ -18,9 +18,11 @@
     "or": "または"
   },
   "nav": {
-    "presets": "プリセット",
+    "presets": "デバイスとプリセット",
     "zones": "ゾーン",
-    "settings": "設定"
+    "settings": "設定",
+    "about": "について",
+    "selectLanguage": "言語を選択"
   },
   "player": {
     "noPlayback": "再生なし",
@@ -58,8 +60,8 @@
     "infoTitle": "プリセットについて",
     "infoItem1": "空のプリセットをクリックしてステーションを割り当てる",
     "infoItem2": "割り当て済みのステーションをクリックして変更または削除する",
-    "infoItem3": "▶ 保存済みステーションを直接再生",
-    "infoItem4": "✓ = クラウド不要、☁ = Bose Cloudが必要",
+    "infoItem3": "緑色の ► ボタンでステーションを直接再生",
+    "infoItem4": "黄色のプリセットはBose Cloudに依存 — 再設定を推奨",
     "infoItem5": "⚙️ デバイスのセットアップウィザードを開く",
     "infoItem6": "「デバイスから読み込む」でSoundTouchからプリセットを同期",
     "changeStation": "クリックしてステーションを変更",
@@ -95,6 +97,10 @@
       "tag": "例：Rock、Jazz、pop…"
     },
     "searchTitle": "ラジオ局を検索"
+    "loadMore": "もっと読み込む",
+    "loadingMore": "読み込み中...",
+    "maxReached": "最大件数 ({{count}}) に到達",
+    "maxReachedTooltip": "特定のステーションを見つけるには検索を絞り込んでください"
   },
   "settings": {
     "title": "設定",
@@ -302,7 +308,7 @@
         "checkFat32": "USBドライブはFAT32でフォーマットされています",
         "checkFileEmpty": "「remote_services」ファイルがルートディレクトリにあり空です",
         "checkReady": "USBドライブはデバイスに挿入する準備ができています",
-        "dualUsbHint": "お使いのデバイスは製造年によりMicro-USBまたはUSB-Aを搭載しています。デバイスの背面を確認してください。"
+        "dualUsbHint": "お使いのデバイスは製造年によりMicro-USBまたはUSB-Aポートを搭載しています。デバイスの背面を確認して、どのポートが利用可能か確認してください。"
       },
       "step3": {
         "title": "デバイスを再起動",
@@ -536,56 +542,56 @@
   },
   "restore": {
     "choice": {
-      "title": "What would you like to do?",
-      "setup_title": "Setup Wizard",
+      "title": "何をしますか？",
+      "setup_title": "セットアップウィザード",
       "setup_desc": "Configure device for OpenCloudTouch",
-      "restore_title": "Restore Wizard",
-      "restore_desc": "Undo all OCT changes and restore factory state"
+      "restore_title": "復元ウィザード",
+      "restore_desc": "すべてのOCT変更を元に戻し、工場出荷時の状態に復元します"
     },
     "restore_choice": {
-      "title": "Choose Restore Type",
-      "description": "Select how you want to restore the device.",
-      "clean_title": "Clean Restore",
-      "clean_desc": "Remove all OCT modifications. No backup needed.",
-      "backup_title": "Restore from Backup",
-      "backup_desc": "Restore original config files from USB backup."
+      "title": "復元タイプを選択",
+      "description": "デバイスの復元方法を選択してください。",
+      "clean_title": "クリーン復元",
+      "clean_desc": "すべてのOCT変更を削除します。バックアップは不要です。",
+      "backup_title": "バックアップから復元",
+      "backup_desc": "USBバックアップから元の設定ファイルを復元します。"
     },
     "backup_scan": {
-      "title": "Scanning for Backups",
-      "description": "Searching USB stick for backup files...",
-      "scanning": "Scanning USB stick...",
+      "title": "バックアップを検索中",
+      "description": "USBメモリでバックアップファイルを検索中...",
+      "scanning": "USBメモリをスキャン中...",
       "error": "Scan failed: {{message}}",
-      "no_usb": "No USB stick detected. Please insert USB stick and retry.",
-      "found": "Backup found",
-      "legacy": "legacy",
-      "use_backup": "Use This Backup"
+      "no_usb": "USBメモリが検出されません。USBメモリを挿入して再試行してください。",
+      "found": "バックアップが見つかりました",
+      "legacy": "レガシー",
+      "use_backup": "このバックアップを使用"
     },
     "execution": {
-      "title": "Restoring Device",
-      "description": "Undoing all OCT modifications...",
-      "running": "Restore in progress...",
+      "title": "デバイスを復元中",
+      "description": "すべてのOCT変更を元に戻しています...",
+      "running": "復元中...",
       "error": "Restore failed: {{message}}",
       "success": "All steps completed successfully! Total: {{time}}s",
-      "continue": "Continue"
+      "continue": "続行"
     },
     "verification": {
-      "title": "Waiting for Device",
-      "description": "Device is rebooting. Waiting for it to come back online...",
+      "title": "デバイスを待機中",
+      "description": "デバイスが再起動中です。オンラインに戻るのを待っています...",
       "countdown": "Checking in {{seconds}}s...",
-      "timeout": "Device not detected after 120s. It may have received a new IP via DHCP.",
-      "manual_confirm": "Device is back — I can see it",
-      "online": "Device is back online!",
-      "continue": "Continue"
+      "timeout": "120秒後にデバイスが検出されませんでした。DHCPにより新しいIPアドレスを取得した可能性があります。",
+      "manual_confirm": "デバイスが戻りました — 確認できます",
+      "online": "デバイスがオンラインに戻りました！",
+      "continue": "続行"
     },
     "completion": {
-      "title": "Restore Complete",
-      "description": "Device has been restored successfully.",
-      "clean_summary": "Clean Restore Summary",
-      "backup_summary": "Backup Restore Summary",
-      "restored": "Restored",
-      "skipped": "Skipped",
-      "failed": "Failed",
-      "note": "The device is now in its original state. You can safely disconnect it.",
+      "title": "復元完了",
+      "description": "デバイスが正常に復元されました。",
+      "clean_summary": "クリーン復元の概要",
+      "backup_summary": "バックアップ復元の概要",
+      "restored": "復元済み",
+      "skipped": "スキップ",
+      "failed": "失敗",
+      "note": "デバイスは元の状態に戻りました。安全に切断できます。",
       "done": "Done"
     }
   },
@@ -645,8 +651,25 @@
     "reportIssue": "問題を報告",
     "support": "サポート",
     "versionUnavailable": "バージョン不明",
-    "creditsTitle": "貢献者",
-    "creditsDescription": "リサーチ、テスト、リバースエンジニアリングに貢献してくださったコミュニティメンバーに特別な感謝を。"
+    "hallOfFameTitle": "殿堂入り",
+    "hallOfFameDescription": "歴代トップ3の貢献者 — 卓越した技術的影響力で認められています。",
+    "spotlightTitle": "今月の貢献者 — {{month}}",
+    "spotlightDescription": "今月最も価値ある貢献者の皆様。ご支援ありがとうございます！",
+    "supportersTitle": "支援者",
+    "supportersDescription": "OpenCloudTouchを財政的に支援してくださる皆様に感謝します。皆様の貢献がプロジェクトを支えています！",
+    "supportersMonthly": "月額支援者",
+    "supportersOneTime": "一回限りの支援者",
+    "buildTime": "ビルド日時：{{time}}",
+    "checkingUpdates": "アップデート確認中...",
+    "updateAvailable": "アップデート可能：{{version}}",
+    "viewRelease": "リリースを表示",
+    "upToDate": "最新版です！",
+    "total": "合計",
+    "monthlySupporters": "月額支援者",
+    "oneTimeSupporters": "一回限りの支援者",
+    "noSupportersYet": "まだ支援者はいません",
+    "supportCTA": "このプロジェクトを支援しますか？",
+    "supportButton": "コーヒーをおごる"
   },
   "discovery": {
     "alreadyRunning": "デバイス検索はすでに実行中です。お待ちください...",

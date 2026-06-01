@@ -6,7 +6,7 @@ Provides REST API for searching and retrieving radio stations.
 
 import os
 from enum import Enum
-from typing import List
+from typing import Annotated, List
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -64,6 +64,7 @@ class RadioSearchResponse(BaseModel):
     """Search results response."""
 
     stations: List[RadioStationResponse]
+    has_more: bool = False
 
 
 class SearchType(str, Enum):
@@ -88,7 +89,10 @@ async def search_stations(
     search_type: SearchType = Query(
         SearchType.NAME, description="Search type: name, country, or tag"
     ),
-    limit: int = Query(10, ge=1, le=100, description="Maximum number of results"),
+    limit: Annotated[
+        int, Query(ge=1, le=50, description="Maximum number of results")
+    ] = 10,
+    offset: Annotated[int, Query(ge=0, description="Offset for pagination")] = 0,
     provider: ProviderType = Query(
         ProviderType.RADIOBROWSER, description="Radio provider: radiobrowser or tunein"
     ),
@@ -98,7 +102,8 @@ async def search_stations(
 
     - **q**: Search query (required, min 1 character)
     - **search_type**: Type of search - name, country, or tag (default: name)
-    - **limit**: Maximum results (1-100, default: 10)
+    - **limit**: Maximum results (1-50, default: 10)
+    - **offset**: Offset for pagination (default: 0)
     - **provider**: Radio provider - radiobrowser or tunein (default: radiobrowser)
     """
     # Guard: reject tunein when extended resolver is disabled
@@ -116,19 +121,21 @@ async def search_stations(
     try:
         # Route to appropriate search method
         if search_type == SearchType.NAME:
-            stations = await adapter.search_by_name(q, limit=limit)
+            stations = await adapter.search_by_name(q, limit=limit, offset=offset)
         elif search_type == SearchType.COUNTRY:
-            stations = await adapter.search_by_country(q, limit=limit)
+            stations = await adapter.search_by_country(q, limit=limit, offset=offset)
         elif search_type == SearchType.TAG:
-            stations = await adapter.search_by_tag(q, limit=limit)
+            stations = await adapter.search_by_tag(q, limit=limit, offset=offset)
         else:  # pragma: no cover
             raise HTTPException(  # pragma: no cover
                 status_code=422, detail=f"Invalid search type: {search_type}"
             )
 
         # Convert to response model
+        has_more = len(stations) == limit
         return RadioSearchResponse(
-            stations=[RadioStationResponse.from_station(s) for s in stations]
+            stations=[RadioStationResponse.from_station(s) for s in stations],
+            has_more=has_more,
         )
 
     except (RadioBrowserTimeoutError, TuneInTimeoutError) as e:

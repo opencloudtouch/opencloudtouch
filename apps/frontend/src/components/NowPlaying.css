@@ -108,6 +108,7 @@
   gap: var(--space-xs);
   max-width: 100%;
   overflow: hidden;
+  min-height: 42px; /* Reserve space for track + artist to prevent layout shift */
 }
 
 .np-header {

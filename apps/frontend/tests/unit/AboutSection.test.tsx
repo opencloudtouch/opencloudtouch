@@ -260,7 +260,7 @@ describe("AboutSection — US2 (P2): Device count & external links", () => {
     render(<AboutSection />, { wrapper: QueryWrapper });
 
     const githubLink = screen.getByRole("link", { name: /github/i });
-    expect(githubLink).toHaveAttribute("href", "https://github.com/scheilch/opencloudtouch");
+    expect(githubLink).toHaveAttribute("href", "https://github.com/opencloudtouch/opencloudtouch");
     expect(githubLink).toHaveAttribute("target", "_blank");
     expect(githubLink).toHaveAttribute("rel", "noopener noreferrer");
   });
@@ -284,7 +284,7 @@ describe("AboutSection — US2 (P2): Device count & external links", () => {
     const issuesLink = screen.getByRole("link", { name: /report a problem/i });
     expect(issuesLink).toHaveAttribute(
       "href",
-      "https://github.com/scheilch/opencloudtouch/issues/new?template=bug_report.yml"
+      "https://github.com/opencloudtouch/opencloudtouch/issues/new?template=bug_report.yml"
     );
     expect(issuesLink).toHaveAttribute("rel", "noopener noreferrer");
   });

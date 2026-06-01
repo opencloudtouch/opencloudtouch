@@ -18,9 +18,11 @@
     "or": "ou"
   },
   "nav": {
-    "presets": "Presets",
+    "presets": "Dispositivos e Presets",
     "zones": "Zonas",
-    "settings": "Configurações"
+    "settings": "Configurações",
+    "about": "Sobre",
+    "selectLanguage": "Selecionar idioma"
   },
   "player": {
     "noPlayback": "Sem reprodução",
@@ -58,8 +60,8 @@
     "infoTitle": "Notas sobre presets",
     "infoItem1": "Clique em um preset vazio para atribuir uma estação",
     "infoItem2": "Clique em uma estação atribuída para alterá-la ou excluí-la",
-    "infoItem3": "▶ reproduz a estação salva diretamente",
-    "infoItem4": "✓ = independente da nuvem, ☁ = requer Bose Cloud",
+    "infoItem3": "O botão verde ► reproduz a estação diretamente",
+    "infoItem4": "Presets destacados em amarelo dependem do Bose Cloud — reconfiguração recomendada",
     "infoItem5": "⚙️ abre o assistente de configuração do dispositivo",
     "infoItem6": "\"Carregar do dispositivo\" sincroniza os presets do SoundTouch",
     "changeStation": "Clique para mudar a estação",
@@ -95,6 +97,10 @@
       "tag": "ex.: Rock, Jazz, pop…"
     },
     "searchTitle": "Pesquisar estações de rádio"
+    "loadMore": "Carregar mais",
+    "loadingMore": "Carregando...",
+    "maxReached": "Máximo ({{count}}) atingido",
+    "maxReachedTooltip": "Refine sua pesquisa para encontrar estações específicas"
   },
   "settings": {
     "title": "Configurações",
@@ -302,7 +308,7 @@
         "checkFat32": "Pendrive está formatado com FAT32",
         "checkFileEmpty": "Arquivo 'remote_services' está no diretório raiz e vazio",
         "checkReady": "Pendrive está pronto para inserir no dispositivo",
-        "dualUsbHint": "Seu dispositivo tem Micro-USB ou USB-A dependendo do ano de fabricação. Verifique a parte traseira do dispositivo."
+        "dualUsbHint": "Seu dispositivo possui Micro-USB ou USB-A dependendo do ano de fabricação. Verifique a parte traseira do dispositivo para ver qual porta está disponível."
       },
       "step3": {
         "title": "Reiniciar o dispositivo",
@@ -536,56 +542,56 @@
   },
   "restore": {
     "choice": {
-      "title": "What would you like to do?",
-      "setup_title": "Setup Wizard",
+      "title": "O que você gostaria de fazer?",
+      "setup_title": "Assistente de configuração",
       "setup_desc": "Configure device for OpenCloudTouch",
-      "restore_title": "Restore Wizard",
-      "restore_desc": "Undo all OCT changes and restore factory state"
+      "restore_title": "Assistente de restauração",
+      "restore_desc": "Desfazer todas as alterações do OCT e restaurar o estado de fábrica"
     },
     "restore_choice": {
-      "title": "Choose Restore Type",
-      "description": "Select how you want to restore the device.",
-      "clean_title": "Clean Restore",
-      "clean_desc": "Remove all OCT modifications. No backup needed.",
-      "backup_title": "Restore from Backup",
-      "backup_desc": "Restore original config files from USB backup."
+      "title": "Escolher tipo de restauração",
+      "description": "Selecione como deseja restaurar o dispositivo.",
+      "clean_title": "Restauração limpa",
+      "clean_desc": "Remover todas as modificações do OCT. Nenhum backup necessário.",
+      "backup_title": "Restaurar a partir do backup",
+      "backup_desc": "Restaurar arquivos de configuração originais do backup USB."
     },
     "backup_scan": {
-      "title": "Scanning for Backups",
-      "description": "Searching USB stick for backup files...",
-      "scanning": "Scanning USB stick...",
+      "title": "Procurando backups",
+      "description": "Procurando arquivos de backup no pen drive...",
+      "scanning": "Escaneando pen drive...",
       "error": "Scan failed: {{message}}",
-      "no_usb": "No USB stick detected. Please insert USB stick and retry.",
-      "found": "Backup found",
-      "legacy": "legacy",
-      "use_backup": "Use This Backup"
+      "no_usb": "Nenhum pen drive detectado. Insira o pen drive e tente novamente.",
+      "found": "Backup encontrado",
+      "legacy": "legado",
+      "use_backup": "Usar este backup"
     },
     "execution": {
-      "title": "Restoring Device",
-      "description": "Undoing all OCT modifications...",
-      "running": "Restore in progress...",
+      "title": "Restaurando dispositivo",
+      "description": "Desfazendo todas as modificações do OCT...",
+      "running": "Restauração em andamento...",
       "error": "Restore failed: {{message}}",
       "success": "All steps completed successfully! Total: {{time}}s",
-      "continue": "Continue"
+      "continue": "Continuar"
     },
     "verification": {
-      "title": "Waiting for Device",
-      "description": "Device is rebooting. Waiting for it to come back online...",
+      "title": "Aguardando dispositivo",
+      "description": "O dispositivo está reiniciando. Aguardando reconexão...",
       "countdown": "Checking in {{seconds}}s...",
-      "timeout": "Device not detected after 120s. It may have received a new IP via DHCP.",
-      "manual_confirm": "Device is back — I can see it",
-      "online": "Device is back online!",
-      "continue": "Continue"
+      "timeout": "Dispositivo não detectado após 120s. Ele pode ter recebido um novo endereço IP via DHCP.",
+      "manual_confirm": "O dispositivo voltou — posso vê-lo",
+      "online": "O dispositivo está online novamente!",
+      "continue": "Continuar"
     },
     "completion": {
-      "title": "Restore Complete",
-      "description": "Device has been restored successfully.",
-      "clean_summary": "Clean Restore Summary",
-      "backup_summary": "Backup Restore Summary",
-      "restored": "Restored",
-      "skipped": "Skipped",
-      "failed": "Failed",
-      "note": "The device is now in its original state. You can safely disconnect it.",
+      "title": "Restauração concluída",
+      "description": "O dispositivo foi restaurado com sucesso.",
+      "clean_summary": "Resumo da restauração limpa",
+      "backup_summary": "Resumo da restauração por backup",
+      "restored": "Restaurado",
+      "skipped": "Ignorado",
+      "failed": "Falhou",
+      "note": "O dispositivo está agora em seu estado original. Você pode desconectá-lo com segurança.",
       "done": "Done"
     }
   },
@@ -645,8 +651,25 @@
     "reportIssue": "Relatar um problema",
     "support": "Apoiar",
     "versionUnavailable": "Versão não disponível",
-    "creditsTitle": "Colaboradores",
-    "creditsDescription": "Agradecimento especial aos membros da comunidade que contribuíram com pesquisa, testes e engenharia reversa."
+    "hallOfFameTitle": "Hall da Fama",
+    "hallOfFameDescription": "Top 3 colaboradores de todos os tempos — reconhecidos pelo impacto técnico excepcional.",
+    "spotlightTitle": "Destaques da Comunidade — {{month}}",
+    "spotlightDescription": "Os colaboradores mais valiosos deste mês. Obrigado pelo apoio!",
+    "supportersTitle": "Apoiadores",
+    "supportersDescription": "Obrigado a todos que apoiam o OpenCloudTouch financeiramente. Suas contribuições ajudam a manter o projeto vivo!",
+    "supportersMonthly": "Apoiadores Mensais",
+    "supportersOneTime": "Apoiadores únicos",
+    "buildTime": "Criado em {{time}}",
+    "checkingUpdates": "Verificando atualizações...",
+    "updateAvailable": "Atualização disponível: {{version}}",
+    "viewRelease": "Ver lançamento",
+    "upToDate": "Você está atualizado!",
+    "total": "total",
+    "monthlySupporters": "Apoiadores mensais",
+    "oneTimeSupporters": "Apoiadores únicos",
+    "noSupportersYet": "Ainda sem apoiadores",
+    "supportCTA": "Quer ajudar a manter este projeto vivo?",
+    "supportButton": "Me pague um café"
   },
   "discovery": {
     "alreadyRunning": "Busca de dispositivos já está em andamento. Aguarde...",

@@ -195,24 +195,28 @@ class TuneInProvider(RadioProvider):
     # Search methods
     # -------------------------------------------------------------------
 
-    async def search_by_name(self, name: str, limit: int = 20) -> List[RadioStation]:
+    async def search_by_name(
+        self, name: str, limit: int = 20, offset: int = 0
+    ) -> List[RadioStation]:
         url = f"{TUNEIN_BASE}/Search.ashx"
         params = {"query": name}
-        return await self._search(url, params, limit)
+        return await self._search(url, params, limit, offset)
 
     async def search_by_country(
-        self, country: str, limit: int = 20
+        self, country: str, limit: int = 20, offset: int = 0
     ) -> List[RadioStation]:
         # TuneIn has no country-specific endpoint; use keyword search
         url = f"{TUNEIN_BASE}/Search.ashx"
         params = {"query": country}
-        return await self._search(url, params, limit)
+        return await self._search(url, params, limit, offset)
 
-    async def search_by_tag(self, tag: str, limit: int = 20) -> List[RadioStation]:
+    async def search_by_tag(
+        self, tag: str, limit: int = 20, offset: int = 0
+    ) -> List[RadioStation]:
         # TuneIn has no tag-specific endpoint; use keyword search
         url = f"{TUNEIN_BASE}/Search.ashx"
         params = {"query": tag}
-        return await self._search(url, params, limit)
+        return await self._search(url, params, limit, offset)
 
     async def get_station_by_uuid(self, uuid: str) -> RadioStation:
         """Get station detail via Describe API."""
@@ -243,7 +247,7 @@ class TuneInProvider(RadioProvider):
     # -------------------------------------------------------------------
 
     async def _search(
-        self, url: str, params: Dict[str, Any], limit: int
+        self, url: str, params: Dict[str, Any], limit: int, offset: int = 0
     ) -> List[RadioStation]:
         """Execute search request and parse OPML response."""
         try:
@@ -252,7 +256,7 @@ class TuneInProvider(RadioProvider):
             response.raise_for_status()
 
             stations = self._parse_search_response(response.text)
-            return [s.to_unified() for s in stations[:limit]]
+            return [s.to_unified() for s in stations[offset : offset + limit]]
 
         except httpx.TimeoutException as e:
             raise TuneInTimeoutError(f"Request timed out: {e}") from e

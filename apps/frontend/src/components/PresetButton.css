@@ -30,7 +30,7 @@
   width: 40px;
   height: 40px;
   flex-shrink: 0;
-  border-radius: var(--border-radius-sm);
+  border-radius: 50%;
   overflow: hidden;
   position: relative;
 }
@@ -51,25 +51,27 @@
   font-size: 15px;
   font-weight: var(--font-weight-bold);
   letter-spacing: 0.5px;
-  border-radius: var(--border-radius-sm);
+  border-radius: 50%;
 }
 
 .preset-number {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   background-color: var(--color-accent);
   color: white;
-  border-radius: var(--border-radius-sm);
+  border-radius: 50%;
   font-weight: var(--font-weight-bold);
-  font-size: 16px;
+  font-size: 13px;
   flex-shrink: 0;
+  line-height: 1;
 }
 
 .preset-name {
   flex: 1;
+  min-width: 0;
   color: var(--color-text-primary);
   font-weight: var(--font-weight-medium);
   overflow: hidden;
@@ -83,14 +85,16 @@
   font-style: italic;
 }
 
-/* Play action button (replaces old delete button) */
+/* Play action button (inline within preset-info) */
 .preset-play-btn {
-  min-width: 44px;
-  align-self: stretch;
-  background-color: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-md);
-  color: #2e7d32;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  flex-shrink: 0;
+  background-color: #2e7d32;
+  border: none;
+  border-radius: 50%;
+  color: white;
   font-size: 18px;
   display: flex;
   align-items: center;
@@ -99,20 +103,30 @@
   transition: all 0.2s ease;
 }
 
-.preset-play-btn:hover:not(:disabled) {
-  background-color: #2e7d32;
-  border-color: #2e7d32;
-  color: white;
+.preset-play-btn:hover:not([aria-disabled="true"]) {
+  background-color: #1b5e20;
 }
 
 .preset-play-btn.playing {
-  color: #2e7d32;
-  cursor: default;
-  opacity: 0.7;
+  background-color: #2e7d32;
+  cursor: pointer;
+  opacity: 0.85;
 }
 
-.preset-play-btn:disabled {
-  cursor: default;
+.preset-play-btn.playing:hover {
+  background-color: #1b5e20;
+  opacity: 1;
+}
+
+/* Cloud-warning background */
+.preset-info.cloud-warning {
+  background-color: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.preset-info.cloud-warning:hover {
+  background-color: rgba(251, 191, 36, 0.2);
+  border-color: rgba(251, 191, 36, 0.5);
 }
 
 /* Disabled / Offline state */
@@ -136,4 +150,43 @@
 .disabled-text {
   color: var(--color-text-secondary);
   font-style: italic;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .preset-info,
+  .preset-empty {
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    min-height: 52px;
+  }
+
+  .preset-station-logo {
+    width: 32px;
+    height: 32px;
+  }
+
+  .preset-avatar-fallback {
+    font-size: 12px;
+  }
+
+  .preset-number {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+  }
+
+  .preset-play-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .preset-play-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .preset-name {
+    font-size: 14px;
+  }
 }

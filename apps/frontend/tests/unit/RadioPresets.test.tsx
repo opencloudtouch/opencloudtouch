@@ -421,9 +421,14 @@ describe("RadioPresets Page", () => {
         expect(screen.getByTestId("preset-2-name")).toHaveTextContent("Delete Me");
       });
 
-      // Open search → click delete
+      // Open search → click delete → confirm in dialog
       fireEvent.click(screen.getByTestId("preset-2-change"));
       fireEvent.click(screen.getByTestId("search-delete-preset"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("confirm-dialog-confirm")).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByTestId("confirm-dialog-confirm"));
 
       await waitFor(() => {
         expect(presetsApi.clearPreset).toHaveBeenCalledWith("AABBCC123456", 2);

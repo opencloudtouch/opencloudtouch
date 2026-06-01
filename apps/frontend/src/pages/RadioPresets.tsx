@@ -45,7 +45,6 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
   const { nowPlaying: npState } = useNowPlaying(currentDevice?.device_id);
   const { show: showToast } = useToast();
   const [playError, setPlayError] = useState<string | null>(null);
-  const [playLoading, setPlayLoading] = useState(false);
   const [powerLoading, setPowerLoading] = useState(false);
   const [pendingStation, setPendingStation] = useState<RadioStation | null>(null);
   const [clearingPreset, setClearingPreset] = useState<number | null>(null);
@@ -129,18 +128,16 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
     }
   };
 
-  const handleDeletePreset = async () => {
-    if (!assigningPreset || !currentDevice?.device_id) return;
-    await removePreset(assigningPreset, currentDevice.device_id);
+  const handleDeletePreset = () => {
+    if (!assigningPreset) return;
     setSearchOpen(false);
+    setClearingPreset(assigningPreset);
     setAssigningPreset(null);
-    showToast(t("presets.presetDeleted", { number: assigningPreset }), "success");
   };
 
   const handlePlayPreset = async (presetNumber: number) => {
     if (!currentDevice?.device_id) return;
 
-    setPlayLoading(true);
     setPlayError(null);
 
     try {
@@ -148,8 +145,6 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
     } catch (err) {
       console.error("Failed to play preset:", err);
       setPlayError(t("presets.playFailed"));
-    } finally {
-      setPlayLoading(false);
     }
   };
 
@@ -307,7 +302,7 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
         )}
 
         {/* Loading Indicator / Skeleton — REFACT-112 */}
-        {(loading || playLoading) && (
+        {loading && (
           <div
             className="loading-indicator"
             data-testid="loading-indicator"
@@ -331,7 +326,6 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
                     preset={{ station_name: t("errors.offlineTitle") }}
                     onAssign={() => {}}
                     onPlay={() => {}}
-                    onClear={() => {}}
                     isCurrentlyPlaying={false}
                     disabled={true}
                   />
@@ -343,7 +337,7 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
                     preset={presets[num]}
                     onAssign={() => handleAssignClick(num)}
                     onPlay={() => handlePlayPreset(num)}
-                    onClear={() => setClearingPreset(num)}
+                    onPause={() => currentDevice && togglePlayPause(currentDevice.device_id)}
                     isCurrentlyPlaying={
                       npState?.state === "PLAY_STATE" &&
                       npState?.station_name === presets[num]?.station_name

@@ -1,7 +1,7 @@
 {
   "name": "opencloudtouch-frontend",
   "private": true,
-  "version": "1.4.1",
+  "version": "1.4.3",
   "type": "module",
   "description": "OpenCloudTouch - Local control for compatible streaming devices",
   "scripts": {
@@ -28,7 +28,7 @@
     "clean": "rimraf node_modules dist .vite coverage cypress/screenshots cypress/videos"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.95.2",
+    "@tanstack/react-query": "^5.100.14",
     "flag-icons": "^7.5.0",
     "framer-motion": "^12.38.0",
     "html2canvas": "^1.4.1",
@@ -55,7 +55,7 @@
     "@vitest/ui": "^4.1.5",
     "axe-core": "^4.11.1",
     "colorette": "^2.0.20",
-    "cypress": "^15.14.2",
+    "cypress": "^15.15.0",
     "cypress-axe": "^1.7.0",
     "eslint": "^10.2.1",
     "globals": "^17.6.0",

@@ -25,7 +25,7 @@ def _make_event(**overrides) -> WebhookEvent:
         sender_login="community-user",
         sender_type="User",
         author_association="NONE",
-        repo_owner="scheilch",
+        repo_owner="opencloudtouch",
         repo_name="opencloudtouch",
         issue_number=42,
         title="Test issue",
@@ -622,11 +622,11 @@ class TestTemplateConstants:
 
     def test_bug_clear_template_has_url(self) -> None:
         from stages.action import BUG_CLEAR_TEMPLATE
-        assert "https://github.com/scheilch/opencloudtouch/" in BUG_CLEAR_TEMPLATE
+        assert "https://github.com/opencloudtouch/opencloudtouch/" in BUG_CLEAR_TEMPLATE
 
     def test_feature_template_has_url(self) -> None:
         from stages.action import FEATURE_TEMPLATE
-        assert "https://github.com/scheilch/opencloudtouch/" in FEATURE_TEMPLATE
+        assert "https://github.com/opencloudtouch/opencloudtouch/" in FEATURE_TEMPLATE
 
     def test_off_topic_template_content(self) -> None:
         from stages.action import OFF_TOPIC_TEMPLATE

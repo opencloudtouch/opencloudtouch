@@ -118,7 +118,7 @@ export default function Step8Completion({ deviceName, backupPath, onFinish }: St
           <p>
             {t("setup.wizard.step8.supportText")}{" "}
             <a
-              href="https://github.com/scheilch/opencloudtouch/issues"
+              href="https://github.com/opencloudtouch/opencloudtouch/issues"
               target="_blank"
               rel="noopener noreferrer"
               className="completion-support-link"

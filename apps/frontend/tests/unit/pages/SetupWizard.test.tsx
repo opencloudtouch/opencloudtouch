@@ -73,18 +73,21 @@ vi.mock("../../../src/components/wizard/Step5ConfigModification", () => ({
 }));
 
 vi.mock("../../../src/components/wizard/Step6HostsModification", () => ({
-  default: ({ onNext }: { onNext: () => void }) => (
+  default: ({ onNext, onHostsModified }: { onNext: () => void; onHostsModified: (data: unknown, ip: string) => void }) => (
     <div data-testid="step6-hosts">
       <button onClick={onNext}>Hosts weiter</button>
+      <button onClick={() => onHostsModified({ success: true }, "10.0.0.42")}>Hosts modify with IP</button>
+      <button onClick={() => onHostsModified({ success: true }, "")}>Hosts modify empty IP</button>
     </div>
   ),
 }));
 
 vi.mock("../../../src/components/wizard/Step7Verification", () => ({
-  default: ({ onNext, onSkip }: { onNext: () => void; onSkip?: () => void }) => (
+  default: ({ onNext, onSkip, octIp }: { onNext: () => void; onSkip?: () => void; octIp?: string }) => (
     <div data-testid="step7-verify">
       <button onClick={onNext}>Verify weiter</button>
       {onSkip && <button onClick={onSkip}>Verify überspringen</button>}
+      {octIp && <span data-testid="step7-oct-ip">{octIp}</span>}
     </div>
   ),
 }));
@@ -252,6 +255,46 @@ describe("SetupWizard (pages/SetupWizard)", () => {
         expect(screen.getByTestId("device-info-header")).toBeInTheDocument();
         expect(screen.getByText("Living Room")).toBeInTheDocument();
       });
+    });
+  });
+
+  // -- handleHostsModified IP propagation --
+
+  describe("handleHostsModified IP propagation", () => {
+    const navigateToStep6 = async () => {
+      render(<SetupWizard devices={mockDevices} />);
+      fireEvent.click(screen.getByRole("button", { name: /setup wählen/i }));
+      await waitFor(() => expect(screen.getByTestId("step2-usb-preparation")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /usb prep weiter/i }));
+      await waitFor(() => expect(screen.getByTestId("step3-power-cycle")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /power weiter/i }));
+      await waitFor(() => expect(screen.getByTestId("step4-backup")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /step4 weiter/i }));
+      await waitFor(() => expect(screen.getByTestId("step5-config")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /config weiter/i }));
+      await waitFor(() => expect(screen.getByTestId("step6-hosts")).toBeInTheDocument());
+    };
+
+    it("updates serverIp when handleHostsModified receives a non-empty IP", async () => {
+      await navigateToStep6();
+      // Trigger onHostsModified with a custom IP
+      fireEvent.click(screen.getByRole("button", { name: /hosts modify with ip/i }));
+      // Advance to Step7
+      fireEvent.click(screen.getByRole("button", { name: /hosts weiter/i }));
+      await waitFor(() => expect(screen.getByTestId("step7-verify")).toBeInTheDocument());
+      // Step7 should receive the updated octIp
+      expect(screen.getByTestId("step7-oct-ip")).toHaveTextContent("10.0.0.42");
+    });
+
+    it("does not update serverIp when handleHostsModified receives empty IP", async () => {
+      await navigateToStep6();
+      // Trigger onHostsModified with empty IP
+      fireEvent.click(screen.getByRole("button", { name: /hosts modify empty ip/i }));
+      // Advance to Step7
+      fireEvent.click(screen.getByRole("button", { name: /hosts weiter/i }));
+      await waitFor(() => expect(screen.getByTestId("step7-verify")).toBeInTheDocument());
+      // Step7 octIp should still be the default (from getServerInfo mock: "192.168.1.50")
+      expect(screen.getByTestId("step7-oct-ip")).toHaveTextContent("192.168.1.50");
     });
   });
 

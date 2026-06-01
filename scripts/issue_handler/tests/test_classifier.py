@@ -18,7 +18,7 @@ def _make_event(**overrides) -> WebhookEvent:
         sender_login="community-user",
         sender_type="User",
         author_association="NONE",
-        repo_owner="scheilch",
+        repo_owner="opencloudtouch",
         repo_name="opencloudtouch",
         issue_number=42,
         title="Speaker crashes on play",

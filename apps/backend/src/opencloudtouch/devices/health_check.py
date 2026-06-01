@@ -1,6 +1,6 @@
 """Background health-check service for SoundTouch devices.
 
-Periodically pings devices via the SoundTouch API (port 8091) to update
+Periodically pings devices via the SoundTouch API (port 8090) to update
 ``last_seen`` and detect offline devices.  For devices with
 ``ssh_permanent=True``, also verifies the BMX URL via SSH every 30 min.
 """
@@ -10,10 +10,11 @@ import logging
 from datetime import UTC, datetime
 
 import httpx
+from defusedxml.ElementTree import fromstring as parse_xml_string
 
 from opencloudtouch.core.config import get_config
 from opencloudtouch.devices.repository import DeviceRepository
-from opencloudtouch.discovery import SOUNDTOUCH_WEBSERVER_PORT
+from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.setup.ssh_client import SoundTouchSSHClient, check_ssh_port
 
 logger = logging.getLogger(__name__)
@@ -75,7 +76,7 @@ class DeviceHealthCheck:
             await asyncio.sleep(PING_INTERVAL)
 
     async def _ping_all_devices(self) -> None:
-        """Ping all devices via SoundTouch HTTP API (port 8091)."""
+        """Ping all devices via SoundTouch HTTP API (port 8090)."""
         devices = await self._device_repo.get_all()
         if not devices:
             return
@@ -86,36 +87,99 @@ class DeviceHealthCheck:
             for device in devices:
                 if not device.ip:
                     continue
-                reachable = await self._ping_device(client, device.ip)
+                reachable, device_name = await self._ping_device(client, device.ip)
                 if reachable:
-                    device.last_seen = now
-                    await self._device_repo.upsert(device)
+                    await self._handle_reachable(device, device_name, now)
                 else:
-                    # Check if device should be marked offline
-                    if device.last_seen:
-                        seconds_since = (now - device.last_seen).total_seconds()
-                        if seconds_since > OFFLINE_THRESHOLD:
-                            logger.warning(
-                                "Device %s (%s) offline for %.0fs",
-                                device.name,
-                                device.ip,
-                                seconds_since,
-                            )
+                    self._handle_unreachable(device, now)
 
         logger.debug("Health-check ping completed for %d devices", len(devices))
 
+    async def _handle_reachable(
+        self, device, device_name: str | None, now: datetime
+    ) -> None:
+        """Update a reachable device: refresh last_seen and name if changed."""
+        device.last_seen = now
+        if device_name and device_name != device.name:
+            logger.info(
+                "Device %s name changed: '%s' -> '%s'",
+                device.device_id,
+                device.name,
+                device_name,
+            )
+            device.name = device_name
+        await self._device_repo.upsert(device)
+
     @staticmethod
-    async def _ping_device(client: httpx.AsyncClient, ip: str) -> bool:
-        """Ping a single device via GET /info on the WebServer port."""
+    def _format_duration(seconds: float) -> str:
+        """Format seconds into human-readable duration string."""
+        total_minutes = int(seconds) // 60
+        years, remainder = divmod(total_minutes, 525960)  # 365.25 days
+        days, remainder = divmod(remainder, 1440)
+        hours, minutes = divmod(remainder, 60)
+        parts = []
+        if years == 1:
+            parts.append("1 year")
+        elif years > 1:
+            parts.append(f"{years} years")
+        if days == 1:
+            parts.append("1 day")
+        elif days > 0:
+            parts.append(f"{days} days")
+        if hours == 1:
+            parts.append("1 hour")
+        elif hours > 0:
+            parts.append(f"{hours} hours")
+        if minutes == 1:
+            parts.append("1 minute")
+        else:
+            parts.append(f"{minutes} minutes")
+        return ", ".join(parts)
+
+    @staticmethod
+    def _handle_unreachable(device, now: datetime) -> None:
+        """Log a warning if the device has been offline beyond the threshold."""
+        if not device.last_seen:
+            return
+        seconds_since = (now - device.last_seen).total_seconds()
+        if seconds_since > OFFLINE_THRESHOLD:
+            logger.warning(
+                "Device %s (%s) offline for %s",
+                device.name,
+                device.ip,
+                DeviceHealthCheck._format_duration(seconds_since),
+            )
+
+    @staticmethod
+    async def _ping_device(
+        client: httpx.AsyncClient, ip: str
+    ) -> tuple[bool, str | None]:
+        """Ping a single device via GET /info on the WebServer port.
+
+        Returns:
+            Tuple of (reachable, device_name). device_name is None if
+            the response could not be parsed.
+        """
         try:
             resp = await client.get(
-                f"http://{ip}:{SOUNDTOUCH_WEBSERVER_PORT}/info"  # NOSONAR — Bose devices only support HTTP
+                f"http://{ip}:{SOUNDTOUCH_HTTP_PORT}/info"  # NOSONAR — Bose devices only support HTTP
             )
-            return resp.status_code == 200
+            if resp.status_code != 200:
+                return False, None
+            # Extract device name from XML response
+            device_name: str | None = None
+            try:
+                root = parse_xml_string(resp.content)
+                name_el = root.find("name")
+                if name_el is not None and name_el.text:
+                    device_name = name_el.text.strip()
+            except Exception:
+                logger.debug("Failed to parse device name from /info response (%s)", ip)
+            return True, device_name
         except (httpx.ConnectError, httpx.TimeoutException, httpx.ReadError):
-            return False
+            return False, None
         except Exception:
-            return False
+            return False, None
 
     async def _ssh_verify_all(self) -> None:
         """Verify BMX URL via SSH for devices with ssh_permanent=True."""
