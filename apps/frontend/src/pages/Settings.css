@@ -639,6 +639,17 @@
   cursor: pointer;
 }
 
+.log-level-select option {
+  background-color: var(--color-bg-darker);
+  color: var(--color-text-primary);
+  padding: var(--space-sm);
+}
+
+.log-level-select option:checked {
+  background-color: var(--color-accent);
+  color: var(--color-text-primary);
+}
+
 .log-level-select:focus {
   outline: none;
   border-color: var(--color-primary);
