@@ -21,8 +21,7 @@
     "presets": "Geräte und Presets",
     "zones": "Zonen",
     "settings": "Einstellungen",
-    "about": "Über",
-    "selectLanguage": "Sprache wählen"
+    "about": "Über"
   },
   "player": {
     "noPlayback": "Keine Wiedergabe",
@@ -66,7 +65,6 @@
     "infoItem6": "\"Vom Gerät laden\" synchronisiert die Presets vom SoundTouch",
     "changeStation": "Klicken um Sender zu ändern",
     "assignPreset": "Preset zuweisen",
-    "nowPlaying": "Wird abgespielt",
     "cloudCompatible": "Kompatibel nach Cloud-Abschaltung",
     "cloudIndependent": "Cloud-unabhängig",
     "cloudIndependentDesc": "Funktioniert auch nach dem 6. Mai 2026 (Bose Cloud-Abschaltung)",
@@ -96,7 +94,7 @@
       "country": "z.B. Germany, Austria…",
       "tag": "z.B. rock, jazz, pop…"
     },
-    "searchTitle": "Radiosender suchen"
+    "searchTitle": "Radiosender suchen",
     "loadMore": "Mehr anzeigen",
     "loadingMore": "Lädt...",
     "maxReached": "Maximum ({{count}}) erreicht",
@@ -653,8 +651,6 @@
     "versionUnavailable": "Version nicht verfügbar",
     "hallOfFameTitle": "Hall of Fame",
     "hallOfFameDescription": "Top 3 Mitwirkende aller Zeiten — anerkannt für außergewöhnlichen technischen Impact.",
-    "spotlightTitle": "Community Spotlight — {{month}}",
-    "spotlightDescription": "Die wertvollsten Beitragenden dieses Monats. Vielen Dank für eure Unterstützung!",
     "supportersTitle": "Unterstützer",
     "supportersDescription": "Vielen Dank an alle, die OpenCloudTouch finanziell unterstützen. Eure Beiträge helfen das Projekt am Leben zu erhalten!",
     "supportersMonthly": "Monatliche Unterstützer",
@@ -664,7 +660,6 @@
     "updateAvailable": "Update verfügbar: {{version}}",
     "viewRelease": "Release ansehen",
     "upToDate": "Du bist auf dem neuesten Stand!",
-    "total": "gesamt",
     "monthlySupporters": "Monatliche Unterstützer",
     "oneTimeSupporters": "Einmalige Unterstützer",
     "noSupportersYet": "Noch keine Unterstützer",

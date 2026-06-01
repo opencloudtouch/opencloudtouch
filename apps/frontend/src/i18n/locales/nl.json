@@ -21,8 +21,7 @@
     "presets": "Apparaten en Presets",
     "zones": "Zones",
     "settings": "Instellingen",
-    "about": "Over",
-    "selectLanguage": "Taal selecteren"
+    "about": "Over"
   },
   "player": {
     "noPlayback": "Geen weergave",
@@ -66,7 +65,6 @@
     "infoItem6": "\"Laden van apparaat\" synchroniseert presets van SoundTouch",
     "changeStation": "Klik om station te wijzigen",
     "assignPreset": "Preset toewijzen",
-    "nowPlaying": "Wordt afgespeeld",
     "cloudCompatible": "Compatibel na cloudsluiting",
     "cloudIndependent": "Cloudsonafhankelijk",
     "cloudIndependentDesc": "Werkt na 6 mei 2026 (Bose Cloud sluiting)",
@@ -96,7 +94,7 @@
       "country": "bijv. Netherlands, Belgium…",
       "tag": "bijv. Rock, Jazz, pop…"
     },
-    "searchTitle": "Zoek radiostations"
+    "searchTitle": "Zoek radiostations",
     "loadMore": "Meer laden",
     "loadingMore": "Laden...",
     "maxReached": "Maximum ({{count}}) bereikt",
@@ -653,8 +651,6 @@
     "versionUnavailable": "Versie niet beschikbaar",
     "hallOfFameTitle": "Eregalerij",
     "hallOfFameDescription": "Top 3 bijdragers aller tijden — erkend voor uitzonderlijke technische impact.",
-    "spotlightTitle": "Community Spotlight — {{month}}",
-    "spotlightDescription": "De meest waardevolle bijdragers van deze maand. Bedankt voor jullie steun!",
     "supportersTitle": "Supporters",
     "supportersDescription": "Dank aan iedereen die OpenCloudTouch financieel steunt. Jullie bijdragen helpen het project levend te houden!",
     "supportersMonthly": "Maandelijkse Supporters",
@@ -664,7 +660,6 @@
     "updateAvailable": "Update beschikbaar: {{version}}",
     "viewRelease": "Release bekijken",
     "upToDate": "Je bent up-to-date!",
-    "total": "totaal",
     "monthlySupporters": "Maandelijkse supporters",
     "oneTimeSupporters": "Eenmalige supporters",
     "noSupportersYet": "Nog geen supporters",

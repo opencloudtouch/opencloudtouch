@@ -21,8 +21,7 @@
     "presets": "デバイスとプリセット",
     "zones": "ゾーン",
     "settings": "設定",
-    "about": "について",
-    "selectLanguage": "言語を選択"
+    "about": "について"
   },
   "player": {
     "noPlayback": "再生なし",
@@ -66,7 +65,6 @@
     "infoItem6": "「デバイスから読み込む」でSoundTouchからプリセットを同期",
     "changeStation": "クリックしてステーションを変更",
     "assignPreset": "プリセットを割り当て",
-    "nowPlaying": "再生中",
     "cloudCompatible": "クラウド終了後も対応",
     "cloudIndependent": "クラウド不要",
     "cloudIndependentDesc": "2026年5月6日以降も動作（Bose Cloud終了後）",
@@ -96,7 +94,7 @@
       "country": "例：Japan、Germany…",
       "tag": "例：Rock、Jazz、pop…"
     },
-    "searchTitle": "ラジオ局を検索"
+    "searchTitle": "ラジオ局を検索",
     "loadMore": "もっと読み込む",
     "loadingMore": "読み込み中...",
     "maxReached": "最大件数 ({{count}}) に到達",
@@ -653,8 +651,6 @@
     "versionUnavailable": "バージョン不明",
     "hallOfFameTitle": "殿堂入り",
     "hallOfFameDescription": "歴代トップ3の貢献者 — 卓越した技術的影響力で認められています。",
-    "spotlightTitle": "今月の貢献者 — {{month}}",
-    "spotlightDescription": "今月最も価値ある貢献者の皆様。ご支援ありがとうございます！",
     "supportersTitle": "支援者",
     "supportersDescription": "OpenCloudTouchを財政的に支援してくださる皆様に感謝します。皆様の貢献がプロジェクトを支えています！",
     "supportersMonthly": "月額支援者",
@@ -664,7 +660,6 @@
     "updateAvailable": "アップデート可能：{{version}}",
     "viewRelease": "リリースを表示",
     "upToDate": "最新版です！",
-    "total": "合計",
     "monthlySupporters": "月額支援者",
     "oneTimeSupporters": "一回限りの支援者",
     "noSupportersYet": "まだ支援者はいません",

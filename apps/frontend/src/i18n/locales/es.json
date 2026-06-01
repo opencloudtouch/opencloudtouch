@@ -21,8 +21,7 @@
     "presets": "Dispositivos y Presets",
     "zones": "Zonas",
     "settings": "Ajustes",
-    "about": "Acerca de",
-    "selectLanguage": "Seleccionar idioma"
+    "about": "Acerca de"
   },
   "player": {
     "noPlayback": "Sin reproducción",
@@ -66,7 +65,6 @@
     "infoItem6": "\"Cargar desde dispositivo\" sincroniza los presets del SoundTouch",
     "changeStation": "Haga clic para cambiar la emisora",
     "assignPreset": "Asignar preset",
-    "nowPlaying": "En reproducción",
     "cloudCompatible": "Compatible tras el cierre de la nube",
     "cloudIndependent": "Independiente de la nube",
     "cloudIndependentDesc": "Funciona después del 6 de mayo de 2026 (cierre de Bose Cloud)",
@@ -96,7 +94,7 @@
       "country": "p. ej. Germany, Spain…",
       "tag": "p. ej. Rock, Jazz, pop…"
     },
-    "searchTitle": "Buscar emisoras de radio"
+    "searchTitle": "Buscar emisoras de radio",
     "loadMore": "Cargar más",
     "loadingMore": "Cargando...",
     "maxReached": "Máximo ({{count}}) alcanzado",
@@ -653,8 +651,6 @@
     "versionUnavailable": "Versión no disponible",
     "hallOfFameTitle": "Salón de la Fama",
     "hallOfFameDescription": "Los 3 mejores colaboradores de todos los tiempos — reconocidos por su impacto técnico excepcional.",
-    "spotlightTitle": "Destacados de la Comunidad — {{month}}",
-    "spotlightDescription": "Los colaboradores más valiosos de este mes. ¡Gracias por su apoyo!",
     "supportersTitle": "Patrocinadores",
     "supportersDescription": "Gracias a todos los que apoyan OpenCloudTouch financieramente. ¡Sus contribuciones ayudan a mantener el proyecto vivo!",
     "supportersMonthly": "Patrocinadores Mensuales",
@@ -664,7 +660,6 @@
     "updateAvailable": "Actualización disponible: {{version}}",
     "viewRelease": "Ver lanzamiento",
     "upToDate": "¡Estás actualizado!",
-    "total": "total",
     "monthlySupporters": "Patrocinadores Mensuales",
     "oneTimeSupporters": "Patrocinadores Únicos",
     "noSupportersYet": "Aún no hay patrocinadores",

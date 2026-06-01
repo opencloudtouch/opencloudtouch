@@ -20,7 +20,8 @@
   "nav": {
     "presets": "Dispositivi e Preset",
     "zones": "Zone",
-    "settings": "Impostazioni",    "about": "Informazioni",    "selectLanguage": "Seleziona lingua"
+    "settings": "Impostazioni",
+    "about": "Informazioni"
   },
   "player": {
     "noPlayback": "Nessuna riproduzione",
@@ -64,7 +65,6 @@
     "infoItem6": "\"Carica dal dispositivo\" sincronizza i preset da SoundTouch",
     "changeStation": "Clicca per cambiare stazione",
     "assignPreset": "Assegna preset",
-    "nowPlaying": "In riproduzione",
     "cloudCompatible": "Compatibile dopo la chiusura del cloud",
     "cloudIndependent": "Indipendente dal cloud",
     "cloudIndependentDesc": "Funziona dopo il 6 maggio 2026 (chiusura del cloud Bose)",
@@ -94,7 +94,7 @@
       "country": "es. Germania, Austria…",
       "tag": "es. Rock, Jazz, pop…"
     },
-    "searchTitle": "Cerca stazioni radio"
+    "searchTitle": "Cerca stazioni radio",
     "loadMore": "Carica altro",
     "loadingMore": "Caricamento...",
     "maxReached": "Massimo ({{count}}) raggiunto",
@@ -651,8 +651,6 @@
     "versionUnavailable": "Versione non disponibile",
     "hallOfFameTitle": "Hall of Fame",
     "hallOfFameDescription": "I 3 migliori contributori di sempre — riconosciuti per il loro eccezionale impatto tecnico.",
-    "spotlightTitle": "Contributori del mese — {{month}}",
-    "spotlightDescription": "I contributori più preziosi di questo mese. Grazie per il vostro supporto!",
     "supportersTitle": "Sostenitori",
     "supportersDescription": "Grazie a tutti coloro che sostengono OpenCloudTouch finanziariamente. I vostri contributi aiutano a mantenere vivo il progetto!",
     "supportersMonthly": "Sostenitori Mensili",
@@ -662,7 +660,6 @@
     "updateAvailable": "Aggiornamento disponibile: {{version}}",
     "viewRelease": "Visualizza versione",
     "upToDate": "Sei aggiornato!",
-    "total": "totale",
     "monthlySupporters": "Sostenitori Mensili",
     "oneTimeSupporters": "Sostenitori Una Tantum",
     "noSupportersYet": "Nessun sostenitore ancora",
