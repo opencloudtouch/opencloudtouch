@@ -52,6 +52,16 @@ function setupDeviceMocks() {
     },
   }).as("createBackup");
 
+  cy.intercept("POST", "/api/setup/wizard/validate-hostname", {
+    statusCode: 200,
+    body: {
+      resolvable: true,
+      resolved_ip: "127.0.0.1",
+      matches_expected: true,
+      error: null,
+    },
+  }).as("validateHostname");
+
   cy.intercept("POST", "/api/setup/wizard/modify-config", {
     statusCode: 200,
     body: {
