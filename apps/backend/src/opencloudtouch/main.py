@@ -94,8 +94,8 @@ def _log_startup_info(logger: logging.Logger, cfg) -> None:
     logger.info("Database: %s", cfg.effective_db_path)
     logger.info("Discovery enabled: %s", cfg.discovery_enabled)
     logger.info("Mock mode: %s", cfg.mock_mode)
-    _build_tag = "\u00adofficial" if is_official_build() else "\u00adcommunity"
-    logger.info("Build\u00ad: %s [%s]", __version__, _build_tag)
+    _build_tag = "official" if is_official_build() else "community"
+    logger.info("Build: %s [%s]", __version__, _build_tag)
 
 
 async def _init_repositories(app: FastAPI, cfg, logger: logging.Logger) -> dict:

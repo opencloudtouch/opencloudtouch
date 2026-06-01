@@ -8,7 +8,6 @@ import { useToast } from "../contexts/ToastContext";
 import { toUserMessage } from "../utils/errorMessages";
 import { getLogEntries } from "../utils/logBuffer";
 import type { Device } from "../api/devices";
-import AboutSection from "../components/AboutSection";
 import "./Settings.css";
 
 export default function Settings() {
@@ -314,8 +313,6 @@ export default function Settings() {
           </div>
         </div>
       </motion.section>
-
-      <AboutSection />
     </div>
   );
 }
