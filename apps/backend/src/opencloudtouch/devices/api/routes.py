@@ -270,7 +270,9 @@ async def rename_device(
     device.name = name
     await device_service.repository.upsert(device)
 
-    logger.info("Device %r renamed: %r -> %r", device.device_id, previous_name, device.name)
+    logger.info(
+        "Device %r renamed: %r -> %r", device.device_id, previous_name, device.name
+    )
 
     return {
         "device_id": device_id,
