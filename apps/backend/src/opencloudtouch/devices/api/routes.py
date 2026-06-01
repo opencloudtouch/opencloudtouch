@@ -260,8 +260,8 @@ async def rename_device(
         await rename_device_via_ssh(device.ip, name)
     except Exception as e:
         logger.error(
-            "SSH rename failed for %r: %s", device_id, e
-        )  # device_id is MAC-validated with repr; e is exception (safe)
+            "SSH rename failed for %r: %s", device.device_id, e
+        )  # device.device_id from DB (not tainted); e is exception (safe)
         raise HTTPException(
             status_code=502, detail="Could not connect to device via SSH"
         ) from e
@@ -270,7 +270,7 @@ async def rename_device(
     device.name = name
     await device_service.repository.upsert(device)
 
-    logger.info("Device %r renamed: %r -> %r", device_id, previous_name, name)
+    logger.info("Device %r renamed: %r -> %r", device.device_id, previous_name, device.name)
 
     return {
         "device_id": device_id,
