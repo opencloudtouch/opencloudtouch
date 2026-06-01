@@ -124,6 +124,9 @@
       "invalidFormat": "Dirección IP no válida (formato: 192.168.1.10)",
       "alreadyExists": "Esta dirección IP ya existe",
       "enterIp": "Por favor, introduzca una dirección IP",
+      "probing": "Buscando...",
+      "deviceAdded": "{{name}} ({{ip}}) añadido",
+      "probeError": "No se encontró dispositivo en {{ip}}",
       "discoverButton": "Buscar dispositivos",
       "discovering": "Buscando..."
     },

@@ -124,6 +124,9 @@
       "invalidFormat": "Ogiltig IP-adress (format: 192.168.1.10)",
       "alreadyExists": "Denna IP-adress finns redan",
       "enterIp": "Ange IP-adress",
+      "probing": "Söker...",
+      "deviceAdded": "{{name}} ({{ip}}) tillagd",
+      "probeError": "Ingen enhet hittades på {{ip}}",
       "discoverButton": "Sök enheter",
       "discovering": "Söker..."
     },

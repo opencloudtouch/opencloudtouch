@@ -124,6 +124,9 @@
       "invalidFormat": "Ungültige IP-Adresse (Format: 192.168.1.10)",
       "alreadyExists": "Diese IP-Adresse existiert bereits",
       "enterIp": "Bitte geben Sie eine IP-Adresse ein",
+      "probing": "Suche...",
+      "deviceAdded": "{{name}} ({{ip}}) hinzugefügt",
+      "probeError": "Kein Gerät unter {{ip}} gefunden",
       "discoverButton": "Geräte suchen",
       "discovering": "Suche läuft..."
     },

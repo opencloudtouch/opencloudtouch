@@ -61,6 +61,37 @@ paths:
           content:
             application/json:
               schema: {}
+  /api/devices/probe:
+    post:
+      tags:
+      - Devices
+      summary: Probe Device
+      description: "Probe a single device by IP address.\n\nContacts the device at\
+        \ the given IP, fetches its info, upserts it\nto the database, and adds the\
+        \ IP to the manual IPs list.\n\nReturns:\n    Device data if reachable\n\n\
+        Raises:\n    422: Invalid IP format\n    404: Device not reachable at the\
+        \ given IP"
+      operationId: probe_device_api_devices_probe_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProbeRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '404':
+          description: Device not reachable
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/devices:
     get:
       tags:
@@ -3850,6 +3881,17 @@ components:
       - message
       title: PortCheckResponse
       description: Response with port check results.
+    ProbeRequest:
+      properties:
+        ip:
+          type: string
+          title: Ip
+          description: IP address of the device to probe
+      type: object
+      required:
+      - ip
+      title: ProbeRequest
+      description: Request model for single-device probe.
     PresetResponse:
       properties:
         id:

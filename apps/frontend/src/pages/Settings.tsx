@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, FormEvent } from "react";
 import { motion } from "framer-motion";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { useManualIPs, useAddManualIP, useDeleteManualIP } from "../hooks/useSettings";
+import { useManualIPs, useProbeDevice } from "../hooks/useSettings";
 import { useDiscoveryStream } from "../hooks/useDiscoveryStream";
 import { useToast } from "../contexts/ToastContext";
 import { toUserMessage } from "../utils/errorMessages";
@@ -15,12 +15,10 @@ export default function Settings() {
   const { t } = useTranslation();
   const [newIP, setNewIP] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   // React Query hooks
-  const { data: manualIPs = [], isLoading: loading, error: queryError, refetch } = useManualIPs();
-  const addIP = useAddManualIP();
-  const deleteIP = useDeleteManualIP();
+  const { isLoading: loading, error: queryError, refetch } = useManualIPs();
+  const probeDevice = useProbeDevice();
 
   // Log level query + mutation
   const { data: logLevelData } = useQuery<{ level: string }>({
@@ -101,34 +99,14 @@ export default function Settings() {
       return;
     }
 
-    if (manualIPs.includes(trimmedIP)) {
-      setError(t("settings.manualIps.alreadyExists"));
-      return;
-    }
-
     try {
-      await addIP.mutateAsync(trimmedIP);
+      const result = await probeDevice.mutateAsync(trimmedIP);
       setNewIP("");
-      setSuccess(t("settings.manualIps.ipAdded", { ip: trimmedIP }));
       setError("");
-      // Auto-clear success message after 3s
-      setTimeout(() => setSuccess(""), 3000);
+      show(t("settings.manualIps.deviceAdded", { name: result.name, ip: result.ip }), "success");
     } catch (err) {
-      console.error("[Settings] Failed to add IP:", err);
-      setError(toUserMessage(err));
-    }
-  };
-
-  const handleDeleteIP = async (ipToDelete: string) => {
-    try {
-      await deleteIP.mutateAsync(ipToDelete);
-      setSuccess(t("settings.manualIps.ipRemoved", { ip: ipToDelete }));
-      setError("");
-      // Auto-clear success message after 3s
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      console.error("[Settings] Failed to delete IP:", err);
-      setError(toUserMessage(err));
+      console.error("[Settings] Probe failed:", err);
+      setError(t("settings.manualIps.probeError", { ip: trimmedIP }));
     }
   };
 
@@ -208,59 +186,22 @@ export default function Settings() {
                 placeholder={t("settings.manualIps.placeholder")}
                 className="ip-input"
                 pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+                disabled={probeDevice.isPending}
               />
-              <button type="submit" className="btn btn-primary">
-                {t("settings.manualIps.addButton")}
+              <button type="submit" className="btn btn-primary" disabled={probeDevice.isPending}>
+                {probeDevice.isPending ? (
+                  <>
+                    <span className="spinner-inline" aria-hidden="true" />
+                    {t("settings.manualIps.probing")}
+                  </>
+                ) : (
+                  t("settings.manualIps.addButton")
+                )}
               </button>
             </form>
 
-            {/* Error/Success Messages */}
+            {/* Error Messages */}
             {error && <div className="alert alert-error">{error}</div>}
-            {success && <div className="alert alert-success">{success}</div>}
-
-            {/* IP List */}
-            <div className="ip-list">
-              {manualIPs.length === 0 ? (
-                <p className="empty-message">{t("settings.manualIps.emptyList")}</p>
-              ) : (
-                <ul className="ip-items">
-                  {manualIPs.map((ip) => (
-                    <motion.li
-                      key={ip}
-                      className="ip-item"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                    >
-                      <span className="ip-address">{ip}</span>
-                      <button
-                        onClick={() => handleDeleteIP(ip)}
-                        className="btn btn-delete"
-                        title={t("settings.manualIps.removeIp")}
-                      >
-                        ×
-                      </button>
-                    </motion.li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {/* Discover Button for manual IPs */}
-            {manualIPs.length > 0 && (
-              <div className="discover-action">
-                <button
-                  className="btn btn-primary"
-                  onClick={() => void startDiscovery()}
-                  disabled={isDiscovering}
-                  aria-label={t("settings.manualIps.discoverButton")}
-                >
-                  {isDiscovering
-                    ? t("settings.manualIps.discovering")
-                    : t("settings.manualIps.discoverButton")}
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </motion.section>

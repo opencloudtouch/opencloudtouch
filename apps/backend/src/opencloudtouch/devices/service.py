@@ -175,6 +175,22 @@ class DeviceService:
             )
             raise
 
+    async def probe_single_device(self, ip: str) -> Device:
+        """Probe a single device by IP, fetch its info, and upsert to DB.
+
+        Args:
+            ip: IP address of the device
+
+        Returns:
+            Device model with complete information
+
+        Raises:
+            Exception: If device is not reachable or sync fails
+        """
+        discovered = DiscoveredDevice(ip=ip, port=SOUNDTOUCH_HTTP_PORT)
+        device = await self.sync_service.fetch_and_upsert_one(discovered)
+        return device
+
     async def get_all_devices(self) -> List[Device]:
         """Get all devices from database.
 

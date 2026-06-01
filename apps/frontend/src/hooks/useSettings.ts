@@ -2,7 +2,7 @@
  * React Query hooks for settings management
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getManualIPs, setManualIPs, deleteManualIP } from "../api/settings";
+import { getManualIPs, setManualIPs, deleteManualIP, probeDevice, ProbeResult } from "../api/settings";
 
 /**
  * Fetch manual IP configuration
@@ -64,6 +64,22 @@ export function useDeleteManualIP() {
     mutationFn: deleteManualIP,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["manual-ips"] });
+    },
+  });
+}
+
+/**
+ * Probe a single device by IP address.
+ * On success, invalidates both manual-ips and devices queries.
+ */
+export function useProbeDevice() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ProbeResult, Error, string>({
+    mutationFn: probeDevice,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["manual-ips"] });
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
     },
   });
 }

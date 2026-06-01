@@ -124,6 +124,9 @@
       "invalidFormat": "Ongeldig IP-adres (formaat: 192.168.1.10)",
       "alreadyExists": "Dit IP-adres bestaat al",
       "enterIp": "Voer een IP-adres in",
+      "probing": "Zoeken...",
+      "deviceAdded": "{{name}} ({{ip}}) toegevoegd",
+      "probeError": "Geen apparaat gevonden op {{ip}}",
       "discoverButton": "Apparaten zoeken",
       "discovering": "Zoeken..."
     },

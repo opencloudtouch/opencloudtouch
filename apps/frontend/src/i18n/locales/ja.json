@@ -124,6 +124,9 @@
       "invalidFormat": "無効なIPアドレス（形式：192.168.1.10）",
       "alreadyExists": "このIPアドレスはすでに存在します",
       "enterIp": "IPアドレスを入力してください",
+      "probing": "検索中...",
+      "deviceAdded": "{{name}} ({{ip}}) を追加しました",
+      "probeError": "{{ip}} にデバイスが見つかりません",
       "discoverButton": "デバイスを検索",
       "discovering": "検索中..."
     },

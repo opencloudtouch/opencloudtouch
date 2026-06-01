@@ -5,14 +5,16 @@ SSE stream endpoints live here so routes.py stays focused on CRUD + capabilities
 """
 
 import asyncio
+import ipaddress
 import logging
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
 
 from opencloudtouch.core.config import get_config
-from opencloudtouch.core.dependencies import get_device_service
+from opencloudtouch.core.dependencies import get_device_service, get_settings_service
 from opencloudtouch.core.exceptions import DiscoveryError
 from opencloudtouch.devices.events import (
     DiscoveryEventType,
@@ -20,6 +22,7 @@ from opencloudtouch.devices.events import (
     get_event_bus,
 )
 from opencloudtouch.devices.service import DeviceService
+from opencloudtouch.settings.service import SettingsService
 
 logger = logging.getLogger(__name__)
 
@@ -180,3 +183,65 @@ async def discover_devices_stream(
             "X-Accel-Buffering": "no",  # Disable nginx buffering
         },
     )
+
+
+class ProbeRequest(BaseModel):
+    """Request model for single-device probe."""
+
+    ip: str = Field(..., description="IP address of the device to probe")
+
+
+@discovery_router.post("/probe")
+async def probe_device(
+    request: ProbeRequest,
+    device_service: DeviceService = Depends(get_device_service),
+    settings_service: SettingsService = Depends(get_settings_service),
+) -> Dict[str, Any]:
+    """
+    Probe a single device by IP address.
+
+    Contacts the device at the given IP, fetches its info, upserts it
+    to the database, and adds the IP to the manual IPs list.
+
+    Returns:
+        Device data if reachable
+
+    Raises:
+        422: Invalid IP format
+        404: Device not reachable at the given IP
+    """
+    ip = request.ip.strip()
+
+    # Validate IP format
+    try:
+        ipaddress.ip_address(ip)
+    except ValueError:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid IP address format: {ip}",
+        )
+
+    # Probe device
+    try:
+        device = await device_service.probe_single_device(ip)
+    except Exception as e:
+        logger.warning("Probe failed for %s: %s", ip, e)
+        raise HTTPException(
+            status_code=404,
+            detail=f"Device not reachable at {ip}",
+        )
+
+    # Add to manual IPs (idempotent — skips if already present)
+    try:
+        current_ips = await settings_service.get_manual_ips()
+        if ip not in current_ips:
+            await settings_service.set_manual_ips([*current_ips, ip])
+    except Exception:
+        logger.warning("Failed to save manual IP %s", ip, exc_info=True)
+
+    return {
+        "device_id": device.device_id,
+        "ip": device.ip,
+        "name": device.name,
+        "model": device.model,
+    }

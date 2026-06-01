@@ -124,6 +124,9 @@
       "invalidFormat": "Invalid IP address (format: 192.168.1.10)",
       "alreadyExists": "This IP address already exists",
       "enterIp": "Please enter an IP address",
+      "probing": "Searching...",
+      "deviceAdded": "{{name}} ({{ip}}) added",
+      "probeError": "No device found at {{ip}}",
       "discoverButton": "Discover Devices",
       "discovering": "Searching..."
     },
