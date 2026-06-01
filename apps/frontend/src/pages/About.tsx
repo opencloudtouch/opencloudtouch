@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useHealth } from "../hooks/useHealth";
 import { Skeleton } from "../components/LoadingSkeleton";
 import "./About.css";
@@ -21,17 +21,73 @@ interface UpdateInfo {
   available: boolean;
   latestVersion?: string;
   releaseUrl?: string;
-  releaseNotes?: string;
 }
 
+// Thank you phrases per language
+const THANK_YOU_PHRASES = {
+  regular: {
+    en: [
+      "Thank you for your support! ☕", "You make the difference! 🎵", "Thanks a lot! 💙",
+      "Super cool of you! 🚀", "You rock! 🎸", "Thanks for being here! 🙌",
+      "You're awesome! ⭐", "Heartfelt thanks! ❤️", "You help us forward! 🌟",
+      "Thanks for your support! 💪", "You're the hammer! 🔨", "Many thanks! 🎉",
+      "You're great! 🌈", "Thanks for joining! 🤝", "You're a hero! 🦸",
+      "Thanks for the coffee! ☕", "You're fantastic! 👏", "Many thanks! 🎁",
+      "You make it possible! ✨", "Thanks, you legend! 🏆",
+    ],
+    de: [
+      "Danke für deine Unterstützung! ☕", "Du machst den Unterschied! 🎵", "Vielen Dank! 💙",
+      "Mega cool von dir! 🚀", "Du rockst! 🎸", "Danke, dass du dabei bist! 🙌",
+      "Du bist awesome! ⭐", "Herzlichen Dank! ❤️", "Du hilfst uns weiter! 🌟",
+      "Danke für deinen Support! 💪", "Du bist der Hammer! 🔨", "Vielen lieben Dank! 🎉",
+      "Du bist großartig! 🌈", "Danke fürs Mitmachen! 🤝", "Du bist ein Held! 🦸",
+      "Danke für den Kaffee! ☕", "Du bist klasse! 👏", "Vielen Dank dafür! 🎁",
+      "Du machst's möglich! ✨", "Danke, du Ehrenmensch! 🏆",
+    ],
+  },
+  monthly: {
+    en: [
+      "You're a champion! 🏆💛", "Thanks for your loyal support! ✨", "You're worth gold! 💰",
+      "Wow, thanks for the monthly commitment! 🌟", "You're absolutely amazing! 🚀",
+      "Thanks for being here every month! 💙", "You're a superhero! 🦸‍♂️",
+      "Many thanks for your loyalty! 🙏", "You make the project possible! 🎉",
+      "Thanks for your continuous help! 💪", "You're simply fantastic! ⭐",
+      "Heartfelt thanks for your loyalty! ❤️", "You're priceless! 💎",
+      "Thanks for the monthly fuel! ⚡", "You're a rockstar! 🎸",
+    ],
+    de: [
+      "Du bist ein Champion! 🏆💛", "Danke für deine treue Unterstützung! ✨", "Du bist Gold wert! 💰",
+      "Wow, danke fürs monatliche Commitment! 🌟", "Du bist der absolute Wahnsinn! 🚀",
+      "Danke, dass du jeden Monat dabei bist! 💙", "Du bist ein Superheld! 🦸‍♂️",
+      "Vielen Dank für deine Treue! 🙏", "Du machst das Projekt möglich! 🎉",
+      "Danke für deine kontinuierliche Hilfe! 💪", "Du bist einfach fantastisch! ⭐",
+      "Herzlichen Dank für deine Loyalität! ❤️", "Du bist unbezahlbar! 💎",
+      "Danke fürs monatliche Fuel! ⚡", "Du bist ein Rockstar! 🎸",
+    ],
+  },
+};
+
 export default function About() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { data: health, isLoading: healthLoading } = useHealth();
   
   const [supporters, setSupporters] = useState<Supporter[]>([]);
   const [supportersLoading, setSupportersLoading] = useState(true);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo>({ available: false });
   const [updateLoading, setUpdateLoading] = useState(true);
+  const tooltipRefs = useRef<Map<string, string>>(new Map());
+
+  // Get random thank you phrase
+  const getRandomThankYou = (isMonthly: boolean) => {
+    const currentLang = i18n.language.split("-")[0]; // en-US → en
+    const fallbackLang = "en";
+    
+    const category = isMonthly ? "monthly" : "regular";
+    const phrases = THANK_YOU_PHRASES[category][currentLang as keyof typeof THANK_YOU_PHRASES.regular] 
+                    || THANK_YOU_PHRASES[category][fallbackLang];
+    
+    return phrases[Math.floor(Math.random() * phrases.length)];
+  };
 
   // Load supporters from CSV
   useEffect(() => {
@@ -39,7 +95,6 @@ export default function About() {
       try {
         const response = await fetch("/supporters.csv");
         if (!response.ok) {
-          // CSV not found or empty - not an error, just no supporters yet
           setSupporters([]);
           setSupportersLoading(false);
           return;
@@ -67,19 +122,14 @@ export default function About() {
             };
           });
 
-        // Sort by ranking formula: amount + monthlyAmount DESC, then by date ASC, then alphabetically
+        // Sort by total support: amount + monthlyAmount DESC
         parsed.sort((a, b) => {
           const scoreA = a.amount + a.monthlyAmount;
           const scoreB = b.amount + b.monthlyAmount;
-          
           if (scoreB !== scoreA) return scoreB - scoreA;
-          
-          // Tie-breaker: earlier supporter wins
           if (a.firstSupportDate !== b.firstSupportDate) {
             return a.firstSupportDate.localeCompare(b.firstSupportDate);
           }
-          
-          // Final tie-breaker: alphabetical
           return a.name.localeCompare(b.name);
         });
 
@@ -111,17 +161,14 @@ export default function About() {
         }
 
         const release = await response.json();
-        const latestTag = release.tag_name?.replace(/^v/, ""); // Remove 'v' prefix
+        const latestTag = release.tag_name?.replace(/^v/, "");
         const currentVersion = health.version;
-
-        // Simple version comparison
         const isNewer = latestTag && latestTag !== currentVersion;
 
         setUpdateInfo({
           available: isNewer,
           latestVersion: latestTag,
           releaseUrl: release.html_url,
-          releaseNotes: release.body,
         });
         setUpdateLoading(false);
       } catch (error) {
@@ -130,15 +177,38 @@ export default function About() {
       }
     };
 
-    // Only check after health is loaded and if >3s passed (per user requirement)
     if (health?.version) {
       const timer = setTimeout(checkUpdate, 3000);
       return () => clearTimeout(timer);
     }
   }, [health?.version]);
 
-  const monthlySupporters = supporters.filter((s) => s.type === "monthly");
-  const oneTimeSupporters = supporters.filter((s) => s.type === "one-time");
+  // Calculate font size based on support amount
+  const getFontSize = (supporter: Supporter, maxAmount: number) => {
+    const totalSupport = supporter.amount + supporter.monthlyAmount;
+    const ratio = totalSupport / maxAmount;
+    const minSize = 12;
+    const maxSize = 32;
+    return Math.floor(minSize + (maxSize - minSize) * ratio);
+  };
+
+  // Generate smooth color gradient
+  const generateGradientColor = (index: number, total: number) => {
+    const hue = (index / total) * 360;
+    const saturation = 60 + (index % 3) * 10;
+    const lightness = 55 + (index % 2) * 10;
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  };
+
+  // Clean GitHub URLs
+  const cleanName = (name: string) => {
+    if (name.startsWith("https://github.com/")) {
+      return "@" + name.replace("https://github.com/", "");
+    }
+    return name;
+  };
+
+  const maxAmount = Math.max(...supporters.map(s => s.amount + s.monthlyAmount), 1);
 
   return (
     <div className="about-page">
@@ -183,16 +253,14 @@ export default function About() {
                 <p className="update-title">
                   {t("about.updateAvailable", { version: updateInfo.latestVersion })}
                 </p>
-                <div className="update-actions">
-                  <a
-                    href={updateInfo.releaseUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-primary btn-sm"
-                  >
-                    {t("about.viewRelease")}
-                  </a>
-                </div>
+                <a
+                  href={updateInfo.releaseUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary btn-sm"
+                >
+                  {t("about.viewRelease")}
+                </a>
               </div>
             </motion.div>
           )}
@@ -204,105 +272,81 @@ export default function About() {
           )}
         </div>
 
-        {/* Supporters Section */}
+        {/* Supporters Wimmelbild */}
         {!supportersLoading && supporters.length > 0 && (
           <motion.div
-            className="about-supporters-section"
+            className="supporters-wimmelbild-section"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <h2 className="supporters-title">💛 {t("about.supportersTitle")}</h2>
-            <p className="supporters-description">{t("about.supportersDescription")}</p>
+            <h2 className="supporters-wimmelbild-title">Supp❤️rters</h2>
+            
+            <div className="supporters-wimmelbild">
+              {supporters.map((supporter, index) => {
+                const fontSize = getFontSize(supporter, maxAmount);
+                const color = generateGradientColor(index, supporters.length);
+                const isMonthly = supporter.monthlyAmount > 0;
+                const supporterKey = `${supporter.name}-${index}`;
+                
+                // Get or create tooltip for this supporter
+                if (!tooltipRefs.current.has(supporterKey)) {
+                  tooltipRefs.current.set(supporterKey, getRandomThankYou(isMonthly));
+                }
 
-            {/* Monthly Supporters */}
-            {monthlySupporters.length > 0 && (
-              <div className="supporters-group">
-                <h3 className="supporters-group-title">{t("about.monthlySupporters")}</h3>
-                <div className="supporters-list">
-                  {monthlySupporters.map((supporter, index) => (
-                    <div key={`${supporter.name}-${index}`} className="supporter-card">
-                      <div className="supporter-rank">🥇</div>
-                      <div className="supporter-info">
-                        <span className="supporter-name">{supporter.name}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* One-Time Supporters */}
-            {oneTimeSupporters.length > 0 && (
-              <div className="supporters-group">
-                <h3 className="supporters-group-title">{t("about.oneTimeSupporters")}</h3>
-                <div className="supporters-list">
-                  {oneTimeSupporters.map((supporter, index) => (
-                    <div key={`${supporter.name}-${index}`} className="supporter-card">
-                      <div className="supporter-rank">☕</div>
-                      <div className="supporter-info">
-                        <span className="supporter-name">{supporter.name}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Support CTA */}
-            <div className="support-cta">
-              <p>{t("about.supportCTA")}</p>
-              <a
-                href={BMC_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-primary"
-              >
-                ☕ {t("about.supportButton")}
-              </a>
+                return (
+                  <motion.span
+                    key={supporterKey}
+                    className={isMonthly ? "supporter-name-wimmelbild monthly" : "supporter-name-wimmelbild"}
+                    style={{
+                      fontSize: `${fontSize}px`,
+                      color: isMonthly ? undefined : color,
+                    }}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.02 }}
+                    title={tooltipRefs.current.get(supporterKey)}
+                    onMouseEnter={() => {
+                      // Generate new random phrase on hover
+                      tooltipRefs.current.set(supporterKey, getRandomThankYou(isMonthly));
+                    }}
+                  >
+                    {cleanName(supporter.name)}
+                  </motion.span>
+                );
+              })}
             </div>
           </motion.div>
         )}
 
-        {/* Empty state - no supporters yet */}
-        {!supportersLoading && supporters.length === 0 && (
-          <motion.div
-            className="about-supporters-empty"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            <div className="empty-icon">💛</div>
-            <p className="empty-title">{t("about.noSupportersYet")}</p>
-            <p className="empty-description">{t("about.supportCTA")}</p>
-            <a
-              href={BMC_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-primary"
-            >
-              ☕ {t("about.supportButton")}
-            </a>
-          </motion.div>
-        )}
-
         {/* Links */}
-        <div className="about-links">
+        <div className="about-links-simple">
           <a
             href={`https://github.com/${GITHUB_REPO}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="about-link"
+            className="about-link-simple"
           >
-            🐙 GitHub
+            <svg className="icon-github" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+            </svg>
+            GitHub›
           </a>
           <a
-            href={`https://github.com/${GITHUB_REPO}/issues`}
+            href={`https://github.com/${GITHUB_REPO}/issues/new?template=bug_report.yml`}
             target="_blank"
             rel="noopener noreferrer"
-            className="about-link"
+            className="about-link-simple"
           >
-            🐛 {t("about.reportIssue")}
+            🐛 {t("about.reportBug")}›
+          </a>
+          <a
+            href={BMC_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="about-link-simple about-link-support"
+          >
+            ☕ {t("about.support")}›
           </a>
         </div>
       </motion.div>

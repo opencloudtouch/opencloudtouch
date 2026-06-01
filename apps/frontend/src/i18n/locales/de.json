@@ -749,6 +749,8 @@
     "spotlightTitle": "Community Spotlight — {{month}}",
     "spotlightDescription": "Die wertvollsten Beitragenden dieses Monats. Vielen Dank für eure Unterstützung!",
     "supportersTitle": "Unterstützer",
+    "reportBug": "Problem melden",
+
     "supportersDescription": "Vielen Dank an alle, die OpenCloudTouch finanziell unterstützen. Eure Beiträge helfen das Projekt am Leben zu erhalten!",
     "supportersMonthly": "Monatliche Unterstützer",
     "supportersOneTime": "Einmalige Unterstützer",

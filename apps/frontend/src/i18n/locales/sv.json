@@ -749,6 +749,7 @@
     "spotlightTitle": "Community Spotlight — {{month}}",
     "spotlightDescription": "Månadens mest värdefulla bidragsgivare. Tack för ert stöd!",
     "supportersTitle": "Supportrar",
+    "reportBug": "Rapportera bugg",
     "supportersDescription": "Tack till alla som stödjer OpenCloudTouch ekonomiskt. Era bidrag hjälper till att hålla projektet vid liv!",
     "supportersMonthly": "Månatliga Supportrar",
     "supportersOneTime": "Engångssupportrar",

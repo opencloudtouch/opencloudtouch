@@ -749,6 +749,8 @@
     "spotlightTitle": "Destacados de la Comunidad — {{month}}",
     "spotlightDescription": "Los colaboradores más valiosos de este mes. ¡Gracias por su apoyo!",
     "supportersTitle": "Patrocinadores",
+    "reportBug": "Reportar error",
+
     "supportersDescription": "Gracias a todos los que apoyan OpenCloudTouch financieramente. ¡Sus contribuciones ayudan a mantener el proyecto vivo!",
     "supportersMonthly": "Patrocinadores Mensuales",
     "supportersOneTime": "Patrocinadores Únicos",

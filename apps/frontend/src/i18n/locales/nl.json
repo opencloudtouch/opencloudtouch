@@ -749,6 +749,8 @@
     "spotlightTitle": "Community Spotlight — {{month}}",
     "spotlightDescription": "De meest waardevolle bijdragers van deze maand. Bedankt voor jullie steun!",
     "supportersTitle": "Supporters",
+    "reportBug": "Bug melden",
+
     "supportersDescription": "Dank aan iedereen die OpenCloudTouch financieel steunt. Jullie bijdragen helpen het project levend te houden!",
     "supportersMonthly": "Maandelijkse Supporters",
     "supportersOneTime": "Eenmalige supporters",

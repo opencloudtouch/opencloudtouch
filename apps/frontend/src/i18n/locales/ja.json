@@ -749,6 +749,7 @@
     "spotlightTitle": "今月の貢献者 — {{month}}",
     "spotlightDescription": "今月最も価値ある貢献者の皆様。ご支援ありがとうございます！",
     "supportersTitle": "支援者",
+    "reportBug": "バグ報告",
     "supportersDescription": "OpenCloudTouchを財政的に支援してくださる皆様に感謝します。皆様の貢献がプロジェクトを支えています！",
     "supportersMonthly": "月額支援者",
     "supportersOneTime": "一回限りの支援者",
