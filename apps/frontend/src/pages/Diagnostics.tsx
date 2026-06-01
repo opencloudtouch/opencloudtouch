@@ -90,30 +90,30 @@ export default function Diagnostics() {
         <table className="diagnostics-table">
           <tbody>
             <tr>
-              <td>{t("diagnostics.version")}</td>
+              <th scope="row">{t("diagnostics.version")}</th>
               <td>{data?.server.version}</td>
             </tr>
             <tr>
-              <td>{t("diagnostics.python")}</td>
+              <th scope="row">{t("diagnostics.python")}</th>
               <td>{data?.server.python_version}</td>
             </tr>
             <tr>
-              <td>{t("diagnostics.platform")}</td>
+              <th scope="row">{t("diagnostics.platform")}</th>
               <td>{data?.server.platform}</td>
             </tr>
             <tr>
-              <td>{t("diagnostics.discovery")}</td>
+              <th scope="row">{t("diagnostics.discovery")}</th>
               <td>
                 <StatusDot status={data?.server.discovery_enabled ? "green" : "yellow"} />
                 {data?.server.discovery_enabled ? t("common.enabled") : t("common.disabled")}
               </td>
             </tr>
             <tr>
-              <td>{t("diagnostics.logLevel")}</td>
+              <th scope="row">{t("diagnostics.logLevel")}</th>
               <td>{data?.server.log_level}</td>
             </tr>
             <tr>
-              <td>{t("diagnostics.manualIPs")}</td>
+              <th scope="row">{t("diagnostics.manualIPs")}</th>
               <td>{data?.server.manual_device_ips}</td>
             </tr>
           </tbody>
@@ -126,11 +126,11 @@ export default function Diagnostics() {
         <table className="diagnostics-table">
           <tbody>
             <tr>
-              <td>{t("diagnostics.devicesCount")}</td>
+              <th scope="row">{t("diagnostics.devicesCount")}</th>
               <td>{data?.db_stats.devices}</td>
             </tr>
             <tr>
-              <td>{t("diagnostics.presetsCount")}</td>
+              <th scope="row">{t("diagnostics.presetsCount")}</th>
               <td>{data?.db_stats.presets}</td>
             </tr>
           </tbody>
@@ -154,25 +154,25 @@ export default function Diagnostics() {
                 <table className="diagnostics-table diagnostics-table-compact">
                   <tbody>
                     <tr>
-                      <td>IP</td>
+                      <th scope="row">IP</th>
                       <td>{device.ip}</td>
                     </tr>
                     <tr>
-                      <td>{t("diagnostics.firmware")}</td>
+                      <th scope="row">{t("diagnostics.firmware")}</th>
                       <td>{device.firmware_version}</td>
                     </tr>
                     <tr>
-                      <td>{t("diagnostics.setupStatus")}</td>
+                      <th scope="row">{t("diagnostics.setupStatus")}</th>
                       <td>{device.setup_status}</td>
                     </tr>
                     <tr>
-                      <td>{t("diagnostics.lastSeen")}</td>
+                      <th scope="row">{t("diagnostics.lastSeen")}</th>
                       <td>
                         {device.last_seen ? new Date(device.last_seen).toLocaleString() : "—"}
                       </td>
                     </tr>
                     <tr>
-                      <td>SSH</td>
+                      <th scope="row">SSH</th>
                       <td>{device.ssh_permanent ? "✅" : "❌"}</td>
                     </tr>
                   </tbody>
