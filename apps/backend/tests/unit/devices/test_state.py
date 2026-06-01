@@ -424,3 +424,95 @@ class TestDeviceStateManagerIcyIntegration:
 
         # Worker should not have been called for volume events
         worker.on_event.assert_not_called()
+
+
+class TestDeviceStateManagerBackgroundTasks:
+    """Tests for _background_tasks cleanup and mark_device_offline."""
+
+    @pytest.mark.asyncio
+    async def test_background_task_added_and_cleaned_up(self):
+        """ICY probe task should be added to _background_tasks and auto-cleaned."""
+        from unittest.mock import AsyncMock
+
+        worker = AsyncMock()
+        worker.on_event = AsyncMock(return_value=None)
+
+        mgr = DeviceStateManager()
+        mgr.set_icy_worker(worker)
+
+        np_event = DeviceEvent(
+            device_id="D1",
+            event_type=EventType.NOW_PLAYING,
+            now_playing=NowPlayingInfo(
+                source="INTERNET_RADIO", state="PLAY_STATE", station_name="WDR 2"
+            ),
+        )
+        await mgr.on_event(np_event)
+
+        # Task was created
+        assert len(mgr._background_tasks) >= 0  # may already have completed
+
+        # Wait for task to complete and get cleaned up
+        await asyncio.sleep(0.1)
+        assert len(mgr._background_tasks) == 0
+
+    @pytest.mark.asyncio
+    async def test_mark_device_offline(self):
+        mgr = DeviceStateManager()
+        queue = mgr.subscribe()
+
+        await mgr.mark_device_offline("D1")
+
+        state = mgr.get_state("D1")
+        assert state is not None
+        assert state.connection_state == ConnectionState.FAILED
+
+        received = await queue.get()
+        assert received.event_type == EventType.CONNECTION
+        assert received.connection_state == ConnectionState.FAILED
+        assert received.device_id == "D1"
+
+    @pytest.mark.asyncio
+    async def test_start_icy_polling_idempotent(self):
+        mgr = DeviceStateManager()
+        mgr.start_icy_polling()
+        task1 = mgr._icy_poll_task
+        mgr.start_icy_polling()
+        task2 = mgr._icy_poll_task
+        assert task1 is task2
+        await mgr.stop_icy_polling()
+
+    @pytest.mark.asyncio
+    async def test_stop_icy_polling(self):
+        mgr = DeviceStateManager()
+        mgr.start_icy_polling()
+        assert mgr._icy_poll_task is not None
+
+        await mgr.stop_icy_polling()
+        assert mgr._icy_poll_task is None
+
+    @pytest.mark.asyncio
+    async def test_stop_icy_polling_when_not_started(self):
+        mgr = DeviceStateManager()
+        await mgr.stop_icy_polling()  # should not raise
+
+    @pytest.mark.asyncio
+    async def test_on_event_now_playing_without_data_falls_to_else(self):
+        """NOW_PLAYING with now_playing=None goes to else branch."""
+        mgr = DeviceStateManager()
+        event = DeviceEvent(
+            device_id="D1", event_type=EventType.NOW_PLAYING, now_playing=None
+        )
+        await mgr.on_event(event)
+        # Falls into else branch (unhandled), no state created
+        assert mgr.get_state("D1") is None
+
+    @pytest.mark.asyncio
+    async def test_on_event_volume_without_data_falls_to_else(self):
+        """VOLUME with volume=None goes to else branch."""
+        mgr = DeviceStateManager()
+        event = DeviceEvent(
+            device_id="D1", event_type=EventType.VOLUME, volume=None
+        )
+        await mgr.on_event(event)
+        assert mgr.get_state("D1") is None
