@@ -111,6 +111,32 @@ class DeviceHealthCheck:
         await self._device_repo.upsert(device)
 
     @staticmethod
+    def _format_duration(seconds: float) -> str:
+        """Format seconds into human-readable duration string."""
+        total_minutes = int(seconds) // 60
+        years, remainder = divmod(total_minutes, 525960)  # 365.25 days
+        days, remainder = divmod(remainder, 1440)
+        hours, minutes = divmod(remainder, 60)
+        parts = []
+        if years == 1:
+            parts.append("1 year")
+        elif years > 1:
+            parts.append(f"{years} years")
+        if days == 1:
+            parts.append("1 day")
+        elif days > 0:
+            parts.append(f"{days} days")
+        if hours == 1:
+            parts.append("1 hour")
+        elif hours > 0:
+            parts.append(f"{hours} hours")
+        if minutes == 1:
+            parts.append("1 minute")
+        else:
+            parts.append(f"{minutes} minutes")
+        return ", ".join(parts)
+
+    @staticmethod
     def _handle_unreachable(device, now: datetime) -> None:
         """Log a warning if the device has been offline beyond the threshold."""
         if not device.last_seen:
@@ -118,10 +144,10 @@ class DeviceHealthCheck:
         seconds_since = (now - device.last_seen).total_seconds()
         if seconds_since > OFFLINE_THRESHOLD:
             logger.warning(
-                "Device %s (%s) offline for %.0fs",
+                "Device %s (%s) offline for %s",
                 device.name,
                 device.ip,
-                seconds_since,
+                DeviceHealthCheck._format_duration(seconds_since),
             )
 
     @staticmethod
