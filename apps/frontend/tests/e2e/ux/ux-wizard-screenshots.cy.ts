@@ -1,12 +1,12 @@
-// Make this file a TypeScript module to avoid duplicate-declaration
+ï»¿// Make this file a TypeScript module to avoid duplicate-declaration
 // conflicts with shared helpers in ux-workflow-screenshots.cy.ts
 export {};
 
 /**
- * UX Screenshots — Setup Wizard (Vollständiger Durchlauf)
+ * UX Screenshots â€” Setup Wizard (VollstÃ¤ndiger Durchlauf)
  *
- * Jeden Schritt des Setup-Wizards wird vollständig durchlaufen mit
- * gemockten Backend-Antworten (kein echtes Gerät nötig).
+ * Jeden Schritt des Setup-Wizards wird vollstÃ¤ndig durchlaufen mit
+ * gemockten Backend-Antworten (kein echtes GerÃ¤t nÃ¶tig).
  *
  * Abgedeckte Szenarien:
  *   HAPPY PATH : Jeder Schritt mit Erfolgs-Response (dark + light)
@@ -19,8 +19,8 @@ export {};
  *   Step 2: PowerCycle + SSH-Port-Check
  *   Step 3: SSH-Entscheidung (innerhalb Step 2)
  *   Step 4: Backup (optional)
- *   Step 5: Konfiguration ändern
- *   Step 6: Hosts-Datei ändern
+ *   Step 5: Konfiguration Ã¤ndern
+ *   Step 6: Hosts-Datei Ã¤ndern
  *   Step 7: Verifikation
  *   Step 8: Abschluss
  *
@@ -62,7 +62,7 @@ const CONFIG_SUCCESS = {
   new_url: "192.168.1.11",
   backup_path: "/usb/backups/config_backup.xml",
   diff: "- bmx.bose.com\n+ 192.168.1.11",
-  message: "Konfiguration erfolgreich geändert",
+  message: "Konfiguration erfolgreich geÃ¤ndert",
 };
 
 const HOSTS_SUCCESS = {
@@ -72,7 +72,7 @@ const HOSTS_SUCCESS = {
   backup_path: "/usb/backups/hosts_backup",
   diff:
     "+ 192.168.1.11 bose.vtuner.com\n+ 192.168.1.11 streaming.bose.com\n+ 192.168.1.11 update.bose.com",
-  message: "Hosts-Datei erfolgreich geändert",
+  message: "Hosts-Datei erfolgreich geÃ¤ndert",
 };
 
 const VERIFY_SUCCESS = {
@@ -80,7 +80,7 @@ const VERIFY_SUCCESS = {
   domain: "bose.vtuner.com",
   resolved_ip: "192.168.1.11",
   matches_expected: true,
-  message: "bose.vtuner.com ? 192.168.1.11 ?",
+  message: "bose.vtuner.com â†’ 192.168.1.11 âœ“",
 };
 
 // =============================================================================
@@ -163,7 +163,7 @@ function removeLightMode(): void {
 
 function screenshotBoth(name: string): void {
   // Expand layout so fullPage captures all content (app has height:100vh + overflow-y:auto)
-  // Only override height — do NOT remove overflow-x:hidden or horizontal scrollbars appear.
+  // Only override height â€” do NOT remove overflow-x:hidden or horizontal scrollbars appear.
   // Force synchronous reflow via offsetHeight read so dark screenshot sees the new height.
   cy.document().then((doc) => {
     const s = doc.createElement("style");
@@ -172,7 +172,7 @@ function screenshotBoth(name: string): void {
     // captures the full document, not just the viewport-height app-main slice.
     // overflow: visible resets both axes; overflow-x: hidden then restores it
     // so no horizontal scrollbar appears from wide code blocks.
-    // #root has height:100% in index.css — override to auto so it grows with content.
+    // #root has height:100% in index.css â€” override to auto so it grows with content.
     s.textContent = [
       ".app { height: auto !important; min-height: 100vh !important; }",
       ".app-main { height: auto !important; overflow: visible !important; overflow-x: hidden !important; }",
@@ -219,12 +219,12 @@ function setupWizardMocks() {
 
   cy.intercept("POST", "/api/setup/wizard/check-ports", {
     statusCode: 200,
-    body: { success: true, has_ssh: true, has_telnet: false, message: "SSH verfügbar" },
+    body: { success: true, has_ssh: true, has_telnet: false, message: "SSH verfÃ¼gbar" },
   }).as("checkPorts");
 
   cy.intercept("POST", "/api/setup/ssh/enable-permanent", {
     statusCode: 200,
-    body: { success: true, permanent_enabled: false, message: "SSH bleibt temporär aktiv." },
+    body: { success: true, permanent_enabled: false, message: "SSH bleibt temporÃ¤r aktiv." },
   }).as("enableSSH");
 
   cy.intercept("POST", "/api/setup/wizard/backup", {
@@ -308,7 +308,7 @@ function selectManualMode() {
   cy.wait(400);
 }
 
-/** Complete USB Prep step: check all boxes ? Weiter */
+/** Complete USB Prep step: check all boxes â†’ Weiter */
 function completeUSBPrep() {
   cy.get('input[type="checkbox"]').each(($cb) => {
     cy.wrap($cb).check({ force: true });
@@ -317,9 +317,9 @@ function completeUSBPrep() {
   cy.wait(300);
 }
 
-/** Complete PowerCycle+SSH step: run port check ? select "nicht dauerhaft" ? Weiter */
+/** Complete PowerCycle+SSH step: run port check â†’ select "nicht dauerhaft" â†’ Weiter */
 function completePowerCycleStep() {
-  cy.contains("button", /jetzt prüfen/i, { timeout: 8000 }).click({ force: true });
+  cy.contains("button", /jetzt prÃ¼fen/i, { timeout: 8000 }).click({ force: true });
   cy.wait("@checkPorts");
   // Decision cards appear once portsAvailable is true
   cy.get(".risk-decision-buttons", { timeout: 8000 }).should("exist");
@@ -334,19 +334,19 @@ function skipBackupStep() {
   cy.wait(300);
 }
 
-/** Complete Config step: trigger modification ? Weiter */
+/** Complete Config step: trigger modification â†’ Weiter */
 function completeConfigStep() {
   cy.contains("button", /konfiguration.*ndern/i, { timeout: 8000 }).click({ force: true });
-  cy.contains(/bmx\.bose\.com|konfiguration.*geändert|erfolgreich/i, { timeout: 10000 }).should("exist");
+  cy.contains(/bmx\.bose\.com|konfiguration.*geÃ¤ndert|erfolgreich/i, { timeout: 10000 }).should("exist");
   // Wait explicitly for "Weiter" to be enabled (isNextDisabled=false after successful modification)
   cy.contains("button", /weiter/i, { timeout: 8000 }).should("not.be.disabled").click();
   cy.wait(500);
 }
 
-/** Complete Hosts step: trigger modification ? Weiter */
+/** Complete Hosts step: trigger modification â†’ Weiter */
 function completeHostsStep() {
   cy.contains("button", /hosts.*datei/i, { timeout: 8000 }).click({ force: true });
-  cy.contains(/hosts.*geändert|einträge|erfolgreich/i, { timeout: 10000 }).should("exist");
+  cy.contains(/hosts.*geÃ¤ndert|eintrÃ¤ge|erfolgreich/i, { timeout: 10000 }).should("exist");
   cy.contains("button", /weiter/i).click({ force: true });
   cy.wait(300);
 }
@@ -357,7 +357,7 @@ function completeHostsStep() {
 
 Cypress.on("uncaught:exception", () => false);
 
-/** Force German locale — CI defaults to English (navigator.language='en') */
+/** Force German locale â€” CI defaults to English (navigator.language='en') */
 function visitDe(url: string) {
   cy.visit(url, {
     onBeforeLoad(win) {
@@ -366,7 +366,7 @@ function visitDe(url: string) {
   });
 }
 
-describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
+describe("UX Screenshots â€” Setup Wizard (VollstÃ¤ndiger Durchlauf)", () => {
   beforeEach(() => {
     setupWizardMocks();
   });
@@ -375,15 +375,15 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
   // SCHRITT 0: Wizard-Start
   // ===========================================================================
 
-  describe("Schritt 0 — Wizard-Start", () => {
-    it("wiz_00a — Wizard-Start: Mit Gerät vorselektiert (Step 1)", () => {
+  describe("Schritt 0 â€” Wizard-Start", () => {
+    it("wiz_00a â€” Wizard-Start: Mit GerÃ¤t vorselektiert (Step 1)", () => {
       visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}`);
       cy.wait("@getDevices");
       cy.get(".setup-wizard-page", { timeout: 8000 }).should("exist");
       screenshotBoth("wiz_00a_wizard-start__device-preselected");
     });
 
-    it("wiz_00d — Wizard: Kein Gerät vorhanden (EmptyState)", () => {
+    it("wiz_00d â€” Wizard: Kein GerÃ¤t vorhanden (EmptyState)", () => {
       cy.intercept("GET", "/api/devices", { body: [] }).as("getDevicesEmpty");
       visitDe("/setup-wizard");
       cy.wait("@getDevicesEmpty");
@@ -396,19 +396,19 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
   // SCHRITT 1: USB-Vorbereitung (Manual Mode)
   // ===========================================================================
 
-  describe("Schritt 1 — USB-Vorbereitung", () => {
+  describe("Schritt 1 â€” USB-Vorbereitung", () => {
     beforeEach(() => {
       visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}`);
       cy.wait("@getDevices");
       selectManualMode();
     });
 
-    it("wiz_01a — USB-Vorbereitung: Initialzustand (Weiter gesperrt)", () => {
+    it("wiz_01a â€” USB-Vorbereitung: Initialzustand (Weiter gesperrt)", () => {
       // Before checking any boxes
       screenshotBoth("wiz_01a_usb-prep__initial-locked");
     });
 
-    it("wiz_01b — USB-Vorbereitung: Alle Boxen angehakt (Weiter aktiv)", () => {
+    it("wiz_01b â€” USB-Vorbereitung: Alle Boxen angehakt (Weiter aktiv)", () => {
       cy.get('input[type="checkbox"]').each(($cb) => {
         cy.wrap($cb).check({ force: true });
       });
@@ -421,7 +421,7 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
   // SCHRITT 2: PowerCycle + SSH-Port-Check
   // ===========================================================================
 
-  describe("Schritt 2 — PowerCycle & SSH-Port-Check", () => {
+  describe("Schritt 2 â€” PowerCycle & SSH-Port-Check", () => {
     beforeEach(() => {
       visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}`);
       cy.wait("@getDevices");
@@ -429,46 +429,46 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
       completeUSBPrep();
     });
 
-    it("wiz_02a — PowerCycle: Initialzustand (vor Port-Check)", () => {
-      cy.contains("button", /jetzt prüfen/i, { timeout: 8000 }).should("exist");
+    it("wiz_02a â€” PowerCycle: Initialzustand (vor Port-Check)", () => {
+      cy.contains("button", /jetzt prÃ¼fen/i, { timeout: 8000 }).should("exist");
       screenshotBoth("wiz_02a_powercycle__initial");
     });
 
-    it("wiz_02b — PowerCycle: SSH verfügbar, SSH-Entscheidung sichtbar", () => {
-      cy.contains("button", /jetzt prüfen/i, { timeout: 8000 }).click({ force: true });
+    it("wiz_02b â€” PowerCycle: SSH verfÃ¼gbar, SSH-Entscheidung sichtbar", () => {
+      cy.contains("button", /jetzt prÃ¼fen/i, { timeout: 8000 }).click({ force: true });
       cy.wait("@checkPorts");
       cy.get(".power-cycle-status.success", { timeout: 6000 }).should("exist");
       screenshotBoth("wiz_02b_powercycle__ssh-available");
     });
 
-    it("wiz_02c — PowerCycle: Dauerhaft-SSH gewählt (Weiter aktiv)", () => {
-      cy.contains("button", /jetzt prüfen/i, { timeout: 8000 }).click({ force: true });
+    it("wiz_02c â€” PowerCycle: Dauerhaft-SSH gewÃ¤hlt (Weiter aktiv)", () => {
+      cy.contains("button", /jetzt prÃ¼fen/i, { timeout: 8000 }).click({ force: true });
       cy.wait("@checkPorts");
       cy.get(".risk-card--permanent", { timeout: 6000 }).click({ force: true });
       cy.contains("button", /weiter/i).should("not.be.disabled");
       screenshotBoth("wiz_02c_powercycle__permanent-ssh-selected");
     });
 
-    it("wiz_02d — PowerCycle: Temporär-SSH gewählt (Weiter aktiv)", () => {
-      cy.contains("button", /jetzt prüfen/i, { timeout: 8000 }).click({ force: true });
+    it("wiz_02d â€” PowerCycle: TemporÃ¤r-SSH gewÃ¤hlt (Weiter aktiv)", () => {
+      cy.contains("button", /jetzt prÃ¼fen/i, { timeout: 8000 }).click({ force: true });
       cy.wait("@checkPorts");
       cy.get(".risk-card--temporary", { timeout: 6000 }).click({ force: true });
       cy.contains("button", /weiter/i).should("not.be.disabled");
       screenshotBoth("wiz_02d_powercycle__temporary-ssh-selected");
     });
 
-    it("wiz_02e — PowerCycle FEHLER: Kein SSH, kein Telnet", () => {
+    it("wiz_02e â€” PowerCycle FEHLER: Kein SSH, kein Telnet", () => {
       cy.intercept("POST", "/api/setup/wizard/check-ports", {
         statusCode: 200,
         body: {
           success: false,
           has_ssh: false,
           has_telnet: false,
-          message: "Keine Ports erreichbar – Gerät neu starten und erneut prüfen",
+          message: "Keine Ports erreichbar â€“ GerÃ¤t neu starten und erneut prÃ¼fen",
         },
       }).as("checkPortsFailed");
 
-      cy.contains("button", /jetzt prüfen/i, { timeout: 8000 }).click({ force: true });
+      cy.contains("button", /jetzt prÃ¼fen/i, { timeout: 8000 }).click({ force: true });
       cy.wait("@checkPortsFailed");
       cy.get(".power-cycle-status.error", { timeout: 6000 }).should("exist");
       screenshotBoth("wiz_02e_powercycle__error-no-ports");
@@ -479,7 +479,7 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
   // SCHRITT 3: Backup (optional)
   // ===========================================================================
 
-  describe("Schritt 3 — Backup", () => {
+  describe("Schritt 3 â€” Backup", () => {
     beforeEach(() => {
       visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}`);
       cy.wait("@getDevices");
@@ -488,19 +488,19 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
       completePowerCycleStep();
     });
 
-    it("wiz_03a — Backup: Initialzustand (Weiter bereits aktiv)", () => {
+    it("wiz_03a â€” Backup: Initialzustand (Weiter bereits aktiv)", () => {
       cy.contains(/backup/i, { timeout: 8000 }).should("exist");
       cy.contains("button", /weiter/i).should("not.be.disabled");
       screenshotBoth("wiz_03a_backup__initial-skippable");
     });
 
-    it("wiz_03b — Backup: Erfolgreich durchgeführt", () => {
+    it("wiz_03b â€” Backup: Erfolgreich durchgefÃ¼hrt", () => {
       cy.contains("button", /backup.*erstellen/i, { timeout: 8000 }).click({ force: true });
       cy.contains(/backup.*erstellt|nv|erfolgreich/i, { timeout: 10000 }).should("exist");
       screenshotBoth("wiz_03b_backup__success");
     });
 
-    it("wiz_03c — Backup FEHLER: Backup fehlgeschlagen", () => {
+    it("wiz_03c â€” Backup FEHLER: Backup fehlgeschlagen", () => {
       cy.intercept("POST", "/api/setup/wizard/backup", {
         statusCode: 500,
         body: {
@@ -519,10 +519,10 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
   });
 
   // ===========================================================================
-  // SCHRITT 4: Konfiguration ändern
+  // SCHRITT 4: Konfiguration Ã¤ndern
   // ===========================================================================
 
-  describe("Schritt 4 — Konfiguration ändern", () => {
+  describe("Schritt 4 â€” Konfiguration Ã¤ndern", () => {
     beforeEach(() => {
       visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}`);
       cy.wait("@getDevices");
@@ -532,25 +532,25 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
       skipBackupStep();
     });
 
-    it("wiz_04a — Konfiguration: Initialzustand", () => {
+    it("wiz_04a â€” Konfiguration: Initialzustand", () => {
       cy.contains("button", /konfiguration.*ndern/i, { timeout: 8000 }).should("exist");
       screenshotBoth("wiz_04a_config__initial");
     });
 
-    it("wiz_04b — Konfiguration: Erfolgreich geändert (zeigt alte + neue URL)", () => {
+    it("wiz_04b â€” Konfiguration: Erfolgreich geÃ¤ndert (zeigt alte + neue URL)", () => {
       cy.contains("button", /konfiguration.*ndern/i, { timeout: 8000 }).click({ force: true });
       cy.contains("bmx.bose.com", { timeout: 10000 }).should("exist");
       cy.contains("192.168.1.11").should("exist");
       screenshotBoth("wiz_04b_config__success-urls-visible");
     });
 
-    it("wiz_04c — Konfiguration FEHLER: SSH-Verbindung fehlgeschlagen", () => {
+    it("wiz_04c â€” Konfiguration FEHLER: SSH-Verbindung fehlgeschlagen", () => {
       cy.intercept("POST", "/api/setup/wizard/modify-config", {
         statusCode: 500,
         body: {
           success: false,
           detail: "SSH connection timeout after 10s",
-          message: "Konfiguration konnte nicht geändert werden: SSH-Verbindung fehlgeschlagen",
+          message: "Konfiguration konnte nicht geÃ¤ndert werden: SSH-Verbindung fehlgeschlagen",
         },
       });
 
@@ -563,10 +563,10 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
   });
 
   // ===========================================================================
-  // SCHRITT 5: Hosts-Datei ändern
+  // SCHRITT 5: Hosts-Datei Ã¤ndern
   // ===========================================================================
 
-  describe("Schritt 5 — Hosts-Datei ändern", () => {
+  describe("Schritt 5 â€” Hosts-Datei Ã¤ndern", () => {
     beforeEach(() => {
       visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}`);
       cy.wait("@getDevices");
@@ -577,26 +577,26 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
       completeConfigStep();
     });
 
-    it("wiz_05a — Hosts: Initialzustand", () => {
+    it("wiz_05a â€” Hosts: Initialzustand", () => {
       cy.contains("button", /hosts.*datei/i, { timeout: 8000 }).should("exist");
       screenshotBoth("wiz_05a_hosts__initial");
     });
 
-    it("wiz_05b — Hosts: Erfolgreich geändert (Diff sichtbar)", () => {
+    it("wiz_05b â€” Hosts: Erfolgreich geÃ¤ndert (Diff sichtbar)", () => {
       cy.contains("button", /hosts.*datei/i, { timeout: 8000 }).click({ force: true });
-      cy.contains(/hosts.*geändert|einträge.*hinzugefügt|7/i, { timeout: 10000 }).should(
+      cy.contains(/hosts.*geÃ¤ndert|eintrÃ¤ge.*hinzugefÃ¼gt|7/i, { timeout: 10000 }).should(
         "exist"
       );
       screenshotBoth("wiz_05b_hosts__success-diff-visible");
     });
 
-    it("wiz_05c — Hosts FEHLER: SSH-Verbindung fehlgeschlagen", () => {
+    it("wiz_05c â€” Hosts FEHLER: SSH-Verbindung fehlgeschlagen", () => {
       cy.intercept("POST", "/api/setup/wizard/modify-hosts", {
         statusCode: 500,
         body: {
           success: false,
           detail: "SSH connection refused",
-          message: "Hosts-Datei konnte nicht geändert werden",
+          message: "Hosts-Datei konnte nicht geÃ¤ndert werden",
         },
       });
 
@@ -612,7 +612,7 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
   // SCHRITT 6: Verifikation
   // ===========================================================================
 
-  describe("Schritt 6 — DNS-Verifikation", () => {
+  describe("Schritt 6 â€” DNS-Verifikation", () => {
     beforeEach(() => {
       visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}`);
       cy.wait("@getDevices");
@@ -624,42 +624,42 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
       completeHostsStep();
     });
 
-    it("wiz_06a — Verifikation: Initialzustand (vor DNS-Check)", () => {
+    it("wiz_06a â€” Verifikation: Initialzustand (vor DNS-Check)", () => {
       cy.get(".setup-wizard-page", { timeout: 8000 }).should("exist");
       cy.wait(600);
       screenshotBoth("wiz_06a_verification__initial");
     });
 
-    it("wiz_06b — Verifikation: Reboot eingeleitet (Countdown läuft)", () => {
-      // Flow: Finalize ? Reboot section appears ? click Reboot ? countdown starts
-      cy.contains("button", /abschließen|finalize/i, { timeout: 8000 }).click({ force: true });
+    it("wiz_06b â€” Verifikation: Reboot eingeleitet (Countdown lÃ¤uft)", () => {
+      // Flow: Finalize â†’ Reboot section appears â†’ click Reboot â†’ countdown starts
+      cy.contains("button", /abschlieÃŸen|finalize/i, { timeout: 8000 }).click({ force: true });
       cy.wait("@finalizeDevice");
       // After finalize, reboot section appears
       cy.get(".reboot-btn", { timeout: 5000 }).click({ force: true });
       cy.wait("@rebootDevice");
-      // Reboot is in progress — countdown visible
+      // Reboot is in progress â€” countdown visible
       cy.get(".reboot-status", { timeout: 5000 }).should("exist");
       screenshotBoth("wiz_06b_verification__reboot-countdown");
     });
 
-    it("wiz_06c — Verifikation: Finalize-Ergebnis sichtbar", () => {
+    it("wiz_06c â€” Verifikation: Finalize-Ergebnis sichtbar", () => {
       // After finalize, result section shows UUID and success status
-      cy.contains("button", /abschließen|finalize/i, { timeout: 15000 }).click({ force: true });
+      cy.contains("button", /abschlieÃŸen|finalize/i, { timeout: 15000 }).click({ force: true });
       cy.wait("@finalizeDevice");
       cy.get(".verify-checklist", { timeout: 5000 }).should("exist");
       screenshotBoth("wiz_06c_verification__finalize-result");
     });
 
-    it("wiz_06d — Verifikation: Neustart-Button sichtbar nach Finalize", () => {
-      cy.contains("button", /abschließen|finalize/i, { timeout: 8000 }).click({ force: true });
+    it("wiz_06d â€” Verifikation: Neustart-Button sichtbar nach Finalize", () => {
+      cy.contains("button", /abschlieÃŸen|finalize/i, { timeout: 8000 }).click({ force: true });
       cy.wait("@finalizeDevice");
       // After finalize, reboot button appears
       cy.get(".reboot-btn", { timeout: 5000 }).should("exist");
       screenshotBoth("wiz_06d_verification__reboot-button-visible");
     });
 
-    it("wiz_06e — Verifikation: Nach Neustart-Klick", () => {
-      cy.contains("button", /abschließen|finalize/i, { timeout: 8000 }).click({ force: true });
+    it("wiz_06e â€” Verifikation: Nach Neustart-Klick", () => {
+      cy.contains("button", /abschlieÃŸen|finalize/i, { timeout: 8000 }).click({ force: true });
       cy.wait("@finalizeDevice");
       cy.get(".reboot-btn", { timeout: 5000 }).click({ force: true });
       cy.wait("@rebootDevice");
@@ -672,8 +672,8 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
   // SCHRITT 7: Abschluss (Step 8 Completion)
   // ===========================================================================
 
-  describe("Schritt 7 — Abschluss", () => {
-    it("wiz_07a — Abschluss: Erfolgreicher Wizard-Durchlauf", () => {
+  describe("Schritt 7 â€” Abschluss", () => {
+    it("wiz_07a â€” Abschluss: Erfolgreicher Wizard-Durchlauf", () => {
       visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}`);
       cy.wait("@getDevices");
       selectManualMode();
@@ -683,11 +683,11 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
       completeConfigStep();
       completeHostsStep();
 
-      // Verification step: finalize ? reboot ? countdown ? full verify ? advance
-      cy.contains("button", /abschließen|finalize/i, { timeout: 8000 }).click({ force: true });
+      // Verification step: finalize â†’ reboot â†’ countdown â†’ full verify â†’ advance
+      cy.contains("button", /abschlieÃŸen|finalize/i, { timeout: 8000 }).click({ force: true });
       cy.wait("@finalizeDevice");
 
-      // Reboot — use cy.clock to skip 60s countdown
+      // Reboot â€” use cy.clock to skip 60s countdown
       cy.clock();
       cy.get(".reboot-btn", { timeout: 5000 }).click({ force: true });
       cy.wait("@rebootDevice");
@@ -697,7 +697,7 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
       cy.clock().then((clock) => clock.restore());
 
       // Click "Run Full Verification"
-      cy.contains("button", /überprüfung starten|full verification/i, { timeout: 8000 }).click({ force: true });
+      cy.contains("button", /Ã¼berprÃ¼fung starten|full verification/i, { timeout: 8000 }).click({ force: true });
       cy.wait("@verifySetup");
 
       // Wait for verification results, then advance
@@ -718,26 +718,26 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
       cy.viewport(375, 812);
     });
 
-    it("wiz_mob_a — Mobile: Wizard-Start (Step 1)", () => {
+    it("wiz_mob_a â€” Mobile: Wizard-Start (Step 1)", () => {
       visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}`);
       cy.wait("@getDevices");
       cy.get(".setup-wizard-page", { timeout: 8000 }).should("exist");
       screenshotBoth("wiz_mob_a_wizard-start__mobile-375");
     });
 
-    it("wiz_mob_b — Mobile: USB-Vorbereitung", () => {
+    it("wiz_mob_b â€” Mobile: USB-Vorbereitung", () => {
       visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}`);
       cy.wait("@getDevices");
       selectManualMode();
       screenshotBoth("wiz_mob_b_usb-prep__mobile-375");
     });
 
-    it("wiz_mob_c — Mobile: SSH-Port-Check (SSH verfügbar)", () => {
+    it("wiz_mob_c â€” Mobile: SSH-Port-Check (SSH verfÃ¼gbar)", () => {
       visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}`);
       cy.wait("@getDevices");
       selectManualMode();
       completeUSBPrep();
-      cy.contains("button", /jetzt prüfen/i, { timeout: 8000 }).click({ force: true });
+      cy.contains("button", /jetzt prÃ¼fen/i, { timeout: 8000 }).click({ force: true });
       cy.wait("@checkPorts");
       cy.get(".power-cycle-status.success", { timeout: 6000 }).should("exist");
       screenshotBoth("wiz_mob_c_powercycle__ssh-available-mobile-375");
