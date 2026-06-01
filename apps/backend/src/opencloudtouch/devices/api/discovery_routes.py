@@ -220,7 +220,7 @@ async def probe_device(
 
     # Validate IP format
     try:
-        ipaddress.ip_address(ip)
+        ip = str(ipaddress.ip_address(ip))
     except ValueError:
         raise HTTPException(
             status_code=422,
