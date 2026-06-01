@@ -13,11 +13,12 @@ vi.mock("../../src/api/wizard", () => ({
   checkPorts: vi.fn().mockResolvedValue({ success: true, has_ssh: true, message: "SSH access enabled" }),
   detectStrategy: vi.fn().mockResolvedValue({ strategy: "hosts", details: "" }),
   modifyConfig: vi.fn().mockResolvedValue({}),
-  getServerInfo: vi.fn().mockResolvedValue({}),
+  getServerInfo: vi.fn().mockResolvedValue({ server_url: "http://192.168.1.50:7777", server_ip: "192.168.1.50", default_port: 7777 }),
   verifyRedirect: vi.fn().mockResolvedValue({ success: true }),
   rebootDevice: vi.fn().mockResolvedValue({}),
   createBackup: vi.fn().mockResolvedValue({ path: "/backup/file.bak" }),
   modifyHosts: vi.fn().mockResolvedValue({}),
+  validateHostname: vi.fn().mockResolvedValue({ resolvable: true, resolved_ip: "192.168.1.50", matches_expected: true, error: null }),
 }));
 
 // Mock framer-motion

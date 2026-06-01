@@ -2,7 +2,7 @@
  * Tests for wizard.ts API client — finalize & verify endpoints
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { finalizeDevice, verifySetup } from "../../../src/api/wizard";
+import { finalizeDevice, verifySetup, validateHostname } from "../../../src/api/wizard";
 
 describe("Wizard API Client — Finalize & Verify", () => {
   const mockFetch = vi.fn();
@@ -119,6 +119,76 @@ describe("Wizard API Client — Finalize & Verify", () => {
           expected_oct_ip: "192.168.1.50",
         })
       ).rejects.toThrow();
+    });
+  });
+
+  describe("validateHostname", () => {
+    it("sends POST to /api/setup/wizard/validate-hostname with correct body", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            resolvable: true,
+            resolved_ip: "192.168.1.50",
+            matches_expected: true,
+            error: null,
+          }),
+      });
+
+      const result = await validateHostname({
+        hostname: "myserver.local",
+        expected_ip: "192.168.1.50",
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/setup/wizard/validate-hostname",
+        expect.objectContaining({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            hostname: "myserver.local",
+            expected_ip: "192.168.1.50",
+          }),
+        })
+      );
+      expect(result.resolvable).toBe(true);
+      expect(result.resolved_ip).toBe("192.168.1.50");
+      expect(result.matches_expected).toBe(true);
+      expect(result.error).toBeNull();
+    });
+
+    it("throws on HTTP error", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+        text: () => Promise.resolve("Server error"),
+        headers: new Headers(),
+      });
+
+      await expect(
+        validateHostname({ hostname: "bad.host", expected_ip: null })
+      ).rejects.toThrow();
+    });
+
+    it("sends null expected_ip correctly", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            resolvable: true,
+            resolved_ip: "10.0.0.1",
+            matches_expected: null,
+            error: null,
+          }),
+      });
+
+      const result = await validateHostname({
+        hostname: "example.com",
+        expected_ip: null,
+      });
+
+      expect(result.matches_expected).toBeNull();
     });
   });
 });

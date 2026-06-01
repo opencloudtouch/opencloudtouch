@@ -1667,3 +1667,31 @@ class TestValidateHostname:
             json={"hostname": "$(whoami)", "expected_ip": None},
         )
         assert response.status_code == 422
+
+    def test_empty_dns_result(self, client):
+        """DNS returns empty list → resolvable=False."""
+        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+            mock_dns.return_value = []
+            response = client.post(
+                "/api/setup/wizard/validate-hostname",
+                json={"hostname": "emptyresult.local", "expected_ip": None},
+            )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["resolvable"] is False
+        assert body["resolved_ip"] is None
+        assert "no results" in body["error"].lower()
+
+    def test_unexpected_exception(self, client):
+        """Unexpected non-socket exception → resolvable=False with error."""
+        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+            mock_dns.side_effect = RuntimeError("Unexpected failure")
+            response = client.post(
+                "/api/setup/wizard/validate-hostname",
+                json={"hostname": "crash.local", "expected_ip": None},
+            )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["resolvable"] is False
+        assert body["resolved_ip"] is None
+        assert "unexpected" in body["error"].lower()
