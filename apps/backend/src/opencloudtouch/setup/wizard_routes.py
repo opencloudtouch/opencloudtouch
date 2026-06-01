@@ -170,10 +170,12 @@ async def wizard_validate_hostname(
         if not result:
             return ValidateHostnameResponse(
                 resolvable=False,
+                resolved_ip=None,
+                matches_expected=None,
                 error=f"DNS resolution returned no results for '{hostname}'",
             )
 
-        resolved_ip = result[0][4][0]
+        resolved_ip: str = str(result[0][4][0])
 
         matches = None
         if request.expected_ip is not None:
@@ -191,18 +193,23 @@ async def wizard_validate_hostname(
             resolvable=True,
             resolved_ip=resolved_ip,
             matches_expected=matches,
+            error=None,
         )
 
     except socket.gaierror as e:
         logger.warning("DNS resolution failed for '%s': %s", hostname, e)
         return ValidateHostnameResponse(
             resolvable=False,
+            resolved_ip=None,
+            matches_expected=None,
             error=f"DNS resolution failed: {e}",
         )
     except Exception as e:
         logger.error("Unexpected error during DNS validation: %s", e)
         return ValidateHostnameResponse(
             resolvable=False,
+            resolved_ip=None,
+            matches_expected=None,
             error=f"Unexpected error: {e}",
         )
 
