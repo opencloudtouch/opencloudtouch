@@ -27,7 +27,7 @@ interface UpdateInfo {
 export default function About() {
   const { t } = useTranslation();
   const { data: health, isLoading: healthLoading } = useHealth();
-  
+
   const [supporters, setSupporters] = useState<Supporter[]>([]);
   const [supportersLoading, setSupportersLoading] = useState(true);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo>({ available: false });
@@ -71,14 +71,14 @@ export default function About() {
         parsed.sort((a, b) => {
           const scoreA = a.amount + a.monthlyAmount;
           const scoreB = b.amount + b.monthlyAmount;
-          
+
           if (scoreB !== scoreA) return scoreB - scoreA;
-          
+
           // Tie-breaker: earlier supporter wins
           if (a.firstSupportDate !== b.firstSupportDate) {
             return a.firstSupportDate.localeCompare(b.firstSupportDate);
           }
-          
+
           // Final tie-breaker: alphabetical
           return a.name.localeCompare(b.name);
         });
@@ -152,15 +152,15 @@ export default function About() {
           <div className="about-icon">🎵</div>
           <h1 className="about-title">OpenCloudTouch</h1>
           {healthLoading && <Skeleton width="60px" height="24px" borderRadius="20px" />}
-          {!healthLoading && health && (
-            <span className="about-version">v{health.version}</span>
-          )}
+          {!healthLoading && health && <span className="about-version">v{health.version}</span>}
         </div>
 
         {/* Build Info */}
         {!healthLoading && health?.uptime && (
           <p className="about-build-time">
-            {t("about.buildTime", { time: new Date(Date.now() - health.uptime * 1000).toLocaleString() })}
+            {t("about.buildTime", {
+              time: new Date(Date.now() - health.uptime * 1000).toLocaleString(),
+            })}
           </p>
         )}
 
@@ -275,12 +275,7 @@ export default function About() {
             <div className="empty-icon">💛</div>
             <p className="empty-title">{t("about.noSupportersYet")}</p>
             <p className="empty-description">{t("about.supportCTA")}</p>
-            <a
-              href={BMC_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-primary"
-            >
+            <a href={BMC_URL} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
               ☕ {t("about.supportButton")}
             </a>
           </motion.div>
