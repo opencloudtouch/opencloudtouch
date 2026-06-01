@@ -63,4 +63,4 @@ async def rename_device_via_ssh(device_ip: str, new_name: str) -> None:
         finally:
             await ssh.execute("mount -o remount,ro /")
 
-        logger.info("Device %s renamed to %r via SSH", device_ip, new_name)
+        logger.info("Device %r renamed to %r via SSH", device_ip, new_name)
