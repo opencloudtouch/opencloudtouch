@@ -132,7 +132,9 @@ class TestRenameDeviceViaSSH:
     @pytest.mark.asyncio
     async def test_device_name_tag_not_found(self, fake_ssh, monkeypatch):
         """Raises RuntimeError when <DeviceName> tag is missing."""
-        xml_no_tag = "<SystemConfiguration><Language>en</Language></SystemConfiguration>"
+        xml_no_tag = (
+            "<SystemConfiguration><Language>en</Language></SystemConfiguration>"
+        )
         fake_ssh.execute = AsyncMock(
             return_value=FakeCommandResult(success=True, output=xml_no_tag)
         )
