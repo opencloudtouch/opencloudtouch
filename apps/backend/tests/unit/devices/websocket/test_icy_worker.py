@@ -330,9 +330,7 @@ class TestIcyWorkerTuneInSource:
     @pytest.mark.asyncio
     async def test_tunein_source_with_existing_artwork_skipped(self):
         worker = IcyWorker(get_stream_url=AsyncMock())
-        event = _event(
-            np=_np(source="TUNEIN", artwork_url="http://existing-art.png")
-        )
+        event = _event(np=_np(source="TUNEIN", artwork_url="http://existing-art.png"))
         result = await worker.on_event(event)
         assert result is None
 
