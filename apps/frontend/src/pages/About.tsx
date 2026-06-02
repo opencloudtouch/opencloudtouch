@@ -27,42 +27,84 @@ interface UpdateInfo {
 const THANK_YOU_PHRASES = {
   regular: {
     en: [
-      "Thank you for your support! ☕", "You make the difference! 🎵", "Thanks a lot! 💙",
-      "Super cool of you! 🚀", "You rock! 🎸", "Thanks for being here! 🙌",
-      "You're awesome! ⭐", "Heartfelt thanks! ❤️", "You help us forward! 🌟",
-      "Thanks for your support! 💪", "You're the hammer! 🔨", "Many thanks! 🎉",
-      "You're great! 🌈", "Thanks for joining! 🤝", "You're a hero! 🦸",
-      "Thanks for the coffee! ☕", "You're fantastic! 👏", "Many thanks! 🎁",
-      "You make it possible! ✨", "Thanks, you legend! 🏆",
+      "Thank you for your support! ☕",
+      "You make the difference! 🎵",
+      "Thanks a lot! 💙",
+      "Super cool of you! 🚀",
+      "You rock! 🎸",
+      "Thanks for being here! 🙌",
+      "You're awesome! ⭐",
+      "Heartfelt thanks! ❤️",
+      "You help us forward! 🌟",
+      "Thanks for your support! 💪",
+      "You're the hammer! 🔨",
+      "Many thanks! 🎉",
+      "You're great! 🌈",
+      "Thanks for joining! 🤝",
+      "You're a hero! 🦸",
+      "Thanks for the coffee! ☕",
+      "You're fantastic! 👏",
+      "Many thanks! 🎁",
+      "You make it possible! ✨",
+      "Thanks, you legend! 🏆",
     ],
     de: [
-      "Danke für deine Unterstützung! ☕", "Du machst den Unterschied! 🎵", "Vielen Dank! 💙",
-      "Mega cool von dir! 🚀", "Du rockst! 🎸", "Danke, dass du dabei bist! 🙌",
-      "Du bist awesome! ⭐", "Herzlichen Dank! ❤️", "Du hilfst uns weiter! 🌟",
-      "Danke für deinen Support! 💪", "Du bist der Hammer! 🔨", "Vielen lieben Dank! 🎉",
-      "Du bist großartig! 🌈", "Danke fürs Mitmachen! 🤝", "Du bist ein Held! 🦸",
-      "Danke für den Kaffee! ☕", "Du bist klasse! 👏", "Vielen Dank dafür! 🎁",
-      "Du machst's möglich! ✨", "Danke, du Ehrenmensch! 🏆",
+      "Danke für deine Unterstützung! ☕",
+      "Du machst den Unterschied! 🎵",
+      "Vielen Dank! 💙",
+      "Mega cool von dir! 🚀",
+      "Du rockst! 🎸",
+      "Danke, dass du dabei bist! 🙌",
+      "Du bist awesome! ⭐",
+      "Herzlichen Dank! ❤️",
+      "Du hilfst uns weiter! 🌟",
+      "Danke für deinen Support! 💪",
+      "Du bist der Hammer! 🔨",
+      "Vielen lieben Dank! 🎉",
+      "Du bist großartig! 🌈",
+      "Danke fürs Mitmachen! 🤝",
+      "Du bist ein Held! 🦸",
+      "Danke für den Kaffee! ☕",
+      "Du bist klasse! 👏",
+      "Vielen Dank dafür! 🎁",
+      "Du machst's möglich! ✨",
+      "Danke, du Ehrenmensch! 🏆",
     ],
   },
   monthly: {
     en: [
-      "You're a champion! 🏆💛", "Thanks for your loyal support! ✨", "You're worth gold! 💰",
-      "Wow, thanks for the monthly commitment! 🌟", "You're absolutely amazing! 🚀",
-      "Thanks for being here every month! 💙", "You're a superhero! 🦸‍♂️",
-      "Many thanks for your loyalty! 🙏", "You make the project possible! 🎉",
-      "Thanks for your continuous help! 💪", "You're simply fantastic! ⭐",
-      "Heartfelt thanks for your loyalty! ❤️", "You're priceless! 💎",
-      "Thanks for the monthly fuel! ⚡", "You're a rockstar! 🎸",
+      "You're a champion! 🏆💛",
+      "Thanks for your loyal support! ✨",
+      "You're worth gold! 💰",
+      "Wow, thanks for the monthly commitment! 🌟",
+      "You're absolutely amazing! 🚀",
+      "Thanks for being here every month! 💙",
+      "You're a superhero! 🦸‍♂️",
+      "Many thanks for your loyalty! 🙏",
+      "You make the project possible! 🎉",
+      "Thanks for your continuous help! 💪",
+      "You're simply fantastic! ⭐",
+      "Heartfelt thanks for your loyalty! ❤️",
+      "You're priceless! 💎",
+      "Thanks for the monthly fuel! ⚡",
+      "You're a rockstar! 🎸",
     ],
     de: [
-      "Du bist ein Champion! 🏆💛", "Danke für deine treue Unterstützung! ✨", "Du bist Gold wert! 💰",
-      "Wow, danke fürs monatliche Commitment! 🌟", "Du bist der absolute Wahnsinn! 🚀",
-      "Danke, dass du jeden Monat dabei bist! 💙", "Du bist ein Superheld! 🦸‍♂️",
-      "Vielen Dank für deine Treue! 🙏", "Du machst das Projekt möglich! 🎉",
-      "Danke für deine kontinuierliche Hilfe! 💪", "Du bist einfach fantastisch! ⭐",
-      "Herzlichen Dank für deine Loyalität! ❤️", "Du bist unbezahlbar! 💎",
-      "Danke fürs monatliche Fuel! ⚡", "Du bist ein Rockstar! 🎸",
+      "Du bist ein Champion! 🏆💛",
+      "Danke für deine treue Unterstützung! ✨",
+      "Du bist Gold wert! 💰",
+      "Wow, danke fürs monatliche Commitment! 🌟",
+      "Du bist der absolute Wahnsinn! 🚀",
+      "Danke, dass du jeden Monat dabei bist! 💙",
+      "Du bist ein Superheld! 🦸‍♂️",
+      "Vielen Dank für deine Treue! 🙏",
+      "Du machst das Projekt möglich! 🎉",
+      "Danke für deine kontinuierliche Hilfe! 💪",
+      "Du bist einfach fantastisch! ⭐",
+      "Herzlichen Dank für deine Loyalität! ❤️",
+      "Du bist unbezahlbar! 💎",
+      "Danke fürs monatliche Fuel! ⚡",
+      "Du bist ein Rockstar! 🎸",
     ],
   },
 };
@@ -70,7 +112,7 @@ const THANK_YOU_PHRASES = {
 export default function About() {
   const { t, i18n } = useTranslation();
   const { data: health, isLoading: healthLoading } = useHealth();
-  
+
   const [supporters, setSupporters] = useState<Supporter[]>([]);
   const [supportersLoading, setSupportersLoading] = useState(true);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo>({ available: false });
@@ -81,11 +123,12 @@ export default function About() {
   const getRandomThankYou = (isMonthly: boolean) => {
     const currentLang = i18n.language.split("-")[0]; // en-US → en
     const fallbackLang = "en";
-    
+
     const category = isMonthly ? "monthly" : "regular";
-    const phrases = THANK_YOU_PHRASES[category][currentLang as keyof typeof THANK_YOU_PHRASES.regular] 
-                    || THANK_YOU_PHRASES[category][fallbackLang];
-    
+    const phrases =
+      THANK_YOU_PHRASES[category][currentLang as keyof typeof THANK_YOU_PHRASES.regular] ||
+      THANK_YOU_PHRASES[category][fallbackLang];
+
     return phrases[Math.floor(Math.random() * phrases.length)];
   };
 
@@ -208,7 +251,7 @@ export default function About() {
     return name;
   };
 
-  const maxAmount = Math.max(...supporters.map(s => s.amount + s.monthlyAmount), 1);
+  const maxAmount = Math.max(...supporters.map((s) => s.amount + s.monthlyAmount), 1);
 
   return (
     <div className="about-page">
@@ -222,15 +265,15 @@ export default function About() {
           <div className="about-icon">🎵</div>
           <h1 className="about-title">OpenCloudTouch</h1>
           {healthLoading && <Skeleton width="60px" height="24px" borderRadius="20px" />}
-          {!healthLoading && health && (
-            <span className="about-version">v{health.version}</span>
-          )}
+          {!healthLoading && health && <span className="about-version">v{health.version}</span>}
         </div>
 
         {/* Build Info */}
         {!healthLoading && health?.uptime && (
           <p className="about-build-time">
-            {t("about.buildTime", { time: new Date(Date.now() - health.uptime * 1000).toLocaleString() })}
+            {t("about.buildTime", {
+              time: new Date(Date.now() - health.uptime * 1000).toLocaleString(),
+            })}
           </p>
         )}
 
@@ -281,14 +324,14 @@ export default function About() {
             transition={{ delay: 0.2 }}
           >
             <h2 className="supporters-wimmelbild-title">Supp❤️rters</h2>
-            
+
             <div className="supporters-wimmelbild">
               {supporters.map((supporter, index) => {
                 const fontSize = getFontSize(supporter, maxAmount);
                 const color = generateGradientColor(index, supporters.length);
                 const isMonthly = supporter.monthlyAmount > 0;
                 const supporterKey = `${supporter.name}-${index}`;
-                
+
                 // Get or create tooltip for this supporter
                 if (!tooltipRefs.current.has(supporterKey)) {
                   tooltipRefs.current.set(supporterKey, getRandomThankYou(isMonthly));
@@ -297,7 +340,9 @@ export default function About() {
                 return (
                   <motion.span
                     key={supporterKey}
-                    className={isMonthly ? "supporter-name-wimmelbild monthly" : "supporter-name-wimmelbild"}
+                    className={
+                      isMonthly ? "supporter-name-wimmelbild monthly" : "supporter-name-wimmelbild"
+                    }
                     style={{
                       fontSize: `${fontSize}px`,
                       color: isMonthly ? undefined : color,
@@ -328,7 +373,7 @@ export default function About() {
             className="about-link-simple"
           >
             <svg className="icon-github" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
             </svg>
             GitHub›
           </a>
