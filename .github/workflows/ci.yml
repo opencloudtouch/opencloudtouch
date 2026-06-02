@@ -328,11 +328,12 @@ jobs:
     name: SonarCloud
     runs-on: ubuntu-latest
     needs: [backend-tests, frontend-tests]
-    # Skip for fork PRs — SONAR_TOKEN is not available in fork context.
+    # Skip for fork PRs and Dependabot — SONAR_TOKEN is not available in these contexts.
     # Sonar analysis runs on main via sonar.yml after merge instead.
     if: >-
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+      (github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository)
+      && github.actor != 'dependabot[bot]'
 
     steps:
       - name: Checkout code
