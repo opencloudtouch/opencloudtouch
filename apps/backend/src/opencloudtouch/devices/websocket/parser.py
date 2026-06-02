@@ -45,7 +45,6 @@ _TAG_MAP: dict[str, EventType] = {
     "zoneUpdated": EventType.ZONE,
     "connectionStateUpdated": EventType.CONNECTION,
     "bassUpdated": EventType.BASS,
-    "nowSelectionUpdated": EventType.NOW_PLAYING,
     "recentsUpdated": EventType.PRESETS,
 }
 

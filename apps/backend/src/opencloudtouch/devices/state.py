@@ -12,7 +12,7 @@ import contextlib
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Awaitable, Callable
 
 from opencloudtouch.devices.client import NowPlayingInfo, VolumeInfo
 from opencloudtouch.devices.websocket.connection import ConnectionState
@@ -51,6 +51,9 @@ class DeviceStateManager:
 
     MAX_SUBSCRIBERS = 20
 
+    # Callback type: (device_id, station_name) -> favicon_url | None
+    GetPresetFavicon = Callable[[str, str], Awaitable[str | None]]
+
     def __init__(self) -> None:
         self._states: dict[str, DeviceState] = {}
         self._subscribers: list[asyncio.Queue[DeviceEvent]] = []
@@ -58,10 +61,17 @@ class DeviceStateManager:
         self._icy_poll_task: asyncio.Task | None = None
         self._background_tasks: set[asyncio.Task[None]] = set()
         self._throttle = EventThrottle(publish=self.publish)
+        self._get_preset_favicon: DeviceStateManager.GetPresetFavicon | None = None
 
     def set_icy_worker(self, worker: IcyWorker) -> None:
         """Attach an ICY metadata worker for radio enrichment."""
         self._icy_worker = worker
+
+    def set_preset_favicon_callback(
+        self, callback: GetPresetFavicon
+    ) -> None:
+        """Set callback for resolving preset favicon URLs."""
+        self._get_preset_favicon = callback
 
     def start_icy_polling(self) -> None:
         """Start periodic ICY metadata polling for radio-playing devices."""
@@ -240,15 +250,78 @@ class DeviceStateManager:
 
         await self._throttle.submit(event)
 
-        # Fire ICY probe in background for radio events
+        # Fire preset-favicon + ICY probe in background for radio events
         if (
-            self._icy_worker
-            and event.event_type == EventType.NOW_PLAYING
+            event.event_type == EventType.NOW_PLAYING
             and event.now_playing
         ):
-            task = asyncio.create_task(self._run_icy_probe(event))
+            task = asyncio.create_task(
+                self._run_enrichment_pipeline(event)
+            )
             self._background_tasks.add(task)
             task.add_done_callback(self._background_tasks.discard)
+
+    async def _run_enrichment_pipeline(self, event: DeviceEvent) -> None:
+        """Run preset-favicon lookup then ICY probe for radio events."""
+        assert event.now_playing is not None
+
+        # Step 1: Preset-favicon enrichment (fast, DB lookup)
+        await self._run_preset_favicon_enrichment(event)
+
+        # Step 2: ICY metadata probe (slow, network)
+        if self._icy_worker:
+            await self._run_icy_probe(event)
+
+    async def _run_preset_favicon_enrichment(self, event: DeviceEvent) -> None:
+        """Look up preset favicon from DB and publish enriched event."""
+        from opencloudtouch.devices.websocket.icy_worker import RADIO_SOURCES
+
+        if self._get_preset_favicon is None:
+            return
+
+        info = event.now_playing
+        if not info or info.source not in RADIO_SOURCES:
+            return
+        if info.artwork_url:
+            return  # Already has artwork
+        if not info.station_name:
+            return
+
+        try:
+            favicon_url = await self._get_preset_favicon(
+                event.device_id, info.station_name
+            )
+        except Exception:
+            logger.debug(
+                "Preset favicon lookup failed for %s", event.device_id, exc_info=True
+            )
+            return
+
+        if not favicon_url:
+            return
+
+        logger.debug(
+            "Preset favicon enrichment for %s: %s → %s",
+            event.device_id,
+            info.station_name,
+            favicon_url,
+        )
+
+        enriched = NowPlayingInfo(
+            source=info.source,
+            state=info.state,
+            station_name=info.station_name,
+            artist=info.artist,
+            track=info.track,
+            album=info.album,
+            artwork_url=favicon_url,
+        )
+        enriched_event = DeviceEvent(
+            device_id=event.device_id,
+            event_type=EventType.METADATA_ENRICHED,
+            now_playing=enriched,
+        )
+        await self.on_event(enriched_event)
 
     async def _run_icy_probe(self, event: DeviceEvent) -> None:
         """Run ICY probe and publish enriched event if successful."""

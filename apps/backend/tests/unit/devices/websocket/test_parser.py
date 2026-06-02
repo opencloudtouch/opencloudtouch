@@ -276,7 +276,13 @@ class TestKnownWebSocketEvents:
     """Regression: SoundTouchSdkInfo, userActivityUpdate logged as WARNING;
     nowSelectionUpdated, recentsUpdated logged as 'unknown event tag'."""
 
-    def test_now_selection_updated_parsed_as_now_playing(self):
+    def test_now_selection_updated_ignored_as_unknown(self):
+        """nowSelectionUpdated has no <nowPlaying> child in real devices.
+
+        It must NOT be treated as NOW_PLAYING because it creates fake STOP
+        events that clear the frontend's now-playing state.
+        Regression: https://github.com/.../issues/184
+        """
         xml = """\
 <updates deviceID="AABB11223344">
     <nowSelectionUpdated deviceID="AABB11223344">
@@ -289,12 +295,8 @@ class TestKnownWebSocketEvents:
 </updates>"""
         event = parse_event(xml)
         assert event is not None
-        assert event.event_type == EventType.NOW_PLAYING
-        assert event.now_playing is not None
-        assert event.now_playing.station_name == "NDR 2"
-        assert (
-            event.now_playing.artwork_url == "http://cdn-profiles.tunein.com/logo.png"
-        )
+        assert event.event_type == EventType.UNKNOWN
+        assert event.now_playing is None
 
     def test_recents_updated_parsed_as_presets(self):
         xml = '<updates deviceID="AABB11223344"><recentsUpdated/></updates>'

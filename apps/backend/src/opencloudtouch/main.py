@@ -243,6 +243,20 @@ async def _init_services(
 
     icy_worker = IcyWorker(get_stream_url=_get_stream_url)
     app.state.device_state_manager.set_icy_worker(icy_worker)
+
+    # Preset-favicon callback — enriches radio artwork from preset DB
+    async def _get_preset_favicon(device_id: str, station_name: str) -> str | None:
+        """Resolve station_name to favicon URL via preset DB."""
+        try:
+            presets = await app.state.preset_service.get_all_presets(device_id)
+            for preset in presets:
+                if preset.station_name == station_name:
+                    return preset.station_favicon
+        except Exception:
+            pass  # Best-effort lookup
+        return None
+
+    app.state.device_state_manager.set_preset_favicon_callback(_get_preset_favicon)
     app.state.device_state_manager.start_icy_polling()
     logger.info("DeviceStateManager initialized (with ICY worker + periodic polling)")
 

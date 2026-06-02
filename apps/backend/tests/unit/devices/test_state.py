@@ -514,3 +514,230 @@ class TestDeviceStateManagerBackgroundTasks:
         event = DeviceEvent(device_id="D1", event_type=EventType.VOLUME, volume=None)
         await mgr.on_event(event)
         assert mgr.get_state("D1") is None
+
+
+# ---------------------------------------------------------------------------
+# DeviceStateManager — preset-favicon enrichment
+# ---------------------------------------------------------------------------
+
+
+class TestPresetFaviconEnrichment:
+    """Tests for preset-favicon enrichment in the SSE pipeline."""
+
+    @pytest.mark.asyncio
+    async def test_favicon_enrichment_publishes_metadata_enriched(self):
+        """Radio event without artwork should trigger favicon lookup."""
+        from unittest.mock import AsyncMock
+
+        favicon_cb = AsyncMock(return_value="https://cdn.example.com/logo.png")
+
+        mgr = DeviceStateManager()
+        mgr.set_preset_favicon_callback(favicon_cb)
+        queue = mgr.subscribe()
+
+        np_event = DeviceEvent(
+            device_id="D1",
+            event_type=EventType.NOW_PLAYING,
+            now_playing=NowPlayingInfo(
+                source="INTERNET_RADIO",
+                state="PLAY_STATE",
+                station_name="WDR 2",
+            ),
+        )
+        await mgr.on_event(np_event)
+        await asyncio.sleep(0.1)
+
+        events = []
+        while not queue.empty():
+            events.append(await queue.get())
+
+        types = [e.event_type for e in events]
+        assert EventType.NOW_PLAYING in types
+        assert EventType.METADATA_ENRICHED in types
+
+        enriched = [e for e in events if e.event_type == EventType.METADATA_ENRICHED]
+        assert enriched[0].now_playing.artwork_url == "https://cdn.example.com/logo.png"
+
+        favicon_cb.assert_called_once_with("D1", "WDR 2")
+
+    @pytest.mark.asyncio
+    async def test_favicon_skipped_when_artwork_already_present(self):
+        """Radio event with artwork should NOT trigger favicon lookup."""
+        from unittest.mock import AsyncMock
+
+        favicon_cb = AsyncMock(return_value="https://cdn.example.com/logo.png")
+
+        mgr = DeviceStateManager()
+        mgr.set_preset_favicon_callback(favicon_cb)
+
+        np_event = DeviceEvent(
+            device_id="D1",
+            event_type=EventType.NOW_PLAYING,
+            now_playing=NowPlayingInfo(
+                source="INTERNET_RADIO",
+                state="PLAY_STATE",
+                station_name="WDR 2",
+                artwork_url="https://existing-art.png",
+            ),
+        )
+        await mgr.on_event(np_event)
+        await asyncio.sleep(0.1)
+
+        favicon_cb.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_favicon_skipped_for_non_radio_source(self):
+        """Non-radio source should NOT trigger favicon lookup."""
+        from unittest.mock import AsyncMock
+
+        favicon_cb = AsyncMock(return_value="https://cdn.example.com/logo.png")
+
+        mgr = DeviceStateManager()
+        mgr.set_preset_favicon_callback(favicon_cb)
+
+        np_event = DeviceEvent(
+            device_id="D1",
+            event_type=EventType.NOW_PLAYING,
+            now_playing=NowPlayingInfo(
+                source="SPOTIFY",
+                state="PLAY_STATE",
+                station_name="My Playlist",
+            ),
+        )
+        await mgr.on_event(np_event)
+        await asyncio.sleep(0.1)
+
+        favicon_cb.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_favicon_not_found_no_enrichment(self):
+        """Favicon callback returning None should not publish enrichment."""
+        from unittest.mock import AsyncMock
+
+        favicon_cb = AsyncMock(return_value=None)
+
+        mgr = DeviceStateManager()
+        mgr.set_preset_favicon_callback(favicon_cb)
+        queue = mgr.subscribe()
+
+        np_event = DeviceEvent(
+            device_id="D1",
+            event_type=EventType.NOW_PLAYING,
+            now_playing=NowPlayingInfo(
+                source="INTERNET_RADIO",
+                state="PLAY_STATE",
+                station_name="Unknown Station",
+            ),
+        )
+        await mgr.on_event(np_event)
+        await asyncio.sleep(0.1)
+
+        events = []
+        while not queue.empty():
+            events.append(await queue.get())
+
+        types = [e.event_type for e in events]
+        assert EventType.METADATA_ENRICHED not in types
+
+    @pytest.mark.asyncio
+    async def test_favicon_callback_exception_does_not_block(self):
+        """Favicon callback exception should not break the pipeline."""
+        from unittest.mock import AsyncMock
+
+        favicon_cb = AsyncMock(side_effect=RuntimeError("DB down"))
+
+        mgr = DeviceStateManager()
+        mgr.set_preset_favicon_callback(favicon_cb)
+        queue = mgr.subscribe()
+
+        np_event = DeviceEvent(
+            device_id="D1",
+            event_type=EventType.NOW_PLAYING,
+            now_playing=NowPlayingInfo(
+                source="INTERNET_RADIO",
+                state="PLAY_STATE",
+                station_name="WDR 2",
+            ),
+        )
+        await mgr.on_event(np_event)
+        await asyncio.sleep(0.1)
+
+        # Original event should still have been published
+        received = await queue.get()
+        assert received.event_type == EventType.NOW_PLAYING
+
+    @pytest.mark.asyncio
+    async def test_favicon_and_icy_both_run(self):
+        """Both favicon enrichment and ICY probe should run for radio events."""
+        from unittest.mock import AsyncMock
+
+        favicon_cb = AsyncMock(return_value="https://cdn.example.com/favicon.png")
+
+        icy_enriched = NowPlayingInfo(
+            source="INTERNET_RADIO",
+            state="PLAY_STATE",
+            station_name="WDR 2",
+            artwork_url="https://cdn.example.com/icy.png",
+            artist="ICY Artist",
+        )
+        icy_event = DeviceEvent(
+            device_id="D1",
+            event_type=EventType.METADATA_ENRICHED,
+            now_playing=icy_enriched,
+        )
+
+        worker = AsyncMock()
+        worker.on_event = AsyncMock(return_value=icy_event)
+
+        mgr = DeviceStateManager()
+        mgr.set_preset_favicon_callback(favicon_cb)
+        mgr.set_icy_worker(worker)
+        queue = mgr.subscribe()
+
+        np_event = DeviceEvent(
+            device_id="D1",
+            event_type=EventType.NOW_PLAYING,
+            now_playing=NowPlayingInfo(
+                source="INTERNET_RADIO",
+                state="PLAY_STATE",
+                station_name="WDR 2",
+            ),
+        )
+        await mgr.on_event(np_event)
+        await asyncio.sleep(0.2)
+
+        events = []
+        while not queue.empty():
+            events.append(await queue.get())
+
+        types = [e.event_type for e in events]
+        assert EventType.NOW_PLAYING in types
+        assert EventType.METADATA_ENRICHED in types
+
+        # Both callbacks were invoked
+        favicon_cb.assert_called_once_with("D1", "WDR 2")
+        worker.on_event.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_no_favicon_callback_set(self):
+        """Without favicon callback, enrichment pipeline still works."""
+        from unittest.mock import AsyncMock
+
+        worker = AsyncMock()
+        worker.on_event = AsyncMock(return_value=None)
+
+        mgr = DeviceStateManager()
+        mgr.set_icy_worker(worker)
+
+        np_event = DeviceEvent(
+            device_id="D1",
+            event_type=EventType.NOW_PLAYING,
+            now_playing=NowPlayingInfo(
+                source="INTERNET_RADIO",
+                state="PLAY_STATE",
+                station_name="WDR 2",
+            ),
+        )
+        # Should not raise
+        await mgr.on_event(np_event)
+        await asyncio.sleep(0.1)
