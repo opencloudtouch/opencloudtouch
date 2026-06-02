@@ -238,7 +238,7 @@ async def _init_services(
                 if preset.station_name == station_name:
                     return preset.station_url
         except Exception:
-            pass
+            pass  # Best-effort lookup; missing presets are not critical
         return None
 
     icy_worker = IcyWorker(get_stream_url=_get_stream_url)

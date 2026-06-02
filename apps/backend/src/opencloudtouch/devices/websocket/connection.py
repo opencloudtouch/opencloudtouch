@@ -144,7 +144,7 @@ class DeviceWebSocket:
             try:
                 await self._ws.close()
             except Exception:
-                pass
+                pass  # Best-effort close; teardown must not raise
             self._ws = None
 
         self._listen_task = None
