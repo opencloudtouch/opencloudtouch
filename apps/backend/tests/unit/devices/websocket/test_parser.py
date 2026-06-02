@@ -292,7 +292,9 @@ class TestKnownWebSocketEvents:
         assert event.event_type == EventType.NOW_PLAYING
         assert event.now_playing is not None
         assert event.now_playing.station_name == "NDR 2"
-        assert event.now_playing.artwork_url == "http://cdn-profiles.tunein.com/logo.png"
+        assert (
+            event.now_playing.artwork_url == "http://cdn-profiles.tunein.com/logo.png"
+        )
 
     def test_recents_updated_parsed_as_presets(self):
         xml = '<updates deviceID="AABB11223344"><recentsUpdated/></updates>'

@@ -613,7 +613,9 @@ def test_ssdp_msearch_deduplicates_responses(caplog):
         mock_sock.sendto = MagicMock()
         mock_socket_class.return_value = mock_sock
 
-        with caplog.at_level(logging.DEBUG, logger="opencloudtouch.devices.discovery.ssdp"):
+        with caplog.at_level(
+            logging.DEBUG, logger="opencloudtouch.devices.discovery.ssdp"
+        ):
             locations = discovery._ssdp_msearch()
 
     # Should return exactly 1 unique location
@@ -621,9 +623,9 @@ def test_ssdp_msearch_deduplicates_responses(caplog):
 
     # Should log "Found SSDP device" only ONCE, not 200 times
     found_msgs = [r for r in caplog.records if "Found SSDP device" in r.message]
-    assert len(found_msgs) == 1, (
-        f"Expected 1 log message for deduplicated SSDP, got {len(found_msgs)}"
-    )
+    assert (
+        len(found_msgs) == 1
+    ), f"Expected 1 log message for deduplicated SSDP, got {len(found_msgs)}"
 
 
 @pytest.mark.asyncio
