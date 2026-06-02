@@ -298,3 +298,62 @@ class TestIcyWorkerPollStream:
             event = _event(np=_np())
             result = await worker.poll_stream(event)
         assert result is not None
+
+
+class TestIcyWorkerTuneInSource:
+    """Regression: TUNEIN source was excluded from RADIO_SOURCES,
+    causing no artwork enrichment for TuneIn presets via WebSocket."""
+
+    @pytest.mark.asyncio
+    async def test_tunein_source_accepted(self):
+        get_url = AsyncMock(return_value="http://stream.example.com/radio")
+        worker = IcyWorker(get_stream_url=get_url)
+
+        icy = IcyMetadata(
+            artist="Artist",
+            track="Track",
+            raw_title="Artist - Track",
+            station_logo_url="http://logo.png",
+        )
+        with patch(
+            "opencloudtouch.devices.websocket.icy_worker.probe_stream",
+            new_callable=AsyncMock,
+            return_value=icy,
+        ):
+            event = _event(np=_np(source="TUNEIN"))
+            result = await worker.on_event(event)
+
+        assert result is not None
+        assert result.event_type == EventType.METADATA_ENRICHED
+        assert result.now_playing.artwork_url == "http://logo.png"
+
+    @pytest.mark.asyncio
+    async def test_tunein_source_with_existing_artwork_skipped(self):
+        worker = IcyWorker(get_stream_url=AsyncMock())
+        event = _event(
+            np=_np(source="TUNEIN", artwork_url="http://existing-art.png")
+        )
+        result = await worker.on_event(event)
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_tunein_poll_stream_accepted(self):
+        get_url = AsyncMock(return_value="http://stream.example.com/radio")
+        worker = IcyWorker(get_stream_url=get_url)
+
+        icy = IcyMetadata(
+            artist="A",
+            track="T",
+            raw_title="A - T",
+            station_logo_url="http://logo.png",
+        )
+        with patch(
+            "opencloudtouch.devices.websocket.icy_worker.probe_stream",
+            new_callable=AsyncMock,
+            return_value=icy,
+        ):
+            event = _event(np=_np(source="TUNEIN"))
+            result = await worker.poll_stream(event)
+
+        assert result is not None
+        assert result.event_type == EventType.METADATA_ENRICHED

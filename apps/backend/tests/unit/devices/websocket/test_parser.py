@@ -265,3 +265,52 @@ class TestParseVolume:
         result = _parse_volume(el)
         assert result.target == 0
         assert result.actual == 0
+
+
+# ---------------------------------------------------------------------------
+# Regression: known non-event root elements and new event tags
+# ---------------------------------------------------------------------------
+
+
+class TestKnownWebSocketEvents:
+    """Regression: SoundTouchSdkInfo, userActivityUpdate logged as WARNING;
+    nowSelectionUpdated, recentsUpdated logged as 'unknown event tag'."""
+
+    def test_now_selection_updated_parsed_as_now_playing(self):
+        xml = """\
+<updates deviceID="AABB11223344">
+    <nowSelectionUpdated deviceID="AABB11223344">
+        <nowPlaying source="TUNEIN">
+            <stationName>NDR 2</stationName>
+            <playStatus>PLAY_STATE</playStatus>
+            <art>http://cdn-profiles.tunein.com/logo.png</art>
+        </nowPlaying>
+    </nowSelectionUpdated>
+</updates>"""
+        event = parse_event(xml)
+        assert event is not None
+        assert event.event_type == EventType.NOW_PLAYING
+        assert event.now_playing is not None
+        assert event.now_playing.station_name == "NDR 2"
+        assert event.now_playing.artwork_url == "http://cdn-profiles.tunein.com/logo.png"
+
+    def test_recents_updated_parsed_as_presets(self):
+        xml = '<updates deviceID="AABB11223344"><recentsUpdated/></updates>'
+        event = parse_event(xml)
+        assert event is not None
+        assert event.event_type == EventType.PRESETS
+
+    def test_soundtouch_sdk_info_ignored_silently(self):
+        xml = '<SoundTouchSdkInfo serverVersion="4" serverBuild="trunk"/>'
+        event = parse_event(xml)
+        assert event is None
+
+    def test_user_activity_update_ignored_silently(self):
+        xml = '<userActivityUpdate deviceID="AABB">{}</userActivityUpdate>'
+        event = parse_event(xml)
+        assert event is None
+
+    def test_unknown_root_element_still_returns_none(self):
+        xml = "<totallyUnknownElement/>"
+        event = parse_event(xml)
+        assert event is None

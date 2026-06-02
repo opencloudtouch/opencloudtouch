@@ -21,7 +21,7 @@ from opencloudtouch.devices.websocket.parser import DeviceEvent, EventType
 
 logger = logging.getLogger(__name__)
 
-RADIO_SOURCES = frozenset({"LOCAL_INTERNET_RADIO", "INTERNET_RADIO"})
+RADIO_SOURCES = frozenset({"LOCAL_INTERNET_RADIO", "INTERNET_RADIO", "TUNEIN"})
 _DEBOUNCE_SECONDS = 15.0
 
 # Callback type: (device_id, station_name) -> stream_url | None

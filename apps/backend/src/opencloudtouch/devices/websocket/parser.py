@@ -45,7 +45,12 @@ _TAG_MAP: dict[str, EventType] = {
     "zoneUpdated": EventType.ZONE,
     "connectionStateUpdated": EventType.CONNECTION,
     "bassUpdated": EventType.BASS,
+    "nowSelectionUpdated": EventType.NOW_PLAYING,
+    "recentsUpdated": EventType.PRESETS,
 }
+
+# Root elements that are not <updates> but known and harmless
+_IGNORED_ROOT_ELEMENTS = frozenset({"SoundTouchSdkInfo", "userActivityUpdate"})
 
 
 @dataclass
@@ -81,7 +86,10 @@ def parse_event(xml_string: str) -> DeviceEvent | None:
         return None
 
     if root.tag != "updates":
-        logger.warning("Unexpected root element: %s", root.tag)
+        if root.tag in _IGNORED_ROOT_ELEMENTS:
+            logger.debug("Ignoring known non-event element: %s", root.tag)
+        else:
+            logger.warning("Unexpected root element: %s", root.tag)
         return None
 
     device_id = root.get("deviceID", "")
