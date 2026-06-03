@@ -89,7 +89,7 @@ class WebSocketManager:
         self._connections.clear()
         logger.info("ws.manager.stopped")
 
-    async def connect_device(self, device_id: str, ip: str) -> None:
+    def connect_device(self, device_id: str, ip: str) -> None:
         """Connect to a single device.
 
         Args:
@@ -110,7 +110,6 @@ class WebSocketManager:
         )
         self._connections[device_id] = ws
         ws.connect()
-        await asyncio.sleep(0)  # yield to let connection task start
         logger.info(
             "ws.connected %s at %s",
             device_id,
@@ -141,7 +140,7 @@ class WebSocketManager:
             new_ip: New IP address for the device.
         """
         await self.disconnect_device(device_id)
-        await self.connect_device(device_id, new_ip)
+        self.connect_device(device_id, new_ip)
         logger.info(
             "ws.reconnected %s at %s",
             device_id,
@@ -157,7 +156,7 @@ class WebSocketManager:
         """
         existing = self._connections.get(device_id)
         if existing is None:
-            await self.connect_device(device_id, ip)
+            self.connect_device(device_id, ip)
             return
         if existing.ip != ip:
             logger.info(

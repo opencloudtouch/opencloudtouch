@@ -121,7 +121,7 @@ class TestWebSocketManagerIndividual:
             mock_instance.connect = AsyncMock()
             MockWS.return_value = mock_instance
 
-            await manager.connect_device("NEW", "10.0.0.1")
+            manager.connect_device("NEW", "10.0.0.1")
 
             assert "NEW" in manager.device_ids
             mock_instance.connect.assert_called_once()
@@ -136,7 +136,7 @@ class TestWebSocketManagerIndividual:
             mock_instance.disconnect = AsyncMock()
             MockWS.return_value = mock_instance
 
-            await manager.connect_device("DEV1", "10.0.0.1")
+            manager.connect_device("DEV1", "10.0.0.1")
             await manager.disconnect_device("DEV1")
 
             assert "DEV1" not in manager.device_ids
@@ -159,7 +159,7 @@ class TestWebSocketManagerIndividual:
                 m.disconnect = AsyncMock()
             MockWS.side_effect = mock_instances
 
-            await manager.connect_device("DEV1", "10.0.0.1")
+            manager.connect_device("DEV1", "10.0.0.1")
             await manager.reconnect_device("DEV1", "10.0.0.2")
 
             # First instance disconnected
@@ -180,7 +180,7 @@ class TestWebSocketManagerStatus:
             mock_instance.state = ConnectionState.CONNECTED
             MockWS.return_value = mock_instance
 
-            await manager.connect_device("DEV1", "10.0.0.1")
+            manager.connect_device("DEV1", "10.0.0.1")
             status = manager.get_status()
 
             assert status == {"DEV1": ConnectionState.CONNECTED}
@@ -210,8 +210,8 @@ class TestWebSocketManagerStatus:
             }
             MockWS.side_effect = [mock1, mock2]
 
-            await manager.connect_device("DEV1", "10.0.0.1")
-            await manager.connect_device("DEV2", "10.0.0.2")
+            manager.connect_device("DEV1", "10.0.0.1")
+            manager.connect_device("DEV2", "10.0.0.2")
             health = manager.get_health()
 
             assert health["total_connected"] == 1
@@ -252,7 +252,7 @@ class TestWebSocketManagerEnsureConnection:
             mock_instance.ip = "10.0.0.1"
             MockWS.return_value = mock_instance
 
-            await manager.connect_device("DEV1", "10.0.0.1")
+            manager.connect_device("DEV1", "10.0.0.1")
             assert MockWS.call_count == 1
 
             await manager.ensure_connection("DEV1", "10.0.0.1")
@@ -276,7 +276,7 @@ class TestWebSocketManagerEnsureConnection:
 
             MockWS.side_effect = [mock_old, mock_new]
 
-            await manager.connect_device("DEV1", "10.0.0.1")
+            manager.connect_device("DEV1", "10.0.0.1")
             await manager.ensure_connection("DEV1", "10.0.0.99")
 
             # Old connection disconnected
