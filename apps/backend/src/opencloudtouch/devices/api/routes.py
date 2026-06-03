@@ -318,15 +318,20 @@ async def _enrich_from_presets(
     try:
         presets = await preset_service.get_all_presets(device_id)
         station_lower = info.station_name.casefold()
+        best_preset = None
         for preset in presets:
             if preset.station_name and preset.station_name.casefold() == station_lower:
+                if best_preset is None:
+                    best_preset = preset
                 if not result["artwork_url"] and preset.station_favicon:
                     result["artwork_url"] = preset.station_favicon
+                    best_preset = preset
                     logger.debug(
                         "[NowPlaying] Enriched artwork from preset DB: %s",
                         preset.station_favicon,
                     )
-                return preset
+                    break  # Found a preset with favicon — done
+        return best_preset
     except Exception:
         logger.debug(
             "[NowPlaying] Preset lookup failed for %s", device_id, exc_info=True

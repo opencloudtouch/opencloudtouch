@@ -244,7 +244,8 @@ async def _init_websocket_pipeline(
             station_lower = station_name.casefold()
             for preset in presets:
                 if preset.station_name and preset.station_name.casefold() == station_lower:
-                    return preset.station_url
+                    if preset.station_url:
+                        return preset.station_url
         except Exception:
             pass  # Best-effort lookup; missing presets are not critical
         return None
@@ -260,7 +261,8 @@ async def _init_websocket_pipeline(
             station_lower = station_name.casefold()
             for preset in presets:
                 if preset.station_name and preset.station_name.casefold() == station_lower:
-                    return preset.station_favicon
+                    if preset.station_favicon:
+                        return preset.station_favicon
         except Exception:
             pass  # Best-effort lookup
         return None
