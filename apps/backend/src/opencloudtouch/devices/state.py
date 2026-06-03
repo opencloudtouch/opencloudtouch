@@ -84,10 +84,7 @@ class DeviceStateManager:
         self._throttle.stop()
         if self._icy_poll_task is not None:
             self._icy_poll_task.cancel()
-            try:
-                await self._icy_poll_task
-            except asyncio.CancelledError:
-                pass  # expected: task was just cancelled above
+            await asyncio.gather(self._icy_poll_task, return_exceptions=True)
             self._icy_poll_task = None
             logger.info("ICY periodic polling stopped")
 
