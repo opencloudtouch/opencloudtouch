@@ -8,7 +8,7 @@ direct HTTP queries.
 from __future__ import annotations
 
 import asyncio
-import logging
+import  logging
 import time
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Awaitable, Callable, TypeAlias
