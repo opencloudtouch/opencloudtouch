@@ -403,7 +403,7 @@ class WizardService:
             uuid_was_collision = not uuid_result.had_uuid and uuid_result.uuid != ""
 
             # 2. Fetch /info for device metadata (name, variant, module_type)
-            device_name, has_bluetooth = await self._fetch_device_info(device_ip)
+            device_name, _has_bluetooth = await self._fetch_device_info(device_ip)
 
             # 3. SSH operations: Sources.xml + SystemConfigurationDB.xml
             async with ssh_operation(device_ip, "finalize") as ssh:

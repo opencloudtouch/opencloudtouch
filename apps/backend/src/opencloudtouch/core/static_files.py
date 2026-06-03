@@ -83,7 +83,7 @@ def _serve_static_file(static_dir: Path, decoded_path: str) -> FileResponse | No
                 headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
             return FileResponse(requested_path, headers=headers)
     except (ValueError, OSError):
-        pass
+        pass  # Invalid path or I/O error — fall through to 404
     return None
 
 

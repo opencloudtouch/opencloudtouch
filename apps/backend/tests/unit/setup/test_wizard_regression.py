@@ -49,7 +49,7 @@ class TestWizardServiceRemovedMethods:
         assert not hasattr(WizardService, "_fetch_device_metadata")
 
     def test_no_read_file_content_in_module(self):
-        import opencloudtouch.setup.wizard_service as mod
+        from opencloudtouch.setup import wizard_service as mod
 
         assert not hasattr(mod, "_read_file_content")
 

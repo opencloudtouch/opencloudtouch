@@ -4,6 +4,7 @@ Iteration 0: Basic setup with /health endpoint
 """
 
 import logging
+from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -227,6 +228,31 @@ async def _init_services(
     await _init_websocket_pipeline(app, cfg, device_repo, logger)
 
 
+def _make_preset_lookup(
+    app: FastAPI, logger: logging.Logger, attr: str
+) -> Callable[[str, str], Awaitable[str | None]]:
+    """Create a preset attribute lookup closure (stream URL or favicon)."""
+
+    async def _lookup(device_id: str, station_name: str) -> str | None:
+        try:
+            presets = await app.state.preset_service.get_all_presets(device_id)
+        except Exception:
+            logger.debug("Preset %s lookup failed for %s", attr, device_id, exc_info=True)
+            return None
+        station_lower = station_name.casefold()
+        for preset in presets:
+            if (
+                preset.station_name
+                and preset.station_name.casefold() == station_lower
+            ):
+                value = getattr(preset, attr, None)
+                if value:
+                    return value  # type: ignore[no-any-return]
+        return None
+
+    return _lookup
+
+
 async def _init_websocket_pipeline(
     app: FastAPI, cfg, device_repo, logger: logging.Logger
 ) -> None:
@@ -237,43 +263,14 @@ async def _init_websocket_pipeline(
     # ICY metadata worker — enriches radio now-playing events with artwork
     from opencloudtouch.devices.websocket.icy_worker import IcyWorker
 
-    async def _get_stream_url(device_id: str, station_name: str) -> str | None:
-        """Resolve station_name to stream URL via preset DB."""
-        try:
-            presets = await app.state.preset_service.get_all_presets(device_id)
-            station_lower = station_name.casefold()
-            for preset in presets:
-                if (
-                    preset.station_name
-                    and preset.station_name.casefold() == station_lower
-                ):
-                    if preset.station_url:
-                        return preset.station_url
-        except Exception:
-            pass  # Best-effort lookup; missing presets are not critical
-        return None
-
-    icy_worker = IcyWorker(get_stream_url=_get_stream_url)
+    icy_worker = IcyWorker(
+        get_stream_url=_make_preset_lookup(app, logger, "station_url"),
+    )
     app.state.device_state_manager.set_icy_worker(icy_worker)
 
-    # Preset-favicon callback — enriches radio artwork from preset DB
-    async def _get_preset_favicon(device_id: str, station_name: str) -> str | None:
-        """Resolve station_name to favicon URL via preset DB."""
-        try:
-            presets = await app.state.preset_service.get_all_presets(device_id)
-            station_lower = station_name.casefold()
-            for preset in presets:
-                if (
-                    preset.station_name
-                    and preset.station_name.casefold() == station_lower
-                ):
-                    if preset.station_favicon:
-                        return preset.station_favicon
-        except Exception:
-            pass  # Best-effort lookup
-        return None
-
-    app.state.device_state_manager.set_preset_favicon_callback(_get_preset_favicon)
+    app.state.device_state_manager.set_preset_favicon_callback(
+        _make_preset_lookup(app, logger, "station_favicon"),
+    )
     app.state.device_state_manager.start_icy_polling()
     logger.info("DeviceStateManager initialized (with ICY worker + periodic polling)")
 
@@ -290,16 +287,17 @@ async def _init_websocket_pipeline(
     app.state.device_service.set_on_device_synced(ws_manager.ensure_connection)
 
     # Connect to all known devices
-    if not cfg.mock_mode:
-        devices = await device_repo.get_all()
-        device_list = [{"device_id": d.device_id, "ip": d.ip} for d in devices]
-        if device_list:
-            await ws_manager.start(device_list)
-            logger.info("WebSocketManager started for %d device(s)", len(device_list))
-        else:
-            logger.info("WebSocketManager: no devices to connect to")
-    else:
+    if cfg.mock_mode:
         logger.info("WebSocketManager: skipped (mock mode)")
+        return
+
+    devices = await device_repo.get_all()
+    device_list = [{"device_id": d.device_id, "ip": d.ip} for d in devices]
+    if device_list:
+        await ws_manager.start(device_list)
+        logger.info("WebSocketManager started for %d device(s)", len(device_list))
+    else:
+        logger.info("WebSocketManager: no devices to connect to")
 
 
 async def _shutdown(app: FastAPI, repos: dict, logger: logging.Logger) -> None:

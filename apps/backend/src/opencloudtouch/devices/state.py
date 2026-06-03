@@ -12,7 +12,7 @@ import contextlib
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Awaitable, Callable
+from typing import TYPE_CHECKING, Awaitable, Callable, TypeAlias
 
 from opencloudtouch.devices.client import NowPlayingInfo, VolumeInfo
 from opencloudtouch.devices.websocket.connection import ConnectionState
@@ -52,7 +52,7 @@ class DeviceStateManager:
     MAX_SUBSCRIBERS = 20
 
     # Callback type: (device_id, station_name) -> favicon_url | None
-    GetPresetFavicon = Callable[[str, str], Awaitable[str | None]]
+    get_preset_favicon_type: TypeAlias = Callable[[str, str], Awaitable[str | None]]
 
     def __init__(self) -> None:
         self._states: dict[str, DeviceState] = {}
@@ -61,13 +61,13 @@ class DeviceStateManager:
         self._icy_poll_task: asyncio.Task | None = None
         self._background_tasks: set[asyncio.Task[None]] = set()
         self._throttle = EventThrottle(publish=self.publish)
-        self._get_preset_favicon: DeviceStateManager.GetPresetFavicon | None = None
+        self._get_preset_favicon: DeviceStateManager.get_preset_favicon_type | None = None
 
     def set_icy_worker(self, worker: IcyWorker) -> None:
         """Attach an ICY metadata worker for radio enrichment."""
         self._icy_worker = worker
 
-    def set_preset_favicon_callback(self, callback: GetPresetFavicon) -> None:
+    def set_preset_favicon_callback(self, callback: get_preset_favicon_type) -> None:
         """Set callback for resolving preset favicon URLs."""
         self._get_preset_favicon = callback
 
@@ -340,7 +340,7 @@ class DeviceStateManager:
             await asyncio.sleep(_ICY_POLL_INTERVAL)
             if not self._icy_worker:
                 continue
-            for device_id, state in list(self._states.items()):
+            for device_id, state in self._states.items():
                 await self._icy_poll_device(device_id, state, RADIO_SOURCES)
 
     async def mark_device_offline(self, device_id: str) -> None:

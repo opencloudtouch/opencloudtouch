@@ -13,7 +13,7 @@ declare global {
 }
 
 // Initialize from localStorage so it persists across page reloads
-if (typeof globalThis.window !== "undefined") {
+if (globalThis.window !== undefined) {
   globalThis.__OCT_DEBUG__ = localStorage.getItem("oct_debug") === "true";
 
   // Watch for changes so `globalThis.__OCT_DEBUG__ = true` also persists
@@ -33,7 +33,7 @@ if (typeof globalThis.window !== "undefined") {
  * Called by Settings when user changes log level.
  */
 export function syncDebugFromBackendLevel(level: string): void {
-  if (typeof globalThis.window !== "undefined") {
+  if (globalThis.window !== undefined) {
     globalThis.__OCT_DEBUG__ = level === "DEBUG";
   }
 }
@@ -58,7 +58,7 @@ export async function initDebugFromBackend(): Promise<void> {
  * Usage: `octDebug("useNowPlaying", "incoming event", data)`
  */
 export function octDebug(tag: string, message: string, ...args: unknown[]): void {
-  if (typeof globalThis.window !== "undefined" && globalThis.__OCT_DEBUG__) {
+  if (globalThis.window !== undefined && globalThis.__OCT_DEBUG__) {
     console.debug(`[${tag}]`, message, ...args);
   }
 }
