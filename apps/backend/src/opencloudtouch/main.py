@@ -243,7 +243,10 @@ async def _init_websocket_pipeline(
             presets = await app.state.preset_service.get_all_presets(device_id)
             station_lower = station_name.casefold()
             for preset in presets:
-                if preset.station_name and preset.station_name.casefold() == station_lower:
+                if (
+                    preset.station_name
+                    and preset.station_name.casefold() == station_lower
+                ):
                     if preset.station_url:
                         return preset.station_url
         except Exception:
@@ -260,7 +263,10 @@ async def _init_websocket_pipeline(
             presets = await app.state.preset_service.get_all_presets(device_id)
             station_lower = station_name.casefold()
             for preset in presets:
-                if preset.station_name and preset.station_name.casefold() == station_lower:
+                if (
+                    preset.station_name
+                    and preset.station_name.casefold() == station_lower
+                ):
                     if preset.station_favicon:
                         return preset.station_favicon
         except Exception:

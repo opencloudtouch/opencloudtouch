@@ -27,10 +27,10 @@ from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.devices.websocket.parser import DeviceEvent, EventType
 from opencloudtouch.presets.models import Preset
 
-
 # ---------------------------------------------------------------------------
 # Helpers — build preset fixtures mimicking real ST20 data
 # ---------------------------------------------------------------------------
+
 
 def _make_preset(
     preset_number: int,
@@ -111,7 +111,10 @@ class TestPresetFaviconDuplicateNames:
             presets = await preset_service.get_all_presets(device_id)
             station_lower = station_name.casefold()
             for preset in presets:
-                if preset.station_name and preset.station_name.casefold() == station_lower:
+                if (
+                    preset.station_name
+                    and preset.station_name.casefold() == station_lower
+                ):
                     if preset.station_favicon:
                         return preset.station_favicon
             return None
@@ -129,7 +132,10 @@ class TestPresetFaviconDuplicateNames:
             presets = await preset_service.get_all_presets(device_id)
             station_lower = station_name.casefold()
             for preset in presets:
-                if preset.station_name and preset.station_name.casefold() == station_lower:
+                if (
+                    preset.station_name
+                    and preset.station_name.casefold() == station_lower
+                ):
                     if preset.station_favicon:
                         return preset.station_favicon
             return None
@@ -147,7 +153,10 @@ class TestPresetFaviconDuplicateNames:
             presets = await preset_service.get_all_presets(device_id)
             station_lower = station_name.casefold()
             for preset in presets:
-                if preset.station_name and preset.station_name.casefold() == station_lower:
+                if (
+                    preset.station_name
+                    and preset.station_name.casefold() == station_lower
+                ):
                     if preset.station_favicon:
                         return preset.station_favicon
             return None
@@ -165,7 +174,10 @@ class TestPresetFaviconDuplicateNames:
             presets = await preset_service.get_all_presets(device_id)
             station_lower = station_name.casefold()
             for preset in presets:
-                if preset.station_name and preset.station_name.casefold() == station_lower:
+                if (
+                    preset.station_name
+                    and preset.station_name.casefold() == station_lower
+                ):
                     if preset.station_favicon:
                         return preset.station_favicon
             return None
@@ -197,7 +209,10 @@ class TestStreamUrlDuplicateNames:
             presets = await preset_service.get_all_presets(device_id)
             station_lower = station_name.casefold()
             for preset in presets:
-                if preset.station_name and preset.station_name.casefold() == station_lower:
+                if (
+                    preset.station_name
+                    and preset.station_name.casefold() == station_lower
+                ):
                     if preset.station_url:
                         return preset.station_url
             return None
@@ -215,7 +230,10 @@ class TestStreamUrlDuplicateNames:
             presets = await preset_service.get_all_presets(device_id)
             station_lower = station_name.casefold()
             for preset in presets:
-                if preset.station_name and preset.station_name.casefold() == station_lower:
+                if (
+                    preset.station_name
+                    and preset.station_name.casefold() == station_lower
+                ):
                     if preset.station_url:
                         return preset.station_url
             return None
@@ -233,7 +251,10 @@ class TestStreamUrlDuplicateNames:
             presets = await preset_service.get_all_presets(device_id)
             station_lower = station_name.casefold()
             for preset in presets:
-                if preset.station_name and preset.station_name.casefold() == station_lower:
+                if (
+                    preset.station_name
+                    and preset.station_name.casefold() == station_lower
+                ):
                     if preset.station_url:
                         return preset.station_url
             return None
@@ -266,7 +287,10 @@ class TestCaseInsensitiveMatching:
             presets = await preset_service.get_all_presets(device_id)
             station_lower = station_name.casefold()
             for preset in presets:
-                if preset.station_name and preset.station_name.casefold() == station_lower:
+                if (
+                    preset.station_name
+                    and preset.station_name.casefold() == station_lower
+                ):
                     if preset.station_favicon:
                         return preset.station_favicon
             return None
@@ -284,7 +308,10 @@ class TestCaseInsensitiveMatching:
             presets = await preset_service.get_all_presets(device_id)
             station_lower = station_name.casefold()
             for preset in presets:
-                if preset.station_name and preset.station_name.casefold() == station_lower:
+                if (
+                    preset.station_name
+                    and preset.station_name.casefold() == station_lower
+                ):
                     if preset.station_url:
                         return preset.station_url
             return None
@@ -302,7 +329,10 @@ class TestCaseInsensitiveMatching:
             presets = await preset_service.get_all_presets(device_id)
             station_lower = station_name.casefold()
             for preset in presets:
-                if preset.station_name and preset.station_name.casefold() == station_lower:
+                if (
+                    preset.station_name
+                    and preset.station_name.casefold() == station_lower
+                ):
                     if preset.station_favicon:
                         return preset.station_favicon
             return None
@@ -326,9 +356,7 @@ class TestPresetFaviconEnrichmentPipeline:
         mgr = DeviceStateManager()
         queue = mgr.subscribe()
 
-        favicon_cb = AsyncMock(
-            return_value="https://cdn-profiles.tunein.com/logo.png"
-        )
+        favicon_cb = AsyncMock(return_value="https://cdn-profiles.tunein.com/logo.png")
         mgr.set_preset_favicon_callback(favicon_cb)
 
         event = DeviceEvent(
@@ -350,8 +378,13 @@ class TestPresetFaviconEnrichmentPipeline:
         types = [e.event_type for e in events]
         assert EventType.METADATA_ENRICHED in types
 
-        enriched = next(e for e in events if e.event_type == EventType.METADATA_ENRICHED)
-        assert enriched.now_playing.artwork_url == "https://cdn-profiles.tunein.com/logo.png"
+        enriched = next(
+            e for e in events if e.event_type == EventType.METADATA_ENRICHED
+        )
+        assert (
+            enriched.now_playing.artwork_url
+            == "https://cdn-profiles.tunein.com/logo.png"
+        )
 
     @pytest.mark.asyncio
     async def test_enrichment_skipped_when_artwork_exists(self):

@@ -348,7 +348,10 @@ class DeviceStateManager:
         await self.publish(event)
 
     async def _icy_poll_device(
-        self, device_id: str, state: DeviceState, radio_sources: frozenset[str] | set[str]
+        self,
+        device_id: str,
+        state: DeviceState,
+        radio_sources: frozenset[str] | set[str],
     ) -> None:
         """Probe a single device for ICY metadata updates."""
         if not state.now_playing:

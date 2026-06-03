@@ -498,9 +498,7 @@ class WizardService:
                             has_bluetooth,
                         )
         except Exception:
-            logger.debug(
-                "Could not fetch /info for hardware profile, using defaults"
-            )
+            logger.debug("Could not fetch /info for hardware profile, using defaults")
         return device_name, has_bluetooth
 
     @staticmethod

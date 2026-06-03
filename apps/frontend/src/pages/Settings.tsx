@@ -148,7 +148,12 @@ export default function Settings() {
         <div className="error-icon">⚠️</div>
         <h2 className="error-title">{t("settings.errorTitle")}</h2>
         <p className="error-message">{toUserMessage(queryError.message)}</p>
-        <button className="btn btn-primary" onClick={() => { refetch(); }}>
+        <button
+          className="btn btn-primary"
+          onClick={() => {
+            refetch();
+          }}
+        >
           {t("common.retry")}
         </button>
       </div>
