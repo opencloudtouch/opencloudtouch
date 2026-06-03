@@ -36,7 +36,7 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-i18next": "^17.0.6",
-    "react-router-dom": "^7.13.0"
+    "react-router-dom": "^7.16.0"
   },
   "devDependencies": {
     "@cypress/webpack-preprocessor": "^7.1.0",
