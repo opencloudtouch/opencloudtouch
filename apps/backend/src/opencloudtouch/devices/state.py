@@ -61,7 +61,9 @@ class DeviceStateManager:
         self._icy_poll_task: asyncio.Task | None = None
         self._background_tasks: set[asyncio.Task[None]] = set()
         self._throttle = EventThrottle(publish=self.publish)
-        self._get_preset_favicon: DeviceStateManager.get_preset_favicon_type | None = None
+        self._get_preset_favicon: DeviceStateManager.get_preset_favicon_type | None = (
+            None
+        )
 
     def set_icy_worker(self, worker: IcyWorker) -> None:
         """Attach an ICY metadata worker for radio enrichment."""
