@@ -4,22 +4,21 @@
  * Tied to the backend log level set in Settings → Logging.
  * When DEBUG is selected there, frontend debug logging is also enabled.
  *
- * Manual override in browser console:  `window.__OCT_DEBUG__ = true`
+ * Manual override in browser console:  `globalThis.__OCT_DEBUG__ = true`
  */
 
 declare global {
-  interface Window {
-    __OCT_DEBUG__: boolean;
-  }
+  // eslint-disable-next-line no-var
+  var __OCT_DEBUG__: boolean;
 }
 
 // Initialize from localStorage so it persists across page reloads
-if (typeof window !== "undefined") {
-  window.__OCT_DEBUG__ = localStorage.getItem("oct_debug") === "true";
+if (typeof globalThis.window !== "undefined") {
+  globalThis.__OCT_DEBUG__ = localStorage.getItem("oct_debug") === "true";
 
-  // Watch for changes so `window.__OCT_DEBUG__ = true` also persists
-  let _debugValue = window.__OCT_DEBUG__;
-  Object.defineProperty(window, "__OCT_DEBUG__", {
+  // Watch for changes so `globalThis.__OCT_DEBUG__ = true` also persists
+  let _debugValue = globalThis.__OCT_DEBUG__;
+  Object.defineProperty(globalThis, "__OCT_DEBUG__", {
     get: () => _debugValue,
     set: (v: boolean) => {
       _debugValue = !!v;
@@ -34,8 +33,8 @@ if (typeof window !== "undefined") {
  * Called by Settings when user changes log level.
  */
 export function syncDebugFromBackendLevel(level: string): void {
-  if (typeof window !== "undefined") {
-    window.__OCT_DEBUG__ = level === "DEBUG";
+  if (typeof globalThis.window !== "undefined") {
+    globalThis.__OCT_DEBUG__ = level === "DEBUG";
   }
 }
 
@@ -59,7 +58,7 @@ export async function initDebugFromBackend(): Promise<void> {
  * Usage: `octDebug("useNowPlaying", "incoming event", data)`
  */
 export function octDebug(tag: string, message: string, ...args: unknown[]): void {
-  if (typeof window !== "undefined" && window.__OCT_DEBUG__) {
+  if (typeof globalThis.window !== "undefined" && globalThis.__OCT_DEBUG__) {
     console.debug(`[${tag}]`, message, ...args);
   }
 }

@@ -224,6 +224,13 @@ async def _init_services(
         logger.info("Device health-check started")
     app.state.health_check = health_check
 
+    await _init_websocket_pipeline(app, cfg, device_repo, logger)
+
+
+async def _init_websocket_pipeline(
+    app: FastAPI, cfg, device_repo, logger: logging.Logger
+) -> None:
+    """Initialize DeviceStateManager, ICY worker, and WebSocket manager."""
     # Device state manager (WebSocket push → state cache → SSE relay)
     app.state.device_state_manager = DeviceStateManager()
 

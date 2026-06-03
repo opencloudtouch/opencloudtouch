@@ -338,7 +338,7 @@ async def get_now_playing(
     device_id: str,
     device_service: Annotated[DeviceService, Depends(get_device_service)],
     preset_service: Annotated[PresetService, Depends(get_preset_service)],
-    state_manager: DeviceStateManager = Depends(get_device_state_manager),
+    state_manager: Annotated[DeviceStateManager, Depends(get_device_state_manager)],
 ) -> dict[str, object]:
     """Get current playback status for a device."""
     cfg = get_config()
@@ -420,8 +420,8 @@ async def get_now_playing(
 @router.get("/{device_id}/volume")
 async def get_volume(
     device_id: str,
-    device_service: DeviceService = Depends(get_device_service),
-    state_manager: DeviceStateManager = Depends(get_device_state_manager),
+    device_service: Annotated[DeviceService, Depends(get_device_service)],
+    state_manager: Annotated[DeviceStateManager, Depends(get_device_state_manager)],
 ):
     """Get current volume state for a device."""
     cfg = get_config()

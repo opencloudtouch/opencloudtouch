@@ -69,7 +69,7 @@ class WebSocketManager:
                 on_state_change=self._on_state_change,
             )
             self._connections[device_id] = ws
-            await ws.connect()
+            ws.connect()
 
             # Stagger between connections (except after last device)
             if i < len(devices) - 1:
@@ -109,7 +109,7 @@ class WebSocketManager:
             on_state_change=self._on_state_change,
         )
         self._connections[device_id] = ws
-        await ws.connect()
+        ws.connect()
         logger.info(
             "ws.connected %s at %s",
             device_id,

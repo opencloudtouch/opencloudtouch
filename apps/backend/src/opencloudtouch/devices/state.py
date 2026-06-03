@@ -82,7 +82,7 @@ class DeviceStateManager:
 
     async def stop_icy_polling(self) -> None:
         """Stop periodic ICY metadata polling."""
-        await self._throttle.stop()
+        self._throttle.stop()
         if self._icy_poll_task is not None:
             self._icy_poll_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
@@ -342,23 +342,7 @@ class DeviceStateManager:
             if not self._icy_worker:
                 continue
             for device_id, state in list(self._states.items()):
-                if not state.now_playing:
-                    continue
-                if state.now_playing.source not in RADIO_SOURCES:
-                    continue
-                if state.now_playing.state != "PLAY_STATE":
-                    continue
-                try:
-                    event = DeviceEvent(
-                        device_id=device_id,
-                        event_type=EventType.NOW_PLAYING,
-                        now_playing=state.now_playing,
-                    )
-                    enriched = await self._icy_worker.poll_stream(event)
-                    if enriched:
-                        await self.on_event(enriched)
-                except Exception:
-                    logger.debug("ICY poll failed for %s", device_id, exc_info=True)
+                await self._icy_poll_device(device_id, state, RADIO_SOURCES)
 
     async def mark_device_offline(self, device_id: str) -> None:
         """Mark a device as offline and publish connection event via SSE."""
@@ -369,6 +353,28 @@ class DeviceStateManager:
             connection_state=ConnectionState.FAILED,
         )
         await self.publish(event)
+
+    async def _icy_poll_device(
+        self, device_id: str, state, radio_sources: set
+    ) -> None:
+        """Probe a single device for ICY metadata updates."""
+        if not state.now_playing:
+            return
+        if state.now_playing.source not in radio_sources:
+            return
+        if state.now_playing.state != "PLAY_STATE":
+            return
+        try:
+            event = DeviceEvent(
+                device_id=device_id,
+                event_type=EventType.NOW_PLAYING,
+                now_playing=state.now_playing,
+            )
+            enriched = await self._icy_worker.poll_stream(event)
+            if enriched:
+                await self.on_event(enriched)
+        except Exception:
+            logger.debug("ICY poll failed for %s", device_id, exc_info=True)
 
     # -- Internals -----------------------------------------------------------
 

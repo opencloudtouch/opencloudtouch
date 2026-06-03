@@ -155,7 +155,7 @@ class TestEventThrottle:
         await throttle.submit(e1)
         await throttle.submit(e2)  # pending
 
-        await throttle.stop()
+        throttle.stop()
         await asyncio.sleep(THROTTLE_INTERVALS[EventType.VOLUME] + 0.05)
 
         # Only the first event should have been published

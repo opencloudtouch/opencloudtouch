@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import AsyncGenerator
+from typing import Annotated, AsyncGenerator
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
@@ -135,7 +135,7 @@ async def _stream_events(
 @event_router.get("/api/events/device-stream")
 async def device_event_stream(
     request: Request,
-    state_manager: DeviceStateManager = Depends(get_device_state_manager),
+    state_manager: Annotated[DeviceStateManager, Depends(get_device_state_manager)],
 ):
     """Stream device events via Server-Sent Events.
 

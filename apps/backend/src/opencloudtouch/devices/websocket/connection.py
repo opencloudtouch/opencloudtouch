@@ -119,7 +119,7 @@ class DeviceWebSocket:
                         "State change callback failed for device %s", self.device_id
                     )
 
-    async def connect(self) -> None:
+    def connect(self) -> None:
         """Start WebSocket connection and listen loop."""
         if self._should_run:
             logger.debug("Device %s already connecting/connected", self.device_id)
@@ -168,7 +168,7 @@ class DeviceWebSocket:
                 await self._listen_loop()
 
             except InvalidHandshake as e:
-                logger.error(
+                logger.exception(
                     "ws.handshake_failed %s: %s",
                     self.device_id,
                     e,

@@ -10,7 +10,7 @@ import { useDeviceEvents, type UseDeviceEventsReturn } from "../hooks/useDeviceE
 
 const DeviceEventContext = createContext<UseDeviceEventsReturn | null>(null);
 
-export function DeviceEventProvider({ children }: { children: ReactNode }) {
+export function DeviceEventProvider({ children }: Readonly<{ children: ReactNode }>) {
   const deviceEvents = useDeviceEvents();
 
   return <DeviceEventContext.Provider value={deviceEvents}>{children}</DeviceEventContext.Provider>;

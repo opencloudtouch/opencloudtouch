@@ -403,36 +403,7 @@ class WizardService:
             uuid_was_collision = not uuid_result.had_uuid and uuid_result.uuid != ""
 
             # 2. Fetch /info for device metadata (name, variant, module_type)
-            device_name = "SoundTouch"
-            has_bluetooth = True  # safe default: include BLUETOOTH source
-            try:
-                async with httpx.AsyncClient(timeout=5.0) as client:
-                    resp = await client.get(f"http://{device_ip}:8090/info")
-                    root = ET.fromstring(resp.text)
-                    name_elem = root.find("name")
-                    if name_elem is not None and name_elem.text:
-                        device_name = name_elem.text.strip()
-                    # Determine Bluetooth capability from hardware profile
-                    variant = root.findtext("variant", "").strip()
-                    module_type = root.findtext("moduleType", "").strip()
-                    device_type = root.findtext("type", "").strip()
-                    if module_type:
-                        from opencloudtouch.devices.hardware import get_hardware_profile
-
-                        profile = get_hardware_profile(
-                            variant or None, module_type, device_type or None
-                        )
-                        if profile is not None:
-                            has_bluetooth = profile.has_bluetooth
-                            logger.info(
-                                "Hardware profile: %s (bluetooth=%s)",
-                                profile.product_name,
-                                has_bluetooth,
-                            )
-            except Exception:
-                logger.debug(
-                    "Could not fetch /info for hardware profile, using defaults"
-                )
+            device_name, has_bluetooth = await self._fetch_device_info(device_ip)
 
             # 3. SSH operations: Sources.xml + SystemConfigurationDB.xml
             async with ssh_operation(device_ip, "finalize") as ssh:
@@ -492,6 +463,45 @@ class WizardService:
                 "message": "",
                 "error": f"Finalize failed: {e}",
             }
+
+    @staticmethod
+    async def _fetch_device_info(device_ip: str) -> tuple[str, bool]:
+        """Fetch device name and Bluetooth capability from /info endpoint.
+
+        Returns:
+            Tuple of (device_name, has_bluetooth) with safe defaults on failure.
+        """
+        device_name = "SoundTouch"
+        has_bluetooth = True  # safe default: include BLUETOOTH source
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(f"http://{device_ip}:8090/info")
+                root = ET.fromstring(resp.text)
+                name_elem = root.find("name")
+                if name_elem is not None and name_elem.text:
+                    device_name = name_elem.text.strip()
+                # Determine Bluetooth capability from hardware profile
+                variant = root.findtext("variant", "").strip()
+                module_type = root.findtext("moduleType", "").strip()
+                device_type = root.findtext("type", "").strip()
+                if module_type:
+                    from opencloudtouch.devices.hardware import get_hardware_profile
+
+                    profile = get_hardware_profile(
+                        variant or None, module_type, device_type or None
+                    )
+                    if profile is not None:
+                        has_bluetooth = profile.has_bluetooth
+                        logger.info(
+                            "Hardware profile: %s (bluetooth=%s)",
+                            profile.product_name,
+                            has_bluetooth,
+                        )
+        except Exception:
+            logger.debug(
+                "Could not fetch /info for hardware profile, using defaults"
+            )
+        return device_name, has_bluetooth
 
     @staticmethod
     async def _verify_sys_config(ssh: SoundTouchSSHClient, expected_uuid: str) -> dict:

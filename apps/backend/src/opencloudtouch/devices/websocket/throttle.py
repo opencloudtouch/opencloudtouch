@@ -82,7 +82,7 @@ class EventThrottle:
             self._last_publish[key] = time.monotonic()
             await self._publish(event)
 
-    async def stop(self) -> None:
+    def stop(self) -> None:
         """Cancel all pending delayed tasks."""
         for task in self._tasks.values():
             if not task.done():

@@ -64,7 +64,7 @@ class TestDeviceWebSocketConnect:
             "opencloudtouch.devices.websocket.connection.ws_connect",
             side_effect=asyncio.CancelledError,
         ):
-            await device_ws.connect()
+            device_ws.connect()
             assert device_ws._listen_task is not None
             assert device_ws._should_run is True
             # Clean up
@@ -77,9 +77,9 @@ class TestDeviceWebSocketConnect:
             "opencloudtouch.devices.websocket.connection.ws_connect",
             side_effect=asyncio.CancelledError,
         ):
-            await device_ws.connect()
+            device_ws.connect()
             task1 = device_ws._listen_task
-            await device_ws.connect()
+            device_ws.connect()
             task2 = device_ws._listen_task
             assert task1 is task2
             await device_ws.disconnect()
@@ -93,7 +93,7 @@ class TestDeviceWebSocketDisconnect:
             "opencloudtouch.devices.websocket.connection.ws_connect",
             side_effect=asyncio.CancelledError,
         ):
-            await device_ws.connect()
+            device_ws.connect()
             await device_ws.disconnect()
 
         assert device_ws._listen_task is None
