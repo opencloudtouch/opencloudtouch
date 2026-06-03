@@ -237,14 +237,13 @@ def _make_preset_lookup(
         try:
             presets = await app.state.preset_service.get_all_presets(device_id)
         except Exception:
-            logger.debug("Preset %s lookup failed for %s", attr, device_id, exc_info=True)
+            logger.debug(
+                "Preset %s lookup failed for %s", attr, device_id, exc_info=True
+            )
             return None
         station_lower = station_name.casefold()
         for preset in presets:
-            if (
-                preset.station_name
-                and preset.station_name.casefold() == station_lower
-            ):
+            if preset.station_name and preset.station_name.casefold() == station_lower:
                 value = getattr(preset, attr, None)
                 if value:
                     return value  # type: ignore[no-any-return]
