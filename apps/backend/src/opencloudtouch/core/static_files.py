@@ -77,10 +77,7 @@ def _serve_static_file(static_dir: Path, decoded_path: str) -> FileResponse | No
     """Try to serve a static file from *static_dir*. Returns None if not found."""
     try:
         requested_path = (static_dir / decoded_path).resolve()
-        if (
-            str(requested_path).startswith(str(static_dir))
-            and requested_path.is_file()
-        ):
+        if str(requested_path).startswith(str(static_dir)) and requested_path.is_file():
             headers = {}
             if requested_path.name == "index.html":
                 headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
