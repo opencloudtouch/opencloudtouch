@@ -241,8 +241,9 @@ async def _init_websocket_pipeline(
         """Resolve station_name to stream URL via preset DB."""
         try:
             presets = await app.state.preset_service.get_all_presets(device_id)
+            station_lower = station_name.casefold()
             for preset in presets:
-                if preset.station_name == station_name:
+                if preset.station_name and preset.station_name.casefold() == station_lower:
                     return preset.station_url
         except Exception:
             pass  # Best-effort lookup; missing presets are not critical
@@ -256,8 +257,9 @@ async def _init_websocket_pipeline(
         """Resolve station_name to favicon URL via preset DB."""
         try:
             presets = await app.state.preset_service.get_all_presets(device_id)
+            station_lower = station_name.casefold()
             for preset in presets:
-                if preset.station_name == station_name:
+                if preset.station_name and preset.station_name.casefold() == station_lower:
                     return preset.station_favicon
         except Exception:
             pass  # Best-effort lookup

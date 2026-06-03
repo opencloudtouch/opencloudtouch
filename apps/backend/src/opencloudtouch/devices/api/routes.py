@@ -317,8 +317,9 @@ async def _enrich_from_presets(
         return None
     try:
         presets = await preset_service.get_all_presets(device_id)
+        station_lower = info.station_name.casefold()
         for preset in presets:
-            if preset.station_name == info.station_name:
+            if preset.station_name and preset.station_name.casefold() == station_lower:
                 if not result["artwork_url"] and preset.station_favicon:
                     result["artwork_url"] = preset.station_favicon
                     logger.debug(
