@@ -67,9 +67,7 @@ class DeviceStateManager:
         """Attach an ICY metadata worker for radio enrichment."""
         self._icy_worker = worker
 
-    def set_preset_favicon_callback(
-        self, callback: GetPresetFavicon
-    ) -> None:
+    def set_preset_favicon_callback(self, callback: GetPresetFavicon) -> None:
         """Set callback for resolving preset favicon URLs."""
         self._get_preset_favicon = callback
 
@@ -251,13 +249,8 @@ class DeviceStateManager:
         await self._throttle.submit(event)
 
         # Fire preset-favicon + ICY probe in background for radio events
-        if (
-            event.event_type == EventType.NOW_PLAYING
-            and event.now_playing
-        ):
-            task = asyncio.create_task(
-                self._run_enrichment_pipeline(event)
-            )
+        if event.event_type == EventType.NOW_PLAYING and event.now_playing:
+            task = asyncio.create_task(self._run_enrichment_pipeline(event))
             self._background_tasks.add(task)
             task.add_done_callback(self._background_tasks.discard)
 
