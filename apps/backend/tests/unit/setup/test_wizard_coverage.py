@@ -35,50 +35,8 @@ def _mock_ssh():
     return ssh
 
 
-# ── _apply_existing_config ───────────────────────────────────────────
-
-
-class TestApplyExistingConfig:
-    def test_preserves_device_name_from_existing(self):
-        xml = (
-            "<SystemConfigurationDB>"
-            "<DeviceName>Living Room</DeviceName>"
-            "<AccountUUID>1234567</AccountUUID>"
-            "</SystemConfigurationDB>"
-        )
-        result = WizardService._apply_existing_config(
-            xml, "SoundTouch", "AABBCC", "1234567"
-        )
-        assert result == "Living Room"
-
-    def test_keeps_new_name_when_existing_empty(self):
-        xml = "<SystemConfigurationDB></SystemConfigurationDB>"
-        result = WizardService._apply_existing_config(
-            xml, "Kitchen", "AABBCC", "9999999"
-        )
-        assert result == "Kitchen"
-
-    def test_logs_warning_for_invalid_uuid(self):
-        xml = (
-            "<SystemConfigurationDB>"
-            "<AccountUUID>123</AccountUUID>"
-            "</SystemConfigurationDB>"
-        )
-        result = WizardService._apply_existing_config(
-            xml, "Default", "AABBCC", "9999999"
-        )
-        assert result == "Default"
-
-    def test_valid_uuid_is_logged(self):
-        xml = (
-            "<SystemConfigurationDB>"
-            "<AccountUUID>7654321</AccountUUID>"
-            "</SystemConfigurationDB>"
-        )
-        result = WizardService._apply_existing_config(
-            xml, "Default", "AABBCC", "7654321"
-        )
-        assert result == "Default"
+# ── _apply_existing_config (removed in refactor) ────────────────────
+# Method was removed from WizardService; tests deleted.
 
 
 # ── ensure_account_pairing ───────────────────────────────────────────
@@ -122,54 +80,8 @@ class TestEnsureAccountPairing:
 # ── _fetch_device_metadata hardware profile branch ───────────────────
 
 
-class TestFetchDeviceMetadata:
-    @pytest.mark.asyncio
-    async def test_hardware_profile_detected(self):
-        xml = (
-            "<info>"
-            "<name>Kitchen</name>"
-            "<variant>spotty</variant>"
-            "<moduleType>sm2</moduleType>"
-            "<type>SoundTouch 20</type>"
-            "</info>"
-        )
-        mock_resp = MagicMock()
-        mock_resp.text = xml
-
-        mock_client = AsyncMock()
-        mock_client.get = AsyncMock(return_value=mock_resp)
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-
-        with patch("httpx.AsyncClient", return_value=mock_client):
-            name, has_bt = await WizardService._fetch_device_metadata("192.168.1.10")
-
-        assert name == "Kitchen"
-        assert has_bt is True
-
-    @pytest.mark.asyncio
-    async def test_scm_module_no_bluetooth(self):
-        xml = (
-            "<info>"
-            "<name>Office</name>"
-            "<variant>spotty</variant>"
-            "<moduleType>scm</moduleType>"
-            "<type>SoundTouch 20</type>"
-            "</info>"
-        )
-        mock_resp = MagicMock()
-        mock_resp.text = xml
-
-        mock_client = AsyncMock()
-        mock_client.get = AsyncMock(return_value=mock_resp)
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-
-        with patch("httpx.AsyncClient", return_value=mock_client):
-            name, has_bt = await WizardService._fetch_device_metadata("192.168.1.10")
-
-        assert name == "Office"
-        assert has_bt is False
+# ── _fetch_device_metadata (removed in refactor) ────────────────────
+# Method was removed from WizardService; tests deleted.
 
 
 # ── finalize_device edge cases ───────────────────────────────────────
@@ -220,9 +132,9 @@ def _finalize_patches(
                 return_value=0,
             ),
             patch(
-                "opencloudtouch.setup.wizard_service._read_file_content",
+                "opencloudtouch.setup.wizard_service._file_exists",
                 new_callable=AsyncMock,
-                return_value=existing_config,
+                return_value=existing_config is not None,
             ),
             patch("httpx.AsyncClient") as mock_http,
         ):
@@ -378,17 +290,17 @@ class TestCheckHelperErrorBranches:
         assert "not found" in checks[0]["message"]
 
     @pytest.mark.asyncio
-    async def test_config_files_identical_skipped_when_few_exist(self):
+    async def test_config_files_identical_skipped_when_files_missing(self):
         service = WizardService()
         ssh = _mock_ssh()
         checks: list[dict] = []
-        # All 3 CONFIG_CANDIDATES missing → 0 existing → no comparison needed
+        # All CONFIG_CANDIDATES missing → skipped with passed=False
         from opencloudtouch.setup.config_service import SoundTouchConfigService
 
         all_missing = list(SoundTouchConfigService.CONFIG_CANDIDATES)
         await service._check_config_files_identical(ssh, all_missing, _make_add(checks))
-        assert checks[0]["passed"] is True
-        assert "no comparison needed" in checks[0]["message"]
+        assert checks[0]["passed"] is False
+        assert "missing" in checks[0]["message"].lower()
 
     @pytest.mark.asyncio
     async def test_config_files_identical_unreadable(self):

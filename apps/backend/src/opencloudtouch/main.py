@@ -4,10 +4,11 @@ Iteration 0: Basic setup with /health endpoint
 """
 
 import logging
+from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -15,6 +16,7 @@ from opencloudtouch.api import devices_router
 from opencloudtouch.bmx.radiobrowser_routes import radiobrowser_router
 from opencloudtouch.bmx.resolve_routes import resolve_router
 from opencloudtouch.devices.api.discovery_routes import discovery_router
+from opencloudtouch.devices.api.event_routes import event_router
 from opencloudtouch.bmx.routes import router as bmx_router
 from opencloudtouch.core.config import get_config, init_config
 from opencloudtouch import __version__, is_official_build
@@ -31,6 +33,7 @@ from opencloudtouch.core.static_files import (
 from opencloudtouch.db import DeviceRepository
 from opencloudtouch.devices.adapter import get_discovery_adapter
 from opencloudtouch.devices.health_check import DeviceHealthCheck
+from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.devices.startup_check import StartupCheck
 from opencloudtouch.devices.api.preset_stream_routes import (
     descriptor_router as device_descriptor_router,
@@ -222,9 +225,92 @@ async def _init_services(
         logger.info("Device health-check started")
     app.state.health_check = health_check
 
+    await _init_websocket_pipeline(app, cfg, device_repo, logger)
+
+
+def _make_preset_lookup(
+    app: FastAPI, logger: logging.Logger, attr: str
+) -> Callable[[str, str], Awaitable[str | None]]:
+    """Create a preset attribute lookup closure (stream URL or favicon)."""
+
+    async def _lookup(device_id: str, station_name: str) -> str | None:
+        try:
+            presets = await app.state.preset_service.get_all_presets(device_id)
+        except Exception:
+            logger.debug(
+                "Preset %s lookup failed for %s", attr, device_id, exc_info=True
+            )
+            return None
+        station_lower = station_name.casefold()
+        for preset in presets:
+            if preset.station_name and preset.station_name.casefold() == station_lower:
+                value = getattr(preset, attr, None)
+                if value:
+                    return value  # type: ignore[no-any-return]
+        return None
+
+    return _lookup
+
+
+async def _init_websocket_pipeline(
+    app: FastAPI, cfg, device_repo, logger: logging.Logger
+) -> None:
+    """Initialize DeviceStateManager, ICY worker, and WebSocket manager."""
+    # Device state manager (WebSocket push → state cache → SSE relay)
+    app.state.device_state_manager = DeviceStateManager()
+
+    # ICY metadata worker — enriches radio now-playing events with artwork
+    from opencloudtouch.devices.websocket.icy_worker import IcyWorker
+
+    icy_worker = IcyWorker(
+        get_stream_url=_make_preset_lookup(app, logger, "station_url"),
+    )
+    app.state.device_state_manager.set_icy_worker(icy_worker)
+
+    app.state.device_state_manager.set_preset_favicon_callback(
+        _make_preset_lookup(app, logger, "station_favicon"),
+    )
+    app.state.device_state_manager.start_icy_polling()
+    logger.info("DeviceStateManager initialized (with ICY worker + periodic polling)")
+
+    # WebSocket manager — connects to SoundTouch device WS ports
+    # and forwards events to DeviceStateManager
+    from opencloudtouch.devices.websocket.manager import WebSocketManager
+
+    ws_manager = WebSocketManager(
+        on_event=app.state.device_state_manager.on_event,
+    )
+    app.state.ws_manager = ws_manager
+
+    # Wire device sync → WS reconnect for IP changes
+    app.state.device_service.set_on_device_synced(ws_manager.ensure_connection)
+
+    # Connect to all known devices
+    if cfg.mock_mode:
+        logger.info("WebSocketManager: skipped (mock mode)")
+        return
+
+    devices = await device_repo.get_all()
+    device_list = [{"device_id": d.device_id, "ip": d.ip} for d in devices]
+    if device_list:
+        await ws_manager.start(device_list)
+        logger.info("WebSocketManager started for %d device(s)", len(device_list))
+    else:
+        logger.info("WebSocketManager: no devices to connect to")
+
 
 async def _shutdown(app: FastAPI, repos: dict, logger: logging.Logger) -> None:
     """Graceful shutdown: stop background tasks, close repositories."""
+    # Stop WebSocket manager first (stops pushing events)
+    if hasattr(app.state, "ws_manager"):
+        await app.state.ws_manager.stop()
+        logger.info("WebSocketManager stopped")
+
+    # Stop ICY polling
+    if hasattr(app.state, "device_state_manager"):
+        await app.state.device_state_manager.stop_icy_polling()
+        logger.info("ICY polling stopped")
+
     await app.state.health_check.stop()
     logger.info("Device health-check stopped")
 
@@ -300,6 +386,7 @@ app.include_router(device_zone_router)  # Per-device zone status
 app.include_router(logs_router)  # Backend log download
 app.include_router(bug_report_router)  # Bug report submission
 app.include_router(wizard_audit_router)  # Wizard audit trail
+app.include_router(event_router)  # SSE device event stream
 
 
 # Health endpoint
@@ -319,6 +406,18 @@ async def health_check():
             },
         },
     )
+
+
+@app.get("/api/health/websockets", tags=["System"])
+async def websocket_health(request: Request):
+    """WebSocket connection health for all managed devices."""
+    ws_manager = getattr(request.app.state, "ws_manager", None)
+    if ws_manager is None:
+        return JSONResponse(
+            status_code=200,
+            content={"connections": {}, "total_connected": 0, "total_devices": 0},
+        )
+    return JSONResponse(status_code=200, content=ws_manager.get_health())
 
 
 # Static files (frontend) — SPA 404 handler

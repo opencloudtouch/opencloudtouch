@@ -1,7 +1,5 @@
 {
   "common": {
-    "save": "Opslaan",
-    "saving": "Opslaan...",
     "cancel": "Annuleren",
     "loading": "Laden...",
     "error": "Er is een fout opgetreden",
@@ -9,7 +7,6 @@
     "back": "Terug",
     "close": "Sluiten",
     "confirm": "Bevestigen",
-    "search": "Zoeken",
     "openCloudTouchLoading": "OpenCloudTouch wordt geladen...",
     "connectingToServer": "Verbinding maken met server...",
     "loadingTimeout": "Dit duurt langer dan verwacht. Wacht even of laad de pagina opnieuw.",
@@ -24,22 +21,15 @@
     "presets": "Apparaten en Presets",
     "zones": "Zones",
     "settings": "Instellingen",
-    "about": "Over",
-    "selectLanguage": "Taal selecteren"
+    "about": "Over"
   },
   "player": {
-    "volume": "Volume",
-    "nowPlaying": "Nu afspelen",
-    "noSource": "Geen bron",
     "noPlayback": "Geen weergave",
     "play": "Afspelen",
     "pause": "Pauzeren",
     "noStation": "Geen station",
-    "bluetoothNoDevice": "Geen apparaat verbonden",
     "noDevices": "Geen apparaten gevonden",
     "powerButton": "Aan/uit",
-    "powerFailed": "Kon staat niet wijzigen",
-    "playbackFailed": "Weergavebesturing mislukt. Probeer het opnieuw.",
     "localControl": "Lokale bediening",
     "sourceTitle": "Bron",
     "playbackTitle": "Weergave",
@@ -53,7 +43,6 @@
     "nextDevice": "Volgend apparaat"
   },
   "presets": {
-    "title": "Presets",
     "pageTitle": "Radio Presets",
     "empty": "Geen presets geconfigureerd",
     "playPreset": "Preset {{name}} afspelen",
@@ -76,7 +65,6 @@
     "infoItem6": "\"Laden van apparaat\" synchroniseert presets van SoundTouch",
     "changeStation": "Klik om station te wijzigen",
     "assignPreset": "Preset toewijzen",
-    "nowPlaying": "Wordt afgespeeld",
     "cloudCompatible": "Compatibel na cloudsluiting",
     "cloudIndependent": "Cloudsonafhankelijk",
     "cloudIndependentDesc": "Werkt na 6 mei 2026 (Bose Cloud sluiting)",
@@ -106,6 +94,7 @@
       "country": "bijv. Netherlands, Belgium…",
       "tag": "bijv. Rock, Jazz, pop…"
     },
+    "searchTitle": "Zoek radiostations",
     "loadMore": "Meer laden",
     "loadingMore": "Laden...",
     "maxReached": "Maximum ({{count}}) bereikt",
@@ -133,8 +122,7 @@
     },
     "discovery": {
       "devicesFound_one": "{{count}} nieuw apparaat gevonden",
-      "devicesFound_other": "{{count}} nieuwe apparaten gevonden",
-      "noNewDevices": "Geen nieuwe apparaten gevonden"
+      "devicesFound_other": "{{count}} nieuwe apparaten gevonden"
     },
     "logging": {
       "sectionTitle": "Logboek",
@@ -151,9 +139,7 @@
   },
   "manualIpModal": {
     "title": "Handmatige IP-configuratie",
-    "close": "Sluiten",
     "description": "Voer de IP-adressen van uw apparaten in (één per regel of kommagescheiden).",
-    "placeholder": "Voorbeeld:\n192.168.1.100\n192.168.1.101\n192.168.1.102",
     "invalidFormat": "Ongeldig formaat: {{ips}}",
     "saveError": "Fout bij opslaan van IP-adressen",
     "save": "Opslaan",
@@ -161,13 +147,10 @@
     "hint": "Het IP-adres staat in de bijbehorende app onder Instellingen → Info of in uw router."
   },
   "multiroom": {
-    "title": "Zones",
     "pageTitle": "Meerkamers zones",
-    "noZones": "Geen zones geconfigureerd",
     "createZone": "Zone aanmaken",
     "updateZone": "Zone bijwerken",
     "creating": "Aanmaken...",
-    "removeZone": "Zone verwijderen",
     "standby": "Stand-by",
     "loadingZones": "Zones laden...",
     "errorLoading": "Fout bij laden",
@@ -202,14 +185,12 @@
   },
   "firmware": {
     "title": "Firmware-updates",
-    "description": "Beheer firmware-updates voor uw SoundTouch-apparaten.",
     "noDevices": "Geen apparaten gevonden",
     "currentDevice": "Huidig apparaat",
     "currentVersion": "Huidige versie:",
     "statusLabel": "Status:",
     "updateAvailable": "Update beschikbaar",
     "upToDate": "Up-to-date",
-    "comingSoon": "Binnenkort beschikbaar",
     "allDevices": "Alle apparaten",
     "unknownVersion": "Onbekend",
     "unknownModel": "Onbekend model",
@@ -226,17 +207,14 @@
     "infoItem4": "Het apparaat herstart automatisch na de update"
   },
   "setup": {
-    "title": "Installatiewizard",
     "next": "Volgende",
     "back": "Terug",
-    "finish": "Afronden",
     "loading": "Apparaten laden...",
     "loadingAriaLabel": "Laden",
     "noDevices": "Geen apparaten gevonden",
     "noDevicesHint": "Synchroniseer eerst uw SoundTouch-apparaten.",
     "noDevicesHint2": "Ga naar de startpagina en klik op \"Nu apparaten zoeken\".",
     "goHome": "Terug naar startpagina",
-    "homePage": "Startpagina",
     "stepLabels": {
       "usbInsert": "USB-stick invoegen",
       "deviceReboot": "Apparaat herstarten",
@@ -277,7 +255,6 @@
     },
     "skip": "Overslaan",
     "stepLabel": "Stap {{step}}",
-    "processing": "Verwerken...",
     "stepAriaCompleted": "Stap {{id}}: {{label}} — {{description}} – voltooid",
     "stepAriaError": "Stap {{id}}: {{label}} — {{description}} – fout",
     "stepAriaInProgress": "Stap {{id}}: {{label}} — {{description}} – bezig",
@@ -478,16 +455,13 @@
         "description": "Controleer of de domeindoorleidingen correct werken.",
         "warning": "Als tests mislukken, kan een apparaat herstart vereist zijn.",
         "rebootHeader": "Apparaat herstarten",
-        "rebootHint": "De /etc/hosts-wijzigingen worden pas actief na een herstart. Herstart het apparaat voordat u de tests uitvoert.",
         "btnReboot": "Apparaat nu herstarten",
-        "rebootActionHint": "Alleen als tests mislukken en u zeker weet dat een herstart nodig is",
         "rebootRebooting": "Herstartopdracht verzenden...",
         "rebootWaiting": "Apparaat herstart — even geduld...",
         "rebootDone": "Herstart voltooid — apparaat zou weer bereikbaar moeten zijn.",
         "btnRetryReboot": "Opnieuw proberen",
         "btnFinalize": "Apparaatconfiguratie voltooien",
         "finalizing": "Apparaat wordt ingesteld...",
-        "verifying": "Configuratie wordt geverifieerd...",
         "btnRetryFinalize": "Opnieuw proberen",
         "finalizeUuid": "Apparaat-UUID ingesteld: {{uuid}}",
         "finalizeSources": "Sources.xml geschreven",
@@ -517,28 +491,13 @@
         "summaryRedirectsCorrect": "Alle doorleidingen geverifieerd en correct",
         "summarySourcesPresent": "Alle vereiste bronnen aanwezig",
         "verifyTitle": "Configuratieverificatie",
-        "testInfoTitle": "Wat wordt er getest?",
-        "testInfoItem1": "DNS-resolutie van Bose-domeinen",
-        "testInfoItem2": "Omleiding naar uw OpenCloudTouch-server",
-        "testInfoItem3": "Juistheid van IP-adressen",
-        "btnRunTests": "Tests nu uitvoeren",
-        "btnRunning": "Configuratie testen...",
         "resultsTitle": "Testresultaten",
-        "resolvedIp": "Opgelost IP:",
-        "expectedIp": "Verwacht IP:",
-        "statusLabel": "Status:",
-        "statusCorrect": "✓ Correct",
-        "statusFailed": "✗ Mislukt",
         "domainInternetRadio": "Internetradio",
         "domainStreaming": "Streamingdiensten",
         "allPassedTitle": "Alle tests geslaagd!",
         "allPassedMessage": "De domeindoorleidingen werken correct. Uw apparaat is klaar voor gebruik.",
         "someFailedTitle": "Sommige tests zijn mislukt",
         "someFailedMessage": "DNS-wijzigingen zijn mogelijk nog niet actief. Probeer de volgende stappen:",
-        "failedStep1": "Herstart het apparaat (stroom verbreken en herstellen)",
-        "failedStep2": "Wacht 60 seconden na de herstart",
-        "failedStep3": "Voer de tests opnieuw uit",
-        "btnRetryTests": "Tests opnieuw uitvoeren",
         "btnSkip": "Toch doorgaan — apparaat wordt niet als geconfigureerd gemarkeerd",
         "rebootMandatoryHint": "Een herstart is vereist om de configuratiewijzigingen door te voeren. Het apparaat moet opnieuw worden opgestart vóór de verificatie.",
         "fullVerifyTitle": "Volledige systeemverificatie",
@@ -548,58 +507,6 @@
         "fullVerifyItem4": "DNS-doorleidingen opgelost naar de OpenCloudTouch-server",
         "btnRunFullVerify": "Volledige verificatie starten",
         "fullVerifying": "Volledige systeemverificatie wordt uitgevoerd...",
-        "systemChecksTitle": "Systeemcontroles",
-        "check": {
-          "uuid_present": {
-            "pass": "Apparaat-UUID: {{uuid}}",
-            "fail": "Apparaat heeft geen account-UUID. Opstartsynchronisatie werkt niet."
-          },
-          "uuid_in_db": {
-            "pass": "UUID geregistreerd voor {{db_device_id}}",
-            "fail": "UUID niet geregistreerd in OCT-database. Streaming-eindpunt kan dit apparaat niet oplossen."
-          },
-          "sources_complete": {
-            "pass": "Alle vereiste bronnen aanwezig",
-            "fail": "Ontbrekende bronnen: {{missing}}. Presetweergave kan mislukken voor deze brontypes."
-          },
-          "config_files_present": {
-            "pass": "Alle configuratiebestanden aanwezig",
-            "fail": "Ontbrekend configuratiebestand: {{missing}}. Firmware vindt mogelijk de OCT-doorleiding niet bij herstart."
-          },
-          "config_files_identical": {
-            "pass": "Alle configuratiebestanden hebben identieke inhoud",
-            "fail": "Configuratiebestanden verschillen. Apparaat gebruikt mogelijk de verkeerde BMX-URL na herstart."
-          },
-          "config_bmx_url": {
-            "pass": "BMX-URL: {{bmx_url}}",
-            "fail": "BMX-URL verwijst nog naar Bose-cloud ({{bmx_url}}). Apparaat zal geen contact opnemen met OCT."
-          },
-          "hosts_oct_block": {
-            "pass": "OCT-blok aanwezig in /etc/hosts",
-            "fail": "Geen OCT-blok in /etc/hosts. Domeindoorleidingen ontbreken."
-          },
-          "hosts_domains_complete": {
-            "pass": "Alle vereiste domeinen aanwezig",
-            "fail": "Ontbrekende hostinvoeren: {{missing}}. Sommige Bose-diensten worden niet doorgeleid."
-          },
-          "hosts_ip_correct": {
-            "pass": "Alle hostinvoeren verwijzen naar het juiste IP",
-            "fail": "Hostinvoeren verwijzen naar het verkeerde IP. Controleer op verouderde invoeren."
-          },
-          "system_config_present": {
-            "pass": "SystemConfigurationDB.xml aanwezig",
-            "fail": "SystemConfigurationDB.xml ontbreekt. Apparaat wordt mogelijk niet correct geïnitialiseerd."
-          },
-          "system_config_uuid_match": {
-            "pass": "UUID in SystemConfigurationDB.xml komt overeen met apparaat",
-            "fail": "UUID in SystemConfigurationDB.xml komt niet overeen met apparaat-UUID"
-          },
-          "connection": {
-            "pass": "Verbinding OK",
-            "fail": "Verbinding mislukt"
-          }
-        },
-        "dnsTestsTitle": "DNS-doorleidingscontroles",
         "btnRetryFullVerify": "Verificatie opnieuw uitvoeren"
       },
       "step8": {
@@ -687,8 +594,6 @@
     }
   },
   "errors": {
-    "connectionFailed": "Kon geen verbinding maken met het apparaat.",
-    "discoveryFailed": "Zoeken mislukt. Controleer uw netwerkinstellingen.",
     "loadFailed": "Laden mislukt. Probeer het opnieuw.",
     "unknown": "Er is een onverwachte fout opgetreden. Probeer het opnieuw.",
     "networkFailed": "Kon geen verbinding maken met de server. Controleer uw netwerkverbinding.",
@@ -746,11 +651,8 @@
     "versionUnavailable": "Versie niet beschikbaar",
     "hallOfFameTitle": "Eregalerij",
     "hallOfFameDescription": "Top 3 bijdragers aller tijden — erkend voor uitzonderlijke technische impact.",
-    "spotlightTitle": "Community Spotlight — {{month}}",
-    "spotlightDescription": "De meest waardevolle bijdragers van deze maand. Bedankt voor jullie steun!",
     "supportersTitle": "Supporters",
     "reportBug": "Bug melden",
-
     "supportersDescription": "Dank aan iedereen die OpenCloudTouch financieel steunt. Jullie bijdragen helpen het project levend te houden!",
     "supportersMonthly": "Maandelijkse Supporters",
     "supportersOneTime": "Eenmalige supporters",
@@ -758,18 +660,9 @@
     "checkingUpdates": "Controleren op updates...",
     "updateAvailable": "Update beschikbaar: {{version}}",
     "viewRelease": "Release bekijken",
-    "upToDate": "Je bent up-to-date!",
-    "total": "totaal",
-    "monthlySupporters": "Maandelijkse supporters",
-    "oneTimeSupporters": "Eenmalige supporters",
-    "noSupportersYet": "Nog geen supporters",
-    "supportCTA": "Wil je helpen dit project in leven te houden?",
-    "supportButton": "Koop me een koffie"
+    "upToDate": "Je bent up-to-date!"
   },
   "discovery": {
-    "started": "Zoeken gestart",
-    "completed": "Zoeken voltooid",
-    "searching": "Apparaten zoeken...",
     "alreadyRunning": "Apparaatzoektocht loopt al. Wacht even...",
     "failed": "Fout tijdens apparaatzoektocht. Probeer het opnieuw.",
     "noDevicesNetwork": "Geen apparaten gevonden. Controleer of uw apparaten ingeschakeld zijn en op hetzelfde netwerk zitten.",

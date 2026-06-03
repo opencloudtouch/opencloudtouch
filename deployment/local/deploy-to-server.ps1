@@ -152,14 +152,24 @@ $dockerCmd stop $ContainerName 2>/dev/null || true
 $dockerCmd rm $ContainerName 2>/dev/null || true
 
 echo "[>] Creating data and log directories..."
-mkdir -p $DataPath $LogPath 2>/dev/null || sudo mkdir -p $DataPath $LogPath
-# Ensure container process (non-root, uid 1000 inside container) owns the dirs
-sudo chown -R 1000:1000 $DataPath $LogPath 2>/dev/null || chown -R 1000:1000 $DataPath $LogPath 2>/dev/null || true
-sudo chmod 750 $DataPath $LogPath 2>/dev/null || chmod 750 $DataPath $LogPath 2>/dev/null || true
+if [ "$UseSudo" = "True" ]; then
+    sudo mkdir -p $DataPath $LogPath
+    sudo chown -R 1000:1000 $DataPath $LogPath
+    sudo chmod 750 $DataPath $LogPath
+else
+    mkdir -p $DataPath $LogPath 2>/dev/null || true
+    # Try to set ownership/permissions, but don't fail if not possible
+    chown -R 1000:1000 $DataPath $LogPath 2>/dev/null || true
+    chmod 750 $DataPath $LogPath 2>/dev/null || true
+fi
 
 if [ "\$ClearDatabase" = "True" ]; then
     echo "[>] Clearing database..."
-    rm -f $DataPath/oct.db 2>/dev/null || sudo rm -f $DataPath/oct.db
+    if [ "$UseSudo" = "True" ]; then
+        sudo rm -f $DataPath/oct.db
+    else
+        rm -f $DataPath/oct.db 2>/dev/null || true
+    fi
     echo "[OK] Database cleared"
 fi
 

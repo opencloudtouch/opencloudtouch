@@ -103,7 +103,7 @@ async def force_write_sources_xml(
     ssh: SoundTouchSSHClient,
     backup: bool = True,
 ) -> ForceWriteResult:
-    """Force-write Sources.xml with firmware-safe content.
+    """Force-write Sources.xml with hardware-tailored content.
 
     Unlike ensure_persistence_files() which skips existing files, this
     function ALWAYS overwrites -- needed when existing Sources.xml is
@@ -130,20 +130,12 @@ async def force_write_sources_xml(
                 logger.warning("Failed to backup Sources.xml: %s", result.error)
 
         content = build_sources_xml()
-        exit_code = await _write_file_atomic(ssh, path, content)
+        await _write_file_atomic(ssh, path, content)
         logger.info(
-            "Force-wrote Sources.xml (backup=%s, had_existing=%s, exit_code=%d)",
+            "Force-wrote Sources.xml (backup=%s, had_existing=%s)",
             backup,
             had_existing,
-            exit_code,
         )
-
-        if exit_code != 0:
-            return ForceWriteResult(
-                success=False,
-                had_existing=had_existing,
-                error=f"Write returned non-zero exit code: {exit_code}",
-            )
 
         return ForceWriteResult(
             success=True,
@@ -170,45 +162,8 @@ async def _file_exists(ssh: SoundTouchSSHClient, path: str) -> bool:
     return "exists" in (result.output or "")
 
 
-async def _read_file_content(ssh: SoundTouchSSHClient, path: str) -> Optional[str]:
-    """Read file content from device, return None if not readable."""
-    result = await ssh.execute(f"cat {path} 2>/dev/null")
-    if not result.success or not result.output:
-        return None
-    return result.output.strip()
-
-
-def parse_system_config_xml(xml_content: str) -> dict[str, str]:
-    """Extract DeviceName and AccountUUID from existing SystemConfigurationDB.xml.
-
-    Returns:
-        Dict with 'device_name' and 'account_uuid' (empty string if missing).
-    """
-    from defusedxml import ElementTree as ET
-
-    extracted: dict[str, str] = {"device_name": "", "account_uuid": ""}
-    try:
-        root = ET.fromstring(xml_content)
-        name_elem = root.find("DeviceName")
-        if name_elem is not None and name_elem.text:
-            extracted["device_name"] = name_elem.text.strip()
-        uuid_elem = root.find("AccountUUID")
-        if uuid_elem is not None and uuid_elem.text:
-            extracted["account_uuid"] = uuid_elem.text.strip()
-    except Exception:
-        logger.warning("Failed to parse existing SystemConfigurationDB.xml")
-    return extracted
-
-
-async def _write_file_atomic(ssh: SoundTouchSSHClient, path: str, content: str) -> int:
-    """Write content to device atomically via base64 piping.
-
-    Returns:
-        Exit code of the write command (0 = success).
-
-    Raises:
-        RuntimeError: If the write command fails.
-    """
+async def _write_file_atomic(ssh: SoundTouchSSHClient, path: str, content: str) -> None:
+    """Write content to device atomically via base64 piping."""
     b64 = base64.b64encode(content.encode()).decode()
     write_cmd = (
         f"echo '{b64}' | base64 -d > /tmp/persist.new && mv /tmp/persist.new {path}"
@@ -216,7 +171,6 @@ async def _write_file_atomic(ssh: SoundTouchSSHClient, path: str, content: str) 
     result = await ssh.execute(write_cmd)
     if not result.success:
         raise RuntimeError(f"Failed to write {path}: {result.error or result.output}")
-    return result.exit_code
 
 
 async def ensure_persistence_files(

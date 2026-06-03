@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ToastProvider } from "./contexts/ToastContext";
+import { DeviceEventProvider } from "./contexts/DeviceEventContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Navigation from "./components/Navigation";
 import EmptyState from "./components/EmptyState";
@@ -161,12 +162,14 @@ function App() {
     <ErrorBoundary>
       <BrowserRouter {...routerFutureFlagsAny}>
         <ToastProvider>
-          <AppRouter
-            devices={devices}
-            isLoading={isLoading}
-            error={error}
-            onRetry={() => refetch()}
-          />
+          <DeviceEventProvider>
+            <AppRouter
+              devices={devices}
+              isLoading={isLoading}
+              error={error}
+              onRetry={() => refetch()}
+            />
+          </DeviceEventProvider>
         </ToastProvider>
       </BrowserRouter>
     </ErrorBoundary>

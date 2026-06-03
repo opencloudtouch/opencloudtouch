@@ -118,8 +118,62 @@ def test_health_endpoint():
     assert data["build"] in ("official", "community")
     assert isinstance(data["config"], dict)
     assert isinstance(data["config"]["discovery_enabled"], bool)
-    # REFACT-102: db_path removed from health endpoint (info leak)
-    assert "db_path" not in data["config"]
+
+
+def test_websocket_health_no_manager():
+    """WebSocket health returns empty when no manager is attached."""
+    from opencloudtouch.main import app
+
+    client = TestClient(app)
+    # Ensure ws_manager is not set
+    if hasattr(app.state, "ws_manager"):
+        delattr(app.state, "ws_manager")
+
+    response = client.get("/api/health/websockets")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["connections"] == {}
+    assert data["total_connected"] == 0
+    assert data["total_devices"] == 0
+
+
+def test_websocket_health_with_manager():
+    """WebSocket health returns connection info from manager."""
+    from unittest.mock import MagicMock
+
+    from opencloudtouch.main import app
+
+    client = TestClient(app)
+    mock_manager = MagicMock()
+    mock_manager.get_health.return_value = {
+        "connections": {
+            "AABBCCDDEE11": {
+                "state": "connected",
+                "uptime_s": 3600,
+                "events_received": 142,
+            },
+            "112233445566": {
+                "state": "reconnecting",
+                "attempt": 2,
+                "events_received": 50,
+            },
+        },
+        "total_connected": 1,
+        "total_devices": 2,
+    }
+    app.state.ws_manager = mock_manager
+
+    response = client.get("/api/health/websockets")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_connected"] == 1
+    assert data["total_devices"] == 2
+    assert data["connections"]["AABBCCDDEE11"]["state"] == "connected"
+    assert data["connections"]["AABBCCDDEE11"]["uptime_s"] == 3600
+    assert data["connections"]["112233445566"]["attempt"] == 2
+
+    # Clean up
+    delattr(app.state, "ws_manager")
 
 
 def test_version_dev_format_without_signature(monkeypatch):

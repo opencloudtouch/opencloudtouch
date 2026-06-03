@@ -71,9 +71,9 @@ class TestFinalizeDeviceNoUUID:
                 new_callable=AsyncMock,
             ),
             patch(
-                "opencloudtouch.setup.wizard_service._read_file_content",
+                "opencloudtouch.setup.wizard_service._file_exists",
                 new_callable=AsyncMock,
-                return_value=None,
+                return_value=False,
             ),
             patch("httpx.AsyncClient") as mock_http,
         ):
@@ -142,9 +142,9 @@ class TestFinalizeDeviceExistingUUID:
                 return_value=0,
             ),
             patch(
-                "opencloudtouch.setup.wizard_service._read_file_content",
+                "opencloudtouch.setup.wizard_service._file_exists",
                 new_callable=AsyncMock,
-                return_value=None,
+                return_value=False,
             ),
             patch("httpx.AsyncClient") as mock_http,
         ):
@@ -273,9 +273,9 @@ class TestFinalizeSystemConfig:
                 return_value=0,
             ) as mock_write,
             patch(
-                "opencloudtouch.setup.wizard_service._read_file_content",
+                "opencloudtouch.setup.wizard_service._file_exists",
                 new_callable=AsyncMock,
-                return_value=None,
+                return_value=False,
             ),
             patch("httpx.AsyncClient") as mock_http,
         ):
@@ -332,9 +332,9 @@ class TestFinalizeSystemConfig:
                 return_value=0,
             ) as mock_write,
             patch(
-                "opencloudtouch.setup.wizard_service._read_file_content",
+                "opencloudtouch.setup.wizard_service._file_exists",
                 new_callable=AsyncMock,
-                return_value=None,
+                return_value=False,
             ),
             patch("httpx.AsyncClient") as mock_http,
         ):
@@ -344,7 +344,7 @@ class TestFinalizeSystemConfig:
 
             mock_client = AsyncMock()
             mock_resp = MagicMock()
-            mock_resp.text = "<info><name>Büro</name><margeAccountUUID>1234567</margeAccountUUID></info>"
+            mock_resp.text = "<info><name>BÃ¼ro</name><margeAccountUUID>1234567</margeAccountUUID></info>"
             mock_client.get = AsyncMock(return_value=mock_resp)
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=False)
@@ -398,9 +398,9 @@ class TestFinalizeIdempotent:
                 return_value=0,
             ),
             patch(
-                "opencloudtouch.setup.wizard_service._read_file_content",
+                "opencloudtouch.setup.wizard_service._file_exists",
                 new_callable=AsyncMock,
-                return_value=None,
+                return_value=False,
             ),
             patch("httpx.AsyncClient") as mock_http,
         ):

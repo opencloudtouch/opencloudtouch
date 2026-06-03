@@ -53,6 +53,40 @@ def find_frontend_static_dir(anchor: Path) -> Path:
     return anchor.parent.parent / "frontend" / "dist"
 
 
+def _build_api_404_response(path: str, exc) -> JSONResponse:
+    """Build a JSON 404 response for API routes."""
+    exc_detail = getattr(exc, "detail", None)
+    detail = (
+        str(exc_detail)
+        if exc_detail and exc_detail != "Not Found"
+        else f"The requested resource {path} was not found"
+    )
+    return JSONResponse(
+        status_code=404,
+        content=ErrorDetail(
+            type="not_found",
+            title="Not Found",
+            status=404,
+            detail=detail,
+            instance=path,
+        ).model_dump(),
+    )
+
+
+def _serve_static_file(static_dir: Path, decoded_path: str) -> FileResponse | None:
+    """Try to serve a static file from *static_dir*. Returns None if not found."""
+    try:
+        requested_path = (static_dir / decoded_path).resolve()
+        if str(requested_path).startswith(str(static_dir)) and requested_path.is_file():
+            headers = {}
+            if requested_path.name == "index.html":
+                headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            return FileResponse(requested_path, headers=headers)
+    except (ValueError, OSError):
+        pass  # Invalid path or I/O error — fall through to 404
+    return None
+
+
 def mount_static_files(app: FastAPI, static_dir: Path) -> None:
     """Mount frontend static files and register SPA 404 handler.
 
@@ -64,12 +98,20 @@ def mount_static_files(app: FastAPI, static_dir: Path) -> None:
         )
         return
 
-    # Serve static assets (CSS, JS, images)
+    # Serve static assets (CSS, JS, images) — filenames are content-hashed by Vite,
+    # so they can be cached aggressively (new build = new filename = cache miss).
     app.mount(
         "/assets",
         StaticFiles(directory=str(static_dir / "assets")),
         name="assets",
     )
+
+    @app.middleware("http")
+    async def _asset_cache_headers(request: Request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith("/assets/"):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
 
     # Capture in a local variable so the closure is stable
     _static_dir = static_dir.resolve()
@@ -86,25 +128,7 @@ def mount_static_files(app: FastAPI, static_dir: Path) -> None:
         path = request.url.path
 
         if _is_api_path(path):
-            # Preserve the original exception detail for app-level 404s (e.g. route
-            # handlers that raise HTTPException(404, "Preset X not configured")).
-            # Starlette routing-level 404s have detail="Not Found" (the HTTP phrase).
-            exc_detail = getattr(exc, "detail", None)
-            detail = (
-                str(exc_detail)
-                if exc_detail and exc_detail != "Not Found"
-                else f"The requested resource {path} was not found"
-            )
-            return JSONResponse(
-                status_code=404,
-                content=ErrorDetail(
-                    type="not_found",
-                    title="Not Found",
-                    status=404,
-                    detail=detail,
-                    instance=path,
-                ).model_dump(),
-            )
+            return _build_api_404_response(path, exc)
 
         # SECURITY: Prevent path traversal (percent-encoded ../ or \)
         decoded_path = unquote(path.lstrip("/"))
@@ -112,17 +136,14 @@ def mount_static_files(app: FastAPI, static_dir: Path) -> None:
             return JSONResponse(status_code=404, content={"detail": "Not found"})
 
         # Serve actual file if it exists inside dist/
-        try:
-            requested_path = (_static_dir / decoded_path).resolve()
-            if (
-                str(requested_path).startswith(str(_static_dir))
-                and requested_path.is_file()
-            ):
-                return FileResponse(requested_path)
-        except (ValueError, OSError):
-            pass
+        file_response = _serve_static_file(_static_dir, decoded_path)
+        if file_response is not None:
+            return file_response
 
-        # Fallback: SPA entry point
-        return FileResponse(_static_dir / "index.html")
+        # Fallback: SPA entry point — never cache so deploys take effect immediately
+        return FileResponse(
+            _static_dir / "index.html",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
 
     logger.info("Frontend static files mounted from %s", static_dir)

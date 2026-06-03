@@ -3,7 +3,7 @@
 import io
 import zipfile
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -441,3 +441,268 @@ class TestZipDownload:
         assert response.status_code == 200
         assert "text/plain" in response.headers["content-type"]
         assert "fallback entry" in response.text
+
+
+class TestBuildRamBufferText:
+    """Tests for _build_ram_buffer_text helper."""
+
+    def test_empty_clusters(self):
+        from opencloudtouch.core.logs_routes import _build_ram_buffer_text
+
+        clusters = _make_clusters()
+        with patch(
+            "opencloudtouch.core.logs_routes.get_clustered_log_entries",
+            return_value=clusters,
+        ):
+            result = _build_ram_buffer_text()
+
+        assert "BACKEND LOG BUFFER" in result
+        assert "0 entries total" in result
+        for name in CLUSTER_NAMES:
+            assert f"[{name.upper()}]" in result
+
+    def test_with_entries(self):
+        from opencloudtouch.core.logs_routes import _build_ram_buffer_text
+
+        clusters = _make_clusters(general=["line1", "line2"], marge=["marge1"])
+        with patch(
+            "opencloudtouch.core.logs_routes.get_clustered_log_entries",
+            return_value=clusters,
+        ):
+            result = _build_ram_buffer_text()
+
+        assert "3 entries total" in result
+        assert "line1\nline2" in result
+        assert "marge1" in result
+
+
+class TestBuildFrontendSection:
+    """Tests for _build_frontend_section helper."""
+
+    def test_empty_frontend_logs(self):
+        from opencloudtouch.core.logs_routes import _build_frontend_section
+
+        result = _build_frontend_section(frontend_logs=[], frontend_log_buffers=None)
+        assert "FRONTEND CONSOLE LOGS (0 entries" in result
+        assert "(no frontend logs received" in result
+
+    def test_with_frontend_logs(self):
+        from opencloudtouch.core.logs_routes import (
+            FrontendLogEntry,
+            _build_frontend_section,
+        )
+
+        logs = [
+            FrontendLogEntry(timestamp="12:00", level="ERROR", message="err1"),
+            FrontendLogEntry(timestamp="12:01", level="WARN", message="warn1"),
+        ]
+        result = _build_frontend_section(frontend_logs=logs, frontend_log_buffers=None)
+        assert "2 entries" in result
+        assert "[12:00] ERROR: err1" in result
+        assert "[12:01] WARN: warn1" in result
+
+    def test_with_structured_buffers(self):
+        from opencloudtouch.core.logs_routes import (
+            FrontendLogEntry,
+            _build_frontend_section,
+        )
+
+        buffers = {
+            "websocket": [
+                FrontendLogEntry(
+                    timestamp="12:00", level="INFO", message="ws connected"
+                ),
+            ],
+            "api": [],
+        }
+        result = _build_frontend_section(frontend_logs=[], frontend_log_buffers=buffers)
+        assert "FRONTEND [WEBSOCKET]" in result
+        assert "ws connected" in result
+        assert "FRONTEND [API]" in result
+        assert "(empty)" in result
+
+    def test_structured_buffers_take_precedence(self):
+        from opencloudtouch.core.logs_routes import (
+            FrontendLogEntry,
+            _build_frontend_section,
+        )
+
+        buffers = {
+            "main": [
+                FrontendLogEntry(timestamp="12:00", level="INFO", message="buf msg"),
+            ],
+        }
+        flat_logs = [
+            FrontendLogEntry(timestamp="11:00", level="ERROR", message="flat msg"),
+        ]
+        result = _build_frontend_section(
+            frontend_logs=flat_logs, frontend_log_buffers=buffers
+        )
+        assert "buf msg" in result
+        assert "flat msg" not in result
+
+
+class TestPostWithStructuredBuffers:
+    """Tests for POST /api/logs/backend with frontend_log_buffers."""
+
+    def test_post_with_frontend_log_buffers_plaintext(self, client: TestClient):
+        clusters = _make_clusters()
+        with (
+            patch(
+                "opencloudtouch.core.logs_routes.get_clustered_log_entries",
+                return_value=clusters,
+            ),
+            patch(
+                "opencloudtouch.core.logs_routes.get_persistent_log_dir",
+                return_value=None,
+            ),
+        ):
+            response = client.post(
+                "/api/logs/backend",
+                json={
+                    "frontend_logs": [],
+                    "frontend_log_buffers": {
+                        "websocket": [
+                            {"timestamp": "14:00", "level": "INFO", "message": "ws ok"},
+                        ],
+                        "api": [],
+                    },
+                },
+            )
+
+        assert response.status_code == 200
+        assert "FRONTEND [WEBSOCKET]" in response.text
+        assert "ws ok" in response.text
+
+    def test_post_with_frontend_log_buffers_zip(
+        self, client: TestClient, tmp_path: Path
+    ):
+        log_dir = tmp_path / "logs"
+        log_dir.mkdir()
+        (log_dir / "general.log").write_text("line\n", encoding="utf-8")
+
+        clusters = _make_clusters()
+        with (
+            patch(
+                "opencloudtouch.core.logs_routes.get_clustered_log_entries",
+                return_value=clusters,
+            ),
+            patch(
+                "opencloudtouch.core.logs_routes.get_persistent_log_dir",
+                return_value=log_dir,
+            ),
+        ):
+            response = client.post(
+                "/api/logs/backend",
+                json={
+                    "frontend_logs": [],
+                    "frontend_log_buffers": {
+                        "ws": [
+                            {"timestamp": "14:00", "level": "INFO", "message": "ok"},
+                        ],
+                    },
+                },
+            )
+
+        assert response.status_code == 200
+        zf = zipfile.ZipFile(io.BytesIO(response.content))
+        assert "frontend-ws.log" in zf.namelist()
+        content = zf.read("frontend-ws.log").decode("utf-8")
+        assert "ok" in content
+
+
+class TestAuditTrailSection:
+    """Tests for _build_audit_trail_section error paths."""
+
+    def test_audit_repo_not_initialized(self, client: TestClient):
+        clusters = _make_clusters()
+        with (
+            patch(
+                "opencloudtouch.core.logs_routes.get_clustered_log_entries",
+                return_value=clusters,
+            ),
+            patch(
+                "opencloudtouch.core.logs_routes.get_persistent_log_dir",
+                return_value=None,
+            ),
+        ):
+            response = client.get("/api/logs/backend")
+
+        assert "wizard audit repository not initialized" in response.text
+
+    def test_audit_repo_exception(self, client: TestClient):
+        from fastapi import FastAPI
+        from opencloudtouch.core.logs_routes import router
+
+        app = FastAPI()
+        app.include_router(router)
+
+        audit_repo = AsyncMock()
+        audit_repo.get_entries = AsyncMock(side_effect=RuntimeError("db broken"))
+        app.state.wizard_audit_repo = audit_repo
+
+        error_client = TestClient(app)
+        clusters = _make_clusters()
+        with (
+            patch(
+                "opencloudtouch.core.logs_routes.get_clustered_log_entries",
+                return_value=clusters,
+            ),
+            patch(
+                "opencloudtouch.core.logs_routes.get_persistent_log_dir",
+                return_value=None,
+            ),
+        ):
+            response = error_client.get("/api/logs/backend")
+
+        assert response.status_code == 200
+        assert "error reading audit trail" in response.text
+
+    def test_audit_repo_success(self, client: TestClient):
+        from fastapi import FastAPI
+        from opencloudtouch.core.logs_routes import router
+
+        app = FastAPI()
+        app.include_router(router)
+
+        audit_repo = AsyncMock()
+        audit_repo.get_entries = AsyncMock(
+            return_value=[
+                {
+                    "timestamp": "2025-01-01T12:00:00",
+                    "device_id": "DEV1",
+                    "step": 1,
+                    "category": "setup",
+                    "event": "started",
+                    "detail": None,
+                }
+            ]
+        )
+        audit_repo.get_config_snapshots = AsyncMock(return_value=[])
+        app.state.wizard_audit_repo = audit_repo
+
+        audit_client = TestClient(app)
+        clusters = _make_clusters()
+        with (
+            patch(
+                "opencloudtouch.core.logs_routes.get_clustered_log_entries",
+                return_value=clusters,
+            ),
+            patch(
+                "opencloudtouch.core.logs_routes.get_persistent_log_dir",
+                return_value=None,
+            ),
+        ):
+            response = audit_client.get("/api/logs/backend")
+
+        assert response.status_code == 200
+        assert "Audit Log (1 entries)" in response.text
+        assert "started" in response.text
+
+
+class TestLogLevelValidation:
+    """Tests for log level request validation."""
+
+    def test_put_with_invalid_body(self, client: TestClient):
+        response = client.put("/api/logs/level", json={"level": "INVALID"})
+        assert response.status_code == 422

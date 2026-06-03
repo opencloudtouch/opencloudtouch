@@ -10,7 +10,12 @@ from typing import Annotated, TypeVar
 from fastapi import APIRouter, Body, Depends, HTTPException
 
 from opencloudtouch.core.config import AppConfig, get_config
-from opencloudtouch.core.dependencies import get_device_service, get_preset_service
+from opencloudtouch.core.dependencies import (
+    get_device_service,
+    get_device_state_manager,
+    get_preset_service,
+)
+from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.core.exceptions import (
     DeviceConnectionError,
     DeviceNotFoundError,
@@ -18,6 +23,7 @@ from opencloudtouch.core.exceptions import (
 )
 from opencloudtouch.devices.client import NowPlayingInfo
 from opencloudtouch.devices.service import DeviceService
+from opencloudtouch.devices.websocket.icy_worker import RADIO_SOURCES
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.service import PresetService
 from opencloudtouch.streaming.icy_metadata import IcyMetadata, probe_stream
@@ -33,16 +39,29 @@ _metadata_cache = MetadataCache(ttl=15.0)
 router = APIRouter(prefix="/api/devices", tags=["Devices"])
 
 
-async def _device_op(device_id: str, action: str, coro: Awaitable[T]) -> T:
+async def _device_op(
+    device_id: str,
+    action: str,
+    coro: Awaitable[T],
+    state_manager: DeviceStateManager | None = None,
+) -> T:
     """Execute a device service call with standardized error handling.
 
     Domain exceptions (DeviceNotFoundError, DomainValidationError,
     DeviceConnectionError) propagate to global handlers.
     Only unexpected exceptions are wrapped in 500.
+
+    When *state_manager* is provided and a DeviceConnectionError occurs,
+    the device is marked offline via SSE so all connected clients learn
+    immediately.
     """
     try:
         return await coro
-    except (DeviceNotFoundError, DomainValidationError, DeviceConnectionError):
+    except DeviceConnectionError:
+        if state_manager:
+            await state_manager.mark_device_offline(device_id)
+        raise
+    except (DeviceNotFoundError, DomainValidationError):
         raise
     except Exception as e:
         logger.exception("Failed to %s for device %s", action, device_id)
@@ -215,8 +234,6 @@ async def press_key(
     return {"message": f"Key {key} pressed successfully", "device_id": device_id}
 
 
-_RADIO_SOURCES = {"LOCAL_INTERNET_RADIO", "INTERNET_RADIO"}
-
 _IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico", ".bmp"}
 
 
@@ -294,21 +311,27 @@ async def _enrich_from_presets(
     preset_service: PresetService,
 ) -> Preset | None:
     """Enrich artwork from preset DB for radio sources. Returns matched preset or None."""
-    if info.source not in _RADIO_SOURCES:
+    if info.source not in RADIO_SOURCES:
         return None
     if not info.station_name:
         return None
     try:
         presets = await preset_service.get_all_presets(device_id)
+        station_lower = info.station_name.casefold()
+        best_preset = None
         for preset in presets:
-            if preset.station_name == info.station_name:
+            if preset.station_name and preset.station_name.casefold() == station_lower:
+                if best_preset is None:
+                    best_preset = preset
                 if not result["artwork_url"] and preset.station_favicon:
                     result["artwork_url"] = preset.station_favicon
+                    best_preset = preset
                     logger.debug(
                         "[NowPlaying] Enriched artwork from preset DB: %s",
                         preset.station_favicon,
                     )
-                return preset
+                    break  # Found a preset with favicon — done
+        return best_preset
     except Exception:
         logger.debug(
             "[NowPlaying] Preset lookup failed for %s", device_id, exc_info=True
@@ -321,13 +344,20 @@ async def get_now_playing(
     device_id: str,
     device_service: Annotated[DeviceService, Depends(get_device_service)],
     preset_service: Annotated[PresetService, Depends(get_preset_service)],
+    state_manager: Annotated[DeviceStateManager, Depends(get_device_state_manager)],
 ) -> dict[str, object]:
     """Get current playback status for a device."""
-    info = await _device_op(
-        device_id,
-        "get playback status",
-        device_service.get_now_playing(device_id),
-    )
+    cfg = get_config()
+    cached = state_manager.get_state(device_id)
+    if cached and cached.now_playing and cached.is_fresh(cfg.state_cache_max_age):
+        info = cached.now_playing
+    else:
+        info = await _device_op(
+            device_id,
+            "get playback status",
+            device_service.get_now_playing(device_id),
+            state_manager=state_manager,
+        )
     result: dict[str, object] = {
         "source": info.source,
         "state": info.state,
@@ -359,13 +389,34 @@ async def get_now_playing(
             info.track,
         )
 
+    # Write enriched data back to state cache so SSE snapshots include it
+    enriched_info = NowPlayingInfo(
+        source=info.source,
+        state=info.state,
+        station_name=info.station_name,
+        artist=str(result["artist"]) if result.get("artist") else info.artist,
+        track=str(result["track"]) if result.get("track") else info.track,
+        album=info.album,
+        artwork_url=(
+            str(result["artwork_url"])
+            if result.get("artwork_url")
+            else info.artwork_url
+        ),
+    )
+    if enriched_info.artist != info.artist or enriched_info.track != info.track:
+        state_manager.update_now_playing(device_id, enriched_info)
+        logger.debug(
+            "[NowPlaying] Wrote enriched data back to state cache for %s",
+            device_id,
+        )
+
     logger.debug(
         "[NowPlaying] device=%s source=%s state=%s track=%r artist=%r art=%r station=%r",
         device_id,
         info.source,
         info.state,
-        info.track,
-        info.artist,
+        result.get("track", info.track),
+        result.get("artist", info.artist),
         result["artwork_url"],
         info.station_name,
     )
@@ -375,14 +426,21 @@ async def get_now_playing(
 @router.get("/{device_id}/volume")
 async def get_volume(
     device_id: str,
-    device_service: DeviceService = Depends(get_device_service),
+    device_service: Annotated[DeviceService, Depends(get_device_service)],
+    state_manager: Annotated[DeviceStateManager, Depends(get_device_state_manager)],
 ):
     """Get current volume state for a device."""
-    vol = await _device_op(
-        device_id,
-        "get volume",
-        device_service.get_volume(device_id),
-    )
+    cfg = get_config()
+    cached = state_manager.get_state(device_id)
+    if cached and cached.volume and cached.is_fresh(cfg.state_cache_max_age):
+        vol = cached.volume
+    else:
+        vol = await _device_op(
+            device_id,
+            "get volume",
+            device_service.get_volume(device_id),
+            state_manager=state_manager,
+        )
     return {"actual": vol.actual, "target": vol.target, "muted": vol.muted}
 
 

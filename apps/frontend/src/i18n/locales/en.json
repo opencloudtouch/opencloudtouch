@@ -1,7 +1,5 @@
 {
   "common": {
-    "save": "Save",
-    "saving": "Saving...",
     "cancel": "Cancel",
     "loading": "Loading...",
     "error": "An error occurred",
@@ -9,7 +7,6 @@
     "back": "Back",
     "close": "Close",
     "confirm": "Confirm",
-    "search": "Search",
     "openCloudTouchLoading": "OpenCloudTouch is loading...",
     "connectingToServer": "Connecting to server...",
     "loadingTimeout": "This is taking longer than expected. Please wait or reload the page.",
@@ -24,22 +21,15 @@
     "presets": "Devices & Presets",
     "zones": "Zones",
     "settings": "Settings",
-    "about": "About",
-    "selectLanguage": "Select language"
+    "about": "About"
   },
   "player": {
-    "volume": "Volume",
-    "nowPlaying": "Now Playing",
-    "noSource": "No source",
     "noPlayback": "No playback",
     "play": "Play",
     "pause": "Pause",
     "noStation": "No station",
-    "bluetoothNoDevice": "No device connected",
     "noDevices": "No devices found",
     "powerButton": "Power on/off",
-    "powerFailed": "Could not toggle power",
-    "playbackFailed": "Playback control failed. Please try again.",
     "localControl": "Local Control",
     "sourceTitle": "Source",
     "playbackTitle": "Playback",
@@ -53,7 +43,6 @@
     "nextDevice": "Next device"
   },
   "presets": {
-    "title": "Presets",
     "pageTitle": "Radio Presets",
     "empty": "No presets configured",
     "playPreset": "Play preset {{name}}",
@@ -76,7 +65,6 @@
     "infoItem6": "\"Load from device\" syncs presets from SoundTouch",
     "changeStation": "Click to change station",
     "assignPreset": "Assign preset",
-    "nowPlaying": "Now playing",
     "cloudCompatible": "Compatible after cloud shutdown",
     "cloudIndependent": "Cloud-independent",
     "cloudIndependentDesc": "Works after May 6, 2026 (Bose cloud shutdown)",
@@ -106,6 +94,7 @@
       "country": "e.g. Germany, Austria…",
       "tag": "e.g. Rock, Jazz, pop…"
     },
+    "searchTitle": "Search Radio Stations",
     "loadMore": "Load more",
     "loadingMore": "Loading...",
     "maxReached": "Maximum ({{count}}) reached",
@@ -133,8 +122,7 @@
     },
     "discovery": {
       "devicesFound_one": "{{count}} new device found",
-      "devicesFound_other": "{{count}} new devices found",
-      "noNewDevices": "No new devices found"
+      "devicesFound_other": "{{count}} new devices found"
     },
     "logging": {
       "sectionTitle": "Logging",
@@ -151,9 +139,7 @@
   },
   "manualIpModal": {
     "title": "Manual IP Configuration",
-    "close": "Close",
     "description": "Enter the IP addresses of your devices (one per line or comma-separated).",
-    "placeholder": "Example:\n192.168.1.100\n192.168.1.101\n192.168.1.102",
     "invalidFormat": "Invalid format: {{ips}}",
     "saveError": "Error saving IP addresses",
     "save": "Save",
@@ -161,13 +147,10 @@
     "hint": "You can find the IP address in the associated app under Settings → Info or in your router."
   },
   "multiroom": {
-    "title": "Zones",
     "pageTitle": "Multi-Room Zones",
-    "noZones": "No zones configured",
     "createZone": "Create Zone",
     "updateZone": "Update Zone",
     "creating": "Creating...",
-    "removeZone": "Remove Zone",
     "standby": "Standby",
     "loadingZones": "Loading zones...",
     "errorLoading": "Error loading",
@@ -202,14 +185,12 @@
   },
   "firmware": {
     "title": "Firmware Updates",
-    "description": "Manage firmware updates for your SoundTouch devices.",
     "noDevices": "No devices found",
     "currentDevice": "Current Device",
     "currentVersion": "Current version:",
     "statusLabel": "Status:",
     "updateAvailable": "Update available",
     "upToDate": "Up to date",
-    "comingSoon": "Coming soon",
     "allDevices": "All Devices",
     "unknownVersion": "Unknown",
     "unknownModel": "Unknown Model",
@@ -226,17 +207,14 @@
     "infoItem4": "The device restarts automatically after the update"
   },
   "setup": {
-    "title": "Setup Wizard",
     "next": "Next",
     "back": "Back",
-    "finish": "Finish",
     "loading": "Loading devices...",
     "loadingAriaLabel": "Loading",
     "noDevices": "No devices found",
     "noDevicesHint": "Please synchronize your SoundTouch devices first.",
     "noDevicesHint2": "Go to the home page and click \"Search for devices now\".",
     "goHome": "Back to home page",
-    "homePage": "Home page",
     "stepLabels": {
       "usbInsert": "Insert USB stick",
       "deviceReboot": "Reboot device",
@@ -277,7 +255,6 @@
     },
     "skip": "Skip",
     "stepLabel": "Step {{step}}",
-    "processing": "Processing...",
     "stepAriaCompleted": "Step {{id}}: {{label}} — {{description}} – completed",
     "stepAriaError": "Step {{id}}: {{label}} — {{description}} – error",
     "stepAriaInProgress": "Step {{id}}: {{label}} — {{description}} – in progress",
@@ -478,17 +455,14 @@
         "description": "Finalize device configuration, reboot, and verify everything works.",
         "warning": "We recommend that all checks pass before you continue.",
         "rebootHeader": "Device restart",
-        "rebootHint": "The /etc/hosts changes only take effect after a restart. Restart the device before running the tests.",
         "rebootMandatoryHint": "A reboot is required for the configuration changes to take effect. The device must restart before verification.",
         "btnReboot": "Restart device now",
-        "rebootActionHint": "Only if tests fail and you are sure a restart is needed",
         "rebootRebooting": "Sending restart command...",
         "rebootWaiting": "Device restarting — please wait...",
         "rebootDone": "Restart complete — device should be reachable again.",
         "btnRetryReboot": "Retry",
         "btnFinalize": "Finalize Device Setup",
         "finalizing": "Setting up device...",
-        "verifying": "Verifying setup...",
         "btnRetryFinalize": "Retry",
         "finalizeUuid": "Device UUID set: {{uuid}}",
         "finalizeSources": "Sources.xml written",
@@ -525,81 +499,14 @@
         "fullVerifyItem4": "DNS redirects resolve to OpenCloudTouch server",
         "btnRunFullVerify": "Run Full Verification",
         "fullVerifying": "Running full system verification...",
-        "systemChecksTitle": "System Checks",
-        "check": {
-          "uuid_present": {
-            "pass": "Device UUID: {{uuid}}",
-            "fail": "Device has no account UUID. Boot sync will not work."
-          },
-          "uuid_in_db": {
-            "pass": "UUID registered for {{db_device_id}}",
-            "fail": "UUID not registered in OCT database. Streaming endpoint cannot resolve this device."
-          },
-          "sources_complete": {
-            "pass": "All required sources present",
-            "fail": "Missing sources: {{missing}}. Preset playback may fail for these source types."
-          },
-          "config_files_present": {
-            "pass": "All config files present",
-            "fail": "Missing config file: {{missing}}. Firmware may not find OCT redirect on reboot."
-          },
-          "config_files_identical": {
-            "pass": "All config files have identical content",
-            "fail": "Config files differ. Device may use wrong BMX URL after reboot."
-          },
-          "config_bmx_url": {
-            "pass": "BMX URL: {{bmx_url}}",
-            "fail": "BMX URL still points to Bose cloud ({{bmx_url}}). Device will not contact OCT."
-          },
-          "hosts_oct_block": {
-            "pass": "OCT block present in /etc/hosts",
-            "fail": "No OCT block in /etc/hosts. Domain redirects are missing."
-          },
-          "hosts_domains_complete": {
-            "pass": "All required domains present",
-            "fail": "Missing host entries: {{missing}}. Some Bose services will not be redirected."
-          },
-          "hosts_ip_correct": {
-            "pass": "All host entries point to correct IP",
-            "fail": "Host entries point to wrong IP. Check for stale entries."
-          },
-          "system_config_present": {
-            "pass": "SystemConfigurationDB.xml present",
-            "fail": "SystemConfigurationDB.xml missing. Device may not initialize properly."
-          },
-          "system_config_uuid_match": {
-            "pass": "UUID in SystemConfigurationDB.xml matches device",
-            "fail": "UUID in SystemConfigurationDB.xml does not match device UUID"
-          },
-          "connection": {
-            "pass": "Connection OK",
-            "fail": "Connection failed"
-          }
-        },
-        "dnsTestsTitle": "DNS Redirect Checks",
         "btnRetryFullVerify": "Run Verification Again",
-        "testInfoTitle": "What is tested?",
-        "testInfoItem1": "DNS resolution of Bose domains",
-        "testInfoItem2": "Redirect to your OpenCloudTouch server",
-        "testInfoItem3": "Correctness of IP addresses",
-        "btnRunTests": "Run tests now",
-        "btnRunning": "Testing configuration...",
         "resultsTitle": "Test results",
-        "resolvedIp": "Resolved IP:",
-        "expectedIp": "Expected IP:",
-        "statusLabel": "Status:",
-        "statusCorrect": "✓ Correct",
-        "statusFailed": "✗ Failed",
         "domainInternetRadio": "Internet radio",
         "domainStreaming": "Streaming services",
         "allPassedTitle": "All checks passed!",
         "allPassedMessage": "Your device is fully configured and ready for use. All system checks and DNS redirects are working correctly.",
         "someFailedTitle": "Some checks failed",
         "someFailedMessage": "Not all verification checks passed. Review the results above and retry.",
-        "failedStep1": "Restart the device (disconnect and reconnect power)",
-        "failedStep2": "Wait 60 seconds after restart",
-        "failedStep3": "Run the tests again",
-        "btnRetryTests": "Run tests again",
         "btnSkip": "Continue anyway — device will not be marked as configured"
       },
       "step8": {
@@ -687,8 +594,6 @@
     }
   },
   "errors": {
-    "connectionFailed": "Could not connect to the device.",
-    "discoveryFailed": "Discovery failed. Check your network settings.",
     "loadFailed": "Failed to load. Please try again.",
     "unknown": "An unexpected error occurred. Please try again.",
     "networkFailed": "Could not connect to the server. Please check your network connection.",
@@ -746,8 +651,6 @@
     "versionUnavailable": "Version unavailable",
     "hallOfFameTitle": "Hall of Fame",
     "hallOfFameDescription": "Top 3 contributors of all time — recognized for exceptional technical impact.",
-    "spotlightTitle": "Community Spotlight — {{month}}",
-    "spotlightDescription": "This month's most valuable contributors. Thank you for your support!",
     "supportersTitle": "Supporters",
     "reportBug": "Report Bug",
     "supportersDescription": "Thank you to everyone who supports OpenCloudTouch financially. Your contributions help keep the project alive!",
@@ -757,18 +660,9 @@
     "checkingUpdates": "Checking for updates...",
     "updateAvailable": "Update available: {{version}}",
     "viewRelease": "View Release",
-    "upToDate": "You're up to date!",
-    "total": "total",
-    "monthlySupporters": "Monthly Supporters",
-    "oneTimeSupporters": "One-Time Supporters",
-    "noSupportersYet": "No supporters yet",
-    "supportCTA": "Want to help keep this project alive?",
-    "supportButton": "Buy Me a Coffee"
+    "upToDate": "You're up to date!"
   },
   "discovery": {
-    "started": "Discovery started",
-    "completed": "Discovery completed",
-    "searching": "Searching for devices...",
     "alreadyRunning": "Device search already running. Please wait...",
     "failed": "Error during device search. Please try again.",
     "noDevicesNetwork": "No devices found. Check if your devices are powered on and on the same network.",

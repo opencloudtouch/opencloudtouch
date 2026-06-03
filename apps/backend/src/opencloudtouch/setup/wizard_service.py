@@ -15,15 +15,13 @@ from opencloudtouch.setup.account_pairing_service import (
     check_marge_account_uuid,
     ensure_account_uuid,
     ensure_account_uuid_unique,
-    is_valid_account_uuid,
 )
 from opencloudtouch.setup.persistence_service import (
     REQUIRED_SOURCE_TYPES,
     build_system_config_xml,
     force_write_sources_xml,
-    parse_system_config_xml,
     _PERSISTENCE_DIR,
-    _read_file_content,
+    _file_exists,
     _write_file_atomic,
 )
 from opencloudtouch.core.config import get_config
@@ -360,69 +358,6 @@ class WizardService:
     # Finalize & Verify (Issue #184)
     # ========================================================================
 
-    @staticmethod
-    async def _fetch_device_metadata(
-        device_ip: str,
-    ) -> tuple[str, bool]:
-        """Fetch device name and Bluetooth capability from /info endpoint."""
-        device_name = "SoundTouch"
-        has_bluetooth = True
-        try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                resp = await client.get(f"http://{device_ip}:8090/info")
-                root = ET.fromstring(resp.text)
-                name_elem = root.find("name")
-                if name_elem is not None and name_elem.text:
-                    device_name = name_elem.text.strip()
-                variant = root.findtext("variant", "").strip()
-                module_type = root.findtext("moduleType", "").strip()
-                device_type = root.findtext("type", "").strip()
-                if module_type:
-                    from opencloudtouch.devices.hardware import get_hardware_profile
-
-                    profile = get_hardware_profile(
-                        variant or None, module_type, device_type or None
-                    )
-                    if profile is not None:
-                        has_bluetooth = profile.has_bluetooth
-                        logger.info(
-                            "Hardware profile: %s (bluetooth=%s)",
-                            profile.product_name,
-                            has_bluetooth,
-                        )
-        except Exception:
-            logger.debug("Could not fetch /info for hardware profile, using defaults")
-        return device_name, has_bluetooth
-
-    @staticmethod
-    def _apply_existing_config(
-        existing_content: str,
-        device_name: str,
-        device_id: str,
-        authoritative_uuid: str,
-    ) -> str:
-        """Merge DeviceName from existing SystemConfigurationDB.xml, validate UUID."""
-        existing = parse_system_config_xml(existing_content)
-        if existing["device_name"]:
-            device_name = existing["device_name"]
-            logger.info(
-                "Preserved DeviceName from existing config: %s",
-                device_name,
-            )
-        if existing["account_uuid"]:
-            if is_valid_account_uuid(existing["account_uuid"]):
-                logger.info(
-                    "Existing AccountUUID found: %s (authoritative: %s)",
-                    existing["account_uuid"],
-                    authoritative_uuid,
-                )
-            else:
-                logger.warning(
-                    "Existing AccountUUID=%s is invalid (not 7+ digits), ignoring",
-                    existing["account_uuid"],
-                )
-        return device_name
-
     async def finalize_device(self, device_ip: str, device_id: str) -> dict:
         """Finalize device setup: set UUID + force-write Sources.xml.
 
@@ -468,62 +403,29 @@ class WizardService:
             uuid_was_collision = not uuid_result.had_uuid and uuid_result.uuid != ""
 
             # 2. Fetch /info for device metadata (name, variant, module_type)
-            device_name, _has_bluetooth = await self._fetch_device_metadata(device_ip)
+            device_name, _has_bluetooth = await self._fetch_device_info(device_ip)
 
             # 3. SSH operations: Sources.xml + SystemConfigurationDB.xml
             async with ssh_operation(device_ip, "finalize") as ssh:
                 await ssh.execute("mount -o remount,rw /")
                 try:
-                    # Force-write Sources.xml (backup existing)
+                    # Force-write Sources.xml (backup existing, hardware-tailored)
                     sources_result = await force_write_sources_xml(
                         ssh,
                         backup=True,
                     )
-                    if not sources_result.success:
-                        logger.error(
-                            "Sources.xml write failed: %s", sources_result.error
-                        )
 
-                    # Read existing SystemConfigurationDB.xml to preserve
-                    # DeviceName and AccountUUID if present
+                    # Create SystemConfigurationDB.xml if missing
                     sys_config_path = f"{_PERSISTENCE_DIR}/SystemConfigurationDB.xml"
+                    sys_config_written = False
                     await ssh.execute(f"mkdir -p {_PERSISTENCE_DIR}")
-
-                    existing_content = await _read_file_content(ssh, sys_config_path)
-                    if existing_content:
-                        device_name = self._apply_existing_config(
-                            existing_content,
-                            device_name,
-                            device_id,
-                            uuid_result.uuid,
+                    if not await _file_exists(ssh, sys_config_path):
+                        xml_content = build_system_config_xml(
+                            device_name, uuid_result.uuid
                         )
-
-                    # Fallback: use device_id as DeviceName if still default
-                    if device_name == "SoundTouch" and device_id:
-                        device_name = device_id
-                        logger.info(
-                            "Using device_id as DeviceName fallback: %s",
-                            device_name,
-                        )
-
-                    xml_content = build_system_config_xml(device_name, uuid_result.uuid)
-                    exit_code = await _write_file_atomic(
-                        ssh, sys_config_path, xml_content
-                    )
-                    sys_config_written = True
-                    if exit_code != 0:
-                        logger.error(
-                            "SystemConfigurationDB.xml write returned exit code %d",
-                            exit_code,
-                        )
-                        sys_config_written = False
-                    else:
-                        logger.info(
-                            "%s SystemConfigurationDB.xml (uuid=%s, name=%s)",
-                            "Overwrote" if existing_content else "Created",
-                            uuid_result.uuid,
-                            device_name,
-                        )
+                        await _write_file_atomic(ssh, sys_config_path, xml_content)
+                        sys_config_written = True
+                        logger.info("Created SystemConfigurationDB.xml")
 
                     # Verify SystemConfigurationDB.xml content
                     verification = await self._verify_sys_config(ssh, uuid_result.uuid)
@@ -563,6 +465,43 @@ class WizardService:
             }
 
     @staticmethod
+    async def _fetch_device_info(device_ip: str) -> tuple[str, bool]:
+        """Fetch device name and Bluetooth capability from /info endpoint.
+
+        Returns:
+            Tuple of (device_name, has_bluetooth) with safe defaults on failure.
+        """
+        device_name = "SoundTouch"
+        has_bluetooth = True  # safe default: include BLUETOOTH source
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(f"http://{device_ip}:8090/info")
+                root = ET.fromstring(resp.text)
+                name_elem = root.find("name")
+                if name_elem is not None and name_elem.text:
+                    device_name = name_elem.text.strip()
+                # Determine Bluetooth capability from hardware profile
+                variant = root.findtext("variant", "").strip()
+                module_type = root.findtext("moduleType", "").strip()
+                device_type = root.findtext("type", "").strip()
+                if module_type:
+                    from opencloudtouch.devices.hardware import get_hardware_profile
+
+                    profile = get_hardware_profile(
+                        variant or None, module_type, device_type or None
+                    )
+                    if profile is not None:
+                        has_bluetooth = profile.has_bluetooth
+                        logger.info(
+                            "Hardware profile: %s (bluetooth=%s)",
+                            profile.product_name,
+                            has_bluetooth,
+                        )
+        except Exception:
+            logger.debug("Could not fetch /info for hardware profile, using defaults")
+        return device_name, has_bluetooth
+
+    @staticmethod
     async def _verify_sys_config(ssh: SoundTouchSSHClient, expected_uuid: str) -> dict:
         """Read back SystemConfigurationDB.xml and verify UUID, acctMode, isMultiDeviceAccount."""
         sys_config_path = f"{_PERSISTENCE_DIR}/SystemConfigurationDB.xml"
@@ -597,7 +536,7 @@ class WizardService:
                 if acct_elem is not None and acct_elem.text
                 else ""
             )
-            checks["acct_mode_local"] = acct_val == "local"
+            checks["acct_mode_global"] = acct_val == "global"
 
             multi_elem = root.find("isMultiDeviceAccount")
             multi_val = (
@@ -732,47 +671,32 @@ class WizardService:
         )
 
     async def _check_config_files_present(self, ssh, _add):
-        """Check 4: Primary config file exists. Returns list of missing paths."""
+        """Check 4: Config files exist on device. Returns list of missing paths."""
         config_paths = SoundTouchConfigService.CONFIG_CANDIDATES
-        existing_configs = []
         missing_configs = []
         for path in config_paths:
             r = await ssh.execute(f"test -f {path} && echo exists || echo missing")
             if "missing" in (r.output or ""):
                 missing_configs.append(path)
-            else:
-                existing_configs.append(path)
-
-        # Primary config (/opt/Bose/etc/...) MUST exist.
-        # The /mnt/nv/ copies are optional — firmware on some models
-        # (e.g. ST10, ST300) only reads the primary path.
-        primary = config_paths[0]
-        primary_exists = primary in existing_configs
         _add(
             "config_files_present",
-            primary_exists,
+            len(missing_configs) == 0,
             (
-                f"Primary config present ({len(existing_configs)}/{len(config_paths)} files exist)"
-                if primary_exists
-                else f"Primary config missing: {primary}. Firmware will not find OCT redirect."
+                f"All {len(config_paths)} config files present"
+                if not missing_configs
+                else f"Missing config file: {', '.join(missing_configs)}. Firmware may not find OCT redirect on reboot."
             ),
-            {"existing": existing_configs, "missing": missing_configs},
+            {"missing": missing_configs},
         )
         return missing_configs
 
     async def _check_config_files_identical(self, ssh, missing_configs, _add):
-        """Check 5: All existing config files have identical content (md5sum)."""
-        config_paths = SoundTouchConfigService.CONFIG_CANDIDATES
-        existing = [p for p in config_paths if p not in missing_configs]
-        if len(existing) <= 1:
-            _add(
-                "config_files_identical",
-                True,
-                f"Only {len(existing)} config file(s) present, no comparison needed",
-                {},
-            )
+        """Check 5: All config files have identical content (md5sum)."""
+        if missing_configs:
+            _add("config_files_identical", False, "Skipped: config files missing", {})
             return
-        r = await ssh.execute(f"md5sum {' '.join(existing)} 2>/dev/null")
+        config_paths = SoundTouchConfigService.CONFIG_CANDIDATES
+        r = await ssh.execute(f"md5sum {' '.join(config_paths)} 2>/dev/null")
         if not (r.success and r.output):
             _add(
                 "config_files_identical",
