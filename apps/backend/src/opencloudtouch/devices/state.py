@@ -239,6 +239,12 @@ class DeviceStateManager:
                 },
             )
             self.update_now_playing(event.device_id, event.now_playing)
+        elif event.event_type == EventType.UNKNOWN:
+            logger.debug(
+                "Device %s dropping unknown event (not forwarded to SSE)",
+                event.device_id,
+            )
+            return
         else:
             logger.debug(
                 "Device %s unhandled event type: %s",

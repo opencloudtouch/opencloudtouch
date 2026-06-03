@@ -493,3 +493,37 @@ class TestNowSelectionUpdatedIgnored:
         state = mgr.get_state("000C8A96DEEA")
         # UNKNOWN events don't create state entries
         assert state is None or state.now_playing is None
+
+    @pytest.mark.asyncio
+    async def test_unknown_event_not_published_to_sse(self):
+        """UNKNOWN events must not be forwarded to SSE subscribers.
+
+        Regression: nowSelectionUpdated (parsed as UNKNOWN) was being
+        published to all SSE subscribers as ``event: unknown`` with an
+        empty payload — wasting bandwidth and polluting client logs.
+        """
+        from opencloudtouch.devices.websocket.parser import parse_event
+
+        xml = """\
+<updates deviceID="000C8A96DEEA">
+    <nowSelectionUpdated deviceID="000C8A96DEEA">
+        <preset id="5">
+            <ContentItem source="TUNEIN" type="stationurl" location="/v1/playback/station/s56857">
+                <itemName>NDR 2 Niedersachsen</itemName>
+            </ContentItem>
+        </preset>
+    </nowSelectionUpdated>
+</updates>"""
+
+        event = parse_event(xml)
+        assert event is not None
+        assert event.event_type == EventType.UNKNOWN
+
+        mgr = DeviceStateManager()
+        queue = mgr.subscribe()
+        await mgr.on_event(event)
+
+        # Queue must remain empty — UNKNOWN events are not published
+        assert queue.empty(), (
+            "UNKNOWN event was published to SSE subscribers"
+        )
