@@ -8,7 +8,6 @@ direct HTTP queries.
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import logging
 import time
 from dataclasses import dataclass, field
@@ -83,8 +82,10 @@ class DeviceStateManager:
         self._throttle.stop()
         if self._icy_poll_task is not None:
             self._icy_poll_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
+            try:
                 await self._icy_poll_task
+            except asyncio.CancelledError:
+                pass  # expected: task was just cancelled above
             self._icy_poll_task = None
             logger.info("ICY periodic polling stopped")
 

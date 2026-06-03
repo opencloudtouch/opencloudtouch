@@ -110,6 +110,7 @@ class WebSocketManager:
         )
         self._connections[device_id] = ws
         ws.connect()
+        await asyncio.sleep(0)  # yield to let connection task start
         logger.info(
             "ws.connected %s at %s",
             device_id,
