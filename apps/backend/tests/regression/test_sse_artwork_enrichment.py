@@ -557,6 +557,4 @@ class TestNowSelectionUpdatedIgnored:
         await mgr.on_event(event)
 
         # Queue must remain empty — UNKNOWN events are not published
-        assert queue.empty(), (
-            "UNKNOWN event was published to SSE subscribers"
-        )
+        assert queue.empty(), "UNKNOWN event was published to SSE subscribers"
