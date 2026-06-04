@@ -41,7 +41,7 @@ export default function About() {
         let text = await response.text();
 
         // Strip UTF-8 BOM if present
-        if (text.charCodeAt(0) === 0xfeff) {
+        if (text.codePointAt(0) === 0xfeff) {
           text = text.substring(1);
         }
 
@@ -60,8 +60,8 @@ export default function About() {
           .map((fields) => ({
             name: fields[0],
             type: fields[1] as "monthly" | "one-time",
-            amount: parseFloat(fields[2]) || 0,
-            monthlyAmount: parseFloat(fields[3]) || 0,
+            amount: Number.parseFloat(fields[2]) || 0,
+            monthlyAmount: Number.parseFloat(fields[3]) || 0,
             firstSupportDate: fields[4],
           }));
 

@@ -15,6 +15,48 @@ export interface UpdateInfo {
 }
 
 /**
+ * Parse a quoted CSV field starting at position i (after opening quote).
+ * Returns the parsed value and the new position after the closing quote.
+ */
+function parseQuotedField(line: string, startPos: number): { value: string; nextPos: number } {
+  let value = "";
+  let i = startPos;
+  const len = line.length;
+
+  while (i < len) {
+    if (line[i] === '"') {
+      if (i + 1 < len && line[i + 1] === '"') {
+        value += '"';
+        i += 2;
+      } else {
+        i++; // skip closing quote
+        break;
+      }
+    } else {
+      value += line[i];
+      i++;
+    }
+  }
+
+  // Skip comma after closing quote
+  if (i < len && line[i] === ",") i++;
+
+  return { value, nextPos: i };
+}
+
+/**
+ * Parse an unquoted CSV field starting at position i.
+ * Returns the parsed value and the new position.
+ */
+function parseUnquotedField(line: string, startPos: number): { value: string; nextPos: number } {
+  const commaIdx = line.indexOf(",", startPos);
+  if (commaIdx === -1) {
+    return { value: line.substring(startPos).trim(), nextPos: line.length };
+  }
+  return { value: line.substring(startPos, commaIdx).trim(), nextPos: commaIdx + 1 };
+}
+
+/**
  * RFC 4180-compliant CSV line parser.
  * Handles quoted fields (with commas, quotes inside), unquoted fields, and trims whitespace.
  */
@@ -22,47 +64,30 @@ export function parseCSVLine(line: string): string[] {
   const fields: string[] = [];
   let i = 0;
   const len = line.length;
+  let trailingComma = false;
 
-  while (i <= len) {
-    if (i === len) {
-      fields.push("");
-      break;
-    }
-
+  while (i < len) {
     if (line[i] === '"') {
-      // Quoted field
-      let value = "";
-      i++; // skip opening quote
-      while (i < len) {
-        if (line[i] === '"') {
-          if (i + 1 < len && line[i + 1] === '"') {
-            // Escaped quote
-            value += '"';
-            i += 2;
-          } else {
-            // Closing quote
-            i++; // skip closing quote
-            break;
-          }
-        } else {
-          value += line[i];
-          i++;
-        }
-      }
-      fields.push(value);
-      // Skip comma after closing quote
-      if (i < len && line[i] === ",") i++;
+      const result = parseQuotedField(line, i + 1);
+      fields.push(result.value);
+      i = result.nextPos;
+      trailingComma = i <= len && line[i - 1] === ",";
     } else {
-      // Unquoted field
-      const commaIdx = line.indexOf(",", i);
-      if (commaIdx === -1) {
-        fields.push(line.substring(i).trim());
-        break;
-      } else {
-        fields.push(line.substring(i, commaIdx).trim());
-        i = commaIdx + 1;
-      }
+      const result = parseUnquotedField(line, i);
+      fields.push(result.value);
+      trailingComma = result.nextPos <= len && result.nextPos > i && line[result.nextPos - 1] === ",";
+      i = result.nextPos;
     }
+  }
+
+  // Trailing comma means one more empty field
+  if (trailingComma) {
+    fields.push("");
+  }
+
+  // Empty line = single empty field
+  if (fields.length === 0) {
+    fields.push("");
   }
 
   return fields;
