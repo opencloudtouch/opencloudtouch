@@ -110,17 +110,31 @@ class ZoneService:
 
         results = await asyncio.gather(*[_fetch_zone(d) for d in devices])
 
-        # Group zone results by master_id, preferring the master's own
-        # perspective (is_master=True) since it has the complete member list.
+        # Group zone results by master_id, preferring the response from the
+        # actual master device.  Bose firmware can report is_master=True on
+        # slave devices (known quirk, documented by Home Assistant integration),
+        # so we identify the master by comparing device_id == master_id instead
+        # of relying on the is_master flag.  Among non-master responses we
+        # prefer the one with the most members as a secondary heuristic.
         zone_map: dict[str, ZoneStatus] = {}
-        for status in results:
+        zone_from_master: dict[str, bool] = {}
+        for device, status in zip(devices, results):
             if not status:
                 continue
             mid = status.master_id
-            if mid not in zone_map or (
-                status.is_master and not zone_map[mid].is_master
+            is_from_master = device.device_id == mid
+            existing = zone_map.get(mid)
+            if (
+                existing is None
+                or (is_from_master and not zone_from_master.get(mid, False))
+                or (
+                    not zone_from_master.get(mid, False)
+                    and not is_from_master
+                    and len(status.members) > len(existing.members)
+                )
             ):
                 zone_map[mid] = status
+                zone_from_master[mid] = is_from_master
 
         zones: list[ZoneStatus] = [
             self._enrich_zone_status(s, devices) for s in zone_map.values()

@@ -219,6 +219,124 @@ class TestGetAllZones:
         assert len(result[0].members) == 3
 
     @pytest.mark.asyncio
+    async def test_four_device_zone_slave_reports_is_master_true(self):
+        """Regression #203/#315: 4-device zone where slave falsely reports is_master=True.
+
+        Bose firmware quirk: a slave can set is_master=True in its zone
+        response while only listing itself + master (2 members).  The actual
+        master's response contains all 4 members.  The old code picked the
+        first is_master=True response → dropped 3rd/4th device.
+        """
+        service, repo = _make_service()
+        dev1 = _make_device("DEV001", "192.168.1.100", "Living Room")
+        dev2 = _make_device("DEV002", "192.168.1.101", "Kitchen")
+        dev3 = _make_device("DEV003", "192.168.1.102", "Bedroom")
+        dev4 = _make_device("DEV004", "192.168.1.103", "Bathroom")
+        repo.get_all.return_value = [dev1, dev2, dev3, dev4]
+
+        all_members = [
+            ZoneMemberInfo(device_id="DEV001", ip_address="192.168.1.100", role="master"),
+            ZoneMemberInfo(device_id="DEV002", ip_address="192.168.1.101", role="slave"),
+            ZoneMemberInfo(device_id="DEV003", ip_address="192.168.1.102", role="slave"),
+            ZoneMemberInfo(device_id="DEV004", ip_address="192.168.1.103", role="slave"),
+        ]
+
+        # Master's response: complete member list (4 devices)
+        master_zone = ZoneStatus(
+            master_id="DEV001", master_ip="192.168.1.100",
+            is_master=True, members=all_members,
+        )
+        # Slave DEV002 falsely reports is_master=True but only 2 members
+        slave_buggy = ZoneStatus(
+            master_id="DEV001", master_ip="192.168.1.100",
+            is_master=True,  # <-- Bose firmware quirk!
+            members=[
+                ZoneMemberInfo(device_id="DEV001", ip_address="192.168.1.100", role="master"),
+                ZoneMemberInfo(device_id="DEV002", ip_address="192.168.1.101", role="slave"),
+            ],
+        )
+        # Other slaves: normal response
+        slave_normal = ZoneStatus(
+            master_id="DEV001", master_ip="192.168.1.100",
+            is_master=False,
+            members=[
+                ZoneMemberInfo(device_id="DEV001", ip_address="192.168.1.100", role="master"),
+                ZoneMemberInfo(device_id="DEV003", ip_address="192.168.1.102", role="slave"),
+            ],
+        )
+
+        def get_client(ip):
+            client = AsyncMock()
+            if "100" in ip:
+                client.get_zone_status.return_value = master_zone
+            elif "101" in ip:
+                client.get_zone_status.return_value = slave_buggy
+            else:
+                client.get_zone_status.return_value = slave_normal
+            return client
+
+        with patch.object(service, "_get_client", side_effect=get_client):
+            result = await service.get_all_zones()
+
+        assert len(result) == 1
+        assert len(result[0].members) == 4, (
+            f"Expected 4 members but got {len(result[0].members)} — "
+            f"zone member truncation bug #203/#315"
+        )
+        device_ids = {m.device_id for m in result[0].members}
+        assert device_ids == {"DEV001", "DEV002", "DEV003", "DEV004"}
+
+    @pytest.mark.asyncio
+    async def test_four_device_zone_buggy_slave_processed_first(self):
+        """Regression #315: buggy slave processed BEFORE master must not win.
+
+        Device iteration order matters: if the slave with is_master=True and
+        only 2 members is processed first, the subsequent master response
+        (4 members) must replace it.
+        """
+        service, repo = _make_service()
+        # Buggy slave is first in device list (processed first)
+        dev2 = _make_device("DEV002", "192.168.1.101", "Kitchen")
+        dev1 = _make_device("DEV001", "192.168.1.100", "Living Room")
+        dev3 = _make_device("DEV003", "192.168.1.102", "Bedroom")
+        dev4 = _make_device("DEV004", "192.168.1.103", "Bathroom")
+        repo.get_all.return_value = [dev2, dev1, dev3, dev4]
+
+        all_members = [
+            ZoneMemberInfo(device_id="DEV001", ip_address="192.168.1.100", role="master"),
+            ZoneMemberInfo(device_id="DEV002", ip_address="192.168.1.101", role="slave"),
+            ZoneMemberInfo(device_id="DEV003", ip_address="192.168.1.102", role="slave"),
+            ZoneMemberInfo(device_id="DEV004", ip_address="192.168.1.103", role="slave"),
+        ]
+
+        master_zone = ZoneStatus(
+            master_id="DEV001", master_ip="192.168.1.100",
+            is_master=True, members=all_members,
+        )
+        slave_buggy = ZoneStatus(
+            master_id="DEV001", master_ip="192.168.1.100",
+            is_master=True,  # Bose quirk
+            members=[
+                ZoneMemberInfo(device_id="DEV001", ip_address="192.168.1.100", role="master"),
+                ZoneMemberInfo(device_id="DEV002", ip_address="192.168.1.101", role="slave"),
+            ],
+        )
+
+        def get_client(ip):
+            client = AsyncMock()
+            if "100" in ip:
+                client.get_zone_status.return_value = master_zone
+            else:
+                client.get_zone_status.return_value = slave_buggy
+            return client
+
+        with patch.object(service, "_get_client", side_effect=get_client):
+            result = await service.get_all_zones()
+
+        assert len(result) == 1
+        assert len(result[0].members) == 4
+
+    @pytest.mark.asyncio
     async def test_five_device_zone_all_members_returned(self):
         """Zone with 5 devices returns all 5 enriched members."""
         service, repo = _make_service()
