@@ -30,16 +30,16 @@ def reset_config(monkeypatch):
     """Reset config before each test to prevent cross-test pollution."""
     import os
     from opencloudtouch.core.config import clear_config
-    
+
     # Save original OCT_PORT if it exists
     original_port = os.environ.get("OCT_PORT")
-    
+
     # Clear config and remove OCT_PORT before test
     clear_config()
     monkeypatch.delenv("OCT_PORT", raising=False)
-    
+
     yield
-    
+
     # Clean up after test
     clear_config()
     # Restore original OCT_PORT if it existed
@@ -60,7 +60,7 @@ def wizard_app():
 
     # Ensure clean config state before importing router
     clear_config()
-    
+
     app = FastAPI()
     register_exception_handlers(app)
     app.include_router(wizard_router)
@@ -91,14 +91,14 @@ class TestWizardServerInfoPort:
 
         monkeypatch.setenv("OCT_PORT", "8080")
         clear_config()  # Reload config with new port
-        
+
         # Create app and client AFTER setting port
         app = FastAPI()
         register_exception_handlers(app)
         app.include_router(wizard_router)
         app.dependency_overrides[get_wizard_service] = lambda: WizardService()
         client = TestClient(app, raise_server_exceptions=False)
-        
+
         response = client.get("/api/setup/wizard/server-info")
         assert response.status_code == 200
         body = response.json()
@@ -118,14 +118,14 @@ class TestWizardServerInfoPort:
         # Explicitly set OCT_PORT to DEFAULT_PORT to override any pollution
         monkeypatch.setenv("OCT_PORT", str(DEFAULT_PORT))
         clear_config()  # Reload config with DEFAULT_PORT
-        
+
         # Create fresh app and client with clean config
         app = FastAPI()
         register_exception_handlers(app)
         app.include_router(wizard_router)
         app.dependency_overrides[get_wizard_service] = lambda: WizardService()
         client = TestClient(app, raise_server_exceptions=False)
-        
+
         response = client.get("/api/setup/wizard/server-info")
         assert response.status_code == 200
         body = response.json()
@@ -1397,14 +1397,14 @@ class TestWizardServerInfo:
         # Ensure clean state with DEFAULT_PORT
         monkeypatch.setenv("OCT_PORT", str(DEFAULT_PORT))
         clear_config()
-        
+
         # Create fresh app and client
         app = FastAPI()
         register_exception_handlers(app)
         app.include_router(wizard_router)
         app.dependency_overrides[get_wizard_service] = lambda: WizardService()
         client = TestClient(app, raise_server_exceptions=False)
-        
+
         response = client.get("/api/setup/wizard/server-info")
         assert response.status_code == 200
         body = response.json()

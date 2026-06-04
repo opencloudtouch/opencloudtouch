@@ -187,4 +187,6 @@ class TestSpa404Handler:
         client = TestClient(spa_app, raise_server_exceptions=False)
         response = client.get("/supporters.csv")
         assert response.status_code == 200
-        assert response.headers["cache-control"] == "no-cache, no-store, must-revalidate"
+        assert (
+            response.headers["cache-control"] == "no-cache, no-store, must-revalidate"
+        )
