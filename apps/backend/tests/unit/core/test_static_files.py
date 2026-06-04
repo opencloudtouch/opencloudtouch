@@ -188,6 +188,9 @@ class TestSpa404Handler:
         response = client.get("/supporters.csv")
         assert response.status_code == 200
         # Check all cache-prevention headers (HTTP/1.1 + HTTP/1.0 + proxies)
-        assert response.headers["cache-control"] == "no-cache, no-store, must-revalidate, max-age=0"
+        assert (
+            response.headers["cache-control"]
+            == "no-cache, no-store, must-revalidate, max-age=0"
+        )
         assert response.headers["pragma"] == "no-cache"
         assert response.headers["expires"] == "0"
