@@ -199,7 +199,8 @@
 
 .device-checkbox-card input[type="checkbox"] {
   position: absolute;
-  top: var(--space-md);
+  top: 50%;
+  transform: translateY(-50%);
   right: var(--space-md);
   width: 20px;
   height: 20px;
