@@ -1,19 +1,36 @@
-name: "📋 Feature Specification"
-description: "Detailed technical specification for an accepted feature. For planning and implementation."
+name: "📋 Technical Specification"
+description: "Detailed technical specification for features, bugs, or infrastructure work. For planning and implementation."
 title: "[Spec]: "
-labels: ["spec", "enhancement"]
+labels: ["spec"]
 body:
   - type: markdown
     attributes:
       value: |
-        **This template is for detailed feature planning — typically created by maintainers after triage.**
-        If you're a user wanting to suggest a feature, please use the [Feature Request](?template=feature_request.yml) template instead.
+        **This template is for detailed technical planning (features, bugs, infrastructure) — typically created by maintainers after triage.**
+        If you're a user wanting to report a bug or suggest a feature, please use the appropriate user-facing template instead.
+
+  - type: dropdown
+    id: work_type
+    attributes:
+      label: Work Type
+      description: "What kind of work is this?"
+      options:
+        - Feature / Enhancement
+        - Bug Fix
+        - Infrastructure / DevOps
+        - Refactoring / Tech Debt
+        - Documentation
+        - Performance
+        - Security
+      default: 0
+    validations:
+      required: true
 
   - type: input
     id: related_issue
     attributes:
-      label: Related Feature Request
-      description: "Link to the original feature request issue (if any)"
+      label: Related Issue
+      description: "Link to the original bug report, feature request, or discussion (if any)"
       placeholder: "#123"
     validations:
       required: false
@@ -21,37 +38,49 @@ body:
   - type: textarea
     id: overview
     attributes:
-      label: Feature Overview
-      description: "High-level summary: What does this feature do? Why are we building it?"
+      label: Problem & Solution Overview
+      description: "What problem are we solving? What's our approach? Why this solution?"
       placeholder: |
-        Example: "Manual stream URL input allows users to add custom audio streams 
-        (e.g., from private radio stations or podcasts) that are not available via 
-        TuneIn/search APIs. Solves #123 where users cannot add niche regional stations."
+        **Feature Example:** "Manual stream URL input allows users to add custom audio streams 
+        (e.g., from private radio stations) not available via TuneIn. Solves #123."
+        
+        **Bug Example:** "Multi-room zones lose 3rd/4th device after creation. 
+        Root cause: Zone member list truncated during persistence. 
+        Solution: Fix serialization logic in ZoneService."
+        
+        **Infrastructure Example:** "Current CI runs all tests serially (15min). 
+        Solution: Parallelize test suites by area (backend/frontend/e2e) to reduce to ~5min."
     validations:
       required: true
 
   - type: textarea
     id: user_stories
     attributes:
-      label: User Stories
-      description: "Who needs this? What do they want to accomplish?"
+      label: User Stories (Optional for Bugs/Infra)
+      description: "Who needs this? What do they want to accomplish? (Skip for internal bugs/infra unless user-facing)"
       placeholder: |
         - **As a** podcast listener, **I want to** add my favorite show's direct stream URL **so that** I can listen without searching TuneIn
-        - **As a** regional radio enthusiast, **I want to** manually enter station URLs **so that** I can access local stations not in the TuneIn catalog
+        - **As a** multi-room user, **I want to** all selected devices to remain in the zone **so that** I can control all speakers from OCT
       value: |
         - **As a** [user type], **I want to** [action] **so that** [benefit]
     validations:
-      required: true
+      required: false
 
   - type: textarea
     id: acceptance_criteria
     attributes:
       label: Acceptance Criteria
-      description: "Concrete, testable conditions that define when this feature is complete. Use Given/When/Then format."
+      description: "Concrete, testable conditions that define when this work is complete. Use Given/When/Then format."
       placeholder: |
-        - **Given** I am on the Create Preset page, **when** I select "Manual URL", **then** I see an input field for the stream URL
-        - **Given** I enter a valid HTTP stream URL, **when** I save the preset, **then** the preset is stored and playable
-        - **Given** I enter an invalid URL, **when** I try to save, **then** I see a validation error message
+        **Feature:** 
+        - **Given** I am on the Create Preset page, **when** I select "Manual URL", **then** I see an input field
+        
+        **Bug:** 
+        - **Given** I select 4 devices for multi-room, **when** I create the zone, **then** all 4 devices remain in the zone (not just 2)
+        - **Given** the zone is created, **when** I refresh the UI, **then** all 4 devices are still shown as grouped
+        
+        **Infrastructure:** 
+        - **Given** CI runs tests, **when** all suites complete, **then** total time is ≤6 minutes (down from 15)
       value: |
         - **Given** [context], **when** [action], **then** [expected outcome]
     validations:
@@ -61,26 +90,31 @@ body:
     id: tasks
     attributes:
       label: Implementation Tasks
-      description: "Break down the work into concrete tasks. Use checkboxes."
+      description: "Break down the work into concrete tasks. Use checkboxes. Adapt sections to work type (Investigation/Backend/Frontend/DevOps/etc.)."
       placeholder: |
-        Backend:
-        - [ ] Add `manual_url` field to Preset model
-        - [ ] Update POST `/api/presets` to accept manual URLs
-        - [ ] Add URL validation (format, accessibility check)
-        - [ ] Write unit tests for URL validation
-        - [ ] Write integration tests for preset creation with manual URL
-
-        Frontend:
-        - [ ] Add "Manual URL" option to preset creation UI
-        - [ ] Implement URL input field with validation feedback
-        - [ ] Update PresetForm component to handle manual URL mode
-        - [ ] Write unit tests for PresetForm URL validation
-        - [ ] Add E2E test for manual URL preset creation
-
-        DevOps:
-        - [ ] Update API documentation (openapi.yaml)
-        - [ ] Add migration guide if schema changes
+        **Investigation (for bugs):**
+        - [ ] Reproduce issue in local environment
+        - [ ] Analyze zone creation flow in ZoneService
+        - [ ] Identify where member list gets truncated
+        - [ ] Write failing test that reproduces the bug
+        
+        **Backend:**
+        - [ ] Fix ZoneService.create_zone() to persist all members
+        - [ ] Add validation: zone must have ≥2 members
+        - [ ] Write unit tests for multi-device zones (2, 3, 4, 8 devices)
+        - [ ] Write integration test for zone persistence
+        
+        **Frontend:**
+        - [ ] Verify zone UI correctly displays all members
+        - [ ] Add E2E test: create 4-device zone, verify UI shows 4
+        
+        **DevOps:**
+        - [ ] Update API documentation if zone contract changed
+        - [ ] Add regression test to CI
       value: |
+        Investigation:
+        - [ ] 
+
         Backend:
         - [ ] 
 
