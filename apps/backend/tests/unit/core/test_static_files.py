@@ -183,10 +183,11 @@ class TestSpa404Handler:
         assert response.status_code == 404
 
     def test_supporters_csv_not_cached(self, spa_app):
-        """supporters.csv must have no-cache headers to prevent stale data."""
+        """supporters.csv must have aggressive no-cache headers to prevent stale data."""
         client = TestClient(spa_app, raise_server_exceptions=False)
         response = client.get("/supporters.csv")
         assert response.status_code == 200
-        assert (
-            response.headers["cache-control"] == "no-cache, no-store, must-revalidate"
-        )
+        # Check all cache-prevention headers (HTTP/1.1 + HTTP/1.0 + proxies)
+        assert response.headers["cache-control"] == "no-cache, no-store, must-revalidate, max-age=0"
+        assert response.headers["pragma"] == "no-cache"
+        assert response.headers["expires"] == "0"

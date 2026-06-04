@@ -34,7 +34,8 @@ function setupHealthMock(version = "1.5.0") {
 function mockFetchWith(csvResponse: { ok: boolean; text?: () => Promise<string> }) {
   vi.spyOn(globalThis, "fetch").mockImplementation((input: RequestInfo | URL) => {
     const url = typeof input === "string" ? input : input.toString();
-    if (url === "/supporters.csv") {
+    // Match /supporters.csv with or without query params (cache-busting timestamp)
+    if (url.startsWith("/supporters.csv")) {
       return Promise.resolve(csvResponse as Response);
     }
     return Promise.resolve({ ok: false } as Response);
@@ -123,7 +124,8 @@ describe("About page", () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.spyOn(globalThis, "fetch").mockImplementation((input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : input.toString();
-      if (url === "/supporters.csv") {
+      // Match /supporters.csv with or without query params (cache-busting timestamp)
+      if (url.startsWith("/supporters.csv")) {
         return Promise.reject(new Error("Network error"));
       }
       return Promise.resolve({ ok: false } as Response);

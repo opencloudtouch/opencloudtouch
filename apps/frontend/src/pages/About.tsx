@@ -31,7 +31,8 @@ export default function About() {
   useEffect(() => {
     const loadSupporters = async () => {
       try {
-        const response = await fetch("/supporters.csv");
+        // Cache-busting: Add timestamp to prevent stale data
+        const response = await fetch(`/supporters.csv?t=${Date.now()}`);
         if (!response.ok) {
           setSupporters([]);
           setSupportersLoading(false);
