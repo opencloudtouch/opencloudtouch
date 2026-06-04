@@ -65,15 +65,11 @@ export default function About() {
             firstSupportDate: fields[4],
           }));
 
-        // Sort by total support: amount + monthlyAmount DESC
+        // Sort: amount DESC, then monthlyAmount DESC, then firstSupportDate ASC (older first)
         parsed.sort((a, b) => {
-          const scoreA = a.amount + a.monthlyAmount;
-          const scoreB = b.amount + b.monthlyAmount;
-          if (scoreB !== scoreA) return scoreB - scoreA;
-          if (a.firstSupportDate !== b.firstSupportDate) {
-            return a.firstSupportDate.localeCompare(b.firstSupportDate);
-          }
-          return a.name.localeCompare(b.name);
+          if (b.amount !== a.amount) return b.amount - a.amount;
+          if (b.monthlyAmount !== a.monthlyAmount) return b.monthlyAmount - a.monthlyAmount;
+          return a.firstSupportDate.localeCompare(b.firstSupportDate);
         });
 
         setSupporters(parsed);
