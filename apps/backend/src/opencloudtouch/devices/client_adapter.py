@@ -451,7 +451,7 @@ class BoseDeviceClientAdapter(DeviceClient):
                 extra={"master_ip": master_ip, "member_count": len(members)},
             )
 
-            await asyncio.to_thread(self._client.CreateZone, zone, delay=3)
+            await asyncio.to_thread(self._client.CreateZone, zone, delay=0)
 
             result = await asyncio.to_thread(self._client.GetZoneStatus, refresh=True)
             return self._zone_to_status(result) or ZoneStatus(
@@ -478,7 +478,7 @@ class BoseDeviceClientAdapter(DeviceClient):
                 ZoneMember(ipAddress=m.ip_address, deviceId=m.device_id)
                 for m in members
             ]
-            await asyncio.to_thread(self._client.AddZoneMembers, zone_members, delay=3)
+            await asyncio.to_thread(self._client.AddZoneMembers, zone_members, delay=0)
         except Exception as e:
             logger.exception("Failed to add zone members on %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
@@ -492,7 +492,7 @@ class BoseDeviceClientAdapter(DeviceClient):
                 ZoneMember(ipAddress=m.ip_address, deviceId=m.device_id)
                 for m in members
             ]
-            await asyncio.to_thread(self._client.RemoveZoneMembers, zone_members, delay=3)  # fmt: skip
+            await asyncio.to_thread(self._client.RemoveZoneMembers, zone_members, delay=0)  # fmt: skip
         except Exception as e:
             logger.exception("Failed to remove zone members on %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
@@ -500,7 +500,7 @@ class BoseDeviceClientAdapter(DeviceClient):
     async def remove_zone(self) -> None:
         """Dissolve entire zone."""
         try:
-            await asyncio.to_thread(self._client.RemoveZone, delay=3)
+            await asyncio.to_thread(self._client.RemoveZone, delay=0)
             logger.info("Zone removed on %s", self.base_url)
         except Exception as e:
             logger.exception("Failed to remove zone on %s", self.base_url)

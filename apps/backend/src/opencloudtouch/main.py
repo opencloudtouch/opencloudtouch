@@ -73,12 +73,23 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown."""
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
+
     init_config()
     setup_logging()
 
     logger = logging.getLogger(__name__)
     cfg = get_config()
     _log_startup_info(logger, cfg)
+
+    # Performance: Increase thread pool for parallel Bose device I/O
+    # Default ~5-8 workers causes serial bottleneck with >5 devices
+    # 30 workers allows up to 30 parallel asyncio.to_thread() calls
+    loop = asyncio.get_running_loop()
+    executor = ThreadPoolExecutor(max_workers=30, thread_name_prefix="bose-io")
+    loop.set_default_executor(executor)
+    logger.info("Thread pool configured: 30 workers for Bose device I/O")
 
     # Startup: repositories → services → background tasks
     repos = await _init_repositories(app, cfg, logger)
@@ -88,6 +99,8 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     await _shutdown(app, repos, logger)
+    executor.shutdown(wait=True)
+    logger.info("Thread pool shutdown complete")
 
 
 def _log_startup_info(logger: logging.Logger, cfg) -> None:
