@@ -4,6988 +4,6988 @@
  */
 
 export interface paths {
-    "/api/devices/discover": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Discover Devices
-         * @description Trigger device discovery.
-         *
-         *     Returns:
-         *         List of discovered devices (not yet saved to DB)
-         */
-        get: operations["discover_devices_api_devices_discover_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/devices/sync": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Sync Devices
-         * @description Discover devices and sync to database.
-         *     Queries each device for detailed info (/info endpoint).
-         *
-         *     Returns:
-         *         Sync summary with success/failure counts
-         */
-        post: operations["sync_devices_api_devices_sync_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/devices/discover/stream": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Discover Devices Stream
-         * @description Discover devices and stream results via Server-Sent Events (SSE).
-         *
-         *     Progressive loading:
-         *     - Sends `device_found` events as devices are discovered via SSDP
-         *     - Sends `device_synced` events as devices are saved to DB
-         *     - Sends `completed` event when done
-         *
-         *     Frontend can show devices immediately instead of waiting for full scan.
-         *
-         *     Returns:
-         *         StreamingResponse with SSE events
-         *
-         *     Event Types:
-         *         - started: Discovery started
-         *         - device_found: Device discovered (SSDP response)
-         *         - device_synced: Device synced to DB
-         *         - device_failed: Device sync failed
-         *         - completed: Discovery finished
-         *         - error: Error occurred
-         *
-         *     Example SSE Stream:
-         *         event: started
-         *         data: {"message": "Starting discovery"}
-         *
-         *         event: device_found
-         *         data: {"ip": "192.168.1.100", "name": "Küche", "model": "SoundTouch 10"}
-         *
-         *         event: device_synced
-         *         data: {"id": 1, "device_id": "ABC123", "ip": "192.168.1.100", ...}
-         *
-         *         event: completed
-         *         data: {"discovered": 3, "synced": 3, "failed": 0}
-         */
-        get: operations["discover_devices_stream_api_devices_discover_stream_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/devices": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Devices
-         * @description Get all devices from database.
-         *
-         *     Returns:
-         *         List of devices with details
-         */
-        get: operations["get_devices_api_devices_get"];
-        put?: never;
-        post?: never;
-        /**
-         * Delete All Devices
-         * @description Delete all devices from database.
-         *
-         *     **Testing/Development endpoint only.**
-         *     Use for cleaning database before E2E tests or manual testing.
-         *
-         *     **Protected**: Requires OCT_ALLOW_DANGEROUS_OPERATIONS=true
-         *
-         *     Returns:
-         *         Confirmation message
-         *
-         *     Raises:
-         *         HTTPException(403): If dangerous operations are disabled in production
-         */
-        delete: operations["delete_all_devices_api_devices_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/devices/{device_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Device
-         * @description Get single device by device_id.
-         *
-         *     Args:
-         *         device_id: Device ID
-         *
-         *     Returns:
-         *         Device details
-         *
-         *     Raises:
-         *         DeviceNotFoundError: If device does not exist
-         */
-        get: operations["get_device_api_devices__device_id__get"];
-        put?: never;
-        post?: never;
-        /**
-         * Delete By Device Id
-         * @description Delete device by id from database.
-         *
-         *     Args:
-         *         device_id: Device ID
-         *
-         *     Returns:
-         *         Confirmation message
-         */
-        delete: operations["delete_by_device_id_api_devices__device_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/devices/{device_id}/capabilities": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Device Capabilities Endpoint
-         * @description Get device capabilities for UI feature detection.
-         *
-         *     Returns which features this specific device supports:
-         *     - HDMI control (ST300 only)
-         *     - Bass/balance controls
-         *     - Available input sources
-         *     - Zone/group support
-         *     - All supported endpoints
-         *
-         *     Args:
-         *         device_id: Device ID
-         *
-         *     Returns:
-         *         Feature flags and capabilities for UI rendering
-         *
-         *     Example Response:
-         *         {
-         *             "device_id": "AABBCC112233",
-         *             "device_type": "SoundTouch 30 Series III",
-         *             "is_soundbar": false,
-         *             "features": {
-         *                 "hdmi_control": false,
-         *                 "bass_control": true,
-         *                 "bluetooth": true,
-         *                 ...
-         *             },
-         *             "sources": ["BLUETOOTH", "AUX", "INTERNET_RADIO"],
-         *             "advanced": {...}
-         *         }
-         */
-        get: operations["get_device_capabilities_endpoint_api_devices__device_id__capabilities_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/devices/{device_id}/key": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Press Key
-         * @description Simulate a key press on a device.
-         *
-         *     Used for E2E testing to trigger preset playback without physical button press.
-         *
-         *     Args:
-         *         device_id: Device ID
-         *         key: Key name (e.g., "PRESET_1", "PRESET_2", "PRESET_3", ...)
-         *         state: Key state ("press", "release", or "both"). Default: "both"
-         *
-         *     Returns:
-         *         Success message
-         *
-         *     Raises:
-         *         DeviceNotFoundError: If device does not exist
-         *         HTTPException(400): If key or state is invalid
-         *         HTTPException(500): If key press fails
-         *
-         *     Example:
-         *         POST /api/devices/AABBCC112233/key?key=PRESET_1&state=both
-         */
-        post: operations["press_key_api_devices__device_id__key_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/devices/{device_id}/now-playing": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Now Playing
-         * @description Get current playback status for a device.
-         */
-        get: operations["get_now_playing_api_devices__device_id__now_playing_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/devices/{device_id}/volume": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Volume
-         * @description Get current volume state for a device.
-         */
-        get: operations["get_volume_api_devices__device_id__volume_get"];
-        /**
-         * Set Volume
-         * @description Set volume level (0-100).
-         */
-        put: operations["set_volume_api_devices__device_id__volume_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/devices/{device_id}/mute": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Set Mute
-         * @description Set mute state.
-         */
-        put: operations["set_mute_api_devices__device_id__mute_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/presets/set": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Set Preset
-         * @description Set a preset for a device.
-         *
-         *     Creates or updates a preset mapping. When the physical preset button
-         *     is pressed on the SoundTouch device, it will load the configured station.
-         */
-        post: operations["set_preset_api_presets_set_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/presets/{device_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Device Presets
-         * @description Get all presets for a device.
-         *
-         *     Returns all configured presets (1-6) for the specified device.
-         *     Empty slots are not included in the response.
-         */
-        get: operations["get_device_presets_api_presets__device_id__get"];
-        put?: never;
-        post?: never;
-        /**
-         * Clear All Presets
-         * @description Clear all presets for a device.
-         *
-         *     Removes all preset configurations for the specified device.
-         */
-        delete: operations["clear_all_presets_api_presets__device_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/presets/{device_id}/{preset_number}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Preset
-         * @description Get a specific preset.
-         *
-         *     Returns the preset configuration for the specified device and preset number.
-         */
-        get: operations["get_preset_api_presets__device_id___preset_number__get"];
-        put?: never;
-        post?: never;
-        /**
-         * Clear Preset
-         * @description Clear a specific preset.
-         *
-         *     Removes the preset configuration. The physical preset button will no
-         *     longer trigger playback until a new station is assigned.
-         */
-        delete: operations["clear_preset_api_presets__device_id___preset_number__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/presets/{device_id}/sync": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Sync Presets From Device
-         * @description Sync presets from device to OCT database.
-         *
-         *     Fetches presets from the physical device and imports them into OCT.
-         *     Useful when a device was configured by another OCT instance or manually.
-         *
-         *     Returns:
-         *         Message with sync count
-         *
-         *     Raises:
-         *         404: Device not found
-         *         502: Device unreachable
-         *         500: Internal error
-         */
-        post: operations["sync_presets_from_device_api_presets__device_id__sync_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/radio/search": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Search Stations
-         * @description Search radio stations.
-         *
-         *     - **q**: Search query (required, min 1 character)
-         *     - **search_type**: Type of search - name, country, or tag (default: name)
-         *     - **limit**: Maximum results (1-50, default: 10)
-         *     - **offset**: Offset for pagination (default: 0)
-         *     - **provider**: Radio provider - radiobrowser or tunein (default: radiobrowser)
-         */
-        get: operations["search_stations_api_radio_search_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/radio/station/{uuid}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Station Detail
-         * @description Get radio station detail by UUID.
-         *
-         *     - **uuid**: Station UUID
-         *     - **provider**: Radio provider - radiobrowser or tunein (default: radiobrowser)
-         */
-        get: operations["get_station_detail_api_radio_station__uuid__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/settings/manual-ips": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Manual Ips
-         * @description Get all manual device IP addresses.
-         *
-         *     Returns:
-         *         List of manually configured IP addresses
-         */
-        get: operations["get_manual_ips_api_settings_manual_ips_get"];
-        put?: never;
-        /**
-         * Set Manual Ips
-         * @description Replace all manual device IP addresses with new list.
-         *
-         *     Args:
-         *         request: Request containing list of IP addresses
-         *
-         *     Returns:
-         *         Updated list of manual IP addresses
-         */
-        post: operations["set_manual_ips_api_settings_manual_ips_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/settings/manual-ips/{ip}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete Manual Ip
-         * @description Remove a manual device IP address.
-         *
-         *     Args:
-         *         ip: IP address to remove
-         *
-         *     Returns:
-         *         Success message with removed IP
-         */
-        delete: operations["delete_manual_ip_api_settings_manual_ips__ip__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/stations/preset/{device_id}/{preset_number}.json": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Station Descriptor
-         * @description Get station descriptor for a device preset.
-         *
-         *     This endpoint is called by SoundTouch devices when a preset button is pressed.
-         *     It returns the stream URL and metadata for playback.
-         *
-         *     Response format:
-         *     ```json
-         *     {
-         *         "stationName": "Station Name",
-         *         "streamUrl": "http://stream.url/path",
-         *         "homepage": "https://station.homepage",
-         *         "favicon": "https://station.favicon/icon.png",
-         *         "uuid": "radiobrowser-uuid"
-         *     }
-         *     ```
-         */
-        get: operations["get_station_descriptor_stations_preset__device_id___preset_number__json_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/device/{device_id}/preset/{preset_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Stream Device Preset
-         * @description Stream proxy endpoint for Bose SoundTouch custom presets.
-         *
-         *     **How it works:**
-         *     1. User configures preset via OCT UI (e.g., "Absolut Relax" → Preset 1)
-         *     2. OCT stores mapping in database: `device_id=689E194F7D2F, preset=1, url=https://stream.url`
-         *     3. OCT programs Bose device with OCT backend URL:
-         *        ```
-         *        location="http://192.168.1.108:7777/device/689E194F7D2F/preset/1"
-         *        ```
-         *     4. User presses PRESET_1 button on Bose device
-         *     5. Bose requests: `GET /device/689E194F7D2F/preset/1`
-         *     6. OCT looks up preset in database
-         *     7. **OCT proxies HTTPS stream as HTTP:** Fetches from RadioBrowser, streams to Bose
-         *     8. Bose receives HTTP audio stream and plays ✅
-         *
-         *     **Why HTTP proxy instead of direct HTTPS URL?**
-         *     - ❌ Bose cannot play HTTPS streams directly (certificate validation fails)
-         *     - ❌ HTTP 302 redirect to HTTPS URL → INVALID_SOURCE error
-         *     - ✅ OCT acts as HTTP audio proxy: Fetches HTTPS → Serves as HTTP chunked transfer
-         *     - ✅ Bose treats OCT like "TuneIn integration" (trusted HTTP source)
-         *
-         *     **Example flow:**
-         *     ```
-         *     Request:  GET /device/689E194F7D2F/preset/1
-         *     Response: HTTP 200 OK
-         *               Content-Type: audio/mpeg
-         *               Transfer-Encoding: chunked
-         *               icy-name: Absolut Relax
-         *               [Audio data stream: chunk1, chunk2, chunk3...]
-         *     ```
-         *
-         *     Args:
-         *         device_id: Bose device identifier (from URL path)
-         *         preset_id: Preset number 1-6 (from URL path)
-         *         preset_service: Injected preset service
-         *
-         *     Returns:
-         *         StreamingResponse with proxied audio stream
-         *
-         *     Raises:
-         *         404: Preset not configured for this device
-         *         502: RadioBrowser stream unavailable
-         *         500: Internal server error
-         */
-        get: operations["stream_device_preset_device__device_id__preset__preset_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/descriptor/device/{device_id}/preset/{preset_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Preset Descriptor
-         * @description Get preset descriptor XML for Bose SoundTouch device.
-         *
-         *     **How it works:**
-         *     Bose devices with `source="INTERNET_RADIO"` expect an XML descriptor endpoint
-         *     (similar to TuneIn's `/v1/playback/station/...` endpoints).
-         *
-         *     **Flow:**
-         *     1. OCT programs Bose preset with descriptor URL:
-         *        ```xml
-         *        <ContentItem source="INTERNET_RADIO"
-         *                     location="http://192.168.1.100:7777/descriptor/device/689E194F7D2F/preset/1">
-         *          <itemName>Absolut relax</itemName>
-         *        </ContentItem>
-         *        ```
-         *     2. User presses PRESET_1 button on Bose device
-         *     3. Bose requests: `GET /descriptor/device/689E194F7D2F/preset/1`
-         *     4. OCT returns XML with **direct stream URL**:
-         *        ```xml
-         *        <ContentItem source="INTERNET_RADIO" type="stationurl"
-         *                     location="https://absolut-relax.live-sm.absolutradio.de/absolut-relax">
-         *          <itemName>Absolut relax</itemName>
-         *        </ContentItem>
-         *        ```
-         *     5. Bose fetches stream from direct URL and plays ✅
-         *
-         *     Args:
-         *         device_id: Bose device identifier
-         *         preset_id: Preset number 1-6
-         *         preset_service: Injected preset service
-         *
-         *     Returns:
-         *         XML Response with ContentItem descriptor
-         *
-         *     Raises:
-         *         404: Preset not configured
-         */
-        get: operations["get_preset_descriptor_descriptor_device__device_id__preset__preset_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/bmx/orion/now-playing": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Bmx Now Playing Stub
-         * @description Stub endpoint for now-playing data.
-         *
-         *     Device calls this to get currently playing track info.
-         *     Returns minimal valid response to prevent errors.
-         */
-        get: operations["bmx_now_playing_stub_bmx_orion_now_playing_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/bmx/orion/now-playing/station/{station_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Bmx Now Playing Stub
-         * @description Stub endpoint for now-playing data.
-         *
-         *     Device calls this to get currently playing track info.
-         *     Returns minimal valid response to prevent errors.
-         */
-        get: operations["bmx_now_playing_stub_bmx_orion_now_playing_station__station_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/bmx/orion/reporting": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Bmx Reporting Stub
-         * @description Stub endpoint for telemetry reporting.
-         *
-         *     Device calls this to report playback events.
-         *     Returns success to prevent errors.
-         */
-        post: operations["bmx_reporting_stub_bmx_orion_reporting_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/bmx/orion/reporting/station/{station_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Bmx Reporting Stub
-         * @description Stub endpoint for telemetry reporting.
-         *
-         *     Device calls this to report playback events.
-         *     Returns success to prevent errors.
-         */
-        post: operations["bmx_reporting_stub_bmx_orion_reporting_station__station_id__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/bmx/tunein/v1/now-playing/station/{station_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Bmx Tunein Now Playing
-         * @description TuneIn now-playing stub.
-         *
-         *     Device calls this to get currently playing track info.
-         */
-        get: operations["bmx_tunein_now_playing_bmx_tunein_v1_now_playing_station__station_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/bmx/tunein/v1/reporting/station/{station_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Bmx Tunein Reporting
-         * @description TuneIn reporting stub.
-         *
-         *     Device calls this to report playback events.
-         */
-        post: operations["bmx_tunein_reporting_bmx_tunein_v1_reporting_station__station_id__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/bmx/tunein/v1/favorite/{station_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Bmx Tunein Favorite
-         * @description TuneIn favorite stub.
-         *
-         *     Device calls this to mark/unmark stations as favorites.
-         */
-        get: operations["bmx_tunein_favorite_bmx_tunein_v1_favorite__station_id__get"];
-        put?: never;
-        /**
-         * Bmx Tunein Favorite
-         * @description TuneIn favorite stub.
-         *
-         *     Device calls this to mark/unmark stations as favorites.
-         */
-        post: operations["bmx_tunein_favorite_bmx_tunein_v1_favorite__station_id__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/bmx/registry/v1/services": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Bmx Services
-         * @description Return list of available BMX services.
-         *
-         *     This endpoint is called by the device after booting to discover
-         *     available streaming services. We provide:
-         *     - TUNEIN: Resolved via TuneIn API
-         *     - LOCAL_INTERNET_RADIO: Custom stations via OCT
-         */
-        get: operations["bmx_services_bmx_registry_v1_services_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/bmx/tunein/v1/playback/station/{station_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Bmx Tunein Playback
-         * @description Resolve TuneIn station to stream URL.
-         *
-         *     The device calls this endpoint with a station ID (e.g., "s158432")
-         *     and expects a JSON response with stream URLs.
-         */
-        get: operations["bmx_tunein_playback_bmx_tunein_v1_playback_station__station_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/core02/svc-bmx-adapter-orion/prod/orion/station": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Custom Stream Playback
-         * @description Play custom stream URL.
-         *
-         *     This endpoint handles LOCAL_INTERNET_RADIO sources. The data parameter
-         *     contains base64-encoded JSON with streamUrl, imageUrl, and name.
-         */
-        get: operations["custom_stream_playback_core02_svc_bmx_adapter_orion_prod_orion_station_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/bmx/radiobrowser/v1/playback/station/{uuid}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Bmx Radiobrowser Playback
-         * @description Resolve RadioBrowser station UUID to stream URL.
-         *
-         *     The device calls this with a station UUID and expects a BMX-format
-         *     JSON response with stream URLs for playback.
-         */
-        get: operations["bmx_radiobrowser_playback_bmx_radiobrowser_v1_playback_station__uuid__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/bmx/radiobrowser/v1/now-playing/station/{uuid}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Bmx Radiobrowser Now Playing
-         * @description Now-playing stub for RadioBrowser stations.
-         */
-        get: operations["bmx_radiobrowser_now_playing_bmx_radiobrowser_v1_now_playing_station__uuid__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/bmx/radiobrowser/v1/reporting/station/{uuid}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Bmx Radiobrowser Reporting
-         * @description Reporting stub for RadioBrowser stations.
-         */
-        post: operations["bmx_radiobrowser_reporting_bmx_radiobrowser_v1_reporting_station__uuid__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/bmx/resolve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Resolve Stream
-         * @description Resolve ContentItem to playable stream URL.
-         *
-         *     Bose devices call this endpoint with a ContentItem XML to resolve:
-         *     - TuneIn station IDs → direct stream URLs
-         *     - Direct stream URLs → pass through
-         *     - OCT stream proxy URLs → pass through
-         *
-         *     This mimics the original Bose BMX server (bmx.bose.com).
-         */
-        post: operations["resolve_stream_bmx_resolve_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/systems/devices/{device_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Full Account
-         * @description Get full account sync for device.
-         *
-         *     This endpoint is called by SoundTouch devices on boot to sync:
-         *     - Presets (6 buttons)
-         *     - Recents (recently played)
-         *     - Sources (available sources)
-         *
-         *     Args:
-         *         device_id: Device MAC address (e.g., "689E194F7D2F")
-         *         marge: Marge service dependency
-         *
-         *     Returns:
-         *         XML Response with <boseAccount> structure
-         */
-        get: operations["get_full_account_v1_systems_devices__device_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/systems/devices/{device_id}/presets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Presets
-         * @description Get presets for device.
-         *
-         *     Args:
-         *         device_id: Device MAC address
-         *         marge: Marge service dependency
-         *
-         *     Returns:
-         *         XML Response with <presets> structure
-         */
-        get: operations["get_presets_v1_systems_devices__device_id__presets_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/systems/devices/{device_id}/recents": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Recents
-         * @description Get recently played items for device.
-         *
-         *     Args:
-         *         device_id: Device MAC address
-         *         marge: Marge service dependency
-         *
-         *     Returns:
-         *         XML Response with <recents> structure
-         */
-        get: operations["get_recents_v1_systems_devices__device_id__recents_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/systems/devices/{device_id}/sources": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Sources
-         * @description Get available sources for device.
-         *
-         *     Args:
-         *         device_id: Device MAC address
-         *
-         *     Returns:
-         *         XML Response with <sources> structure
-         */
-        get: operations["get_sources_v1_systems_devices__device_id__sources_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/systems/devices/{device_id}/devices": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Devices
-         * @description Get multiroom devices for device.
-         *
-         *     Args:
-         *         device_id: Device MAC address
-         *
-         *     Returns:
-         *         XML Response with <devices> structure
-         */
-        get: operations["get_devices_v1_systems_devices__device_id__devices_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/systems/devices/{device_id}/power_on": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Power On
-         * @description Device boot notification.
-         *
-         *     SoundTouch devices call this on power-on to notify the server.
-         *
-         *     Args:
-         *         device_id: Device MAC address
-         *
-         *     Returns:
-         *         204 No Content (acknowledgement)
-         */
-        put: operations["power_on_v1_systems_devices__device_id__power_on_put"];
-        /**
-         * Power On
-         * @description Device boot notification.
-         *
-         *     SoundTouch devices call this on power-on to notify the server.
-         *
-         *     Args:
-         *         device_id: Device MAC address
-         *
-         *     Returns:
-         *         204 No Content (acknowledgement)
-         */
-        post: operations["power_on_v1_systems_devices__device_id__power_on_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/systems/devices/{device_id}/sourceproviders": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Sourceproviders
-         * @description Get available source providers for device.
-         *
-         *     Args:
-         *         device_id: Device MAC address
-         *
-         *     Returns:
-         *         XML Response with <sourceproviders> structure
-         */
-        get: operations["get_sourceproviders_v1_systems_devices__device_id__sourceproviders_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/streaming/support/power_on": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Streaming Power On
-         * @description Device boot notification via streaming endpoint.
-         *
-         *     SoundTouch devices call this on power-on to notify the server.
-         *     The device data is in the XML body with device ID, serial number,
-         *     firmware version, IP address, and diagnostic data.
-         *
-         *     Returns:
-         *         200 OK (acknowledgement)
-         */
-        put: operations["streaming_power_on_streaming_support_power_on_put"];
-        /**
-         * Streaming Power On
-         * @description Device boot notification via streaming endpoint.
-         *
-         *     SoundTouch devices call this on power-on to notify the server.
-         *     The device data is in the XML body with device ID, serial number,
-         *     firmware version, IP address, and diagnostic data.
-         *
-         *     Returns:
-         *         200 OK (acknowledgement)
-         */
-        post: operations["streaming_power_on_streaming_support_power_on_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/streaming/sourceproviders": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Streaming Sourceproviders
-         * @description Get available source providers.
-         *
-         *     Returns list of streaming source providers like TUNEIN, SPOTIFY, etc.
-         *
-         *     Returns:
-         *         XML Response with <sourceProviders> structure
-         */
-        get: operations["streaming_sourceproviders_streaming_sourceproviders_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/streaming/account/{account_id}/full": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Streaming Full Account
-         * @description Get full account sync via streaming endpoint.
-         *
-         *     This is the streaming.bose.com version of the account sync endpoint.
-         *     Resolves the device_id from the account_id (margeAccountUUID) stored
-         *     during device discovery, then returns that device's presets.
-         *
-         *     Args:
-         *         account_id: Account ID (e.g., "3784726")
-         *         marge: Marge service dependency
-         *
-         *     Returns:
-         *         XML Response with <account> structure
-         */
-        get: operations["streaming_full_account_streaming_account__account_id__full_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/scmudc/{device_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Scmudc Reporting
-         * @description Device reporting/telemetry endpoint.
-         *
-         *     Devices periodically call this to report status/telemetry data.
-         *     We acknowledge but don't process the data.
-         *
-         *     Args:
-         *         device_id: Device MAC address
-         *
-         *     Returns:
-         *         200 OK
-         */
-        post: operations["scmudc_reporting_v1_scmudc__device_id__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/streaming/stats/usage": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Streaming Stats Usage
-         * @description Accept device usage statistics (stub).
-         *
-         *     Without this endpoint, the device retries repeatedly after
-         *     statsServerUrl is redirected to OCT.
-         *
-         *     Returns:
-         *         200 OK
-         */
-        post: operations["streaming_stats_usage_streaming_stats_usage_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/streaming/device/{device_id}/streaming_token": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Streaming Token
-         * @description Return a dummy streaming token for device authentication.
-         *
-         *     SoundTouch firmware 27.x requests this token before playing a preset.
-         *     If the request fails, the device aborts playback with INVALID_SOURCE.
-         *     The token value is not validated — any non-empty response suffices.
-         *
-         *     Args:
-         *         device_id: Device MAC address
-         *
-         *     Returns:
-         *         JSON with a dummy access token
-         */
-        get: operations["streaming_token_streaming_device__device_id__streaming_token_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/blacklist/{device_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Blacklist Check
-         * @description Content blacklist check — always returns empty (nothing blacklisted).
-         *
-         *     The device checks this before playing content. If the endpoint is
-         *     unreachable, some firmware versions refuse playback.
-         *
-         *     Args:
-         *         device_id: Device MAC address
-         *
-         *     Returns:
-         *         JSON with empty blacklist
-         */
-        get: operations["blacklist_check_v1_blacklist__device_id__get"];
-        put?: never;
-        /**
-         * Blacklist Check
-         * @description Content blacklist check — always returns empty (nothing blacklisted).
-         *
-         *     The device checks this before playing content. If the endpoint is
-         *     unreachable, some firmware versions refuse playback.
-         *
-         *     Args:
-         *         device_id: Device MAC address
-         *
-         *     Returns:
-         *         JSON with empty blacklist
-         */
-        post: operations["blacklist_check_v1_blacklist__device_id__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/setMargeAccount": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Set Marge Account
-         * @description Pair device with a Bose Cloud account (stub).
-         *
-         *     The SoundTouch app calls this to associate a device with an account.
-         *     OCT doesn't use real cloud accounts, but the device expects a 200 OK.
-         *     The actual margeAccountUUID is set via Telnet or device-side API.
-         *
-         *     Returns:
-         *         200 OK with status XML
-         */
-        post: operations["set_marge_account_setMargeAccount_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/playlist/{device_id}/{preset_number}.m3u": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Playlist M3U
-         * @description Get M3U playlist file for a device preset.
-         *
-         *     Returns an M3U playlist containing the stream URL for the specified preset.
-         *     This format might be better parsed by Bose SoundTouch devices.
-         *
-         *     M3U Format:
-         *     ```
-         *     #EXTM3U
-         *     #EXTINF:-1,Station Name
-         *     http://stream.url/path
-         *     ```
-         *
-         *     Headers:
-         *     - Content-Type: audio/x-mpegurl
-         *
-         *     Args:
-         *         device_id: Bose device identifier
-         *         preset_number: Preset number (1-6)
-         *
-         *     Returns:
-         *         M3U playlist content with Content-Type: audio/x-mpegurl
-         */
-        get: operations["get_playlist_m3u_playlist__device_id___preset_number__m3u_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/playlist/{device_id}/{preset_number}.pls": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Playlist Pls
-         * @description Get PLS playlist file for a device preset.
-         *
-         *     Returns a PLS playlist containing the stream URL for the specified preset.
-         *     Alternative format that might work better with some devices.
-         *
-         *     PLS Format:
-         *     ```
-         *     [playlist]
-         *     File1=http://stream.url/path
-         *     Title1=Station Name
-         *     Length1=-1
-         *     NumberOfEntries=1
-         *     Version=2
-         *     ```
-         *
-         *     Headers:
-         *     - Content-Type: audio/x-scpls
-         *
-         *     Args:
-         *         device_id: Bose device identifier
-         *         preset_number: Preset number (1-6)
-         *
-         *     Returns:
-         *         PLS playlist content with Content-Type: audio/x-scpls
-         */
-        get: operations["get_playlist_pls_playlist__device_id___preset_number__pls_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/instructions/{model}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Instructions
-         * @description Get model-specific setup instructions.
-         *
-         *     Returns:
-         *         Instructions including USB port location, adapter recommendations, etc.
-         */
-        get: operations["get_instructions_api_setup_instructions__model__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/check-connectivity": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Check Connectivity
-         * @description Check if device is ready for setup (SSH available).
-         *
-         *     This should be called after user inserts USB stick and reboots device.
-         */
-        post: operations["check_connectivity_api_setup_check_connectivity_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/status/{device_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Status
-         * @description Get setup status for a device.
-         *
-         *     Returns current step, progress, and any errors.
-         */
-        get: operations["get_status_api_setup_status__device_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/ssh/enable-permanent": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Enable Permanent Ssh
-         * @description Enable permanent SSH access on SoundTouch device.
-         *
-         *     Copies /remote_services to /mnt/nv/ persistent volume.
-         *     After reboot, SSH remains active without USB stick.
-         *
-         *     Security Warning:
-         *     - SSH becomes permanently accessible on network
-         *     - Root login without password
-         *     - Only recommended in trusted home networks
-         */
-        post: operations["enable_permanent_ssh_api_setup_ssh_enable_permanent_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/verify/{device_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Verify Setup
-         * @description Verify that device setup is complete and working.
-         *
-         *     Checks:
-         *     - SSH accessible
-         *     - SSH persistent
-         *     - BMX URL configured correctly
-         */
-        post: operations["verify_setup_api_setup_verify__device_id__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/models": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Supported Models
-         * @description Get list of all supported models with their instructions.
-         */
-        get: operations["list_supported_models_api_setup_models_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/wizard/server-info": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Wizard Server Info
-         * @description Get OCT server info for auto-filling wizard forms.
-         *
-         *     Returns server URL that frontend can use as default.
-         *     Detects host/port from incoming HTTP request headers.
-         *     Also resolves the hostname to an IP for /etc/hosts usage.
-         */
-        get: operations["wizard_server_info_api_setup_wizard_server_info_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/wizard/detect-strategy": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Wizard Detect Strategy
-         * @description Detect whether an HTTPS reverse proxy is available on port 443.
-         *
-         *     If a reverse proxy (e.g. Nginx) terminates SSL on 443 and forwards
-         *     to OCT, then the device only needs ``/etc/hosts`` changes (Strategy B).
-         *     Otherwise, the BMX URL in the device config must also be changed
-         *     (Strategy A + hosts).
-         */
-        get: operations["wizard_detect_strategy_api_setup_wizard_detect_strategy_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/wizard/check-ports": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Wizard Check Ports
-         * @description Check if SSH port is accessible (Wizard Step 3).
-         */
-        post: operations["wizard_check_ports_api_setup_wizard_check_ports_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/wizard/backup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Wizard Backup
-         * @description Create complete backup to USB stick (Wizard Step 4).
-         */
-        post: operations["wizard_backup_api_setup_wizard_backup_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/wizard/modify-config": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Wizard Modify Config
-         * @description Modify OverrideSdkPrivateCfg.xml (Wizard Step 5).
-         */
-        post: operations["wizard_modify_config_api_setup_wizard_modify_config_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/wizard/modify-hosts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Wizard Modify Hosts
-         * @description Modify /etc/hosts (Wizard Step 6).
-         */
-        post: operations["wizard_modify_hosts_api_setup_wizard_modify_hosts_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/wizard/restore-config": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Wizard Restore Config
-         * @description Restore config from backup (Wizard Step 8).
-         */
-        post: operations["wizard_restore_config_api_setup_wizard_restore_config_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/wizard/restore-hosts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Wizard Restore Hosts
-         * @description Restore hosts from backup (Wizard Step 8).
-         */
-        post: operations["wizard_restore_hosts_api_setup_wizard_restore_hosts_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/wizard/list-backups": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Wizard List Backups
-         * @description List available backups (Wizard Step 8).
-         */
-        post: operations["wizard_list_backups_api_setup_wizard_list_backups_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/wizard/reboot-device": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Wizard Reboot Device
-         * @description Reboot SoundTouch device via SSH (Wizard Step 7).
-         */
-        post: operations["wizard_reboot_device_api_setup_wizard_reboot_device_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/wizard/account-pairing": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Wizard Account Pairing
-         * @description Ensure device has a margeAccountUUID (Wizard Step - Account Pairing).
-         *
-         *     Checks if the device already has a UUID. If not, generates one and
-         *     sets it via Telnet. Persists the UUID in the device repository for
-         *     streaming endpoint resolution.
-         */
-        post: operations["wizard_account_pairing_api_setup_wizard_account_pairing_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/wizard/ensure-account": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Wizard Ensure Account
-         * @description Ensure device has a margeAccountUUID (Wizard Step � after config/hosts).
-         *
-         *     Devices without a margeAccountUUID cannot play presets (INVALID_SOURCE).
-         *     This endpoint checks GET :8090/info and sets a UUID via Telnet if missing.
-         *
-         *     Safe to call multiple times � no-op if UUID already present.
-         */
-        post: operations["wizard_ensure_account_api_setup_wizard_ensure_account_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/wizard/init-persistence": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Wizard Init Persistence
-         * @description Initialize persistence files on factory-reset devices (Wizard Step — after account pairing).
-         *
-         *     Factory-reset devices lack SystemConfigurationDB.xml and Sources.xml.
-         *     Without them, the firmware never fully initialises playback state,
-         *     causing INVALID_SOURCE on preset recall (GitHub Issue #167).
-         *
-         *     Only creates files that are missing — never overwrites existing ones.
-         *     Safe to call multiple times.
-         */
-        post: operations["wizard_init_persistence_api_setup_wizard_init_persistence_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/wizard/complete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Wizard Complete
-         * @description Mark wizard setup as complete for a device.
-         */
-        post: operations["wizard_complete_api_setup_wizard_complete_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/wizard/verify-redirect": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Wizard Verify Redirect
-         * @description Verify a domain is redirected to OCT on the device (Wizard Step 7).
-         */
-        post: operations["wizard_verify_redirect_api_setup_wizard_verify_redirect_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/wizard/finalize": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Wizard Finalize
-         * @description Finalize device setup: set UUID + write Sources.xml (Issue #184).
-         *
-         *     Atomic operation that ensures the device has a unique margeAccountUUID
-         *     and a complete Sources.xml. Safe to call multiple times (idempotent).
-         */
-        post: operations["wizard_finalize_api_setup_wizard_finalize_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/wizard/verify-setup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Wizard Verify Setup
-         * @description Comprehensive post-setup health check (Issue #184).
-         *
-         *     Read-only validation: checks UUID, Sources.xml, config files,
-         *     hosts entries, and SystemConfigurationDB.xml. Never modifies device.
-         */
-        post: operations["wizard_verify_setup_api_setup_wizard_verify_setup_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/wizard/scan-backups": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Wizard Scan Backups
-         * @description Scan USB stick for backup files and auto-select matching set.
-         */
-        post: operations["wizard_scan_backups_api_setup_wizard_scan_backups_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/setup/wizard/restore-wizard": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Wizard Restore Wizard
-         * @description Execute full restore wizard sequence.
-         */
-        post: operations["wizard_restore_wizard_api_setup_wizard_restore_wizard_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/updates/soundtouch": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Firmware Index
-         * @description Return firmware INDEX.XML for SoundTouch devices.
-         *
-         *     Serves the original Bose worldwide.bose.com index so devices recognise
-         *     their current firmware as up-to-date and don't attempt downloads.
-         */
-        get: operations["firmware_index_updates_soundtouch_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/ced/eup/downloads/rel/{filename}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Firmware Download Legacy
-         * @description Block legacy firmware download path.
-         */
-        get: operations["firmware_download_legacy_ced_eup_downloads_rel__filename__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/ced/soundtouch/downloads_stockholm/{path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Firmware Download
-         * @description Block real Bose firmware download path.
-         *
-         *     The real index XML references https://downloads.bose.com/ced/soundtouch/...
-         *     but since swUpdateUrl points to OCT, the device may try to fetch from here.
-         *     We return 404 to prevent unintended firmware updates.
-         */
-        get: operations["firmware_download_ced_soundtouch_downloads_stockholm__path__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/zones": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get All Zones
-         * @description Get all active multi-room zones.
-         */
-        get: operations["get_all_zones_api_zones_get"];
-        put?: never;
-        /**
-         * Create Zone
-         * @description Create a new multi-room zone.
-         */
-        post: operations["create_zone_api_zones_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/zones/{master_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete Zone
-         * @description Delete a multi-room zone by removing all slaves.
-         *
-         *     This properly dissolves the zone on the Bose devices (not just in OCT state).
-         *     All slaves will be removed from the zone and stop playing.
-         *     The master continues playing solo.
-         */
-        delete: operations["delete_zone_api_zones__master_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/zones/{master_id}/members": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Add Zone Members
-         * @description Add members to an existing zone.
-         */
-        post: operations["add_zone_members_api_zones__master_id__members_post"];
-        /**
-         * Remove Zone Members
-         * @description Remove members from an existing zone.
-         */
-        delete: operations["remove_zone_members_api_zones__master_id__members_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/zones/{master_id}/master": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Change Master
-         * @description Change the master of a zone.
-         */
-        put: operations["change_master_api_zones__master_id__master_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/devices/{device_id}/zone": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Device Zone
-         * @description Get zone status for a specific device.
-         */
-        get: operations["get_device_zone_api_devices__device_id__zone_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/logs/level": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get current log level */
-        get: operations["get_log_level_api_logs_level_get"];
-        /** Set log level at runtime */
-        put: operations["put_log_level_api_logs_level_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/logs/backend": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Download backend log buffer (without frontend logs)
-         * @description Returns backend logs as plain text, or ZIP if persistent log files exist.
-         */
-        get: operations["download_backend_logs_get_api_logs_backend_get"];
-        put?: never;
-        /**
-         * Download backend + frontend logs
-         * @description Returns backend + frontend logs as plain text, or ZIP if persistent log files exist.
-         */
-        post: operations["download_backend_logs_post_api_logs_backend_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/bug-report": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create Bug Report
-         * @description Create a bug report as a GitHub Issue with auto-collected diagnostics.
-         */
-        post: operations["create_bug_report_api_bug_report_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/bug-report/diagnostics": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Download Diagnostics
-         * @description Download a gzipped diagnostic bundle — works without GitHub token.
-         *
-         *     The user can drag-drop the .log.gz file into a manually created GitHub issue.
-         */
-        post: operations["download_diagnostics_api_bug_report_diagnostics_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/wizard/audit-log": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Post Audit Entry
-         * @description Record a single wizard audit log entry.
-         */
-        post: operations["post_audit_entry_api_wizard_audit_log_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/wizard/audit-log/batch": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Post Audit Batch
-         * @description Record multiple wizard audit log entries in one request.
-         */
-        post: operations["post_audit_batch_api_wizard_audit_log_batch_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/wizard/config-snapshot": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Post Config Snapshot
-         * @description Store a config XML snapshot.
-         */
-        post: operations["post_config_snapshot_api_wizard_config_snapshot_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/events/device-stream": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Device Event Stream
-         * @description Stream device events via Server-Sent Events.
-         *
-         *     Pushes an initial snapshot of all known device states, then streams
-         *     real-time updates. A keepalive comment is sent every 15 seconds.
-         */
-        get: operations["device_event_stream_api_events_device_stream_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Health Check
-         * @description Health check endpoint for Docker and monitoring.
-         */
-        get: operations["health_check_health_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/health/websockets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Websocket Health
-         * @description WebSocket connection health for all managed devices.
-         */
-        get: operations["websocket_health_api_health_websockets_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
+  "/api/devices/discover": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Discover Devices
+     * @description Trigger device discovery.
+     *
+     *     Returns:
+     *         List of discovered devices (not yet saved to DB)
+     */
+    get: operations["discover_devices_api_devices_discover_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/devices/sync": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Sync Devices
+     * @description Discover devices and sync to database.
+     *     Queries each device for detailed info (/info endpoint).
+     *
+     *     Returns:
+     *         Sync summary with success/failure counts
+     */
+    post: operations["sync_devices_api_devices_sync_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/devices/discover/stream": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Discover Devices Stream
+     * @description Discover devices and stream results via Server-Sent Events (SSE).
+     *
+     *     Progressive loading:
+     *     - Sends `device_found` events as devices are discovered via SSDP
+     *     - Sends `device_synced` events as devices are saved to DB
+     *     - Sends `completed` event when done
+     *
+     *     Frontend can show devices immediately instead of waiting for full scan.
+     *
+     *     Returns:
+     *         StreamingResponse with SSE events
+     *
+     *     Event Types:
+     *         - started: Discovery started
+     *         - device_found: Device discovered (SSDP response)
+     *         - device_synced: Device synced to DB
+     *         - device_failed: Device sync failed
+     *         - completed: Discovery finished
+     *         - error: Error occurred
+     *
+     *     Example SSE Stream:
+     *         event: started
+     *         data: {"message": "Starting discovery"}
+     *
+     *         event: device_found
+     *         data: {"ip": "192.168.1.100", "name": "Küche", "model": "SoundTouch 10"}
+     *
+     *         event: device_synced
+     *         data: {"id": 1, "device_id": "ABC123", "ip": "192.168.1.100", ...}
+     *
+     *         event: completed
+     *         data: {"discovered": 3, "synced": 3, "failed": 0}
+     */
+    get: operations["discover_devices_stream_api_devices_discover_stream_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/devices": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Devices
+     * @description Get all devices from database.
+     *
+     *     Returns:
+     *         List of devices with details
+     */
+    get: operations["get_devices_api_devices_get"];
+    put?: never;
+    post?: never;
+    /**
+     * Delete All Devices
+     * @description Delete all devices from database.
+     *
+     *     **Testing/Development endpoint only.**
+     *     Use for cleaning database before E2E tests or manual testing.
+     *
+     *     **Protected**: Requires OCT_ALLOW_DANGEROUS_OPERATIONS=true
+     *
+     *     Returns:
+     *         Confirmation message
+     *
+     *     Raises:
+     *         HTTPException(403): If dangerous operations are disabled in production
+     */
+    delete: operations["delete_all_devices_api_devices_delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/devices/{device_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Device
+     * @description Get single device by device_id.
+     *
+     *     Args:
+     *         device_id: Device ID
+     *
+     *     Returns:
+     *         Device details
+     *
+     *     Raises:
+     *         DeviceNotFoundError: If device does not exist
+     */
+    get: operations["get_device_api_devices__device_id__get"];
+    put?: never;
+    post?: never;
+    /**
+     * Delete By Device Id
+     * @description Delete device by id from database.
+     *
+     *     Args:
+     *         device_id: Device ID
+     *
+     *     Returns:
+     *         Confirmation message
+     */
+    delete: operations["delete_by_device_id_api_devices__device_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/devices/{device_id}/capabilities": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Device Capabilities Endpoint
+     * @description Get device capabilities for UI feature detection.
+     *
+     *     Returns which features this specific device supports:
+     *     - HDMI control (ST300 only)
+     *     - Bass/balance controls
+     *     - Available input sources
+     *     - Zone/group support
+     *     - All supported endpoints
+     *
+     *     Args:
+     *         device_id: Device ID
+     *
+     *     Returns:
+     *         Feature flags and capabilities for UI rendering
+     *
+     *     Example Response:
+     *         {
+     *             "device_id": "AABBCC112233",
+     *             "device_type": "SoundTouch 30 Series III",
+     *             "is_soundbar": false,
+     *             "features": {
+     *                 "hdmi_control": false,
+     *                 "bass_control": true,
+     *                 "bluetooth": true,
+     *                 ...
+     *             },
+     *             "sources": ["BLUETOOTH", "AUX", "INTERNET_RADIO"],
+     *             "advanced": {...}
+     *         }
+     */
+    get: operations["get_device_capabilities_endpoint_api_devices__device_id__capabilities_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/devices/{device_id}/key": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Press Key
+     * @description Simulate a key press on a device.
+     *
+     *     Used for E2E testing to trigger preset playback without physical button press.
+     *
+     *     Args:
+     *         device_id: Device ID
+     *         key: Key name (e.g., "PRESET_1", "PRESET_2", "PRESET_3", ...)
+     *         state: Key state ("press", "release", or "both"). Default: "both"
+     *
+     *     Returns:
+     *         Success message
+     *
+     *     Raises:
+     *         DeviceNotFoundError: If device does not exist
+     *         HTTPException(400): If key or state is invalid
+     *         HTTPException(500): If key press fails
+     *
+     *     Example:
+     *         POST /api/devices/AABBCC112233/key?key=PRESET_1&state=both
+     */
+    post: operations["press_key_api_devices__device_id__key_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/devices/{device_id}/now-playing": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Now Playing
+     * @description Get current playback status for a device.
+     */
+    get: operations["get_now_playing_api_devices__device_id__now_playing_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/devices/{device_id}/volume": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Volume
+     * @description Get current volume state for a device.
+     */
+    get: operations["get_volume_api_devices__device_id__volume_get"];
+    /**
+     * Set Volume
+     * @description Set volume level (0-100).
+     */
+    put: operations["set_volume_api_devices__device_id__volume_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/devices/{device_id}/mute": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Set Mute
+     * @description Set mute state.
+     */
+    put: operations["set_mute_api_devices__device_id__mute_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/presets/set": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Set Preset
+     * @description Set a preset for a device.
+     *
+     *     Creates or updates a preset mapping. When the physical preset button
+     *     is pressed on the SoundTouch device, it will load the configured station.
+     */
+    post: operations["set_preset_api_presets_set_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/presets/{device_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Device Presets
+     * @description Get all presets for a device.
+     *
+     *     Returns all configured presets (1-6) for the specified device.
+     *     Empty slots are not included in the response.
+     */
+    get: operations["get_device_presets_api_presets__device_id__get"];
+    put?: never;
+    post?: never;
+    /**
+     * Clear All Presets
+     * @description Clear all presets for a device.
+     *
+     *     Removes all preset configurations for the specified device.
+     */
+    delete: operations["clear_all_presets_api_presets__device_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/presets/{device_id}/{preset_number}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Preset
+     * @description Get a specific preset.
+     *
+     *     Returns the preset configuration for the specified device and preset number.
+     */
+    get: operations["get_preset_api_presets__device_id___preset_number__get"];
+    put?: never;
+    post?: never;
+    /**
+     * Clear Preset
+     * @description Clear a specific preset.
+     *
+     *     Removes the preset configuration. The physical preset button will no
+     *     longer trigger playback until a new station is assigned.
+     */
+    delete: operations["clear_preset_api_presets__device_id___preset_number__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/presets/{device_id}/sync": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Sync Presets From Device
+     * @description Sync presets from device to OCT database.
+     *
+     *     Fetches presets from the physical device and imports them into OCT.
+     *     Useful when a device was configured by another OCT instance or manually.
+     *
+     *     Returns:
+     *         Message with sync count
+     *
+     *     Raises:
+     *         404: Device not found
+     *         502: Device unreachable
+     *         500: Internal error
+     */
+    post: operations["sync_presets_from_device_api_presets__device_id__sync_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/radio/search": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Search Stations
+     * @description Search radio stations.
+     *
+     *     - **q**: Search query (required, min 1 character)
+     *     - **search_type**: Type of search - name, country, or tag (default: name)
+     *     - **limit**: Maximum results (1-50, default: 10)
+     *     - **offset**: Offset for pagination (default: 0)
+     *     - **provider**: Radio provider - radiobrowser or tunein (default: radiobrowser)
+     */
+    get: operations["search_stations_api_radio_search_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/radio/station/{uuid}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Station Detail
+     * @description Get radio station detail by UUID.
+     *
+     *     - **uuid**: Station UUID
+     *     - **provider**: Radio provider - radiobrowser or tunein (default: radiobrowser)
+     */
+    get: operations["get_station_detail_api_radio_station__uuid__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/settings/manual-ips": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Manual Ips
+     * @description Get all manual device IP addresses.
+     *
+     *     Returns:
+     *         List of manually configured IP addresses
+     */
+    get: operations["get_manual_ips_api_settings_manual_ips_get"];
+    put?: never;
+    /**
+     * Set Manual Ips
+     * @description Replace all manual device IP addresses with new list.
+     *
+     *     Args:
+     *         request: Request containing list of IP addresses
+     *
+     *     Returns:
+     *         Updated list of manual IP addresses
+     */
+    post: operations["set_manual_ips_api_settings_manual_ips_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/settings/manual-ips/{ip}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Delete Manual Ip
+     * @description Remove a manual device IP address.
+     *
+     *     Args:
+     *         ip: IP address to remove
+     *
+     *     Returns:
+     *         Success message with removed IP
+     */
+    delete: operations["delete_manual_ip_api_settings_manual_ips__ip__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/stations/preset/{device_id}/{preset_number}.json": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Station Descriptor
+     * @description Get station descriptor for a device preset.
+     *
+     *     This endpoint is called by SoundTouch devices when a preset button is pressed.
+     *     It returns the stream URL and metadata for playback.
+     *
+     *     Response format:
+     *     ```json
+     *     {
+     *         "stationName": "Station Name",
+     *         "streamUrl": "http://stream.url/path",
+     *         "homepage": "https://station.homepage",
+     *         "favicon": "https://station.favicon/icon.png",
+     *         "uuid": "radiobrowser-uuid"
+     *     }
+     *     ```
+     */
+    get: operations["get_station_descriptor_stations_preset__device_id___preset_number__json_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/device/{device_id}/preset/{preset_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Stream Device Preset
+     * @description Stream proxy endpoint for Bose SoundTouch custom presets.
+     *
+     *     **How it works:**
+     *     1. User configures preset via OCT UI (e.g., "Absolut Relax" → Preset 1)
+     *     2. OCT stores mapping in database: `device_id=689E194F7D2F, preset=1, url=https://stream.url`
+     *     3. OCT programs Bose device with OCT backend URL:
+     *        ```
+     *        location="http://192.168.1.108:7777/device/689E194F7D2F/preset/1"
+     *        ```
+     *     4. User presses PRESET_1 button on Bose device
+     *     5. Bose requests: `GET /device/689E194F7D2F/preset/1`
+     *     6. OCT looks up preset in database
+     *     7. **OCT proxies HTTPS stream as HTTP:** Fetches from RadioBrowser, streams to Bose
+     *     8. Bose receives HTTP audio stream and plays ✅
+     *
+     *     **Why HTTP proxy instead of direct HTTPS URL?**
+     *     - ❌ Bose cannot play HTTPS streams directly (certificate validation fails)
+     *     - ❌ HTTP 302 redirect to HTTPS URL → INVALID_SOURCE error
+     *     - ✅ OCT acts as HTTP audio proxy: Fetches HTTPS → Serves as HTTP chunked transfer
+     *     - ✅ Bose treats OCT like "TuneIn integration" (trusted HTTP source)
+     *
+     *     **Example flow:**
+     *     ```
+     *     Request:  GET /device/689E194F7D2F/preset/1
+     *     Response: HTTP 200 OK
+     *               Content-Type: audio/mpeg
+     *               Transfer-Encoding: chunked
+     *               icy-name: Absolut Relax
+     *               [Audio data stream: chunk1, chunk2, chunk3...]
+     *     ```
+     *
+     *     Args:
+     *         device_id: Bose device identifier (from URL path)
+     *         preset_id: Preset number 1-6 (from URL path)
+     *         preset_service: Injected preset service
+     *
+     *     Returns:
+     *         StreamingResponse with proxied audio stream
+     *
+     *     Raises:
+     *         404: Preset not configured for this device
+     *         502: RadioBrowser stream unavailable
+     *         500: Internal server error
+     */
+    get: operations["stream_device_preset_device__device_id__preset__preset_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/descriptor/device/{device_id}/preset/{preset_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Preset Descriptor
+     * @description Get preset descriptor XML for Bose SoundTouch device.
+     *
+     *     **How it works:**
+     *     Bose devices with `source="INTERNET_RADIO"` expect an XML descriptor endpoint
+     *     (similar to TuneIn's `/v1/playback/station/...` endpoints).
+     *
+     *     **Flow:**
+     *     1. OCT programs Bose preset with descriptor URL:
+     *        ```xml
+     *        <ContentItem source="INTERNET_RADIO"
+     *                     location="http://192.168.1.100:7777/descriptor/device/689E194F7D2F/preset/1">
+     *          <itemName>Absolut relax</itemName>
+     *        </ContentItem>
+     *        ```
+     *     2. User presses PRESET_1 button on Bose device
+     *     3. Bose requests: `GET /descriptor/device/689E194F7D2F/preset/1`
+     *     4. OCT returns XML with **direct stream URL**:
+     *        ```xml
+     *        <ContentItem source="INTERNET_RADIO" type="stationurl"
+     *                     location="https://absolut-relax.live-sm.absolutradio.de/absolut-relax">
+     *          <itemName>Absolut relax</itemName>
+     *        </ContentItem>
+     *        ```
+     *     5. Bose fetches stream from direct URL and plays ✅
+     *
+     *     Args:
+     *         device_id: Bose device identifier
+     *         preset_id: Preset number 1-6
+     *         preset_service: Injected preset service
+     *
+     *     Returns:
+     *         XML Response with ContentItem descriptor
+     *
+     *     Raises:
+     *         404: Preset not configured
+     */
+    get: operations["get_preset_descriptor_descriptor_device__device_id__preset__preset_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/bmx/orion/now-playing": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Bmx Now Playing Stub
+     * @description Stub endpoint for now-playing data.
+     *
+     *     Device calls this to get currently playing track info.
+     *     Returns minimal valid response to prevent errors.
+     */
+    get: operations["bmx_now_playing_stub_bmx_orion_now_playing_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/bmx/orion/now-playing/station/{station_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Bmx Now Playing Stub
+     * @description Stub endpoint for now-playing data.
+     *
+     *     Device calls this to get currently playing track info.
+     *     Returns minimal valid response to prevent errors.
+     */
+    get: operations["bmx_now_playing_stub_bmx_orion_now_playing_station__station_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/bmx/orion/reporting": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Bmx Reporting Stub
+     * @description Stub endpoint for telemetry reporting.
+     *
+     *     Device calls this to report playback events.
+     *     Returns success to prevent errors.
+     */
+    post: operations["bmx_reporting_stub_bmx_orion_reporting_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/bmx/orion/reporting/station/{station_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Bmx Reporting Stub
+     * @description Stub endpoint for telemetry reporting.
+     *
+     *     Device calls this to report playback events.
+     *     Returns success to prevent errors.
+     */
+    post: operations["bmx_reporting_stub_bmx_orion_reporting_station__station_id__post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/bmx/tunein/v1/now-playing/station/{station_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Bmx Tunein Now Playing
+     * @description TuneIn now-playing stub.
+     *
+     *     Device calls this to get currently playing track info.
+     */
+    get: operations["bmx_tunein_now_playing_bmx_tunein_v1_now_playing_station__station_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/bmx/tunein/v1/reporting/station/{station_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Bmx Tunein Reporting
+     * @description TuneIn reporting stub.
+     *
+     *     Device calls this to report playback events.
+     */
+    post: operations["bmx_tunein_reporting_bmx_tunein_v1_reporting_station__station_id__post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/bmx/tunein/v1/favorite/{station_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Bmx Tunein Favorite
+     * @description TuneIn favorite stub.
+     *
+     *     Device calls this to mark/unmark stations as favorites.
+     */
+    get: operations["bmx_tunein_favorite_bmx_tunein_v1_favorite__station_id__get"];
+    put?: never;
+    /**
+     * Bmx Tunein Favorite
+     * @description TuneIn favorite stub.
+     *
+     *     Device calls this to mark/unmark stations as favorites.
+     */
+    post: operations["bmx_tunein_favorite_bmx_tunein_v1_favorite__station_id__post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/bmx/registry/v1/services": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Bmx Services
+     * @description Return list of available BMX services.
+     *
+     *     This endpoint is called by the device after booting to discover
+     *     available streaming services. We provide:
+     *     - TUNEIN: Resolved via TuneIn API
+     *     - LOCAL_INTERNET_RADIO: Custom stations via OCT
+     */
+    get: operations["bmx_services_bmx_registry_v1_services_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/bmx/tunein/v1/playback/station/{station_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Bmx Tunein Playback
+     * @description Resolve TuneIn station to stream URL.
+     *
+     *     The device calls this endpoint with a station ID (e.g., "s158432")
+     *     and expects a JSON response with stream URLs.
+     */
+    get: operations["bmx_tunein_playback_bmx_tunein_v1_playback_station__station_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/core02/svc-bmx-adapter-orion/prod/orion/station": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Custom Stream Playback
+     * @description Play custom stream URL.
+     *
+     *     This endpoint handles LOCAL_INTERNET_RADIO sources. The data parameter
+     *     contains base64-encoded JSON with streamUrl, imageUrl, and name.
+     */
+    get: operations["custom_stream_playback_core02_svc_bmx_adapter_orion_prod_orion_station_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/bmx/radiobrowser/v1/playback/station/{uuid}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Bmx Radiobrowser Playback
+     * @description Resolve RadioBrowser station UUID to stream URL.
+     *
+     *     The device calls this with a station UUID and expects a BMX-format
+     *     JSON response with stream URLs for playback.
+     */
+    get: operations["bmx_radiobrowser_playback_bmx_radiobrowser_v1_playback_station__uuid__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/bmx/radiobrowser/v1/now-playing/station/{uuid}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Bmx Radiobrowser Now Playing
+     * @description Now-playing stub for RadioBrowser stations.
+     */
+    get: operations["bmx_radiobrowser_now_playing_bmx_radiobrowser_v1_now_playing_station__uuid__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/bmx/radiobrowser/v1/reporting/station/{uuid}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Bmx Radiobrowser Reporting
+     * @description Reporting stub for RadioBrowser stations.
+     */
+    post: operations["bmx_radiobrowser_reporting_bmx_radiobrowser_v1_reporting_station__uuid__post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/bmx/resolve": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Resolve Stream
+     * @description Resolve ContentItem to playable stream URL.
+     *
+     *     Bose devices call this endpoint with a ContentItem XML to resolve:
+     *     - TuneIn station IDs → direct stream URLs
+     *     - Direct stream URLs → pass through
+     *     - OCT stream proxy URLs → pass through
+     *
+     *     This mimics the original Bose BMX server (bmx.bose.com).
+     */
+    post: operations["resolve_stream_bmx_resolve_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/systems/devices/{device_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Full Account
+     * @description Get full account sync for device.
+     *
+     *     This endpoint is called by SoundTouch devices on boot to sync:
+     *     - Presets (6 buttons)
+     *     - Recents (recently played)
+     *     - Sources (available sources)
+     *
+     *     Args:
+     *         device_id: Device MAC address (e.g., "689E194F7D2F")
+     *         marge: Marge service dependency
+     *
+     *     Returns:
+     *         XML Response with <boseAccount> structure
+     */
+    get: operations["get_full_account_v1_systems_devices__device_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/systems/devices/{device_id}/presets": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Presets
+     * @description Get presets for device.
+     *
+     *     Args:
+     *         device_id: Device MAC address
+     *         marge: Marge service dependency
+     *
+     *     Returns:
+     *         XML Response with <presets> structure
+     */
+    get: operations["get_presets_v1_systems_devices__device_id__presets_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/systems/devices/{device_id}/recents": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Recents
+     * @description Get recently played items for device.
+     *
+     *     Args:
+     *         device_id: Device MAC address
+     *         marge: Marge service dependency
+     *
+     *     Returns:
+     *         XML Response with <recents> structure
+     */
+    get: operations["get_recents_v1_systems_devices__device_id__recents_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/systems/devices/{device_id}/sources": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Sources
+     * @description Get available sources for device.
+     *
+     *     Args:
+     *         device_id: Device MAC address
+     *
+     *     Returns:
+     *         XML Response with <sources> structure
+     */
+    get: operations["get_sources_v1_systems_devices__device_id__sources_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/systems/devices/{device_id}/devices": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Devices
+     * @description Get multiroom devices for device.
+     *
+     *     Args:
+     *         device_id: Device MAC address
+     *
+     *     Returns:
+     *         XML Response with <devices> structure
+     */
+    get: operations["get_devices_v1_systems_devices__device_id__devices_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/systems/devices/{device_id}/power_on": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Power On
+     * @description Device boot notification.
+     *
+     *     SoundTouch devices call this on power-on to notify the server.
+     *
+     *     Args:
+     *         device_id: Device MAC address
+     *
+     *     Returns:
+     *         204 No Content (acknowledgement)
+     */
+    put: operations["power_on_v1_systems_devices__device_id__power_on_put"];
+    /**
+     * Power On
+     * @description Device boot notification.
+     *
+     *     SoundTouch devices call this on power-on to notify the server.
+     *
+     *     Args:
+     *         device_id: Device MAC address
+     *
+     *     Returns:
+     *         204 No Content (acknowledgement)
+     */
+    post: operations["power_on_v1_systems_devices__device_id__power_on_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/systems/devices/{device_id}/sourceproviders": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Sourceproviders
+     * @description Get available source providers for device.
+     *
+     *     Args:
+     *         device_id: Device MAC address
+     *
+     *     Returns:
+     *         XML Response with <sourceproviders> structure
+     */
+    get: operations["get_sourceproviders_v1_systems_devices__device_id__sourceproviders_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/streaming/support/power_on": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Streaming Power On
+     * @description Device boot notification via streaming endpoint.
+     *
+     *     SoundTouch devices call this on power-on to notify the server.
+     *     The device data is in the XML body with device ID, serial number,
+     *     firmware version, IP address, and diagnostic data.
+     *
+     *     Returns:
+     *         200 OK (acknowledgement)
+     */
+    put: operations["streaming_power_on_streaming_support_power_on_put"];
+    /**
+     * Streaming Power On
+     * @description Device boot notification via streaming endpoint.
+     *
+     *     SoundTouch devices call this on power-on to notify the server.
+     *     The device data is in the XML body with device ID, serial number,
+     *     firmware version, IP address, and diagnostic data.
+     *
+     *     Returns:
+     *         200 OK (acknowledgement)
+     */
+    post: operations["streaming_power_on_streaming_support_power_on_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/streaming/sourceproviders": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Streaming Sourceproviders
+     * @description Get available source providers.
+     *
+     *     Returns list of streaming source providers like TUNEIN, SPOTIFY, etc.
+     *
+     *     Returns:
+     *         XML Response with <sourceProviders> structure
+     */
+    get: operations["streaming_sourceproviders_streaming_sourceproviders_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/streaming/account/{account_id}/full": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Streaming Full Account
+     * @description Get full account sync via streaming endpoint.
+     *
+     *     This is the streaming.bose.com version of the account sync endpoint.
+     *     Resolves the device_id from the account_id (margeAccountUUID) stored
+     *     during device discovery, then returns that device's presets.
+     *
+     *     Args:
+     *         account_id: Account ID (e.g., "3784726")
+     *         marge: Marge service dependency
+     *
+     *     Returns:
+     *         XML Response with <account> structure
+     */
+    get: operations["streaming_full_account_streaming_account__account_id__full_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/scmudc/{device_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Scmudc Reporting
+     * @description Device reporting/telemetry endpoint.
+     *
+     *     Devices periodically call this to report status/telemetry data.
+     *     We acknowledge but don't process the data.
+     *
+     *     Args:
+     *         device_id: Device MAC address
+     *
+     *     Returns:
+     *         200 OK
+     */
+    post: operations["scmudc_reporting_v1_scmudc__device_id__post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/streaming/stats/usage": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Streaming Stats Usage
+     * @description Accept device usage statistics (stub).
+     *
+     *     Without this endpoint, the device retries repeatedly after
+     *     statsServerUrl is redirected to OCT.
+     *
+     *     Returns:
+     *         200 OK
+     */
+    post: operations["streaming_stats_usage_streaming_stats_usage_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/streaming/device/{device_id}/streaming_token": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Streaming Token
+     * @description Return a dummy streaming token for device authentication.
+     *
+     *     SoundTouch firmware 27.x requests this token before playing a preset.
+     *     If the request fails, the device aborts playback with INVALID_SOURCE.
+     *     The token value is not validated — any non-empty response suffices.
+     *
+     *     Args:
+     *         device_id: Device MAC address
+     *
+     *     Returns:
+     *         JSON with a dummy access token
+     */
+    get: operations["streaming_token_streaming_device__device_id__streaming_token_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/blacklist/{device_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Blacklist Check
+     * @description Content blacklist check — always returns empty (nothing blacklisted).
+     *
+     *     The device checks this before playing content. If the endpoint is
+     *     unreachable, some firmware versions refuse playback.
+     *
+     *     Args:
+     *         device_id: Device MAC address
+     *
+     *     Returns:
+     *         JSON with empty blacklist
+     */
+    get: operations["blacklist_check_v1_blacklist__device_id__get"];
+    put?: never;
+    /**
+     * Blacklist Check
+     * @description Content blacklist check — always returns empty (nothing blacklisted).
+     *
+     *     The device checks this before playing content. If the endpoint is
+     *     unreachable, some firmware versions refuse playback.
+     *
+     *     Args:
+     *         device_id: Device MAC address
+     *
+     *     Returns:
+     *         JSON with empty blacklist
+     */
+    post: operations["blacklist_check_v1_blacklist__device_id__post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/setMargeAccount": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Set Marge Account
+     * @description Pair device with a Bose Cloud account (stub).
+     *
+     *     The SoundTouch app calls this to associate a device with an account.
+     *     OCT doesn't use real cloud accounts, but the device expects a 200 OK.
+     *     The actual margeAccountUUID is set via Telnet or device-side API.
+     *
+     *     Returns:
+     *         200 OK with status XML
+     */
+    post: operations["set_marge_account_setMargeAccount_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/playlist/{device_id}/{preset_number}.m3u": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Playlist M3U
+     * @description Get M3U playlist file for a device preset.
+     *
+     *     Returns an M3U playlist containing the stream URL for the specified preset.
+     *     This format might be better parsed by Bose SoundTouch devices.
+     *
+     *     M3U Format:
+     *     ```
+     *     #EXTM3U
+     *     #EXTINF:-1,Station Name
+     *     http://stream.url/path
+     *     ```
+     *
+     *     Headers:
+     *     - Content-Type: audio/x-mpegurl
+     *
+     *     Args:
+     *         device_id: Bose device identifier
+     *         preset_number: Preset number (1-6)
+     *
+     *     Returns:
+     *         M3U playlist content with Content-Type: audio/x-mpegurl
+     */
+    get: operations["get_playlist_m3u_playlist__device_id___preset_number__m3u_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/playlist/{device_id}/{preset_number}.pls": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Playlist Pls
+     * @description Get PLS playlist file for a device preset.
+     *
+     *     Returns a PLS playlist containing the stream URL for the specified preset.
+     *     Alternative format that might work better with some devices.
+     *
+     *     PLS Format:
+     *     ```
+     *     [playlist]
+     *     File1=http://stream.url/path
+     *     Title1=Station Name
+     *     Length1=-1
+     *     NumberOfEntries=1
+     *     Version=2
+     *     ```
+     *
+     *     Headers:
+     *     - Content-Type: audio/x-scpls
+     *
+     *     Args:
+     *         device_id: Bose device identifier
+     *         preset_number: Preset number (1-6)
+     *
+     *     Returns:
+     *         PLS playlist content with Content-Type: audio/x-scpls
+     */
+    get: operations["get_playlist_pls_playlist__device_id___preset_number__pls_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/instructions/{model}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Instructions
+     * @description Get model-specific setup instructions.
+     *
+     *     Returns:
+     *         Instructions including USB port location, adapter recommendations, etc.
+     */
+    get: operations["get_instructions_api_setup_instructions__model__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/check-connectivity": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Check Connectivity
+     * @description Check if device is ready for setup (SSH available).
+     *
+     *     This should be called after user inserts USB stick and reboots device.
+     */
+    post: operations["check_connectivity_api_setup_check_connectivity_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/status/{device_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Status
+     * @description Get setup status for a device.
+     *
+     *     Returns current step, progress, and any errors.
+     */
+    get: operations["get_status_api_setup_status__device_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/ssh/enable-permanent": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Enable Permanent Ssh
+     * @description Enable permanent SSH access on SoundTouch device.
+     *
+     *     Copies /remote_services to /mnt/nv/ persistent volume.
+     *     After reboot, SSH remains active without USB stick.
+     *
+     *     Security Warning:
+     *     - SSH becomes permanently accessible on network
+     *     - Root login without password
+     *     - Only recommended in trusted home networks
+     */
+    post: operations["enable_permanent_ssh_api_setup_ssh_enable_permanent_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/verify/{device_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Verify Setup
+     * @description Verify that device setup is complete and working.
+     *
+     *     Checks:
+     *     - SSH accessible
+     *     - SSH persistent
+     *     - BMX URL configured correctly
+     */
+    post: operations["verify_setup_api_setup_verify__device_id__post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/models": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Supported Models
+     * @description Get list of all supported models with their instructions.
+     */
+    get: operations["list_supported_models_api_setup_models_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/server-info": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Wizard Server Info
+     * @description Get OCT server info for auto-filling wizard forms.
+     *
+     *     Returns server URL that frontend can use as default.
+     *     Detects host/port from incoming HTTP request headers.
+     *     Also resolves the hostname to an IP for /etc/hosts usage.
+     */
+    get: operations["wizard_server_info_api_setup_wizard_server_info_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/detect-strategy": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Wizard Detect Strategy
+     * @description Detect whether an HTTPS reverse proxy is available on port 443.
+     *
+     *     If a reverse proxy (e.g. Nginx) terminates SSL on 443 and forwards
+     *     to OCT, then the device only needs ``/etc/hosts`` changes (Strategy B).
+     *     Otherwise, the BMX URL in the device config must also be changed
+     *     (Strategy A + hosts).
+     */
+    get: operations["wizard_detect_strategy_api_setup_wizard_detect_strategy_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/check-ports": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Check Ports
+     * @description Check if SSH port is accessible (Wizard Step 3).
+     */
+    post: operations["wizard_check_ports_api_setup_wizard_check_ports_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/backup": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Backup
+     * @description Create complete backup to USB stick (Wizard Step 4).
+     */
+    post: operations["wizard_backup_api_setup_wizard_backup_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/modify-config": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Modify Config
+     * @description Modify OverrideSdkPrivateCfg.xml (Wizard Step 5).
+     */
+    post: operations["wizard_modify_config_api_setup_wizard_modify_config_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/modify-hosts": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Modify Hosts
+     * @description Modify /etc/hosts (Wizard Step 6).
+     */
+    post: operations["wizard_modify_hosts_api_setup_wizard_modify_hosts_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/restore-config": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Restore Config
+     * @description Restore config from backup (Wizard Step 8).
+     */
+    post: operations["wizard_restore_config_api_setup_wizard_restore_config_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/restore-hosts": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Restore Hosts
+     * @description Restore hosts from backup (Wizard Step 8).
+     */
+    post: operations["wizard_restore_hosts_api_setup_wizard_restore_hosts_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/list-backups": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard List Backups
+     * @description List available backups (Wizard Step 8).
+     */
+    post: operations["wizard_list_backups_api_setup_wizard_list_backups_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/reboot-device": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Reboot Device
+     * @description Reboot SoundTouch device via SSH (Wizard Step 7).
+     */
+    post: operations["wizard_reboot_device_api_setup_wizard_reboot_device_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/account-pairing": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Account Pairing
+     * @description Ensure device has a margeAccountUUID (Wizard Step - Account Pairing).
+     *
+     *     Checks if the device already has a UUID. If not, generates one and
+     *     sets it via Telnet. Persists the UUID in the device repository for
+     *     streaming endpoint resolution.
+     */
+    post: operations["wizard_account_pairing_api_setup_wizard_account_pairing_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/ensure-account": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Ensure Account
+     * @description Ensure device has a margeAccountUUID (Wizard Step � after config/hosts).
+     *
+     *     Devices without a margeAccountUUID cannot play presets (INVALID_SOURCE).
+     *     This endpoint checks GET :8090/info and sets a UUID via Telnet if missing.
+     *
+     *     Safe to call multiple times � no-op if UUID already present.
+     */
+    post: operations["wizard_ensure_account_api_setup_wizard_ensure_account_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/init-persistence": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Init Persistence
+     * @description Initialize persistence files on factory-reset devices (Wizard Step — after account pairing).
+     *
+     *     Factory-reset devices lack SystemConfigurationDB.xml and Sources.xml.
+     *     Without them, the firmware never fully initialises playback state,
+     *     causing INVALID_SOURCE on preset recall (GitHub Issue #167).
+     *
+     *     Only creates files that are missing — never overwrites existing ones.
+     *     Safe to call multiple times.
+     */
+    post: operations["wizard_init_persistence_api_setup_wizard_init_persistence_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/complete": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Complete
+     * @description Mark wizard setup as complete for a device.
+     */
+    post: operations["wizard_complete_api_setup_wizard_complete_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/verify-redirect": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Verify Redirect
+     * @description Verify a domain is redirected to OCT on the device (Wizard Step 7).
+     */
+    post: operations["wizard_verify_redirect_api_setup_wizard_verify_redirect_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/finalize": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Finalize
+     * @description Finalize device setup: set UUID + write Sources.xml (Issue #184).
+     *
+     *     Atomic operation that ensures the device has a unique margeAccountUUID
+     *     and a complete Sources.xml. Safe to call multiple times (idempotent).
+     */
+    post: operations["wizard_finalize_api_setup_wizard_finalize_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/verify-setup": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Verify Setup
+     * @description Comprehensive post-setup health check (Issue #184).
+     *
+     *     Read-only validation: checks UUID, Sources.xml, config files,
+     *     hosts entries, and SystemConfigurationDB.xml. Never modifies device.
+     */
+    post: operations["wizard_verify_setup_api_setup_wizard_verify_setup_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/scan-backups": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Scan Backups
+     * @description Scan USB stick for backup files and auto-select matching set.
+     */
+    post: operations["wizard_scan_backups_api_setup_wizard_scan_backups_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/setup/wizard/restore-wizard": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Restore Wizard
+     * @description Execute full restore wizard sequence.
+     */
+    post: operations["wizard_restore_wizard_api_setup_wizard_restore_wizard_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/updates/soundtouch": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Firmware Index
+     * @description Return firmware INDEX.XML for SoundTouch devices.
+     *
+     *     Serves the original Bose worldwide.bose.com index so devices recognise
+     *     their current firmware as up-to-date and don't attempt downloads.
+     */
+    get: operations["firmware_index_updates_soundtouch_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/ced/eup/downloads/rel/{filename}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Firmware Download Legacy
+     * @description Block legacy firmware download path.
+     */
+    get: operations["firmware_download_legacy_ced_eup_downloads_rel__filename__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/ced/soundtouch/downloads_stockholm/{path}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Firmware Download
+     * @description Block real Bose firmware download path.
+     *
+     *     The real index XML references https://downloads.bose.com/ced/soundtouch/...
+     *     but since swUpdateUrl points to OCT, the device may try to fetch from here.
+     *     We return 404 to prevent unintended firmware updates.
+     */
+    get: operations["firmware_download_ced_soundtouch_downloads_stockholm__path__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/zones": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get All Zones
+     * @description Get all active multi-room zones.
+     */
+    get: operations["get_all_zones_api_zones_get"];
+    put?: never;
+    /**
+     * Create Zone
+     * @description Create a new multi-room zone.
+     */
+    post: operations["create_zone_api_zones_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/zones/{master_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Delete Zone
+     * @description Delete a multi-room zone by removing all slaves.
+     *
+     *     This properly dissolves the zone on the Bose devices (not just in OCT state).
+     *     All slaves will be removed from the zone and stop playing.
+     *     The master continues playing solo.
+     */
+    delete: operations["delete_zone_api_zones__master_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/zones/{master_id}/members": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Add Zone Members
+     * @description Add members to an existing zone.
+     */
+    post: operations["add_zone_members_api_zones__master_id__members_post"];
+    /**
+     * Remove Zone Members
+     * @description Remove members from an existing zone.
+     */
+    delete: operations["remove_zone_members_api_zones__master_id__members_delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/zones/{master_id}/master": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Change Master
+     * @description Change the master of a zone.
+     */
+    put: operations["change_master_api_zones__master_id__master_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/devices/{device_id}/zone": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Device Zone
+     * @description Get zone status for a specific device.
+     */
+    get: operations["get_device_zone_api_devices__device_id__zone_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/logs/level": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get current log level */
+    get: operations["get_log_level_api_logs_level_get"];
+    /** Set log level at runtime */
+    put: operations["put_log_level_api_logs_level_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/logs/backend": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Download backend log buffer (without frontend logs)
+     * @description Returns backend logs as plain text, or ZIP if persistent log files exist.
+     */
+    get: operations["download_backend_logs_get_api_logs_backend_get"];
+    put?: never;
+    /**
+     * Download backend + frontend logs
+     * @description Returns backend + frontend logs as plain text, or ZIP if persistent log files exist.
+     */
+    post: operations["download_backend_logs_post_api_logs_backend_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/bug-report": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create Bug Report
+     * @description Create a bug report as a GitHub Issue with auto-collected diagnostics.
+     */
+    post: operations["create_bug_report_api_bug_report_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/bug-report/diagnostics": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Download Diagnostics
+     * @description Download a gzipped diagnostic bundle — works without GitHub token.
+     *
+     *     The user can drag-drop the .log.gz file into a manually created GitHub issue.
+     */
+    post: operations["download_diagnostics_api_bug_report_diagnostics_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/wizard/audit-log": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Post Audit Entry
+     * @description Record a single wizard audit log entry.
+     */
+    post: operations["post_audit_entry_api_wizard_audit_log_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/wizard/audit-log/batch": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Post Audit Batch
+     * @description Record multiple wizard audit log entries in one request.
+     */
+    post: operations["post_audit_batch_api_wizard_audit_log_batch_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/wizard/config-snapshot": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Post Config Snapshot
+     * @description Store a config XML snapshot.
+     */
+    post: operations["post_config_snapshot_api_wizard_config_snapshot_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/events/device-stream": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Device Event Stream
+     * @description Stream device events via Server-Sent Events.
+     *
+     *     Pushes an initial snapshot of all known device states, then streams
+     *     real-time updates. A keepalive comment is sent every 15 seconds.
+     */
+    get: operations["device_event_stream_api_events_device_stream_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/health": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Health Check
+     * @description Health check endpoint for Docker and monitoring.
+     */
+    get: operations["health_check_health_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/health/websockets": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Websocket Health
+     * @description WebSocket connection health for all managed devices.
+     */
+    get: operations["websocket_health_api_health_websockets_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        /**
-         * AccountPairingRequest
-         * @description Request to ensure device has a margeAccountUUID.
-         */
-        AccountPairingRequest: {
-            /**
-             * Device Ip
-             * @description Device IP address
-             */
-            device_ip: string;
-            /**
-             * Device Id
-             * @description Device ID (MAC address)
-             */
-            device_id: string;
-        };
-        /**
-         * AccountPairingResponse
-         * @description Response from account pairing.
-         */
-        AccountPairingResponse: {
-            /** Success */
-            success: boolean;
-            /**
-             * Had Uuid
-             * @description True if UUID was already present
-             * @default false
-             */
-            had_uuid: boolean;
-            /**
-             * Uuid
-             * @description The current or newly set UUID
-             * @default
-             */
-            uuid: string;
-            /**
-             * Message
-             * @default
-             */
-            message: string;
-        };
-        /**
-         * AuditBatchRequest
-         * @description Batch of audit entries (reduces HTTP roundtrips).
-         */
-        AuditBatchRequest: {
-            /** Entries */
-            entries: components["schemas"]["AuditEntryRequest"][];
-        };
-        /**
-         * AuditBatchResponse
-         * @description Response for batch creation.
-         */
-        AuditBatchResponse: {
-            /** Success */
-            success: boolean;
-            /** Count */
-            count: number;
-        };
-        /**
-         * AuditEntryRequest
-         * @description Single wizard audit log entry from the frontend.
-         */
-        AuditEntryRequest: {
-            /**
-             * Device Id
-             * @description Device MAC/ID
-             */
-            device_id: string;
-            /**
-             * Category
-             * @description Event category: user_action, device_info, api_call, config_change, step_transition, checkbox, dropdown, error
-             */
-            category: string;
-            /**
-             * Event
-             * @description Short event name, e.g. 'button_click:next'
-             */
-            event: string;
-            /**
-             * Step
-             * @description Wizard step number (0=init)
-             */
-            step?: number | null;
-            /**
-             * Detail
-             * @description JSON-encoded extra data (free-form)
-             */
-            detail?: string | null;
-            /**
-             * Timestamp
-             * @description ISO-8601 timestamp from frontend
-             */
-            timestamp?: string | null;
-        };
-        /**
-         * AuditEntryResponse
-         * @description Response for single entry creation.
-         */
-        AuditEntryResponse: {
-            /** Success */
-            success: boolean;
-            /** Id */
-            id: number;
-        };
-        /**
-         * BackupFileInfoResponse
-         * @description Single backup file info in scan response.
-         */
-        BackupFileInfoResponse: {
-            /** Filename */
-            filename: string;
-            /** Volume Type */
-            volume_type: string;
-            /** File Path */
-            file_path: string;
-            /**
-             * Size Bytes
-             * @default 0
-             */
-            size_bytes: number;
-            /** Device Id */
-            device_id?: string | null;
-            /** Backup Date */
-            backup_date?: string | null;
-            /**
-             * Is Pre Restore
-             * @default false
-             */
-            is_pre_restore: boolean;
-            /**
-             * Validation Status
-             * @default valid
-             */
-            validation_status: string;
-            /**
-             * Validation Message
-             * @default
-             */
-            validation_message: string;
-        };
-        /**
-         * BackupRequest
-         * @description Request to create device backup.
-         */
-        BackupRequest: {
-            /** Device Ip */
-            device_ip: string;
-            /**
-             * Device Id
-             * @description Device identifier for unique backup filenames
-             */
-            device_id?: string | null;
-        };
-        /**
-         * BackupResponse
-         * @description Response with backup results.
-         */
-        BackupResponse: {
-            /** Success */
-            success: boolean;
-            /** Message */
-            message: string;
-            /** Volumes */
-            volumes?: Record<string, never>[];
-            /**
-             * Total Size Mb
-             * @default 0
-             */
-            total_size_mb: number;
-            /**
-             * Total Duration Seconds
-             * @default 0
-             */
-            total_duration_seconds: number;
-        };
-        /**
-         * BackupSetResponse
-         * @description Backup set in scan response.
-         */
-        BackupSetResponse: {
-            /** Device Id */
-            device_id?: string | null;
-            /** Backup Date */
-            backup_date?: string | null;
-            /** Files */
-            files?: components["schemas"]["BackupFileInfoResponse"][];
-            /**
-             * Is Legacy
-             * @default false
-             */
-            is_legacy: boolean;
-            /**
-             * Is Match
-             * @default false
-             */
-            is_match: boolean;
-        };
-        /** Body_set_mute_api_devices__device_id__mute_put */
-        Body_set_mute_api_devices__device_id__mute_put: {
-            /** Muted */
-            muted: boolean;
-        };
-        /** Body_set_volume_api_devices__device_id__volume_put */
-        Body_set_volume_api_devices__device_id__volume_put: {
-            /** Level */
-            level: number;
-        };
-        /** BugReportRequest */
-        BugReportRequest: {
-            /** Description */
-            description: string;
-            /** Steps To Reproduce */
-            steps_to_reproduce: string;
-            /** Expected Behavior */
-            expected_behavior: string;
-            /** Installation Type */
-            installation_type: string;
-            /** Hardware */
-            hardware: string;
-            /**
-             * Soundtouch Devices
-             * @default []
-             */
-            soundtouch_devices: string[];
-            /**
-             * Network Config
-             * @default
-             */
-            network_config: string;
-            /**
-             * Additional Info
-             * @default
-             */
-            additional_info: string;
-            /**
-             * Other Installation
-             * @default
-             */
-            other_installation: string;
-            /**
-             * Other Hardware
-             * @default
-             */
-            other_hardware: string;
-            /**
-             * Other Device
-             * @default
-             */
-            other_device: string;
-            /**
-             * Screenshot Data Url
-             * @default
-             */
-            screenshot_data_url: string;
-            /**
-             * Frontend Logs
-             * @default []
-             */
-            frontend_logs: Record<string, never>[];
-            /**
-             * Browser Info
-             * @default
-             */
-            browser_info: string;
-            /**
-             * Current Route
-             * @default
-             */
-            current_route: string;
-            /**
-             * Click Timestamp
-             * @default 0
-             */
-            click_timestamp: number;
-        };
-        /** BugReportResponse */
-        BugReportResponse: {
-            /** Issue Url */
-            issue_url: string;
-        };
-        /**
-         * ChangeMasterRequest
-         * @description Request to change zone master.
-         */
-        ChangeMasterRequest: {
-            /** New Master Id */
-            new_master_id: string;
-        };
-        /**
-         * ConfigModifyRequest
-         * @description Request to modify config file.
-         */
-        ConfigModifyRequest: {
-            /** Device Ip */
-            device_ip: string;
-            /**
-             * Target Addr
-             * @description OCT server URL (e.g., http://192.168.1.100:7777 or oct.local)
-             */
-            target_addr: string;
-        };
-        /**
-         * ConfigModifyResponse
-         * @description Response with config modification result.
-         */
-        ConfigModifyResponse: {
-            /** Success */
-            success: boolean;
-            /** Message */
-            message: string;
-            /**
-             * Backup Path
-             * @default
-             */
-            backup_path: string;
-            /**
-             * Diff
-             * @default
-             */
-            diff: string;
-            /**
-             * Old Url
-             * @default
-             */
-            old_url: string;
-            /**
-             * New Url
-             * @default
-             */
-            new_url: string;
-        };
-        /**
-         * ConfigSnapshotRequest
-         * @description Request to store a config XML snapshot.
-         */
-        ConfigSnapshotRequest: {
-            /** Device Id */
-            device_id: string;
-            /**
-             * File Path
-             * @description Config file path on device
-             */
-            file_path: string;
-            /**
-             * Content
-             * @description Full XML content
-             */
-            content: string;
-            /**
-             * Trigger
-             * @description What caused the snapshot, e.g. 'before_modify'
-             */
-            trigger?: string | null;
-            /** Timestamp */
-            timestamp?: string | null;
-        };
-        /**
-         * ConfigSnapshotResponse
-         * @description Response for snapshot creation.
-         */
-        ConfigSnapshotResponse: {
-            /** Success */
-            success: boolean;
-            /** Id */
-            id: number;
-        };
-        /**
-         * ConnectivityCheckRequest
-         * @description Request to check device connectivity.
-         */
-        ConnectivityCheckRequest: {
-            /** Ip */
-            ip: string;
-        };
-        /**
-         * CreateZoneRequest
-         * @description Request to create a new zone.
-         */
-        CreateZoneRequest: {
-            /** Master Id */
-            master_id: string;
-            /** Slave Ids */
-            slave_ids: string[];
-        };
-        /**
-         * DetectStrategyResponse
-         * @description Response with detected setup strategy.
-         */
-        DetectStrategyResponse: {
-            /**
-             * Proxy Available
-             * @description True if HTTPS reverse proxy detected on port 443
-             */
-            proxy_available: boolean;
-            /**
-             * Strategy
-             * @description Recommended strategy: 'hosts_only' or 'bmx_and_hosts'
-             */
-            strategy: string;
-            /** Message */
-            message: string;
-        };
-        /**
-         * DiagnosticsRequest
-         * @description Request body for diagnostics download (no GitHub token needed).
-         */
-        DiagnosticsRequest: {
-            /**
-             * Frontend Logs
-             * @default []
-             */
-            frontend_logs: Record<string, never>[];
-            /**
-             * Description
-             * @default
-             */
-            description: string;
-            /**
-             * Browser Info
-             * @default
-             */
-            browser_info: string;
-            /**
-             * Current Route
-             * @default
-             */
-            current_route: string;
-            /**
-             * Click Timestamp
-             * @default 0
-             */
-            click_timestamp: number;
-        };
-        /**
-         * EnablePermanentSSHRequest
-         * @description Request to enable permanent SSH access on device.
-         */
-        EnablePermanentSSHRequest: {
-            /**
-             * Device Id
-             * @description Device ID
-             */
-            device_id: string;
-            /**
-             * Ip
-             * @description Device IP address
-             */
-            ip: string;
-            /**
-             * Make Permanent
-             * @description Copy remote_services to /mnt/nv/ for persistence
-             * @default true
-             */
-            make_permanent: boolean;
-        };
-        /**
-         * FinalizeRequest
-         * @description Request to finalize device setup (UUID + Sources.xml).
-         */
-        FinalizeRequest: {
-            /** Device Ip */
-            device_ip: string;
-            /**
-             * Device Id
-             * @description Device ID (MAC address)
-             */
-            device_id: string;
-        };
-        /**
-         * FinalizeResponse
-         * @description Response from device finalization.
-         */
-        FinalizeResponse: {
-            /** Success */
-            success: boolean;
-            /**
-             * Uuid
-             * @default
-             */
-            uuid: string;
-            /**
-             * Had Uuid
-             * @default false
-             */
-            had_uuid: boolean;
-            /**
-             * Uuid Was Collision
-             * @default false
-             */
-            uuid_was_collision: boolean;
-            /**
-             * Sources Written
-             * @default false
-             */
-            sources_written: boolean;
-            /**
-             * Sources Backup Path
-             * @default
-             */
-            sources_backup_path: string;
-            /**
-             * System Config Written
-             * @default false
-             */
-            system_config_written: boolean;
-            /**
-             * Message
-             * @default
-             */
-            message: string;
-            /** Error */
-            error?: string | null;
-        };
-        /**
-         * FrontendLogEntry
-         * @description A single frontend console log entry.
-         */
-        FrontendLogEntry: {
-            /**
-             * Timestamp
-             * @default
-             */
-            timestamp: string;
-            /**
-             * Level
-             * @default
-             */
-            level: string;
-            /**
-             * Message
-             * @default
-             */
-            message: string;
-        };
-        /** HTTPValidationError */
-        HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
-        };
-        /**
-         * HostsModifyRequest
-         * @description Request to modify hosts file.
-         */
-        HostsModifyRequest: {
-            /** Device Ip */
-            device_ip: string;
-            /**
-             * Target Addr
-             * @description OCT server URL (e.g., http://192.168.1.100:7777)
-             */
-            target_addr: string;
-            /**
-             * Include Optional
-             * @default true
-             */
-            include_optional: boolean;
-        };
-        /**
-         * HostsModifyResponse
-         * @description Response with hosts modification result.
-         */
-        HostsModifyResponse: {
-            /** Success */
-            success: boolean;
-            /** Message */
-            message: string;
-            /**
-             * Backup Path
-             * @default
-             */
-            backup_path: string;
-            /**
-             * Diff
-             * @default
-             */
-            diff: string;
-        };
-        /**
-         * InitPersistenceRequest
-         * @description Request to initialize persistence files on a factory-reset device.
-         */
-        InitPersistenceRequest: {
-            /**
-             * Device Ip
-             * @description Device IP address
-             */
-            device_ip: string;
-            /**
-             * Device Name
-             * @description Device name from GET :8090/info <name>
-             */
-            device_name: string;
-            /**
-             * Account Uuid
-             * @description margeAccountUUID (7-digit numeric, from account pairing)
-             */
-            account_uuid: string;
-        };
-        /**
-         * InitPersistenceResponse
-         * @description Response from persistence initialization.
-         */
-        InitPersistenceResponse: {
-            /** Success */
-            success: boolean;
-            /** Created Files */
-            created_files?: string[];
-            /** Skipped Files */
-            skipped_files?: string[];
-            /**
-             * Message
-             * @default
-             */
-            message: string;
-            /** Error */
-            error?: string | null;
-        };
-        /**
-         * ListBackupsRequest
-         * @description Request to list backups.
-         */
-        ListBackupsRequest: {
-            /** Device Ip */
-            device_ip: string;
-        };
-        /**
-         * ListBackupsResponse
-         * @description Response with backup list.
-         */
-        ListBackupsResponse: {
-            /** Success */
-            success: boolean;
-            /** Config Backups */
-            config_backups?: string[];
-            /** Hosts Backups */
-            hosts_backups?: string[];
-        };
-        /**
-         * LogDownloadRequest
-         * @description Optional body for POST /api/logs/backend with frontend logs.
-         */
-        LogDownloadRequest: {
-            /**
-             * Frontend Logs
-             * @default []
-             */
-            frontend_logs: components["schemas"]["FrontendLogEntry"][];
-            /** Frontend Log Buffers */
-            frontend_log_buffers?: {
-                [key: string]: components["schemas"]["FrontendLogEntry"][];
-            } | null;
-        };
-        /**
-         * LogLevelRequest
-         * @description Request to change the log level at runtime.
-         */
-        LogLevelRequest: {
-            /**
-             * Level
-             * @enum {string}
-             */
-            level: "DEBUG" | "INFO" | "WARNING" | "ERROR" | "CRITICAL";
-        };
-        /**
-         * LogLevelResponse
-         * @description Current log level.
-         */
-        LogLevelResponse: {
-            /** Level */
-            level: string;
-        };
-        /**
-         * ManualIPsResponse
-         * @description Response model for manual IPs list.
-         */
-        ManualIPsResponse: {
-            /**
-             * Ips
-             * @description List of manual IP addresses
-             */
-            ips: string[];
-        };
-        /**
-         * ModifyMembersRequest
-         * @description Request to add or remove zone members.
-         */
-        ModifyMembersRequest: {
-            /** Device Ids */
-            device_ids: string[];
-        };
-        /**
-         * PortCheckRequest
-         * @description Request to check SSH port.
-         */
-        PortCheckRequest: {
-            /** Device Ip */
-            device_ip: string;
-            /**
-             * Timeout
-             * @default 10
-             */
-            timeout: number;
-        };
-        /**
-         * PortCheckResponse
-         * @description Response with port check results.
-         */
-        PortCheckResponse: {
-            /** Success */
-            success: boolean;
-            /** Message */
-            message: string;
-            /**
-             * Has Ssh
-             * @default false
-             */
-            has_ssh: boolean;
-        };
-        /**
-         * PresetResponse
-         * @description Response model for a preset.
-         */
-        PresetResponse: {
-            /** Id */
-            id: number;
-            /** Device Id */
-            device_id: string;
-            /** Preset Number */
-            preset_number: number;
-            /** Station Uuid */
-            station_uuid: string;
-            /** Station Name */
-            station_name: string;
-            /** Station Url */
-            station_url: string;
-            /** Station Homepage */
-            station_homepage: string | null;
-            /** Station Favicon */
-            station_favicon: string | null;
-            /** Source */
-            source: string | null;
-            /** Created At */
-            created_at: string;
-            /** Updated At */
-            updated_at: string;
-        };
-        /**
-         * PresetSetRequest
-         * @description Request model for setting a preset.
-         */
-        PresetSetRequest: {
-            /**
-             * Device Id
-             * @description Device identifier
-             */
-            device_id: string;
-            /**
-             * Preset Number
-             * @description Preset number (1-6)
-             */
-            preset_number: number;
-            /**
-             * Station Uuid
-             * @description RadioBrowser station UUID
-             */
-            station_uuid: string;
-            /**
-             * Station Name
-             * @description Station name
-             */
-            station_name: string;
-            /**
-             * Station Url
-             * @description Stream URL
-             */
-            station_url: string;
-            /**
-             * Station Homepage
-             * @description Station homepage URL
-             */
-            station_homepage?: string | null;
-            /**
-             * Station Favicon
-             * @description Station favicon URL
-             */
-            station_favicon?: string | null;
-        };
-        /**
-         * ProviderType
-         * @description Radio provider enum.
-         * @enum {string}
-         */
-        ProviderType: "radiobrowser" | "tunein";
-        /**
-         * RadioSearchResponse
-         * @description Search results response.
-         */
-        RadioSearchResponse: {
-            /** Stations */
-            stations: components["schemas"]["RadioStationResponse"][];
-            /**
-             * Has More
-             * @default false
-             */
-            has_more: boolean;
-        };
-        /**
-         * RadioStationResponse
-         * @description Radio station response model (unified across all providers).
-         */
-        RadioStationResponse: {
-            /** Uuid */
-            uuid: string;
-            /** Name */
-            name: string;
-            /** Url */
-            url: string;
-            /** Homepage */
-            homepage?: string | null;
-            /** Favicon */
-            favicon?: string | null;
-            /** Tags */
-            tags?: string[] | null;
-            /** Country */
-            country: string;
-            /** Codec */
-            codec?: string | null;
-            /** Bitrate */
-            bitrate?: number | null;
-            /**
-             * Provider
-             * @default unknown
-             */
-            provider: string;
-        };
-        /**
-         * RestoreRequest
-         * @description Request to restore from backup.
-         */
-        RestoreRequest: {
-            /** Device Ip */
-            device_ip: string;
-            /** Backup Path */
-            backup_path: string;
-        };
-        /**
-         * RestoreResponse
-         * @description Response with restore result.
-         */
-        RestoreResponse: {
-            /** Success */
-            success: boolean;
-            /** Message */
-            message: string;
-        };
-        /**
-         * RestoreStepResponse
-         * @description Status of one restore step.
-         */
-        RestoreStepResponse: {
-            /** Name */
-            name: string;
-            /** Status */
-            status: string;
-            /**
-             * Message
-             * @default
-             */
-            message: string;
-            /** Error */
-            error?: string | null;
-            /**
-             * Duration Seconds
-             * @default 0
-             */
-            duration_seconds: number;
-        };
-        /**
-         * RestoreWizardBackupSet
-         * @description Backup set reference for restore execution.
-         */
-        RestoreWizardBackupSet: {
-            /** Device Id */
-            device_id?: string | null;
-            /** Backup Date */
-            backup_date?: string | null;
-            /** Files */
-            files?: components["schemas"]["RestoreWizardFileRef"][];
-        };
-        /**
-         * RestoreWizardFileRef
-         * @description Reference to a backup file for restore execution.
-         */
-        RestoreWizardFileRef: {
-            /** File Path */
-            file_path: string;
-            /** Volume Type */
-            volume_type: string;
-        };
-        /**
-         * RestoreWizardRequest
-         * @description Request to execute restore wizard.
-         */
-        RestoreWizardRequest: {
-            /** Device Ip */
-            device_ip: string;
-            /**
-             * Device Id
-             * @description Target device ID
-             */
-            device_id: string;
-            /**
-             * Restore Type
-             * @description 'backup' or 'clean'
-             */
-            restore_type: string;
-            backup_set?: components["schemas"]["RestoreWizardBackupSet"] | null;
-            /**
-             * Skip Snapshot
-             * @description Skip pre-restore safety snapshot
-             * @default false
-             */
-            skip_snapshot: boolean;
-        };
-        /**
-         * RestoreWizardResponse
-         * @description Response from restore wizard execution.
-         */
-        RestoreWizardResponse: {
-            /** Success */
-            success: boolean;
-            /** Restore Type */
-            restore_type: string;
-            /** Steps */
-            steps?: components["schemas"]["RestoreStepResponse"][];
-            /** Pre Restore Snapshot */
-            pre_restore_snapshot?: Record<string, never> | null;
-            /**
-             * Snapshot Skipped
-             * @default false
-             */
-            snapshot_skipped: boolean;
-            /**
-             * Device Rebooted
-             * @default false
-             */
-            device_rebooted: boolean;
-            /**
-             * Total Duration Seconds
-             * @default 0
-             */
-            total_duration_seconds: number;
-        };
-        /**
-         * ScanBackupsRequest
-         * @description Request to scan USB stick for backup files.
-         */
-        ScanBackupsRequest: {
-            /** Device Ip */
-            device_ip: string;
-            /**
-             * Device Id
-             * @description Target device ID for backup matching
-             */
-            device_id: string;
-        };
-        /**
-         * ScanBackupsResponse
-         * @description Response from backup scan.
-         */
-        ScanBackupsResponse: {
-            /** Usb Mounted */
-            usb_mounted: boolean;
-            /**
-             * Backup Dir
-             * @default /media/sda1/oct-backup
-             */
-            backup_dir: string;
-            selected_set?: components["schemas"]["BackupSetResponse"] | null;
-            /** All Sets */
-            all_sets?: components["schemas"]["BackupSetResponse"][];
-            /** Error */
-            error?: string | null;
-        };
-        /**
-         * SearchType
-         * @description Search type enum.
-         * @enum {string}
-         */
-        SearchType: "name" | "country" | "tag";
-        /**
-         * SetManualIPsRequest
-         * @description Request model for setting all manual IPs at once.
-         */
-        SetManualIPsRequest: {
-            /**
-             * Ips
-             * @description List of IP addresses to set
-             */
-            ips: string[];
-        };
-        /** ValidationError */
-        ValidationError: {
-            /** Location */
-            loc: (string | number)[];
-            /** Message */
-            msg: string;
-            /** Error Type */
-            type: string;
-            /** Input */
-            input?: unknown;
-            /** Context */
-            ctx?: Record<string, never>;
-        };
-        /**
-         * VerifyCheck
-         * @description Single verification check result.
-         */
-        VerifyCheck: {
-            /** Name */
-            name: string;
-            /** Passed */
-            passed: boolean;
-            /** Message */
-            message: string;
-            /** Details */
-            details?: Record<string, never>;
-        };
-        /**
-         * VerifyRedirectRequest
-         * @description Request to verify domain redirect from device.
-         */
-        VerifyRedirectRequest: {
-            /** Device Ip */
-            device_ip: string;
-            /** Domain */
-            domain: string;
-            /** Expected Ip */
-            expected_ip: string;
-        };
-        /**
-         * VerifyRedirectResponse
-         * @description Response with domain redirect verification result.
-         */
-        VerifyRedirectResponse: {
-            /** Success */
-            success: boolean;
-            /** Domain */
-            domain: string;
-            /**
-             * Resolved Ip
-             * @default
-             */
-            resolved_ip: string;
-            /**
-             * Expected Ip
-             * @default
-             */
-            expected_ip: string;
-            /**
-             * Matches Expected
-             * @default false
-             */
-            matches_expected: boolean;
-            /** Message */
-            message: string;
-        };
-        /**
-         * VerifySetupRequest
-         * @description Request to verify device setup completeness.
-         */
-        VerifySetupRequest: {
-            /** Device Ip */
-            device_ip: string;
-            /**
-             * Device Id
-             * @description Device ID (MAC address)
-             */
-            device_id: string;
-            /**
-             * Expected Oct Ip
-             * @description Expected OCT server IP
-             */
-            expected_oct_ip: string;
-        };
-        /**
-         * VerifySetupResponse
-         * @description Response from device setup verification.
-         */
-        VerifySetupResponse: {
-            /** Success */
-            success: boolean;
-            /** Checks */
-            checks?: components["schemas"]["VerifyCheck"][];
-            /**
-             * Passed Count
-             * @default 0
-             */
-            passed_count: number;
-            /**
-             * Failed Count
-             * @default 0
-             */
-            failed_count: number;
-            /**
-             * Message
-             * @default
-             */
-            message: string;
-        };
-        /**
-         * WizardCompleteRequest
-         * @description Request to mark wizard setup as complete for a device.
-         */
-        WizardCompleteRequest: {
-            /**
-             * Device Id
-             * @description Device ID
-             */
-            device_id: string;
-        };
-        /**
-         * WizardCompleteResponse
-         * @description Response after marking wizard setup as complete.
-         */
-        WizardCompleteResponse: {
-            /** Success */
-            success: boolean;
-            /** Device Id */
-            device_id: string;
-            /** Setup Status */
-            setup_status: string;
-            /** Message */
-            message: string;
-        };
-        /**
-         * ZoneMemberInfo
-         * @description A member device within a multi-room zone.
-         */
-        ZoneMemberInfo: {
-            /** Device Id */
-            device_id: string;
-            /** Ip Address */
-            ip_address: string;
-            /** Role */
-            role: string;
-            /** Name */
-            name?: string | null;
-            /** Model */
-            model?: string | null;
-        };
-        /**
-         * ZoneStatus
-         * @description Status of a multi-room zone.
-         */
-        ZoneStatus: {
-            /** Master Id */
-            master_id: string;
-            /** Master Ip */
-            master_ip: string;
-            /** Is Master */
-            is_master: boolean;
-            /** Members */
-            members: components["schemas"]["ZoneMemberInfo"][];
-        };
-        /**
-         * MessageResponse
-         * @description Generic message response.
-         */
-        opencloudtouch__presets__api__routes__MessageResponse: {
-            /** Message */
-            message: string;
-        };
-        /**
-         * MessageResponse
-         * @description Generic message response.
-         */
-        opencloudtouch__settings__routes__MessageResponse: {
-            /** Message */
-            message: string;
-            /** Ip */
-            ip: string;
-        };
+  schemas: {
+    /**
+     * AccountPairingRequest
+     * @description Request to ensure device has a margeAccountUUID.
+     */
+    AccountPairingRequest: {
+      /**
+       * Device Ip
+       * @description Device IP address
+       */
+      device_ip: string;
+      /**
+       * Device Id
+       * @description Device ID (MAC address)
+       */
+      device_id: string;
     };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    /**
+     * AccountPairingResponse
+     * @description Response from account pairing.
+     */
+    AccountPairingResponse: {
+      /** Success */
+      success: boolean;
+      /**
+       * Had Uuid
+       * @description True if UUID was already present
+       * @default false
+       */
+      had_uuid: boolean;
+      /**
+       * Uuid
+       * @description The current or newly set UUID
+       * @default
+       */
+      uuid: string;
+      /**
+       * Message
+       * @default
+       */
+      message: string;
+    };
+    /**
+     * AuditBatchRequest
+     * @description Batch of audit entries (reduces HTTP roundtrips).
+     */
+    AuditBatchRequest: {
+      /** Entries */
+      entries: components["schemas"]["AuditEntryRequest"][];
+    };
+    /**
+     * AuditBatchResponse
+     * @description Response for batch creation.
+     */
+    AuditBatchResponse: {
+      /** Success */
+      success: boolean;
+      /** Count */
+      count: number;
+    };
+    /**
+     * AuditEntryRequest
+     * @description Single wizard audit log entry from the frontend.
+     */
+    AuditEntryRequest: {
+      /**
+       * Device Id
+       * @description Device MAC/ID
+       */
+      device_id: string;
+      /**
+       * Category
+       * @description Event category: user_action, device_info, api_call, config_change, step_transition, checkbox, dropdown, error
+       */
+      category: string;
+      /**
+       * Event
+       * @description Short event name, e.g. 'button_click:next'
+       */
+      event: string;
+      /**
+       * Step
+       * @description Wizard step number (0=init)
+       */
+      step?: number | null;
+      /**
+       * Detail
+       * @description JSON-encoded extra data (free-form)
+       */
+      detail?: string | null;
+      /**
+       * Timestamp
+       * @description ISO-8601 timestamp from frontend
+       */
+      timestamp?: string | null;
+    };
+    /**
+     * AuditEntryResponse
+     * @description Response for single entry creation.
+     */
+    AuditEntryResponse: {
+      /** Success */
+      success: boolean;
+      /** Id */
+      id: number;
+    };
+    /**
+     * BackupFileInfoResponse
+     * @description Single backup file info in scan response.
+     */
+    BackupFileInfoResponse: {
+      /** Filename */
+      filename: string;
+      /** Volume Type */
+      volume_type: string;
+      /** File Path */
+      file_path: string;
+      /**
+       * Size Bytes
+       * @default 0
+       */
+      size_bytes: number;
+      /** Device Id */
+      device_id?: string | null;
+      /** Backup Date */
+      backup_date?: string | null;
+      /**
+       * Is Pre Restore
+       * @default false
+       */
+      is_pre_restore: boolean;
+      /**
+       * Validation Status
+       * @default valid
+       */
+      validation_status: string;
+      /**
+       * Validation Message
+       * @default
+       */
+      validation_message: string;
+    };
+    /**
+     * BackupRequest
+     * @description Request to create device backup.
+     */
+    BackupRequest: {
+      /** Device Ip */
+      device_ip: string;
+      /**
+       * Device Id
+       * @description Device identifier for unique backup filenames
+       */
+      device_id?: string | null;
+    };
+    /**
+     * BackupResponse
+     * @description Response with backup results.
+     */
+    BackupResponse: {
+      /** Success */
+      success: boolean;
+      /** Message */
+      message: string;
+      /** Volumes */
+      volumes?: Record<string, never>[];
+      /**
+       * Total Size Mb
+       * @default 0
+       */
+      total_size_mb: number;
+      /**
+       * Total Duration Seconds
+       * @default 0
+       */
+      total_duration_seconds: number;
+    };
+    /**
+     * BackupSetResponse
+     * @description Backup set in scan response.
+     */
+    BackupSetResponse: {
+      /** Device Id */
+      device_id?: string | null;
+      /** Backup Date */
+      backup_date?: string | null;
+      /** Files */
+      files?: components["schemas"]["BackupFileInfoResponse"][];
+      /**
+       * Is Legacy
+       * @default false
+       */
+      is_legacy: boolean;
+      /**
+       * Is Match
+       * @default false
+       */
+      is_match: boolean;
+    };
+    /** Body_set_mute_api_devices__device_id__mute_put */
+    Body_set_mute_api_devices__device_id__mute_put: {
+      /** Muted */
+      muted: boolean;
+    };
+    /** Body_set_volume_api_devices__device_id__volume_put */
+    Body_set_volume_api_devices__device_id__volume_put: {
+      /** Level */
+      level: number;
+    };
+    /** BugReportRequest */
+    BugReportRequest: {
+      /** Description */
+      description: string;
+      /** Steps To Reproduce */
+      steps_to_reproduce: string;
+      /** Expected Behavior */
+      expected_behavior: string;
+      /** Installation Type */
+      installation_type: string;
+      /** Hardware */
+      hardware: string;
+      /**
+       * Soundtouch Devices
+       * @default []
+       */
+      soundtouch_devices: string[];
+      /**
+       * Network Config
+       * @default
+       */
+      network_config: string;
+      /**
+       * Additional Info
+       * @default
+       */
+      additional_info: string;
+      /**
+       * Other Installation
+       * @default
+       */
+      other_installation: string;
+      /**
+       * Other Hardware
+       * @default
+       */
+      other_hardware: string;
+      /**
+       * Other Device
+       * @default
+       */
+      other_device: string;
+      /**
+       * Screenshot Data Url
+       * @default
+       */
+      screenshot_data_url: string;
+      /**
+       * Frontend Logs
+       * @default []
+       */
+      frontend_logs: Record<string, never>[];
+      /**
+       * Browser Info
+       * @default
+       */
+      browser_info: string;
+      /**
+       * Current Route
+       * @default
+       */
+      current_route: string;
+      /**
+       * Click Timestamp
+       * @default 0
+       */
+      click_timestamp: number;
+    };
+    /** BugReportResponse */
+    BugReportResponse: {
+      /** Issue Url */
+      issue_url: string;
+    };
+    /**
+     * ChangeMasterRequest
+     * @description Request to change zone master.
+     */
+    ChangeMasterRequest: {
+      /** New Master Id */
+      new_master_id: string;
+    };
+    /**
+     * ConfigModifyRequest
+     * @description Request to modify config file.
+     */
+    ConfigModifyRequest: {
+      /** Device Ip */
+      device_ip: string;
+      /**
+       * Target Addr
+       * @description OCT server URL (e.g., http://192.168.1.100:7777 or oct.local)
+       */
+      target_addr: string;
+    };
+    /**
+     * ConfigModifyResponse
+     * @description Response with config modification result.
+     */
+    ConfigModifyResponse: {
+      /** Success */
+      success: boolean;
+      /** Message */
+      message: string;
+      /**
+       * Backup Path
+       * @default
+       */
+      backup_path: string;
+      /**
+       * Diff
+       * @default
+       */
+      diff: string;
+      /**
+       * Old Url
+       * @default
+       */
+      old_url: string;
+      /**
+       * New Url
+       * @default
+       */
+      new_url: string;
+    };
+    /**
+     * ConfigSnapshotRequest
+     * @description Request to store a config XML snapshot.
+     */
+    ConfigSnapshotRequest: {
+      /** Device Id */
+      device_id: string;
+      /**
+       * File Path
+       * @description Config file path on device
+       */
+      file_path: string;
+      /**
+       * Content
+       * @description Full XML content
+       */
+      content: string;
+      /**
+       * Trigger
+       * @description What caused the snapshot, e.g. 'before_modify'
+       */
+      trigger?: string | null;
+      /** Timestamp */
+      timestamp?: string | null;
+    };
+    /**
+     * ConfigSnapshotResponse
+     * @description Response for snapshot creation.
+     */
+    ConfigSnapshotResponse: {
+      /** Success */
+      success: boolean;
+      /** Id */
+      id: number;
+    };
+    /**
+     * ConnectivityCheckRequest
+     * @description Request to check device connectivity.
+     */
+    ConnectivityCheckRequest: {
+      /** Ip */
+      ip: string;
+    };
+    /**
+     * CreateZoneRequest
+     * @description Request to create a new zone.
+     */
+    CreateZoneRequest: {
+      /** Master Id */
+      master_id: string;
+      /** Slave Ids */
+      slave_ids: string[];
+    };
+    /**
+     * DetectStrategyResponse
+     * @description Response with detected setup strategy.
+     */
+    DetectStrategyResponse: {
+      /**
+       * Proxy Available
+       * @description True if HTTPS reverse proxy detected on port 443
+       */
+      proxy_available: boolean;
+      /**
+       * Strategy
+       * @description Recommended strategy: 'hosts_only' or 'bmx_and_hosts'
+       */
+      strategy: string;
+      /** Message */
+      message: string;
+    };
+    /**
+     * DiagnosticsRequest
+     * @description Request body for diagnostics download (no GitHub token needed).
+     */
+    DiagnosticsRequest: {
+      /**
+       * Frontend Logs
+       * @default []
+       */
+      frontend_logs: Record<string, never>[];
+      /**
+       * Description
+       * @default
+       */
+      description: string;
+      /**
+       * Browser Info
+       * @default
+       */
+      browser_info: string;
+      /**
+       * Current Route
+       * @default
+       */
+      current_route: string;
+      /**
+       * Click Timestamp
+       * @default 0
+       */
+      click_timestamp: number;
+    };
+    /**
+     * EnablePermanentSSHRequest
+     * @description Request to enable permanent SSH access on device.
+     */
+    EnablePermanentSSHRequest: {
+      /**
+       * Device Id
+       * @description Device ID
+       */
+      device_id: string;
+      /**
+       * Ip
+       * @description Device IP address
+       */
+      ip: string;
+      /**
+       * Make Permanent
+       * @description Copy remote_services to /mnt/nv/ for persistence
+       * @default true
+       */
+      make_permanent: boolean;
+    };
+    /**
+     * FinalizeRequest
+     * @description Request to finalize device setup (UUID + Sources.xml).
+     */
+    FinalizeRequest: {
+      /** Device Ip */
+      device_ip: string;
+      /**
+       * Device Id
+       * @description Device ID (MAC address)
+       */
+      device_id: string;
+    };
+    /**
+     * FinalizeResponse
+     * @description Response from device finalization.
+     */
+    FinalizeResponse: {
+      /** Success */
+      success: boolean;
+      /**
+       * Uuid
+       * @default
+       */
+      uuid: string;
+      /**
+       * Had Uuid
+       * @default false
+       */
+      had_uuid: boolean;
+      /**
+       * Uuid Was Collision
+       * @default false
+       */
+      uuid_was_collision: boolean;
+      /**
+       * Sources Written
+       * @default false
+       */
+      sources_written: boolean;
+      /**
+       * Sources Backup Path
+       * @default
+       */
+      sources_backup_path: string;
+      /**
+       * System Config Written
+       * @default false
+       */
+      system_config_written: boolean;
+      /**
+       * Message
+       * @default
+       */
+      message: string;
+      /** Error */
+      error?: string | null;
+    };
+    /**
+     * FrontendLogEntry
+     * @description A single frontend console log entry.
+     */
+    FrontendLogEntry: {
+      /**
+       * Timestamp
+       * @default
+       */
+      timestamp: string;
+      /**
+       * Level
+       * @default
+       */
+      level: string;
+      /**
+       * Message
+       * @default
+       */
+      message: string;
+    };
+    /** HTTPValidationError */
+    HTTPValidationError: {
+      /** Detail */
+      detail?: components["schemas"]["ValidationError"][];
+    };
+    /**
+     * HostsModifyRequest
+     * @description Request to modify hosts file.
+     */
+    HostsModifyRequest: {
+      /** Device Ip */
+      device_ip: string;
+      /**
+       * Target Addr
+       * @description OCT server URL (e.g., http://192.168.1.100:7777)
+       */
+      target_addr: string;
+      /**
+       * Include Optional
+       * @default true
+       */
+      include_optional: boolean;
+    };
+    /**
+     * HostsModifyResponse
+     * @description Response with hosts modification result.
+     */
+    HostsModifyResponse: {
+      /** Success */
+      success: boolean;
+      /** Message */
+      message: string;
+      /**
+       * Backup Path
+       * @default
+       */
+      backup_path: string;
+      /**
+       * Diff
+       * @default
+       */
+      diff: string;
+    };
+    /**
+     * InitPersistenceRequest
+     * @description Request to initialize persistence files on a factory-reset device.
+     */
+    InitPersistenceRequest: {
+      /**
+       * Device Ip
+       * @description Device IP address
+       */
+      device_ip: string;
+      /**
+       * Device Name
+       * @description Device name from GET :8090/info <name>
+       */
+      device_name: string;
+      /**
+       * Account Uuid
+       * @description margeAccountUUID (7-digit numeric, from account pairing)
+       */
+      account_uuid: string;
+    };
+    /**
+     * InitPersistenceResponse
+     * @description Response from persistence initialization.
+     */
+    InitPersistenceResponse: {
+      /** Success */
+      success: boolean;
+      /** Created Files */
+      created_files?: string[];
+      /** Skipped Files */
+      skipped_files?: string[];
+      /**
+       * Message
+       * @default
+       */
+      message: string;
+      /** Error */
+      error?: string | null;
+    };
+    /**
+     * ListBackupsRequest
+     * @description Request to list backups.
+     */
+    ListBackupsRequest: {
+      /** Device Ip */
+      device_ip: string;
+    };
+    /**
+     * ListBackupsResponse
+     * @description Response with backup list.
+     */
+    ListBackupsResponse: {
+      /** Success */
+      success: boolean;
+      /** Config Backups */
+      config_backups?: string[];
+      /** Hosts Backups */
+      hosts_backups?: string[];
+    };
+    /**
+     * LogDownloadRequest
+     * @description Optional body for POST /api/logs/backend with frontend logs.
+     */
+    LogDownloadRequest: {
+      /**
+       * Frontend Logs
+       * @default []
+       */
+      frontend_logs: components["schemas"]["FrontendLogEntry"][];
+      /** Frontend Log Buffers */
+      frontend_log_buffers?: {
+        [key: string]: components["schemas"]["FrontendLogEntry"][];
+      } | null;
+    };
+    /**
+     * LogLevelRequest
+     * @description Request to change the log level at runtime.
+     */
+    LogLevelRequest: {
+      /**
+       * Level
+       * @enum {string}
+       */
+      level: "DEBUG" | "INFO" | "WARNING" | "ERROR" | "CRITICAL";
+    };
+    /**
+     * LogLevelResponse
+     * @description Current log level.
+     */
+    LogLevelResponse: {
+      /** Level */
+      level: string;
+    };
+    /**
+     * ManualIPsResponse
+     * @description Response model for manual IPs list.
+     */
+    ManualIPsResponse: {
+      /**
+       * Ips
+       * @description List of manual IP addresses
+       */
+      ips: string[];
+    };
+    /**
+     * ModifyMembersRequest
+     * @description Request to add or remove zone members.
+     */
+    ModifyMembersRequest: {
+      /** Device Ids */
+      device_ids: string[];
+    };
+    /**
+     * PortCheckRequest
+     * @description Request to check SSH port.
+     */
+    PortCheckRequest: {
+      /** Device Ip */
+      device_ip: string;
+      /**
+       * Timeout
+       * @default 10
+       */
+      timeout: number;
+    };
+    /**
+     * PortCheckResponse
+     * @description Response with port check results.
+     */
+    PortCheckResponse: {
+      /** Success */
+      success: boolean;
+      /** Message */
+      message: string;
+      /**
+       * Has Ssh
+       * @default false
+       */
+      has_ssh: boolean;
+    };
+    /**
+     * PresetResponse
+     * @description Response model for a preset.
+     */
+    PresetResponse: {
+      /** Id */
+      id: number;
+      /** Device Id */
+      device_id: string;
+      /** Preset Number */
+      preset_number: number;
+      /** Station Uuid */
+      station_uuid: string;
+      /** Station Name */
+      station_name: string;
+      /** Station Url */
+      station_url: string;
+      /** Station Homepage */
+      station_homepage: string | null;
+      /** Station Favicon */
+      station_favicon: string | null;
+      /** Source */
+      source: string | null;
+      /** Created At */
+      created_at: string;
+      /** Updated At */
+      updated_at: string;
+    };
+    /**
+     * PresetSetRequest
+     * @description Request model for setting a preset.
+     */
+    PresetSetRequest: {
+      /**
+       * Device Id
+       * @description Device identifier
+       */
+      device_id: string;
+      /**
+       * Preset Number
+       * @description Preset number (1-6)
+       */
+      preset_number: number;
+      /**
+       * Station Uuid
+       * @description RadioBrowser station UUID
+       */
+      station_uuid: string;
+      /**
+       * Station Name
+       * @description Station name
+       */
+      station_name: string;
+      /**
+       * Station Url
+       * @description Stream URL
+       */
+      station_url: string;
+      /**
+       * Station Homepage
+       * @description Station homepage URL
+       */
+      station_homepage?: string | null;
+      /**
+       * Station Favicon
+       * @description Station favicon URL
+       */
+      station_favicon?: string | null;
+    };
+    /**
+     * ProviderType
+     * @description Radio provider enum.
+     * @enum {string}
+     */
+    ProviderType: "radiobrowser" | "tunein";
+    /**
+     * RadioSearchResponse
+     * @description Search results response.
+     */
+    RadioSearchResponse: {
+      /** Stations */
+      stations: components["schemas"]["RadioStationResponse"][];
+      /**
+       * Has More
+       * @default false
+       */
+      has_more: boolean;
+    };
+    /**
+     * RadioStationResponse
+     * @description Radio station response model (unified across all providers).
+     */
+    RadioStationResponse: {
+      /** Uuid */
+      uuid: string;
+      /** Name */
+      name: string;
+      /** Url */
+      url: string;
+      /** Homepage */
+      homepage?: string | null;
+      /** Favicon */
+      favicon?: string | null;
+      /** Tags */
+      tags?: string[] | null;
+      /** Country */
+      country: string;
+      /** Codec */
+      codec?: string | null;
+      /** Bitrate */
+      bitrate?: number | null;
+      /**
+       * Provider
+       * @default unknown
+       */
+      provider: string;
+    };
+    /**
+     * RestoreRequest
+     * @description Request to restore from backup.
+     */
+    RestoreRequest: {
+      /** Device Ip */
+      device_ip: string;
+      /** Backup Path */
+      backup_path: string;
+    };
+    /**
+     * RestoreResponse
+     * @description Response with restore result.
+     */
+    RestoreResponse: {
+      /** Success */
+      success: boolean;
+      /** Message */
+      message: string;
+    };
+    /**
+     * RestoreStepResponse
+     * @description Status of one restore step.
+     */
+    RestoreStepResponse: {
+      /** Name */
+      name: string;
+      /** Status */
+      status: string;
+      /**
+       * Message
+       * @default
+       */
+      message: string;
+      /** Error */
+      error?: string | null;
+      /**
+       * Duration Seconds
+       * @default 0
+       */
+      duration_seconds: number;
+    };
+    /**
+     * RestoreWizardBackupSet
+     * @description Backup set reference for restore execution.
+     */
+    RestoreWizardBackupSet: {
+      /** Device Id */
+      device_id?: string | null;
+      /** Backup Date */
+      backup_date?: string | null;
+      /** Files */
+      files?: components["schemas"]["RestoreWizardFileRef"][];
+    };
+    /**
+     * RestoreWizardFileRef
+     * @description Reference to a backup file for restore execution.
+     */
+    RestoreWizardFileRef: {
+      /** File Path */
+      file_path: string;
+      /** Volume Type */
+      volume_type: string;
+    };
+    /**
+     * RestoreWizardRequest
+     * @description Request to execute restore wizard.
+     */
+    RestoreWizardRequest: {
+      /** Device Ip */
+      device_ip: string;
+      /**
+       * Device Id
+       * @description Target device ID
+       */
+      device_id: string;
+      /**
+       * Restore Type
+       * @description 'backup' or 'clean'
+       */
+      restore_type: string;
+      backup_set?: components["schemas"]["RestoreWizardBackupSet"] | null;
+      /**
+       * Skip Snapshot
+       * @description Skip pre-restore safety snapshot
+       * @default false
+       */
+      skip_snapshot: boolean;
+    };
+    /**
+     * RestoreWizardResponse
+     * @description Response from restore wizard execution.
+     */
+    RestoreWizardResponse: {
+      /** Success */
+      success: boolean;
+      /** Restore Type */
+      restore_type: string;
+      /** Steps */
+      steps?: components["schemas"]["RestoreStepResponse"][];
+      /** Pre Restore Snapshot */
+      pre_restore_snapshot?: Record<string, never> | null;
+      /**
+       * Snapshot Skipped
+       * @default false
+       */
+      snapshot_skipped: boolean;
+      /**
+       * Device Rebooted
+       * @default false
+       */
+      device_rebooted: boolean;
+      /**
+       * Total Duration Seconds
+       * @default 0
+       */
+      total_duration_seconds: number;
+    };
+    /**
+     * ScanBackupsRequest
+     * @description Request to scan USB stick for backup files.
+     */
+    ScanBackupsRequest: {
+      /** Device Ip */
+      device_ip: string;
+      /**
+       * Device Id
+       * @description Target device ID for backup matching
+       */
+      device_id: string;
+    };
+    /**
+     * ScanBackupsResponse
+     * @description Response from backup scan.
+     */
+    ScanBackupsResponse: {
+      /** Usb Mounted */
+      usb_mounted: boolean;
+      /**
+       * Backup Dir
+       * @default /media/sda1/oct-backup
+       */
+      backup_dir: string;
+      selected_set?: components["schemas"]["BackupSetResponse"] | null;
+      /** All Sets */
+      all_sets?: components["schemas"]["BackupSetResponse"][];
+      /** Error */
+      error?: string | null;
+    };
+    /**
+     * SearchType
+     * @description Search type enum.
+     * @enum {string}
+     */
+    SearchType: "name" | "country" | "tag";
+    /**
+     * SetManualIPsRequest
+     * @description Request model for setting all manual IPs at once.
+     */
+    SetManualIPsRequest: {
+      /**
+       * Ips
+       * @description List of IP addresses to set
+       */
+      ips: string[];
+    };
+    /** ValidationError */
+    ValidationError: {
+      /** Location */
+      loc: (string | number)[];
+      /** Message */
+      msg: string;
+      /** Error Type */
+      type: string;
+      /** Input */
+      input?: unknown;
+      /** Context */
+      ctx?: Record<string, never>;
+    };
+    /**
+     * VerifyCheck
+     * @description Single verification check result.
+     */
+    VerifyCheck: {
+      /** Name */
+      name: string;
+      /** Passed */
+      passed: boolean;
+      /** Message */
+      message: string;
+      /** Details */
+      details?: Record<string, never>;
+    };
+    /**
+     * VerifyRedirectRequest
+     * @description Request to verify domain redirect from device.
+     */
+    VerifyRedirectRequest: {
+      /** Device Ip */
+      device_ip: string;
+      /** Domain */
+      domain: string;
+      /** Expected Ip */
+      expected_ip: string;
+    };
+    /**
+     * VerifyRedirectResponse
+     * @description Response with domain redirect verification result.
+     */
+    VerifyRedirectResponse: {
+      /** Success */
+      success: boolean;
+      /** Domain */
+      domain: string;
+      /**
+       * Resolved Ip
+       * @default
+       */
+      resolved_ip: string;
+      /**
+       * Expected Ip
+       * @default
+       */
+      expected_ip: string;
+      /**
+       * Matches Expected
+       * @default false
+       */
+      matches_expected: boolean;
+      /** Message */
+      message: string;
+    };
+    /**
+     * VerifySetupRequest
+     * @description Request to verify device setup completeness.
+     */
+    VerifySetupRequest: {
+      /** Device Ip */
+      device_ip: string;
+      /**
+       * Device Id
+       * @description Device ID (MAC address)
+       */
+      device_id: string;
+      /**
+       * Expected Oct Ip
+       * @description Expected OCT server IP
+       */
+      expected_oct_ip: string;
+    };
+    /**
+     * VerifySetupResponse
+     * @description Response from device setup verification.
+     */
+    VerifySetupResponse: {
+      /** Success */
+      success: boolean;
+      /** Checks */
+      checks?: components["schemas"]["VerifyCheck"][];
+      /**
+       * Passed Count
+       * @default 0
+       */
+      passed_count: number;
+      /**
+       * Failed Count
+       * @default 0
+       */
+      failed_count: number;
+      /**
+       * Message
+       * @default
+       */
+      message: string;
+    };
+    /**
+     * WizardCompleteRequest
+     * @description Request to mark wizard setup as complete for a device.
+     */
+    WizardCompleteRequest: {
+      /**
+       * Device Id
+       * @description Device ID
+       */
+      device_id: string;
+    };
+    /**
+     * WizardCompleteResponse
+     * @description Response after marking wizard setup as complete.
+     */
+    WizardCompleteResponse: {
+      /** Success */
+      success: boolean;
+      /** Device Id */
+      device_id: string;
+      /** Setup Status */
+      setup_status: string;
+      /** Message */
+      message: string;
+    };
+    /**
+     * ZoneMemberInfo
+     * @description A member device within a multi-room zone.
+     */
+    ZoneMemberInfo: {
+      /** Device Id */
+      device_id: string;
+      /** Ip Address */
+      ip_address: string;
+      /** Role */
+      role: string;
+      /** Name */
+      name?: string | null;
+      /** Model */
+      model?: string | null;
+    };
+    /**
+     * ZoneStatus
+     * @description Status of a multi-room zone.
+     */
+    ZoneStatus: {
+      /** Master Id */
+      master_id: string;
+      /** Master Ip */
+      master_ip: string;
+      /** Is Master */
+      is_master: boolean;
+      /** Members */
+      members: components["schemas"]["ZoneMemberInfo"][];
+    };
+    /**
+     * MessageResponse
+     * @description Generic message response.
+     */
+    opencloudtouch__presets__api__routes__MessageResponse: {
+      /** Message */
+      message: string;
+    };
+    /**
+     * MessageResponse
+     * @description Generic message response.
+     */
+    opencloudtouch__settings__routes__MessageResponse: {
+      /** Message */
+      message: string;
+      /** Ip */
+      ip: string;
+    };
+  };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    discover_devices_api_devices_discover_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-        };
-    };
-    sync_devices_api_devices_sync_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    discover_devices_stream_api_devices_discover_stream_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    get_devices_api_devices_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    delete_all_devices_api_devices_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    get_device_api_devices__device_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_by_device_id_api_devices__device_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_device_capabilities_endpoint_api_devices__device_id__capabilities_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    press_key_api_devices__device_id__key_post: {
-        parameters: {
-            query: {
-                key: string;
-                state?: string;
-            };
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_now_playing_api_devices__device_id__now_playing_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_volume_api_devices__device_id__volume_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    set_volume_api_devices__device_id__volume_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Body_set_volume_api_devices__device_id__volume_put"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    set_mute_api_devices__device_id__mute_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Body_set_mute_api_devices__device_id__mute_put"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    set_preset_api_presets_set_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PresetSetRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PresetResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_device_presets_api_presets__device_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Device identifier */
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PresetResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    clear_all_presets_api_presets__device_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Device identifier */
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["opencloudtouch__presets__api__routes__MessageResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_preset_api_presets__device_id___preset_number__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Device identifier */
-                device_id: string;
-                /** @description Preset number (1-6) */
-                preset_number: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PresetResponse"];
-                };
-            };
-            /** @description Preset not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    clear_preset_api_presets__device_id___preset_number__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Device identifier */
-                device_id: string;
-                /** @description Preset number (1-6) */
-                preset_number: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["opencloudtouch__presets__api__routes__MessageResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    sync_presets_from_device_api_presets__device_id__sync_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Device identifier */
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["opencloudtouch__presets__api__routes__MessageResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    search_stations_api_radio_search_get: {
-        parameters: {
-            query: {
-                /** @description Search query */
-                q: string;
-                /** @description Search type: name, country, or tag */
-                search_type?: components["schemas"]["SearchType"];
-                /** @description Maximum number of results */
-                limit?: number;
-                /** @description Offset for pagination */
-                offset?: number;
-                /** @description Radio provider: radiobrowser or tunein */
-                provider?: components["schemas"]["ProviderType"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RadioSearchResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_station_detail_api_radio_station__uuid__get: {
-        parameters: {
-            query?: {
-                /** @description Radio provider: radiobrowser or tunein */
-                provider?: components["schemas"]["ProviderType"];
-            };
-            header?: never;
-            path: {
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RadioStationResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_manual_ips_api_settings_manual_ips_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ManualIPsResponse"];
-                };
-            };
-        };
-    };
-    set_manual_ips_api_settings_manual_ips_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SetManualIPsRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ManualIPsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_manual_ip_api_settings_manual_ips__ip__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                ip: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["opencloudtouch__settings__routes__MessageResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_station_descriptor_stations_preset__device_id___preset_number__json_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Device identifier */
-                device_id: string;
-                /** @description Preset number (1-6) */
-                preset_number: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    stream_device_preset_device__device_id__preset__preset_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Device identifier */
-                device_id: string;
-                /** @description Preset number (1-6) */
-                preset_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_preset_descriptor_descriptor_device__device_id__preset__preset_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Device identifier */
-                device_id: string;
-                /** @description Preset number (1-6) */
-                preset_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    bmx_now_playing_stub_bmx_orion_now_playing_get: {
-        parameters: {
-            query?: {
-                station_id?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    bmx_now_playing_stub_bmx_orion_now_playing_station__station_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                station_id: string | null;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    bmx_reporting_stub_bmx_orion_reporting_post: {
-        parameters: {
-            query?: {
-                station_id?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    bmx_reporting_stub_bmx_orion_reporting_station__station_id__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                station_id: string | null;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    bmx_tunein_now_playing_bmx_tunein_v1_now_playing_station__station_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                station_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    bmx_tunein_reporting_bmx_tunein_v1_reporting_station__station_id__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                station_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    bmx_tunein_favorite_bmx_tunein_v1_favorite__station_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                station_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    bmx_tunein_favorite_bmx_tunein_v1_favorite__station_id__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                station_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    bmx_services_bmx_registry_v1_services_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    bmx_tunein_playback_bmx_tunein_v1_playback_station__station_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                station_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    custom_stream_playback_core02_svc_bmx_adapter_orion_prod_orion_station_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    bmx_radiobrowser_playback_bmx_radiobrowser_v1_playback_station__uuid__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    bmx_radiobrowser_now_playing_bmx_radiobrowser_v1_now_playing_station__uuid__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    bmx_radiobrowser_reporting_bmx_radiobrowser_v1_reporting_station__uuid__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    resolve_stream_bmx_resolve_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    get_full_account_v1_systems_devices__device_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_presets_v1_systems_devices__device_id__presets_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_recents_v1_systems_devices__device_id__recents_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_sources_v1_systems_devices__device_id__sources_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_devices_v1_systems_devices__device_id__devices_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    power_on_v1_systems_devices__device_id__power_on_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    power_on_v1_systems_devices__device_id__power_on_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_sourceproviders_v1_systems_devices__device_id__sourceproviders_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    streaming_power_on_streaming_support_power_on_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    streaming_power_on_streaming_support_power_on_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    streaming_sourceproviders_streaming_sourceproviders_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    streaming_full_account_streaming_account__account_id__full_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                account_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    scmudc_reporting_v1_scmudc__device_id__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    streaming_stats_usage_streaming_stats_usage_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    streaming_token_streaming_device__device_id__streaming_token_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    blacklist_check_v1_blacklist__device_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    blacklist_check_v1_blacklist__device_id__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    set_marge_account_setMargeAccount_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    get_playlist_m3u_playlist__device_id___preset_number__m3u_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Device identifier */
-                device_id: string;
-                /** @description Preset number (1-6) */
-                preset_number: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description M3U playlist file */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/plain": string;
-                    "audio/x-mpegurl": unknown;
-                };
-            };
-            /** @description Preset not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_playlist_pls_playlist__device_id___preset_number__pls_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Device identifier */
-                device_id: string;
-                /** @description Preset number (1-6) */
-                preset_number: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description PLS playlist file */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/plain": string;
-                    "audio/x-scpls": unknown;
-                };
-            };
-            /** @description Preset not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_instructions_api_setup_instructions__model__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                model: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    check_connectivity_api_setup_check_connectivity_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConnectivityCheckRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_status_api_setup_status__device_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    enable_permanent_ssh_api_setup_ssh_enable_permanent_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EnablePermanentSSHRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    verify_setup_api_setup_verify__device_id__post: {
-        parameters: {
-            query: {
-                ip: string;
-            };
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_supported_models_api_setup_models_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-        };
-    };
-    wizard_server_info_api_setup_wizard_server_info_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-        };
-    };
-    wizard_detect_strategy_api_setup_wizard_detect_strategy_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DetectStrategyResponse"];
-                };
-            };
-        };
-    };
-    wizard_check_ports_api_setup_wizard_check_ports_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PortCheckRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PortCheckResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    wizard_backup_api_setup_wizard_backup_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BackupRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BackupResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    wizard_modify_config_api_setup_wizard_modify_config_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConfigModifyRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConfigModifyResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    wizard_modify_hosts_api_setup_wizard_modify_hosts_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["HostsModifyRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HostsModifyResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    wizard_restore_config_api_setup_wizard_restore_config_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RestoreRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RestoreResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    wizard_restore_hosts_api_setup_wizard_restore_hosts_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RestoreRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RestoreResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    wizard_list_backups_api_setup_wizard_list_backups_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ListBackupsRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ListBackupsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    wizard_reboot_device_api_setup_wizard_reboot_device_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConnectivityCheckRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    wizard_account_pairing_api_setup_wizard_account_pairing_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AccountPairingRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AccountPairingResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    wizard_ensure_account_api_setup_wizard_ensure_account_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AccountPairingRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AccountPairingResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    wizard_init_persistence_api_setup_wizard_init_persistence_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InitPersistenceRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InitPersistenceResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    wizard_complete_api_setup_wizard_complete_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WizardCompleteRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WizardCompleteResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    wizard_verify_redirect_api_setup_wizard_verify_redirect_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VerifyRedirectRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VerifyRedirectResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    wizard_finalize_api_setup_wizard_finalize_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FinalizeRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FinalizeResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Finalization failed */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    wizard_verify_setup_api_setup_wizard_verify_setup_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VerifySetupRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VerifySetupResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Verification failed */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    wizard_scan_backups_api_setup_wizard_scan_backups_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ScanBackupsRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ScanBackupsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Backup scan failed */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    wizard_restore_wizard_api_setup_wizard_restore_wizard_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RestoreWizardRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RestoreWizardResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Restore wizard execution failed */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    firmware_index_updates_soundtouch_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    firmware_download_legacy_ced_eup_downloads_rel__filename__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                filename: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    firmware_download_ced_soundtouch_downloads_stockholm__path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_all_zones_api_zones_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ZoneStatus"][];
-                };
-            };
-            /** @description Failed to get zones */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    create_zone_api_zones_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateZoneRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ZoneStatus"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_zone_api_zones__master_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                master_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    add_zone_members_api_zones__master_id__members_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                master_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ModifyMembersRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    remove_zone_members_api_zones__master_id__members_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                master_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ModifyMembersRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    change_master_api_zones__master_id__master_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                master_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChangeMasterRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ZoneStatus"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_device_zone_api_devices__device_id__zone_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                device_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ZoneStatus"] | null;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_log_level_api_logs_level_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LogLevelResponse"];
-                };
-            };
-        };
-    };
-    put_log_level_api_logs_level_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LogLevelRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LogLevelResponse"];
-                };
-            };
-            /** @description Invalid log level */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    download_backend_logs_get_api_logs_backend_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    download_backend_logs_post_api_logs_backend_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LogDownloadRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_bug_report_api_bug_report_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BugReportRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BugReportResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    download_diagnostics_api_bug_report_diagnostics_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DiagnosticsRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    post_audit_entry_api_wizard_audit_log_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AuditEntryRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuditEntryResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    post_audit_batch_api_wizard_audit_log_batch_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AuditBatchRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuditBatchResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    post_config_snapshot_api_wizard_config_snapshot_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConfigSnapshotRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConfigSnapshotResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    device_event_stream_api_events_device_stream_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    health_check_health_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    websocket_health_api_health_websockets_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
+  discover_devices_api_devices_discover_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": Record<string, never>;
+        };
+      };
+    };
+  };
+  sync_devices_api_devices_sync_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  discover_devices_stream_api_devices_discover_stream_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  get_devices_api_devices_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  delete_all_devices_api_devices_delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  get_device_api_devices__device_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_by_device_id_api_devices__device_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_device_capabilities_endpoint_api_devices__device_id__capabilities_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  press_key_api_devices__device_id__key_post: {
+    parameters: {
+      query: {
+        key: string;
+        state?: string;
+      };
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_now_playing_api_devices__device_id__now_playing_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": Record<string, never>;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_volume_api_devices__device_id__volume_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  set_volume_api_devices__device_id__volume_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["Body_set_volume_api_devices__device_id__volume_put"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  set_mute_api_devices__device_id__mute_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["Body_set_mute_api_devices__device_id__mute_put"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  set_preset_api_presets_set_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PresetSetRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PresetResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_device_presets_api_presets__device_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Device identifier */
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PresetResponse"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  clear_all_presets_api_presets__device_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Device identifier */
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["opencloudtouch__presets__api__routes__MessageResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_preset_api_presets__device_id___preset_number__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Device identifier */
+        device_id: string;
+        /** @description Preset number (1-6) */
+        preset_number: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PresetResponse"];
+        };
+      };
+      /** @description Preset not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  clear_preset_api_presets__device_id___preset_number__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Device identifier */
+        device_id: string;
+        /** @description Preset number (1-6) */
+        preset_number: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["opencloudtouch__presets__api__routes__MessageResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  sync_presets_from_device_api_presets__device_id__sync_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Device identifier */
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["opencloudtouch__presets__api__routes__MessageResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  search_stations_api_radio_search_get: {
+    parameters: {
+      query: {
+        /** @description Search query */
+        q: string;
+        /** @description Search type: name, country, or tag */
+        search_type?: components["schemas"]["SearchType"];
+        /** @description Maximum number of results */
+        limit?: number;
+        /** @description Offset for pagination */
+        offset?: number;
+        /** @description Radio provider: radiobrowser or tunein */
+        provider?: components["schemas"]["ProviderType"];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RadioSearchResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_station_detail_api_radio_station__uuid__get: {
+    parameters: {
+      query?: {
+        /** @description Radio provider: radiobrowser or tunein */
+        provider?: components["schemas"]["ProviderType"];
+      };
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RadioStationResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_manual_ips_api_settings_manual_ips_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ManualIPsResponse"];
+        };
+      };
+    };
+  };
+  set_manual_ips_api_settings_manual_ips_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SetManualIPsRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ManualIPsResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_manual_ip_api_settings_manual_ips__ip__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        ip: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["opencloudtouch__settings__routes__MessageResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_station_descriptor_stations_preset__device_id___preset_number__json_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Device identifier */
+        device_id: string;
+        /** @description Preset number (1-6) */
+        preset_number: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  stream_device_preset_device__device_id__preset__preset_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Device identifier */
+        device_id: string;
+        /** @description Preset number (1-6) */
+        preset_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_preset_descriptor_descriptor_device__device_id__preset__preset_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Device identifier */
+        device_id: string;
+        /** @description Preset number (1-6) */
+        preset_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  bmx_now_playing_stub_bmx_orion_now_playing_get: {
+    parameters: {
+      query?: {
+        station_id?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  bmx_now_playing_stub_bmx_orion_now_playing_station__station_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        station_id: string | null;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  bmx_reporting_stub_bmx_orion_reporting_post: {
+    parameters: {
+      query?: {
+        station_id?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  bmx_reporting_stub_bmx_orion_reporting_station__station_id__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        station_id: string | null;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  bmx_tunein_now_playing_bmx_tunein_v1_now_playing_station__station_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        station_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  bmx_tunein_reporting_bmx_tunein_v1_reporting_station__station_id__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        station_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  bmx_tunein_favorite_bmx_tunein_v1_favorite__station_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        station_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  bmx_tunein_favorite_bmx_tunein_v1_favorite__station_id__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        station_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  bmx_services_bmx_registry_v1_services_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  bmx_tunein_playback_bmx_tunein_v1_playback_station__station_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        station_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  custom_stream_playback_core02_svc_bmx_adapter_orion_prod_orion_station_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  bmx_radiobrowser_playback_bmx_radiobrowser_v1_playback_station__uuid__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  bmx_radiobrowser_now_playing_bmx_radiobrowser_v1_now_playing_station__uuid__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  bmx_radiobrowser_reporting_bmx_radiobrowser_v1_reporting_station__uuid__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  resolve_stream_bmx_resolve_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  get_full_account_v1_systems_devices__device_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_presets_v1_systems_devices__device_id__presets_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_recents_v1_systems_devices__device_id__recents_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_sources_v1_systems_devices__device_id__sources_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_devices_v1_systems_devices__device_id__devices_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  power_on_v1_systems_devices__device_id__power_on_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  power_on_v1_systems_devices__device_id__power_on_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_sourceproviders_v1_systems_devices__device_id__sourceproviders_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  streaming_power_on_streaming_support_power_on_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  streaming_power_on_streaming_support_power_on_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  streaming_sourceproviders_streaming_sourceproviders_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  streaming_full_account_streaming_account__account_id__full_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        account_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  scmudc_reporting_v1_scmudc__device_id__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  streaming_stats_usage_streaming_stats_usage_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  streaming_token_streaming_device__device_id__streaming_token_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  blacklist_check_v1_blacklist__device_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  blacklist_check_v1_blacklist__device_id__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  set_marge_account_setMargeAccount_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  get_playlist_m3u_playlist__device_id___preset_number__m3u_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Device identifier */
+        device_id: string;
+        /** @description Preset number (1-6) */
+        preset_number: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description M3U playlist file */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "text/plain": string;
+          "audio/x-mpegurl": unknown;
+        };
+      };
+      /** @description Preset not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_playlist_pls_playlist__device_id___preset_number__pls_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Device identifier */
+        device_id: string;
+        /** @description Preset number (1-6) */
+        preset_number: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description PLS playlist file */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "text/plain": string;
+          "audio/x-scpls": unknown;
+        };
+      };
+      /** @description Preset not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_instructions_api_setup_instructions__model__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        model: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": Record<string, never>;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  check_connectivity_api_setup_check_connectivity_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ConnectivityCheckRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": Record<string, never>;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_status_api_setup_status__device_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": Record<string, never>;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  enable_permanent_ssh_api_setup_ssh_enable_permanent_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EnablePermanentSSHRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": Record<string, never>;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  verify_setup_api_setup_verify__device_id__post: {
+    parameters: {
+      query: {
+        ip: string;
+      };
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": Record<string, never>;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_supported_models_api_setup_models_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": Record<string, never>;
+        };
+      };
+    };
+  };
+  wizard_server_info_api_setup_wizard_server_info_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": Record<string, never>;
+        };
+      };
+    };
+  };
+  wizard_detect_strategy_api_setup_wizard_detect_strategy_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DetectStrategyResponse"];
+        };
+      };
+    };
+  };
+  wizard_check_ports_api_setup_wizard_check_ports_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PortCheckRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PortCheckResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  wizard_backup_api_setup_wizard_backup_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BackupRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BackupResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  wizard_modify_config_api_setup_wizard_modify_config_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ConfigModifyRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ConfigModifyResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  wizard_modify_hosts_api_setup_wizard_modify_hosts_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HostsModifyRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HostsModifyResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  wizard_restore_config_api_setup_wizard_restore_config_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RestoreRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RestoreResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  wizard_restore_hosts_api_setup_wizard_restore_hosts_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RestoreRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RestoreResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  wizard_list_backups_api_setup_wizard_list_backups_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ListBackupsRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ListBackupsResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  wizard_reboot_device_api_setup_wizard_reboot_device_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ConnectivityCheckRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": Record<string, never>;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  wizard_account_pairing_api_setup_wizard_account_pairing_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AccountPairingRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AccountPairingResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  wizard_ensure_account_api_setup_wizard_ensure_account_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AccountPairingRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AccountPairingResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  wizard_init_persistence_api_setup_wizard_init_persistence_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["InitPersistenceRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InitPersistenceResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  wizard_complete_api_setup_wizard_complete_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["WizardCompleteRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WizardCompleteResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  wizard_verify_redirect_api_setup_wizard_verify_redirect_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["VerifyRedirectRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["VerifyRedirectResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  wizard_finalize_api_setup_wizard_finalize_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["FinalizeRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FinalizeResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description Finalization failed */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  wizard_verify_setup_api_setup_wizard_verify_setup_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["VerifySetupRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["VerifySetupResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description Verification failed */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  wizard_scan_backups_api_setup_wizard_scan_backups_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ScanBackupsRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ScanBackupsResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description Backup scan failed */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  wizard_restore_wizard_api_setup_wizard_restore_wizard_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RestoreWizardRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RestoreWizardResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description Restore wizard execution failed */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  firmware_index_updates_soundtouch_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  firmware_download_legacy_ced_eup_downloads_rel__filename__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        filename: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  firmware_download_ced_soundtouch_downloads_stockholm__path__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        path: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_all_zones_api_zones_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ZoneStatus"][];
+        };
+      };
+      /** @description Failed to get zones */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  create_zone_api_zones_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateZoneRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ZoneStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_zone_api_zones__master_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        master_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  add_zone_members_api_zones__master_id__members_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        master_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ModifyMembersRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  remove_zone_members_api_zones__master_id__members_delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        master_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ModifyMembersRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  change_master_api_zones__master_id__master_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        master_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ChangeMasterRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ZoneStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_device_zone_api_devices__device_id__zone_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ZoneStatus"] | null;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_log_level_api_logs_level_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LogLevelResponse"];
+        };
+      };
+    };
+  };
+  put_log_level_api_logs_level_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["LogLevelRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LogLevelResponse"];
+        };
+      };
+      /** @description Invalid log level */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  download_backend_logs_get_api_logs_backend_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  download_backend_logs_post_api_logs_backend_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["LogDownloadRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_bug_report_api_bug_report_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BugReportRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BugReportResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  download_diagnostics_api_bug_report_diagnostics_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DiagnosticsRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  post_audit_entry_api_wizard_audit_log_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AuditEntryRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AuditEntryResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  post_audit_batch_api_wizard_audit_log_batch_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AuditBatchRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AuditBatchResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  post_config_snapshot_api_wizard_config_snapshot_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ConfigSnapshotRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ConfigSnapshotResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  device_event_stream_api_events_device_stream_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  health_check_health_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  websocket_health_api_health_websockets_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
 }

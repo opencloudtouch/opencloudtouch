@@ -425,7 +425,7 @@ class TestDeleteZone:
         dev1 = _make_device("DEV001", "192.168.1.100", "Master")
         dev2 = _make_device("DEV002", "192.168.1.101", "Slave1")
         dev3 = _make_device("DEV003", "192.168.1.102", "Slave2")
-        
+
         repo.get_by_device_id.side_effect = lambda did: {
             "DEV001": dev1,
             "DEV002": dev2,
@@ -439,9 +439,15 @@ class TestDeleteZone:
             master_ip="192.168.1.100",
             is_master=True,
             members=[
-                ZoneMemberInfo(device_id="DEV001", ip_address="192.168.1.100", role="master"),
-                ZoneMemberInfo(device_id="DEV002", ip_address="192.168.1.101", role="slave"),
-                ZoneMemberInfo(device_id="DEV003", ip_address="192.168.1.102", role="slave"),
+                ZoneMemberInfo(
+                    device_id="DEV001", ip_address="192.168.1.100", role="master"
+                ),
+                ZoneMemberInfo(
+                    device_id="DEV002", ip_address="192.168.1.101", role="slave"
+                ),
+                ZoneMemberInfo(
+                    device_id="DEV003", ip_address="192.168.1.102", role="slave"
+                ),
             ],
         )
 
@@ -463,7 +469,7 @@ class TestDeleteZone:
         """Gracefully handles zone with no slaves (only master)."""
         service, repo = _make_service()
         dev1 = _make_device("DEV001", "192.168.1.100", "Master")
-        
+
         repo.get_by_device_id.return_value = dev1
         repo.get_all.return_value = [dev1]
 
@@ -473,7 +479,9 @@ class TestDeleteZone:
             master_ip="192.168.1.100",
             is_master=True,
             members=[
-                ZoneMemberInfo(device_id="DEV001", ip_address="192.168.1.100", role="master"),
+                ZoneMemberInfo(
+                    device_id="DEV001", ip_address="192.168.1.100", role="master"
+                ),
             ],
         )
 
@@ -491,7 +499,7 @@ class TestDeleteZone:
         """Does nothing when zone already deleted."""
         service, repo = _make_service()
         dev1 = _make_device("DEV001", "192.168.1.100")
-        
+
         repo.get_by_device_id.return_value = dev1
         repo.get_all.return_value = [dev1]
 

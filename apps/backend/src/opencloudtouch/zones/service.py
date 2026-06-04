@@ -202,11 +202,11 @@ class ZoneService:
 
     async def delete_zone(self, master_id: str) -> None:
         """Delete entire zone by removing all slaves from the master.
-        
+
         This properly dissolves the zone on the Bose devices, not just in OCT state.
         All slaves will be removed from the zone, effectively stopping playback on them.
         The master continues playing solo.
-        
+
         Note: This matches Bose Original App behavior and ensures devices
         reflect the same state as OCT UI.
         """
@@ -218,9 +218,7 @@ class ZoneService:
 
         # Extract all slave device IDs (not the master itself)
         slave_ids = [
-            member.device_id
-            for member in zone.members
-            if member.device_id != master_id
+            member.device_id for member in zone.members if member.device_id != master_id
         ]
 
         if not slave_ids:

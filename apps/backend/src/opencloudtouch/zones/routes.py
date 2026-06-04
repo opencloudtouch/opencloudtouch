@@ -77,7 +77,7 @@ async def delete_zone(
     zone_service: ZoneServiceDep,
 ):
     """Delete a multi-room zone by removing all slaves.
-    
+
     This properly dissolves the zone on the Bose devices (not just in OCT state).
     All slaves will be removed from the zone and stop playing.
     The master continues playing solo.
