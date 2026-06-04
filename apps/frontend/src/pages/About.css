@@ -138,8 +138,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-sm, 8px) var(--space-md, 16px);
-  align-items: center;
-  justify-content: center;
+  align-items: baseline;
+  justify-content: flex-start;
   line-height: 1.8;
 }
 
