@@ -235,33 +235,53 @@ class TestGetAllZones:
         repo.get_all.return_value = [dev1, dev2, dev3, dev4]
 
         all_members = [
-            ZoneMemberInfo(device_id="DEV001", ip_address="192.168.1.100", role="master"),
-            ZoneMemberInfo(device_id="DEV002", ip_address="192.168.1.101", role="slave"),
-            ZoneMemberInfo(device_id="DEV003", ip_address="192.168.1.102", role="slave"),
-            ZoneMemberInfo(device_id="DEV004", ip_address="192.168.1.103", role="slave"),
+            ZoneMemberInfo(
+                device_id="DEV001", ip_address="192.168.1.100", role="master"
+            ),
+            ZoneMemberInfo(
+                device_id="DEV002", ip_address="192.168.1.101", role="slave"
+            ),
+            ZoneMemberInfo(
+                device_id="DEV003", ip_address="192.168.1.102", role="slave"
+            ),
+            ZoneMemberInfo(
+                device_id="DEV004", ip_address="192.168.1.103", role="slave"
+            ),
         ]
 
         # Master's response: complete member list (4 devices)
         master_zone = ZoneStatus(
-            master_id="DEV001", master_ip="192.168.1.100",
-            is_master=True, members=all_members,
+            master_id="DEV001",
+            master_ip="192.168.1.100",
+            is_master=True,
+            members=all_members,
         )
         # Slave DEV002 falsely reports is_master=True but only 2 members
         slave_buggy = ZoneStatus(
-            master_id="DEV001", master_ip="192.168.1.100",
+            master_id="DEV001",
+            master_ip="192.168.1.100",
             is_master=True,  # <-- Bose firmware quirk!
             members=[
-                ZoneMemberInfo(device_id="DEV001", ip_address="192.168.1.100", role="master"),
-                ZoneMemberInfo(device_id="DEV002", ip_address="192.168.1.101", role="slave"),
+                ZoneMemberInfo(
+                    device_id="DEV001", ip_address="192.168.1.100", role="master"
+                ),
+                ZoneMemberInfo(
+                    device_id="DEV002", ip_address="192.168.1.101", role="slave"
+                ),
             ],
         )
         # Other slaves: normal response
         slave_normal = ZoneStatus(
-            master_id="DEV001", master_ip="192.168.1.100",
+            master_id="DEV001",
+            master_ip="192.168.1.100",
             is_master=False,
             members=[
-                ZoneMemberInfo(device_id="DEV001", ip_address="192.168.1.100", role="master"),
-                ZoneMemberInfo(device_id="DEV003", ip_address="192.168.1.102", role="slave"),
+                ZoneMemberInfo(
+                    device_id="DEV001", ip_address="192.168.1.100", role="master"
+                ),
+                ZoneMemberInfo(
+                    device_id="DEV003", ip_address="192.168.1.102", role="slave"
+                ),
             ],
         )
 
@@ -303,22 +323,37 @@ class TestGetAllZones:
         repo.get_all.return_value = [dev2, dev1, dev3, dev4]
 
         all_members = [
-            ZoneMemberInfo(device_id="DEV001", ip_address="192.168.1.100", role="master"),
-            ZoneMemberInfo(device_id="DEV002", ip_address="192.168.1.101", role="slave"),
-            ZoneMemberInfo(device_id="DEV003", ip_address="192.168.1.102", role="slave"),
-            ZoneMemberInfo(device_id="DEV004", ip_address="192.168.1.103", role="slave"),
+            ZoneMemberInfo(
+                device_id="DEV001", ip_address="192.168.1.100", role="master"
+            ),
+            ZoneMemberInfo(
+                device_id="DEV002", ip_address="192.168.1.101", role="slave"
+            ),
+            ZoneMemberInfo(
+                device_id="DEV003", ip_address="192.168.1.102", role="slave"
+            ),
+            ZoneMemberInfo(
+                device_id="DEV004", ip_address="192.168.1.103", role="slave"
+            ),
         ]
 
         master_zone = ZoneStatus(
-            master_id="DEV001", master_ip="192.168.1.100",
-            is_master=True, members=all_members,
+            master_id="DEV001",
+            master_ip="192.168.1.100",
+            is_master=True,
+            members=all_members,
         )
         slave_buggy = ZoneStatus(
-            master_id="DEV001", master_ip="192.168.1.100",
+            master_id="DEV001",
+            master_ip="192.168.1.100",
             is_master=True,  # Bose quirk
             members=[
-                ZoneMemberInfo(device_id="DEV001", ip_address="192.168.1.100", role="master"),
-                ZoneMemberInfo(device_id="DEV002", ip_address="192.168.1.101", role="slave"),
+                ZoneMemberInfo(
+                    device_id="DEV001", ip_address="192.168.1.100", role="master"
+                ),
+                ZoneMemberInfo(
+                    device_id="DEV002", ip_address="192.168.1.101", role="slave"
+                ),
             ],
         )
 
