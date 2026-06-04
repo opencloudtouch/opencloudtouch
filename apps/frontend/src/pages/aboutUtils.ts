@@ -75,7 +75,8 @@ export function parseCSVLine(line: string): string[] {
     } else {
       const result = parseUnquotedField(line, i);
       fields.push(result.value);
-      trailingComma = result.nextPos <= len && result.nextPos > i && line[result.nextPos - 1] === ",";
+      trailingComma =
+        result.nextPos <= len && result.nextPos > i && line[result.nextPos - 1] === ",";
       i = result.nextPos;
     }
   }
