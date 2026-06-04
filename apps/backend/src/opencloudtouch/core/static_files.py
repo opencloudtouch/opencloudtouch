@@ -79,7 +79,8 @@ def _serve_static_file(static_dir: Path, decoded_path: str) -> FileResponse | No
         requested_path = (static_dir / decoded_path).resolve()
         if str(requested_path).startswith(str(static_dir)) and requested_path.is_file():
             headers = {}
-            if requested_path.name == "index.html":
+            # Never cache index.html or CSV files — deploys must take effect immediately
+            if requested_path.name in ("index.html", "supporters.csv"):
                 headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
             return FileResponse(requested_path, headers=headers)
     except (ValueError, OSError):

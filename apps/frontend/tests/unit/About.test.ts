@@ -51,18 +51,18 @@ function parseCSVLine(line: string): string[] {
 
 describe("CSV Parser (parseCSVLine)", () => {
   it("parses simple unquoted fields", () => {
-    const result = parseCSVLine("Flo,one-time,30,0,2026-05-26");
-    expect(result).toEqual(["Flo", "one-time", "30", "0", "2026-05-26"]);
+    const result = parseCSVLine("Elvis Presley,one-time,30,0,2026-05-26");
+    expect(result).toEqual(["Elvis Presley", "one-time", "30", "0", "2026-05-26"]);
   });
 
   it("parses quoted fields with spaces", () => {
-    const result = parseCSVLine('"Peter St.",one-time,21.47,0,2026-06-01');
-    expect(result).toEqual(["Peter St.", "one-time", "21.47", "0", "2026-06-01"]);
+    const result = parseCSVLine("Paul McCartney,one-time,21.47,0,2026-06-01");
+    expect(result).toEqual(["Paul McCartney", "one-time", "21.47", "0", "2026-06-01"]);
   });
 
   it("parses quoted fields with umlauts", () => {
-    const result = parseCSVLine('"Grünwald Almöhü",monthly,1,1,2026-06-02');
-    expect(result).toEqual(["Grünwald Almöhü", "monthly", "1", "1", "2026-06-02"]);
+    const result = parseCSVLine("Beyoncé,one-time,10,0,2026-05-10");
+    expect(result).toEqual(["Beyoncé", "one-time", "10", "0", "2026-05-10"]);
   });
 
   it("parses quoted fields with commas inside", () => {
@@ -86,13 +86,13 @@ describe("CSV Parser (parseCSVLine)", () => {
   });
 
   it("handles decimal amounts (krumme EUR from USD conversion)", () => {
-    const result = parseCSVLine('"Peter St.",one-time,21.47,0,2026-06-01');
+    const result = parseCSVLine("Paul McCartney,one-time,21.47,0,2026-06-01");
     expect(parseFloat(result[2])).toBeCloseTo(21.47);
   });
 
   it("parses monthly supporter with both amounts", () => {
-    const result = parseCSVLine("Stephan,monthly,5,5,2026-05-20");
-    expect(result).toEqual(["Stephan", "monthly", "5", "5", "2026-05-20"]);
+    const result = parseCSVLine("Eminem,monthly,5,5,2026-05-20");
+    expect(result).toEqual(["Eminem", "monthly", "5", "5", "2026-05-20"]);
     expect(parseFloat(result[2]) + parseFloat(result[3])).toBe(10);
   });
 });
@@ -168,14 +168,14 @@ describe("Supporter Sorting", () => {
   });
 
   it("handles trailing newline (empty last line)", () => {
-    const csv = "name,type,amount,monthlyAmount,firstSupportDate\nFlo,one-time,30,0,2026-05-26\n";
+    const csv = "name,type,amount,monthlyAmount,firstSupportDate\nElvis Presley,one-time,30,0,2026-05-26\n";
     const lines = csv.trim().split("\n").slice(1).filter((line) => line.trim());
     expect(lines).toHaveLength(1);
-    expect(parseCSVLine(lines[0])).toEqual(["Flo", "one-time", "30", "0", "2026-05-26"]);
+    expect(parseCSVLine(lines[0])).toEqual(["Elvis Presley", "one-time", "30", "0", "2026-05-26"]);
   });
 
   it("handles multiple trailing newlines", () => {
-    const csv = "name,type,amount,monthlyAmount,firstSupportDate\nFlo,one-time,30,0,2026-05-26\n\n\n";
+    const csv = "name,type,amount,monthlyAmount,firstSupportDate\nElvis Presley,one-time,30,0,2026-05-26\n\n\n";
     const lines = csv.trim().split("\n").slice(1).filter((line) => line.trim());
     expect(lines).toHaveLength(1);
   });
