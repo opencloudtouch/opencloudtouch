@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useHealth } from "../hooks/useHealth";
 import { Skeleton } from "../components/LoadingSkeleton";
 import "./About.css";
@@ -483,7 +483,6 @@ export default function About() {
   const [supportersLoading, setSupportersLoading] = useState(true);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo>({ available: false });
   const [updateLoading, setUpdateLoading] = useState(true);
-  const tooltipRefs = useRef<Map<string, string>>(new Map());
 
   // Get random thank you phrase
   const getRandomThankYou = (isMonthly: boolean) => {
@@ -703,11 +702,6 @@ export default function About() {
                 const isMonthly = supporter.monthlyAmount > 0;
                 const supporterKey = `${supporter.name}-${index}`;
 
-                // Get or create tooltip for this supporter
-                if (!tooltipRefs.current.has(supporterKey)) {
-                  tooltipRefs.current.set(supporterKey, getRandomThankYou(isMonthly));
-                }
-
                 return (
                   <motion.span
                     key={supporterKey}
@@ -721,10 +715,9 @@ export default function About() {
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: index * 0.02 }}
-                    title={tooltipRefs.current.get(supporterKey)}
-                    onMouseEnter={() => {
-                      // Generate new random phrase on hover
-                      tooltipRefs.current.set(supporterKey, getRandomThankYou(isMonthly));
+                    title={getRandomThankYou(isMonthly)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.title = getRandomThankYou(isMonthly);
                     }}
                   >
                     {cleanName(supporter.name)}
