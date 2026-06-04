@@ -72,12 +72,17 @@ async def create_zone(
 
 
 @router.delete("/{master_id}", status_code=204)
-async def dissolve_zone(
+async def delete_zone(
     master_id: str,
     zone_service: ZoneServiceDep,
 ):
-    """Dissolve a multi-room zone."""
-    await zone_service.dissolve_zone(master_id)
+    """Delete a multi-room zone by removing all slaves.
+    
+    This properly dissolves the zone on the Bose devices (not just in OCT state).
+    All slaves will be removed from the zone and stop playing.
+    The master continues playing solo.
+    """
+    await zone_service.delete_zone(master_id)
 
 
 @router.post("/{master_id}/members", status_code=200)

@@ -200,6 +200,48 @@ class ZoneService:
         except Exception as e:
             raise DeviceConnectionError(master.ip, str(e))
 
+    async def delete_zone(self, master_id: str) -> None:
+        """Delete entire zone by removing all slaves from the master.
+        
+        This properly dissolves the zone on the Bose devices, not just in OCT state.
+        All slaves will be removed from the zone, effectively stopping playback on them.
+        The master continues playing solo.
+        
+        Note: This matches Bose Original App behavior and ensures devices
+        reflect the same state as OCT UI.
+        """
+        # Get current zone status to find all slaves
+        zone = await self.get_zone_status(master_id)
+        if not zone:
+            logger.warning("No zone found for master %s (already deleted?)", master_id)
+            return
+
+        # Extract all slave device IDs (not the master itself)
+        slave_ids = [
+            member.device_id
+            for member in zone.members
+            if member.device_id != master_id
+        ]
+
+        if not slave_ids:
+            logger.info("Zone %s has no slaves, nothing to remove", master_id)
+            return
+
+        logger.info(
+            "Deleting zone %s by removing %d slave(s): %s",
+            master_id,
+            len(slave_ids),
+            ", ".join(slave_ids),
+        )
+
+        # Remove all slaves via remove_members (reuse existing logic)
+        try:
+            await self.remove_members(master_id, slave_ids)
+            logger.info("Zone %s deleted successfully", master_id)
+        except Exception as e:
+            logger.error("Failed to delete zone %s: %s", master_id, e)
+            raise
+
     async def dissolve_zone(self, master_id: str) -> None:
         """Dissolve an existing zone."""
         logger.info("Dissolving zone with master_id=%s", master_id)

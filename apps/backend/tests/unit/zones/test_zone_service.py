@@ -415,6 +415,96 @@ class TestDissolveZone:
             await service.dissolve_zone("UNKNOWN")
 
 
+class TestDeleteZone:
+    """Tests for delete_zone (proper zone deletion via slave removal)."""
+
+    @pytest.mark.asyncio
+    async def test_deletes_zone_by_removing_all_slaves(self):
+        """Deletes zone by removing all slaves from master."""
+        service, repo = _make_service()
+        dev1 = _make_device("DEV001", "192.168.1.100", "Master")
+        dev2 = _make_device("DEV002", "192.168.1.101", "Slave1")
+        dev3 = _make_device("DEV003", "192.168.1.102", "Slave2")
+        
+        repo.get_by_device_id.side_effect = lambda did: {
+            "DEV001": dev1,
+            "DEV002": dev2,
+            "DEV003": dev3,
+        }.get(did)
+        repo.get_all.return_value = [dev1, dev2, dev3]
+
+        # Zone with 3 members (1 master + 2 slaves)
+        zone_status = ZoneStatus(
+            master_id="DEV001",
+            master_ip="192.168.1.100",
+            is_master=True,
+            members=[
+                ZoneMemberInfo(device_id="DEV001", ip_address="192.168.1.100", role="master"),
+                ZoneMemberInfo(device_id="DEV002", ip_address="192.168.1.101", role="slave"),
+                ZoneMemberInfo(device_id="DEV003", ip_address="192.168.1.102", role="slave"),
+            ],
+        )
+
+        mock_client = AsyncMock()
+        mock_client.get_zone_status.return_value = zone_status
+
+        with patch.object(service, "_get_client", return_value=mock_client):
+            await service.delete_zone("DEV001")
+
+        # Should have called remove_zone_members with both slaves
+        mock_client.remove_zone_members.assert_called_once()
+        called_members = mock_client.remove_zone_members.call_args[0][0]
+        assert len(called_members) == 2
+        assert called_members[0].device_id == "DEV002"
+        assert called_members[1].device_id == "DEV003"
+
+    @pytest.mark.asyncio
+    async def test_does_nothing_when_zone_has_no_slaves(self):
+        """Gracefully handles zone with no slaves (only master)."""
+        service, repo = _make_service()
+        dev1 = _make_device("DEV001", "192.168.1.100", "Master")
+        
+        repo.get_by_device_id.return_value = dev1
+        repo.get_all.return_value = [dev1]
+
+        # Zone with only master (no slaves)
+        zone_status = ZoneStatus(
+            master_id="DEV001",
+            master_ip="192.168.1.100",
+            is_master=True,
+            members=[
+                ZoneMemberInfo(device_id="DEV001", ip_address="192.168.1.100", role="master"),
+            ],
+        )
+
+        mock_client = AsyncMock()
+        mock_client.get_zone_status.return_value = zone_status
+
+        with patch.object(service, "_get_client", return_value=mock_client):
+            await service.delete_zone("DEV001")
+
+        # Should NOT call remove_zone_members
+        mock_client.remove_zone_members.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_gracefully_handles_already_deleted_zone(self):
+        """Does nothing when zone already deleted."""
+        service, repo = _make_service()
+        dev1 = _make_device("DEV001", "192.168.1.100")
+        
+        repo.get_by_device_id.return_value = dev1
+        repo.get_all.return_value = [dev1]
+
+        mock_client = AsyncMock()
+        mock_client.get_zone_status.return_value = None  # No zone
+
+        with patch.object(service, "_get_client", return_value=mock_client):
+            await service.delete_zone("DEV001")
+
+        # Should NOT call remove_zone_members
+        mock_client.remove_zone_members.assert_not_called()
+
+
 class TestChangeMaster:
     """Tests for change_master."""
 

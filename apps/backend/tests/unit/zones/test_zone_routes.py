@@ -103,12 +103,12 @@ class TestDissolveZone:
     """Tests for DELETE /api/zones/{master_id}."""
 
     def test_returns_204_on_success(self, client, mock_service):
-        mock_service.dissolve_zone.return_value = None
+        mock_service.delete_zone.return_value = None
         r = client.delete("/api/zones/DEV001")
         assert r.status_code == 204
 
     def test_returns_404_when_device_not_found(self, client, mock_service):
-        mock_service.dissolve_zone.side_effect = DeviceNotFoundError("UNKNOWN")
+        mock_service.delete_zone.side_effect = DeviceNotFoundError("UNKNOWN")
         r = client.delete("/api/zones/UNKNOWN")
         assert r.status_code == 404
 
