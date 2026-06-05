@@ -170,4 +170,103 @@ describe("DeviceNameEditor", () => {
       expect(screen.getByLabelText("Device name")).toBeDisabled();
     });
   });
+
+  // REGRESSION TESTS for onBlur auto-save (added 2026-06-05)
+  it("auto-saves on blur when value changed", async () => {
+    mockRenameDevice.mockResolvedValue({
+      device_id: "ABC123",
+      name: "Kitchen",
+      previous_name: "Living Room",
+    });
+    const onRenamed = vi.fn();
+
+    render(
+      <DeviceNameEditor deviceId="ABC123" name="Living Room" onRenamed={onRenamed} />
+    );
+
+    await userEvent.click(screen.getByText("Living Room"));
+    const input = screen.getByLabelText("Device name");
+    await userEvent.clear(input);
+    await userEvent.type(input, "Kitchen");
+    
+    // Blur without pressing Enter should trigger save
+    fireEvent.blur(input);
+
+    await waitFor(() => {
+      expect(mockRenameDevice).toHaveBeenCalledWith("ABC123", "Kitchen");
+    });
+
+    await waitFor(() => {
+      expect(onRenamed).toHaveBeenCalledWith("Kitchen");
+    });
+  });
+
+  it("cancels on blur when value unchanged", async () => {
+    render(<DeviceNameEditor deviceId="ABC123" name="Living Room" />);
+
+    await userEvent.click(screen.getByText("Living Room"));
+    const input = screen.getByLabelText("Device name");
+    
+    // Blur without changing value should cancel
+    fireEvent.blur(input);
+
+    // Should be back to display mode, no API call
+    await waitFor(() => {
+      expect(screen.getByText("Living Room")).toBeInTheDocument();
+    });
+    expect(mockRenameDevice).not.toHaveBeenCalled();
+  });
+
+  it("cancels on blur when value is empty", async () => {
+    render(<DeviceNameEditor deviceId="ABC123" name="Living Room" />);
+
+    await userEvent.click(screen.getByText("Living Room"));
+    const input = screen.getByLabelText("Device name");
+    await userEvent.clear(input);
+    
+    // Blur with empty value should cancel
+    fireEvent.blur(input);
+
+    // Should be back to display mode with original name, no API call
+    await waitFor(() => {
+      expect(screen.getByText("Living Room")).toBeInTheDocument();
+    });
+    expect(mockRenameDevice).not.toHaveBeenCalled();
+  });
+
+  it("does not trigger blur handler while saving", async () => {
+    // Slow-resolving promise to test saving state
+    mockRenameDevice.mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve({ name: "Kitchen" }), 100))
+    );
+
+    render(<DeviceNameEditor deviceId="ABC123" name="Living Room" />);
+
+    await userEvent.click(screen.getByText("Living Room"));
+    const input = screen.getByLabelText("Device name");
+    await userEvent.clear(input);
+    await userEvent.type(input, "Kitchen");
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    // Try to blur while saving
+    fireEvent.blur(input);
+
+    // Should only call API once (from Enter, not from blur)
+    await waitFor(() => {
+      expect(mockRenameDevice).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // REGRESSION TEST for centered layout with placeholder icon (added 2026-06-05)
+  it("renders placeholder icon for balanced centering", () => {
+    render(<DeviceNameEditor deviceId="ABC123" name="Living Room" />);
+
+    const heading = screen.getByRole("button");
+    const icons = heading.querySelectorAll('span[aria-hidden="true"]');
+    
+    // Should have 2 icons: placeholder (invisible) + edit icon (visible on hover)
+    expect(icons).toHaveLength(2);
+    expect(icons[0]).toHaveClass("device-name-placeholder-icon");
+    expect(icons[1]).toHaveClass("device-name-edit-icon");
+  });
 });
