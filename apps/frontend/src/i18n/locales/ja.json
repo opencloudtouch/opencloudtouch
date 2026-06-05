@@ -105,24 +105,26 @@
     "loading": "設定を読み込んでいます...",
     "errorTitle": "読み込みエラー",
     "manualIps": {
-      "sectionTitle": "手動デバイスIP",
-      "description": "自動検出が機能しない場合、デバイスのIPアドレスを手動で追加します。",
       "placeholder": "192.168.1.10",
       "addButton": "+ 追加",
-      "emptyList": "手動IPが設定されていません",
-      "removeIp": "IPを削除",
-      "ipAdded": "IP {{ip}}を追加しました",
-      "ipRemoved": "IP {{ip}}を削除しました",
       "invalidFormat": "無効なIPアドレス（形式：192.168.1.10）",
-      "alreadyExists": "このIPアドレスはすでに存在します",
       "enterIp": "IPアドレスを入力してください",
-      "discoverButton": "デバイスを検索",
-      "discovering": "検索中...",
-      "infoHint": "「デバイスを検索」をクリックして手動で検出を開始します。見つかったデバイスはホーム画面に表示されます。"
+      "probing": "検索中...",
+      "deviceAdded": "{{name}}（{{ip}}）を追加しました",
+      "probeError": "{{ip}} にデバイスが見つかりません"
     },
     "discovery": {
       "devicesFound_one": "新しいデバイスが{{count}}台見つかりました",
       "devicesFound_other": "新しいデバイスが{{count}}台見つかりました"
+    },
+    "deviceDiscovery": {
+      "sectionTitle": "デバイスを探す",
+      "autoTitle": "自動検索",
+      "autoDescription": "ローカルネットワーク上のSoundTouchデバイスを検索します。",
+      "scanButton": "今すぐ検索",
+      "scanning": "検索中...",
+      "manualTitle": "手動IPアドレス",
+      "manualDescription": "VLAN、Dockerネットワーク、ファイアウォールなどで自動検索が見つからない場合に使用します。"
     },
     "logging": {
       "sectionTitle": "ログ",

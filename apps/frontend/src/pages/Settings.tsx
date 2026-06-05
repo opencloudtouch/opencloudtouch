@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, FormEvent } from "react";
 import { motion } from "framer-motion";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { useManualIPs, useAddManualIP, useDeleteManualIP } from "../hooks/useSettings";
+import { useManualIPs, useProbeDevice } from "../hooks/useSettings";
 import { useDiscoveryStream } from "../hooks/useDiscoveryStream";
 import { useToast } from "../contexts/ToastContext";
 import { toUserMessage } from "../utils/errorMessages";
@@ -15,12 +15,10 @@ export default function Settings() {
   const { t } = useTranslation();
   const [newIP, setNewIP] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   // React Query hooks
-  const { data: manualIPs = [], isLoading: loading, error: queryError, refetch } = useManualIPs();
-  const addIP = useAddManualIP();
-  const deleteIP = useDeleteManualIP();
+  const { isLoading: loading, error: queryError, refetch } = useManualIPs();
+  const probeDevice = useProbeDevice();
 
   // Log level query + mutation
   const { data: logLevelData } = useQuery<{ level: string }>({
@@ -102,34 +100,14 @@ export default function Settings() {
       return;
     }
 
-    if (manualIPs.includes(trimmedIP)) {
-      setError(t("settings.manualIps.alreadyExists"));
-      return;
-    }
-
     try {
-      await addIP.mutateAsync(trimmedIP);
+      const result = await probeDevice.mutateAsync(trimmedIP);
       setNewIP("");
-      setSuccess(t("settings.manualIps.ipAdded", { ip: trimmedIP }));
       setError("");
-      // Auto-clear success message after 3s
-      setTimeout(() => setSuccess(""), 3000);
+      show(t("settings.manualIps.deviceAdded", { name: result.name, ip: result.ip }), "success");
     } catch (err) {
-      console.error("[Settings] Failed to add IP:", err);
-      setError(toUserMessage(err));
-    }
-  };
-
-  const handleDeleteIP = async (ipToDelete: string) => {
-    try {
-      await deleteIP.mutateAsync(ipToDelete);
-      setSuccess(t("settings.manualIps.ipRemoved", { ip: ipToDelete }));
-      setError("");
-      // Auto-clear success message after 3s
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      console.error("[Settings] Failed to delete IP:", err);
-      setError(toUserMessage(err));
+      console.error("[Settings] Probe failed:", err);
+      setError(t("settings.manualIps.probeError", { ip: trimmedIP }));
     }
   };
 
@@ -164,87 +142,72 @@ export default function Settings() {
     <div className="page settings-page">
       <h1 className="page-title">{t("settings.title")}</h1>
 
-      {/* Manual IPs Section */}
+      {/* Device Discovery Section */}
       <motion.section
         className="settings-section"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
         <h2 className="section-title">
-          <span className="section-icon">🌐</span>
-          {t("settings.manualIps.sectionTitle")}
+          <span className="section-icon">🔍</span>
+          {t("settings.deviceDiscovery.sectionTitle")}
         </h2>
 
-        <div className="settings-card">
-          <p className="section-description">{t("settings.manualIps.description")}</p>
+        <div className="settings-card device-discovery-options">
+          {/* Primary: Automatic Discovery */}
+          <div className="discovery-method-card primary-method">
+            <h3 className="method-title">{t("settings.deviceDiscovery.autoTitle")}</h3>
+            <p className="method-description">{t("settings.deviceDiscovery.autoDescription")}</p>
 
-          {/* Add IP Form */}
-          <form onSubmit={handleAddIP} className="ip-add-form">
-            <input
-              type="text"
-              value={newIP}
-              onChange={(e) => setNewIP(e.target.value)}
-              placeholder={t("settings.manualIps.placeholder")}
-              className="ip-input"
-              pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-            />
-            <button type="submit" className="btn btn-primary">
-              {t("settings.manualIps.addButton")}
-            </button>
-          </form>
-
-          {/* Error/Success Messages */}
-          {error && <div className="alert alert-error">{error}</div>}
-          {success && <div className="alert alert-success">{success}</div>}
-
-          {/* IP List */}
-          <div className="ip-list">
-            {manualIPs.length === 0 ? (
-              <p className="empty-message">{t("settings.manualIps.emptyList")}</p>
-            ) : (
-              <ul className="ip-items">
-                {manualIPs.map((ip) => (
-                  <motion.li
-                    key={ip}
-                    className="ip-item"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                  >
-                    <span className="ip-address">{ip}</span>
-                    <button
-                      onClick={() => handleDeleteIP(ip)}
-                      className="btn btn-delete"
-                      title={t("settings.manualIps.removeIp")}
-                    >
-                      ×
-                    </button>
-                  </motion.li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {/* Discover Button */}
-          {manualIPs.length > 0 && (
             <div className="discover-action">
               <button
-                className="btn btn-primary"
+                className="btn btn-primary network-scan-btn"
                 onClick={() => void startDiscovery()}
                 disabled={isDiscovering}
-                aria-label={t("settings.manualIps.discoverButton")}
+                aria-label={t("settings.deviceDiscovery.scanButton")}
               >
-                {isDiscovering
-                  ? t("settings.manualIps.discovering")
-                  : t("settings.manualIps.discoverButton")}
+                {isDiscovering ? (
+                  <>
+                    <span className="spinner-inline" aria-hidden="true" />
+                    {t("settings.deviceDiscovery.scanning")}
+                  </>
+                ) : (
+                  t("settings.deviceDiscovery.scanButton")
+                )}
               </button>
             </div>
-          )}
+          </div>
 
-          {/* Info Box */}
-          <div className="info-box">
-            <strong>ℹ️</strong>
-            <p>{t("settings.manualIps.infoHint")}</p>
+          {/* Secondary: Manual IPs */}
+          <div className="discovery-method-card secondary-method">
+            <h3 className="method-title">{t("settings.deviceDiscovery.manualTitle")}</h3>
+            <p className="method-description">{t("settings.deviceDiscovery.manualDescription")}</p>
+
+            {/* Add IP Form */}
+            <form onSubmit={handleAddIP} className="ip-add-form">
+              <input
+                type="text"
+                value={newIP}
+                onChange={(e) => setNewIP(e.target.value)}
+                placeholder={t("settings.manualIps.placeholder")}
+                className="ip-input"
+                pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+                disabled={probeDevice.isPending}
+              />
+              <button type="submit" className="btn btn-primary" disabled={probeDevice.isPending}>
+                {probeDevice.isPending ? (
+                  <>
+                    <span className="spinner-inline" aria-hidden="true" />
+                    {t("settings.manualIps.probing")}
+                  </>
+                ) : (
+                  t("settings.manualIps.addButton")
+                )}
+              </button>
+            </form>
+
+            {/* Error Messages */}
+            {error && <div className="alert alert-error">{error}</div>}
           </div>
         </div>
       </motion.section>

@@ -105,24 +105,26 @@
     "loading": "Loading settings...",
     "errorTitle": "Error loading",
     "manualIps": {
-      "sectionTitle": "Manual Device IPs",
-      "description": "Add IP addresses of devices manually if automatic detection does not work.",
       "placeholder": "192.168.1.10",
       "addButton": "+ Add",
-      "emptyList": "No manual IPs configured",
-      "removeIp": "Remove IP",
-      "ipAdded": "IP {{ip}} added",
-      "ipRemoved": "IP {{ip}} removed",
       "invalidFormat": "Invalid IP address (format: 192.168.1.10)",
-      "alreadyExists": "This IP address already exists",
       "enterIp": "Please enter an IP address",
-      "discoverButton": "Discover Devices",
-      "discovering": "Searching...",
-      "infoHint": "Click \"Discover Devices\" to start detection manually. Found devices will appear on the home screen."
+      "probing": "Searching...",
+      "deviceAdded": "{{name}} ({{ip}}) added",
+      "probeError": "No device found at {{ip}}"
     },
     "discovery": {
       "devicesFound_one": "{{count}} new device found",
       "devicesFound_other": "{{count}} new devices found"
+    },
+    "deviceDiscovery": {
+      "sectionTitle": "Find Devices",
+      "autoTitle": "Automatic Search",
+      "autoDescription": "Scans your local network for SoundTouch devices.",
+      "scanButton": "Scan Now",
+      "scanning": "Scanning...",
+      "manualTitle": "Manual IP Address",
+      "manualDescription": "Use this if automatic search doesn't find anything due to VLAN, Docker network, or firewall."
     },
     "logging": {
       "sectionTitle": "Logging",

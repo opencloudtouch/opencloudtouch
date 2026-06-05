@@ -105,24 +105,26 @@
     "loading": "Ładowanie ustawień...",
     "errorTitle": "Błąd ładowania",
     "manualIps": {
-      "sectionTitle": "Ręczne adresy IP urządzeń",
-      "description": "Dodaj ręcznie adresy IP urządzeń, jeśli automatyczne wykrywanie nie działa.",
       "placeholder": "192.168.1.10",
       "addButton": "+ Dodaj",
-      "emptyList": "Brak skonfigurowanych ręcznych adresów IP",
-      "removeIp": "Usuń IP",
-      "ipAdded": "Dodano IP {{ip}}",
-      "ipRemoved": "Usunięto IP {{ip}}",
       "invalidFormat": "Nieprawidłowy adres IP (format: 192.168.1.10)",
-      "alreadyExists": "Ten adres IP już istnieje",
       "enterIp": "Wprowadź adres IP",
-      "discoverButton": "Szukaj urządzeń",
-      "discovering": "Wyszukiwanie...",
-      "infoHint": "Kliknij \"Szukaj urządzeń\", aby ręcznie uruchomić wykrywanie. Znalezione urządzenia pojawią się na ekranie głównym."
+      "probing": "Wyszukiwanie...",
+      "deviceAdded": "{{name}} ({{ip}}) dodano",
+      "probeError": "Nie znaleziono urządzenia pod {{ip}}"
     },
     "discovery": {
       "devicesFound_one": "Znaleziono {{count}} nowe urządzenie",
       "devicesFound_other": "Znaleziono {{count}} nowe urządzenia"
+    },
+    "deviceDiscovery": {
+      "sectionTitle": "Znajdź urządzenia",
+      "autoTitle": "Automatyczne wyszukiwanie",
+      "autoDescription": "Wyszukuje urządzenia SoundTouch w sieci lokalnej.",
+      "scanButton": "Szukaj teraz",
+      "scanning": "Wyszukiwanie...",
+      "manualTitle": "Ręczny adres IP",
+      "manualDescription": "Użyj tej opcji, jeśli automatyczne wyszukiwanie nie znajduje niczego z powodu VLAN, sieci Docker lub zapory."
     },
     "logging": {
       "sectionTitle": "Logi",

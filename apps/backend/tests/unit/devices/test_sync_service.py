@@ -533,3 +533,50 @@ class TestDeviceSyncServiceDeduplication:
         assert result.discovered == 1
         assert result.synced == 1
         assert result.failed == 0
+
+
+class TestFetchAndUpsertOne:
+    """Tests for fetch_and_upsert_one."""
+
+    @pytest.mark.asyncio
+    async def test_fetch_and_upsert_one_success(self, mock_repository, monkeypatch):
+        """Fetches device info and upserts to DB."""
+        discovered = DiscoveredDevice(ip="192.168.1.50", port=8090)
+
+        fetched_device = Device(
+            device_id="AABB11223344",
+            ip="192.168.1.50",
+            name="Kitchen",
+            model="SoundTouch 20",
+            mac_address="AA:BB:11:22:33:44",
+            firmware_version="28.0.3.46454",
+        )
+
+        async def mock_fetch(self, disc):
+            return fetched_device
+
+        monkeypatch.setattr(DeviceSyncService, "_fetch_device_info", mock_fetch)
+
+        service = DeviceSyncService(repository=mock_repository)
+        result = await service.fetch_and_upsert_one(discovered)
+
+        assert result.device_id == "AABB11223344"
+        assert result.name == "Kitchen"
+        mock_repository.upsert.assert_called_once_with(fetched_device)
+
+    @pytest.mark.asyncio
+    async def test_fetch_and_upsert_one_propagates_error(
+        self, mock_repository, monkeypatch
+    ):
+        """Propagates exceptions from _fetch_device_info."""
+        discovered = DiscoveredDevice(ip="192.168.1.99", port=8090)
+
+        async def mock_fetch(self, disc):
+            raise Exception("Device offline")
+
+        monkeypatch.setattr(DeviceSyncService, "_fetch_device_info", mock_fetch)
+
+        service = DeviceSyncService(repository=mock_repository)
+
+        with pytest.raises(Exception, match="Device offline"):
+            await service.fetch_and_upsert_one(discovered)
