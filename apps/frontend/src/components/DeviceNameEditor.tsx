@@ -108,38 +108,25 @@ export default function DeviceNameEditor({ deviceId, name, onRenamed }: DeviceNa
     );
   }
 
-  const THRESHOLD = 10;
-  const BASE_PX = 22;
-  const MIN_PX = 15;
-  const fontSizePx =
-    name.length <= THRESHOLD
-      ? BASE_PX
-      : Math.max(MIN_PX, Math.round((BASE_PX * THRESHOLD) / name.length));
+  const fontSizePx = Math.max(16, Math.round((24 * 10) / Math.max(name.length, 10)));
 
   return (
-    <div className="device-name-wrapper" data-test="device-name-wrapper">
-      <h2
-        className="device-name device-name-editable"
-        style={{ fontSize: `${fontSizePx}px` }}
-        onClick={startEditing}
-        title={t("deviceRename.clickToEdit")}
-        data-test="device-name"
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") startEditing();
-        }}
-      >
-        {name}
-      </h2>
-      <button
-        className="device-name-edit-btn"
-        onClick={startEditing}
-        aria-label={t("deviceRename.clickToEdit")}
-        tabIndex={-1}
-      >
+    <h2
+      className="device-name device-name-editable"
+      style={{ fontSize: `${fontSizePx}px` }}
+      onClick={startEditing}
+      title={t("deviceRename.clickToEdit")}
+      data-test="device-name"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") startEditing();
+      }}
+    >
+      <span className="device-name-text">{name}</span>
+      <span className="device-name-edit-icon" aria-hidden="true">
         ✏️
-      </button>
-    </div>
+      </span>
+    </h2>
   );
 }
