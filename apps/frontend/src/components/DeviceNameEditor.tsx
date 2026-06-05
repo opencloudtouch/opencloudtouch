@@ -83,7 +83,6 @@ export default function DeviceNameEditor({ deviceId, name, onRenamed }: DeviceNa
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          onBlur={cancel}
           maxLength={30}
           disabled={saving}
           aria-label={t("deviceRename.inputLabel")}
@@ -110,6 +109,9 @@ export default function DeviceNameEditor({ deviceId, name, onRenamed }: DeviceNa
         if (e.key === "Enter" || e.key === " ") startEditing();
       }}
     >
+      <span className="device-name-placeholder-icon" aria-hidden="true">
+        ✏️
+      </span>
       {name}
       <span className="device-name-edit-icon" aria-hidden="true">
         ✏️

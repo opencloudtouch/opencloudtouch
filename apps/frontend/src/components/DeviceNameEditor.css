@@ -3,6 +3,13 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
+  justify-content: center;
+}
+
+.device-name-placeholder-icon {
+  font-size: 0.7em;
+  opacity: 0;
+  visibility: hidden;
 }
 
 .device-name-edit-icon {
