@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: OpenCloudTouch
   description: Open-Source replacement for discontinued streaming device cloud features
-  version: dev-adb3a83
+  version: dev-b13a69f
 paths:
   /api/devices/discover:
     get:
@@ -61,6 +61,35 @@ paths:
           content:
             application/json:
               schema: {}
+  /api/devices/probe:
+    post:
+      tags:
+      - Devices
+      summary: Probe Device
+      description: "Probe a single device by IP address.\n\nContacts the device at\
+        \ the given IP, fetches its info, upserts it\nto the database, and adds the\
+        \ IP to the manual IPs list.\n\nReturns:\n    Device data if reachable\n\n\
+        Raises:\n    422: Invalid IP format\n    404: Device not reachable at the\
+        \ given IP"
+      operationId: probe_device_api_devices_probe_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProbeRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Probe Device Api Devices Probe Post
+        '422':
+          description: Invalid IP address format
+        '404':
+          description: Device not reachable at the given IP
   /api/devices:
     get:
       tags:
@@ -3017,29 +3046,6 @@ paths:
           content:
             application/json:
               schema: {}
-  /api/health/websockets:
-    get:
-      tags:
-      - System
-      summary: WebSocket Health
-      description: WebSocket connection health for all managed devices.
-      operationId: websocket_health_api_health_websockets_get
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  connections:
-                    type: object
-                    additionalProperties:
-                      type: object
-                  total_connected:
-                    type: integer
-                  total_devices:
-                    type: integer
   /api/wizard/audit-log:
     post:
       tags:
@@ -3118,6 +3124,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/events/device-stream:
+    get:
+      tags:
+      - Events
+      summary: Device Event Stream
+      description: 'Stream device events via Server-Sent Events.
+
+
+        Pushes an initial snapshot of all known device states, then streams
+
+        real-time updates. A keepalive comment is sent every 15 seconds.'
+      operationId: device_event_stream_api_events_device_stream_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
   /health:
     get:
       tags:
@@ -3125,6 +3149,19 @@ paths:
       summary: Health Check
       description: Health check endpoint for Docker and monitoring.
       operationId: health_check_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/health/websockets:
+    get:
+      tags:
+      - System
+      summary: Websocket Health
+      description: WebSocket connection health for all managed devices.
+      operationId: websocket_health_api_health_websockets_get
       responses:
         '200':
           description: Successful Response
@@ -3891,6 +3928,15 @@ components:
           type: array
           title: Frontend Logs
           default: []
+        frontend_log_buffers:
+          anyOf:
+          - additionalProperties:
+              items:
+                $ref: '#/components/schemas/FrontendLogEntry'
+              type: array
+            type: object
+          - type: 'null'
+          title: Frontend Log Buffers
       type: object
       title: LogDownloadRequest
       description: Optional body for POST /api/logs/backend with frontend logs.
@@ -4080,6 +4126,17 @@ components:
       - station_url
       title: PresetSetRequest
       description: Request model for setting a preset.
+    ProbeRequest:
+      properties:
+        ip:
+          type: string
+          title: Ip
+          description: IP address of the device to probe
+      type: object
+      required:
+      - ip
+      title: ProbeRequest
+      description: Request model for single-device probe.
     ProviderType:
       type: string
       enum:
