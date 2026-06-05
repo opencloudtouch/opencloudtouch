@@ -290,24 +290,6 @@ class DeviceService:
         finally:
             await client.close()
 
-    async def get_client(self, device_id: str):
-        """Get HTTP client for device (for operations not using context manager).
-
-        Args:
-            device_id: Device ID to look up
-
-        Returns:
-            Configured device HTTP client
-
-        Raises:
-            DeviceNotFoundError: If device not found in repository
-        """
-        device = await self.repository.get_by_device_id(device_id)
-        if not device:
-            raise DeviceNotFoundError(device_id)
-        base_url = f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR — Bose devices only support HTTP
-        return await asyncio.to_thread(get_device_client, base_url)
-
     async def press_key(self, device_id: str, key: str, state: str = "both") -> None:
         """
         Simulate a key press on a device.

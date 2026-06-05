@@ -277,8 +277,8 @@ async def rename_device(
     # Try REST API first (like Bose App does)
     rest_error = None
     try:
-        client = await device_service.get_client(device_id)
-        await client.set_name(name)
+        async with device_service._device_client(device_id) as client:
+            await client.set_name(name)
         logger.info(
             "Device %r renamed via REST API: %r -> %r",
             device.device_id,

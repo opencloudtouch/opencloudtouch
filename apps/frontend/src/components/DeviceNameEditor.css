@@ -1,26 +1,45 @@
-.device-name-editable {
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
+.device-name-wrapper {
+  position: relative;
+  display: flex;
   justify-content: center;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
 }
 
-.device-name-placeholder-icon {
-  font-size: 0.7em;
-  opacity: 0;
-  visibility: hidden;
+.device-name-editable {
+  cursor: text;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+  padding-right: 1.4em; /* reserve space for absolutely-positioned pencil button */
+  box-sizing: border-box;
 }
 
-.device-name-edit-icon {
-  font-size: 0.7em;
+.device-name-edit-btn {
+  all: unset;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75em;
   opacity: 0;
+  cursor: pointer;
+  flex-shrink: 0;
   transition: opacity 0.2s ease;
+  line-height: 1;
 }
 
-.device-name-editable:hover .device-name-edit-icon,
-.device-name-editable:focus .device-name-edit-icon {
+.device-name-wrapper:hover .device-name-edit-btn,
+.device-name-wrapper:focus-within .device-name-edit-btn {
   opacity: 0.6;
+}
+
+.device-name-edit-btn:hover {
+  opacity: 1 !important;
 }
 
 .device-name-editor {

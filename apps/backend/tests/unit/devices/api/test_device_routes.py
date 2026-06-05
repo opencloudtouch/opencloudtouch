@@ -9,7 +9,7 @@ Struktur:
 - TestCapabilitiesEndpoint: GET /api/devices/{id}/capabilities
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -968,7 +968,10 @@ class TestRenameDeviceEndpoint:
         # Mock client with set_name method
         mock_client = AsyncMock()
         mock_client.set_name = AsyncMock()
-        mock_device_service.get_client = AsyncMock(return_value=mock_client)
+        mock_ctx = MagicMock()
+        mock_ctx.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_ctx.__aexit__ = AsyncMock(return_value=False)
+        mock_device_service._device_client = MagicMock(return_value=mock_ctx)
 
         response = client.put(
             f"/api/devices/{device.device_id}/name",
@@ -991,7 +994,10 @@ class TestRenameDeviceEndpoint:
         # Mock client that raises on REST
         mock_client = AsyncMock()
         mock_client.set_name = AsyncMock(side_effect=RuntimeError("REST failed"))
-        mock_device_service.get_client = AsyncMock(return_value=mock_client)
+        mock_ctx = MagicMock()
+        mock_ctx.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_ctx.__aexit__ = AsyncMock(return_value=False)
+        mock_device_service._device_client = MagicMock(return_value=mock_ctx)
 
         with patch(
             "opencloudtouch.devices.api.routes.rename_device_via_ssh"
@@ -1016,7 +1022,10 @@ class TestRenameDeviceEndpoint:
         # Mock client that raises on REST
         mock_client = AsyncMock()
         mock_client.set_name = AsyncMock(side_effect=RuntimeError("REST failed"))
-        mock_device_service.get_client = AsyncMock(return_value=mock_client)
+        mock_ctx = MagicMock()
+        mock_ctx.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_ctx.__aexit__ = AsyncMock(return_value=False)
+        mock_device_service._device_client = MagicMock(return_value=mock_ctx)
 
         with patch(
             "opencloudtouch.devices.api.routes.rename_device_via_ssh"
@@ -1071,7 +1080,10 @@ class TestRenameDeviceEndpoint:
         # Mock client with set_name method
         mock_client = AsyncMock()
         mock_client.set_name = AsyncMock()
-        mock_device_service.get_client = AsyncMock(return_value=mock_client)
+        mock_ctx = MagicMock()
+        mock_ctx.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_ctx.__aexit__ = AsyncMock(return_value=False)
+        mock_device_service._device_client = MagicMock(return_value=mock_ctx)
 
         response = client.put(
             f"/api/devices/{device.device_id}/name",
