@@ -22,7 +22,9 @@ logger = logging.getLogger(__name__)
 # Intervals (seconds)
 PING_INTERVAL = 1 * 60  # 1 min (TEST: normally 5 min)
 SSH_VERIFY_INTERVAL = 30 * 60  # 30 min
-ZONE_SYNC_INTERVAL = 1 * 60  # 1 min (TEST: normally 15 min) — sync zones with device reality
+ZONE_SYNC_INTERVAL = (
+    1 * 60
+)  # 1 min (TEST: normally 15 min) — sync zones with device reality
 PING_TIMEOUT = 5  # HTTP timeout per device
 OFFLINE_THRESHOLD = 15 * 60  # 15 min without response → offline
 SSH_FAIL_THRESHOLD = 2  # consecutive failures before resetting ssh_permanent
@@ -273,7 +275,7 @@ class DeviceHealthCheck:
 
     async def _zone_sync_all(self) -> None:
         """Sync zone database with device reality (every 15 min).
-        
+
         Detects and resolves zone drift:
         - Zone deleted on device → dissolve in DB
         - Members changed on device → update DB
@@ -281,82 +283,106 @@ class DeviceHealthCheck:
         """
         if not self._zone_repo:
             return
-        
+
         try:
             from opencloudtouch.devices.adapter import get_device_client
-            
+
             # Get all active zones from DB
             zones_db = await self._zone_repo.get_all_active_zones()
             if not zones_db:
                 logger.debug("Zone sync: no active zones in DB")
                 return
-            
-            logger.debug("Zone sync: checking %d zone(s) against device reality", len(zones_db))
-            
+
+            logger.debug(
+                "Zone sync: checking %d zone(s) against device reality", len(zones_db)
+            )
+
             # Check each zone's master device
             for zone_db in zones_db:
                 if zone_db.id is None:
-                    logger.error("Zone from DB has no ID, skipping: %s", zone_db.master_device_id)
+                    logger.error(
+                        "Zone from DB has no ID, skipping: %s", zone_db.master_device_id
+                    )
                     continue
-                master = await self._device_repo.get_by_device_id(zone_db.master_device_id)
+                master = await self._device_repo.get_by_device_id(
+                    zone_db.master_device_id
+                )
                 if not master or not master.ip:
-                    logger.debug("Zone sync: master %s not found or offline, skipping", zone_db.master_device_id)
+                    logger.debug(
+                        "Zone sync: master %s not found or offline, skipping",
+                        zone_db.master_device_id,
+                    )
                     continue
-                
+
                 try:
                     # Query actual zone status from device
-                    client = get_device_client(f"http://{master.ip}:{SOUNDTOUCH_HTTP_PORT}")
+                    client = get_device_client(
+                        f"http://{master.ip}:{SOUNDTOUCH_HTTP_PORT}"
+                    )
                     status = await client.get_zone_status()
-                    
+
                     if not status:
                         # Device reports no zone → dissolve in DB
                         logger.info(
                             "Zone sync: master %s no longer in zone → dissolving zone %d in DB",
                             master.device_id,
-                            zone_db.id
+                            zone_db.id,
                         )
                         await self._zone_repo.dissolve_zone(zone_db.id)
                         continue
-                    
+
                     # Get current members from DB
                     members_db = await self._zone_repo.get_active_members(zone_db.id)
                     members_db_ids = {m.device_id for m in members_db}
                     members_device_ids = {m.device_id for m in status.members}
-                    
+
                     # Detect drift
                     added = members_device_ids - members_db_ids
                     removed = members_db_ids - members_device_ids
-                    
+
                     if added or removed:
                         logger.info(
                             "Zone sync: drift detected for zone %d (master=%s) — added=%s, removed=%s",
                             zone_db.id,
                             master.device_id,
                             added or "none",
-                            removed or "none"
+                            removed or "none",
                         )
-                        
+
                         # Add new members
                         for device_id in added:
-                            member = next((m for m in status.members if m.device_id == device_id), None)
+                            member = next(
+                                (m for m in status.members if m.device_id == device_id),
+                                None,
+                            )
                             if member:
-                                await self._zone_repo.add_member(zone_db.id, device_id, member.role)
-                                logger.debug("Zone sync: added %s to zone %d", device_id, zone_db.id)
-                        
+                                await self._zone_repo.add_member(
+                                    zone_db.id, device_id, member.role
+                                )
+                                logger.debug(
+                                    "Zone sync: added %s to zone %d",
+                                    device_id,
+                                    zone_db.id,
+                                )
+
                         # Remove old members
                         for device_id in removed:
                             await self._zone_repo.remove_member(zone_db.id, device_id)
-                            logger.debug("Zone sync: removed %s from zone %d", device_id, zone_db.id)
-                    
+                            logger.debug(
+                                "Zone sync: removed %s from zone %d",
+                                device_id,
+                                zone_db.id,
+                            )
+
                 except Exception as e:
                     logger.debug(
                         "Zone sync failed for master %s: %s",
                         master.device_id,
                         str(e),
-                        exc_info=False
+                        exc_info=False,
                     )
-            
+
             logger.debug("Zone sync completed")
-            
+
         except Exception:
             logger.exception("Zone sync cycle failed")

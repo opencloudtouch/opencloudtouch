@@ -67,7 +67,7 @@ async def test_lifespan_initialization():
         async with lifespan(app):
             # Mock app.state.health_check for shutdown
             app.state.health_check = mock_health_check
-            
+
             # Verify startup
             mock_init_config.assert_called_once()
             mock_setup_logging.assert_called_once()

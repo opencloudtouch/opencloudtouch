@@ -120,15 +120,11 @@ function DeviceCard({
             </span>
           )}
           {isMaster && (
-            <span className="device-badge master-badge">
-              {t("multiroom.masterBadge")}
-            </span>
+            <span className="device-badge master-badge">{t("multiroom.masterBadge")}</span>
           )}
           {isSelected && !isMaster && (
             <>
-              <span className="device-badge slave-badge">
-                {t("multiroom.slaveBadge")}
-              </span>
+              <span className="device-badge slave-badge">{t("multiroom.slaveBadge")}</span>
               <button
                 className="set-master-btn"
                 onClick={(e) => {

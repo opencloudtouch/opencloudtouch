@@ -109,7 +109,7 @@ class TestGetAllZones:
         from opencloudtouch.zones.repository import Zone, ZoneMember
 
         service, device_repo, zone_repo = _make_service()
-        
+
         # Setup devices
         dev1 = _make_device("DEV001", "192.168.1.100", "Living Room")
         dev2 = _make_device("DEV002", "192.168.1.101", "Kitchen")
@@ -118,7 +118,7 @@ class TestGetAllZones:
             "DEV001": dev1,
             "DEV002": dev2,
         }.get(did)
-        
+
         # Setup DB zones
         zone1 = Zone(
             id=1,
@@ -126,7 +126,7 @@ class TestGetAllZones:
             created_at=datetime.now(UTC),
         )
         zone_repo.get_all_active_zones.return_value = [zone1]
-        
+
         # Setup zone members
         members = [
             ZoneMember(
@@ -312,9 +312,15 @@ class TestDissolveZone:
             master_ip="192.168.1.100",
             is_master=True,
             members=[
-                ZoneMemberInfo(device_id="DEV001", ip_address="192.168.1.100", role="master"),
-                ZoneMemberInfo(device_id="DEV002", ip_address="192.168.1.101", role="slave"),
-                ZoneMemberInfo(device_id="DEV003", ip_address="192.168.1.102", role="slave"),
+                ZoneMemberInfo(
+                    device_id="DEV001", ip_address="192.168.1.100", role="master"
+                ),
+                ZoneMemberInfo(
+                    device_id="DEV002", ip_address="192.168.1.101", role="slave"
+                ),
+                ZoneMemberInfo(
+                    device_id="DEV003", ip_address="192.168.1.102", role="slave"
+                ),
             ],
         )
 
