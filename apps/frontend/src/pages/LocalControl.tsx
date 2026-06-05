@@ -125,7 +125,7 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
                 {keyLoading === "POWER" ? "⏳" : "⏻"}
               </button>
             </div>
-            <div className="device-header-info">
+            <div className="device-info">
               {currentDevice ? (
                 <DeviceNameEditor deviceId={currentDevice.device_id} name={currentDevice.name} />
               ) : (

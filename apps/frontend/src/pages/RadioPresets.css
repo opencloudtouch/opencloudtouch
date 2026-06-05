@@ -28,6 +28,10 @@
   border-bottom: 1px solid var(--color-border);
 }
 
+.device-header-left {
+  flex-shrink: 0;
+}
+
 .device-info {
   flex: 1;
   display: flex;
@@ -35,6 +39,10 @@
   gap: var(--space-xs);
   text-align: center;
   min-width: 0;
+}
+
+.device-header-right {
+  flex-shrink: 0;
 }
 
 .device-name {

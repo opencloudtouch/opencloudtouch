@@ -37,7 +37,7 @@
   flex-shrink: 0;
 }
 
-.device-header-info {
+.device-info {
   flex: 1;
   text-align: center;
   min-width: 0;

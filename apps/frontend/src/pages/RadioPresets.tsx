@@ -183,25 +183,27 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
       >
         <div className="device-card" data-test="device-card">
           <div className="device-card-header">
-            <button
-              className={`power-header-btn ${isStandby ? "off" : "on"}`}
-              onClick={async () => {
-                if (!currentDevice?.device_id || powerLoading || deviceOffline) return;
-                setPowerLoading(true);
-                try {
-                  await power(currentDevice.device_id);
-                } catch (err) {
-                  console.error("[RadioPresets] Power failed:", err);
-                } finally {
-                  setPowerLoading(false);
-                }
-              }}
-              disabled={powerLoading || deviceOffline}
-              aria-label={t("player.powerButton")}
-              title={t("player.powerButton")}
-            >
-              {powerLoading ? "⏳" : "⏻"}
-            </button>
+            <div className="device-header-left">
+              <button
+                className={`power-header-btn ${isStandby ? "off" : "on"}`}
+                onClick={async () => {
+                  if (!currentDevice?.device_id || powerLoading || deviceOffline) return;
+                  setPowerLoading(true);
+                  try {
+                    await power(currentDevice.device_id);
+                  } catch (err) {
+                    console.error("[RadioPresets] Power failed:", err);
+                  } finally {
+                    setPowerLoading(false);
+                  }
+                }}
+                disabled={powerLoading || deviceOffline}
+                aria-label={t("player.powerButton")}
+                title={t("player.powerButton")}
+              >
+                {powerLoading ? "⏳" : "⏻"}
+              </button>
+            </div>
             <div className="device-info">
               {currentDevice ? (
                 <DeviceNameEditor deviceId={currentDevice.device_id} name={currentDevice.name} />
@@ -217,12 +219,14 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
                 {currentDevice?.ip || "Unknown IP"}
               </span>
             </div>
-            {currentDevice && (
-              <SetupBadge
-                deviceId={currentDevice.device_id}
-                setupStatus={currentDevice.setup_status}
-              />
-            )}
+            <div className="device-header-right">
+              {currentDevice && (
+                <SetupBadge
+                  deviceId={currentDevice.device_id}
+                  setupStatus={currentDevice.setup_status}
+                />
+              )}
+            </div>
           </div>
 
           {/* Device Offline Banner */}
