@@ -24,7 +24,7 @@ services:
       - OCT_STATION_DESCRIPTOR_BASE_URL=http://localhost:7777
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:7777/health')"]
+      test: ["CMD", "/entrypoint.sh", "health"]
       interval: 30s
       timeout: 10s
       retries: 3

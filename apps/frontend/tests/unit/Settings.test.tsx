@@ -36,6 +36,7 @@ describe("Settings Page", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
@@ -60,7 +61,7 @@ describe("Settings Page", () => {
     });
   });
 
-  it("displays fetched IPs", async () => {
+  it("displays IP input form (no IP list)", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: ["192.168.1.10", "192.168.1.20"] }),
@@ -69,12 +70,13 @@ describe("Settings Page", () => {
     renderWithProviders(<Settings />);
 
     await waitFor(() => {
-      expect(screen.getByText("192.168.1.10")).toBeInTheDocument();
-      expect(screen.getByText("192.168.1.20")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("192.168.1.10")).toBeInTheDocument();
     });
+    // IP list is no longer displayed — only the input form
+    expect(screen.queryByText("192.168.1.20")).not.toBeInTheDocument();
   });
 
-  it("shows empty state when no IPs configured", async () => {
+  it("shows IP input when no IPs configured", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: [] }),
@@ -83,8 +85,9 @@ describe("Settings Page", () => {
     renderWithProviders(<Settings />);
 
     await waitFor(() => {
-      expect(screen.getByText("No manual IPs configured")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("192.168.1.10")).toBeInTheDocument();
     });
+    expect(screen.getByText("+ Add")).toBeInTheDocument();
   });
 
   it("shows error message with retry button when fetch fails", async () => {
@@ -149,26 +152,41 @@ describe("Settings Page", () => {
     });
   });
 
-  it("prevents adding duplicate IPs", async () => {
+  it("probes device on add (calls POST /api/devices/probe)", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ ips: ["192.168.1.10"] }),
+      json: async () => ({ ips: [] }),
     });
 
     renderWithProviders(<Settings />);
 
     await waitFor(() => {
-      expect(screen.getByText("192.168.1.10")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("192.168.1.10")).toBeInTheDocument();
     });
 
     const input = screen.getByPlaceholderText("192.168.1.10");
     const addButton = screen.getByText("+ Add");
 
     fireEvent.change(input, { target: { value: "192.168.1.10" } });
+
+    // Mock probe response
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ device_id: "ABC", ip: "192.168.1.10", name: "Living Room", model: "ST20" }),
+    });
+    // Re-fetch manual-ips after probe invalidation
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ips: ["192.168.1.10"] }),
+    });
+
     fireEvent.click(addButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/This IP address already exists/i)).toBeInTheDocument();
+      const probeCall = mockFetch.mock.calls.find((call: unknown[]) => call[0] === "/api/devices/probe");
+      expect(probeCall).toBeDefined();
+      const body = JSON.parse((probeCall![1] as RequestInit).body as string);
+      expect(body).toEqual({ ip: "192.168.1.10" });
     });
   });
 
@@ -190,10 +208,10 @@ describe("Settings Page", () => {
 
     fireEvent.change(input, { target: { value: "192.168.1.30" } });
 
-    // Mock POST request for adding IP (sets all IPs)
+    // Mock probe response
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ ips: ["192.168.1.30"] }),
+      json: async () => ({ device_id: "XYZ", ip: "192.168.1.30", name: "Kitchen", model: "ST10" }),
     });
 
     // Re-fetch after mutation (React Query invalidation)
@@ -205,15 +223,8 @@ describe("Settings Page", () => {
     fireEvent.click(addButton);
 
     await waitFor(() => {
-      const postCall = mockFetch.mock.calls.find((call: unknown[]) => (call[1] as RequestInit)?.method === "POST");
-      expect(postCall).toBeDefined();
-      expect(postCall![0]).toBe("/api/settings/manual-ips");
-      const body = JSON.parse((postCall![1] as RequestInit).body as string);
-      expect(body).toEqual({ ips: ["192.168.1.30"] });
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText(/IP 192.168.1.30 added/i)).toBeInTheDocument();
+      const probeCall = mockFetch.mock.calls.find((call: unknown[]) => call[0] === "/api/devices/probe");
+      expect(probeCall).toBeDefined();
     });
   });
 
@@ -259,9 +270,10 @@ describe("Settings Page", () => {
       json: async () => ({ ips: [] }),
     });
 
+    // Probe fails (device not reachable)
     mockFetch.mockResolvedValueOnce({
       ok: false,
-      json: async () => ({ detail: "Server error" }),
+      json: async () => ({ detail: "Device not reachable at 192.168.1.30" }),
     });
 
     renderWithProviders(<Settings />);
@@ -277,82 +289,11 @@ describe("Settings Page", () => {
     fireEvent.click(addButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/Error/i)).toBeInTheDocument();
+      expect(screen.getByText(/No device found/i)).toBeInTheDocument();
     });
   });
 
-  it("deletes IP successfully", async () => {
-    // Initial fetch of IPs
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ ips: ["192.168.1.10", "192.168.1.20"] }),
-    });
-
-    // DELETE request
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-    });
-
-    // Re-fetch after delete (React Query invalidation)
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ ips: ["192.168.1.20"] }),
-    });
-
-    renderWithProviders(<Settings />);
-
-    await waitFor(() => {
-      expect(screen.getByText("192.168.1.10")).toBeInTheDocument();
-    });
-
-    const deleteButtons = screen.getAllByTitle("Remove IP");
-    fireEvent.click(deleteButtons[0]!);
-
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith(
-        "/api/settings/manual-ips/192.168.1.10",
-        expect.objectContaining({ method: "DELETE" })
-      );
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText(/IP 192.168.1.10 removed/i)).toBeInTheDocument();
-    });
-
-    await waitFor(() => {
-      expect(screen.queryByText("192.168.1.10")).not.toBeInTheDocument();
-      expect(screen.getByText("192.168.1.20")).toBeInTheDocument();
-    });
-  });
-
-  it("shows error when delete fails", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ ips: ["192.168.1.10"] }),
-    });
-
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-    });
-
-    renderWithProviders(<Settings />);
-
-    await waitFor(() => {
-      expect(screen.getByText("192.168.1.10")).toBeInTheDocument();
-    });
-
-    const deleteButton = screen.getByTitle("Remove IP");
-    fireEvent.click(deleteButton);
-
-    await waitFor(() => {
-      expect(screen.getByText(/unexpected error/i)).toBeInTheDocument();
-    });
-
-    // IP should still be in list
-    expect(screen.getByText("192.168.1.10")).toBeInTheDocument();
-  });
-
-  it("shows info box", async () => {
+  it("renders unified device discovery section with two method cards", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ips: [] }),
@@ -361,8 +302,11 @@ describe("Settings Page", () => {
     renderWithProviders(<Settings />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Click.*Discover Devices/i)).toBeInTheDocument();
+      expect(screen.getByText("Find Devices")).toBeInTheDocument();
     });
+
+    expect(screen.getByText("Automatic Search")).toBeInTheDocument();
+    expect(screen.getByText("Manual IP Address")).toBeInTheDocument();
   });
 
   it("rejects empty IP input", async () => {
@@ -392,18 +336,6 @@ describe("Settings Page", () => {
       json: async () => ({ ips: [] }),
     });
 
-    // POST new manual IPs (with trimmed IP)
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ ips: ["192.168.1.30"] }),
-    });
-
-    // Re-fetch after mutation (React Query invalidation)
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ ips: ["192.168.1.30"] }),
-    });
-
     renderWithProviders(<Settings />);
 
     await waitFor(() => {
@@ -413,14 +345,26 @@ describe("Settings Page", () => {
     const input = screen.getByPlaceholderText("192.168.1.10");
     const form = input.closest("form")!;
 
+    // Mock probe response
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ device_id: "XYZ", ip: "192.168.1.30", name: "Kitchen", model: "ST10" }),
+    });
+
+    // Re-fetch after mutation
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ips: ["192.168.1.30"] }),
+    });
+
     fireEvent.change(input, { target: { value: "  192.168.1.30  " } });
     fireEvent.submit(form);
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        "/api/settings/manual-ips",
+        "/api/devices/probe",
         expect.objectContaining({
-          body: JSON.stringify({ ips: ["192.168.1.30"] }), // Trimmed
+          body: JSON.stringify({ ip: "192.168.1.30" }), // Trimmed
         })
       );
     });
@@ -473,6 +417,34 @@ describe("Settings Page", () => {
         "/api/logs/backend",
         expect.objectContaining({ method: "POST" }),
       );
+    });
+  });
+
+  it("shows scan button in automatic search card", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ips: [] }),
+    });
+
+    renderWithProviders(<Settings />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Scan Now" })).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole("button", { name: "Scan Now" })).not.toBeDisabled();
+  });
+
+  it("shows manual IP fallback description", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ips: [] }),
+    });
+
+    renderWithProviders(<Settings />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/automatic search doesn.*t find anything/i)).toBeInTheDocument();
     });
   });
 });

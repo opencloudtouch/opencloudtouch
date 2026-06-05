@@ -22,10 +22,11 @@ that Bose SoundTouch devices call when a custom preset button is pressed.
 to ensure mocks are active before the endpoint handler makes requests.
 """
 
+from unittest.mock import patch
+
 import pytest
 import respx
 from httpx import AsyncClient, Response
-from unittest.mock import patch
 
 # Module-level respx router for external HTTP mocks
 external_mock = respx.mock(assert_all_called=False)

@@ -6,6 +6,9 @@
 #   - workflow_call: from release.yml after version bump + tag
 #
 # Does NOT run tests. CI must be green before calling this workflow.
+#
+# Required Secrets:
+#   - SUPPORTERS_API_PASS: Password for fetching supporters from opencloudtouch.org
 # ==============================================================================
 
 name: Build Images
@@ -115,6 +118,21 @@ jobs:
         run: |
           npm ci
           npm install @rollup/rollup-linux-x64-gnu --save-optional
+
+      - name: Fetch supporters from opencloudtouch.org
+        env:
+          SUPPORTERS_API_USER: oct-ci
+          SUPPORTERS_API_PASS: ${{ secrets.SUPPORTERS_API_PASS }}
+        run: |
+          # Fetch current supporters CSV via Basic Auth
+          AUTH=$(echo -n "$SUPPORTERS_API_USER:$SUPPORTERS_API_PASS" | base64)
+          curl -H "Authorization: Basic $AUTH" \
+            https://opencloudtouch.org/api/supporters/get.php \
+            -o apps/frontend/public/supporters.csv --fail --silent --show-error || {
+            echo "⚠️ Failed to fetch supporters, using empty CSV"
+            echo "name,type,amount,monthlyAmount,firstSupportDate" > apps/frontend/public/supporters.csv
+          }
+          echo "✅ Supporters: $(wc -l < apps/frontend/public/supporters.csv) lines"
 
       - name: Build frontend
         working-directory: apps/frontend

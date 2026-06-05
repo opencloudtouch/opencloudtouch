@@ -4,12 +4,11 @@ import logging
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-
-from opencloudtouch.core.exceptions import DeviceNotFoundError
 from fastapi import Path as FastAPIPath
 from pydantic import BaseModel, Field
 
 from opencloudtouch.core.dependencies import get_preset_service
+from opencloudtouch.core.exceptions import DeviceNotFoundError
 from opencloudtouch.presets.service import PresetService
 
 logger = logging.getLogger(__name__)

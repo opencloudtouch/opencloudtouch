@@ -30,6 +30,10 @@ export default function Navigation() {
             <span className="nav-icon">⚙️</span>
             <span className="nav-label">{t("nav.settings")}</span>
           </NavLink>
+          <NavLink to={withDevice("/about")} className="nav-link">
+            <span className="nav-icon">ℹ️</span>
+            <span className="nav-label">{t("nav.about")}</span>
+          </NavLink>
         </div>
         <LanguageSelector />
       </div>

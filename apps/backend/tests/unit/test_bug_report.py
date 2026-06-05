@@ -801,6 +801,7 @@ class TestDiagnosticsDownload:
     @patch("opencloudtouch.api.bug_report._collect_diagnostics")
     def test_returns_gzipped_response(self, mock_diag):
         import gzip
+
         from opencloudtouch.main import app
 
         mock_diag.return_value = {

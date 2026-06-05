@@ -22,6 +22,15 @@ class MockEventSource {
 }
 (global as Record<string, unknown>).EventSource = MockEventSource;
 
+// Mock ResizeObserver (not available in jsdom)
+class MockResizeObserver {
+  constructor(_callback: ResizeObserverCallback) {}
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+(global as Record<string, unknown>).ResizeObserver = MockResizeObserver;
+
 // Mock react-router-dom to avoid Router context issues in tests
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");

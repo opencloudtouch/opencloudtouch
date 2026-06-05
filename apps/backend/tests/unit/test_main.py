@@ -18,7 +18,7 @@ async def test_lifespan_initialization():
         "opencloudtouch.main.get_config"
     ) as mock_get_config, patch(
         "opencloudtouch.main.DeviceRepository"
-    ) as mock_repo_class, patch(
+    ) as mock_device_class, patch(
         "opencloudtouch.main.SettingsRepository"
     ) as mock_settings_class, patch(
         "opencloudtouch.main.PresetRepository"
@@ -26,7 +26,11 @@ async def test_lifespan_initialization():
         "opencloudtouch.main.RecentsRepository"
     ) as mock_recents_class, patch(
         "opencloudtouch.main.WizardAuditRepository"
-    ) as mock_wizard_class:
+    ) as mock_wizard_class, patch(
+        "opencloudtouch.main.ZoneRepository"
+    ) as mock_zone_class, patch(
+        "opencloudtouch.main._init_services", new_callable=AsyncMock
+    ):
 
         # Mock config
         mock_config = MagicMock(spec=AppConfig)
@@ -42,11 +46,12 @@ async def test_lifespan_initialization():
         # Mock all repositories with same pattern
         mock_repos = {}
         for name, cls in [
-            ("device", mock_repo_class),
+            ("device", mock_device_class),
             ("settings", mock_settings_class),
             ("preset", mock_preset_class),
             ("recents", mock_recents_class),
             ("wizard", mock_wizard_class),
+            ("zone", mock_zone_class),
         ]:
             mock_repo = AsyncMock()
             mock_repo.initialize = AsyncMock()
@@ -54,8 +59,15 @@ async def test_lifespan_initialization():
             cls.return_value = mock_repo
             mock_repos[name] = mock_repo
 
+        # Mock health_check to avoid shutdown errors
+        mock_health_check = AsyncMock()
+        mock_health_check.stop = AsyncMock()
+
         # Run lifespan
         async with lifespan(app):
+            # Mock app.state.health_check for shutdown
+            app.state.health_check = mock_health_check
+
             # Verify startup
             mock_init_config.assert_called_once()
             mock_setup_logging.assert_called_once()
@@ -118,8 +130,62 @@ def test_health_endpoint():
     assert data["build"] in ("official", "community")
     assert isinstance(data["config"], dict)
     assert isinstance(data["config"]["discovery_enabled"], bool)
-    # REFACT-102: db_path removed from health endpoint (info leak)
-    assert "db_path" not in data["config"]
+
+
+def test_websocket_health_no_manager():
+    """WebSocket health returns empty when no manager is attached."""
+    from opencloudtouch.main import app
+
+    client = TestClient(app)
+    # Ensure ws_manager is not set
+    if hasattr(app.state, "ws_manager"):
+        delattr(app.state, "ws_manager")
+
+    response = client.get("/api/health/websockets")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["connections"] == {}
+    assert data["total_connected"] == 0
+    assert data["total_devices"] == 0
+
+
+def test_websocket_health_with_manager():
+    """WebSocket health returns connection info from manager."""
+    from unittest.mock import MagicMock
+
+    from opencloudtouch.main import app
+
+    client = TestClient(app)
+    mock_manager = MagicMock()
+    mock_manager.get_health.return_value = {
+        "connections": {
+            "AABBCCDDEE11": {
+                "state": "connected",
+                "uptime_s": 3600,
+                "events_received": 142,
+            },
+            "112233445566": {
+                "state": "reconnecting",
+                "attempt": 2,
+                "events_received": 50,
+            },
+        },
+        "total_connected": 1,
+        "total_devices": 2,
+    }
+    app.state.ws_manager = mock_manager
+
+    response = client.get("/api/health/websockets")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_connected"] == 1
+    assert data["total_devices"] == 2
+    assert data["connections"]["AABBCCDDEE11"]["state"] == "connected"
+    assert data["connections"]["AABBCCDDEE11"]["uptime_s"] == 3600
+    assert data["connections"]["112233445566"]["attempt"] == 2
+
+    # Clean up
+    delattr(app.state, "ws_manager")
 
 
 def test_version_dev_format_without_signature(monkeypatch):

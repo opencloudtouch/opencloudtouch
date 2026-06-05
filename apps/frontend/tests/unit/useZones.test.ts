@@ -1,12 +1,27 @@
 /**
- * Tests for useZones hook — mutation guards and API integration.
+ * Tests for useZones hook — SSE push + mutation operations.
  *
- * Covers: isMutatingRef suppresses polling during zone operations,
- * error propagation, and correct API delegation.
+ * Covers: SSE zone event triggers refetch, mutation API delegation,
+ * error propagation, optimistic dissolve, and StrictMode safety.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { useZones } from "../../src/hooks/useZones";
+
+// Track subscribe calls and the unsubscribe functions they return
+let mockUnsubFns: ReturnType<typeof vi.fn>[] = [];
+const mockSubscribe = vi.fn((..._args: unknown[]) => {
+  const unsub = vi.fn();
+  mockUnsubFns.push(unsub);
+  return unsub;
+});
+
+vi.mock("../../src/contexts/DeviceEventContext", () => ({
+  useDeviceEventContext: () => ({
+    subscribe: mockSubscribe,
+    connected: true,
+  }),
+}));
 
 // Mock all zone API functions
 const mockGetZones = vi.fn().mockResolvedValue([]);
@@ -35,10 +50,115 @@ const MOCK_ZONE = {
   ],
 };
 
+describe("useZones – SSE push events", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockSubscribe.mockClear();
+    mockUnsubFns = [];
+    mockGetZones.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("subscribes to zone events on mount", async () => {
+    renderHook(() => useZones());
+    await waitFor(() => {
+      expect(mockSubscribe).toHaveBeenCalledWith(
+        "zone",
+        "*",
+        expect.any(Function),
+      );
+    });
+  });
+
+  it("calls unsubscribe function on unmount", async () => {
+    const { unmount } = renderHook(() => useZones());
+    await waitFor(() => expect(mockSubscribe).toHaveBeenCalled());
+
+    unmount();
+
+    for (const unsub of mockUnsubFns) {
+      expect(unsub).toHaveBeenCalled();
+    }
+  });
+
+  it("refetches zones on SSE zone event", async () => {
+    mockGetZones.mockResolvedValueOnce([]); // initial
+    mockGetZones.mockResolvedValueOnce([MOCK_ZONE]); // after SSE event
+
+    const { result } = renderHook(() => useZones());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.zones).toHaveLength(0);
+
+    // Trigger zone SSE event
+    const zoneCall = mockSubscribe.mock.calls.find(
+      (c: unknown[]) => c[0] === "zone",
+    );
+    const zoneCallback = zoneCall![2] as (data: Record<string, unknown>) => void;
+
+    await act(async () => {
+      zoneCallback({ device_id: "ST10-001" });
+      // Wait for fetchZones to complete
+      await new Promise((r) => setTimeout(r, 10));
+    });
+
+    expect(result.current.zones).toHaveLength(1);
+    expect(result.current.zones[0].master_id).toBe("ST10-001");
+  });
+
+  it("performs initial fetch via HTTP on mount", async () => {
+    mockGetZones.mockResolvedValue([MOCK_ZONE]);
+
+    const { result } = renderHook(() => useZones());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.zones).toHaveLength(1);
+    });
+
+    expect(mockGetZones).toHaveBeenCalledTimes(1);
+  });
+
+  it("has zero setInterval calls", () => {
+    const hookSource = useZones.toString();
+    expect(hookSource).not.toContain("setInterval");
+    expect(hookSource).not.toContain("POLL_INTERVAL_MS");
+    expect(hookSource).not.toContain("isMutatingRef");
+  });
+
+  it("StrictMode: no leaked subscriptions on unmount/remount", async () => {
+    const { unmount } = renderHook(() => useZones());
+    await waitFor(() => expect(mockSubscribe).toHaveBeenCalled());
+
+    const unsubFnsMount1 = [...mockUnsubFns];
+    unmount();
+    for (const unsub of unsubFnsMount1) {
+      expect(unsub).toHaveBeenCalled();
+    }
+
+    mockSubscribe.mockClear();
+    mockUnsubFns = [];
+
+    const { unmount: unmount2 } = renderHook(() => useZones());
+    await waitFor(() => expect(mockSubscribe).toHaveBeenCalled());
+
+    expect(mockSubscribe).toHaveBeenCalledWith("zone", "*", expect.any(Function));
+
+    unmount2();
+    for (const unsub of mockUnsubFns) {
+      expect(unsub).toHaveBeenCalled();
+    }
+  });
+});
+
 describe("useZones – mutation operations", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
+    mockSubscribe.mockClear();
+    mockUnsubFns = [];
     mockGetZones.mockResolvedValue([]);
   });
 
@@ -54,11 +174,9 @@ describe("useZones – mutation operations", () => {
     const { result } = renderHook(() => useZones());
     await act(() => vi.advanceTimersByTimeAsync(0)); // initial fetch
 
-    // Trigger createZone
     let createPromise: Promise<unknown>;
     await act(async () => {
       createPromise = result.current.createZone("ST10-001", ["ST30-002"]);
-      // Advance past the 3s device sync delay inside createZone
       await vi.advanceTimersByTimeAsync(3100);
     });
     await act(async () => {
@@ -83,7 +201,7 @@ describe("useZones – mutation operations", () => {
     expect(result.current.error).toBe("Network error");
   });
 
-  it("dissolveZone removes zone optimistically and suppresses polling for 15s", async () => {
+  it("dissolveZone removes zone optimistically", async () => {
     mockGetZones.mockResolvedValue([MOCK_ZONE]);
     mockDissolveZone.mockResolvedValue(undefined);
 
@@ -99,19 +217,9 @@ describe("useZones – mutation operations", () => {
     // Zone removed optimistically
     expect(result.current.zones).toHaveLength(0);
     expect(mockDissolveZone).toHaveBeenCalledWith("ST10-001");
-
-    // Polling should be suppressed — reset getZones call count
-    const callsBefore = mockGetZones.mock.calls.length;
-    await act(() => vi.advanceTimersByTimeAsync(5000)); // one poll interval
-    expect(mockGetZones.mock.calls.length).toBe(callsBefore); // no new calls
-
-    // After 15s cooldown, polling resumes
-    await act(() => vi.advanceTimersByTimeAsync(15000));
-    await act(() => vi.advanceTimersByTimeAsync(5000)); // next poll
-    expect(mockGetZones.mock.calls.length).toBeGreaterThan(callsBefore);
   });
 
-  it("addMembers delegates to API, refetches, and resets mutation flag", async () => {
+  it("addMembers delegates to API and refetches", async () => {
     const updatedZone = { ...MOCK_ZONE, members: [...MOCK_ZONE.members, { device_id: "ST10-003", ip_address: "192.168.1.30", role: "slave" as const }] };
     mockAddMembers.mockResolvedValue(updatedZone);
 
@@ -123,10 +231,6 @@ describe("useZones – mutation operations", () => {
     });
 
     expect(mockAddMembers).toHaveBeenCalledWith("ST10-001", ["ST10-003"]);
-    // Polling should resume (isMutatingRef reset) — verify by advancing timer
-    const callsBefore = mockGetZones.mock.calls.length;
-    await act(() => vi.advanceTimersByTimeAsync(5000));
-    expect(mockGetZones.mock.calls.length).toBeGreaterThan(callsBefore);
   });
 
   it("removeMembers delegates to API and handles errors", async () => {
@@ -157,32 +261,5 @@ describe("useZones – mutation operations", () => {
     });
 
     expect(mockChangeMaster).toHaveBeenCalledWith("ST10-001", "ST30-002");
-  });
-
-  it("mutation suppresses concurrent polling", async () => {
-    // Simulate a slow createZone that takes longer than poll interval
-    let resolveCreate: (v: unknown) => void;
-    mockCreateZone.mockReturnValue(new Promise((r) => { resolveCreate = r; }));
-
-    const { result } = renderHook(() => useZones());
-    await act(() => vi.advanceTimersByTimeAsync(0));
-    const callsAfterInit = mockGetZones.mock.calls.length;
-
-    // Start mutation (don't await)
-    let createPromise: Promise<unknown>;
-    act(() => {
-      createPromise = result.current.createZone("ST10-001", ["ST30-002"]);
-    });
-
-    // Advance past poll interval — fetch should be skipped
-    await act(() => vi.advanceTimersByTimeAsync(5000));
-    expect(mockGetZones.mock.calls.length).toBe(callsAfterInit);
-
-    // Resolve mutation
-    await act(async () => {
-      resolveCreate!(MOCK_ZONE);
-      await vi.advanceTimersByTimeAsync(3100);
-      await createPromise!;
-    });
   });
 });

@@ -12,6 +12,7 @@ function Load-DeploymentConfig {
         CONTAINER_NAME = "opencloudtouch"
         CONTAINER_TAG = "opencloudtouch:latest"
         REMOTE_DATA_PATH = "/data/opencloudtouch"
+        REMOTE_LOG_PATH = "/data/opencloudtouch-logs"
         REMOTE_IMAGE_PATH = "/tmp"
         LOCAL_DATA_PATH = Join-Path $PSScriptRoot "..\data-local"
         CONTAINER_PORT = 7777

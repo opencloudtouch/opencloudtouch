@@ -1,11 +1,25 @@
 /**
- * Tests for useNowPlaying hook — device offline state
- * Regression test for #82: offline device must surface error to UI
+ * Tests for useNowPlaying hook — SSE push + offline detection
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor, act } from "@testing-library/react";
 import { useNowPlaying } from "../../src/hooks/useNowPlaying";
 import { _resetOfflineStore } from "../../src/api/offlineDeviceStore";
+
+// Track subscribe calls and the unsubscribe functions they return
+let mockUnsubFns: ReturnType<typeof vi.fn>[] = [];
+const mockSubscribe = vi.fn((..._args: unknown[]) => {
+  const unsub = vi.fn();
+  mockUnsubFns.push(unsub);
+  return unsub;
+});
+
+vi.mock("../../src/contexts/DeviceEventContext", () => ({
+  useDeviceEventContext: () => ({
+    subscribe: mockSubscribe,
+    connected: true,
+  }),
+}));
 
 describe("useNowPlaying – device offline", () => {
   const mockFetch = vi.fn();
@@ -13,6 +27,8 @@ describe("useNowPlaying – device offline", () => {
   beforeEach(() => {
     _resetOfflineStore();
     mockFetch.mockReset();
+    mockSubscribe.mockClear();
+    mockUnsubFns = [];
     vi.stubGlobal("fetch", mockFetch);
   });
 
@@ -38,7 +54,6 @@ describe("useNowPlaying – device offline", () => {
   });
 
   it("persists offline across new hook instances (session-level)", async () => {
-    // First call: 503 marks device offline in session store
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 503,
@@ -51,8 +66,6 @@ describe("useNowPlaying – device offline", () => {
       expect(result.current.deviceOffline).toBe(true);
     });
 
-    // New hook instance for same device — should be offline immediately
-    // without making any new requests
     const callCountBefore = mockFetch.mock.calls.length;
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -70,7 +83,6 @@ describe("useNowPlaying – device offline", () => {
       expect(result2.current.deviceOffline).toBe(true);
     });
 
-    // No new fetch calls made — device is known offline
     expect(mockFetch.mock.calls.length).toBe(callCountBefore);
   });
 
@@ -87,26 +99,6 @@ describe("useNowPlaying – device offline", () => {
       expect(result.current.deviceOffline).toBe(true);
       expect(result.current.error).toBe("Device unreachable");
     });
-  });
-
-  it("stops polling after offline detection", async () => {
-    mockFetch.mockResolvedValue({
-      ok: false,
-      status: 503,
-      statusText: "Service Unavailable",
-    });
-
-    renderHook(() => useNowPlaying("device-123"));
-
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-    });
-
-    // Wait longer than poll interval — should NOT fire again
-    const callCount = mockFetch.mock.calls.length;
-    await new Promise((r) => setTimeout(r, 100));
-    // Polling stopped: no additional calls
-    expect(mockFetch.mock.calls.length).toBe(callCount);
   });
 
   it("resets state when deviceId changes to undefined", async () => {
@@ -132,92 +124,222 @@ describe("useNowPlaying – device offline", () => {
   });
 });
 
-describe("useNowPlaying – rapid deviceId change (race condition regression)", () => {
+describe("useNowPlaying – SSE push events", () => {
   const mockFetch = vi.fn();
 
   beforeEach(() => {
     _resetOfflineStore();
     mockFetch.mockReset();
-    vi.useFakeTimers();
+    mockSubscribe.mockClear();
+    mockUnsubFns = [];
     vi.stubGlobal("fetch", mockFetch);
   });
 
   afterEach(() => {
-    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
-  it("does not start polling for stale deviceId when deviceId changes before fetch resolves", async () => {
-    // Simulate slow fetch for device-A that resolves AFTER deviceId switches to device-B
-    let resolveA: (v: Response) => void;
-    const pendingA = new Promise<Response>((r) => { resolveA = r; });
-
-    const responseB = {
+  it("subscribes to now_playing and metadata_enriched events", async () => {
+    mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ source: "INTERNET_RADIO", state: "PLAY_STATE", station_name: "B" }),
-    };
-
-    mockFetch.mockImplementation((url: string) => {
-      if (url.includes("device-A")) return pendingA;
-      if (url.includes("device-B")) return Promise.resolve(responseB);
-      return Promise.resolve(responseB);
+      json: () => Promise.resolve({ source: "BLUETOOTH", state: "PLAY_STATE" }),
     });
 
-    const { rerender } = renderHook(
-      ({ id }) => useNowPlaying(id),
-      { initialProps: { id: "device-A" as string | undefined } },
-    );
+    renderHook(() => useNowPlaying("device-42"));
 
-    // Switch to device-B before device-A's fetch resolves
-    rerender({ id: "device-B" });
-
-    // Let device-B's fetch resolve
-    await vi.advanceTimersByTimeAsync(0);
-
-    // Now resolve device-A's stale fetch
-    resolveA!({
-      ok: true,
-      json: () => Promise.resolve({ source: "INTERNET_RADIO", state: "PLAY_STATE", station_name: "A" }),
-    } as Response);
-    await vi.advanceTimersByTimeAsync(0);
-
-    // Advance past one poll interval — only device-B should be polled
-    mockFetch.mockClear();
-    await vi.advanceTimersByTimeAsync(3000);
-
-    // All calls after the interval tick should be for device-B only
-    const callUrls = mockFetch.mock.calls.map((c) => c[0] as string);
-    expect(callUrls.every((url) => url.includes("device-B"))).toBe(true);
-    expect(callUrls.some((url) => url.includes("device-A"))).toBe(false);
+    await waitFor(() => {
+      expect(mockSubscribe).toHaveBeenCalledWith(
+        "now_playing",
+        "device-42",
+        expect.any(Function),
+      );
+      expect(mockSubscribe).toHaveBeenCalledWith(
+        "metadata_enriched",
+        "device-42",
+        expect.any(Function),
+      );
+    });
   });
 
-  it("does not create duplicate intervals on rapid deviceId changes", async () => {
-    const response = {
+  it("unsubscribes on unmount", async () => {
+    mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ source: "INTERNET_RADIO", state: "PLAY_STATE", station_name: "X" }),
-    };
-    mockFetch.mockResolvedValue(response);
+      json: () => Promise.resolve({ source: "BLUETOOTH", state: "PLAY_STATE" }),
+    });
 
-    const { rerender } = renderHook(
-      ({ id }) => useNowPlaying(id),
-      { initialProps: { id: "dev-1" as string | undefined } },
+    const { unmount } = renderHook(() => useNowPlaying("device-42"));
+    await waitFor(() => expect(mockSubscribe).toHaveBeenCalled());
+
+    unmount();
+
+    // Each subscribe returned an unsub fn — all should be called
+    for (const unsub of mockUnsubFns) {
+      expect(unsub).toHaveBeenCalled();
+    }
+  });
+
+  it("updates nowPlaying on SSE now_playing event", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({ source: "BLUETOOTH", state: "STOP_STATE" }),
+    });
+
+    const { result } = renderHook(() => useNowPlaying("device-42"));
+
+    await waitFor(() => {
+      expect(result.current.nowPlaying).toBeTruthy();
+    });
+
+    // Extract the now_playing callback from subscribe calls
+    const npCall = mockSubscribe.mock.calls.find(
+      (c: unknown[]) => c[0] === "now_playing",
+    );
+    const npCallback = npCall![2] as (data: Record<string, unknown>) => void;
+
+    act(() => {
+      npCallback({
+        device_id: "device-42",
+        source: "INTERNET_RADIO",
+        state: "PLAY_STATE",
+        station_name: "WDR 2",
+        artist: "Artist X",
+        track: "Track Y",
+      });
+    });
+
+    expect(result.current.nowPlaying?.source).toBe("INTERNET_RADIO");
+    expect(result.current.nowPlaying?.artist).toBe("Artist X");
+    expect(result.current.nowPlaying?.track).toBe("Track Y");
+  });
+
+  it("merges metadata_enriched into existing nowPlaying", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          source: "INTERNET_RADIO",
+          state: "PLAY_STATE",
+          station_name: "WDR 2",
+        }),
+    });
+
+    const { result } = renderHook(() => useNowPlaying("device-42"));
+
+    await waitFor(() => {
+      expect(result.current.nowPlaying?.source).toBe("INTERNET_RADIO");
+    });
+
+    // Get the metadata_enriched callback
+    const meCall = mockSubscribe.mock.calls.find(
+      (c: unknown[]) => c[0] === "metadata_enriched",
+    );
+    const meCallback = meCall![2] as (data: Record<string, unknown>) => void;
+
+    act(() => {
+      meCallback({
+        device_id: "device-42",
+        artwork_url: "https://cdn.example.com/logo.png",
+        artist: "Enriched Artist",
+        track: "Enriched Track",
+      });
+    });
+
+    // Merged: source/state from initial, artwork from enriched
+    expect(result.current.nowPlaying?.source).toBe("INTERNET_RADIO");
+    expect(result.current.nowPlaying?.artwork_url).toBe(
+      "https://cdn.example.com/logo.png",
+    );
+    expect(result.current.nowPlaying?.artist).toBe("Enriched Artist");
+  });
+
+  it("ignores SSE events for other devices", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          source: "BLUETOOTH",
+          state: "PLAY_STATE",
+          track: "Original",
+        }),
+    });
+
+    const { result } = renderHook(() => useNowPlaying("device-42"));
+
+    await waitFor(() => {
+      expect(result.current.nowPlaying?.track).toBe("Original");
+    });
+
+    const npCall = mockSubscribe.mock.calls.find(
+      (c: unknown[]) => c[0] === "now_playing",
+    );
+    const npCallback = npCall![2] as (data: Record<string, unknown>) => void;
+
+    act(() => {
+      npCallback({
+        device_id: "other-device",
+        source: "AUX",
+        state: "PLAY_STATE",
+        track: "Wrong",
+      });
+    });
+
+    // Should not change — different device_id
+    expect(result.current.nowPlaying?.track).toBe("Original");
+  });
+
+  it("has zero setInterval calls", () => {
+    // Verify the source code has no polling artifacts
+    const hookSource = useNowPlaying.toString();
+    expect(hookSource).not.toContain("setInterval");
+    expect(hookSource).not.toContain("POLL_INTERVAL_MS");
+  });
+
+  it("StrictMode: no leaked subscriptions on unmount/remount", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ source: "BLUETOOTH", state: "PLAY_STATE" }),
+    });
+
+    // Mount
+    const { unmount } = renderHook(() => useNowPlaying("device-99"));
+    await waitFor(() => expect(mockSubscribe).toHaveBeenCalled());
+
+    const unsubFnsMount1 = [...mockUnsubFns];
+
+    // Unmount (StrictMode first unmount)
+    unmount();
+
+    // All unsub fns from mount1 called
+    for (const unsub of unsubFnsMount1) {
+      expect(unsub).toHaveBeenCalled();
+    }
+
+    // Remount (StrictMode second mount)
+    mockSubscribe.mockClear();
+    mockUnsubFns = [];
+
+    const { unmount: unmount2 } = renderHook(() => useNowPlaying("device-99"));
+    await waitFor(() => expect(mockSubscribe).toHaveBeenCalled());
+
+    // Should have fresh subscriptions
+    expect(mockSubscribe).toHaveBeenCalledWith(
+      "now_playing",
+      "device-99",
+      expect.any(Function),
+    );
+    expect(mockSubscribe).toHaveBeenCalledWith(
+      "metadata_enriched",
+      "device-99",
+      expect.any(Function),
     );
 
-    // Rapid switches simulating URL param correction
-    rerender({ id: "dev-2" });
-    rerender({ id: "dev-3" });
+    unmount2();
 
-    // Let all fetches settle
-    await vi.advanceTimersByTimeAsync(0);
-
-    // Clear call history and advance exactly one poll interval
-    mockFetch.mockClear();
-    await vi.advanceTimersByTimeAsync(3000);
-
-    // Should only fire ONE poll (for dev-3), not 2 or 3 stacked intervals
-    const callUrls = mockFetch.mock.calls.map((c) => c[0] as string);
-    expect(callUrls.length).toBe(1);
-    expect(callUrls[0]).toContain("dev-3");
+    // All subscriptions cleaned up
+    for (const unsub of mockUnsubFns) {
+      expect(unsub).toHaveBeenCalled();
+    }
   });
 });

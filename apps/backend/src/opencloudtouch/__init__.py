@@ -2,7 +2,7 @@
 
 import os
 import subprocess
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, version
 
 
 def _get_git_commit_short() -> str:

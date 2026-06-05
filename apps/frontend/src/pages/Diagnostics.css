@@ -1,0 +1,122 @@
+.diagnostics-page h1 {
+  margin-bottom: 1.5rem;
+}
+
+.diagnostics-loading,
+.diagnostics-error {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary, #8e8e93);
+}
+
+.diagnostics-error {
+  color: var(--color-error, #ff453a);
+}
+
+.diagnostics-section {
+  margin-bottom: 1.5rem;
+}
+
+.diagnostics-section h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--text-primary, #fff);
+}
+
+.diagnostics-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.diagnostics-table td {
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--border-color, #2c2c2e);
+  font-size: 0.875rem;
+}
+
+.diagnostics-table td:first-child {
+  color: var(--text-secondary, #8e8e93);
+  width: 40%;
+  white-space: nowrap;
+}
+
+.diagnostics-table-compact td {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+}
+
+.status-green {
+  background-color: #30d158;
+}
+
+.status-yellow {
+  background-color: #ffd60a;
+}
+
+.status-red {
+  background-color: #ff453a;
+}
+
+.diagnostics-device-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.diagnostics-device-card {
+  background: var(--bg-card, #1c1c1e);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color, #2c2c2e);
+}
+
+.device-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.device-card-model {
+  color: var(--text-secondary, #8e8e93);
+  font-size: 0.8rem;
+  margin-left: auto;
+}
+
+.diagnostics-empty {
+  color: var(--text-secondary, #8e8e93);
+  text-align: center;
+  padding: 1rem;
+}
+
+.diagnostics-download-btn {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent-color, #007aff);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.diagnostics-download-btn:hover {
+  opacity: 0.85;
+}
+
+.diagnostics-download-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
