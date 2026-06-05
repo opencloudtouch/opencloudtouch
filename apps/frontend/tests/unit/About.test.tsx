@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+﻿import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import React from "react";
+import { MemoryRouter } from "react-router-dom";
 import { QueryWrapper } from "../utils/reactQueryTestUtils";
 import { useHealth } from "../../src/hooks/useHealth";
 import About from "../../src/pages/About";
@@ -52,9 +53,11 @@ describe("About page", () => {
     mockFetchWith({ ok: false });
 
     render(
-      <QueryWrapper>
-        <About />
-      </QueryWrapper>,
+      <MemoryRouter>
+        <QueryWrapper>
+          <About />
+        </QueryWrapper>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText("OpenCloudTouch")).toBeTruthy();
@@ -65,9 +68,11 @@ describe("About page", () => {
     mockFetchWith({ ok: false });
 
     render(
-      <QueryWrapper>
-        <About />
-      </QueryWrapper>,
+      <MemoryRouter>
+        <QueryWrapper>
+          <About />
+        </QueryWrapper>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText("v1.5.0")).toBeTruthy();
@@ -78,9 +83,9 @@ describe("About page", () => {
     mockFetchWith({ ok: true, text: () => Promise.resolve(CSV_DATA) });
 
     render(
-      <QueryWrapper>
-        <About />
-      </QueryWrapper>,
+      <MemoryRouter>`n          <QueryWrapper>`n            <About />
+        </QueryWrapper>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
@@ -94,13 +99,13 @@ describe("About page", () => {
     mockFetchWith({ ok: true, text: () => Promise.resolve(CSV_HEADER) });
 
     render(
-      <QueryWrapper>
-        <About />
-      </QueryWrapper>,
+      <MemoryRouter>`n          <QueryWrapper>`n            <About />
+        </QueryWrapper>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
-      expect(screen.queryByText("Supp❤️rters")).toBeNull();
+      expect(screen.queryByText("Suppâ¤ï¸rters")).toBeNull();
     });
   });
 
@@ -109,13 +114,13 @@ describe("About page", () => {
     mockFetchWith({ ok: false });
 
     render(
-      <QueryWrapper>
-        <About />
-      </QueryWrapper>,
+      <MemoryRouter>`n          <QueryWrapper>`n            <About />
+        </QueryWrapper>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
-      expect(screen.queryByText("Supp❤️rters")).toBeNull();
+      expect(screen.queryByText("Suppâ¤ï¸rters")).toBeNull();
     });
   });
 
@@ -132,9 +137,9 @@ describe("About page", () => {
     });
 
     render(
-      <QueryWrapper>
-        <About />
-      </QueryWrapper>,
+      <MemoryRouter>`n          <QueryWrapper>`n            <About />
+        </QueryWrapper>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
@@ -147,9 +152,9 @@ describe("About page", () => {
     mockFetchWith({ ok: false });
 
     render(
-      <QueryWrapper>
-        <About />
-      </QueryWrapper>,
+      <MemoryRouter>`n          <QueryWrapper>`n            <About />
+        </QueryWrapper>
+      </MemoryRouter>,
     );
 
     const links = screen.getAllByRole("link");
@@ -164,9 +169,9 @@ describe("About page", () => {
     mockFetchWith({ ok: true, text: () => Promise.resolve(bomCsv) });
 
     render(
-      <QueryWrapper>
-        <About />
-      </QueryWrapper>,
+      <MemoryRouter>`n          <QueryWrapper>`n            <About />
+        </QueryWrapper>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
@@ -179,9 +184,9 @@ describe("About page", () => {
     mockFetchWith({ ok: true, text: () => Promise.resolve(CSV_DATA) });
 
     const { container } = render(
-      <QueryWrapper>
-        <About />
-      </QueryWrapper>,
+      <MemoryRouter>`n          <QueryWrapper>`n            <About />
+        </QueryWrapper>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
@@ -207,7 +212,7 @@ describe("About page", () => {
       "Prince,one-time,15,0,2026-06-04",
       "Elton John,one-time,11.6,0,2026-05-23",
       "Lady Gaga,one-time,11.6,0,2026-05-24",
-      "Beyoncé,one-time,10,0,2026-05-10",
+      "BeyoncÃ©,one-time,10,0,2026-05-10",
       "Ozzy Osbourne,one-time,10,0,2026-05-15",
       "James Hetfield,one-time,10,0,2026-05-16",
       "Dave Grohl,one-time,10,0,2026-05-17",
@@ -230,9 +235,9 @@ describe("About page", () => {
     mockFetchWith({ ok: true, text: () => Promise.resolve(realCsv) });
 
     const { container } = render(
-      <QueryWrapper>
-        <About />
-      </QueryWrapper>,
+      <MemoryRouter>`n          <QueryWrapper>`n            <About />
+        </QueryWrapper>
+      </MemoryRouter>,
     );
 
     const expectedOrder = [
@@ -249,7 +254,7 @@ describe("About page", () => {
       "Prince",
       "Elton John",
       "Lady Gaga",
-      "Beyoncé",
+      "BeyoncÃ©",
       "Ozzy Osbourne",
       "James Hetfield",
       "Dave Grohl",

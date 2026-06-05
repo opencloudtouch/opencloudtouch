@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useHealth } from "../hooks/useHealth";
 import { Skeleton } from "../components/LoadingSkeleton";
 import {
@@ -251,6 +252,9 @@ export default function About() {
           >
             🐛 {t("about.reportBug")}›
           </a>
+          <Link to="/diagnostics" className="about-link-simple">
+            🔧 {t("about.diagnostics")}›
+          </Link>
           <a
             href={BMC_URL}
             target="_blank"
