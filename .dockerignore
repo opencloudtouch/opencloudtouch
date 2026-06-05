@@ -27,6 +27,9 @@ htmlcov/
 # Keep .out/dist/ — pre-built frontend from CI is placed there
 .out/coverage/
 .out/test-results/
+.out/reports/
+.out/.ruff_cache/
+.out/.pytest_cache/
 **/coverage/
 
 # Tests (not needed in production image)
