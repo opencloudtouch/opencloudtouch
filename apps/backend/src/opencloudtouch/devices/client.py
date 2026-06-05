@@ -112,6 +112,20 @@ class DeviceClient(ABC):
         pass
 
     @abstractmethod
+    async def set_name(self, name: str) -> None:
+        """
+        Set device name via REST API.
+
+        Args:
+            name: New device name (1-30 chars, will be XML-escaped)
+
+        Raises:
+            ConnectionError: If device is unreachable
+            ValueError: If name validation fails
+        """
+        pass
+
+    @abstractmethod
     async def close(self) -> None:
         """Close client connections."""
         pass

@@ -225,8 +225,8 @@ async def rename_device(
     """
     Rename a SoundTouch device.
 
-    Updates the device name on the speaker via SSH (SystemConfigurationDB.xml)
-    and in the local database.
+    Tries REST API first (POST /name), falls back to SSH if REST fails.
+    Updates the local database after successful rename.
 
     Args:
         device_id: Device ID (MAC address)
@@ -238,7 +238,7 @@ async def rename_device(
     Raises:
         DeviceNotFoundError: If device does not exist
         HTTPException(422): If name validation fails
-        HTTPException(502): If SSH connection fails
+        HTTPException(502): If both REST and SSH methods fail
     """
     name = body.get("name", "").strip()
 
@@ -255,16 +255,45 @@ async def rename_device(
 
     previous_name = device.name
 
-    # Update name on device via SSH
+    # Try REST API first (like Bose App does)
+    rest_error = None
     try:
-        await rename_device_via_ssh(device.ip, name)
+        client = await device_service.get_client(device_id)
+        await client.set_name(name)
+        logger.info(
+            "Device %r renamed via REST API: %r -> %r",
+            device.device_id,
+            previous_name,
+            name,
+        )
     except Exception as e:
-        logger.error(
-            "SSH rename failed for %r: %s", device.device_id, e
-        )  # device.device_id from DB (not tainted); e is exception (safe)
-        raise HTTPException(
-            status_code=502, detail="Could not connect to device via SSH"
-        ) from e
+        rest_error = str(e)
+        logger.warning(
+            "REST API rename failed for %r, trying SSH fallback: %s",
+            device.device_id,
+            e,
+        )
+
+        # Fallback to SSH (for devices that don't support REST /name or are configured)
+        try:
+            await rename_device_via_ssh(device.ip, name)
+            logger.info(
+                "Device %r renamed via SSH fallback: %r -> %r",
+                device.device_id,
+                previous_name,
+                name,
+            )
+        except Exception as ssh_error:
+            logger.error(
+                "Both REST and SSH rename failed for %r: REST=%s, SSH=%s",
+                device.device_id,
+                rest_error,
+                ssh_error,
+            )
+            raise HTTPException(
+                status_code=502,
+                detail="Could not rename device (REST and SSH both failed)",
+            ) from ssh_error
 
     # Update local DB
     device.name = name

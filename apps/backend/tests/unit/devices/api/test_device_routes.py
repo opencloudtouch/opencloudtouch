@@ -954,11 +954,39 @@ class TestNowPlayingEndpoint:
 class TestRenameDeviceEndpoint:
     """Tests for PUT /api/devices/{id}/name endpoint."""
 
-    def test_rename_success(self, client, mock_device_service, sample_devices):
-        """Test successful device rename."""
+    def test_rename_success_via_rest(self, client, mock_device_service, sample_devices):
+        """Test successful device rename via REST API."""
         device = sample_devices[0]
         mock_device_service.get_device_by_id = AsyncMock(return_value=device)
         mock_device_service.repository = AsyncMock()
+
+        # Mock client with set_name method
+        mock_client = AsyncMock()
+        mock_client.set_name = AsyncMock()
+        mock_device_service.get_client = AsyncMock(return_value=mock_client)
+
+        response = client.put(
+            f"/api/devices/{device.device_id}/name",
+            json={"name": "New Name"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["name"] == "New Name"
+        assert data["previous_name"] == "Living Room"
+        assert data["device_id"] == device.device_id
+        mock_client.set_name.assert_awaited_once_with("New Name")
+
+    def test_rename_fallback_to_ssh(self, client, mock_device_service, sample_devices):
+        """Test fallback to SSH when REST API fails."""
+        device = sample_devices[0]
+        mock_device_service.get_device_by_id = AsyncMock(return_value=device)
+        mock_device_service.repository = AsyncMock()
+
+        # Mock client that raises on REST
+        mock_client = AsyncMock()
+        mock_client.set_name = AsyncMock(side_effect=RuntimeError("REST failed"))
+        mock_device_service.get_client = AsyncMock(return_value=mock_client)
 
         with patch(
             "opencloudtouch.devices.api.routes.rename_device_via_ssh"
@@ -973,9 +1001,30 @@ class TestRenameDeviceEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == "New Name"
-        assert data["previous_name"] == "Living Room"
-        assert data["device_id"] == device.device_id
         mock_ssh.assert_awaited_once_with(device.ip, "New Name")
+
+    def test_rename_both_methods_fail(self, client, mock_device_service, sample_devices):
+        """Test rename fails when both REST and SSH fail."""
+        device = sample_devices[0]
+        mock_device_service.get_device_by_id = AsyncMock(return_value=device)
+
+        # Mock client that raises on REST
+        mock_client = AsyncMock()
+        mock_client.set_name = AsyncMock(side_effect=RuntimeError("REST failed"))
+        mock_device_service.get_client = AsyncMock(return_value=mock_client)
+
+        with patch(
+            "opencloudtouch.devices.api.routes.rename_device_via_ssh"
+        ) as mock_ssh:
+            mock_ssh.side_effect = RuntimeError("SSH connection refused")
+
+            response = client.put(
+                f"/api/devices/{device.device_id}/name",
+                json={"name": "New Name"},
+            )
+
+        assert response.status_code == 502
+        assert "REST and SSH both failed" in response.json()["detail"]
 
     def test_rename_empty_name(self, client, mock_device_service):
         """Test rename with empty name returns 422."""
@@ -1006,23 +1055,6 @@ class TestRenameDeviceEndpoint:
 
         assert response.status_code == 404
 
-    def test_rename_ssh_failure(self, client, mock_device_service, sample_devices):
-        """Test rename when SSH connection fails returns 502."""
-        device = sample_devices[0]
-        mock_device_service.get_device_by_id = AsyncMock(return_value=device)
-
-        with patch(
-            "opencloudtouch.devices.api.routes.rename_device_via_ssh"
-        ) as mock_ssh:
-            mock_ssh.side_effect = RuntimeError("SSH connection refused")
-
-            response = client.put(
-                f"/api/devices/{device.device_id}/name",
-                json={"name": "New Name"},
-            )
-
-        assert response.status_code == 502
-
     def test_rename_strips_whitespace(
         self, client, mock_device_service, sample_devices
     ):
@@ -1031,16 +1063,17 @@ class TestRenameDeviceEndpoint:
         mock_device_service.get_device_by_id = AsyncMock(return_value=device)
         mock_device_service.repository = AsyncMock()
 
-        with patch(
-            "opencloudtouch.devices.api.routes.rename_device_via_ssh"
-        ) as mock_ssh:
-            mock_ssh.return_value = None
+        # Mock client with set_name method
+        mock_client = AsyncMock()
+        mock_client.set_name = AsyncMock()
+        mock_device_service.get_client = AsyncMock(return_value=mock_client)
 
-            response = client.put(
-                f"/api/devices/{device.device_id}/name",
-                json={"name": "  Trimmed  "},
-            )
+        response = client.put(
+            f"/api/devices/{device.device_id}/name",
+            json={"name": "  Trimmed  "},
+        )
 
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == "Trimmed"
+        mock_client.set_name.assert_awaited_once_with("Trimmed")
