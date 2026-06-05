@@ -34,7 +34,9 @@ class Zone:
             "id": self.id,
             "master_device_id": self.master_device_id,
             "created_at": self.created_at.isoformat(),
-            "dissolved_at": self.dissolved_at.isoformat() if self.dissolved_at else None,
+            "dissolved_at": (
+                self.dissolved_at.isoformat() if self.dissolved_at else None
+            ),
         }
 
 
@@ -204,9 +206,7 @@ class ZoneRepository(BaseRepository):
         await db.commit()
         logger.info("Dissolved zone %d", zone_id)
 
-    async def get_active_zone_by_master(
-        self, master_device_id: str
-    ) -> Optional[Zone]:
+    async def get_active_zone_by_master(self, master_device_id: str) -> Optional[Zone]:
         """Get active zone by master device ID."""
         db = self._ensure_initialized()
 
@@ -289,14 +289,12 @@ class ZoneRepository(BaseRepository):
         """Get all active zones."""
         db = self._ensure_initialized()
 
-        cursor = await db.execute(
-            """
+        cursor = await db.execute("""
             SELECT id, master_device_id, created_at, dissolved_at
             FROM zones
             WHERE dissolved_at IS NULL
             ORDER BY created_at DESC
-            """
-        )
+            """)
 
         rows = await cursor.fetchall()
         return [

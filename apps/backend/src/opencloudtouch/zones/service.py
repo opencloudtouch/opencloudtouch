@@ -95,7 +95,9 @@ class ZoneService:
         result = []
         for zone_db in zones_db:
             if zone_db.id is None:
-                logger.error("Zone from DB has no ID, skipping: %s", zone_db.master_device_id)
+                logger.error(
+                    "Zone from DB has no ID, skipping: %s", zone_db.master_device_id
+                )
                 continue
             members = await self.zone_repo.get_active_members(zone_db.id)
 
@@ -237,7 +239,9 @@ class ZoneService:
             raise DeviceConnectionError(master.ip, str(e))
 
         if not zone_status or not zone_status.members:
-            logger.warning("No zone found for master_id=%s, nothing to dissolve", master_id)
+            logger.warning(
+                "No zone found for master_id=%s, nothing to dissolve", master_id
+            )
             # Still update DB to mark as dissolved
             zone_db = await self.zone_repo.get_active_zone_by_master(master.device_id)
             if zone_db and zone_db.id is not None:
@@ -246,21 +250,22 @@ class ZoneService:
 
         # Remove all slaves in PARALLEL (each waits with delay=3)
         slaves = [m for m in zone_status.members if m.role == "slave"]
-        logger.info("Removing %d slaves in PARALLEL before dissolving zone", len(slaves))
+        logger.info(
+            "Removing %d slaves in PARALLEL before dissolving zone", len(slaves)
+        )
 
         if slaves:
-            remove_tasks = [
-                client.remove_zone_members([slave])
-                for slave in slaves
-            ]
-            
+            remove_tasks = [client.remove_zone_members([slave]) for slave in slaves]
+
             # Wait for all slaves to be removed
             results = await asyncio.gather(*remove_tasks, return_exceptions=True)
-            
+
             # Log results
             for slave, result in zip(slaves, results):
                 if isinstance(result, Exception):
-                    logger.error("Failed to remove slave %s: %s", slave.device_id, result)
+                    logger.error(
+                        "Failed to remove slave %s: %s", slave.device_id, result
+                    )
                 else:
                     logger.info("Slave %s removed successfully", slave.device_id)
 

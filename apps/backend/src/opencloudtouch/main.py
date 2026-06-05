@@ -185,7 +185,7 @@ async def _init_services(
 
     # Zone service (with injected client factory to avoid circular deps)
     from opencloudtouch.devices.adapter import get_device_client
-    
+
     zone_repo = repos["zone_repo"]
     app.state.zone_service = ZoneService(
         device_repo=device_repo,
