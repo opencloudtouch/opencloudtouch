@@ -1,0 +1,32 @@
+﻿name,type,amount,monthlyAmount,firstSupportDate
+Elvis Presley,one-time,30,0,2026-05-26
+Freddie Mercury,one-time,23.3,0,2026-05-28
+John Lennon,one-time,23.2,0,2026-05-20
+Paul McCartney,one-time,21.47,0,2026-06-01
+Mick Jagger,one-time,20,0,2026-05-11
+David Bowie,one-time,20,0,2026-05-16
+Jimi Hendrix,one-time,20,0,2026-05-16
+Kurt Cobain,one-time,20,0,2026-05-17
+Michael Jackson,one-time,20,0,2026-05-22
+Madonna,one-time,20,0,2026-05-23
+Prince,one-time,15,0,2026-06-04
+Elton John,one-time,11.6,0,2026-05-23
+Lady Gaga,one-time,11.6,0,2026-05-24
+Beyoncé,one-time,10,0,2026-05-10
+Ozzy Osbourne,one-time,10,0,2026-05-15
+James Hetfield,one-time,10,0,2026-05-16
+Dave Grohl,one-time,10,0,2026-05-17
+Jared Leto,one-time,10,0,2026-05-17
+Eminem,monthly,5,5,2026-05-20
+Tupac,one-time,10,0,2026-05-27
+Jay-Z,one-time,10,0,2026-05-31
+Aretha Franklin,one-time,10,0,2026-06-03
+Stevie Wonder,one-time,10,0,2026-06-04
+Whitney Houston,one-time,8.5,0,2026-05-10
+Marvin Gaye,one-time,8,0,2026-06-02
+Johnny Cash,one-time,5,0,2026-05-09
+Dolly Parton,one-time,5,0,2026-05-11
+Bob Dylan,one-time,5,0,2026-05-16
+Rihanna,one-time,5,0,2026-05-18
+Ed Sheeran,one-time,5,0,2026-05-31
+Bruno Mars,monthly,1,1,2026-06-02

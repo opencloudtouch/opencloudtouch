@@ -1,16 +1,17 @@
 """Tests for account_pairing_service — margeAccountUUID check & SSH pairing."""
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 
 from opencloudtouch.setup.account_pairing_service import (
+    _generate_account_uuid,
+    _update_uuid_in_xml,
     check_marge_account_uuid,
     ensure_account_uuid,
     ensure_account_uuid_unique,
     is_valid_account_uuid,
     set_account_uuid_via_ssh,
-    _generate_account_uuid,
-    _update_uuid_in_xml,
 )
 from opencloudtouch.setup.ssh_client import CommandResult
 

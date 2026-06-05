@@ -34,6 +34,8 @@ export default function VolumeSlider({
   const lastClientXRef = useRef<number>(0);
   const isDraggingRef = useRef(false);
   const onVolumeChangeRef = useRef(onVolumeChange);
+  const throttleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSentRef = useRef<number>(0);
   onVolumeChangeRef.current = onVolumeChange;
 
   // Sync prop → DOM only when NOT dragging.
@@ -59,12 +61,32 @@ export default function VolumeSlider({
     if (thumbRef.current) thumbRef.current.style.left = pct;
   };
 
+  const THROTTLE_MS = 150;
+
+  const sendThrottled = (val: number) => {
+    const now = Date.now();
+    if (now - lastSentRef.current >= THROTTLE_MS) {
+      lastSentRef.current = now;
+      onVolumeChangeRef.current(val);
+    } else if (!throttleTimerRef.current) {
+      throttleTimerRef.current = setTimeout(() => {
+        throttleTimerRef.current = null;
+        lastSentRef.current = Date.now();
+        if (isDraggingRef.current) {
+          onVolumeChangeRef.current(calcValue(lastClientXRef.current));
+        }
+      }, THROTTLE_MS);
+    }
+  };
+
   const scheduleFrame = () => {
     if (rafRef.current !== null) return;
     rafRef.current = requestAnimationFrame(() => {
       rafRef.current = null;
       if (!isDraggingRef.current) return;
-      applyValueDOM(calcValue(lastClientXRef.current));
+      const val = calcValue(lastClientXRef.current);
+      applyValueDOM(val);
+      sendThrottled(val);
       scheduleFrame();
     });
   };
@@ -89,6 +111,10 @@ export default function VolumeSlider({
     if (rafRef.current !== null) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
+    }
+    if (throttleTimerRef.current) {
+      clearTimeout(throttleTimerRef.current);
+      throttleTimerRef.current = null;
     }
     const finalVal = calcValue(e.clientX);
     applyValueDOM(finalVal);

@@ -11,11 +11,11 @@ from typing import Any, Dict
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import status as http_status
 
+from opencloudtouch.core.dependencies import get_setup_service
 from opencloudtouch.setup.api_models import (
     ConnectivityCheckRequest,
     EnablePermanentSSHRequest,
 )
-from opencloudtouch.core.dependencies import get_setup_service
 from opencloudtouch.setup.service import SetupService
 from opencloudtouch.setup.ssh_client import SoundTouchSSHClient
 

@@ -6,9 +6,9 @@ import { useManualIPs, useProbeDevice } from "../hooks/useSettings";
 import { useDiscoveryStream } from "../hooks/useDiscoveryStream";
 import { useToast } from "../contexts/ToastContext";
 import { toUserMessage } from "../utils/errorMessages";
-import { getLogEntries } from "../utils/logBuffer";
+import { getLogEntries, getLogBuffers } from "../utils/logBuffer";
+import { syncDebugFromBackendLevel } from "../utils/debug";
 import type { Device } from "../api/devices";
-import AboutSection from "../components/AboutSection";
 import "./Settings.css";
 
 export default function Settings() {
@@ -43,6 +43,7 @@ export default function Settings() {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["log-level"], data);
+      syncDebugFromBackendLevel(data.level);
       show(t("settings.logging.levelChanged", { level: data.level }), "success");
     },
     onError: () => {
@@ -257,7 +258,10 @@ export default function Settings() {
                   const resp = await fetch("/api/logs/backend", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ frontend_logs: getLogEntries() }),
+                    body: JSON.stringify({
+                      frontend_logs: getLogEntries(),
+                      frontend_log_buffers: getLogBuffers(),
+                    }),
                   });
                   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                   const blob = await resp.blob();
@@ -282,8 +286,6 @@ export default function Settings() {
           </div>
         </div>
       </motion.section>
-
-      <AboutSection />
     </div>
   );
 }

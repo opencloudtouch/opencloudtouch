@@ -1,7 +1,5 @@
 {
   "common": {
-    "save": "Enregistrer",
-    "saving": "Enregistrement...",
     "cancel": "Annuler",
     "loading": "Chargement...",
     "error": "Une erreur s'est produite",
@@ -9,7 +7,6 @@
     "back": "Retour",
     "close": "Fermer",
     "confirm": "Confirmer",
-    "search": "Rechercher",
     "openCloudTouchLoading": "OpenCloudTouch se charge...",
     "connectingToServer": "Connexion au serveur...",
     "loadingTimeout": "Cela prend plus longtemps que prévu. Veuillez patienter ou recharger la page.",
@@ -24,21 +21,15 @@
     "presets": "Préréglages",
     "zones": "Zones",
     "settings": "Paramètres",
-    "selectLanguage": "Choisir la langue"
+    "about": "À propos"
   },
   "player": {
-    "volume": "Volume",
-    "nowPlaying": "En cours",
-    "noSource": "Aucune source",
     "noPlayback": "Pas de lecture",
     "play": "Lecture",
     "pause": "Pause",
     "noStation": "Aucune station",
-    "bluetoothNoDevice": "Aucun appareil connecté",
     "noDevices": "Aucun appareil trouvé",
     "powerButton": "Marche/Arrêt",
-    "powerFailed": "Impossible de basculer l'alimentation",
-    "playbackFailed": "Contrôle de lecture échoué. Veuillez réessayer.",
     "localControl": "Contrôle local",
     "sourceTitle": "Source",
     "playbackTitle": "Lecture",
@@ -52,7 +43,6 @@
     "nextDevice": "Appareil suivant"
   },
   "presets": {
-    "title": "Préréglages",
     "pageTitle": "Préréglages radio",
     "empty": "Aucun préréglage configuré",
     "playPreset": "Lire le préréglage {{name}}",
@@ -75,7 +65,6 @@
     "infoItem6": "\"Charger depuis l'appareil\" synchronise les préréglages depuis SoundTouch",
     "changeStation": "Cliquer pour changer de station",
     "assignPreset": "Attribuer un préréglage",
-    "nowPlaying": "En cours de lecture",
     "cloudCompatible": "Compatible après arrêt du cloud",
     "cloudIndependent": "Indépendant du cloud",
     "cloudIndependentDesc": "Fonctionne après le 6 mai 2026 (arrêt du cloud Bose)",
@@ -105,6 +94,7 @@
       "country": "ex. Allemagne, Autriche…",
       "tag": "ex. Rock, Jazz, pop…"
     },
+    "searchTitle": "Rechercher des stations radio",
     "loadMore": "Charger plus",
     "loadingMore": "Chargement...",
     "maxReached": "Maximum ({{count}}) atteint",
@@ -117,23 +107,15 @@
     "manualIps": {
       "placeholder": "192.168.1.10",
       "addButton": "+ Ajouter",
-      "emptyList": "Aucune IP manuelle configurée",
-      "removeIp": "Supprimer l'IP",
-      "ipAdded": "IP {{ip}} ajoutée",
-      "ipRemoved": "IP {{ip}} supprimée",
-      "invalidFormat": "Adresse IP invalide (format : 192.168.1.10)",
-      "alreadyExists": "Cette adresse IP existe déjà",
+      "invalidFormat": "Adresse IP invalide (format: 192.168.1.10)",
       "enterIp": "Veuillez saisir une adresse IP",
       "probing": "Recherche...",
       "deviceAdded": "{{name}} ({{ip}}) ajouté",
-      "probeError": "Aucun appareil trouvé à {{ip}}",
-      "discoverButton": "Rechercher",
-      "discovering": "Recherche..."
+      "probeError": "Aucun appareil trouvé à {{ip}}"
     },
     "discovery": {
       "devicesFound_one": "{{count}} nouvel appareil trouvé",
-      "devicesFound_other": "{{count}} nouveaux appareils trouvés",
-      "noNewDevices": "Aucun nouvel appareil trouvé"
+      "devicesFound_other": "{{count}} nouveaux appareils trouvés"
     },
     "deviceDiscovery": {
       "sectionTitle": "Trouver des appareils",
@@ -159,9 +141,7 @@
   },
   "manualIpModal": {
     "title": "Configuration IP manuelle",
-    "close": "Fermer",
     "description": "Saisissez les adresses IP de vos appareils (une par ligne ou séparées par des virgules).",
-    "placeholder": "Exemple :\n192.168.1.100\n192.168.1.101\n192.168.1.102",
     "invalidFormat": "Format invalide : {{ips}}",
     "saveError": "Erreur lors de l'enregistrement des adresses IP",
     "save": "Enregistrer",
@@ -169,13 +149,10 @@
     "hint": "Vous trouverez l'adresse IP dans l'application associée sous Paramètres → Infos ou dans votre routeur."
   },
   "multiroom": {
-    "title": "Zones",
     "pageTitle": "Zones multi-pièces",
-    "noZones": "Aucune zone configurée",
     "createZone": "Créer une zone",
     "updateZone": "Mettre à jour la zone",
     "creating": "Création...",
-    "removeZone": "Supprimer la zone",
     "standby": "Veille",
     "loadingZones": "Chargement des zones...",
     "errorLoading": "Erreur de chargement",
@@ -210,14 +187,12 @@
   },
   "firmware": {
     "title": "Mises à jour du firmware",
-    "description": "Gérez les mises à jour du firmware pour vos appareils SoundTouch.",
     "noDevices": "Aucun appareil trouvé",
     "currentDevice": "Appareil actuel",
     "currentVersion": "Version actuelle :",
     "statusLabel": "Statut :",
     "updateAvailable": "Mise à jour disponible",
     "upToDate": "À jour",
-    "comingSoon": "Prochainement",
     "allDevices": "Tous les appareils",
     "unknownVersion": "Inconnu",
     "unknownModel": "Modèle inconnu",
@@ -234,17 +209,14 @@
     "infoItem4": "L'appareil redémarre automatiquement après la mise à jour"
   },
   "setup": {
-    "title": "Assistant de configuration",
     "next": "Suivant",
     "back": "Retour",
-    "finish": "Terminer",
     "loading": "Chargement des appareils...",
     "loadingAriaLabel": "Chargement",
     "noDevices": "Aucun appareil trouvé",
     "noDevicesHint": "Veuillez d'abord synchroniser vos appareils SoundTouch.",
     "noDevicesHint2": "Allez sur la page d'accueil et cliquez sur \"Rechercher des appareils maintenant\".",
     "goHome": "Retour à la page d'accueil",
-    "homePage": "Page d'accueil",
     "stepLabels": {
       "usbInsert": "Insérer la clé USB",
       "deviceReboot": "Redémarrer l'appareil",
@@ -285,7 +257,6 @@
     },
     "skip": "Ignorer",
     "stepLabel": "Étape {{step}}",
-    "processing": "Traitement en cours...",
     "stepAriaCompleted": "Étape {{id}} : {{label}} — {{description}} – terminée",
     "stepAriaError": "Étape {{id}} : {{label}} — {{description}} – erreur",
     "stepAriaInProgress": "Étape {{id}} : {{label}} — {{description}} – en cours",
@@ -486,16 +457,13 @@
         "description": "Vérifiez que les redirections de domaines fonctionnent correctement.",
         "warning": "Si les tests échouent, un redémarrage de l'appareil peut être nécessaire.",
         "rebootHeader": "Redémarrage de l'appareil",
-        "rebootHint": "Les modifications /etc/hosts ne prennent effet qu'après un redémarrage. Redémarrez l'appareil avant d'exécuter les tests.",
         "btnReboot": "Redémarrer l'appareil maintenant",
-        "rebootActionHint": "Uniquement si les tests échouent et que vous êtes sûr qu'un redémarrage est nécessaire",
         "rebootRebooting": "Envoi de la commande de redémarrage...",
         "rebootWaiting": "L'appareil redémarre — veuillez patienter...",
         "rebootDone": "Redémarrage terminé — l'appareil devrait être à nouveau accessible.",
         "btnRetryReboot": "Réessayer",
         "btnFinalize": "Finaliser la configuration",
         "finalizing": "Configuration en cours...",
-        "verifying": "Vérification en cours...",
         "btnRetryFinalize": "Réessayer",
         "finalizeUuid": "UUID de l'appareil défini : {{uuid}}",
         "finalizeSources": "Sources.xml écrit",
@@ -525,28 +493,13 @@
         "summaryRedirectsCorrect": "Toutes les redirections vérifiées et correctes",
         "summarySourcesPresent": "Toutes les sources requises présentes",
         "verifyTitle": "Vérification de la configuration",
-        "testInfoTitle": "Qu'est-ce qui est testé ?",
-        "testInfoItem1": "Résolution DNS des domaines Bose",
-        "testInfoItem2": "Redirection vers votre serveur OpenCloudTouch",
-        "testInfoItem3": "Exactitude des adresses IP",
-        "btnRunTests": "Exécuter les tests maintenant",
-        "btnRunning": "Test de la configuration...",
         "resultsTitle": "Résultats des tests",
-        "resolvedIp": "IP résolue :",
-        "expectedIp": "IP attendue :",
-        "statusLabel": "Statut :",
-        "statusCorrect": "✓ Correct",
-        "statusFailed": "✗ Échec",
         "domainInternetRadio": "Radio Internet",
         "domainStreaming": "Services de streaming",
         "allPassedTitle": "Tous les tests réussis !",
         "allPassedMessage": "Les redirections de domaines fonctionnent correctement. Votre appareil est prêt à l'emploi.",
         "someFailedTitle": "Certains tests ont échoué",
         "someFailedMessage": "Les changements DNS ne sont peut-être pas encore actifs. Essayez les étapes suivantes :",
-        "failedStep1": "Redémarrez l'appareil (débranchez et rebranchez l'alimentation)",
-        "failedStep2": "Attendez 60 secondes après le redémarrage",
-        "failedStep3": "Réexécutez les tests",
-        "btnRetryTests": "Relancer les tests",
         "btnSkip": "Continuer quand même — l'appareil ne sera pas marqué comme configuré",
         "rebootMandatoryHint": "Un redémarrage est nécessaire pour que les modifications de configuration prennent effet. L'appareil doit redémarrer avant la vérification.",
         "fullVerifyTitle": "Vérification complète du système",
@@ -556,58 +509,6 @@
         "fullVerifyItem4": "Redirections DNS résolues vers le serveur OpenCloudTouch",
         "btnRunFullVerify": "Lancer la vérification complète",
         "fullVerifying": "Vérification complète du système en cours...",
-        "systemChecksTitle": "Vérifications du système",
-        "check": {
-          "uuid_present": {
-            "pass": "UUID de l'appareil : {{uuid}}",
-            "fail": "L'appareil n'a pas d'UUID de compte. La synchronisation au démarrage ne fonctionnera pas."
-          },
-          "uuid_in_db": {
-            "pass": "UUID enregistré pour {{db_device_id}}",
-            "fail": "UUID non enregistré dans la base de données OCT. Le point de streaming ne peut pas résoudre cet appareil."
-          },
-          "sources_complete": {
-            "pass": "Toutes les sources requises présentes",
-            "fail": "Sources manquantes : {{missing}}. La lecture des presets peut échouer pour ces types de sources."
-          },
-          "config_files_present": {
-            "pass": "Tous les fichiers de configuration présents",
-            "fail": "Fichier de configuration manquant : {{missing}}. Le firmware pourrait ne pas trouver la redirection OCT au redémarrage."
-          },
-          "config_files_identical": {
-            "pass": "Tous les fichiers de configuration ont un contenu identique",
-            "fail": "Les fichiers de configuration diffèrent. L'appareil pourrait utiliser la mauvaise URL BMX après le redémarrage."
-          },
-          "config_bmx_url": {
-            "pass": "URL BMX : {{bmx_url}}",
-            "fail": "L'URL BMX pointe encore vers le cloud Bose ({{bmx_url}}). L'appareil ne contactera pas OCT."
-          },
-          "hosts_oct_block": {
-            "pass": "Bloc OCT présent dans /etc/hosts",
-            "fail": "Pas de bloc OCT dans /etc/hosts. Les redirections de domaines sont manquantes."
-          },
-          "hosts_domains_complete": {
-            "pass": "Tous les domaines requis présents",
-            "fail": "Entrées d'hôtes manquantes : {{missing}}. Certains services Bose ne seront pas redirigés."
-          },
-          "hosts_ip_correct": {
-            "pass": "Toutes les entrées d'hôtes pointent vers la bonne IP",
-            "fail": "Les entrées d'hôtes pointent vers la mauvaise IP. Vérifiez les entrées obsolètes."
-          },
-          "system_config_present": {
-            "pass": "SystemConfigurationDB.xml présent",
-            "fail": "SystemConfigurationDB.xml manquant. L'appareil pourrait ne pas s'initialiser correctement."
-          },
-          "system_config_uuid_match": {
-            "pass": "L'UUID dans SystemConfigurationDB.xml correspond à l'appareil",
-            "fail": "L'UUID dans SystemConfigurationDB.xml ne correspond pas à l'UUID de l'appareil"
-          },
-          "connection": {
-            "pass": "Connexion OK",
-            "fail": "Échec de la connexion"
-          }
-        },
-        "dnsTestsTitle": "Vérifications de redirection DNS",
         "btnRetryFullVerify": "Relancer la vérification"
       },
       "step8": {
@@ -695,8 +596,6 @@
     }
   },
   "errors": {
-    "connectionFailed": "Impossible de se connecter à l'appareil.",
-    "discoveryFailed": "La détection a échoué. Vérifiez vos paramètres réseau.",
     "loadFailed": "Échec du chargement. Veuillez réessayer.",
     "unknown": "Une erreur inattendue s'est produite. Veuillez réessayer.",
     "networkFailed": "Impossible de se connecter au serveur. Vérifiez votre connexion réseau.",
@@ -752,13 +651,20 @@
     "reportIssue": "Signaler un problème",
     "support": "Assistance",
     "versionUnavailable": "Version non disponible",
-    "creditsTitle": "Contributeurs",
-    "creditsDescription": "Remerciements particuliers aux membres de la communauté qui ont contribué par leurs recherches, tests et rétro-ingénierie."
+    "hallOfFameTitle": "Panthéon",
+    "hallOfFameDescription": "Les 3 meilleurs contributeurs de tous les temps — reconnus pour leur impact technique exceptionnel.",
+    "supportersTitle": "Supporters",
+    "reportBug": "Signaler un bug",
+    "supportersDescription": "Merci à tous ceux qui soutiennent OpenCloudTouch financièrement. Vos contributions aident à maintenir le projet en vie !",
+    "supportersMonthly": "Supporters Mensuels",
+    "supportersOneTime": "Supporters ponctuels",
+    "buildTime": "Créé le {{time}}",
+    "checkingUpdates": "Vérification des mises à jour...",
+    "updateAvailable": "Mise à jour disponible : {{version}}",
+    "viewRelease": "Voir la version",
+    "upToDate": "Vous êtes à jour !"
   },
   "discovery": {
-    "started": "Détection démarrée",
-    "completed": "Détection terminée",
-    "searching": "Recherche d'appareils...",
     "alreadyRunning": "Recherche d'appareils déjà en cours. Veuillez patienter...",
     "failed": "Erreur lors de la recherche d'appareils. Veuillez réessayer.",
     "noDevicesNetwork": "Aucun appareil trouvé. Vérifiez si vos appareils sont allumés et sur le même réseau.",

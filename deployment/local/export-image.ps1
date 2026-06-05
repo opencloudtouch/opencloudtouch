@@ -3,7 +3,6 @@
 # Creates a portable .tar file that can be imported on any Docker/Podman host
 
 param(
-    [switch]$SkipBuild,
     [switch]$NoCache,
     [switch]$Verbose
 )
@@ -104,54 +103,50 @@ try {
     }
 
     # Build image
-    if (-not $SkipBuild) {
-        Write-Step "Building container image..."
+    Write-Step "Building container image..."
 
-        # Ensure we're in project root (two levels up from deployment/local)
-        $projectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-        Push-Location $projectRoot
+    # Ensure we're in project root (two levels up from deployment/local)
+    $projectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+    Push-Location $projectRoot
 
-        # Step 0: Build frontend and place artifacts in .out/dist/
-        Write-Step "Building frontend (npm run build)..."
-        $distOut = Join-Path $projectRoot ".out\dist"
-        if (Test-Path $distOut) {
-            Write-Host "    Removing stale frontend artifacts: $distOut" -ForegroundColor Gray
-            Remove-Item -Recurse -Force $distOut
-        }
-        Push-Location (Join-Path $projectRoot "apps\frontend")
-        npm run build
-        if ($LASTEXITCODE -ne 0) {
-            Pop-Location; Pop-Location
-            Write-ErrorMsg "Frontend build failed!"
-            exit 1
-        }
-        Pop-Location
-        Write-Success "Frontend built: $distOut"
-
-        $buildCmd = "podman build -f ./deployment/Dockerfile -t $Tag"
-        if ($NoCache) {
-            $buildCmd += " --no-cache"
-            Write-Host "    Using --no-cache (full rebuild)" -ForegroundColor Gray
-        }
-        if ($Verbose) {
-            $buildCmd += " --progress=plain"
-            Write-Host "    Verbose build output enabled" -ForegroundColor Gray
-        }
-        $buildCmd += " ."
-        Write-Host "    Working directory: $projectRoot" -ForegroundColor Gray
-        Write-Host "    Command: $buildCmd" -ForegroundColor Gray
-        Invoke-Expression $buildCmd
-
-        Pop-Location
-
-        if ($LASTEXITCODE -ne 0) {
-            Write-ErrorMsg "Build failed!"
-            exit 1
-        }
-        Write-Success "Image built: $Tag"
-    } else {
-        Write-Step "Skipping build (using existing image)"
+    # Step 0: Build frontend and place artifacts in .out/dist/
+    Write-Step "Building frontend (npm run build)..."
+    $distOut = Join-Path $projectRoot ".out\dist"
+    if (Test-Path $distOut) {
+        Write-Host "    Removing stale frontend artifacts: $distOut" -ForegroundColor Gray
+        Remove-Item -Recurse -Force $distOut
     }
+    Push-Location (Join-Path $projectRoot "apps\frontend")
+    npm run build
+    if ($LASTEXITCODE -ne 0) {
+        Pop-Location; Pop-Location
+        Write-ErrorMsg "Frontend build failed!"
+        exit 1
+    }
+    Pop-Location
+    Write-Success "Frontend built: $distOut"
+
+    $buildCmd = "podman build -f ./deployment/Dockerfile -t $Tag"
+    if ($NoCache) {
+        $buildCmd += " --no-cache"
+        Write-Host "    Using --no-cache (full rebuild)" -ForegroundColor Gray
+    }
+    if ($Verbose) {
+        $buildCmd += " --progress=plain"
+        Write-Host "    Verbose build output enabled" -ForegroundColor Gray
+    }
+    $buildCmd += " ."
+    Write-Host "    Working directory: $projectRoot" -ForegroundColor Gray
+    Write-Host "    Command: $buildCmd" -ForegroundColor Gray
+    Invoke-Expression $buildCmd
+
+    Pop-Location
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-ErrorMsg "Build failed!"
+        exit 1
+    }
+    Write-Success "Image built: $Tag"
 
     # Export image
     Write-Step "Exporting image to $OutputFile..."

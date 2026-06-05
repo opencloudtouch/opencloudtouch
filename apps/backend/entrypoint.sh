@@ -113,11 +113,7 @@ fix_permissions() {
 
 # Main entrypoint logic
 main() {
-    log_info "OpenCloudTouch starting..."
-    log_info "Version: 0.2.0"
-    log_info "Python: $(python --version)"
-
-    # Fix volume permissions before dropping privileges
+    # Fix volume permissions before dropping privileges (runs as root)
     fix_permissions
 
     # Drop to non-root user if running as root
@@ -125,6 +121,11 @@ main() {
         log_info "Dropping privileges to oct user"
         exec gosu oct "$0" "$@"
     fi
+
+    OCT_VERSION=$(python -c "from opencloudtouch import __version__; print(__version__)" 2>/dev/null || echo "unknown")
+    log_info "OpenCloudTouch starting..."
+    log_info "Version: ${OCT_VERSION}"
+    log_info "Python: $(python --version)"
 
     # Run validations
     validate_env
@@ -138,7 +139,7 @@ main() {
             exit $?
             ;;
         version)
-            python -c "import opencloudtouch; print(opencloudtouch.__version__ if hasattr(opencloudtouch, '__version__') else '0.2.0')"
+            python -c "from opencloudtouch import __version__; print(__version__)"
             exit 0
             ;;
         shell)

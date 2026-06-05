@@ -10,28 +10,35 @@ const ISSUES_URL =
   "https://github.com/opencloudtouch/opencloudtouch/issues/new?template=bug_report.yml";
 const BMC_URL = "https://buymeacoffee.com/b49rjg5k6vj";
 
-const CONTRIBUTORS = [
+// 🏛️ Hall of Fame — Top 3 contributors of all time (by qualitative impact)
+const HALL_OF_FAME = [
   {
     name: "Zimbo88",
     url: "https://github.com/Zimbo88",
-    contribution: "Reverse engineering, factory-reset fix, persistence initialization",
+    contribution: "Reverse engineering, USB-less provisioning research, v5 patch evaluation",
   },
   {
-    name: "danielkohl",
-    url: "https://github.com/danielkohl",
-    contribution: "Root cause discovery (HTTPS→HTTP protocol fix), first working manual fix",
+    name: "BullHurley",
+    url: "https://github.com/BullHurley",
+    contribution: "Critical audio failure debugging (#184, #166)",
   },
   {
-    name: "ubittner",
-    url: "https://github.com/ubittner",
-    contribution: "margeAccountUUID correlation analysis, systematic debugging",
-  },
-  {
-    name: "bratwurstbraeter",
-    url: "https://github.com/bratwurstbraeter",
-    contribution: "Bosman app discovery that enabled the factory-reset fix",
+    name: "reinhard-evvc",
+    url: "https://github.com/reinhard-evvc",
+    contribution: "Extensive preset persistence diagnostics (#167)",
   },
 ];
+
+// 💰 Supporters — Financial supporters (update manually)
+// Sorted by contribution amount (descending)
+const SUPPORTERS = {
+  monthly: [
+    // { name: "Username", amount: 10 },
+  ] as Array<{ name: string; amount: number }>,
+  oneTime: [
+    // { name: "Username", amount: 50 },
+  ] as Array<{ name: string; amount: number }>,
+};
 
 export default function AboutSection() {
   const { t } = useTranslation();
@@ -113,17 +120,17 @@ export default function AboutSection() {
 
         <hr className="about-divider" />
 
-        {/* Community contributors */}
+        {/* 🏛️ Hall of Fame */}
         <h3 className="about-credits-title">
-          <span className="about-meta-icon">{"\uD83C\uDFC6"}</span>
-          {t("about.creditsTitle")}
+          <span className="about-meta-icon">{"\uD83C\uDFDB\uFE0F"}</span>
+          {t("about.hallOfFameTitle")}
         </h3>
-        <p className="about-credits-description">{t("about.creditsDescription")}</p>
+        <p className="about-credits-description">{t("about.hallOfFameDescription")}</p>
         <ul className="about-links">
-          {CONTRIBUTORS.map((c) => (
+          {HALL_OF_FAME.map((c) => (
             <li key={c.name}>
               <a href={c.url} target="_blank" rel="noopener noreferrer" className="about-link-item">
-                <span className="about-link-icon">{"\uD83D\uDC64"}</span>
+                <span className="about-link-icon">{"\uD83C\uDFC6"}</span>
                 <span className="about-link-label">
                   <strong>@{c.name}</strong>
                   <span className="about-contributor-detail"> — {c.contribution}</span>
@@ -133,6 +140,44 @@ export default function AboutSection() {
             </li>
           ))}
         </ul>
+
+        {/* 💛 Supporters (only show if not empty) */}
+        {(SUPPORTERS.monthly.length > 0 || SUPPORTERS.oneTime.length > 0) && (
+          <>
+            <hr className="about-divider" />
+            <h3 className="about-credits-title">
+              <span className="about-meta-icon">{"\uD83D\uDC9B"}</span>
+              {t("about.supportersTitle")}
+            </h3>
+            <p className="about-credits-description">{t("about.supportersDescription")}</p>
+
+            {SUPPORTERS.monthly.length > 0 && (
+              <div className="about-supporters-section">
+                <h4 className="about-supporters-subtitle">{t("about.supportersMonthly")}</h4>
+                <ul className="about-supporters-list">
+                  {SUPPORTERS.monthly.map((s) => (
+                    <li key={s.name} className="about-supporter-item">
+                      {"\u2615"} <strong>{s.name}</strong>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {SUPPORTERS.oneTime.length > 0 && (
+              <div className="about-supporters-section">
+                <h4 className="about-supporters-subtitle">{t("about.supportersOneTime")}</h4>
+                <ul className="about-supporters-list">
+                  {SUPPORTERS.oneTime.map((s) => (
+                    <li key={s.name} className="about-supporter-item">
+                      {"\uD83C\uDF89"} <strong>{s.name}</strong>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </motion.section>
   );

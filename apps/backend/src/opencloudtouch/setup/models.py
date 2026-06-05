@@ -103,8 +103,8 @@ class ModelInstructions:
 # ST20/ST30 sm2 span Gen II (Micro-USB) and Gen III (USB-A) —
 # both types listed since generation is not detectable via API.
 # ---------------------------------------------------------------------------
-_USB_A_DIRECT = "Standard USB-Stick direkt einstecken"
-_REAR_SERVICE = "Rückseite, beschriftet 'SERVICE'"
+_USB_LOCATION_SERVICE_REAR = "Rückseite, beschriftet 'SERVICE'"
+_ADAPTER_DIRECT_USB = "Standard USB-Stick direkt einstecken"
 MODEL_INSTRUCTIONS: dict[str, ModelInstructions] = {
     "SoundTouch 10": ModelInstructions(
         model_name="SoundTouch 10",
@@ -148,9 +148,9 @@ MODEL_INSTRUCTIONS: dict[str, ModelInstructions] = {
         model_name="SoundTouch 300",
         display_name="Bose SoundTouch 300 Soundbar",
         usb_port_type="usb-a",
-        usb_port_location=_REAR_SERVICE,
+        usb_port_location=_USB_LOCATION_SERVICE_REAR,
         adapter_needed=False,
-        adapter_recommendation=_USB_A_DIRECT,
+        adapter_recommendation=_ADAPTER_DIRECT_USB,
         notes=[
             "USB-A Port auf der Rückseite",
         ],
@@ -170,9 +170,9 @@ MODEL_INSTRUCTIONS: dict[str, ModelInstructions] = {
         model_name="SoundTouch SA-4",
         display_name="Bose SoundTouch SA-4 Amplifier",
         usb_port_type="usb-a",
-        usb_port_location=_REAR_SERVICE,
+        usb_port_location=_USB_LOCATION_SERVICE_REAR,
         adapter_needed=False,
-        adapter_recommendation=_USB_A_DIRECT,
+        adapter_recommendation=_ADAPTER_DIRECT_USB,
         notes=[
             "Verstärker sollte mit Lautsprecher verbunden sein für Audio-Feedback",
         ],
@@ -181,9 +181,9 @@ MODEL_INSTRUCTIONS: dict[str, ModelInstructions] = {
         model_name="SoundTouch SA-5",
         display_name="Bose SoundTouch SA-5 Amplifier",
         usb_port_type="usb-a",
-        usb_port_location=_REAR_SERVICE,
+        usb_port_location=_USB_LOCATION_SERVICE_REAR,
         adapter_needed=False,
-        adapter_recommendation=_USB_A_DIRECT,
+        adapter_recommendation=_ADAPTER_DIRECT_USB,
         notes=[
             "Verstärker sollte mit Lautsprecher verbunden sein",
         ],
@@ -207,7 +207,7 @@ MODEL_INSTRUCTIONS: dict[str, ModelInstructions] = {
         usb_port_type="usb-a",
         usb_port_location="Rückseite der Steuereinheit",
         adapter_needed=False,
-        adapter_recommendation=_USB_A_DIRECT,
+        adapter_recommendation=_ADAPTER_DIRECT_USB,
         notes=[],
     ),
     "SoundTouch Wireless Link": ModelInstructions(
@@ -216,7 +216,7 @@ MODEL_INSTRUCTIONS: dict[str, ModelInstructions] = {
         usb_port_type="usb-a",
         usb_port_location="Rückseite",
         adapter_needed=False,
-        adapter_recommendation=_USB_A_DIRECT,
+        adapter_recommendation=_ADAPTER_DIRECT_USB,
         notes=[],
     ),
     "Lifestyle": ModelInstructions(
@@ -225,7 +225,7 @@ MODEL_INSTRUCTIONS: dict[str, ModelInstructions] = {
         usb_port_type="usb-a",
         usb_port_location="Rückseite der Steuereinheit",
         adapter_needed=False,
-        adapter_recommendation=_USB_A_DIRECT,
+        adapter_recommendation=_ADAPTER_DIRECT_USB,
         notes=[
             "Einige Lifestyle-Modelle (bardeen) haben keinen USB-Port",
         ],
