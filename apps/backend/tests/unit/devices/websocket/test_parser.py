@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 from opencloudtouch.devices.websocket.parser import (
     EventType,
     _parse_now_playing,

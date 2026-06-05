@@ -6,8 +6,9 @@ finalize_device edge cases (Sources.xml fail, existing config merge, DeviceName 
 _verify_sys_config XML parse error, and various check helper error branches.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from opencloudtouch.setup.account_pairing_service import AccountPairingResult
 from opencloudtouch.setup.persistence_service import ForceWriteResult

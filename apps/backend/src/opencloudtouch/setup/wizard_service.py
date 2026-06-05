@@ -11,27 +11,27 @@ import socket
 from datetime import UTC, datetime
 from urllib.parse import urlparse
 
+import httpx
+from defusedxml import ElementTree as ET
+
+from opencloudtouch.core.config import get_config
 from opencloudtouch.setup.account_pairing_service import (
     check_marge_account_uuid,
     ensure_account_uuid,
     ensure_account_uuid_unique,
 )
-from opencloudtouch.setup.persistence_service import (
-    REQUIRED_SOURCE_TYPES,
-    build_system_config_xml,
-    force_write_sources_xml,
-    _PERSISTENCE_DIR,
-    _file_exists,
-    _write_file_atomic,
-)
-from opencloudtouch.core.config import get_config
 from opencloudtouch.setup.backup_service import SoundTouchBackupService
 from opencloudtouch.setup.config_service import SoundTouchConfigService
 from opencloudtouch.setup.hosts_service import SoundTouchHostsService
+from opencloudtouch.setup.persistence_service import (
+    _PERSISTENCE_DIR,
+    REQUIRED_SOURCE_TYPES,
+    _file_exists,
+    _write_file_atomic,
+    build_system_config_xml,
+    force_write_sources_xml,
+)
 from opencloudtouch.setup.ssh_client import SoundTouchSSHClient, check_ssh_port
-
-import httpx
-from defusedxml import ElementTree as ET
 from opencloudtouch.setup.wizard_helpers import snapshot_config_files, ssh_operation
 
 logger = logging.getLogger(__name__)

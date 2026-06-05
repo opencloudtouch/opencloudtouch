@@ -7,11 +7,11 @@ setup/models.py; this file holds only the request/response DTOs.
 
 import ipaddress
 import re
-
 from typing import Optional
 
-from opencloudtouch.core.config import DEFAULT_PORT
 from pydantic import BaseModel, Field, field_validator
+
+from opencloudtouch.core.config import DEFAULT_PORT
 
 # Hostname: letters, digits, hyphens, dots — NO shell metacharacters
 _HOSTNAME_RE = re.compile(r"^[a-zA-Z0-9]([a-zA-Z0-9.-]{0,253}[a-zA-Z0-9])?$")

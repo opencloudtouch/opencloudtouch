@@ -9,8 +9,9 @@ mocked it. _apply_existing_config and _fetch_device_metadata were inlined but
 6 tests still called them as standalone methods.
 """
 
-import pytest
 from unittest.mock import AsyncMock
+
+import pytest
 
 from opencloudtouch.setup.persistence_service import build_system_config_xml
 from opencloudtouch.setup.ssh_client import CommandResult

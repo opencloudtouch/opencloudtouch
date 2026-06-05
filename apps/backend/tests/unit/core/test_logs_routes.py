@@ -20,8 +20,9 @@ def _make_clusters(**kwargs: list[str]) -> dict[str, list[str]]:
 
 @pytest.fixture
 def client():
-    from opencloudtouch.core.logs_routes import router
     from fastapi import FastAPI
+
+    from opencloudtouch.core.logs_routes import router
 
     app = FastAPI()
     app.include_router(router)
@@ -308,8 +309,9 @@ class TestZipDownload:
 
     @pytest.fixture
     def client_with_log_dir(self, log_dir: Path):
-        from opencloudtouch.core.logs_routes import router
         from fastapi import FastAPI
+
+        from opencloudtouch.core.logs_routes import router
 
         app = FastAPI()
         app.include_router(router)
@@ -632,6 +634,7 @@ class TestAuditTrailSection:
 
     def test_audit_repo_exception(self, client: TestClient):
         from fastapi import FastAPI
+
         from opencloudtouch.core.logs_routes import router
 
         app = FastAPI()
@@ -660,6 +663,7 @@ class TestAuditTrailSection:
 
     def test_audit_repo_success(self, client: TestClient):
         from fastapi import FastAPI
+
         from opencloudtouch.core.logs_routes import router
 
         app = FastAPI()

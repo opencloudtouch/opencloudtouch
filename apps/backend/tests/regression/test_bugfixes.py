@@ -5,8 +5,9 @@ Each test documents a specific bug that was fixed and ensures
 it does not reoccur. Tests are organized by bug ID and date.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from opencloudtouch.radio.providers.mock import MockRadioAdapter
 
@@ -477,6 +478,7 @@ class TestBugfix188HardcodedDeviceIdInStreamingAccount:
     def test_no_hardcoded_device_id_in_streaming_route(self):
         """Ensure streaming_full_account does not contain hardcoded device IDs."""
         import inspect
+
         from opencloudtouch.marge.routes import streaming_full_account
 
         source = inspect.getsource(streaming_full_account)
@@ -507,9 +509,10 @@ class TestBugfix188HardcodedDeviceIdInStreamingAccount:
     @pytest.mark.asyncio
     async def test_unknown_account_returns_empty_not_crash(self):
         """Unknown account UUID → empty presets, no crash, no guessing."""
+        from xml.etree import ElementTree
+
         from opencloudtouch.marge.routes import streaming_full_account
         from opencloudtouch.marge.service import MargeService
-        from xml.etree import ElementTree
 
         mock_marge = AsyncMock(spec=MargeService)
         mock_marge.resolve_device_id_for_account = AsyncMock(return_value=None)

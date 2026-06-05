@@ -104,8 +104,9 @@ class TestGetAllZones:
     @pytest.mark.asyncio
     async def test_returns_all_zones_from_db(self):
         """Returns zones from database with enriched device info."""
+        from datetime import UTC, datetime
+
         from opencloudtouch.zones.repository import Zone, ZoneMember
-        from datetime import datetime, UTC
 
         service, device_repo, zone_repo = _make_service()
         

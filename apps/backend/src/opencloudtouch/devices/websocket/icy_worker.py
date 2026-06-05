@@ -16,8 +16,8 @@ import time
 from typing import Awaitable, Callable
 
 from opencloudtouch.devices.client import NowPlayingInfo
-from opencloudtouch.streaming.icy_metadata import IcyMetadata, probe_stream
 from opencloudtouch.devices.websocket.parser import DeviceEvent, EventType
+from opencloudtouch.streaming.icy_metadata import IcyMetadata, probe_stream
 
 logger = logging.getLogger(__name__)
 

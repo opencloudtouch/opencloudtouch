@@ -1,16 +1,16 @@
 """Tests for persistence_service — factory-reset device initialization."""
 
 import base64
-
-import pytest
 from unittest.mock import AsyncMock
 
+import pytest
+
 from opencloudtouch.setup.persistence_service import (
+    _PERSISTENCE_DIR,
     build_sources_xml,
     build_system_config_xml,
     ensure_persistence_files,
     force_write_sources_xml,
-    _PERSISTENCE_DIR,
 )
 from opencloudtouch.setup.ssh_client import CommandResult
 

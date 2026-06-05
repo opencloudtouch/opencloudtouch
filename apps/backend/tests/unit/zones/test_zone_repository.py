@@ -1,6 +1,7 @@
 """Unit tests for ZoneRepository."""
 
 import pytest
+
 from opencloudtouch.zones.repository import ZoneRepository
 
 

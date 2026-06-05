@@ -3,16 +3,17 @@
 Tests discovery-specific endpoints in isolation using discovery_router.
 """
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, patch
 
-from opencloudtouch.devices.api.discovery_routes import (  # noqa: E402
-    discovery_router,
-    _discovery_lock,
-)
 from opencloudtouch.core.dependencies import get_device_service
+from opencloudtouch.devices.api.discovery_routes import (  # noqa: E402
+    _discovery_lock,
+    discovery_router,
+)
 
 
 @pytest.fixture

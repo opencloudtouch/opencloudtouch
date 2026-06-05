@@ -1,7 +1,8 @@
 """Tests for wizard_service.finalize_device() -- Issue #184."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from opencloudtouch.setup.account_pairing_service import AccountPairingResult
 from opencloudtouch.setup.persistence_service import ForceWriteResult

@@ -9,10 +9,10 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from opencloudtouch.devices.websocket.connection import (
-    ConnectionState,
-    DeviceWebSocket,
     _BACKOFF_BASE,
     _BACKOFF_MAX,
+    ConnectionState,
+    DeviceWebSocket,
 )
 from opencloudtouch.devices.websocket.parser import DeviceEvent, EventType
 

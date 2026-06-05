@@ -14,14 +14,14 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from opencloudtouch.core.exceptions import DeviceNotFoundError, DomainValidationError
-from opencloudtouch.devices.client import NowPlayingInfo, VolumeInfo
 from opencloudtouch.core.dependencies import (
     get_device_service,
     get_device_state_manager,
     get_preset_service,
     get_settings_service,
 )
+from opencloudtouch.core.exceptions import DeviceNotFoundError, DomainValidationError
+from opencloudtouch.devices.client import NowPlayingInfo, VolumeInfo
 from opencloudtouch.devices.repository import Device
 from opencloudtouch.main import app
 

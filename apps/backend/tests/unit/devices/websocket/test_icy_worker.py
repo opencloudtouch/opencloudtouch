@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from opencloudtouch.devices.client import NowPlayingInfo
-from opencloudtouch.devices.websocket.icy_worker import IcyWorker, _DEBOUNCE_SECONDS
+from opencloudtouch.devices.websocket.icy_worker import _DEBOUNCE_SECONDS, IcyWorker
 from opencloudtouch.devices.websocket.parser import DeviceEvent, EventType
 from opencloudtouch.streaming.icy_metadata import IcyMetadata
 

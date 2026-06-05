@@ -10,18 +10,18 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from opencloudtouch.core.dependencies import get_setup_service, get_wizard_service
+from opencloudtouch.setup import wizard_helpers
 from opencloudtouch.setup.models import (
     SetupProgress,
     SetupStatus,
     SetupStep,
     get_model_instructions,
 )
-from opencloudtouch.core.dependencies import get_setup_service, get_wizard_service
 from opencloudtouch.setup.routes import router
 from opencloudtouch.setup.service import SetupService
 from opencloudtouch.setup.wizard_routes import wizard_router
 from opencloudtouch.setup.wizard_service import WizardService
-from opencloudtouch.setup import wizard_helpers
 
 
 def create_mock_service():

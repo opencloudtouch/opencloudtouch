@@ -15,7 +15,6 @@ from opencloudtouch.core.dependencies import (
     get_device_state_manager,
     get_preset_service,
 )
-from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.core.exceptions import (
     DeviceConnectionError,
     DeviceNotFoundError,
@@ -23,6 +22,7 @@ from opencloudtouch.core.exceptions import (
 )
 from opencloudtouch.devices.client import NowPlayingInfo
 from opencloudtouch.devices.service import DeviceService
+from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.devices.websocket.icy_worker import RADIO_SOURCES
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.service import PresetService

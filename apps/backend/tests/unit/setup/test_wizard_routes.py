@@ -16,11 +16,11 @@ Covers all 9 wizard endpoints:
 """
 
 import socket
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, MagicMock, patch
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -254,8 +254,9 @@ class TestWizardModifyConfig:
 
     def test_target_addr_without_port_uses_config_default(self, monkeypatch):
         """target_addr='http://192.168.1.1' (no port) → uses get_config().port via service."""
-        from opencloudtouch.core.config import clear_config
         from urllib.parse import urlparse
+
+        from opencloudtouch.core.config import clear_config
 
         monkeypatch.setenv("OCT_PORT", "9090")
         clear_config()
@@ -1061,8 +1062,9 @@ class TestProxyDetectionRegression184:
 
     def test_scenario2_e2e_proxy_502_returns_false(self):
         """S2 E2E: Proxy on 443, but OCT down (502) → check_port_443 returns False."""
-        from opencloudtouch.setup.wizard_helpers import check_port_443
         from urllib.error import HTTPError
+
+        from opencloudtouch.setup.wizard_helpers import check_port_443
 
         with (
             patch(

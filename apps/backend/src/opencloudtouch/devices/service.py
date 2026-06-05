@@ -17,12 +17,12 @@ from opencloudtouch.devices.capabilities import (
     get_feature_flags_for_ui,
 )
 from opencloudtouch.devices.client import NowPlayingInfo, VolumeInfo
+from opencloudtouch.devices.events import DiscoveryEvent, DiscoveryEventType
 from opencloudtouch.devices.interfaces import (
     IDeviceRepository,
     IDeviceSyncService,
     IDiscoveryAdapter,
 )
-from opencloudtouch.devices.events import DiscoveryEvent, DiscoveryEventType
 from opencloudtouch.devices.models import KEY_MAPPING, KeyType, SyncResult
 from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT, DiscoveredDevice
 

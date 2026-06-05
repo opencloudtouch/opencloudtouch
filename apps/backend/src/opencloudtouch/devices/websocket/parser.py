@@ -11,7 +11,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, Optional
-
 from xml.etree.ElementTree import Element
 
 from defusedxml import ElementTree as ET

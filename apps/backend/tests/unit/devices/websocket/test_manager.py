@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from opencloudtouch.devices.websocket.connection import ConnectionState
-from opencloudtouch.devices.websocket.manager import WebSocketManager, _STAGGER_DELAY
+from opencloudtouch.devices.websocket.manager import _STAGGER_DELAY, WebSocketManager
 
 
 @pytest.fixture
