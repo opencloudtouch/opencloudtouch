@@ -94,6 +94,9 @@ class ZoneService:
 
         result = []
         for zone_db in zones_db:
+            if zone_db.id is None:
+                logger.error("Zone from DB has no ID, skipping: %s", zone_db.master_device_id)
+                continue
             members = await self.zone_repo.get_active_members(zone_db.id)
 
             # Enrich with device names/IPs
@@ -153,6 +156,8 @@ class ZoneService:
         # Persist to database
         try:
             zone_db = await self.zone_repo.create_zone(master.device_id)
+            if zone_db.id is None:
+                raise RuntimeError("Created zone has no ID")
             for slave_id in slave_ids:
                 await self.zone_repo.add_member(zone_db.id, slave_id, "slave")
             logger.info("Zone created and persisted to DB: zone_id=%d", zone_db.id)
@@ -189,7 +194,7 @@ class ZoneService:
 
         # Update database
         zone_db = await self.zone_repo.get_active_zone_by_master(master.device_id)
-        if zone_db:
+        if zone_db and zone_db.id is not None:
             for slave_id in slave_ids:
                 await self.zone_repo.add_member(zone_db.id, slave_id, "slave")
 
@@ -214,7 +219,7 @@ class ZoneService:
 
         # Update database
         zone_db = await self.zone_repo.get_active_zone_by_master(master.device_id)
-        if zone_db:
+        if zone_db and zone_db.id is not None:
             for slave_id in slave_ids:
                 await self.zone_repo.remove_member(zone_db.id, slave_id)
 
@@ -235,7 +240,7 @@ class ZoneService:
             logger.warning("No zone found for master_id=%s, nothing to dissolve", master_id)
             # Still update DB to mark as dissolved
             zone_db = await self.zone_repo.get_active_zone_by_master(master.device_id)
-            if zone_db:
+            if zone_db and zone_db.id is not None:
                 await self.zone_repo.dissolve_zone(zone_db.id)
             return
 
@@ -275,7 +280,7 @@ class ZoneService:
             # Update database ALWAYS (even if remove_zone() threw exception)
             # Physical zone state is source of truth (WebSocket events)
             zone_db = await self.zone_repo.get_active_zone_by_master(master.device_id)
-            if zone_db:
+            if zone_db and zone_db.id is not None:
                 await self.zone_repo.dissolve_zone(zone_db.id)
                 logger.info("Zone marked as dissolved in DB (zone_id=%d)", zone_db.id)
 

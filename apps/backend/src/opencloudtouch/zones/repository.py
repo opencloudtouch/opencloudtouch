@@ -130,6 +130,8 @@ class ZoneRepository(BaseRepository):
         )
 
         # Create master member
+        if zone.id is None:
+            raise RuntimeError("Zone has no ID after INSERT")
         await self.add_member(zone.id, master_device_id, "master")
 
         logger.info("Created zone %d with master %s", zone.id, master_device_id)

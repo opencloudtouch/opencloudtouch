@@ -295,6 +295,9 @@ class DeviceHealthCheck:
             
             # Check each zone's master device
             for zone_db in zones_db:
+                if zone_db.id is None:
+                    logger.error("Zone from DB has no ID, skipping: %s", zone_db.master_device_id)
+                    continue
                 master = await self._device_repo.get_by_device_id(zone_db.master_device_id)
                 if not master or not master.ip:
                     logger.debug("Zone sync: master %s not found or offline, skipping", zone_db.master_device_id)
