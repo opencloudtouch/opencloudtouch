@@ -232,7 +232,9 @@ class ZoneService:
         if not slaves:
             return
 
-        logger.info("Removing %d slaves in PARALLEL before dissolving zone", len(slaves))
+        logger.info(
+            "Removing %d slaves in PARALLEL before dissolving zone", len(slaves)
+        )
         remove_tasks = [client.remove_zone_members([slave]) for slave in slaves]
         results = await asyncio.gather(*remove_tasks, return_exceptions=True)
 

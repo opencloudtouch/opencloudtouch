@@ -335,9 +335,7 @@ class DeviceHealthCheck:
         )
 
         for device_id in added:
-            member = next(
-                (m for m in status.members if m.device_id == device_id), None
-            )
+            member = next((m for m in status.members if m.device_id == device_id), None)
             if member:
                 await self._zone_repo.add_member(zone_db.id, device_id, member.role)
                 logger.debug("Zone sync: added %s to zone %d", device_id, zone_db.id)
