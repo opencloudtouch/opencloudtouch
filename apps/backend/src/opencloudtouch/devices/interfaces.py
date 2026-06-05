@@ -133,3 +133,17 @@ class IDeviceSyncService(Protocol):
             SyncResult with discovery/sync statistics
         """
         ...
+
+    async def fetch_and_upsert_one(self, discovered: DiscoveredDevice) -> Device:
+        """Fetch info from a single device and upsert to DB.
+
+        Args:
+            discovered: Discovered device to probe
+
+        Returns:
+            Device model with complete information
+
+        Raises:
+            Exception: If device is not reachable or upsert fails
+        """
+        ...

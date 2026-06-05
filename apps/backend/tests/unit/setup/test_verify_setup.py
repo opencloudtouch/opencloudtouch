@@ -1,7 +1,8 @@
 """Tests for wizard_service.verify_setup() -- Issue #184."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from opencloudtouch.setup.persistence_service import _PERSISTENCE_DIR
 from opencloudtouch.setup.ssh_client import CommandResult

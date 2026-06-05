@@ -6,15 +6,15 @@ from xml.etree import ElementTree
 import pytest
 
 from opencloudtouch.marge.routes import (
+    blacklist_check,
     get_sourceproviders,
     power_on,
     scmudc_reporting,
+    set_marge_account,
     streaming_full_account,
     streaming_power_on,
     streaming_sourceproviders,
     streaming_token,
-    blacklist_check,
-    set_marge_account,
 )
 from opencloudtouch.marge.service import MargeService
 

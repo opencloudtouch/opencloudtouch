@@ -101,7 +101,7 @@ class TestSelectBackupSet:
     """T016: Tests for _select_backup_set()."""
 
     def test_exact_device_id_match(self):
-        from opencloudtouch.setup.restore_models import BackupSet, BackupFileInfo
+        from opencloudtouch.setup.restore_models import BackupFileInfo, BackupSet
 
         sets = [
             BackupSet(
@@ -136,7 +136,7 @@ class TestSelectBackupSet:
         assert selected.is_match is True
 
     def test_legacy_fallback(self):
-        from opencloudtouch.setup.restore_models import BackupSet, BackupFileInfo
+        from opencloudtouch.setup.restore_models import BackupFileInfo, BackupSet
 
         sets = [
             BackupSet(
@@ -156,7 +156,7 @@ class TestSelectBackupSet:
         assert selected.is_legacy is True
 
     def test_no_match_returns_none(self):
-        from opencloudtouch.setup.restore_models import BackupSet, BackupFileInfo
+        from opencloudtouch.setup.restore_models import BackupFileInfo, BackupSet
 
         sets = [
             BackupSet(
@@ -175,7 +175,7 @@ class TestSelectBackupSet:
         assert selected is None
 
     def test_newest_date_preferred(self):
-        from opencloudtouch.setup.restore_models import BackupSet, BackupFileInfo
+        from opencloudtouch.setup.restore_models import BackupFileInfo, BackupSet
 
         sets = [
             BackupSet(

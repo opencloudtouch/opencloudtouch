@@ -127,6 +127,10 @@ class AppConfig(BaseSettings):
     # Device Ports (Local HTTP/WebSocket API)
     device_http_port: int = Field(default=8090, description="Device HTTP API port")
     device_ws_port: int = Field(default=8080, description="Device WebSocket port")
+    state_cache_max_age: float = Field(
+        default=10.0,
+        description="Max age (seconds) for WebSocket-fed state cache before HTTP fallback",
+    )
 
     # Station Descriptor
     station_descriptor_base_url: str = Field(

@@ -1,0 +1,203 @@
+name: Monthly Community Spotlight Announcement
+
+on:
+  schedule:
+    # Runs on the 1st of every month at 06:00 UTC
+    - cron: '0 6 1 * *'
+  workflow_dispatch: # Manual trigger for testing
+
+permissions:
+  contents: read
+  discussions: write
+
+jobs:
+  create-spotlight:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Analyze community activity
+        id: analyze
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get current month name
+          MONTH=$(date +'%B %Y')
+          echo "month=$MONTH" >> $GITHUB_OUTPUT
+
+          # Calculate date 30 days ago
+          SINCE=$(date -d '30 days ago' +'%Y-%m-%d' 2>/dev/null || date -v-30d +'%Y-%m-%d')
+          echo "Analyzing activity since $SINCE..."
+
+          # Collect issue comments
+          echo "📊 Collecting issue comments..."
+          ISSUE_COMMENTS=$(gh api "/repos/${{ github.repository }}/issues/comments?since=${SINCE}T00:00:00Z&per_page=100" --paginate --jq '
+            [.[] | select(.user.type != "Bot") | .user.login] | 
+            group_by(.) | 
+            map({author: .[0], count: length}) | 
+            sort_by(.count) | 
+            reverse
+          ')
+
+          # Collect issues created
+          echo "📊 Collecting issues created..."
+          ISSUES_CREATED=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $since: DateTime!) {
+              repository(owner: $owner, name: $repo) {
+                issues(first: 100, orderBy: {field: CREATED_AT, direction: DESC}, filterBy: {since: $since}) {
+                  nodes {
+                    number
+                    author { login }
+                    createdAt
+                  }
+                }
+              }
+            }
+          ' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" -f since="${SINCE}T00:00:00Z" --jq '
+            [.data.repository.issues.nodes[] | select(.author.login) | {author: .author.login, issue: .number}] |
+            group_by(.author) |
+            map({author: .[0].author, issues: map(.issue)})
+          ')
+
+          # Collect discussion comments
+          echo "📊 Collecting discussion comments..."
+          DISCUSSION_COMMENTS=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!) {
+              repository(owner: $owner, name: $repo) {
+                discussions(first: 50, orderBy: {field: UPDATED_AT, direction: DESC}) {
+                  nodes {
+                    comments(first: 100) {
+                      nodes {
+                        author { login }
+                        createdAt
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" --jq "
+            [.data.repository.discussions.nodes[].comments.nodes[] | 
+             select(.createdAt >= \"${SINCE}T00:00:00Z\" and .author.login != null) | 
+             .author.login] |
+            group_by(.) |
+            map({author: .[0], count: length})
+          ")
+
+          # Combine and score contributors
+          echo "📊 Calculating scores..."
+          TOP_CONTRIBUTORS=$(jq -s '
+            (.[0] // []) as $issueComments |
+            (.[1] // []) as $issuesCreated |
+            (.[2] // []) as $discussionComments |
+            
+            # Build combined map
+            ([$issueComments[], $issuesCreated[], $discussionComments[]] | 
+             map(select(.author)) |
+             group_by(.author) |
+             map({
+               author: .[0].author,
+               issueComments: ([.[] | select(.count) | .count] | add // 0),
+               issuesCreated: ([.[] | select(.issues) | .issues | length] | add // 0),
+               discussionComments: ([.[] | select(.count) | .count] | add // 0)
+             }) |
+             map(. + {
+               score: (.issuesCreated * 10) + (.issueComments * 2) + (.discussionComments * 1)
+             }) |
+             sort_by(.score) |
+             reverse |
+             .[0:10]
+            )
+          ' <(echo "$ISSUE_COMMENTS") <(echo "$ISSUES_CREATED") <(echo "$DISCUSSION_COMMENTS"))
+
+          echo "contributors<<EOF" >> $GITHUB_OUTPUT
+          echo "$TOP_CONTRIBUTORS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "✅ Top contributors:"
+          echo "$TOP_CONTRIBUTORS" | jq -r '.[] | "  \(.author) (Score: \(.score))"'
+
+      - name: Generate Discussion Body
+        id: discussion
+        env:
+          MONTH: ${{ steps.analyze.outputs.month }}
+          CONTRIBUTORS: ${{ steps.analyze.outputs.contributors }}
+        run: |
+          # Generate markdown for discussion post
+          BODY=$(echo "$CONTRIBUTORS" | jq -r --arg month "$MONTH" '
+            "# 🌟 Community Spotlight — " + $month + "\n\n" +
+            "Thank you to our most active community members from the past month! Your contributions help make OpenCloudTouch better for everyone.\n\n" +
+            "## 🏆 Top Contributors\n\n" +
+            (map(
+              "### [@\(.author)](https://github.com/\(.author))\n\n" +
+              "- **Activity:** \(.issuesCreated) issue(s), \(.issueComments + .discussionComments) comment(s)\n" +
+              "- **Impact:** " + (
+                if .issuesCreated > 0 and .issueComments > 10 then "Active bug reporting and community support"
+                elif .issuesCreated > 0 then "Bug reporting and feature suggestions"
+                elif .issueComments > 10 then "Active community support and debugging help"
+                else "Community engagement"
+                end
+              ) + "\n"
+            ) | join("\n")) +
+            "\n---\n\n" +
+            "## 📊 How We Select Contributors\n\n" +
+            "This spotlight recognizes members by:\n\n" +
+            "- 🐛 **Issues created** — identifying bugs and suggesting features\n" +
+            "- 💬 **Comments** — helping others, debugging, providing solutions\n" +
+            "- 💡 **Discussions** — sharing knowledge and best practices\n\n" +
+            "**Note:** This is an automated selection based on activity volume. Quality always matters more than quantity!\n\n" +
+            "---\n\n" +
+            "## 💛 Support OpenCloudTouch\n\n" +
+            "Want to help keep this project alive?\n\n" +
+            "☕ **[Buy Me a Coffee](https://buymeacoffee.com/b49rjg5k6vj)**\n\n" +
+            "Financial supporters are featured in the **Settings → About** section of the web interface!\n\n" +
+            "---\n\n" +
+            "_Auto-generated monthly announcement • Next update: " + ((now | gmtime | mktime + 2592000) | strftime("%B 1, %Y")) + "_"
+          ')
+          
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "$BODY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Discussion
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TITLE: "🌟 Community Spotlight — ${{ steps.analyze.outputs.month }}"
+          BODY: ${{ steps.discussion.outputs.body }}
+        run: |
+          # Get repository and category IDs
+          REPO_ID=$(gh api /repos/${{ github.repository }} --jq .node_id)
+          CATEGORY_ID=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!) {
+              repository(owner: $owner, name: $repo) {
+                discussionCategories(first: 20) {
+                  nodes {
+                    id
+                    name
+                  }
+                }
+              }
+            }
+          ' -f owner=${{ github.repository_owner }} -f repo=${{ github.event.repository.name }} --jq '.data.repository.discussionCategories.nodes[] | select(.name == "Announcements") | .id')
+          
+          echo "Repository ID: $REPO_ID"
+          echo "Category ID: $CATEGORY_ID"
+          
+          # Create discussion
+          DISCUSSION_URL=$(gh api graphql -f query='
+            mutation($repositoryId: ID!, $categoryId: ID!, $title: String!, $body: String!) {
+              createDiscussion(input: {
+                repositoryId: $repositoryId,
+                categoryId: $categoryId,
+                title: $title,
+                body: $body
+              }) {
+                discussion {
+                  url
+                }
+              }
+            }
+          ' -f repositoryId="$REPO_ID" -f categoryId="$CATEGORY_ID" -f title="$TITLE" -f body="$BODY" --jq '.data.createDiscussion.discussion.url')
+          
+          echo "✅ Discussion created: $DISCUSSION_URL"

@@ -10,13 +10,6 @@ from fastapi import HTTPException
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, ValidationError
 
-from opencloudtouch.core.exceptions import (
-    DeviceConnectionError,
-    DeviceNotFoundError,
-    DiscoveryError,
-    OpenCloudTouchError,
-    map_status_to_type,
-)
 from opencloudtouch.core.exception_handlers import (
     device_connection_error_handler,
     device_not_found_handler,
@@ -25,6 +18,13 @@ from opencloudtouch.core.exception_handlers import (
     http_exception_handler,
     oct_error_handler,
     validation_exception_handler,
+)
+from opencloudtouch.core.exceptions import (
+    DeviceConnectionError,
+    DeviceNotFoundError,
+    DiscoveryError,
+    OpenCloudTouchError,
+    map_status_to_type,
 )
 
 

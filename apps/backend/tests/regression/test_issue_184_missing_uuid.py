@@ -6,7 +6,9 @@ Issue: https://github.com/opencloudtouch/opencloudtouch/issues/184
 
 from unittest.mock import AsyncMock, MagicMock, patch
 from xml.etree import ElementTree
+
 import pytest
+
 from opencloudtouch.devices.repository import Device, DeviceRepository
 from opencloudtouch.marge.routes import streaming_full_account
 from opencloudtouch.marge.service import MargeService
