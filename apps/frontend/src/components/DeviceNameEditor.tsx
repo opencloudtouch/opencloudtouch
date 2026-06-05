@@ -73,6 +73,16 @@ export default function DeviceNameEditor({ deviceId, name, onRenamed }: DeviceNa
     }
   };
 
+  const handleBlur = () => {
+    if (saving) return;
+    const trimmed = editValue.trim();
+    if (trimmed && trimmed !== name) {
+      save();
+    } else {
+      cancel();
+    }
+  };
+
   if (editing) {
     return (
       <div className="device-name-editor" data-test="device-name-editor">
@@ -83,6 +93,7 @@ export default function DeviceNameEditor({ deviceId, name, onRenamed }: DeviceNa
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
           maxLength={30}
           disabled={saving}
           aria-label={t("deviceRename.inputLabel")}
