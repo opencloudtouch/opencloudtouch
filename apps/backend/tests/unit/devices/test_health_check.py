@@ -555,6 +555,372 @@ class TestSSHVerification:
             await health_check._ssh_verify_all()
 
 
+class TestZoneSyncAll:
+    """Tests for _zone_sync_all() — zone drift detection and resolution."""
+
+    @pytest.fixture
+    def mock_zone_repo(self):
+        """Mock ZoneRepository with async methods."""
+        return AsyncMock()
+
+    @pytest.fixture
+    def zone_health_check(self, mock_repo, mock_zone_repo):
+        """DeviceHealthCheck with both device and zone repos."""
+        return DeviceHealthCheck(mock_repo, zone_repo=mock_zone_repo)
+
+    def _make_zone(
+        self,
+        zone_id: int = 1,
+        master_device_id: str = "dev1",
+    ):
+        """Create a Zone entity for testing."""
+        from datetime import UTC, datetime
+
+        from opencloudtouch.zones.repository import Zone
+
+        return Zone(
+            id=zone_id,
+            master_device_id=master_device_id,
+            created_at=datetime.now(UTC),
+        )
+
+    def _make_zone_member(
+        self,
+        zone_id: int = 1,
+        device_id: str = "dev1",
+        role: str = "master",
+    ):
+        """Create a ZoneMember entity for testing."""
+        from datetime import UTC, datetime
+
+        from opencloudtouch.zones.repository import ZoneMember
+
+        return ZoneMember(
+            zone_id=zone_id,
+            device_id=device_id,
+            role=role,
+            added_at=datetime.now(UTC),
+        )
+
+    def _make_zone_status(self, master_id="dev1", members=None):
+        """Create a ZoneStatus from the adapter layer."""
+        from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
+
+        if members is None:
+            members = [
+                ZoneMemberInfo(
+                    device_id="dev1", ip_address="192.168.1.100", role="master"
+                ),
+                ZoneMemberInfo(
+                    device_id="dev2", ip_address="192.168.1.101", role="slave"
+                ),
+            ]
+        return ZoneStatus(
+            master_id=master_id,
+            master_ip="192.168.1.100",
+            is_master=True,
+            members=members,
+        )
+
+    async def test_no_zone_repo_returns_early(self, mock_repo):
+        """Without zone_repo injected, _zone_sync_all is a no-op."""
+        hc = DeviceHealthCheck(mock_repo, zone_repo=None)
+        await hc._zone_sync_all()
+        # No exception, no calls — just returns
+
+    async def test_no_active_zones_returns_early(
+        self, zone_health_check, mock_zone_repo
+    ):
+        """No active zones in DB → nothing to sync."""
+        mock_zone_repo.get_all_active_zones.return_value = []
+
+        await zone_health_check._zone_sync_all()
+
+        mock_zone_repo.dissolve_zone.assert_not_called()
+        mock_zone_repo.add_member.assert_not_called()
+        mock_zone_repo.remove_member.assert_not_called()
+
+    async def test_zone_with_none_id_is_skipped(
+        self, zone_health_check, mock_zone_repo
+    ):
+        """Zone from DB with id=None is skipped with error log."""
+        zone = self._make_zone(zone_id=None)
+        mock_zone_repo.get_all_active_zones.return_value = [zone]
+
+        with patch("opencloudtouch.devices.health_check.logger") as mock_logger:
+            await zone_health_check._zone_sync_all()
+
+        mock_logger.error.assert_called_once()
+        assert "no ID" in mock_logger.error.call_args[0][0]
+
+    async def test_master_not_found_skips_zone(
+        self, zone_health_check, mock_repo, mock_zone_repo
+    ):
+        """Master device not in DB → skip this zone."""
+        zone = self._make_zone()
+        mock_zone_repo.get_all_active_zones.return_value = [zone]
+        mock_repo.get_by_device_id.return_value = None
+
+        await zone_health_check._zone_sync_all()
+
+        mock_zone_repo.dissolve_zone.assert_not_called()
+
+    async def test_master_without_ip_skips_zone(
+        self, zone_health_check, mock_repo, mock_zone_repo
+    ):
+        """Master device has no IP → skip this zone."""
+        zone = self._make_zone()
+        mock_zone_repo.get_all_active_zones.return_value = [zone]
+        mock_repo.get_by_device_id.return_value = _make_device(ip="")
+
+        await zone_health_check._zone_sync_all()
+
+        mock_zone_repo.dissolve_zone.assert_not_called()
+
+    async def test_device_reports_no_zone_dissolves_in_db(
+        self, zone_health_check, mock_repo, mock_zone_repo
+    ):
+        """Device reports no zone → dissolve_zone() is called."""
+        zone = self._make_zone(zone_id=42)
+        mock_zone_repo.get_all_active_zones.return_value = [zone]
+        mock_repo.get_by_device_id.return_value = _make_device()
+
+        mock_client = AsyncMock()
+        mock_client.get_zone_status.return_value = None
+
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client",
+            return_value=mock_client,
+        ):
+            await zone_health_check._zone_sync_all()
+
+        mock_zone_repo.dissolve_zone.assert_called_once_with(42)
+
+    async def test_members_match_no_update(
+        self, zone_health_check, mock_repo, mock_zone_repo
+    ):
+        """DB members match device members → no add/remove calls."""
+        zone = self._make_zone(zone_id=1)
+        mock_zone_repo.get_all_active_zones.return_value = [zone]
+        mock_repo.get_by_device_id.return_value = _make_device()
+
+        # DB has dev1 (master) + dev2 (slave)
+        mock_zone_repo.get_active_members.return_value = [
+            self._make_zone_member(zone_id=1, device_id="dev1", role="master"),
+            self._make_zone_member(zone_id=1, device_id="dev2", role="slave"),
+        ]
+
+        # Device also reports dev1 + dev2
+        from opencloudtouch.zones.models import ZoneMemberInfo
+
+        status = self._make_zone_status(
+            members=[
+                ZoneMemberInfo(
+                    device_id="dev1", ip_address="192.168.1.100", role="master"
+                ),
+                ZoneMemberInfo(
+                    device_id="dev2", ip_address="192.168.1.101", role="slave"
+                ),
+            ]
+        )
+
+        mock_client = AsyncMock()
+        mock_client.get_zone_status.return_value = status
+
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client",
+            return_value=mock_client,
+        ):
+            await zone_health_check._zone_sync_all()
+
+        mock_zone_repo.add_member.assert_not_called()
+        mock_zone_repo.remove_member.assert_not_called()
+        mock_zone_repo.dissolve_zone.assert_not_called()
+
+    async def test_device_has_extra_member_adds_to_db(
+        self, zone_health_check, mock_repo, mock_zone_repo
+    ):
+        """Device has member not in DB → add_member() called."""
+        zone = self._make_zone(zone_id=5)
+        mock_zone_repo.get_all_active_zones.return_value = [zone]
+        mock_repo.get_by_device_id.return_value = _make_device()
+
+        # DB only has dev1
+        mock_zone_repo.get_active_members.return_value = [
+            self._make_zone_member(zone_id=5, device_id="dev1", role="master"),
+        ]
+
+        # Device has dev1 + dev3 (new member)
+        from opencloudtouch.zones.models import ZoneMemberInfo
+
+        status = self._make_zone_status(
+            members=[
+                ZoneMemberInfo(
+                    device_id="dev1", ip_address="192.168.1.100", role="master"
+                ),
+                ZoneMemberInfo(
+                    device_id="dev3", ip_address="192.168.1.102", role="slave"
+                ),
+            ]
+        )
+
+        mock_client = AsyncMock()
+        mock_client.get_zone_status.return_value = status
+
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client",
+            return_value=mock_client,
+        ):
+            await zone_health_check._zone_sync_all()
+
+        mock_zone_repo.add_member.assert_called_once_with(5, "dev3", "slave")
+        mock_zone_repo.remove_member.assert_not_called()
+
+    async def test_db_has_extra_member_removes_from_db(
+        self, zone_health_check, mock_repo, mock_zone_repo
+    ):
+        """DB has member not on device → remove_member() called."""
+        zone = self._make_zone(zone_id=7)
+        mock_zone_repo.get_all_active_zones.return_value = [zone]
+        mock_repo.get_by_device_id.return_value = _make_device()
+
+        # DB has dev1 + dev2
+        mock_zone_repo.get_active_members.return_value = [
+            self._make_zone_member(zone_id=7, device_id="dev1", role="master"),
+            self._make_zone_member(zone_id=7, device_id="dev2", role="slave"),
+        ]
+
+        # Device only has dev1 (dev2 left)
+        from opencloudtouch.zones.models import ZoneMemberInfo
+
+        status = self._make_zone_status(
+            members=[
+                ZoneMemberInfo(
+                    device_id="dev1", ip_address="192.168.1.100", role="master"
+                ),
+            ]
+        )
+
+        mock_client = AsyncMock()
+        mock_client.get_zone_status.return_value = status
+
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client",
+            return_value=mock_client,
+        ):
+            await zone_health_check._zone_sync_all()
+
+        mock_zone_repo.remove_member.assert_called_once_with(7, "dev2")
+        mock_zone_repo.add_member.assert_not_called()
+
+    async def test_drift_both_added_and_removed(
+        self, zone_health_check, mock_repo, mock_zone_repo
+    ):
+        """Members added AND removed simultaneously → both operations."""
+        zone = self._make_zone(zone_id=3)
+        mock_zone_repo.get_all_active_zones.return_value = [zone]
+        mock_repo.get_by_device_id.return_value = _make_device()
+
+        # DB has dev1 + dev2
+        mock_zone_repo.get_active_members.return_value = [
+            self._make_zone_member(zone_id=3, device_id="dev1", role="master"),
+            self._make_zone_member(zone_id=3, device_id="dev2", role="slave"),
+        ]
+
+        # Device has dev1 + dev4 (dev2 removed, dev4 added)
+        from opencloudtouch.zones.models import ZoneMemberInfo
+
+        status = self._make_zone_status(
+            members=[
+                ZoneMemberInfo(
+                    device_id="dev1", ip_address="192.168.1.100", role="master"
+                ),
+                ZoneMemberInfo(
+                    device_id="dev4", ip_address="192.168.1.103", role="slave"
+                ),
+            ]
+        )
+
+        mock_client = AsyncMock()
+        mock_client.get_zone_status.return_value = status
+
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client",
+            return_value=mock_client,
+        ):
+            await zone_health_check._zone_sync_all()
+
+        mock_zone_repo.add_member.assert_called_once_with(3, "dev4", "slave")
+        mock_zone_repo.remove_member.assert_called_once_with(3, "dev2")
+
+    async def test_get_zone_status_exception_continues(
+        self, zone_health_check, mock_repo, mock_zone_repo
+    ):
+        """Exception during get_zone_status → logged, continues to next zone."""
+        zone1 = self._make_zone(zone_id=1, master_device_id="devA")
+        zone2 = self._make_zone(zone_id=2, master_device_id="devB")
+        mock_zone_repo.get_all_active_zones.return_value = [zone1, zone2]
+
+        devA = _make_device(device_id="devA", ip="192.168.1.10")
+        devB = _make_device(device_id="devB", ip="192.168.1.11")
+        mock_repo.get_by_device_id.side_effect = lambda did: {
+            "devA": devA,
+            "devB": devB,
+        }.get(did)
+
+        # First client throws, second returns no zone
+        mock_client_a = AsyncMock()
+        mock_client_a.get_zone_status.side_effect = Exception("Connection refused")
+        mock_client_b = AsyncMock()
+        mock_client_b.get_zone_status.return_value = None
+
+        def fake_get_client(url):
+            if "192.168.1.10" in url:
+                return mock_client_a
+            return mock_client_b
+
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client",
+            side_effect=fake_get_client,
+        ):
+            await zone_health_check._zone_sync_all()
+
+        # Zone 2 should still be dissolved despite zone 1 failing
+        mock_zone_repo.dissolve_zone.assert_called_once_with(2)
+
+    async def test_outer_exception_caught_and_logged(
+        self, zone_health_check, mock_zone_repo
+    ):
+        """Fatal exception in the outer try → logged, doesn't crash."""
+        mock_zone_repo.get_all_active_zones.side_effect = RuntimeError("DB gone")
+
+        with patch("opencloudtouch.devices.health_check.logger") as mock_logger:
+            await zone_health_check._zone_sync_all()
+
+        mock_logger.exception.assert_called_once()
+        assert "cycle failed" in mock_logger.exception.call_args[0][0]
+
+    async def test_multiple_zones_processed(
+        self, zone_health_check, mock_repo, mock_zone_repo
+    ):
+        """All zones from DB are iterated and checked."""
+        zones = [
+            self._make_zone(zone_id=i, master_device_id=f"dev{i}") for i in range(1, 4)
+        ]
+        mock_zone_repo.get_all_active_zones.return_value = zones
+
+        # All masters found but no IPs → all skipped
+        for z in zones:
+            mock_repo.get_by_device_id.return_value = _make_device(ip="")
+
+        await zone_health_check._zone_sync_all()
+
+        # Nothing dissolved/added/removed since all skipped (no IP)
+        mock_zone_repo.dissolve_zone.assert_not_called()
+        mock_zone_repo.add_member.assert_not_called()
+        mock_zone_repo.remove_member.assert_not_called()
+
+
 class TestHealthCheckRunLoop:
     """Tests for the _run loop, especially CancelledError propagation."""
 

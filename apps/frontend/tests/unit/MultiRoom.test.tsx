@@ -76,12 +76,16 @@ vi.mock("../../src/hooks/useVolume", () => ({
 }));
 
 // ---- Mock useNowPlaying hook ----
+const mockUseNowPlaying = vi.fn().mockReturnValue({
+  nowPlaying: null,
+  loading: false,
+  deviceOffline: false,
+  error: null,
+  refresh: vi.fn(),
+});
+
 vi.mock("../../src/hooks/useNowPlaying", () => ({
-  useNowPlaying: () => ({
-    nowPlaying: null,
-    loading: false,
-    refresh: vi.fn(),
-  }),
+  useNowPlaying: (...args: unknown[]) => mockUseNowPlaying(...args),
 }));
 
 // ---- Mock VolumeSlider & NowPlaying ----
@@ -91,6 +95,15 @@ vi.mock("../../src/components/VolumeSlider", () => ({
 
 vi.mock("../../src/components/NowPlaying", () => ({
   default: () => <div data-testid="now-playing">NowPlaying</div>,
+}));
+
+// ---- Mock DeviceNowPlaying ----
+vi.mock("../../src/components/DeviceNowPlaying", () => ({
+  DeviceNowPlaying: ({ nowPlaying, loading }: { nowPlaying: unknown; loading?: boolean }) => (
+    <div data-testid="device-now-playing" data-loading={loading ? "true" : "false"} data-has-data={nowPlaying ? "true" : "false"}>
+      DeviceNowPlaying
+    </div>
+  ),
 }));
 
 // ---- Mock ToastContext ----
@@ -590,5 +603,289 @@ describe("MultiRoom - 5+ Device Zone Display", () => {
     await user.click(createButton);
 
     expect(mockCreateZone).toHaveBeenCalledWith("D001", ["D002", "D003", "D004", "D005"]);
+  });
+});
+
+// ============================================================
+// DeviceCard Tests — inline component coverage
+// ============================================================
+
+describe("MultiRoom - DeviceCard Rendering", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockZonesState = { zones: [], isLoading: false, error: null };
+    mockUseNowPlaying.mockReturnValue({
+      nowPlaying: null,
+      loading: false,
+      deviceOffline: false,
+      error: null,
+      refresh: vi.fn(),
+    });
+  });
+
+  test("should render device name and model for each device card", () => {
+    render(<MultiRoom devices={mockDevices} />);
+
+    expect(screen.getByText("Living Room")).toBeInTheDocument();
+    expect(screen.getAllByText("SoundTouch 10")).toHaveLength(2);
+    expect(screen.getByText("Schlafzimmer")).toBeInTheDocument();
+    expect(screen.getByText("SoundTouch 30")).toBeInTheDocument();
+    expect(screen.getByText("Badezimmer")).toBeInTheDocument();
+    expect(screen.getByText("SoundTouch 300")).toBeInTheDocument();
+  });
+
+  test("should call useNowPlaying with each device_id", () => {
+    render(<MultiRoom devices={mockDevices} />);
+
+    expect(mockUseNowPlaying).toHaveBeenCalledWith("ST10-001");
+    expect(mockUseNowPlaying).toHaveBeenCalledWith("ST30-002");
+    expect(mockUseNowPlaying).toHaveBeenCalledWith("ST10-003");
+    expect(mockUseNowPlaying).toHaveBeenCalledWith("ST300-004");
+  });
+
+  test("should render DeviceNowPlaying component for each device card", () => {
+    render(<MultiRoom devices={mockDevices} />);
+
+    const nowPlayingElements = screen.getAllByTestId("device-now-playing");
+    expect(nowPlayingElements.length).toBe(mockDevices.length);
+  });
+
+  test("should pass nowPlaying data to DeviceNowPlaying when available", () => {
+    const mockPlaying = {
+      source: "INTERNET_RADIO",
+      state: "PLAY_STATE",
+      station_name: "Jazz FM",
+      artist: null,
+      track: null,
+      artwork_url: null,
+    };
+    mockUseNowPlaying.mockReturnValue({
+      nowPlaying: mockPlaying,
+      loading: false,
+      deviceOffline: false,
+      error: null,
+      refresh: vi.fn(),
+    });
+
+    render(<MultiRoom devices={mockDevices} />);
+
+    const nowPlayingElements = screen.getAllByTestId("device-now-playing");
+    nowPlayingElements.forEach((el) => {
+      expect(el).toHaveAttribute("data-has-data", "true");
+      expect(el).toHaveAttribute("data-loading", "false");
+    });
+  });
+
+  test("should pass loading=true to DeviceNowPlaying when loading", () => {
+    mockUseNowPlaying.mockReturnValue({
+      nowPlaying: null,
+      loading: true,
+      deviceOffline: false,
+      error: null,
+      refresh: vi.fn(),
+    });
+
+    render(<MultiRoom devices={mockDevices} />);
+
+    const nowPlayingElements = screen.getAllByTestId("device-now-playing");
+    nowPlayingElements.forEach((el) => {
+      expect(el).toHaveAttribute("data-loading", "true");
+    });
+  });
+});
+
+describe("MultiRoom - DeviceCard Selection & CSS Classes", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockZonesState = { zones: [], isLoading: false, error: null };
+    mockUseNowPlaying.mockReturnValue({
+      nowPlaying: null,
+      loading: false,
+      deviceOffline: false,
+      error: null,
+      refresh: vi.fn(),
+    });
+  });
+
+  test("should apply 'selected' class when device is checked", async () => {
+    const user = userEvent.setup();
+    render(<MultiRoom devices={mockDevices} />);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    const firstCard = checkboxes[0]!.closest("label")!;
+
+    expect(firstCard.className).not.toContain("selected");
+
+    await user.click(checkboxes[0]!);
+
+    expect(firstCard.className).toContain("selected");
+  });
+
+  test("should remove 'selected' class when device is unchecked", async () => {
+    const user = userEvent.setup();
+    render(<MultiRoom devices={mockDevices} />);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    const firstCard = checkboxes[0]!.closest("label")!;
+
+    await user.click(checkboxes[0]!);
+    expect(firstCard.className).toContain("selected");
+
+    await user.click(checkboxes[0]!);
+    expect(firstCard.className).not.toContain("selected");
+  });
+
+  test("should apply 'in-zone' class for devices in other zones", () => {
+    mockZonesState = { zones: [MOCK_ZONE], isLoading: false, error: null };
+    render(<MultiRoom devices={mockDevices} />);
+
+    // Devices NOT in the zone should be selectable, devices in zone get "In Zone" badge
+    const inZoneBadges = screen.getAllByText("In Zone");
+    expect(inZoneBadges.length).toBeGreaterThan(0);
+  });
+
+  test("should disable checkbox for devices in other zones (not in edit mode)", () => {
+    mockZonesState = { zones: [MOCK_ZONE], isLoading: false, error: null };
+    render(<MultiRoom devices={mockDevices} />);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    // ST10-001 and ST30-002 are in the zone — their checkboxes should be disabled
+    const disabledCheckboxes = checkboxes.filter((cb) => (cb as HTMLInputElement).disabled);
+    expect(disabledCheckboxes.length).toBe(2);
+  });
+});
+
+describe("MultiRoom - DeviceCard Stale Devices", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockZonesState = { zones: [], isLoading: false, error: null };
+    mockUseNowPlaying.mockReturnValue({
+      nowPlaying: null,
+      loading: false,
+      deviceOffline: false,
+      error: null,
+      refresh: vi.fn(),
+    });
+  });
+
+  test("should show stale badge (⚠️) for devices not seen in 24+ hours", () => {
+    const staleDate = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
+    const devicesWithStale = [
+      { device_id: "ST10-001", name: "Living Room", model: "SoundTouch 10", last_seen: staleDate },
+      { device_id: "ST30-002", name: "Schlafzimmer", model: "SoundTouch 30" },
+    ];
+
+    render(<MultiRoom devices={devicesWithStale} />);
+
+    // Stale device should have the warning badge
+    const staleBadge = screen.getByTitle("Device unreachable");
+    expect(staleBadge).toBeInTheDocument();
+  });
+
+  test("should apply 'stale' class on stale device card", () => {
+    const staleDate = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
+    const devicesWithStale = [
+      { device_id: "ST10-001", name: "Living Room", model: "SoundTouch 10", last_seen: staleDate },
+    ];
+
+    render(<MultiRoom devices={devicesWithStale} />);
+
+    const card = screen.getByRole("checkbox").closest("label")!;
+    expect(card.className).toContain("stale");
+  });
+
+  test("should NOT show stale badge for recently seen devices", () => {
+    const recentDate = new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString();
+    const devicesRecent = [
+      { device_id: "ST10-001", name: "Living Room", model: "SoundTouch 10", last_seen: recentDate },
+    ];
+
+    render(<MultiRoom devices={devicesRecent} />);
+
+    expect(screen.queryByTitle("Device unreachable")).not.toBeInTheDocument();
+  });
+
+  test("should NOT show stale badge for devices without last_seen", () => {
+    const devicesNoLastSeen = [
+      { device_id: "ST10-001", name: "Living Room", model: "SoundTouch 10" },
+    ];
+
+    render(<MultiRoom devices={devicesNoLastSeen} />);
+
+    expect(screen.queryByTitle("Device unreachable")).not.toBeInTheDocument();
+  });
+});
+
+describe("MultiRoom - DeviceCard Master/Slave Interaction", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockZonesState = { zones: [], isLoading: false, error: null };
+    mockUseNowPlaying.mockReturnValue({
+      nowPlaying: null,
+      loading: false,
+      deviceOffline: false,
+      error: null,
+      refresh: vi.fn(),
+    });
+  });
+
+  test("should show master badge only on first selected device", async () => {
+    const user = userEvent.setup();
+    render(<MultiRoom devices={mockDevices} />);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[0]!);
+
+    await waitFor(() => {
+      const masterBadges = screen.getAllByText("Master");
+      expect(masterBadges.length).toBe(1);
+    });
+  });
+
+  test("should show slave badge on subsequently selected devices", async () => {
+    const user = userEvent.setup();
+    render(<MultiRoom devices={mockDevices} />);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[0]!);
+    await user.click(checkboxes[1]!);
+
+    await waitFor(() => {
+      expect(screen.getByText("Slave")).toBeInTheDocument();
+    });
+  });
+
+  test("should show set-master (★) button only on slave devices", async () => {
+    const user = userEvent.setup();
+    render(<MultiRoom devices={mockDevices} />);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[0]!);
+
+    // Only 1 selected → Master, no ★ button
+    expect(screen.queryByTitle("Set as master")).not.toBeInTheDocument();
+
+    await user.click(checkboxes[1]!);
+
+    // 2 selected → ★ button on slave
+    expect(screen.getByTitle("Set as master")).toBeInTheDocument();
+  });
+
+  test("set-master button click should swap master role", async () => {
+    const user = userEvent.setup();
+    render(<MultiRoom devices={mockDevices} />);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[0]!); // Master
+    await user.click(checkboxes[1]!); // Slave
+
+    const setMasterBtn = screen.getByTitle("Set as master");
+    await user.click(setMasterBtn);
+
+    // Create zone to verify master changed
+    const createButton = screen.getByRole("button", { name: /Create Zone/i });
+    await user.click(createButton);
+
+    expect(mockCreateZone).toHaveBeenCalledWith("ST30-002", ["ST10-001"]);
   });
 });
