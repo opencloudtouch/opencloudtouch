@@ -8,7 +8,10 @@ import WizardStep from "./WizardStep";
 import "./Step4Backup.css";
 
 /** Format seconds into human-readable "Xm Ys" / "Xs" using i18n */
-function formatDuration(seconds: number, t: (key: string, opts?: Record<string, unknown>) => string): string {
+function formatDuration(
+  seconds: number,
+  t: (key: string, opts?: Record<string, unknown>) => string
+): string {
   const totalSeconds = Math.round(seconds);
   const mins = Math.floor(totalSeconds / 60);
   const secs = totalSeconds % 60;
@@ -150,7 +153,8 @@ export default function Step4Backup({
                     <div className="backup-file-details">
                       <strong>{vol.volume}</strong>
                       <small>
-                        {vol.size_mb.toFixed(2)} MB &middot; {formatDuration(vol.duration_seconds, t)}
+                        {vol.size_mb.toFixed(2)} MB &middot;{" "}
+                        {formatDuration(vol.duration_seconds, t)}
                       </small>
                     </div>
                     <code className="backup-file-path">{vol.path}</code>
