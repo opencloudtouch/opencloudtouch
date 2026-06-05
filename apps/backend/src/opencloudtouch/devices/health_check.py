@@ -20,8 +20,11 @@ from opencloudtouch.setup.ssh_client import SoundTouchSSHClient, check_ssh_port
 logger = logging.getLogger(__name__)
 
 # Intervals (seconds)
-PING_INTERVAL = 5 * 60  # 5 min
+PING_INTERVAL = 1 * 60  # 1 min (TEST: normally 5 min)
 SSH_VERIFY_INTERVAL = 30 * 60  # 30 min
+ZONE_SYNC_INTERVAL = (
+    1 * 60
+)  # 1 min (TEST: normally 15 min) — sync zones with device reality
 PING_TIMEOUT = 5  # HTTP timeout per device
 OFFLINE_THRESHOLD = 15 * 60  # 15 min without response → offline
 SSH_FAIL_THRESHOLD = 2  # consecutive failures before resetting ssh_permanent
@@ -30,10 +33,12 @@ SSH_FAIL_THRESHOLD = 2  # consecutive failures before resetting ssh_permanent
 class DeviceHealthCheck:
     """Background task that monitors device reachability and setup status."""
 
-    def __init__(self, device_repo: DeviceRepository):
+    def __init__(self, device_repo: DeviceRepository, zone_repo=None):
         self._device_repo = device_repo
+        self._zone_repo = zone_repo
         self._task: asyncio.Task | None = None
         self._last_ssh_verify = 0.0
+        self._last_zone_sync = 0.0
         self._running = False
         self._ssh_fail_count: dict[str, int] = {}
 
@@ -58,7 +63,7 @@ class DeviceHealthCheck:
             logger.info("Device health-check stopped")
 
     async def _run(self) -> None:
-        """Main loop: ping every 5 min, SSH verify every 30 min."""
+        """Main loop: ping every 5 min, SSH verify every 30 min, zone sync every 15 min."""
         while self._running:
             try:
                 await self._ping_all_devices()
@@ -67,6 +72,10 @@ class DeviceHealthCheck:
                 if now - self._last_ssh_verify >= SSH_VERIFY_INTERVAL:
                     await self._ssh_verify_all()
                     self._last_ssh_verify = now
+
+                if self._zone_repo and now - self._last_zone_sync >= ZONE_SYNC_INTERVAL:
+                    await self._zone_sync_all()
+                    self._last_zone_sync = now
 
             except asyncio.CancelledError:
                 raise
@@ -263,3 +272,106 @@ class DeviceHealthCheck:
                 )
         finally:
             await client.close()
+
+    async def _sync_single_zone(self, zone_db, master) -> None:
+        """Sync a single zone between DB and device reality."""
+        from opencloudtouch.devices.adapter import get_device_client
+
+        if zone_db.id is None:
+            logger.error(
+                "Zone from DB has no ID, skipping: %s", zone_db.master_device_id
+            )
+            return
+
+        if not master or not master.ip:
+            logger.debug(
+                "Zone sync: master %s not found or offline, skipping",
+                zone_db.master_device_id,
+            )
+            return
+
+        try:
+            client = get_device_client(
+                f"http://{master.ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR — Bose devices only support HTTP
+            )
+            status = await client.get_zone_status()
+
+            if not status:
+                logger.info(
+                    "Zone sync: master %s no longer in zone → dissolving zone %d in DB",
+                    master.device_id,
+                    zone_db.id,
+                )
+                await self._zone_repo.dissolve_zone(zone_db.id)
+                return
+
+            await self._sync_zone_members(zone_db, status)
+
+        except Exception as e:
+            logger.debug(
+                "Zone sync failed for master %s: %s",
+                master.device_id,
+                str(e),
+                exc_info=False,
+            )
+
+    async def _sync_zone_members(self, zone_db, status) -> None:
+        """Sync zone members between DB and device status."""
+        members_db = await self._zone_repo.get_active_members(zone_db.id)
+        members_db_ids = {m.device_id for m in members_db}
+        members_device_ids = {m.device_id for m in status.members}
+
+        added = members_device_ids - members_db_ids
+        removed = members_db_ids - members_device_ids
+
+        if not added and not removed:
+            return
+
+        logger.info(
+            "Zone sync: drift detected for zone %d — added=%s, removed=%s",
+            zone_db.id,
+            added or "none",
+            removed or "none",
+        )
+
+        for device_id in added:
+            member = next((m for m in status.members if m.device_id == device_id), None)
+            if member:
+                await self._zone_repo.add_member(zone_db.id, device_id, member.role)
+                logger.debug("Zone sync: added %s to zone %d", device_id, zone_db.id)
+
+        for device_id in removed:
+            await self._zone_repo.remove_member(zone_db.id, device_id)
+            logger.debug("Zone sync: removed %s from zone %d", device_id, zone_db.id)
+
+    async def _zone_sync_all(self) -> None:
+        """Sync zone database with device reality (every 15 min).
+
+        Detects and resolves zone drift:
+        - Zone deleted on device → dissolve in DB
+        - Members changed on device → update DB
+        - New zone on device → create in DB
+        """
+        if not self._zone_repo:
+            return
+
+        try:
+            zones_db = await self._zone_repo.get_all_active_zones()
+            if not zones_db:
+                logger.debug("Zone sync: no active zones in DB")
+                return
+
+            logger.debug(
+                "Zone sync: checking %d zone(s) against device reality", len(zones_db)
+            )
+
+            for zone_db in zones_db:
+                master = await self._device_repo.get_by_device_id(
+                    zone_db.master_device_id
+                )
+                await self._sync_single_zone(zone_db, master)
+
+            logger.debug("Zone sync completed")
+
+        except Exception:
+            logger.exception("Zone sync cycle failed")

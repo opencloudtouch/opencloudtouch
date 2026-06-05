@@ -9,10 +9,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from opencloudtouch.core.exceptions import DeviceConnectionError
+from opencloudtouch.devices.client import DeviceInfo, NowPlayingInfo
+
 # RED: This import fails until client_adapter.py is created.
 from opencloudtouch.devices.client_adapter import BoseDeviceClientAdapter
-from opencloudtouch.devices.client import DeviceInfo, NowPlayingInfo
-from opencloudtouch.core.exceptions import DeviceConnectionError
 
 
 def _make_client(base_url: str = "http://192.168.1.100:8090"):

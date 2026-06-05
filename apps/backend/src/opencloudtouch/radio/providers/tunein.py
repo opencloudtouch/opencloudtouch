@@ -17,13 +17,13 @@ from xml.etree import ElementTree
 
 import httpx
 
-from opencloudtouch.radio.models import RadioStation
-from opencloudtouch.radio.provider import RadioProvider
 from opencloudtouch.core.exceptions import (
     RadioConnectionError,
     RadioError,
     RadioTimeoutError,
 )
+from opencloudtouch.radio.models import RadioStation
+from opencloudtouch.radio.provider import RadioProvider
 
 logger = logging.getLogger(__name__)
 

@@ -7,6 +7,14 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 import { useVolume } from "../../src/hooks/useVolume";
 import { _resetOfflineStore } from "../../src/api/offlineDeviceStore";
 
+// Mock DeviceEventContext — useVolume now depends on it
+vi.mock("../../src/contexts/DeviceEventContext", () => ({
+  useDeviceEventContext: () => ({
+    subscribe: vi.fn(() => () => {}),
+    connected: true,
+  }),
+}));
+
 describe("useVolume – device offline", () => {
   const mockFetch = vi.fn();
 

@@ -579,6 +579,55 @@ async def test_ssdp_discovery_with_timeout_parameter():
     ), "SSDPDiscovery must store the timeout parameter for wall-clock deadline."
 
 
+def test_ssdp_msearch_deduplicates_responses(caplog):
+    """Regression: EC24B8E5950F sent 200+ duplicate SSDP responses,
+    flooding logs with 'Found SSDP device at ...' for each duplicate.
+
+    Fix: Only log when a new unique location is first seen.
+    """
+    import logging
+    import socket as socket_module
+
+    discovery = SSDPDiscovery(timeout=1)
+
+    # Simulate 200 identical SSDP responses from the same device
+    duplicate_response = (
+        "HTTP/1.1 200 OK\r\n"
+        "LOCATION: http://192.168.178.42:8090/info\r\n"
+        "SERVER: Linux UPnP/1.0 Bose SoundTouch\r\n"
+        "\r\n"
+    ).encode("utf-8")
+
+    call_count = 0
+
+    def fake_recvfrom(bufsize):
+        nonlocal call_count
+        call_count += 1
+        if call_count > 200:
+            raise socket_module.timeout("done")
+        return duplicate_response, ("192.168.178.42", 1900)
+
+    with patch("socket.socket") as mock_socket_class:
+        mock_sock = MagicMock()
+        mock_sock.recvfrom = fake_recvfrom
+        mock_sock.sendto = MagicMock()
+        mock_socket_class.return_value = mock_sock
+
+        with caplog.at_level(
+            logging.DEBUG, logger="opencloudtouch.devices.discovery.ssdp"
+        ):
+            locations = discovery._ssdp_msearch()
+
+    # Should return exactly 1 unique location
+    assert locations == ["http://192.168.178.42:8090/info"]
+
+    # Should log "Found SSDP device" only ONCE, not 200 times
+    found_msgs = [r for r in caplog.records if "Found SSDP device" in r.message]
+    assert (
+        len(found_msgs) == 1
+    ), f"Expected 1 log message for deduplicated SSDP, got {len(found_msgs)}"
+
+
 @pytest.mark.asyncio
 async def test_ssdp_discovery_default_timeout_is_bounded():
     """

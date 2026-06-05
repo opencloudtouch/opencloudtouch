@@ -4,7 +4,6 @@
 
 param(
     [string]$ManualIPs = "",  # Comma-separated list of IPs (e.g., "192.168.1.10,192.168.1.11")
-    [switch]$SkipBuild,
     [switch]$NoCache,
     [switch]$UseSudo,
     [switch]$ClearDatabase = $true,
@@ -90,7 +89,6 @@ try {
     # Step 1: Build and export locally
     Write-Step "Building and exporting image..."
     $exportArgs = @{}
-    if ($SkipBuild) { $exportArgs["SkipBuild"] = $true }
     if ($NoCache) { $exportArgs["NoCache"] = $true }
     if ($Verbose) { $exportArgs["Verbose"] = $true }
     & "$PSScriptRoot\export-image.ps1" @exportArgs

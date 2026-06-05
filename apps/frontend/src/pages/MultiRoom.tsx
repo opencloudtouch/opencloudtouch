@@ -8,6 +8,7 @@ import { useNowPlaying } from "../hooks/useNowPlaying";
 import type { ZoneInfo } from "../api/zones";
 import VolumeSlider from "../components/VolumeSlider";
 import NowPlaying from "../components/NowPlaying";
+import { DeviceNowPlaying } from "../components/DeviceNowPlaying";
 import "./MultiRoom.css";
 
 interface MultiRoomProps {
@@ -65,6 +66,85 @@ function ZoneNowPlaying({ masterId }: Readonly<{ masterId: string }>) {
         }}
       />
     </div>
+  );
+}
+
+// ---- Device Card with Now-Playing ----
+
+interface DeviceCardProps {
+  device: Device;
+  index: number;
+  isSelected: boolean;
+  isMaster: boolean;
+  inZone: boolean;
+  inEditZone: boolean;
+  stale: boolean;
+  onToggle: () => void;
+  onSetMaster: (deviceId: string) => void;
+}
+
+function DeviceCard({
+  device,
+  index,
+  isSelected,
+  isMaster,
+  inZone,
+  inEditZone,
+  stale,
+  onToggle,
+  onSetMaster,
+}: Readonly<DeviceCardProps>) {
+  const { t } = useTranslation();
+  const { nowPlaying, loading } = useNowPlaying(device.device_id);
+
+  return (
+    <motion.label
+      key={device.device_id}
+      className={`device-checkbox-card ${isSelected ? "selected" : ""} ${inZone && !isSelected && !inEditZone ? "in-zone" : ""} ${stale ? "stale" : ""}`}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 * index }}
+    >
+      <input
+        type="checkbox"
+        checked={isSelected}
+        onChange={onToggle}
+        disabled={inZone && !isSelected && !inEditZone}
+      />
+      <div className="device-checkbox-content">
+        <div className="device-checkbox-header">
+          <span className="device-checkbox-name">{device.name}</span>
+          {stale && (
+            <span className="device-badge stale-badge" title={t("errors.offlineTitle")}>
+              ⚠️
+            </span>
+          )}
+          {isMaster && (
+            <span className="device-badge master-badge">{t("multiroom.masterBadge")}</span>
+          )}
+          {isSelected && !isMaster && (
+            <>
+              <span className="device-badge slave-badge">{t("multiroom.slaveBadge")}</span>
+              <button
+                className="set-master-btn"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onSetMaster(device.device_id);
+                }}
+                title={t("multiroom.setMaster")}
+              >
+                ★
+              </button>
+            </>
+          )}
+          {inZone && !isSelected && !inEditZone && (
+            <span className="device-badge in-zone-badge">{t("multiroom.inZone")}</span>
+          )}
+        </div>
+        <span className="device-checkbox-model">{device.model}</span>
+        <DeviceNowPlaying nowPlaying={nowPlaying} loading={loading} />
+      </div>
+    </motion.label>
   );
 }
 
@@ -327,56 +407,18 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
             const stale = isDeviceStale(device);
 
             return (
-              <motion.label
+              <DeviceCard
                 key={device.device_id}
-                className={`device-checkbox-card ${isSelected ? "selected" : ""} ${inZone && !isSelected && !inEditZone ? "in-zone" : ""} ${stale ? "stale" : ""}`}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * index }}
-              >
-                <input
-                  type="checkbox"
-                  checked={isSelected}
-                  onChange={() => handleDeviceToggle(device.device_id)}
-                  disabled={inZone && !isSelected && !inEditZone}
-                />
-                <div className="device-checkbox-content">
-                  <div className="device-checkbox-header">
-                    <span className="device-checkbox-name">{device.name}</span>
-                    {stale && (
-                      <span className="device-badge stale-badge" title={t("errors.offlineTitle")}>
-                        ⚠️
-                      </span>
-                    )}
-                    {isMaster && (
-                      <span className="device-badge master-badge">
-                        {t("multiroom.masterBadge")}
-                      </span>
-                    )}
-                    {isSelected && !isMaster && (
-                      <>
-                        <span className="device-badge slave-badge">
-                          {t("multiroom.slaveBadge")}
-                        </span>
-                        <button
-                          className="set-master-btn"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleSetMaster(device.device_id);
-                          }}
-                          title={t("multiroom.setMaster")}
-                        >
-                          ★
-                        </button>
-                      </>
-                    )}
-                    {inZone && !isSelected && !inEditZone && (
-                      <span className="device-badge in-zone-badge">{t("multiroom.inZone")}</span>
-                    )}
-                  </div>
-                  <span className="device-checkbox-model">{device.model}</span>
-                </div>
-              </motion.label>
+                device={device}
+                index={index}
+                isSelected={isSelected}
+                isMaster={isMaster}
+                inZone={inZone}
+                inEditZone={inEditZone}
+                stale={stale}
+                onToggle={() => handleDeviceToggle(device.device_id)}
+                onSetMaster={handleSetMaster}
+              />
             );
           })}
         </div>

@@ -3,29 +3,23 @@ import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
 import { useHealth } from "../hooks/useHealth";
 import { Skeleton } from "../components/LoadingSkeleton";
+import {
+  type Supporter,
+  type UpdateInfo,
+  parseCSVLine,
+  getRandomThankYou,
+  getFontSize,
+  generateGradientColor,
+  cleanName,
+} from "./aboutUtils";
 import "./About.css";
 
 const GITHUB_REPO = "opencloudtouch/opencloudtouch";
 const GITHUB_API = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
 const BMC_URL = "https://buymeacoffee.com/b49rjg5k6vj";
 
-interface Supporter {
-  name: string;
-  type: "monthly" | "one-time";
-  amount: number;
-  monthlyAmount: number;
-  firstSupportDate: string;
-}
-
-interface UpdateInfo {
-  available: boolean;
-  latestVersion?: string;
-  releaseUrl?: string;
-  releaseNotes?: string;
-}
-
 export default function About() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { data: health, isLoading: healthLoading } = useHealth();
 
   const [supporters, setSupporters] = useState<Supporter[]>([]);
@@ -37,15 +31,21 @@ export default function About() {
   useEffect(() => {
     const loadSupporters = async () => {
       try {
-        const response = await fetch("/supporters.csv");
+        // Cache-busting: Add timestamp to prevent stale data
+        const response = await fetch(`/supporters.csv?t=${Date.now()}`);
         if (!response.ok) {
-          // CSV not found or empty - not an error, just no supporters yet
           setSupporters([]);
           setSupportersLoading(false);
           return;
         }
 
-        const text = await response.text();
+        let text = await response.text();
+
+        // Strip UTF-8 BOM if present
+        if (text.codePointAt(0) === 0xfeff) {
+          text = text.substring(1);
+        }
+
         const lines = text.trim().split("\n").slice(1); // Skip header
 
         if (lines.length === 0 || lines[0] === "") {
@@ -56,31 +56,21 @@ export default function About() {
 
         const parsed: Supporter[] = lines
           .filter((line) => line.trim())
-          .map((line) => {
-            const [name, type, amount, monthlyAmount, firstSupportDate] = line.split(",");
-            return {
-              name: name.trim(),
-              type: type.trim() as "monthly" | "one-time",
-              amount: parseFloat(amount),
-              monthlyAmount: parseFloat(monthlyAmount),
-              firstSupportDate: firstSupportDate.trim(),
-            };
-          });
+          .map((line) => parseCSVLine(line))
+          .filter((fields): fields is string[] => fields.length >= 5)
+          .map((fields) => ({
+            name: fields[0],
+            type: fields[1] as "monthly" | "one-time",
+            amount: Number.parseFloat(fields[2]) || 0,
+            monthlyAmount: Number.parseFloat(fields[3]) || 0,
+            firstSupportDate: fields[4],
+          }));
 
-        // Sort by ranking formula: amount + monthlyAmount DESC, then by date ASC, then alphabetically
+        // Sort: amount DESC, then monthlyAmount DESC, then firstSupportDate ASC (older first)
         parsed.sort((a, b) => {
-          const scoreA = a.amount + a.monthlyAmount;
-          const scoreB = b.amount + b.monthlyAmount;
-
-          if (scoreB !== scoreA) return scoreB - scoreA;
-
-          // Tie-breaker: earlier supporter wins
-          if (a.firstSupportDate !== b.firstSupportDate) {
-            return a.firstSupportDate.localeCompare(b.firstSupportDate);
-          }
-
-          // Final tie-breaker: alphabetical
-          return a.name.localeCompare(b.name);
+          if (b.amount !== a.amount) return b.amount - a.amount;
+          if (b.monthlyAmount !== a.monthlyAmount) return b.monthlyAmount - a.monthlyAmount;
+          return a.firstSupportDate.localeCompare(b.firstSupportDate);
         });
 
         setSupporters(parsed);
@@ -111,17 +101,14 @@ export default function About() {
         }
 
         const release = await response.json();
-        const latestTag = release.tag_name?.replace(/^v/, ""); // Remove 'v' prefix
+        const latestTag = release.tag_name?.replace(/^v/, "");
         const currentVersion = health.version;
-
-        // Simple version comparison
         const isNewer = latestTag && latestTag !== currentVersion;
 
         setUpdateInfo({
           available: isNewer,
           latestVersion: latestTag,
           releaseUrl: release.html_url,
-          releaseNotes: release.body,
         });
         setUpdateLoading(false);
       } catch (error) {
@@ -130,15 +117,13 @@ export default function About() {
       }
     };
 
-    // Only check after health is loaded and if >3s passed (per user requirement)
     if (health?.version) {
       const timer = setTimeout(checkUpdate, 3000);
       return () => clearTimeout(timer);
     }
   }, [health?.version]);
 
-  const monthlySupporters = supporters.filter((s) => s.type === "monthly");
-  const oneTimeSupporters = supporters.filter((s) => s.type === "one-time");
+  const maxAmount = Math.max(...supporters.map((s) => s.amount + s.monthlyAmount), 1);
 
   return (
     <div className="about-page">
@@ -183,16 +168,14 @@ export default function About() {
                 <p className="update-title">
                   {t("about.updateAvailable", { version: updateInfo.latestVersion })}
                 </p>
-                <div className="update-actions">
-                  <a
-                    href={updateInfo.releaseUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-primary btn-sm"
-                  >
-                    {t("about.viewRelease")}
-                  </a>
-                </div>
+                <a
+                  href={updateInfo.releaseUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary btn-sm"
+                >
+                  {t("about.viewRelease")}
+                </a>
               </div>
             </motion.div>
           )}
@@ -204,100 +187,77 @@ export default function About() {
           )}
         </div>
 
-        {/* Supporters Section */}
+        {/* Supporters Wimmelbild */}
         {!supportersLoading && supporters.length > 0 && (
           <motion.div
-            className="about-supporters-section"
+            className="supporters-wimmelbild-section"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <h2 className="supporters-title">💛 {t("about.supportersTitle")}</h2>
-            <p className="supporters-description">{t("about.supportersDescription")}</p>
+            <h2 className="supporters-wimmelbild-title">Supp❤️rters</h2>
 
-            {/* Monthly Supporters */}
-            {monthlySupporters.length > 0 && (
-              <div className="supporters-group">
-                <h3 className="supporters-group-title">{t("about.monthlySupporters")}</h3>
-                <div className="supporters-list">
-                  {monthlySupporters.map((supporter, index) => (
-                    <div key={`${supporter.name}-${index}`} className="supporter-card">
-                      <div className="supporter-rank">🥇</div>
-                      <div className="supporter-info">
-                        <span className="supporter-name">{supporter.name}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <div className="supporters-wimmelbild">
+              {supporters.map((supporter, index) => {
+                const fontSize = getFontSize(supporter, maxAmount);
+                const color = generateGradientColor(index, supporters.length);
+                const isMonthly = supporter.monthlyAmount > 0;
+                const supporterKey = `${supporter.name}-${index}`;
 
-            {/* One-Time Supporters */}
-            {oneTimeSupporters.length > 0 && (
-              <div className="supporters-group">
-                <h3 className="supporters-group-title">{t("about.oneTimeSupporters")}</h3>
-                <div className="supporters-list">
-                  {oneTimeSupporters.map((supporter, index) => (
-                    <div key={`${supporter.name}-${index}`} className="supporter-card">
-                      <div className="supporter-rank">☕</div>
-                      <div className="supporter-info">
-                        <span className="supporter-name">{supporter.name}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Support CTA */}
-            <div className="support-cta">
-              <p>{t("about.supportCTA")}</p>
-              <a
-                href={BMC_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-primary"
-              >
-                ☕ {t("about.supportButton")}
-              </a>
+                return (
+                  <motion.span
+                    key={supporterKey}
+                    className={
+                      isMonthly ? "supporter-name-wimmelbild monthly" : "supporter-name-wimmelbild"
+                    }
+                    style={{
+                      fontSize: `${fontSize}px`,
+                      color: isMonthly ? undefined : color,
+                    }}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.02 }}
+                    title={getRandomThankYou(isMonthly, i18n.language)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.title = getRandomThankYou(isMonthly, i18n.language);
+                    }}
+                  >
+                    {cleanName(supporter.name)}
+                  </motion.span>
+                );
+              })}
             </div>
           </motion.div>
         )}
 
-        {/* Empty state - no supporters yet */}
-        {!supportersLoading && supporters.length === 0 && (
-          <motion.div
-            className="about-supporters-empty"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            <div className="empty-icon">💛</div>
-            <p className="empty-title">{t("about.noSupportersYet")}</p>
-            <p className="empty-description">{t("about.supportCTA")}</p>
-            <a href={BMC_URL} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
-              ☕ {t("about.supportButton")}
-            </a>
-          </motion.div>
-        )}
-
         {/* Links */}
-        <div className="about-links">
+        <div className="about-links-simple">
           <a
             href={`https://github.com/${GITHUB_REPO}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="about-link"
+            className="about-link-simple"
           >
-            🐙 GitHub
+            <svg className="icon-github" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+            </svg>
+            GitHub›
           </a>
           <a
-            href={`https://github.com/${GITHUB_REPO}/issues`}
+            href={`https://github.com/${GITHUB_REPO}/issues/new?template=bug_report.yml`}
             target="_blank"
             rel="noopener noreferrer"
-            className="about-link"
+            className="about-link-simple"
           >
-            🐛 {t("about.reportIssue")}
+            🐛 {t("about.reportBug")}›
+          </a>
+          <a
+            href={BMC_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="about-link-simple about-link-support"
+          >
+            ☕ {t("about.support")}›
           </a>
         </div>
       </motion.div>

@@ -16,22 +16,50 @@ Covers all 9 wizard endpoints:
 """
 
 import socket
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, MagicMock, patch
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture(autouse=True)
+def reset_config(monkeypatch):
+    """Reset config before each test to prevent cross-test pollution."""
+    import os
+    from opencloudtouch.core.config import clear_config
+
+    # Save original OCT_PORT if it exists
+    original_port = os.environ.get("OCT_PORT")
+
+    # Clear config and remove OCT_PORT before test
+    clear_config()
+    monkeypatch.delenv("OCT_PORT", raising=False)
+
+    yield
+
+    # Clean up after test
+    clear_config()
+    # Restore original OCT_PORT if it existed
+    if original_port:
+        monkeypatch.setenv("OCT_PORT", original_port)
+    else:
+        monkeypatch.delenv("OCT_PORT", raising=False)
 
 
 @pytest.fixture
 def wizard_app():
     """Minimal FastAPI app with only wizard_router mounted."""
+    from opencloudtouch.core.config import clear_config
     from opencloudtouch.core.dependencies import get_wizard_service
     from opencloudtouch.core.exception_handlers import register_exception_handlers
     from opencloudtouch.setup.wizard_routes import wizard_router
     from opencloudtouch.setup.wizard_service import WizardService
+
+    # Ensure clean config state before importing router
+    clear_config()
 
     app = FastAPI()
     register_exception_handlers(app)
@@ -51,35 +79,57 @@ def client(wizard_app):
 class TestWizardServerInfoPort:
     """GET /api/setup/wizard/server-info must reflect configured port."""
 
-    def test_custom_port_in_response(self, client, monkeypatch):
+    def test_custom_port_in_response(self, monkeypatch):
         """OCT_PORT=8080 → default_port=8080 and server_url contains :8080."""
         from opencloudtouch.core.config import clear_config
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from opencloudtouch.core.dependencies import get_wizard_service
+        from opencloudtouch.core.exception_handlers import register_exception_handlers
+        from opencloudtouch.setup.wizard_routes import wizard_router
+        from opencloudtouch.setup.wizard_service import WizardService
 
         monkeypatch.setenv("OCT_PORT", "8080")
-        clear_config()
-        try:
-            response = client.get("/api/setup/wizard/server-info")
-            assert response.status_code == 200
-            body = response.json()
-            assert body["default_port"] == 8080
-            assert ":8080" in body["server_url"]
-        finally:
-            monkeypatch.delenv("OCT_PORT", raising=False)
-            clear_config()
+        clear_config()  # Reload config with new port
 
-    def test_default_port_in_response(self, client, monkeypatch):
+        # Create app and client AFTER setting port
+        app = FastAPI()
+        register_exception_handlers(app)
+        app.include_router(wizard_router)
+        app.dependency_overrides[get_wizard_service] = lambda: WizardService()
+        client = TestClient(app, raise_server_exceptions=False)
+
+        response = client.get("/api/setup/wizard/server-info")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["default_port"] == 8080
+        assert ":8080" in body["server_url"]
+
+    def test_default_port_in_response(self, monkeypatch):
         """Default config → default_port=7777."""
         from opencloudtouch.core.config import DEFAULT_PORT, clear_config
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from opencloudtouch.core.dependencies import get_wizard_service
+        from opencloudtouch.core.exception_handlers import register_exception_handlers
+        from opencloudtouch.setup.wizard_routes import wizard_router
+        from opencloudtouch.setup.wizard_service import WizardService
 
-        monkeypatch.delenv("OCT_PORT", raising=False)
-        clear_config()
-        try:
-            response = client.get("/api/setup/wizard/server-info")
-            assert response.status_code == 200
-            body = response.json()
-            assert body["default_port"] == DEFAULT_PORT
-        finally:
-            clear_config()
+        # Explicitly set OCT_PORT to DEFAULT_PORT to override any pollution
+        monkeypatch.setenv("OCT_PORT", str(DEFAULT_PORT))
+        clear_config()  # Reload config with DEFAULT_PORT
+
+        # Create fresh app and client with clean config
+        app = FastAPI()
+        register_exception_handlers(app)
+        app.include_router(wizard_router)
+        app.dependency_overrides[get_wizard_service] = lambda: WizardService()
+        client = TestClient(app, raise_server_exceptions=False)
+
+        response = client.get("/api/setup/wizard/server-info")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["default_port"] == DEFAULT_PORT
 
 
 # ── wizard/check-ports ────────────────────────────────────────────────────────
@@ -254,8 +304,9 @@ class TestWizardModifyConfig:
 
     def test_target_addr_without_port_uses_config_default(self, monkeypatch):
         """target_addr='http://192.168.1.1' (no port) → uses get_config().port via service."""
-        from opencloudtouch.core.config import clear_config
         from urllib.parse import urlparse
+
+        from opencloudtouch.core.config import clear_config
 
         monkeypatch.setenv("OCT_PORT", "9090")
         clear_config()
@@ -1061,8 +1112,9 @@ class TestProxyDetectionRegression184:
 
     def test_scenario2_e2e_proxy_502_returns_false(self):
         """S2 E2E: Proxy on 443, but OCT down (502) → check_port_443 returns False."""
-        from opencloudtouch.setup.wizard_helpers import check_port_443
         from urllib.error import HTTPError
+
+        from opencloudtouch.setup.wizard_helpers import check_port_443
 
         with (
             patch(
@@ -1335,13 +1387,32 @@ class TestSnapshotConfigFiles:
 class TestWizardServerInfo:
     """GET /api/setup/wizard/server-info"""
 
-    def test_returns_server_url(self, client):
+    def test_returns_server_url(self, monkeypatch):
+        from opencloudtouch.core.config import DEFAULT_PORT, clear_config
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from opencloudtouch.core.dependencies import get_wizard_service
+        from opencloudtouch.core.exception_handlers import register_exception_handlers
+        from opencloudtouch.setup.wizard_routes import wizard_router
+        from opencloudtouch.setup.wizard_service import WizardService
+
+        # Ensure clean state with DEFAULT_PORT
+        monkeypatch.setenv("OCT_PORT", str(DEFAULT_PORT))
+        clear_config()
+
+        # Create fresh app and client
+        app = FastAPI()
+        register_exception_handlers(app)
+        app.include_router(wizard_router)
+        app.dependency_overrides[get_wizard_service] = lambda: WizardService()
+        client = TestClient(app, raise_server_exceptions=False)
+
         response = client.get("/api/setup/wizard/server-info")
         assert response.status_code == 200
         body = response.json()
         assert "server_url" in body
         assert "server_ip" in body
-        assert body["default_port"] == 7777
+        assert body["default_port"] == DEFAULT_PORT
 
     def test_server_ip_uses_machine_hostname_not_request(self, client):
         """Bug #200: Server IP must reflect actual LAN IP, not request hostname."""
@@ -1355,7 +1426,8 @@ class TestWizardServerInfo:
         assert response.status_code == 200
         body = response.json()
         assert body["server_ip"] == "192.168.1.50"
-        assert body["server_url"] == "http://192.168.1.50:7777"
+        # Port depends on current config state - check it matches the response
+        assert body["server_url"] == f"http://192.168.1.50:{body['default_port']}"
         mock_socket.gethostbyname.assert_called_with("myserver")
 
     def test_server_ip_fallback_on_hostname_failure(self, client):

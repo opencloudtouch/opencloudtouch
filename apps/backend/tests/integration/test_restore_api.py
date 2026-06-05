@@ -8,9 +8,9 @@ from httpx import ASGITransport, AsyncClient
 from opencloudtouch.core.dependencies import get_restore_service
 from opencloudtouch.main import app
 from opencloudtouch.setup.restore_models import (
+    BackupFileInfo,
     BackupScanResult,
     BackupSet,
-    BackupFileInfo,
     RestoreResult,
     RestoreStep,
     RestoreStepName,

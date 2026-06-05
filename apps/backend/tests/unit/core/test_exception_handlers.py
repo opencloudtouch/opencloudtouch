@@ -9,7 +9,6 @@ import asyncio
 import json
 from unittest.mock import MagicMock
 
-
 from opencloudtouch.core.exception_handlers import (
     device_connection_error_handler,
     device_not_found_handler,

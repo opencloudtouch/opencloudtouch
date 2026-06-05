@@ -14,9 +14,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi import status as http_status
 
 from opencloudtouch.core.config import get_config
-from opencloudtouch.core.dependencies import get_wizard_service
-from opencloudtouch.core.dependencies import RestoreServiceDep
+from opencloudtouch.core.dependencies import RestoreServiceDep, get_wizard_service
 from opencloudtouch.setup.api_models import (
+    AccountPairingRequest,
+    AccountPairingResponse,
     BackupRequest,
     BackupResponse,
     ConfigModifyRequest,
@@ -27,29 +28,27 @@ from opencloudtouch.setup.api_models import (
     EnsureAccountResponse,
     FinalizeRequest,
     FinalizeResponse,
-    InitPersistenceRequest,
-    InitPersistenceResponse,
     HostsModifyRequest,
     HostsModifyResponse,
+    InitPersistenceRequest,
+    InitPersistenceResponse,
     ListBackupsRequest,
     ListBackupsResponse,
     PortCheckRequest,
     PortCheckResponse,
     RestoreRequest,
     RestoreResponse,
-    ScanBackupsRequest,
-    ScanBackupsResponse,
+    RestoreStepResponse,
     RestoreWizardRequest,
     RestoreWizardResponse,
-    RestoreStepResponse,
+    ScanBackupsRequest,
+    ScanBackupsResponse,
     VerifyRedirectRequest,
     VerifyRedirectResponse,
     VerifySetupRequest,
     VerifySetupResponse,
     WizardCompleteRequest,
     WizardCompleteResponse,
-    AccountPairingRequest,
-    AccountPairingResponse,
 )
 from opencloudtouch.setup.wizard_helpers import check_port_443, ssh_operation
 from opencloudtouch.setup.wizard_service import WizardService

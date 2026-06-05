@@ -165,6 +165,7 @@ class TestValidateStreamUrl:
 
     def test_rejects_unresolvable_hostname(self):
         import socket as _socket
+
         from opencloudtouch.devices.api.preset_stream_routes import validate_stream_url
 
         with patch(
