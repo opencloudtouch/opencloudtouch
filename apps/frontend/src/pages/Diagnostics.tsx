@@ -6,7 +6,7 @@ import { getLogEntries } from "../utils/logBuffer";
 import { useToast } from "../contexts/ToastContext";
 import "./Diagnostics.css";
 
-function StatusDot({ status }: { status: "green" | "yellow" | "red" }) {
+function StatusDot({ status }: { readonly status: "green" | "yellow" | "red" }) {
   return <span className={`status-dot status-${status}`} aria-label={status} />;
 }
 
