@@ -1014,7 +1014,9 @@ class TestRenameDeviceEndpoint:
         assert data["name"] == "New Name"
         mock_ssh.assert_awaited_once_with(device.ip, "New Name")
 
-    def test_rename_both_methods_fail(self, client, mock_device_service, sample_devices):
+    def test_rename_both_methods_fail(
+        self, client, mock_device_service, sample_devices
+    ):
         """Test rename fails when both REST and SSH fail."""
         device = sample_devices[0]
         mock_device_service.get_device_by_id = AsyncMock(return_value=device)

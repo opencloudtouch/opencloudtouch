@@ -188,7 +188,7 @@ describe("DeviceNameEditor", () => {
     const input = screen.getByLabelText("Device name");
     await userEvent.clear(input);
     await userEvent.type(input, "Kitchen");
-    
+
     // Blur without pressing Enter should trigger save
     fireEvent.blur(input);
 
@@ -206,7 +206,7 @@ describe("DeviceNameEditor", () => {
 
     await userEvent.click(screen.getByText("Living Room"));
     const input = screen.getByLabelText("Device name");
-    
+
     // Blur without changing value should cancel
     fireEvent.blur(input);
 
@@ -223,7 +223,7 @@ describe("DeviceNameEditor", () => {
     await userEvent.click(screen.getByText("Living Room"));
     const input = screen.getByLabelText("Device name");
     await userEvent.clear(input);
-    
+
     // Blur with empty value should cancel
     fireEvent.blur(input);
 
@@ -263,7 +263,7 @@ describe("DeviceNameEditor", () => {
 
     const heading = screen.getByRole("button");
     const icons = heading.querySelectorAll('span[aria-hidden="true"]');
-    
+
     // Should have 2 icons: placeholder (invisible) + edit icon (visible on hover)
     expect(icons).toHaveLength(2);
     expect(icons[0]).toHaveClass("device-name-placeholder-icon");

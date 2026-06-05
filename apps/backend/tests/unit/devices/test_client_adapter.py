@@ -222,7 +222,7 @@ class TestSetName:
     async def test_set_name_success(self, respx_mock):
         """Test successful device rename via POST /name."""
         respx_mock.post("http://192.168.1.100:8090/name").mock(
-            return_value=httpx.Response(200, text='<info><name>New Name</name></info>')
+            return_value=httpx.Response(200, text="<info><name>New Name</name></info>")
         )
 
         client = _make_client()
