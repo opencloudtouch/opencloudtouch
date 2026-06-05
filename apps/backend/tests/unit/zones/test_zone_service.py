@@ -411,7 +411,9 @@ class TestGetClientFallback:
         """Uses lazy import fallback when client_factory is None."""
         device_repo = AsyncMock()
         zone_repo = AsyncMock()
-        service = ZoneService(device_repo=device_repo, zone_repo=zone_repo, client_factory=None)
+        service = ZoneService(
+            device_repo=device_repo, zone_repo=zone_repo, client_factory=None
+        )
 
         with patch(
             "opencloudtouch.devices.adapter.get_device_client"
