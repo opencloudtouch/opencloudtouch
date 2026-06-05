@@ -317,7 +317,7 @@ class DeviceHealthCheck:
                 try:
                     # Query actual zone status from device
                     client = get_device_client(
-                        f"http://{master.ip}:{SOUNDTOUCH_HTTP_PORT}"
+                        f"http://{master.ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR — Bose devices only support HTTP
                     )
                     status = await client.get_zone_status()
 
