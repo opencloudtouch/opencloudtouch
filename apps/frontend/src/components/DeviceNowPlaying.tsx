@@ -6,8 +6,8 @@ import type { NowPlayingState } from "../api/devices";
 import "./DeviceNowPlaying.css";
 
 interface DeviceNowPlayingProps {
-  nowPlaying: NowPlayingState | null;
-  loading?: boolean;
+  readonly nowPlaying: NowPlayingState | null;
+  readonly loading?: boolean;
 }
 
 export function DeviceNowPlaying({ nowPlaying, loading }: DeviceNowPlayingProps) {

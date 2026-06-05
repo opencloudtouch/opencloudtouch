@@ -163,8 +163,8 @@ class ZoneService:
             for slave_id in slave_ids:
                 await self.zone_repo.add_member(zone_db.id, slave_id, "slave")
             logger.info("Zone created and persisted to DB: zone_id=%d", zone_db.id)
-        except Exception as e:
-            logger.error("Failed to persist zone to DB: %s", e)
+        except Exception:
+            logger.exception("Failed to persist zone to DB")
 
         logger.info(
             "Zone created: master=%s, members=%d [%s]",
@@ -225,6 +225,23 @@ class ZoneService:
             for slave_id in slave_ids:
                 await self.zone_repo.remove_member(zone_db.id, slave_id)
 
+    async def _remove_slaves_parallel(
+        self, client: "DeviceClient", slaves: list
+    ) -> None:
+        """Remove all slaves in parallel to reduce dissolution time."""
+        if not slaves:
+            return
+
+        logger.info("Removing %d slaves in PARALLEL before dissolving zone", len(slaves))
+        remove_tasks = [client.remove_zone_members([slave]) for slave in slaves]
+        results = await asyncio.gather(*remove_tasks, return_exceptions=True)
+
+        for slave, result in zip(slaves, results):
+            if isinstance(result, Exception):
+                logger.error("Failed to remove slave %s: %s", slave.device_id, result)
+            else:
+                logger.info("Slave %s removed successfully", slave.device_id)
+
     async def dissolve_zone(self, master_id: str) -> None:
         """Dissolve zone by removing all slaves in parallel, then master."""
         logger.info("Dissolving zone with master_id=%s", master_id)
@@ -250,36 +267,18 @@ class ZoneService:
 
         # Remove all slaves in PARALLEL (each waits with delay=3)
         slaves = [m for m in zone_status.members if m.role == "slave"]
-        logger.info(
-            "Removing %d slaves in PARALLEL before dissolving zone", len(slaves)
-        )
-
-        if slaves:
-            remove_tasks = [client.remove_zone_members([slave]) for slave in slaves]
-
-            # Wait for all slaves to be removed
-            results = await asyncio.gather(*remove_tasks, return_exceptions=True)
-
-            # Log results
-            for slave, result in zip(slaves, results):
-                if isinstance(result, Exception):
-                    logger.error(
-                        "Failed to remove slave %s: %s", slave.device_id, result
-                    )
-                else:
-                    logger.info("Slave %s removed successfully", slave.device_id)
+        await self._remove_slaves_parallel(client, slaves)
 
         # Now dissolve the zone on master (all slaves are removed)
         try:
             await client.remove_zone()
             logger.info("Zone dissolved successfully for master_id=%s", master_id)
-        except Exception as e:
+        except Exception:
             # Bose devices sometimes throw errors even when operation succeeds
             # Zone events will confirm if zone was actually dissolved
-            logger.warning(
-                "remove_zone() raised exception but zone may be dissolved: %s",
-                e,
-                extra={"master_id": master_id},
+            logger.exception(
+                "remove_zone() raised exception but zone may be dissolved (master_id=%s)",
+                master_id,
             )
         finally:
             # Update database ALWAYS (even if remove_zone() threw exception)
