@@ -64,6 +64,7 @@ from opencloudtouch.swupdate.routes import router as swupdate_router
 from opencloudtouch.wizard_audit.repository import WizardAuditRepository
 from opencloudtouch.wizard_audit.routes import audit_router as wizard_audit_router
 from opencloudtouch.zones.routes import device_zone_router, router as zones_router
+from opencloudtouch.zones.repository import ZoneRepository
 from opencloudtouch.zones.service import ZoneService
 
 # Module-level logger
@@ -73,12 +74,23 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown."""
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
+
     init_config()
     setup_logging()
 
     logger = logging.getLogger(__name__)
     cfg = get_config()
     _log_startup_info(logger, cfg)
+
+    # Performance: Increase thread pool for parallel Bose device I/O
+    # Default ~5-8 workers causes serial bottleneck with >5 devices
+    # 30 workers allows up to 30 parallel asyncio.to_thread() calls
+    loop = asyncio.get_running_loop()
+    executor = ThreadPoolExecutor(max_workers=30, thread_name_prefix="bose-io")
+    loop.set_default_executor(executor)
+    logger.info("Thread pool configured: 30 workers for Bose device I/O")
 
     # Startup: repositories → services → background tasks
     repos = await _init_repositories(app, cfg, logger)
@@ -88,6 +100,8 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     await _shutdown(app, repos, logger)
+    executor.shutdown(wait=True)
+    logger.info("Thread pool shutdown complete")
 
 
 def _log_startup_info(logger: logging.Logger, cfg) -> None:
@@ -118,6 +132,7 @@ async def _init_repositories(app: FastAPI, cfg, logger: logging.Logger) -> dict:
         ("preset_repo", PresetRepository, cfg.effective_db_path),
         ("recents_repo", RecentsRepository, cfg.effective_db_path),
         ("wizard_audit_repo", WizardAuditRepository, cfg.effective_db_path),
+        ("zone_repo", ZoneRepository, cfg.effective_db_path),
     ]
 
     repos = {}
@@ -170,9 +185,11 @@ async def _init_services(
 
     # Zone service (with injected client factory to avoid circular deps)
     from opencloudtouch.devices.adapter import get_device_client
-
+    
+    zone_repo = repos["zone_repo"]
     app.state.zone_service = ZoneService(
         device_repo=device_repo,
+        zone_repo=zone_repo,
         client_factory=get_device_client,
     )
     logger.info("ZoneService initialized")
@@ -219,7 +236,8 @@ async def _init_services(
         logger.info("Startup device check completed")
 
     # Background health-check (not in mock/CI mode)
-    health_check = DeviceHealthCheck(device_repo)
+    zone_repo = repos.get("zone_repo")
+    health_check = DeviceHealthCheck(device_repo, zone_repo=zone_repo)
     if not cfg.mock_mode:
         health_check.start()
         logger.info("Device health-check started")

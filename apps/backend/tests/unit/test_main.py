@@ -18,7 +18,7 @@ async def test_lifespan_initialization():
         "opencloudtouch.main.get_config"
     ) as mock_get_config, patch(
         "opencloudtouch.main.DeviceRepository"
-    ) as mock_repo_class, patch(
+    ) as mock_device_class, patch(
         "opencloudtouch.main.SettingsRepository"
     ) as mock_settings_class, patch(
         "opencloudtouch.main.PresetRepository"
@@ -26,7 +26,11 @@ async def test_lifespan_initialization():
         "opencloudtouch.main.RecentsRepository"
     ) as mock_recents_class, patch(
         "opencloudtouch.main.WizardAuditRepository"
-    ) as mock_wizard_class:
+    ) as mock_wizard_class, patch(
+        "opencloudtouch.main.ZoneRepository"
+    ) as mock_zone_class, patch(
+        "opencloudtouch.main._init_services", new_callable=AsyncMock
+    ):
 
         # Mock config
         mock_config = MagicMock(spec=AppConfig)
@@ -42,11 +46,12 @@ async def test_lifespan_initialization():
         # Mock all repositories with same pattern
         mock_repos = {}
         for name, cls in [
-            ("device", mock_repo_class),
+            ("device", mock_device_class),
             ("settings", mock_settings_class),
             ("preset", mock_preset_class),
             ("recents", mock_recents_class),
             ("wizard", mock_wizard_class),
+            ("zone", mock_zone_class),
         ]:
             mock_repo = AsyncMock()
             mock_repo.initialize = AsyncMock()
@@ -54,8 +59,15 @@ async def test_lifespan_initialization():
             cls.return_value = mock_repo
             mock_repos[name] = mock_repo
 
+        # Mock health_check to avoid shutdown errors
+        mock_health_check = AsyncMock()
+        mock_health_check.stop = AsyncMock()
+
         # Run lifespan
         async with lifespan(app):
+            # Mock app.state.health_check for shutdown
+            app.state.health_check = mock_health_check
+            
             # Verify startup
             mock_init_config.assert_called_once()
             mock_setup_logging.assert_called_once()

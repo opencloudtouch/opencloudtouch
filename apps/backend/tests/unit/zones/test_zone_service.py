@@ -44,9 +44,11 @@ def _make_zone_status(master_id="DEV001", master_ip="192.168.1.100", members=Non
 
 
 def _make_service():
-    """Create ZoneService with mocked repo."""
-    repo = AsyncMock()
-    return ZoneService(device_repo=repo), repo
+    """Create ZoneService with mocked repos."""
+    device_repo = AsyncMock()
+    zone_repo = AsyncMock()
+    service = ZoneService(device_repo=device_repo, zone_repo=zone_repo)
+    return service, device_repo, zone_repo
 
 
 class TestGetZoneStatus:
@@ -55,11 +57,11 @@ class TestGetZoneStatus:
     @pytest.mark.asyncio
     async def test_returns_zone_status(self):
         """Returns enriched zone status for a device."""
-        service, repo = _make_service()
+        service, device_repo, zone_repo = _make_service()
         dev1 = _make_device("DEV001", "192.168.1.100", "Living Room")
         dev2 = _make_device("DEV002", "192.168.1.101", "Kitchen")
-        repo.get_by_device_id.return_value = dev1
-        repo.get_all.return_value = [dev1, dev2]
+        device_repo.get_by_device_id.return_value = dev1
+        device_repo.get_all.return_value = [dev1, dev2]
 
         mock_client = AsyncMock()
         mock_client.get_zone_status.return_value = _make_zone_status()
@@ -75,8 +77,8 @@ class TestGetZoneStatus:
     @pytest.mark.asyncio
     async def test_returns_none_when_not_in_zone(self):
         """Returns None when device has no zone."""
-        service, repo = _make_service()
-        repo.get_by_device_id.return_value = _make_device()
+        service, device_repo, zone_repo = _make_service()
+        device_repo.get_by_device_id.return_value = _make_device()
 
         mock_client = AsyncMock()
         mock_client.get_zone_status.return_value = None
@@ -89,323 +91,74 @@ class TestGetZoneStatus:
     @pytest.mark.asyncio
     async def test_raises_not_found_for_unknown_device(self):
         """Raises DeviceNotFoundError for unknown device ID."""
-        service, repo = _make_service()
-        repo.get_by_device_id.return_value = None
+        service, device_repo, zone_repo = _make_service()
+        device_repo.get_by_device_id.return_value = None
 
         with pytest.raises(DeviceNotFoundError):
             await service.get_zone_status("UNKNOWN")
 
 
 class TestGetAllZones:
-    """Tests for get_all_zones."""
+    """Tests for get_all_zones (DB-backed)."""
 
     @pytest.mark.asyncio
-    async def test_returns_all_zones(self):
-        """Returns deduplicated zones across devices."""
-        service, repo = _make_service()
-        dev1 = _make_device("DEV001", "192.168.1.100")
-        dev2 = _make_device("DEV002", "192.168.1.101")
-        repo.get_all.return_value = [dev1, dev2]
+    async def test_returns_all_zones_from_db(self):
+        """Returns zones from database with enriched device info."""
+        from opencloudtouch.zones.repository import Zone, ZoneMember
+        from datetime import datetime, UTC
 
-        zone = _make_zone_status()
-        mock_client = AsyncMock()
-        mock_client.get_zone_status.return_value = zone
+        service, device_repo, zone_repo = _make_service()
+        
+        # Setup devices
+        dev1 = _make_device("DEV001", "192.168.1.100", "Living Room")
+        dev2 = _make_device("DEV002", "192.168.1.101", "Kitchen")
+        device_repo.get_all.return_value = [dev1, dev2]
+        device_repo.get_by_device_id.side_effect = lambda did: {
+            "DEV001": dev1,
+            "DEV002": dev2,
+        }.get(did)
+        
+        # Setup DB zones
+        zone1 = Zone(
+            id=1,
+            master_device_id="DEV001",
+            created_at=datetime.now(UTC),
+        )
+        zone_repo.get_all_active_zones.return_value = [zone1]
+        
+        # Setup zone members
+        members = [
+            ZoneMember(
+                zone_id=1,
+                device_id="DEV001",
+                role="master",
+                added_at=datetime.now(UTC),
+            ),
+            ZoneMember(
+                zone_id=1,
+                device_id="DEV002",
+                role="slave",
+                added_at=datetime.now(UTC),
+            ),
+        ]
+        zone_repo.get_active_members.return_value = members
 
-        with patch.object(service, "_get_client", return_value=mock_client):
-            result = await service.get_all_zones()
+        result = await service.get_all_zones()
 
-        # Both devices see same zone (same master_id) → deduplicated to 1
         assert len(result) == 1
         assert result[0].master_id == "DEV001"
+        assert len(result[0].members) == 2
+        assert result[0].members[0].name == "Living Room"
+        assert result[0].members[1].name == "Kitchen"
 
     @pytest.mark.asyncio
-    async def test_returns_empty_when_no_devices(self):
-        """Returns empty list when no devices exist."""
-        service, repo = _make_service()
-        repo.get_all.return_value = []
+    async def test_returns_empty_when_no_zones_in_db(self):
+        """Returns empty list when no zones exist in database."""
+        service, device_repo, zone_repo = _make_service()
+        zone_repo.get_all_active_zones.return_value = []
 
         result = await service.get_all_zones()
         assert result == []
-
-    @pytest.mark.asyncio
-    async def test_skips_unreachable_devices(self):
-        """Skips devices that fail and returns zones from reachable ones."""
-        service, repo = _make_service()
-        dev1 = _make_device("DEV001", "192.168.1.100")
-        dev2 = _make_device("DEV002", "192.168.1.101")
-        repo.get_all.return_value = [dev1, dev2]
-
-        zone = _make_zone_status(
-            "DEV002",
-            "192.168.1.101",
-            [
-                ZoneMemberInfo(
-                    device_id="DEV002", ip_address="192.168.1.101", role="master"
-                ),
-            ],
-        )
-
-        client_ok = AsyncMock()
-        client_ok.get_zone_status.return_value = zone
-        client_fail = AsyncMock()
-        client_fail.get_zone_status.side_effect = Exception("Timeout")
-
-        def get_client(ip):
-            if "100" in ip:
-                return client_fail
-            return client_ok
-
-        with patch.object(service, "_get_client", side_effect=get_client):
-            result = await service.get_all_zones()
-
-        assert len(result) == 1
-        assert result[0].master_id == "DEV002"
-
-    @pytest.mark.asyncio
-    async def test_prefers_master_perspective_over_slave(self):
-        """Uses master's zone status which has the complete member list."""
-        service, repo = _make_service()
-        dev1 = _make_device("DEV001", "192.168.1.100", "Speaker 1")
-        dev2 = _make_device("DEV002", "192.168.1.101", "Speaker 2")
-        dev3 = _make_device("DEV003", "192.168.1.102", "Speaker 3")
-        repo.get_all.return_value = [dev1, dev2, dev3]
-
-        # Slave perspective: incomplete members (only 2)
-        slave_zone = ZoneStatus(
-            master_id="DEV001",
-            master_ip="192.168.1.100",
-            is_master=False,
-            members=[
-                ZoneMemberInfo(
-                    device_id="DEV001", ip_address="192.168.1.100", role="master"
-                ),
-                ZoneMemberInfo(
-                    device_id="DEV002", ip_address="192.168.1.101", role="slave"
-                ),
-            ],
-        )
-        # Master perspective: complete members (all 3)
-        master_zone = ZoneStatus(
-            master_id="DEV001",
-            master_ip="192.168.1.100",
-            is_master=True,
-            members=[
-                ZoneMemberInfo(
-                    device_id="DEV001", ip_address="192.168.1.100", role="master"
-                ),
-                ZoneMemberInfo(
-                    device_id="DEV002", ip_address="192.168.1.101", role="slave"
-                ),
-                ZoneMemberInfo(
-                    device_id="DEV003", ip_address="192.168.1.102", role="slave"
-                ),
-            ],
-        )
-
-        def get_client(ip):
-            client = AsyncMock()
-            if "100" in ip:
-                client.get_zone_status.return_value = master_zone
-            elif "101" in ip:
-                client.get_zone_status.return_value = slave_zone
-            else:
-                client.get_zone_status.return_value = slave_zone
-            return client
-
-        with patch.object(service, "_get_client", side_effect=get_client):
-            result = await service.get_all_zones()
-
-        assert len(result) == 1
-        assert len(result[0].members) == 3
-
-    @pytest.mark.asyncio
-    async def test_four_device_zone_slave_reports_is_master_true(self):
-        """Regression #203/#315: 4-device zone where slave falsely reports is_master=True.
-
-        Bose firmware quirk: a slave can set is_master=True in its zone
-        response while only listing itself + master (2 members).  The actual
-        master's response contains all 4 members.  The old code picked the
-        first is_master=True response → dropped 3rd/4th device.
-        """
-        service, repo = _make_service()
-        dev1 = _make_device("DEV001", "192.168.1.100", "Living Room")
-        dev2 = _make_device("DEV002", "192.168.1.101", "Kitchen")
-        dev3 = _make_device("DEV003", "192.168.1.102", "Bedroom")
-        dev4 = _make_device("DEV004", "192.168.1.103", "Bathroom")
-        repo.get_all.return_value = [dev1, dev2, dev3, dev4]
-
-        all_members = [
-            ZoneMemberInfo(
-                device_id="DEV001", ip_address="192.168.1.100", role="master"
-            ),
-            ZoneMemberInfo(
-                device_id="DEV002", ip_address="192.168.1.101", role="slave"
-            ),
-            ZoneMemberInfo(
-                device_id="DEV003", ip_address="192.168.1.102", role="slave"
-            ),
-            ZoneMemberInfo(
-                device_id="DEV004", ip_address="192.168.1.103", role="slave"
-            ),
-        ]
-
-        # Master's response: complete member list (4 devices)
-        master_zone = ZoneStatus(
-            master_id="DEV001",
-            master_ip="192.168.1.100",
-            is_master=True,
-            members=all_members,
-        )
-        # Slave DEV002 falsely reports is_master=True but only 2 members
-        slave_buggy = ZoneStatus(
-            master_id="DEV001",
-            master_ip="192.168.1.100",
-            is_master=True,  # <-- Bose firmware quirk!
-            members=[
-                ZoneMemberInfo(
-                    device_id="DEV001", ip_address="192.168.1.100", role="master"
-                ),
-                ZoneMemberInfo(
-                    device_id="DEV002", ip_address="192.168.1.101", role="slave"
-                ),
-            ],
-        )
-        # Other slaves: normal response
-        slave_normal = ZoneStatus(
-            master_id="DEV001",
-            master_ip="192.168.1.100",
-            is_master=False,
-            members=[
-                ZoneMemberInfo(
-                    device_id="DEV001", ip_address="192.168.1.100", role="master"
-                ),
-                ZoneMemberInfo(
-                    device_id="DEV003", ip_address="192.168.1.102", role="slave"
-                ),
-            ],
-        )
-
-        def get_client(ip):
-            client = AsyncMock()
-            if "100" in ip:
-                client.get_zone_status.return_value = master_zone
-            elif "101" in ip:
-                client.get_zone_status.return_value = slave_buggy
-            else:
-                client.get_zone_status.return_value = slave_normal
-            return client
-
-        with patch.object(service, "_get_client", side_effect=get_client):
-            result = await service.get_all_zones()
-
-        assert len(result) == 1
-        assert len(result[0].members) == 4, (
-            f"Expected 4 members but got {len(result[0].members)} — "
-            f"zone member truncation bug #203/#315"
-        )
-        device_ids = {m.device_id for m in result[0].members}
-        assert device_ids == {"DEV001", "DEV002", "DEV003", "DEV004"}
-
-    @pytest.mark.asyncio
-    async def test_four_device_zone_buggy_slave_processed_first(self):
-        """Regression #315: buggy slave processed BEFORE master must not win.
-
-        Device iteration order matters: if the slave with is_master=True and
-        only 2 members is processed first, the subsequent master response
-        (4 members) must replace it.
-        """
-        service, repo = _make_service()
-        # Buggy slave is first in device list (processed first)
-        dev2 = _make_device("DEV002", "192.168.1.101", "Kitchen")
-        dev1 = _make_device("DEV001", "192.168.1.100", "Living Room")
-        dev3 = _make_device("DEV003", "192.168.1.102", "Bedroom")
-        dev4 = _make_device("DEV004", "192.168.1.103", "Bathroom")
-        repo.get_all.return_value = [dev2, dev1, dev3, dev4]
-
-        all_members = [
-            ZoneMemberInfo(
-                device_id="DEV001", ip_address="192.168.1.100", role="master"
-            ),
-            ZoneMemberInfo(
-                device_id="DEV002", ip_address="192.168.1.101", role="slave"
-            ),
-            ZoneMemberInfo(
-                device_id="DEV003", ip_address="192.168.1.102", role="slave"
-            ),
-            ZoneMemberInfo(
-                device_id="DEV004", ip_address="192.168.1.103", role="slave"
-            ),
-        ]
-
-        master_zone = ZoneStatus(
-            master_id="DEV001",
-            master_ip="192.168.1.100",
-            is_master=True,
-            members=all_members,
-        )
-        slave_buggy = ZoneStatus(
-            master_id="DEV001",
-            master_ip="192.168.1.100",
-            is_master=True,  # Bose quirk
-            members=[
-                ZoneMemberInfo(
-                    device_id="DEV001", ip_address="192.168.1.100", role="master"
-                ),
-                ZoneMemberInfo(
-                    device_id="DEV002", ip_address="192.168.1.101", role="slave"
-                ),
-            ],
-        )
-
-        def get_client(ip):
-            client = AsyncMock()
-            if "100" in ip:
-                client.get_zone_status.return_value = master_zone
-            else:
-                client.get_zone_status.return_value = slave_buggy
-            return client
-
-        with patch.object(service, "_get_client", side_effect=get_client):
-            result = await service.get_all_zones()
-
-        assert len(result) == 1
-        assert len(result[0].members) == 4
-
-    @pytest.mark.asyncio
-    async def test_five_device_zone_all_members_returned(self):
-        """Zone with 5 devices returns all 5 enriched members."""
-        service, repo = _make_service()
-        devices = [
-            _make_device(f"DEV{i:03d}", f"192.168.1.{100+i}", f"Speaker {i}")
-            for i in range(5)
-        ]
-        repo.get_all.return_value = devices
-
-        all_members = [
-            ZoneMemberInfo(
-                device_id=f"DEV{i:03d}",
-                ip_address=f"192.168.1.{100+i}",
-                role="master" if i == 0 else "slave",
-            )
-            for i in range(5)
-        ]
-        zone = ZoneStatus(
-            master_id="DEV000",
-            master_ip="192.168.1.100",
-            is_master=True,
-            members=all_members,
-        )
-
-        mock_client = AsyncMock()
-        mock_client.get_zone_status.return_value = zone
-
-        with patch.object(service, "_get_client", return_value=mock_client):
-            result = await service.get_all_zones()
-
-        assert len(result) == 1
-        assert len(result[0].members) == 5
-        assert result[0].members[0].name == "Speaker 0"
-        assert result[0].members[4].name == "Speaker 4"
 
 
 class TestCreateZone:
@@ -414,14 +167,14 @@ class TestCreateZone:
     @pytest.mark.asyncio
     async def test_creates_zone_successfully(self):
         """Creates zone and returns enriched status."""
-        service, repo = _make_service()
+        service, device_repo, zone_repo = _make_service()
         dev1 = _make_device("DEV001", "192.168.1.100", "Living Room")
         dev2 = _make_device("DEV002", "192.168.1.101", "Kitchen")
-        repo.get_by_device_id.side_effect = lambda did: {
+        device_repo.get_by_device_id.side_effect = lambda did: {
             "DEV001": dev1,
             "DEV002": dev2,
         }[did]
-        repo.get_all.return_value = [dev1, dev2]
+        device_repo.get_all.return_value = [dev1, dev2]
 
         mock_client = AsyncMock()
         mock_client.create_zone.return_value = _make_zone_status()
@@ -435,8 +188,8 @@ class TestCreateZone:
     @pytest.mark.asyncio
     async def test_raises_not_found_for_unknown_master(self):
         """Raises DeviceNotFoundError when master not found."""
-        service, repo = _make_service()
-        repo.get_by_device_id.return_value = None
+        service, device_repo, zone_repo = _make_service()
+        device_repo.get_by_device_id.return_value = None
 
         with pytest.raises(DeviceNotFoundError):
             await service.create_zone("UNKNOWN", ["DEV002"])
@@ -444,9 +197,9 @@ class TestCreateZone:
     @pytest.mark.asyncio
     async def test_raises_not_found_for_unknown_slave(self):
         """Raises DeviceNotFoundError when a slave is not found."""
-        service, repo = _make_service()
+        service, device_repo, zone_repo = _make_service()
         master = _make_device("DEV001")
-        repo.get_by_device_id.side_effect = lambda did: (
+        device_repo.get_by_device_id.side_effect = lambda did: (
             master if did == "DEV001" else None
         )
 
@@ -456,10 +209,10 @@ class TestCreateZone:
     @pytest.mark.asyncio
     async def test_raises_connection_error_on_failure(self):
         """Raises DeviceConnectionError when creation fails."""
-        service, repo = _make_service()
+        service, device_repo, zone_repo = _make_service()
         dev1 = _make_device("DEV001")
         dev2 = _make_device("DEV002", "192.168.1.101")
-        repo.get_by_device_id.side_effect = lambda did: {
+        device_repo.get_by_device_id.side_effect = lambda did: {
             "DEV001": dev1,
             "DEV002": dev2,
         }[did]
@@ -478,10 +231,10 @@ class TestAddMembers:
     @pytest.mark.asyncio
     async def test_adds_members_successfully(self):
         """Adds members to zone without error."""
-        service, repo = _make_service()
+        service, device_repo, zone_repo = _make_service()
         dev1 = _make_device("DEV001")
         dev3 = _make_device("DEV003", "192.168.1.102")
-        repo.get_by_device_id.side_effect = lambda did: {
+        device_repo.get_by_device_id.side_effect = lambda did: {
             "DEV001": dev1,
             "DEV003": dev3,
         }[did]
@@ -495,8 +248,8 @@ class TestAddMembers:
     @pytest.mark.asyncio
     async def test_raises_not_found_for_unknown_device(self):
         """Raises DeviceNotFoundError for unknown slave."""
-        service, repo = _make_service()
-        repo.get_by_device_id.side_effect = lambda did: (
+        service, device_repo, zone_repo = _make_service()
+        device_repo.get_by_device_id.side_effect = lambda did: (
             _make_device() if did == "DEV001" else None
         )
 
@@ -510,10 +263,10 @@ class TestRemoveMembers:
     @pytest.mark.asyncio
     async def test_removes_members_successfully(self):
         """Removes members from zone without error."""
-        service, repo = _make_service()
+        service, device_repo, zone_repo = _make_service()
         dev1 = _make_device("DEV001")
         dev2 = _make_device("DEV002", "192.168.1.101")
-        repo.get_by_device_id.side_effect = lambda did: {
+        device_repo.get_by_device_id.side_effect = lambda did: {
             "DEV001": dev1,
             "DEV002": dev2,
         }[did]
@@ -527,10 +280,10 @@ class TestRemoveMembers:
     @pytest.mark.asyncio
     async def test_raises_connection_error_on_failure(self):
         """Raises DeviceConnectionError when remove fails."""
-        service, repo = _make_service()
+        service, device_repo, zone_repo = _make_service()
         dev1 = _make_device("DEV001")
         dev2 = _make_device("DEV002", "192.168.1.101")
-        repo.get_by_device_id.side_effect = lambda did: {
+        device_repo.get_by_device_id.side_effect = lambda did: {
             "DEV001": dev1,
             "DEV002": dev2,
         }[did]
@@ -548,21 +301,39 @@ class TestDissolveZone:
 
     @pytest.mark.asyncio
     async def test_dissolves_zone_successfully(self):
-        """Dissolves zone without error."""
-        service, repo = _make_service()
-        repo.get_by_device_id.return_value = _make_device()
+        """Dissolves zone by removing slaves sequentially, then master."""
+        service, device_repo, zone_repo = _make_service()
+        device_repo.get_by_device_id.return_value = _make_device()
+
+        # Mock zone status with master + 2 slaves
+        zone_status = ZoneStatus(
+            master_id="DEV001",
+            master_ip="192.168.1.100",
+            is_master=True,
+            members=[
+                ZoneMemberInfo(device_id="DEV001", ip_address="192.168.1.100", role="master"),
+                ZoneMemberInfo(device_id="DEV002", ip_address="192.168.1.101", role="slave"),
+                ZoneMemberInfo(device_id="DEV003", ip_address="192.168.1.102", role="slave"),
+            ],
+        )
 
         mock_client = AsyncMock()
+        mock_client.get_zone_status.return_value = zone_status
         with patch.object(service, "_get_client", return_value=mock_client):
             await service.dissolve_zone("DEV001")
 
+        # Should call get_zone_status first
+        mock_client.get_zone_status.assert_called_once()
+        # Should remove each slave individually
+        assert mock_client.remove_zone_members.call_count == 2
+        # Then remove zone on master
         mock_client.remove_zone.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_raises_not_found_for_unknown_device(self):
         """Raises DeviceNotFoundError for unknown master."""
-        service, repo = _make_service()
-        repo.get_by_device_id.return_value = None
+        service, device_repo, zone_repo = _make_service()
+        device_repo.get_by_device_id.return_value = None
 
         with pytest.raises(DeviceNotFoundError):
             await service.dissolve_zone("UNKNOWN")
@@ -574,14 +345,14 @@ class TestChangeMaster:
     @pytest.mark.asyncio
     async def test_changes_master_successfully(self):
         """Dissolves old zone and creates new one with new master."""
-        service, repo = _make_service()
+        service, device_repo, zone_repo = _make_service()
         dev1 = _make_device("DEV001", "192.168.1.100", "Living Room")
         dev2 = _make_device("DEV002", "192.168.1.101", "Kitchen")
-        repo.get_by_device_id.side_effect = lambda did: {
+        device_repo.get_by_device_id.side_effect = lambda did: {
             "DEV001": dev1,
             "DEV002": dev2,
         }[did]
-        repo.get_all.return_value = [dev1, dev2]
+        device_repo.get_all.return_value = [dev1, dev2]
 
         old_zone = _make_zone_status()
         new_zone = _make_zone_status(
@@ -610,10 +381,10 @@ class TestChangeMaster:
     @pytest.mark.asyncio
     async def test_raises_value_error_when_not_in_zone(self):
         """Raises ValueError when device is not in a zone."""
-        service, repo = _make_service()
+        service, device_repo, zone_repo = _make_service()
         dev1 = _make_device("DEV001")
         dev2 = _make_device("DEV002", "192.168.1.101")
-        repo.get_by_device_id.side_effect = lambda did: {
+        device_repo.get_by_device_id.side_effect = lambda did: {
             "DEV001": dev1,
             "DEV002": dev2,
         }[did]
