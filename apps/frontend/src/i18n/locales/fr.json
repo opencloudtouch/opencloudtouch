@@ -15,7 +15,9 @@
     "reloadPage": "Recharger la page",
     "stationNotFound": "Station introuvable.",
     "saveAsPreset": "Enregistrer comme préréglage",
-    "or": "ou"
+    "or": "ou",
+    "enabled": "Activé",
+    "disabled": "Désactivé"
   },
   "nav": {
     "presets": "Préréglages",
@@ -61,7 +63,7 @@
     "infoItem2": "Cliquez sur une station attribuée pour la modifier ou la supprimer",
     "infoItem3": "Le bouton vert ► lit la station directement",
     "infoItem4": "Les préréglages surlignés en jaune dépendent de Bose Cloud — reconfiguration recommandée",
-    "infoItem5": "⚙️ ouvre l'assistant de configuration pour l'appareil",
+    "infoItem5": "âš™ï¸ ouvre l'assistant de configuration pour l'appareil",
     "infoItem6": "\"Charger depuis l'appareil\" synchronise les préréglages depuis SoundTouch",
     "changeStation": "Cliquer pour changer de station",
     "assignPreset": "Attribuer un préréglage",
@@ -342,8 +344,8 @@
         "q2": "Seules des personnes de confiance connues de vous ont-elles accès à votre réseau Wi-Fi ?",
         "q3": "Prévoyez-vous d'installer des mises à jour de firmware pour cet appareil SoundTouch prochainement ?",
         "answerYes": "✅ Oui",
-        "answerNo": "❌ Non",
-        "answerUnknown": "❓ Je ne sais pas",
+        "answerNo": "âŒ Non",
+        "answerUnknown": "â“ Je ne sais pas",
         "riskLabel": "Risque :",
         "riskLow": "Faible",
         "riskMedium": "Moyen",
@@ -357,7 +359,7 @@
         "advancedWhy": "Quand est-ce nécessaire ?",
         "advancedWhyText": "Uniquement si le test automatique ci-dessus échoue et que vous souhaitez vérifier la connexion vous-même. Pour le processus normal, vous pouvez ignorer cette étape.",
         "advancedDesc": "Les appareils SoundTouch nécessitent des algorithmes SSH hérités.",
-        "tabTerminal": "🖥️ Terminal (Linux / macOS)",
+        "tabTerminal": "ðŸ–¥ï¸ Terminal (Linux / macOS)",
         "tabPuTTY": "🪟 PuTTY (Windows)",
         "puttyStep1": "Session : Host Name = {{ip}}, Port = 22, Connection type = SSH",
         "puttyStep2": "Connection → SSH → Kex : placer Diffie-Hellman group 1 en tête",
@@ -365,7 +367,7 @@
         "puttyStep4": "Connection → SSH → Auth : activer 'Allow attempted changes of username' ; sous Host keys supprimer rsa-sha2-256 et rsa-sha2-512, conserver uniquement ssh-rsa",
         "puttyStep5": "Login : Username = root, Mot de passe = vide (appuyer sur Entrée)",
         "sshPasswordHint": "Mot de passe : laisser vide (appuyer sur Entrée)",
-        "troubleshootingTitle": "⚠️ Dépannage",
+        "troubleshootingTitle": "âš ï¸ DÃ©pannage",
         "troubleshootingItem1": "Vérifiez que la clé USB est correctement insérée",
         "troubleshootingItem2": "Assurez-vous que le fichier 'remote_services' est correct",
         "troubleshootingItem3": "Attendez au moins 60 secondes après le redémarrage",
@@ -655,6 +657,7 @@
     "hallOfFameDescription": "Les 3 meilleurs contributeurs de tous les temps — reconnus pour leur impact technique exceptionnel.",
     "supportersTitle": "Supporters",
     "reportBug": "Signaler un bug",
+    "diagnostics": "Diagnostics",
     "supportersDescription": "Merci à tous ceux qui soutiennent OpenCloudTouch financièrement. Vos contributions aident à maintenir le projet en vie !",
     "supportersMonthly": "Supporters Mensuels",
     "supportersOneTime": "Supporters ponctuels",
@@ -732,10 +735,29 @@
     "diagnosticsSuccess": "Diagnostics téléchargés ! Joignez le fichier .log.gz à votre issue GitHub.",
     "diagnosticsFailed": "Échec du téléchargement des diagnostics : {{error}}"
   },
+  "diagnostics": {
+    "title": "Diagnostics",
+    "serverInfo": "Informations serveur",
+    "version": "Version",
+    "python": "Python",
+    "platform": "Plateforme",
+    "discovery": "Découverte",
+    "logLevel": "Niveau de log",
+    "manualIPs": "IPs manuelles",
+    "database": "Base de données",
+    "devicesCount": "Appareils",
+    "presetsCount": "Préréglages",
+    "devices": "Appareils",
+    "noDevices": "Aucun appareil trouvé",
+    "firmware": "Firmware",
+    "setupStatus": "Statut de configuration",
+    "lastSeen": "Dernière activité",
+    "downloadBundle": "Télécharger le bundle de support"
+  },
   "deviceRename": {
     "clickToEdit": "Cliquer pour renommer",
     "inputLabel": "Nom de l'appareil",
-    "tooLong": "Le nom doit comporter 30 caractères maximum",
-    "failed": "Échec du renommage"
+    "tooLong": "Le nom doit comporter 30 caract├¿res maximum",
+    "failed": "├ëchec du renommage"
   }
 }

@@ -109,7 +109,21 @@ try {
     $projectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
     Push-Location $projectRoot
 
-    # Step 0: Build frontend and place artifacts in .out/dist/
+    # Step 0: Clean test artifacts from .out/ (coverage, reports, caches)
+    Write-Step "Cleaning test artifacts from .out/..."
+    $outDir = Join-Path $projectRoot ".out"
+    if (Test-Path $outDir) {
+        # Remove test artifacts that shouldn't be in Docker build context
+        @("coverage", "reports", ".ruff_cache", ".pytest_cache") | ForEach-Object {
+            $artifactPath = Join-Path $outDir $_
+            if (Test-Path $artifactPath) {
+                Write-Host "    Removing: $artifactPath" -ForegroundColor Gray
+                Remove-Item -Recurse -Force $artifactPath
+            }
+        }
+    }
+
+    # Step 1: Build frontend and place artifacts in .out/dist/
     Write-Step "Building frontend (npm run build)..."
     $distOut = Join-Path $projectRoot ".out\dist"
     if (Test-Path $distOut) {
@@ -126,14 +140,10 @@ try {
     Pop-Location
     Write-Success "Frontend built: $distOut"
 
-    $buildCmd = "podman build -f ./deployment/Dockerfile -t $Tag"
+    $buildCmd = "podman build --layers --progress=plain -f ./deployment/Dockerfile -t $Tag"
     if ($NoCache) {
         $buildCmd += " --no-cache"
         Write-Host "    Using --no-cache (full rebuild)" -ForegroundColor Gray
-    }
-    if ($Verbose) {
-        $buildCmd += " --progress=plain"
-        Write-Host "    Verbose build output enabled" -ForegroundColor Gray
     }
     $buildCmd += " ."
     Write-Host "    Working directory: $projectRoot" -ForegroundColor Gray

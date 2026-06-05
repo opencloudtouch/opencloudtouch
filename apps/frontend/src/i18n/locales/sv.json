@@ -15,7 +15,9 @@
     "reloadPage": "Ladda om sidan",
     "stationNotFound": "Station hittades inte.",
     "saveAsPreset": "Spara som förinställning",
-    "or": "eller"
+    "or": "eller",
+    "enabled": "Aktiverad",
+    "disabled": "Inaktiverad"
   },
   "nav": {
     "presets": "Förinställningar",
@@ -61,7 +63,7 @@
     "infoItem2": "Klicka på en tilldelad station för att ändra eller ta bort den",
     "infoItem3": "Den gröna ► knappen spelar stationen direkt",
     "infoItem4": "Gult markerade förinställningar beror på Bose Cloud — omkonfigurering rekommenderas",
-    "infoItem5": "⚙️ öppnar enhetens installationsguide",
+    "infoItem5": "âš™ï¸ Ã¶ppnar enhetens installationsguide",
     "infoItem6": "\"Hämta från enhet\" synkroniserar förinställningar från SoundTouch",
     "changeStation": "Klicka för att byta station",
     "assignPreset": "Tilldela förinställning",
@@ -342,8 +344,8 @@
         "q2": "Är det bara kända, betrodda personer som har åtkomst till ditt Wi-Fi-nätverk?",
         "q3": "Planerar du att installera firmwareuppdateringar för den här SoundTouch-enheten inom den närmaste framtiden?",
         "answerYes": "✅ Ja",
-        "answerNo": "❌ Nej",
-        "answerUnknown": "❓ Vet ej",
+        "answerNo": "âŒ Nej",
+        "answerUnknown": "â“ Vet ej",
         "riskLabel": "Risk:",
         "riskLow": "Låg",
         "riskMedium": "Medel",
@@ -357,7 +359,7 @@
         "advancedWhy": "När behövs detta?",
         "advancedWhyText": "Bara om det automatiska testet ovan misslyckas och du vill verifiera anslutningen själv. I den normala processen kan du hoppa över det här steget.",
         "advancedDesc": "SoundTouch-enheter kräver äldre SSH-algoritmer.",
-        "tabTerminal": "🖥️ Terminal (Linux / macOS)",
+        "tabTerminal": "ðŸ–¥ï¸ Terminal (Linux / macOS)",
         "tabPuTTY": "🪟 PuTTY (Windows)",
         "puttyStep1": "Session: Host Name = {{ip}}, Port = 22, Connection type = SSH",
         "puttyStep2": "Connection → SSH → Kex: placera Diffie-Hellman group 1 högst upp",
@@ -365,7 +367,7 @@
         "puttyStep4": "Connection → SSH → Auth: aktivera 'Allow attempted changes of username'; i Host keys ta bort rsa-sha2-256 och rsa-sha2-512, behåll bara ssh-rsa",
         "puttyStep5": "Login: Username = root, Password = tomt (tryck Enter)",
         "sshPasswordHint": "Lösenord: lämna tomt (tryck Enter)",
-        "troubleshootingTitle": "⚠️ Felsökning",
+        "troubleshootingTitle": "âš ï¸ FelsÃ¶kning",
         "troubleshootingItem1": "Kontrollera att USB-enheten är korrekt isatt",
         "troubleshootingItem2": "Kontrollera att filen 'remote_services' är korrekt",
         "troubleshootingItem3": "Vänta minst 60 sekunder efter omstart",
@@ -655,6 +657,7 @@
     "hallOfFameDescription": "Topp 3 bidragsgivare genom tiderna — erkända för exceptionell teknisk påverkan.",
     "supportersTitle": "Supportrar",
     "reportBug": "Rapportera bugg",
+    "diagnostics": "Diagnostik",
     "supportersDescription": "Tack till alla som stödjer OpenCloudTouch ekonomiskt. Era bidrag hjälper till att hålla projektet vid liv!",
     "supportersMonthly": "Månatliga Supportrar",
     "supportersOneTime": "Engångssupportrar",
@@ -732,10 +735,29 @@
     "diagnosticsSuccess": "Diagnostik nedladdad! Bifoga .log.gz-filen till ditt GitHub-ärende.",
     "diagnosticsFailed": "Kunde inte ladda ner diagnostik: {{error}}"
   },
+  "diagnostics": {
+    "title": "Diagnostik",
+    "serverInfo": "Serverinformation",
+    "version": "Version",
+    "python": "Python",
+    "platform": "Plattform",
+    "discovery": "Upptäckt",
+    "logLevel": "Loggnivå",
+    "manualIPs": "Manuella IP-adresser",
+    "database": "Databas",
+    "devicesCount": "Enheter",
+    "presetsCount": "Förinställningar",
+    "devices": "Enheter",
+    "noDevices": "Inga enheter hittades",
+    "firmware": "Firmware",
+    "setupStatus": "Konfigurationsstatus",
+    "lastSeen": "Senast sedd",
+    "downloadBundle": "Ladda ner supportpaket"
+  },
   "deviceRename": {
-    "clickToEdit": "Klicka för att byta namn",
+    "clickToEdit": "Klicka f├Âr att byta namn",
     "inputLabel": "Enhetsnamn",
-    "tooLong": "Namnet får vara högst 30 tecken",
+    "tooLong": "Namnet f├Ñr vara h├Âgst 30 tecken",
     "failed": "Det gick inte att byta namn"
   }
 }
