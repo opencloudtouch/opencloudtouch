@@ -204,7 +204,9 @@ class MockDeviceClient(DeviceClient):
         logger.info("[MOCK] set_name(%s) for device %s", name, self.device_id)
         data = self.MOCK_DEVICES.get(self.device_id)
         if data:
-            data["info"].name = name
+            info = data["info"]
+            if isinstance(info, DeviceInfo):
+                info.name = name
 
     async def close(self) -> None:
         """Mock close (no-op)."""

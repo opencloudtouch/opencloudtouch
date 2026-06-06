@@ -14,6 +14,12 @@ Detection: sequences that are valid UTF-8 but look like Latin-1/CP1252
 double-encoded. We look for the most common: Ã + follow-byte (covers é, ü, ö …)
 and â€ + follow-byte (smart quotes, dashes) and âš/â›/â† emoji corruption.
 """
+import sys
+import io
+
+# Force UTF-8 output to avoid UnicodeEncodeError on CP1252 terminals
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 import re
 import sys
@@ -59,6 +65,7 @@ EXCLUDED_PATH_FRAGMENTS = [
     "scripts\\check-mojibake.py",         # Windows variant
     "scripts/fix-mojibake.py",            # Fix script contains mojibake chars as data
     "scripts\\fix-mojibake.py",           # Windows variant
+    "icy_samples.json",                   # Raw ICY metadata samples (binary data)
 ]
 
 # ---------------------------------------------------------------------------
