@@ -125,6 +125,24 @@ export default function Step5ConfigModification({
     return match?.[1] ? parseInt(match[1], 10) : 7777;
   };
 
+  /** Normalize URL to show what will actually be written (add protocol and port if missing). */
+  const normalizeUrl = (url: string): string => {
+    const trimmed = url.trim();
+    if (!trimmed) return "http://...";
+
+    // Pattern: (protocol)?(hostname|ip)(:port)?
+    const regex = /^(?:(?<protocol>https?):\/\/)?(?<host>[a-zA-Z0-9][a-zA-Z0-9.-]*|[\d.]+)(?::(?<port>\d+))?$/;
+    const match = regex.exec(trimmed);
+    
+    if (!match?.groups) return trimmed; // Invalid format - show as-is
+
+    const protocol = match.groups.protocol || "http";
+    const host = match.groups.host;
+    const port = match.groups.port || "7777";
+
+    return `${protocol}://${host}:${port}`;
+  };
+
   const handleModifyConfig = async (options?: { bypassDns?: boolean }) => {
     const targetUrl = customUrl;
     const shouldBypassDns = options?.bypassDns ?? bypassDnsCheck;
@@ -354,7 +372,7 @@ export default function Step5ConfigModification({
                 <div className="config-change-arrow">→</div>
                 <div className="config-change-to">
                   <span className="config-change-label">{t("setup.wizard.step5.changeTo")}</span>
-                  <code>{customUrl || "http://..."}</code>
+                  <code>{normalizeUrl(customUrl)}</code>
                 </div>
               </div>
             </div>
