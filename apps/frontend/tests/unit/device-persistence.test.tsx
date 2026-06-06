@@ -26,7 +26,7 @@ vi.mock("react-router-dom", async () => {
 });
 
 // Capture onIndexChange from DeviceSwiper
-let capturedOnIndexChange: ((index: number) => void) | null = null;
+let _capturedOnIndexChange: ((index: number) => void) | null = null;
 
 vi.mock("../../src/components/DeviceSwiper", () => ({
   default: ({
@@ -36,7 +36,7 @@ vi.mock("../../src/components/DeviceSwiper", () => ({
     children: React.ReactNode;
     onIndexChange: (index: number) => void;
   }) => {
-    capturedOnIndexChange = onIndexChange;
+    _capturedOnIndexChange = onIndexChange;
     return (
       <div data-testid="device-swiper">
         <button data-testid="swipe-to-0" onClick={() => onIndexChange(0)}>
@@ -151,7 +151,7 @@ const mockDevices = [
 describe("Device persistence via URL parameter", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    capturedOnIndexChange = null;
+    _capturedOnIndexChange = null;
   });
 
   test("swiping to second device updates URL with ?device= parameter", async () => {

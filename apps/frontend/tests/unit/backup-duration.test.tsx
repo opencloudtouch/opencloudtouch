@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect, vi } from "vitest";
-import { render, screen, act } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 
@@ -35,8 +35,6 @@ vi.mock("./WizardStep", () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
-// Need to import after mocks
-// eslint-disable-next-line import/first
 import Step4Backup from "../../src/components/wizard/Step4Backup";
 
 describe("Step4Backup - Duration Formatting", () => {
