@@ -384,14 +384,12 @@
         "btnCreate": "Criar backup agora",
         "btnCreating": "Criando backup...",
         "progressMessage": "Criando backup para {{device}}",
-        "progressNote": "Isso pode levar até 5 minutos...",
+        "progressNote": "Isso pode levar até 2 minutos...",
         "errorTitle": "Backup falhou",
         "successTitle": "Backup criado com sucesso!",
         "successHint": "Os backups foram gravados no seu pendrive. Remova o pendrive após o assistente — ele contém seus arquivos de recuperação.",
         "filesTitle": "Arquivos salvos (no pendrive):",
-        "totalLabel": "Total:",
-        "durationMinSec": "{{min}} min {{sec}} s",
-        "durationSec": "{{sec}} s"
+        "totalLabel": "Total:"
       },
       "step5": {
         "titleProxy": "Proxy reverso detectado",
@@ -755,5 +753,11 @@
     "setupStatus": "Status de configuração",
     "lastSeen": "Visto pela última vez",
     "downloadBundle": "Baixar pacote de suporte"
+  },
+  "deviceRename": {
+    "clickToEdit": "Clique para renomear",
+    "inputLabel": "Nome do dispositivo",
+    "tooLong": "O nome deve ter no máximo 30 caracteres",
+    "failed": "Falha ao renomear o dispositivo"
   }
 }

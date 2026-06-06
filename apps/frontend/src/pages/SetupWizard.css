@@ -1,7 +1,9 @@
-/* Setup Wizard Page - Integrated into standard layout */
+/* Setup Wizard Page V2 - Modern Clean Design (Dark Theme) */
 
-.setup-wizard-page {
+.setup-wizard-page-v2 {
+  min-height: 100vh;
   background-color: var(--color-bg-dark);
+  padding: var(--space-xl) var(--space-md);
 }
 
 /* Global Demo Banner — REFACT-129: Improved contrast, less dominant */
@@ -92,6 +94,10 @@
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
+  .setup-wizard-page-v2 {
+    padding: var(--space-md) var(--space-sm);
+  }
+
   .global-demo-banner {
     font-size: 13px;
     padding: var(--space-sm) var(--space-md);

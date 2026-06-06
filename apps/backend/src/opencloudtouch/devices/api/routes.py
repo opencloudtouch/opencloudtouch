@@ -21,6 +21,7 @@ from opencloudtouch.core.exceptions import (
     DomainValidationError,
 )
 from opencloudtouch.devices.client import NowPlayingInfo
+from opencloudtouch.devices.rename_service import rename_device_via_ssh
 from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.devices.websocket.icy_worker import RADIO_SOURCES
@@ -65,9 +66,9 @@ async def _device_op(
         raise
     except Exception as e:
         logger.exception("Failed to %s for device %s", action, device_id)
-        raise HTTPException(
+        raise HTTPException(  # NOSONAR
             status_code=500, detail=f"Failed to {action}"
-        ) from e  # NOSONAR
+        ) from e
 
 
 @router.get("")
@@ -232,6 +233,105 @@ async def press_key(
         device_service.press_key(device_id, key, state),
     )
     return {"message": f"Key {key} pressed successfully", "device_id": device_id}
+
+
+@router.put(
+    "/{device_id}/name",
+    responses={
+        422: {"description": "Invalid name"},
+        502: {"description": "Both REST and SSH rename failed"},
+    },
+)
+async def rename_device(
+    device_id: str,
+    body: Annotated[dict, Body()],
+    device_service: Annotated[DeviceService, Depends(get_device_service)],
+):
+    """
+    Rename a SoundTouch device.
+
+    Tries REST API first (POST /name), falls back to SSH if REST fails.
+    Updates the local database after successful rename.
+
+    Args:
+        device_id: Device ID (MAC address)
+        body: {"name": "New Name"} — 1-30 characters
+
+    Returns:
+        Updated device info with previous name
+
+    Raises:
+        DeviceNotFoundError: If device does not exist
+        HTTPException(422): If name validation fails
+        HTTPException(502): If both REST and SSH methods fail
+    """
+    name = body.get("name", "").strip()
+
+    if not name:
+        raise HTTPException(status_code=422, detail="Device name must not be empty")
+    if len(name) > 30:
+        raise HTTPException(
+            status_code=422, detail="Device name must be 30 characters or fewer"
+        )
+
+    device = await device_service.get_device_by_id(device_id)
+    if not device:
+        raise DeviceNotFoundError(device_id)
+
+    previous_name = device.name
+
+    # Try REST API first (like Bose App does)
+    rest_error = None
+    try:
+        async with device_service._device_client(device_id) as client:
+            await client.set_name(name)
+        logger.info(
+            "Device %r renamed via REST API: %r -> %r",
+            device.device_id,
+            previous_name,
+            name,
+        )
+    except Exception as e:
+        rest_error = str(e)
+        logger.warning(
+            "REST API rename failed for %r, trying SSH fallback: %s",
+            device.device_id,
+            e,
+        )
+
+        # Fallback to SSH (for devices that don't support REST /name or are configured)
+        try:
+            await rename_device_via_ssh(device.ip, name)
+            logger.info(
+                "Device %r renamed via SSH fallback: %r -> %r",
+                device.device_id,
+                previous_name,
+                name,
+            )
+        except Exception as ssh_error:
+            logger.exception(
+                "Both REST and SSH rename failed for %r: REST=%s",
+                device.device_id,
+                rest_error,
+            )
+            raise HTTPException(
+                status_code=502,
+                detail="Could not rename device (REST and SSH both failed)",
+            ) from ssh_error
+
+    # Update local DB
+    device.name = name
+    await device_service.repository.upsert(device)
+
+    logger.info(
+        "Device %r renamed: %r -> %r", device.device_id, previous_name, device.name
+    )
+
+    return {
+        "device_id": device_id,
+        "name": name,
+        "previous_name": previous_name,
+    }
 
 
 _IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico", ".bmp"}

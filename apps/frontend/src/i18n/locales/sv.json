@@ -1,4 +1,4 @@
-﻿{
+{
   "common": {
     "cancel": "Avbryt",
     "loading": "Laddar...",
@@ -384,14 +384,12 @@
         "btnCreate": "Skapa säkerhetskopia nu",
         "btnCreating": "Skapar säkerhetskopia...",
         "progressMessage": "Skapar säkerhetskopia för {{device}}",
-        "progressNote": "Det kan ta upp till 5 minuter...",
+        "progressNote": "Det kan ta upp till 2 minuter...",
         "errorTitle": "Säkerhetskopiering misslyckades",
         "successTitle": "Säkerhetskopia skapad!",
         "successHint": "Säkerhetskopiorna sparades på USB-enheten. Ta ut enheten efter guiden — den innehåller återställningsfiler.",
         "filesTitle": "Sparade filer (på USB-enheten):",
-        "totalLabel": "Totalt:",
-        "durationMinSec": "{{min}} min {{sec}} s",
-        "durationSec": "{{sec}} s"
+        "totalLabel": "Totalt:"
       },
       "step5": {
         "titleProxy": "Omvänd proxy detekterad",
@@ -755,5 +753,11 @@
     "setupStatus": "Konfigurationsstatus",
     "lastSeen": "Senast sedd",
     "downloadBundle": "Ladda ner supportpaket"
+  },
+  "deviceRename": {
+    "clickToEdit": "Klicka för att byta namn",
+    "inputLabel": "Enhetsnamn",
+    "tooLong": "Namnet får ha max 30 tecken",
+    "failed": "Det gick inte att byta namn"
   }
 }

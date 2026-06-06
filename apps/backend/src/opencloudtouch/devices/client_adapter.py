@@ -373,6 +373,56 @@ class BoseDeviceClientAdapter(DeviceClient):
             logger.exception("Failed to set mute on %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
+    async def set_name(self, name: str) -> None:
+        """
+        Set device name via REST API.
+
+        Uses POST /name endpoint with XML body:
+        <?xml version="1.0"?><name>Device Name</name>
+
+        Args:
+            name: New device name (1-30 chars, will be XML-escaped)
+
+        Raises:
+            ConnectionError: If device is unreachable
+            ValueError: If name is empty or too long
+        """
+        if not name or not name.strip():
+            raise ValueError("Device name cannot be empty")
+        if len(name) > 30:
+            raise ValueError("Device name must be 30 characters or fewer")
+
+        try:
+            escaped_name = xml_escape(name.strip())
+            xml_payload = f'<?xml version="1.0"?><name>{escaped_name}</name>'
+
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    f"{self.base_url}/name",
+                    content=xml_payload,
+                    headers={"Content-Type": "application/xml"},
+                )
+                response.raise_for_status()
+
+            logger.info(
+                "Device name updated via REST API: %s",
+                name,
+                extra={"device_ip": self.ip, "new_name": name},
+            )
+
+        except httpx.HTTPStatusError as e:
+            logger.exception(
+                "HTTP error updating device name: %s",
+                e.response.status_code,
+                extra={"device_ip": self.ip, "status": e.response.status_code},
+            )
+            raise DeviceConnectionError(
+                self.ip, f"HTTP {e.response.status_code}"
+            ) from e
+        except Exception as e:
+            logger.exception("Failed to set name on %s", self.base_url)
+            raise DeviceConnectionError(self.ip, str(e)) from e
+
     async def close(self) -> None:
         """Close client connections (no-op for bosesoundtouchapi)."""
         pass

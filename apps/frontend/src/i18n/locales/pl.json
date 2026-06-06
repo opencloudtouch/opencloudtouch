@@ -1,4 +1,4 @@
-﻿{
+{
   "common": {
     "cancel": "Anuluj",
     "loading": "Åadowanie...",
@@ -384,14 +384,12 @@
         "btnCreate": "Utwórz kopię zapasową teraz",
         "btnCreating": "Tworzenie kopii zapasowej...",
         "progressMessage": "Tworzenie kopii zapasowej dla {{device}}",
-        "progressNote": "Może to potrwać do 5 minut...",
+        "progressNote": "Może to potrwać do 2 minut...",
         "errorTitle": "Kopia zapasowa nie powiodła się",
         "successTitle": "Kopia zapasowa utworzona pomyślnie!",
         "successHint": "Kopie zapasowe zostały zapisane na dysku USB. Wyjmij dysk po kreatorze — zawiera pliki odzyskiwania.",
         "filesTitle": "Zapisane pliki (na dysku USB):",
-        "totalLabel": "ÅÄ…cznie:",
-        "durationMinSec": "{{min}} min {{sec}} s",
-        "durationSec": "{{sec}} s"
+        "totalLabel": "ÅÄ…cznie:"
       },
       "step5": {
         "titleProxy": "Wykryto reverse proxy",
@@ -755,5 +753,11 @@
     "setupStatus": "Status konfiguracji",
     "lastSeen": "Ostatnio widziany",
     "downloadBundle": "Pobierz pakiet wsparcia"
+  },
+  "deviceRename": {
+    "clickToEdit": "Kliknij, aby zmienić nazwę",
+    "inputLabel": "Nazwa urządzenia",
+    "tooLong": "Nazwa musi mieć maksymalnie 30 znaków",
+    "failed": "Nie udało się zmienić nazwy"
   }
 }

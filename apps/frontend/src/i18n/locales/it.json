@@ -384,14 +384,12 @@
         "btnCreate": "Crea backup ora",
         "btnCreating": "Creazione in corso...",
         "progressMessage": "Creazione del backup per {{device}}",
-        "progressNote": "Questa operazione può richiedere fino a 5 minuti...",
+        "progressNote": "Questa operazione può richiedere fino a 2 minuti...",
         "errorTitle": "Backup non riuscito",
         "successTitle": "Backup creato con successo!",
         "successHint": "I backup sono stati scritti sulla chiavetta USB. Rimuovere la chiavetta dopo la procedura guidata — contiene i file di ripristino.",
         "filesTitle": "File salvati (sulla chiavetta USB):",
-        "totalLabel": "Totale:",
-        "durationMinSec": "{{min}} min {{sec}} s",
-        "durationSec": "{{sec}} s"
+        "totalLabel": "Totale:"
       },
       "step5": {
         "titleProxy": "Proxy inverso rilevato",
@@ -755,5 +753,11 @@
     "setupStatus": "Stato configurazione",
     "lastSeen": "Ultimo accesso",
     "downloadBundle": "Scarica bundle di supporto"
+  },
+  "deviceRename": {
+    "clickToEdit": "Clicca per rinominare",
+    "inputLabel": "Nome dispositivo",
+    "tooLong": "Il nome deve avere al massimo 30 caratteri",
+    "failed": "Rinominazione non riuscita"
   }
 }

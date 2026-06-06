@@ -7,20 +7,6 @@ import { createBackup, BackupResponse, BackupVolume } from "../../api/wizard";
 import WizardStep from "./WizardStep";
 import "./Step4Backup.css";
 
-/** Format seconds into human-readable "Xm Ys" / "Xs" using i18n */
-function formatDuration(
-  seconds: number,
-  t: (key: string, opts?: Record<string, unknown>) => string
-): string {
-  const totalSeconds = Math.round(seconds);
-  const mins = Math.floor(totalSeconds / 60);
-  const secs = totalSeconds % 60;
-  if (mins > 0) {
-    return t("setup.wizard.step4.durationMinSec", { min: mins, sec: secs });
-  }
-  return t("setup.wizard.step4.durationSec", { sec: secs });
-}
-
 interface Step4Props {
   deviceId: string;
   deviceIp: string;
@@ -153,8 +139,7 @@ export default function Step4Backup({
                     <div className="backup-file-details">
                       <strong>{vol.volume}</strong>
                       <small>
-                        {vol.size_mb.toFixed(2)} MB &middot;{" "}
-                        {formatDuration(vol.duration_seconds, t)}
+                        {vol.size_mb.toFixed(2)} MB &middot; {vol.duration_seconds.toFixed(1)}s
                       </small>
                     </div>
                     <code className="backup-file-path">{vol.path}</code>
@@ -166,7 +151,7 @@ export default function Step4Backup({
             <div className="backup-summary">
               <strong>{t("setup.wizard.step4.totalLabel")}</strong>{" "}
               {backupData.total_size_mb.toFixed(2)} MB in{" "}
-              {formatDuration(backupData.total_duration_seconds, t)}
+              {backupData.total_duration_seconds.toFixed(1)}s
             </div>
           </div>
         )}
