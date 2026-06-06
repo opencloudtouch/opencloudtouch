@@ -117,7 +117,9 @@ describe("Step5ConfigModification — DNS validation", () => {
       resolvable: false,
       resolved_ip: null,
       matches_expected: null,
+      oct_reachable: false,
       error: "DNS resolution failed: Name not known",
+      oct_error: null,
     });
 
     await renderStep5();
@@ -128,6 +130,7 @@ describe("Step5ConfigModification — DNS validation", () => {
 
     expect(mockValidateHostname).toHaveBeenCalledWith({
       hostname: "myserver.local",
+      port: 7777,
       expected_ip: "192.168.1.50",
     });
 
@@ -141,7 +144,9 @@ describe("Step5ConfigModification — DNS validation", () => {
       resolvable: true,
       resolved_ip: "10.0.0.99",
       matches_expected: false,
+      oct_reachable: true,
       error: null,
+      oct_error: null,
     });
 
     await renderStep5();
@@ -160,7 +165,9 @@ describe("Step5ConfigModification — DNS validation", () => {
       resolvable: true,
       resolved_ip: "192.168.1.50",
       matches_expected: true,
+      oct_reachable: true,
       error: null,
+      oct_error: null,
     });
     mockModifyConfig.mockResolvedValueOnce({
       success: true,
@@ -216,12 +223,14 @@ describe("Step5ConfigModification — DNS validation", () => {
     expect(mockValidateHostname).not.toHaveBeenCalled();
   });
 
-  it("proceed button dismisses warning and retries modify", async () => {
+  it("proceed button dismisses warning and retries modify with original hostname", async () => {
     mockValidateHostname.mockResolvedValueOnce({
       resolvable: false,
       resolved_ip: null,
       matches_expected: null,
+      oct_reachable: false,
       error: "DNS resolution failed",
+      oct_error: null,
     });
     mockModifyConfig.mockResolvedValueOnce({
       success: true,
@@ -249,16 +258,22 @@ describe("Step5ConfigModification — DNS validation", () => {
 
     // setTimeout(handleModifyConfig, 0) — wait for it
     await waitFor(() => {
-      expect(mockModifyConfig).toHaveBeenCalled();
+      expect(mockModifyConfig).toHaveBeenCalledWith(
+        expect.objectContaining({
+          target_addr: "http://myserver.local:7777", // Original hostname preserved
+        })
+      );
     });
   });
 
-  it("use-resolved-ip button replaces hostname with resolved IP", async () => {
+  it("does not show use-resolved-ip button (removed from UI)", async () => {
     mockValidateHostname.mockResolvedValueOnce({
       resolvable: true,
       resolved_ip: "10.0.0.99",
       matches_expected: false,
+      oct_reachable: true,
       error: null,
+      oct_error: null,
     });
 
     await renderStep5();
@@ -271,35 +286,9 @@ describe("Step5ConfigModification — DNS validation", () => {
       expect(queryDnsWarning()).not.toBeNull();
     });
 
-    const useIpBtn = queryDnsUseIpBtn()!;
-    expect(useIpBtn).not.toBeNull();
-    await act(async () => {
-      useIpBtn.click();
-    });
-
-    // DNS warning should be dismissed
-    expect(queryDnsWarning()).toBeNull();
-  });
-
-  it("does not show use-resolved-ip button when resolved_ip is null", async () => {
-    mockValidateHostname.mockResolvedValueOnce({
-      resolvable: false,
-      resolved_ip: null,
-      matches_expected: null,
-      error: "DNS resolution failed",
-    });
-
-    await renderStep5();
-
-    await act(async () => {
-      getApplyButton().click();
-    });
-
-    await waitFor(() => {
-      expect(queryDnsWarning()).not.toBeNull();
-    });
-
+    // "Use resolved IP" button was removed — only "Proceed anyway" remains
     expect(queryDnsUseIpBtn()).toBeNull();
+    expect(queryDnsProceedBtn()).not.toBeNull();
   });
 
   it("renders DNS mismatch message when resolvable but IP mismatches", async () => {
@@ -307,7 +296,9 @@ describe("Step5ConfigModification — DNS validation", () => {
       resolvable: true,
       resolved_ip: "10.0.0.99",
       matches_expected: false,
+      oct_reachable: true,
       error: null,
+      oct_error: null,
     });
 
     await renderStep5();
@@ -328,7 +319,9 @@ describe("Step5ConfigModification — DNS validation", () => {
       resolvable: false,
       resolved_ip: null,
       matches_expected: null,
+      oct_reachable: false,
       error: null,
+      oct_error: null,
     });
 
     await renderStep5();
@@ -349,7 +342,9 @@ describe("Step5ConfigModification — DNS validation", () => {
       resolvable: false,
       resolved_ip: null,
       matches_expected: null,
+      oct_reachable: false,
       error: "DNS resolution failed: NXDOMAIN",
+      oct_error: null,
     });
 
     await renderStep5();
@@ -362,6 +357,52 @@ describe("Step5ConfigModification — DNS validation", () => {
       const warning = queryDnsWarning()!;
       expect(warning).not.toBeNull();
       expect(warning.textContent).toContain("DNS resolution failed: NXDOMAIN");
+    });
+  });
+
+  it("shows DNS warning when hostname resolves but OCT is not reachable", async () => {
+    mockValidateHostname.mockResolvedValueOnce({
+      resolvable: true,
+      resolved_ip: "192.168.1.50",
+      matches_expected: true,
+      oct_reachable: false,
+      error: null,
+      oct_error: "Connection refused at myserver.local:7777",
+    });
+
+    await renderStep5();
+
+    await act(async () => {
+      getApplyButton().click();
+    });
+
+    await waitFor(() => {
+      const warning = queryDnsWarning()!;
+      expect(warning).not.toBeNull();
+      expect(warning.textContent).toContain("Connection refused");
+    });
+  });
+
+  it("shows DNS warning when OCT returns wrong service", async () => {
+    mockValidateHostname.mockResolvedValueOnce({
+      resolvable: true,
+      resolved_ip: "192.168.1.50",
+      matches_expected: true,
+      oct_reachable: false,
+      error: null,
+      oct_error: "Server at myserver.local:7777 is not OpenCloudTouch",
+    });
+
+    await renderStep5();
+
+    await act(async () => {
+      getApplyButton().click();
+    });
+
+    await waitFor(() => {
+      const warning = queryDnsWarning()!;
+      expect(warning).not.toBeNull();
+      expect(warning.textContent).toContain("not OpenCloudTouch");
     });
   });
 });

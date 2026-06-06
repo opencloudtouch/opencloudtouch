@@ -4492,6 +4492,13 @@ components:
           maxLength: 255
           title: Hostname
           description: Hostname to resolve (e.g. 'hera' or 'myserver.local')
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          default: 7777
+          title: Port
+          description: "Port to check for OCT reachability (default: 7777)"
         expected_ip:
           anyOf:
           - type: string
@@ -4521,15 +4528,27 @@ components:
           - type: 'null'
           title: Matches Expected
           description: Whether resolved IP matches expected_ip (null if no expected_ip)
+        oct_reachable:
+          type: boolean
+          default: false
+          title: Oct Reachable
+          description: Whether OCT is reachable at hostname:port
         error:
           anyOf:
           - type: string
           - type: 'null'
           title: Error
           description: Error message (if resolution failed)
+        oct_error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Oct Error
+          description: Error message (if OCT check failed)
       type: object
       required:
       - resolvable
+      - oct_reachable
       title: ValidateHostnameResponse
       description: Response from hostname DNS validation.
     VerifyCheck:

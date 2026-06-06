@@ -93,6 +93,7 @@ export async function detectStrategy(): Promise<DetectStrategyResponse> {
  */
 export interface ValidateHostnameRequest {
   hostname: string;
+  port: number;
   expected_ip: string | null;
 }
 
@@ -100,7 +101,9 @@ export interface ValidateHostnameResponse {
   resolvable: boolean;
   resolved_ip: string | null;
   matches_expected: boolean | null;
+  oct_reachable: boolean;
   error: string | null;
+  oct_error: string | null;
 }
 
 export async function validateHostname(

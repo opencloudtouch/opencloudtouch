@@ -20,58 +20,6 @@ interface PresetButtonProps {
   disabled?: boolean;
 }
 
-/**
- * Determine if preset is cloud-dependent (won't work after May 6, 2026)
- *
- * SAFE DEFAULT: Unknown sources are treated as cloud-dependent (orange badge)
- * to avoid misleading users about post-May-2026 availability.
- */
-function isCloudDependent(preset: Preset): boolean {
-  // SAFE DEFAULT: No source info = assume cloud-dependent
-  if (!preset.source) return true;
-
-  const source = preset.source.toUpperCase();
-
-  // TUNEIN requires Bose cloud (streaming.bose.com)
-  if (source === "TUNEIN") return true;
-
-  // LOCAL_INTERNET_RADIO = OCT managed (cloud-independent)
-  if (source === "LOCAL_INTERNET_RADIO") return false;
-
-  // INTERNET_RADIO with direct stream URL = cloud-independent
-  // (unless it points to Bose cloud services)
-  if (source === "INTERNET_RADIO") {
-    if (!preset.station_url) return true;
-
-    // BUG-33 Fix: BMX URLs (content.api.bose.io) embed a base64 JSON payload
-    // with the actual streamUrl. Decode it to get the real URL before deciding.
-    if (preset.station_url.includes("content.api.bose.io")) {
-      try {
-        const urlObj = new URL(preset.station_url);
-        const dataParam = urlObj.searchParams.get("data");
-        if (dataParam) {
-          const decoded = JSON.parse(atob(dataParam)) as Record<string, unknown>;
-          const streamUrl = (decoded.streamUrl as string) || (decoded.url as string) || "";
-          if (streamUrl && !streamUrl.includes("streaming.bose.com")) {
-            // Has a real non-cloud stream URL → cloud-independent
-            return false;
-          }
-        }
-      } catch {
-        // Decode failed: treat as cloud-dependent (safe default)
-        return true;
-      }
-      // No decodable streamUrl → don't know → cloud-dependent (safe)
-      return true;
-    }
-
-    return preset.station_url.includes("streaming.bose.com");
-  }
-
-  // Unknown sources assumed cloud-dependent to be safe
-  return true;
-}
-
 function handleFaviconError(e: React.SyntheticEvent<HTMLImageElement>) {
   (e.target as HTMLImageElement).style.display = "none";
   const parent = (e.target as HTMLImageElement).parentElement;
@@ -110,7 +58,7 @@ export default function PresetButton({
       {preset ? (
         <>
           <button
-            className={`preset-info${isCloudDependent(preset) ? " cloud-warning" : ""}`}
+            className="preset-info"
             onClick={onAssign}
             data-testid={`preset-play-${number}`}
             title={t("presets.changeStation")}

@@ -356,7 +356,6 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
             <li>{t("presets.infoItem1")}</li>
             <li>{t("presets.infoItem2")}</li>
             <li>{t("presets.infoItem3")}</li>
-            <li>{t("presets.infoItem4")}</li>
             <li>{t("presets.infoItem5")}</li>
             <li>{t("presets.infoItem6")}</li>
           </ul>

@@ -198,10 +198,15 @@ class TestUrlBuilders:
         assert url.startswith("http://")
         assert "https" not in url
 
-    def test_bmx_url_uses_bose_domain(self):
-        """URL must use content.api.bose.io domain (resolved via /etc/hosts)."""
+    def test_bmx_url_uses_provided_host(self):
+        """URL must use the user-specified hostname or IP."""
         url = SoundTouchConfigService.build_bmx_url("192.168.1.50")
-        assert "content.api.bose.io" in url
+        assert "192.168.1.50" in url
+
+    def test_bmx_url_uses_hostname(self):
+        """URL must use the hostname when provided."""
+        url = SoundTouchConfigService.build_bmx_url("hera.fritz.box")
+        assert "hera.fritz.box" in url
 
     def test_bmx_url_default_port(self):
         url = SoundTouchConfigService.build_bmx_url("192.168.1.50")
@@ -464,9 +469,9 @@ class TestModifyBmxUrl:
         result = await service.modify_bmx_url("192.168.1.50")
 
         assert "https://content.api.bose.io/bmx" in result.diff  # old
-        assert "http://content.api.bose.io:7777/bmx" in result.diff  # new
+        assert "http://192.168.1.50:7777/bmx" in result.diff  # new (uses provided host)
         assert "https://streaming.bose.com" in result.diff  # old marge
-        assert "http://content.api.bose.io:7777" in result.diff  # new marge
+        assert "http://192.168.1.50:7777" in result.diff  # new marge
 
     @pytest.mark.asyncio
     async def test_bmx_url_always_http_never_https(self, service, mock_ssh):
@@ -492,8 +497,8 @@ class TestModifyBmxUrl:
         b64_str = write_cmd.split("'")[1]
         written_xml = b64.b64decode(b64_str).decode()
 
-        # The written bmxRegistryUrl must be HTTP
-        assert "http://content.api.bose.io:7777/bmx" in written_xml
+        # The written bmxRegistryUrl must be HTTP, using provided host
+        assert "http://192.168.1.50:7777/bmx" in written_xml
         assert "<bmxRegistryUrl>https://" not in written_xml
 
 

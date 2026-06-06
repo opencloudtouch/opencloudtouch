@@ -1,4 +1,4 @@
-﻿{
+{
   "common": {
     "cancel": "キャンセル",
     "loading": "èª­ã¿è¾¼ã¿ä¸­...",
@@ -62,18 +62,10 @@
     "infoItem1": "ç©ºã®ãƒ—ãƒªã‚»ãƒƒãƒˆã‚’ã‚¯ãƒªãƒƒã‚¯ã—ã¦ã‚¹ãƒ†ãƒ¼ã‚·ãƒ§ãƒ³ã‚’å‰²ã‚Šå½“ã¦ã‚‹",
     "infoItem2": "å‰²ã‚Šå½“ã¦æ¸ˆã¿ã®ã‚¹ãƒ†ãƒ¼ã‚·ãƒ§ãƒ³ã‚’ã‚¯ãƒªãƒƒã‚¯ã—ã¦å¤‰æ›´ã¾ãŸã¯å‰Šé™¤ã™ã‚‹",
     "infoItem3": "ç·‘è‰²ã® â–º ãƒœã‚¿ãƒ³ã§ã‚¹ãƒ†ãƒ¼ã‚·ãƒ§ãƒ³ã‚’ç›´æŽ¥å†ç”Ÿ",
-    "infoItem4": "é»„è‰²ã®ãƒ—ãƒªã‚»ãƒƒãƒˆã¯Bose Cloudã«ä¾å­˜ â€” å†è¨­å®šã‚’æŽ¨å¥¨",
     "infoItem5": "âš™ï¸ ãƒ‡ãƒã‚¤ã‚¹ã®ã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—ã‚¦ã‚£ã‚¶ãƒ¼ãƒ‰ã‚’é–‹ã",
     "infoItem6": "ã€Œãƒ‡ãƒã‚¤ã‚¹ã‹ã‚‰èª­ã¿è¾¼ã‚€ã€ã§SoundTouchã‹ã‚‰ãƒ—ãƒªã‚»ãƒƒãƒˆã‚’åŒæœŸ",
     "changeStation": "ã‚¯ãƒªãƒƒã‚¯ã—ã¦ã‚¹ãƒ†ãƒ¼ã‚·ãƒ§ãƒ³ã‚’å¤‰æ›´",
     "assignPreset": "ãƒ—ãƒªã‚»ãƒƒãƒˆã‚’å‰²ã‚Šå½“ã¦",
-    "cloudCompatible": "クラウド終了後も対応",
-    "cloudIndependent": "ã‚¯ãƒ©ã‚¦ãƒ‰ä¸è¦",
-    "cloudIndependentDesc": "2026å¹´5æœˆ6æ—¥ä»¥é™ã‚‚å‹•ä½œï¼ˆBose Cloudçµ‚äº†å¾Œï¼‰",
-    "cloudDependent": "ã‚¯ãƒ©ã‚¦ãƒ‰ä¾å­˜",
-    "cloudDependentDesc": "ã“ã®ãƒ—ãƒªã‚»ãƒƒãƒˆã¯Bose Cloudã‚µãƒ¼ãƒ“ã‚¹ãŒå¿…è¦ãªå ´åˆãŒã‚ã‚Šã¾ã™",
-    "cloudDependentTunein": "TuneInãƒ—ãƒªã‚»ãƒƒãƒˆã¯Bose Cloudï¼ˆstreaming.bose.comï¼‰ãŒå¿…è¦ã§ã™",
-    "cloudDependentNote": "2026å¹´5æœˆ6æ—¥ä»¥é™ã¯åˆ©ç”¨ã§ããªã„å ´åˆãŒã‚ã‚Šã¾ã™ã€‚ç›´æŽ¥ã‚¹ãƒˆãƒªãƒ¼ãƒ ã¸ã®å†è¨­å®šã‚’æ¤œè¨Žã—ã¦ãã ã•ã„ã€‚",
     "searchClose": "æ¤œç´¢ã‚’é–‰ã˜ã‚‹",
     "searchLoading": "検索中...",
     "searchEmpty": "ã‚¹ãƒ†ãƒ¼ã‚·ãƒ§ãƒ³ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“",
@@ -436,7 +428,6 @@
         "dnsUnresolvable": "This hostname could not be resolved via DNS. The speaker may not be able to reach your server.",
         "dnsMismatch": "Hostname resolved to {{resolved}}, but the expected server IP is {{expected}}. This mismatch may cause connection issues.",
         "dnsProceed": "Proceed anyway",
-        "dnsUseResolvedIp": "Use resolved IP instead",
         "dnsCheckFailed": "DNS validation could not be performed."
       },
       "step6": {

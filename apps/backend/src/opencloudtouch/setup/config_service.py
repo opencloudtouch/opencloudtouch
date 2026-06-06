@@ -163,19 +163,20 @@ class SoundTouchConfigService:
         """Build the BMX registry URL pointing to OCT.
 
         Always uses HTTP because SoundTouch cannot validate custom HTTPS certs.
-        The domain remains content.api.bose.io (resolved via /etc/hosts).
+        Uses the user-specified hostname or IP directly so the device config
+        matches what the user entered in the wizard.
         """
-        return f"http://content.api.bose.io:{port}/bmx/registry/v1/services"
+        return f"http://{oct_host}:{port}/bmx/registry/v1/services"
 
     @staticmethod
     def build_marge_url(oct_host: str, port: int = DEFAULT_PORT) -> str:
         """Build the marge server URL pointing to OCT."""
-        return f"http://content.api.bose.io:{port}"
+        return f"http://{oct_host}:{port}"
 
     @staticmethod
     def build_swupdate_url(oct_host: str, port: int = DEFAULT_PORT) -> str:
         """Build the swupdate URL pointing to OCT."""
-        return f"http://content.api.bose.io:{port}/updates/soundtouch"
+        return f"http://{oct_host}:{port}/updates/soundtouch"
 
     @staticmethod
     def build_stats_url(oct_host: str, port: int = DEFAULT_PORT) -> str:
@@ -184,7 +185,7 @@ class SoundTouchConfigService:
         Without this, the device retains https://events.api.bosecm.com
         and hangs on TLS handshake to OCT IP (Issue #167).
         """
-        return f"http://content.api.bose.io:{port}"
+        return f"http://{oct_host}:{port}"
 
     async def _read_config(self) -> str:
         """Read current config file from device."""

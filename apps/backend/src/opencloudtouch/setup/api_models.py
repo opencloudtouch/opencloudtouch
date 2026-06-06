@@ -508,6 +508,12 @@ class ValidateHostnameRequest(BaseModel):
         min_length=1,
         max_length=255,
     )
+    port: int = Field(
+        7777,
+        description="Port to check for OCT reachability (default: 7777)",
+        ge=1,
+        le=65535,
+    )
     expected_ip: Optional[str] = Field(
         None,
         description="Expected IP address to compare against resolved IP",
@@ -540,6 +546,13 @@ class ValidateHostnameResponse(BaseModel):
         None,
         description="Whether resolved IP matches expected_ip (null if no expected_ip)",
     )
+    oct_reachable: bool = Field(
+        False,
+        description="Whether OCT is reachable at hostname:port",
+    )
     error: Optional[str] = Field(
         None, description="Error message (if resolution failed)"
+    )
+    oct_error: Optional[str] = Field(
+        None, description="Error message (if OCT check failed)"
     )

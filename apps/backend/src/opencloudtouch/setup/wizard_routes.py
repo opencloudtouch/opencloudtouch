@@ -10,6 +10,7 @@ import logging
 import socket
 from typing import Annotated, Any, Dict
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi import status as http_status
 
@@ -149,19 +150,18 @@ async def wizard_detect_strategy(request: Request) -> DetectStrategyResponse:
     )
 
 
-@wizard_router.post(
-    "/wizard/validate-hostname", response_model=ValidateHostnameResponse
-)
+@wizard_router.post("/wizard/validate-hostname")
 async def wizard_validate_hostname(
     request: ValidateHostnameRequest,
 ) -> ValidateHostnameResponse:
-    """Validate a hostname via DNS resolution.
+    """Validate a hostname via DNS resolution and OCT reachability.
 
     Used by Wizard Step 5 when the user enters a hostname instead of an IP.
-    Returns whether the hostname resolves and if the resolved IP matches
-    the expected OCT server IP.
+    Returns whether the hostname resolves, if it matches the expected IP,
+    and whether OCT is reachable at the given hostname:port.
     """
     hostname = request.hostname
+    port = request.port
     logger.info("Validating hostname DNS resolution: %s", hostname)
 
     try:
@@ -171,7 +171,9 @@ async def wizard_validate_hostname(
                 resolvable=False,
                 resolved_ip=None,
                 matches_expected=None,
+                oct_reachable=False,
                 error=f"DNS resolution returned no results for '{hostname}'",
+                oct_error=None,
             )
 
         resolved_ip: str = str(result[0][4][0])
@@ -188,28 +190,81 @@ async def wizard_validate_hostname(
             matches,
         )
 
+        # Check if OCT is reachable at hostname:port
+        oct_reachable = False
+        oct_error = None
+        
+        try:
+            url = f"http://{hostname}:{port}/health"
+            logger.info("Checking OCT reachability: %s", url)
+            
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.get(url)
+                
+                if response.status_code == 200:
+                    try:
+                        data = response.json()
+                        if data.get("service") == "opencloudtouch":
+                            oct_reachable = True
+                            logger.info("OCT reachable at %s", url)
+                        else:
+                            oct_error = f"Server at {hostname}:{port} is not OpenCloudTouch"
+                            logger.warning("Non-OCT response at %s: %s", url, data)
+                    except Exception:
+                        oct_error = f"Invalid response from {hostname}:{port}"
+                        logger.warning("Invalid JSON at %s", url, exc_info=True)
+                else:
+                    oct_error = f"HTTP {response.status_code} from {hostname}:{port}"
+                    logger.warning("HTTP %s from %s", response.status_code, url)
+        
+        except httpx.ConnectError:
+            oct_error = f"Connection refused at {hostname}:{port}"
+            logger.warning("Connection refused: %s", url)
+        except httpx.TimeoutException:
+            oct_error = f"Connection timeout to {hostname}:{port}"
+            logger.warning("Timeout: %s", url)
+        except Exception as e:
+            oct_error = f"Could not reach {hostname}:{port}"
+            logger.warning("OCT check failed for %s: %s", url, e, exc_info=True)
+
         return ValidateHostnameResponse(
             resolvable=True,
             resolved_ip=resolved_ip,
             matches_expected=matches,
+            oct_reachable=oct_reachable,
             error=None,
+            oct_error=oct_error,
         )
 
     except socket.gaierror as e:
         logger.warning("DNS resolution failed for '%s': %s", hostname, e)
+        # Provide user-friendly error message based on errno
+        if e.errno == -2:  # EAI_NONAME
+            user_msg = f"Hostname '{hostname}' could not be resolved"
+        elif e.errno == -3:  # EAI_AGAIN
+            user_msg = f"DNS server temporarily unavailable for '{hostname}'"
+        elif e.errno == -5:  # EAI_NODATA
+            user_msg = f"No IP address found for hostname '{hostname}'"
+        else:
+            user_msg = f"DNS resolution failed for '{hostname}'"
+        
         return ValidateHostnameResponse(
             resolvable=False,
             resolved_ip=None,
             matches_expected=None,
-            error=f"DNS resolution failed: {e}",
+            oct_reachable=False,
+            error=user_msg,
+            oct_error=None,
         )
-    except Exception as e:
-        logger.error("Unexpected error during DNS validation: %s", e)
+    except Exception:
+        logger.exception("Unexpected error during DNS validation")
         return ValidateHostnameResponse(
             resolvable=False,
             resolved_ip=None,
             matches_expected=None,
-            error=f"Unexpected error: {e}",
+            oct_reachable=False,
+            error=f"Could not validate hostname '{hostname}'",
+            oct_error=None,
         )
 
 

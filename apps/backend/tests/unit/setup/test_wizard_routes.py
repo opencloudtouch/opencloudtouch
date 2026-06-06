@@ -18,6 +18,7 @@ Covers all 9 wizard endpoints:
 import socket
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -1670,67 +1671,124 @@ class TestWizardVerifySetup:
 class TestValidateHostname:
     """POST /api/setup/wizard/validate-hostname"""
 
-    def test_resolvable_hostname_matching_ip(self, client):
+    def test_resolvable_hostname_matching_ip(self, client, respx_mock):
         """Hostname resolves to expected IP → resolvable=True, matches=True."""
         with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
             mock_dns.return_value = [
                 (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.100", 0))
             ]
+            # Mock OCT health check
+            respx_mock.get("http://myserver:7777/health").mock(
+                return_value=httpx.Response(
+                    200, json={"service": "opencloudtouch", "status": "running"}
+                )
+            )
             response = client.post(
                 "/api/setup/wizard/validate-hostname",
-                json={"hostname": "myserver", "expected_ip": "192.168.1.100"},
+                json={"hostname": "myserver", "port": 7777, "expected_ip": "192.168.1.100"},
             )
         assert response.status_code == 200
         body = response.json()
         assert body["resolvable"] is True
         assert body["resolved_ip"] == "192.168.1.100"
         assert body["matches_expected"] is True
+        assert body["oct_reachable"] is True
         assert body["error"] is None
+        assert body["oct_error"] is None
 
-    def test_resolvable_hostname_mismatching_ip(self, client):
+    def test_resolvable_hostname_mismatching_ip(self, client, respx_mock):
         """Hostname resolves to different IP → matches=False."""
         with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
             mock_dns.return_value = [
                 (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.5", 0))
             ]
+            respx_mock.get("http://myserver:7777/health").mock(
+                return_value=httpx.Response(
+                    200, json={"service": "opencloudtouch", "status": "running"}
+                )
+            )
             response = client.post(
                 "/api/setup/wizard/validate-hostname",
-                json={"hostname": "myserver", "expected_ip": "192.168.1.100"},
+                json={"hostname": "myserver", "port": 7777, "expected_ip": "192.168.1.100"},
             )
         assert response.status_code == 200
         body = response.json()
         assert body["resolvable"] is True
         assert body["resolved_ip"] == "10.0.0.5"
         assert body["matches_expected"] is False
+        assert body["oct_reachable"] is True
 
-    def test_resolvable_hostname_no_expected_ip(self, client):
+    def test_resolvable_hostname_no_expected_ip(self, client, respx_mock):
         """Hostname resolves, no expected_ip → matches=null."""
         with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
             mock_dns.return_value = [
                 (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.100", 0))
             ]
+            respx_mock.get("http://myserver:7777/health").mock(
+                return_value=httpx.Response(
+                    200, json={"service": "opencloudtouch", "status": "running"}
+                )
+            )
             response = client.post(
                 "/api/setup/wizard/validate-hostname",
-                json={"hostname": "myserver", "expected_ip": None},
+                json={"hostname": "myserver", "port": 7777, "expected_ip": None},
             )
         assert response.status_code == 200
         body = response.json()
         assert body["resolvable"] is True
         assert body["matches_expected"] is None
+        assert body["oct_reachable"] is True
 
     def test_unresolvable_hostname(self, client):
-        """DNS lookup fails → resolvable=False with error."""
+        """DNS lookup fails → resolvable=False with user-friendly error."""
         with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
-            mock_dns.side_effect = socket.gaierror("Name or service not known")
+            # errno -2 = EAI_NONAME (Name or service not known)
+            mock_dns.side_effect = socket.gaierror(-2, "Name or service not known")
             response = client.post(
                 "/api/setup/wizard/validate-hostname",
-                json={"hostname": "nonexistent.invalid", "expected_ip": None},
+                json={"hostname": "nonexistent.invalid", "port": 7777, "expected_ip": None},
             )
         assert response.status_code == 200
         body = response.json()
         assert body["resolvable"] is False
         assert body["resolved_ip"] is None
-        assert "failed" in body["error"].lower() or "not known" in body["error"].lower()
+        assert body["oct_reachable"] is False
+        # User-friendly message should NOT contain technical errno
+        assert "nonexistent.invalid" in body["error"]
+        assert "could not be resolved" in body["error"].lower()
+        assert "[Errno" not in body["error"]  # No technical error code
+
+    def test_dns_temporary_failure(self, client):
+        """DNS temporary failure → user-friendly error."""
+        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+            # errno -3 = EAI_AGAIN (Temporary failure in name resolution)
+            mock_dns.side_effect = socket.gaierror(-3, "Temporary failure")
+            response = client.post(
+                "/api/setup/wizard/validate-hostname",
+                json={"hostname": "example.com", "port": 7777, "expected_ip": None},
+            )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["resolvable"] is False
+        assert body["oct_reachable"] is False
+        assert "temporarily unavailable" in body["error"].lower()
+        assert "[Errno" not in body["error"]
+
+    def test_dns_no_address(self, client):
+        """DNS returns no address → user-friendly error."""
+        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+            # errno -5 = EAI_NODATA (No address associated with hostname)
+            mock_dns.side_effect = socket.gaierror(-5, "No address associated")
+            response = client.post(
+                "/api/setup/wizard/validate-hostname",
+                json={"hostname": "noaddr.test", "port": 7777, "expected_ip": None},
+            )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["resolvable"] is False
+        assert body["oct_reachable"] is False
+        assert "no ip address found" in body["error"].lower()
+        assert "[Errno" not in body["error"]
 
     def test_invalid_hostname_rejected(self, client):
         """Invalid hostname (shell metacharacters) → 422."""
@@ -1746,24 +1804,113 @@ class TestValidateHostname:
             mock_dns.return_value = []
             response = client.post(
                 "/api/setup/wizard/validate-hostname",
-                json={"hostname": "emptyresult.local", "expected_ip": None},
+                json={"hostname": "emptyresult.local", "port": 7777, "expected_ip": None},
             )
         assert response.status_code == 200
         body = response.json()
         assert body["resolvable"] is False
         assert body["resolved_ip"] is None
+        assert body["oct_reachable"] is False
         assert "no results" in body["error"].lower()
 
     def test_unexpected_exception(self, client):
-        """Unexpected non-socket exception → resolvable=False with error."""
+        """Unexpected non-socket exception → resolvable=False with user-friendly error."""
         with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
             mock_dns.side_effect = RuntimeError("Unexpected failure")
             response = client.post(
                 "/api/setup/wizard/validate-hostname",
-                json={"hostname": "crash.local", "expected_ip": None},
+                json={"hostname": "crash.local", "port": 7777, "expected_ip": None},
             )
         assert response.status_code == 200
         body = response.json()
         assert body["resolvable"] is False
         assert body["resolved_ip"] is None
-        assert "unexpected" in body["error"].lower()
+        assert body["oct_reachable"] is False
+        # User-friendly message, no technical details leaked
+        assert "could not validate" in body["error"].lower()
+        assert "crash.local" in body["error"]
+        assert "RuntimeError" not in body["error"]  # No exception class name
+        assert "Unexpected failure" not in body["error"]  # No internal error details
+
+    def test_oct_not_reachable_connection_refused(self, client, respx_mock):
+        """DNS OK but OCT not reachable (connection refused) → oct_reachable=False."""
+        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+            mock_dns.return_value = [
+                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.100", 0))
+            ]
+            # Mock connection refused
+            respx_mock.get("http://myserver:7777/health").mock(
+                side_effect=httpx.ConnectError("Connection refused")
+            )
+            response = client.post(
+                "/api/setup/wizard/validate-hostname",
+                json={"hostname": "myserver", "port": 7777, "expected_ip": "192.168.1.100"},
+            )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["resolvable"] is True
+        assert body["resolved_ip"] == "192.168.1.100"
+        assert body["oct_reachable"] is False
+        assert "connection refused" in body["oct_error"].lower()
+
+    def test_oct_not_reachable_timeout(self, client, respx_mock):
+        """DNS OK but OCT times out → oct_reachable=False."""
+        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+            mock_dns.return_value = [
+                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.100", 0))
+            ]
+            # Mock timeout
+            respx_mock.get("http://myserver:7777/health").mock(
+                side_effect=httpx.TimeoutException("Connection timeout")
+            )
+            response = client.post(
+                "/api/setup/wizard/validate-hostname",
+                json={"hostname": "myserver", "port": 7777, "expected_ip": "192.168.1.100"},
+            )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["resolvable"] is True
+        assert body["oct_reachable"] is False
+        assert "timeout" in body["oct_error"].lower()
+
+    def test_oct_wrong_service(self, client, respx_mock):
+        """DNS OK but response is not OCT → oct_reachable=False."""
+        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+            mock_dns.return_value = [
+                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.100", 0))
+            ]
+            # Mock different service
+            respx_mock.get("http://myserver:7777/health").mock(
+                return_value=httpx.Response(
+                    200, json={"service": "nginx", "status": "running"}
+                )
+            )
+            response = client.post(
+                "/api/setup/wizard/validate-hostname",
+                json={"hostname": "myserver", "port": 7777, "expected_ip": "192.168.1.100"},
+            )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["resolvable"] is True
+        assert body["oct_reachable"] is False
+        assert "not opencloudtouch" in body["oct_error"].lower()
+
+    def test_oct_http_error(self, client, respx_mock):
+        """DNS OK but HTTP 404 → oct_reachable=False."""
+        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+            mock_dns.return_value = [
+                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.100", 0))
+            ]
+            # Mock HTTP 404
+            respx_mock.get("http://myserver:7777/health").mock(
+                return_value=httpx.Response(404, text="Not Found")
+            )
+            response = client.post(
+                "/api/setup/wizard/validate-hostname",
+                json={"hostname": "myserver", "port": 7777, "expected_ip": "192.168.1.100"},
+            )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["resolvable"] is True
+        assert body["oct_reachable"] is False
+        assert "404" in body["oct_error"]

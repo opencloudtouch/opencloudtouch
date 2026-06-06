@@ -73,6 +73,7 @@ export default function Step5ConfigModification({
   const [detecting, setDetecting] = useState(true);
   const [dnsWarning, setDnsWarning] = useState<ValidateHostnameResponse | null>(null);
   const [serverIp, setServerIp] = useState<string | null>(null);
+  const [bypassDnsCheck, setBypassDnsCheck] = useState(false);
 
   // Auto-detect strategy and fill server URL on mount
   useEffect(() => {
@@ -103,21 +104,33 @@ export default function Step5ConfigModification({
     setCustomUrl(value);
     setValidationError("");
     setDnsWarning(null);
+    setBypassDnsCheck(false); // Reset bypass when user changes URL
   };
 
   /** Extract hostname from URL string (strip protocol and port). */
   const extractHostname = (url: string): string | null => {
-    const match = url.trim().match(/^(?:https?:\/\/)?([a-zA-Z0-9][a-zA-Z0-9.-]*)(?::\d+)?$/);
-    if (!match || !match[1]) return null;
+    const regex = /^(?:https?:\/\/)?([a-zA-Z0-9][a-zA-Z0-9.-]*)(?::\d+)?$/;
+    const match = regex.exec(url.trim());
+    if (!match?.[1]) return null;
     const host = match[1];
     // Return null for pure IP addresses — no DNS check needed
     if (/^\d+\.\d+\.\d+\.\d+$/.test(host)) return null;
     return host;
   };
 
-  const handleModifyConfig = async () => {
+  /** Extract port from URL string (default: 7777). */
+  const extractPort = (url: string): number => {
+    const regex = /^(?:https?:\/\/)?[a-zA-Z0-9][a-zA-Z0-9.-]*:(\d+)$/;
+    const match = regex.exec(url.trim());
+    return match?.[1] ? parseInt(match[1], 10) : 7777;
+  };
+
+  const handleModifyConfig = async (options?: { bypassDns?: boolean }) => {
+    const targetUrl = customUrl;
+    const shouldBypassDns = options?.bypassDns ?? bypassDnsCheck;
+    
     // Validate input
-    const validation = validateTargetAddr(customUrl, t);
+    const validation = validateTargetAddr(targetUrl, t);
     if (!validation.valid) {
       setValidationError(validation.error || t("errors.badRequest"));
       return;
@@ -127,12 +140,14 @@ export default function Step5ConfigModification({
     setError("");
     setValidationError("");
 
-    // DNS validation for hostnames (skip for pure IPs)
-    const hostname = extractHostname(customUrl);
-    if (hostname && !dnsWarning) {
+    // DNS validation for hostnames (skip for pure IPs or if user bypassed)
+    const hostname = extractHostname(targetUrl);
+    if (hostname && !shouldBypassDns) {
       try {
+        const port = extractPort(targetUrl);
         const dnsResult = await validateHostname({
           hostname,
+          port,
           expected_ip: serverIp,
         });
         if (!dnsResult.resolvable || dnsResult.matches_expected === false) {
@@ -140,13 +155,21 @@ export default function Step5ConfigModification({
           setModifying(false);
           return; // Show warning, don't proceed yet
         }
+        // Check if OCT is reachable (DNS OK but OCT not responding)
+        if (!dnsResult.oct_reachable) {
+          setDnsWarning(dnsResult);
+          setModifying(false);
+          return;
+        }
       } catch {
         // DNS check failed — show warning but allow proceed
         setDnsWarning({
           resolvable: false,
           resolved_ip: null,
           matches_expected: null,
+          oct_reachable: false,
           error: t("setup.wizard.step5.dnsCheckFailed"),
+          oct_error: null,
         });
         setModifying(false);
         return;
@@ -156,11 +179,12 @@ export default function Step5ConfigModification({
     try {
       const result = await modifyConfig({
         device_ip: deviceIp,
-        target_addr: customUrl, // Backend normalizes this
+        target_addr: targetUrl, // Backend normalizes this
       });
 
       setModifyData(result);
       onConfigModified(result);
+      setBypassDnsCheck(false); // Reset bypass after successful submit
 
       if (!result.success) {
         setError(result.message || t("setup.wizard.step5.errorTitle"));
@@ -301,35 +325,21 @@ export default function Step5ConfigModification({
                       })}
                     </p>
                   )}
+                  {dnsWarning.resolvable && !dnsWarning.oct_reachable && dnsWarning.oct_error && (
+                    <p>{dnsWarning.oct_error}</p>
+                  )}
                   <div className="dns-warning-actions">
                     <button
                       className="btn btn-secondary"
                       onClick={() => {
                         setDnsWarning(null);
-                        // Re-trigger apply — dnsWarning is now null so it will proceed
-                        setTimeout(() => handleModifyConfig(), 0);
+                        setBypassDnsCheck(true);
+                        handleModifyConfig({ bypassDns: true });
                       }}
                       data-test="dns-proceed"
                     >
                       {t("setup.wizard.step5.dnsProceed")}
                     </button>
-                    {dnsWarning.resolved_ip && (
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => {
-                          setCustomUrl(
-                            customUrl.replace(
-                              extractHostname(customUrl) || "",
-                              dnsWarning.resolved_ip!
-                            )
-                          );
-                          setDnsWarning(null);
-                        }}
-                        data-test="dns-use-ip"
-                      >
-                        {t("setup.wizard.step5.dnsUseResolvedIp")}
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>
@@ -351,7 +361,7 @@ export default function Step5ConfigModification({
 
             <button
               className="btn btn-primary config-modify-btn"
-              onClick={handleModifyConfig}
+              onClick={() => handleModifyConfig()}
               disabled={modifying || !customUrl}
             >
               {modifying ? (

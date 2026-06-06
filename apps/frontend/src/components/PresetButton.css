@@ -118,17 +118,6 @@
   opacity: 1;
 }
 
-/* Cloud-warning background */
-.preset-info.cloud-warning {
-  background-color: rgba(251, 191, 36, 0.1);
-  border-color: rgba(251, 191, 36, 0.3);
-}
-
-.preset-info.cloud-warning:hover {
-  background-color: rgba(251, 191, 36, 0.2);
-  border-color: rgba(251, 191, 36, 0.5);
-}
-
 /* Disabled / Offline state */
 .preset-disabled {
   opacity: 0.5;
