@@ -238,7 +238,9 @@ function setupWizardMocks() {
       resolvable: true,
       resolved_ip: "127.0.0.1",
       matches_expected: true,
+      oct_reachable: true,
       error: null,
+      oct_error: null,
     },
   }).as("validateHostname");
 
