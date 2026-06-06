@@ -993,9 +993,9 @@ class TestWizardModifyConfigRoute:
             f"new_url must contain port, got '{data['new_url']}'. "
             "Bug: wizard_service returned target_host instead of target_addr."
         )
-        assert data["new_url"].startswith("http"), (
-            f"new_url must start with scheme, got '{data['new_url']}'"
-        )
+        assert data["new_url"].startswith(
+            "http"
+        ), f"new_url must start with scheme, got '{data['new_url']}'"
 
     def test_old_url_is_representative_not_single_domain(self, client, monkeypatch):
         """Regression: old_url should represent all 4 modified URLs, not just bmx.bose.com."""
