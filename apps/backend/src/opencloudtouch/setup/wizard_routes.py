@@ -150,6 +150,54 @@ async def wizard_detect_strategy(request: Request) -> DetectStrategyResponse:
     )
 
 
+async def _check_oct_reachability(
+    hostname: str, port: int
+) -> tuple[bool, str | None]:
+    """Check if OpenCloudTouch is reachable at hostname:port.
+
+    Returns:
+        Tuple of (reachable, error_message)
+    """
+    url = f"http://{hostname}:{port}/health"  # noqa: S5332
+    logger.info("Checking OCT reachability: %s", url)
+
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(url)
+
+            if response.status_code == 200:
+                try:
+                    data = response.json()
+                    if data.get("service") == "opencloudtouch":
+                        logger.info("OCT reachable at %s", url)
+                        return True, None
+                    else:
+                        error = f"Server at {hostname}:{port} is not OpenCloudTouch"
+                        logger.warning("Non-OCT response at %s: %s", url, data)
+                        return False, error
+                except Exception:
+                    error = f"Invalid response from {hostname}:{port}"
+                    logger.warning("Invalid JSON at %s", url, exc_info=True)
+                    return False, error
+            else:
+                error = f"HTTP {response.status_code} from {hostname}:{port}"
+                logger.warning("HTTP %s from %s", response.status_code, url)
+                return False, error
+
+    except httpx.ConnectError:
+        error = f"Connection refused at {hostname}:{port}"
+        logger.warning("Connection refused: %s", url)
+        return False, error
+    except httpx.TimeoutException:
+        error = f"Connection timeout to {hostname}:{port}"
+        logger.warning("Timeout: %s", url)
+        return False, error
+    except Exception as e:
+        error = f"Could not reach {hostname}:{port}"
+        logger.warning("OCT check failed for %s: %s", url, e, exc_info=True)
+        return False, error
+
+
 @wizard_router.post("/wizard/validate-hostname")
 async def wizard_validate_hostname(
     request: ValidateHostnameRequest,
@@ -191,43 +239,7 @@ async def wizard_validate_hostname(
         )
 
         # Check if OCT is reachable at hostname:port
-        oct_reachable = False
-        oct_error = None
-
-        try:
-            url = f"http://{hostname}:{port}/health"  # noqa: S5332
-            logger.info("Checking OCT reachability: %s", url)
-
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                response = await client.get(url)
-
-                if response.status_code == 200:
-                    try:
-                        data = response.json()
-                        if data.get("service") == "opencloudtouch":
-                            oct_reachable = True
-                            logger.info("OCT reachable at %s", url)
-                        else:
-                            oct_error = (
-                                f"Server at {hostname}:{port} is not OpenCloudTouch"
-                            )
-                            logger.warning("Non-OCT response at %s: %s", url, data)
-                    except Exception:
-                        oct_error = f"Invalid response from {hostname}:{port}"
-                        logger.warning("Invalid JSON at %s", url, exc_info=True)
-                else:
-                    oct_error = f"HTTP {response.status_code} from {hostname}:{port}"
-                    logger.warning("HTTP %s from %s", response.status_code, url)
-
-        except httpx.ConnectError:
-            oct_error = f"Connection refused at {hostname}:{port}"
-            logger.warning("Connection refused: %s", url)
-        except httpx.TimeoutException:
-            oct_error = f"Connection timeout to {hostname}:{port}"
-            logger.warning("Timeout: %s", url)
-        except Exception as e:
-            oct_error = f"Could not reach {hostname}:{port}"
-            logger.warning("OCT check failed for %s: %s", url, e, exc_info=True)
+        oct_reachable, oct_error = await _check_oct_reachability(hostname, port)
 
         return ValidateHostnameResponse(
             resolvable=True,

@@ -122,7 +122,7 @@ export default function Step5ConfigModification({
   const extractPort = (url: string): number => {
     const regex = /^(?:https?:\/\/)?[a-zA-Z0-9][a-zA-Z0-9.-]*:(\d+)$/;
     const match = regex.exec(url.trim());
-    return match?.[1] ? parseInt(match[1], 10) : 7777;
+    return match?.[1] ? Number.parseInt(match[1], 10) : 7777;
   };
 
   /** Normalize URL to show what will actually be written (add protocol and port if missing). */
@@ -144,6 +144,52 @@ export default function Step5ConfigModification({
     return `${protocol}://${host}:${port}`;
   };
 
+  /**
+   * Perform DNS validation for hostname input.
+   * Returns true if validation passed or was bypassed, false if validation failed.
+   */
+  const performDnsValidation = async (
+    targetUrl: string,
+    shouldBypassDns: boolean
+  ): Promise<boolean> => {
+    const hostname = extractHostname(targetUrl);
+    if (!hostname || shouldBypassDns) {
+      return true; // Skip validation for IPs or when bypassed
+    }
+
+    try {
+      const port = extractPort(targetUrl);
+      const dnsResult = await validateHostname({
+        hostname,
+        port,
+        expected_ip: serverIp,
+      });
+
+      if (!dnsResult.resolvable || dnsResult.matches_expected === false) {
+        setDnsWarning(dnsResult);
+        return false;
+      }
+
+      if (!dnsResult.oct_reachable) {
+        setDnsWarning(dnsResult);
+        return false;
+      }
+
+      return true;
+    } catch {
+      // DNS check failed — show warning
+      setDnsWarning({
+        resolvable: false,
+        resolved_ip: null,
+        matches_expected: null,
+        oct_reachable: false,
+        error: t("setup.wizard.step5.dnsCheckFailed"),
+        oct_error: null,
+      });
+      return false;
+    }
+  };
+
   const handleModifyConfig = async (options?: { bypassDns?: boolean }) => {
     const targetUrl = customUrl;
     const shouldBypassDns = options?.bypassDns ?? bypassDnsCheck;
@@ -159,40 +205,11 @@ export default function Step5ConfigModification({
     setError("");
     setValidationError("");
 
-    // DNS validation for hostnames (skip for pure IPs or if user bypassed)
-    const hostname = extractHostname(targetUrl);
-    if (hostname && !shouldBypassDns) {
-      try {
-        const port = extractPort(targetUrl);
-        const dnsResult = await validateHostname({
-          hostname,
-          port,
-          expected_ip: serverIp,
-        });
-        if (!dnsResult.resolvable || dnsResult.matches_expected === false) {
-          setDnsWarning(dnsResult);
-          setModifying(false);
-          return; // Show warning, don't proceed yet
-        }
-        // Check if OCT is reachable (DNS OK but OCT not responding)
-        if (!dnsResult.oct_reachable) {
-          setDnsWarning(dnsResult);
-          setModifying(false);
-          return;
-        }
-      } catch {
-        // DNS check failed — show warning but allow proceed
-        setDnsWarning({
-          resolvable: false,
-          resolved_ip: null,
-          matches_expected: null,
-          oct_reachable: false,
-          error: t("setup.wizard.step5.dnsCheckFailed"),
-          oct_error: null,
-        });
-        setModifying(false);
-        return;
-      }
+    // DNS validation for hostnames
+    const dnsValid = await performDnsValidation(targetUrl, shouldBypassDns);
+    if (!dnsValid) {
+      setModifying(false);
+      return;
     }
 
     try {
