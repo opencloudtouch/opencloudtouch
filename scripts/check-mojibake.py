@@ -27,11 +27,11 @@ import pathlib
 # âš or â› followed by follow-byte         → emoji corruption (⚙️ ⚠️ etc.)
 # â\x9d                                    → ❌ ❓ etc. corruption
 MOJIBAKE_PATTERN = re.compile(
-    r"Ã[\x80-\xBF\u0080-\u00BF]"   # Ã + continuation → é ü ö etc.
-    r"|â€[\x9c\x9d\x98\x99\x93\x94\x80\x93\x94]"  # smart quotes / dashes
-    r"|â[šûšü]"                     # ⚙ ⚠ etc.
-    r"|â\x9d"                       # ❌ ❓ etc.
-    r"|Ã\x83"                       # double-encoded Ã
+    r"Ã[\x80-\xBF]"                  # Ã + continuation → é ü ö etc.
+    r"|â€[\x80\x93\x94\x98\x99\x9c\x9d]"  # smart quotes / dashes
+    r"|â[šûü]"                        # ⚙ ⚠ etc.
+    r"|â\x9d"                         # ❌ ❓ etc.
+    r"|Ã\x83"                         # double-encoded Ã
 )
 
 # ---------------------------------------------------------------------------
