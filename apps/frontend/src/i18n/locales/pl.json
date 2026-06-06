@@ -381,7 +381,9 @@
         "successTitle": "Kopia zapasowa utworzona pomyślnie!",
         "successHint": "Kopie zapasowe zostały zapisane na dysku USB. Wyjmij dysk po kreatorze — zawiera pliki odzyskiwania.",
         "filesTitle": "Zapisane pliki (na dysku USB):",
-        "totalLabel": "Łącznie:"
+        "totalLabel": "Łącznie:",
+        "durationMinSec": "{{min}} min {{sec}} s",
+        "durationSec": "{{sec}} s"
       },
       "step5": {
         "titleProxy": "Wykryto reverse proxy",

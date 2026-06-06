@@ -100,6 +100,7 @@ vi.mock("../../src/hooks/useZones", () => ({
 const mockNavigate = vi.fn();
 vi.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
+  useSearchParams: () => [new URLSearchParams(), vi.fn()],
 }));
 
 vi.mock("../../src/components/SetupBadge", () => ({

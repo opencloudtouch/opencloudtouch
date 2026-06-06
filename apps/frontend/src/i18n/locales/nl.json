@@ -381,7 +381,9 @@
         "successTitle": "Back-up succesvol gemaakt!",
         "successHint": "De back-ups zijn naar uw USB-stick geschreven. Verwijder de stick na de wizard — hij bevat uw herstelbestanden.",
         "filesTitle": "Opgeslagen bestanden (op USB-stick):",
-        "totalLabel": "Totaal:"
+        "totalLabel": "Totaal:",
+        "durationMinSec": "{{min}} min {{sec}} s",
+        "durationSec": "{{sec}} s"
       },
       "step5": {
         "titleProxy": "Reverse proxy gedetecteerd",

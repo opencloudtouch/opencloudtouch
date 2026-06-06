@@ -37,13 +37,17 @@ export default function DeviceNameEditor({
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
+      const elStyle = getComputedStyle(el);
+      const fontWeight = elStyle.fontWeight || "600";
+      const fontFamily = elStyle.fontFamily || "system-ui, -apple-system, sans-serif";
+      const gapWidth = parseFloat(elStyle.gap) || 0;
+
       for (let size = 24; size >= 17; size--) {
-        ctx.font = `600 ${size}px system-ui, -apple-system, sans-serif`;
+        ctx.font = `${fontWeight} ${size}px ${fontFamily}`;
         const textWidth = ctx.measureText(name).width;
         // Measure the icon at its rendered size (0.65em) — emoji renders as square
-        ctx.font = `${size * 0.65}px system-ui, -apple-system, sans-serif`;
+        ctx.font = `${size * 0.65}px ${fontFamily}`;
         const iconWidth = ctx.measureText("✏️").width;
-        const gapWidth = size * 0.3; // 0.3rem gap scales with font size
         const safetyBuffer = 2; // 1px subpixel rounding tolerance
         if (textWidth + iconWidth + gapWidth + safetyBuffer <= containerWidth) {
           setFontSizePx(size);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -32,7 +32,7 @@ interface RadioPresetsProps {
 
 export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPresetsProps) {
   const { t } = useTranslation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
   const [assigningPreset, setAssigningPreset] = useState<number | null>(null);
@@ -76,6 +76,16 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
     // Intentionally omit currentDeviceIndex: re-running on every arrow-key change
     // would override the user's manual selection back to the URL device.
   }, [searchParams, devices]);
+
+  const handleDeviceChange = useCallback(
+    (index: number) => {
+      setCurrentDeviceIndex(index);
+      if (devices[index]) {
+        setSearchParams({ device: devices[index].device_id }, { replace: true });
+      }
+    },
+    [devices, setSearchParams]
+  );
 
   const handleSyncPresets = async () => {
     try {
@@ -179,7 +189,7 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
       <DeviceSwiper
         devices={devices}
         currentIndex={currentDeviceIndex}
-        onIndexChange={setCurrentDeviceIndex}
+        onIndexChange={handleDeviceChange}
       >
         <div className="device-card" data-test="device-card">
           <div className="device-card-header">

@@ -381,7 +381,9 @@
         "successTitle": "Backup creato con successo!",
         "successHint": "I backup sono stati scritti sulla chiavetta USB. Rimuovere la chiavetta dopo la procedura guidata — contiene i file di ripristino.",
         "filesTitle": "File salvati (sulla chiavetta USB):",
-        "totalLabel": "Totale:"
+        "totalLabel": "Totale:",
+        "durationMinSec": "{{min}} min {{sec}} s",
+        "durationSec": "{{sec}} s"
       },
       "step5": {
         "titleProxy": "Proxy inverso rilevato",

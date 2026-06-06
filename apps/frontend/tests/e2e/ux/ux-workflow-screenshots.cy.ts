@@ -690,7 +690,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
     it("04a — Wizard: Start mit vorselektiertem Gerät (Step 1)", () => {
       cy.visit(`/setup-wizard?deviceId=${DEVICE_ID_1}`);
       cy.wait("@getDevices");
-      cy.get(".setup-wizard-page-v2", { timeout: 10000 }).should("exist");
+      cy.get(".setup-wizard-page", { timeout: 10000 }).should("exist");
       screenshotBoth("04a_wizard_start__device-preselected");
     });
 
@@ -706,7 +706,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
       cy.viewport(375, 812);
       cy.visit(`/setup-wizard?deviceId=${DEVICE_ID_1}`);
       cy.wait("@getDevices");
-      cy.get(".setup-wizard-page-v2", { timeout: 10000 }).should("exist");
+      cy.get(".setup-wizard-page", { timeout: 10000 }).should("exist");
       screenshotBoth("04f_wizard_mobile-375px__step-1");
     });
   });

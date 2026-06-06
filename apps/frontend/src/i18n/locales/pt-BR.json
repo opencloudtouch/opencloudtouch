@@ -381,7 +381,9 @@
         "successTitle": "Backup criado com sucesso!",
         "successHint": "Os backups foram gravados no seu pendrive. Remova o pendrive após o assistente — ele contém seus arquivos de recuperação.",
         "filesTitle": "Arquivos salvos (no pendrive):",
-        "totalLabel": "Total:"
+        "totalLabel": "Total:",
+        "durationMinSec": "{{min}} min {{sec}} s",
+        "durationSec": "{{sec}} s"
       },
       "step5": {
         "titleProxy": "Proxy reverso detectado",

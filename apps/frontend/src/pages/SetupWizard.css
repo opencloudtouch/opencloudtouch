@@ -1,6 +1,6 @@
 /* Setup Wizard Page V2 - Modern Clean Design (Dark Theme) */
 
-.setup-wizard-page-v2 {
+.setup-wizard-page {
   min-height: 100vh;
   background-color: var(--color-bg-dark);
   padding: var(--space-xl) var(--space-md);
@@ -94,7 +94,7 @@
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
-  .setup-wizard-page-v2 {
+  .setup-wizard-page {
     padding: var(--space-md) var(--space-sm);
   }
 

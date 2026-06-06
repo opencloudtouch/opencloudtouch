@@ -381,7 +381,9 @@
         "successTitle": "Sauvegarde créée avec succès !",
         "successHint": "Les sauvegardes ont été écrites sur votre clé USB. Retirez la clé après l'assistant — elle contient vos fichiers de restauration.",
         "filesTitle": "Fichiers sauvegardés (sur la clé USB) :",
-        "totalLabel": "Total :"
+        "totalLabel": "Total :",
+        "durationMinSec": "{{min}} min {{sec}} s",
+        "durationSec": "{{sec}} s"
       },
       "step5": {
         "titleProxy": "Proxy inverse détecté",

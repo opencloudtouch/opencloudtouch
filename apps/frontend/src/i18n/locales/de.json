@@ -381,7 +381,9 @@
         "successTitle": "Backup erfolgreich erstellt!",
         "successHint": "Die Backups wurden auf Ihren USB-Stick geschrieben. Ziehen Sie den Stick nach dem Wizard ab – er enthält Ihre Wiederherstellungs-Dateien.",
         "filesTitle": "Gespeicherte Dateien (auf USB-Stick):",
-        "totalLabel": "Gesamt:"
+        "totalLabel": "Gesamt:",
+        "durationMinSec": "{{min}} Min. {{sec}} Sek.",
+        "durationSec": "{{sec}} Sek."
       },
       "step5": {
         "titleProxy": "Reverse-Proxy erkannt",

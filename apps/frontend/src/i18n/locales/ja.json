@@ -381,7 +381,9 @@
         "successTitle": "バックアップが正常に作成されました！",
         "successHint": "バックアップはUSBドライブに書き込まれました。ウィザード後にドライブを取り外してください — 復元ファイルが含まれています。",
         "filesTitle": "保存されたファイル（USBドライブ上）：",
-        "totalLabel": "合計："
+        "totalLabel": "合計：",
+        "durationMinSec": "{{min}}分{{sec}}秒",
+        "durationSec": "{{sec}}秒"
       },
       "step5": {
         "titleProxy": "リバースプロキシ検出",

@@ -381,7 +381,9 @@
         "successTitle": "Backup created successfully!",
         "successHint": "The backups were written to your USB drive. Remove the drive after the wizard — it contains your recovery files.",
         "filesTitle": "Saved files (on USB drive):",
-        "totalLabel": "Total:"
+        "totalLabel": "Total:",
+        "durationMinSec": "{{min}} min {{sec}} s",
+        "durationSec": "{{sec}} s"
       },
       "step5": {
         "titleProxy": "Reverse proxy detected",

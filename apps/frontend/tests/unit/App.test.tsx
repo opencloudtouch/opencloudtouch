@@ -282,4 +282,28 @@ describe("App Component", () => {
     });
   });
   });
+
+  describe("Navigation on Setup Wizard", () => {
+    it("renders navigation bar on /setup-wizard route", async () => {
+      // Set URL to setup-wizard before render
+      window.history.pushState({}, "", "/setup-wizard?deviceId=AABB11223344");
+
+      mockFetch = vi.fn().mockImplementation(
+        createFetchMock({
+          devices: [{ device_id: "AABB11223344", name: "Test Device", ip: "192.168.1.100" }],
+        })
+      );
+      vi.stubGlobal("fetch", mockFetch);
+
+      renderWithProviders(<App />);
+
+      // Navigation must be present on wizard page — regression for App.tsx routing fix
+      await waitFor(() => {
+        expect(screen.getByRole("navigation")).toBeInTheDocument();
+      });
+
+      // Clean up URL
+      window.history.pushState({}, "", "/");
+    });
+  });
 });

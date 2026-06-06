@@ -142,7 +142,7 @@ describe('Wizard Device Persistence', () => {
     cy.url().should('include', '/setup-wizard?deviceId=DEVICE_KITCHEN');
     cy.reload();
     cy.wait('@getDevices');
-    cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
+    cy.get('.setup-wizard-page', { timeout: 8000 }).should('exist');
     cy.contains('Setup-Assistent').click();
 
     // Check the "USB-Stick ist bereit" checkbox (last checkbox in Step 1)
@@ -174,7 +174,7 @@ describe('Wizard Device Persistence', () => {
     cy.url().should('include', '/setup-wizard?deviceId=DEVICE_BEDROOM');
     cy.reload();
     cy.wait('@getDevices');
-    cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
+    cy.get('.setup-wizard-page', { timeout: 8000 }).should('exist');
     cy.contains('Setup-Assistent').click();
 
     // Click back button on first step
@@ -207,7 +207,7 @@ describe('Wizard Device Persistence', () => {
     cy.url().should('include', '/setup-wizard?deviceId=DEVICE_KITCHEN');
     cy.reload();
     cy.wait('@getDevices');
-    cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
+    cy.get('.setup-wizard-page', { timeout: 8000 }).should('exist');
     cy.contains('Setup-Assistent').click();
 
     // Wizard header must show the device selected via arrow button, not the URL default
@@ -230,7 +230,7 @@ describe('Wizard Device Persistence', () => {
 
     // Wait for devices to load
     cy.wait('@getDevices');
-    cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
+    cy.get('.setup-wizard-page', { timeout: 8000 }).should('exist');
     cy.contains('Setup-Assistent').click();
 
     // Header must show the correct device
@@ -251,7 +251,7 @@ describe('Wizard Device Persistence', () => {
     // Visit wizard with non-existent device
     visitDe('/setup-wizard?deviceId=INVALID_DEVICE');
     cy.wait('@getDevices');
-    cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
+    cy.get('.setup-wizard-page', { timeout: 8000 }).should('exist');
 
     // Should fall back to first device (TV)
     cy.get('.device-info-header').should('contain', 'TV');

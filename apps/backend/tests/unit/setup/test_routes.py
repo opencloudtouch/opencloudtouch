@@ -952,7 +952,50 @@ class TestWizardModifyConfigRoute:
         data = response.json()
         assert data["success"] is True
         assert data["old_url"] == "https://*.bose.com (4 URLs)"
-        assert data["new_url"] == "192.168.1.50"
+        assert data["new_url"] == "http://192.168.1.50:7777"
+
+    def test_new_url_contains_port_not_just_hostname(self, client, monkeypatch):
+        """Regression: new_url must be full URL with port, not stripped hostname.
+
+        Bug: wizard_service.py returned target_host (hostname only) instead of
+        target_addr (full URL with scheme+port). This caused Step 5 to show
+        '192.168.1.50' instead of 'http://192.168.1.50:7777'.
+        """
+        from opencloudtouch.setup import wizard_service as routes
+        from opencloudtouch.setup.config_service import ModifyResult
+
+        mock_ssh = AsyncMock()
+        mock_result = ModifyResult(
+            success=True,
+            backup_path="/usb/backups/config_backup.xml",
+            diff="- bmx.bose.com\n+ 192.168.1.50",
+        )
+
+        mock_config_svc = AsyncMock()
+        mock_config_svc.modify_bmx_url = AsyncMock(return_value=mock_result)
+
+        monkeypatch.setattr(
+            wizard_helpers,
+            "SoundTouchSSHClient",
+            lambda ip: _make_ssh_context(mock_ssh),
+        )
+        monkeypatch.setattr(
+            routes, "SoundTouchConfigService", lambda ssh: mock_config_svc
+        )
+
+        response = client.post(
+            self.ENDPOINT,
+            json={"device_ip": "192.168.1.100", "target_addr": "192.168.1.50"},
+        )
+        data = response.json()
+        # Must contain port — not just hostname
+        assert ":" in data["new_url"], (
+            f"new_url must contain port, got '{data['new_url']}'. "
+            "Bug: wizard_service returned target_host instead of target_addr."
+        )
+        assert data["new_url"].startswith("http"), (
+            f"new_url must start with scheme, got '{data['new_url']}'"
+        )
 
     def test_old_url_is_representative_not_single_domain(self, client, monkeypatch):
         """Regression: old_url should represent all 4 modified URLs, not just bmx.bose.com."""

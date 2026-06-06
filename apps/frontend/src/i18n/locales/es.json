@@ -381,7 +381,9 @@
         "successTitle": "¡Copia de seguridad creada correctamente!",
         "successHint": "Las copias de seguridad se escribieron en su unidad USB. Retire la unidad después del asistente — contiene sus archivos de recuperación.",
         "filesTitle": "Archivos guardados (en unidad USB):",
-        "totalLabel": "Total:"
+        "totalLabel": "Total:",
+        "durationMinSec": "{{min}} min {{sec}} s",
+        "durationSec": "{{sec}} s"
       },
       "step5": {
         "titleProxy": "Proxy inverso detectado",

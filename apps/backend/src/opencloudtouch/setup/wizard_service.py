@@ -139,7 +139,7 @@ class WizardService:
                 "backup_path": result.backup_path,
                 "diff": result.diff,
                 "old_url": "https://*.bose.com (4 URLs)",
-                "new_url": target_host,
+                "new_url": target_addr,
             }
 
     async def modify_hosts(
