@@ -757,9 +757,9 @@
     "downloadBundle": "Pobierz pakiet wsparcia"
   },
   "deviceRename": {
-    "clickToEdit": "Kliknij, aby zmieni─ç nazw─Ö",
-    "inputLabel": "Nazwa urz─àdzenia",
-    "tooLong": "Nazwa musi mie─ç maksymalnie 30 znak├│w",
-    "failed": "Nie uda┼éo si─Ö zmieni─ç nazwy"
+    "clickToEdit": "Kliknij, aby zmienić nazwę",
+    "inputLabel": "Nazwa urządzenia",
+    "tooLong": "Nazwa musi mieć maksymalnie 30 znaków",
+    "failed": "Nie udało się zmienić nazwy"
   }
 }

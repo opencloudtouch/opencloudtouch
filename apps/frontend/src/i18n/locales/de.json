@@ -758,7 +758,7 @@
   },
   "deviceRename": {
     "clickToEdit": "Klicken zum Umbenennen",
-    "inputLabel": "Ger├ñtename",
+    "inputLabel": "Gerätename",
     "tooLong": "Name darf maximal 30 Zeichen lang sein",
     "failed": "Umbenennung fehlgeschlagen"
   }

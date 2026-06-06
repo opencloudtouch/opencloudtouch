@@ -759,7 +759,7 @@
   "deviceRename": {
     "clickToEdit": "Clique para renomear",
     "inputLabel": "Nome do dispositivo",
-    "tooLong": "O nome deve ter no m├íximo 30 caracteres",
+    "tooLong": "O nome deve ter no máximo 30 caracteres",
     "failed": "Falha ao renomear o dispositivo"
   }
 }
