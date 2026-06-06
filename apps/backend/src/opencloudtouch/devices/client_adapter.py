@@ -411,7 +411,7 @@ class BoseDeviceClientAdapter(DeviceClient):
             )
 
         except httpx.HTTPStatusError as e:
-            logger.error(
+            logger.exception(
                 "HTTP error updating device name: %s",
                 e.response.status_code,
                 extra={"device_ip": self.ip, "status": e.response.status_code},
