@@ -36,9 +36,38 @@ vi.mock("../../src/api/devices", () => ({
   renameDevice: (...args: unknown[]) => mockRenameDevice(...args),
 }));
 
+// ResizeObserver is not implemented in jsdom
+vi.stubGlobal(
+  "ResizeObserver",
+  class {
+    observe = vi.fn();
+    disconnect = vi.fn();
+    unobserve = vi.fn();
+  },
+);
+
 describe("DeviceNameEditor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Simulate a 200px-wide container for font-size computation
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", {
+      configurable: true,
+      value: 200,
+    });
+
+    // Canvas mock: measureText scales proportionally with font size (0.55 em avg char width)
+    const mockCtx = {
+      font: "",
+      measureText(text: string) {
+        const m = /(\d+)px/.exec(this.font);
+        const size = m ? parseInt(m[1]) : 16;
+        return { width: text.length * size * 0.55 };
+      },
+    };
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      mockCtx as unknown as RenderingContext,
+    );
   });
 
   it("renders device name as heading", () => {
@@ -269,35 +298,28 @@ describe("DeviceNameEditor", () => {
     expect(icons[0]).toHaveClass("device-name-edit-icon");
   });
 
-  describe("font size scaling", () => {
-    it("uses 24px for names shorter than 8 characters", () => {
+  describe("font size scaling via canvas.measureText", () => {
+    // Container: 200px. Mock: text.length * fontSize * 0.55 + fontSize*0.65 + 4.8 ≤ 200
+    it("uses 24px for very short names", () => {
       render(<DeviceNameEditor deviceId="ABC123" name="TV" />);
-      const btn = screen.getByRole("button");
-      expect(btn).toHaveStyle({ fontSize: "24px" });
+      expect(screen.getByRole("button")).toHaveStyle({ fontSize: "24px" });
     });
 
-    it("uses 24px for names with exactly 7 characters", () => {
+    it("uses 24px when text comfortably fits (7 chars)", () => {
       render(<DeviceNameEditor deviceId="ABC123" name="Kitchen" />);
-      const btn = screen.getByRole("button");
-      expect(btn).toHaveStyle({ fontSize: "24px" });
+      expect(screen.getByRole("button")).toHaveStyle({ fontSize: "24px" });
     });
 
-    it("reduces by 1px per character beyond 7", () => {
-      render(<DeviceNameEditor deviceId="ABC123" name="Badezimmer" />); // 10 chars → 24 - 3 = 21px
-      const btn = screen.getByRole("button");
-      expect(btn).toHaveStyle({ fontSize: "21px" });
+    it("scales down to 21px for 15-char names that exceed container at 24px", () => {
+      // 15 chars: at 24px → total 218.4px > 200; at 21px → total 191.7px ≤ 200
+      render(<DeviceNameEditor deviceId="ABC123" name="Schlafzimmer 1." />);
+      expect(screen.getByRole("button")).toHaveStyle({ fontSize: "21px" });
     });
 
-    it("does not go below 17px minimum", () => {
-      render(<DeviceNameEditor deviceId="ABC123" name="My Very Long Device Name Here" />); // 29 chars → floor at 17px
-      const btn = screen.getByRole("button");
-      expect(btn).toHaveStyle({ fontSize: "17px" });
-    });
-
-    it("uses exactly 17px at 14 characters", () => {
-      render(<DeviceNameEditor deviceId="ABC123" name="Schlafzimmer 1." />); // 15 chars → 24 - 8 = 16 → floor 17px
-      const btn = screen.getByRole("button");
-      expect(btn).toHaveStyle({ fontSize: "17px" });
+    it("floors at 17px minimum for very long names", () => {
+      // 29 chars: even at 17px total 287px > 200 → fallback floor
+      render(<DeviceNameEditor deviceId="ABC123" name="My Very Long Device Name Here" />);
+      expect(screen.getByRole("button")).toHaveStyle({ fontSize: "17px" });
     });
   });
 });

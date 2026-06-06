@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, KeyboardEvent } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { renameDevice } from "../api/devices";
@@ -22,6 +22,39 @@ export default function DeviceNameEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [fontSizePx, setFontSizePx] = useState(24);
+
+  useLayoutEffect(() => {
+    const el = buttonRef.current;
+    if (!el) return;
+
+    const compute = () => {
+      const containerWidth = el.clientWidth;
+      if (!containerWidth) return;
+
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      for (let size = 24; size >= 17; size--) {
+        ctx.font = `600 ${size}px system-ui, -apple-system, sans-serif`;
+        const textWidth = ctx.measureText(name).width;
+        const iconWidth = size * 0.65; // 0.65em pencil icon
+        const gapWidth = 4.8; // 0.3rem gap at 16px base
+        if (textWidth + iconWidth + gapWidth <= containerWidth) {
+          setFontSizePx(size);
+          return;
+        }
+      }
+      setFontSizePx(17);
+    };
+
+    compute();
+    const observer = new ResizeObserver(compute);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [name]);
 
   useEffect(() => {
     if (editing && inputRef.current) {
@@ -112,10 +145,9 @@ export default function DeviceNameEditor({
     );
   }
 
-  const fontSizePx = Math.max(17, 24 - Math.max(0, name.length - 7));
-
   return (
     <button
+      ref={buttonRef}
       type="button"
       className="device-name device-name-editable"
       style={{ fontSize: `${fontSizePx}px` }}
