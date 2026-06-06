@@ -150,9 +150,7 @@ async def wizard_detect_strategy(request: Request) -> DetectStrategyResponse:
     )
 
 
-async def _check_oct_reachability(
-    hostname: str, port: int
-) -> tuple[bool, str | None]:
+async def _check_oct_reachability(hostname: str, port: int) -> tuple[bool, str | None]:
     """Check if OpenCloudTouch is reachable at hostname:port.
 
     Returns:
