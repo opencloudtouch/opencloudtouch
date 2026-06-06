@@ -105,7 +105,7 @@ describe("About page", () => {
     );
 
     await waitFor(() => {
-      expect(screen.queryByText("Suppâ¤ï¸rters")).toBeNull();
+      expect(screen.queryByText("Suppâ¤ï¸rters")).toBeNull();  // check-mojibake: skip
     });
   });
 
@@ -120,7 +120,7 @@ describe("About page", () => {
     );
 
     await waitFor(() => {
-      expect(screen.queryByText("Suppâ¤ï¸rters")).toBeNull();
+      expect(screen.queryByText("Suppâ¤ï¸rters")).toBeNull();  // check-mojibake: skip
     });
   });
 
@@ -212,7 +212,7 @@ describe("About page", () => {
       "Prince,one-time,15,0,2026-06-04",
       "Elton John,one-time,11.6,0,2026-05-23",
       "Lady Gaga,one-time,11.6,0,2026-05-24",
-      "BeyoncÃ©,one-time,10,0,2026-05-10",
+      "Beyoncé,one-time,10,0,2026-05-10",
       "Ozzy Osbourne,one-time,10,0,2026-05-15",
       "James Hetfield,one-time,10,0,2026-05-16",
       "Dave Grohl,one-time,10,0,2026-05-17",
@@ -254,7 +254,7 @@ describe("About page", () => {
       "Prince",
       "Elton John",
       "Lady Gaga",
-      "BeyoncÃ©",
+      "Beyoncé",
       "Ozzy Osbourne",
       "James Hetfield",
       "Dave Grohl",
