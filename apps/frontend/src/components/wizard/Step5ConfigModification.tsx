@@ -128,7 +128,7 @@ export default function Step5ConfigModification({
   /** Normalize URL to show what will actually be written (add protocol and port if missing). */
   const normalizeUrl = (url: string): string => {
     const trimmed = url.trim();
-    if (!trimmed) return "http://...";
+    if (!trimmed) return "http://..."; // NOSONAR - placeholder only, not a real URL
 
     // Pattern: (protocol)?(hostname|ip)(:port)?
     const regex =
