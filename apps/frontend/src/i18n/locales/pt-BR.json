@@ -384,12 +384,14 @@
         "btnCreate": "Criar backup agora",
         "btnCreating": "Criando backup...",
         "progressMessage": "Criando backup para {{device}}",
-        "progressNote": "Isso pode levar até 2 minutos...",
+        "progressNote": "Isso pode levar até 5 minutos...",
         "errorTitle": "Backup falhou",
         "successTitle": "Backup criado com sucesso!",
         "successHint": "Os backups foram gravados no seu pendrive. Remova o pendrive após o assistente — ele contém seus arquivos de recuperação.",
         "filesTitle": "Arquivos salvos (no pendrive):",
-        "totalLabel": "Total:"
+        "totalLabel": "Total:",
+        "durationMinSec": "{{min}} min {{sec}} s",
+        "durationSec": "{{sec}} s"
       },
       "step5": {
         "titleProxy": "Proxy reverso detectado",
