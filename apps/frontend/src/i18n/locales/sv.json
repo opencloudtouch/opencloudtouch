@@ -1,7 +1,5 @@
-{
+﻿{
   "common": {
-    "save": "Spara",
-    "saving": "Sparar...",
     "cancel": "Avbryt",
     "loading": "Laddar...",
     "error": "Ett fel uppstod",
@@ -9,7 +7,6 @@
     "back": "Tillbaka",
     "close": "Stäng",
     "confirm": "Bekräfta",
-    "search": "Sök",
     "openCloudTouchLoading": "Laddar OpenCloudTouch...",
     "connectingToServer": "Ansluter till server...",
     "loadingTimeout": "Det tar längre tid än förväntat. Vänta eller ladda om sidan.",
@@ -18,27 +15,23 @@
     "reloadPage": "Ladda om sidan",
     "stationNotFound": "Station hittades inte.",
     "saveAsPreset": "Spara som förinställning",
-    "or": "eller"
+    "or": "eller",
+    "enabled": "Aktiverad",
+    "disabled": "Inaktiverad"
   },
   "nav": {
     "presets": "Förinställningar",
     "zones": "Zoner",
     "settings": "Inställningar",
-    "selectLanguage": "Välj språk"
+    "about": "Om"
   },
   "player": {
-    "volume": "Volym",
-    "nowPlaying": "Spelas nu",
-    "noSource": "Ingen källa",
     "noPlayback": "Ingen uppspelning",
     "play": "Spela",
     "pause": "Pausa",
     "noStation": "Ingen station",
-    "bluetoothNoDevice": "Ingen enhet ansluten",
     "noDevices": "Inga enheter hittades",
     "powerButton": "Slå på/av",
-    "powerFailed": "Det gick inte att ändra status",
-    "playbackFailed": "Det gick inte att styra uppspelningen. Försök igen.",
     "localControl": "Lokal kontroll",
     "sourceTitle": "Källa",
     "playbackTitle": "Uppspelning",
@@ -52,7 +45,6 @@
     "nextDevice": "Nästa enhet"
   },
   "presets": {
-    "title": "Förinställningar",
     "pageTitle": "Radioförinställningar",
     "empty": "Inga förinställningar konfigurerade",
     "playPreset": "Spela förinställning {{name}}",
@@ -71,11 +63,10 @@
     "infoItem2": "Klicka på en tilldelad station för att ändra eller ta bort den",
     "infoItem3": "Den gröna ► knappen spelar stationen direkt",
     "infoItem4": "Gult markerade förinställningar beror på Bose Cloud — omkonfigurering rekommenderas",
-    "infoItem5": "⚙️ öppnar enhetens installationsguide",
+    "infoItem5": "âš™ï¸ Ã¶ppnar enhetens installationsguide",
     "infoItem6": "\"Hämta från enhet\" synkroniserar förinställningar från SoundTouch",
     "changeStation": "Klicka för att byta station",
     "assignPreset": "Tilldela förinställning",
-    "nowPlaying": "Spelas nu",
     "cloudCompatible": "Kompatibel efter molnstängning",
     "cloudIndependent": "Molnoberoende",
     "cloudIndependentDesc": "Fungerar efter 6 maj 2026 (Bose Cloud-stängning)",
@@ -105,6 +96,7 @@
       "country": "t.ex. Sweden, Germany…",
       "tag": "t.ex. Rock, Jazz, pop…"
     },
+    "searchTitle": "Sök radiostationer",
     "loadMore": "Ladda fler",
     "loadingMore": "Laddar...",
     "maxReached": "Maximum ({{count}}) nått",
@@ -115,25 +107,26 @@
     "loading": "Laddar inställningar...",
     "errorTitle": "Laddningsfel",
     "manualIps": {
-      "sectionTitle": "Manuella enhets-IP-adresser",
-      "description": "Lägg till enhets-IP-adresser manuellt om automatisk identifiering inte fungerar.",
       "placeholder": "192.168.1.10",
       "addButton": "+ Lägg till",
-      "emptyList": "Inga manuella IP-adresser konfigurerade",
-      "removeIp": "Ta bort IP",
-      "ipAdded": "IP {{ip}} tillagd",
-      "ipRemoved": "IP {{ip}} borttagen",
       "invalidFormat": "Ogiltig IP-adress (format: 192.168.1.10)",
-      "alreadyExists": "Denna IP-adress finns redan",
-      "enterIp": "Ange IP-adress",
-      "discoverButton": "Sök efter enheter",
-      "discovering": "Söker...",
-      "infoHint": "Klicka på \"Sök efter enheter\" för att manuellt starta identifiering. Hittade enheter visas på startsidan."
+      "enterIp": "Ange en IP-adress",
+      "probing": "Söker...",
+      "deviceAdded": "{{name}} ({{ip}}) tillagd",
+      "probeError": "Ingen enhet hittades på {{ip}}"
     },
     "discovery": {
       "devicesFound_one": "{{count}} ny enhet hittad",
-      "devicesFound_other": "{{count}} nya enheter hittade",
-      "noNewDevices": "Inga nya enheter hittades"
+      "devicesFound_other": "{{count}} nya enheter hittade"
+    },
+    "deviceDiscovery": {
+      "sectionTitle": "Hitta enheter",
+      "autoTitle": "Automatisk sökning",
+      "autoDescription": "Söker efter SoundTouch-enheter i ditt lokala nätverk.",
+      "scanButton": "Sök nu",
+      "scanning": "Söker...",
+      "manualTitle": "Manuell IP-adress",
+      "manualDescription": "Använd detta om automatisk sökning inte hittar något på grund av VLAN, Docker-nätverk eller brandvägg."
     },
     "logging": {
       "sectionTitle": "Loggning",
@@ -150,9 +143,7 @@
   },
   "manualIpModal": {
     "title": "Manuell IP-konfiguration",
-    "close": "Stäng",
     "description": "Ange dina enhets-IP-adresser (en per rad eller kommaseparerade).",
-    "placeholder": "Exempel:\n192.168.1.100\n192.168.1.101\n192.168.1.102",
     "invalidFormat": "Ogiltigt format: {{ips}}",
     "saveError": "Fel vid sparande av IP-adresser",
     "save": "Spara",
@@ -160,13 +151,10 @@
     "hint": "IP-adressen finns i den tillhörande appen under Inställningar → Om, eller i din router."
   },
   "multiroom": {
-    "title": "Zoner",
     "pageTitle": "Flerrumszoner",
-    "noZones": "Inga zoner konfigurerade",
     "createZone": "Skapa zon",
     "updateZone": "Uppdatera zon",
     "creating": "Skapar...",
-    "removeZone": "Ta bort zon",
     "standby": "Standby",
     "loadingZones": "Laddar zoner...",
     "errorLoading": "Laddningsfel",
@@ -201,14 +189,12 @@
   },
   "firmware": {
     "title": "Firmwareuppdateringar",
-    "description": "Hantera firmwareuppdateringar för SoundTouch-enheter.",
     "noDevices": "Inga enheter hittades",
     "currentDevice": "Aktuell enhet",
     "currentVersion": "Aktuell version:",
     "statusLabel": "Status:",
     "updateAvailable": "Uppdatering tillgänglig",
     "upToDate": "Uppdaterad",
-    "comingSoon": "Kommer snart",
     "allDevices": "Alla enheter",
     "unknownVersion": "Okänd",
     "unknownModel": "Okänd modell",
@@ -225,17 +211,14 @@
     "infoItem4": "Enheten startar automatiskt om efter uppdateringen"
   },
   "setup": {
-    "title": "Installationsguide",
     "next": "Nästa",
     "back": "Tillbaka",
-    "finish": "Slutför",
     "loading": "Laddar enheter...",
     "loadingAriaLabel": "Laddar",
     "noDevices": "Inga enheter hittades",
     "noDevicesHint": "Synkronisera dina SoundTouch-enheter först.",
     "noDevicesHint2": "Gå till startsidan och klicka på \"Sök efter enheter nu\".",
     "goHome": "Gå tillbaka till startsidan",
-    "homePage": "Startsida",
     "stepLabels": {
       "usbInsert": "Sätt i USB-minne",
       "deviceReboot": "Starta om enhet",
@@ -276,7 +259,6 @@
     },
     "skip": "Hoppa över",
     "stepLabel": "Steg {{step}}",
-    "processing": "Bearbetar...",
     "stepAriaCompleted": "Steg {{id}}: {{label}} — {{description}} – slutfört",
     "stepAriaError": "Steg {{id}}: {{label}} — {{description}} – fel",
     "stepAriaInProgress": "Steg {{id}}: {{label}} — {{description}} – pågår",
@@ -362,8 +344,8 @@
         "q2": "Är det bara kända, betrodda personer som har åtkomst till ditt Wi-Fi-nätverk?",
         "q3": "Planerar du att installera firmwareuppdateringar för den här SoundTouch-enheten inom den närmaste framtiden?",
         "answerYes": "✅ Ja",
-        "answerNo": "❌ Nej",
-        "answerUnknown": "❓ Vet ej",
+        "answerNo": "âŒ Nej",
+        "answerUnknown": "â“ Vet ej",
         "riskLabel": "Risk:",
         "riskLow": "Låg",
         "riskMedium": "Medel",
@@ -377,7 +359,7 @@
         "advancedWhy": "När behövs detta?",
         "advancedWhyText": "Bara om det automatiska testet ovan misslyckas och du vill verifiera anslutningen själv. I den normala processen kan du hoppa över det här steget.",
         "advancedDesc": "SoundTouch-enheter kräver äldre SSH-algoritmer.",
-        "tabTerminal": "🖥️ Terminal (Linux / macOS)",
+        "tabTerminal": "ðŸ–¥ï¸ Terminal (Linux / macOS)",
         "tabPuTTY": "🪟 PuTTY (Windows)",
         "puttyStep1": "Session: Host Name = {{ip}}, Port = 22, Connection type = SSH",
         "puttyStep2": "Connection → SSH → Kex: placera Diffie-Hellman group 1 högst upp",
@@ -385,7 +367,7 @@
         "puttyStep4": "Connection → SSH → Auth: aktivera 'Allow attempted changes of username'; i Host keys ta bort rsa-sha2-256 och rsa-sha2-512, behåll bara ssh-rsa",
         "puttyStep5": "Login: Username = root, Password = tomt (tryck Enter)",
         "sshPasswordHint": "Lösenord: lämna tomt (tryck Enter)",
-        "troubleshootingTitle": "⚠️ Felsökning",
+        "troubleshootingTitle": "âš ï¸ FelsÃ¶kning",
         "troubleshootingItem1": "Kontrollera att USB-enheten är korrekt isatt",
         "troubleshootingItem2": "Kontrollera att filen 'remote_services' är korrekt",
         "troubleshootingItem3": "Vänta minst 60 sekunder efter omstart",
@@ -483,16 +465,13 @@
         "description": "Kontrollera att domänomdirigeringarna fungerar korrekt.",
         "warning": "Om testerna misslyckas kan en omstart av enheten krävas.",
         "rebootHeader": "Starta om enheten",
-        "rebootHint": "Ändringar i /etc/hosts träder i kraft först efter omstart. Starta om enheten innan du kör tester.",
         "btnReboot": "Starta om enheten nu",
-        "rebootActionHint": "Bara om testerna misslyckas och du är säker på att omstart behövs",
         "rebootRebooting": "Skickar omstartskommando...",
         "rebootWaiting": "Enheten startar om — vänta...",
         "rebootDone": "Omstart klar — enheten bör vara tillgänglig igen.",
         "btnRetryReboot": "Försök igen",
         "btnFinalize": "Slutför enhetskonfiguration",
         "finalizing": "Konfigurerar enhet...",
-        "verifying": "Verifierar konfiguration...",
         "btnRetryFinalize": "Försök igen",
         "finalizeUuid": "Enhets-UUID inställt: {{uuid}}",
         "finalizeSources": "Sources.xml skriven",
@@ -522,28 +501,13 @@
         "summaryRedirectsCorrect": "Alla omdirigeringar verifierade och korrekta",
         "summarySourcesPresent": "Alla nödvändiga källor finns",
         "verifyTitle": "Konfigurationsverifiering",
-        "testInfoTitle": "Vad testas?",
-        "testInfoItem1": "DNS-upplösning för Bose-domäner",
-        "testInfoItem2": "Omdirigering till OpenCloudTouch-servern",
-        "testInfoItem3": "Korrekthet hos IP-adresserna",
-        "btnRunTests": "Kör tester nu",
-        "btnRunning": "Testar konfiguration...",
         "resultsTitle": "Testresultat",
-        "resolvedIp": "Löst IP:",
-        "expectedIp": "Förväntat IP:",
-        "statusLabel": "Status:",
-        "statusCorrect": "✓ Korrekt",
-        "statusFailed": "✗ Misslyckat",
         "domainInternetRadio": "Internetradio",
         "domainStreaming": "Streamingtjänster",
         "allPassedTitle": "Alla tester godkända!",
         "allPassedMessage": "Domänomdirigeringarna fungerar korrekt. Enheten är redo att användas.",
         "someFailedTitle": "Vissa tester misslyckades",
         "someFailedMessage": "DNS-ändringarna kanske inte är aktiva ännu. Prova följande steg:",
-        "failedStep1": "Starta om enheten (koppla ur och koppla in strömmen)",
-        "failedStep2": "Vänta 60 sekunder efter omstart",
-        "failedStep3": "Kör testerna igen",
-        "btnRetryTests": "Kör test igen",
         "btnSkip": "Fortsätt ändå — enheten markeras inte som konfigurerad",
         "rebootMandatoryHint": "En omstart krävs för att konfigurationsändringarna ska träda i kraft. Enheten måste startas om innan verifieringen.",
         "fullVerifyTitle": "Fullständig systemverifiering",
@@ -553,58 +517,6 @@
         "fullVerifyItem4": "DNS-omdirigeringar lösta till OpenCloudTouch-servern",
         "btnRunFullVerify": "Starta fullständig verifiering",
         "fullVerifying": "Fullständig systemverifiering pågår...",
-        "systemChecksTitle": "Systemkontroller",
-        "check": {
-          "uuid_present": {
-            "pass": "Enhets-UUID: {{uuid}}",
-            "fail": "Enheten har inget konto-UUID. Startsynkronisering fungerar inte."
-          },
-          "uuid_in_db": {
-            "pass": "UUID registrerat för {{db_device_id}}",
-            "fail": "UUID inte registrerat i OCT-databasen. Streaming-slutpunkten kan inte lösa denna enhet."
-          },
-          "sources_complete": {
-            "pass": "Alla nödvändiga källor finns",
-            "fail": "Saknade källor: {{missing}}. Uppspelning av förinställningar kan misslyckas för dessa källtyper."
-          },
-          "config_files_present": {
-            "pass": "Alla konfigurationsfiler finns",
-            "fail": "Saknad konfigurationsfil: {{missing}}. Firmware kanske inte hittar OCT-omdirigering vid omstart."
-          },
-          "config_files_identical": {
-            "pass": "Alla konfigurationsfiler har identiskt innehåll",
-            "fail": "Konfigurationsfilerna skiljer sig åt. Enheten kan använda fel BMX-URL efter omstart."
-          },
-          "config_bmx_url": {
-            "pass": "BMX-URL: {{bmx_url}}",
-            "fail": "BMX-URL pekar fortfarande på Bose-molnet ({{bmx_url}}). Enheten kontaktar inte OCT."
-          },
-          "hosts_oct_block": {
-            "pass": "OCT-block finns i /etc/hosts",
-            "fail": "Inget OCT-block i /etc/hosts. Domänomdirigeringar saknas."
-          },
-          "hosts_domains_complete": {
-            "pass": "Alla nödvändiga domäner finns",
-            "fail": "Saknade värdposter: {{missing}}. Vissa Bose-tjänster omdirigeras inte."
-          },
-          "hosts_ip_correct": {
-            "pass": "Alla värdposter pekar på rätt IP",
-            "fail": "Värdposter pekar på fel IP. Kontrollera föråldrade poster."
-          },
-          "system_config_present": {
-            "pass": "SystemConfigurationDB.xml finns",
-            "fail": "SystemConfigurationDB.xml saknas. Enheten kanske inte initialiseras korrekt."
-          },
-          "system_config_uuid_match": {
-            "pass": "UUID i SystemConfigurationDB.xml matchar enheten",
-            "fail": "UUID i SystemConfigurationDB.xml matchar inte enhetens UUID"
-          },
-          "connection": {
-            "pass": "Anslutning OK",
-            "fail": "Anslutning misslyckades"
-          }
-        },
-        "dnsTestsTitle": "DNS-omdirigeringskontroller",
         "btnRetryFullVerify": "Kör verifiering igen"
       },
       "step8": {
@@ -692,8 +604,6 @@
     }
   },
   "errors": {
-    "connectionFailed": "Det gick inte att ansluta till enheten.",
-    "discoveryFailed": "Sökning misslyckades. Kontrollera nätverksinställningarna.",
     "loadFailed": "Inläsning misslyckades. Försök igen.",
     "unknown": "Ett oväntat fel uppstod. Försök igen.",
     "networkFailed": "Det gick inte att ansluta till servern. Kontrollera nätverksanslutningen.",
@@ -749,13 +659,21 @@
     "reportIssue": "Rapportera problem",
     "support": "Stöd",
     "versionUnavailable": "Version ej tillgänglig",
-    "creditsTitle": "Bidragsgivare",
-    "creditsDescription": "Speciellt tack till communitymedlemmarna som bidragit med forskning, testning och reverse engineering."
+    "hallOfFameTitle": "Hall of Fame",
+    "hallOfFameDescription": "Topp 3 bidragsgivare genom tiderna — erkända för exceptionell teknisk påverkan.",
+    "supportersTitle": "Supportrar",
+    "reportBug": "Rapportera bugg",
+    "diagnostics": "Diagnostik",
+    "supportersDescription": "Tack till alla som stödjer OpenCloudTouch ekonomiskt. Era bidrag hjälper till att hålla projektet vid liv!",
+    "supportersMonthly": "Månatliga Supportrar",
+    "supportersOneTime": "Engångssupportrar",
+    "buildTime": "Skapad {{time}}",
+    "checkingUpdates": "Söker efter uppdateringar...",
+    "updateAvailable": "Uppdatering tillgänglig: {{version}}",
+    "viewRelease": "Visa version",
+    "upToDate": "Du är uppdaterad!"
   },
   "discovery": {
-    "started": "Sökning startad",
-    "completed": "Sökning slutförd",
-    "searching": "Söker efter enheter...",
     "alreadyRunning": "Enhetssökning pågår redan. Vänta...",
     "failed": "Fel under enhetssökning. Försök igen.",
     "noDevicesNetwork": "Inga enheter hittades. Kontrollera att de är påslagna och i samma nätverk.",
@@ -822,5 +740,24 @@
     "submitFailed": "Kunde inte skicka buggrapport: {{error}}",
     "diagnosticsSuccess": "Diagnostik nedladdad! Bifoga .log.gz-filen till ditt GitHub-ärende.",
     "diagnosticsFailed": "Kunde inte ladda ner diagnostik: {{error}}"
+  },
+  "diagnostics": {
+    "title": "Diagnostik",
+    "serverInfo": "Serverinformation",
+    "version": "Version",
+    "python": "Python",
+    "platform": "Plattform",
+    "discovery": "Upptäckt",
+    "logLevel": "Loggnivå",
+    "manualIPs": "Manuella IP-adresser",
+    "database": "Databas",
+    "devicesCount": "Enheter",
+    "presetsCount": "Förinställningar",
+    "devices": "Enheter",
+    "noDevices": "Inga enheter hittades",
+    "firmware": "Firmware",
+    "setupStatus": "Konfigurationsstatus",
+    "lastSeen": "Senast sedd",
+    "downloadBundle": "Ladda ner supportpaket"
   }
 }

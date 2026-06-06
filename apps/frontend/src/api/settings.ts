@@ -44,3 +44,24 @@ export async function deleteManualIP(ip: string): Promise<void> {
   });
   await throwIfNotOk(response, "Failed to delete manual IP");
 }
+
+export interface ProbeResult {
+  device_id: string;
+  ip: string;
+  name: string;
+  model: string;
+}
+
+/**
+ * Probe a single device by IP address.
+ * Contacts the device, fetches info, upserts to DB, and adds to manual IPs.
+ */
+export async function probeDevice(ip: string): Promise<ProbeResult> {
+  const response = await fetch(`${API_BASE_URL}/api/devices/probe`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ip }),
+  });
+  await throwIfNotOk(response, "Device not reachable");
+  return response.json();
+}

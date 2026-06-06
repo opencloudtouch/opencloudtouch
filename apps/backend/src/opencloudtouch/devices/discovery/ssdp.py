@@ -135,7 +135,7 @@ class SSDPDiscovery:
 
                     # Extract LOCATION header
                     location = self._parse_location(response)
-                    if location:
+                    if location and location not in locations:
                         locations.add(location)
                         logger.debug("Found SSDP device at %s", location)
 

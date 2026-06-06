@@ -177,6 +177,23 @@ class DeviceSyncService:
         logger.info("Discovered %d unique devices total", len(unique_devices))
         return unique_devices
 
+    async def fetch_and_upsert_one(self, discovered: DiscoveredDevice) -> Device:
+        """Fetch info from a single device and upsert to DB.
+
+        Args:
+            discovered: Discovered device to probe
+
+        Returns:
+            Device model with complete information
+
+        Raises:
+            Exception: If device is not reachable or upsert fails
+        """
+        device = await self._fetch_device_info(discovered)
+        await self.repository.upsert(device)
+        logger.info("Probed and synced device: %s (%s)", device.name, device.device_id)
+        return device
+
     async def _discover_via_ssdp(self) -> List[DiscoveredDevice]:
         """
         Discover devices via SSDP network scan.

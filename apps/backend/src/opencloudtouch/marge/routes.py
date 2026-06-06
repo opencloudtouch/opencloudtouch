@@ -8,8 +8,8 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 
 from opencloudtouch.core.dependencies import get_marge_service
-from opencloudtouch.marge.service import MargeService
 from opencloudtouch.core.source_types import BASE_SOURCES
+from opencloudtouch.marge.service import MargeService
 from opencloudtouch.marge.xml_builder import (
     build_devices_xml,
     build_full_account_xml,

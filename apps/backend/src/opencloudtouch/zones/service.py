@@ -8,6 +8,7 @@ from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFound
 from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
+from opencloudtouch.zones.repository import ZoneRepository
 
 if TYPE_CHECKING:
     from opencloudtouch.devices.client import DeviceClient
@@ -24,9 +25,11 @@ class ZoneService:
     def __init__(
         self,
         device_repo: DeviceRepository,
+        zone_repo: ZoneRepository,
         client_factory: DeviceClientFactory | None = None,
     ) -> None:
         self.device_repo = device_repo
+        self.zone_repo = zone_repo
         self._client_factory = client_factory
 
     def _get_client(self, ip: str) -> "DeviceClient":
@@ -85,52 +88,51 @@ class ZoneService:
         return self._enrich_zone_status(status, devices)
 
     async def get_all_zones(self) -> list[ZoneStatus]:
-        """Get all active zones across all devices."""
-        devices = await self.device_repo.get_all()
-        if not devices:
-            return []
+        """Get all active zones from database (no device polling)."""
+        zones_db = await self.zone_repo.get_all_active_zones()
+        await self.device_repo.get_all()
 
-        async def _fetch_zone(device):
-            try:
-                client = self._get_client(device.ip)
-                status = await client.get_zone_status()
-                if status:
-                    logger.debug(
-                        "Zone from %s (is_master=%s): master=%s, members=%d [%s]",
-                        device.device_id,
-                        status.is_master,
-                        status.master_id,
-                        len(status.members),
-                        ", ".join(m.device_id for m in status.members),
-                    )
-                return status
-            except Exception:
-                logger.debug("Could not get zone for %s: skipped", device.device_id)
-                return None
-
-        results = await asyncio.gather(*[_fetch_zone(d) for d in devices])
-
-        # Group zone results by master_id, preferring the master's own
-        # perspective (is_master=True) since it has the complete member list.
-        zone_map: dict[str, ZoneStatus] = {}
-        for status in results:
-            if not status:
+        result = []
+        for zone_db in zones_db:
+            if zone_db.id is None:
+                logger.error(
+                    "Zone from DB has no ID, skipping: %s", zone_db.master_device_id
+                )
                 continue
-            mid = status.master_id
-            if mid not in zone_map or (
-                status.is_master and not zone_map[mid].is_master
-            ):
-                zone_map[mid] = status
+            members = await self.zone_repo.get_active_members(zone_db.id)
 
-        zones: list[ZoneStatus] = [
-            self._enrich_zone_status(s, devices) for s in zone_map.values()
-        ]
+            # Enrich with device names/IPs
+            member_infos = []
+            for m in members:
+                device = await self.device_repo.get_by_device_id(m.device_id)
+                if device:
+                    member_infos.append(
+                        ZoneMemberInfo(
+                            device_id=m.device_id,
+                            ip_address=device.ip,
+                            role=m.role,
+                            name=device.name,
+                            model=device.model,
+                        )
+                    )
+
+            master = await self.device_repo.get_by_device_id(zone_db.master_device_id)
+            if master:
+                result.append(
+                    ZoneStatus(
+                        master_id=master.device_id,
+                        master_ip=master.ip,
+                        is_master=True,
+                        members=member_infos,
+                    )
+                )
+
         logger.info(
-            "get_all_zones: %d zone(s), members: %s",
-            len(zones),
-            {z.master_id: len(z.members) for z in zones},
+            "get_all_zones: %d zone(s) from DB, members: %s",
+            len(result),
+            {z.master_id: len(z.members) for z in result},
         )
-        return zones
+        return result
 
     async def create_zone(self, master_id: str, slave_ids: list[str]) -> ZoneStatus:
         """Create a new multi-room zone."""
@@ -152,6 +154,17 @@ class ZoneService:
         except Exception as e:
             logger.error("Failed to create zone master=%s: %s", master_id, e)
             raise DeviceConnectionError(master.ip, str(e))
+
+        # Persist to database
+        try:
+            zone_db = await self.zone_repo.create_zone(master.device_id)
+            if zone_db.id is None:
+                raise RuntimeError("Created zone has no ID")
+            for slave_id in slave_ids:
+                await self.zone_repo.add_member(zone_db.id, slave_id, "slave")
+            logger.info("Zone created and persisted to DB: zone_id=%d", zone_db.id)
+        except Exception:
+            logger.exception("Failed to persist zone to DB")
 
         logger.info(
             "Zone created: master=%s, members=%d [%s]",
@@ -181,6 +194,12 @@ class ZoneService:
         except Exception as e:
             raise DeviceConnectionError(master.ip, str(e))
 
+        # Update database
+        zone_db = await self.zone_repo.get_active_zone_by_master(master.device_id)
+        if zone_db and zone_db.id is not None:
+            for slave_id in slave_ids:
+                await self.zone_repo.add_member(zone_db.id, slave_id, "slave")
+
     async def remove_members(self, master_id: str, slave_ids: list[str]) -> None:
         """Remove members from an existing zone."""
         master = await self._get_device_or_raise(master_id)
@@ -200,17 +219,76 @@ class ZoneService:
         except Exception as e:
             raise DeviceConnectionError(master.ip, str(e))
 
+        # Update database
+        zone_db = await self.zone_repo.get_active_zone_by_master(master.device_id)
+        if zone_db and zone_db.id is not None:
+            for slave_id in slave_ids:
+                await self.zone_repo.remove_member(zone_db.id, slave_id)
+
+    async def _remove_slaves_parallel(
+        self, client: "DeviceClient", slaves: list
+    ) -> None:
+        """Remove all slaves in parallel to reduce dissolution time."""
+        if not slaves:
+            return
+
+        logger.info(
+            "Removing %d slaves in PARALLEL before dissolving zone", len(slaves)
+        )
+        remove_tasks = [client.remove_zone_members([slave]) for slave in slaves]
+        results = await asyncio.gather(*remove_tasks, return_exceptions=True)
+
+        for slave, result in zip(slaves, results):
+            if isinstance(result, Exception):
+                logger.error("Failed to remove slave %s: %s", slave.device_id, result)
+            else:
+                logger.info("Slave %s removed successfully", slave.device_id)
+
     async def dissolve_zone(self, master_id: str) -> None:
-        """Dissolve an existing zone."""
+        """Dissolve zone by removing all slaves in parallel, then master."""
         logger.info("Dissolving zone with master_id=%s", master_id)
         master = await self._get_device_or_raise(master_id)
         client = self._get_client(master.ip)
+
+        # Get current zone to identify all slaves
+        try:
+            zone_status = await client.get_zone_status()
+        except Exception as e:
+            logger.error("Failed to get zone status for master_id=%s: %s", master_id, e)
+            raise DeviceConnectionError(master.ip, str(e))
+
+        if not zone_status or not zone_status.members:
+            logger.warning(
+                "No zone found for master_id=%s, nothing to dissolve", master_id
+            )
+            # Still update DB to mark as dissolved
+            zone_db = await self.zone_repo.get_active_zone_by_master(master.device_id)
+            if zone_db and zone_db.id is not None:
+                await self.zone_repo.dissolve_zone(zone_db.id)
+            return
+
+        # Remove all slaves in PARALLEL (each waits with delay=3)
+        slaves = [m for m in zone_status.members if m.role == "slave"]
+        await self._remove_slaves_parallel(client, slaves)
+
+        # Now dissolve the zone on master (all slaves are removed)
         try:
             await client.remove_zone()
             logger.info("Zone dissolved successfully for master_id=%s", master_id)
-        except Exception as e:
-            logger.error("Failed to dissolve zone master_id=%s: %s", master_id, e)
-            raise DeviceConnectionError(master.ip, str(e))
+        except Exception:
+            # Bose devices sometimes throw errors even when operation succeeds
+            # Zone events will confirm if zone was actually dissolved
+            logger.exception(
+                "remove_zone() raised exception but zone may be dissolved (master_id=%s)",
+                master_id,
+            )
+        finally:
+            # Update database ALWAYS (even if remove_zone() threw exception)
+            # Physical zone state is source of truth (WebSocket events)
+            zone_db = await self.zone_repo.get_active_zone_by_master(master.device_id)
+            if zone_db and zone_db.id is not None:
+                await self.zone_repo.dissolve_zone(zone_db.id)
+                logger.info("Zone marked as dissolved in DB (zone_id=%d)", zone_db.id)
 
     async def change_master(self, old_master_id: str, new_master_id: str) -> ZoneStatus:
         """Change the master of a zone. Dissolve old, recreate with new master."""

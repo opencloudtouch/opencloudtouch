@@ -639,6 +639,17 @@
   cursor: pointer;
 }
 
+.log-level-select option {
+  background-color: var(--color-bg-darker);
+  color: var(--color-text-primary);
+  padding: var(--space-sm);
+}
+
+.log-level-select option:checked {
+  background-color: var(--color-accent);
+  color: var(--color-text-primary);
+}
+
 .log-level-select:focus {
   outline: none;
   border-color: var(--color-primary);
@@ -655,4 +666,60 @@
 .log-download-row .section-description {
   margin-bottom: 0;
   flex: 1;
+}
+
+/* Network Discovery */
+.device-discovery-options {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.discovery-method-card {
+  padding: var(--space-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  background: var(--color-bg-darker);
+}
+
+.primary-method {
+  border-color: var(--color-primary);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.secondary-method {
+  opacity: 0.95;
+}
+
+.method-title {
+  font-size: 16px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-xs) 0;
+}
+
+.method-description {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-md) 0;
+  line-height: 1.5;
+}
+
+.discover-action {
+  margin-top: var(--space-md);
+}
+
+.network-scan-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.spinner-inline {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }

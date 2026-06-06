@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ToastProvider } from "./contexts/ToastContext";
+import { DeviceEventProvider } from "./contexts/DeviceEventContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Navigation from "./components/Navigation";
 import EmptyState from "./components/EmptyState";
@@ -10,7 +11,9 @@ import LocalControl from "./pages/LocalControl";
 import MultiRoom from "./pages/MultiRoom";
 import Firmware from "./pages/Firmware";
 import Settings from "./pages/Settings";
+import About from "./pages/About";
 import Licenses from "./pages/Licenses";
+import Diagnostics from "./pages/Diagnostics";
 import SetupWizard from "./pages/SetupWizard";
 import NotFound from "./pages/NotFound";
 import { Device } from "./api/devices";
@@ -100,48 +103,49 @@ function AppRouter({ devices: initialDevices, isLoading, error, onRetry }: AppRo
   }
   return (
     <div className="app">
-      <Routes>
-        {/* Setup Wizard — always available, manages its own loading/empty states */}
-        <Route path="/setup-wizard" element={<SetupWizard devices={devices} isLoading={false} />} />
+      <header className="app-header" data-test="app-header">
+        <Navigation />
+      </header>
+      <main className="app-main">
+        <Routes>
+          {/* Setup Wizard — always available, manages its own loading/empty states */}
+          <Route
+            path="/setup-wizard"
+            element={<SetupWizard devices={devices} isLoading={false} />}
+          />
 
-        {/* Welcome Screen - shown when no devices */}
-        <Route
-          path="/welcome"
-          element={devices.length === 0 ? <EmptyState /> : <Navigate to="/" replace />}
-        />
+          {/* Welcome Screen - shown when no devices */}
+          <Route
+            path="/welcome"
+            element={devices.length === 0 ? <EmptyState /> : <Navigate to="/" replace />}
+          />
 
-        {/* Main App Routes - require devices */}
-        <Route
-          path="/*"
-          element={
-            devices.length > 0 ? (
-              <>
-                <header className="app-header" data-test="app-header">
-                  <Navigation />
-                </header>
-                <main className="app-main">
-                  <Routes>
-                    <Route
-                      path="/"
-                      element={
-                        <RadioPresets devices={devices} onRemoveDevice={handleRemoveDevice} />
-                      }
-                    />
-                    <Route path="/local" element={<LocalControl devices={devices} />} />
-                    <Route path="/multiroom" element={<MultiRoom devices={devices} />} />
-                    <Route path="/firmware" element={<Firmware devices={devices} />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/licenses" element={<Licenses />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </main>
-              </>
-            ) : (
-              <Navigate to="/welcome" replace />
-            )
-          }
-        />
-      </Routes>
+          {/* Main App Routes - require devices */}
+          <Route
+            path="/*"
+            element={
+              devices.length > 0 ? (
+                <Routes>
+                  <Route
+                    path="/"
+                    element={<RadioPresets devices={devices} onRemoveDevice={handleRemoveDevice} />}
+                  />
+                  <Route path="/local" element={<LocalControl devices={devices} />} />
+                  <Route path="/multiroom" element={<MultiRoom devices={devices} />} />
+                  <Route path="/firmware" element={<Firmware devices={devices} />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/diagnostics" element={<Diagnostics />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/licenses" element={<Licenses />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              ) : (
+                <Navigate to="/welcome" replace />
+              )
+            }
+          />
+        </Routes>
+      </main>
     </div>
   );
 }
@@ -159,12 +163,14 @@ function App() {
     <ErrorBoundary>
       <BrowserRouter {...routerFutureFlagsAny}>
         <ToastProvider>
-          <AppRouter
-            devices={devices}
-            isLoading={isLoading}
-            error={error}
-            onRetry={() => refetch()}
-          />
+          <DeviceEventProvider>
+            <AppRouter
+              devices={devices}
+              isLoading={isLoading}
+              error={error}
+              onRetry={() => refetch()}
+            />
+          </DeviceEventProvider>
         </ToastProvider>
       </BrowserRouter>
     </ErrorBoundary>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { HAS_TUNEIN_SUPPORT } from "../config/capabilities";
 import "./NowPlaying.css";
@@ -119,8 +119,79 @@ function getSourceLabel(source?: string): string | null {
   return source ? (SOURCE_LABELS[source] ?? null) : null;
 }
 
+function MarqueeText({
+  text,
+  className,
+  active,
+  onOverflow,
+  onCycleEnd,
+}: Readonly<{
+  text: string;
+  className: string;
+  active: boolean;
+  onOverflow: (overflows: boolean) => void;
+  onCycleEnd?: () => void;
+}>) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const spanRef = useRef<HTMLSpanElement>(null);
+  const [overflows, setOverflows] = useState(false);
+  const [distance, setDistance] = useState(0);
+  const onOverflowRef = useRef(onOverflow);
+  onOverflowRef.current = onOverflow;
+
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    const span = spanRef.current;
+    if (!wrap || !span) return;
+
+    const measure = () => {
+      const over = span.scrollWidth > wrap.clientWidth + 1;
+      setOverflows(over);
+      onOverflowRef.current(over);
+      if (over) setDistance(span.scrollWidth - wrap.clientWidth);
+    };
+
+    const ro = new ResizeObserver(measure);
+    ro.observe(wrap);
+    return () => ro.disconnect();
+  }, [text]);
+
+  const animate = overflows && active;
+  const duration = Math.max(6, distance / 10);
+
+  return (
+    <div ref={wrapRef} className={className} title={text}>
+      <span
+        ref={spanRef}
+        className={`marquee-inner${animate ? " marquee-scrolling" : ""}`}
+        style={
+          animate
+            ? ({
+                "--marquee-distance": `-${distance}px`,
+                animationDuration: `${duration}s`,
+              } as React.CSSProperties)
+            : undefined
+        }
+        onAnimationIteration={onCycleEnd}
+      >
+        {text}
+      </span>
+    </div>
+  );
+}
+
 export default function NowPlaying({ nowPlaying, onPlayPause }: NowPlayingProps) {
   const { t } = useTranslation();
+  const [trackOverflows, setTrackOverflows] = useState(false);
+  const [artistOverflows, setArtistOverflows] = useState(false);
+  const [activeMarquee, setActiveMarquee] = useState<"track" | "artist">("track");
+
+  const track = nowPlaying?.track;
+  const artist = nowPlaying?.artist;
+  useEffect(() => setTrackOverflows(false), [track]);
+  useEffect(() => setArtistOverflows(false), [artist]);
+
+  const bothOverflow = trackOverflows && artistOverflows;
 
   function getHeaderDisplay(station?: string, source?: string): string {
     // For non-radio sources, show source label (e.g. "Bluetooth", "AUX")
@@ -148,7 +219,9 @@ export default function NowPlaying({ nowPlaying, onPlayPause }: NowPlayingProps)
     <div className="now-playing">
       <div className="np-header">
         {getSourceBadge(nowPlaying.source)}
-        <div className="np-station">{getHeaderDisplay(nowPlaying.station, nowPlaying.source)}</div>
+        <div className="np-station" title={nowPlaying.station ?? undefined}>
+          {getHeaderDisplay(nowPlaying.station, nowPlaying.source)}
+        </div>
       </div>
       <div className="np-art">
         <ArtworkImage artUrl={nowPlaying.art_url} />
@@ -169,8 +242,24 @@ export default function NowPlaying({ nowPlaying, onPlayPause }: NowPlayingProps)
         )}
       </div>
       <div className="np-info">
-        {nowPlaying.track && <div className="np-track">{nowPlaying.track}</div>}
-        {nowPlaying.artist && <div className="np-artist">{nowPlaying.artist}</div>}
+        {nowPlaying.track && (
+          <MarqueeText
+            text={nowPlaying.track}
+            className="np-track"
+            active={trackOverflows && (!bothOverflow || activeMarquee === "track")}
+            onOverflow={setTrackOverflows}
+            onCycleEnd={bothOverflow ? () => setActiveMarquee("artist") : undefined}
+          />
+        )}
+        {nowPlaying.artist && (
+          <MarqueeText
+            text={nowPlaying.artist}
+            className="np-artist"
+            active={artistOverflows && (!bothOverflow || activeMarquee === "artist")}
+            onOverflow={setArtistOverflows}
+            onCycleEnd={bothOverflow ? () => setActiveMarquee("track") : undefined}
+          />
+        )}
       </div>
     </div>
   );

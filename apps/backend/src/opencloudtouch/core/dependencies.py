@@ -11,6 +11,7 @@ from fastapi import Depends, Request
 
 from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.devices.service import DeviceService
+from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.marge.service import MargeService
 from opencloudtouch.presets.repository import PresetRepository
 from opencloudtouch.presets.service import PresetService
@@ -61,6 +62,18 @@ def get_settings_service(request: Request) -> SettingsService:
     return request.app.state.settings_service
 
 
+def get_device_state_manager(request: Request) -> DeviceStateManager:
+    """Get device state manager instance from app.state (FastAPI dependency).
+
+    Returns a fresh (empty) instance if not yet initialised — this avoids
+    ``AttributeError`` in tests that exercise routes but don't wire up
+    the full lifespan.
+    """
+    return (
+        getattr(request.app.state, "device_state_manager", None) or DeviceStateManager()
+    )
+
+
 def get_zone_service(request: Request) -> ZoneService:
     """Get zone service instance from app.state (FastAPI dependency)."""
     return request.app.state.zone_service
@@ -92,6 +105,7 @@ PresetServiceDep = Annotated[PresetService, Depends(get_preset_service)]
 MargeServiceDep = Annotated[MargeService, Depends(get_marge_service)]
 ZoneServiceDep = Annotated[ZoneService, Depends(get_zone_service)]
 SettingsServiceDep = Annotated[SettingsService, Depends(get_settings_service)]
+DeviceStateManagerDep = Annotated[DeviceStateManager, Depends(get_device_state_manager)]
 WizardServiceDep = Annotated["WizardService", Depends(get_wizard_service)]
 
 

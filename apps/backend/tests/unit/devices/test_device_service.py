@@ -619,3 +619,32 @@ class TestDeviceServiceNowPlaying:
 
         with pytest.raises(DeviceNotFoundError):
             await device_service.get_now_playing("NONEXISTENT")
+
+
+class TestDeviceServiceProbe:
+    """Test probe_single_device."""
+
+    @pytest.mark.asyncio
+    async def test_probe_single_device_success(
+        self, device_service, mock_sync_service, sample_device
+    ):
+        """Probe creates DiscoveredDevice and delegates to sync_service."""
+        mock_sync_service.fetch_and_upsert_one.return_value = sample_device
+
+        result = await device_service.probe_single_device("192.168.1.100")
+
+        assert result.device_id == "AABBCC112233"
+        mock_sync_service.fetch_and_upsert_one.assert_called_once()
+        call_arg = mock_sync_service.fetch_and_upsert_one.call_args[0][0]
+        assert call_arg.ip == "192.168.1.100"
+        assert call_arg.port == 8090
+
+    @pytest.mark.asyncio
+    async def test_probe_single_device_propagates_error(
+        self, device_service, mock_sync_service
+    ):
+        """Probe propagates exceptions from sync_service."""
+        mock_sync_service.fetch_and_upsert_one.side_effect = Exception("Unreachable")
+
+        with pytest.raises(Exception, match="Unreachable"):
+            await device_service.probe_single_device("192.168.1.200")

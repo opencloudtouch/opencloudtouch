@@ -76,6 +76,7 @@ class LogDownloadRequest(BaseModel):
     """Optional body for POST /api/logs/backend with frontend logs."""
 
     frontend_logs: list[FrontendLogEntry] = []
+    frontend_log_buffers: dict[str, list[FrontendLogEntry]] | None = None
 
 
 @router.get(
@@ -97,27 +98,38 @@ async def download_backend_logs_post(
     request: Request, body: LogDownloadRequest
 ) -> Response:
     """POST handler that accepts frontend logs in the request body."""
-    return await _build_log_response(request, frontend_logs=body.frontend_logs)
+    return await _build_log_response(
+        request,
+        frontend_logs=body.frontend_logs,
+        frontend_log_buffers=body.frontend_log_buffers,
+    )
 
 
 async def _build_log_response(
-    request: Request, frontend_logs: list[FrontendLogEntry]
+    request: Request,
+    frontend_logs: list[FrontendLogEntry],
+    frontend_log_buffers: dict[str, list[FrontendLogEntry]] | None = None,
 ) -> Response:
     log_dir = get_persistent_log_dir()
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
     if log_dir and log_dir.exists():
-        return await _build_zip_response(request, frontend_logs, log_dir, timestamp)
-    return await _build_plaintext_response(request, frontend_logs, timestamp)
+        return await _build_zip_response(
+            request, frontend_logs, log_dir, timestamp, frontend_log_buffers
+        )
+    return await _build_plaintext_response(
+        request, frontend_logs, timestamp, frontend_log_buffers
+    )
 
 
 async def _build_plaintext_response(
     request: Request,
     frontend_logs: list[FrontendLogEntry],
     timestamp: str,
+    frontend_log_buffers: dict[str, list[FrontendLogEntry]] | None = None,
 ) -> PlainTextResponse:
     content = _build_ram_buffer_text()
-    content += _build_frontend_section(frontend_logs)
+    content += _build_frontend_section(frontend_logs, frontend_log_buffers)
     content += await _build_audit_trail_section(request)
 
     filename = f"oct-backend-{timestamp}.log"
@@ -131,6 +143,7 @@ async def _build_zip_response(
     frontend_logs: list[FrontendLogEntry],
     log_dir: Path,
     timestamp: str,
+    frontend_log_buffers: dict[str, list[FrontendLogEntry]] | None = None,
 ) -> Response:
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -143,8 +156,15 @@ async def _build_zip_response(
         ram_text = _build_ram_buffer_text()
         zf.writestr("ram-buffer.log", ram_text)
 
-        # Add frontend logs
-        if frontend_logs:
+        # Add frontend logs — structured per domain if available
+        if frontend_log_buffers:
+            for domain, entries in frontend_log_buffers.items():
+                if entries:
+                    text = "".join(
+                        f"[{e.timestamp}] {e.level}: {e.message}\n" for e in entries
+                    )
+                    zf.writestr(f"frontend-{domain}.log", text)
+        elif frontend_logs:
             frontend_text = "".join(
                 f"[{e.timestamp}] {e.level}: {e.message}\n" for e in frontend_logs
             )
@@ -184,7 +204,27 @@ def _build_ram_buffer_text() -> str:
     return content
 
 
-def _build_frontend_section(frontend_logs: list[FrontendLogEntry]) -> str:
+def _build_frontend_section(
+    frontend_logs: list[FrontendLogEntry],
+    frontend_log_buffers: dict[str, list[FrontendLogEntry]] | None = None,
+) -> str:
+    # If structured buffers are available, render per-domain sections
+    if frontend_log_buffers:
+        content = ""
+        for domain, entries in frontend_log_buffers.items():
+            content += "\n\n" + "=" * 80
+            content += f"\n FRONTEND [{domain.upper()}] LOGS ({len(entries)} entries)"
+            content += "\n" + "=" * 80 + "\n\n"
+            if entries:
+                content += "".join(
+                    f"[{entry.timestamp}] {entry.level}: {entry.message}\n"
+                    for entry in entries
+                )
+            else:
+                content += "(empty)\n"
+        return content
+
+    # Fallback: flat list (legacy / bug report modal)
     content = "\n\n" + "=" * 80
     content += f"\n FRONTEND CONSOLE LOGS ({len(frontend_logs)} entries, max 500)"
     content += "\n" + "=" * 80 + "\n\n"

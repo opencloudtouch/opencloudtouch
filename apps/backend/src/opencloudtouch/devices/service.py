@@ -7,7 +7,7 @@ Separates HTTP layer (routes) from business logic from data layer (repository).
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import AsyncIterator, List, Optional, Union
+from typing import Any, AsyncIterator, Callable, List, Optional, Union
 
 from opencloudtouch.core.exceptions import DeviceNotFoundError, DomainValidationError
 from opencloudtouch.db import Device
@@ -17,16 +17,19 @@ from opencloudtouch.devices.capabilities import (
     get_feature_flags_for_ui,
 )
 from opencloudtouch.devices.client import NowPlayingInfo, VolumeInfo
+from opencloudtouch.devices.events import DiscoveryEvent, DiscoveryEventType
 from opencloudtouch.devices.interfaces import (
     IDeviceRepository,
     IDeviceSyncService,
     IDiscoveryAdapter,
 )
-from opencloudtouch.devices.events import DiscoveryEvent, DiscoveryEventType
 from opencloudtouch.devices.models import KEY_MAPPING, KeyType, SyncResult
 from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT, DiscoveredDevice
 
 logger = logging.getLogger(__name__)
+
+# Type for post-sync callback: async (device_id, ip) → None
+OnDeviceSynced = Optional[Callable[[str, str], Any]]
 
 
 class DeviceService:
@@ -61,6 +64,11 @@ class DeviceService:
         self.repository = repository
         self.sync_service = sync_service
         self.discovery_adapter = discovery_adapter
+        self._on_device_synced: OnDeviceSynced = None
+
+    def set_on_device_synced(self, callback) -> None:
+        """Register callback invoked after each device sync: callback(device_id, ip)."""
+        self._on_device_synced = callback
 
     async def discover_devices(self, timeout: int = 10) -> List[DiscoveredDevice]:
         """Discover devices on the network.
@@ -102,6 +110,10 @@ class DeviceService:
             f"Sync complete: {result.synced} synced, {result.failed} failed "
             f"(discovered: {result.discovered})"
         )
+
+        # Notify WS manager of synced devices (IP change → reconnect)
+        if self._on_device_synced:
+            await self._notify_ws_for_synced_devices()
 
         return result
 
@@ -150,6 +162,10 @@ class DeviceService:
                 f"(discovered: {result.discovered})"
             )
 
+            # Notify WS manager of synced devices (IP change → reconnect)
+            if self._on_device_synced:
+                await self._notify_ws_for_synced_devices()
+
             return result
 
         except asyncio.TimeoutError:
@@ -174,6 +190,32 @@ class DeviceService:
                 DiscoveryEvent(type=DiscoveryEventType.ERROR, data={"message": str(e)})
             )
             raise
+
+    async def probe_single_device(self, ip: str) -> Device:
+        """Probe a single device by IP, fetch its info, and upsert to DB.
+
+        Args:
+            ip: IP address of the device
+
+        Returns:
+            Device model with complete information
+
+        Raises:
+            Exception: If device is not reachable or sync fails
+        """
+        discovered = DiscoveredDevice(ip=ip, port=SOUNDTOUCH_HTTP_PORT)
+        device = await self.sync_service.fetch_and_upsert_one(discovered)
+        return device
+
+    async def _notify_ws_for_synced_devices(self) -> None:
+        """Call on_device_synced for all known devices (IP change → reconnect)."""
+        try:
+            devices = await self.repository.get_all()
+            for device in devices:
+                if device.ip and self._on_device_synced:
+                    await self._on_device_synced(device.device_id, device.ip)
+        except Exception:
+            logger.exception("Failed to notify WS manager of synced devices")
 
     async def get_all_devices(self) -> List[Device]:
         """Get all devices from database.

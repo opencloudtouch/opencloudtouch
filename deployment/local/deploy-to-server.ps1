@@ -4,11 +4,11 @@
 
 param(
     [string]$ManualIPs = "",  # Comma-separated list of IPs (e.g., "192.168.1.10,192.168.1.11")
-    [switch]$SkipBuild,
     [switch]$NoCache,
     [switch]$UseSudo,
     [switch]$ClearDatabase = $true,
-    [switch]$Verbose
+    [switch]$Verbose,
+    [switch]$Prod  # Deploy to production stack (Portainer). Default: test container only.
 )
 
 # Load configuration from .env
@@ -33,14 +33,33 @@ Write-Host ""
 $RemoteHost = $config.DEPLOY_HOST
 $RemoteUser = $config.DEPLOY_USER
 $Tag = $config.CONTAINER_TAG
-$ContainerName = $config.CONTAINER_NAME
-$DataPath = $config.REMOTE_DATA_PATH
 $ContainerPort = $config.CONTAINER_PORT
+
+if ($Prod) {
+    # Production: use values from .env as-is
+    $ContainerName = $config.CONTAINER_NAME
+    $DataPath = $config.REMOTE_DATA_PATH
+    $LogPath = $config.REMOTE_LOG_PATH
+} else {
+    # Test container: dedicated name, port and data path — never touches Portainer stacks
+    $ContainerName = "opencloudtouch-test"
+    $ContainerPort = "7778"
+    $DataPath = ($config.REMOTE_DATA_PATH -replace '/?$', '') + "-test"
+    $LogPath = ($config.REMOTE_LOG_PATH -replace '/?$', '') + "-test"
+}
+
 if (-not $ManualIPs -and $config.OCT_MANUAL_DEVICE_IPS) {
     $ManualIPs = $config.OCT_MANUAL_DEVICE_IPS
 }
 if ($config.DEPLOY_USE_SUDO -eq "true") {
     $UseSudo = $true
+}
+
+if (-not $Prod) {
+    Write-Host "  Mode: TEST (container=$ContainerName, port=$ContainerPort)" -ForegroundColor Yellow
+    Write-Host "  Production stack is NOT affected." -ForegroundColor Gray
+    Write-Host "  Use -Prod to deploy to production." -ForegroundColor Gray
+    Write-Host ""
 }
 
 function Write-Step {
@@ -70,7 +89,6 @@ try {
     # Step 1: Build and export locally
     Write-Step "Building and exporting image..."
     $exportArgs = @{}
-    if ($SkipBuild) { $exportArgs["SkipBuild"] = $true }
     if ($NoCache) { $exportArgs["NoCache"] = $true }
     if ($Verbose) { $exportArgs["Verbose"] = $true }
     & "$PSScriptRoot\export-image.ps1" @exportArgs
@@ -96,7 +114,7 @@ try {
 
     # Build docker run command
     $StationDescriptorBaseUrl = if ($config.OCT_STATION_DESCRIPTOR_BASE_URL) { $config.OCT_STATION_DESCRIPTOR_BASE_URL } else { "http://${RemoteHost}:${ContainerPort}" }
-    $runCmd = "$dockerCmd run -d --name $ContainerName --restart unless-stopped --network host -v ${DataPath}:/data -e OCT_HOST=0.0.0.0 -e OCT_PORT=${ContainerPort} -e OCT_LOG_LEVEL=DEBUG -e OCT_DISCOVERY_ENABLED=true -e OCT_STATION_DESCRIPTOR_BASE_URL=${StationDescriptorBaseUrl}"
+    $runCmd = "$dockerCmd run -d --name $ContainerName --restart unless-stopped --network host -v ${DataPath}:/data -v ${LogPath}:/logs -e OCT_HOST=0.0.0.0 -e OCT_PORT=${ContainerPort} -e OCT_LOG_LEVEL=DEBUG -e OCT_LOG_DIR=/logs -e OCT_DISCOVERY_ENABLED=true -e OCT_STATION_DESCRIPTOR_BASE_URL=${StationDescriptorBaseUrl}"
 
     if ($ManualIPs) {
         $runCmd += " -e OCT_MANUAL_DEVICE_IPS='$ManualIPs'"
@@ -131,12 +149,25 @@ echo "[>] Stopping existing container (if any)..."
 $dockerCmd stop $ContainerName 2>/dev/null || true
 $dockerCmd rm $ContainerName 2>/dev/null || true
 
-echo "[>] Creating data directory..."
-mkdir -p $DataPath 2>/dev/null || sudo mkdir -p $DataPath
+echo "[>] Creating data and log directories..."
+if [ "$UseSudo" = "True" ]; then
+    sudo mkdir -p $DataPath $LogPath
+    sudo chown -R 1000:1000 $DataPath $LogPath
+    sudo chmod 750 $DataPath $LogPath
+else
+    mkdir -p $DataPath $LogPath 2>/dev/null || true
+    # Try to set ownership/permissions, but don't fail if not possible
+    chown -R 1000:1000 $DataPath $LogPath 2>/dev/null || true
+    chmod 750 $DataPath $LogPath 2>/dev/null || true
+fi
 
 if [ "\$ClearDatabase" = "True" ]; then
     echo "[>] Clearing database..."
-    rm -f $DataPath/oct.db 2>/dev/null || sudo rm -f $DataPath/oct.db
+    if [ "$UseSudo" = "True" ]; then
+        sudo rm -f $DataPath/oct.db
+    else
+        rm -f $DataPath/oct.db 2>/dev/null || true
+    fi
     echo "[OK] Database cleared"
 fi
 
@@ -147,7 +178,7 @@ echo "[OK] Container started successfully"
 $dockerCmd ps --filter name=$ContainerName --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 echo ""
-echo "Access SoundTouch Bridge at: http://${RemoteHost}:7777"
+echo "Access SoundTouch Bridge at: http://${RemoteHost}:${ContainerPort}"
 echo ""
 echo "View logs: $dockerCmd logs -f $ContainerName"
 "@
@@ -161,7 +192,7 @@ echo "View logs: $dockerCmd logs -f $ContainerName"
         Write-Success "Deployment complete!"
         Write-Host ""
         Write-Host "=== Container Info ===" -ForegroundColor Yellow
-        Write-Host "URL: http://${RemoteHost}:7777" -ForegroundColor Green
+        Write-Host "URL: http://${RemoteHost}:${ContainerPort}" -ForegroundColor Green
 
         $logsCmd = if ($UseSudo) { "sudo docker" } else { "docker" }
         Write-Host "Logs: ssh ${RemoteUser}@${RemoteHost} '$logsCmd logs -f $ContainerName'" -ForegroundColor Gray
