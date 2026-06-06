@@ -384,12 +384,14 @@
         "btnCreate": "Créer la sauvegarde maintenant",
         "btnCreating": "Création en cours...",
         "progressMessage": "Création de la sauvegarde pour {{device}}",
-        "progressNote": "Cela peut prendre jusqu'à 2 minutes...",
+        "progressNote": "Cela peut prendre jusqu'à 5 minutes...",
         "errorTitle": "Échec de la sauvegarde",
         "successTitle": "Sauvegarde créée avec succès !",
         "successHint": "Les sauvegardes ont été écrites sur votre clé USB. Retirez la clé après l'assistant — elle contient vos fichiers de restauration.",
         "filesTitle": "Fichiers sauvegardés (sur la clé USB) :",
-        "totalLabel": "Total :"
+        "totalLabel": "Total :",
+        "durationMinSec": "{{min}} min {{sec}} s",
+        "durationSec": "{{sec}} s"
       },
       "step5": {
         "titleProxy": "Proxy inverse détecté",

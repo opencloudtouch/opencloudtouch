@@ -383,13 +383,15 @@
         "backupInfo": "Es werden alle Partitionen gesichert: RootFS (~58 MB), Persistent (~10 KB) und Update (~1 MB).",
         "btnCreate": "Backup jetzt erstellen",
         "btnCreating": "Erstelle Backup...",
-        "progressMessage": "Backup wird erstellt f├╝r {{device}}",
-        "progressNote": "Dies kann bis zu 2 Minuten dauern...",
+        "progressMessage": "Backup wird erstellt für {{device}}",
+        "progressNote": "Dies kann bis zu 5 Minuten dauern...",
         "errorTitle": "Backup fehlgeschlagen",
         "successTitle": "Backup erfolgreich erstellt!",
         "successHint": "Die Backups wurden auf Ihren USB-Stick geschrieben. Ziehen Sie den Stick nach dem Wizard ab ÔÇô er enth├ñlt Ihre Wiederherstellungs-Dateien.",
         "filesTitle": "Gespeicherte Dateien (auf USB-Stick):",
-        "totalLabel": "Gesamt:"
+        "totalLabel": "Gesamt:",
+        "durationMinSec": "{{min}} Min. {{sec}} Sek.",
+        "durationSec": "{{sec}} Sek."
       },
       "step5": {
         "titleProxy": "Reverse-Proxy erkannt",

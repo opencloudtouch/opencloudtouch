@@ -150,7 +150,7 @@ describe("Setup Wizard — Bug Regression Suite", () => {
     visitDe("/setup-wizard?deviceId=DEVICE_WOHNZIMMER");
     cy.wait("@getDevices");
     // Wizard starts directly at Step 1 after clicking through WizardChoice
-    cy.get('.setup-wizard-page-v2', { timeout: 8000 }).should('exist');
+    cy.get('.setup-wizard-page', { timeout: 8000 }).should('exist');
     cy.contains("Setup-Assistent").click();
   });
 

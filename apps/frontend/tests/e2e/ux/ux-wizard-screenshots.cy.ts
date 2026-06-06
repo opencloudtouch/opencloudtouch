@@ -116,7 +116,7 @@ function injectLightMode(): void {
         background: #e9ecef !important;
         border-bottom: 1px solid #dee2e6 !important;
       }
-      .wizard-container, .wizard-card, .setup-wizard-page-v2,
+      .wizard-container, .wizard-card, .setup-wizard-page,
       .mode-selector-container, .wizard-step-container,
       .step-card, .power-cycle-check, .ssh-risk-assessment,
       .backup-step, .config-step, .hosts-step, .verify-step,
@@ -303,7 +303,7 @@ function setupWizardMocks() {
 
 /** Wait for wizard to be ready at Step 1 (mode selector was removed; wizard starts directly) */
 function selectManualMode() {
-  cy.get(".setup-wizard-page-v2", { timeout: 8000 }).should("exist");
+  cy.get(".setup-wizard-page", { timeout: 8000 }).should("exist");
   cy.contains("Setup-Assistent").click();
   cy.wait(400);
 }
@@ -379,7 +379,7 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
     it("wiz_00a — Wizard-Start: Mit Gerät vorselektiert (Step 1)", () => {
       visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}`);
       cy.wait("@getDevices");
-      cy.get(".setup-wizard-page-v2", { timeout: 8000 }).should("exist");
+      cy.get(".setup-wizard-page", { timeout: 8000 }).should("exist");
       screenshotBoth("wiz_00a_wizard-start__device-preselected");
     });
 
@@ -625,7 +625,7 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
     });
 
     it("wiz_06a — Verifikation: Initialzustand (vor DNS-Check)", () => {
-      cy.get(".setup-wizard-page-v2", { timeout: 8000 }).should("exist");
+      cy.get(".setup-wizard-page", { timeout: 8000 }).should("exist");
       cy.wait(600);
       screenshotBoth("wiz_06a_verification__initial");
     });
@@ -721,7 +721,7 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
     it("wiz_mob_a — Mobile: Wizard-Start (Step 1)", () => {
       visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}`);
       cy.wait("@getDevices");
-      cy.get(".setup-wizard-page-v2", { timeout: 8000 }).should("exist");
+      cy.get(".setup-wizard-page", { timeout: 8000 }).should("exist");
       screenshotBoth("wiz_mob_a_wizard-start__mobile-375");
     });
 
