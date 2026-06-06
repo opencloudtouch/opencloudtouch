@@ -5,12 +5,12 @@ import { renameDevice } from "../api/devices";
 import "./DeviceNameEditor.css";
 
 interface DeviceNameEditorProps {
-  deviceId: string;
-  name: string;
-  onRenamed?: (newName: string) => void;
+  readonly deviceId: string;
+  readonly name: string;
+  readonly onRenamed?: (newName: string) => void;
 }
 
-export default function DeviceNameEditor({ deviceId, name, onRenamed }: DeviceNameEditorProps) {
+export default function DeviceNameEditor({ deviceId, name, onRenamed }: Readonly<DeviceNameEditorProps>) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
@@ -111,14 +111,14 @@ export default function DeviceNameEditor({ deviceId, name, onRenamed }: DeviceNa
   const fontSizePx = Math.max(16, Math.round((24 * 10) / Math.max(name.length, 10)));
 
   return (
-    <h2
+    <button
+      type="button"
       className="device-name device-name-editable"
       style={{ fontSize: `${fontSizePx}px` }}
       onClick={startEditing}
       title={t("deviceRename.clickToEdit")}
       data-test="device-name"
-      role="button"
-      tabIndex={0}
+      aria-label={`${name} — ${t("deviceRename.clickToEdit")}`}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") startEditing();
       }}
@@ -127,6 +127,6 @@ export default function DeviceNameEditor({ deviceId, name, onRenamed }: DeviceNa
       <span className="device-name-edit-icon" aria-hidden="true">
         ✏️
       </span>
-    </h2>
+    </button>
   );
 }

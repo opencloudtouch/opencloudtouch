@@ -66,9 +66,9 @@ async def _device_op(
         raise
     except Exception as e:
         logger.exception("Failed to %s for device %s", action, device_id)
-        raise HTTPException(
+        raise HTTPException(  # NOSONAR
             status_code=500, detail=f"Failed to {action}"
-        ) from e  # NOSONAR
+        ) from e
 
 
 @router.get("")
@@ -235,11 +235,11 @@ async def press_key(
     return {"message": f"Key {key} pressed successfully", "device_id": device_id}
 
 
-@router.put("/{device_id}/name")
+@router.put("/{device_id}/name", responses={422: {"description": "Invalid name"}, 502: {"description": "Both REST and SSH rename failed"}})
 async def rename_device(
     device_id: str,
-    body: dict = Body(...),
-    device_service: DeviceService = Depends(get_device_service),
+    body: Annotated[dict, Body()],
+    device_service: Annotated[DeviceService, Depends(get_device_service)],
 ):
     """
     Rename a SoundTouch device.
@@ -303,11 +303,10 @@ async def rename_device(
                 name,
             )
         except Exception as ssh_error:
-            logger.error(
-                "Both REST and SSH rename failed for %r: REST=%s, SSH=%s",
+            logger.exception(
+                "Both REST and SSH rename failed for %r: REST=%s",
                 device.device_id,
                 rest_error,
-                ssh_error,
             )
             raise HTTPException(
                 status_code=502,
