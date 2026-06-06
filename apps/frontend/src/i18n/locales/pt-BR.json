@@ -384,14 +384,12 @@
         "btnCreate": "Criar backup agora",
         "btnCreating": "Criando backup...",
         "progressMessage": "Criando backup para {{device}}",
-        "progressNote": "Isso pode levar até 5 minutos...",
+        "progressNote": "Isso pode levar at├® 2 minutos...",
         "errorTitle": "Backup falhou",
         "successTitle": "Backup criado com sucesso!",
         "successHint": "Os backups foram gravados no seu pendrive. Remova o pendrive ap├│s o assistente ÔÇö ele cont├®m seus arquivos de recupera├º├úo.",
         "filesTitle": "Arquivos salvos (no pendrive):",
-        "totalLabel": "Total:",
-        "durationMinSec": "{{min}} min {{sec}} s",
-        "durationSec": "{{sec}} s"
+        "totalLabel": "Total:"
       },
       "step5": {
         "titleProxy": "Proxy reverso detectado",
@@ -659,7 +657,7 @@
     "hallOfFameDescription": "Top 3 colaboradores de todos os tempos ÔÇö reconhecidos pelo impacto t├®cnico excepcional.",
     "supportersTitle": "Apoiadores",
     "reportBug": "Relatar bug",
-    "diagnostics": "Diagn\u00f3sticos",
+    "diagnostics": "Diagnósticos",
     "supportersDescription": "Obrigado a todos que apoiam o OpenCloudTouch financeiramente. Suas contribui├º├Áes ajudam a manter o projeto vivo!",
     "supportersMonthly": "Apoiadores Mensais",
     "supportersOneTime": "Apoiadores ├║nicos",

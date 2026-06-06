@@ -257,16 +257,15 @@ describe("DeviceNameEditor", () => {
     });
   });
 
-  // REGRESSION TEST for centered layout with placeholder icon (added 2026-06-05)
-  it("renders placeholder icon for balanced centering", () => {
+  // REGRESSION TEST for edit icon visibility (updated 2026-06-06)
+  it("renders edit icon always visible at low opacity", () => {
     render(<DeviceNameEditor deviceId="ABC123" name="Living Room" />);
 
     const heading = screen.getByRole("button");
     const icons = heading.querySelectorAll('span[aria-hidden="true"]');
 
-    // Should have 2 icons: placeholder (invisible) + edit icon (visible on hover)
-    expect(icons).toHaveLength(2);
-    expect(icons[0]).toHaveClass("device-name-placeholder-icon");
-    expect(icons[1]).toHaveClass("device-name-edit-icon");
+    // Should have exactly 1 icon: the pencil edit icon (always visible at 30% opacity)
+    expect(icons).toHaveLength(1);
+    expect(icons[0]).toHaveClass("device-name-edit-icon");
   });
 });
