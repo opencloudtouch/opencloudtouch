@@ -64,6 +64,12 @@ vi.mock("../../src/components/NowPlaying", () => ({
   ),
 }));
 
+vi.mock("../../src/components/DeviceNameEditor", () => ({
+  default: ({ name }: { name: string }) => (
+    <h2 className="device-name" data-test="device-name">{name}</h2>
+  ),
+}));
+
 vi.mock("../../src/components/VolumeSlider", () => ({
   default: ({ volume, onVolumeChange, muted, onMuteToggle }: { volume: number; onVolumeChange: (v: number) => void; muted: boolean; onMuteToggle: () => void }) => (
     <div data-testid="volume-slider">

@@ -2,8 +2,27 @@ openapi: 3.1.0
 info:
   title: OpenCloudTouch
   description: Open-Source replacement for discontinued streaming device cloud features
-  version: dev-b13a69f
+  version: dev-adb3a83
 paths:
+  /api/events/device-stream:
+    get:
+      tags:
+      - Events
+      summary: Device Event Stream
+      description: "Stream device events via Server-Sent Events (SSE).\n\nPushes\
+        \ an initial snapshot of all known device states, then streams real-time updates.\
+        \ A keepalive comment is sent every 15 seconds.\n\nEvent Types:\n    - snapshot:\
+        \ Initial state of all devices\n    - nowPlaying: Now-playing update for a\
+        \ device\n    - volume: Volume change for a device\n    - zones: Zone membership\
+        \ change\n    - connectionState: WebSocket connection state change"
+      operationId: device_event_stream_api_events_device_stream_get
+      responses:
+        '200':
+          description: SSE event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
   /api/devices/discover:
     get:
       tags:
@@ -83,13 +102,15 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema:
-                type: object
-                title: Response Probe Device Api Devices Probe Post
-        '422':
-          description: Invalid IP address format
+              schema: {}
         '404':
-          description: Device not reachable at the given IP
+          description: Device not reachable
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/devices:
     get:
       tags:
@@ -243,6 +264,45 @@ paths:
           type: string
           default: both
           title: State
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/devices/{device_id}/name:
+    put:
+      tags:
+      - Devices
+      summary: Rename Device
+      description: "Rename a SoundTouch device.\n\nUpdates the device name on the\
+        \ speaker via SSH (SystemConfigurationDB.xml)\nand in the local database.\n\
+        \nArgs:\n    device_id: Device ID (MAC address)\n    body: {\"name\": \"New\
+        \ Name\"} — 1-30 characters\n\nReturns:\n    Updated device info with previous\
+        \ name\n\nRaises:\n    DeviceNotFoundError: If device does not exist\n   \
+        \ HTTPException(422): If name validation fails\n    HTTPException(502): If\
+        \ SSH connection fails"
+      operationId: rename_device_api_devices__device_id__name_put
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              title: Body
       responses:
         '200':
           description: Successful Response
@@ -3072,6 +3132,29 @@ paths:
           content:
             application/json:
               schema: {}
+  /api/health/websockets:
+    get:
+      tags:
+      - System
+      summary: WebSocket Health
+      description: WebSocket connection health for all managed devices.
+      operationId: websocket_health_api_health_websockets_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connections:
+                    type: object
+                    additionalProperties:
+                      type: object
+                  total_connected:
+                    type: integer
+                  total_devices:
+                    type: integer
   /api/wizard/audit-log:
     post:
       tags:
@@ -3150,24 +3233,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /api/events/device-stream:
-    get:
-      tags:
-      - Events
-      summary: Device Event Stream
-      description: 'Stream device events via Server-Sent Events.
-
-
-        Pushes an initial snapshot of all known device states, then streams
-
-        real-time updates. A keepalive comment is sent every 15 seconds.'
-      operationId: device_event_stream_api_events_device_stream_get
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
   /health:
     get:
       tags:
@@ -3175,19 +3240,6 @@ paths:
       summary: Health Check
       description: Health check endpoint for Docker and monitoring.
       operationId: health_check_health_get
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-  /api/health/websockets:
-    get:
-      tags:
-      - System
-      summary: Websocket Health
-      description: WebSocket connection health for all managed devices.
-      operationId: websocket_health_api_health_websockets_get
       responses:
         '200':
           description: Successful Response
@@ -3954,15 +4006,6 @@ components:
           type: array
           title: Frontend Logs
           default: []
-        frontend_log_buffers:
-          anyOf:
-          - additionalProperties:
-              items:
-                $ref: '#/components/schemas/FrontendLogEntry'
-              type: array
-            type: object
-          - type: 'null'
-          title: Frontend Log Buffers
       type: object
       title: LogDownloadRequest
       description: Optional body for POST /api/logs/backend with frontend logs.
@@ -4051,6 +4094,17 @@ components:
       - message
       title: PortCheckResponse
       description: Response with port check results.
+    ProbeRequest:
+      properties:
+        ip:
+          type: string
+          title: Ip
+          description: IP address of the device to probe
+      type: object
+      required:
+      - ip
+      title: ProbeRequest
+      description: Request model for single-device probe.
     PresetResponse:
       properties:
         id:
@@ -4152,17 +4206,6 @@ components:
       - station_url
       title: PresetSetRequest
       description: Request model for setting a preset.
-    ProbeRequest:
-      properties:
-        ip:
-          type: string
-          title: Ip
-          description: IP address of the device to probe
-      type: object
-      required:
-      - ip
-      title: ProbeRequest
-      description: Request model for single-device probe.
     ProviderType:
       type: string
       enum:

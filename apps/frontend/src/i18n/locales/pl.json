@@ -1,14 +1,14 @@
-﻿{
+{
   "common": {
     "cancel": "Anuluj",
-    "loading": "Åadowanie...",
+    "loading": "Ładowanie...",
     "error": "Wystąpił błąd",
     "retry": "Spróbuj ponownie",
     "back": "Wstecz",
     "close": "Zamknij",
     "confirm": "Potwierdź",
-    "openCloudTouchLoading": "Åadowanie OpenCloudTouch...",
-    "connectingToServer": "ÅÄ…czenie z serwerem...",
+    "openCloudTouchLoading": "Ładowanie OpenCloudTouch...",
+    "connectingToServer": "Łączenie z serwerem...",
     "loadingTimeout": "Trwa to dłużej niż oczekiwano. Poczekaj lub załaduj stronę ponownie.",
     "loadingHint": "Może to potrwać kilka sekund...",
     "retryHint": "Jeśli problem nie ustępuje: upewnij się, że serwer OpenCloudTouch jest dostępny i załaduj stronę ponownie.",
@@ -90,13 +90,13 @@
     },
     "searchTitle": "Szukaj stacji radiowych",
     "loadMore": "Załaduj więcej",
-    "loadingMore": "Åadowanie...",
+    "loadingMore": "Ładowanie...",
     "maxReached": "Osiągnięto maksimum ({{count}})",
     "maxReachedTooltip": "Zawęź wyszukiwanie, aby znaleźć konkretne stacje"
   },
   "settings": {
     "title": "Ustawienia",
-    "loading": "Åadowanie ustawieÅ„...",
+    "loading": "Ładowanie ustawień...",
     "errorTitle": "Błąd ładowania",
     "manualIps": {
       "placeholder": "192.168.1.10",
@@ -148,7 +148,7 @@
     "updateZone": "Zaktualizuj strefę",
     "creating": "Tworzenie...",
     "standby": "Czuwanie",
-    "loadingZones": "Åadowanie stref...",
+    "loadingZones": "Ładowanie stref...",
     "errorLoading": "Błąd ładowania",
     "activeZones": "Aktywne strefy",
     "noActiveZones": "Brak aktywnych stref",
@@ -205,8 +205,8 @@
   "setup": {
     "next": "Dalej",
     "back": "Wstecz",
-    "loading": "Åadowanie urzÄ…dzeÅ„...",
-    "loadingAriaLabel": "Åadowanie",
+    "loading": "Ładowanie urządzeń...",
+    "loadingAriaLabel": "Ładowanie",
     "noDevices": "Nie znaleziono urządzeń",
     "noDevicesHint": "Najpierw zsynchronizuj urządzenia SoundTouch.",
     "noDevicesHint2": "Przejdź na stronę główną i kliknij \"Szukaj urządzeń teraz\".",
@@ -336,8 +336,8 @@
         "q2": "Czy tylko znane, zaufane osoby mają dostęp do Twojej sieci Wi-Fi?",
         "q3": "Czy planujesz zainstalować aktualizacje firmware dla tego urządzenia SoundTouch w najbliższym czasie?",
         "answerYes": "✅ Tak",
-        "answerNo": "âŒ Nie",
-        "answerUnknown": "â“ Nie wiem",
+        "answerNo": "❌ Nie",
+        "answerUnknown": "❓ Nie wiem",
         "riskLabel": "Ryzyko:",
         "riskLow": "Niskie",
         "riskMedium": "Średnie",
@@ -351,7 +351,7 @@
         "advancedWhy": "Kiedy jest to potrzebne?",
         "advancedWhyText": "Tylko jeśli automatyczny test powyżej nie powiedzie się i chcesz samodzielnie zweryfikować połączenie. W normalnym procesie możesz pominąć ten krok.",
         "advancedDesc": "Urządzenia SoundTouch wymagają starszych algorytmów SSH.",
-        "tabTerminal": "ðŸ–¥ï¸ Terminal (Linux / macOS)",
+        "tabTerminal": "🖥️ Terminal (Linux / macOS)",
         "tabPuTTY": "🪟 PuTTY (Windows)",
         "puttyStep1": "Session: Host Name = {{ip}}, Port = 22, Connection type = SSH",
         "puttyStep2": "Connection → SSH → Kex: umieść Diffie-Hellman group 1 na górze",
@@ -359,7 +359,7 @@
         "puttyStep4": "Connection → SSH → Auth: włącz 'Allow attempted changes of username'; w Host keys usuń rsa-sha2-256 i rsa-sha2-512, zachowaj tylko ssh-rsa",
         "puttyStep5": "Login: Username = root, Password = puste (naciśnij Enter)",
         "sshPasswordHint": "Hasło: zostaw puste (naciśnij Enter)",
-        "troubleshootingTitle": "âš ï¸ RozwiÄ…zywanie problemÃ³w",
+        "troubleshootingTitle": "⚠️ Rozwiązywanie problemów",
         "troubleshootingItem1": "Sprawdź, czy dysk USB jest prawidłowo włożony",
         "troubleshootingItem2": "Upewnij się, że plik 'remote_services' jest poprawny",
         "troubleshootingItem3": "Poczekaj co najmniej 60 sekund po restarcie",
@@ -376,14 +376,12 @@
         "btnCreate": "Utwórz kopię zapasową teraz",
         "btnCreating": "Tworzenie kopii zapasowej...",
         "progressMessage": "Tworzenie kopii zapasowej dla {{device}}",
-        "progressNote": "Może to potrwać do 5 minut...",
+        "progressNote": "Może to potrwać do 2 minut...",
         "errorTitle": "Kopia zapasowa nie powiodła się",
         "successTitle": "Kopia zapasowa utworzona pomyślnie!",
         "successHint": "Kopie zapasowe zostały zapisane na dysku USB. Wyjmij dysk po kreatorze — zawiera pliki odzyskiwania.",
         "filesTitle": "Zapisane pliki (na dysku USB):",
-        "totalLabel": "ÅÄ…cznie:",
-        "durationMinSec": "{{min}} min {{sec}} s",
-        "durationSec": "{{sec}} s"
+        "totalLabel": "Łącznie:"
       },
       "step5": {
         "titleProxy": "Wykryto reverse proxy",
@@ -598,7 +596,7 @@
     }
   },
   "errors": {
-    "loadFailed": "Åadowanie nie powiodÅ‚o siÄ™. SprÃ³buj ponownie.",
+    "loadFailed": "Ładowanie nie powiodło się. Spróbuj ponownie.",
     "unknown": "Wystąpił nieoczekiwany błąd. Spróbuj ponownie.",
     "networkFailed": "Nie można połączyć się z serwerem. Sprawdź połączenie sieciowe.",
     "timeout": "Żądanie trwało zbyt długo. Spróbuj ponownie.",
@@ -753,5 +751,11 @@
     "setupStatus": "Status konfiguracji",
     "lastSeen": "Ostatnio widziany",
     "downloadBundle": "Pobierz pakiet wsparcia"
+  },
+  "deviceRename": {
+    "clickToEdit": "Kliknij, aby zmienić nazwę",
+    "inputLabel": "Nazwa urządzenia",
+    "tooLong": "Nazwa musi mieć maksymalnie 30 znaków",
+    "failed": "Nie udało się zmienić nazwy"
   }
 }

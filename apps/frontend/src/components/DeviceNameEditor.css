@@ -1,0 +1,57 @@
+.device-name-editable {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.device-name-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.device-name-edit-icon {
+  font-size: 0.65em;
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.device-name-editable:hover .device-name-edit-icon,
+.device-name-editable:focus .device-name-edit-icon {
+  opacity: 1;
+}
+
+.device-name-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.device-name-input {
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border: 2px solid var(--accent-color, #007aff);
+  border-radius: 6px;
+  background: var(--bg-card, #1c1c1e);
+  color: var(--text-primary, #fff);
+  outline: none;
+  width: 100%;
+  max-width: 250px;
+}
+
+.device-name-input:focus {
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3);
+}
+
+.device-name-error {
+  font-size: 0.75rem;
+  color: var(--color-error, #ff453a);
+}

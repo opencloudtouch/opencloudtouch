@@ -7,6 +7,7 @@ import NowPlaying from "../components/NowPlaying";
 import VolumeSlider from "../components/VolumeSlider";
 import SetupBadge from "../components/SetupBadge";
 import DeviceOfflineBanner from "../components/DeviceOfflineBanner";
+import DeviceNameEditor from "../components/DeviceNameEditor";
 import { useNowPlaying } from "../hooks/useNowPlaying";
 import { useVolume } from "../hooks/useVolume";
 import { useZones } from "../hooks/useZones";
@@ -124,8 +125,12 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
                 {keyLoading === "POWER" ? "⏳" : "⏻"}
               </button>
             </div>
-            <div className="device-header-info">
-              <h2 className="device-name">{currentDevice?.name}</h2>
+            <div className="device-info">
+              {currentDevice ? (
+                <DeviceNameEditor deviceId={currentDevice.device_id} name={currentDevice.name} />
+              ) : (
+                <h2 className="device-name">Unknown Device</h2>
+              )}
               <span className="device-model">{currentDevice?.model || "Unknown Model"}</span>
             </div>
             <div className="device-header-right">

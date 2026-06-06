@@ -1,4 +1,4 @@
-﻿{
+{
   "common": {
     "cancel": "Avbryt",
     "loading": "Laddar...",
@@ -336,8 +336,8 @@
         "q2": "Är det bara kända, betrodda personer som har åtkomst till ditt Wi-Fi-nätverk?",
         "q3": "Planerar du att installera firmwareuppdateringar för den här SoundTouch-enheten inom den närmaste framtiden?",
         "answerYes": "✅ Ja",
-        "answerNo": "âŒ Nej",
-        "answerUnknown": "â“ Vet ej",
+        "answerNo": "❌ Nej",
+        "answerUnknown": "❓ Vet ej",
         "riskLabel": "Risk:",
         "riskLow": "Låg",
         "riskMedium": "Medel",
@@ -351,7 +351,7 @@
         "advancedWhy": "När behövs detta?",
         "advancedWhyText": "Bara om det automatiska testet ovan misslyckas och du vill verifiera anslutningen själv. I den normala processen kan du hoppa över det här steget.",
         "advancedDesc": "SoundTouch-enheter kräver äldre SSH-algoritmer.",
-        "tabTerminal": "ðŸ–¥ï¸ Terminal (Linux / macOS)",
+        "tabTerminal": "🖥️ Terminal (Linux / macOS)",
         "tabPuTTY": "🪟 PuTTY (Windows)",
         "puttyStep1": "Session: Host Name = {{ip}}, Port = 22, Connection type = SSH",
         "puttyStep2": "Connection → SSH → Kex: placera Diffie-Hellman group 1 högst upp",
@@ -359,7 +359,7 @@
         "puttyStep4": "Connection → SSH → Auth: aktivera 'Allow attempted changes of username'; i Host keys ta bort rsa-sha2-256 och rsa-sha2-512, behåll bara ssh-rsa",
         "puttyStep5": "Login: Username = root, Password = tomt (tryck Enter)",
         "sshPasswordHint": "Lösenord: lämna tomt (tryck Enter)",
-        "troubleshootingTitle": "âš ï¸ FelsÃ¶kning",
+        "troubleshootingTitle": "⚠️ Felsökning",
         "troubleshootingItem1": "Kontrollera att USB-enheten är korrekt isatt",
         "troubleshootingItem2": "Kontrollera att filen 'remote_services' är korrekt",
         "troubleshootingItem3": "Vänta minst 60 sekunder efter omstart",
@@ -376,14 +376,12 @@
         "btnCreate": "Skapa säkerhetskopia nu",
         "btnCreating": "Skapar säkerhetskopia...",
         "progressMessage": "Skapar säkerhetskopia för {{device}}",
-        "progressNote": "Det kan ta upp till 5 minuter...",
+        "progressNote": "Det kan ta upp till 2 minuter...",
         "errorTitle": "Säkerhetskopiering misslyckades",
         "successTitle": "Säkerhetskopia skapad!",
         "successHint": "Säkerhetskopiorna sparades på USB-enheten. Ta ut enheten efter guiden — den innehåller återställningsfiler.",
         "filesTitle": "Sparade filer (på USB-enheten):",
-        "totalLabel": "Totalt:",
-        "durationMinSec": "{{min}} min {{sec}} s",
-        "durationSec": "{{sec}} s"
+        "totalLabel": "Totalt:"
       },
       "step5": {
         "titleProxy": "Omvänd proxy detekterad",
@@ -753,5 +751,11 @@
     "setupStatus": "Konfigurationsstatus",
     "lastSeen": "Senast sedd",
     "downloadBundle": "Ladda ner supportpaket"
+  },
+  "deviceRename": {
+    "clickToEdit": "Klicka för att byta namn",
+    "inputLabel": "Enhetsnamn",
+    "tooLong": "Namnet får ha max 30 tecken",
+    "failed": "Det gick inte att byta namn"
   }
 }

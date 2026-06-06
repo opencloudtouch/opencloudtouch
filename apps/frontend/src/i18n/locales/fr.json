@@ -1,4 +1,4 @@
-﻿{
+{
   "common": {
     "cancel": "Annuler",
     "loading": "Chargement...",
@@ -336,8 +336,8 @@
         "q2": "Seules des personnes de confiance connues de vous ont-elles accès à votre réseau Wi-Fi ?",
         "q3": "Prévoyez-vous d'installer des mises à jour de firmware pour cet appareil SoundTouch prochainement ?",
         "answerYes": "✅ Oui",
-        "answerNo": "âŒ Non",
-        "answerUnknown": "â“ Je ne sais pas",
+        "answerNo": "❌ Non",
+        "answerUnknown": "❓ Je ne sais pas",
         "riskLabel": "Risque :",
         "riskLow": "Faible",
         "riskMedium": "Moyen",
@@ -351,7 +351,7 @@
         "advancedWhy": "Quand est-ce nécessaire ?",
         "advancedWhyText": "Uniquement si le test automatique ci-dessus échoue et que vous souhaitez vérifier la connexion vous-même. Pour le processus normal, vous pouvez ignorer cette étape.",
         "advancedDesc": "Les appareils SoundTouch nécessitent des algorithmes SSH hérités.",
-        "tabTerminal": "ðŸ–¥ï¸ Terminal (Linux / macOS)",
+        "tabTerminal": "🖥️ Terminal (Linux / macOS)",
         "tabPuTTY": "🪟 PuTTY (Windows)",
         "puttyStep1": "Session : Host Name = {{ip}}, Port = 22, Connection type = SSH",
         "puttyStep2": "Connection → SSH → Kex : placer Diffie-Hellman group 1 en tête",
@@ -359,7 +359,7 @@
         "puttyStep4": "Connection → SSH → Auth : activer 'Allow attempted changes of username' ; sous Host keys supprimer rsa-sha2-256 et rsa-sha2-512, conserver uniquement ssh-rsa",
         "puttyStep5": "Login : Username = root, Mot de passe = vide (appuyer sur Entrée)",
         "sshPasswordHint": "Mot de passe : laisser vide (appuyer sur Entrée)",
-        "troubleshootingTitle": "âš ï¸ DÃ©pannage",
+        "troubleshootingTitle": "⚠️ Dépannage",
         "troubleshootingItem1": "Vérifiez que la clé USB est correctement insérée",
         "troubleshootingItem2": "Assurez-vous que le fichier 'remote_services' est correct",
         "troubleshootingItem3": "Attendez au moins 60 secondes après le redémarrage",
@@ -376,14 +376,12 @@
         "btnCreate": "Créer la sauvegarde maintenant",
         "btnCreating": "Création en cours...",
         "progressMessage": "Création de la sauvegarde pour {{device}}",
-        "progressNote": "Cela peut prendre jusqu'à 5 minutes...",
+        "progressNote": "Cela peut prendre jusqu'à 2 minutes...",
         "errorTitle": "Échec de la sauvegarde",
         "successTitle": "Sauvegarde créée avec succès !",
         "successHint": "Les sauvegardes ont été écrites sur votre clé USB. Retirez la clé après l'assistant — elle contient vos fichiers de restauration.",
         "filesTitle": "Fichiers sauvegardés (sur la clé USB) :",
-        "totalLabel": "Total :",
-        "durationMinSec": "{{min}} min {{sec}} s",
-        "durationSec": "{{sec}} s"
+        "totalLabel": "Total :"
       },
       "step5": {
         "titleProxy": "Proxy inverse détecté",
@@ -753,5 +751,11 @@
     "setupStatus": "Statut de configuration",
     "lastSeen": "Dernière activité",
     "downloadBundle": "Télécharger le bundle de support"
+  },
+  "deviceRename": {
+    "clickToEdit": "Cliquer pour renommer",
+    "inputLabel": "Nom de l'appareil",
+    "tooLong": "Le nom doit comporter 30 caractères maximum",
+    "failed": "Échec du renommage"
   }
 }

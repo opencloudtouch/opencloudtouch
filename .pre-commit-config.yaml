@@ -109,6 +109,18 @@ repos:
         stages: [pre-commit]
 
       # ========================================================================
+      # PRE-PUSH: MOJIBAKE CHECK
+      # ========================================================================
+      - id: check-mojibake
+        name: "Check for CP1252-as-UTF8 encoding corruption"
+        entry: python
+        args: [scripts/check-mojibake.py, .]
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      # ========================================================================
       # PRE-PUSH: UNIT TESTS (Backend + Frontend) + TYPE CHECK
       # ========================================================================
       - id: unit-tests-must-pass

@@ -106,6 +106,12 @@ vi.mock("../../src/components/SetupBadge", () => ({
   default: () => <span data-testid="setup-badge" />,
 }));
 
+vi.mock("../../src/components/DeviceNameEditor", () => ({
+  default: ({ name }: { name: string }) => (
+    <h2 className="device-name" data-test="device-name">{name}</h2>
+  ),
+}));
+
 const mockDevices = [
   {
     device_id: "ST10-001",

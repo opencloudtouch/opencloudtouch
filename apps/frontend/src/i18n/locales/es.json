@@ -376,14 +376,12 @@
         "btnCreate": "Crear copia de seguridad ahora",
         "btnCreating": "Creando copia de seguridad...",
         "progressMessage": "Creando copia de seguridad para {{device}}",
-        "progressNote": "Esto puede tardar hasta 5 minutos...",
+        "progressNote": "Esto puede tardar hasta 2 minutos...",
         "errorTitle": "Error en la copia de seguridad",
         "successTitle": "¡Copia de seguridad creada correctamente!",
         "successHint": "Las copias de seguridad se escribieron en su unidad USB. Retire la unidad después del asistente — contiene sus archivos de recuperación.",
         "filesTitle": "Archivos guardados (en unidad USB):",
-        "totalLabel": "Total:",
-        "durationMinSec": "{{min}} min {{sec}} s",
-        "durationSec": "{{sec}} s"
+        "totalLabel": "Total:"
       },
       "step5": {
         "titleProxy": "Proxy inverso detectado",
@@ -753,5 +751,11 @@
     "setupStatus": "Estado de configuración",
     "lastSeen": "Visto por última vez",
     "downloadBundle": "Descargar paquete de soporte"
+  },
+  "deviceRename": {
+    "clickToEdit": "Haz clic para renombrar",
+    "inputLabel": "Nombre del dispositivo",
+    "tooLong": "El nombre debe tener 30 caracteres o menos",
+    "failed": "Error al renombrar el dispositivo"
   }
 }

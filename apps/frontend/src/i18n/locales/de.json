@@ -376,14 +376,12 @@
         "btnCreate": "Backup jetzt erstellen",
         "btnCreating": "Erstelle Backup...",
         "progressMessage": "Backup wird erstellt für {{device}}",
-        "progressNote": "Dies kann bis zu 5 Minuten dauern...",
+        "progressNote": "Dies kann bis zu 2 Minuten dauern...",
         "errorTitle": "Backup fehlgeschlagen",
         "successTitle": "Backup erfolgreich erstellt!",
         "successHint": "Die Backups wurden auf Ihren USB-Stick geschrieben. Ziehen Sie den Stick nach dem Wizard ab – er enthält Ihre Wiederherstellungs-Dateien.",
         "filesTitle": "Gespeicherte Dateien (auf USB-Stick):",
-        "totalLabel": "Gesamt:",
-        "durationMinSec": "{{min}} Min. {{sec}} Sek.",
-        "durationSec": "{{sec}} Sek."
+        "totalLabel": "Gesamt:"
       },
       "step5": {
         "titleProxy": "Reverse-Proxy erkannt",
@@ -753,5 +751,11 @@
     "setupStatus": "Setup-Status",
     "lastSeen": "Zuletzt gesehen",
     "downloadBundle": "Support-Bundle herunterladen"
+  },
+  "deviceRename": {
+    "clickToEdit": "Klicken zum Umbenennen",
+    "inputLabel": "Gerätename",
+    "tooLong": "Name darf maximal 30 Zeichen lang sein",
+    "failed": "Umbenennung fehlgeschlagen"
   }
 }

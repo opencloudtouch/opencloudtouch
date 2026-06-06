@@ -376,14 +376,12 @@
         "btnCreate": "Nu back-up maken",
         "btnCreating": "Back-up maken...",
         "progressMessage": "Back-up maken voor {{device}}",
-        "progressNote": "Dit kan tot 5 minuten duren...",
+        "progressNote": "Dit kan tot 2 minuten duren...",
         "errorTitle": "Back-up mislukt",
         "successTitle": "Back-up succesvol gemaakt!",
         "successHint": "De back-ups zijn naar uw USB-stick geschreven. Verwijder de stick na de wizard — hij bevat uw herstelbestanden.",
         "filesTitle": "Opgeslagen bestanden (op USB-stick):",
-        "totalLabel": "Totaal:",
-        "durationMinSec": "{{min}} min {{sec}} s",
-        "durationSec": "{{sec}} s"
+        "totalLabel": "Totaal:"
       },
       "step5": {
         "titleProxy": "Reverse proxy gedetecteerd",
@@ -753,5 +751,11 @@
     "setupStatus": "Configuratiestatus",
     "lastSeen": "Laatst gezien",
     "downloadBundle": "Ondersteuningsbundel downloaden"
+  },
+  "deviceRename": {
+    "clickToEdit": "Klik om te hernoemen",
+    "inputLabel": "Apparaatnaam",
+    "tooLong": "Naam mag maximaal 30 tekens bevatten",
+    "failed": "Hernoemen mislukt"
   }
 }

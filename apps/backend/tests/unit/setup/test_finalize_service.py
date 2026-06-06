@@ -345,7 +345,7 @@ class TestFinalizeSystemConfig:
 
             mock_client = AsyncMock()
             mock_resp = MagicMock()
-            mock_resp.text = "<info><name>BÃ¼ro</name><margeAccountUUID>1234567</margeAccountUUID></info>"
+            mock_resp.text = "<info><name>Büro</name><margeAccountUUID>1234567</margeAccountUUID></info>"
             mock_client.get = AsyncMock(return_value=mock_resp)
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=False)

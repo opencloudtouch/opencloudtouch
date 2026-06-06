@@ -7,6 +7,7 @@ its own focused module.
 
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 
 from opencloudtouch.core.exceptions import DeviceConnectionError
@@ -212,3 +213,97 @@ class TestClose:
         """close() must not raise."""
         client = _make_client()
         await client.close()  # Should not raise
+
+
+class TestSetName:
+    """Tests for set_name() method (REST API /name endpoint)."""
+
+    @pytest.mark.asyncio
+    async def test_set_name_success(self, respx_mock):
+        """Test successful device rename via POST /name."""
+        respx_mock.post("http://192.168.1.100:8090/name").mock(
+            return_value=httpx.Response(200, text="<info><name>New Name</name></info>")
+        )
+
+        client = _make_client()
+        await client.set_name("New Name")
+
+        # Verify request
+        assert len(respx_mock.calls) == 1
+        request = respx_mock.calls[0].request
+        assert request.method == "POST"
+        assert request.url.path == "/name"
+        assert b"<name>New Name</name>" in request.content
+
+    @pytest.mark.asyncio
+    async def test_set_name_xml_escapes_special_chars(self, respx_mock):
+        """Test that special XML characters are escaped."""
+        respx_mock.post("http://192.168.1.100:8090/name").mock(
+            return_value=httpx.Response(200)
+        )
+
+        client = _make_client()
+        await client.set_name("Room <1> & 'Test'")
+
+        request = respx_mock.calls[0].request
+        assert b"&lt;1&gt;" in request.content  # < escaped
+        assert b"&amp;" in request.content  # & escaped
+        # Note: Single quotes don't need escaping in XML element content
+
+    @pytest.mark.asyncio
+    async def test_set_name_strips_whitespace(self, respx_mock):
+        """Test that leading/trailing whitespace is stripped."""
+        respx_mock.post("http://192.168.1.100:8090/name").mock(
+            return_value=httpx.Response(200)
+        )
+
+        client = _make_client()
+        await client.set_name("  Trimmed  ")
+
+        request = respx_mock.calls[0].request
+        assert b"<name>Trimmed</name>" in request.content
+
+    @pytest.mark.asyncio
+    async def test_set_name_empty_raises_value_error(self):
+        """Test that empty name raises ValueError."""
+        client = _make_client()
+        with pytest.raises(ValueError, match="cannot be empty"):
+            await client.set_name("")
+
+    @pytest.mark.asyncio
+    async def test_set_name_whitespace_only_raises_value_error(self):
+        """Test that whitespace-only name raises ValueError."""
+        client = _make_client()
+        with pytest.raises(ValueError, match="cannot be empty"):
+            await client.set_name("   ")
+
+    @pytest.mark.asyncio
+    async def test_set_name_too_long_raises_value_error(self):
+        """Test that name > 30 chars raises ValueError."""
+        client = _make_client()
+        with pytest.raises(ValueError, match="30 characters or fewer"):
+            await client.set_name("A" * 31)
+
+    @pytest.mark.asyncio
+    async def test_set_name_http_error_raises_device_connection_error(self, respx_mock):
+        """Test that HTTP error raises DeviceConnectionError."""
+        respx_mock.post("http://192.168.1.100:8090/name").mock(
+            return_value=httpx.Response(500, text="Internal Server Error")
+        )
+
+        client = _make_client()
+        with pytest.raises(DeviceConnectionError, match="192.168.1.100"):
+            await client.set_name("New Name")
+
+    @pytest.mark.asyncio
+    async def test_set_name_network_error_raises_device_connection_error(
+        self, respx_mock
+    ):
+        """Test that network error raises DeviceConnectionError."""
+        respx_mock.post("http://192.168.1.100:8090/name").mock(
+            side_effect=httpx.ConnectError("Connection refused")
+        )
+
+        client = _make_client()
+        with pytest.raises(DeviceConnectionError):
+            await client.set_name("New Name")
