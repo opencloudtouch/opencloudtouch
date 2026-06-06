@@ -753,9 +753,8 @@
     "setupStatus": "Setup-Status",
     "lastSeen": "Zuletzt gesehen",
     "downloadBundle": "Support-Bundle herunterladen"
-  }
-,
-    "deviceRename": {
+  },
+  "deviceRename": {
     "clickToEdit": "Klicken zum Umbenennen",
     "inputLabel": "Gerätename",
     "tooLong": "Name darf maximal 30 Zeichen lang sein",

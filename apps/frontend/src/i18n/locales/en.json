@@ -753,9 +753,8 @@
     "setupStatus": "Setup Status",
     "lastSeen": "Last Seen",
     "downloadBundle": "Download Support Bundle"
-  }
-,
-    "deviceRename": {
+  },
+  "deviceRename": {
     "clickToEdit": "Click to rename",
     "inputLabel": "Device name",
     "tooLong": "Name must be 30 characters or fewer",

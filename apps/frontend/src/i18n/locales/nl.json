@@ -753,9 +753,8 @@
     "setupStatus": "Configuratiestatus",
     "lastSeen": "Laatst gezien",
     "downloadBundle": "Ondersteuningsbundel downloaden"
-  }
-,
-    "deviceRename": {
+  },
+  "deviceRename": {
     "clickToEdit": "Klik om te hernoemen",
     "inputLabel": "Apparaatnaam",
     "tooLong": "Naam mag maximaal 30 tekens bevatten",
