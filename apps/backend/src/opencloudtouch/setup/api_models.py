@@ -500,11 +500,16 @@ class VerifySetupResponse(BaseModel):
 
 
 class ValidateHostnameRequest(BaseModel):
-    """Request to validate a hostname via DNS resolution."""
+    """Request to validate a hostname or IP via DNS resolution and OCT reachability.
+    
+    Accepts both hostnames (e.g. 'hera', 'myserver.local') and IP addresses 
+    (e.g. '192.168.1.100'). For IPs, DNS resolution is skipped but OCT 
+    reachability is still checked.
+    """
 
     hostname: str = Field(
         ...,
-        description="Hostname to resolve (e.g. 'hera' or 'myserver.local')",
+        description="Hostname or IP address to validate (e.g. 'hera', 'myserver.local', or '192.168.1.100')",
         min_length=1,
         max_length=255,
     )

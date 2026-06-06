@@ -424,8 +424,9 @@
         "newUrl": "Nieuwe URL:",
         "backupLabel": "Back-up:",
         "errorTitle": "Wijziging mislukt",
-        "dnsWarningTitle": "DNS Warning",
-        "dnsUnresolvable": "This hostname could not be resolved via DNS. The speaker may not be able to reach your server.",
+        "dnsWarningTitle": "DNS-waarschuwing",
+        "octUnreachableTitle": "Server onbereikbaar",
+        "dnsUnresolvable": "Deze hostnaam kon niet worden opgelost via DNS. De luidspreker kan mogelijk uw server niet bereiken.",
         "dnsMismatch": "Hostname resolved to {{resolved}}, but the expected server IP is {{expected}}. This mismatch may cause connection issues.",
         "dnsProceed": "Proceed anyway",
         "dnsCheckFailed": "DNS validation could not be performed."

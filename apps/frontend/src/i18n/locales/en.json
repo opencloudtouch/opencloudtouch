@@ -425,6 +425,7 @@
         "backupLabel": "Backup:",
         "errorTitle": "Modification failed",
         "dnsWarningTitle": "DNS Warning",
+        "octUnreachableTitle": "Server Unreachable",
         "dnsUnresolvable": "This hostname could not be resolved via DNS. The speaker may not be able to reach your server.",
         "dnsMismatch": "Hostname resolved to {{resolved}}, but the expected server IP is {{expected}}. This mismatch may cause connection issues.",
         "dnsProceed": "Proceed anyway",

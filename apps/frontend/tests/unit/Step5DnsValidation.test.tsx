@@ -202,7 +202,17 @@ describe("Step5ConfigModification — DNS validation", () => {
     });
   });
 
-  it("skips DNS validation for pure IP addresses", async () => {
+  it("validates OCT reachability for IP addresses", async () => {
+    // Mock validateHostname to return successful OCT check for IP
+    mockValidateHostname.mockResolvedValueOnce({
+      resolvable: true, // IPs are always "resolvable" (resolve to themselves)
+      resolved_ip: "192.168.1.50",
+      matches_expected: null, // No DNS comparison for IPs
+      oct_reachable: true,
+      error: null,
+      oct_error: null,
+    });
+
     mockModifyConfig.mockResolvedValueOnce({
       success: true,
       old_url: "https://*.bose.com (4 URLs)",
@@ -210,7 +220,7 @@ describe("Step5ConfigModification — DNS validation", () => {
       message: "Config modified",
     });
 
-    // server_url is an IP → extractHostname returns null → no DNS check
+    // server_url is an IP → validateHostname is called to check OCT reachability
     await renderStep5("http://192.168.1.50:7777");
 
     await act(async () => {
@@ -218,9 +228,14 @@ describe("Step5ConfigModification — DNS validation", () => {
     });
 
     await waitFor(() => {
+      expect(mockValidateHostname).toHaveBeenCalledWith({
+        hostname: "192.168.1.50",
+        port: 7777,
+        expected_ip: null, // No DNS comparison for IPs
+      });
       expect(mockModifyConfig).toHaveBeenCalled();
     });
-    expect(mockValidateHostname).not.toHaveBeenCalled();
+    expect(queryDnsWarning()).toBeNull();
   });
 
   it("proceed button dismisses warning and retries modify with original hostname", async () => {

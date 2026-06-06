@@ -424,8 +424,9 @@
         "newUrl": "æ–°ã—ã„URLï¼š",
         "backupLabel": "ãƒãƒƒã‚¯ã‚¢ãƒƒãƒ—ï¼š",
         "errorTitle": "変更失敗",
-        "dnsWarningTitle": "DNS Warning",
-        "dnsUnresolvable": "This hostname could not be resolved via DNS. The speaker may not be able to reach your server.",
+        "dnsWarningTitle": "DNS警告",
+        "octUnreachableTitle": "サーバーに接続できません",
+        "dnsUnresolvable": "このホスト名はDNSで解決できませんでした。スピーカーがサーバーに到達できない可能性があります。",
         "dnsMismatch": "Hostname resolved to {{resolved}}, but the expected server IP is {{expected}}. This mismatch may cause connection issues.",
         "dnsProceed": "Proceed anyway",
         "dnsCheckFailed": "DNS validation could not be performed."

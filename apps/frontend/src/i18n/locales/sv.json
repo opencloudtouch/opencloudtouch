@@ -424,8 +424,9 @@
         "newUrl": "Ny URL:",
         "backupLabel": "Säkerhetskopia:",
         "errorTitle": "Ändring misslyckades",
-        "dnsWarningTitle": "DNS Warning",
-        "dnsUnresolvable": "This hostname could not be resolved via DNS. The speaker may not be able to reach your server.",
+        "dnsWarningTitle": "DNS-varning",
+        "octUnreachableTitle": "Servern kan inte nås",
+        "dnsUnresolvable": "Detta värdnamn kunde inte matchas via DNS. Högtalaren kanske inte kan nå din server.",
         "dnsMismatch": "Hostname resolved to {{resolved}}, but the expected server IP is {{expected}}. This mismatch may cause connection issues.",
         "dnsProceed": "Proceed anyway",
         "dnsCheckFailed": "DNS validation could not be performed."

@@ -6,6 +6,7 @@ All business logic lives in WizardService; routes only handle HTTP concerns.
 """
 
 import asyncio
+import ipaddress
 import logging
 import socket
 from typing import Annotated, Any, Dict
@@ -200,16 +201,41 @@ async def _check_oct_reachability(hostname: str, port: int) -> tuple[bool, str |
 async def wizard_validate_hostname(
     request: ValidateHostnameRequest,
 ) -> ValidateHostnameResponse:
-    """Validate a hostname via DNS resolution and OCT reachability.
+    """Validate a hostname or IP via DNS resolution and OCT reachability.
 
-    Used by Wizard Step 5 when the user enters a hostname instead of an IP.
-    Returns whether the hostname resolves, if it matches the expected IP,
+    Used by Wizard Step 5 when the user enters a hostname or IP address.
+    For hostnames: validates DNS resolution and checks if OCT is reachable.
+    For IPs: skips DNS resolution and only checks if OCT is reachable.
+    
+    Returns whether the hostname/IP resolves, if it matches the expected IP,
     and whether OCT is reachable at the given hostname:port.
     """
     hostname = request.hostname
     port = request.port
-    logger.info("Validating hostname DNS resolution: %s", hostname)
+    logger.info("Validating hostname/IP and OCT reachability: %s", hostname)
 
+    # Check if input is an IP address (skip DNS resolution for IPs)
+    is_ip = False
+    try:
+        ipaddress.ip_address(hostname)
+        is_ip = True
+        logger.info("Input is an IP address, skipping DNS resolution")
+    except ValueError:
+        pass  # Not an IP, proceed with DNS resolution
+
+    # For IPs: skip DNS resolution, only check OCT reachability
+    if is_ip:
+        oct_reachable, oct_error = await _check_oct_reachability(hostname, port)
+        return ValidateHostnameResponse(
+            resolvable=True,  # IPs are always "resolvable" (they resolve to themselves)
+            resolved_ip=hostname,
+            matches_expected=None,  # No DNS comparison needed for IPs
+            oct_reachable=oct_reachable,
+            error=None,
+            oct_error=oct_error,
+        )
+
+    # For hostnames: perform DNS resolution
     try:
         result = await asyncio.to_thread(socket.getaddrinfo, hostname, None)
         if not result:

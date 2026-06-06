@@ -424,8 +424,9 @@
         "newUrl": "Nowy URL:",
         "backupLabel": "Kopia zap.:",
         "errorTitle": "Modyfikacja nie powiodła się",
-        "dnsWarningTitle": "DNS Warning",
-        "dnsUnresolvable": "This hostname could not be resolved via DNS. The speaker may not be able to reach your server.",
+        "dnsWarningTitle": "Ostrzeżenie DNS",
+        "octUnreachableTitle": "Serwer niedostępny",
+        "dnsUnresolvable": "Ta nazwa hosta nie mogła zostać rozwiązana przez DNS. Głośnik może nie być w stanie dotrzeć do Twojego serwera.",
         "dnsMismatch": "Hostname resolved to {{resolved}}, but the expected server IP is {{expected}}. This mismatch may cause connection issues.",
         "dnsProceed": "Proceed anyway",
         "dnsCheckFailed": "DNS validation could not be performed."

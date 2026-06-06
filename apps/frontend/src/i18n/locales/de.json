@@ -425,6 +425,7 @@
         "backupLabel": "Backup:",
         "errorTitle": "Änderung fehlgeschlagen",
         "dnsWarningTitle": "DNS-Warnung",
+        "octUnreachableTitle": "Server nicht erreichbar",
         "dnsUnresolvable": "Dieser Hostname konnte nicht per DNS aufgelöst werden. Der Lautsprecher kann Ihren Server möglicherweise nicht erreichen.",
         "dnsMismatch": "Hostname wurde zu {{resolved}} aufgelöst, aber die erwartete Server-IP ist {{expected}}. Diese Abweichung kann zu Verbindungsproblemen führen.",
         "dnsProceed": "Trotzdem fortfahren",
