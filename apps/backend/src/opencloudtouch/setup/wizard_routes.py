@@ -193,14 +193,14 @@ async def wizard_validate_hostname(
         # Check if OCT is reachable at hostname:port
         oct_reachable = False
         oct_error = None
-        
+
         try:
             url = f"http://{hostname}:{port}/health"
             logger.info("Checking OCT reachability: %s", url)
-            
+
             async with httpx.AsyncClient(timeout=5.0) as client:
                 response = await client.get(url)
-                
+
                 if response.status_code == 200:
                     try:
                         data = response.json()
@@ -208,7 +208,9 @@ async def wizard_validate_hostname(
                             oct_reachable = True
                             logger.info("OCT reachable at %s", url)
                         else:
-                            oct_error = f"Server at {hostname}:{port} is not OpenCloudTouch"
+                            oct_error = (
+                                f"Server at {hostname}:{port} is not OpenCloudTouch"
+                            )
                             logger.warning("Non-OCT response at %s: %s", url, data)
                     except Exception:
                         oct_error = f"Invalid response from {hostname}:{port}"
@@ -216,7 +218,7 @@ async def wizard_validate_hostname(
                 else:
                     oct_error = f"HTTP {response.status_code} from {hostname}:{port}"
                     logger.warning("HTTP %s from %s", response.status_code, url)
-        
+
         except httpx.ConnectError:
             oct_error = f"Connection refused at {hostname}:{port}"
             logger.warning("Connection refused: %s", url)
@@ -247,7 +249,7 @@ async def wizard_validate_hostname(
             user_msg = f"No IP address found for hostname '{hostname}'"
         else:
             user_msg = f"DNS resolution failed for '{hostname}'"
-        
+
         return ValidateHostnameResponse(
             resolvable=False,
             resolved_ip=None,

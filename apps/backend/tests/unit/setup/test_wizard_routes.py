@@ -1685,7 +1685,11 @@ class TestValidateHostname:
             )
             response = client.post(
                 "/api/setup/wizard/validate-hostname",
-                json={"hostname": "myserver", "port": 7777, "expected_ip": "192.168.1.100"},
+                json={
+                    "hostname": "myserver",
+                    "port": 7777,
+                    "expected_ip": "192.168.1.100",
+                },
             )
         assert response.status_code == 200
         body = response.json()
@@ -1709,7 +1713,11 @@ class TestValidateHostname:
             )
             response = client.post(
                 "/api/setup/wizard/validate-hostname",
-                json={"hostname": "myserver", "port": 7777, "expected_ip": "192.168.1.100"},
+                json={
+                    "hostname": "myserver",
+                    "port": 7777,
+                    "expected_ip": "192.168.1.100",
+                },
             )
         assert response.status_code == 200
         body = response.json()
@@ -1746,7 +1754,11 @@ class TestValidateHostname:
             mock_dns.side_effect = socket.gaierror(-2, "Name or service not known")
             response = client.post(
                 "/api/setup/wizard/validate-hostname",
-                json={"hostname": "nonexistent.invalid", "port": 7777, "expected_ip": None},
+                json={
+                    "hostname": "nonexistent.invalid",
+                    "port": 7777,
+                    "expected_ip": None,
+                },
             )
         assert response.status_code == 200
         body = response.json()
@@ -1804,7 +1816,11 @@ class TestValidateHostname:
             mock_dns.return_value = []
             response = client.post(
                 "/api/setup/wizard/validate-hostname",
-                json={"hostname": "emptyresult.local", "port": 7777, "expected_ip": None},
+                json={
+                    "hostname": "emptyresult.local",
+                    "port": 7777,
+                    "expected_ip": None,
+                },
             )
         assert response.status_code == 200
         body = response.json()
@@ -1844,7 +1860,11 @@ class TestValidateHostname:
             )
             response = client.post(
                 "/api/setup/wizard/validate-hostname",
-                json={"hostname": "myserver", "port": 7777, "expected_ip": "192.168.1.100"},
+                json={
+                    "hostname": "myserver",
+                    "port": 7777,
+                    "expected_ip": "192.168.1.100",
+                },
             )
         assert response.status_code == 200
         body = response.json()
@@ -1865,7 +1885,11 @@ class TestValidateHostname:
             )
             response = client.post(
                 "/api/setup/wizard/validate-hostname",
-                json={"hostname": "myserver", "port": 7777, "expected_ip": "192.168.1.100"},
+                json={
+                    "hostname": "myserver",
+                    "port": 7777,
+                    "expected_ip": "192.168.1.100",
+                },
             )
         assert response.status_code == 200
         body = response.json()
@@ -1887,7 +1911,11 @@ class TestValidateHostname:
             )
             response = client.post(
                 "/api/setup/wizard/validate-hostname",
-                json={"hostname": "myserver", "port": 7777, "expected_ip": "192.168.1.100"},
+                json={
+                    "hostname": "myserver",
+                    "port": 7777,
+                    "expected_ip": "192.168.1.100",
+                },
             )
         assert response.status_code == 200
         body = response.json()
@@ -1907,7 +1935,11 @@ class TestValidateHostname:
             )
             response = client.post(
                 "/api/setup/wizard/validate-hostname",
-                json={"hostname": "myserver", "port": 7777, "expected_ip": "192.168.1.100"},
+                json={
+                    "hostname": "myserver",
+                    "port": 7777,
+                    "expected_ip": "192.168.1.100",
+                },
             )
         assert response.status_code == 200
         body = response.json()

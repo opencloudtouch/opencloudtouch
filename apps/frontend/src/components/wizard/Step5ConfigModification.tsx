@@ -131,9 +131,10 @@ export default function Step5ConfigModification({
     if (!trimmed) return "http://...";
 
     // Pattern: (protocol)?(hostname|ip)(:port)?
-    const regex = /^(?:(?<protocol>https?):\/\/)?(?<host>[a-zA-Z0-9][a-zA-Z0-9.-]*|[\d.]+)(?::(?<port>\d+))?$/;
+    const regex =
+      /^(?:(?<protocol>https?):\/\/)?(?<host>[a-zA-Z0-9][a-zA-Z0-9.-]*|[\d.]+)(?::(?<port>\d+))?$/;
     const match = regex.exec(trimmed);
-    
+
     if (!match?.groups) return trimmed; // Invalid format - show as-is
 
     const protocol = match.groups.protocol || "http";
@@ -146,7 +147,7 @@ export default function Step5ConfigModification({
   const handleModifyConfig = async (options?: { bypassDns?: boolean }) => {
     const targetUrl = customUrl;
     const shouldBypassDns = options?.bypassDns ?? bypassDnsCheck;
-    
+
     // Validate input
     const validation = validateTargetAddr(targetUrl, t);
     if (!validation.valid) {
