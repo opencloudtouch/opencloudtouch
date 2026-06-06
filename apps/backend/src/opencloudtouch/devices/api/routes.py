@@ -235,7 +235,13 @@ async def press_key(
     return {"message": f"Key {key} pressed successfully", "device_id": device_id}
 
 
-@router.put("/{device_id}/name", responses={422: {"description": "Invalid name"}, 502: {"description": "Both REST and SSH rename failed"}})
+@router.put(
+    "/{device_id}/name",
+    responses={
+        422: {"description": "Invalid name"},
+        502: {"description": "Both REST and SSH rename failed"},
+    },
+)
 async def rename_device(
     device_id: str,
     body: Annotated[dict, Body()],
