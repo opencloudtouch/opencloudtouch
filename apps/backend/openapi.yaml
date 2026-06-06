@@ -3088,6 +3088,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/diagnostics:
+    get:
+      tags:
+      - diagnostics
+      summary: Get Diagnostics
+      description: 'Collect server and device diagnostics for the diagnostics page.
+
+
+        Returns server info (version, platform, config) and device status
+
+        with health indicators.'
+      operationId: get_diagnostics_api_diagnostics_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
   /api/health/websockets:
     get:
       tags:
