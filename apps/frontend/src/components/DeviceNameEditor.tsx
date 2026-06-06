@@ -112,7 +112,7 @@ export default function DeviceNameEditor({
     );
   }
 
-  const fontSizePx = Math.max(16, Math.round((24 * 10) / Math.max(name.length, 10)));
+  const fontSizePx = Math.max(17, 24 - Math.max(0, name.length - 7));
 
   return (
     <button

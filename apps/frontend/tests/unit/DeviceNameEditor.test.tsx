@@ -268,4 +268,36 @@ describe("DeviceNameEditor", () => {
     expect(icons).toHaveLength(1);
     expect(icons[0]).toHaveClass("device-name-edit-icon");
   });
+
+  describe("font size scaling", () => {
+    it("uses 24px for names shorter than 8 characters", () => {
+      render(<DeviceNameEditor deviceId="ABC123" name="TV" />);
+      const btn = screen.getByRole("button");
+      expect(btn).toHaveStyle({ fontSize: "24px" });
+    });
+
+    it("uses 24px for names with exactly 7 characters", () => {
+      render(<DeviceNameEditor deviceId="ABC123" name="Kitchen" />);
+      const btn = screen.getByRole("button");
+      expect(btn).toHaveStyle({ fontSize: "24px" });
+    });
+
+    it("reduces by 1px per character beyond 7", () => {
+      render(<DeviceNameEditor deviceId="ABC123" name="Badezimmer" />); // 10 chars → 24 - 3 = 21px
+      const btn = screen.getByRole("button");
+      expect(btn).toHaveStyle({ fontSize: "21px" });
+    });
+
+    it("does not go below 17px minimum", () => {
+      render(<DeviceNameEditor deviceId="ABC123" name="My Very Long Device Name Here" />); // 29 chars → floor at 17px
+      const btn = screen.getByRole("button");
+      expect(btn).toHaveStyle({ fontSize: "17px" });
+    });
+
+    it("uses exactly 17px at 14 characters", () => {
+      render(<DeviceNameEditor deviceId="ABC123" name="Schlafzimmer 1." />); // 15 chars → 24 - 8 = 16 → floor 17px
+      const btn = screen.getByRole("button");
+      expect(btn).toHaveStyle({ fontSize: "17px" });
+    });
+  });
 });
