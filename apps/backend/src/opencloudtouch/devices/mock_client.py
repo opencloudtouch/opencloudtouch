@@ -202,7 +202,7 @@ class MockDeviceClient(DeviceClient):
     async def set_name(self, name: str) -> None:
         """Mock set name."""
         logger.info("[MOCK] set_name(%s) for device %s", name, self.device_id)
-        data = self._devices.get(self.device_id)
+        data = self.MOCK_DEVICES.get(self.device_id)
         if data:
             data["info"].name = name
 
