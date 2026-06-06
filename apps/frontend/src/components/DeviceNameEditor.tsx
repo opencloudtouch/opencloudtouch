@@ -40,9 +40,12 @@ export default function DeviceNameEditor({
       for (let size = 24; size >= 17; size--) {
         ctx.font = `600 ${size}px system-ui, -apple-system, sans-serif`;
         const textWidth = ctx.measureText(name).width;
-        const iconWidth = size * 0.65; // 0.65em pencil icon
-        const gapWidth = 4.8; // 0.3rem gap at 16px base
-        if (textWidth + iconWidth + gapWidth <= containerWidth) {
+        // Measure the icon at its rendered size (0.65em) — emoji renders as square
+        ctx.font = `${size * 0.65}px system-ui, -apple-system, sans-serif`;
+        const iconWidth = ctx.measureText("✏️").width;
+        const gapWidth = size * 0.3; // 0.3rem gap scales with font size
+        const safetyBuffer = 2; // 1px subpixel rounding tolerance
+        if (textWidth + iconWidth + gapWidth + safetyBuffer <= containerWidth) {
           setFontSizePx(size);
           return;
         }

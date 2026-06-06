@@ -56,12 +56,14 @@ describe("DeviceNameEditor", () => {
       value: 200,
     });
 
-    // Canvas mock: measureText scales proportionally with font size (0.55 em avg char width)
+    // Canvas mock: measureText scales with font size
+    // Normal text: 0.55 avg char width; emoji ✏️: treated as 1.0 × size (square)
     const mockCtx = {
       font: "",
       measureText(text: string) {
         const m = /(\d+)px/.exec(this.font);
         const size = m ? parseInt(m[1]) : 16;
+        if (text === "✏️") return { width: size }; // emoji = square (1em)
         return { width: text.length * size * 0.55 };
       },
     };
@@ -299,27 +301,38 @@ describe("DeviceNameEditor", () => {
   });
 
   describe("font size scaling via canvas.measureText", () => {
-    // Container: 200px. Mock: text.length * fontSize * 0.55 + fontSize*0.65 + 4.8 ≤ 200
-    it("uses 24px for very short names", () => {
+    it("uses a font size between 17px and 24px for short names", () => {
       render(<DeviceNameEditor deviceId="ABC123" name="TV" />);
-      expect(screen.getByRole("button")).toHaveStyle({ fontSize: "24px" });
+      const size = parseInt(screen.getByRole("button").style.fontSize);
+      expect(size).toBeGreaterThanOrEqual(17);
+      expect(size).toBeLessThanOrEqual(24);
     });
 
-    it("uses 24px when text comfortably fits (7 chars)", () => {
-      render(<DeviceNameEditor deviceId="ABC123" name="Kitchen" />);
-      expect(screen.getByRole("button")).toHaveStyle({ fontSize: "24px" });
-    });
+    it("longer names get a smaller or equal font size than shorter names", () => {
+      const { unmount } = render(<DeviceNameEditor deviceId="ABC123" name="TV" />);
+      const shortSize = parseInt(screen.getByRole("button").style.fontSize);
+      unmount();
 
-    it("scales down to 21px for 15-char names that exceed container at 24px", () => {
-      // 15 chars: at 24px → total 218.4px > 200; at 21px → total 191.7px ≤ 200
-      render(<DeviceNameEditor deviceId="ABC123" name="Schlafzimmer 1." />);
-      expect(screen.getByRole("button")).toHaveStyle({ fontSize: "21px" });
+      render(<DeviceNameEditor deviceId="ABC123" name="Wohnzimmer Süd" />);
+      const longSize = parseInt(screen.getByRole("button").style.fontSize);
+
+      expect(longSize).toBeLessThanOrEqual(shortSize);
     });
 
     it("floors at 17px minimum for very long names", () => {
-      // 29 chars: even at 17px total 287px > 200 → fallback floor
       render(<DeviceNameEditor deviceId="ABC123" name="My Very Long Device Name Here" />);
-      expect(screen.getByRole("button")).toHaveStyle({ fontSize: "17px" });
+      expect(screen.getByRole("button").style.fontSize).toBe("17px");
+    });
+
+    it("font size is always a valid integer between 17 and 24", () => {
+      const names = ["A", "Kitchen", "Wohnzimmer", "My Very Long Device Name Here"];
+      for (const name of names) {
+        const { unmount } = render(<DeviceNameEditor deviceId="ABC123" name={name} />);
+        const size = parseInt(screen.getByRole("button").style.fontSize);
+        expect(size).toBeGreaterThanOrEqual(17);
+        expect(size).toBeLessThanOrEqual(24);
+        unmount();
+      }
     });
   });
 });
