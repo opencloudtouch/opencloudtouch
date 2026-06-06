@@ -753,8 +753,9 @@
     "setupStatus": "ã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—çŠ¶æ³",
     "lastSeen": "æœ€çµ‚ç¢ºèª",
     "downloadBundle": "ã‚µãƒãƒ¼ãƒˆãƒãƒ³ãƒ‰ãƒ«ã‚’ãƒ€ã‚¦ãƒ³ãƒ­ãƒ¼ãƒ‰"
-  },
-  "deviceRename": {
+  }
+,
+    "deviceRename": {
     "clickToEdit": "クリックして名前を変更",
     "inputLabel": "デバイス名",
     "tooLong": "名前は30文字以内にする必要があります",

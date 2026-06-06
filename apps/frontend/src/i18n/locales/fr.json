@@ -753,8 +753,9 @@
     "setupStatus": "Statut de configuration",
     "lastSeen": "Dernière activité",
     "downloadBundle": "Télécharger le bundle de support"
-  },
-  "deviceRename": {
+  }
+,
+    "deviceRename": {
     "clickToEdit": "Cliquer pour renommer",
     "inputLabel": "Nom de l'appareil",
     "tooLong": "Le nom doit comporter 30 caractères maximum",
