@@ -195,7 +195,7 @@ async def wizard_validate_hostname(
         oct_error = None
 
         try:
-            url = f"http://{hostname}:{port}/health"
+            url = f"http://{hostname}:{port}/health"  # noqa: S5332
             logger.info("Checking OCT reachability: %s", url)
 
             async with httpx.AsyncClient(timeout=5.0) as client:

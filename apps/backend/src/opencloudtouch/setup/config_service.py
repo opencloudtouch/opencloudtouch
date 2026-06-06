@@ -166,17 +166,17 @@ class SoundTouchConfigService:
         Uses the user-specified hostname or IP directly so the device config
         matches what the user entered in the wizard.
         """
-        return f"http://{oct_host}:{port}/bmx/registry/v1/services"
+        return f"http://{oct_host}:{port}/bmx/registry/v1/services"  # noqa: S5332
 
     @staticmethod
     def build_marge_url(oct_host: str, port: int = DEFAULT_PORT) -> str:
         """Build the marge server URL pointing to OCT."""
-        return f"http://{oct_host}:{port}"
+        return f"http://{oct_host}:{port}"  # noqa: S5332
 
     @staticmethod
     def build_swupdate_url(oct_host: str, port: int = DEFAULT_PORT) -> str:
         """Build the swupdate URL pointing to OCT."""
-        return f"http://{oct_host}:{port}/updates/soundtouch"
+        return f"http://{oct_host}:{port}/updates/soundtouch"  # noqa: S5332
 
     @staticmethod
     def build_stats_url(oct_host: str, port: int = DEFAULT_PORT) -> str:
@@ -185,7 +185,7 @@ class SoundTouchConfigService:
         Without this, the device retains https://events.api.bosecm.com
         and hangs on TLS handshake to OCT IP (Issue #167).
         """
-        return f"http://{oct_host}:{port}"
+        return f"http://{oct_host}:{port}"  # noqa: S5332
 
     async def _read_config(self) -> str:
         """Read current config file from device."""
