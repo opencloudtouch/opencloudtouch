@@ -164,7 +164,7 @@ export default function Step5ConfigModification({
     try {
       const port = extractPort(targetUrl);
       const isIp = isIpAddress(host);
-      
+
       const result = await validateHostname({
         hostname: host, // Backend accepts both hostnames and IPs
         port,

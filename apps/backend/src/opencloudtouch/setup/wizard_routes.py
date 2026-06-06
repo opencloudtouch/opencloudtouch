@@ -206,7 +206,7 @@ async def wizard_validate_hostname(
     Used by Wizard Step 5 when the user enters a hostname or IP address.
     For hostnames: validates DNS resolution and checks if OCT is reachable.
     For IPs: skips DNS resolution and only checks if OCT is reachable.
-    
+
     Returns whether the hostname/IP resolves, if it matches the expected IP,
     and whether OCT is reachable at the given hostname:port.
     """

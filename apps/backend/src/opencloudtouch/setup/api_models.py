@@ -501,9 +501,9 @@ class VerifySetupResponse(BaseModel):
 
 class ValidateHostnameRequest(BaseModel):
     """Request to validate a hostname or IP via DNS resolution and OCT reachability.
-    
-    Accepts both hostnames (e.g. 'hera', 'myserver.local') and IP addresses 
-    (e.g. '192.168.1.100'). For IPs, DNS resolution is skipped but OCT 
+
+    Accepts both hostnames (e.g. 'hera', 'myserver.local') and IP addresses
+    (e.g. '192.168.1.100'). For IPs, DNS resolution is skipped but OCT
     reachability is still checked.
     """
 
