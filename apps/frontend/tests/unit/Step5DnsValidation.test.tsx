@@ -171,7 +171,7 @@ describe("Step5ConfigModification — DNS validation", () => {
     });
     mockModifyConfig.mockResolvedValueOnce({
       success: true,
-      old_url: "bmx.bose.com",
+      old_url: "https://*.bose.com (4 URLs)",
       new_url: "myserver.local",
       message: "Config modified",
     });
@@ -205,7 +205,7 @@ describe("Step5ConfigModification — DNS validation", () => {
   it("skips DNS validation for pure IP addresses", async () => {
     mockModifyConfig.mockResolvedValueOnce({
       success: true,
-      old_url: "bmx.bose.com",
+      old_url: "https://*.bose.com (4 URLs)",
       new_url: "192.168.1.50",
       message: "Config modified",
     });
@@ -234,7 +234,7 @@ describe("Step5ConfigModification — DNS validation", () => {
     });
     mockModifyConfig.mockResolvedValueOnce({
       success: true,
-      old_url: "bmx.bose.com",
+      old_url: "https://*.bose.com (4 URLs)",
       new_url: "myserver.local",
       message: "Config modified",
     });
