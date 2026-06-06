@@ -67,10 +67,10 @@ function setupDeviceMocks() {
     body: {
       success: true,
       action: "modified",
-      old_url: "bmx.bose.com",
+      old_url: "https://*.bose.com (4 URLs)",
       new_url: "192.168.1.100",
       backup_path: "/usb/backups/config_backup.xml",
-      diff: "- bmx.bose.com\n+ 192.168.1.100",
+      diff: "- https://*.bose.com (4 URLs)\n+ 192.168.1.100",
       message: "Config modified",
     },
   }).as("modifyConfig");
@@ -374,7 +374,7 @@ describe("Setup Wizard — Bug Regression Suite", () => {
 
       // Must NOT show N/A
       cy.contains(/N\/A/).should("not.exist");
-      cy.contains("bmx.bose.com").should("exist");
+      cy.contains("https://*.bose.com (4 URLs)").should("exist");
     });
   });
 
