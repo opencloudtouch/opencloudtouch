@@ -265,7 +265,7 @@ class TestWizardModifyConfig:
         assert response.status_code == 200
         body = response.json()
         assert body["success"] is True
-        assert body["old_url"] == "bmx.bose.com"
+        assert body["old_url"] == "https://*.bose.com (4 URLs)"
         assert body["new_url"] == "192.168.1.50"
 
     def test_target_addr_with_explicit_port_propagates(self, client, monkeypatch):

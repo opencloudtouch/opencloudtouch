@@ -951,8 +951,45 @@ class TestWizardModifyConfigRoute:
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
-        assert data["old_url"] == "bmx.bose.com"
+        assert data["old_url"] == "https://*.bose.com (4 URLs)"
         assert data["new_url"] == "192.168.1.50"
+
+    def test_old_url_is_representative_not_single_domain(self, client, monkeypatch):
+        """Regression: old_url should represent all 4 modified URLs, not just bmx.bose.com."""
+        from opencloudtouch.setup import wizard_service as routes
+        from opencloudtouch.setup.config_service import ModifyResult
+
+        mock_ssh = AsyncMock()
+        mock_result = ModifyResult(
+            success=True,
+            backup_path="/usb/backups/config_backup.xml",
+            diff="- bmx.bose.com\n+ 192.168.1.50",
+        )
+
+        mock_config_svc = AsyncMock()
+        mock_config_svc.modify_bmx_url = AsyncMock(return_value=mock_result)
+
+        monkeypatch.setattr(
+            wizard_helpers,
+            "SoundTouchSSHClient",
+            lambda ip: _make_ssh_context(mock_ssh),
+        )
+        monkeypatch.setattr(
+            routes, "SoundTouchConfigService", lambda ssh: mock_config_svc
+        )
+
+        response = client.post(
+            self.ENDPOINT,
+            json={"device_ip": "192.168.1.100", "target_addr": "hera:7777"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        # Regression check: must NOT show legacy single-domain value
+        assert data["old_url"] != "bmx.bose.com"
+        # Must show representative value covering all 4 URLs
+        assert data["old_url"] == "https://*.bose.com (4 URLs)"
+        assert "(4 URLs)" in data["old_url"]
 
     def test_modify_config_failure_returns_200_with_success_false(
         self, client, monkeypatch

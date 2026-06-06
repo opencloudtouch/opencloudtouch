@@ -420,7 +420,7 @@ export default function Step5ConfigModification({
               </div>
               <div className="config-detail-item">
                 <strong>{t("setup.wizard.step5.newUrl")}</strong>
-                <code>{modifyData.new_url || customUrl}</code>
+                <code>{normalizeUrl(modifyData.new_url || customUrl)}</code>
               </div>
               {modifyData.backup_path && (
                 <div className="config-detail-item">

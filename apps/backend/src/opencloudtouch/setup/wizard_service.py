@@ -138,7 +138,7 @@ class WizardService:
                 "message": "Config modified successfully",
                 "backup_path": result.backup_path,
                 "diff": result.diff,
-                "old_url": "bmx.bose.com",
+                "old_url": "https://*.bose.com (4 URLs)",
                 "new_url": target_host,
             }
 
