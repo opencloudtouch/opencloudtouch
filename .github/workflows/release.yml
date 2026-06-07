@@ -421,6 +421,7 @@ jobs:
       mark_as_stable: ${{ inputs.mark_as_stable && !inputs.prerelease }}
     secrets:
       BUILD_SIGNING_KEY: ${{ secrets.BUILD_SIGNING_KEY }}
+      SUPPORTERS_API_PASS: ${{ secrets.SUPPORTERS_API_PASS }}
 
   # ============================================================================
   # PUBLISH RELEASE (draft → public, only after successful image build)
