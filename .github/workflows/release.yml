@@ -485,7 +485,7 @@ jobs:
           MINOR=$(echo "$VERSION" | cut -d. -f2)
           PATCH=$(echo "$VERSION" | cut -d. -f3)
 
-          gh variable set NEXT_PATCH --body "${MAJOR}.${MINOR}.$((PATCH + 1)}" --repo ${{ github.repository }}
+          gh variable set NEXT_PATCH --body "${MAJOR}.${MINOR}.$((PATCH + 1))" --repo ${{ github.repository }}
           gh variable set NEXT_MINOR --body "${MAJOR}.$((MINOR + 1)).0" --repo ${{ github.repository }}
           gh variable set NEXT_MAJOR --body "$((MAJOR + 1)).0.0" --repo ${{ github.repository }}
 
