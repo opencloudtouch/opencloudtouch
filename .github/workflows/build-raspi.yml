@@ -197,7 +197,12 @@ jobs:
             exit 1
           fi
 
-          OUTPUT_NAME="opencloudtouch-${{ matrix.arch }}.img.xz"
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            PI_MODELS="Pi4+Pi5"
+          else
+            PI_MODELS="Pi2+Pi3"
+          fi
+          OUTPUT_NAME="opencloudtouch_${PI_MODELS}_raspios-trixie-${{ matrix.arch }}.img.xz"
           xz -9 -T0 "$IMG_FILE"
           mkdir -p output
           mv "${IMG_FILE}.xz" "output/${OUTPUT_NAME}"
@@ -250,7 +255,12 @@ jobs:
         id: mount
         run: |
           set -euo pipefail
-          IMG_XZ="images/opencloudtouch-${{ matrix.arch }}.img.xz"
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            PI_MODELS="Pi4+Pi5"
+          else
+            PI_MODELS="Pi2+Pi3"
+          fi
+          IMG_XZ="images/opencloudtouch_${PI_MODELS}_raspios-trixie-${{ matrix.arch }}.img.xz"
 
           echo "=== Decompressing image ==="
           xz -d "$IMG_XZ"
@@ -324,15 +334,15 @@ jobs:
 
           ### Supported Devices
 
-          | File | Architecture | Devices |
-          |------|-------------|---------|
-          | \`opencloudtouch-arm64.img.xz\` | aarch64 | Raspberry Pi 4, Pi 5 |
-          | \`opencloudtouch-armhf.img.xz\` | armhf | Raspberry Pi 2, Pi 3 |
+          | File | Devices |
+          |------|---------|
+          | \`opencloudtouch_Pi4+Pi5_raspios-trixie-arm64.img.xz\` | Raspberry Pi 4, Pi 5 |
+          | \`opencloudtouch_Pi2+Pi3_raspios-trixie-armhf.img.xz\` | Raspberry Pi 2, Pi 3 |
 
           ### Quick Start
 
           1. Download the image for your Pi model
-          2. Flash to SD card: \`xzcat opencloudtouch-arm64.img.xz | sudo dd of=/dev/sdX bs=4M status=progress\`
+          2. Flash to SD card: \`xzcat opencloudtouch_Pi4+Pi5_raspios-trixie-arm64.img.xz | sudo dd of=/dev/sdX bs=4M status=progress\`
           3. Insert SD card, boot, wait ~2 minutes
           4. Open \`http://opencloudtouch.local:7777\` in your browser
 
