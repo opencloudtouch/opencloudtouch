@@ -1,5 +1,6 @@
 name: Monthly Community Spotlight Announcement
 
+# Test PR for PR review tracking verification
 on:
   schedule:
     # Runs on the 1st of every month at 06:00 UTC
@@ -189,12 +190,11 @@ jobs:
             (.[0] // []) as $issueComments |
             (.[1] // []) as $issuesCreated |
             (.[2] // []) as $prsCreated |
-            (.[3] // []) as $prReviews |
-            (.[4] // []) as $discussionComments |
-            (.[5] // []) as $lifetimeIssueComments |
-            (.[6] // []) as $lifetimeIssues |
-            (.[7] // []) as $lifetimePRs |
-            (.[8] // []) as $lifetimeDiscussions |
+            (.[3] // []) as $discussionComments |
+            (.[4] // []) as $lifetimeIssueComments |
+            (.[5] // []) as $lifetimeIssues |
+            (.[6] // []) as $lifetimePRs |
+            (.[7] // []) as $lifetimeDiscussions |
             
             # Calculate lifetime totals per user
             ([$lifetimeIssueComments[], $lifetimeIssues[], $lifetimePRs[], $lifetimeDiscussions[]] |
@@ -231,7 +231,7 @@ jobs:
             
             # Build combined map for recent activity
             # Collect all unique authors from all sources
-            ([$issueComments[], $issuesCreated[], $prsCreated[], $prReviews[], $discussionComments[]] | 
+            ([$issueComments[], $issuesCreated[], $prsCreated[], $discussionComments[]] | 
              map(select(.author) | .author) | 
              unique |
              map(. as $author | {
@@ -248,7 +248,7 @@ jobs:
                featureRequests: ([$issuesCreated[] | select(.author == $author) | .featureCount] | add // 0),
                prsCreated: ([$prsCreated[] | select(.author == $author) | .prs | length] | add // 0),
                prsMerged: ([$prsCreated[] | select(.author == $author) | .merged] | add // 0),
-               prReviews: ([$prReviews[] | select(.author == $author)] | length),
+               prReviews: ([$prReviews[] | select(.author == $author) | .count] | add // 0),
                # Discussion comments: count comments and calculate logarithmic score based on word count
                discussionCommentCount: ([$discussionComments[] | select(.author == $author)] | length),
                discussionCommentWords: ([$discussionComments[] | select(.author == $author) | .body | split(" ") | length] | add // 0),
@@ -277,7 +277,7 @@ jobs:
              reverse |
              .[0:5]
             )
-          ' <(echo "$ISSUE_COMMENTS") <(echo "$ISSUES_CREATED") <(echo "$PRS_CREATED") <(echo "$PR_REVIEWS") <(echo "$DISCUSSION_COMMENTS") <(echo "$LIFETIME_ISSUE_COMMENTS") <(echo "$LIFETIME_ISSUES") <(echo "$LIFETIME_PRS") <(echo "$LIFETIME_DISCUSSIONS"))
+          ' <(echo "$ISSUE_COMMENTS") <(echo "$ISSUES_CREATED") <(echo "$PRS_CREATED") <(echo "$DISCUSSION_COMMENTS") <(echo "$LIFETIME_ISSUE_COMMENTS") <(echo "$LIFETIME_ISSUES") <(echo "$LIFETIME_PRS") <(echo "$LIFETIME_DISCUSSIONS"))
 
           echo "contributors<<EOF" >> $GITHUB_OUTPUT
           echo "$CONTRIBUTORS_JSON" >> $GITHUB_OUTPUT
