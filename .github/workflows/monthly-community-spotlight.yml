@@ -153,35 +153,15 @@ jobs:
           ')
           
           # All-time issues created
-          LIFETIME_ISSUES=$(gh api graphql -f query='
-            query($owner: String!, $repo: String!) {
-              repository(owner: $owner, name: $repo) {
-                issues(first: 100, orderBy: {field: CREATED_AT, direction: DESC}) {
-                  nodes {
-                    author { login }
-                  }
-                }
-              }
-            }
-          ' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" --jq '
-            [.data.repository.issues.nodes[] | select(.author.login and .author.login != "scheilch" and .author.login != "oct-support") | .author.login] |
+          LIFETIME_ISSUES=$(gh api "/repos/${{ github.repository }}/issues?state=all&per_page=100" --paginate --jq '
+            [.[] | select(.user.type != "Bot" and .user.login != "scheilch" and .user.login != "oct-support" and .pull_request == null) | .user.login] |
             group_by(.) |
             map({author: .[0], total: length})
           ')
           
           # All-time PRs
-          LIFETIME_PRS=$(gh api graphql -f query='
-            query($owner: String!, $repo: String!) {
-              repository(owner: $owner, name: $repo) {
-                pullRequests(first: 100, orderBy: {field: CREATED_AT, direction: DESC}) {
-                  nodes {
-                    author { login }
-                  }
-                }
-              }
-            }
-          ' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" --jq '
-            [.data.repository.pullRequests.nodes[] | select(.author.login and .author.login != "scheilch" and .author.login != "oct-support") | .author.login] |
+          LIFETIME_PRS=$(gh api "/repos/${{ github.repository }}/pulls?state=all&per_page=100" --paginate --jq '
+            [.[] | select(.user.type != "Bot" and .user.login != "scheilch" and .user.login != "oct-support") | .user.login] |
             group_by(.) |
             map({author: .[0], total: length})
           ')
@@ -254,19 +234,20 @@ jobs:
             ) as $starRatings |
             
             # Build combined map for recent activity
+            # Collect all unique authors from all sources
             ([$issueComments[], $issuesCreated[], $prsCreated[], $prReviews[], $discussionComments[]] | 
-             map(select(.author)) |
-             group_by(.author) |
-             map({
-               author: .[0].author,
-               issueComments: ([.[] | select(.count) | .count] | add // 0),
-               issuesCreated: ([.[] | select(.issues) | .issues | length] | add // 0),
-               bugReports: ([.[] | select(.bugCount) | .bugCount] | add // 0),
-               featureRequests: ([.[] | select(.featureCount) | .featureCount] | add // 0),
-               prsCreated: ([.[] | select(.prs) | .prs | length] | add // 0),
-               prsMerged: ([.[] | select(.merged) | .merged] | add // 0),
-               prReviews: ([.[] | select(.count) | .count] | add // 0),
-               discussionComments: ([.[] | select(.count) | .count] | add // 0)
+             map(select(.author) | .author) | 
+             unique |
+             map(. as $author | {
+               author: $author,
+               issueComments: ([$issueComments[] | select(.author == $author) | .count] | add // 0),
+               issuesCreated: ([$issuesCreated[] | select(.author == $author) | .issues | length] | add // 0),
+               bugReports: ([$issuesCreated[] | select(.author == $author) | .bugCount] | add // 0),
+               featureRequests: ([$issuesCreated[] | select(.author == $author) | .featureCount] | add // 0),
+               prsCreated: ([$prsCreated[] | select(.author == $author) | .prs | length] | add // 0),
+               prsMerged: ([$prsCreated[] | select(.author == $author) | .merged] | add // 0),
+               prReviews: ([$prReviews[] | select(.author == $author) | .count] | add // 0),
+               discussionComments: ([$discussionComments[] | select(.author == $author) | .count] | add // 0)
              }) |
              # Add lifetime stats and stars
              map(. as $user | 
