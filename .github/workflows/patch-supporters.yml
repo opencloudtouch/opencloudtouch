@@ -1,0 +1,93 @@
+# ==============================================================================
+# PATCH SUPPORTERS CSV into existing Docker image
+#
+# One-shot workflow to inject supporters.csv into a published release image.
+# Overwrites the existing tags in GHCR.IO (multi-arch: amd64, arm64, arm/v7).
+# Runs in ~2 minutes instead of a full 90-minute rebuild.
+#
+# Can be deleted after successful execution.
+# ==============================================================================
+
+name: Patch Supporters CSV
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Image version to patch (e.g. "1.5.0")'
+        required: true
+        type: string
+        default: '1.5.0'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: opencloudtouch/opencloudtouch
+
+permissions:
+  packages: write
+  contents: read
+
+jobs:
+  patch:
+    name: Patch Image with Supporters CSV
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fetch supporters CSV from API
+        env:
+          SUPPORTERS_API_USER: oct-ci
+          SUPPORTERS_API_PASS: ${{ secrets.SUPPORTERS_API_PASS }}
+        run: |
+          AUTH=$(echo -n "$SUPPORTERS_API_USER:$SUPPORTERS_API_PASS" | base64)
+          curl -H "Authorization: Basic $AUTH" \
+            https://opencloudtouch.org/api/supporters/get.php \
+            -o supporters.csv --fail --silent --show-error
+
+          LINES=$(wc -l < supporters.csv)
+          echo "✅ Fetched supporters.csv: $LINES lines"
+
+          if [ "$LINES" -le 1 ]; then
+            echo "::error::Supporters CSV has only header — API fetch failed or empty"
+            exit 1
+          fi
+
+      - name: Create patch Dockerfile
+        run: |
+          cat > Dockerfile.patch << 'EOF'
+          FROM ghcr.io/opencloudtouch/opencloudtouch:VERSION_PLACEHOLDER
+          COPY supporters.csv /app/frontend/dist/supporters.csv
+          EOF
+          sed -i "s/VERSION_PLACEHOLDER/${{ inputs.version }}/" Dockerfile.patch
+          cat Dockerfile.patch
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push patched image (multi-arch)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.patch
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.version }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Verify patch
+        run: |
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.version }}
+          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.version }} \
+            cat /app/frontend/dist/supporters.csv | head -5
+          echo ""
+          echo "✅ Image patched successfully: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.version }}"
