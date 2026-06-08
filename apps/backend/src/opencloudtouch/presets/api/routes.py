@@ -9,19 +9,24 @@ from pydantic import BaseModel, Field
 
 from opencloudtouch.core.dependencies import get_preset_service
 from opencloudtouch.core.exceptions import DeviceNotFoundError
+from opencloudtouch.core.logging import sanitize_for_logging
 from opencloudtouch.presets.service import PresetService
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/presets", tags=["presets"])
 
+# Field description constants to avoid duplication
+DESC_DEVICE_ID = "Device identifier"
+DESC_PRESET_NUMBER = "Preset number (1-6)"
+
 
 # Pydantic models for API requests/responses
 class PresetSetRequest(BaseModel):
     """Request model for setting a preset."""
 
-    device_id: str = Field(..., description="Device identifier")
-    preset_number: int = Field(..., ge=1, le=6, description="Preset number (1-6)")
+    device_id: str = Field(..., description=DESC_DEVICE_ID)
+    preset_number: int = Field(..., ge=1, le=6, description=DESC_PRESET_NUMBER)
     station_uuid: str = Field(..., description="RadioBrowser station UUID")
     station_name: str = Field(..., description="Station name")
     station_url: str = Field(..., description="Stream URL")
@@ -38,9 +43,9 @@ class PresetResponse(BaseModel):
     station_uuid: str
     station_name: str
     station_url: str
-    station_homepage: Optional[str]
-    station_favicon: Optional[str]
-    source: Optional[str]
+    station_homepage: Optional[str] = None
+    station_favicon: Optional[str] = None
+    source: Optional[str] = None
     created_at: str
     updated_at: str
 
@@ -86,7 +91,7 @@ async def set_preset(
 
 @router.get("/{device_id}", response_model=List[PresetResponse])
 async def get_device_presets(
-    device_id: str = FastAPIPath(..., description="Device identifier"),
+    device_id: str = FastAPIPath(..., description=DESC_DEVICE_ID),
     preset_service: PresetService = Depends(get_preset_service),
 ):
     """
@@ -113,9 +118,9 @@ async def get_device_presets(
     responses={404: {"description": "Preset not found"}},
 )
 async def get_preset(
-    device_id: str = FastAPIPath(..., description="Device identifier"),
+    device_id: str = FastAPIPath(..., description=DESC_DEVICE_ID),
     preset_number: int = FastAPIPath(
-        ..., ge=1, le=6, description="Preset number (1-6)"
+        ..., ge=1, le=6, description=DESC_PRESET_NUMBER
     ),
     preset_service: PresetService = Depends(get_preset_service),
 ):
@@ -144,18 +149,18 @@ async def get_preset(
 
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(
-            "Error getting preset %d for device %s: %s", preset_number, device_id, e
+    except Exception:
+        logger.exception(
+            "Error getting preset %d for device %s", preset_number, sanitize_for_logging(device_id)
         )
         raise HTTPException(status_code=500, detail="Failed to get preset")
 
 
 @router.delete("/{device_id}/{preset_number}", response_model=MessageResponse)
 async def clear_preset(
-    device_id: str = FastAPIPath(..., description="Device identifier"),
+    device_id: str = FastAPIPath(..., description=DESC_DEVICE_ID),
     preset_number: int = FastAPIPath(
-        ..., ge=1, le=6, description="Preset number (1-6)"
+        ..., ge=1, le=6, description=DESC_PRESET_NUMBER
     ),
     preset_service: PresetService = Depends(get_preset_service),
 ):
@@ -180,16 +185,16 @@ async def clear_preset(
 
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(
-            "Error clearing preset %d for device %s: %s", preset_number, device_id, e
+    except Exception:
+        logger.exception(
+            "Error clearing preset %d for device %s", preset_number, sanitize_for_logging(device_id)
         )
         raise HTTPException(status_code=500, detail="Failed to clear preset")
 
 
 @router.delete("/{device_id}", response_model=MessageResponse)
 async def clear_all_presets(
-    device_id: str = FastAPIPath(..., description="Device identifier"),
+    device_id: str = FastAPIPath(..., description=DESC_DEVICE_ID),
     preset_service: PresetService = Depends(get_preset_service),
 ):
     """
@@ -211,7 +216,7 @@ async def clear_all_presets(
 
 @router.post("/{device_id}/sync", response_model=MessageResponse)
 async def sync_presets_from_device(
-    device_id: str = FastAPIPath(..., description="Device identifier"),
+    device_id: str = FastAPIPath(..., description=DESC_DEVICE_ID),
     preset_service: PresetService = Depends(get_preset_service),
 ):
     """

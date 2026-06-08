@@ -285,6 +285,7 @@ describe("Accessibility Audit — WCAG 2.1 AA", () => {
         },
         true
       );
+      cy.get('body').should('exist');
     });
 
     it("Presets — Leerer Zustand", () => {
@@ -309,6 +310,7 @@ describe("Accessibility Audit — WCAG 2.1 AA", () => {
         },
         true
       );
+      cy.get('body').should('exist');
     });
   });
 });

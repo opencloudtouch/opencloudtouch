@@ -14,6 +14,26 @@ from typing import Any, Dict, List, Optional
 
 from opencloudtouch.core.config import get_config
 
+
+# ---------------------------------------------------------------------------
+# Log injection protection (pythonsecurity:S5145)
+# ---------------------------------------------------------------------------
+def sanitize_for_logging(value: Any) -> str:
+    """Sanitize user input for logging to prevent log injection attacks.
+
+    Replaces newline and carriage return characters to prevent attackers
+    from forging log entries. This protects against OWASP A03:2021-Injection
+    and CWE-117 (Improper Output Neutralization for Logs).
+
+    Args:
+        value: Any value to sanitize (will be converted to string)
+
+    Returns:
+        Sanitized string safe for logging
+    """
+    return str(value).replace("\n", "").replace("\r", "")
+
+
 # ---------------------------------------------------------------------------
 # Clustered ring buffer: each category gets its own 1000-entry deque.
 # This prevents noisy loggers (aiosqlite, bosesoundtouchapi) from
@@ -47,6 +67,9 @@ CLUSTER_FILE_MAX_BYTES = 512_000  # 500 KB per file
 CLUSTER_FILE_BACKUP_COUNT = 2  # .log + .log.1 + .log.2 = 3 files per cluster
 
 NOISY_CLUSTERS = frozenset({"database", "bose_api"})
+
+# Log format string used across all formatters
+LOG_FORMAT = "%(asctime)s - %(levelname)-8s - %(name)-30s - %(message)s"
 
 _log_clusters: Dict[str, collections.deque[str]] = {
     name: collections.deque(maxlen=CLUSTER_ENTRIES_PER_BUFFER) for name in CLUSTER_NAMES
@@ -95,7 +118,7 @@ class ClusterFileHandler(logging.Handler):
         log_dir.mkdir(parents=True, exist_ok=True)
 
         formatter = ContextFormatter(
-            fmt="%(asctime)s - %(levelname)-8s - %(name)-30s - %(message)s",
+            fmt=LOG_FORMAT,
             datefmt="%Y-%m-%d %H:%M:%S",
         )
 
@@ -215,7 +238,7 @@ def setup_logging() -> None:
     else:
         console_handler.setFormatter(
             ContextFormatter(
-                fmt="%(asctime)s - %(levelname)-8s - %(name)-30s - %(message)s",
+                fmt=LOG_FORMAT,
                 datefmt="%Y-%m-%d %H:%M:%S",
             )
         )
@@ -227,7 +250,7 @@ def setup_logging() -> None:
     memory_handler.setLevel(config.log_level)
     memory_handler.setFormatter(
         ContextFormatter(
-            fmt="%(asctime)s - %(levelname)-8s - %(name)-30s - %(message)s",
+            fmt=LOG_FORMAT,
             datefmt="%Y-%m-%d %H:%M:%S",
         )
     )

@@ -129,7 +129,7 @@ class SetupService:
                 ]
             )
 
-        except Exception as e:
-            logger.error("Verification failed: %s", e)
+        except Exception:
+            logger.exception("Verification failed")
 
         return result

@@ -5,6 +5,7 @@ import logging
 from typing import TYPE_CHECKING, Callable
 
 from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFoundError
+from opencloudtouch.core.logging import sanitize_for_logging
 from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
@@ -152,7 +153,7 @@ class ZoneService:
         try:
             status = await client.create_zone(master.ip, members)
         except Exception as e:
-            logger.error("Failed to create zone master=%s: %s", master_id, e)
+            logger.exception("Failed to create zone master=%s", master_id)
             raise DeviceConnectionError(master.ip, str(e))
 
         # Persist to database
@@ -242,11 +243,11 @@ class ZoneService:
             if isinstance(result, Exception):
                 logger.error("Failed to remove slave %s: %s", slave.device_id, result)
             else:
-                logger.info("Slave %s removed successfully", slave.device_id)
+                logger.info("Slave %s removed successfully", sanitize_for_logging(slave.device_id))
 
     async def dissolve_zone(self, master_id: str) -> None:
         """Dissolve zone by removing all slaves in parallel, then master."""
-        logger.info("Dissolving zone with master_id=%s", master_id)
+        logger.info("Dissolving zone with master_id=%s", sanitize_for_logging(master_id))
         master = await self._get_device_or_raise(master_id)
         client = self._get_client(master.ip)
 
@@ -254,12 +255,12 @@ class ZoneService:
         try:
             zone_status = await client.get_zone_status()
         except Exception as e:
-            logger.error("Failed to get zone status for master_id=%s: %s", master_id, e)
+            logger.exception("Failed to get zone status for master_id=%s", sanitize_for_logging(master_id))
             raise DeviceConnectionError(master.ip, str(e))
 
         if not zone_status or not zone_status.members:
             logger.warning(
-                "No zone found for master_id=%s, nothing to dissolve", master_id
+                "No zone found for master_id=%s, nothing to dissolve", sanitize_for_logging(master_id)
             )
             # Still update DB to mark as dissolved
             zone_db = await self.zone_repo.get_active_zone_by_master(master.device_id)
@@ -274,13 +275,13 @@ class ZoneService:
         # Now dissolve the zone on master (all slaves are removed)
         try:
             await client.remove_zone()
-            logger.info("Zone dissolved successfully for master_id=%s", master_id)
+            logger.info("Zone dissolved successfully for master_id=%s", sanitize_for_logging(master_id))
         except Exception:
             # Bose devices sometimes throw errors even when operation succeeds
             # Zone events will confirm if zone was actually dissolved
             logger.exception(
                 "remove_zone() raised exception but zone may be dissolved (master_id=%s)",
-                master_id,
+                sanitize_for_logging(master_id),
             )
         finally:
             # Update database ALWAYS (even if remove_zone() threw exception)

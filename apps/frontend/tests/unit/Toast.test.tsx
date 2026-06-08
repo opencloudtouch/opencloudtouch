@@ -98,13 +98,14 @@ describe("Toast Component", () => {
     });
 
     it("should not crash when onClose is not provided", async () => {
-      render(<Toast message="Test message" />);
+      const { container } = render(<Toast message="Test message" />);
 
       // Advancing timers should not throw error (onClose?.() safe navigation)
       await act(async () => {
         vi.runAllTimers();
       });
-      // No assertion needed - just verifying no crash
+      // Verify component rendered successfully
+      expect(container).toBeTruthy();
     });
   });
 

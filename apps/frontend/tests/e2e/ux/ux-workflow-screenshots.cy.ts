@@ -497,6 +497,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
           removeLightMode();
         }
       });
+      cy.get('body').should('exist');
     });
 
     it("02e — Lautstärke-Regler (Volume Slider)", () => {
@@ -521,6 +522,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
           screenshotBoth("02e_presets_volume-slider__full-page-fallback");
         }
       });
+      cy.get('body').should('exist');
     });
 
     it("02f — RadioSearch Modal: Geöffnet", () => {
@@ -544,6 +546,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
           scrFull("02f_presets_radio-search-modal__no-empty-preset__dark");
         }
       });
+      cy.get('body').should('exist');
     });
 
     it("02g — Navigation-Bar: Normal + aktive States", () => {
@@ -570,6 +573,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
           scrFull("02g_navigation__not-found__dark");
         }
       });
+      cy.get('body').should('exist');
     });
 
     it("02h — Mobile (375Ã—812): Vollseite", () => {
@@ -578,6 +582,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
       cy.wait("@getDevices");
       cy.wait(600);
       screenshotBoth("02h_presets_mobile-375px__full");
+      cy.location('pathname').should('eq', '/');
     });
 
     it("02i — Tablet (768Ã—1024): Vollseite", () => {
@@ -586,6 +591,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
       cy.wait("@getDevices");
       cy.wait(600);
       screenshotBoth("02i_presets_tablet-768px__full");
+      cy.location('pathname').should('eq', '/');
     });
 
     it("02j \u2013 Widescreen (1260px): Vollseite", () => {
@@ -598,8 +604,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
       cy.visit("/");
       cy.wait("@getDevices");
       cy.wait(600);
-      screenshotBoth("02j_presets_widescreen-1920px__full");
-    });
+      screenshotBoth("02j_presets_widescreen-1920px__full");      cy.location('pathname').should('eq', '/');    });
   });
 
   // ===========================================================================
@@ -611,6 +616,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
       cy.visit("/settings");
       cy.wait(1000);
       screenshotBoth("03a_settings_full-page__with-ips");
+      cy.location('pathname').should('eq', '/settings');
     });
 
     it("03b — Vollseite: Keine manuellen IPs", () => {
@@ -618,6 +624,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
       cy.visit("/settings");
       cy.wait(1000);
       screenshotBoth("03b_settings_full-page__empty-ips");
+      cy.location('pathname').should('eq', '/settings');
     });
 
     it("03c — IP-Eingabe-Formular: Fokus", () => {
@@ -634,6 +641,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
           scrFull("03c_settings_ip-input__not-found__light");
           removeLightMode();        }
       });
+      cy.get('body').should('exist');
     });
 
     it("03d — IP-Eingabe-Formular: Validierungsfehler", () => {
@@ -652,6 +660,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
           scrFull("03d_settings_ip-input__not-found__light");
           removeLightMode();        }
       });
+      cy.get('body').should('exist');
     });
 
     it("03e — IP-Eintrag: Delete-Button Hover", () => {
@@ -672,6 +681,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
           scrFull("03e_settings_ip-entry__no-entries__light");
           removeLightMode();        }
       });
+      cy.get('body').should('exist');
     });
 
     it("03f — Mobile (375Ã—812): Vollseite", () => {
@@ -679,6 +689,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
       cy.visit("/settings");
       cy.wait(1000);
       screenshotBoth("03f_settings_mobile-375px__full");
+      cy.location('pathname').should('eq', '/settings');
     });
   });
 
@@ -692,6 +703,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
       cy.wait("@getDevices");
       cy.get(".setup-wizard-page", { timeout: 10000 }).should("exist");
       screenshotBoth("04a_wizard_start__device-preselected");
+      cy.location('pathname').should('eq', '/setup-wizard');
     });
 
     it("04e — Wizard: Kein Gerät vorhanden (EmptyState)", () => {
@@ -728,6 +740,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
       injectLightMode();
       scrFull("05a_app_loading-state__light");
       removeLightMode();
+      cy.get('body').should('exist');
     });
 
     it("05b — App: Fehler beim Laden der Geräte", () => {
@@ -738,6 +751,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
       cy.visit("/");
       cy.wait(1500);
       screenshotBoth("05b_app_error-state__device-load-failed");
+      cy.get('body').should('exist');
     });
 
     it("05c — Presets: Ladezustand", () => {
@@ -752,6 +766,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
       injectLightMode();
       scrFull("05c_presets_loading-state__light");
       removeLightMode();
+      cy.get('body').should('exist');
     });
 
     it("05d — Toast: Erfolgs-Nachricht", () => {
@@ -779,8 +794,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
           scrFull("05d_toast__ip-input-not-found__light");
           removeLightMode();
         }
-      });
-    });
+      });      cy.get('body').should('exist');    });
   });
 
   // ===========================================================================
@@ -796,6 +810,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
       injectLightMode();
       scrFull("06a_component_preset-grid__mixed__light");
       removeLightMode();
+      cy.get('body').should('exist');
     });
 
     it("06b — Lautstärke-Regler: Alle Positionen", () => {
@@ -824,6 +839,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
           screenshotBoth("06b_component_volume-slider__full-page-fallback");
         }
       });
+      cy.get('body').should('exist');
     });
 
     it("06c — Gerät-Swiper: Indikator-Punkte (3 Geräte simuliert)", () => {
@@ -846,6 +862,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
       cy.visit("/");
       cy.wait(1200);
       screenshotBoth("06c_component_device-swiper__3-devices");
+      cy.location('pathname').should('eq', '/');
     });
 
     it("06d — Leer-Zustand (EmptyState Komponente)", () => {
@@ -853,6 +870,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
       cy.visit("/welcome");
       cy.wait(800);
       screenshotBoth("06d_component_empty-state__standalone");
+      cy.location('pathname').should('eq', '/welcome');
     });
 
     it("06e — Setup-Badge auf Gerät", () => {
@@ -869,6 +887,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
           scrFull("06e_component_setup-badge__not-present__dark");
         }
       });
+      cy.get('body').should('exist');
     });
   });
 

@@ -217,7 +217,7 @@ async def safe_api_call(
             return None
 
         # Re-raise unexpected errors
-        logger.error(
+        logger.exception(
             "Unexpected error calling endpoint",
             extra={
                 "device": client.Device.DeviceName,

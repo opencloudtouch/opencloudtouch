@@ -25,6 +25,7 @@ from fastapi import Path as FastAPIPath
 from fastapi.responses import PlainTextResponse
 
 from opencloudtouch.core.dependencies import get_preset_service
+from opencloudtouch.core.logging import sanitize_for_logging
 from opencloudtouch.presets.service import PresetService
 
 logger = logging.getLogger(__name__)
@@ -57,7 +58,7 @@ async def _get_preset_content(
 
     if not preset:
         logger.warning(
-            f"{format_name}: Preset not found for device {device_id}, preset {preset_number}"
+            f"{format_name}: Preset not found for device {sanitize_for_logging(device_id)}, preset {preset_number}"
         )
         raise HTTPException(
             status_code=404,
@@ -67,7 +68,7 @@ async def _get_preset_content(
     stream_url = preset.station_url
     if not stream_url:
         logger.error(
-            f"{format_name}: No stream URL for device {device_id}, preset {preset_number}"
+            f"{format_name}: No stream URL for device {sanitize_for_logging(device_id)}, preset {preset_number}"
         )
         raise HTTPException(
             status_code=500,
@@ -126,7 +127,7 @@ async def get_playlist_m3u(
         m3u_content = f"#EXTM3U\n#EXTINF:-1,{station_name}\n{stream_url}\n"
 
         logger.info(
-            f"Serving M3U for {device_id} preset {preset_number}: {station_name}",
+            f"Serving M3U for {sanitize_for_logging(device_id)} preset {preset_number}: {sanitize_for_logging(station_name)}",
             extra={
                 "device_id": device_id,
                 "preset_number": preset_number,
@@ -147,9 +148,8 @@ async def get_playlist_m3u(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(
-            f"Error generating M3U for {device_id} preset {preset_number}: {e}",
-            exc_info=True,
+        logger.exception(
+            f"Error generating M3U for {device_id} preset {preset_number}"
         )
         raise HTTPException(
             status_code=500,
@@ -216,7 +216,7 @@ async def get_playlist_pls(
         )
 
         logger.info(
-            f"Serving PLS for {device_id} preset {preset_number}: {station_name}",
+            f"Serving PLS for {sanitize_for_logging(device_id)} preset {preset_number}: {sanitize_for_logging(station_name)}",
             extra={
                 "device_id": device_id,
                 "preset_number": preset_number,
@@ -237,9 +237,8 @@ async def get_playlist_pls(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(
-            f"Error generating PLS for {device_id} preset {preset_number}: {e}",
-            exc_info=True,
+        logger.exception(
+            f"Error generating PLS for {device_id} preset {preset_number}"
         )
         raise HTTPException(
             status_code=500,

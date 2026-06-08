@@ -21,6 +21,7 @@ from fastapi import Path as FastAPIPath
 from fastapi.responses import Response, StreamingResponse
 
 from opencloudtouch.core.dependencies import get_preset_service
+from opencloudtouch.core.logging import sanitize_for_logging
 from opencloudtouch.presets.service import PresetService
 
 logger = logging.getLogger(__name__)
@@ -118,7 +119,7 @@ async def stream_device_preset(
         500: Internal server error
     """
     logger.info(
-        f"[BOSE STREAM REQUEST] device={device_id}, preset={preset_id}",
+        f"[BOSE STREAM REQUEST] device={sanitize_for_logging(device_id)}, preset={sanitize_for_logging(preset_id)}",
         extra={"device_id": device_id, "preset_id": preset_id, "source": "bose_device"},
     )
 
@@ -128,7 +129,7 @@ async def stream_device_preset(
 
         if not preset:
             logger.warning(
-                f"[404] Preset {preset_id} not configured for device {device_id}"
+                f"[404] Preset {sanitize_for_logging(preset_id)} not configured for device {sanitize_for_logging(device_id)}"
             )
             raise HTTPException(
                 status_code=404,
@@ -317,7 +318,7 @@ async def get_preset_descriptor(
         404: Preset not configured
     """
     logger.info(
-        f"[DESCRIPTOR REQUEST] device={device_id}, preset={preset_id}",
+        f"[DESCRIPTOR REQUEST] device={sanitize_for_logging(device_id)}, preset={sanitize_for_logging(preset_id)}",
         extra={"device_id": device_id, "preset_id": preset_id, "source": "bose_device"},
     )
 
@@ -325,7 +326,7 @@ async def get_preset_descriptor(
 
     if not preset:
         logger.warning(
-            f"[404] Preset {preset_id} not configured for device {device_id}"
+            f"[404] Preset {sanitize_for_logging(preset_id)} not configured for device {sanitize_for_logging(device_id)}"
         )
         raise HTTPException(
             status_code=404,
@@ -334,7 +335,7 @@ async def get_preset_descriptor(
 
     # Option B: HTTP 302 Redirect to stream (simpler than XML descriptor)
     logger.info(
-        f"[DESCRIPTOR 302] Redirecting to {preset.station_url} for device {device_id}",
+        f"[DESCRIPTOR 302] Redirecting to {preset.station_url} for device {sanitize_for_logging(device_id)}",
         extra={
             "device_id": device_id,
             "preset_id": preset_id,

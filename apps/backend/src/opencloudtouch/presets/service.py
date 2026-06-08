@@ -11,6 +11,7 @@ from typing import List, Optional
 import httpx
 
 from opencloudtouch.core.exceptions import DeviceNotFoundError
+from opencloudtouch.core.logging import sanitize_for_logging
 from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.presets.models import Preset
@@ -87,7 +88,7 @@ class PresetService:
         logger.info(
             "Set preset %d in database for device %s: %s",
             preset_number,
-            device_id,
+            sanitize_for_logging(device_id),
             station_name,
         )
 
@@ -120,17 +121,15 @@ class PresetService:
                 logger.info(
                     "✅ Bose device programmed: Preset %d = %s",
                     preset_number,
-                    station_name,
+                    sanitize_for_logging(station_name),
                 )
             finally:
                 await client.close()
 
-        except Exception as e:
-            logger.error(
-                "Failed to program Bose device for preset %d: %s",
+        except Exception:
+            logger.exception(
+                "Failed to program Bose device for preset %d",
                 preset_number,
-                e,
-                exc_info=True,
             )
             # Don't fail the whole operation if Bose programming fails
             # Database record is still saved, user can retry
@@ -223,7 +222,7 @@ class PresetService:
 
         logger.info(
             "Syncing presets from device %s (%s)",
-            device_id,
+            sanitize_for_logging(device_id),
             device.ip,
             extra={"device_id": device_id, "device_ip": device.ip},
         )
@@ -250,7 +249,7 @@ class PresetService:
         logger.info(
             "Synced %d presets from device %s",
             synced_count,
-            device_id,
+            sanitize_for_logging(device_id),
             extra={"device_id": device_id, "synced_count": synced_count},
         )
         return synced_count
