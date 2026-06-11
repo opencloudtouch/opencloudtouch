@@ -463,13 +463,17 @@ class BoseDeviceClientAdapter(DeviceClient):
         )
 
     async def get_zone_status(self) -> ZoneStatus | None:
-        """Get current zone status from device."""
+        """Get current zone status from device.
+
+        Returns None on connection failure (expected scenario when
+        device is offline or unreachable).
+        """
         try:
             zone = await asyncio.to_thread(self._client.GetZoneStatus, refresh=True)
             return self._zone_to_status(zone)
         except Exception as e:
-            logger.exception("Failed to get zone status from %s", self.base_url)
-            raise DeviceConnectionError(self.ip, str(e)) from e
+            logger.debug("Failed to get zone status from %s: %s", self.base_url, e)
+            return None
 
     async def create_zone(
         self, master_ip: str, members: list[ZoneMemberInfo]

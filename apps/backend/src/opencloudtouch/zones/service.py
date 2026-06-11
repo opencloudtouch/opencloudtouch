@@ -78,10 +78,7 @@ class ZoneService:
         """Get zone status for a specific device."""
         device = await self._get_device_or_raise(device_id)
         client = self._get_client(device.ip)
-        try:
-            status = await client.get_zone_status()
-        except Exception as e:
-            raise DeviceConnectionError(device.ip, str(e))
+        status = await client.get_zone_status()
         if not status:
             return None
         devices = await self.device_repo.get_all()
@@ -251,11 +248,7 @@ class ZoneService:
         client = self._get_client(master.ip)
 
         # Get current zone to identify all slaves
-        try:
-            zone_status = await client.get_zone_status()
-        except Exception as e:
-            logger.error("Failed to get zone status for master_id=%s: %s", master_id, e)
-            raise DeviceConnectionError(master.ip, str(e))
+        zone_status = await client.get_zone_status()
 
         if not zone_status or not zone_status.members:
             logger.warning(
@@ -297,10 +290,7 @@ class ZoneService:
 
         # Get current zone to know members
         client = self._get_client(old_master.ip)
-        try:
-            current_zone = await client.get_zone_status()
-        except Exception as e:
-            raise DeviceConnectionError(old_master.ip, str(e))
+        current_zone = await client.get_zone_status()
 
         if not current_zone:
             raise ValueError(f"Device {old_master_id} is not in a zone")

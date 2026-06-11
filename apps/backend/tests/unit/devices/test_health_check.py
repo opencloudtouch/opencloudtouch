@@ -653,17 +653,17 @@ class TestZoneSyncAll:
         mock_logger.error.assert_called_once()
         assert "no ID" in mock_logger.error.call_args[0][0]
 
-    async def test_master_not_found_skips_zone(
+    async def test_master_not_found_dissolves_zone(
         self, zone_health_check, mock_repo, mock_zone_repo
     ):
-        """Master device not in DB → skip this zone."""
+        """Master device not in DB → dissolve zone."""
         zone = self._make_zone()
         mock_zone_repo.get_all_active_zones.return_value = [zone]
         mock_repo.get_by_device_id.return_value = None
 
         await zone_health_check._zone_sync_all()
 
-        mock_zone_repo.dissolve_zone.assert_not_called()
+        mock_zone_repo.dissolve_zone.assert_called_once_with(1)
 
     async def test_master_without_ip_skips_zone(
         self, zone_health_check, mock_repo, mock_zone_repo
@@ -680,7 +680,9 @@ class TestZoneSyncAll:
     async def test_device_reports_no_zone_dissolves_in_db(
         self, zone_health_check, mock_repo, mock_zone_repo
     ):
-        """Device reports no zone → dissolve_zone() is called."""
+        """Device reports no zone → dissolve_zone() called after grace period."""
+        from opencloudtouch.devices.health_check import ZONE_FAIL_THRESHOLD
+
         zone = self._make_zone(zone_id=42)
         mock_zone_repo.get_all_active_zones.return_value = [zone]
         mock_repo.get_by_device_id.return_value = _make_device()
@@ -692,7 +694,8 @@ class TestZoneSyncAll:
             "opencloudtouch.devices.adapter.get_device_client",
             return_value=mock_client,
         ):
-            await zone_health_check._zone_sync_all()
+            for _ in range(ZONE_FAIL_THRESHOLD):
+                await zone_health_check._zone_sync_all()
 
         mock_zone_repo.dissolve_zone.assert_called_once_with(42)
 
@@ -853,10 +856,10 @@ class TestZoneSyncAll:
         mock_zone_repo.add_member.assert_called_once_with(3, "dev4", "slave")
         mock_zone_repo.remove_member.assert_called_once_with(3, "dev2")
 
-    async def test_get_zone_status_exception_continues(
+    async def test_get_zone_status_exception_no_dissolve_and_continues(
         self, zone_health_check, mock_repo, mock_zone_repo
     ):
-        """Exception during get_zone_status → logged, continues to next zone."""
+        """Exception during get_zone_status → no dissolution (just logged), continues to next zone."""
         zone1 = self._make_zone(zone_id=1, master_device_id="devA")
         zone2 = self._make_zone(zone_id=2, master_device_id="devB")
         mock_zone_repo.get_all_active_zones.return_value = [zone1, zone2]
@@ -868,7 +871,7 @@ class TestZoneSyncAll:
             "devB": devB,
         }.get(did)
 
-        # First client throws, second returns no zone
+        # First client throws, second returns no zone (first failure → grace period)
         mock_client_a = AsyncMock()
         mock_client_a.get_zone_status.side_effect = Exception("Connection refused")
         mock_client_b = AsyncMock()
@@ -885,8 +888,8 @@ class TestZoneSyncAll:
         ):
             await zone_health_check._zone_sync_all()
 
-        # Zone 2 should still be dissolved despite zone 1 failing
-        mock_zone_repo.dissolve_zone.assert_called_once_with(2)
+        # Neither dissolved: zone 1 (exception → no dissolve), zone 2 (first failure → grace period)
+        mock_zone_repo.dissolve_zone.assert_not_called()
 
     async def test_outer_exception_caught_and_logged(
         self, zone_health_check, mock_zone_repo
@@ -919,6 +922,128 @@ class TestZoneSyncAll:
         mock_zone_repo.dissolve_zone.assert_not_called()
         mock_zone_repo.add_member.assert_not_called()
         mock_zone_repo.remove_member.assert_not_called()
+
+    async def test_zone_sync_grace_period_no_dissolve_first_failure(
+        self, zone_health_check, mock_repo, mock_zone_repo
+    ):
+        """First failure → no dissolution (grace period)."""
+        zone = self._make_zone(zone_id=10)
+        mock_zone_repo.get_all_active_zones.return_value = [zone]
+        mock_repo.get_by_device_id.return_value = _make_device()
+
+        mock_client = AsyncMock()
+        mock_client.get_zone_status.return_value = None
+
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client",
+            return_value=mock_client,
+        ):
+            await zone_health_check._zone_sync_all()
+
+        mock_zone_repo.dissolve_zone.assert_not_called()
+        assert zone_health_check._zone_fail_count[10] == 1
+
+    async def test_zone_sync_grace_period_dissolves_after_threshold(
+        self, zone_health_check, mock_repo, mock_zone_repo
+    ):
+        """3 consecutive failures → dissolution."""
+        from opencloudtouch.devices.health_check import ZONE_FAIL_THRESHOLD
+
+        zone = self._make_zone(zone_id=10)
+        mock_zone_repo.get_all_active_zones.return_value = [zone]
+        mock_repo.get_by_device_id.return_value = _make_device()
+
+        mock_client = AsyncMock()
+        mock_client.get_zone_status.return_value = None
+
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client",
+            return_value=mock_client,
+        ):
+            for _ in range(ZONE_FAIL_THRESHOLD):
+                mock_zone_repo.dissolve_zone.reset_mock()
+                await zone_health_check._zone_sync_all()
+
+        mock_zone_repo.dissolve_zone.assert_called_once_with(10)
+
+    async def test_zone_sync_grace_period_resets_on_success(
+        self, zone_health_check, mock_repo, mock_zone_repo
+    ):
+        """Success after 2 failures → counter reset, no dissolution."""
+        zone = self._make_zone(zone_id=10)
+        mock_zone_repo.get_all_active_zones.return_value = [zone]
+        mock_repo.get_by_device_id.return_value = _make_device()
+
+        mock_client = AsyncMock()
+        # 2 failures first
+        mock_client.get_zone_status.return_value = None
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client",
+            return_value=mock_client,
+        ):
+            await zone_health_check._zone_sync_all()
+            await zone_health_check._zone_sync_all()
+
+        assert zone_health_check._zone_fail_count[10] == 2
+
+        # Now success
+        status = self._make_zone_status()
+        mock_client.get_zone_status.return_value = status
+        mock_zone_repo.get_active_members.return_value = [
+            self._make_zone_member(zone_id=10, device_id="dev1", role="master"),
+            self._make_zone_member(zone_id=10, device_id="dev2", role="slave"),
+        ]
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client",
+            return_value=mock_client,
+        ):
+            await zone_health_check._zone_sync_all()
+
+        assert 10 not in zone_health_check._zone_fail_count
+        mock_zone_repo.dissolve_zone.assert_not_called()
+
+    async def test_zone_sync_orphan_dissolves_immediately(
+        self, zone_health_check, mock_repo, mock_zone_repo
+    ):
+        """Master device deleted from DB → immediate dissolution (no grace period)."""
+        zone = self._make_zone(zone_id=20, master_device_id="deleted_dev")
+        mock_zone_repo.get_all_active_zones.return_value = [zone]
+        mock_repo.get_by_device_id.return_value = None
+
+        await zone_health_check._zone_sync_all()
+
+        mock_zone_repo.dissolve_zone.assert_called_once_with(20)
+
+    async def test_zone_sync_master_no_ip_skips(
+        self, zone_health_check, mock_repo, mock_zone_repo
+    ):
+        """Master has no IP (may come back) → no dissolution, just skip."""
+        zone = self._make_zone(zone_id=30)
+        mock_zone_repo.get_all_active_zones.return_value = [zone]
+        mock_repo.get_by_device_id.return_value = _make_device(ip="")
+
+        await zone_health_check._zone_sync_all()
+
+        mock_zone_repo.dissolve_zone.assert_not_called()
+
+    async def test_zone_sync_unexpected_exception_no_dissolve(
+        self, zone_health_check, mock_repo, mock_zone_repo
+    ):
+        """Unexpected exception in _sync_single_zone → no dissolution, just log."""
+        zone = self._make_zone(zone_id=40)
+        mock_zone_repo.get_all_active_zones.return_value = [zone]
+        mock_repo.get_by_device_id.return_value = _make_device()
+
+        mock_client = AsyncMock()
+        mock_client.get_zone_status.side_effect = RuntimeError("Unexpected failure")
+
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client",
+            return_value=mock_client,
+        ):
+            await zone_health_check._zone_sync_all()
+
+        mock_zone_repo.dissolve_zone.assert_not_called()
 
 
 class TestHealthCheckRunLoop:

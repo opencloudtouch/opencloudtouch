@@ -67,13 +67,13 @@ class TestGetZoneStatus:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_raises_connection_error_on_failure(self):
-        """Raises DeviceConnectionError when client fails."""
+    async def test_returns_none_on_failure(self):
+        """Returns None when client fails (device offline)."""
         client = _make_client()
         client._client.GetZoneStatus.side_effect = Exception("Connection refused")
 
-        with pytest.raises(DeviceConnectionError):
-            await client.get_zone_status()
+        result = await client.get_zone_status()
+        assert result is None
 
     @pytest.mark.asyncio
     async def test_members_have_correct_roles(self):

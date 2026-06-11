@@ -28,6 +28,7 @@ ZONE_SYNC_INTERVAL = (
 PING_TIMEOUT = 5  # HTTP timeout per device
 OFFLINE_THRESHOLD = 15 * 60  # 15 min without response → offline
 SSH_FAIL_THRESHOLD = 2  # consecutive failures before resetting ssh_permanent
+ZONE_FAIL_THRESHOLD = 3  # consecutive failures before dissolving zone
 
 
 class DeviceHealthCheck:
@@ -41,6 +42,7 @@ class DeviceHealthCheck:
         self._last_zone_sync = 0.0
         self._running = False
         self._ssh_fail_count: dict[str, int] = {}
+        self._zone_fail_count: dict[int, int] = {}
 
     def start(self) -> None:
         """Start the background health-check loop."""
@@ -283,9 +285,18 @@ class DeviceHealthCheck:
             )
             return
 
-        if not master or not master.ip:
+        if not master:
+            logger.info(
+                "Zone sync: master %s not found in DB → dissolving zone %d",
+                zone_db.master_device_id,
+                zone_db.id,
+            )
+            await self._zone_repo.dissolve_zone(zone_db.id)
+            return
+
+        if not master.ip:
             logger.debug(
-                "Zone sync: master %s not found or offline, skipping",
+                "Zone sync: master %s has no IP, skipping (may come back)",
                 zone_db.master_device_id,
             )
             return
@@ -297,22 +308,34 @@ class DeviceHealthCheck:
             status = await client.get_zone_status()
 
             if not status:
-                logger.info(
-                    "Zone sync: master %s no longer in zone → dissolving zone %d in DB",
-                    master.device_id,
-                    zone_db.id,
-                )
-                await self._zone_repo.dissolve_zone(zone_db.id)
+                count = self._zone_fail_count.get(zone_db.id, 0) + 1
+                self._zone_fail_count[zone_db.id] = count
+                if count >= ZONE_FAIL_THRESHOLD:
+                    logger.info(
+                        "Zone sync: master %s unreachable %d times → dissolving zone %d in DB",
+                        master.device_id,
+                        count,
+                        zone_db.id,
+                    )
+                    await self._zone_repo.dissolve_zone(zone_db.id)
+                    self._zone_fail_count.pop(zone_db.id, None)
+                else:
+                    logger.debug(
+                        "Zone sync: master %s unreachable (%d/%d), will retry",
+                        master.device_id,
+                        count,
+                        ZONE_FAIL_THRESHOLD,
+                    )
                 return
 
+            self._zone_fail_count.pop(zone_db.id, None)
             await self._sync_zone_members(zone_db, status)
 
         except Exception as e:
-            logger.debug(
-                "Zone sync failed for master %s: %s",
-                master.device_id,
+            logger.exception(
+                "Zone sync unexpected error for zone %d: %s",
+                zone_db.id,
                 str(e),
-                exc_info=False,
             )
 
     async def _sync_zone_members(self, zone_db, status) -> None:

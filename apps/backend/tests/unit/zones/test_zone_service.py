@@ -426,20 +426,21 @@ class TestGetClientFallback:
 
 
 class TestGetZoneStatusConnectionError:
-    """Tests for get_zone_status DeviceConnectionError branch."""
+    """Tests for get_zone_status when client returns None (device offline)."""
 
     @pytest.mark.asyncio
-    async def test_raises_connection_error_on_client_exception(self):
-        """Raises DeviceConnectionError when client.get_zone_status() fails."""
+    async def test_returns_none_on_client_failure(self):
+        """Returns None when client.get_zone_status() returns None (offline device)."""
         service, device_repo, zone_repo = _make_service()
         device_repo.get_by_device_id.return_value = _make_device()
 
         mock_client = AsyncMock()
-        mock_client.get_zone_status.side_effect = Exception("Connection refused")
+        mock_client.get_zone_status.return_value = None
 
         with patch.object(service, "_get_client", return_value=mock_client):
-            with pytest.raises(DeviceConnectionError):
-                await service.get_zone_status("DEV001")
+            result = await service.get_zone_status("DEV001")
+
+        assert result is None
 
 
 class TestGetAllZonesEdgeCases:
