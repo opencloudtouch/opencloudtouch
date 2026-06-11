@@ -148,9 +148,7 @@ async def get_playlist_m3u(
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception(
-            f"Error generating M3U for {device_id} preset {preset_number}"
-        )
+        logger.exception(f"Error generating M3U for {device_id} preset {preset_number}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to generate playlist: {str(e)}",
@@ -237,9 +235,7 @@ async def get_playlist_pls(
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception(
-            f"Error generating PLS for {device_id} preset {preset_number}"
-        )
+        logger.exception(f"Error generating PLS for {device_id} preset {preset_number}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to generate playlist: {str(e)}",

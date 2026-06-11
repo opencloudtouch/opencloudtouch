@@ -60,7 +60,9 @@ async def get_full_account(
     Returns:
         XML Response with <boseAccount> structure
     """
-    logger.info("[MARGE] Full account sync for device %s", sanitize_for_logging(device_id))
+    logger.info(
+        "[MARGE] Full account sync for device %s", sanitize_for_logging(device_id)
+    )
 
     presets, recents = await marge.get_full_account(device_id)
 
@@ -187,7 +189,9 @@ async def get_sourceproviders(device_id: str) -> Response:
     Returns:
         XML Response with <sourceproviders> structure
     """
-    logger.info("[MARGE] Get sourceproviders for device %s", sanitize_for_logging(device_id))
+    logger.info(
+        "[MARGE] Get sourceproviders for device %s", sanitize_for_logging(device_id)
+    )
 
     root = ET.Element("sourceproviders")
 
@@ -263,7 +267,10 @@ async def streaming_full_account(
     Returns:
         XML Response with <account> structure
     """
-    logger.info("[MARGE/STREAMING] Full account sync for account %s", sanitize_for_logging(account_id))
+    logger.info(
+        "[MARGE/STREAMING] Full account sync for account %s",
+        sanitize_for_logging(account_id),
+    )
 
     device_id = await marge.resolve_device_id_for_account(account_id)
     if not device_id:

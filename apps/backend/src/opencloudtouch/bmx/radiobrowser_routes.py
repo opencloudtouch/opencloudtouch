@@ -105,7 +105,9 @@ async def bmx_radiobrowser_playback(uuid: str) -> JSONResponse:
         name=station.name,
     )
 
-    logger.info("[BMX RADIOBROWSER] Resolved %s → %s", sanitize_for_logging(uuid), stream_url)
+    logger.info(
+        "[BMX RADIOBROWSER] Resolved %s → %s", sanitize_for_logging(uuid), stream_url
+    )
 
     return JSONResponse(
         content=response.model_dump(by_alias=True),
@@ -116,7 +118,9 @@ async def bmx_radiobrowser_playback(uuid: str) -> JSONResponse:
 @radiobrowser_router.get("/bmx/radiobrowser/v1/now-playing/station/{uuid}")
 async def bmx_radiobrowser_now_playing(uuid: str) -> JSONResponse:
     """Now-playing stub for RadioBrowser stations."""
-    logger.info("[BMX RADIOBROWSER NOW-PLAYING] Station: %s", sanitize_for_logging(uuid))
+    logger.info(
+        "[BMX RADIOBROWSER NOW-PLAYING] Station: %s", sanitize_for_logging(uuid)
+    )
     return JSONResponse(
         content={"status": "playing", "stationId": uuid},
         headers={"Access-Control-Allow-Origin": "*"},

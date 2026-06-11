@@ -345,7 +345,9 @@ class DeviceService:
 
         await self.repository.delete_by_device_id(device_id)
 
-        logger.info("Successfully deleted device with id %s", sanitize_for_logging(device_id))
+        logger.info(
+            "Successfully deleted device with id %s", sanitize_for_logging(device_id)
+        )
 
     async def send_key(
         self, device_id: str, key: Union[KeyType, str], state: str = "both"

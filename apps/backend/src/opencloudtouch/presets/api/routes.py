@@ -119,9 +119,7 @@ async def get_device_presets(
 )
 async def get_preset(
     device_id: str = FastAPIPath(..., description=DESC_DEVICE_ID),
-    preset_number: int = FastAPIPath(
-        ..., ge=1, le=6, description=DESC_PRESET_NUMBER
-    ),
+    preset_number: int = FastAPIPath(..., ge=1, le=6, description=DESC_PRESET_NUMBER),
     preset_service: PresetService = Depends(get_preset_service),
 ):
     """
@@ -151,7 +149,9 @@ async def get_preset(
         raise
     except Exception:
         logger.exception(
-            "Error getting preset %d for device %s", preset_number, sanitize_for_logging(device_id)
+            "Error getting preset %d for device %s",
+            preset_number,
+            sanitize_for_logging(device_id),
         )
         raise HTTPException(status_code=500, detail="Failed to get preset")
 
@@ -159,9 +159,7 @@ async def get_preset(
 @router.delete("/{device_id}/{preset_number}", response_model=MessageResponse)
 async def clear_preset(
     device_id: str = FastAPIPath(..., description=DESC_DEVICE_ID),
-    preset_number: int = FastAPIPath(
-        ..., ge=1, le=6, description=DESC_PRESET_NUMBER
-    ),
+    preset_number: int = FastAPIPath(..., ge=1, le=6, description=DESC_PRESET_NUMBER),
     preset_service: PresetService = Depends(get_preset_service),
 ):
     """
@@ -187,7 +185,9 @@ async def clear_preset(
         raise
     except Exception:
         logger.exception(
-            "Error clearing preset %d for device %s", preset_number, sanitize_for_logging(device_id)
+            "Error clearing preset %d for device %s",
+            preset_number,
+            sanitize_for_logging(device_id),
         )
         raise HTTPException(status_code=500, detail="Failed to clear preset")
 
