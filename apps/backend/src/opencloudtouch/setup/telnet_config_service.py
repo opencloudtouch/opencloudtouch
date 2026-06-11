@@ -86,7 +86,9 @@ class TelnetConfigService:
         self, device_ip: str, oct_host: str | None = None, port: int = DEFAULT_PORT
     ):
         self.device_ip = _validate_oct_ip(device_ip)
-        self.oct_host = self._validate_oct_host(oct_host) if oct_host and oct_host.strip() else None
+        self.oct_host = (
+            self._validate_oct_host(oct_host) if oct_host and oct_host.strip() else None
+        )
         self.port = port
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 

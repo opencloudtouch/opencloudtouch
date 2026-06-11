@@ -16,7 +16,6 @@ import pytest
 from opencloudtouch.setup.ssh_client import CommandResult, SSHConnectionResult
 from opencloudtouch.setup.telnet_config_service import TelnetConfigService
 
-
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 
@@ -96,7 +95,10 @@ class TestConfigureUrls:
 
         # Verify URLs are correct
         base = "http://192.168.1.50:7777"
-        assert result.urls_configured["bmxRegistryUrl"] == f"{base}/bmx/registry/v1/services"
+        assert (
+            result.urls_configured["bmxRegistryUrl"]
+            == f"{base}/bmx/registry/v1/services"
+        )
         assert result.urls_configured["margeServerUrl"] == base
         assert result.urls_configured["statsServerUrl"] == base
         assert result.urls_configured["swUpdateUrl"] == f"{base}/updates/soundtouch"
@@ -108,9 +110,7 @@ class TestConfigureUrls:
     async def test_configure_urls_connection_failure(self, mock_telnet_client):
         """Connection failure → success=False with error."""
         mock_telnet_client.connect = AsyncMock(
-            return_value=SSHConnectionResult(
-                success=False, error="Connection refused"
-            )
+            return_value=SSHConnectionResult(success=False, error="Connection refused")
         )
         service = TelnetConfigService("192.168.1.100", "192.168.1.50")
 
@@ -229,10 +229,16 @@ class TestVerifyConfiguration:
 
         assert result.success is True
         assert len(result.configuration) == 4
-        assert result.configuration["bmxRegistryUrl"] == "http://192.168.1.50:7777/bmx/registry/v1/services"
+        assert (
+            result.configuration["bmxRegistryUrl"]
+            == "http://192.168.1.50:7777/bmx/registry/v1/services"
+        )
         assert result.configuration["margeServerUrl"] == "http://192.168.1.50:7777"
         assert result.configuration["statsServerUrl"] == "http://192.168.1.50:7777"
-        assert result.configuration["swUpdateUrl"] == "http://192.168.1.50:7777/updates/soundtouch"
+        assert (
+            result.configuration["swUpdateUrl"]
+            == "http://192.168.1.50:7777/updates/soundtouch"
+        )
 
     @pytest.mark.asyncio
     async def test_verify_connection_failure(self, mock_telnet_client):
@@ -279,9 +285,7 @@ class TestVerifyConfiguration:
         </CurrentSystemConfiguration>
         """
         mock_telnet_client.execute = AsyncMock(
-            return_value=CommandResult(
-                success=True, output=partial_xml, exit_code=0
-            )
+            return_value=CommandResult(success=True, output=partial_xml, exit_code=0)
         )
         service = TelnetConfigService("192.168.1.100", "192.168.1.50")
 
@@ -361,6 +365,7 @@ class TestConnectivityWithTelnet:
     @pytest.fixture
     def setup_service(self):
         from opencloudtouch.setup.service import SetupService
+
         return SetupService()
 
     @pytest.mark.asyncio
@@ -450,7 +455,10 @@ class TestUrlBuilding:
         service = TelnetConfigService("192.168.1.100", "192.168.1.50")
         urls = service._build_urls()
 
-        assert urls["bmxRegistryUrl"] == "http://192.168.1.50:7777/bmx/registry/v1/services"
+        assert (
+            urls["bmxRegistryUrl"]
+            == "http://192.168.1.50:7777/bmx/registry/v1/services"
+        )
         assert urls["margeServerUrl"] == "http://192.168.1.50:7777"
         assert urls["statsServerUrl"] == "http://192.168.1.50:7777"
         assert urls["swUpdateUrl"] == "http://192.168.1.50:7777/updates/soundtouch"
@@ -490,7 +498,9 @@ class TestCommandStrings:
         calls = [c.args[0] for c in mock_telnet_client.execute.call_args_list]
         base = "http://10.0.0.5:7777"
 
-        assert f"sys configuration bmxRegistryUrl {base}/bmx/registry/v1/services" in calls
+        assert (
+            f"sys configuration bmxRegistryUrl {base}/bmx/registry/v1/services" in calls
+        )
         assert f"sys configuration margeServerUrl {base}" in calls
         assert f"sys configuration statsServerUrl {base}" in calls
         assert f"sys configuration swUpdateUrl {base}/updates/soundtouch" in calls
@@ -581,25 +591,19 @@ class TestTelnetConfigureRequestValidation:
         from opencloudtouch.setup.api_models import TelnetConfigureRequest
 
         with pytest.raises(Exception):  # Pydantic ValidationError
-            TelnetConfigureRequest(
-                device_ip="192.168.1.100", oct_host="evil\nhost"
-            )
+            TelnetConfigureRequest(device_ip="192.168.1.100", oct_host="evil\nhost")
 
     def test_invalid_device_ip_rejected(self):
         from opencloudtouch.setup.api_models import TelnetConfigureRequest
 
         with pytest.raises(Exception):  # Pydantic ValidationError
-            TelnetConfigureRequest(
-                device_ip="not-an-ip", oct_host="10.0.0.5"
-            )
+            TelnetConfigureRequest(device_ip="not-an-ip", oct_host="10.0.0.5")
 
     def test_shell_metachar_in_oct_host_rejected(self):
         from opencloudtouch.setup.api_models import TelnetConfigureRequest
 
         with pytest.raises(Exception):  # Pydantic ValidationError
-            TelnetConfigureRequest(
-                device_ip="192.168.1.100", oct_host="host;rm -rf /"
-            )
+            TelnetConfigureRequest(device_ip="192.168.1.100", oct_host="host;rm -rf /")
 
     def test_valid_hostname_in_oct_host(self):
         from opencloudtouch.setup.api_models import TelnetConfigureRequest

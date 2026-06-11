@@ -838,9 +838,7 @@ def _backup_set_to_response(bs):
 # ============================================================================
 
 
-@wizard_router.post(
-    "/wizard/telnet-configure", response_model=TelnetConfigureResponse
-)
+@wizard_router.post("/wizard/telnet-configure", response_model=TelnetConfigureResponse)
 async def wizard_telnet_configure(
     request: TelnetConfigureRequest,
 ) -> TelnetConfigureResponse:
