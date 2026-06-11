@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator, Callable, List, Optional, Union
 
 from opencloudtouch.core.exceptions import DeviceNotFoundError, DomainValidationError
+from opencloudtouch.core.logging import sanitize_for_logging
 from opencloudtouch.db import Device
 from opencloudtouch.devices.adapter import get_device_client
 from opencloudtouch.devices.capabilities import (
@@ -344,7 +345,9 @@ class DeviceService:
 
         await self.repository.delete_by_device_id(device_id)
 
-        logger.info("Successfully deleted device with id %s", device_id)
+        logger.info(
+            "Successfully deleted device with id %s", sanitize_for_logging(device_id)
+        )
 
     async def send_key(
         self, device_id: str, key: Union[KeyType, str], state: str = "both"

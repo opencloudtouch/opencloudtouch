@@ -171,8 +171,8 @@ class SoundTouchSSHClient:
                 success=False, error=f"Command timeout after {timeout}s"
             )
         except Exception as e:
-            logger.error(
-                "SSH command failed on %s: %s: %s", self.host, type(e).__name__, e
+            logger.exception(
+                "SSH command failed on %s: %s", self.host, type(e).__name__
             )
             return CommandResult(
                 success=False, error=f"Command execution failed: {str(e)}"

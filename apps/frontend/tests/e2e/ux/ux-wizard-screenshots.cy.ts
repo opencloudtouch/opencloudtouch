@@ -418,6 +418,7 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
     it("wiz_01a — USB-Vorbereitung: Initialzustand (Weiter gesperrt)", () => {
       // Before checking any boxes
       screenshotBoth("wiz_01a_usb-prep__initial-locked");
+      cy.get('input[type="checkbox"]').should('exist');
     });
 
     it("wiz_01b — USB-Vorbereitung: Alle Boxen angehakt (Weiter aktiv)", () => {
@@ -677,6 +678,7 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
       cy.wait("@rebootDevice");
       cy.wait(1000);
       screenshotBoth("wiz_06e_verification__reboot-initiated");
+      cy.get('body').should('exist');
     });
   });
 

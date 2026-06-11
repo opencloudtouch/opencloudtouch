@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from opencloudtouch.bmx.models import BmxAudio, BmxPlaybackResponse, BmxStream
 from opencloudtouch.bmx.stream_utils import convert_https_to_http
 from opencloudtouch.bmx.tunein import get_oct_base_url
+from opencloudtouch.core.logging import sanitize_for_logging
 from opencloudtouch.radio.adapter import get_radio_adapter
 from opencloudtouch.radio.providers.radiobrowser import (
     RadioBrowserConnectionError,
@@ -35,21 +36,21 @@ async def bmx_radiobrowser_playback(uuid: str) -> JSONResponse:
     The device calls this with a station UUID and expects a BMX-format
     JSON response with stream URLs for playback.
     """
-    logger.info("[BMX RADIOBROWSER] Resolving station: %s", uuid)
+    logger.info("[BMX RADIOBROWSER] Resolving station: %s", sanitize_for_logging(uuid))
 
     adapter = get_radio_adapter()
 
     try:
         station = await adapter.get_station_by_uuid(uuid)
     except RadioBrowserTimeoutError as e:
-        logger.error("[BMX RADIOBROWSER] Timeout: %s", e)
+        logger.exception("[BMX RADIOBROWSER] Timeout")
         return JSONResponse(
             content={"error": f"RadioBrowser timeout: {e}"},
             status_code=504,
             headers={"Access-Control-Allow-Origin": "*"},
         )
     except RadioBrowserConnectionError as e:
-        logger.error("[BMX RADIOBROWSER] Connection error: %s", e)
+        logger.exception("[BMX RADIOBROWSER] Connection error")
         return JSONResponse(
             content={"error": f"RadioBrowser unavailable: {e}"},
             status_code=503,
@@ -62,7 +63,7 @@ async def bmx_radiobrowser_playback(uuid: str) -> JSONResponse:
                 status_code=404,
                 headers={"Access-Control-Allow-Origin": "*"},
             )
-        logger.error("[BMX RADIOBROWSER] Error: %s", e)
+        logger.exception("[BMX RADIOBROWSER] Error")
         return JSONResponse(
             content={"error": str(e)},
             status_code=500,
@@ -104,7 +105,9 @@ async def bmx_radiobrowser_playback(uuid: str) -> JSONResponse:
         name=station.name,
     )
 
-    logger.info("[BMX RADIOBROWSER] Resolved %s → %s", uuid, stream_url)
+    logger.info(
+        "[BMX RADIOBROWSER] Resolved %s → %s", sanitize_for_logging(uuid), stream_url
+    )
 
     return JSONResponse(
         content=response.model_dump(by_alias=True),
@@ -115,7 +118,9 @@ async def bmx_radiobrowser_playback(uuid: str) -> JSONResponse:
 @radiobrowser_router.get("/bmx/radiobrowser/v1/now-playing/station/{uuid}")
 async def bmx_radiobrowser_now_playing(uuid: str) -> JSONResponse:
     """Now-playing stub for RadioBrowser stations."""
-    logger.info("[BMX RADIOBROWSER NOW-PLAYING] Station: %s", uuid)
+    logger.info(
+        "[BMX RADIOBROWSER NOW-PLAYING] Station: %s", sanitize_for_logging(uuid)
+    )
     return JSONResponse(
         content={"status": "playing", "stationId": uuid},
         headers={"Access-Control-Allow-Origin": "*"},
@@ -125,7 +130,7 @@ async def bmx_radiobrowser_now_playing(uuid: str) -> JSONResponse:
 @radiobrowser_router.post("/bmx/radiobrowser/v1/reporting/station/{uuid}")
 async def bmx_radiobrowser_reporting(uuid: str) -> JSONResponse:
     """Reporting stub for RadioBrowser stations."""
-    logger.info("[BMX RADIOBROWSER REPORTING] Station: %s", uuid)
+    logger.info("[BMX RADIOBROWSER REPORTING] Station: %s", sanitize_for_logging(uuid))
     return JSONResponse(
         content={"status": "ok"},
         headers={"Access-Control-Allow-Origin": "*"},

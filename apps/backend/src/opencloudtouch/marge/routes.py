@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 
 from opencloudtouch.core.dependencies import get_marge_service
+from opencloudtouch.core.logging import sanitize_for_logging
 from opencloudtouch.core.source_types import BASE_SOURCES
 from opencloudtouch.marge.service import MargeService
 from opencloudtouch.marge.xml_builder import (
@@ -59,7 +60,9 @@ async def get_full_account(
     Returns:
         XML Response with <boseAccount> structure
     """
-    logger.info("[MARGE] Full account sync for device %s", device_id)
+    logger.info(
+        "[MARGE] Full account sync for device %s", sanitize_for_logging(device_id)
+    )
 
     presets, recents = await marge.get_full_account(device_id)
 
@@ -67,7 +70,7 @@ async def get_full_account(
         "[MARGE] Returning %d presets, %d recents for %s",
         len(presets),
         len(recents),
-        device_id,
+        sanitize_for_logging(device_id),
     )
     for p in presets:
         logger.debug(
@@ -95,7 +98,7 @@ async def get_presets(
     Returns:
         XML Response with <presets> structure
     """
-    logger.info("[MARGE] Get presets for device %s", device_id)
+    logger.info("[MARGE] Get presets for device %s", sanitize_for_logging(device_id))
 
     presets = await marge.get_presets(device_id)
 
@@ -116,7 +119,7 @@ async def get_recents(
     Returns:
         XML Response with <recents> structure
     """
-    logger.info("[MARGE] Get recents for device %s", device_id)
+    logger.info("[MARGE] Get recents for device %s", sanitize_for_logging(device_id))
 
     recents = await marge.get_recents(device_id)
 
@@ -133,7 +136,7 @@ async def get_sources(device_id: str) -> Response:
     Returns:
         XML Response with <sources> structure
     """
-    logger.info("[MARGE] Get sources for device %s", device_id)
+    logger.info("[MARGE] Get sources for device %s", sanitize_for_logging(device_id))
 
     sources_xml = build_sources_xml()
 
@@ -150,7 +153,7 @@ async def get_devices(device_id: str) -> Response:
     Returns:
         XML Response with <devices> structure
     """
-    logger.info("[MARGE] Get devices for device %s", device_id)
+    logger.info("[MARGE] Get devices for device %s", sanitize_for_logging(device_id))
 
     # TODO: Implement multiroom device discovery
     devices: list[Any] = []
@@ -171,7 +174,7 @@ async def power_on(device_id: str) -> Response:
     Returns:
         204 No Content (acknowledgement)
     """
-    logger.info("[MARGE] Device %s powered on", device_id)
+    logger.info("[MARGE] Device %s powered on", sanitize_for_logging(device_id))
 
     return Response(status_code=204)
 
@@ -186,7 +189,9 @@ async def get_sourceproviders(device_id: str) -> Response:
     Returns:
         XML Response with <sourceproviders> structure
     """
-    logger.info("[MARGE] Get sourceproviders for device %s", device_id)
+    logger.info(
+        "[MARGE] Get sourceproviders for device %s", sanitize_for_logging(device_id)
+    )
 
     root = ET.Element("sourceproviders")
 
@@ -262,13 +267,16 @@ async def streaming_full_account(
     Returns:
         XML Response with <account> structure
     """
-    logger.info("[MARGE/STREAMING] Full account sync for account %s", account_id)
+    logger.info(
+        "[MARGE/STREAMING] Full account sync for account %s",
+        sanitize_for_logging(account_id),
+    )
 
     device_id = await marge.resolve_device_id_for_account(account_id)
     if not device_id:
         logger.warning(
             "[MARGE/STREAMING] No device mapped to account %s - returning empty presets",
-            account_id,
+            sanitize_for_logging(account_id),
         )
         return _xml_response(build_full_account_xml([], []), _MEDIA_STREAMING_XML)
 
@@ -278,8 +286,8 @@ async def streaming_full_account(
         "[MARGE/STREAMING] Returning %d presets, %d recents for device %s (account %s)",
         len(presets),
         len(recents),
-        device_id,
-        account_id,
+        sanitize_for_logging(device_id),
+        sanitize_for_logging(account_id),
     )
 
     return _xml_response(build_full_account_xml(presets, recents), _MEDIA_STREAMING_XML)

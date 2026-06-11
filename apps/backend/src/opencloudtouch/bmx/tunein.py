@@ -14,6 +14,7 @@ from defusedxml.ElementTree import fromstring as parse_xml_string
 from opencloudtouch.bmx.models import BmxAudio, BmxPlaybackResponse, BmxStream
 from opencloudtouch.bmx.stream_utils import convert_https_to_http
 from opencloudtouch.core.config import get_config
+from opencloudtouch.core.logging import sanitize_for_logging
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +89,7 @@ async def resolve_tunein_station(station_id: str) -> BmxPlaybackResponse:
     Returns:
         BmxPlaybackResponse with stream URLs
     """
-    logger.info("[BMX TUNEIN] Resolving station: %s", station_id)
+    logger.info("[BMX TUNEIN] Resolving station: %s", sanitize_for_logging(station_id))
 
     if not _STATION_ID_RE.match(station_id):
         raise ValueError(f"Invalid station ID format: {station_id}")
@@ -111,6 +112,6 @@ async def resolve_tunein_station(station_id: str) -> BmxPlaybackResponse:
             logger.info("[BMX TUNEIN] Resolved %s → %s", station_id, stream_urls[0])
             return _build_tunein_playback_response(station_id, stream_urls, name, logo)
 
-    except Exception as e:
-        logger.error("[BMX TUNEIN] Error resolving %s: %s", station_id, e)
+    except Exception:
+        logger.exception("[BMX TUNEIN] Error resolving %s", station_id)
         raise

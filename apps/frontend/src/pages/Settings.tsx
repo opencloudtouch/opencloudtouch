@@ -162,7 +162,7 @@ export default function Settings() {
             <div className="discover-action">
               <button
                 className="btn btn-primary network-scan-btn"
-                onClick={() => void startDiscovery()}
+                onClick={startDiscovery}
                 disabled={isDiscovering}
                 aria-label={t("settings.deviceDiscovery.scanButton")}
               >

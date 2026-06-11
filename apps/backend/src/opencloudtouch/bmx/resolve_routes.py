@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 
 resolve_router = APIRouter(tags=["bmx"])
 
+# Content type constant for XML responses
+MEDIA_TYPE_XML = "application/xml"
+
 
 # =============================================================================
 # Helper functions
@@ -127,16 +130,16 @@ async def resolve_stream(request: Request) -> Response:
                 location, item_name_text, station_name_text
             )
             if resolved_xml:
-                return Response(content=resolved_xml, media_type="application/xml")
+                return Response(content=resolved_xml, media_type=MEDIA_TYPE_XML)
 
         if _is_pass_through(source, location, station_id):
-            return Response(content=body_str, media_type="application/xml")
+            return Response(content=body_str, media_type=MEDIA_TYPE_XML)
 
         logger.error("[BMX RESOLVE] Unable to resolve stream")
         return Response(
             content="<error>Unable to resolve stream</error>",
             status_code=400,
-            media_type="application/xml",
+            media_type=MEDIA_TYPE_XML,
         )
 
     except Exception:
@@ -144,5 +147,5 @@ async def resolve_stream(request: Request) -> Response:
         return Response(
             content="<error>Resolution failed</error>",
             status_code=500,
-            media_type="application/xml",
+            media_type=MEDIA_TYPE_XML,
         )

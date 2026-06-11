@@ -60,7 +60,7 @@ async def discover_devices(
             ],
         }
     except Exception as e:
-        logger.error("Discovery failed: %s", e)
+        logger.exception("Discovery failed")
         # Wrap generic exceptions in DiscoveryError
         raise DiscoveryError(f"Device discovery failed: {str(e)}") from e
 
@@ -86,8 +86,7 @@ async def sync_devices(
             result = await device_service.sync_devices()
             return result.to_dict()
         except Exception as e:
-            logger.error("Sync failed: %s", e)
-            # Wrap generic exceptions in DiscoveryError
+            logger.exception("Sync failed")
             raise DiscoveryError(f"Device sync failed: {str(e)}") from e
 
 

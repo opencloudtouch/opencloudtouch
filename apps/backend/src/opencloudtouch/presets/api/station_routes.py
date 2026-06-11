@@ -12,6 +12,7 @@ from fastapi import Path as FastAPIPath
 from fastapi.responses import JSONResponse
 
 from opencloudtouch.core.dependencies import get_preset_service
+from opencloudtouch.core.logging import sanitize_for_logging
 from opencloudtouch.presets.api.descriptor_service import StationDescriptorService
 from opencloudtouch.presets.service import PresetService
 
@@ -57,7 +58,7 @@ async def get_station_descriptor(
 
         if not descriptor:
             logger.warning(
-                f"Station descriptor not found for device {device_id}, "
+                f"Station descriptor not found for device {sanitize_for_logging(device_id)}, "
                 f"preset {preset_number}"
             )
             raise HTTPException(
@@ -74,8 +75,8 @@ async def get_station_descriptor(
 
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(
-            f"Error getting descriptor for {device_id} preset {preset_number}: {e}"
+    except Exception:
+        logger.exception(
+            f"Error getting descriptor for {sanitize_for_logging(device_id)} preset {preset_number}"
         )
         raise HTTPException(status_code=500, detail="Failed to get station descriptor")
