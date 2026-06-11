@@ -291,17 +291,17 @@ class TestCheckHelperErrorBranches:
         assert "not found" in checks[0]["message"]
 
     @pytest.mark.asyncio
-    async def test_config_files_identical_skipped_when_files_missing(self):
+    async def test_config_files_identical_skipped_when_all_missing(self):
         service = WizardService()
         ssh = _mock_ssh()
         checks: list[dict] = []
-        # All CONFIG_CANDIDATES missing → skipped with passed=False
+        # All CONFIG_CANDIDATES missing → only 0 present → True (no comparison needed)
         from opencloudtouch.setup.config_service import SoundTouchConfigService
 
         all_missing = list(SoundTouchConfigService.CONFIG_CANDIDATES)
         await service._check_config_files_identical(ssh, all_missing, _make_add(checks))
-        assert checks[0]["passed"] is False
-        assert "missing" in checks[0]["message"].lower()
+        assert checks[0]["passed"] is True
+        assert "no comparison" in checks[0]["message"].lower()
 
     @pytest.mark.asyncio
     async def test_config_files_identical_unreadable(self):

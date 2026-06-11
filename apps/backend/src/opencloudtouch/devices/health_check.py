@@ -239,7 +239,8 @@ class DeviceHealthCheck:
         try:
             # Check BMX URL (Strategy A: direct URL change)
             result = await client.execute(
-                "cat /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml "
+                "(cat /mnt/nv/OverrideSdkPrivateCfg.xml 2>/dev/null "
+                "|| cat /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml) "
                 "| grep -i bmxRegistryUrl"
             )
             bmx_output = result.output or ""

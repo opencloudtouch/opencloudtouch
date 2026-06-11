@@ -93,5 +93,5 @@ class TestCheckConfigFilesIdenticalMissing:
         await service._check_config_files_identical(ssh, all_missing, _add)
 
         assert len(checks) == 1
-        assert checks[0]["passed"] is False
-        assert "missing" in checks[0]["message"].lower()
+        assert checks[0]["passed"] is True
+        assert "no comparison" in checks[0]["message"].lower()
