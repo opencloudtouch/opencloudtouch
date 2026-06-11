@@ -160,9 +160,7 @@ class SoundTouchConfigService:
             f"test -f {BASE_CONFIG_PATH} && echo 'found' || echo 'missing'"
         )
         if "found" in (result.output or ""):
-            cp_result = await self.ssh.execute(
-                f"cp {BASE_CONFIG_PATH} {OVERRIDE_PATH}"
-            )
+            cp_result = await self.ssh.execute(f"cp {BASE_CONFIG_PATH} {OVERRIDE_PATH}")
             if not cp_result.success:
                 raise RuntimeError(
                     f"Failed to copy base config to override: "

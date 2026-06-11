@@ -673,6 +673,7 @@ class WizardService:
     async def _check_config_files_present(self, ssh, _add):
         """Check 4: Override config file exists on device. Returns list of missing paths."""
         from opencloudtouch.setup.config_service import OVERRIDE_PATH
+
         # Only the override file is required after setup
         r = await ssh.execute(f"test -f {OVERRIDE_PATH} && echo exists || echo missing")
         missing_configs = []

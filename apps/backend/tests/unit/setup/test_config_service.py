@@ -91,10 +91,7 @@ class TestConfigPath:
         return SoundTouchConfigService(mock_ssh)
 
     def test_first_candidate_is_override(self):
-        assert (
-            SoundTouchConfigService.CONFIG_CANDIDATES[0]
-            == OVERRIDE_PATH
-        )
+        assert SoundTouchConfigService.CONFIG_CANDIDATES[0] == OVERRIDE_PATH
 
     def test_two_candidates(self):
         """Both /mnt/nv/ config paths must be in CONFIG_CANDIDATES."""
@@ -130,7 +127,9 @@ class TestConfigPath:
         assert OVERRIDE_PATH in cp_cmd
 
     @pytest.mark.asyncio
-    async def test_ensure_override_raises_when_none_found(self, fresh_service, mock_ssh):
+    async def test_ensure_override_raises_when_none_found(
+        self, fresh_service, mock_ssh
+    ):
         """Raises RuntimeError when no config file exists."""
         mock_ssh.execute.side_effect = [
             _ok("missing"),  # override missing
@@ -775,9 +774,9 @@ class TestModifyAlwaysUsesOverride:
         all_cmds = [c[0][0] for c in mock_ssh.execute.call_args_list]
         write_cmds = [c for c in all_cmds if "base64" in c]
         for cmd in write_cmds:
-            assert "/opt/Bose/etc/" not in cmd, (
-                f"Write to /opt/Bose/etc/ detected: {cmd}"
-            )
+            assert (
+                "/opt/Bose/etc/" not in cmd
+            ), f"Write to /opt/Bose/etc/ detected: {cmd}"
 
     @pytest.mark.asyncio
     async def test_write_targets_override_directly(self, service, mock_ssh):
@@ -825,9 +824,7 @@ class TestSyncAllConfigFiles:
         )
 
     @pytest.mark.asyncio
-    async def test_sync_writes_to_existing_mnt_nv_paths(
-        self, fresh_service, mock_ssh
-    ):
+    async def test_sync_writes_to_existing_mnt_nv_paths(self, fresh_service, mock_ssh):
         """Sync writes modified content to existing /mnt/nv/ candidate."""
         fresh_service.config_path = OVERRIDE_PATH
         check_output = "/mnt/nv/SoundTouchSdkPrivateCfg.xml:found"
@@ -942,9 +939,7 @@ class TestSyncAllConfigFiles:
 
         all_cmds = [c[0][0] for c in mock_ssh.execute.call_args_list]
         for cmd in all_cmds:
-            assert "/opt/Bose/etc/" not in cmd, (
-                f"Sync wrote to /opt/Bose/etc/: {cmd}"
-            )
+            assert "/opt/Bose/etc/" not in cmd, f"Sync wrote to /opt/Bose/etc/: {cmd}"
 
 
 class TestRestoreWithOverridePath:
@@ -1068,7 +1063,9 @@ class TestAllConfigPathsHandled:
         assert path == OVERRIDE_PATH
 
     @pytest.mark.asyncio
-    async def test_ensure_override_copies_from_base_if_missing(self, fresh_service, mock_ssh):
+    async def test_ensure_override_copies_from_base_if_missing(
+        self, fresh_service, mock_ssh
+    ):
         """If override missing, copy from base and return OVERRIDE_PATH."""
         mock_ssh.execute.side_effect = [
             _ok("missing"),  # override not found
@@ -1224,9 +1221,9 @@ class TestConfigSafetyOverride:
         all_cmds = [c[0][0] for c in mock_ssh.execute.call_args_list]
         write_cmds = [c for c in all_cmds if "base64" in c or "mv " in c]
         for cmd in write_cmds:
-            assert "/opt/Bose/etc/" not in cmd, (
-                f"Write to /opt/Bose/etc/ detected in: {cmd}"
-            )
+            assert (
+                "/opt/Bose/etc/" not in cmd
+            ), f"Write to /opt/Bose/etc/ detected in: {cmd}"
 
     @pytest.mark.asyncio
     async def test_modify_creates_override_then_modifies(self, fresh, mock_ssh):
