@@ -100,7 +100,7 @@ jobs:
           BRANCH="${{ github.ref_name }}"
           echo "Checking CI/CD status on branch $BRANCH..."
 
-          LAST_RUN=$(gh run list --workflow=ci-cd.yml --branch="$BRANCH" --limit=1 \
+          LAST_RUN=$(gh run list --workflow=ci.yml --branch="$BRANCH" --limit=1 \
             --json conclusion,status --jq '.[0]' 2>/dev/null || echo "{}")
 
           CONCLUSION=$(echo "$LAST_RUN" | jq -r '.conclusion // "none"')
