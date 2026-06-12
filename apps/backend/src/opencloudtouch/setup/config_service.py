@@ -17,6 +17,7 @@ blocking the BMX registry load. See GitHub Issue #167.
 """
 
 import base64
+import ipaddress
 import logging
 import re
 from dataclasses import dataclass, field
@@ -32,6 +33,42 @@ _BMX_TAG = "bmxRegistryUrl"
 _MARGE_TAG = "margeServerUrl"
 _SWUPDATE_TAG = "swUpdateUrl"
 _STATS_TAG = "statsServerUrl"
+
+# Canonical config paths on SoundTouch devices
+OVERRIDE_PATH = "/mnt/nv/OverrideSdkPrivateCfg.xml"
+BASE_CONFIG_PATH = "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml"
+
+# Hostname validation: alphanumeric, hyphens, dots; must start/end with alnum
+_HOSTNAME_RE = re.compile(r"^[a-zA-Z0-9]([a-zA-Z0-9\-\.]*[a-zA-Z0-9])?$")
+# Characters unsafe for XML text content
+_XML_UNSAFE_RE = re.compile(r'[<>&"\'\x00-\x1f]')
+
+
+def _validate_oct_ip(value: str) -> str:
+    """Validate oct_ip is a valid IP address or hostname. Returns stripped value."""
+    if not value or not value.strip():
+        raise ValueError("oct_ip must not be empty")
+
+    value = value.strip()
+
+    # Try IPv4/IPv6 first
+    try:
+        ipaddress.ip_address(value)
+        return value
+    except ValueError:
+        pass
+
+    # Hostname validation
+    if len(value) > 253:
+        raise ValueError(f"Hostname too long: {len(value)} chars (max 253)")
+
+    if _XML_UNSAFE_RE.search(value):
+        raise ValueError(f"Invalid characters in hostname: {value}")
+
+    if not _HOSTNAME_RE.match(value):
+        raise ValueError(f"Invalid hostname format: {value}")
+
+    return value
 
 
 @dataclass
@@ -71,51 +108,72 @@ class ConfigDiff:
 
 
 class SoundTouchConfigService:
-    """Service for modifying SoundTouch device configuration."""
+    """Service for modifying SoundTouch device configuration.
 
-    # All known config file locations on Bose devices.
-    # The FIRST found path becomes the primary (read source + write target).
-    # ALL other paths are synced (created if missing) after modification.
-    # We never know which file firmware actually reads on a given model,
-    # so we write ALL of them to maximise persistence across reboots.
-    # /mnt/nv/ paths survive SquashFS overlay resets that wipe /opt/Bose/etc/.
+    Always writes to OVERRIDE_PATH (/mnt/nv/OverrideSdkPrivateCfg.xml).
+    The /mnt/nv/ partition is persistent and always writable.
+    If the override doesn't exist, it is created by copying from
+    BASE_CONFIG_PATH (/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml).
+    """
+
+    # Config files on /mnt/nv/ that are synced after modification.
+    # OVERRIDE_PATH is the primary write target (always).
+    # Other /mnt/nv/ variants are synced if they exist on the device.
     CONFIG_CANDIDATES = [
-        "/opt/Bose/etc/SoundTouchSdkPrivateCfg.xml",
-        "/mnt/nv/OverrideSdkPrivateCfg.xml",
+        OVERRIDE_PATH,
         "/mnt/nv/SoundTouchSdkPrivateCfg.xml",
     ]
     BACKUP_DIR = "/mnt/nv"
 
     def __init__(self, ssh: SoundTouchSSHClient):
         self.ssh = ssh
-        self.config_path: str | None = None  # resolved by _detect_config_path
+        self.config_path: str | None = None  # resolved by _ensure_override_config
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
-    async def _detect_config_path(self) -> str:
-        """Probe known config locations and return the first existing one.
+    async def _ensure_override_config(self) -> str:
+        """Ensure override config exists at OVERRIDE_PATH and return it.
 
-        Raises RuntimeError if no config file is found on the device.
+        If the override doesn't exist but the base config does, copy it.
+        Always returns OVERRIDE_PATH as the write target.
+        The /mnt/nv/ partition is always writable — no remount needed.
+
+        Raises RuntimeError if no config source is available.
         """
         if self.config_path:
             self.logger.debug("Config path already resolved: %s", self.config_path)
             return self.config_path
 
-        self.logger.debug("Probing %d config candidates", len(self.CONFIG_CANDIDATES))
-        for candidate in self.CONFIG_CANDIDATES:
-            result = await self.ssh.execute(
-                f"test -f {candidate} && echo 'found' || echo 'missing'"
+        # Check if override already exists
+        result = await self.ssh.execute(
+            f"test -f {OVERRIDE_PATH} && echo 'found' || echo 'missing'"
+        )
+        if "found" in (result.output or ""):
+            self.config_path = OVERRIDE_PATH
+            self.logger.info("Override config exists at %s", OVERRIDE_PATH)
+            return OVERRIDE_PATH
+
+        # Override missing — try to copy from base config
+        self.logger.info(
+            "Override missing, checking base config at %s", BASE_CONFIG_PATH
+        )
+        result = await self.ssh.execute(
+            f"test -f {BASE_CONFIG_PATH} && echo 'found' || echo 'missing'"
+        )
+        if "found" in (result.output or ""):
+            cp_result = await self.ssh.execute(f"cp {BASE_CONFIG_PATH} {OVERRIDE_PATH}")
+            if not cp_result.success:
+                raise RuntimeError(
+                    f"Failed to copy base config to override: "
+                    f"{cp_result.error or cp_result.output}"
+                )
+            self.config_path = OVERRIDE_PATH
+            self.logger.info(
+                "Copied base config %s → %s", BASE_CONFIG_PATH, OVERRIDE_PATH
             )
-            found = "found" in (result.output or "")
-            self.logger.debug(
-                "Probe %s → %s", candidate, "found" if found else "missing"
-            )
-            if found:
-                self.logger.info("Config file detected at %s", candidate)
-                self.config_path = candidate
-                return candidate
+            return OVERRIDE_PATH
 
         raise RuntimeError(
-            f"Config file not found. Probed: {', '.join(self.CONFIG_CANDIDATES)}"
+            f"No config source found. Checked: {OVERRIDE_PATH}, {BASE_CONFIG_PATH}"
         )
 
     async def _remount_rw(self) -> None:
@@ -166,17 +224,17 @@ class SoundTouchConfigService:
         Uses the user-specified hostname or IP directly so the device config
         matches what the user entered in the wizard.
         """
-        return f"http://{oct_host}:{port}/bmx/registry/v1/services"  # noqa: S5332
+        return f"http://{oct_host}:{port}/bmx/registry/v1/services"  # noqa: S324
 
     @staticmethod
     def build_marge_url(oct_host: str, port: int = DEFAULT_PORT) -> str:
         """Build the marge server URL pointing to OCT."""
-        return f"http://{oct_host}:{port}"  # noqa: S5332
+        return f"http://{oct_host}:{port}"  # noqa: S324
 
     @staticmethod
     def build_swupdate_url(oct_host: str, port: int = DEFAULT_PORT) -> str:
         """Build the swupdate URL pointing to OCT."""
-        return f"http://{oct_host}:{port}/updates/soundtouch"  # noqa: S5332
+        return f"http://{oct_host}:{port}/updates/soundtouch"  # noqa: S324
 
     @staticmethod
     def build_stats_url(oct_host: str, port: int = DEFAULT_PORT) -> str:
@@ -185,11 +243,11 @@ class SoundTouchConfigService:
         Without this, the device retains https://events.api.bosecm.com
         and hangs on TLS handshake to OCT IP (Issue #167).
         """
-        return f"http://{oct_host}:{port}"  # noqa: S5332
+        return f"http://{oct_host}:{port}"  # noqa: S324
 
     async def _read_config(self) -> str:
         """Read current config file from device."""
-        path = await self._detect_config_path()
+        path = await self._ensure_override_config()
         self.logger.debug("Reading config from %s", path)
         result = await self.ssh.execute(f"cat {path}")
         if not result.success:
@@ -203,10 +261,9 @@ class SoundTouchConfigService:
     async def _write_config(self, content: str) -> None:
         """Write config file atomically via base64 piping.
 
-        Writes directly to the canonical path (/opt/Bose/etc/).
-        Caller MUST have remounted rw before calling this.
+        Always writes to OVERRIDE_PATH (/mnt/nv/ is always writable).
         """
-        path = await self._detect_config_path()
+        path = await self._ensure_override_config()
 
         b64 = base64.b64encode(content.encode()).decode()
         self.logger.debug(
@@ -235,7 +292,7 @@ class SoundTouchConfigService:
 
     async def _ensure_backup(self, backup_path: str) -> None:
         """Create a backup only if none exists yet at this path."""
-        path = await self._detect_config_path()
+        path = await self._ensure_override_config()
         check = await self.ssh.execute(
             f"test -f {backup_path} && echo 'exists' || echo 'missing'"
         )
@@ -245,16 +302,14 @@ class SoundTouchConfigService:
                 self.logger.warning("Backup may have failed: %s", result.error)
 
     async def _sync_all_config_files(self, content: str) -> None:
-        """Sync modified content to existing config file locations only.
+        """Sync modified content to other /mnt/nv/ config file variants.
 
-        Only overwrites candidate files that already exist on the device.
-        Does NOT create override files that don't exist — firmware on
-        ST10/ST300 ignores OverrideSdkPrivateCfg.xml anyway, and creating
-        unexpected files can confuse other tools.
+        Writes to /mnt/nv/SoundTouchSdkPrivateCfg.xml if it exists.
+        Never writes to /opt/Bose/etc/ — only /mnt/nv/ is used.
 
         Best-effort: failure here must not abort the main modify flow.
         """
-        primary = await self._detect_config_path()
+        primary = await self._ensure_override_config()
         non_primary = [c for c in self.CONFIG_CANDIDATES if c != primary]
         if not non_primary:
             return
@@ -303,7 +358,8 @@ class SoundTouchConfigService:
     ) -> ModifyResult:
         """Modify BMX URL (and optionally marge/swupdate) in config.
 
-        Protocol: remount rw → backup → read → modify → write → verify → remount ro.
+        Protocol: ensure override exists → backup → read → modify → write → verify.
+        /mnt/nv/ is always writable — no remount needed.
 
         Args:
             oct_ip: OCT server hostname or IP (used for URL building)
@@ -313,68 +369,66 @@ class SoundTouchConfigService:
         """
         self.logger.info("Modifying BMX URL to point to OCT at %s", oct_ip)
 
+        oct_ip = _validate_oct_ip(oct_ip)
+
         try:
-            await self._remount_rw()
-            try:
-                # 1. Read current config
-                original = await self._read_config()
+            # 1. Read current config (ensures override exists)
+            original = await self._read_config()
 
-                # 2. Backup (idempotent — only first time)
-                config_filename = (await self._detect_config_path()).rsplit("/", 1)[-1]
-                backup_path = f"{self.BACKUP_DIR}/{config_filename}.oct-backup"
-                await self._ensure_backup(backup_path)
+            # 2. Backup (idempotent — only first time)
+            config_filename = (await self._ensure_override_config()).rsplit("/", 1)[-1]
+            backup_path = f"{self.BACKUP_DIR}/{config_filename}.oct-backup"
+            await self._ensure_backup(backup_path)
 
-                # 3. Modify XML tags
-                diff = ConfigDiff()
-                modified = original
+            # 3. Modify XML tags
+            diff = ConfigDiff()
+            modified = original
 
-                new_bmx = self.build_bmx_url(oct_ip, port=port)
-                modified, old = self._replace_tag_value(modified, _BMX_TAG, new_bmx)
-                if old is not None:
-                    diff.add(_BMX_TAG, old, new_bmx)
+            new_bmx = self.build_bmx_url(oct_ip, port=port)
+            modified, old = self._replace_tag_value(modified, _BMX_TAG, new_bmx)
+            if old is not None:
+                diff.add(_BMX_TAG, old, new_bmx)
 
-                new_marge = self.build_marge_url(oct_ip, port=port)
-                modified, old = self._replace_tag_value(modified, _MARGE_TAG, new_marge)
-                if old is not None:
-                    diff.add(_MARGE_TAG, old, new_marge)
+            new_marge = self.build_marge_url(oct_ip, port=port)
+            modified, old = self._replace_tag_value(modified, _MARGE_TAG, new_marge)
+            if old is not None:
+                diff.add(_MARGE_TAG, old, new_marge)
 
-                new_sw = self.build_swupdate_url(oct_ip, port=port)
-                modified, old = self._replace_tag_value(modified, _SWUPDATE_TAG, new_sw)
-                if old is not None:
-                    diff.add(_SWUPDATE_TAG, old, new_sw)
+            new_sw = self.build_swupdate_url(oct_ip, port=port)
+            modified, old = self._replace_tag_value(modified, _SWUPDATE_TAG, new_sw)
+            if old is not None:
+                diff.add(_SWUPDATE_TAG, old, new_sw)
 
-                new_stats = self.build_stats_url(oct_ip, port=port)
-                modified, old = self._replace_tag_value(modified, _STATS_TAG, new_stats)
-                if old is not None:
-                    diff.add(_STATS_TAG, old, new_stats)
+            new_stats = self.build_stats_url(oct_ip, port=port)
+            modified, old = self._replace_tag_value(modified, _STATS_TAG, new_stats)
+            if old is not None:
+                diff.add(_STATS_TAG, old, new_stats)
 
-                if not diff.changes:
-                    self.logger.info("No URL tags found in config — nothing to modify")
-                    return ModifyResult(
-                        success=True,
-                        backup_path=backup_path,
-                        diff="(no changes — tags not found in config)",
-                    )
-
-                # 4. Write atomically
-                await self._write_config(modified)
-
-                # 5. Verify write
-                await self._verify_config()
-
-                # 5b. Sync ALL other config files that exist (best-effort)
-                await self._sync_all_config_files(modified)
-
-                self.logger.info(
-                    "Config modified successfully (%d tags)", len(diff.changes)
-                )
+            if not diff.changes:
+                self.logger.info("No URL tags found in config — nothing to modify")
                 return ModifyResult(
                     success=True,
                     backup_path=backup_path,
-                    diff=str(diff),
+                    diff="(no changes — tags not found in config)",
                 )
-            finally:
-                await self._remount_ro()
+
+            # 4. Write atomically
+            await self._write_config(modified)
+
+            # 5. Verify write
+            await self._verify_config()
+
+            # 5b. Sync other /mnt/nv/ config files (best-effort)
+            await self._sync_all_config_files(modified)
+
+            self.logger.info(
+                "Config modified successfully (%d tags)", len(diff.changes)
+            )
+            return ModifyResult(
+                success=True,
+                backup_path=backup_path,
+                diff=str(diff),
+            )
 
         except Exception as e:
             self.logger.error("Config modification failed: %s", e)
@@ -383,7 +437,8 @@ class SoundTouchConfigService:
     async def restore_config(self, backup_path: str) -> RestoreResult:
         """Restore config from backup.
 
-        Protocol: verify backup exists → remount rw → copy → verify → remount ro.
+        Protocol: verify backup exists → copy to override path → verify.
+        /mnt/nv/ is always writable — no remount needed.
 
         Args:
             backup_path: Path to backup file on device
@@ -404,23 +459,19 @@ class SoundTouchConfigService:
                     error=f"Backup not found: {backup_path}",
                 )
 
-            await self._remount_rw()
-            try:
-                config_path = await self._detect_config_path()
-                result = await self.ssh.execute(f"cp {backup_path} {config_path}")
-                if not result.success:
-                    return RestoreResult(
-                        success=False,
-                        error=f"Copy failed: {result.error or result.output}",
-                    )
+            config_path = await self._ensure_override_config()
+            result = await self.ssh.execute(f"cp {backup_path} {config_path}")
+            if not result.success:
+                return RestoreResult(
+                    success=False,
+                    error=f"Copy failed: {result.error or result.output}",
+                )
 
-                # Verify restored file is valid
-                await self._verify_config()
+            # Verify restored file is valid
+            await self._verify_config()
 
-                self.logger.info("Config restored successfully")
-                return RestoreResult(success=True)
-            finally:
-                await self._remount_ro()
+            self.logger.info("Config restored successfully")
+            return RestoreResult(success=True)
 
         except Exception as e:
             self.logger.error("Config restore failed: %s", e)

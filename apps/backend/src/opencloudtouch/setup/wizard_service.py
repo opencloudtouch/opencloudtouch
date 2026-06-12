@@ -671,32 +671,50 @@ class WizardService:
         )
 
     async def _check_config_files_present(self, ssh, _add):
-        """Check 4: Config files exist on device. Returns list of missing paths."""
-        config_paths = SoundTouchConfigService.CONFIG_CANDIDATES
+        """Check 4: Override config file exists on device. Returns list of missing paths."""
+        from opencloudtouch.setup.config_service import OVERRIDE_PATH
+
+        # Only the override file is required after setup
+        r = await ssh.execute(f"test -f {OVERRIDE_PATH} && echo exists || echo missing")
         missing_configs = []
+        if "missing" in (r.output or ""):
+            missing_configs.append(OVERRIDE_PATH)
+
+        # Check other /mnt/nv/ variants (informational)
+        config_paths = SoundTouchConfigService.CONFIG_CANDIDATES
         for path in config_paths:
-            r = await ssh.execute(f"test -f {path} && echo exists || echo missing")
-            if "missing" in (r.output or ""):
+            if path == OVERRIDE_PATH:
+                continue
+            r2 = await ssh.execute(f"test -f {path} && echo exists || echo missing")
+            if "missing" in (r2.output or ""):
                 missing_configs.append(path)
+
         _add(
             "config_files_present",
-            len(missing_configs) == 0,
+            OVERRIDE_PATH not in missing_configs,
             (
-                f"All {len(config_paths)} config files present"
-                if not missing_configs
-                else f"Missing config file: {', '.join(missing_configs)}. Firmware may not find OCT redirect on reboot."
+                f"Override config present at {OVERRIDE_PATH}"
+                if OVERRIDE_PATH not in missing_configs
+                else f"Missing override config: {OVERRIDE_PATH}. Device may not find OCT redirect on reboot."
             ),
             {"missing": missing_configs},
         )
         return missing_configs
 
     async def _check_config_files_identical(self, ssh, missing_configs, _add):
-        """Check 5: All config files have identical content (md5sum)."""
-        if missing_configs:
-            _add("config_files_identical", False, "Skipped: config files missing", {})
-            return
+        """Check 5: All /mnt/nv/ config files have identical content (md5sum)."""
         config_paths = SoundTouchConfigService.CONFIG_CANDIDATES
-        r = await ssh.execute(f"md5sum {' '.join(config_paths)} 2>/dev/null")
+        # Only compare files that exist
+        present = [p for p in config_paths if p not in missing_configs]
+        if len(present) < 2:
+            _add(
+                "config_files_identical",
+                True,
+                "Only one config file present, no comparison needed",
+                {},
+            )
+            return
+        r = await ssh.execute(f"md5sum {' '.join(present)} 2>/dev/null")
         if not (r.success and r.output):
             _add(
                 "config_files_identical",
@@ -724,8 +742,12 @@ class WizardService:
 
     async def _check_bmx_url(self, ssh, _add):
         """Check 6: BMX URL in config points to OCT, not Bose cloud."""
-        config_path = SoundTouchConfigService.CONFIG_CANDIDATES[0]
-        r = await ssh.execute(f"cat {config_path} 2>/dev/null")
+        from opencloudtouch.setup.config_service import BASE_CONFIG_PATH, OVERRIDE_PATH
+
+        # Try override first, fall back to base config
+        r = await ssh.execute(f"cat {OVERRIDE_PATH} 2>/dev/null")
+        if not (r.success and r.output):
+            r = await ssh.execute(f"cat {BASE_CONFIG_PATH} 2>/dev/null")
         if not (r.success and r.output):
             _add("config_bmx_url", False, "Could not read config file", {})
             return

@@ -96,11 +96,10 @@ class TestVerifySetupAllPass:
         ssh = _make_ssh_responses(
             {
                 f"cat {_PERSISTENCE_DIR}/Sources.xml": FULL_SOURCES_XML,
-                "test -f /opt/Bose": "exists",
                 "test -f /mnt/nv/Override": "exists",
                 "test -f /mnt/nv/SoundTouch": "exists",
-                "md5sum": f"{config_hash}  /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml\n{config_hash}  /mnt/nv/OverrideSdkPrivateCfg.xml\n{config_hash}  /mnt/nv/SoundTouchSdkPrivateCfg.xml",
-                "cat /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml": GOOD_CONFIG,
+                "md5sum": f"{config_hash}  /mnt/nv/OverrideSdkPrivateCfg.xml\n{config_hash}  /mnt/nv/SoundTouchSdkPrivateCfg.xml",
+                "cat /mnt/nv/OverrideSdkPrivateCfg.xml": GOOD_CONFIG,
                 "cat /etc/hosts": GOOD_HOSTS,
                 f"test -f {_PERSISTENCE_DIR}/SystemConfigurationDB.xml": "exists",
                 f"cat {_PERSISTENCE_DIR}/SystemConfigurationDB.xml": GOOD_SYS_CONFIG,

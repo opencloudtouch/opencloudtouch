@@ -100,7 +100,9 @@ class SetupService:
 
             # Check BMX URL
             check = await client.execute(
-                "cat /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml | grep -i bmxRegistryUrl"
+                "(cat /mnt/nv/OverrideSdkPrivateCfg.xml 2>/dev/null "
+                "|| cat /opt/Bose/etc/SoundTouchSdkPrivateCfg.xml) "
+                "| grep -i bmxRegistryUrl"
             )
             result["bmx_url"] = check.output.strip()
 
