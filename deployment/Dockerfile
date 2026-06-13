@@ -62,7 +62,7 @@ RUN apt-get purge -y --auto-remove gcc libc6-dev libffi-dev make autoconf automa
     find /install -name "*.pyc" -delete
 
 # Stage 2: Frontend Build (platform-independent HTML/CSS/JS)
-FROM node:20-slim@sha256:7d365eb5b00bf3c83e9c0bb1c63aed5fd86d87e23a7afc3c8e4090a8e5a44c4a AS frontend-build
+FROM node:20-slim AS frontend-build
 
 WORKDIR /build/frontend
 
