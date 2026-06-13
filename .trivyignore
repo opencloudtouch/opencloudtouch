@@ -1,0 +1,56 @@
+# ==============================================================================
+# Trivy Vulnerability Ignore List
+# ==============================================================================
+#
+# This file contains CVEs that are intentionally ignored during security scans.
+# Each entry should have a comment explaining why it's ignored.
+#
+# Syntax: CVE-ID [exp:yyyy-mm-dd] — Trivy stops ignoring after expiry date
+# Documentation: https://aquasecurity.github.io/trivy/latest/docs/configuration/filtering/
+#
+# AUTOMATED REVIEW: .github/workflows/security-review.yml checks quarterly
+# if ignored CVEs have become fixable and creates issues for review.
+
+# ------------------------------------------------------------------------------
+# ncurses: Buffer overflow (CVE-2025-69720) - HIGH
+# ------------------------------------------------------------------------------
+# Status: No fix available in Debian Bookworm (as of 2026-06-13)
+# Packages: libncursesw6, libtinfo6, ncurses-base, ncurses-bin
+# Impact: Minimal - ncurses is not directly exposed to user input in our container
+# Mitigation: Container runs as non-root, no interactive shell exposed
+# Auto-expires: 2026-09-13 (forces re-evaluation after 3 months)
+CVE-2025-69720 exp:2026-09-13
+
+# ------------------------------------------------------------------------------
+# perl-base: Multiple vulnerabilities - CRITICAL & HIGH
+# ------------------------------------------------------------------------------
+# Status: No fix available yet (fix_deferred or affected, as of 2026-06-13)
+# Packages: perl-base 5.40.1-6
+# Impact: Low - Perl is a base system dependency, not used directly by our app
+# Note: Python application, Perl not invoked at runtime
+# Mitigation: Container runs as non-root with minimal privileges
+# Auto-expires: 2026-09-13 (forces re-evaluation after 3 months)
+
+# Path traversal via crafted symlinks (CRITICAL) — shorter expiry for critical
+CVE-2026-42496 exp:2026-07-13
+
+# Heap buffer overflow when compiling (CRITICAL) — shorter expiry for critical
+CVE-2026-8376 exp:2026-07-13
+
+# Archive::Tar hardlink extraction (HIGH)
+CVE-2026-42497 exp:2026-09-13
+
+# IO::Uncompress::Unzip CPU exhaustion (HIGH)
+CVE-2026-48959 exp:2026-09-13
+
+# perl-IO-Compress arbitrary code execution (HIGH)
+CVE-2026-48962 exp:2026-09-13
+
+# Archive::Tar memory exhaustion (HIGH)
+CVE-2026-9538 exp:2026-09-13
+
+# ==============================================================================
+# DO NOT IGNORE:
+# - CVE-2026-45447 (OpenSSL) - Fix available in 3.5.6-1~deb13u2
+#   Action: apt-get upgrade in Dockerfile should pick this up
+# ==============================================================================

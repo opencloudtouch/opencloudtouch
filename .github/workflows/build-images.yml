@@ -208,6 +208,60 @@ jobs:
           cache-from: type=gha,scope=trivy-scan
           cache-to: type=gha,mode=max,scope=trivy-scan
 
+      - name: Check if ignored CVEs have fixes available
+        continue-on-error: true
+        run: |
+          echo "🔍 Checking if ignored vulnerabilities have become fixable..."
+          
+          if [ ! -f .trivyignore ]; then
+            echo "ℹ️  .trivyignore not found, skipping check"
+            exit 0
+          fi
+          
+          # Extract CVE IDs from .trivyignore (lines starting with CVE-)
+          IGNORED_CVES=$(grep '^CVE-[0-9]\{4\}-[0-9]' .trivyignore | awk '{print $1}' | tr '\n' '|' | sed 's/|$//')
+          
+          if [ -z "$IGNORED_CVES" ]; then
+            echo "ℹ️  No CVEs in .trivyignore"
+            exit 0
+          fi
+          
+          echo "📋 Ignored CVEs: $IGNORED_CVES"
+          
+          # Scan WITHOUT .trivyignore to see current status (stdout → host file)
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image \
+            --severity HIGH,CRITICAL \
+            --format json \
+            opencloudtouch:test > /tmp/trivy-full.json 2>/dev/null || {
+            echo "::notice::Trivy scan failed, skipping fix check"
+            exit 0
+          }
+          
+          if [ ! -s /tmp/trivy-full.json ]; then
+            echo "::notice::Trivy produced no output, skipping fix check"
+            exit 0
+          fi
+          
+          # Check if any ignored CVEs now have fixes
+          FIXABLE=$(jq -r --arg cves "$IGNORED_CVES" '
+            .Results[]?.Vulnerabilities[]? |
+            select(.Severity == "HIGH" or .Severity == "CRITICAL") |
+            select(.VulnerabilityID | test($cves)) |
+            select(.FixedVersion != null and .FixedVersion != "") |
+            "\(.VulnerabilityID): \(.PkgName) → \(.FixedVersion)"
+          ' /tmp/trivy-full.json || echo "")
+          
+          if [ -n "$FIXABLE" ]; then
+            echo "::warning::⚠️  IGNORED VULNERABILITIES NOW HAVE FIXES AVAILABLE:"
+            echo "$FIXABLE"
+            echo ""
+            echo "::warning::Please update .trivyignore and remove fixed CVEs!"
+          else
+            echo "✅ All ignored CVEs still unfixed (as expected)"
+          fi
+
       - name: Run Trivy vulnerability scanner (blocking)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
