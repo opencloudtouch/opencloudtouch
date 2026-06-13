@@ -64,24 +64,29 @@ RUN apt-get purge -y --auto-remove gcc libc6-dev libffi-dev make autoconf automa
 # Stage 2: Frontend Build (platform-independent HTML/CSS/JS)
 FROM node:20-slim AS frontend-build
 
-WORKDIR /build/frontend
+WORKDIR /build
 
-# Install dependencies first (better layer caching)
-COPY apps/frontend/package.json apps/frontend/package-lock.json ./
+# Copy workspace root package files (lock file is at root level — npm workspaces)
+COPY package.json package-lock.json ./
+
+# Copy frontend package.json for workspace resolution
+COPY apps/frontend/package.json ./apps/frontend/
+
+# Install dependencies via workspace root
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline --no-audit
+    npm ci --prefer-offline --no-audit --workspace=apps/frontend
 
-# Copy source files needed for build
-COPY apps/frontend/src ./src
-COPY apps/frontend/public ./public
-COPY apps/frontend/index.html ./
-COPY apps/frontend/vite.config.ts ./
-COPY apps/frontend/tsconfig.json ./
-COPY apps/frontend/tsconfig.app.json ./
-COPY apps/frontend/tsconfig.node.json ./
+# Copy frontend source files
+COPY apps/frontend/src ./apps/frontend/src
+COPY apps/frontend/public ./apps/frontend/public
+COPY apps/frontend/index.html ./apps/frontend/
+COPY apps/frontend/vite.config.ts ./apps/frontend/
+COPY apps/frontend/tsconfig.json ./apps/frontend/
+COPY apps/frontend/tsconfig.app.json ./apps/frontend/
+COPY apps/frontend/tsconfig.node.json ./apps/frontend/
 
-# Build the frontend (output: ../../.out/dist relative to /build/frontend = /build/.out/dist)
-RUN npm run build
+# Build the frontend (output: .out/dist relative to workspace root)
+RUN cd apps/frontend && npm run build
 
 # Stage 3: Backend Runtime
 FROM python:3.11-slim@sha256:0b23cfb7425d065008b778022a17b1551c82f8b4866ee5a7a200084b7e2eafbf AS backend
