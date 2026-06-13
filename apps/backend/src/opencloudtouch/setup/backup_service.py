@@ -151,9 +151,7 @@ class SoundTouchBackupService:
 
         return results
 
-    async def _verify_backup_files(
-        self, results: List[BackupResult]
-    ) -> None:
+    async def _verify_backup_files(self, results: List[BackupResult]) -> None:
         """Verify backup files are accessible on USB after creation.
 
         Logs warnings if files are missing or empty — indicates the backup

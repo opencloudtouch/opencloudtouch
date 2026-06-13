@@ -46,7 +46,6 @@ def service(mock_ssh):
 # ---------------------------------------------------------------------------
 
 
-
 class TestFindUsbMount:
     async def test_detects_block_device_mount(self, mock_ssh):
         """Strategy 1: /dev/sd* in /proc/mounts."""
