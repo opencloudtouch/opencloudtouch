@@ -2,10 +2,11 @@
 Unit tests for SoundTouchBackupService.
 
 Covers:
-- USB mount point detection
+- USB mount point detection (via shared find_usb_mount)
 - Per-volume tar command routing
 - Real size/duration reporting
 - Graceful failure when archive is empty
+- Post-backup file verification
 """
 
 from unittest.mock import AsyncMock, MagicMock
@@ -13,6 +14,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from opencloudtouch.setup.backup_service import SoundTouchBackupService, VolumeType
+from opencloudtouch.setup.wizard_helpers import find_usb_mount
 from opencloudtouch.setup.ssh_client import CommandResult
 
 
@@ -40,39 +42,79 @@ def service(mock_ssh):
 
 
 # ---------------------------------------------------------------------------
-# _find_usb_mount
+# find_usb_mount (shared helper, tested here for backup context)
 # ---------------------------------------------------------------------------
 
 
+
 class TestFindUsbMount:
-    async def test_returns_detected_mount(self, service, mock_ssh):
+    async def test_detects_block_device_mount(self, mock_ssh):
+        """Strategy 1: /dev/sd* in /proc/mounts."""
         mock_ssh.execute.return_value = _ok("/media/sda1")
 
-        result = await service._find_usb_mount()
-
-        assert result == "/media/sda1"
-        mock_ssh.execute.assert_awaited_once()
-
-    async def test_falls_back_when_grep_empty(self, service, mock_ssh):
-        mock_ssh.execute.return_value = _ok("")
-
-        result = await service._find_usb_mount()
+        result = await find_usb_mount(mock_ssh)
 
         assert result == "/media/sda1"
 
-    async def test_falls_back_when_command_fails(self, service, mock_ssh):
-        mock_ssh.execute.return_value = _fail("permission denied")
+    async def test_detects_non_standard_mount_path(self, mock_ssh):
+        """Strategy 1: Wave IV mounts USB at /tmp/mnt/usb."""
+        mock_ssh.execute.return_value = _ok("/tmp/mnt/usb")
 
-        result = await service._find_usb_mount()
+        result = await find_usb_mount(mock_ssh)
+
+        assert result == "/tmp/mnt/usb"
+
+    async def test_falls_through_to_path_strategy(self, mock_ssh):
+        """Strategy 2: /media/ or /tmp/mnt/ path-based fallback."""
+        mock_ssh.execute.side_effect = [
+            _ok(""),  # no block device
+            _ok("/media/usb0"),  # path-based match
+        ]
+
+        result = await find_usb_mount(mock_ssh)
+
+        assert result == "/media/usb0"
+
+    async def test_falls_through_to_filesystem_strategy(self, mock_ssh):
+        """Strategy 3: vfat/ext filesystem detection."""
+        mock_ssh.execute.side_effect = [
+            _ok(""),  # no block device
+            _ok(""),  # no path match
+            _ok("/mnt/usb"),  # filesystem match
+        ]
+
+        result = await find_usb_mount(mock_ssh)
+
+        assert result == "/mnt/usb"
+
+    async def test_raises_when_no_usb_found(self, mock_ssh):
+        """All strategies fail → RuntimeError."""
+        mock_ssh.execute.side_effect = [
+            _ok(""),  # no block device
+            _ok(""),  # no path match
+            _ok(""),  # no filesystem match
+        ]
+
+        with pytest.raises(RuntimeError, match="No USB stick detected"):
+            await find_usb_mount(mock_ssh)
+
+    async def test_strips_trailing_whitespace(self, mock_ssh):
+        mock_ssh.execute.return_value = _ok("/media/sda1  \n")
+
+        result = await find_usb_mount(mock_ssh)
 
         assert result == "/media/sda1"
 
-    async def test_strips_trailing_whitespace(self, service, mock_ssh):
-        mock_ssh.execute.return_value = _ok("/media/usb  \n")
+    async def test_raises_when_all_commands_fail(self, mock_ssh):
+        """SSH errors on all strategies → RuntimeError."""
+        mock_ssh.execute.side_effect = [
+            _fail("permission denied"),
+            _fail("error"),
+            _fail("error"),
+        ]
 
-        result = await service._find_usb_mount()
-
-        assert result == "/media/usb"
+        with pytest.raises(RuntimeError, match="No USB stick detected"):
+            await find_usb_mount(mock_ssh)
 
 
 # ---------------------------------------------------------------------------
@@ -177,7 +219,7 @@ class TestBackupVolume:
 
 class TestBackupAll:
     async def test_backs_up_three_volumes(self, service, mock_ssh):
-        # find_usb_mount + mkdir + (tar + wc) × 3
+        # find_usb_mount (strategy 1) + mkdir + (tar + wc) × 3 + verify × 3
         mock_ssh.execute.side_effect = [
             _ok("/media/sda1"),  # find_usb_mount
             _ok(),  # mkdir
@@ -187,6 +229,9 @@ class TestBackupAll:
             _ok("10240"),  # persistent
             _ok(),
             _ok("954966"),  # update
+            _ok("61341696"),  # verify rootfs
+            _ok("10240"),  # verify persistent
+            _ok("954966"),  # verify update
         ]
 
         results = await service.backup_all()
@@ -207,6 +252,9 @@ class TestBackupAll:
             _ok("10240"),
             _ok(),
             _ok("954966"),
+            _ok("61341696"),  # verify rootfs
+            _ok("10240"),  # verify persistent
+            _ok("954966"),  # verify update
         ]
 
         results = await service.backup_all()
@@ -224,6 +272,8 @@ class TestBackupAll:
             _ok("10240"),  # persistent succeeds
             _ok(),
             _ok("954966"),  # update succeeds
+            _ok("10240"),  # verify persistent
+            _ok("954966"),  # verify update
         ]
 
         results = await service.backup_all()
@@ -242,6 +292,9 @@ class TestBackupAll:
             _ok(),
             _ok("10240"),
             _ok(),
+            _ok("954966"),
+            _ok("61341696"),
+            _ok("10240"),
             _ok("954966"),
         ]
 
@@ -276,9 +329,109 @@ class TestBackupAll:
             _ok("10240"),  # wc -c persistent
             _ok(),  # tar update
             _ok("954966"),  # wc -c update
+            _ok("61341696"),  # verify rootfs
+            _ok("10240"),  # verify persistent
+            _ok("954966"),  # verify update
         ]
 
         results = await service.backup_all()
 
         # Should still attempt all volumes despite mkdir warning
         assert len(results) == 3
+
+    async def test_raises_error_when_no_usb_detected(self, service, mock_ssh):
+        """No USB stick → RuntimeError propagated from find_usb_mount."""
+        mock_ssh.execute.side_effect = [
+            _ok(""),  # strategy 1: no block device
+            _ok(""),  # strategy 2: no path match
+            _ok(""),  # strategy 3: no filesystem match
+        ]
+
+        with pytest.raises(RuntimeError, match="No USB stick detected"):
+            await service.backup_all()
+
+    async def test_wave_iv_non_standard_mount(self, service, mock_ssh):
+        """Wave SoundTouch IV uses different mount path — backup still works."""
+        mock_ssh.execute.side_effect = [
+            _ok("/tmp/mnt/usb"),  # find_usb_mount → Wave IV path
+            _ok(),  # mkdir
+            _ok(),
+            _ok("61341696"),  # rootfs
+            _ok(),
+            _ok("10240"),  # persistent
+            _ok(),
+            _ok("954966"),  # update
+            _ok("61341696"),
+            _ok("10240"),
+            _ok("954966"),
+        ]
+
+        results = await service.backup_all()
+
+        assert all(r.success for r in results)
+        # Verify backup was written to the correct Wave IV path
+        mkdir_call = mock_ssh.execute.await_args_list[1]
+        assert "/tmp/mnt/usb/oct-backup" in mkdir_call[0][0]
+
+
+# ---------------------------------------------------------------------------
+# _verify_backup_files
+# ---------------------------------------------------------------------------
+
+
+class TestVerifyBackupFiles:
+    async def test_verification_passes_with_valid_files(self, service, mock_ssh):
+        """All files exist and have non-zero size → success unchanged."""
+        from opencloudtouch.setup.backup_service import BackupResult
+
+        results = [
+            BackupResult(
+                volume=VolumeType.ROOTFS,
+                success=True,
+                backup_path="/media/sda1/oct-backup/soundtouch-rootfs.tgz",
+                size_bytes=61341696,
+            ),
+        ]
+        mock_ssh.execute.return_value = _ok("61341696")
+
+        await service._verify_backup_files(results)
+
+        assert results[0].success is True
+
+    async def test_verification_fails_when_file_missing(self, service, mock_ssh):
+        """File not found after backup → success flipped to False."""
+        from opencloudtouch.setup.backup_service import BackupResult
+
+        results = [
+            BackupResult(
+                volume=VolumeType.ROOTFS,
+                success=True,
+                backup_path="/media/sda1/oct-backup/soundtouch-rootfs.tgz",
+                size_bytes=61341696,
+            ),
+        ]
+        mock_ssh.execute.return_value = _fail("No such file")
+
+        await service._verify_backup_files(results)
+
+        assert results[0].success is False
+        assert "not found" in results[0].error
+
+    async def test_verification_fails_when_file_empty(self, service, mock_ssh):
+        """Zero-byte file after backup → success flipped to False."""
+        from opencloudtouch.setup.backup_service import BackupResult
+
+        results = [
+            BackupResult(
+                volume=VolumeType.ROOTFS,
+                success=True,
+                backup_path="/media/sda1/oct-backup/soundtouch-rootfs.tgz",
+                size_bytes=61341696,
+            ),
+        ]
+        mock_ssh.execute.return_value = _ok("0")
+
+        await service._verify_backup_files(results)
+
+        assert results[0].success is False
+        assert "empty" in results[0].error
