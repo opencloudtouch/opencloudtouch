@@ -5,10 +5,12 @@
 # Supports amd64, arm64, and armv7 (Raspberry Pi 2/3/4/5)
 # ============================================================
 #
-# IMPORTANT: The frontend is pre-built in CI (platform-independent HTML/CSS/JS)
-# and provided via the Docker build context at .out/dist/.
-# This avoids needing Node.js in Docker and eliminates Rolldown/Rollup
-# native binding issues across architectures (especially ARM32 musl).
+# The frontend is built from source during the Docker build (Stage 2).
+# This allows users to clone the repo and run `docker-compose up --build`
+# without pre-building the frontend separately.
+#
+# CI may pre-build the frontend and provide it via .out/dist/ to skip Stage 2
+# for faster builds, but it's not required.
 #
 # Base Image Versions (Pinned for Reproducibility)
 # Update SHA256 digests with:
@@ -17,6 +19,7 @@
 #
 # Current versions:
 #   Python: 3.11.8-slim (Debian Bookworm)
+#   Node.js: 20-slim (for frontend build)
 
 # Stage 1: Python Dependencies (separate for better caching)
 FROM python:3.11-slim@sha256:0b23cfb7425d065008b778022a17b1551c82f8b4866ee5a7a200084b7e2eafbf AS python-deps
@@ -58,6 +61,28 @@ RUN apt-get purge -y --auto-remove gcc libc6-dev libffi-dev make autoconf automa
     find /install -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
     find /install -name "*.pyc" -delete
 
+# Stage 2: Frontend Build (platform-independent HTML/CSS/JS)
+FROM node:20-slim@sha256:7d365eb5b00bf3c83e9c0bb1c63aed5fd86d87e23a7afc3c8e4090a8e5a44c4a AS frontend-build
+
+WORKDIR /build/frontend
+
+# Install dependencies first (better layer caching)
+COPY apps/frontend/package.json apps/frontend/package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline --no-audit
+
+# Copy source files needed for build
+COPY apps/frontend/src ./src
+COPY apps/frontend/public ./public
+COPY apps/frontend/index.html ./
+COPY apps/frontend/vite.config.ts ./
+COPY apps/frontend/tsconfig.json ./
+COPY apps/frontend/tsconfig.app.json ./
+COPY apps/frontend/tsconfig.node.json ./
+
+# Build the frontend (output: ../../.out/dist relative to /build/frontend = /build/.out/dist)
+RUN npm run build
+
 # Stage 3: Backend Runtime
 FROM python:3.11-slim@sha256:0b23cfb7425d065008b778022a17b1551c82f8b4866ee5a7a200084b7e2eafbf AS backend
 
@@ -98,8 +123,9 @@ RUN python -m compileall -b opencloudtouch/ && \
     find opencloudtouch/ -name "*.py" ! -name "__main__.py" -delete && \
     find opencloudtouch/ -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 
-# Copy pre-built frontend from CI (platform-independent static files)
-COPY .out/dist ./frontend/dist
+# Copy frontend from build stage (built from source for self-build compatibility)
+# In CI, this stage is skipped and .out/dist is provided via build context for faster builds
+COPY --from=frontend-build /build/.out/dist ./frontend/dist
 
 # Copy legal files
 COPY LICENSE NOTICE DISCLAIMER.md ./

@@ -17,13 +17,15 @@ Alle Deployment-bezogenen Dateien für OpenCloudTouch Container-Deployment.
 ### Local Development
 
 ```bash
-# Docker Compose starten
+# Docker Compose starten (builds frontend automatically)
 cd deployment/
 docker-compose up --build
 
 # ODER: Podman lokal
-siehe `tools/local-scripts/` (z. B. `run-container.ps1`)iner.ps1 -Port 7777 -ManualIPs "192.168.1.100"
+siehe `tools/local-scripts/` (z. B. `run-container.ps1`)
 ```
+
+**Note**: The Docker build now includes frontend compilation from source. No pre-build step required — just `docker-compose up --build` works out of the box.
 
 ### NAS/Server Deployment
 

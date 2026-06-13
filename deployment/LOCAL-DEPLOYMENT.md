@@ -88,6 +88,7 @@ Invoke-RestMethod http://localhost:7777/api/devices
    podman rm -f opencloudtouch-local
    .\deployment\deploy-local.ps1
    ```
+   Frontend is automatically built during Docker image build — no separate build step needed.
 3. **Test UI** at http://localhost:7777
 4. **View logs** for debugging:
    ```powershell
