@@ -1,12 +1,16 @@
 """Unit tests for memory leak fixes (#366)."""
 
+import asyncio
 import time
 
 import pytest
 
 from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.devices.websocket.icy_worker import IcyWorker
+from opencloudtouch.devices.websocket.parser import DeviceEvent, EventType
+from opencloudtouch.devices.websocket.throttle import EventThrottle
 from opencloudtouch.streaming.metadata_cache import MISSING, MetadataCache
+from opencloudtouch.streaming.icy_metadata import IcyMetadata
 
 
 class TestMetadataCacheLRUEviction:
@@ -129,3 +133,109 @@ class TestDeviceStateManagerCleanup:
         assert removed == 0
         assert manager.get_state("device_1") is not None
         assert manager.get_state("device_2") is not None
+
+
+class TestSSEQueueBackpressure:
+    """Test SSE subscriber queue backpressure (#366)."""
+
+    def test_subscribe_creates_bounded_queue(self):
+        """subscribe() should create a queue with maxsize=200."""
+        manager = DeviceStateManager()
+        queue = manager.subscribe()
+        assert queue.maxsize == 200
+
+    @pytest.mark.asyncio
+    async def test_publish_drops_event_on_full_queue(self):
+        """publish() should drop events when a subscriber queue is full."""
+        manager = DeviceStateManager()
+        queue = manager.subscribe()
+
+        # Fill queue to capacity
+        event = DeviceEvent(device_id="test", event_type=EventType.VOLUME)
+        for _ in range(200):
+            queue.put_nowait(event)
+
+        assert queue.full()
+
+        # Publishing should not block; event is dropped
+        await manager.publish(event)
+
+        # Queue size unchanged — event was dropped, not added
+        assert queue.qsize() == 200
+
+
+class TestMetadataCacheExpiredEviction:
+    """Test eviction of fully expired entries in MetadataCache.get() (#366)."""
+
+    def test_expired_entry_without_stale_data_is_deleted(self):
+        """get() should delete entry expired past TTL with no stale data."""
+        cache = MetadataCache(ttl=0.01, stale_ttl=0.01)
+        cache.put("http://stream.example.com", None)
+
+        # Wait for both TTL and stale_ttl to expire
+        time.sleep(0.02)
+
+        result = cache.get("http://stream.example.com")
+        assert result is MISSING
+        # Entry should be evicted from internal cache
+        assert "http://stream.example.com" not in cache._cache
+
+    def test_expired_entry_with_expired_stale_data_is_deleted(self):
+        """get() should delete entry when both TTL and stale_ttl expired."""
+        cache = MetadataCache(ttl=0.01, stale_ttl=0.02)
+        metadata = IcyMetadata(artist="Artist", track="Track", raw_title="Artist - Track")
+        cache.put("http://stream.example.com", metadata)
+
+        # Wait for both TTL and stale_ttl to expire
+        time.sleep(0.03)
+
+        result = cache.get("http://stream.example.com")
+        assert result is MISSING
+        assert "http://stream.example.com" not in cache._cache
+
+    def test_expired_entry_with_valid_stale_data_is_kept(self):
+        """get() should keep entry when TTL expired but stale data still valid."""
+        cache = MetadataCache(ttl=0.01, stale_ttl=10.0)
+        metadata = IcyMetadata(artist="Artist", track="Track", raw_title="Artist - Track")
+        cache.put("http://stream.example.com", metadata)
+
+        # Wait for TTL but not stale_ttl
+        time.sleep(0.02)
+
+        result = cache.get("http://stream.example.com")
+        assert result is MISSING
+        # Entry should still be in cache (stale data still valid)
+        assert "http://stream.example.com" in cache._cache
+
+
+class TestEventThrottleTaskCleanup:
+    """Test EventThrottle task cleanup after delayed publish (#366)."""
+
+    @pytest.mark.asyncio
+    async def test_tasks_dict_empty_after_delayed_publish(self):
+        """_tasks should be empty after delayed publish completes."""
+        published: list[DeviceEvent] = []
+
+        async def mock_publish(event: DeviceEvent) -> None:
+            published.append(event)
+
+        throttle = EventThrottle(publish=mock_publish)
+
+        # First publish goes through immediately (sets last_publish)
+        event1 = DeviceEvent(device_id="dev1", event_type=EventType.VOLUME)
+        await throttle.submit(event1)
+        assert len(published) == 1
+
+        # Second publish within cooldown triggers delayed task
+        event2 = DeviceEvent(device_id="dev1", event_type=EventType.VOLUME)
+        await throttle.submit(event2)
+
+        key = ("dev1", EventType.VOLUME)
+        assert key in throttle._tasks
+
+        # Wait for delayed task to complete
+        await asyncio.sleep(0.2)
+
+        # Task reference should be cleaned up
+        assert key not in throttle._tasks
+        assert len(published) == 2

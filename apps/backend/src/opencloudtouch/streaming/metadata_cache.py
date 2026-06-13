@@ -87,6 +87,11 @@ class MetadataCache:
             return None
 
         # Cache expired — trigger re-probe
+        # Evict if stale data is also expired (#366)
+        if entry.last_good_metadata is None or (
+            time.monotonic() - entry.last_good_timestamp > self._stale_ttl
+        ):
+            del self._cache[url]
         return MISSING
 
     def put(self, url: str, metadata: IcyMetadata | None) -> None:

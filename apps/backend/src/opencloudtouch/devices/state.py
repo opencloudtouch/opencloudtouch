@@ -165,7 +165,7 @@ class DeviceStateManager:
             )
             self._subscribers.clear()
 
-        queue: asyncio.Queue[DeviceEvent] = asyncio.Queue()
+        queue: asyncio.Queue[DeviceEvent] = asyncio.Queue(maxsize=200)
         self._subscribers.append(queue)
         logger.debug(
             "Client subscribed to device events (total: %d)",
@@ -206,7 +206,12 @@ class DeviceStateManager:
         )
         for queue in self._subscribers[:]:  # iterate over copy
             try:
-                await queue.put(event)
+                queue.put_nowait(event)
+            except asyncio.QueueFull:
+                logger.warning(
+                    "SSE subscriber queue full, dropping event for %s",
+                    event.device_id,
+                )
             except Exception:
                 logger.exception("Failed to publish event to subscriber")
                 self._subscribers.remove(queue)
