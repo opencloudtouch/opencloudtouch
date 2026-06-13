@@ -51,6 +51,7 @@
     "presetSaved": "Préréglage {{number}} enregistré.",
     "presetDeleted": "Préréglage {{number}} supprimé.",
     "playFailed": "Le préréglage n'a pas pu être lu. Veuillez réessayer.",
+    "deviceNotProgrammed": "Impossible de programmer l'appareil. La lecture pourrait ne pas fonctionner avant la configuration.",
     "noDevices": "Aucun appareil trouvé",
     "syncedFromDevice": "Préréglages chargés avec succès depuis l'appareil.",
     "savedStations": "Stations enregistrées",

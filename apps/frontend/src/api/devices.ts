@@ -128,26 +128,41 @@ export async function getDeviceCapabilities(deviceId: string): Promise<Record<st
   return response.json();
 }
 
+export interface PlayPresetResult {
+  message: string;
+  device_id: string;
+  preset_number: number;
+  station_name: string;
+  device_programmed: boolean;
+}
+
 /**
- * Play a preset on a device by simulating key press
+ * Play a preset on a device.
+ *
+ * Uses the dedicated play-preset endpoint which ensures the device
+ * is programmed with the correct station before sending the key press.
  *
  * @param deviceId - Device ID
  * @param presetNumber - Preset number (1-6)
+ * @returns PlayPresetResult with playback status and device_programmed flag
  */
-export async function playPreset(deviceId: string, presetNumber: number): Promise<void> {
+export async function playPreset(
+  deviceId: string,
+  presetNumber: number
+): Promise<PlayPresetResult> {
   if (presetNumber < 1 || presetNumber > 6) {
     throw new Error(`Invalid preset number: ${presetNumber}. Must be 1-6`);
   }
 
-  const key = `PRESET_${presetNumber}`;
   const response = await fetch(
-    `${API_BASE_URL}/api/devices/${deviceId}/key?key=${key}&state=both`,
+    `${API_BASE_URL}/api/devices/${deviceId}/play-preset/${presetNumber}`,
     {
       method: "POST",
     }
   );
 
   await throwIfNotOk(response, "Failed to play preset");
+  return response.json();
 }
 
 /**

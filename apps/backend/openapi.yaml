@@ -276,6 +276,59 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/devices/{device_id}/play-preset/{preset_number}:
+    post:
+      tags:
+      - Devices
+      summary: Play Preset
+      description: "Play a preset on a device.\n\nEnsures the device is programmed\
+        \ with the correct station before sending the key press. This fixes silent\
+        \ failures where the OCT database has the preset but the device's internal\
+        \ preset slot is empty.\n\nFlow:\n1. Look up preset in OCT database\n2. Re-program\
+        \ the device via /storePreset (idempotent)\n3. Send PRESET_X key press to\
+        \ start playback"
+      operationId: play_preset_api_devices__device_id__play_preset__preset_number__post
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: preset_number
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 6
+          title: Preset Number
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  device_id:
+                    type: string
+                  preset_number:
+                    type: integer
+                  station_name:
+                    type: string
+                  device_programmed:
+                    type: boolean
+        '404':
+          description: Preset not configured or device not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/devices/{device_id}/name:
     put:
       tags:

@@ -43,6 +43,7 @@ class PresetResponse(BaseModel):
     source: Optional[str]
     created_at: str
     updated_at: str
+    device_programmed: Optional[bool] = None
 
 
 class MessageResponse(BaseModel):
@@ -63,7 +64,7 @@ async def set_preset(
     is pressed on the SoundTouch device, it will load the configured station.
     """
     try:
-        saved_preset = await preset_service.set_preset(
+        result = await preset_service.set_preset(
             device_id=request.device_id,
             preset_number=request.preset_number,
             station_uuid=request.station_uuid,
@@ -73,7 +74,9 @@ async def set_preset(
             station_favicon=request.station_favicon,
         )
 
-        return PresetResponse(**saved_preset.to_dict())
+        response_data = result.preset.to_dict()
+        response_data["device_programmed"] = result.device_programmed
+        return PresetResponse(**response_data)
 
     except DeviceNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))  # NOSONAR
