@@ -19,7 +19,7 @@ from opencloudtouch.setup.restore_models import (
     RestoreStepName,
     StepStatus,
 )
-from opencloudtouch.setup.wizard_helpers import ssh_operation
+from opencloudtouch.setup.wizard_helpers import find_usb_mount, ssh_operation
 
 logger = logging.getLogger(__name__)
 
@@ -82,14 +82,17 @@ class RestoreService:
         Returns list of parsed BackupFileInfo (excludes pre-restore files).
         """
         async with ssh_operation(device_ip, "find-backups") as ssh:
-            # Check USB mount
-            result = await ssh.execute("ls -d /media/sda1 2>/dev/null")
-            if result.exit_code != 0 or not result.output.strip():
+            # Detect USB mount point dynamically
+            try:
+                usb_path = await find_usb_mount(ssh)
+            except RuntimeError:
                 return []
+
+            backup_dir = f"{usb_path}/oct-backup"
 
             # List backup directory
             result = await ssh.execute(
-                "ls /media/sda1/oct-backup/*.tgz 2>/dev/null | xargs -n1 basename"
+                f"ls {backup_dir}/*.tgz 2>/dev/null | xargs -n1 basename"
             )
             if result.exit_code != 0 or not result.output.strip():
                 return []
@@ -101,7 +104,7 @@ class RestoreService:
                     continue
                 info = self._parse_backup_filename(filename)
                 if info and not info.is_pre_restore:
-                    info.file_path = f"/media/sda1/oct-backup/{filename}"
+                    info.file_path = f"{backup_dir}/{filename}"
                     files.append(info)
 
             return files
@@ -155,17 +158,22 @@ class RestoreService:
         if not files:
             # Determine if USB not mounted or just empty
             async with ssh_operation(device_ip, "check-usb") as ssh:
-                result = await ssh.execute("ls -d /media/sda1 2>/dev/null")
-                usb_mounted = result.exit_code == 0 and bool(result.output.strip())
+                try:
+                    usb_path = await find_usb_mount(ssh)
+                    usb_mounted = True
+                except RuntimeError:
+                    usb_mounted = False
+                    usb_path = None
 
             if not usb_mounted:
                 return BackupScanResult(
                     usb_mounted=False,
-                    error="USB stick not detected at /media/sda1. Please insert USB stick and try again.",
+                    error="No USB stick detected. Please insert USB stick and try again.",
                 )
             return BackupScanResult(
                 usb_mounted=True,
-                error="No backup files found in /media/sda1/oct-backup/.",
+                backup_dir=f"{usb_path}/oct-backup",
+                error=f"No backup files found in {usb_path}/oct-backup/.",
             )
 
         sets = self._group_into_sets(files)
