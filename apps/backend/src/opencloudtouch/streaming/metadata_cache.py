@@ -4,11 +4,14 @@ Caches probe results per stream URL with a configurable TTL.
 Uses a stale-while-revalidate pattern: when a probe returns None but
 we have previous good data, the stale data is served for up to
 `stale_ttl` seconds before giving up and returning None.
+
+LRU eviction: when cache exceeds max_size, oldest entries are removed.
 """
 
 from __future__ import annotations
 
 import time
+from collections import OrderedDict
 from dataclasses import dataclass
 
 from opencloudtouch.streaming.icy_metadata import IcyMetadata
@@ -18,6 +21,9 @@ DEFAULT_TTL = 15.0
 
 # How long stale data is served when probes return None (seconds)
 DEFAULT_STALE_TTL = 60.0
+
+# Maximum cache entries (prevent unbounded growth)
+DEFAULT_MAX_SIZE = 50
 
 
 @dataclass(slots=True)
@@ -38,14 +44,19 @@ class MetadataCache:
     - When a probe returns None but we had data before: stale data is
       served for up to `stale_ttl` seconds, then None is returned.
     - Invalidation: call `invalidate(url)` when the stream changes.
+    - LRU eviction: when cache exceeds max_size, oldest entries are removed.
     """
 
     def __init__(
-        self, ttl: float = DEFAULT_TTL, stale_ttl: float = DEFAULT_STALE_TTL
+        self,
+        ttl: float = DEFAULT_TTL,
+        stale_ttl: float = DEFAULT_STALE_TTL,
+        max_size: int = DEFAULT_MAX_SIZE,
     ) -> None:
         self._ttl = ttl
         self._stale_ttl = stale_ttl
-        self._cache: dict[str, _CacheEntry] = {}
+        self._max_size = max_size
+        self._cache: OrderedDict[str, _CacheEntry] = OrderedDict()
 
     def get(self, url: str) -> IcyMetadata | None | _Missing:
         """Look up cached metadata for a stream URL.
@@ -58,6 +69,9 @@ class MetadataCache:
         entry = self._cache.get(url)
         if entry is None:
             return MISSING
+
+        # Move to end (mark as recently used)
+        self._cache.move_to_end(url)
 
         age = time.monotonic() - entry.timestamp
 
@@ -80,6 +94,7 @@ class MetadataCache:
 
         When metadata is None but we had good data before, the last
         good result is preserved for stale-while-revalidate.
+        Evicts oldest entries if cache exceeds max_size.
         """
         now = time.monotonic()
         existing = self._cache.get(url)
@@ -102,6 +117,14 @@ class MetadataCache:
                 last_good_metadata=last_good,
                 last_good_timestamp=last_good_ts,
             )
+
+        # Move to end (mark as recently used)
+        self._cache.move_to_end(url)
+
+        # Evict oldest entries if over capacity
+        while len(self._cache) > self._max_size:
+            oldest_url = next(iter(self._cache))
+            self._cache.pop(oldest_url)
 
     def invalidate(self, url: str) -> None:
         """Remove a specific URL from cache (e.g., on preset change)."""
