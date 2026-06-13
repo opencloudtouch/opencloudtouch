@@ -245,6 +245,15 @@ async def _init_services(
         logger.info("Device health-check started")
     app.state.health_check = health_check
 
+    # Eagerly initialize radio adapters and store in app.state for lifecycle management
+    # Only in non-mock mode — mock adapters are stateless and don't need cleanup
+    if not cfg.mock_mode:
+        from opencloudtouch.radio.adapter import get_radio_adapter
+
+        app.state.radio_adapter = get_radio_adapter("radiobrowser")
+        app.state.tunein_adapter = get_radio_adapter("tunein")
+        logger.info("Radio adapters initialized")
+
     await _init_websocket_pipeline(app, cfg, device_repo, logger)
 
 
@@ -334,21 +343,15 @@ async def _shutdown(app: FastAPI, repos: dict, logger: logging.Logger) -> None:
     await app.state.health_check.stop()
     logger.info("Device health-check stopped")
 
-    # Close radio provider singletons (#366 memory leak fix)
-    try:
-        from opencloudtouch.radio.adapter import (
-            _radio_adapter_instance,
-            _tunein_adapter_instance,
-        )
-
-        if _radio_adapter_instance:
-            await _radio_adapter_instance.close()
-            logger.info("RadioBrowserProvider closed")
-        if _tunein_adapter_instance:
-            await _tunein_adapter_instance.close()
-            logger.info("TuneInProvider closed")
-    except Exception:
-        logger.exception("Failed to close radio providers")
+    # Close radio adapters stored in app.state (#366 memory leak fix)
+    radio_adapter = getattr(app.state, "radio_adapter", None)
+    if radio_adapter:
+        await radio_adapter.close()
+        logger.info("RadioBrowserProvider closed")
+    tunein_adapter = getattr(app.state, "tunein_adapter", None)
+    if tunein_adapter:
+        await tunein_adapter.close()
+        logger.info("TuneInProvider closed")
 
     for attr_name, repo in repos.items():
         await repo.close()
@@ -431,24 +434,9 @@ app.include_router(event_router)  # SSE device event stream
 async def health_check(request: Request):
     """Health check endpoint for Docker and monitoring.
 
-    Includes memory stats for monitoring memory leaks (#366).
+    Minimal response — detailed memory stats available at /api/diagnostics/memory.
     """
-    import psutil
-
     cfg = get_config()
-    process = psutil.Process()
-    mem_info = process.memory_info()
-
-    # Get cache sizes from state manager and ICY worker
-    state_manager_size = 0
-    icy_probe_cache_size = 0
-    icy_metadata_cache_size = 0
-    if hasattr(request.app.state, "device_state_manager"):
-        state_manager = request.app.state.device_state_manager
-        state_manager_size = len(state_manager._states)
-        if state_manager._icy_worker:
-            icy_probe_cache_size = len(state_manager._icy_worker._last_probe)
-            icy_metadata_cache_size = len(state_manager._icy_worker._last_metadata)
 
     return JSONResponse(
         status_code=200,
@@ -459,16 +447,6 @@ async def health_check(request: Request):
             "build": "official" if is_official_build() else "community",
             "config": {
                 "discovery_enabled": cfg.discovery_enabled,
-            },
-            "memory": {
-                "rss_mb": round(mem_info.rss / 1024 / 1024, 1),
-                "vms_mb": round(mem_info.vms / 1024 / 1024, 1),
-                "percent": round(process.memory_percent(), 1),
-            },
-            "cache_sizes": {
-                "device_states": state_manager_size,
-                "icy_probe_history": icy_probe_cache_size,
-                "icy_metadata_tracking": icy_metadata_cache_size,
             },
         },
     )

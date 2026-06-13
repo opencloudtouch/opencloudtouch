@@ -5,6 +5,7 @@ import time
 
 import pytest
 
+from opencloudtouch.devices.health_check import DeviceHealthCheck
 from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.devices.websocket.icy_worker import IcyWorker
 from opencloudtouch.devices.websocket.parser import DeviceEvent, EventType
@@ -239,3 +240,44 @@ class TestEventThrottleTaskCleanup:
         # Task reference should be cleaned up
         assert key not in throttle._tasks
         assert len(published) == 2
+
+
+class TestCleanupFailCounters:
+    """Test _cleanup_fail_counters() in DeviceHealthCheck (#366)."""
+
+    def test_removes_stale_device_ids(self):
+        """Devices no longer in DB should have their fail counters removed."""
+        health_check = DeviceHealthCheck(device_repo=None)
+        health_check._ssh_fail_count = {"A": 1, "B": 3, "C": 2}
+
+        health_check._cleanup_fail_counters(valid_device_ids={"A", "C"})
+
+        assert "B" not in health_check._ssh_fail_count
+        assert health_check._ssh_fail_count == {"A": 1, "C": 2}
+
+    def test_idempotent_on_empty_set(self):
+        """Cleanup with empty fail counters and empty valid_ids should not error."""
+        health_check = DeviceHealthCheck(device_repo=None)
+        health_check._ssh_fail_count = {}
+
+        health_check._cleanup_fail_counters(valid_device_ids=set())
+
+        assert health_check._ssh_fail_count == {}
+
+    def test_keeps_all_when_all_valid(self):
+        """All counters should remain when all device IDs are valid."""
+        health_check = DeviceHealthCheck(device_repo=None)
+        health_check._ssh_fail_count = {"A": 1, "B": 2}
+
+        health_check._cleanup_fail_counters(valid_device_ids={"A", "B"})
+
+        assert health_check._ssh_fail_count == {"A": 1, "B": 2}
+
+    def test_removes_all_when_no_valid_ids(self):
+        """All counters should be removed when valid_ids is empty."""
+        health_check = DeviceHealthCheck(device_repo=None)
+        health_check._ssh_fail_count = {"A": 1, "B": 2, "C": 3}
+
+        health_check._cleanup_fail_counters(valid_device_ids=set())
+
+        assert health_check._ssh_fail_count == {}
