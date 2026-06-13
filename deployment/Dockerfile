@@ -62,7 +62,7 @@ RUN apt-get purge -y --auto-remove gcc libc6-dev libffi-dev make autoconf automa
     find /install -name "*.pyc" -delete
 
 # Stage 2: Frontend Build (platform-independent HTML/CSS/JS)
-FROM node:20-slim AS frontend-build
+FROM node:24-slim AS frontend-build
 
 WORKDIR /build
 
@@ -82,8 +82,6 @@ COPY apps/frontend/public ./apps/frontend/public
 COPY apps/frontend/index.html ./apps/frontend/
 COPY apps/frontend/vite.config.ts ./apps/frontend/
 COPY apps/frontend/tsconfig.json ./apps/frontend/
-COPY apps/frontend/tsconfig.app.json ./apps/frontend/
-COPY apps/frontend/tsconfig.node.json ./apps/frontend/
 
 # Build the frontend (output: .out/dist relative to workspace root)
 RUN cd apps/frontend && npm run build
