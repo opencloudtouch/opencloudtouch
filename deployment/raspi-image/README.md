@@ -16,7 +16,7 @@ Builds ready-to-flash SD card images for Raspberry Pi 2/3/4/5.
 - OpenCloudTouch container (auto-starts on boot)
 - mDNS/Avahi (`opencloudtouch.local`)
 - Automatic Wi-Fi config via `oct-config.txt` on boot partition
-- Automatic resize of root partition on first boot
+- **Automatic filesystem expansion** on first boot (expands root partition to full SD card capacity)
 
 ## Usage
 
@@ -51,8 +51,12 @@ OCT_PORT=7777
 ### First Boot
 
 1. Insert SD card, connect power
-2. Wait ~2-3 minutes (first boot takes longer: resize, Docker pull)
+2. Wait ~3-4 minutes for initial setup:
+   - **First boot (1-2 min):** Filesystem expansion + automatic reboot
+   - **Second boot (2-3 min):** Wi-Fi config, Docker image pull, service start
 3. Access: `http://opencloudtouch.local:7777`
+
+**Note:** The system will automatically reboot once during first boot to complete filesystem expansion. This is normal and expected.
 
 ## Building Locally
 
@@ -115,3 +119,55 @@ SSH is enabled by default:
 - User: `oct`
 - Default password: `opencloudtouch` (change on first login!)
 - Or configure SSH keys via Raspberry Pi Imager advanced settings
+
+## Troubleshooting
+
+### Filesystem Not Expanding
+
+**Symptom:** Docker fails to pull the image with "no space left on device" error.
+
+**Cause:** Filesystem expansion failed or didn't run.
+
+**Solution:**
+1. SSH into the Pi: `ssh oct@opencloudtouch.local`
+2. Check if expansion ran: `ls -l /var/lib/oct-expanded`
+   - If file exists: expansion completed successfully
+   - If missing: expansion didn't run or failed
+3. Check expansion logs: `journalctl -u oct-expand-fs.service`
+4. Manual expansion:
+   ```bash
+   sudo raspi-config --expand-rootfs nonint
+   sudo reboot
+   ```
+5. Verify disk space after reboot: `df -h /`
+
+### Service Status Checks
+
+```bash
+# Check if filesystem expansion completed
+systemctl status oct-expand-fs.service
+
+# Check if firstboot ran
+systemctl status oct-firstboot.service
+
+# Check if OCT is running
+systemctl status opencloudtouch.service
+docker compose -f /opt/opencloudtouch/docker-compose.yml ps
+
+# View logs
+journalctl -u oct-expand-fs.service -n 50
+journalctl -u oct-firstboot.service -n 50
+journalctl -u opencloudtouch.service -n 50
+```
+
+### First Boot Takes Too Long
+
+**Expected timeline:**
+- 1-2 minutes: Filesystem expansion + reboot
+- 2-3 minutes: Wi-Fi config, Docker pull, service start
+- **Total: 3-4 minutes**
+
+If it takes longer:
+- Check network: `ping 8.8.8.8`
+- Check Docker pull progress: `docker compose -f /opt/opencloudtouch/docker-compose.yml logs`
+- Check if image was pre-loaded: `docker images | grep opencloudtouch`

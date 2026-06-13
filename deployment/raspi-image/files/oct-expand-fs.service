@@ -1,0 +1,17 @@
+[Unit]
+Description=OpenCloudTouch Filesystem Expansion
+Documentation=https://github.com/opencloudtouch/opencloudtouch
+DefaultDependencies=no
+After=local-fs.target
+Before=docker.service opencloudtouch.service oct-firstboot.service
+ConditionPathExists=!/var/lib/oct-expanded
+
+[Service]
+Type=oneshot
+ExecStart=/opt/opencloudtouch/oct-expand-fs.sh
+RemainAfterExit=yes
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target
