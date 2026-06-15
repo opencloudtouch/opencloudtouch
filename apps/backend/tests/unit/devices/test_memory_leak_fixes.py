@@ -184,7 +184,9 @@ class TestMetadataCacheExpiredEviction:
     def test_expired_entry_with_expired_stale_data_is_deleted(self):
         """get() should delete entry when both TTL and stale_ttl expired."""
         cache = MetadataCache(ttl=0.01, stale_ttl=0.02)
-        metadata = IcyMetadata(artist="Artist", track="Track", raw_title="Artist - Track")
+        metadata = IcyMetadata(
+            artist="Artist", track="Track", raw_title="Artist - Track"
+        )
         cache.put("http://stream.example.com", metadata)
 
         # Wait for both TTL and stale_ttl to expire
@@ -197,7 +199,9 @@ class TestMetadataCacheExpiredEviction:
     def test_expired_entry_with_valid_stale_data_is_kept(self):
         """get() should keep entry when TTL expired but stale data still valid."""
         cache = MetadataCache(ttl=0.01, stale_ttl=10.0)
-        metadata = IcyMetadata(artist="Artist", track="Track", raw_title="Artist - Track")
+        metadata = IcyMetadata(
+            artist="Artist", track="Track", raw_title="Artist - Track"
+        )
         cache.put("http://stream.example.com", metadata)
 
         # Wait for TTL but not stale_ttl
