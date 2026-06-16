@@ -420,8 +420,9 @@ class TestHealthCheckRunLoop:
 
         hc._ping_all_devices = mock_ping
 
-        with patch("opencloudtouch.devices.health_check.PING_INTERVAL", 0.01), \
-             patch("opencloudtouch.devices.health_check.psutil", create=True) as mock_psutil:
+        with patch("opencloudtouch.devices.health_check.PING_INTERVAL", 0.01), patch(
+            "opencloudtouch.devices.health_check.psutil", create=True
+        ) as mock_psutil:
             mock_process = MagicMock()
             mock_mem = MagicMock()
             mock_mem.rss = 100 * 1024 * 1024
