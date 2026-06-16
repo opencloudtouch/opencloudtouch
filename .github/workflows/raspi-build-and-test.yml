@@ -102,10 +102,13 @@ jobs:
 
       - name: Clone pi-gen
         run: |
+          # Use the release-specific pi-gen branches.
+          # These have correct GPG keys, sources lists, and package lists
+          # pre-configured — no patching needed.
           if [ "${{ inputs.arch }}" = "armhf" ]; then
-            PI_GEN_BRANCH=master
+            PI_GEN_BRANCH=bookworm
           else
-            PI_GEN_BRANCH=arm64
+            PI_GEN_BRANCH=bookworm-arm64
           fi
           echo "::notice::Cloning pi-gen branch: $PI_GEN_BRANCH"
           git clone --depth 1 --branch "$PI_GEN_BRANCH" \
@@ -170,81 +173,13 @@ jobs:
           touch pi-gen/stage4/SKIP 2>/dev/null || true
           touch pi-gen/stage5/SKIP 2>/dev/null || true
 
-      - name: Patch pi-gen package lists
-        run: |
-          # Remove RPi-specific packages not available in standard Debian repos
-          PKGFILE="pi-gen/stage2/01-sys-tweaks/00-packages"
-          sed -i '/rpi-/d' "$PKGFILE"
-          sed -i '/^raspberrypi-sys-mods$/d' "$PKGFILE"
-          sed -i '/^raspi-utils$/d' "$PKGFILE"
-          sed -i '/^kms++-utils$/d' "$PKGFILE"
-          sed -i '/^libpam-chksshpwd$/d' "$PKGFILE"
-
-          NETPKGFILE="pi-gen/stage2/02-net-tweaks/00-packages"
-          sed -i '/raspberrypi-net-mods/d' "$NETPKGFILE"
-          sed -i '/^firmware-marvell/d' "$NETPKGFILE"
-
-          # Skip cloud-init and user-rename stages
-          touch pi-gen/stage2/04-cloud-init/SKIP
-          touch pi-gen/export-image/01-user-rename/SKIP
-
-          # Make rpi-resize optional (may not exist in non-RPi OS)
-          RUN_SCRIPT="pi-gen/stage2/01-sys-tweaks/01-run.sh"
-          sed -i 's/systemctl enable rpi-resize/systemctl enable rpi-resize 2>\/dev\/null || true/' "$RUN_SCRIPT"
-
-      - name: Free chroot disk space before dist-upgrade
+      - name: Free disk space in chroot
         run: |
           # Inject apt-get clean before dist-upgrade to avoid running out of space
           COPIES_SCRIPT="pi-gen/stage2/00-copies-and-fills/00-run.sh"
           if [ -f "$COPIES_SCRIPT" ]; then
             sed -i '/dist-upgrade/i on_chroot << EOF\napt-get clean\nEOF' "$COPIES_SCRIPT"
           fi
-
-          # Add apt-get clean after every apt-get install in base stages
-          for stage_dir in pi-gen/stage0 pi-gen/stage1 pi-gen/stage2; do
-            for run_script in "$stage_dir"/*/00-run.sh; do
-              if [ -f "$run_script" ] && grep -q "apt-get install" "$run_script"; then
-                sed -i '/apt-get install/a apt-get clean' "$run_script"
-              fi
-            done
-          done
-
-      - name: Fix debootstrap GPG verification
-        run: |
-          cd pi-gen
-          # Use --no-check-gpg since we're not using the RPi keyring
-          sed -i 's/--keyring "${STAGE_DIR}\/files\/raspberrypi.gpg"/--no-check-gpg/' scripts/common
-
-          # The rootfs needs Debian archive signing keys for apt-get update.
-          # We must import them BEFORE any on_chroot apt-get update runs.
-          # Strategy: Patch stage0/00-configure-apt/00-run.sh to import keys
-          # at the very beginning, before apt sources are configured.
-          cat > /tmp/gpg-fix.sh << 'GPGFIX'
-          # Import Debian archive keys into rootfs (required for bookworm apt verification)
-          mkdir -p "${ROOTFS_DIR}/etc/apt/trusted.gpg.d"
-          
-          # Copy host keyrings if available
-          for keyring in /usr/share/keyrings/debian-archive-keyring.gpg \
-                         /usr/share/keyrings/debian-archive-removed-keys.gpg; do
-            if [ -f "$keyring" ]; then
-              cp "$keyring" "${ROOTFS_DIR}/usr/share/keyrings/" 2>/dev/null || true
-              cp "$keyring" "${ROOTFS_DIR}/etc/apt/trusted.gpg.d/" 2>/dev/null || true
-            fi
-          done
-          
-          # Also fetch current Debian keys directly (belt + suspenders)
-          if command -v gpg &>/dev/null; then
-            for key in 6ED0E7B82643E131 78DBA3BC47EF2265 F8D2585B8783D481 54404762BBB6E853 BDE6D2B9216EC7A8; do
-              gpg --keyserver keyserver.ubuntu.com --recv-keys "$key" 2>/dev/null || true
-            done
-            gpg --export > "${ROOTFS_DIR}/etc/apt/trusted.gpg.d/debian-archive.gpg" 2>/dev/null || true
-          fi
-          GPGFIX
-          sed -i 's/^          //' /tmp/gpg-fix.sh
-
-          # Insert GPG fix at the very start of stage0/00-configure-apt/00-run.sh
-          # (before any on_chroot block that calls apt-get update)
-          sed -i '1r /tmp/gpg-fix.sh' stage0/00-configure-apt/00-run.sh
 
       - name: Set up QEMU
         run: |

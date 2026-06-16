@@ -211,9 +211,9 @@ build_image() {
 
     # arm64 branch = 64-bit kernels only; master = 32-bit kernels for RPi 2
     if [[ "$arch" == "armhf" ]]; then
-        PI_GEN_BRANCH=master
+        PI_GEN_BRANCH=bookworm
     else
-        PI_GEN_BRANCH=arm64
+        PI_GEN_BRANCH=bookworm-arm64
     fi
 
     log_info "Building ${arch} image (pi-gen branch: ${PI_GEN_BRANCH})..."
