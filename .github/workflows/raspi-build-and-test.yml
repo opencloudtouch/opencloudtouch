@@ -1,0 +1,441 @@
+# ==============================================================================
+# REUSABLE: Build + Test Raspberry Pi SD Card Images
+#
+# Shared logic for pi-gen build, image compression, and QEMU smoke tests.
+# Called by build-raspi.yml (production) and test-build.yml (dev/test).
+#
+# Fixes applied:
+#   - xz single-thread for Etcher/PiImager compatibility
+#   - bookworm release (stable pi-gen target)
+#   - Image validation (partition table, integrity, size)
+#   - Removed EXPORT_NOOBS (unused)
+# ==============================================================================
+
+name: 'Raspi Build & Test (reusable)'
+
+on:
+  workflow_call:
+    inputs:
+      arch:
+        description: 'Target architecture (arm64 or armhf)'
+        required: true
+        type: string
+      output_name:
+        description: 'Output filename for the .img.xz (without extension added automatically)'
+        required: true
+        type: string
+      docker_image_tag:
+        description: 'Docker image tag to embed in compose file (default: latest)'
+        required: false
+        default: 'latest'
+        type: string
+      test_version:
+        description: 'Expected version string for smoke tests'
+        required: false
+        default: 'latest'
+        type: string
+
+env:
+  PI_GEN_REPO: https://github.com/RPi-Distro/pi-gen.git
+
+jobs:
+  # ============================================================================
+  # VALIDATE INPUTS
+  # ============================================================================
+  validate:
+    name: Validate inputs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate arch
+        run: |
+          ARCH="${{ inputs.arch }}"
+          if [[ ! "$ARCH" =~ ^(arm64|armhf)$ ]]; then
+            echo "::error::Invalid architecture: $ARCH (must be arm64 or armhf)"
+            exit 1
+          fi
+      - name: Validate output_name
+        run: |
+          NAME="${{ inputs.output_name }}"
+          if [[ ! "$NAME" =~ ^[a-zA-Z0-9._+-]+\.img\.xz$ ]]; then
+            echo "::error::Invalid output_name: $NAME (must be alphanumeric with .img.xz extension)"
+            exit 1
+          fi
+      - name: Validate docker_image_tag
+        run: |
+          TAG="${{ inputs.docker_image_tag }}"
+          if [[ ! "$TAG" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+            echo "::error::Invalid docker_image_tag: $TAG"
+            exit 1
+          fi
+
+  # ============================================================================
+  # BUILD IMAGE
+  # ============================================================================
+  build:
+    name: Build ${{ inputs.arch }}
+    runs-on: ubuntu-latest
+    needs: [validate]
+    timeout-minutes: 90
+
+    outputs:
+      output_name: ${{ steps.compress.outputs.output_name }}
+      raw_size_mb: ${{ steps.compress.outputs.raw_size_mb }}
+      xz_size_mb: ${{ steps.compress.outputs.xz_size_mb }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Free disk space
+        run: |
+          echo "=== Disk before cleanup ==="
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /usr/local/share/boost /usr/share/swift \
+            /usr/local/graalvm /usr/local/.ghcup \
+            /usr/local/share/powershell /usr/local/share/chromium \
+            /opt/hostedtoolcache/CodeQL || true
+          sudo docker image prune -af 2>/dev/null || true
+          sudo apt-get clean
+          echo "=== Disk after cleanup ==="
+          df -h /
+
+      - name: Clone pi-gen
+        run: |
+          if [ "${{ inputs.arch }}" = "armhf" ]; then
+            PI_GEN_BRANCH=master
+          else
+            PI_GEN_BRANCH=arm64
+          fi
+          echo "::notice::Cloning pi-gen branch: $PI_GEN_BRANCH"
+          git clone --depth 1 --branch "$PI_GEN_BRANCH" \
+            ${{ env.PI_GEN_REPO }} pi-gen
+
+      - name: Configure pi-gen
+        run: |
+          cd pi-gen
+          cat > config << 'PICONFIG'
+          IMG_NAME=opencloudtouch-${{ inputs.arch }}
+          RELEASE=bookworm
+          TARGET_HOSTNAME=opencloudtouch
+          FIRST_USER_NAME=oct
+          FIRST_USER_PASS=opencloudtouch
+          ENABLE_SSH=1
+          LOCALE_DEFAULT=en_GB.UTF-8
+          KEYBOARD_KEYMAP=us
+          KEYBOARD_LAYOUT="English (US)"
+          TIMEZONE_DEFAULT=Europe/Berlin
+          WPA_COUNTRY=DE
+          STAGE_LIST="stage0 stage1 stage2 stage-opencloudtouch"
+          PICONFIG
+
+          if [ "${{ inputs.arch }}" = "arm64" ]; then
+            echo "ARCH=arm64" >> config
+          else
+            echo "ARCH=armhf" >> config
+          fi
+
+          echo "::group::pi-gen config"
+          cat config
+          echo "::endgroup::"
+
+      - name: Install OpenCloudTouch stage
+        run: |
+          # Copy custom stage into pi-gen
+          cp -r deployment/raspi-image/stage-opencloudtouch pi-gen/stage-opencloudtouch
+          find pi-gen/stage-opencloudtouch -name "*.sh" -exec chmod +x {} \;
+
+          # Copy embedded files
+          mkdir -p pi-gen/stage-opencloudtouch/01-configure-oct/files
+          cp deployment/raspi-image/files/* pi-gen/stage-opencloudtouch/01-configure-oct/files/
+
+          # Set Docker image tag in compose file
+          DOCKER_TAG="${{ inputs.docker_image_tag }}"
+          if [ "$DOCKER_TAG" != "latest" ]; then
+            sed -i "s|ghcr.io/opencloudtouch/opencloudtouch:latest|ghcr.io/opencloudtouch/opencloudtouch:${DOCKER_TAG}|g" \
+              pi-gen/stage-opencloudtouch/01-configure-oct/files/docker-compose.yml
+            echo "::notice::Docker image tag set to: $DOCKER_TAG"
+          fi
+
+          # Export image from our stage (NOT NOOBS — only .img)
+          touch pi-gen/stage-opencloudtouch/EXPORT_IMAGE
+
+          # Skip image export for base stages
+          touch pi-gen/stage0/SKIP_IMAGES
+          touch pi-gen/stage1/SKIP_IMAGES
+          touch pi-gen/stage2/SKIP_IMAGES
+
+          # Skip desktop stages entirely
+          touch pi-gen/stage3/SKIP 2>/dev/null || true
+          touch pi-gen/stage4/SKIP 2>/dev/null || true
+          touch pi-gen/stage5/SKIP 2>/dev/null || true
+
+      - name: Patch pi-gen package lists
+        run: |
+          # Remove RPi-specific packages not available in standard Debian repos
+          PKGFILE="pi-gen/stage2/01-sys-tweaks/00-packages"
+          sed -i '/rpi-/d' "$PKGFILE"
+          sed -i '/^raspberrypi-sys-mods$/d' "$PKGFILE"
+          sed -i '/^raspi-utils$/d' "$PKGFILE"
+          sed -i '/^kms++-utils$/d' "$PKGFILE"
+          sed -i '/^libpam-chksshpwd$/d' "$PKGFILE"
+
+          NETPKGFILE="pi-gen/stage2/02-net-tweaks/00-packages"
+          sed -i '/raspberrypi-net-mods/d' "$NETPKGFILE"
+          sed -i '/^firmware-marvell/d' "$NETPKGFILE"
+
+          # Skip cloud-init and user-rename stages
+          touch pi-gen/stage2/04-cloud-init/SKIP
+          touch pi-gen/export-image/01-user-rename/SKIP
+
+          # Make rpi-resize optional (may not exist in non-RPi OS)
+          RUN_SCRIPT="pi-gen/stage2/01-sys-tweaks/01-run.sh"
+          sed -i 's/systemctl enable rpi-resize/systemctl enable rpi-resize 2>\/dev\/null || true/' "$RUN_SCRIPT"
+
+      - name: Free chroot disk space before dist-upgrade
+        run: |
+          # Inject apt-get clean before dist-upgrade to avoid running out of space
+          COPIES_SCRIPT="pi-gen/stage2/00-copies-and-fills/00-run.sh"
+          if [ -f "$COPIES_SCRIPT" ]; then
+            sed -i '/dist-upgrade/i on_chroot << EOF\napt-get clean\nEOF' "$COPIES_SCRIPT"
+          fi
+
+          # Add apt-get clean after every apt-get install in base stages
+          for stage_dir in pi-gen/stage0 pi-gen/stage1 pi-gen/stage2; do
+            for run_script in "$stage_dir"/*/00-run.sh; do
+              if [ -f "$run_script" ] && grep -q "apt-get install" "$run_script"; then
+                sed -i '/apt-get install/a apt-get clean' "$run_script"
+              fi
+            done
+          done
+
+      - name: Fix debootstrap GPG verification
+        run: |
+          cd pi-gen
+          # Use --no-check-gpg since we're not using the RPi keyring
+          sed -i 's/--keyring "${STAGE_DIR}\/files\/raspberrypi.gpg"/--no-check-gpg/' scripts/common
+
+          # Copy Debian archive keyring into rootfs for apt verification
+          sed -i '/^on_chroot/i \
+          if [ -f /usr/share/keyrings/debian-archive-keyring.gpg ]; then\
+              cp /usr/share/keyrings/debian-archive-keyring.gpg "${ROOTFS_DIR}/usr/share/keyrings/debian-archive-keyring.gpg"\
+          fi\
+          ' stage0/00-configure-apt/00-run.sh
+
+      - name: Set up QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static binfmt-support
+          sudo update-binfmts --enable
+          sudo ln -sf /usr/bin/qemu-aarch64-static /usr/bin/qemu-aarch64
+          sudo ln -sf /usr/bin/qemu-arm-static /usr/bin/qemu-arm
+
+      - name: Build image with pi-gen
+        run: |
+          cd pi-gen
+          chmod +x build-docker.sh
+          echo "::notice::Starting pi-gen build for ${{ inputs.arch }}..."
+          ./build-docker.sh
+        timeout-minutes: 60
+
+      - name: Extract raw image from deploy
+        id: extract
+        run: |
+          echo "::group::Deploy directory contents"
+          ls -laR pi-gen/deploy/ || true
+          echo "::endgroup::"
+
+          IMG_FILE=$(find pi-gen/deploy -name "*.img" -type f | head -1)
+          if [ -z "$IMG_FILE" ]; then
+            # pi-gen sometimes produces a .zip instead of raw .img
+            ZIP_FILE=$(find pi-gen/deploy -name "*.zip" -type f | head -1)
+            if [ -n "$ZIP_FILE" ]; then
+              echo "::notice::Extracting image from ZIP: $ZIP_FILE"
+              unzip -o "$ZIP_FILE" -d pi-gen/deploy/
+              IMG_FILE=$(find pi-gen/deploy -name "*.img" -type f | head -1)
+            fi
+          fi
+
+          if [ -z "$IMG_FILE" ]; then
+            echo "::error::No image file found in pi-gen/deploy/"
+            exit 1
+          fi
+
+          echo "img_file=$IMG_FILE" >> "$GITHUB_OUTPUT"
+          echo "::notice::Raw image: $IMG_FILE"
+
+      - name: Validate raw image
+        run: |
+          IMG_FILE="${{ steps.extract.outputs.img_file }}"
+
+          echo "=== Raw image size ==="
+          RAW_SIZE=$(stat -c%s "$IMG_FILE")
+          RAW_SIZE_MB=$((RAW_SIZE / 1048576))
+          echo "Size: ${RAW_SIZE_MB} MiB (${RAW_SIZE} bytes)"
+
+          # Sanity check: image should be at least 500 MB
+          if [ "$RAW_SIZE_MB" -lt 500 ]; then
+            echo "::error::Image too small (${RAW_SIZE_MB} MiB). Expected >= 500 MiB."
+            exit 1
+          fi
+
+          echo "=== Partition table ==="
+          fdisk -l "$IMG_FILE"
+
+          # Verify we have at least 2 partitions (boot + root)
+          PART_COUNT=$(fdisk -l "$IMG_FILE" 2>/dev/null | grep -cF "${IMG_FILE}")
+          echo "Partition count: $PART_COUNT"
+          if [ "$PART_COUNT" -lt 2 ]; then
+            echo "::error::Expected at least 2 partitions, found $PART_COUNT"
+            exit 1
+          fi
+
+          echo "=== Partition details ==="
+          fdisk -l "$IMG_FILE" | grep "^${IMG_FILE}"
+
+      - name: Compress image (single-thread XZ for tool compatibility)
+        id: compress
+        run: |
+          IMG_FILE="${{ steps.extract.outputs.img_file }}"
+          OUTPUT_NAME="${{ inputs.output_name }}"
+
+          RAW_SIZE_MB=$(( $(stat -c%s "$IMG_FILE") / 1048576 ))
+
+          # CRITICAL: Use single-threaded xz (no -T0)
+          # Multi-threaded xz creates multi-block streams that Balena Etcher
+          # and Raspberry Pi Imager cannot read correctly.
+          echo "::notice::Compressing with xz -9 (single-thread for Etcher/PiImager compatibility)..."
+          xz -9 "$IMG_FILE"
+
+          mkdir -p output
+          mv "${IMG_FILE}.xz" "output/${OUTPUT_NAME}"
+
+          cd output
+          sha256sum "${OUTPUT_NAME}" > "${OUTPUT_NAME}.sha256"
+
+          XZ_SIZE_MB=$(( $(stat -c%s "${OUTPUT_NAME}") / 1048576 ))
+
+          echo "output_name=${OUTPUT_NAME}" >> "$GITHUB_OUTPUT"
+          echo "raw_size_mb=${RAW_SIZE_MB}" >> "$GITHUB_OUTPUT"
+          echo "xz_size_mb=${XZ_SIZE_MB}" >> "$GITHUB_OUTPUT"
+
+          echo "=== Compression result ==="
+          echo "Raw:        ${RAW_SIZE_MB} MiB"
+          echo "Compressed: ${XZ_SIZE_MB} MiB"
+          echo "Ratio:      $(( (RAW_SIZE_MB - XZ_SIZE_MB) * 100 / RAW_SIZE_MB ))%"
+          ls -lh .
+
+      - name: Validate compressed image
+        run: |
+          OUTPUT_NAME="${{ inputs.output_name }}"
+
+          echo "=== XZ integrity check ==="
+          xz -t "output/${OUTPUT_NAME}"
+          echo "XZ integrity: OK"
+
+          echo "=== XZ stream info ==="
+          xz -l "output/${OUTPUT_NAME}"
+
+          # Verify single-stream (critical for Etcher compatibility)
+          STREAM_COUNT=$(xz -l "output/${OUTPUT_NAME}" 2>/dev/null | awk '/stream/ && /block/ {print $1}' | head -1)
+          STREAM_COUNT=${STREAM_COUNT:-1}
+          echo "Stream count: $STREAM_COUNT"
+          if [ "$STREAM_COUNT" != "1" ]; then
+            echo "::warning::XZ has $STREAM_COUNT streams (expected 1 for Etcher compatibility)"
+          fi
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: raspi-image-${{ inputs.arch }}
+          path: |
+            output/*.img.xz
+            output/*.sha256
+          retention-days: 30
+          compression-level: 0
+
+      - name: Build summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## Raspi Image Build: ${{ inputs.arch }}
+
+          | Property | Value |
+          |----------|-------|
+          | Architecture | \`${{ inputs.arch }}\` |
+          | Output | \`${{ steps.compress.outputs.output_name }}\` |
+          | Raw size | ${{ steps.compress.outputs.raw_size_mb }} MiB |
+          | Compressed | ${{ steps.compress.outputs.xz_size_mb }} MiB |
+          | Docker tag | \`${{ inputs.docker_image_tag }}\` |
+          | XZ mode | single-thread (Etcher-compatible) |
+          EOF
+
+  # ============================================================================
+  # TEST IMAGE (QEMU chroot smoke test)
+  # ============================================================================
+  test:
+    name: Test ${{ inputs.arch }}
+    runs-on: ubuntu-latest
+    needs: [build]
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Download image artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: raspi-image-${{ inputs.arch }}
+          path: images
+
+      - name: Set up QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static binfmt-support xz-utils
+          sudo update-binfmts --enable
+
+      - name: Decompress and mount image
+        id: mount
+        run: |
+          set -euo pipefail
+          OUTPUT_NAME="${{ inputs.output_name }}"
+          IMG_XZ="images/${OUTPUT_NAME}"
+
+          echo "=== Decompressing image ==="
+          xz -d "$IMG_XZ"
+          IMG_FILE="${IMG_XZ%.xz}"
+
+          echo "=== Partition table ==="
+          fdisk -l "$IMG_FILE"
+
+          echo "=== Mounting image ==="
+          LOOP=$(sudo losetup --find --show --partscan "$IMG_FILE")
+          echo "Loop device: $LOOP"
+          lsblk "$LOOP"
+
+          sudo mkdir -p /mnt/raspi
+
+          # Mount root partition (p2), then boot partition (p1)
+          sudo mount "${LOOP}p2" /mnt/raspi
+          sudo mount "${LOOP}p1" /mnt/raspi/boot/firmware || \
+            sudo mount "${LOOP}p1" /mnt/raspi/boot || true
+
+          echo "loop=$LOOP" >> "$GITHUB_OUTPUT"
+
+          echo "=== Mounted filesystem overview ==="
+          df -h /mnt/raspi /mnt/raspi/boot/firmware 2>/dev/null || \
+            df -h /mnt/raspi /mnt/raspi/boot 2>/dev/null || true
+
+      - name: Run smoke tests
+        run: |
+          chmod +x deployment/raspi-image/test-image.sh
+          sudo deployment/raspi-image/test-image.sh \
+            /mnt/raspi \
+            "${{ inputs.test_version }}" \
+            "${{ inputs.arch }}"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          sudo umount -R /mnt/raspi 2>/dev/null || true
+          sudo losetup -d "${{ steps.mount.outputs.loop }}" 2>/dev/null || true
