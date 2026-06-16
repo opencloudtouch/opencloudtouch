@@ -215,12 +215,36 @@ jobs:
           # Use --no-check-gpg since we're not using the RPi keyring
           sed -i 's/--keyring "${STAGE_DIR}\/files\/raspberrypi.gpg"/--no-check-gpg/' scripts/common
 
-          # Copy Debian archive keyring into rootfs for apt verification
-          sed -i '/^on_chroot/i \
-          if [ -f /usr/share/keyrings/debian-archive-keyring.gpg ]; then\
-              cp /usr/share/keyrings/debian-archive-keyring.gpg "${ROOTFS_DIR}/usr/share/keyrings/debian-archive-keyring.gpg"\
-          fi\
-          ' stage0/00-configure-apt/00-run.sh
+          # The rootfs needs Debian archive signing keys for apt-get update.
+          # We must import them BEFORE any on_chroot apt-get update runs.
+          # Strategy: Patch stage0/00-configure-apt/00-run.sh to import keys
+          # at the very beginning, before apt sources are configured.
+          cat > /tmp/gpg-fix.sh << 'GPGFIX'
+          # Import Debian archive keys into rootfs (required for bookworm apt verification)
+          mkdir -p "${ROOTFS_DIR}/etc/apt/trusted.gpg.d"
+          
+          # Copy host keyrings if available
+          for keyring in /usr/share/keyrings/debian-archive-keyring.gpg \
+                         /usr/share/keyrings/debian-archive-removed-keys.gpg; do
+            if [ -f "$keyring" ]; then
+              cp "$keyring" "${ROOTFS_DIR}/usr/share/keyrings/" 2>/dev/null || true
+              cp "$keyring" "${ROOTFS_DIR}/etc/apt/trusted.gpg.d/" 2>/dev/null || true
+            fi
+          done
+          
+          # Also fetch current Debian keys directly (belt + suspenders)
+          if command -v gpg &>/dev/null; then
+            for key in 6ED0E7B82643E131 78DBA3BC47EF2265 F8D2585B8783D481 54404762BBB6E853 BDE6D2B9216EC7A8; do
+              gpg --keyserver keyserver.ubuntu.com --recv-keys "$key" 2>/dev/null || true
+            done
+            gpg --export > "${ROOTFS_DIR}/etc/apt/trusted.gpg.d/debian-archive.gpg" 2>/dev/null || true
+          fi
+          GPGFIX
+          sed -i 's/^          //' /tmp/gpg-fix.sh
+
+          # Insert GPG fix at the very start of stage0/00-configure-apt/00-run.sh
+          # (before any on_chroot block that calls apt-get update)
+          sed -i '1r /tmp/gpg-fix.sh' stage0/00-configure-apt/00-run.sh
 
       - name: Set up QEMU
         run: |
