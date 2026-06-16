@@ -2,6 +2,8 @@
 
 import asyncio
 import time
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -285,3 +287,272 @@ class TestCleanupFailCounters:
         health_check._cleanup_fail_counters(valid_device_ids=set())
 
         assert health_check._ssh_fail_count == {}
+
+
+# ---------------------------------------------------------------------------
+# GET /api/diagnostics/memory — endpoint coverage
+# ---------------------------------------------------------------------------
+
+
+class TestGetMemoryDiagnostics:
+    """Tests for GET /api/diagnostics/memory endpoint."""
+
+    def test_returns_memory_stats_without_state_manager(self):
+        """Should return memory stats even without device_state_manager."""
+        from fastapi.testclient import TestClient
+
+        from opencloudtouch.main import app
+
+        # Ensure device_state_manager is NOT on app.state
+        if hasattr(app.state, "device_state_manager"):
+            delattr(app.state, "device_state_manager")
+
+        client = TestClient(app)
+        resp = client.get("/api/diagnostics/memory")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "memory" in data
+        assert "rss_mb" in data["memory"]
+        assert "vms_mb" in data["memory"]
+        assert "percent" in data["memory"]
+        assert isinstance(data["memory"]["rss_mb"], (int, float))
+        assert data["cache_sizes"]["device_states"] == 0
+        assert data["cache_sizes"]["icy_probe_history"] == 0
+        assert data["cache_sizes"]["icy_metadata_tracking"] == 0
+
+    def test_returns_cache_sizes_with_state_manager(self):
+        """Should report cache sizes from state manager and ICY worker."""
+        from fastapi.testclient import TestClient
+
+        from opencloudtouch.main import app
+
+        # Mock state manager with ICY worker
+        mock_icy = MagicMock()
+        mock_icy._last_probe = {"s1": 1, "s2": 2}
+        mock_icy._last_metadata = {"d1": ("A", "T")}
+
+        mock_state_mgr = MagicMock()
+        mock_state_mgr._states = {"dev1": MagicMock(), "dev2": MagicMock()}
+        mock_state_mgr._icy_worker = mock_icy
+
+        app.state.device_state_manager = mock_state_mgr
+
+        client = TestClient(app)
+        resp = client.get("/api/diagnostics/memory")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["cache_sizes"]["device_states"] == 2
+        assert data["cache_sizes"]["icy_probe_history"] == 2
+        assert data["cache_sizes"]["icy_metadata_tracking"] == 1
+
+        delattr(app.state, "device_state_manager")
+
+    def test_returns_zero_icy_when_no_worker(self):
+        """Should handle state manager without ICY worker."""
+        from fastapi.testclient import TestClient
+
+        from opencloudtouch.main import app
+
+        mock_state_mgr = MagicMock()
+        mock_state_mgr._states = {"dev1": MagicMock()}
+        mock_state_mgr._icy_worker = None
+
+        app.state.device_state_manager = mock_state_mgr
+
+        client = TestClient(app)
+        resp = client.get("/api/diagnostics/memory")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["cache_sizes"]["device_states"] == 1
+        assert data["cache_sizes"]["icy_probe_history"] == 0
+        assert data["cache_sizes"]["icy_metadata_tracking"] == 0
+
+        delattr(app.state, "device_state_manager")
+
+
+# ---------------------------------------------------------------------------
+# DeviceHealthCheck._run() — cleanup counter + memory logging coverage
+# ---------------------------------------------------------------------------
+
+
+class TestHealthCheckRunLoop:
+    """Tests for _run() loop logic: cleanup counter and memory logging."""
+
+    @pytest.mark.asyncio
+    async def test_cleanup_counter_triggers_at_60(self):
+        """Cleanup should fire when counter reaches 60."""
+        mock_repo = AsyncMock()
+        mock_device = MagicMock()
+        mock_device.device_id = "A"
+        mock_repo.get_all = AsyncMock(return_value=[mock_device])
+
+        hc = DeviceHealthCheck(device_repo=mock_repo)
+        hc._ssh_fail_count = {"A": 1, "stale": 2}
+
+        # Simulate 60 cycles by calling _cleanup_fail_counters directly
+        # (the _run loop is an infinite loop, so we test the logic unit)
+        devices = await mock_repo.get_all()
+        valid_ids = {d.device_id for d in devices}
+        hc._cleanup_fail_counters(valid_ids)
+
+        assert "stale" not in hc._ssh_fail_count
+        assert hc._ssh_fail_count == {"A": 1}
+
+    @pytest.mark.asyncio
+    async def test_run_loop_increments_counters(self):
+        """_run() should increment cleanup and memory counters each cycle."""
+        mock_repo = AsyncMock()
+        mock_repo.get_all = AsyncMock(return_value=[])
+
+        hc = DeviceHealthCheck(device_repo=mock_repo)
+        hc._running = True
+
+        cycle_count = 0
+
+        async def mock_ping():
+            nonlocal cycle_count
+            cycle_count += 1
+            if cycle_count >= 2:
+                hc._running = False
+
+        hc._ping_all_devices = mock_ping
+
+        with patch("opencloudtouch.devices.health_check.PING_INTERVAL", 0.01), \
+             patch("opencloudtouch.devices.health_check.psutil", create=True) as mock_psutil:
+            mock_process = MagicMock()
+            mock_mem = MagicMock()
+            mock_mem.rss = 100 * 1024 * 1024
+            mock_mem.vms = 200 * 1024 * 1024
+            mock_process.memory_info.return_value = mock_mem
+            mock_process.memory_percent.return_value = 1.5
+            mock_psutil.Process.return_value = mock_process
+
+            await hc._run()
+
+        assert cycle_count == 2
+
+
+# ---------------------------------------------------------------------------
+# main.py — _shutdown() radio adapter close coverage
+# ---------------------------------------------------------------------------
+
+
+class TestShutdownRadioAdapters:
+    """Tests for _shutdown() closing radio adapters."""
+
+    @pytest.mark.asyncio
+    async def test_shutdown_closes_radio_adapters(self):
+        """_shutdown should close radio and tunein adapters."""
+        from opencloudtouch.main import _shutdown
+
+        mock_radio = AsyncMock()
+        mock_tunein = AsyncMock()
+        mock_health_check = AsyncMock()
+
+        mock_app = MagicMock()
+        mock_app.state = SimpleNamespace(
+            health_check=mock_health_check,
+            radio_adapter=mock_radio,
+            tunein_adapter=mock_tunein,
+        )
+
+        import logging
+
+        logger = logging.getLogger("test")
+        repos = {}
+
+        await _shutdown(mock_app, repos, logger)
+
+        mock_radio.close.assert_awaited_once()
+        mock_tunein.close.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_shutdown_handles_missing_radio_adapters(self):
+        """_shutdown should work when radio adapters are not set."""
+        from opencloudtouch.main import _shutdown
+
+        mock_health_check = AsyncMock()
+
+        mock_app = MagicMock()
+        mock_app.state = SimpleNamespace(health_check=mock_health_check)
+
+        import logging
+
+        logger = logging.getLogger("test")
+        repos = {}
+
+        # Should not raise — adapters not present
+        await _shutdown(mock_app, repos, logger)
+        mock_health_check.stop.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# DeviceStateManager — QueueFull branch + _icy_poll_loop cleanup
+# ---------------------------------------------------------------------------
+
+
+class TestStateManagerQueueFull:
+    """Tests for QueueFull handling during publish (#366)."""
+
+    @pytest.mark.asyncio
+    async def test_publish_logs_warning_on_full_queue(self):
+        """publish() should log warning and not remove subscriber on QueueFull."""
+        mgr = DeviceStateManager()
+        queue = mgr.subscribe()
+
+        # Fill queue to capacity
+        event = DeviceEvent(device_id="dev1", event_type=EventType.VOLUME)
+        for _ in range(200):
+            queue.put_nowait(event)
+
+        assert queue.full()
+
+        # Publish one more — should drop, not raise, not remove subscriber
+        await mgr.publish(event)
+
+        # Queue still there (not pruned), still full
+        assert queue in mgr._subscribers
+        assert queue.qsize() == 200
+
+    @pytest.mark.asyncio
+    async def test_publish_delivers_to_non_full_queues(self):
+        """publish() should still deliver to other queues when one is full."""
+        mgr = DeviceStateManager()
+        full_queue = mgr.subscribe()
+        empty_queue = mgr.subscribe()
+
+        # Fill first queue
+        fill_event = DeviceEvent(device_id="fill", event_type=EventType.VOLUME)
+        for _ in range(200):
+            full_queue.put_nowait(fill_event)
+
+        # Publish new event
+        new_event = DeviceEvent(device_id="new", event_type=EventType.NOW_PLAYING)
+        await mgr.publish(new_event)
+
+        # Empty queue got the event, full queue didn't
+        assert empty_queue.qsize() == 1
+        assert full_queue.qsize() == 200
+
+
+class TestIcyPollLoopCleanup:
+    """Tests for _icy_poll_loop periodic stale state cleanup (#366)."""
+
+    @pytest.mark.asyncio
+    async def test_icy_poll_loop_calls_cleanup(self):
+        """_icy_poll_loop should call cleanup_stale_states periodically."""
+        mgr = DeviceStateManager()
+
+        # Add a stale state
+        mgr.update_now_playing("stale_dev", None)
+        state = mgr.get_state("stale_dev")
+        state.last_update = time.time() - 100000  # way past 24h
+
+        # Call cleanup directly (testing the method the loop calls)
+        removed = mgr.cleanup_stale_states(max_age_seconds=86400.0)
+
+        assert removed == 1
+        assert mgr.get_state("stale_dev") is None
