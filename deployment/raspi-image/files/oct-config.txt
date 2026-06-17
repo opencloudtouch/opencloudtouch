@@ -1,20 +1,41 @@
 # ============================================================================
 # OpenCloudTouch Configuration
 # ============================================================================
-# Place this file on the boot partition (FAT32) of the SD card.
-# It will be read on first boot and applied automatically.
-# After applying, the file is deleted (contains sensitive data).
+# This file is ALREADY on the boot partition after flashing the SD card.
+# Edit it before inserting the card into your Raspberry Pi.
 #
-# Lines starting with # are comments.
+# Where to find it:
+#   Windows: Drive labeled "bootfs" (D:, E:, etc.)
+#   macOS:   /Volumes/bootfs/oct-config.txt
+#   Linux:   /media/$USER/bootfs/oct-config.txt
+#
+# This file is read on first boot and applied automatically.
+# After applying, it is DELETED (contains Wi-Fi password).
+#
+# HOW TO ACTIVATE A SETTING:
+#   Delete the # at the start of the line. Do NOT leave a space before the key.
+#
+#   CORRECT:   WIFI_SSID=MyNetwork
+#   WRONG:      WIFI_SSID=MyNetwork   (leading space breaks parsing)
+#   WRONG:     #WIFI_SSID=MyNetwork   (still commented out)
+#
+# Values with spaces or special characters: use quotes
+#   WIFI_SSID="My Network"
+#   WIFI_PASSWORD='P@ss$word!'
 # ============================================================================
 
-# Wi-Fi Configuration (required for headless setup)
-# WIFI_SSID=MyNetwork
-# WIFI_PASSWORD=MySecretPassword
-# WIFI_COUNTRY=DE
+# --- Wi-Fi Configuration (REQUIRED for headless/wireless setup) ---
+#WIFI_SSID=MyNetwork
+#WIFI_PASSWORD=MySecretPassword
+#WIFI_COUNTRY=DE
+# WIFI_COUNTRY: Optional. Default: DE. 2-letter ISO code (US, GB, FR, IT, ES, NL, AT, CH, etc.)
 
-# OpenCloudTouch Settings
-# OCT_PORT=7777
+# --- OpenCloudTouch Settings (OPTIONAL) ---
+#OCT_PORT=7777
+# Default: 7777. Only change if port 7777 is already in use.
 
-# System Settings
-# TIMEZONE=Europe/Berlin
+# --- System Settings (OPTIONAL) ---
+#TIMEZONE=Europe/Berlin
+# TIMEZONE format: Continent/City
+# Examples: America/New_York, Asia/Tokyo, Australia/Sydney, Europe/London
+# Full list: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones

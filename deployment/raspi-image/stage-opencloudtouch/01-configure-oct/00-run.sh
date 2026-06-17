@@ -46,12 +46,14 @@ Wants=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/opt/opencloudtouch
-ExecStartPre=-/usr/bin/docker compose pull --quiet
+ExecStartPre=-/bin/sh -c 'timeout 30 /usr/bin/docker compose pull --quiet 2>/dev/null || true'
 ExecStart=/usr/bin/docker compose up --remove-orphans
 ExecStop=/usr/bin/docker compose down
 Restart=always
 RestartSec=10
 TimeoutStartSec=300
+PrivateTmp=yes
+NoNewPrivileges=yes
 
 [Install]
 WantedBy=multi-user.target
@@ -73,7 +75,7 @@ systemctl disable apt-daily-upgrade.timer 2>/dev/null || true
 
 # Enable hardware watchdog (auto-reboot on hang)
 if [ -f /etc/systemd/system.conf ]; then
-    sed -i 's/#RuntimeWatchdogSec=.*/RuntimeWatchdogSec=15/' /etc/systemd/system.conf
+    sed -i 's/^#\?RuntimeWatchdogSec=.*/RuntimeWatchdogSec=15/' /etc/systemd/system.conf
 fi
 
 # ==== Optimize for SD card longevity ====
@@ -84,20 +86,9 @@ tmpfs /tmp tmpfs defaults,noatime,nosuid,nodev,size=100M 0 0
 tmpfs /var/log tmpfs defaults,noatime,nosuid,nodev,size=50M 0 0
 FSTAB
 
-# ==== Set MOTD ====
-cat > /etc/motd << 'MOTD'
-
-  ╔═══════════════════════════════════════════╗
-  ║         OpenCloudTouch Appliance          ║
-  ╠═══════════════════════════════════════════╣
-  ║  Web UI: http://opencloudtouch.local:7777 ║
-  ║  Update: sudo /opt/opencloudtouch/        ║
-  ║          oct-update.sh                    ║
-  ║  Docs:   https://github.com/opencloudtouch/ ║
-  ║          opencloudtouch/wiki              ║
-  ╚═══════════════════════════════════════════╝
-
-MOTD
+# ==== MOTD will be generated dynamically on first boot ====
+# (after port and network configuration are known)
+# See: /opt/opencloudtouch/oct-firstboot.sh
 
 echo "[OK] OpenCloudTouch configured"
 

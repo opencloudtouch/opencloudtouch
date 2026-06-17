@@ -62,7 +62,7 @@ jobs:
     uses: ./.github/workflows/raspi-build-and-test.yml
     with:
       arch: arm64
-      output_name: 'opencloudtouch_Pi4+Pi5_raspios-bookworm-arm64.img.xz'
+      output_name: 'opencloudtouch_Pi3-4-5-Zero2W_raspios-bookworm-arm64.img.xz'
       docker_image_tag: 'latest'
       test_version: 'latest'
 
@@ -73,7 +73,7 @@ jobs:
     uses: ./.github/workflows/raspi-build-and-test.yml
     with:
       arch: armhf
-      output_name: 'opencloudtouch_Pi2+Pi3_raspios-bookworm-armhf.img.xz'
+      output_name: 'opencloudtouch_Pi2v1.0_raspios-bookworm-armhf.img.xz'
       docker_image_tag: 'latest'
       test_version: 'latest'
 
@@ -137,13 +137,13 @@ jobs:
           if ls images/*arm64*.img.xz 1>/dev/null 2>&1; then
             ARM64_FILE=$(ls images/*arm64*.img.xz 2>/dev/null | head -1 | xargs basename)
             NOTES="${NOTES}
-          | \`${ARM64_FILE}\` | Raspberry Pi 4, Pi 5 |"
+          | \`${ARM64_FILE}\` | Pi 3, 4, 5, Zero 2 W, Pi 2 v1.2 |"
           fi
 
           if ls images/*armhf*.img.xz 1>/dev/null 2>&1; then
             ARMHF_FILE=$(ls images/*armhf*.img.xz 2>/dev/null | head -1 | xargs basename)
             NOTES="${NOTES}
-          | \`${ARMHF_FILE}\` | Raspberry Pi 2, Pi 3 |"
+          | \`${ARMHF_FILE}\` | Pi 2 Model B v1.0 (2015) |"
           fi
 
           NOTES="${NOTES}

@@ -5,8 +5,8 @@
 # Builds ready-to-flash SD card images using pi-gen (official RPi OS builder).
 #
 # Usage:
-#   ./build.sh --arch arm64        # RPi 3/4/5 (64-bit)
-#   ./build.sh --arch armhf        # RPi 2/3 (32-bit)
+#   ./build.sh --arch arm64        # RPi 3/4/5, Zero 2 W, Pi 2 v1.2
+#   ./build.sh --arch armhf        # RPi 2 v1.0 (original Pi 2 from 2015)
 #   ./build.sh --arch all          # Both architectures
 #   ./build.sh --arch arm64 --clean  # Clean build (remove pi-gen cache)
 #
@@ -14,6 +14,10 @@
 #   - Docker (for containerized pi-gen build)
 #   - ~10 GB free disk space
 #   - Internet access (downloads base OS + packages)
+#
+# Note: Pi 3 is 64-bit capable — use arm64 for better performance.
+#       Pi 2 Model B has two versions: v1.0 (armhf) and v1.2 (arm64).
+#       See MODEL-GUIDE.md for detailed identification instructions.
 # ============================================================================
 
 set -euo pipefail
@@ -194,11 +198,8 @@ install_stage() {
     # Export image from our stage (NOT NOOBS — only .img)
     touch "${stage_target}/EXPORT_IMAGE"
 
-    # Set OCT version in compose file
-    if [[ "$OCT_VERSION" != "latest" ]]; then
-        sed -i "s|ghcr.io/opencloudtouch/opencloudtouch:latest|ghcr.io/opencloudtouch/opencloudtouch:${OCT_VERSION}|g" \
-            "${stage_target}/01-configure-oct/files/docker-compose.yml"
-    fi
+    # Note: Raspi images always use :latest tag. The firstboot script pulls
+    # the latest image on first boot. Use oct-update.sh to change versions.
 
     log_info "Custom stage installed"
 }
@@ -209,7 +210,7 @@ install_stage() {
 build_image() {
     local arch="$1"
 
-    # arm64 branch = 64-bit kernels only; master = 32-bit kernels for RPi 2
+    # arm64 branch = 64-bit kernels only; bookworm = 32-bit kernels for RPi 2
     if [[ "$arch" == "armhf" ]]; then
         PI_GEN_BRANCH=bookworm
     else
@@ -253,7 +254,12 @@ build_image() {
         fi
     fi
 
-    local output_name="opencloudtouch-${arch}-${OCT_VERSION}.img.xz"
+    local output_name
+    if [[ "$arch" == "arm64" ]]; then
+        output_name="opencloudtouch_Pi3-4-5-Zero2W_raspios-bookworm-arm64.img.xz"
+    else
+        output_name="opencloudtouch_Pi2v1.0_raspios-bookworm-armhf.img.xz"
+    fi
     cp "$img_file" "${OUTPUT_DIR}/${output_name}"
 
     # Generate checksums
@@ -298,7 +304,7 @@ main() {
     echo ""
     log_info "=========================================="
     log_info "Build complete! Output files:"
-    ls -lh "${OUTPUT_DIR}"/opencloudtouch-*.img.xz 2>/dev/null || true
+    ls -lh "${OUTPUT_DIR}"/opencloudtouch*.img.xz 2>/dev/null || true
     log_info "=========================================="
 }
 

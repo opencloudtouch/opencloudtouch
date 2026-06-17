@@ -6,8 +6,12 @@ Builds ready-to-flash SD card images for Raspberry Pi 2/3/4/5.
 
 | Image | Architecture | Supported Models |
 |-------|-------------|-----------------|
-| `opencloudtouch-arm64.img.xz` | 64-bit (aarch64) | RPi 3, 4, 5 |
-| `opencloudtouch-armhf.img.xz` | 32-bit (armv7l) | RPi 2, 3 (32-bit) |
+| `opencloudtouch_Pi3-4-5-Zero2W_raspios-bookworm-arm64.img.xz` | 64-bit (aarch64) | **RPi 3, 4, 5, Zero 2 W, Pi 2 v1.2** |
+| `opencloudtouch_Pi2v1.0_raspios-bookworm-armhf.img.xz` | 32-bit (armv7l) | **RPi 2 Model B v1.0 only** |
+
+> **Note:** Pi 3 is 64-bit capable — use **arm64** for better performance. Pi 2 Model B has two versions: v1.0 (32-bit) and v1.2 (64-bit). See [MODEL-GUIDE.md](./MODEL-GUIDE.md) for detailed identification instructions.
+>
+> **Not supported:** Raspberry Pi 1, Pi Zero, Pi Zero W (ARMv6 architecture — too old for Docker)
 
 ## What's Included
 
@@ -31,9 +35,10 @@ Builds ready-to-flash SD card images for Raspberry Pi 2/3/4/5.
 # 2. Configure hostname, SSH, Wi-Fi in advanced settings
 # 3. Flash to SD card
 
-# Or using dd (Linux/macOS):
-xz -d opencloudtouch-arm64.img.xz
-sudo dd if=opencloudtouch-arm64.img of=/dev/sdX bs=4M status=progress
+# Using Balena Etcher:
+# 1. Select the .img.xz file (no need to extract)
+# 2. Select your SD card
+# 3. Flash
 ```
 
 ### Wi-Fi Configuration (Headless)
@@ -51,8 +56,10 @@ OCT_PORT=7777
 ### First Boot
 
 1. Insert SD card, connect power
-2. Wait ~2-3 minutes (first boot takes longer: resize, Docker pull)
+2. Wait ~3-10 minutes (first boot: partition resize, Docker pull, container start)
+	- On slow networks this can take longer; keep power connected and watch the boot screen/logs.
 3. Access: `http://opencloudtouch.local:7777`
+4. SSH: `ssh oct@opencloudtouch.local` (password: `opencloudtouch`)
 
 ## Building Locally
 
@@ -62,7 +69,7 @@ Requires Linux (Debian/Ubuntu) or Docker.
 # Build arm64 image (RPi 3/4/5)
 ./build.sh --arch arm64
 
-# Build armhf image (RPi 2)
+# Build armhf image (RPi 2 Model B v1.0 only)
 ./build.sh --arch armhf
 
 # Build both
@@ -75,7 +82,7 @@ Requires Linux (Debian/Ubuntu) or Docker.
 - ~10 GB disk space
 - ~15-30 minutes build time
 
-## Architecture
+## Project Structure
 
 ```
 raspi-image/
@@ -91,8 +98,7 @@ raspi-image/
 │   ├── oct-firstboot.service    # systemd service for firstboot
 │   ├── oct-update.sh            # Update helper script
 │   └── oct-config.txt           # User config template
-└── .github/workflows/
-    └── build-raspi.yml          # CI/CD for image builds
+└── MODEL-GUIDE.md               # Pi model identification guide
 ```
 
 ## CI/CD
@@ -113,5 +119,6 @@ on the boot partition before first boot.
 
 SSH is enabled by default:
 - User: `oct`
-- Default password: `opencloudtouch` (change on first login!)
+- Default password: `opencloudtouch`
+- Or use SSH key authentication for better security
 - Or configure SSH keys via Raspberry Pi Imager advanced settings
