@@ -6,9 +6,10 @@
 
 on_chroot << 'CHROOT'
 
-# ==== Disable first-boot wizard (piwiz) ====
-# Raspberry Pi OS Bookworm shows a setup wizard on first boot.
-# We preconfigure everything, so disable it.
+# ==== Disable graphical first-boot wizard ====
+# pi-gen's DISABLE_FIRST_BOOT_USER_RENAME=1 (set in build.sh) prevents
+# the text-mode userconfig.service from ever being activated.
+# We only need to clean up piwiz (graphical wizard) as a precaution.
 rm -f /etc/xdg/autostart/piwiz.desktop
 rm -f /usr/share/applications/piwiz.desktop
 

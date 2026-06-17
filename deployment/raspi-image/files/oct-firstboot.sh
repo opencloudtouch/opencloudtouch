@@ -81,8 +81,13 @@ if [[ -n "${WIFI_SSID:-}" ]] && [[ -n "${WIFI_PASSWORD:-}" ]]; then
     log "Configuring Wi-Fi: ${WIFI_SSID}"
     WIFI_COUNTRY="${WIFI_COUNTRY:-DE}"
 
+    # Check if Wi-Fi hardware exists before attempting connection
+    if command -v nmcli &>/dev/null && ! nmcli -t -f TYPE device 2>/dev/null | grep -q "^wifi$"; then
+        log "[INFO] No Wi-Fi hardware found. Skipping Wi-Fi configuration."
+        log "       This device likely uses ethernet only (e.g. Pi 2)."
+        NETWORK_AVAILABLE=false
     # Use NetworkManager (default on Bookworm)
-    if command -v nmcli &>/dev/null; then
+    elif command -v nmcli &>/dev/null; then
         nmcli radio wifi on
         # Keep profile idempotent across retries
         nmcli connection show "oct-wifi" &>/dev/null && \
@@ -111,50 +116,27 @@ if [[ -n "${WIFI_SSID:-}" ]] && [[ -n "${WIFI_PASSWORD:-}" ]]; then
                 NETWORK_AVAILABLE=false
             fi
         fi
-    else
-        # Fallback: wpa_supplicant
-        cat > /etc/wpa_supplicant/wpa_supplicant.conf << 'WPACFG'
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-update_config=1
-country=__WIFI_COUNTRY__
+    fi
+fi
 
-network={
-    ssid="__WIFI_SSID__"
-    psk="__WIFI_PASSWORD__"
-    key_mgmt=WPA-PSK
-}
-WPACFG
-        # Escape sed special chars in correct order: backslash FIRST to avoid double-escaping
-        WIFI_COUNTRY_ESCAPED=${WIFI_COUNTRY//\\/\\\\}
-        WIFI_COUNTRY_ESCAPED=${WIFI_COUNTRY_ESCAPED//\//\\/}
-        WIFI_COUNTRY_ESCAPED=${WIFI_COUNTRY_ESCAPED//|/\|}
-        WIFI_COUNTRY_ESCAPED=${WIFI_COUNTRY_ESCAPED//&/\&}
-        WIFI_SSID_ESCAPED=${WIFI_SSID//\\/\\\\}
-        WIFI_SSID_ESCAPED=${WIFI_SSID_ESCAPED//\//\\/}
-        WIFI_SSID_ESCAPED=${WIFI_SSID_ESCAPED//|/\|}
-        WIFI_SSID_ESCAPED=${WIFI_SSID_ESCAPED//&/\&}
-        WIFI_PASSWORD_ESCAPED=${WIFI_PASSWORD//\\/\\\\}
-        WIFI_PASSWORD_ESCAPED=${WIFI_PASSWORD_ESCAPED//\//\\/}
-        WIFI_PASSWORD_ESCAPED=${WIFI_PASSWORD_ESCAPED//|/\|}
-        WIFI_PASSWORD_ESCAPED=${WIFI_PASSWORD_ESCAPED//&/\&}
-        sed -i "s|__WIFI_COUNTRY__|${WIFI_COUNTRY_ESCAPED}|g" /etc/wpa_supplicant/wpa_supplicant.conf
-        sed -i "s|__WIFI_SSID__|${WIFI_SSID_ESCAPED}|g" /etc/wpa_supplicant/wpa_supplicant.conf
-        sed -i "s|__WIFI_PASSWORD__|${WIFI_PASSWORD_ESCAPED}|g" /etc/wpa_supplicant/wpa_supplicant.conf
-        wpa_cli -i wlan0 reconfigure 2>/dev/null || true
-
-        log "Waiting for IP address..."
-        GOT_IP=false
-        for i in $(seq 1 15); do
-            if ip -4 addr show wlan0 2>/dev/null | grep -q "inet "; then
-                GOT_IP=true
-                break
-            fi
-            sleep 2
-        done
-        if [[ "$GOT_IP" == "false" ]]; then
-            log "[WARN] Wi-Fi configured via wpa_supplicant but no IP received (DHCP timeout)."
-            NETWORK_AVAILABLE=false
+# Actual connectivity check (Wi-Fi failure does NOT mean no network —
+# ethernet may be available, or Wi-Fi config was for a different location)
+if [[ "$NETWORK_AVAILABLE" == "false" ]]; then
+    log "Wi-Fi unavailable. Checking for other network connectivity (ethernet)..."
+    # Wait briefly for DHCP on ethernet
+    for i in $(seq 1 10); do
+        if ping -c1 -W2 8.8.8.8 &>/dev/null || ping -c1 -W2 1.1.1.1 &>/dev/null; then
+            log "[OK] Network available via ethernet or other interface."
+            NETWORK_AVAILABLE=true
+            break
         fi
+        if (( i % 3 == 0 )); then
+            log "Waiting for network... (${i}/10)"
+        fi
+        sleep 2
+    done
+    if [[ "$NETWORK_AVAILABLE" == "false" ]]; then
+        log "[WARN] No network connectivity detected on any interface."
     fi
 fi
 
