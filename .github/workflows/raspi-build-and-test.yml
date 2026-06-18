@@ -114,21 +114,6 @@ jobs:
           git clone --depth 1 --branch "$PI_GEN_BRANCH" \
             ${{ env.PI_GEN_REPO }} pi-gen
 
-          # Store branch for cache key
-          echo "PI_GEN_BRANCH=$PI_GEN_BRANCH" >> "$GITHUB_ENV"
-          PI_GEN_SHA=$(cd pi-gen && git rev-parse --short HEAD)
-          echo "PI_GEN_SHA=$PI_GEN_SHA" >> "$GITHUB_ENV"
-
-      - name: Restore pi-gen stage cache
-        id: cache-stages
-        uses: actions/cache@v4
-        with:
-          path: pi-gen/work
-          # Weekly rotation ensures security updates are picked up.
-          # Cache busts on: arch change, pi-gen update, or new week.
-          key: pigen-${{ inputs.arch }}-${{ env.PI_GEN_BRANCH }}-${{ env.PI_GEN_SHA }}-week${{ github.run_number / 7 }}
-          # No restore-keys — strict match only to avoid version mismatch
-
       - name: Configure pi-gen
         run: |
           cd pi-gen
@@ -167,14 +152,6 @@ jobs:
           mkdir -p pi-gen/stage-opencloudtouch/01-configure-oct/files
           cp deployment/raspi-image/files/* pi-gen/stage-opencloudtouch/01-configure-oct/files/
 
-          # ==== CRITICAL: Remove user-rename wizard ====
-          # Pi-gen's export-image/01-user-rename/ installs the userconf-pi package
-          # which enables userconfig.service — the whiptail "new username" dialog.
-          # We preconfigure user 'oct', so remove this step entirely.
-          rm -f pi-gen/export-image/01-user-rename/00-packages
-          rm -f pi-gen/export-image/01-user-rename/01-run.sh
-          echo "::notice::Removed export-image/01-user-rename (prevents userconf-pi install)"
-
           # Set Docker image tag in compose file
           DOCKER_TAG="${{ inputs.docker_image_tag }}"
           if [ "$DOCKER_TAG" != "latest" ]; then
@@ -196,25 +173,12 @@ jobs:
           touch pi-gen/stage4/SKIP 2>/dev/null || true
           touch pi-gen/stage5/SKIP 2>/dev/null || true
 
-          # ==== Cache optimization: skip base stages if cached ====
-          if [ "${{ steps.cache-stages.outputs.cache-hit }}" = "true" ]; then
-            echo "::notice::Cache hit! Skipping stages 0-2 (using cached rootfs)"
-            touch pi-gen/stage0/SKIP
-            touch pi-gen/stage1/SKIP
-            touch pi-gen/stage2/SKIP
-          else
-            echo "::notice::No cache — full build (stages 0-2 will be built and cached)"
-          fi
-
       - name: Free disk space in chroot
         run: |
           # Inject apt-get clean before dist-upgrade to avoid running out of space
-          # (only needed on full builds, not cached)
-          if [ "${{ steps.cache-stages.outputs.cache-hit }}" != "true" ]; then
-            COPIES_SCRIPT="pi-gen/stage2/00-copies-and-fills/00-run.sh"
-            if [ -f "$COPIES_SCRIPT" ]; then
-              sed -i '/dist-upgrade/i on_chroot << EOF\napt-get clean\nEOF' "$COPIES_SCRIPT"
-            fi
+          COPIES_SCRIPT="pi-gen/stage2/00-copies-and-fills/00-run.sh"
+          if [ -f "$COPIES_SCRIPT" ]; then
+            sed -i '/dist-upgrade/i on_chroot << EOF\napt-get clean\nEOF' "$COPIES_SCRIPT"
           fi
 
       - name: Set up QEMU
@@ -228,34 +192,9 @@ jobs:
       - name: Build image with pi-gen
         run: |
           cd pi-gen
-          chmod +x build-docker.sh build.sh
-
+          chmod +x build-docker.sh
           echo "::notice::Starting pi-gen build for ${{ inputs.arch }}..."
-
-          if [ "${{ steps.cache-stages.outputs.cache-hit }}" = "true" ]; then
-            echo "::notice::Using cached stages — running with bind-mounts for cache reuse"
-          fi
-
-          # Pi-gen's build-docker.sh uses anonymous Docker volumes for work/
-          # which makes the host path pi-gen/work/ always empty — useless for caching.
-          # Instead, we build the Docker image ourselves and run with bind-mounts
-          # so work/ lives on the host and can be cached by actions/cache.
-          docker build -t pi-gen-builder .
-
-          mkdir -p work deploy
-
-          docker run --rm --privileged \
-            --name pigen_work_${{ inputs.arch }} \
-            -v "$(pwd):/pi-gen" \
-            -v "$(pwd)/work:/pi-gen/work" \
-            -v "$(pwd)/deploy:/pi-gen/deploy" \
-            -e "GIT_HASH=$(git rev-parse HEAD)" \
-            pi-gen-builder \
-            bash -e -o pipefail -c "
-              dpkg-reconfigure qemu-user-static 2>/dev/null || true
-              mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc 2>/dev/null || true
-              cd /pi-gen && ./build.sh
-            "
+          ./build-docker.sh
         timeout-minutes: 60
 
       - name: Extract raw image from deploy

@@ -143,7 +143,6 @@ RELEASE=bookworm
 TARGET_HOSTNAME="${target_hostname}"
 FIRST_USER_NAME=oct
 FIRST_USER_PASS="opencloudtouch"
-DISABLE_FIRST_BOOT_USER_RENAME=1
 ENABLE_SSH=1
 LOCALE_DEFAULT=en_GB.UTF-8
 KEYBOARD_KEYMAP=us
@@ -198,18 +197,6 @@ install_stage() {
 
     # Export image from our stage (NOT NOOBS — only .img)
     touch "${stage_target}/EXPORT_IMAGE"
-
-    # ==== Disable pi-gen's user-rename wizard ====
-    # Pi-gen's export-image/01-user-rename/ installs the 'userconf-pi' package
-    # which enables userconfig.service — this shows the whiptail "Please enter
-    # new username" dialog on first boot. Our appliance has user 'oct' pre-
-    # configured, so we remove this step entirely.
-    # Note: DISABLE_FIRST_BOOT_USER_RENAME=1 in config is NOT sufficient because
-    # it only skips the `rename-user` call but the package still gets installed
-    # and its service auto-enabled by systemd.
-    rm -f "${PI_GEN_DIR}/export-image/01-user-rename/00-packages"
-    rm -f "${PI_GEN_DIR}/export-image/01-user-rename/01-run.sh"
-    log_info "Disabled pi-gen user-rename wizard (userconf-pi will not be installed)"
 
     # Note: Raspi images always use :latest tag. The firstboot script pulls
     # the latest image on first boot. Use oct-update.sh to change versions.

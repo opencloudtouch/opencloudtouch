@@ -6,10 +6,14 @@
 
 on_chroot << 'CHROOT'
 
+# ==== Disable first-boot wizard (piwiz) ====
+# Raspberry Pi OS Bookworm shows a setup wizard on first boot.
+# We preconfigure everything, so disable it.
+rm -f /etc/xdg/autostart/piwiz.desktop
+rm -f /usr/share/applications/piwiz.desktop
+
 # ==== Enable console autologin (appliance mode) ====
 # For headless operation, auto-login as 'oct' user
-# Note: The user-rename wizard (userconf-pi) is prevented by removing
-# export-image/01-user-rename/ in build.sh — no need to mask services here.
 mkdir -p /etc/systemd/system/getty@tty1.service.d
 cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf << 'AUTOLOGIN'
 [Service]
