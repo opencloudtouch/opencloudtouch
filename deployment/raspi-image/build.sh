@@ -143,6 +143,7 @@ RELEASE=bookworm
 TARGET_HOSTNAME="${target_hostname}"
 FIRST_USER_NAME=oct
 FIRST_USER_PASS="opencloudtouch"
+DISABLE_FIRST_BOOT_USER_RENAME=1
 ENABLE_SSH=1
 LOCALE_DEFAULT=en_GB.UTF-8
 KEYBOARD_KEYMAP=us
@@ -197,6 +198,12 @@ install_stage() {
 
     # Export image from our stage (NOT NOOBS — only .img)
     touch "${stage_target}/EXPORT_IMAGE"
+
+    # Remove pi-gen's user-rename wizard step — it installs userconf-pi which
+    # enables userconfig.service (the whiptail 'new username' dialog).
+    # Our image has user 'oct' pre-configured, so this step must not run.
+    rm -f "${PI_GEN_DIR}/export-image/01-user-rename/00-packages" 2>/dev/null || true
+    rm -f "${PI_GEN_DIR}/export-image/01-user-rename/01-run.sh" 2>/dev/null || true
 
     # Note: Raspi images always use :latest tag. The firstboot script pulls
     # the latest image on first boot. Use oct-update.sh to change versions.
