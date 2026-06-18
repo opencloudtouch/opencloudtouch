@@ -14,10 +14,7 @@ apt-get install -y --no-install-recommends \
     avahi-utils \
     ca-certificates \
     curl \
-    gnupg \
-    jq \
-    lsb-release \
-    net-tools
+    jq
 
 # ==== Docker CE ====
 # Add Docker's official GPG key
