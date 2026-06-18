@@ -1,0 +1,44 @@
+# ============================================================================
+# Patch Manifest — defines what gets synced from workspace into the image
+# ============================================================================
+# Format:
+#   COPY  <source>  <target_in_image>  <permissions>
+#   REMOVE <path_in_image>
+#   SYMLINK <target> <link_path_in_image>
+#   PURGE_PKG <package_name>
+#   DISABLE_SERVICE <service_name>
+#   WRITE <target_in_image> <permissions> <<HEREDOC ... HEREDOC
+#
+# Paths are relative to deployment/raspi-image/ for source,
+# absolute for target_in_image.
+#
+# Lines starting with # are comments. Empty lines are ignored.
+# ============================================================================
+
+# --- OCT application files ---
+COPY files/oct-firstboot.sh        /opt/opencloudtouch/oct-firstboot.sh      755
+COPY files/oct-update.sh           /opt/opencloudtouch/oct-update.sh         755
+COPY files/docker-compose.yml      /opt/opencloudtouch/docker-compose.yml    644
+COPY files/oct-firstboot.service   /etc/systemd/system/oct-firstboot.service 644
+COPY files/oct-config.txt          /boot/firmware/oct-config.txt             644
+
+# --- Remove first-boot user wizard (userconf-pi) ---
+PURGE_PKG userconf-pi
+DISABLE_SERVICE userconfig
+REMOVE /etc/xdg/autostart/piwiz.desktop
+REMOVE /usr/share/applications/piwiz.desktop
+REMOVE /etc/ssh/sshd_config.d/rename_user.conf
+
+# --- Ensure correct systemd state ---
+SYMLINK /lib/systemd/system/getty@.service    /etc/systemd/system/getty.target.wants/getty@tty1.service
+SYMLINK /etc/systemd/system/oct-firstboot.service /etc/systemd/system/multi-user.target.wants/oct-firstboot.service
+
+# --- Console autologin ---
+WRITE /etc/systemd/system/getty@tty1.service.d/autologin.conf 644 <<AUTOLOGIN
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin oct --noclear %I $TERM
+AUTOLOGIN
+
+# --- Reset firstboot state (so it re-runs) ---
+REMOVE /opt/opencloudtouch/.firstboot-status

@@ -104,39 +104,66 @@ if [[ -n "${WIFI_SSID:-}" ]] && [[ -n "${WIFI_PASSWORD:-}" ]]; then
         if [[ "$NETWORK_AVAILABLE" == "true" ]]; then
             log "Waiting for IP address..."
             GOT_IP=false
-            for i in $(seq 1 15); do
+            for i in $(seq 1 30); do
                 if nmcli -g IP4.ADDRESS dev show wlan0 2>/dev/null | grep -q '.'; then
                     GOT_IP=true
                     break
                 fi
+                if (( i % 5 == 0 )); then
+                    log "Still waiting for DHCP lease... (${i}/30)"
+                fi
                 sleep 2
             done
             if [[ "$GOT_IP" == "false" ]]; then
-                log "[WARN] Wi-Fi connected but no IP received (DHCP timeout)."
+                log "[WARN] Wi-Fi connected but no IP received (DHCP timeout after 60s)."
                 NETWORK_AVAILABLE=false
             fi
         fi
     fi
 fi
 
+# Connectivity check function (reusable for retry)
+check_network_connectivity() {
+    for i in $(seq 1 30); do
+        if ping -c1 -W2 8.8.8.8 &>/dev/null || ping -c1 -W2 1.1.1.1 &>/dev/null; then
+            return 0
+        fi
+        if (( i % 5 == 0 )); then
+            log "Waiting for network... (${i}/30)"
+        fi
+        sleep 2
+    done
+    return 1
+}
+
 # Actual connectivity check (Wi-Fi failure does NOT mean no network —
 # ethernet may be available, or Wi-Fi config was for a different location)
 if [[ "$NETWORK_AVAILABLE" == "false" ]]; then
     log "Wi-Fi unavailable. Checking for other network connectivity (ethernet)..."
-    # Wait briefly for DHCP on ethernet
-    for i in $(seq 1 10); do
-        if ping -c1 -W2 8.8.8.8 &>/dev/null || ping -c1 -W2 1.1.1.1 &>/dev/null; then
-            log "[OK] Network available via ethernet or other interface."
-            NETWORK_AVAILABLE=true
-            break
-        fi
-        if (( i % 3 == 0 )); then
-            log "Waiting for network... (${i}/10)"
-        fi
-        sleep 2
-    done
-    if [[ "$NETWORK_AVAILABLE" == "false" ]]; then
-        log "[WARN] No network connectivity detected on any interface."
+    if check_network_connectivity; then
+        log "[OK] Network available via ethernet or other interface."
+        NETWORK_AVAILABLE=true
+    fi
+fi
+
+# Even if Wi-Fi got an IP, verify actual internet connectivity
+if [[ "$NETWORK_AVAILABLE" == "true" ]]; then
+    if ! ping -c1 -W3 8.8.8.8 &>/dev/null && ! ping -c1 -W3 1.1.1.1 &>/dev/null; then
+        log "[WARN] Wi-Fi has IP but no internet. Possible captive portal."
+        NETWORK_AVAILABLE=false
+    fi
+fi
+
+# Retry once after 30s pause if no connectivity detected
+if [[ "$NETWORK_AVAILABLE" == "false" ]]; then
+    log "[INFO] No connectivity yet. Waiting 30 seconds for network to stabilize..."
+    sleep 30
+    log "[INFO] Retrying network check..."
+    if check_network_connectivity; then
+        log "[OK] Network available on retry."
+        NETWORK_AVAILABLE=true
+    else
+        log "[WARN] No network connectivity after retry."
     fi
 fi
 
@@ -199,10 +226,25 @@ if [[ "$NETWORK_AVAILABLE" == "false" ]]; then
     if docker images | grep -q "ghcr.io/opencloudtouch/opencloudtouch"; then
         log "Using pre-loaded image."
     else
-        log "[ERROR] No pre-loaded image and no network. Cannot start."
-        log "        Fix network, then: sudo /opt/opencloudtouch/oct-firstboot.sh"
-        echo "FAILED $(date -Iseconds) no-image-no-network" > "$STATUS_FILE"
-        exit 1
+        log ""
+        log "============================================================"
+        log "  Network not available — OpenCloudTouch cannot start yet."
+        log ""
+        log "  This is normal if Wi-Fi is not configured or the network"
+        log "  is slow. OpenCloudTouch will retry on the next reboot."
+        log ""
+        log "  To fix:"
+        log "    1. Connect an ethernet cable, OR"
+        log "    2. Edit Wi-Fi settings in /boot/firmware/oct-config.txt"
+        log "    3. Then reboot: sudo reboot"
+        log ""
+        log "  Or retry manually:"
+        log "    sudo /opt/opencloudtouch/oct-firstboot.sh"
+        log "============================================================"
+        log ""
+        echo "INCOMPLETE $(date -Iseconds) no-network-will-retry" > "$STATUS_FILE"
+        # Do NOT disable firstboot — allow automatic retry on next boot
+        exit 0
     fi
 else
     cd /opt/opencloudtouch
@@ -211,11 +253,16 @@ else
         if docker images | grep -q "ghcr.io/opencloudtouch/opencloudtouch"; then
             log "Using pre-loaded image."
         else
-            log "[ERROR] No image available and pull failed."
-            log "        Check: ip addr (verify IP), ping -c1 google.com (verify internet)"
-            log "        Retry: sudo docker compose -f ${COMPOSE_FILE} pull"
-            echo "FAILED $(date -Iseconds) pull-failed" > "$STATUS_FILE"
-            exit 1
+            log ""
+            log "============================================================"
+            log "  Docker image pull failed — will retry on next reboot."
+            log ""
+            log "  Check: ip addr (verify IP), ping google.com (verify internet)"
+            log "  Retry: sudo /opt/opencloudtouch/oct-firstboot.sh"
+            log "============================================================"
+            log ""
+            echo "INCOMPLETE $(date -Iseconds) pull-failed-will-retry" > "$STATUS_FILE"
+            exit 0
         fi
     }
 fi
