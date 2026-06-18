@@ -19,7 +19,7 @@
 #   Python: 3.11.8-slim (Debian Bookworm)
 
 # Stage 1: Python Dependencies (separate for better caching)
-FROM python:3.11-slim@sha256:0b23cfb7425d065008b778022a17b1551c82f8b4866ee5a7a200084b7e2eafbf AS python-deps
+FROM python:3.11-slim@sha256:a01e48f10f90ac3ee65ef6937b9d7c831a3570c81b98d39a547ff09fb359de7f AS python-deps
 
 # Install build dependencies (full toolchain needed for arm/v7 cross-compilation)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -59,7 +59,7 @@ RUN apt-get purge -y --auto-remove gcc libc6-dev libffi-dev make autoconf automa
     find /install -name "*.pyc" -delete
 
 # Stage 3: Backend Runtime
-FROM python:3.11-slim@sha256:0b23cfb7425d065008b778022a17b1551c82f8b4866ee5a7a200084b7e2eafbf AS backend
+FROM python:3.11-slim@sha256:a01e48f10f90ac3ee65ef6937b9d7c831a3570c81b98d39a547ff09fb359de7f AS backend
 
 # OCI Image Labels
 LABEL org.opencontainers.image.title="OpenCloudTouch" \
