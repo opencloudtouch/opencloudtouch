@@ -6,15 +6,10 @@
 
 on_chroot << 'CHROOT'
 
-# ==== Disable graphical first-boot wizard ====
-# pi-gen's DISABLE_FIRST_BOOT_USER_RENAME=1 (set in build.sh) prevents
-# the text-mode userconfig.service from ever being activated.
-# We only need to clean up piwiz (graphical wizard) as a precaution.
-rm -f /etc/xdg/autostart/piwiz.desktop
-rm -f /usr/share/applications/piwiz.desktop
-
 # ==== Enable console autologin (appliance mode) ====
 # For headless operation, auto-login as 'oct' user
+# Note: The user-rename wizard (userconf-pi) is prevented by removing
+# export-image/01-user-rename/ in build.sh — no need to mask services here.
 mkdir -p /etc/systemd/system/getty@tty1.service.d
 cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf << 'AUTOLOGIN'
 [Service]
