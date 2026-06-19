@@ -211,7 +211,6 @@ jobs:
           file: deployment/Dockerfile
           platforms: ${{ matrix.platform }}
           push: true
-          no-cache: true
           build-args: |
             OCT_BUILD_SIGNATURE=${{ steps.sign.outputs.signature }}
           labels: |
@@ -219,6 +218,8 @@ jobs:
             org.opencontainers.image.description=Test build from ${{ github.ref_name }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=test-${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=test-${{ matrix.platform }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true
 
       - name: Export digest

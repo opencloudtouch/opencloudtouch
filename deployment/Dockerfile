@@ -16,10 +16,15 @@
 #   docker inspect --format='{{.RepoDigests}}' <image>:<tag>
 #
 # Current versions:
-#   Python: 3.11.8-slim (Debian Bookworm)
+#   Python: 3.11-slim (Debian Bookworm)
+#
+# IMPORTANT: Pin to the multi-arch INDEX digest, NOT a platform-specific one.
+# A platform-specific digest (e.g. amd64) silently forces that architecture
+# for ALL builds, breaking arm64/armv7. Verify with:
+#   curl ... /manifests/<digest> → mediaType must be image.index, NOT image.manifest
 
 # Stage 1: Python Dependencies (separate for better caching)
-FROM python:3.11-slim@sha256:a01e48f10f90ac3ee65ef6937b9d7c831a3570c81b98d39a547ff09fb359de7f AS python-deps
+FROM python:3.11-slim@sha256:ae52c5bef62a6bdd42cd1e8dffef86b9cd284bde9427da79839de7a4b983e7ca AS python-deps
 
 # Install build dependencies (full toolchain needed for arm/v7 cross-compilation)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -59,7 +64,7 @@ RUN apt-get purge -y --auto-remove gcc libc6-dev libffi-dev make autoconf automa
     find /install -name "*.pyc" -delete
 
 # Stage 3: Backend Runtime
-FROM python:3.11-slim@sha256:a01e48f10f90ac3ee65ef6937b9d7c831a3570c81b98d39a547ff09fb359de7f AS backend
+FROM python:3.11-slim@sha256:ae52c5bef62a6bdd42cd1e8dffef86b9cd284bde9427da79839de7a4b983e7ca AS backend
 
 # OCI Image Labels
 LABEL org.opencontainers.image.title="OpenCloudTouch" \
