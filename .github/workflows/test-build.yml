@@ -218,8 +218,17 @@ jobs:
             org.opencontainers.image.description=Test build from ${{ github.ref_name }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
-          cache-from: type=gha,scope=test-${{ matrix.platform }}
-          cache-to: type=gha,mode=max,scope=test-${{ matrix.platform }}
+          # Use mode=min to prevent cross-arch cache poisoning.
+          # mode=max exports ALL intermediate layers which can cause amd64 layers
+          # to leak into arm64 builds when the test cache was initially populated
+          # by an amd64-only run (the default). Production cache is read-only fallback.
+          cache-from: |
+            type=gha,scope=test-${{ matrix.platform }}
+            type=gha,scope=build-${{ matrix.platform }}
+          cache-to: type=gha,mode=min,scope=test-${{ matrix.platform }}
+          # Disable provenance attestations — they add "unknown/unknown" platform
+          # entries to the manifest which can confuse older Docker daemons on RPi.
+          provenance: false
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true
 
       - name: Export digest
