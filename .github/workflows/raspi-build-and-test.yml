@@ -117,13 +117,6 @@ jobs:
           echo "PI_GEN_BRANCH=$PI_GEN_BRANCH" >> "$GITHUB_ENV"
           echo "PI_GEN_SHA=$(cd pi-gen && git rev-parse --short HEAD)" >> "$GITHUB_ENV"
 
-      - name: Restore pi-gen stage cache
-        id: cache-stages
-        uses: actions/cache@v4
-        with:
-          path: pi-gen/work
-          key: pigen-${{ inputs.arch }}-${{ env.PI_GEN_BRANCH }}-${{ env.PI_GEN_SHA }}
-
       - name: Configure pi-gen
         run: |
           cd pi-gen
@@ -190,22 +183,9 @@ jobs:
           touch pi-gen/stage4/SKIP 2>/dev/null || true
           touch pi-gen/stage5/SKIP 2>/dev/null || true
 
-          # Skip base stages if cached AND rootfs is complete
-          if [ "${{ steps.cache-stages.outputs.cache-hit }}" = "true" ]; then
-            IMG_NAME="opencloudtouch-${{ inputs.arch }}"
-            STAGE2_ROOTFS="pi-gen/work/${IMG_NAME}/stage2/rootfs"
-            if [ -d "$STAGE2_ROOTFS" ] && [ -f "$STAGE2_ROOTFS/etc/os-release" ]; then
-              echo "::notice::Cache valid — skipping stages 0-2"
-              touch pi-gen/stage0/SKIP
-              touch pi-gen/stage1/SKIP
-              touch pi-gen/stage2/SKIP
-            else
-              echo "::warning::Cache incomplete (no stage2 rootfs) — full rebuild"
-            fi
-          fi
+
 
       - name: Free disk space in chroot
-        if: steps.cache-stages.outputs.cache-hit != 'true'
         run: |
           # Inject apt-get clean before dist-upgrade to avoid running out of space
           COPIES_SCRIPT="pi-gen/stage2/00-copies-and-fills/00-run.sh"
