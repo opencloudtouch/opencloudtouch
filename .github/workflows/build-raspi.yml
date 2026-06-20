@@ -8,6 +8,8 @@
 #
 # Only needs rebuilding when OS config, Docker setup, or boot scripts change
 # (anything under deployment/raspi-image/).
+#
+# Build + test logic lives in raspi-build-and-test.yml (reusable workflow).
 # ==============================================================================
 
 name: Build Raspberry Pi Images
@@ -29,268 +31,51 @@ on:
           - arm64
           - armhf
 
-env:
-  PI_GEN_REPO: https://github.com/RPi-Distro/pi-gen.git
-
 permissions: {}
 
 jobs:
   # ============================================================================
-  # BUILD IMAGES
+  # RESOLVE ARCHITECTURE MATRIX
   # ============================================================================
-  build:
-    name: Build ${{ matrix.arch }}
+  resolve:
+    name: Resolve Architectures
     runs-on: ubuntu-latest
-    timeout-minutes: 90
-
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: ${{ fromJSON(inputs.architectures == 'all' && '["arm64", "armhf"]' || format('["{0}"]', inputs.architectures)) }}
-
+    outputs:
+      archs: ${{ steps.matrix.outputs.archs }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Free disk space
+      - name: Compute matrix
+        id: matrix
         run: |
-          df -h /
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
-            /usr/local/share/boost /usr/share/swift \
-            /usr/local/graalvm /usr/local/.ghcup \
-            /usr/local/share/powershell /usr/local/share/chromium \
-            /opt/hostedtoolcache/CodeQL || true
-          sudo docker image prune -af 2>/dev/null || true
-          sudo apt-get clean
-          df -h /
-
-      - name: Clone pi-gen
-        run: |
-          if [ "${{ matrix.arch }}" = "armhf" ]; then
-            PI_GEN_BRANCH=master
+          if [ "${{ inputs.architectures }}" = "all" ]; then
+            echo 'archs=["arm64", "armhf"]' >> "$GITHUB_OUTPUT"
           else
-            PI_GEN_BRANCH=arm64
+            echo 'archs=["${{ inputs.architectures }}"]' >> "$GITHUB_OUTPUT"
           fi
-          git clone --depth 1 --branch "$PI_GEN_BRANCH" \
-            ${{ env.PI_GEN_REPO }} pi-gen
-
-      - name: Configure pi-gen
-        run: |
-          cd pi-gen
-          cat > config << 'EOF'
-          IMG_NAME=opencloudtouch-${{ matrix.arch }}
-          RELEASE=trixie
-          TARGET_HOSTNAME=opencloudtouch
-          FIRST_USER_NAME=oct
-          FIRST_USER_PASS=opencloudtouch
-          ENABLE_SSH=1
-          LOCALE_DEFAULT=en_GB.UTF-8
-          KEYBOARD_KEYMAP=us
-          KEYBOARD_LAYOUT="English (US)"
-          TIMEZONE_DEFAULT=Europe/Berlin
-          WPA_COUNTRY=DE
-          STAGE_LIST="stage0 stage1 stage2 stage-opencloudtouch"
-          EOF
-          sed -i 's/^          //' config
-          if [ "${{ matrix.arch }}" = "arm64" ]; then
-            echo "ARCH=arm64" >> config
-          else
-            echo "ARCH=armhf" >> config
-          fi
-          cat config
-
-      - name: Install OpenCloudTouch stage
-        run: |
-          cp -r deployment/raspi-image/stage-opencloudtouch pi-gen/stage-opencloudtouch
-          find pi-gen/stage-opencloudtouch -name "*.sh" -exec chmod +x {} \;
-          mkdir -p pi-gen/stage-opencloudtouch/01-configure-oct/files
-          cp deployment/raspi-image/files/* pi-gen/stage-opencloudtouch/01-configure-oct/files/
-
-          touch pi-gen/stage-opencloudtouch/EXPORT_IMAGE
-          touch pi-gen/stage-opencloudtouch/EXPORT_NOOBS
-          touch pi-gen/stage0/SKIP_IMAGES
-          touch pi-gen/stage1/SKIP_IMAGES
-          touch pi-gen/stage2/SKIP_IMAGES
-          touch pi-gen/stage3/SKIP 2>/dev/null || true
-          touch pi-gen/stage4/SKIP 2>/dev/null || true
-          touch pi-gen/stage5/SKIP 2>/dev/null || true
-
-      - name: Patch pi-gen package lists
-        run: |
-          PKGFILE="pi-gen/stage2/01-sys-tweaks/00-packages"
-          sed -i '/rpi-/d' "$PKGFILE"
-          sed -i '/^raspberrypi-sys-mods$/d' "$PKGFILE"
-          sed -i '/^raspi-utils$/d' "$PKGFILE"
-          sed -i '/^kms++-utils$/d' "$PKGFILE"
-          sed -i '/^libpam-chksshpwd$/d' "$PKGFILE"
-
-          NETPKGFILE="pi-gen/stage2/02-net-tweaks/00-packages"
-          sed -i '/raspberrypi-net-mods/d' "$NETPKGFILE"
-          sed -i '/^firmware-marvell/d' "$NETPKGFILE"
-
-          touch pi-gen/stage2/04-cloud-init/SKIP
-          touch pi-gen/export-image/01-user-rename/SKIP
-
-          RUN_SCRIPT="pi-gen/stage2/01-sys-tweaks/01-run.sh"
-          sed -i 's/systemctl enable rpi-resize/systemctl enable rpi-resize 2>\/dev\/null || true/' "$RUN_SCRIPT"
-
-      - name: Free chroot disk space before dist-upgrade
-        run: |
-          COPIES_SCRIPT="pi-gen/stage2/00-copies-and-fills/00-run.sh"
-          if [ -f "$COPIES_SCRIPT" ]; then
-            sed -i '/dist-upgrade/i on_chroot << EOF\napt-get clean\nEOF' "$COPIES_SCRIPT"
-            echo "Injected apt-get clean before dist-upgrade in $COPIES_SCRIPT"
-          fi
-
-          for stage_dir in pi-gen/stage0 pi-gen/stage1 pi-gen/stage2; do
-            for run_script in "$stage_dir"/*/00-run.sh; do
-              if [ -f "$run_script" ] && grep -q "apt-get install" "$run_script"; then
-                sed -i '/apt-get install/a apt-get clean' "$run_script"
-                echo "Added apt-get clean after installs in $run_script"
-              fi
-            done
-          done
-
-      - name: Fix debootstrap GPG verification
-        run: |
-          cd pi-gen
-          sed -i 's/--keyring "${STAGE_DIR}\/files\/raspberrypi.gpg"/--no-check-gpg/' scripts/common
-
-          sed -i '/^on_chroot/i \
-          if [ -f /usr/share/keyrings/debian-archive-keyring.gpg ]; then\
-              cp /usr/share/keyrings/debian-archive-keyring.gpg "${ROOTFS_DIR}/usr/share/keyrings/debian-archive-keyring.gpg"\
-          fi\
-          ' stage0/00-configure-apt/00-run.sh
-
-      - name: Set up QEMU
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y qemu-user-static binfmt-support
-          sudo update-binfmts --enable
-          sudo ln -sf /usr/bin/qemu-aarch64-static /usr/bin/qemu-aarch64
-          sudo ln -sf /usr/bin/qemu-arm-static /usr/bin/qemu-arm
-
-      - name: Build image with pi-gen
-        run: |
-          cd pi-gen
-          chmod +x build-docker.sh
-          ./build-docker.sh
-        timeout-minutes: 60
-
-      - name: Compress and checksum image
-        id: image
-        run: |
-          RASPI_VERSION="${{ inputs.raspi_version }}"
-
-          IMG_FILE=$(find pi-gen/deploy -name "*.img" -type f | head -1)
-          if [ -z "$IMG_FILE" ]; then
-            ZIP_FILE=$(find pi-gen/deploy -name "*.zip" -type f | head -1)
-            if [ -n "$ZIP_FILE" ]; then
-              unzip -o "$ZIP_FILE" -d pi-gen/deploy/
-              IMG_FILE=$(find pi-gen/deploy -name "*.img" -type f | head -1)
-            fi
-          fi
-
-          if [ -z "$IMG_FILE" ]; then
-            echo "::error::No image file found!"
-            ls -laR pi-gen/deploy/ || true
-            exit 1
-          fi
-
-          if [ "${{ matrix.arch }}" = "arm64" ]; then
-            PI_MODELS="Pi4+Pi5"
-          else
-            PI_MODELS="Pi2+Pi3"
-          fi
-          OUTPUT_NAME="opencloudtouch_${PI_MODELS}_raspios-trixie-${{ matrix.arch }}.img.xz"
-          xz -9 -T0 "$IMG_FILE"
-          mkdir -p output
-          mv "${IMG_FILE}.xz" "output/${OUTPUT_NAME}"
-          cd output
-          sha256sum "${OUTPUT_NAME}" > "${OUTPUT_NAME}.sha256"
-          echo "output_name=${OUTPUT_NAME}" >> "$GITHUB_OUTPUT"
-          ls -lh .
-
-      - name: Upload image artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: raspi-image-${{ matrix.arch }}
-          path: |
-            output/*.img.xz
-            output/*.sha256
-          retention-days: 30
-          compression-level: 0
 
   # ============================================================================
-  # TEST IMAGES (QEMU chroot smoke test)
+  # BUILD + TEST (per-arch, via reusable workflow)
   # ============================================================================
-  test:
-    name: Test ${{ matrix.arch }}
-    runs-on: ubuntu-latest
-    needs: [build]
-    timeout-minutes: 15
+  build-arm64:
+    name: Build + Test arm64
+    needs: [resolve]
+    if: contains(fromJSON(needs.resolve.outputs.archs), 'arm64')
+    uses: ./.github/workflows/raspi-build-and-test.yml
+    with:
+      arch: arm64
+      output_name: 'opencloudtouch_Pi3-4-5-Zero2W_raspios-bookworm-arm64.img.xz'
+      docker_image_tag: 'latest'
+      test_version: 'latest'
 
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: ${{ fromJSON(inputs.architectures == 'all' && '["arm64", "armhf"]' || format('["{0}"]', inputs.architectures)) }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Download image artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: raspi-image-${{ matrix.arch }}
-          path: images
-
-      - name: Set up QEMU
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y qemu-user-static binfmt-support xz-utils
-          sudo update-binfmts --enable
-
-      - name: Mount image
-        id: mount
-        run: |
-          set -euo pipefail
-          if [ "${{ matrix.arch }}" = "arm64" ]; then
-            PI_MODELS="Pi4+Pi5"
-          else
-            PI_MODELS="Pi2+Pi3"
-          fi
-          IMG_XZ="images/opencloudtouch_${PI_MODELS}_raspios-trixie-${{ matrix.arch }}.img.xz"
-
-          echo "=== Decompressing image ==="
-          xz -d "$IMG_XZ"
-          IMG_FILE="${IMG_XZ%.xz}"
-
-          echo "=== Mounting image ==="
-          LOOP=$(sudo losetup --find --show --partscan "$IMG_FILE")
-          echo "Loop device: $LOOP"
-          lsblk "$LOOP"
-
-          sudo mkdir -p /mnt/raspi
-          sudo mount "${LOOP}p2" /mnt/raspi
-          sudo mount "${LOOP}p1" /mnt/raspi/boot/firmware || \
-            sudo mount "${LOOP}p1" /mnt/raspi/boot || true
-
-          echo "loop=$LOOP" >> "$GITHUB_OUTPUT"
-
-      - name: Run smoke tests
-        run: |
-          chmod +x deployment/raspi-image/test-image.sh
-          sudo deployment/raspi-image/test-image.sh \
-            /mnt/raspi \
-            "latest" \
-            "${{ matrix.arch }}"
-
-      - name: Cleanup
-        if: always()
-        run: |
-          sudo umount -R /mnt/raspi 2>/dev/null || true
-          sudo losetup -d "${{ steps.mount.outputs.loop }}" 2>/dev/null || true
+  build-armhf:
+    name: Build + Test armhf
+    needs: [resolve]
+    if: contains(fromJSON(needs.resolve.outputs.archs), 'armhf')
+    uses: ./.github/workflows/raspi-build-and-test.yml
+    with:
+      arch: armhf
+      output_name: 'opencloudtouch_Pi2v1.0_raspios-bookworm-armhf.img.xz'
+      docker_image_tag: 'latest'
+      test_version: 'latest'
 
   # ============================================================================
   # CREATE RELEASE
@@ -298,7 +83,12 @@ jobs:
   release:
     name: Create Raspi Release
     runs-on: ubuntu-latest
-    needs: [build, test]
+    needs: [resolve, build-arm64, build-armhf]
+    if: |
+      always() &&
+      (needs.build-arm64.result == 'success' || needs.build-arm64.result == 'skipped') &&
+      (needs.build-armhf.result == 'success' || needs.build-armhf.result == 'skipped') &&
+      !(needs.build-arm64.result == 'skipped' && needs.build-armhf.result == 'skipped')
 
     permissions:
       contents: write
@@ -311,22 +101,29 @@ jobs:
           path: images
           merge-multiple: true
 
+      - name: List artifacts
+        run: |
+          echo "=== Downloaded artifacts ==="
+          ls -lhR images/
+
       - name: Create or update release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           RASPI_VERSION="${{ inputs.raspi_version }}"
+          # Validate version format (digits and dots only)
+          if ! echo "$RASPI_VERSION" | grep -qE '^[0-9]+(\.[0-9]+)*$'; then
+            echo "::error::Invalid version format: $RASPI_VERSION"
+            exit 1
+          fi
           TAG="raspi-v${RASPI_VERSION}"
 
           # Delete existing release + tag if present (idempotent rebuild)
           gh release delete "$TAG" --repo "${{ github.repository }}" --yes 2>/dev/null || true
           gh api "repos/${{ github.repository }}/git/refs/tags/${TAG}" -X DELETE 2>/dev/null || true
 
-          # Create release
-          gh release create "$TAG" \
-            --repo "${{ github.repository }}" \
-            --title "Raspberry Pi SD Card Images (v${RASPI_VERSION})" \
-            --notes "## 🍓 Raspberry Pi SD Card Images
+          # Build release notes dynamically based on actual artifacts
+          NOTES="## 🍓 Raspberry Pi SD Card Images
 
           Pre-built SD card images for Raspberry Pi. Flash, boot, done.
 
@@ -335,18 +132,36 @@ jobs:
           ### Supported Devices
 
           | File | Devices |
-          |------|---------|
-          | \`opencloudtouch_Pi4+Pi5_raspios-trixie-arm64.img.xz\` | Raspberry Pi 4, Pi 5 |
-          | \`opencloudtouch_Pi2+Pi3_raspios-trixie-armhf.img.xz\` | Raspberry Pi 2, Pi 3 |
+          |------|---------|"
+
+          if ls images/*arm64*.img.xz 1>/dev/null 2>&1; then
+            ARM64_FILE=$(ls images/*arm64*.img.xz 2>/dev/null | head -1 | xargs basename)
+            NOTES="${NOTES}
+          | \`${ARM64_FILE}\` | Pi 3, 4, 5, Zero 2 W, Pi 2 v1.2 |"
+          fi
+
+          if ls images/*armhf*.img.xz 1>/dev/null 2>&1; then
+            ARMHF_FILE=$(ls images/*armhf*.img.xz 2>/dev/null | head -1 | xargs basename)
+            NOTES="${NOTES}
+          | \`${ARMHF_FILE}\` | Pi 2 Model B v1.0 (2015) |"
+          fi
+
+          NOTES="${NOTES}
 
           ### Quick Start
 
           1. Download the image for your Pi model
-          2. Flash to SD card: \`xzcat opencloudtouch_Pi4+Pi5_raspios-trixie-arm64.img.xz | sudo dd of=/dev/sdX bs=4M status=progress\`
+          2. Flash with **Balena Etcher** or **Raspberry Pi Imager** (Use custom → select .img.xz)
           3. Insert SD card, boot, wait ~2 minutes
           4. Open \`http://opencloudtouch.local:7777\` in your browser
 
-          **Default credentials:** \`oct\` / \`opencloudtouch\` (SSH enabled)" \
+          **Default credentials:** \`oct\` / \`opencloudtouch\` (SSH enabled)"
+
+          # Create release
+          gh release create "$TAG" \
+            --repo "${{ github.repository }}" \
+            --title "Raspberry Pi SD Card Images (v${RASPI_VERSION})" \
+            --notes "$NOTES" \
             --latest=false \
             images/*.img.xz images/*.sha256
 

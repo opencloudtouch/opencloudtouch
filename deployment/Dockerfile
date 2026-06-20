@@ -20,9 +20,14 @@
 # Current versions:
 #   Python: python:3.11-slim with openssl fixes (Debian Bookworm)
 #   Node.js: 24-slim (for frontend build)
+#
+# IMPORTANT: Pin to the multi-arch INDEX digest, NOT a platform-specific one.
+# A platform-specific digest (e.g. amd64) silently forces that architecture
+# for ALL builds, breaking arm64/armv7. Verify with:
+#   curl ... /manifests/<digest> → mediaType must be image.index, NOT image.manifest
 
 # Stage 1: Python Dependencies (separate for better caching)
-FROM python:3.11-slim@sha256:0b23cfb7425d065008b778022a17b1551c82f8b4866ee5a7a200084b7e2eafbf AS python-deps
+FROM python:3.11-slim@sha256:ae52c5bef62a6bdd42cd1e8dffef86b9cd284bde9427da79839de7a4b983e7ca AS python-deps
 
 # Install build dependencies (full toolchain needed for arm/v7 cross-compilation)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -87,7 +92,7 @@ COPY apps/frontend/tsconfig.json ./apps/frontend/
 RUN cd apps/frontend && npm run build
 
 # Stage 3: Backend Runtime
-FROM python:3.11-slim@sha256:0b23cfb7425d065008b778022a17b1551c82f8b4866ee5a7a200084b7e2eafbf AS backend
+FROM python:3.11-slim@sha256:ae52c5bef62a6bdd42cd1e8dffef86b9cd284bde9427da79839de7a4b983e7ca AS backend
 
 # OCI Image Labels
 LABEL org.opencontainers.image.title="OpenCloudTouch" \

@@ -7,12 +7,16 @@ publishes a ``metadata_enriched`` event via the state manager on success.
 Debounce: re-probes for the same station are skipped within 15 s.
 Periodic polling: ``poll_stream`` re-probes every few seconds and
 only emits when artist/track actually changed.
+
+Memory leak fix (#366): Both _last_probe and _last_metadata now use
+LRU eviction with max 100 entries to prevent unbounded growth.
 """
 
 from __future__ import annotations
 
 import logging
 import time
+from collections import OrderedDict
 from typing import Awaitable, Callable
 
 from opencloudtouch.devices.client import NowPlayingInfo
@@ -23,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 RADIO_SOURCES = frozenset({"LOCAL_INTERNET_RADIO", "INTERNET_RADIO", "TUNEIN"})
 _DEBOUNCE_SECONDS = 15.0
+_MAX_PROBE_HISTORY = 100  # Max entries for _last_probe and _last_metadata
 
 # Callback type: (device_id, station_name) -> stream_url | None
 GetStreamUrl = Callable[[str, str], Awaitable[str | None]]
@@ -38,10 +43,17 @@ class IcyWorker:
 
     def __init__(self, get_stream_url: GetStreamUrl) -> None:
         self._get_stream_url = get_stream_url
-        self._last_probe: dict[str, float] = {}  # station_name -> timestamp
-        self._last_metadata: dict[str, tuple[str | None, str | None]] = (
-            {}
-        )  # device_id -> (artist, track)
+        # LRU dicts with bounded size to prevent memory leak (#366)
+        self._last_probe: OrderedDict[str, float] = OrderedDict()
+        self._last_metadata: OrderedDict[str, tuple[str | None, str | None]] = (
+            OrderedDict()
+        )
+
+    def _evict_if_needed(self, cache: OrderedDict) -> None:
+        """Evict oldest entry if cache exceeds max size."""
+        if len(cache) > _MAX_PROBE_HISTORY:
+            oldest_key = next(iter(cache))
+            cache.pop(oldest_key)
 
     async def on_event(self, event: DeviceEvent) -> DeviceEvent | None:
         """Process a device event.  Returns a ``metadata_enriched`` event
@@ -89,6 +101,8 @@ class IcyWorker:
             return None
 
         self._last_probe[info.station_name] = now
+        self._last_probe.move_to_end(info.station_name)
+        self._evict_if_needed(self._last_probe)
 
         # Resolve stream URL from preset DB
         stream_url = await self._get_stream_url(event.device_id, info.station_name)
@@ -172,6 +186,8 @@ class IcyWorker:
             return None
 
         self._last_metadata[event.device_id] = new_meta
+        self._last_metadata.move_to_end(event.device_id)
+        self._evict_if_needed(self._last_metadata)
         logger.debug(
             "ICY poll change for %s on %s: %s - %s",
             info.station_name,

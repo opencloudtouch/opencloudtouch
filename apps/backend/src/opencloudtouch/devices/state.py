@@ -120,6 +120,35 @@ class DeviceStateManager:
         """Return a snapshot of all device states."""
         return dict(self._states)
 
+    def cleanup_stale_states(self, max_age_seconds: float = 86400.0) -> int:
+        """Remove device states that haven't been updated in max_age_seconds.
+
+        Args:
+            max_age_seconds: Max age before eviction (default: 24 hours)
+
+        Returns:
+            Number of states removed
+
+        Note:
+            Memory leak fix (#366). Called periodically to prevent unbounded
+            growth of the _states dict as devices come and go.
+        """
+        now = time.time()
+        stale_keys = [
+            device_id
+            for device_id, state in self._states.items()
+            if (now - state.last_update) > max_age_seconds
+        ]
+        for key in stale_keys:
+            del self._states[key]
+        if stale_keys:
+            logger.info(
+                "Cleaned up %d stale device states (>%.0fh old)",
+                len(stale_keys),
+                max_age_seconds / 3600,
+            )
+        return len(stale_keys)
+
     # -- Pub/Sub -------------------------------------------------------------
 
     def subscribe(self) -> asyncio.Queue[DeviceEvent]:
@@ -136,7 +165,7 @@ class DeviceStateManager:
             )
             self._subscribers.clear()
 
-        queue: asyncio.Queue[DeviceEvent] = asyncio.Queue()
+        queue: asyncio.Queue[DeviceEvent] = asyncio.Queue(maxsize=200)
         self._subscribers.append(queue)
         logger.debug(
             "Client subscribed to device events (total: %d)",
@@ -177,7 +206,12 @@ class DeviceStateManager:
         )
         for queue in self._subscribers[:]:  # iterate over copy
             try:
-                await queue.put(event)
+                queue.put_nowait(event)
+            except asyncio.QueueFull:
+                logger.warning(
+                    "SSE subscriber queue full, dropping event for %s",
+                    event.device_id,
+                )
             except Exception:
                 logger.exception("Failed to publish event to subscriber")
                 self._subscribers.remove(queue)
@@ -333,11 +367,24 @@ class DeviceStateManager:
             logger.debug("ICY probe background task failed", exc_info=True)
 
     async def _icy_poll_loop(self) -> None:
-        """Periodically re-probe ICY metadata for radio-playing devices."""
+        """Periodically re-probe ICY metadata for radio-playing devices.
+
+        Also cleans up stale device states every 60 minutes.
+        """
         from opencloudtouch.devices.websocket.icy_worker import RADIO_SOURCES
+
+        cleanup_interval = 3600.0  # 1 hour
+        last_cleanup = time.time()
 
         while True:
             await asyncio.sleep(_ICY_POLL_INTERVAL)
+
+            # Cleanup stale states periodically
+            now = time.time()
+            if (now - last_cleanup) >= cleanup_interval:
+                self.cleanup_stale_states(max_age_seconds=86400.0)  # 24h
+                last_cleanup = now
+
             if not self._icy_worker:
                 continue
             for device_id, state in self._states.items():

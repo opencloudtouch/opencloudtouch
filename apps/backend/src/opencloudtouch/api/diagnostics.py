@@ -5,6 +5,7 @@ import platform
 import sys
 from datetime import UTC, datetime
 
+import psutil
 from fastapi import APIRouter, Request
 
 from opencloudtouch import __version__
@@ -76,4 +77,39 @@ async def get_diagnostics(request: Request):
         "server": server_info,
         "devices": devices,
         "db_stats": db_stats,
+    }
+
+
+@router.get("/memory")
+async def get_memory_diagnostics(request: Request):
+    """Detailed memory and cache statistics for monitoring (#366).
+
+    Moved from /health to keep the health endpoint minimal and avoid
+    exposing internal metrics on an unauthenticated path.
+    """
+    process = psutil.Process()
+    mem_info = process.memory_info()
+
+    # Get cache sizes from state manager and ICY worker
+    state_manager_size = 0
+    icy_probe_cache_size = 0
+    icy_metadata_cache_size = 0
+    if hasattr(request.app.state, "device_state_manager"):
+        state_manager = request.app.state.device_state_manager
+        state_manager_size = len(state_manager._states)
+        if state_manager._icy_worker:
+            icy_probe_cache_size = len(state_manager._icy_worker._last_probe)
+            icy_metadata_cache_size = len(state_manager._icy_worker._last_metadata)
+
+    return {
+        "memory": {
+            "rss_mb": round(mem_info.rss / 1024 / 1024, 1),
+            "vms_mb": round(mem_info.vms / 1024 / 1024, 1),
+            "percent": round(process.memory_percent(), 1),
+        },
+        "cache_sizes": {
+            "device_states": state_manager_size,
+            "icy_probe_history": icy_probe_cache_size,
+            "icy_metadata_tracking": icy_metadata_cache_size,
+        },
     }

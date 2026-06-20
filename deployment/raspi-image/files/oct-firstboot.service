@@ -1,5 +1,6 @@
 [Unit]
 Description=OpenCloudTouch First Boot Configuration
+Requires=docker.service
 After=network-online.target docker.service
 Wants=network-online.target
 Before=opencloudtouch.service
@@ -10,7 +11,7 @@ ExecStart=/opt/opencloudtouch/oct-firstboot.sh
 RemainAfterExit=no
 StandardOutput=journal+console
 StandardError=journal+console
-TimeoutStartSec=300
+TimeoutStartSec=600
 
 [Install]
 WantedBy=multi-user.target

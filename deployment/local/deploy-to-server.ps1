@@ -44,8 +44,8 @@ if ($Prod) {
     # Test container: dedicated name, port and data path — never touches Portainer stacks
     $ContainerName = "opencloudtouch-test"
     $ContainerPort = "7778"
-    $DataPath = ($config.REMOTE_DATA_PATH -replace '/?$', '') + "-test"
-    $LogPath = ($config.REMOTE_LOG_PATH -replace '/?$', '') + "-test"
+    $DataPath = $config.REMOTE_DATA_PATH
+    $LogPath = $config.REMOTE_LOG_PATH
 }
 
 if (-not $ManualIPs -and $config.OCT_MANUAL_DEVICE_IPS) {
@@ -178,7 +178,7 @@ echo "[OK] Container started successfully"
 $dockerCmd ps --filter name=$ContainerName --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 echo ""
-echo "Access SoundTouch Bridge at: http://${RemoteHost}:${ContainerPort}"
+echo "Access OpenCloundTouch at: http://${RemoteHost}:${ContainerPort}"
 echo ""
 echo "View logs: $dockerCmd logs -f $ContainerName"
 "@

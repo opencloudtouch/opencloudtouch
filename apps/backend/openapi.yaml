@@ -3132,6 +3132,43 @@ paths:
           content:
             application/json:
               schema: {}
+  /api/diagnostics/memory:
+    get:
+      tags:
+      - diagnostics
+      summary: Get Memory Diagnostics
+      description: 'Detailed memory and cache statistics for monitoring (#366).
+
+        Moved from /health to keep the health endpoint minimal and avoid
+
+        exposing internal metrics on an unauthenticated path.'
+      operationId: get_memory_diagnostics_api_diagnostics_memory_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memory:
+                    type: object
+                    properties:
+                      rss_mb:
+                        type: number
+                      vms_mb:
+                        type: number
+                      percent:
+                        type: number
+                  cache_sizes:
+                    type: object
+                    properties:
+                      device_states:
+                        type: integer
+                      icy_probe_history:
+                        type: integer
+                      icy_metadata_tracking:
+                        type: integer
   /api/health/websockets:
     get:
       tags:
