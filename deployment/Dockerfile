@@ -18,8 +18,8 @@
 #   docker inspect --format='{{.RepoDigests}}' <image>:<tag>
 #
 # Current versions:
-#   Python: 3.11.8-slim (Debian Bookworm)
-#   Node.js: 20-slim (for frontend build)
+#   Python: python:3.11-slim with openssl fixes (Debian Bookworm)
+#   Node.js: 24-slim (for frontend build)
 
 # Stage 1: Python Dependencies (separate for better caching)
 FROM python:3.11-slim@sha256:0b23cfb7425d065008b778022a17b1551c82f8b4866ee5a7a200084b7e2eafbf AS python-deps
@@ -66,7 +66,7 @@ FROM node:24-slim AS frontend-build
 
 WORKDIR /build
 
-# Copy workspace root package files (lock file is at root level � npm workspaces)
+# Copy workspace root package files (lock file is at root level — npm workspaces)
 COPY package.json package-lock.json ./
 
 # Copy frontend package.json for workspace resolution
@@ -155,11 +155,11 @@ ENV OCT_PORT=7777
 ENV OCT_DB_PATH=/data/oct.db
 ENV OCT_LOG_LEVEL=INFO
 ENV OCT_DISCOVERY_ENABLED=true
-# USER is required by asyncssh (getpass.getuser()) — without it, SSH
+# USER is required by asyncssh (getpass.getuser()) â€” without it, SSH
 # connections crash on container runtimes that don't set it (TrueNAS, etc.)
 ENV USER=oct
 
-# Build signature — HMAC of version, only CI can produce a valid one
+# Build signature â€” HMAC of version, only CI can produce a valid one
 ARG OCT_BUILD_SIGNATURE=""
 ENV OCT_BUILD_SIGNATURE=${OCT_BUILD_SIGNATURE}
 
