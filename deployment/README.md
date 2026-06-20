@@ -1,29 +1,31 @@
 # Deployment Scripts
 
-Alle Deployment-bezogenen Dateien für OpenCloudTouch Container-Deployment.
+All deployment related files for OpenCloudTouch container deployment.
 
 > **Trademark Notice**: OpenCloudTouch (OCT) is not affiliated with Bose Corporation. Bose® and SoundTouch® are registered trademarks of Bose Corporation. See [TRADEMARK.md](../TRADEMARK.md) for details.
 
 ## 📁 Files
 
 - **docker-compose.yml**: Docker Compose Konfiguration für Development
-- **Dockerfile**: Root-Dockerfile (`../Dockerfile`) wird von Compose genutzt
+- **Dockerfile**: Root-Dockerfile (`../Dockerfile`) is used by compose
 
 
-> Hinweis: PowerShell-Deploy-Skripte liegen jetzt unter `tools/local-scripts/`.
+> Note: PowerShell deploy scripts are located at `tools/local-scripts/`.
 
 ## 🚀 Usage
 
 ### Local Development
 
 ```bash
-# Docker Compose starten
+# Start Docker compose (builds frontend automatically)
 cd deployment/
 docker-compose up --build
 
-# ODER: Podman lokal
-siehe `tools/local-scripts/` (z. B. `run-container.ps1`)iner.ps1 -Port 7777 -ManualIPs "192.168.1.100"
+# OR: Podman lokal
+look `tools/local-scripts/` (z. B. `run-container.ps1`)
 ```
+
+**Note**: The Docker build now includes frontend compilation from source. No pre-build step required — just `docker-compose up --build` works out of the box.
 
 ### NAS/Server Deployment
 
@@ -32,7 +34,7 @@ cd deployment/
 .\deploy-to-server.ps1
 ```
 
-**Voraussetzungen**:
+**Prerequisites**:
 - PowerShell 7+
 - SSH-Zugriff zu Target Server (user@targethost)
 - Podman (für export-image.ps1)
@@ -40,20 +42,20 @@ cd deployment/
 
 ## 📝 Build Context
 
-Alle Scripts verwenden folgende Pfade (relativ zu `deployment/`):
+All scripts use the following paths (relative to `deployment/`):
 
 ```
 deployment/
 ├── docker-compose.yml      → context: .., dockerfile: Dockerfile
 ├── export-image.ps1        → podman build -t opencloudtouch:latest ..
 ├── run-container.ps1       → podman build -f ../Dockerfile ..
-└── deploy-to-server.ps1    → ruft export-image.ps1 auf
+└── deploy-to-server.ps1    → calls export-image.ps1
 ```
 
 **Build Context**: `..` (Parent directory = Repository Root)  
 **Dockerfile**: `../Dockerfile`
 
-## 🔧 Konfiguration
+## 🔧 Configuration
 
 ### Environment Variables
 
@@ -61,7 +63,7 @@ deployment/
 # SSDP Discovery
 OCT_DISCOVERY_TIMEOUT=10
 
-# Manual Device IPs (wenn SSDP nicht funktioniert)
+# Manual Device IPs (if SSDP doesn't work)
 OCT_MANUAL_DEVICE_IPS="192.168.1.100,192.168.1.101"
 
 # Logging
@@ -74,29 +76,29 @@ OCT_DB_PATH=/data/oct.db
 ### Ports
 
 - **Backend API**: 7777 (default)
-- **Frontend**: Embedded in Backend (bei Multi-stage Build)
+- **Frontend**: Embedded in Backend (at Multi-stage Build)
 
 ### Volumes
 
 - **data/**: SQLite DB, Config, Logs
-- **config.yaml**: Optional (überschreibt Env Vars)
+- **config.yaml**: Optional (Overwrites Env Vars)
 
 ## 🧪 Testing
 
 ```bash
-# Image bauen (ohne starten)
+# Build Image (without start)
 .\export-image.ps1
 
-# Container starten (mit Build)
+# Start Container (with Build)
 siehe `tools/local-scripts/` (z. B. `run-container.ps1`)iner.ps1
 
-# Container starten (ohne Build, existing image)
+# Start Container (without Build, existing image)
 siehe `tools/local-scripts/` (z. B. `run-container.ps1`)iner.ps1 -NoBuild
 ```
 
 ## 🛠️ Troubleshooting
 
-### Build Fehler
+### Build Errors
 
 ```bash
 # Podman: Build mit --no-cache
@@ -108,24 +110,24 @@ docker-compose build --no-cache
 
 ### SSDP Discovery funktioniert nicht
 
-Windows Container können kein SSDP:
+Windows Container don`t support SSDP:
 ```bash
-# Manual IPs verwenden
+# Use Manual IPs
 siehe `tools/local-scripts/` (z. B. `run-container.ps1`)iner.ps1 -ManualIPs "192.168.1.100,192.168.1.101"
 ```
 
-### Server SSH Fehler
+### Server SSH Errors
 
 ```bash
-# SSH Verbindung testen
+# SSH test connection
 ssh user@targethost "docker version"
 
-# Podman Container prüfen
+# Check Podman Container
 ssh user@targethost "docker ps -a | grep opencloudtouch"
 ```
 
 ## 📄 Related Docs
 
-- [Main README](../README.md): Projektübersicht
-- [Backend README](../apps/backend/README.md): Backend-spezifische Docs
+- [Main README](../README.md): Project Overview
+- [Backend README](../apps/backend/README.md): Backend Docs
 - [SERVER-DEPLOYMENT.md](../SERVER-DEPLOYMENT.md): Server Deployment Guide
