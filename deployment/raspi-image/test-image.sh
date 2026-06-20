@@ -166,6 +166,72 @@ test_correct_kernel() {
     fi
 }
 
+# --- First-boot wizard suppression tests ---
+
+test_no_userconf_pi_package() {
+    # userconf-pi must NOT be installed — it shows the "new username" dialog
+    if [ -f "$ROOTFS/var/lib/dpkg/info/userconf-pi.list" ]; then
+        echo "userconf-pi still installed!"
+        return 1
+    fi
+}
+
+test_no_userconfig_service() {
+    # userconfig.service must NOT be enabled
+    if [ -L "$ROOTFS/etc/systemd/system/multi-user.target.wants/userconfig.service" ]; then
+        echo "userconfig.service still enabled in multi-user.target.wants!"
+        return 1
+    fi
+    # Must be masked (symlink to /dev/null)
+    if [ ! -L "$ROOTFS/etc/systemd/system/userconfig.service" ] || \
+       [ "$(readlink "$ROOTFS/etc/systemd/system/userconfig.service" 2>/dev/null)" != "/dev/null" ]; then
+        echo "userconfig.service not properly masked!"
+        return 1
+    fi
+}
+
+test_no_rename_user_conf() {
+    # rename_user.conf blocks SSH login until user is renamed
+    if [ -f "$ROOTFS/etc/ssh/sshd_config.d/rename_user.conf" ]; then
+        echo "rename_user.conf still present!"
+        return 1
+    fi
+}
+
+test_no_piwiz_desktop() {
+    # piwiz desktop files must be removed
+    if [ -f "$ROOTFS/etc/xdg/autostart/piwiz.desktop" ] || \
+       [ -f "$ROOTFS/usr/share/applications/piwiz.desktop" ]; then
+        echo "piwiz.desktop still present!"
+        return 1
+    fi
+}
+
+test_autologin_configured() {
+    # getty@tty1 must have autologin drop-in for user 'oct'
+    local dropin="$ROOTFS/etc/systemd/system/getty@tty1.service.d/autologin.conf"
+    if [ ! -f "$dropin" ]; then
+        echo "autologin.conf missing!"
+        return 1
+    fi
+    if ! grep -q -- '--autologin oct' "$dropin"; then
+        echo "autologin not set to 'oct'!"
+        return 1
+    fi
+}
+
+test_keyboard_preconfigured() {
+    # Keyboard layout must be preconfigured (no interactive prompt)
+    if [ ! -f "$ROOTFS/etc/default/keyboard" ]; then
+        echo "/etc/default/keyboard missing!"
+        return 1
+    fi
+    if ! grep -q 'XKBLAYOUT' "$ROOTFS/etc/default/keyboard"; then
+        echo "XKBLAYOUT not set!"
+        return 1
+    fi
+}
+
 # ============================================================================
 # Test registry — add new tests here
 # ============================================================================
@@ -192,6 +258,12 @@ run_test "User 'oct' exists"                  test_user_oct_exists
 run_test "User 'oct' in docker group"         test_user_oct_docker_group
 run_test "SSH service enabled"                test_ssh_enabled
 run_test "Correct kernel for arch"            test_correct_kernel
+run_test "userconf-pi package removed"        test_no_userconf_pi_package
+run_test "userconfig.service disabled"        test_no_userconfig_service
+run_test "No rename_user.conf"                test_no_rename_user_conf
+run_test "No piwiz.desktop files"             test_no_piwiz_desktop
+run_test "Console autologin configured"       test_autologin_configured
+run_test "Keyboard pre-configured"            test_keyboard_preconfigured
 
 # ============================================================================
 # Summary

@@ -78,6 +78,7 @@ class EventThrottle:
         """Wait for cooldown, then publish the latest pending event."""
         await asyncio.sleep(delay)
         event = self._pending.pop(key, None)
+        self._tasks.pop(key, None)  # Remove task reference after completion (#366)
         if event is not None:
             self._last_publish[key] = time.monotonic()
             await self._publish(event)

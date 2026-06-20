@@ -52,12 +52,14 @@ Wants=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/opt/opencloudtouch
-ExecStartPre=/usr/bin/docker compose pull --quiet
+ExecStartPre=-/bin/sh -c 'timeout 30 /usr/bin/docker compose pull --quiet 2>/dev/null || true'
 ExecStart=/usr/bin/docker compose up --remove-orphans
 ExecStop=/usr/bin/docker compose down
 Restart=always
 RestartSec=10
 TimeoutStartSec=300
+PrivateTmp=yes
+NoNewPrivileges=yes
 
 [Install]
 WantedBy=multi-user.target
@@ -82,31 +84,104 @@ systemctl disable apt-daily-upgrade.timer 2>/dev/null || true
 
 # Enable hardware watchdog (auto-reboot on hang)
 if [ -f /etc/systemd/system.conf ]; then
-    sed -i 's/#RuntimeWatchdogSec=.*/RuntimeWatchdogSec=15/' /etc/systemd/system.conf
+    sed -i 's/^#\?RuntimeWatchdogSec=.*/RuntimeWatchdogSec=15/' /etc/systemd/system.conf
 fi
 
 # ==== Optimize for SD card longevity ====
-# Reduce writes: tmpfs for logs and tmp
-cat >> /etc/fstab << 'FSTAB'
+# Reduce writes: tmpfs for logs and tmp (idempotent — skip if already present)
+if ! grep -q 'SD card optimization' /etc/fstab; then
+    cat >> /etc/fstab << 'FSTAB'
 # SD card optimization: tmpfs for high-write directories
 tmpfs /tmp tmpfs defaults,noatime,nosuid,nodev,size=100M 0 0
 tmpfs /var/log tmpfs defaults,noatime,nosuid,nodev,size=50M 0 0
 FSTAB
+fi
 
-# ==== Set MOTD ====
-cat > /etc/motd << 'MOTD'
+# ==== OCT Log Buffering (SD-card friendly) ====
+# OCT logs are written to tmpfs and synced to SD every 4 hours.
+# On boot: restore last logs from SD → tmpfs.
+# On shutdown: flush tmpfs → SD.
+# This reduces SD writes from continuous to ~6x/day.
 
-  ╔═══════════════════════════════════════════╗
-  ║         OpenCloudTouch Appliance          ║
-  ╠═══════════════════════════════════════════╣
-  ║  Web UI: http://opencloudtouch.local:7777 ║
-  ║  Update: sudo /opt/opencloudtouch/        ║
-  ║          oct-update.sh                    ║
-  ║  Docs:   https://github.com/opencloudtouch/ ║
-  ║          opencloudtouch/wiki              ║
-  ╚═══════════════════════════════════════════╝
+mkdir -p /opt/opencloudtouch/logs-persistent
 
-MOTD
+cat > /usr/local/bin/oct-log-sync << 'LOGSYNC'
+#!/bin/bash
+# Sync OCT logs from tmpfs to persistent SD storage
+LOG_TMP="/opt/opencloudtouch/logs"
+LOG_SD="/opt/opencloudtouch/logs-persistent"
+mkdir -p "$LOG_TMP" "$LOG_SD"
+rsync -a --delete "$LOG_TMP/" "$LOG_SD/"
+LOGSYNC
+chmod +x /usr/local/bin/oct-log-sync
+
+# tmpfs mount for OCT logs (50MB, sufficient for days of buffered logs)
+if ! grep -q 'opencloudtouch/logs' /etc/fstab; then
+    cat >> /etc/fstab << 'FSTAB2'
+tmpfs /opt/opencloudtouch/logs tmpfs defaults,noatime,nosuid,nodev,size=50M,uid=1000,gid=1000 0 0
+FSTAB2
+fi
+
+# Restore logs from SD on boot (before OCT starts)
+cat > /etc/systemd/system/oct-log-restore.service << 'RESTORE'
+[Unit]
+Description=Restore OCT logs from SD to tmpfs
+After=local-fs.target
+Before=opencloudtouch.service oct-firstboot.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'mkdir -p /opt/opencloudtouch/logs && cp -a /opt/opencloudtouch/logs-persistent/. /opt/opencloudtouch/logs/ 2>/dev/null || true'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+RESTORE
+systemctl enable oct-log-restore.service
+
+# Periodic sync: every 4 hours
+cat > /etc/systemd/system/oct-log-sync.service << 'SYNCSVC'
+[Unit]
+Description=Sync OCT logs to SD card
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/oct-log-sync
+SYNCSVC
+
+cat > /etc/systemd/system/oct-log-sync.timer << 'TIMER'
+[Unit]
+Description=Periodic OCT log sync to SD card
+
+[Timer]
+OnBootSec=30min
+OnUnitActiveSec=4h
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+TIMER
+systemctl enable oct-log-sync.timer
+
+# Flush logs on shutdown (so nothing is lost on clean reboot)
+cat > /etc/systemd/system/oct-log-flush.service << 'FLUSH'
+[Unit]
+Description=Flush OCT logs to SD before shutdown
+DefaultDependencies=no
+Before=shutdown.target reboot.target halt.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/oct-log-sync
+
+[Install]
+WantedBy=shutdown.target reboot.target halt.target
+FLUSH
+systemctl enable oct-log-flush.service
+
+# ==== MOTD will be generated dynamically on first boot ====
+# (after port and network configuration are known)
+# See: /opt/opencloudtouch/oct-firstboot.sh
 
 echo "[OK] OpenCloudTouch configured"
 

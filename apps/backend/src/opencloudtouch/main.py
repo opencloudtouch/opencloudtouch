@@ -245,6 +245,15 @@ async def _init_services(
         logger.info("Device health-check started")
     app.state.health_check = health_check
 
+    # Eagerly initialize radio adapters and store in app.state for lifecycle management
+    # Only in non-mock mode — mock adapters are stateless and don't need cleanup
+    if not cfg.mock_mode:
+        from opencloudtouch.radio.adapter import get_radio_adapter
+
+        app.state.radio_adapter = get_radio_adapter("radiobrowser")
+        app.state.tunein_adapter = get_radio_adapter("tunein")
+        logger.info("Radio adapters initialized")
+
     await _init_websocket_pipeline(app, cfg, device_repo, logger)
 
 
@@ -334,6 +343,16 @@ async def _shutdown(app: FastAPI, repos: dict, logger: logging.Logger) -> None:
     await app.state.health_check.stop()
     logger.info("Device health-check stopped")
 
+    # Close radio adapters stored in app.state (#366 memory leak fix)
+    radio_adapter = getattr(app.state, "radio_adapter", None)
+    if radio_adapter:
+        await radio_adapter.close()
+        logger.info("RadioBrowserProvider closed")
+    tunein_adapter = getattr(app.state, "tunein_adapter", None)
+    if tunein_adapter:
+        await tunein_adapter.close()
+        logger.info("TuneInProvider closed")
+
     for attr_name, repo in repos.items():
         await repo.close()
         logger.info("%s closed", type(repo).__name__)
@@ -412,9 +431,13 @@ app.include_router(event_router)  # SSE device event stream
 
 # Health endpoint
 @app.get("/health", tags=["System"])
-async def health_check():
-    """Health check endpoint for Docker and monitoring."""
+async def health_check(request: Request):
+    """Health check endpoint for Docker and monitoring.
+
+    Minimal response — detailed memory stats available at /api/diagnostics/memory.
+    """
     cfg = get_config()
+
     return JSONResponse(
         status_code=200,
         content={
