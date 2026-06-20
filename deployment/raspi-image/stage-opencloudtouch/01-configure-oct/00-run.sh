@@ -21,8 +21,14 @@ install -m 644 files/docker-compose.yml "${ROOTFS_DIR}/opt/opencloudtouch/docker
 # Firstboot script
 install -m 755 files/oct-firstboot.sh "${ROOTFS_DIR}/opt/opencloudtouch/oct-firstboot.sh"
 
+# Filesystem expansion script
+install -m 755 files/oct-expand-fs.sh "${ROOTFS_DIR}/opt/opencloudtouch/oct-expand-fs.sh"
+
 # Update script
 install -m 755 files/oct-update.sh "${ROOTFS_DIR}/opt/opencloudtouch/oct-update.sh"
+
+# Filesystem expansion systemd service
+install -m 644 files/oct-expand-fs.service "${ROOTFS_DIR}/etc/systemd/system/oct-expand-fs.service"
 
 # Firstboot systemd service
 install -m 644 files/oct-firstboot.service "${ROOTFS_DIR}/etc/systemd/system/oct-firstboot.service"
@@ -61,6 +67,9 @@ SERVICE
 
 # Enable OCT service (starts on every boot)
 systemctl enable opencloudtouch.service
+
+# Enable filesystem expansion service (runs once on first boot, then disables itself)
+systemctl enable oct-expand-fs.service
 
 # Enable firstboot service (runs once, then disables itself)
 systemctl enable oct-firstboot.service
