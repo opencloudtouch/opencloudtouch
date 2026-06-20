@@ -173,9 +173,9 @@ class TestStateManagerPubSub:
         mgr = DeviceStateManager()
         good_queue = mgr.subscribe()
 
-        # Create a broken queue that raises on put
+        # Create a broken queue that raises on put_nowait
         bad_queue = asyncio.Queue()
-        bad_queue.put = _raise_on_put
+        bad_queue.put_nowait = _raise_on_put_nowait
         mgr._subscribers.append(bad_queue)
 
         event = DeviceEvent(device_id="D1", event_type=EventType.VOLUME)
@@ -199,7 +199,7 @@ class TestStateManagerPubSub:
         assert mgr._subscribers[0] is new_queue
 
 
-async def _raise_on_put(item):
+def _raise_on_put_nowait(item):
     raise RuntimeError("dead queue")
 
 

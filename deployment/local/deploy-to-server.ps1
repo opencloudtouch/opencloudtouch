@@ -178,7 +178,7 @@ echo "[OK] Container started successfully"
 $dockerCmd ps --filter name=$ContainerName --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 echo ""
-echo "Access SoundTouch Bridge at: http://${RemoteHost}:${ContainerPort}"
+echo "Access OpenCloundTouch at: http://${RemoteHost}:${ContainerPort}"
 echo ""
 echo "View logs: $dockerCmd logs -f $ContainerName"
 "@

@@ -44,6 +44,22 @@ class DeviceHealthCheck:
         self._ssh_fail_count: dict[str, int] = {}
         self._zone_fail_count: dict[int, int] = {}
 
+    def _cleanup_fail_counters(self, valid_device_ids: set[str]) -> None:
+        """Remove failure counters for devices no longer in DB.
+
+        Memory leak fix (#366): prevents unbounded growth of failure tracking dicts.
+
+        Args:
+            valid_device_ids: Set of device_ids currently in the database
+        """
+        # Clean up SSH failure counters
+        stale_ssh = set(self._ssh_fail_count.keys()) - valid_device_ids
+        for device_id in stale_ssh:
+            del self._ssh_fail_count[device_id]
+
+        # Note: Zone failure cleanup handled by zone dissolution logic
+        # (zone_fail_count keys are zone IDs, not device IDs)
+
     def start(self) -> None:
         """Start the background health-check loop."""
         if self._task is not None:
@@ -66,6 +82,12 @@ class DeviceHealthCheck:
 
     async def _run(self) -> None:
         """Main loop: ping every 5 min, SSH verify every 30 min, zone sync every 15 min."""
+        import psutil
+
+        cleanup_counter = 0
+        memory_log_counter = 0
+        process = psutil.Process()
+
         while self._running:
             try:
                 await self._ping_all_devices()
@@ -78,6 +100,31 @@ class DeviceHealthCheck:
                 if self._zone_repo and now - self._last_zone_sync >= ZONE_SYNC_INTERVAL:
                     await self._zone_sync_all()
                     self._last_zone_sync = now
+
+                # Cleanup fail counters every 60 ping cycles (~60 min with 1 min ping)
+                cleanup_counter += 1
+                if cleanup_counter >= 60:
+                    devices = await self._device_repo.get_all()
+                    valid_ids = {d.device_id for d in devices}
+                    self._cleanup_fail_counters(valid_ids)
+                    cleanup_counter = 0
+
+                # Log memory stats every 5 cycles (~5 min with 1 min ping) (#366)
+                memory_log_counter += 1
+                if memory_log_counter >= 5:
+                    mem_info = process.memory_info()
+                    logger.info(
+                        "Memory: RSS=%.1f MB, VMS=%.1f MB, Percent=%.1f%%",
+                        mem_info.rss / 1024 / 1024,
+                        mem_info.vms / 1024 / 1024,
+                        process.memory_percent(),
+                        extra={
+                            "rss_mb": round(mem_info.rss / 1024 / 1024, 1),
+                            "vms_mb": round(mem_info.vms / 1024 / 1024, 1),
+                            "percent": round(process.memory_percent(), 1),
+                        },
+                    )
+                    memory_log_counter = 0
 
             except asyncio.CancelledError:
                 raise

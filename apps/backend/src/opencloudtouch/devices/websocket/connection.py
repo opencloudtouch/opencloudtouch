@@ -219,6 +219,7 @@ class DeviceWebSocket:
             if event is None:
                 continue
 
+            event.raw_xml = ""  # Free XML memory after parsing (#366)
             self._events_received += 1
             logger.debug(
                 "ws.event %s %s",
