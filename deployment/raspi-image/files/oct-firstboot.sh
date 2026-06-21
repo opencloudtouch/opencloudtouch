@@ -316,9 +316,11 @@ if [[ -f "$CONFIG_FILE" ]]; then
 fi
 
 # ==== Generate dynamic MOTD ====
+# The MOTD script is installed to /etc/profile.d/ so it runs on every login
+# with the current IP (not a stale one from firstboot).
 MOTD_PORT=${HEALTH_PORT}
 
-# Get IP address
+# Get IP for the firstboot log output (MOTD itself is generated dynamically)
 log "Resolving network IP..."
 IP_ADDR=""
 for i in $(seq 1 20); do
@@ -331,10 +333,7 @@ if [[ -z "$IP_ADDR" ]]; then
 fi
 [[ -z "$IP_ADDR" ]] && IP_ADDR="<no-network>"
 
-# Get container version tag
-OCT_VERSION_TAG=$(docker inspect --format='{{.Config.Image}}' opencloudtouch 2>/dev/null | sed 's/.*://' || echo "unknown")
-
-log "Generating MOTD (Port: ${MOTD_PORT}, IP: ${IP_ADDR})..."
+log "Generating MOTD script (Port: ${MOTD_PORT}, IP: ${IP_ADDR})..."
 
 LOCAL_URL="http://opencloudtouch.local:${MOTD_PORT}"
 if [[ "$IP_ADDR" == "<no-network>" ]]; then
@@ -343,25 +342,40 @@ else
     IP_URL="http://${IP_ADDR}:${MOTD_PORT}"
 fi
 
-# Build MOTD with dynamic padding
+# Install dynamic MOTD script (regenerates on every login with current IP)
+cat > /etc/profile.d/oct-motd.sh << 'MOTDSCRIPT'
+#!/bin/bash
+# Dynamic MOTD for OpenCloudTouch — resolves current IP on every login
+COMPOSE_FILE="/opt/opencloudtouch/docker-compose.yml"
+PORT=$(grep -oP 'OCT_PORT=\K\d+' "$COMPOSE_FILE" 2>/dev/null | head -1)
+PORT=${PORT:-7777}
+IP=$(ip route get 1 2>/dev/null | grep -oP 'src \K[\d.]+' || echo "")
+if [ -z "$IP" ]; then
+    IP=$(ip -6 route get 2001:4860:4860::8888 2>/dev/null | grep -oP 'src \K[0-9a-f:]+' || echo "")
+fi
+VER=$(docker inspect --format='{{.Config.Image}}' opencloudtouch 2>/dev/null | sed 's/.*://' || echo "unknown")
+LOCAL="http://opencloudtouch.local:${PORT}"
+[ -n "$IP" ] && IPURL="http://${IP}:${PORT}" || IPURL="No network IP - use opencloudtouch.local"
 W=56
 HLINE=$(printf '═%.0s' $(seq 1 $W))
 p() { printf "  ║%-${W}s║\n" "$1"; }
+echo ""
+echo "  ╔${HLINE}╗"
+printf "  ║%*s%s%*s║\n" $(( (W - 24) / 2 )) "" "OpenCloudTouch Appliance" $(( (W - 24) / 2 )) ""
+echo "  ╠${HLINE}╣"
+p "  Web UI:   $LOCAL"
+p "            $IPURL"
+p "  Version:  $VER"
+p ""
+p "  Update:   sudo /opt/opencloudtouch/oct-update.sh"
+p "  Logs:     sudo journalctl -u opencloudtouch"
+echo "  ╚${HLINE}╝"
+echo ""
+MOTDSCRIPT
+chmod +x /etc/profile.d/oct-motd.sh
 
-{
-    echo ""
-    echo "  ╔${HLINE}╗"
-    printf "  ║%*s%s%*s║\n" $(( (W - 24) / 2 )) "" "OpenCloudTouch Appliance" $(( (W - 24) / 2 )) ""
-    echo "  ╠${HLINE}╣"
-    p "  Web UI:   $LOCAL_URL"
-    p "            $IP_URL"
-    p "  Version:  $OCT_VERSION_TAG"
-    p ""
-    p "  Update:   sudo /opt/opencloudtouch/oct-update.sh"
-    p "  Logs:     sudo journalctl -u opencloudtouch"
-    echo "  ╚${HLINE}╝"
-    echo ""
-} > /etc/motd
+# Disable default static MOTD (our dynamic script replaces it)
+> /etc/motd
 
 # Write completion marker
 echo "COMPLETE $(date -Iseconds)" > "$STATUS_FILE"

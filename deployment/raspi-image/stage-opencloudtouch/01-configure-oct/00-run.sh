@@ -54,6 +54,7 @@ User=root
 WorkingDirectory=/opt/opencloudtouch
 ExecStartPre=-/bin/sh -c 'timeout 30 /usr/bin/docker compose pull --quiet 2>/dev/null || true'
 ExecStart=/usr/bin/docker compose up --remove-orphans
+ExecStartPost=-/bin/sh -c 'sleep 10 && /usr/bin/docker image prune -f >/dev/null 2>&1 || true'
 ExecStop=/usr/bin/docker compose down
 Restart=always
 RestartSec=10

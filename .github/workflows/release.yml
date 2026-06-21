@@ -359,8 +359,8 @@ jobs:
           | Architecture | Platform | Example Devices |
           |-------------|----------|-----------------|
           | \`amd64\` | x86_64 | Desktop, Server, NAS |
-          | \`arm64\` | aarch64 | Raspberry Pi 4/5 |
-          | \`arm/v7\` | armhf | Raspberry Pi 2/3 |
+          | \`arm64\` | aarch64 | Raspberry Pi 3/4/5, Zero 2W |
+          | \`arm/v7\` | armhf | Raspberry Pi 2 |
 
           ---
 
