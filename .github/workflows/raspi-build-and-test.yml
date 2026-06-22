@@ -5,10 +5,11 @@
 # Called by build-raspi.yml (production) and test-build.yml (dev/test).
 #
 # Fixes applied:
-#   - xz single-thread for Etcher/PiImager compatibility
+#   - xz -6 (good compression + acceptable speed, single-thread for Etcher)
 #   - bookworm release (stable pi-gen target)
 #   - Image validation (partition table, integrity, size)
 #   - Removed EXPORT_NOOBS (unused)
+#   - Pi-gen stage caching with permission fix (sudo chown after build)
 # ==============================================================================
 
 name: 'Raspi Build & Test (reusable)'
@@ -37,6 +38,8 @@ on:
 
 env:
   PI_GEN_REPO: https://github.com/RPi-Distro/pi-gen.git
+  # Bump this manually when pi-gen has breaking changes that invalidate caches
+  PIGEN_CACHE_VERSION: v1
 
 jobs:
   # ============================================================================
@@ -115,14 +118,13 @@ jobs:
             ${{ env.PI_GEN_REPO }} pi-gen
 
           echo "PI_GEN_BRANCH=$PI_GEN_BRANCH" >> "$GITHUB_ENV"
-          echo "PI_GEN_SHA=$(cd pi-gen && git rev-parse --short HEAD)" >> "$GITHUB_ENV"
 
       - name: Restore pi-gen stage cache
         id: cache-stages
         uses: actions/cache@v4
         with:
           path: pi-gen/work
-          key: pigen-${{ inputs.arch }}-${{ env.PI_GEN_BRANCH }}-${{ env.PI_GEN_SHA }}
+          key: pigen-${{ inputs.arch }}-${{ env.PI_GEN_BRANCH }}-${{ env.PIGEN_CACHE_VERSION }}
 
       - name: Configure pi-gen
         run: |
@@ -248,6 +250,15 @@ jobs:
             "
         timeout-minutes: 60
 
+      - name: Fix permissions for cache
+        run: |
+          # Pi-gen runs as root inside Docker — work/ contains root-owned files.
+          # actions/cache runs as runner user and needs read access for tar.
+          echo "::notice::Fixing ownership of pi-gen/work for cache storage..."
+          sudo chown -R "$(id -u):$(id -g)" pi-gen/work/
+          echo "::notice::Ownership fixed. Work dir size:"
+          du -sh pi-gen/work/ || true
+
       - name: Extract raw image from deploy
         id: extract
         run: |
@@ -303,7 +314,7 @@ jobs:
           echo "=== Partition details ==="
           fdisk -l "$IMG_FILE" | grep "^${IMG_FILE}"
 
-      - name: Compress image (single-thread XZ for tool compatibility)
+      - name: Compress image
         id: compress
         run: |
           IMG_FILE="${{ steps.extract.outputs.img_file }}"
@@ -311,11 +322,12 @@ jobs:
 
           RAW_SIZE_MB=$(( $(stat -c%s "$IMG_FILE") / 1048576 ))
 
-          # CRITICAL: Use single-threaded xz (no -T0)
-          # Multi-threaded xz creates multi-block streams that Balena Etcher
-          # and Raspberry Pi Imager cannot read correctly.
-          echo "::notice::Compressing with xz -9 (single-thread for Etcher/PiImager compatibility)..."
-          xz -9 "$IMG_FILE"
+          # Use xz -6 single-threaded: good compression ratio with much faster
+          # speed than -9. Single-thread ensures Etcher/PiImager compatibility
+          # (single-block stream). -6 saves ~10 min per arch vs -9 with only
+          # ~5-8% larger output.
+          echo "::notice::Compressing with xz -6 (single-thread, Etcher-compatible)..."
+          xz -6 "$IMG_FILE"
 
           mkdir -p output
           mv "${IMG_FILE}.xz" "output/${OUTPUT_NAME}"
@@ -376,7 +388,7 @@ jobs:
           | Raw size | ${{ steps.compress.outputs.raw_size_mb }} MiB |
           | Compressed | ${{ steps.compress.outputs.xz_size_mb }} MiB |
           | Docker tag | \`${{ inputs.docker_image_tag }}\` |
-          | XZ mode | single-thread (Etcher-compatible) |
+          | XZ mode | xz -6 single-thread (Etcher-compatible) |
           EOF
 
   # ============================================================================
