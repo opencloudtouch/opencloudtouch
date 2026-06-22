@@ -286,6 +286,8 @@ jobs:
     name: Raspi arm64
     needs: [validate, build-frontend]
     if: contains(fromJSON(needs.validate.outputs.raspi_archs), 'arm64') && needs.build-frontend.result == 'success'
+    permissions:
+      actions: write
     uses: ./.github/workflows/raspi-build-and-test.yml
     with:
       arch: arm64
@@ -297,6 +299,8 @@ jobs:
     name: Raspi armhf
     needs: [validate, build-frontend]
     if: contains(fromJSON(needs.validate.outputs.raspi_archs), 'armhf') && needs.build-frontend.result == 'success'
+    permissions:
+      actions: write
     uses: ./.github/workflows/raspi-build-and-test.yml
     with:
       arch: armhf

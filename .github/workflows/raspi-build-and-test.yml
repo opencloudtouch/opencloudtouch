@@ -103,6 +103,29 @@ jobs:
           echo "=== Disk after cleanup ==="
           df -h /
 
+      - name: Manage cache budget
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # If cache budget exceeds 8 GB, purge ALL caches to start fresh.
+          # One slower build is acceptable — future builds benefit from clean caches.
+          USAGE=$(gh api repos/${{ github.repository }}/actions/cache/usage --jq '.active_caches_size_in_bytes')
+          USAGE_MB=$((USAGE / 1048576))
+          THRESHOLD_MB=$((8 * 1024))  # 8 GB
+
+          echo "Cache usage: ${USAGE_MB} MB / 10240 MB (threshold: ${THRESHOLD_MB} MB)"
+
+          if [ "$USAGE_MB" -gt "$THRESHOLD_MB" ]; then
+            echo "::warning::Cache budget ${USAGE_MB} MB exceeds ${THRESHOLD_MB} MB — purging all caches"
+            DELETED=0
+            gh cache list --limit 200 --json id --jq '.[].id' | while read -r cid; do
+              gh cache delete "$cid" 2>/dev/null && DELETED=$((DELETED + 1)) || true
+            done
+            echo "::notice::Purged caches. This build will populate fresh caches for future runs."
+          else
+            echo "::notice::Cache budget OK (${USAGE_MB} MB / ${THRESHOLD_MB} MB threshold)"
+          fi
+
       - name: Clone pi-gen
         run: |
           # Use the release-specific pi-gen branches.

@@ -59,6 +59,8 @@ jobs:
     name: Build + Test arm64
     needs: [resolve]
     if: contains(fromJSON(needs.resolve.outputs.archs), 'arm64')
+    permissions:
+      actions: write
     uses: ./.github/workflows/raspi-build-and-test.yml
     with:
       arch: arm64
@@ -70,6 +72,8 @@ jobs:
     name: Build + Test armhf
     needs: [resolve]
     if: contains(fromJSON(needs.resolve.outputs.archs), 'armhf')
+    permissions:
+      actions: write
     uses: ./.github/workflows/raspi-build-and-test.yml
     with:
       arch: armhf
