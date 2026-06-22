@@ -51,6 +51,7 @@
     "presetSaved": "Förinställning {{number}} sparad.",
     "presetDeleted": "Förinställning {{number}} borttagen.",
     "playFailed": "Det gick inte att spela förinställningen. Försök igen.",
+    "deviceNotProgrammed": "Kunde inte programmera enheten. Uppspelning kanske inte fungerar förrän enheten har konfigurerats.",
     "noDevices": "Inga enheter hittades",
     "syncedFromDevice": "Förinställningar hämtade från enheten.",
     "savedStations": "Sparade stationer",
