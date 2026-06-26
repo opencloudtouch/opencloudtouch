@@ -69,7 +69,7 @@ RUN apt-get purge -y --auto-remove gcc libc6-dev libffi-dev make autoconf automa
 # Stage 2: Frontend Build (platform-independent HTML/CSS/JS)
 # Force amd64 — output is static files, no native binaries needed.
 # This avoids Node.js platform availability issues (e.g. Node 24 dropped armv7).
-FROM --platform=linux/amd64 node:24-slim AS frontend-build
+FROM --platform=$BUILDPLATFORM node:24-slim AS frontend-build
 
 WORKDIR /build
 
