@@ -625,7 +625,7 @@ jobs:
 
       - name: Post CI summary as PR comment
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const statusIcon = (result) => result === 'success' ? '✅' : result === 'skipped' ? '⏭️' : '❌';
