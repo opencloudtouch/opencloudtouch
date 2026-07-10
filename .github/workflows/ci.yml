@@ -683,6 +683,7 @@ jobs:
   #
   # Pushes with GITHUB_TOKEN → does NOT trigger another workflow run.
   # Skipped for fork PRs (no push permission on head branch).
+  # Skipped for Dependabot PRs (bot cannot push to its own branch).
   # ============================================================================
   autoformat:
     name: Auto-format
@@ -693,7 +694,8 @@ jobs:
       (github.event_name == 'push' ||
        github.event_name == 'workflow_dispatch' ||
        (github.event_name == 'pull_request' &&
-        github.event.pull_request.head.repo.full_name == github.repository))
+        github.event.pull_request.head.repo.full_name == github.repository)) &&
+      github.actor != 'dependabot[bot]'
     permissions:
       contents: write
 
