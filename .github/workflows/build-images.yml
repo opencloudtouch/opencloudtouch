@@ -45,6 +45,11 @@ on:
         required: false
         type: boolean
         default: false
+      mark_as_latest:
+        description: 'Also tag Docker image as "latest". Only for action=build.'
+        required: false
+        type: boolean
+        default: false
 
   workflow_call:
     inputs:
@@ -64,6 +69,11 @@ on:
         type: boolean
       mark_as_stable:
         description: 'Also tag Docker image as stable'
+        required: false
+        default: false
+        type: boolean
+      mark_as_latest:
+        description: 'Also tag Docker image as latest'
         required: false
         default: false
         type: boolean
@@ -362,10 +372,15 @@ jobs:
           # Copy the fresh CSV back into the source tree so the Dockerfile's
           # frontend-build stage (COPY apps/frontend/public) picks it up.
           if [ -f .out/dist/supporters.csv ]; then
-            cp .out/dist/supporters.csv apps/frontend/public/supporters.csv
-            echo "✅ Fresh supporters.csv injected ($(wc -l < apps/frontend/public/supporters.csv) lines)"
+            LINES=$(wc -l < .out/dist/supporters.csv)
+            if [ "$LINES" -gt 1 ]; then
+              cp .out/dist/supporters.csv apps/frontend/public/supporters.csv
+              echo "✅ Fresh supporters.csv injected ($LINES lines)"
+            else
+              echo "::warning::Artifact contains empty supporters.csv ($LINES lines) — using Git version"
+            fi
           else
-            echo "⚠️ No supporters.csv in artifact — using Git version"
+            echo "::warning::No supporters.csv in artifact — using Git version"
           fi
 
       - name: Set up QEMU
@@ -381,7 +396,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=${{ inputs.version }}
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ inputs.mark_as_latest == true }}
             type=raw,value=stable,enable=${{ inputs.mark_as_stable == true }}
 
       - name: Log in to GitHub Container Registry
@@ -458,7 +473,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=${{ inputs.version }}
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ inputs.mark_as_latest == true }}
             type=raw,value=stable,enable=${{ inputs.mark_as_stable == true }}
 
       - name: Log in to GitHub Container Registry

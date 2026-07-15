@@ -426,6 +426,7 @@ jobs:
       version: ${{ needs.gh-release.outputs.version }}
       checkout_ref: ${{ needs.tag.outputs.tag }}
       mark_as_stable: ${{ inputs.mark_as_stable && !inputs.prerelease }}
+      mark_as_latest: ${{ !inputs.prerelease }}
     secrets:
       BUILD_SIGNING_KEY: ${{ secrets.BUILD_SIGNING_KEY }}
       SUPPORTERS_API_PASS: ${{ secrets.SUPPORTERS_API_PASS }}
