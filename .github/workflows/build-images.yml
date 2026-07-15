@@ -356,6 +356,18 @@ jobs:
           name: frontend-dist
           path: .out/dist
 
+      - name: Inject fresh supporters CSV into Docker build context
+        run: |
+          # The CI frontend build fetches supporters from the API.
+          # Copy the fresh CSV back into the source tree so the Dockerfile's
+          # frontend-build stage (COPY apps/frontend/public) picks it up.
+          if [ -f .out/dist/supporters.csv ]; then
+            cp .out/dist/supporters.csv apps/frontend/public/supporters.csv
+            echo "✅ Fresh supporters.csv injected ($(wc -l < apps/frontend/public/supporters.csv) lines)"
+          else
+            echo "⚠️ No supporters.csv in artifact — using Git version"
+          fi
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
 
