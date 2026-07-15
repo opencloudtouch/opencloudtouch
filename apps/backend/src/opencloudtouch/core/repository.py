@@ -44,6 +44,7 @@ class BaseRepository:
         # Enable WAL journal mode for concurrent read/write access
         await self._db.execute("PRAGMA journal_mode=WAL")
         await self._db.execute("PRAGMA busy_timeout=5000")
+        await self._db.execute("PRAGMA wal_autocheckpoint=1000")
         await self._db.commit()
 
         # Global schema_versions table (shared across all repos in the same DB)
