@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opencloudtouch"
-version = "1.5.4"
+version = "1.5.5"
 description = "Local control for compatible streaming devices after cloud shutdown"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -69,7 +69,7 @@ markers = [
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "1.5.4"
+version = "1.5.5"
 tag_format = "v$version"
 update_changelog_on_bump = true
 bump_message = "chore(release): bump version to $new_version"
