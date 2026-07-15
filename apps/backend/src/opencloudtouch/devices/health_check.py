@@ -20,11 +20,9 @@ from opencloudtouch.setup.ssh_client import SoundTouchSSHClient, check_ssh_port
 logger = logging.getLogger(__name__)
 
 # Intervals (seconds)
-PING_INTERVAL = 1 * 60  # 1 min (TEST: normally 5 min)
+PING_INTERVAL = 5 * 60  # 5 min
 SSH_VERIFY_INTERVAL = 30 * 60  # 30 min
-ZONE_SYNC_INTERVAL = (
-    1 * 60
-)  # 1 min (TEST: normally 15 min) — sync zones with device reality
+ZONE_SYNC_INTERVAL = 15 * 60  # 15 min — sync zones with device reality
 PING_TIMEOUT = 5  # HTTP timeout per device
 OFFLINE_THRESHOLD = 15 * 60  # 15 min without response → offline
 SSH_FAIL_THRESHOLD = 2  # consecutive failures before resetting ssh_permanent
