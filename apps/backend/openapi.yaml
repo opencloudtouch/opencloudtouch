@@ -2715,6 +2715,68 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/telnet-configure:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Telnet Configure
+      description: 'Configure device URLs via Telnet port 17000 (Wave SoundTouch IV).
+
+
+        Sends ``sys configuration`` commands for all 4 URL keys, then
+
+        applies with ``envswitch boseurls``.'
+      operationId: wizard_telnet_configure_api_setup_wizard_telnet_configure_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelnetConfigureRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelnetConfigureResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/telnet-verify:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Telnet Verify
+      description: 'Verify current device configuration via Telnet port 17000.
+
+
+        Reads configuration using ``getpdo CurrentSystemConfiguration``
+
+        and returns the current URL values.'
+      operationId: wizard_telnet_verify_api_setup_wizard_telnet_verify_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelnetVerifyRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelnetVerifyResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /updates/soundtouch:
     get:
       tags:
@@ -4474,6 +4536,86 @@ components:
       - restore_type
       title: RestoreWizardResponse
       description: Response from restore wizard execution.
+    TelnetConfigureRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+          description: Device IP address
+        oct_host:
+          type: string
+          title: Oct Host
+          description: OCT server IP or hostname for URL configuration
+          minLength: 1
+          maxLength: 255
+        port:
+          type: integer
+          title: Port
+          description: OCT server port
+          default: 7777
+          minimum: 1
+          maximum: 65535
+      type: object
+      required:
+      - device_ip
+      - oct_host
+      title: TelnetConfigureRequest
+      description: Request to configure device URLs via Telnet port 17000.
+    TelnetConfigureResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        urls_configured:
+          type: object
+          additionalProperties:
+            type: string
+          title: Urls Configured
+        envswitch_applied:
+          type: boolean
+          title: Envswitch Applied
+          default: false
+        errors:
+          items:
+            type: string
+          type: array
+          title: Errors
+      type: object
+      required:
+      - success
+      title: TelnetConfigureResponse
+      description: Response from Telnet URL configuration.
+    TelnetVerifyRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+          description: Device IP address
+      type: object
+      required:
+      - device_ip
+      title: TelnetVerifyRequest
+      description: Request to verify current device configuration via Telnet.
+    TelnetVerifyResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        configuration:
+          type: object
+          additionalProperties:
+            type: string
+          title: Configuration
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+      type: object
+      required:
+      - success
+      title: TelnetVerifyResponse
+      description: Response from Telnet configuration verification.
     ScanBackupsRequest:
       properties:
         device_ip:

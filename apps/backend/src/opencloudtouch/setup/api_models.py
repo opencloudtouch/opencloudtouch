@@ -561,3 +561,63 @@ class ValidateHostnameResponse(BaseModel):
     oct_error: Optional[str] = Field(
         None, description="Error message (if OCT check failed)"
     )
+
+
+# ============================================================================
+# Telnet Configuration Models (Issue #352 — Wave SoundTouch IV)
+# ============================================================================
+
+
+class TelnetConfigureRequest(WizardDeviceRequest):
+    """Request to configure device URLs via Telnet port 17000."""
+
+    oct_host: str = Field(
+        ...,
+        description="OCT server IP or hostname for URL configuration",
+        min_length=1,
+        max_length=255,
+    )
+    port: int = Field(
+        default=7777,
+        description="OCT server port",
+        ge=1,
+        le=65535,
+    )
+
+    @field_validator("oct_host")
+    @classmethod
+    def validate_oct_host(cls, v: str) -> str:
+        """Reject newlines / shell metacharacters in oct_host."""
+        v = v.strip()
+        # Allow valid IP addresses
+        try:
+            return str(ipaddress.ip_address(v))
+        except ValueError:
+            pass
+        # Allow valid hostnames
+        if not _HOSTNAME_RE.match(v):
+            raise ValueError(
+                f"Invalid hostname: {v!r} — only letters, digits, hyphens, dots allowed"
+            )
+        return v
+
+
+class TelnetConfigureResponse(BaseModel):
+    """Response from Telnet URL configuration."""
+
+    success: bool
+    urls_configured: dict[str, str] = Field(default_factory=dict)
+    envswitch_applied: bool = False
+    errors: list[str] = Field(default_factory=list)
+
+
+class TelnetVerifyRequest(WizardDeviceRequest):
+    """Request to verify current device configuration via Telnet."""
+
+
+class TelnetVerifyResponse(BaseModel):
+    """Response from Telnet configuration verification."""
+
+    success: bool
+    configuration: dict[str, str] = Field(default_factory=dict)
+    error: Optional[str] = None

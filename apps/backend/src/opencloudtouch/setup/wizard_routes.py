@@ -45,6 +45,10 @@ from opencloudtouch.setup.api_models import (
     RestoreWizardResponse,
     ScanBackupsRequest,
     ScanBackupsResponse,
+    TelnetConfigureRequest,
+    TelnetConfigureResponse,
+    TelnetVerifyRequest,
+    TelnetVerifyResponse,
     VerifyRedirectRequest,
     VerifyRedirectResponse,
     VerifySetupRequest,
@@ -157,7 +161,7 @@ async def _check_oct_reachability(hostname: str, port: int) -> tuple[bool, str |
     Returns:
         Tuple of (reachable, error_message)
     """
-    url = f"http://{hostname}:{port}/health"  # noqa: S5332
+    url = f"http://{hostname}:{port}/health"  # noqa: S324
     logger.info("Checking OCT reachability: %s", url)
 
     try:
@@ -827,3 +831,90 @@ def _backup_set_to_response(bs):
         is_legacy=bs.is_legacy,
         is_match=bs.is_match,
     )
+
+
+# ============================================================================
+# Telnet Configuration Endpoints (Issue #352 — Wave SoundTouch IV)
+# ============================================================================
+
+
+@wizard_router.post("/wizard/telnet-configure", response_model=TelnetConfigureResponse)
+async def wizard_telnet_configure(
+    request: TelnetConfigureRequest,
+) -> TelnetConfigureResponse:
+    """Configure device URLs via Telnet port 17000 (Wave SoundTouch IV).
+
+    Sends ``sys configuration`` commands for all 4 URL keys, then
+    applies with ``envswitch boseurls``.
+    """
+    from opencloudtouch.setup.telnet_config_service import TelnetConfigService
+
+    logger.info(
+        "Telnet configure on %s (OCT: %s:%d)",
+        request.device_ip,
+        request.oct_host,
+        request.port,
+    )
+
+    try:
+        service = TelnetConfigService(
+            device_ip=request.device_ip,
+            oct_host=request.oct_host,
+            port=request.port,
+        )
+        result = await service.configure_urls()
+
+        return TelnetConfigureResponse(
+            success=result.success,
+            urls_configured=result.urls_configured,
+            envswitch_applied=result.envswitch_applied,
+            errors=result.errors,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except Exception as e:
+        logger.exception("Telnet configure failed for %s", request.device_ip)
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Telnet configuration failed: {e}",
+        )
+
+
+@wizard_router.post("/wizard/telnet-verify", response_model=TelnetVerifyResponse)
+async def wizard_telnet_verify(
+    request: TelnetVerifyRequest,
+) -> TelnetVerifyResponse:
+    """Verify current device configuration via Telnet port 17000.
+
+    Reads configuration using ``getpdo CurrentSystemConfiguration``
+    and returns the current URL values.
+    """
+    from opencloudtouch.setup.telnet_config_service import TelnetConfigService
+
+    logger.info("Telnet verify on %s", request.device_ip)
+
+    try:
+        service = TelnetConfigService(
+            device_ip=request.device_ip,
+        )
+        result = await service.verify_configuration()
+
+        return TelnetVerifyResponse(
+            success=result.success,
+            configuration=result.configuration,
+            error=result.error,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except Exception as e:
+        logger.exception("Telnet verify failed for %s", request.device_ip)
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Telnet verification failed: {e}",
+        )
