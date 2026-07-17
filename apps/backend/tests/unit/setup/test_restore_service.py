@@ -625,7 +625,7 @@ class TestScanBackupsOrchestration:
             result = await service.scan_backups("192.168.1.100", "ABC123")
 
         assert result.usb_mounted is False
-        assert "not detected" in result.error
+        assert "No USB stick detected" in result.error
 
     @pytest.mark.asyncio
     async def test_scan_usb_mounted_but_empty(self):
