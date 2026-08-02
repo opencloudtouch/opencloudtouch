@@ -96,8 +96,8 @@ This directory contains the curated Knowledge Base (KB) articles, scripts, and a
 ## 8. Weiterführende Links
 
 - [OpenCloudTouch GitHub](https://github.com/opencloudtouch/opencloudtouch)
-- [README im Root](../../../../README.md)
-- [FAQ](../../../doc/FAQ.md)
+- [README im Root](../../../README.md)
+- [Troubleshooting](../../../docs/TROUBLESHOOTING.md)
 
 ---
 

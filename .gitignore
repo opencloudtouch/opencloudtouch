@@ -77,7 +77,13 @@ AGENTS.md
 .github/agents/
 .github/CHEATSHEET.md
 Debugging/
-docs/
+docs/*
+!docs/ARCHITECTURE.md
+!docs/adr/
+!docs/CONFIGURATION.md
+!docs/TROUBLESHOOTING.md
+!docs/CONVENTIONAL_COMMITS.md
+!docs/GIT_HOOKS.md
 .specify/
 specs/
 

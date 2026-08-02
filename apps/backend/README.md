@@ -278,11 +278,11 @@ pytest --cov=opencloudtouch.devices.adapter --cov-report=term-missing
 
 ## 🤝 Contributing
 
-Siehe [../CONTRIBUTING.md](../CONTRIBUTING.md) für:
+Siehe [CONTRIBUTING.md](../../.github/CONTRIBUTING.md) für:
 - Code Style Guidelines (PEP 8, Naming Conventions)
 - Commit Message Format (Conventional Commits)
 - Pull Request Process
 
 ## 📄 Lizenz
 
-Apache License 2.0 - Siehe [../LICENSE](../LICENSE)
+Apache License 2.0 - Siehe [LICENSE](../../LICENSE)
