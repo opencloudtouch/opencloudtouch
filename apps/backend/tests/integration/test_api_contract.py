@@ -80,15 +80,15 @@ class TestOpenAPISpecIntegrity:
         assert not missing, f"Schemas missing from YAML: {missing}"
 
     def test_version_matches(self, openapi_spec, openapi_live):
-        """API version must match between YAML and live app (official builds only).
+        """API version must match between YAML and live app.
 
-        In dev/community builds, __version__ is 'dev-<commit>' which won't
-        match the semver in openapi.yaml. This is by design.
+        __version__ always resolves from installed package metadata
+        (pyproject.toml), regardless of build signature — so this must
+        match openapi.yaml's pinned version whenever the two are kept in
+        sync (bump pyproject.toml, bump openapi.yaml, together).
         """
         live_version = openapi_live["info"]["version"]
         yaml_version = openapi_spec["info"]["version"]
-        if live_version.startswith("dev-"):
-            pytest.skip("dev build — OpenAPI version check not applicable")
         assert yaml_version == live_version
 
     def test_all_methods_match(self, openapi_spec, openapi_live):

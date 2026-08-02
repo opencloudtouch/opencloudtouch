@@ -188,34 +188,72 @@ def test_websocket_health_with_manager():
     delattr(app.state, "ws_manager")
 
 
-def test_version_dev_format_without_signature(monkeypatch):
-    """Without OCT_BUILD_SIGNATURE, version uses dev-<commit> format."""
+def test_version_matches_package_metadata_without_signature(monkeypatch):
+    """Without OCT_BUILD_SIGNATURE, version still resolves from package metadata.
+
+    Self-built images have no CI signature, but the pyproject.toml version
+    is baked into the wheel by the same `pip install .` step regardless —
+    so unsigned builds report the real version, not a placeholder.
+    """
     monkeypatch.delenv("OCT_BUILD_SIGNATURE", raising=False)
-    from opencloudtouch import _resolve_version
-
-    ver = _resolve_version()
-    assert ver.startswith("dev-")
-    assert ver != "dev-"  # commit hash must be present
-
-
-def test_version_official_format_with_valid_signature(monkeypatch):
-    """With a valid 16-char hex signature, version matches package metadata."""
-    monkeypatch.setenv("OCT_BUILD_SIGNATURE", "a1b2c3d4e5f67890")
+    monkeypatch.delenv("OCT_VERSION", raising=False)
     from importlib.metadata import version as pkg_version
 
     from opencloudtouch import _resolve_version
 
-    ver = _resolve_version()
-    assert ver == pkg_version("opencloudtouch")
+    assert _resolve_version() == pkg_version("opencloudtouch")
 
 
-def test_version_dev_format_with_invalid_signature(monkeypatch):
-    """With an invalid signature (wrong length/format), version is dev-<commit>."""
-    monkeypatch.setenv("OCT_BUILD_SIGNATURE", "1")
+def test_version_matches_package_metadata_with_valid_signature(monkeypatch):
+    """With a valid 16-char hex signature, version matches package metadata."""
+    monkeypatch.setenv("OCT_BUILD_SIGNATURE", "a1b2c3d4e5f67890")
+    monkeypatch.delenv("OCT_VERSION", raising=False)
+    from importlib.metadata import version as pkg_version
+
     from opencloudtouch import _resolve_version
 
-    ver = _resolve_version()
-    assert ver.startswith("dev-")
+    assert _resolve_version() == pkg_version("opencloudtouch")
+
+
+def test_version_identical_regardless_of_signature_validity(monkeypatch):
+    """The version string must not depend on signature validity.
+
+    Whether a build is trustworthy is a separate question — see
+    is_official_build() / the /health "build" field. A version string
+    that changed shape based on the signature was the root cause of the
+    frontend always claiming an update was available for self-built images.
+    """
+    monkeypatch.delenv("OCT_VERSION", raising=False)
+    from opencloudtouch import _resolve_version
+
+    monkeypatch.delenv("OCT_BUILD_SIGNATURE", raising=False)
+    no_sig = _resolve_version()
+
+    monkeypatch.setenv("OCT_BUILD_SIGNATURE", "1")  # invalid: wrong length
+    invalid_sig = _resolve_version()
+
+    monkeypatch.setenv("OCT_BUILD_SIGNATURE", "a1b2c3d4e5f67890")  # valid
+    valid_sig = _resolve_version()
+
+    assert no_sig == invalid_sig == valid_sig
+
+
+def test_version_uses_oct_version_override_when_set(monkeypatch):
+    """OCT_VERSION overrides the package-metadata version when set (fork use case)."""
+    monkeypatch.setenv("OCT_VERSION", "my-fork-1.0.0")
+    from opencloudtouch import _resolve_version
+
+    assert _resolve_version() == "my-fork-1.0.0"
+
+
+def test_version_ignores_blank_oct_version_override(monkeypatch):
+    """A blank/whitespace-only OCT_VERSION is ignored, not used as the version."""
+    monkeypatch.setenv("OCT_VERSION", "   ")
+    from importlib.metadata import version as pkg_version
+
+    from opencloudtouch import _resolve_version
+
+    assert _resolve_version() == pkg_version("opencloudtouch")
 
 
 def test_is_official_build_false_without_signature(monkeypatch):
