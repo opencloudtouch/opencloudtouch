@@ -109,9 +109,17 @@ LABEL org.opencontainers.image.title="OpenCloudTouch" \
 WORKDIR /app
 
 # Apply OS security patches (fixes CVE-2026-0861 glibc and other HIGH vulns in base image)
+# and install gosu/curl (entrypoint privilege drop / HEALTHCHECK probe).
+# Deliberately placed before any COPY of app/frontend/entrypoint source: apt
+# operations are the slowest, most network-heavy part of this stage, and
+# Docker invalidates every layer from the first changed COPY onward. Keeping
+# apt-get here means routine source edits never force gosu/curl to
+# re-download — only a base-image or package-list change does.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    apt-get update && apt-get upgrade -y --no-install-recommends
+    apt-get update && \
+    apt-get upgrade -y --no-install-recommends && \
+    apt-get install -y --no-install-recommends gosu curl
 
 # Copy Python dependencies from build stage
 COPY --from=python-deps /install /usr/local
@@ -156,12 +164,6 @@ RUN mkdir -p /data /logs
 
 # Create non-root user (entrypoint fixes volume permissions then drops to oct)
 RUN useradd -m -u 1000 oct && chown -R oct:oct /app /data /logs
-
-# Install su-exec for dropping privileges in entrypoint (tiny, no deps)
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends gosu curl && \
-    rm -rf /var/lib/apt/lists/*
 
 # Environment defaults
 ENV OCT_HOST=0.0.0.0
