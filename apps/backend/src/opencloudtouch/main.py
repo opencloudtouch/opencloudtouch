@@ -237,12 +237,14 @@ async def _init_services(
         await startup_check.run()
         logger.info("Startup device check completed")
 
-    # Background health-check (not in mock/CI mode)
+    # Background health-check (not in mock/CI mode, opt-out via OCT_DEVICE_POLLING_ENABLED)
     zone_repo = repos.get("zone_repo")
     health_check = DeviceHealthCheck(device_repo, zone_repo=zone_repo)
-    if not cfg.mock_mode:
+    if not cfg.mock_mode and cfg.device_polling_enabled:
         health_check.start()
         logger.info("Device health-check started")
+    elif not cfg.device_polling_enabled:
+        logger.info("Device health-check disabled via OCT_DEVICE_POLLING_ENABLED=false")
     app.state.health_check = health_check
 
     # Eagerly initialize radio adapters and store in app.state for lifecycle management

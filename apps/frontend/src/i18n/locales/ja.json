@@ -665,7 +665,8 @@
     "checkingUpdates": "アップデート確認中...",
     "updateAvailable": "アップデート可能：{{version}}",
     "viewRelease": "リリースを表示",
-    "upToDate": "最新版です！"
+    "upToDate": "最新版です！",
+    "devBuild": "自己ビルド版 — アップデート確認は無効です"
   },
   "discovery": {
     "alreadyRunning": "デバイス検索はすでに実行中です。お待ちください...",

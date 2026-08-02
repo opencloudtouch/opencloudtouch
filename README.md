@@ -190,6 +190,7 @@ Configuration uses `OCT_` environment variables. See [docs/CONFIGURATION.md](doc
 | `OCT_DISCOVERY_ENABLED` | `true` | Enable SSDP discovery |
 | `OCT_DISCOVERY_TIMEOUT` | `5` | Discovery timeout (seconds) |
 | `OCT_MANUAL_DEVICE_IPS` | `""` | Comma-separated fallback IPs |
+| `OCT_DEVICE_POLLING_ENABLED` | `true` | Disable periodic device alive-polling (ping/SSH/zone sync) for mostly-offline setups |
 
 ## Troubleshooting
 
@@ -198,7 +199,23 @@ Configuration uses `OCT_` environment variables. See [docs/CONFIGURATION.md](doc
 | Container won't start | `docker compose -f deployment/docker-compose.yml logs opencloudtouch` |
 | Devices not found | Ensure `network_mode: host` and same network; use `OCT_MANUAL_DEVICE_IPS` as fallback |
 | Port 7777 in use | `OCT_PORT=8080 docker compose -f deployment/docker-compose.yml up -d` |
-| Health check | `docker exec opencloudtouch python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:7777/health').status)"` |
+| Health check | `docker exec opencloudtouch curl -f http://localhost:7777/health` |
+
+### Understanding `docker stats` memory numbers
+
+`docker stats` MEM USAGE includes the container's kernel page cache and
+dentry/inode slab caches, not just the application's own memory. These
+caches are reclaimable by the kernel under pressure and are expected to
+grow over time — they are not a leak. For the application's actual memory
+usage, use `rss_mb` from `GET /api/diagnostics/memory` instead.
+
+To confirm reclaimable memory is behind a high `docker stats` number
+(diagnostic only — **not** a recommended workaround, it does not fix
+anything and the caches simply refill):
+
+```bash
+sync; echo 2 > /proc/sys/vm/drop_caches
+```
 
 See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for more details.
 

@@ -665,7 +665,8 @@
     "checkingUpdates": "Suche nach Updates...",
     "updateAvailable": "Update verfügbar: {{version}}",
     "viewRelease": "Release ansehen",
-    "upToDate": "Du bist auf dem neuesten Stand!"
+    "upToDate": "Du bist auf dem neuesten Stand!",
+    "devBuild": "Selbstgebaute Version — Update-Prüfung deaktiviert"
   },
   "discovery": {
     "alreadyRunning": "Gerätesuche läuft bereits. Bitte warten...",

@@ -665,7 +665,8 @@
     "checkingUpdates": "Controllo aggiornamenti...",
     "updateAvailable": "Aggiornamento disponibile: {{version}}",
     "viewRelease": "Visualizza versione",
-    "upToDate": "Sei aggiornato!"
+    "upToDate": "Sei aggiornato!",
+    "devBuild": "Versione compilata in proprio — controllo aggiornamenti disattivato"
   },
   "discovery": {
     "alreadyRunning": "Ricerca dispositivi già in corso. Attendere...",

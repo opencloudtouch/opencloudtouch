@@ -665,7 +665,8 @@
     "checkingUpdates": "Söker efter uppdateringar...",
     "updateAvailable": "Uppdatering tillgänglig: {{version}}",
     "viewRelease": "Visa version",
-    "upToDate": "Du är uppdaterad!"
+    "upToDate": "Du är uppdaterad!",
+    "devBuild": "Egenbyggd version — uppdateringskontroll inaktiverad"
   },
   "discovery": {
     "alreadyRunning": "Enhetssökning pågår redan. Vänta...",

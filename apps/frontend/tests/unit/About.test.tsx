@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, vi, beforeEach } from "vitest";
+﻿import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -25,9 +25,9 @@ const CSV_HEADER = "name,type,amount,monthlyAmount,firstSupportDate\n";
 const CSV_DATA =
   CSV_HEADER + "Alice,monthly,100,20,2024-01-01\nBob,one-time,50,0,2024-02-01\n";
 
-function setupHealthMock(version = "1.5.0") {
+function setupHealthMock(version = "1.5.0", build: "official" | "community" = "official") {
   vi.mocked(useHealth).mockReturnValue({
-    data: { version },
+    data: { version, build },
     isLoading: false,
   } as ReturnType<typeof useHealth>);
 }
@@ -46,6 +46,10 @@ function mockFetchWith(csvResponse: { ok: boolean; text?: () => Promise<string> 
 describe("About page", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("renders OpenCloudTouch title", () => {
@@ -145,6 +149,39 @@ describe("About page", () => {
     await waitFor(() => {
       expect(consoleSpy).toHaveBeenCalledWith("Failed to load supporters:", expect.any(Error));
     });
+  });
+
+  it("skips the GitHub update check for community (self-built) builds", async () => {
+    vi.useFakeTimers();
+    setupHealthMock("1.5.5", "community");
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation((input: RequestInfo | URL) => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.startsWith("/supporters.csv")) {
+          return Promise.resolve({ ok: false } as Response);
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({}),
+        } as Response);
+      });
+
+    render(
+      <MemoryRouter>
+        <QueryWrapper>
+          <About />
+        </QueryWrapper>
+      </MemoryRouter>,
+    );
+
+    await vi.advanceTimersByTimeAsync(3100);
+
+    const githubCalls = fetchSpy.mock.calls.filter(([input]) => {
+      const url = typeof input === "string" ? input : (input as URL | Request).toString();
+      return url.includes("api.github.com");
+    });
+    expect(githubCalls).toHaveLength(0);
   });
 
   it("renders GitHub and support links", () => {
