@@ -79,6 +79,105 @@ async def test_lifespan_initialization():
             repo.close.assert_called_once()
 
 
+@pytest.fixture
+def mock_init_services_deps():
+    """Patch every class/function _init_services constructs or calls.
+
+    Lets tests call _init_services() directly (instead of mocking it away
+    like test_lifespan_initialization does) to exercise its internal
+    branching logic, without any of it touching real repos/services.
+    """
+    patches = {
+        "recents": patch("opencloudtouch.main.RecentsService"),
+        "marge": patch("opencloudtouch.main.MargeService"),
+        "preset": patch("opencloudtouch.main.PresetService"),
+        "sync": patch("opencloudtouch.main.DeviceSyncService"),
+        "device": patch("opencloudtouch.main.DeviceService"),
+        "discovery_adapter": patch("opencloudtouch.main.get_discovery_adapter"),
+        "zone": patch("opencloudtouch.main.ZoneService"),
+        "settings": patch("opencloudtouch.main.SettingsService"),
+        "setup": patch("opencloudtouch.main.SetupService"),
+        "wizard": patch("opencloudtouch.main.WizardService"),
+        "restore": patch("opencloudtouch.setup.restore_service.RestoreService"),
+        "health_check": patch("opencloudtouch.main.DeviceHealthCheck"),
+        "ws_pipeline": patch(
+            "opencloudtouch.main._init_websocket_pipeline", new_callable=AsyncMock
+        ),
+        "startup_check": patch("opencloudtouch.main.StartupCheck"),
+        "radio_adapter": patch("opencloudtouch.radio.adapter.get_radio_adapter"),
+    }
+    mocks = {name: p.start() for name, p in patches.items()}
+    mocks["device"].return_value.sync_devices = AsyncMock(
+        return_value=MagicMock(synced=0, failed=0, discovered=0)
+    )
+    mocks["startup_check"].return_value.run = AsyncMock()
+    yield mocks
+    for p in patches.values():
+        p.stop()
+
+
+def _build_init_services_repos():
+    """Minimal repos dict covering every key _init_services reads."""
+    return {
+        key: AsyncMock()
+        for key in (
+            "device_repo",
+            "settings_repo",
+            "preset_repo",
+            "recents_repo",
+            "wizard_audit_repo",
+            "zone_repo",
+        )
+    }
+
+
+@pytest.mark.asyncio
+async def test_init_services_skips_health_check_when_device_polling_disabled(
+    mock_init_services_deps,
+):
+    """OCT_DEVICE_POLLING_ENABLED=false must prevent DeviceHealthCheck.start()."""
+    from fastapi import FastAPI
+
+    from opencloudtouch.main import _init_services
+
+    app = FastAPI()
+    cfg = MagicMock()
+    cfg.mock_mode = True  # skip StartupCheck/radio adapters, keep the test focused
+    cfg.device_polling_enabled = False
+    cfg.discovery_timeout = 3
+    cfg.manual_device_ips_list = []
+    cfg.discovery_enabled = True
+
+    await _init_services(app, cfg, _build_init_services_repos(), MagicMock())
+
+    health_check_instance = mock_init_services_deps["health_check"].return_value
+    health_check_instance.start.assert_not_called()
+    assert app.state.health_check is health_check_instance
+
+
+@pytest.mark.asyncio
+async def test_init_services_starts_health_check_when_device_polling_enabled(
+    mock_init_services_deps,
+):
+    """Default (device_polling_enabled=true, not mock_mode) still starts polling."""
+    from fastapi import FastAPI
+
+    from opencloudtouch.main import _init_services
+
+    app = FastAPI()
+    cfg = MagicMock()
+    cfg.mock_mode = False
+    cfg.device_polling_enabled = True
+    cfg.discovery_timeout = 3
+    cfg.manual_device_ips_list = []
+    cfg.discovery_enabled = True
+
+    await _init_services(app, cfg, _build_init_services_repos(), MagicMock())
+
+    health_check_instance = mock_init_services_deps["health_check"].return_value
+    health_check_instance.start.assert_called_once()
+
+
 def test_main_module_uses_config_port():
     """Regression test for #70: __main__.py must use config port, not hardcoded 7777."""
     import runpy
@@ -244,6 +343,21 @@ def test_version_uses_oct_version_override_when_set(monkeypatch):
     from opencloudtouch import _resolve_version
 
     assert _resolve_version() == "my-fork-1.0.0"
+
+
+def test_version_falls_back_when_package_metadata_missing(monkeypatch):
+    """If the package isn't installed at all, resolve to a safe fallback string.
+
+    Normally unreachable in Docker/`pip install -e` setups (the package is
+    always installed), but _resolve_version() must not crash if it somehow
+    is - PackageNotFoundError is the documented failure mode.
+    """
+    monkeypatch.delenv("OCT_VERSION", raising=False)
+    import opencloudtouch
+    from opencloudtouch import PackageNotFoundError, _resolve_version
+
+    with patch.object(opencloudtouch, "version", side_effect=PackageNotFoundError):
+        assert _resolve_version() == "0.0.0-unknown"
 
 
 def test_version_ignores_blank_oct_version_override(monkeypatch):
