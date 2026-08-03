@@ -14,8 +14,8 @@ const mockSetSearchParams = vi.fn();
 const mockSearchParams = new URLSearchParams();
 
 // Override the global mock from setup.ts
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual("react-router-dom");
+vi.mock("react-router", async () => {
+  const actual = await vi.importActual("react-router");
   return {
     ...actual,
     useNavigate: () => vi.fn(),

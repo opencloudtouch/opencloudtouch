@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Licenses Page Tests
  *
  * User Story: Als User möchte ich Open-Source Lizenzinformationen einsehen
@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter } from "react-router";
 import Licenses from "../../src/pages/Licenses";
 
 describe("Licenses Page", () => {

@@ -29,8 +29,8 @@ vi.mock("html2canvas", () => ({
   }),
 }));
 
-// react-router-dom mock for useLocation
-vi.mock("react-router-dom", () => ({
+// react-router mock for useLocation
+vi.mock("react-router", () => ({
   useLocation: () => ({ pathname: "/test" }),
 }));
 

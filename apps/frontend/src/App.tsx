@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ToastProvider } from "./contexts/ToastContext";

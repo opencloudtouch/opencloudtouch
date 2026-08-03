@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useToast } from "../contexts/ToastContext";
 import { useManualIPs } from "../hooks/useSettings";
