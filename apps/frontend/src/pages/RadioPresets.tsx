@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import DeviceSwiper, { Device } from "../components/DeviceSwiper";
