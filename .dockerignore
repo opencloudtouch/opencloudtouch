@@ -25,6 +25,8 @@ htmlcov/
 
 # Build & Test Artifacts
 # Keep .out/dist/ — pre-built frontend from CI is placed there
+# frontend-ctx/ is a named build-context override target, not part of the main context
+frontend-ctx/
 .out/coverage/
 .out/test-results/
 .out/reports/

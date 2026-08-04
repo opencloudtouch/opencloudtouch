@@ -364,24 +364,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: frontend-dist
-          path: .out/dist
-
-      - name: Inject fresh supporters CSV into Docker build context
-        run: |
-          # The CI frontend build fetches supporters from the API.
-          # Copy the fresh CSV back into the source tree so the Dockerfile's
-          # frontend-build stage (COPY apps/frontend/public) picks it up.
-          if [ -f .out/dist/supporters.csv ]; then
-            LINES=$(wc -l < .out/dist/supporters.csv)
-            if [ "$LINES" -gt 1 ]; then
-              cp .out/dist/supporters.csv apps/frontend/public/supporters.csv
-              echo "✅ Fresh supporters.csv injected ($LINES lines)"
-            else
-              echo "::warning::Artifact contains empty supporters.csv ($LINES lines) — using Git version"
-            fi
-          else
-            echo "::warning::No supporters.csv in artifact — using Git version"
-          fi
+          path: frontend-ctx/build/.out/dist
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -423,6 +406,8 @@ jobs:
           push: true
           build-args: |
             OCT_BUILD_SIGNATURE=${{ steps.sign.outputs.signature }}
+          build-contexts: |
+            frontend-build=frontend-ctx
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=build-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=build-${{ matrix.platform }}
