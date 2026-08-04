@@ -157,12 +157,19 @@ jobs:
           SUPPORTERS_API_USER: oct-ci
           SUPPORTERS_API_PASS: ${{ secrets.SUPPORTERS_API_PASS }}
         run: |
+          # Fetch current supporters CSV via Basic Auth
           AUTH=$(echo -n "$SUPPORTERS_API_USER:$SUPPORTERS_API_PASS" | base64)
           curl -H "Authorization: Basic $AUTH" \
             https://opencloudtouch.org/api/supporters/get.php \
-            -o apps/frontend/public/supporters.csv --fail --silent --show-error || {
-            echo "⚠️ Failed to fetch supporters, using placeholder CSV from git"
+            -o apps/frontend/public/supporters.csv --fail --silent --show-error --remove-on-error || {
+            echo "⚠️ Failed to fetch supporters, keeping placeholder CSV from git"
+            git checkout -- apps/frontend/public/supporters.csv
           }
+          LINES=$(wc -l < apps/frontend/public/supporters.csv)
+          if [ "$LINES" -le 1 ]; then
+            echo "::warning::Supporters fetch returned an empty list — keeping placeholder CSV from git"
+            git checkout -- apps/frontend/public/supporters.csv
+          fi
           echo "✅ Supporters: $(wc -l < apps/frontend/public/supporters.csv) lines"
 
       - name: Build frontend

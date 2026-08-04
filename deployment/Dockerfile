@@ -9,10 +9,13 @@
 # This allows users to clone the repo and run `docker-compose up --build`
 # without pre-building the frontend separately.
 #
-# CI pre-builds the frontend once and skips Stage 2 for all platforms via a
-# BuildKit named build-context override (`--build-context frontend-build=...`,
-# see .github/workflows/build-images.yml and test-build.yml). This is not
-# required: without that override, Stage 2 always runs for real.
+# CI pre-builds the frontend once and, in the multi-arch build-docker matrix
+# jobs, skips Stage 2 for all platforms via a BuildKit named build-context
+# override (build-contexts: frontend-build=..., see build-images.yml and
+# test-build.yml). The docker-security scan build deliberately omits the
+# override, so Stage 2 still runs there for real — this is not an oversight,
+# it keeps the self-build path exercised by CI. Without the override, Stage 2
+# always runs for real.
 #
 # Base Image Versions (Pinned for Reproducibility)
 # Update SHA256 digests with:
@@ -136,8 +139,9 @@ RUN python -m compileall -b opencloudtouch/ && \
     find opencloudtouch/ -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 
 # Copy frontend from build stage (built from source for self-build compatibility)
-# In CI, this stage is substituted via a BuildKit named build-context override
-# (frontend-build=<pre-built dist dir>), so it never actually runs there
+# In the build-docker matrix jobs, this stage is substituted via a BuildKit
+# named build-context override (frontend-build=<pre-built dist dir>), so it
+# never actually runs there; other CI jobs and self-builds run it for real
 COPY --from=frontend-build /build/.out/dist ./frontend/dist
 
 # Copy legal files

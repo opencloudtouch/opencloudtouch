@@ -156,10 +156,15 @@ jobs:
           AUTH=$(echo -n "$SUPPORTERS_API_USER:$SUPPORTERS_API_PASS" | base64)
           curl -H "Authorization: Basic $AUTH" \
             https://opencloudtouch.org/api/supporters/get.php \
-            -o apps/frontend/public/supporters.csv --fail --silent --show-error || {
-            echo "⚠️ Failed to fetch supporters, using empty CSV"
-            echo "name,type,amount,monthlyAmount,firstSupportDate" > apps/frontend/public/supporters.csv
+            -o apps/frontend/public/supporters.csv --fail --silent --show-error --remove-on-error || {
+            echo "⚠️ Failed to fetch supporters, keeping git-committed placeholder"
+            git checkout -- apps/frontend/public/supporters.csv
           }
+          LINES=$(wc -l < apps/frontend/public/supporters.csv)
+          if [ "$LINES" -le 1 ]; then
+            echo "::warning::Supporters fetch returned an empty list — keeping git-committed placeholder"
+            git checkout -- apps/frontend/public/supporters.csv
+          fi
           echo "✅ Supporters: $(wc -l < apps/frontend/public/supporters.csv) lines"
 
       - name: Build frontend
