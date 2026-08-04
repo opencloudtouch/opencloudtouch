@@ -80,9 +80,13 @@ COPY package.json package-lock.json ./
 # Copy frontend package.json for workspace resolution
 COPY apps/frontend/package.json ./apps/frontend/
 
-# Install dependencies via workspace root
+# Install dependencies via workspace root.
+# --ignore-scripts: this stage only ever runs `vite build`, never Cypress -
+# skip its postinstall step (Cypress's own ~250MB binary download), which
+# has nothing to do with producing the static build output and is also
+# unwanted arbitrary-code-execution-during-install surface in a Docker build.
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline --no-audit --workspace=apps/frontend
+    npm ci --prefer-offline --no-audit --ignore-scripts --workspace=apps/frontend
 
 # Copy frontend source files
 COPY apps/frontend/src ./apps/frontend/src
