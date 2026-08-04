@@ -180,7 +180,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: frontend-dist
-          path: .out/dist
+          path: frontend-ctx/build/.out/dist
 
       - name: Set up QEMU
         if: matrix.platform != 'linux/amd64'
@@ -213,6 +213,8 @@ jobs:
           push: true
           build-args: |
             OCT_BUILD_SIGNATURE=${{ steps.sign.outputs.signature }}
+          build-contexts: |
+            frontend-build=frontend-ctx
           labels: |
             org.opencontainers.image.title=OpenCloudTouch
             org.opencontainers.image.description=Test build from ${{ github.ref_name }}
