@@ -5,7 +5,7 @@
  * Phase 1: UI Demo only (backend functionality in Phase 3+)
  */
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Device } from "../api/devices";

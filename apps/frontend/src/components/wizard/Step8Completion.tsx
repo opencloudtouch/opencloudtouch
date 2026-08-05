@@ -1,7 +1,7 @@
 /**
  * Step 8: Completion
  */
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import WizardStep from "./WizardStep";
 import "./Step8Completion.css";
