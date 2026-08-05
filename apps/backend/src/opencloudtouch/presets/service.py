@@ -6,6 +6,7 @@ Repository handles data persistence.
 """
 
 import logging
+from dataclasses import dataclass
 from typing import List, Optional
 
 import httpx
@@ -18,6 +19,14 @@ from opencloudtouch.presets.parser import DevicePresetParser
 from opencloudtouch.presets.repository import PresetRepository
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class SetPresetResult:
+    """Result of a set_preset operation."""
+
+    preset: Preset
+    device_programmed: bool
 
 
 class PresetService:
@@ -49,7 +58,7 @@ class PresetService:
         station_url: str,
         station_homepage: Optional[str] = None,
         station_favicon: Optional[str] = None,
-    ) -> Preset:
+    ) -> SetPresetResult:
         """Set a preset for a device.
 
         Creates or updates a preset mapping AND programs the Bose device.
@@ -65,7 +74,7 @@ class PresetService:
             station_favicon: Optional station favicon URL
 
         Returns:
-            The saved Preset object
+            SetPresetResult with the saved Preset and device_programmed status
 
         Raises:
             ValueError: If preset_number is not between 1-6 or device not found
@@ -92,15 +101,32 @@ class PresetService:
         )
 
         # 2. Program Bose device via /storePreset API
+        device_programmed = await self.program_device_preset(saved_preset)
+
+        return SetPresetResult(preset=saved_preset, device_programmed=device_programmed)
+
+    async def program_device_preset(self, preset: Preset) -> bool:
+        """Program a preset on the physical Bose device via /storePreset.
+
+        Args:
+            preset: The preset to program (must have device_id, preset_number, etc.)
+
+        Returns:
+            True if device was successfully programmed, False if programming failed
+        """
         try:
-            device = await self.device_repository.get_by_device_id(device_id)
+            device = await self.device_repository.get_by_device_id(preset.device_id)
             if not device:
-                raise DeviceNotFoundError(device_id)
+                logger.warning(
+                    "Cannot program preset %d: device %s not found in DB",
+                    preset.preset_number,
+                    preset.device_id,
+                )
+                return False
 
             from opencloudtouch.core.config import get_config
             from opencloudtouch.devices.adapter import get_device_client
 
-            # Get OCT backend URL from config
             cfg = get_config()
             oct_backend_url = cfg.station_descriptor_base_url
 
@@ -109,37 +135,39 @@ class PresetService:
 
             try:
                 await client.store_preset(
-                    device_id=device_id,
-                    preset_number=preset_number,
-                    station_url=station_url,
-                    station_name=station_name,
+                    device_id=preset.device_id,
+                    preset_number=preset.preset_number,
+                    station_url=preset.station_url,
+                    station_name=preset.station_name,
                     oct_backend_url=oct_backend_url,
-                    station_image_url=station_favicon or "",
-                    station_uuid=station_uuid,
+                    station_image_url=preset.station_favicon or "",
+                    station_uuid=preset.station_uuid,
                 )
                 logger.info(
-                    "✅ Bose device programmed: Preset %d = %s",
-                    preset_number,
-                    station_name,
+                    "✅ Bose device programmed: Preset %d = %s (device %s)",
+                    preset.preset_number,
+                    preset.station_name,
+                    preset.device_id,
                 )
+                return True
             finally:
                 await client.close()
 
         except Exception as e:
             logger.error(
-                "Failed to program Bose device for preset %d: %s",
-                preset_number,
+                "Failed to program Bose device %s for preset %d: %s",
+                preset.device_id,
+                preset.preset_number,
                 e,
                 exc_info=True,
             )
-            # Don't fail the whole operation if Bose programming fails
-            # Database record is still saved, user can retry
             logger.warning(
-                "Preset %d saved to database but NOT programmed on Bose device",
-                preset_number,
+                "Preset %d saved to database but NOT programmed on device %s. "
+                "Playback may fail until the device is reprogrammed.",
+                preset.preset_number,
+                preset.device_id,
             )
-
-        return saved_preset
+            return False
 
     async def get_preset(self, device_id: str, preset_number: int) -> Optional[Preset]:
         """Get a specific preset for a device.

@@ -152,7 +152,10 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
     setPlayError(null);
 
     try {
-      await playPresetAPI(currentDevice.device_id, presetNumber);
+      const result = await playPresetAPI(currentDevice.device_id, presetNumber);
+      if (!result.device_programmed) {
+        showToast(t("presets.deviceNotProgrammed"), "warning");
+      }
     } catch (err) {
       console.error("Failed to play preset:", err);
       setPlayError(t("presets.playFailed"));

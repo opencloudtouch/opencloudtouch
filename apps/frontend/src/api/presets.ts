@@ -30,6 +30,7 @@ export interface PresetResponse {
   station_favicon?: string;
   created_at: string;
   updated_at: string;
+  device_programmed?: boolean;
 }
 
 export interface MessageResponse {

@@ -14,7 +14,7 @@ import pytest
 
 from opencloudtouch.core.exceptions import DeviceNotFoundError
 from opencloudtouch.presets.models import Preset
-from opencloudtouch.presets.service import PresetService
+from opencloudtouch.presets.service import PresetService, SetPresetResult
 
 # ---------------------------------------------------------------------------
 # Helpers / XML builders
@@ -441,8 +441,14 @@ async def test_fetch_device_presets_returns_content(service):
 
 @pytest.mark.asyncio
 async def test_set_preset_saves_to_database(service, mock_device_repo):
-    """set_preset saves preset to DB and returns it."""
+    """set_preset saves preset to DB and returns SetPresetResult."""
     saved_preset = MagicMock()
+    saved_preset.device_id = "dev-001"
+    saved_preset.preset_number = 1
+    saved_preset.station_url = "http://test.fm/stream.mp3"
+    saved_preset.station_name = "Test FM"
+    saved_preset.station_favicon = ""
+    saved_preset.station_uuid = "station-abc"
     service.repository.set_preset = AsyncMock(return_value=saved_preset)
 
     with patch("opencloudtouch.presets.service.httpx.AsyncClient"):
@@ -462,7 +468,9 @@ async def test_set_preset_saves_to_database(service, mock_device_repo):
                 station_url="http://test.fm/stream.mp3",
             )
 
-    assert result == saved_preset
+    assert isinstance(result, SetPresetResult)
+    assert result.preset == saved_preset
+    assert result.device_programmed is True
     service.repository.set_preset.assert_called_once()
     called_preset: Preset = service.repository.set_preset.call_args[0][0]
     assert called_preset.device_id == "dev-001"
@@ -475,8 +483,14 @@ async def test_set_preset_saves_to_database(service, mock_device_repo):
 async def test_set_preset_device_programming_failure_does_not_reraise(
     service, mock_device_repo
 ):
-    """If Bose device programming fails, DB record is still returned."""
+    """If Bose device programming fails, DB record is still returned with device_programmed=False."""
     saved_preset = MagicMock()
+    saved_preset.device_id = "dev-001"
+    saved_preset.preset_number = 2
+    saved_preset.station_url = "http://fails.station/stream.mp3"
+    saved_preset.station_name = "Fails Station"
+    saved_preset.station_favicon = ""
+    saved_preset.station_uuid = "uuid-xyz"
     service.repository.set_preset = AsyncMock(return_value=saved_preset)
 
     with patch("opencloudtouch.devices.adapter.get_device_client") as mock_get_client:
@@ -496,16 +510,24 @@ async def test_set_preset_device_programming_failure_does_not_reraise(
         )
 
     # Must NOT raise — failure is logged and swallowed
-    assert result == saved_preset
+    assert isinstance(result, SetPresetResult)
+    assert result.preset == saved_preset
+    assert result.device_programmed is False
 
 
 @pytest.mark.asyncio
-async def test_set_preset_device_not_found_during_programming(
+async def test_set_preset_device_not_found_returns_programmed_false(
     service, mock_device_repo
 ):
-    """If device is missing when programming, a warning is logged but preset is returned."""
+    """If device not found during programming, SetPresetResult.device_programmed is False."""
     mock_device_repo.get_by_device_id = AsyncMock(return_value=None)
     saved_preset = MagicMock()
+    saved_preset.device_id = "missing-dev"
+    saved_preset.preset_number = 3
+    saved_preset.station_url = "http://ghost/stream.mp3"
+    saved_preset.station_name = "Ghost Station"
+    saved_preset.station_favicon = ""
+    saved_preset.station_uuid = "uuid-zzz"
     service.repository.set_preset = AsyncMock(return_value=saved_preset)
 
     result = await service.set_preset(
@@ -516,12 +538,9 @@ async def test_set_preset_device_not_found_during_programming(
         station_url="http://ghost/stream.mp3",
     )
 
-    assert result == saved_preset
-
-
-# ---------------------------------------------------------------------------
-# get_preset / get_all_presets
-# ---------------------------------------------------------------------------
+    assert isinstance(result, SetPresetResult)
+    assert result.preset == saved_preset
+    assert result.device_programmed is False
 
 
 @pytest.mark.asyncio
@@ -578,3 +597,95 @@ async def test_clear_all_presets_returns_count(service, mock_repo):
 
     assert count == 4
     mock_repo.clear_all_presets.assert_called_once_with("dev-001")
+
+
+# ---------------------------------------------------------------------------
+# program_device_preset
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_program_device_preset_success(service, mock_device_repo):
+    """Successful device programming returns True."""
+    preset = Preset(
+        device_id="dev-001",
+        preset_number=1,
+        station_uuid="uuid-abc",
+        station_name="Test FM",
+        station_url="http://test.fm/stream.mp3",
+        station_favicon="http://test.fm/logo.png",
+    )
+
+    with patch("opencloudtouch.devices.adapter.get_device_client") as mock_get_client:
+        mock_client = AsyncMock()
+        mock_client.store_preset = AsyncMock()
+        mock_client.close = AsyncMock()
+        mock_get_client.return_value = mock_client
+
+        result = await service.program_device_preset(preset)
+
+    assert result is True
+    mock_client.store_preset.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_program_device_preset_device_not_found(service, mock_device_repo):
+    """Device not in DB → returns False."""
+    mock_device_repo.get_by_device_id = AsyncMock(return_value=None)
+    preset = Preset(
+        device_id="unknown-dev",
+        preset_number=2,
+        station_uuid="uuid-xyz",
+        station_name="Ghost FM",
+        station_url="http://ghost.fm/stream.mp3",
+    )
+
+    result = await service.program_device_preset(preset)
+
+    assert result is False
+
+
+@pytest.mark.asyncio
+async def test_program_device_preset_store_fails(service, mock_device_repo):
+    """store_preset exception → returns False, does not raise."""
+    preset = Preset(
+        device_id="dev-001",
+        preset_number=3,
+        station_uuid="uuid-fail",
+        station_name="Fail FM",
+        station_url="http://fail.fm/stream.mp3",
+    )
+
+    with patch("opencloudtouch.devices.adapter.get_device_client") as mock_get_client:
+        mock_client = AsyncMock()
+        mock_client.store_preset = AsyncMock(
+            side_effect=Exception("Connection refused")
+        )
+        mock_client.close = AsyncMock()
+        mock_get_client.return_value = mock_client
+
+        result = await service.program_device_preset(preset)
+
+    assert result is False
+
+
+@pytest.mark.asyncio
+async def test_program_device_preset_always_closes_client(service, mock_device_repo):
+    """Client is always closed, even on failure."""
+    preset = Preset(
+        device_id="dev-001",
+        preset_number=4,
+        station_uuid="uuid-close",
+        station_name="Close FM",
+        station_url="http://close.fm/stream.mp3",
+    )
+
+    with patch("opencloudtouch.devices.adapter.get_device_client") as mock_get_client:
+        mock_client = AsyncMock()
+        mock_client.store_preset = AsyncMock(side_effect=RuntimeError("boom"))
+        mock_client.close = AsyncMock()
+        mock_get_client.return_value = mock_client
+
+        await service.program_device_preset(preset)
+
+    mock_client.close.assert_called_once()

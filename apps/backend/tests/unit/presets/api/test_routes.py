@@ -18,6 +18,7 @@ from fastapi.testclient import TestClient
 from opencloudtouch.core.dependencies import get_preset_service
 from opencloudtouch.main import app
 from opencloudtouch.presets.models import Preset
+from opencloudtouch.presets.service import SetPresetResult
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -80,14 +81,25 @@ class TestSetPreset:
     """Tests for POST /api/presets/set."""
 
     def test_set_preset_returns_201_on_success(self, client, mock_service):
-        mock_service.set_preset = AsyncMock(return_value=_make_preset())
+        mock_service.set_preset = AsyncMock(
+            return_value=SetPresetResult(preset=_make_preset(), device_programmed=True)
+        )
         r = client.post("/api/presets/set", json=_SET_PAYLOAD)
         assert r.status_code == 201
 
     def test_set_preset_response_contains_station_name(self, client, mock_service):
-        mock_service.set_preset = AsyncMock(return_value=_make_preset())
+        mock_service.set_preset = AsyncMock(
+            return_value=SetPresetResult(preset=_make_preset(), device_programmed=True)
+        )
         r = client.post("/api/presets/set", json=_SET_PAYLOAD)
         assert r.json()["station_name"] == "Test Radio"
+
+    def test_set_preset_response_contains_device_programmed(self, client, mock_service):
+        mock_service.set_preset = AsyncMock(
+            return_value=SetPresetResult(preset=_make_preset(), device_programmed=False)
+        )
+        r = client.post("/api/presets/set", json=_SET_PAYLOAD)
+        assert r.json()["device_programmed"] is False
 
     def test_set_preset_returns_400_on_value_error(self, client, mock_service):
         """ValueError from service (bad preset number) → 400."""

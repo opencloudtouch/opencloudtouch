@@ -20,7 +20,11 @@ from opencloudtouch.core.dependencies import (
     get_preset_service,
     get_settings_service,
 )
-from opencloudtouch.core.exceptions import DeviceNotFoundError, DomainValidationError
+from opencloudtouch.core.exceptions import (
+    DeviceConnectionError,
+    DeviceNotFoundError,
+    DomainValidationError,
+)
 from opencloudtouch.devices.client import NowPlayingInfo, VolumeInfo
 from opencloudtouch.devices.repository import Device
 from opencloudtouch.main import app
@@ -1096,3 +1100,124 @@ class TestRenameDeviceEndpoint:
         data = response.json()
         assert data["name"] == "Trimmed"
         mock_client.set_name.assert_awaited_once_with("Trimmed")
+
+
+class TestPlayPreset:
+    """Tests for POST /api/devices/{id}/play-preset/{preset_number} endpoint."""
+
+    @staticmethod
+    def _make_preset(
+        device_id: str = "AABBCC112233",
+        preset_number: int = 1,
+        station_name: str = "Test Radio",
+    ):
+        from opencloudtouch.presets.models import Preset
+
+        return Preset(
+            device_id=device_id,
+            preset_number=preset_number,
+            station_uuid="uuid-1234",
+            station_name=station_name,
+            station_url="http://stream.example.com/radio",
+        )
+
+    def test_play_preset_success_device_programmed(
+        self, client, mock_device_service, mock_preset_service
+    ):
+        """POST /api/devices/{id}/play-preset/1 → 200 with device_programmed=True."""
+        preset = self._make_preset()
+        mock_preset_service.get_preset = AsyncMock(return_value=preset)
+        mock_preset_service.program_device_preset = AsyncMock(return_value=True)
+        mock_device_service.press_key = AsyncMock(return_value=None)
+
+        response = client.post("/api/devices/AABBCC112233/play-preset/1")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["device_programmed"] is True
+        assert data["preset_number"] == 1
+        assert data["station_name"] == "Test Radio"
+        assert data["device_id"] == "AABBCC112233"
+        mock_preset_service.get_preset.assert_awaited_once_with("AABBCC112233", 1)
+        mock_preset_service.program_device_preset.assert_awaited_once_with(preset)
+        mock_device_service.press_key.assert_awaited_once_with(
+            "AABBCC112233", "PRESET_1", "both"
+        )
+
+    def test_play_preset_success_device_not_programmed(
+        self, client, mock_device_service, mock_preset_service
+    ):
+        """POST /api/devices/{id}/play-preset/1 → 200 with device_programmed=False."""
+        preset = self._make_preset()
+        mock_preset_service.get_preset = AsyncMock(return_value=preset)
+        mock_preset_service.program_device_preset = AsyncMock(return_value=False)
+        mock_device_service.press_key = AsyncMock(return_value=None)
+
+        response = client.post("/api/devices/AABBCC112233/play-preset/1")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["device_programmed"] is False
+        # Key press still sent even when programming failed
+        mock_device_service.press_key.assert_awaited_once_with(
+            "AABBCC112233", "PRESET_1", "both"
+        )
+
+    def test_play_preset_invalid_number_zero(
+        self, client, mock_device_service, mock_preset_service
+    ):
+        """POST /api/devices/{id}/play-preset/0 → 400."""
+        response = client.post("/api/devices/AABBCC112233/play-preset/0")
+
+        assert response.status_code == 400
+        assert "1-6" in response.json()["detail"]
+
+    def test_play_preset_invalid_number_seven(
+        self, client, mock_device_service, mock_preset_service
+    ):
+        """POST /api/devices/{id}/play-preset/7 → 400."""
+        response = client.post("/api/devices/AABBCC112233/play-preset/7")
+
+        assert response.status_code == 400
+        assert "1-6" in response.json()["detail"]
+
+    def test_play_preset_no_preset_configured(
+        self, client, mock_device_service, mock_preset_service
+    ):
+        """POST /api/devices/{id}/play-preset/1 → 404 when preset slot is empty."""
+        mock_preset_service.get_preset = AsyncMock(return_value=None)
+
+        response = client.post("/api/devices/AABBCC112233/play-preset/1")
+
+        assert response.status_code == 404
+        assert "not configured" in response.json()["detail"].lower()
+
+    def test_play_preset_device_not_found(
+        self, client, mock_device_service, mock_preset_service
+    ):
+        """POST /api/devices/{id}/play-preset/1 → 404 when device doesn't exist."""
+        preset = self._make_preset(device_id="NONEXISTENT")
+        mock_preset_service.get_preset = AsyncMock(return_value=preset)
+        mock_preset_service.program_device_preset = AsyncMock(return_value=True)
+        mock_device_service.press_key = AsyncMock(
+            side_effect=DeviceNotFoundError("NONEXISTENT")
+        )
+
+        response = client.post("/api/devices/NONEXISTENT/play-preset/1")
+
+        assert response.status_code == 404
+
+    def test_play_preset_device_unreachable(
+        self, client, mock_device_service, mock_preset_service
+    ):
+        """POST /api/devices/{id}/play-preset/1 → 503 when device can't be reached."""
+        preset = self._make_preset()
+        mock_preset_service.get_preset = AsyncMock(return_value=preset)
+        mock_preset_service.program_device_preset = AsyncMock(return_value=True)
+        mock_device_service.press_key = AsyncMock(
+            side_effect=DeviceConnectionError("AABBCC112233", "Connection refused")
+        )
+
+        response = client.post("/api/devices/AABBCC112233/play-preset/1")
+
+        assert response.status_code == 503

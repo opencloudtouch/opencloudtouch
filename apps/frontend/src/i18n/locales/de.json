@@ -51,6 +51,7 @@
     "presetSaved": "Preset {{number}} gespeichert.",
     "presetDeleted": "Preset {{number}} gelöscht.",
     "playFailed": "Preset konnte nicht abgespielt werden. Bitte versuchen Sie es erneut.",
+    "deviceNotProgrammed": "Gerät konnte nicht programmiert werden. Wiedergabe funktioniert möglicherweise erst nach der Einrichtung.",
     "noDevices": "Keine Geräte gefunden",
     "syncedFromDevice": "Presets erfolgreich vom Gerät geladen.",
     "savedStations": "Gespeicherte Sender",

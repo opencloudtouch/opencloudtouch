@@ -51,6 +51,7 @@
     "presetSaved": "Preset {{number}} zapisany.",
     "presetDeleted": "Preset {{number}} usunięty.",
     "playFailed": "Nie można odtworzyć presetu. Spróbuj ponownie.",
+    "deviceNotProgrammed": "Nie udało się zaprogramować urządzenia. Odtwarzanie może nie działać do momentu konfiguracji.",
     "noDevices": "Nie znaleziono urządzeń",
     "syncedFromDevice": "Presety załadowane z urządzenia pomyślnie.",
     "savedStations": "Zapisane stacje",

@@ -209,16 +209,25 @@ describe("Devices API Client", () => {
   });
 
   describe("playPreset", () => {
-    it("plays valid preset successfully", async () => {
+    it("plays valid preset and returns result", async () => {
+      const playResult = {
+        message: "Playing preset 1: Test FM",
+        device_id: "device123",
+        preset_number: 1,
+        station_name: "Test FM",
+        device_programmed: true,
+      };
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ success: true }),
+        json: () => Promise.resolve(playResult),
       });
 
-      await expect(playPreset("device123", 1)).resolves.toBeUndefined();
+      const result = await playPreset("device123", 1);
 
+      expect(result).toEqual(playResult);
+      expect(result.device_programmed).toBe(true);
       expect(mockFetch).toHaveBeenCalledWith(
-        "/api/devices/device123/key?key=PRESET_1&state=both",
+        "/api/devices/device123/play-preset/1",
         { method: "POST" }
       );
     });
@@ -226,15 +235,38 @@ describe("Devices API Client", () => {
     it("plays preset 6 successfully", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ success: true }),
+        json: () => Promise.resolve({
+          message: "Playing preset 6",
+          device_id: "device123",
+          preset_number: 6,
+          station_name: "Radio 6",
+          device_programmed: true,
+        }),
       });
 
       await playPreset("device123", 6);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "/api/devices/device123/key?key=PRESET_6&state=both",
+        "/api/devices/device123/play-preset/6",
         { method: "POST" }
       );
+    });
+
+    it("returns device_programmed false when device unreachable", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          message: "Playing preset 1",
+          device_id: "device123",
+          preset_number: 1,
+          station_name: "Test FM",
+          device_programmed: false,
+        }),
+      });
+
+      const result = await playPreset("device123", 1);
+
+      expect(result.device_programmed).toBe(false);
     });
 
     it("throws error for preset < 1", async () => {
@@ -265,6 +297,18 @@ describe("Devices API Client", () => {
       // getErrorMessage returns fallback for non-ApiError objects
       await expect(playPreset("device123", 1)).rejects.toThrow(
         "Device offline"
+      );
+    });
+
+    it("throws error when preset not found (404)", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        statusText: "Not Found",
+        json: () => Promise.resolve({ detail: "Preset 1 not configured for device device123. Assign a station first." }),
+      });
+
+      await expect(playPreset("device123", 1)).rejects.toThrow(
+        "Preset 1 not configured"
       );
     });
 
