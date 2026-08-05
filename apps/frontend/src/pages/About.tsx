@@ -192,7 +192,7 @@ export default function About() {
               <span>{t("about.devBuild")}</span>
             </div>
           )}
-          {!updateLoading && !updateInfo.available && health && health.build === "official" && (
+          {!updateLoading && !updateInfo.available && health?.build === "official" && (
             <div className="about-update-current">
               <span className="update-check-icon">✅</span>
               <span>{t("about.upToDate")}</span>
