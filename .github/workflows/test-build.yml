@@ -8,6 +8,9 @@
 # Docker images pushed to GHCR with the chosen tag ONLY (never "latest"/"stable").
 # Raspi images uploaded as workflow artifacts (30 day retention).
 # No version bump, no git tag, no GitHub Release.
+#
+# Set real_supporters=true to fetch the real supporters list from
+# opencloudtouch.org instead of using the placeholder CSV committed to git.
 # ==============================================================================
 
 name: Test Build
@@ -19,6 +22,11 @@ on:
         description: 'Image tag (e.g. "test", "bug-184", "feature-xyz")'
         required: true
         type: string
+      real_supporters:
+        description: 'Fetch the real supporters list from opencloudtouch.org (default: placeholder CSV from git)'
+        required: false
+        type: boolean
+        default: false
       docker_amd64:
         description: 'Docker: linux/amd64 (Desktop, Server, NAS)'
         required: false
@@ -143,6 +151,27 @@ jobs:
           npm ci
           npm install @rollup/rollup-linux-x64-gnu --save-optional
 
+      - name: Fetch supporters from opencloudtouch.org
+        if: inputs.real_supporters == true
+        env:
+          SUPPORTERS_API_USER: oct-ci
+          SUPPORTERS_API_PASS: ${{ secrets.SUPPORTERS_API_PASS }}
+        run: |
+          # Fetch current supporters CSV via Basic Auth
+          AUTH=$(echo -n "$SUPPORTERS_API_USER:$SUPPORTERS_API_PASS" | base64)
+          curl -H "Authorization: Basic $AUTH" \
+            https://opencloudtouch.org/api/supporters/get.php \
+            -o apps/frontend/public/supporters.csv --fail --silent --show-error --remove-on-error || {
+            echo "⚠️ Failed to fetch supporters, keeping placeholder CSV from git"
+            git checkout -- apps/frontend/public/supporters.csv
+          }
+          LINES=$(wc -l < apps/frontend/public/supporters.csv)
+          if [ "$LINES" -le 1 ]; then
+            echo "::warning::Supporters fetch returned an empty list — keeping placeholder CSV from git"
+            git checkout -- apps/frontend/public/supporters.csv
+          fi
+          echo "✅ Supporters: $(wc -l < apps/frontend/public/supporters.csv) lines"
+
       - name: Build frontend
         working-directory: apps/frontend
         run: npm run build
@@ -180,7 +209,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: frontend-dist
-          path: .out/dist
+          path: frontend-ctx/build/.out/dist
 
       - name: Set up QEMU
         if: matrix.platform != 'linux/amd64'
@@ -213,6 +242,8 @@ jobs:
           push: true
           build-args: |
             OCT_BUILD_SIGNATURE=${{ steps.sign.outputs.signature }}
+          build-contexts: |
+            frontend-build=frontend-ctx
           labels: |
             org.opencontainers.image.title=OpenCloudTouch
             org.opencontainers.image.description=Test build from ${{ github.ref_name }}

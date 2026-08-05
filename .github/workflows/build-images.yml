@@ -156,10 +156,15 @@ jobs:
           AUTH=$(echo -n "$SUPPORTERS_API_USER:$SUPPORTERS_API_PASS" | base64)
           curl -H "Authorization: Basic $AUTH" \
             https://opencloudtouch.org/api/supporters/get.php \
-            -o apps/frontend/public/supporters.csv --fail --silent --show-error || {
-            echo "⚠️ Failed to fetch supporters, using empty CSV"
-            echo "name,type,amount,monthlyAmount,firstSupportDate" > apps/frontend/public/supporters.csv
+            -o apps/frontend/public/supporters.csv --fail --silent --show-error --remove-on-error || {
+            echo "⚠️ Failed to fetch supporters, keeping git-committed placeholder"
+            git checkout -- apps/frontend/public/supporters.csv
           }
+          LINES=$(wc -l < apps/frontend/public/supporters.csv)
+          if [ "$LINES" -le 1 ]; then
+            echo "::warning::Supporters fetch returned an empty list — keeping git-committed placeholder"
+            git checkout -- apps/frontend/public/supporters.csv
+          fi
           echo "✅ Supporters: $(wc -l < apps/frontend/public/supporters.csv) lines"
 
       - name: Build frontend
@@ -364,24 +369,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: frontend-dist
-          path: .out/dist
-
-      - name: Inject fresh supporters CSV into Docker build context
-        run: |
-          # The CI frontend build fetches supporters from the API.
-          # Copy the fresh CSV back into the source tree so the Dockerfile's
-          # frontend-build stage (COPY apps/frontend/public) picks it up.
-          if [ -f .out/dist/supporters.csv ]; then
-            LINES=$(wc -l < .out/dist/supporters.csv)
-            if [ "$LINES" -gt 1 ]; then
-              cp .out/dist/supporters.csv apps/frontend/public/supporters.csv
-              echo "✅ Fresh supporters.csv injected ($LINES lines)"
-            else
-              echo "::warning::Artifact contains empty supporters.csv ($LINES lines) — using Git version"
-            fi
-          else
-            echo "::warning::No supporters.csv in artifact — using Git version"
-          fi
+          path: frontend-ctx/build/.out/dist
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -423,6 +411,8 @@ jobs:
           push: true
           build-args: |
             OCT_BUILD_SIGNATURE=${{ steps.sign.outputs.signature }}
+          build-contexts: |
+            frontend-build=frontend-ctx
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=build-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=build-${{ matrix.platform }}
