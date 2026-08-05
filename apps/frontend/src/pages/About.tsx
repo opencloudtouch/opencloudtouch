@@ -24,7 +24,7 @@ export default function About() {
   const { data: health, isLoading: healthLoading } = useHealth();
   const startTime = useMemo(
     () => (health?.uptime ? new Date(Date.now() - health.uptime * 1000).toLocaleString() : ""),
-    [health?.uptime],
+    [health?.uptime]
   );
 
   const [supporters, setSupporters] = useState<Supporter[]>([]);
@@ -147,9 +147,7 @@ export default function About() {
 
         {/* Build Info */}
         {!healthLoading && health?.uptime && (
-          <p className="about-build-time">
-            {t("about.buildTime", { time: startTime })}
-          </p>
+          <p className="about-build-time">{t("about.buildTime", { time: startTime })}</p>
         )}
 
         {/* Update Check */}
