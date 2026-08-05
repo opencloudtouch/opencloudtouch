@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ToastProvider } from "./contexts/ToastContext";
@@ -32,7 +32,7 @@ interface AppRouterProps {
 
 function AppRouter({ devices: initialDevices, isLoading, error, onRetry }: AppRouterProps) {
   const { t } = useTranslation();
-  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
+  const [removedIds, setRemovedIds] = useState<Set<string>>(() => new Set());
 
   // Derive visible devices: parent data minus locally removed ones
   const devices = initialDevices.filter((d) => !removedIds.has(d.device_id));

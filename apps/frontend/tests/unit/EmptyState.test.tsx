@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Tests for EmptyState.tsx
  *
  * User Story: "Als neuer User möchte ich durch das Setup geführt werden"
@@ -14,7 +14,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from "vitest";
 import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter } from "react-router";
 import React from "react";
 import { ToastProvider } from "../../src/contexts/ToastContext";
 import EmptyState from "../../src/components/EmptyState";
@@ -22,8 +22,8 @@ import { QueryWrapper } from "../utils/reactQueryTestUtils";
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual("react-router-dom");
+vi.mock("react-router", async () => {
+  const actual = await vi.importActual("react-router");
   return {
     ...actual,
     useNavigate: () => mockNavigate,

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Functional Tests for LocalControl Component
  *
  * User Story: "Als User möchte ich meine Musik steuern (Play/Pause/Skip/Volume)"
@@ -96,9 +96,9 @@ vi.mock("../../src/hooks/useZones", () => ({
   }),
 }));
 
-// Mock react-router-dom
+// Mock react-router
 const mockNavigate = vi.fn();
-vi.mock("react-router-dom", () => ({
+vi.mock("react-router", () => ({
   useNavigate: () => mockNavigate,
   useSearchParams: () => [new URLSearchParams(), vi.fn()],
 }));

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import { submitBugReport, downloadDiagnostics } from "../api/bugReport";
 import { getLogEntries } from "../utils/logBuffer";

@@ -31,9 +31,9 @@ class MockResizeObserver {
 }
 (global as Record<string, unknown>).ResizeObserver = MockResizeObserver;
 
-// Mock react-router-dom to avoid Router context issues in tests
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual("react-router-dom");
+// Mock react-router to avoid Router context issues in tests
+vi.mock("react-router", async () => {
+  const actual = await vi.importActual("react-router");
   return {
     ...actual,
     useNavigate: () => vi.fn(),
