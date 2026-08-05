@@ -6,6 +6,8 @@
 export interface HealthResponse {
   status: string;
   version: string;
+  /** "official" for signed CI builds, "community" for self-built/local-dev. */
+  build: "official" | "community";
 }
 
 export async function getHealth(): Promise<HealthResponse> {

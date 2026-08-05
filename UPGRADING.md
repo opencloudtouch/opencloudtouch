@@ -110,4 +110,4 @@ This guide explains how to upgrade OpenCloudTouch deployments. It covers Docker-
 
 ---
 
-For further help, see the [FAQ](doc/FAQ.md) or open an issue on GitHub.
+For further help, see [Troubleshooting](docs/TROUBLESHOOTING.md) or open an issue on GitHub.

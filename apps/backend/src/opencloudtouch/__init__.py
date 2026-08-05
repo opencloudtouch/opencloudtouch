@@ -1,24 +1,7 @@
 """OpenCloudTouch Backend Package"""
 
 import os
-import subprocess
 from importlib.metadata import PackageNotFoundError, version
-
-
-def _get_git_commit_short() -> str:
-    """Get shortened git commit hash, or 'unknown' if not in a git repo."""
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        if result.returncode == 0:
-            return result.stdout.strip()
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
-    return "unknown"
 
 
 def _verify_build_signature(pkg_version: str) -> bool:
@@ -42,19 +25,35 @@ def _verify_build_signature(pkg_version: str) -> bool:
 def _resolve_version() -> str:
     """Resolve the application version.
 
-    Official builds: version from package metadata (e.g. "1.2.0")
-    Dev/self-built:  "dev-<commit>" (e.g. "dev-a1b2c3d")
-    """
-    sig = os.environ.get("OCT_BUILD_SIGNATURE", "")
-    if sig and _verify_build_signature(sig):
-        try:
-            return version("opencloudtouch")
-        except PackageNotFoundError:
-            return "0.0.0-unofficial"
+    Always reads installed package metadata (the version pinned in
+    pyproject.toml) — the same `pip install .` step bakes this in
+    regardless of build signature or environment (Docker image, local dev
+    via `pip install -e`), so it's accurate without any manual step.
 
-    # Not an official build — use git commit hash
-    commit = _get_git_commit_short()
-    return f"dev-{commit}"
+    A previous design tried a git-commit-based fallback ("dev-<commit>")
+    for non-official builds. That never actually worked inside a Docker
+    image: no .git directory is ever copied into the runtime stage, so it
+    always degenerated to the useless "dev-unknown". Removed.
+
+    OCT_VERSION is an optional override (e.g. for forks that want a custom
+    version string instead of the upstream package version) — most builds
+    don't need to set it.
+
+    Whether a build is officially signed is a SEPARATE question, answered
+    by `is_official_build()` (exposed via the /health `build` field). Do
+    not infer it from this version string — that was the actual bug behind
+    the "always shows update available" report: the frontend compared a
+    version *string* against the latest release tag instead of checking
+    the official/self-built signal directly.
+    """
+    override = os.environ.get("OCT_VERSION", "").strip()
+    if override:
+        return override
+
+    try:
+        return version("opencloudtouch")
+    except PackageNotFoundError:
+        return "0.0.0-unknown"
 
 
 def is_official_build() -> bool:

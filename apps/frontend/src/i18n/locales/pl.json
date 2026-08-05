@@ -665,7 +665,8 @@
     "checkingUpdates": "Sprawdzanie aktualizacji...",
     "updateAvailable": "Dostępna aktualizacja: {{version}}",
     "viewRelease": "Zobacz wydanie",
-    "upToDate": "Jesteś na bieżąco!"
+    "upToDate": "Jesteś na bieżąco!",
+    "devBuild": "Wersja budowana lokalnie — sprawdzanie aktualizacji wyłączone"
   },
   "discovery": {
     "alreadyRunning": "Wyszukiwanie urządzeń już trwa. Poczekaj...",

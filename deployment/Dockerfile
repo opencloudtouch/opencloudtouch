@@ -66,10 +66,11 @@ RUN find /install -path "*setuptools/_vendor/jaraco*" -delete 2>/dev/null || tru
     find /install -path "*setuptools/_vendor/wheel*" -delete 2>/dev/null || true && \
     find /install -name "wheel-0.45*.dist-info" -exec rm -rf {} + 2>/dev/null || true
 
-# Cleanup: Remove build deps and artifacts (reduce layer size)
-RUN apt-get purge -y --auto-remove gcc libc6-dev libffi-dev make autoconf automake libtool && \
-    find /install -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
-    find /install -name "*.pyc" -delete
+# Cleanup: Remove build deps (keep pip's compiled bytecode — see #400/#387,
+# deleting it here forced the final stage to re-compile at runtime as a
+# non-root user with no write access, producing millions of negative
+# dentries from the failed stat() lookups)
+RUN apt-get purge -y --auto-remove gcc libc6-dev libffi-dev make autoconf automake libtool
 
 # Stage 2: Frontend Build (platform-independent HTML/CSS/JS)
 # Force amd64 — output is static files, no native binaries needed.
@@ -84,9 +85,13 @@ COPY package.json package-lock.json ./
 # Copy frontend package.json for workspace resolution
 COPY apps/frontend/package.json ./apps/frontend/
 
-# Install dependencies via workspace root
+# Install dependencies via workspace root.
+# --ignore-scripts: this stage only ever runs `vite build`, never Cypress -
+# skip its postinstall step (Cypress's own ~250MB binary download), which
+# has nothing to do with producing the static build output and is also
+# unwanted arbitrary-code-execution-during-install surface in a Docker build.
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline --no-audit --workspace=apps/frontend
+    npm ci --prefer-offline --no-audit --ignore-scripts --workspace=apps/frontend
 
 # Copy frontend source files
 COPY apps/frontend/src ./apps/frontend/src
@@ -113,12 +118,26 @@ LABEL org.opencontainers.image.title="OpenCloudTouch" \
 WORKDIR /app
 
 # Apply OS security patches (fixes CVE-2026-0861 glibc and other HIGH vulns in base image)
+# and install gosu/curl (entrypoint privilege drop / HEALTHCHECK probe).
+# Deliberately placed before any COPY of app/frontend/entrypoint source: apt
+# operations are the slowest, most network-heavy part of this stage, and
+# Docker invalidates every layer from the first changed COPY onward. Keeping
+# apt-get here means routine source edits never force gosu/curl to
+# re-download — only a base-image or package-list change does.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    apt-get update && apt-get upgrade -y --no-install-recommends
+    apt-get update && \
+    apt-get upgrade -y --no-install-recommends && \
+    apt-get install -y --no-install-recommends gosu curl
 
 # Copy Python dependencies from build stage
 COPY --from=python-deps /install /usr/local
+
+# Precompile bytecode for the dependency tree so the runtime (non-root)
+# user never has to write .pyc files itself. Must run here, against the
+# exact files that ship in this stage, not in the discarded python-deps
+# stage. Same base-image digest as python-deps, so the magic number matches.
+RUN python -m compileall -q /usr/local || true
 
 # Remove vulnerable packages AFTER copying deps (CVE-2026-23949, CVE-2026-24049)
 # - Base image contains setuptools with vendored jaraco.context-5.3.0 and wheel-0.45.1
@@ -157,12 +176,6 @@ RUN mkdir -p /data /logs
 # Create non-root user (entrypoint fixes volume permissions then drops to oct)
 RUN useradd -m -u 1000 oct && chown -R oct:oct /app /data /logs
 
-# Install su-exec for dropping privileges in entrypoint (tiny, no deps)
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends gosu && \
-    rm -rf /var/lib/apt/lists/*
-
 # Environment defaults
 ENV OCT_HOST=0.0.0.0
 ENV OCT_PORT=7777
@@ -177,12 +190,25 @@ ENV USER=oct
 ARG OCT_BUILD_SIGNATURE=""
 ENV OCT_BUILD_SIGNATURE=${OCT_BUILD_SIGNATURE}
 
+# Optional version override (docker build --build-arg OCT_VERSION=x).
+# Not required for a correct version: _resolve_version() already reads the
+# real pyproject.toml version from installed package metadata by default,
+# for every build (official or self-built) — the same `pip install .` step
+# bakes it in regardless of OCT_BUILD_SIGNATURE. This ARG only exists for
+# forks that want to stamp a custom string instead of the upstream version.
+ARG OCT_VERSION=""
+ENV OCT_VERSION=${OCT_VERSION}
+
 # Set Python path for package
 ENV PYTHONPATH=/app
 
-# Healthcheck using entrypoint script
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD /entrypoint.sh health || exit 1
+# Healthcheck via HTTP probe (curl) — does NOT spawn a Python interpreter.
+# The previous `/entrypoint.sh health` variant started a fresh interpreter
+# every 30s, which itself contributed to negative-dentry growth (see #387
+# follow-up). curl is a tiny, already-present dependency (added above),
+# not a new heavy one.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:${OCT_PORT}/health || exit 1
 
 # Expose port
 EXPOSE 7777

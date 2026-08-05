@@ -26,10 +26,18 @@ def test_config_defaults(monkeypatch):
     assert config.db_path == ""  # Empty by default
     assert config.effective_db_path == "/data/oct.db"  # Production default
     assert config.discovery_enabled is True
+    assert config.device_polling_enabled is True
     assert config.discovery_timeout == 3  # Optimized for fast Bose discovery (<5s)
     assert config.manual_device_ips_list == []
     assert config.device_http_port == 8090
     assert config.device_ws_port == 8080
+
+
+def test_device_polling_can_be_disabled(monkeypatch):
+    """OCT_DEVICE_POLLING_ENABLED=false disables device alive-polling."""
+    monkeypatch.setenv("OCT_DEVICE_POLLING_ENABLED", "false")
+    config = AppConfig(_env_file=None)
+    assert config.device_polling_enabled is False
 
 
 def test_config_log_level_validation():

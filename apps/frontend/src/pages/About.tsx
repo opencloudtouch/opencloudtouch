@@ -98,6 +98,12 @@ export default function About() {
         return;
       }
 
+      if (health.build !== "official") {
+        setUpdateInfo({ available: false });
+        setUpdateLoading(false);
+        return;
+      }
+
       try {
         const response = await fetch(GITHUB_API);
         if (!response.ok) {
@@ -180,7 +186,13 @@ export default function About() {
               </div>
             </motion.div>
           )}
-          {!updateLoading && !updateInfo.available && health && (
+          {!updateLoading && !updateInfo.available && health && health.build !== "official" && (
+            <div className="about-update-current">
+              <span className="update-check-icon">🛠️</span>
+              <span>{t("about.devBuild")}</span>
+            </div>
+          )}
+          {!updateLoading && !updateInfo.available && health?.build === "official" && (
             <div className="about-update-current">
               <span className="update-check-icon">✅</span>
               <span>{t("about.upToDate")}</span>

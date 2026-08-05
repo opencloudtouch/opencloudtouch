@@ -2,7 +2,7 @@
 
 All deployment related files for OpenCloudTouch container deployment.
 
-> **Trademark Notice**: OpenCloudTouch (OCT) is not affiliated with Bose Corporation. Bose® and SoundTouch® are registered trademarks of Bose Corporation. See [TRADEMARK.md](../TRADEMARK.md) for details.
+> **Trademark Notice**: OpenCloudTouch (OCT) is not affiliated with Bose Corporation. Bose® and SoundTouch® are registered trademarks of Bose Corporation. See [DISCLAIMER.md](../DISCLAIMER.md) (§4 Third-Party Trademarks) for details.
 
 ## 📁 Files
 
@@ -73,6 +73,20 @@ OCT_LOG_LEVEL=INFO
 OCT_DB_PATH=/data/oct.db
 ```
 
+### Build Arguments
+
+Passed with `--build-arg`, not as runtime environment variables:
+
+```bash
+# Stamp a version for a self-built image (avoids the "dev-unknown" /
+# permanent "update available" behaviour on the About page)
+docker build --build-arg OCT_VERSION=1.5.5 -f deployment/Dockerfile -t opencloudtouch:local ..
+```
+
+`OCT_BUILD_SIGNATURE` is set automatically by CI and cannot be produced
+locally — self-built images are always reported as "community" builds
+regardless of `OCT_VERSION`.
+
 ### Ports
 
 - **Backend API**: 7777 (default)
@@ -130,4 +144,4 @@ ssh user@targethost "docker ps -a | grep opencloudtouch"
 
 - [Main README](../README.md): Project Overview
 - [Backend README](../apps/backend/README.md): Backend Docs
-- [SERVER-DEPLOYMENT.md](../SERVER-DEPLOYMENT.md): Server Deployment Guide
+- [local/README.md](local/README.md): Server Deployment Examples (deploy-to-server.ps1, remote NAS setups)

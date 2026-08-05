@@ -665,7 +665,8 @@
     "checkingUpdates": "Checking for updates...",
     "updateAvailable": "Update available: {{version}}",
     "viewRelease": "View Release",
-    "upToDate": "You're up to date!"
+    "upToDate": "You're up to date!",
+    "devBuild": "Self-built / dev version — update checks are disabled"
   },
   "discovery": {
     "alreadyRunning": "Device search already running. Please wait...",

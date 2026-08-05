@@ -665,7 +665,8 @@
     "checkingUpdates": "Controleren op updates...",
     "updateAvailable": "Update beschikbaar: {{version}}",
     "viewRelease": "Release bekijken",
-    "upToDate": "Je bent up-to-date!"
+    "upToDate": "Je bent up-to-date!",
+    "devBuild": "Zelfgebouwde versie — updatecontrole uitgeschakeld"
   },
   "discovery": {
     "alreadyRunning": "Apparaatzoektocht loopt al. Wacht even...",

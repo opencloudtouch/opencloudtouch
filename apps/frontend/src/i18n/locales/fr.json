@@ -665,7 +665,8 @@
     "checkingUpdates": "Vérification des mises à jour...",
     "updateAvailable": "Mise à jour disponible : {{version}}",
     "viewRelease": "Voir la version",
-    "upToDate": "Vous êtes à jour !"
+    "upToDate": "Vous êtes à jour !",
+    "devBuild": "Version auto-compilée — vérification des mises à jour désactivée"
   },
   "discovery": {
     "alreadyRunning": "Recherche d'appareils déjà en cours. Veuillez patienter...",

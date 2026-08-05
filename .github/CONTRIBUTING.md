@@ -59,7 +59,7 @@ chmod +x scripts/install-hooks.sh
 - ✅ Security Checks (bandit)
 - ✅ Unit Tests vor Push
 
-📖 Details: [docs/GIT_HOOKS.md](docs/GIT_HOOKS.md)
+📖 Details: [docs/GIT_HOOKS.md](../docs/GIT_HOOKS.md)
 
 ---
 
@@ -95,7 +95,7 @@ perf(docker): optimize arm64 build time
 - `ci:` - CI/CD
 - `chore:` - Maintenance
 
-📖 Komplett Guide: [docs/CONVENTIONAL_COMMITS.md](docs/CONVENTIONAL_COMMITS.md)
+📖 Komplett Guide: [docs/CONVENTIONAL_COMMITS.md](../docs/CONVENTIONAL_COMMITS.md)
 
 **Git Hooks prüfen automatisch deine Commits!**
 
@@ -330,7 +330,7 @@ apps/frontend/src/
 └── utils/            # Helpers
 ```
 
-📖 Architektur-Details: [docs/OpenCloudTouch_Projektplan.md](docs/OpenCloudTouch_Projektplan.md)
+📖 Architektur-Details: [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md)
 
 ---
 
@@ -505,7 +505,7 @@ Bevor du PR erstellst:
 
 Mit deinem Beitrag stimmst du zu dass dein Code unter der **MIT License** veröffentlicht wird.
 
-Siehe [LICENSE](LICENSE) für Details.
+Siehe [LICENSE](../LICENSE) für Details.
 
 ---
 

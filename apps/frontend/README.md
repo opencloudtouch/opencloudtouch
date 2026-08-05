@@ -270,7 +270,7 @@ npm run dev:standalone
 
 ## Contributing
 
-Siehe [../CONTRIBUTING.md](../CONTRIBUTING.md) für:
+Siehe [CONTRIBUTING.md](../../.github/CONTRIBUTING.md) für:
 - React Coding Standards
 - Component Naming (PascalCase)
 - Testing Guidelines
@@ -278,7 +278,7 @@ Siehe [../CONTRIBUTING.md](../CONTRIBUTING.md) für:
 
 ## License
 
-Apache License 2.0 - Siehe [../LICENSE](../LICENSE)
+Apache License 2.0 - Siehe [LICENSE](../../LICENSE)
 
 ## Browser Support
 

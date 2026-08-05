@@ -112,6 +112,12 @@ class AppConfig(BaseSettings):
     discovery_enabled: bool = Field(
         default=True, description="Enable SSDP/UPnP discovery"
     )
+    device_polling_enabled: bool = Field(
+        default=True,
+        description="Enable periodic background alive-polling of known devices "
+        "(ping, SSH BMX verify, zone sync). Disable for setups where devices "
+        "are mostly offline and the polling noise/load is unwanted.",
+    )
     discovery_timeout: int = Field(default=3, description="Discovery timeout (seconds)")
     manual_device_ips: str = Field(
         default="", description="Comma-separated list of manual device IPs"

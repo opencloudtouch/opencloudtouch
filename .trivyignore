@@ -32,10 +32,18 @@ CVE-2025-69720 exp:2026-09-13
 # Auto-expires: 2026-09-13 (forces re-evaluation after 3 months)
 
 # Path traversal via crafted symlinks (CRITICAL) — shorter expiry for critical
-CVE-2026-42496 exp:2026-07-13
+# Re-verified 2026-08-02 against security-tracker.debian.org: still "postponed"
+# in trixie AND bookworm ("Minor issue; wait for regressions upstream sorted
+# out" — waiting on Archive::Tar >=3.08 to land). No fixed package version
+# exists yet, so there is nothing to update to.
+CVE-2026-42496 exp:2026-09-02
 
 # Heap buffer overflow when compiling (CRITICAL) — shorter expiry for critical
-CVE-2026-8376 exp:2026-07-13
+# Re-verified 2026-08-02 against security-tracker.debian.org: fix exists only
+# in perl 5.40.1-8 (unstable/sid); trixie/bookworm still on 5.40.1-6, marked
+# "no-dsa — can be fixed in point release". No fixed package version exists
+# yet for our base image's release.
+CVE-2026-8376 exp:2026-09-02
 
 # Archive::Tar hardlink extraction (HIGH)
 CVE-2026-42497 exp:2026-09-13

@@ -122,9 +122,13 @@ main() {
         exec gosu oct "$0" "$@"
     fi
 
-    OCT_VERSION=$(python -c "from opencloudtouch import __version__; print(__version__)" 2>/dev/null || echo "unknown")
+    # NOT named OCT_VERSION: that's the build-arg/env var self-builders use to
+    # stamp a version (see Dockerfile), and exporting a same-named shell var
+    # here would shadow it for every python subprocess started afterwards
+    # (including "version"/app startup), corrupting _resolve_version().
+    APP_VERSION=$(python -c "from opencloudtouch import __version__; print(__version__)" 2>/dev/null || echo "unknown")
     log_info "OpenCloudTouch starting..."
-    log_info "Version: ${OCT_VERSION}"
+    log_info "Version: ${APP_VERSION}"
     log_info "Python: $(python --version)"
 
     # Run validations
