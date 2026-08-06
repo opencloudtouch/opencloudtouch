@@ -10,7 +10,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from opencloudtouch.core.dependencies import get_preset_service
+from opencloudtouch.core.dependencies import get_device_state_manager, get_preset_service
+from opencloudtouch.devices.client import NowPlayingInfo
+from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.main import app
 from opencloudtouch.presets.models import Preset
 
@@ -22,9 +24,16 @@ def mock_preset_service():
 
 
 @pytest.fixture
-def client(mock_preset_service):
-    """TestClient with preset service dependency override."""
+def state_manager():
+    """Real DeviceStateManager so tests can simulate now-playing transitions."""
+    return DeviceStateManager()
+
+
+@pytest.fixture
+def client(mock_preset_service, state_manager):
+    """TestClient with preset service + device state manager dependency overrides."""
     app.dependency_overrides[get_preset_service] = lambda: mock_preset_service
+    app.dependency_overrides[get_device_state_manager] = lambda: state_manager
     yield TestClient(app)
     app.dependency_overrides.clear()
 
@@ -82,6 +91,55 @@ class TestStreamDevicePreset:
             with client.stream("GET", "/device/689E194F7D2F/preset/1") as response:
                 assert response.status_code == 200
                 assert "audio" in response.headers.get("content-type", "")
+
+    def test_stream_stops_when_device_no_longer_playing(
+        self, client, mock_preset_service, sample_preset, state_manager
+    ):
+        """#416: once the device's now-playing state moves away from this
+        preset (e.g. the user pressed Stop), the proxy must stop pulling
+        from upstream instead of forwarding bytes forever."""
+        mock_preset_service.get_preset = AsyncMock(return_value=sample_preset)
+        device_id = sample_preset.device_id
+        state_manager.update_now_playing(
+            device_id,
+            NowPlayingInfo(
+                source="INTERNET_RADIO",
+                state="PLAY_STATE",
+                station_name=sample_preset.station_name,
+            ),
+        )
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {"content-type": "audio/mpeg"}
+        mock_response.aclose = AsyncMock()
+
+        async def mock_aiter_bytes(chunk_size=8192):
+            yield b"chunk_1"
+            # Simulate the user pressing Stop mid-stream.
+            state_manager.update_now_playing(
+                device_id, NowPlayingInfo(source="STANDBY", state="STOP_STATE")
+            )
+            yield b"chunk_2"
+
+        mock_response.aiter_bytes = mock_aiter_bytes
+
+        mock_http_client = MagicMock()
+        mock_http_client.send = AsyncMock(return_value=mock_response)
+        mock_http_client.aclose = AsyncMock()
+
+        with patch(
+            "opencloudtouch.devices.api.preset_stream_routes.httpx.AsyncClient",
+            return_value=mock_http_client,
+        ), patch(
+            "opencloudtouch.devices.api.preset_stream_routes.validate_stream_url",
+        ):
+            with client.stream("GET", f"/device/{device_id}/preset/1") as response:
+                body = b"".join(response.iter_bytes())
+
+        assert body == b"chunk_1"
+        mock_response.aclose.assert_awaited_once()
+        mock_http_client.aclose.assert_awaited_once()
 
     def test_upstream_non_200_raises_502(
         self, client, mock_preset_service, sample_preset

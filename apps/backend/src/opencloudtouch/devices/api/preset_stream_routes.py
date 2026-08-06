@@ -20,10 +20,32 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi import Path as FastAPIPath
 from fastapi.responses import Response, StreamingResponse
 
-from opencloudtouch.core.dependencies import get_preset_service
+from opencloudtouch.core.dependencies import DeviceStateManagerDep, get_preset_service
+from opencloudtouch.devices.state import DeviceStateManager
+from opencloudtouch.presets.models import Preset
 from opencloudtouch.presets.service import PresetService
 
 logger = logging.getLogger(__name__)
+
+
+def _should_keep_streaming(
+    state_manager: DeviceStateManager, device_id: str, preset: Preset
+) -> bool:
+    """False once the device's now-playing state moves away from this preset.
+
+    No cached state yet (stream just started, SSE hasn't reported back) is
+    treated as "keep going" -- we only stop once we have positive evidence
+    the device left play mode or switched to something else (#416).
+    """
+    state = state_manager.get_state(device_id)
+    if state is None or state.now_playing is None:
+        return True
+    now_playing = state.now_playing
+    if now_playing.state != "PLAY_STATE":
+        return False
+    if now_playing.station_name and now_playing.station_name != preset.station_name:
+        return False
+    return True
 
 
 def validate_stream_url(url: str) -> None:
@@ -68,6 +90,7 @@ descriptor_router = APIRouter(prefix="/descriptor/device", tags=["device-descrip
 
 @router.get("/{device_id}/preset/{preset_id}")
 async def stream_device_preset(
+    state_manager: DeviceStateManagerDep,
     device_id: str = FastAPIPath(..., description="Device identifier"),
     preset_id: int = FastAPIPath(..., ge=1, le=6, description="Preset number (1-6)"),
     preset_service: PresetService = Depends(get_preset_service),
@@ -227,6 +250,15 @@ async def stream_device_preset(
             total_bytes = 0
             try:
                 async for chunk in upstream_response.aiter_bytes(chunk_size=8192):
+                    if not _should_keep_streaming(state_manager, device_id, preset):
+                        logger.info(
+                            "[STREAM STOP] %s: device left this preset, closing proxy "
+                            "after %d chunks (%d bytes)",
+                            preset.station_name,
+                            chunks,
+                            total_bytes,
+                        )
+                        break
                     chunks += 1
                     total_bytes += len(chunk)
                     yield chunk
