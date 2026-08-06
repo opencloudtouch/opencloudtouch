@@ -238,7 +238,12 @@ class DeviceHealthCheck:
             return False, None
 
     async def _ssh_verify_all(self) -> None:
-        """Verify BMX URL via SSH for devices with ssh_permanent=True."""
+        """Verify BMX URL via SSH for devices with ssh_permanent=True.
+
+        Configured devices that still have ssh_permanent=False (installs from
+        before enable_permanent_ssh() started persisting the flag, see #407)
+        are probed once per cycle and backfilled once SSH proves reachable.
+        """
         devices = await self._device_repo.get_all()
         config = get_config()
         our_server = (
@@ -247,8 +252,25 @@ class DeviceHealthCheck:
         )
 
         for device in devices:
-            if not device.ssh_permanent or not device.ip:
+            if not device.ip:
                 continue
+
+            if not device.ssh_permanent:
+                if device.setup_status != "configured":
+                    continue
+                if not await check_ssh_port(device.ip, timeout=3.0):
+                    continue
+                logger.info(
+                    "Backfilling ssh_permanent for %s (%s): reachable and already configured",
+                    device.name,
+                    device.ip,
+                )
+                await self._device_repo.update_setup_status(
+                    device_id=device.device_id,
+                    setup_status=device.setup_status,
+                    ssh_permanent=True,
+                )
+                device.ssh_permanent = True
 
             try:
                 await self._ssh_verify_device(device, our_server)

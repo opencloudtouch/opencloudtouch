@@ -301,6 +301,61 @@ class TestSSHVerification:
 
         mock_ssh.assert_not_called()
 
+    async def test_backfills_ssh_permanent_for_configured_reachable_device(
+        self, health_check, mock_repo
+    ):
+        """A configured device without ssh_permanent=True (e.g. set up before
+        #407's fix persisted the flag) is probed and backfilled once reachable.
+        """
+        device = _make_device(
+            ssh_permanent=False, setup_status="configured", device_id="dev-backfill"
+        )
+        mock_repo.get_all.return_value = [device]
+
+        with (
+            patch(
+                "opencloudtouch.devices.health_check.check_ssh_port",
+                return_value=True,
+            ),
+            patch.object(DeviceHealthCheck, "_ssh_verify_device", AsyncMock()),
+        ):
+            await health_check._ssh_verify_all()
+
+        mock_repo.update_setup_status.assert_any_call(
+            device_id="dev-backfill", setup_status="configured", ssh_permanent=True
+        )
+
+    async def test_backfill_skipped_when_device_unreachable(
+        self, health_check, mock_repo
+    ):
+        """No backfill if the device doesn't actually respond on port 22."""
+        device = _make_device(
+            ssh_permanent=False, setup_status="configured", device_id="dev-unreach"
+        )
+        mock_repo.get_all.return_value = [device]
+
+        with patch(
+            "opencloudtouch.devices.health_check.check_ssh_port",
+            return_value=False,
+        ):
+            await health_check._ssh_verify_all()
+
+        mock_repo.update_setup_status.assert_not_called()
+
+    async def test_backfill_skipped_for_unconfigured_device(
+        self, health_check, mock_repo
+    ):
+        """Devices that never completed setup are not probed for backfill."""
+        device = _make_device(ssh_permanent=False, setup_status="unconfigured")
+        mock_repo.get_all.return_value = [device]
+
+        with patch(
+            "opencloudtouch.devices.health_check.check_ssh_port"
+        ) as mock_ssh:
+            await health_check._ssh_verify_all()
+
+        mock_ssh.assert_not_called()
+
     async def test_ssh_unreachable_skips_verification(self, health_check, mock_repo):
         """If SSH port is closed, skip further verification."""
         device = _make_device(ssh_permanent=True)
