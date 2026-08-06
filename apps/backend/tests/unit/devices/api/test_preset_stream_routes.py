@@ -10,7 +10,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from opencloudtouch.core.dependencies import get_device_state_manager, get_preset_service
+from opencloudtouch.core.dependencies import (
+    get_device_state_manager,
+    get_preset_service,
+)
 from opencloudtouch.devices.client import NowPlayingInfo
 from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.main import app
