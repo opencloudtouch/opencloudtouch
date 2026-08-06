@@ -10,13 +10,13 @@
 
 The **Wave SoundTouch IV** does not support USB provisioning via the standard `remote_services` method. However, it provides **Telnet access on port 17000** with a sufficient command set to configure OpenCloudTouch server URLs.
 
-This method is **simpler than ETAP serial cable** and requires no hardware modification or device disassembly.
+This method is **simpler than the Service Port serial cable** and requires no hardware modification or device disassembly.
 
 ### Community Success
 
 - ✅ **@akpdw** (SoundCork): Provided working command syntax
 - ✅ **@jakovasaur** (SoundCork): Confirmed all commands working on firmware 27.0.6
-- ✅ **@pointy56** (SoundCork): Verified Telnet 17000 + ETAP serial methods
+- ✅ **@pointy56** (SoundCork): Verified Telnet 17000 + Service Port serial methods
 - ✅ Multiple OpenCloudTouch community members (testing in progress)
 
 ---
@@ -217,16 +217,18 @@ sys reboot
 
 ---
 
-## Advanced: ETAP Serial Cable Alternative
+## Advanced: Service Port Serial Cable Alternative
 
 If Telnet port 17000 does not work (rare, but possible on very old firmware), you can use the **Service Port** (3.5mm jack) with a serial UART adapter.
 
+**Note on naming:** This port is sometimes referred to as "ETAP" in older community write-ups. That name comes from Bose's service manual, where it labels a *different* connector — the Wave IV's Service Port is a standard 3-pole (TRS) jack, not the 4-pole connector the "ETAP" name implies.
+
 ### Hardware Requirements
 
-- **FTDI USB-UART adapter** (e.g., CP2102, FT232RL)
-- **3.5mm TRRS cable** (4-conductor: Tip-Ring-Ring-Sleeve)
-- **Pinout:** Tip=RX, Ring=TX, Ring2=NC, Sleeve=GND
-- **Signal inversion required** — FTDI signals must be inverted via FT_Prog utility (Windows) or ftdi_eeprom (Linux)
+- **FTDI USB-UART adapter** (e.g., CP2102, FT232RL), 3.3V
+- **3.5mm TRS cable** (3-conductor: Tip-Ring-Sleeve)
+- **Pinout:** Tip=RX, Ring=TX, Sleeve=GND
+- No signal inversion needed with a standard FTDI FT232RL breakout board at 3.3V (confirmed by @dl9sec)
 
 ### Serial Settings
 
@@ -266,9 +268,10 @@ If Telnet port 17000 does not work (rare, but possible on very old firmware), yo
 
 ## Community Success Stories
 
-- **@pointy56** (SoundCork #309): Successfully enabled SSH via ETAP, then used Telnet 17000 for config
+- **@pointy56** (SoundCork #309): Successfully enabled SSH via the Service Port, then used Telnet 17000 for config
 - **@jakovasaur** (SoundCork #309): Confirmed all Telnet commands working on Wave IV firmware 27.0.6
 - **@akpdw** (SoundCork #309): Provided command syntax for SoundCork (compatible with OCT)
+- **@dl9sec**: Confirmed the Service Port pinout and that a standard FT232RL breakout board at 3.3V needs no signal inversion
 
 ---
 
