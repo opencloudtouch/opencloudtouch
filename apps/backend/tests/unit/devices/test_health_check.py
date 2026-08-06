@@ -349,9 +349,7 @@ class TestSSHVerification:
         device = _make_device(ssh_permanent=False, setup_status="unconfigured")
         mock_repo.get_all.return_value = [device]
 
-        with patch(
-            "opencloudtouch.devices.health_check.check_ssh_port"
-        ) as mock_ssh:
+        with patch("opencloudtouch.devices.health_check.check_ssh_port") as mock_ssh:
             await health_check._ssh_verify_all()
 
         mock_ssh.assert_not_called()
