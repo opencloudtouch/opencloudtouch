@@ -227,6 +227,8 @@ export interface NowPlayingState {
   track?: string;
   album?: string;
   artwork_url?: string;
+  /** False when the device is unreachable; fields above are then the last known state. */
+  online?: boolean;
 }
 
 export async function getNowPlaying(deviceId: string): Promise<NowPlayingState> {

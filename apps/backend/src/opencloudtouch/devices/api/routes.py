@@ -452,12 +452,28 @@ async def get_now_playing(
     if cached and cached.now_playing and cached.is_fresh(cfg.state_cache_max_age):
         info = cached.now_playing
     else:
-        info = await _device_op(
-            device_id,
-            "get playback status",
-            device_service.get_now_playing(device_id),
-            state_manager=state_manager,
-        )
+        try:
+            info = await _device_op(
+                device_id,
+                "get playback status",
+                device_service.get_now_playing(device_id),
+                state_manager=state_manager,
+            )
+        except DeviceConnectionError:
+            # Offline devices are expected, not exceptional: return the last
+            # known state (if any) instead of a 503 that just spams the
+            # poller's browser console every cycle (#319).
+            fallback = cached.now_playing if cached else None
+            return {
+                "source": fallback.source if fallback else "",
+                "state": fallback.state if fallback else "STOP_STATE",
+                "station_name": fallback.station_name if fallback else None,
+                "artist": fallback.artist if fallback else None,
+                "track": fallback.track if fallback else None,
+                "album": fallback.album if fallback else None,
+                "artwork_url": fallback.artwork_url if fallback else None,
+                "online": False,
+            }
     result: dict[str, object] = {
         "source": info.source,
         "state": info.state,
@@ -466,6 +482,7 @@ async def get_now_playing(
         "track": info.track,
         "album": info.album,
         "artwork_url": info.artwork_url,
+        "online": True,
     }
 
     # Filter out non-image artwork URLs (e.g. station homepages)
