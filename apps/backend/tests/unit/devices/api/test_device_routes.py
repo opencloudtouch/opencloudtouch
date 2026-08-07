@@ -20,7 +20,11 @@ from opencloudtouch.core.dependencies import (
     get_preset_service,
     get_settings_service,
 )
-from opencloudtouch.core.exceptions import DeviceNotFoundError, DomainValidationError
+from opencloudtouch.core.exceptions import (
+    DeviceConnectionError,
+    DeviceNotFoundError,
+    DomainValidationError,
+)
 from opencloudtouch.devices.client import NowPlayingInfo, VolumeInfo
 from opencloudtouch.devices.repository import Device
 from opencloudtouch.main import app
@@ -954,6 +958,55 @@ class TestNowPlayingEndpoint:
         response = client.get("/api/devices/DEV123/now-playing")
 
         assert response.status_code == 500
+
+    def test_get_now_playing_offline_device_returns_cached_state(
+        self, client, mock_device_service
+    ):
+        """#319: an offline device must not 503 the poller -- it should get
+        the last-known now-playing info back, flagged as offline, so the UI
+        doesn't spam the browser console every poll cycle."""
+        from opencloudtouch.core.dependencies import get_device_state_manager
+
+        state_manager = client.app.dependency_overrides[get_device_state_manager]()
+        state_manager.update_now_playing(
+            "DEV123",
+            NowPlayingInfo(
+                source="INTERNET_RADIO",
+                state="PLAY_STATE",
+                station_name="Jazz FM",
+            ),
+        )
+        # Force the cached entry to be stale so the route actually re-queries
+        # the device instead of short-circuiting on the fresh-cache path.
+        state_manager.get_state("DEV123").last_update -= 999_999
+
+        mock_device_service.get_now_playing = AsyncMock(
+            side_effect=DeviceConnectionError("192.168.1.50", "Connection refused")
+        )
+
+        response = client.get("/api/devices/DEV123/now-playing")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["online"] is False
+        assert data["station_name"] == "Jazz FM"
+
+    def test_get_now_playing_offline_device_without_cache_still_returns_200(
+        self, client, mock_device_service
+    ):
+        """A device that has never reported now-playing at all must still
+        get a graceful offline response, not a 503."""
+        mock_device_service.get_now_playing = AsyncMock(
+            side_effect=DeviceConnectionError("192.168.1.60", "Connection refused")
+        )
+
+        response = client.get("/api/devices/NEVERSEEN/now-playing")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["online"] is False
+        assert data["source"] == ""
+        assert data["station_name"] is None
 
 
 class TestRenameDeviceEndpoint:

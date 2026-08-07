@@ -439,6 +439,54 @@ async def _enrich_from_presets(
     return None
 
 
+_OFFLINE_FALLBACK_INFO = NowPlayingInfo(source="", state="STOP_STATE")
+
+
+def _now_playing_to_dict(info: NowPlayingInfo, *, online: bool) -> dict[str, object]:
+    """Serialize NowPlayingInfo to the API response shape (`online` added for #319)."""
+    return {
+        "source": info.source,
+        "state": info.state,
+        "station_name": info.station_name,
+        "artist": info.artist,
+        "track": info.track,
+        "album": info.album,
+        "artwork_url": info.artwork_url,
+        "online": online,
+    }
+
+
+def _sync_enriched_state(
+    state_manager: DeviceStateManager,
+    device_id: str,
+    info: NowPlayingInfo,
+    result: dict[str, object],
+) -> None:
+    """Write enriched artist/track/artwork back to the state cache.
+
+    Keeps SSE snapshots (which read from the cache) in sync with what
+    _enrich_from_presets/_enrich_from_icy just added to *result*.
+    """
+    enriched_info = NowPlayingInfo(
+        source=info.source,
+        state=info.state,
+        station_name=info.station_name,
+        artist=str(result["artist"]) if result.get("artist") else info.artist,
+        track=str(result["track"]) if result.get("track") else info.track,
+        album=info.album,
+        artwork_url=(
+            str(result["artwork_url"])
+            if result.get("artwork_url")
+            else info.artwork_url
+        ),
+    )
+    if enriched_info.artist != info.artist or enriched_info.track != info.track:
+        state_manager.update_now_playing(device_id, enriched_info)
+        logger.debug(
+            "[NowPlaying] Wrote enriched data back to state cache for %s", device_id
+        )
+
+
 @router.get("/{device_id}/now-playing")
 async def get_now_playing(
     device_id: str,
@@ -452,21 +500,20 @@ async def get_now_playing(
     if cached and cached.now_playing and cached.is_fresh(cfg.state_cache_max_age):
         info = cached.now_playing
     else:
-        info = await _device_op(
-            device_id,
-            "get playback status",
-            device_service.get_now_playing(device_id),
-            state_manager=state_manager,
-        )
-    result: dict[str, object] = {
-        "source": info.source,
-        "state": info.state,
-        "station_name": info.station_name,
-        "artist": info.artist,
-        "track": info.track,
-        "album": info.album,
-        "artwork_url": info.artwork_url,
-    }
+        try:
+            info = await _device_op(
+                device_id,
+                "get playback status",
+                device_service.get_now_playing(device_id),
+                state_manager=state_manager,
+            )
+        except DeviceConnectionError:
+            # Offline devices are expected, not exceptional: return the last
+            # known state (if any) instead of a 503 that just spams the
+            # poller's browser console every cycle (#319).
+            fallback = cached.now_playing if cached else _OFFLINE_FALLBACK_INFO
+            return _now_playing_to_dict(fallback, online=False)
+    result = _now_playing_to_dict(info, online=True)
 
     # Filter out non-image artwork URLs (e.g. station homepages)
     artwork_url = result["artwork_url"]
@@ -489,26 +536,7 @@ async def get_now_playing(
             info.track,
         )
 
-    # Write enriched data back to state cache so SSE snapshots include it
-    enriched_info = NowPlayingInfo(
-        source=info.source,
-        state=info.state,
-        station_name=info.station_name,
-        artist=str(result["artist"]) if result.get("artist") else info.artist,
-        track=str(result["track"]) if result.get("track") else info.track,
-        album=info.album,
-        artwork_url=(
-            str(result["artwork_url"])
-            if result.get("artwork_url")
-            else info.artwork_url
-        ),
-    )
-    if enriched_info.artist != info.artist or enriched_info.track != info.track:
-        state_manager.update_now_playing(device_id, enriched_info)
-        logger.debug(
-            "[NowPlaying] Wrote enriched data back to state cache for %s",
-            device_id,
-        )
+    _sync_enriched_state(state_manager, device_id, info, result)
 
     logger.debug(
         "[NowPlaying] device=%s source=%s state=%s track=%r artist=%r art=%r station=%r",
