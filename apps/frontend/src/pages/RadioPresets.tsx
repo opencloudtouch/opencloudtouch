@@ -43,7 +43,9 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
   const { presets, loading, syncing, error, clearError, syncPresets, assignStation, removePreset } =
     usePresets(currentDevice?.device_id);
   const { volume, muted, setDeviceVolume, toggleMute } = useVolume(currentDevice?.device_id);
-  const { nowPlaying: npState } = useNowPlaying(currentDevice?.device_id);
+  const { nowPlaying: npState, refresh: refreshNowPlaying } = useNowPlaying(
+    currentDevice?.device_id
+  );
   const { show: showToast } = useToast();
   const [playError, setPlayError] = useState<string | null>(null);
   const [powerLoading, setPowerLoading] = useState(false);
@@ -201,6 +203,10 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
                   setPowerLoading(true);
                   try {
                     await power(currentDevice.device_id);
+                    // Device SSE push for the resulting state change can be
+                    // delayed or missed -- force a fetch so the button and
+                    // NowPlaying view don't get stuck showing stale state (#416).
+                    await refreshNowPlaying();
                   } catch (err) {
                     console.error("[RadioPresets] Power failed:", err);
                   } finally {
@@ -263,6 +269,7 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
                   ? async () => {
                       if (isStandby) {
                         await power(currentDevice.device_id);
+                        await refreshNowPlaying();
                       } else {
                         await togglePlayPause(currentDevice.device_id);
                       }

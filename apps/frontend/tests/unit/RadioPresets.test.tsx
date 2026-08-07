@@ -39,8 +39,14 @@ vi.mock("../../src/hooks/useVolume", () => ({
   useVolume: () => mockVolumeState,
 }));
 
+const mockRefreshNowPlaying = vi.fn();
 vi.mock("../../src/hooks/useNowPlaying", () => ({
-  useNowPlaying: () => ({ nowPlaying: null, loading: false, error: null, refresh: vi.fn() }),
+  useNowPlaying: () => ({
+    nowPlaying: null,
+    loading: false,
+    error: null,
+    refresh: mockRefreshNowPlaying,
+  }),
 }));
 
 import * as presetsApi from "../../src/api/presets";
@@ -307,6 +313,27 @@ describe("RadioPresets Page", () => {
       // Both presets should be assigned
       expect(screen.getByTestId("preset-1-name")).toBeInTheDocument();
       expect(screen.getByTestId("preset-2-name")).toBeInTheDocument();
+    });
+  });
+
+  describe("Power Button", () => {
+    it("refreshes now-playing state after toggling power (#416)", async () => {
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText("Power on/off"));
+      });
+
+      // The device's own SSE push can be delayed or missed entirely, so the
+      // power button must force a fresh fetch itself instead of only
+      // trusting the push channel -- otherwise the UI is stuck showing the
+      // pre-toggle state until something else (e.g. a tab switch) happens
+      // to remount the hook.
+      await waitFor(() => {
+        expect(mockRefreshNowPlaying).toHaveBeenCalled();
+      });
     });
   });
 
