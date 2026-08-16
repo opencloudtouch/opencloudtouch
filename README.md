@@ -89,7 +89,7 @@ docker compose -f deployment/docker-compose.yml down
 
 ### Option 3 — Raspberry Pi (SD Card Image)
 
-Pre-built images for Raspberry Pi 3/4/5 are available on the [Releases page](https://github.com/opencloudtouch/opencloudtouch/releases).
+Pre-built images for Raspberry Pi 3/4/5 are available on the [latest Raspberry Pi release](https://github.com/opencloudtouch/opencloudtouch/releases/tag/raspi-latest).
 
 1. Download the `.img.xz` for your board
 2. Flash with [Raspberry Pi Imager](https://www.raspberrypi.com/software/)
