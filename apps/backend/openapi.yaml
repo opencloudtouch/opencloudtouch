@@ -3322,6 +3322,61 @@ paths:
           content:
             application/json:
               schema: {}
+  /api/dlna/servers:
+    get:
+      tags:
+      - dlna
+      summary: Get Dlna Servers
+      description: Discover DLNA media servers.
+      operationId: get_dlna_servers_api_dlna_servers_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  additionalProperties: true
+                  type: object
+                type: array
+                title: Response Get Dlna Servers Api Dlna Servers Get
+  /api/dlna/servers/{server_id}/browse:
+    get:
+      tags:
+      - dlna
+      summary: Browse Dlna Server
+      description: Browse a DLNA MediaServer ContentDirectory.
+      operationId: browse_dlna_server_api_dlna_servers__server_id__browse_get
+      parameters:
+      - name: server_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Server Id
+      - name: object_id
+        in: query
+        required: false
+        schema:
+          type: string
+          default: '0'
+          title: Object Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Browse Dlna Server Api Dlna Servers  Server Id  Browse
+                  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
     AccountPairingRequest:
