@@ -100,7 +100,7 @@ jobs:
                 exit 1
               fi
             else
-              if echo "$OUTPUT" | grep -q "byte pages which is not supported"; then
+              if echo "$OUTPUT" | grep -q "page size, which is not supported"; then
                 echo "ERROR: Page size check unexpectedly rejected value '$VALUE'"
                 exit 1
               fi
@@ -115,7 +115,9 @@ jobs:
           }
 
           run_page_size_test "4096" false "" "4KB page size accepted"
-          run_page_size_test "32768" true "32768-byte pages" "32KB page size rejected"
+          run_page_size_test "16384" false "" "16KB page size accepted"
+          run_page_size_test "32768" true "32768-byte page size" "32KB page size rejected"
+          run_page_size_test "65536" false "has not been fully validated with this page size" "64KB page size allowed with warning"
           run_page_size_test "" false "Unable to determine system page size" "Empty page size handled with warning"
           run_page_size_test "abc" false "Unable to determine system page size" "Non-numeric page size handled with warning"
 
