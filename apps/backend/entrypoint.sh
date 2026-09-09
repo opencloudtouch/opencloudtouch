@@ -31,12 +31,19 @@ check_page_size() {
         return 0
     fi
 
-    if [ "$PAGE_SIZE" -gt 4096 ]; then
-        log_error "This platform uses ${PAGE_SIZE}-byte pages which is not supported by Python/Docker."
-        log_error "Supported platforms: Standard Linux (4KB pages), Raspberry Pi, x86/x64."
-        log_error "Unsupported: QNAP ARM NAS (32KB pages)."
+    # 16KB pages are the default on Raspberry Pi 5 systems using the
+    # optimized kernel, and users have reported OpenCloudTouch working
+    # successfully with this page size.
+    if [ "$PAGE_SIZE" -eq 32768 ]; then
+        log_error "This platform uses a 32768-byte page size, which is not supported."
+        log_error "Affected platforms include QNAP ARM NAS systems using 32KB pages."
         log_error "See: https://www.qnap.com/en-uk/how-to/faq/article/why-do-the-installed-third-party-containers-not-run-successfully-on-specific-32-bit-arm-devices"
         exit 1
+    fi
+
+    if [ "$PAGE_SIZE" -eq 65536 ]; then
+        log_warn "This platform uses a 65536-byte page size."
+        log_warn "OpenCloudTouch has not been fully validated with this page size; startup will continue."
     fi
 }
 
