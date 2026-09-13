@@ -72,7 +72,7 @@ repos:
       # Backend Unit Tests (pre-commit)
       - id: pytest-unit
         name: Run backend unit tests (pre-commit)
-        entry: .venv/Scripts/python.exe
+        entry: python
         args: [-m, pytest, apps/backend/tests/unit, -x, --tb=short, -q, -p, no:xdist, --timeout=30]
         language: system
         pass_filenames: false
@@ -134,7 +134,7 @@ repos:
 
       - id: mypy-check
         name: "Type check Python (mypy)"
-        entry: .venv/Scripts/python.exe
+        entry: python
         args: [-m, mypy, apps/backend/src/opencloudtouch/, --no-error-summary]
         language: system
         pass_filenames: false
