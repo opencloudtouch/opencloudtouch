@@ -115,9 +115,13 @@ jobs:
           }
 
           run_page_size_test "4096" false "" "4KB page size accepted"
-          run_page_size_test "16384" false "" "16KB page size accepted"
+          run_page_size_test "8192" false "has not been fully validated with OpenCloudTouch" "8KB page size allowed with info"
+          run_page_size_test "12288" false "has not been fully validated with OpenCloudTouch" "12KB page size allowed with info"
+          run_page_size_test "16384" false "has not been fully validated with OpenCloudTouch" "16KB page size allowed with info"
+          run_page_size_test "24576" false "has not been fully validated with OpenCloudTouch" "24KB page size allowed with info"
           run_page_size_test "32768" true "32768-byte page size" "32KB page size rejected"
-          run_page_size_test "65536" false "has not been fully validated with this page size" "64KB page size allowed with warning"
+          run_page_size_test "65536" false "has not been fully validated with OpenCloudTouch" "64KB page size allowed with info"
+          run_page_size_test "131072" false "has not been fully validated with OpenCloudTouch" "128KB page size allowed with info"
           run_page_size_test "" false "Unable to determine system page size" "Empty page size handled with warning"
           run_page_size_test "abc" false "Unable to determine system page size" "Non-numeric page size handled with warning"
 

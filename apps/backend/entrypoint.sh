@@ -31,9 +31,6 @@ check_page_size() {
         return 0
     fi
 
-    # 16KB pages are the default on Raspberry Pi 5 systems using the
-    # optimized kernel, and users have reported OpenCloudTouch working
-    # successfully with this page size.
     if [ "$PAGE_SIZE" -eq 32768 ]; then
         log_error "This platform uses a 32768-byte page size, which is not supported."
         log_error "Affected platforms include QNAP ARM NAS systems using 32KB pages."
@@ -41,9 +38,8 @@ check_page_size() {
         exit 1
     fi
 
-    if [ "$PAGE_SIZE" -eq 65536 ]; then
-        log_warn "This platform uses a 65536-byte page size."
-        log_warn "OpenCloudTouch has not been fully validated with this page size; startup will continue."
+    if [ "$PAGE_SIZE" -ne 4096 ]; then
+        log_info "This platform uses a ${PAGE_SIZE}-byte page size, which has not been fully validated with OpenCloudTouch; startup will continue."
     fi
 }
 
