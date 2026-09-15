@@ -760,5 +760,10 @@
     "inputLabel": "Nome do dispositivo",
     "tooLong": "O nome deve ter no máximo 30 caracteres",
     "failed": "Falha ao renomear o dispositivo"
+  },
+  "deviceHeader": {
+    "reboot": "Reiniciar dispositivo",
+    "sent": "Comando de reinicialização enviado",
+    "confirmMessage": "Reiniciar {{name}}? O dispositivo ficará indisponível por cerca de 60 segundos."
   }
 }

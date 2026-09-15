@@ -266,3 +266,10 @@ export async function prevTrack(deviceId: string): Promise<void> {
 export async function power(deviceId: string): Promise<void> {
   return sendKey(deviceId, "POWER");
 }
+
+export async function rebootDevice(deviceId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}/reboot`, {
+    method: "POST",
+  });
+  await throwIfNotOk(response, "Failed to reboot device");
+}

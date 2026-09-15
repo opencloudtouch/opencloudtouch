@@ -760,5 +760,10 @@
     "inputLabel": "Device name",
     "tooLong": "Name must be 30 characters or fewer",
     "failed": "Failed to rename device"
+  },
+  "deviceHeader": {
+    "reboot": "Reboot device",
+    "sent": "Reboot command sent",
+    "confirmMessage": "Reboot {{name}}? The device will be unavailable for about 60 seconds."
   }
 }

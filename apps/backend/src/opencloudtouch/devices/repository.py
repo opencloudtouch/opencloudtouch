@@ -4,6 +4,7 @@ Uses aiosqlite for async SQLite operations
 """
 
 import logging
+import unicodedata
 from datetime import UTC, datetime
 from typing import Any, List, Optional
 
@@ -207,11 +208,14 @@ class DeviceRepository(BaseRepository):
                    schema_version, last_seen, setup_status, ssh_permanent,
                    setup_completed_at, marge_account_uuid
             FROM devices
-            ORDER BY last_seen DESC
         """)
 
         rows = await cursor.fetchall()
-        return [self._row_to_device(row) for row in rows]
+        devices = [self._row_to_device(row) for row in rows]
+        return sorted(
+            devices,
+            key=lambda d: unicodedata.normalize("NFKD", d.name).casefold(),
+        )
 
     async def get_by_device_id(self, device_id: str) -> Optional[Device]:
         """Get device by device_id."""

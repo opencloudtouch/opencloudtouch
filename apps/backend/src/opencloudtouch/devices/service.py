@@ -410,3 +410,8 @@ class DeviceService:
         async with self._device_client(device_id) as client:
             await client.set_mute(muted)
             return await client.get_volume()
+
+    async def reboot_device(self, device_id: str) -> None:
+        """Send reboot command to device."""
+        async with self._device_client(device_id) as client:
+            await client.reboot()
