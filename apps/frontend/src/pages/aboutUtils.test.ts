@@ -61,7 +61,13 @@ describe("aboutUtils (existing helpers, regression guard)", () => {
   });
 
   it("getFontSize scales between 12 and 32", () => {
-    const supporter = { name: "x", type: "one-time" as const, amount: 10, monthlyAmount: 0, firstSupportDate: "" };
+    const supporter = {
+      name: "x",
+      type: "one-time" as const,
+      amount: 10,
+      monthlyAmount: 0,
+      firstSupportDate: "",
+    };
     const size = getFontSize(supporter, 10);
     expect(size).toBeGreaterThanOrEqual(12);
     expect(size).toBeLessThanOrEqual(32);
