@@ -15,9 +15,15 @@
 # OWN COPY of ci.yml — so the `pr_number` inside a staged JSON payload is
 # attacker-influenced, not trustworthy. This workflow never uses it to decide
 # which PR to comment on: the target PR is always resolved independently from
-# the trusted `workflow_run` event (via `pull_requests`, or a commit-SHA
+# the trusted `workflow_run` event (via `pull_requests`, or a head-repo/branch
 # lookup when that's empty, as it is for fork PRs). Without this, a fork PR
 # could redirect this workflow's real write access at an arbitrary PR.
+#
+# The head-repo/branch lookup uses `pulls.list({ head })` rather than
+# `repos.listPullRequestsAssociatedWithCommit` — verified live against a real
+# fork PR (opencloudtouch/opencloudtouch#433) that the commit-association
+# endpoint returns an empty result for fork-originated commits even though
+# the commit is the PR's current head, silently dropping the comment.
 #
 # Trade-off: this relay applies uniformly to same-repo and fork PRs alike
 # (there's no safe way to keep the old direct-post path for one and not the
@@ -74,16 +80,21 @@ jobs:
             if (runPRs.length > 0) {
               issueNumber = runPRs[0].number;
             } else {
-              // Empty for fork-originated runs — resolve via the commit SHA.
-              const headSha = context.payload.workflow_run.head_sha;
-              const { data: pulls } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              // Empty for fork-originated runs — resolve via the head
+              // repo owner + branch instead of the commit SHA:
+              // `listPullRequestsAssociatedWithCommit` does not reliably
+              // return open PRs for fork-originated commits (verified live
+              // against opencloudtouch/opencloudtouch#433).
+              const headOwner = context.payload.workflow_run.head_repository.owner.login;
+              const headBranch = context.payload.workflow_run.head_branch;
+              const { data: openPulls } = await github.rest.pulls.list({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                commit_sha: headSha,
+                head: `${headOwner}:${headBranch}`,
+                state: 'open',
               });
-              const openPulls = pulls.filter(p => p.state === 'open');
               if (openPulls.length === 0) {
-                console.log(`No open PR found for commit ${headSha} — nothing to comment on.`);
+                console.log(`No open PR found for ${headOwner}:${headBranch} — nothing to comment on.`);
                 return;
               }
               issueNumber = openPulls[0].number;
