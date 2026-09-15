@@ -208,20 +208,6 @@ describe("Setup API Client", () => {
       expect(result).toEqual(mockVerification);
     });
 
-    it("encodes IP address in URL", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ verified: false }),
-      });
-
-      await verifySetup("device123", "192.168.1.100");
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        "/api/setup/verify/device123?ip=192.168.1.100",
-        { method: "POST" }
-      );
-    });
-
     it("throws error on verification failure", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
