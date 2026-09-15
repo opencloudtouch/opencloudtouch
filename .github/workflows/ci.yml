@@ -136,7 +136,6 @@ jobs:
     if: github.event_name == 'pull_request'
     permissions:
       contents: read
-      pull-requests: write
 
     steps:
       - name: Checkout code
@@ -202,16 +201,15 @@ jobs:
           echo ""
           echo "✅ All commits follow Conventional Commits format!"
 
-      - name: PR comment on failure
+      - name: Save PR comment payload on failure
         if: failure()
         uses: actions/github-script@v9
         with:
           script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `## ❌ Commit Message Validation Failed
+            const fs = require('fs');
+            const marker = '<!-- commit-lint-check -->';
+            const body = `${marker}
+            ## ❌ Commit Message Validation Failed
 
             Your PR contains commits that don't follow the [Conventional Commits](https://www.conventionalcommits.org/) format.
 
@@ -229,8 +227,21 @@ jobs:
             \`feat\`, \`fix\`, \`docs\`, \`style\`, \`refactor\`, \`perf\`, \`test\`, \`build\`, \`ci\`, \`chore\`, \`revert\`
 
             📖 See [Conventional Commits](https://www.conventionalcommits.org/) for details.
-            `,
-            });
+            `;
+            fs.mkdirSync('.pr-comment', { recursive: true });
+            fs.writeFileSync('.pr-comment/commit-lint.json', JSON.stringify({
+              pr_number: context.issue.number,
+              marker,
+              body,
+            }));
+
+      - name: Upload PR comment payload
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-comment-commit-lint
+          path: .pr-comment/commit-lint.json
+          retention-days: 1
 
   # ============================================================================
   # SECURITY SCANNING
@@ -648,9 +659,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [mojibake-check, test-page-size-detection, commit-lint, security, license-check, lint, backend-tests, frontend-tests, e2e-tests]
     if: always()
-    permissions:
-      pull-requests: write
-      issues: write
 
     steps:
       - name: Download backend coverage
@@ -710,11 +718,12 @@ jobs:
             exit 1
           fi
 
-      - name: Post CI summary as PR comment
-        if: github.event_name == 'pull_request'
+      - name: Save PR summary comment payload
+        if: always() && github.event_name == 'pull_request'
         uses: actions/github-script@v9
         with:
           script: |
+            const fs = require('fs');
             const statusIcon = (result) => result === 'success' ? '✅' : result === 'skipped' ? '⏭️' : '❌';
             const jobs = [
               ['Mojibake Check', '${{ needs.mojibake-check.result }}'],
@@ -739,32 +748,23 @@ jobs:
             }
             body += `\n🔗 [Full details](${context.payload.pull_request.html_url}/checks)\n`;
 
-            // Use sticky comment (update existing instead of spamming)
             const marker = '<!-- ci-summary -->';
             body = marker + '\n' + body;
 
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-            const existing = comments.find(c => c.body.includes(marker));
+            fs.mkdirSync('.pr-comment', { recursive: true });
+            fs.writeFileSync('.pr-comment/summary.json', JSON.stringify({
+              pr_number: context.issue.number,
+              marker,
+              body,
+            }));
 
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body: body,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: body,
-              });
-            }
+      - name: Upload PR comment payload
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-comment-summary
+          path: .pr-comment/summary.json
+          retention-days: 1
 
   # ============================================================================
   # AUTO-FORMAT (runs at the end — commits formatting fixes back to branch)
