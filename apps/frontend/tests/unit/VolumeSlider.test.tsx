@@ -326,7 +326,7 @@ describe("VolumeSlider Component", () => {
       const { track } = setup(50);
       fireEvent.pointerDown(track, { clientX: 100, pointerId: 1 }); // schedules a frame
       fireEvent.pointerDown(track, { clientX: 110, pointerId: 1 }); // frame still pending -> no-op
-      expect(rafCallbacks.length).toBe(1);
+      expect(rafCallbacks).toHaveLength(1);
     });
 
     it("a stale animation frame that fires after the drag ended is a no-op", () => {
@@ -338,7 +338,7 @@ describe("VolumeSlider Component", () => {
       // the frame scheduled by pointerDown was never cancelled (cancelAnimationFrame is a no-op
       // here), so it still fires after the drag ended - it must not call onVolumeChange again.
       flushRaf();
-      expect(mockOnVolumeChange.mock.calls.length).toBe(callsAfterUp);
+      expect(mockOnVolumeChange.mock.calls).toHaveLength(callsAfterUp);
     });
 
     it("pointerUp clears a pending throttle timer so it never fires again", () => {
@@ -357,10 +357,10 @@ describe("VolumeSlider Component", () => {
 
       expect(vi.getTimerCount()).toBe(0);
       // pointerUp itself sends the final value once (unthrottled)
-      expect(mockOnVolumeChange.mock.calls.length).toBe(callsBeforeUp + 1);
+      expect(mockOnVolumeChange.mock.calls).toHaveLength(callsBeforeUp + 1);
       // advancing timers must not trigger another send - the timer was cleared
       vi.advanceTimersByTime(200);
-      expect(mockOnVolumeChange.mock.calls.length).toBe(callsBeforeUp + 1);
+      expect(mockOnVolumeChange.mock.calls).toHaveLength(callsBeforeUp + 1);
     });
   });
 });

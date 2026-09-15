@@ -63,9 +63,7 @@ describe("CopyableCommand", () => {
     render(<CopyableCommand command="ssh user@host" />);
     const button = screen.getByRole("button", { name: "Befehl kopieren" });
 
-    act(() => {
-      fireEvent.click(button);
-    });
+    fireEvent.click(button);
 
     expect(execCommand).toHaveBeenCalledWith("copy");
     expect(button).toHaveTextContent("✓");

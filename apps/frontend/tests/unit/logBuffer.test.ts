@@ -120,7 +120,7 @@ describe("logBuffer", () => {
     }
 
     const app = getLogEntriesByDomain("app");
-    expect(app.length).toBe(1000);
+    expect(app).toHaveLength(1000);
     expect(app.some((e) => e.message === "overflow-marker-0")).toBe(false);
     expect(app.some((e) => e.message === "overflow-marker-1000")).toBe(true);
   });

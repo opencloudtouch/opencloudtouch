@@ -145,7 +145,7 @@ describe("useNowPlaying – device offline", () => {
     expect(result.current.error).toBe("Device unreachable");
     expect(result.current.nowPlaying).toBeNull();
     // getNowPlaying is never called once the internal offline pre-check trips.
-    expect(mockFetch.mock.calls.length).toBe(callCountBeforeRefresh);
+    expect(mockFetch.mock.calls).toHaveLength(callCountBeforeRefresh);
 
     await act(async () => {
       await result.current.refresh();
@@ -153,7 +153,7 @@ describe("useNowPlaying – device offline", () => {
 
     // Second call: still offline, early-returns without re-touching state or fetch.
     expect(result.current.deviceOffline).toBe(true);
-    expect(mockFetch.mock.calls.length).toBe(callCountBeforeRefresh);
+    expect(mockFetch.mock.calls).toHaveLength(callCountBeforeRefresh);
   });
 
   it("sets a generic error message when the fetch rejects with a non-503/500 APIError", async () => {
