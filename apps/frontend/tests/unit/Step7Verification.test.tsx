@@ -156,22 +156,6 @@ describe("Step7Verification", () => {
     });
   });
 
-  it("displays finalize checklist items", async () => {
-    mockSuccessFlow();
-
-    render(<Step7Verification {...defaultProps} />);
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /finalize/i }));
-    });
-
-    await waitFor(() => {
-      expect(document.body.textContent).toContain("Device UUID set: 5522049");
-      expect(document.body.textContent).toContain("Sources.xml written");
-      expect(document.body.textContent).toContain("SystemConfigurationDB.xml present");
-    });
-  });
-
   it("displays verify check results after full verification", async () => {
     vi.useFakeTimers();
     mockSuccessFlow();

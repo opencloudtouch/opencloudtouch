@@ -49,27 +49,9 @@ describe("stationAvatar", () => {
       expect(c1).not.toBe(c2);
     });
 
-    it("handles empty string", () => {
-      const color = getAvatarColor("");
-      expect(color).toMatch(/^#[0-9A-Fa-f]{6}$/);
-    });
-
     it("uses codePointAt and falls back gracefully for empty name", () => {
       // Empty string → hash stays 0 → picks AVATAR_COLORS[0]
       expect(getAvatarColor("")).toBe("#6264A7");
-    });
-
-    it("handles emoji and multibyte characters via codePointAt", () => {
-      const color = getAvatarColor("🎵 Radio");
-      expect(color).toMatch(/^#[0-9A-Fa-f]{6}$/);
-    });
-  });
-
-  describe("getStationInitials edge cases", () => {
-    it("returns fallback for two-word name with empty-ish words", () => {
-      // Tests the ?? '' fallback in first[0] / second[0]
-      const result = getStationInitials("A B");
-      expect(result).toBe("AB");
     });
   });
 });

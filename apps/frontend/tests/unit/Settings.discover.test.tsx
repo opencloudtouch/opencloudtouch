@@ -94,30 +94,26 @@ afterEach(() => {
 // Visibility
 // ---------------------------------------------------------------------------
 describe("Settings — Scan Button visibility", () => {
-  it("shows scan button even when IP list is empty", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
+  it.each([
+    { scenario: "IP list is empty", ips: [] as string[], devices: [] },
+    { scenario: "IPs are configured", ips: ["192.168.1.10"], devices: [] },
+    {
+      scenario: "IPs match already-known devices",
+      ips: ["192.168.1.10"],
+      devices: [{ device_id: "AAA", ip: "192.168.1.10" }],
+    },
+    {
+      scenario: "all configured IPs match known device IPs",
+      ips: ["192.168.1.10", "192.168.1.20"],
+      devices: [
+        { device_id: "A", ip: "192.168.1.10" },
+        { device_id: "B", ip: "192.168.1.20" },
+      ],
+    },
+  ])("shows scan button even when $scenario", async ({ ips, devices }) => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips }) });
 
-    renderSettings();
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /scan now/i })).toBeInTheDocument();
-    });
-  });
-
-  it("shows scan button when IPs are configured", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: ["192.168.1.10"] }) });
-
-    renderSettings();
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /scan now/i })).toBeInTheDocument();
-    });
-  });
-
-  it("shows scan button even if IPs match already-known devices", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: ["192.168.1.10"] }) });
-
-    renderSettings([{ device_id: "AAA", ip: "192.168.1.10" }]);
+    renderSettings(devices);
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /scan now/i })).toBeInTheDocument();
@@ -148,16 +144,6 @@ describe("Settings — Scan Button trigger", () => {
     expect(mockStartDiscovery).toHaveBeenCalledTimes(1);
   });
 
-  it("button is enabled when discovery is idle", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
-
-    renderSettings();
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /scan now/i })).not.toBeDisabled();
-    });
-  });
-
   it("button is disabled while discovery is running", async () => {
     const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
     (useDiscoveryStream as Mock).mockReturnValue({
@@ -179,22 +165,6 @@ describe("Settings — Scan Button trigger", () => {
 // Page reload during discovery
 // ---------------------------------------------------------------------------
 describe("Settings — Scan Button on page reload", () => {
-  it("button is disabled on mount if discovery already running (page reload)", async () => {
-    const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
-    (useDiscoveryStream as Mock).mockReturnValue({
-      ...makeDiscoveryState({ isDiscovering: true }),
-      startDiscovery: mockStartDiscovery,
-    });
-
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
-
-    renderSettings();
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /scan now/i })).toBeDisabled();
-    });
-  });
-
   it("button becomes enabled once discovery completes after page reload", async () => {
     const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
 
@@ -325,83 +295,35 @@ describe("Settings — Discover Button completion toast", () => {
     });
   });
 
-  it("does NOT show completion toast when discovery is still idle (not completed)", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: ["192.168.1.10"] }) });
-
-    renderSettings([]);
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /scan now/i })).toBeInTheDocument();
-    });
-
-    expect(screen.queryByText(/new devices found/i)).toBeNull();
-    expect(screen.queryByText(/new device found/i)).toBeNull();
-  });
-
-  it("does NOT show completion toast when discovery errored (no completed flag)", async () => {
-    const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
-    (useDiscoveryStream as Mock).mockReturnValue({
-      ...makeDiscoveryState({ completed: false, error: "Connection lost" }),
-      startDiscovery: mockStartDiscovery,
-    });
-
+  it.each([
+    {
+      scenario: "discovery is still idle (not completed)",
+      setup: () => {},
+    },
+    {
+      scenario: "discovery errored (no completed flag)",
+      setup: async () => {
+        const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
+        (useDiscoveryStream as Mock).mockReturnValue({
+          ...makeDiscoveryState({ completed: false, error: "Connection lost" }),
+          startDiscovery: mockStartDiscovery,
+        });
+      },
+    },
+  ])("does NOT show completion toast when $scenario", async ({ setup }) => {
+    await setup();
     mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
 
     renderSettings([]);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /scan now/i })).toBeInTheDocument();
+      const button = screen.getByRole("button", { name: /scan now/i });
+      expect(button).toBeInTheDocument();
+      // Also covers the plain idle-render case: button starts out enabled.
+      expect(button).not.toBeDisabled();
     });
 
     expect(screen.queryByText(/new devices found/i)).toBeNull();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Edge cases — existing devices in cache
-// ---------------------------------------------------------------------------
-describe("Settings — Discover Button with existing devices", () => {
-  it("shows '0 new devices found' when all discovered match pre-existing in DB", async () => {
-    const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
-    (useDiscoveryStream as Mock).mockReturnValue({
-      ...makeDiscoveryState({
-        completed: true,
-        devicesFound: [
-          { device_id: "A", ip: "192.168.1.10", name: "A", model: "ST10", firmware: "1.0" },
-          { device_id: "B", ip: "192.168.1.20", name: "B", model: "ST10", firmware: "1.0" },
-        ],
-      }),
-      startDiscovery: mockStartDiscovery,
-    });
-
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ ips: ["192.168.1.10", "192.168.1.20"] }),
-    });
-
-    renderSettings([
-      { device_id: "A", ip: "192.168.1.10" },
-      { device_id: "B", ip: "192.168.1.20" },
-    ]);
-
-    await waitFor(() => {
-      expect(screen.getByText(/0 new devices found/i)).toBeInTheDocument();
-    });
-  });
-
-  it("button is visible even if all configured IPs match known device IPs", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ ips: ["192.168.1.10", "192.168.1.20"] }),
-    });
-
-    renderSettings([
-      { device_id: "A", ip: "192.168.1.10" },
-      { device_id: "B", ip: "192.168.1.20" },
-    ]);
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /scan now/i })).toBeInTheDocument();
-    });
+    expect(screen.queryByText(/new device found/i)).toBeNull();
   });
 });

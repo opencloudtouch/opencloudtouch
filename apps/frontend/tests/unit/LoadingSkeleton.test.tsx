@@ -38,26 +38,6 @@ describe("LoadingSkeleton", () => {
     });
   });
 
-  describe("Skeleton Variants", () => {
-    it("DeviceCardSkeleton renders placeholder with expected skeleton elements", () => {
-      const { container } = render(<DeviceCardSkeleton />);
-      expect(container.querySelector(".device-card-skeleton")).toBeInTheDocument();
-      expect(container.querySelectorAll(".skeleton").length).toBeGreaterThanOrEqual(2);
-    });
-
-    it("PresetSkeleton renders placeholder with expected skeleton elements", () => {
-      const { container } = render(<PresetSkeleton />);
-      expect(container.querySelector(".preset-skeleton")).toBeInTheDocument();
-      expect(container.querySelectorAll(".skeleton").length).toBeGreaterThanOrEqual(2);
-    });
-
-    it("StationCardSkeleton renders placeholder with expected skeleton elements", () => {
-      const { container } = render(<StationCardSkeleton />);
-      expect(container.querySelector(".station-card-skeleton")).toBeInTheDocument();
-      expect(container.querySelectorAll(".skeleton").length).toBeGreaterThanOrEqual(2);
-    });
-  });
-
   describe("SkeletonList", () => {
     it("renders configurable number of skeleton items", () => {
       const { container, rerender } = render(

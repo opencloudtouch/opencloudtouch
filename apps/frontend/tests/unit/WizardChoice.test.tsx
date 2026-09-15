@@ -23,15 +23,13 @@ describe("WizardChoice", () => {
     onSelectRestore: vi.fn(),
   };
 
-  it("renders both choice cards", () => {
-    render(<WizardChoice {...defaultProps} />);
-    expect(screen.getByText("Setup Wizard")).toBeInTheDocument();
-    expect(screen.getByText("Restore Wizard")).toBeInTheDocument();
-  });
-
-  it("renders title", () => {
+  it("renders title, both choice cards, and their descriptions", () => {
     render(<WizardChoice {...defaultProps} />);
     expect(screen.getByText("What would you like to do?")).toBeInTheDocument();
+    expect(screen.getByText("Setup Wizard")).toBeInTheDocument();
+    expect(screen.getByText("Restore Wizard")).toBeInTheDocument();
+    expect(screen.getByText("Configure device for OpenCloudTouch")).toBeInTheDocument();
+    expect(screen.getByText("Undo all OCT changes and restore factory state")).toBeInTheDocument();
   });
 
   it("calls onSelectSetup when setup card is clicked", () => {
@@ -46,11 +44,5 @@ describe("WizardChoice", () => {
     render(<WizardChoice onSelectSetup={vi.fn()} onSelectRestore={onRestore} />);
     fireEvent.click(screen.getByText("Restore Wizard"));
     expect(onRestore).toHaveBeenCalledOnce();
-  });
-
-  it("renders descriptions for both options", () => {
-    render(<WizardChoice {...defaultProps} />);
-    expect(screen.getByText("Configure device for OpenCloudTouch")).toBeInTheDocument();
-    expect(screen.getByText("Undo all OCT changes and restore factory state")).toBeInTheDocument();
   });
 });
