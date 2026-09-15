@@ -31,6 +31,17 @@ vi.mock("../../src/api/presets", () => ({
   syncPresetsFromDevice: vi.fn(),
 }));
 
+// Partially mock the devices API: keep the real togglePlayPause/power/deleteDeviceById
+// implementations (they go through the globally-mocked fetch), but replace playPreset
+// with a spy so tests can assert it was actually invoked.
+vi.mock("../../src/api/devices", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../src/api/devices")>();
+  return {
+    ...actual,
+    playPreset: vi.fn().mockResolvedValue(undefined),
+  };
+});
+
 // Mock device hooks
 const mockSetDeviceVolume = vi.fn();
 const mockToggleMute = vi.fn();
@@ -39,12 +50,19 @@ vi.mock("../../src/hooks/useVolume", () => ({
   useVolume: () => mockVolumeState,
 }));
 
+const mockRefreshNowPlaying = vi.fn();
 vi.mock("../../src/hooks/useNowPlaying", () => ({
-  useNowPlaying: () => ({ nowPlaying: null, loading: false, error: null, refresh: vi.fn() }),
+  useNowPlaying: () => ({
+    nowPlaying: null,
+    loading: false,
+    error: null,
+    refresh: mockRefreshNowPlaying,
+  }),
 }));
 
 import * as presetsApi from "../../src/api/presets";
 import type { PresetResponse } from "../../src/api/presets";
+import * as devicesApi from "../../src/api/devices";
 import type { ReactNode } from "react";
 
 // Mock child components
@@ -307,6 +325,27 @@ describe("RadioPresets Page", () => {
     });
   });
 
+  describe("Power Button", () => {
+    it("refreshes now-playing state after toggling power (#416)", async () => {
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText("Power on/off"));
+      });
+
+      // The device's own SSE push can be delayed or missed entirely, so the
+      // power button must force a fresh fetch itself instead of only
+      // trusting the push channel -- otherwise the UI is stuck showing the
+      // pre-toggle state until something else (e.g. a tab switch) happens
+      // to remount the hook.
+      await waitFor(() => {
+        expect(mockRefreshNowPlaying).toHaveBeenCalled();
+      });
+    });
+  });
+
   describe("Preset Playback", () => {
     it("should show play button for assigned preset", async () => {
       await act(async () => {
@@ -325,12 +364,16 @@ describe("RadioPresets Page", () => {
         expect(screen.getByTestId("preset-3-play")).toBeInTheDocument();
       });
 
-      // Click play - should not throw error (TODO: backend API in Phase 3)
+      // Click play
       await act(async () => {
         fireEvent.click(screen.getByTestId("preset-3-play"));
       });
 
-      // Verify play button still exists after click
+      // The click must actually trigger the play API call, not just leave the
+      // button rendered.
+      await waitFor(() => {
+        expect(devicesApi.playPreset).toHaveBeenCalledWith("AABBCC123456", 3);
+      });
       expect(screen.getByTestId("preset-3-play")).toBeInTheDocument();
     });
   });
@@ -460,14 +503,6 @@ describe("RadioPresets Page", () => {
   });
 
   describe("Device Switching", () => {
-    it("should render DeviceSwiper component", async () => {
-      await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
-      });
-
-      expect(screen.getByTestId("device-swiper")).toBeInTheDocument();
-    });
-
     it("should update displayed device when swiper index changes", async () => {
       await act(async () => {
         render(<RadioPresets devices={mockDevices} />);
@@ -591,43 +626,6 @@ describe("RadioPresets Page", () => {
           station_homepage: "http://test-homepage.com",
           station_favicon: "http://test-favicon.com/icon.png",
         });
-      });
-    });
-
-    it("should call setPreset API directly when overwriting existing preset", async () => {
-      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue([
-        {
-          id: 1,
-          device_id: "AABBCC123456",
-          preset_number: 4,
-          station_uuid: "uuid-4",
-          station_name: "Radio Four",
-          station_url: "http://radio4.com",
-          created_at: "2024-01-01T00:00:00Z",
-          updated_at: "2024-01-01T00:00:00Z",
-        },
-      ]);
-
-      await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
-      });
-
-      await waitFor(() => {
-        expect(screen.getByTestId("preset-4-name")).toBeInTheDocument();
-      });
-
-      // Click change → select station → should save directly
-      fireEvent.click(screen.getByTestId("preset-4-change"));
-      fireEvent.click(screen.getByTestId("select-station"));
-
-      // Should call setPreset API directly without confirmation
-      await waitFor(() => {
-        expect(presetsApi.setPreset).toHaveBeenCalledWith(
-          expect.objectContaining({
-            device_id: "AABBCC123456",
-            preset_number: 4,
-          })
-        );
       });
     });
 

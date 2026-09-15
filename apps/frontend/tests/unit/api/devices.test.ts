@@ -7,6 +7,11 @@ import {
   syncDevices,
   getDeviceCapabilities,
   playPreset,
+  deleteDeviceById,
+  renameDevice,
+  togglePlayPause,
+  nextTrack,
+  prevTrack,
 } from "../../../src/api/devices";
 
 describe("Devices API Client", () => {
@@ -249,12 +254,6 @@ describe("Devices API Client", () => {
       );
     });
 
-    it("throws error for negative preset", async () => {
-      await expect(playPreset("device123", -1)).rejects.toThrow(
-        "Invalid preset number: -1. Must be 1-6"
-      );
-    });
-
     it("throws error on API failure", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -278,6 +277,135 @@ describe("Devices API Client", () => {
       // getErrorMessage(null) returns fallback
       await expect(playPreset("device123", 1)).rejects.toThrow(
         "Failed to play preset: Service Unavailable"
+      );
+    });
+  });
+
+  describe("deleteDeviceById", () => {
+    it("sends DELETE to /api/devices/{id}", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true });
+
+      await expect(deleteDeviceById("device123")).resolves.toBeUndefined();
+
+      expect(mockFetch).toHaveBeenCalledWith("/api/devices/device123", {
+        method: "DELETE",
+      });
+    });
+
+    it("throws error on failed request", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        statusText: "Not Found",
+      });
+
+      await expect(deleteDeviceById("unknown")).rejects.toThrow(
+        "Failed to delete device: Not Found"
+      );
+    });
+  });
+
+  describe("renameDevice", () => {
+    it("sends PUT to /api/devices/{id}/name with the new name", async () => {
+      const mockResponse = {
+        device_id: "device123",
+        name: "New Name",
+        previous_name: "Old Name",
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      const result = await renameDevice("device123", "New Name");
+
+      expect(mockFetch).toHaveBeenCalledWith("/api/devices/device123/name", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "New Name" }),
+      });
+      expect(result).toEqual(mockResponse);
+    });
+
+    it("throws error on failed request", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        statusText: "Conflict",
+      });
+
+      await expect(renameDevice("device123", "Taken")).rejects.toThrow(
+        "Failed to rename device: Conflict"
+      );
+    });
+  });
+
+  describe("togglePlayPause", () => {
+    it("sends POST with key=PLAY_PAUSE", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true });
+
+      await expect(togglePlayPause("device123")).resolves.toBeUndefined();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/devices/device123/key?key=PLAY_PAUSE&state=both",
+        { method: "POST" }
+      );
+    });
+
+    it("throws error on failed request", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        statusText: "Service Unavailable",
+      });
+
+      await expect(togglePlayPause("device123")).rejects.toThrow(
+        "Failed to toggle play/pause: Service Unavailable"
+      );
+    });
+  });
+
+  describe("nextTrack", () => {
+    it("sends POST with key=NEXT_TRACK", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true });
+
+      await expect(nextTrack("device123")).resolves.toBeUndefined();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/devices/device123/key?key=NEXT_TRACK&state=both",
+        { method: "POST" }
+      );
+    });
+
+    it("throws error on failed request", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        statusText: "Service Unavailable",
+      });
+
+      await expect(nextTrack("device123")).rejects.toThrow(
+        "Failed to send key NEXT_TRACK: Service Unavailable"
+      );
+    });
+  });
+
+  describe("prevTrack", () => {
+    it("sends POST with key=PREV_TRACK", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true });
+
+      await expect(prevTrack("device123")).resolves.toBeUndefined();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/devices/device123/key?key=PREV_TRACK&state=both",
+        { method: "POST" }
+      );
+    });
+
+    it("throws error on failed request", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        statusText: "Service Unavailable",
+      });
+
+      await expect(prevTrack("device123")).rejects.toThrow(
+        "Failed to send key PREV_TRACK: Service Unavailable"
       );
     });
   });

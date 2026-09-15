@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: OpenCloudTouch
   description: Open-Source replacement for discontinued streaming device cloud features
-  version: 1.5.5
+  version: 1.5.8
 paths:
   /api/events/device-stream:
     get:
@@ -116,8 +116,8 @@ paths:
       tags:
       - Devices
       summary: Get Devices
-      description: "Get all devices from database.\n\nReturns:\n    List of devices\
-        \ with details"
+      description: "Get all devices from database, sorted alphabetically by name (case-insensitive).\n\nReturns:\n    List of devices\
+          \ with details"
       operationId: get_devices_api_devices_get
       responses:
         '200':
@@ -427,6 +427,45 @@ paths:
           content:
             application/json:
               schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/devices/{device_id}/reboot:
+    post:
+      tags:
+      - Devices
+      summary: Reboot Device
+      description: Reboot a device.
+      operationId: reboot_device_api_devices__device_id__reboot_post
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  device_id:
+                    type: string
+                required:
+                - message
+                - device_id
+        '404':
+          description: Device not found
+        '503':
+          description: Device unreachable
         '422':
           description: Validation Error
           content:

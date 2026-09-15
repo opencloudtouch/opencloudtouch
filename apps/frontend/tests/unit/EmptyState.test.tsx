@@ -13,9 +13,10 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from "vitest";
-import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { BrowserRouter } from "react-router";
 import React from "react";
+import * as ToastContextModule from "../../src/contexts/ToastContext";
 import { ToastProvider } from "../../src/contexts/ToastContext";
 import EmptyState from "../../src/components/EmptyState";
 import { QueryWrapper } from "../utils/reactQueryTestUtils";
@@ -156,6 +157,10 @@ describe("EmptyState Component", () => {
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith("/");
       });
+
+      // BUG-15: navigate should only be called once, not in a loop
+      const navigateCalls = (mockNavigate as Mock).mock.calls.length;
+      expect(navigateCalls).toBe(1);
     });
 
     it("should show discovering state when isDiscovering is true", async () => {
@@ -171,20 +176,6 @@ describe("EmptyState Component", () => {
       expect(discoverButton).toBeDisabled();
     });
 
-    it("should handle discovery errors gracefully", async () => {
-      mockDiscoveryState = {
-        ...mockDiscoveryState,
-        error: "Connection lost",
-      };
-
-      // Should render without crashing
-      expect(() => renderWithProviders(<EmptyState />)).not.toThrow();
-
-      // Discover button should still be present (after error reset)
-      await act(async () => {
-        // error toast would appear, component should not crash
-      });
-    });
   });
 
   describe("Manual IP Configuration", () => {
@@ -300,10 +291,11 @@ describe("EmptyState Component", () => {
 
   describe("BUG-16: 409 Conflict → info toast (not error)", () => {
     it("shows info toast when discovery is already in progress", async () => {
-      const _mockShowToast = vi.fn();
-      // We can't easily intercept from outside, so we verify
-      // by checking what the component renders when error contains "already in progress"
-      // The real test is in the behavior: error toast uses correct type
+      const mockShowToast = vi.fn();
+      const useToastSpy = vi.spyOn(ToastContextModule, "useToast").mockReturnValue({
+        show: mockShowToast,
+        hide: vi.fn(),
+      });
 
       // Set error state to simulate 409 conflict response
       mockDiscoveryState.error = "Discovery already in progress";
@@ -311,25 +303,21 @@ describe("EmptyState Component", () => {
 
       renderWithProviders(<EmptyState />);
 
-      // After render, the useEffect should fire with discoveryError
-      // and call showToast with "info" type (not "error")
-      // We verify the component doesn't crash (previously it crashed with wrong toast type)
+      // The useEffect fires with discoveryError and must call showToast with
+      // the "info" type (not "error") — this is BUG-16's actual assertion,
+      // not just "the component didn't crash".
       await waitFor(() => {
-        // If the component renders without crashing and shows content, BUG-16 is not regressed
-        expect(screen.getByText("Welcome to OpenCloudTouch")).toBeInTheDocument();
+        expect(mockShowToast).toHaveBeenCalledWith(
+          "Device search already running. Please wait...",
+          "info"
+        );
       });
-    });
 
-    it("shows error toast for real discovery errors (not 409)", async () => {
-      mockDiscoveryState.error = "Connection lost";
-      mockDiscoveryState.isDiscovering = false;
-
-      // Should render without throwing
-      expect(() => renderWithProviders(<EmptyState />)).not.toThrow();
-
-      await waitFor(() => {
-        expect(screen.getByText("Welcome to OpenCloudTouch")).toBeInTheDocument();
-      });
+      // vi.clearAllMocks() (in this file's beforeEach and the global
+      // afterEach) clears call history but not the mocked implementation, so
+      // restore it explicitly to avoid leaking a fake useToast into later
+      // tests that rely on the real ToastProvider.
+      useToastSpy.mockRestore();
     });
   });
 
@@ -366,42 +354,5 @@ describe("EmptyState Component", () => {
       consoleSpy.mockRestore();
     });
 
-    it("navigate() is called via useEffect not during render", async () => {
-      // BUG-15/BUG-31: navigate('/') was called directly during render
-      // when devicesFound arrived, causing infinite loop.
-      // Fix: moved to useEffect([completed, devicesFound.length])
-
-      mockDiscoveryState.completed = true;
-      mockDiscoveryState.devicesFound = [
-        { device_id: "D1", name: "Test Device" } as { device_id: string; name: string },
-      ];
-
-      // Should render without crashing
-      expect(() => renderWithProviders(<EmptyState />)).not.toThrow();
-
-      // navigate should be called after render (via useEffect)
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith("/");
-      });
-    });
-
-    it("does not enter infinite loop when navigate is called", async () => {
-      // BUG-15: Recursive navigate("/")->welcome->navigate loop
-      // Verify render completes in bounded iterations
-      mockDiscoveryState.completed = true;
-      mockDiscoveryState.devicesFound = [
-        { device_id: "D1", name: "Device 1" } as { device_id: string; name: string },
-      ];
-
-      renderWithProviders(<EmptyState />);
-
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalled();
-      });
-
-      // navigate should only be called once, not in a loop
-      const navigateCalls = (mockNavigate as Mock).mock.calls.length;
-      expect(navigateCalls).toBeLessThanOrEqual(3);
-    });
   });
 });

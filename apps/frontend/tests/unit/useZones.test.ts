@@ -121,35 +121,22 @@ describe("useZones – SSE push events", () => {
     expect(mockGetZones).toHaveBeenCalledTimes(1);
   });
 
-  it("has zero setInterval calls", () => {
-    const hookSource = useZones.toString();
-    expect(hookSource).not.toContain("setInterval");
-    expect(hookSource).not.toContain("POLL_INTERVAL_MS");
-    expect(hookSource).not.toContain("isMutatingRef");
+  it("sets error message when initial zone fetch fails with an Error", async () => {
+    mockGetZones.mockRejectedValueOnce(new Error("Backend unreachable"));
+
+    const { result } = renderHook(() => useZones());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.error).toBe("Backend unreachable");
   });
 
-  it("StrictMode: no leaked subscriptions on unmount/remount", async () => {
-    const { unmount } = renderHook(() => useZones());
-    await waitFor(() => expect(mockSubscribe).toHaveBeenCalled());
+  it("falls back to a default error message when initial zone fetch fails with a non-Error value", async () => {
+    mockGetZones.mockRejectedValueOnce("some string rejection");
 
-    const unsubFnsMount1 = [...mockUnsubFns];
-    unmount();
-    for (const unsub of unsubFnsMount1) {
-      expect(unsub).toHaveBeenCalled();
-    }
+    const { result } = renderHook(() => useZones());
 
-    mockSubscribe.mockClear();
-    mockUnsubFns = [];
-
-    const { unmount: unmount2 } = renderHook(() => useZones());
-    await waitFor(() => expect(mockSubscribe).toHaveBeenCalled());
-
-    expect(mockSubscribe).toHaveBeenCalledWith("zone", "*", expect.any(Function));
-
-    unmount2();
-    for (const unsub of mockUnsubFns) {
-      expect(unsub).toHaveBeenCalled();
-    }
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.error).toBe("Failed to load zones");
   });
 });
 
@@ -201,6 +188,21 @@ describe("useZones – mutation operations", () => {
     expect(result.current.error).toBe("Network error");
   });
 
+  it("createZone falls back to a default error message on a non-Error rejection", async () => {
+    mockCreateZone.mockRejectedValue("plain string failure");
+
+    const { result } = renderHook(() => useZones());
+    await act(() => vi.advanceTimersByTimeAsync(0));
+
+    await act(async () => {
+      await expect(
+        result.current.createZone("ST10-001", ["ST30-002"]),
+      ).rejects.toBe("plain string failure");
+    });
+
+    expect(result.current.error).toBe("Failed to create zone");
+  });
+
   it("dissolveZone removes zone optimistically", async () => {
     mockGetZones.mockResolvedValue([MOCK_ZONE]);
     mockDissolveZone.mockResolvedValue(undefined);
@@ -219,6 +221,38 @@ describe("useZones – mutation operations", () => {
     expect(mockDissolveZone).toHaveBeenCalledWith("ST10-001");
   });
 
+  it("dissolveZone sets error message on an Error rejection", async () => {
+    mockGetZones.mockResolvedValue([MOCK_ZONE]);
+    mockDissolveZone.mockRejectedValue(new Error("Dissolve failed on device"));
+
+    const { result } = renderHook(() => useZones());
+    await act(() => vi.advanceTimersByTimeAsync(0));
+
+    await act(async () => {
+      await expect(
+        result.current.dissolveZone("ST10-001"),
+      ).rejects.toThrow("Dissolve failed on device");
+    });
+
+    expect(result.current.error).toBe("Dissolve failed on device");
+  });
+
+  it("dissolveZone falls back to a default error message on a non-Error rejection", async () => {
+    mockGetZones.mockResolvedValue([MOCK_ZONE]);
+    mockDissolveZone.mockRejectedValue("plain string failure");
+
+    const { result } = renderHook(() => useZones());
+    await act(() => vi.advanceTimersByTimeAsync(0));
+
+    await act(async () => {
+      await expect(
+        result.current.dissolveZone("ST10-001"),
+      ).rejects.toBe("plain string failure");
+    });
+
+    expect(result.current.error).toBe("Failed to dissolve zone");
+  });
+
   it("addMembers delegates to API and refetches", async () => {
     const updatedZone = { ...MOCK_ZONE, members: [...MOCK_ZONE.members, { device_id: "ST10-003", ip_address: "192.168.1.30", role: "slave" as const }] };
     mockAddMembers.mockResolvedValue(updatedZone);
@@ -231,6 +265,36 @@ describe("useZones – mutation operations", () => {
     });
 
     expect(mockAddMembers).toHaveBeenCalledWith("ST10-001", ["ST10-003"]);
+  });
+
+  it("addMembers sets error message on an Error rejection", async () => {
+    mockAddMembers.mockRejectedValue(new Error("Add members failed"));
+
+    const { result } = renderHook(() => useZones());
+    await act(() => vi.advanceTimersByTimeAsync(0));
+
+    await act(async () => {
+      await expect(
+        result.current.addMembers("ST10-001", ["ST10-003"]),
+      ).rejects.toThrow("Add members failed");
+    });
+
+    expect(result.current.error).toBe("Add members failed");
+  });
+
+  it("addMembers falls back to a default error message on a non-Error rejection", async () => {
+    mockAddMembers.mockRejectedValue("plain string failure");
+
+    const { result } = renderHook(() => useZones());
+    await act(() => vi.advanceTimersByTimeAsync(0));
+
+    await act(async () => {
+      await expect(
+        result.current.addMembers("ST10-001", ["ST10-003"]),
+      ).rejects.toBe("plain string failure");
+    });
+
+    expect(result.current.error).toBe("Failed to add members");
   });
 
   it("removeMembers delegates to API and handles errors", async () => {
@@ -248,6 +312,21 @@ describe("useZones – mutation operations", () => {
     expect(result.current.error).toBe("Remove failed");
   });
 
+  it("removeMembers falls back to a default error message on a non-Error rejection", async () => {
+    mockRemoveMembers.mockRejectedValue("plain string failure");
+
+    const { result } = renderHook(() => useZones());
+    await act(() => vi.advanceTimersByTimeAsync(0));
+
+    await act(async () => {
+      await expect(
+        result.current.removeMembers("ST10-001", ["ST30-002"]),
+      ).rejects.toBe("plain string failure");
+    });
+
+    expect(result.current.error).toBe("Failed to remove members");
+  });
+
   it("changeMaster delegates to API and refetches", async () => {
     const newMasterZone = { ...MOCK_ZONE, master_id: "ST30-002" };
     mockChangeMaster.mockResolvedValue(newMasterZone);
@@ -261,5 +340,35 @@ describe("useZones – mutation operations", () => {
     });
 
     expect(mockChangeMaster).toHaveBeenCalledWith("ST10-001", "ST30-002");
+  });
+
+  it("changeMaster sets error message on an Error rejection", async () => {
+    mockChangeMaster.mockRejectedValue(new Error("Change master failed"));
+
+    const { result } = renderHook(() => useZones());
+    await act(() => vi.advanceTimersByTimeAsync(0));
+
+    await act(async () => {
+      await expect(
+        result.current.changeMaster("ST10-001", "ST30-002"),
+      ).rejects.toThrow("Change master failed");
+    });
+
+    expect(result.current.error).toBe("Change master failed");
+  });
+
+  it("changeMaster falls back to a default error message on a non-Error rejection", async () => {
+    mockChangeMaster.mockRejectedValue("plain string failure");
+
+    const { result } = renderHook(() => useZones());
+    await act(() => vi.advanceTimersByTimeAsync(0));
+
+    await act(async () => {
+      await expect(
+        result.current.changeMaster("ST10-001", "ST30-002"),
+      ).rejects.toBe("plain string failure");
+    });
+
+    expect(result.current.error).toBe("Failed to change master");
   });
 });

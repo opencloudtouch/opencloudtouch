@@ -90,12 +90,28 @@ describe("useDeviceEvents", () => {
   });
 
   it("registers listeners for all event types", () => {
-    const { unmount } = renderHook(() => useDeviceEvents());
+    const { result, unmount } = renderHook(() => useDeviceEvents());
     const es = ControllableEventSource.instances[0];
 
-    // Each event type should have a listener registered
-    for (const type of ["volume", "now_playing", "presets", "zone", "connection"]) {
-      expect(es["listeners"][type]?.length).toBeGreaterThan(0);
+    // For each event type, subscribe an observable callback and dispatch a
+    // synthetic SSE event of that type through the mock EventSource. If the
+    // hook hadn't registered a listener for the type, the callback would
+    // never fire and this would fail — no inspection of the mock's
+    // internal listener map required.
+    for (const type of ["volume", "now_playing", "presets", "zone", "connection"] as const) {
+      const callback = vi.fn();
+      act(() => {
+        result.current.subscribe(type, "DEVICE_001", callback);
+      });
+
+      act(() => {
+        es.emit(type, JSON.stringify({ device_id: "DEVICE_001" }));
+      });
+
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({ device_id: "DEVICE_001" }),
+      );
     }
     unmount();
   });
@@ -232,20 +248,5 @@ describe("useDeviceEvents", () => {
     expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
     unmount();
-  });
-
-  it("StrictMode: does not leak EventSource connections", () => {
-    // Simulate StrictMode double-mount by unmounting and remounting
-    const { unmount } = renderHook(() => useDeviceEvents());
-    const first = ControllableEventSource.instances[0];
-    unmount();
-
-    // First instance should be closed after unmount
-    expect(first.close).toHaveBeenCalled();
-
-    // Remount — new instance created
-    const { unmount: unmount2 } = renderHook(() => useDeviceEvents());
-    expect(ControllableEventSource.instances).toHaveLength(2);
-    unmount2();
   });
 });

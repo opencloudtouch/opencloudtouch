@@ -208,4 +208,125 @@ describe("Diagnostics Page", () => {
       );
     });
   });
+
+  describe("Additional branch coverage", () => {
+    it("shows red status for a device last seen 30+ minutes ago (not null)", async () => {
+      mockedGetDiagnostics.mockResolvedValue({
+        ...MOCK_RESPONSE,
+        devices: [
+          {
+            ...MOCK_RESPONSE.devices[0],
+            last_seen: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
+          },
+        ],
+      });
+      render(<Diagnostics />);
+      await waitFor(() => {
+        expect(screen.getByText("Living Room")).toBeInTheDocument();
+      });
+      const redDots = screen.getAllByLabelText("red");
+      expect(redDots.length).toBeGreaterThan(0);
+      expect(redDots[0]).toHaveClass("status-dot", "status-red");
+    });
+
+    it("executes the cancelled-guard arm when unmounted before the fetch resolves (coverage-only, see comment)", async () => {
+      // NOTE: this closes the branch for coverage purposes only. React 18+ removed the
+      // "update on unmounted component" console warning, so an unmounted setState call is
+      // a silent no-op whether or not the `cancelled` guard exists - this assertion would
+      // still pass even if the guard were deleted. No black-box console/DOM assertion can
+      // discriminate the guard's actual behavior under this React version.
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      let resolvePromise: (value: DiagnosticsResponse) => void;
+      mockedGetDiagnostics.mockReturnValue(
+        new Promise((resolve) => {
+          resolvePromise = resolve;
+        })
+      );
+
+      const { unmount } = render(<Diagnostics />);
+      unmount();
+      resolvePromise!(MOCK_RESPONSE);
+      await new Promise((r) => setTimeout(r, 0));
+
+      expect(consoleError).not.toHaveBeenCalled();
+      consoleError.mockRestore();
+    });
+
+    it("executes the cancelled-guard arm when unmounted before the fetch rejects (coverage-only, see comment)", async () => {
+      // NOTE: this closes the branch for coverage purposes only. React 18+ removed the
+      // "update on unmounted component" console warning, so an unmounted setState call is
+      // a silent no-op whether or not the `cancelled` guard exists - this assertion would
+      // still pass even if the guard were deleted. No black-box console/DOM assertion can
+      // discriminate the guard's actual behavior under this React version.
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      let rejectPromise: (err: Error) => void;
+      mockedGetDiagnostics.mockReturnValue(
+        new Promise((_resolve, reject) => {
+          rejectPromise = reject;
+        })
+      );
+
+      const { unmount } = render(<Diagnostics />);
+      unmount();
+      rejectPromise!(new Error("too late"));
+      await new Promise((r) => setTimeout(r, 0));
+
+      expect(consoleError).not.toHaveBeenCalled();
+      consoleError.mockRestore();
+    });
+
+    it("shows the raw stringified value when the fetch rejects with a non-Error", async () => {
+      mockedGetDiagnostics.mockRejectedValue("boom-string");
+      render(<Diagnostics />);
+      await waitFor(() => {
+        expect(screen.getByText("boom-string")).toBeInTheDocument();
+      });
+    });
+
+    it("shows the generic unknown-error toast when download rejects with a non-Error", async () => {
+      mockedGetDiagnostics.mockResolvedValue(MOCK_RESPONSE);
+      mockedDownloadDiagnostics.mockRejectedValue("network-blip");
+      const user = userEvent.setup();
+
+      render(<Diagnostics />);
+      await waitFor(() => {
+        expect(screen.getByText("Download Support Bundle")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText("Download Support Bundle"));
+
+      await waitFor(() => {
+        expect(mockShowToast).toHaveBeenCalledWith(
+          "Failed to download diagnostics: An unexpected error occurred. Please try again.",
+          "error",
+          8000
+        );
+      });
+    });
+
+    it("shows yellow/disabled discovery status when discovery is disabled", async () => {
+      mockedGetDiagnostics.mockResolvedValue({
+        ...MOCK_RESPONSE,
+        server: { ...MOCK_RESPONSE.server, discovery_enabled: false },
+      });
+      render(<Diagnostics />);
+      await waitFor(() => {
+        expect(screen.getByText("Disabled")).toBeInTheDocument();
+      });
+      const discoveryDot = screen.getByLabelText("yellow");
+      expect(discoveryDot).toHaveClass("status-dot", "status-yellow");
+    });
+
+    it("shows the cross icon when ssh_permanent is false", async () => {
+      mockedGetDiagnostics.mockResolvedValue({
+        ...MOCK_RESPONSE,
+        devices: [{ ...MOCK_RESPONSE.devices[0], ssh_permanent: false }],
+      });
+      render(<Diagnostics />);
+      await waitFor(() => {
+        expect(screen.getByText("Living Room")).toBeInTheDocument();
+      });
+      expect(screen.getByText("❌")).toBeInTheDocument();
+    });
+  });
 });

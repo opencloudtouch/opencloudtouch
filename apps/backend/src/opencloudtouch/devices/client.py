@@ -183,3 +183,8 @@ class DeviceClient(ABC):
     async def remove_zone(self) -> None:
         """Dissolve entire zone (must be called on master)."""
         pass
+
+    @abstractmethod
+    async def reboot(self) -> None:
+        """Reboot the device via TCP telnet interface (port 17000)."""
+        pass

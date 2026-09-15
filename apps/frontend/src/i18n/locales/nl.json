@@ -760,5 +760,10 @@
     "inputLabel": "Apparaatnaam",
     "tooLong": "Naam mag maximaal 30 tekens bevatten",
     "failed": "Hernoemen mislukt"
+  },
+  "deviceHeader": {
+    "reboot": "Apparaat herstarten",
+    "sent": "Herstartopdracht verzonden",
+    "confirmMessage": "{{name}} herstarten? Het apparaat is ongeveer 60 seconden niet beschikbaar."
   }
 }

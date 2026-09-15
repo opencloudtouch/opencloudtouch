@@ -11,7 +11,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import status as http_status
 
-from opencloudtouch.core.dependencies import get_setup_service
+from opencloudtouch.core.dependencies import DeviceRepoDep, get_setup_service
 from opencloudtouch.setup.api_models import (
     ConnectivityCheckRequest,
     EnablePermanentSSHRequest,
@@ -77,6 +77,7 @@ async def get_status(
 @router.post("/ssh/enable-permanent")
 async def enable_permanent_ssh(
     request: EnablePermanentSSHRequest,
+    device_repo: DeviceRepoDep,
 ) -> Dict[str, Any]:
     """
     Enable permanent SSH access on SoundTouch device.
@@ -122,6 +123,17 @@ async def enable_permanent_ssh(
             )
 
         logger.info("Permanent SSH enabled for %s at %s", request.device_id, request.ip)
+
+        device = await device_repo.get_by_device_id(request.device_id)
+        if device is not None:
+            await device_repo.update_setup_status(
+                request.device_id, device.setup_status, ssh_permanent=True
+            )
+        else:
+            logger.warning(
+                "Cannot persist ssh_permanent for %s: device not found in DB",
+                request.device_id,
+            )
 
         return {
             "success": True,

@@ -16,6 +16,7 @@ from opencloudtouch.db import DeviceRepository
 from opencloudtouch.devices.adapter import BoseDeviceDiscoveryAdapter
 from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.services.sync_service import DeviceSyncService
+from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.settings.repository import SettingsRepository
 from opencloudtouch.settings.service import SettingsService
 
@@ -153,6 +154,7 @@ async def real_api_client(real_db):
     test_app.state.device_service = device_service
     test_app.state.settings_service = settings_service
     test_app.state.preset_service = preset_service
+    test_app.state.device_state_manager = DeviceStateManager()
 
     transport = ASGITransport(app=test_app)
     timeout = Timeout(5.0, connect=2.0)  # 5s read, 2s connect - prevent hangs

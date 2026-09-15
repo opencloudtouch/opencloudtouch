@@ -13,6 +13,11 @@ _No changes yet._
 
 ---
 
+## [raspi-latest] - 2026-08-16
+
+### Changed
+- See [release notes](https://github.com/opencloudtouch/opencloudtouch/releases/tag/raspi-latest)
+
 ## [1.4.2] - 2026-05-29
 
 ### Added

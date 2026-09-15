@@ -35,26 +35,7 @@ describe("AboutSection — US1 (P1): Version badge", () => {
     vi.clearAllMocks();
   });
 
-  it("renders section title 'Über diese App'", async () => {
-    const { useHealth } = await import("../../src/hooks/useHealth");
-    const { useDevices } = await import("../../src/hooks/useDevices");
-    vi.mocked(useHealth).mockReturnValue({
-      data: { status: "ok", version: "1.1.5" },
-      isLoading: false,
-      isError: false,
-    } as ReturnType<typeof useHealth>);
-    vi.mocked(useDevices).mockReturnValue({
-      data: [],
-      isLoading: false,
-    } as ReturnType<typeof useDevices>);
-
-    const { default: AboutSection } = await import("../../src/components/AboutSection");
-    render(<AboutSection />, { wrapper: QueryWrapper });
-
-    expect(screen.getByText(/about/i)).toBeInTheDocument();
-  });
-
-  it("renders app name 'OpenCloudTouch'", async () => {
+  it("renders header, name, version and description", async () => {
     const { useHealth } = await import("../../src/hooks/useHealth");
     const { useDevices } = await import("../../src/hooks/useDevices");
     vi.mocked(useHealth).mockReturnValue({
@@ -71,25 +52,11 @@ describe("AboutSection — US1 (P1): Version badge", () => {
     render(<AboutSection />, { wrapper: QueryWrapper });
 
     expect(screen.getByText("OpenCloudTouch")).toBeInTheDocument();
-  });
-
-  it("renders version badge with v{version} when health succeeds", async () => {
-    const { useHealth } = await import("../../src/hooks/useHealth");
-    const { useDevices } = await import("../../src/hooks/useDevices");
-    vi.mocked(useHealth).mockReturnValue({
-      data: { status: "ok", version: "1.1.5" },
-      isLoading: false,
-      isError: false,
-    } as ReturnType<typeof useHealth>);
-    vi.mocked(useDevices).mockReturnValue({
-      data: [],
-      isLoading: false,
-    } as ReturnType<typeof useDevices>);
-
-    const { default: AboutSection } = await import("../../src/components/AboutSection");
-    render(<AboutSection />, { wrapper: QueryWrapper });
-
     expect(screen.getByText("v1.1.5")).toBeInTheDocument();
+    // Description text via i18n key about.appDescription (English)
+    expect(
+      screen.getByText(/local control for bose soundtouch/i)
+    ).toBeInTheDocument();
   });
 
   it("renders skeleton while version is loading", async () => {
@@ -131,28 +98,6 @@ describe("AboutSection — US1 (P1): Version badge", () => {
 
     expect(screen.getByText("Version unavailable")).toBeInTheDocument();
     expect(document.querySelector(".about-version-badge")).not.toBeInTheDocument();
-  });
-
-  it("renders app description text", async () => {
-    const { useHealth } = await import("../../src/hooks/useHealth");
-    const { useDevices } = await import("../../src/hooks/useDevices");
-    vi.mocked(useHealth).mockReturnValue({
-      data: { status: "ok", version: "1.1.5" },
-      isLoading: false,
-      isError: false,
-    } as ReturnType<typeof useHealth>);
-    vi.mocked(useDevices).mockReturnValue({
-      data: [],
-      isLoading: false,
-    } as ReturnType<typeof useDevices>);
-
-    const { default: AboutSection } = await import("../../src/components/AboutSection");
-    render(<AboutSection />, { wrapper: QueryWrapper });
-
-    // Description text via i18n key about.appDescription (English)
-    expect(
-      screen.getByText(/local control for bose soundtouch/i)
-    ).toBeInTheDocument();
   });
 });
 
@@ -308,27 +253,5 @@ describe("AboutSection — US2 (P2): Device count & external links", () => {
     const bmcLink = screen.getByRole("link", { name: /support/i });
     expect(bmcLink).toHaveAttribute("href", "https://buymeacoffee.com/b49rjg5k6vj");
     expect(bmcLink).toHaveAttribute("rel", "noopener noreferrer");
-  });
-
-  it("all external links have rel='noopener noreferrer'", async () => {
-    const { useHealth } = await import("../../src/hooks/useHealth");
-    const { useDevices } = await import("../../src/hooks/useDevices");
-    vi.mocked(useHealth).mockReturnValue({
-      data: { status: "ok", version: "1.0.0" },
-      isLoading: false,
-      isError: false,
-    } as ReturnType<typeof useHealth>);
-    vi.mocked(useDevices).mockReturnValue({
-      data: [],
-      isLoading: false,
-    } as ReturnType<typeof useDevices>);
-
-    const { default: AboutSection } = await import("../../src/components/AboutSection");
-    render(<AboutSection />, { wrapper: QueryWrapper });
-
-    const links = screen.getAllByRole("link");
-    links.forEach((link) => {
-      expect(link).toHaveAttribute("rel", "noopener noreferrer");
-    });
   });
 });

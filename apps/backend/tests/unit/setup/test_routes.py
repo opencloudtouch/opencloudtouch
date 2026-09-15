@@ -10,7 +10,11 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from opencloudtouch.core.dependencies import get_setup_service, get_wizard_service
+from opencloudtouch.core.dependencies import (
+    get_device_repo,
+    get_setup_service,
+    get_wizard_service,
+)
 from opencloudtouch.setup import wizard_helpers
 from opencloudtouch.setup.models import (
     SetupProgress,
@@ -38,7 +42,20 @@ def mock_setup_service():
 
 
 @pytest.fixture
-def app(mock_setup_service):
+def mock_device_repo():
+    """Create mock device repository. Defaults to a known, configured device
+    so routes requiring DeviceRepoDep (e.g. /ssh/enable-permanent) work
+    out of the box for tests that don't care about persistence."""
+    repo = AsyncMock()
+    device = MagicMock()
+    device.setup_status = "configured"
+    repo.get_by_device_id = AsyncMock(return_value=device)
+    repo.update_setup_status = AsyncMock()
+    return repo
+
+
+@pytest.fixture
+def app(mock_setup_service, mock_device_repo):
     """Create test FastAPI app with setup router and mocked dependency."""
     from opencloudtouch.core.exception_handlers import register_exception_handlers
 
@@ -49,6 +66,7 @@ def app(mock_setup_service):
     # Override the dependency
     app.dependency_overrides[get_setup_service] = lambda: mock_setup_service
     app.dependency_overrides[get_wizard_service] = lambda: WizardService()
+    app.dependency_overrides[get_device_repo] = lambda: mock_device_repo
     return app
 
 
@@ -212,7 +230,9 @@ class TestEnablePermanentSSH:
     """Tests for POST /api/setup/ssh/enable-permanent."""
 
     @pytest.mark.asyncio
-    async def test_enable_permanent_ssh_success(self, client, monkeypatch):
+    async def test_enable_permanent_ssh_success(
+        self, client, monkeypatch, mock_device_repo
+    ):
         """Test enabling permanent SSH successfully."""
         # Mock SSH client
         mock_connection = AsyncMock()
@@ -257,6 +277,11 @@ class TestEnablePermanentSSH:
         mock_ssh_client.connect.assert_awaited_once()
         mock_ssh_client.execute.assert_awaited_once()
         mock_ssh_client.close.assert_awaited_once()
+
+        # #407: success must persist ssh_permanent=True, not just log it
+        mock_device_repo.update_setup_status.assert_awaited_once_with(
+            "DEVICE123", "configured", ssh_permanent=True
+        )
 
     @pytest.mark.asyncio
     async def test_enable_permanent_ssh_not_requested(self, client, monkeypatch):

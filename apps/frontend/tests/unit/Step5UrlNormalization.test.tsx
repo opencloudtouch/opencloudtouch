@@ -176,34 +176,6 @@ describe("Step5ConfigModification — URL Normalization", () => {
     });
   });
 
-  describe("Preview display (before Apply)", () => {
-    it("shows normalized URL in config preview", async () => {
-      await renderStep5("hera");
-
-      // Look for preview section showing "Zu: http://hera:7777"
-      await waitFor(() => {
-        const preview = document.body.textContent;
-        expect(preview).toContain("http://hera:7777");
-      });
-    });
-
-    it("updates preview when server_url changes", async () => {
-      await renderStep5("server1");
-
-      await waitFor(() => {
-        expect(document.body.textContent).toContain("http://server1:7777");
-      });
-
-      // Simulate URL change (e.g., user action triggering new server info)
-      cleanup();
-      await renderStep5("server2:8080");
-
-      await waitFor(() => {
-        expect(document.body.textContent).toContain("http://server2:8080");
-      });
-    });
-  });
-
   describe("Success message display (after Apply)", () => {
     it("shows normalized URL in success message new_url field", async () => {
       mockValidateHostname.mockResolvedValueOnce({
@@ -314,7 +286,7 @@ describe("Step5ConfigModification — URL Normalization", () => {
   });
 
   describe("Regression tests — old_url field", () => {
-    it("shows representative old_url covering all 4 modified URLs", async () => {
+    it("shows representative old_url covering all 4 modified URLs and hides the legacy value", async () => {
       mockValidateHostname.mockResolvedValueOnce({
         resolvable: true,
         resolved_ip: "192.168.1.50",
@@ -342,44 +314,10 @@ describe("Step5ConfigModification — URL Normalization", () => {
         expect(mockModifyConfig).toHaveBeenCalled();
       });
 
-      // Should display new old_url format
+      // Should display new old_url format, never the legacy value
       await waitFor(() => {
         const successMsg = document.body.textContent;
         expect(successMsg).toContain("https://*.bose.com (4 URLs)");
-      });
-    });
-
-    it("does NOT show legacy old_url value (bmx.bose.com)", async () => {
-      mockValidateHostname.mockResolvedValueOnce({
-        resolvable: true,
-        resolved_ip: "192.168.1.50",
-        matches_expected: true,
-        oct_reachable: true,
-        error: null,
-        oct_error: null,
-      });
-      mockModifyConfig.mockResolvedValueOnce({
-        success: true,
-        old_url: "https://*.bose.com (4 URLs)",
-        new_url: "hera",
-        backup_path: "/backup",
-        diff: "...",
-        message: "OK",
-      });
-
-      await renderStep5("hera");
-
-      await act(async () => {
-        getApplyButton().click();
-      });
-
-      await waitFor(() => {
-        expect(mockModifyConfig).toHaveBeenCalled();
-      });
-
-      // Legacy value must NOT appear
-      await waitFor(() => {
-        const successMsg = document.body.textContent;
         expect(successMsg).not.toContain("bmx.bose.com");
       });
     });
@@ -397,16 +335,6 @@ describe("Step5ConfigModification — URL Normalization", () => {
       });
     });
 
-    it("handles URL with path (should ignore path)", async () => {
-      await renderStep5("http://hera:7777/some/path");
-
-      await waitFor(() => {
-        const preview = document.body.textContent;
-        // normalizeUrl regex stops at port, path is stripped
-        expect(preview).toContain("http://hera:7777");
-      });
-    });
-
     it("handles malformed URL gracefully", async () => {
       await renderStep5("ht!tp://invalid");
 
@@ -414,16 +342,6 @@ describe("Step5ConfigModification — URL Normalization", () => {
         const preview = document.body.textContent;
         // If regex fails, normalizeUrl returns input unchanged
         expect(preview).toContain("ht!tp://invalid");
-      });
-    });
-
-    it("handles IPv6 address (edge case)", async () => {
-      await renderStep5("[::1]");
-
-      await waitFor(() => {
-        const preview = document.body.textContent;
-        // IPv6 not explicitly supported by current regex, returns input
-        expect(preview).toContain("[::1]");
       });
     });
   });

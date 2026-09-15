@@ -227,6 +227,8 @@ export interface NowPlayingState {
   track?: string;
   album?: string;
   artwork_url?: string;
+  /** False when the device is unreachable; fields above are then the last known state. */
+  online?: boolean;
 }
 
 export async function getNowPlaying(deviceId: string): Promise<NowPlayingState> {
@@ -263,4 +265,11 @@ export async function prevTrack(deviceId: string): Promise<void> {
 
 export async function power(deviceId: string): Promise<void> {
   return sendKey(deviceId, "POWER");
+}
+
+export async function rebootDevice(deviceId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}/reboot`, {
+    method: "POST",
+  });
+  await throwIfNotOk(response, "Failed to reboot device");
 }

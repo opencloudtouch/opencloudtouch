@@ -760,5 +760,10 @@
     "inputLabel": "Gerätename",
     "tooLong": "Name darf maximal 30 Zeichen lang sein",
     "failed": "Umbenennung fehlgeschlagen"
+  },
+  "deviceHeader": {
+    "reboot": "Gerät neu starten",
+    "sent": "Neustart-Befehl gesendet",
+    "confirmMessage": "{{name}} neu starten? Das Gerät ist für ca. 60 Sekunden nicht erreichbar."
   }
 }
