@@ -95,14 +95,14 @@ export function parseCSVLine(line: string): string[] {
 }
 
 export function getRandomThankYou(isMonthly: boolean, lang: string): string {
-  const currentLang = lang.split("-")[0]; // en-US → en
+  const currentLang = lang.split("-")[0] ?? "en"; // en-US → en
 
   const category = isMonthly ? "monthly" : "regular";
   const categoryPhrases = THANK_YOU_PHRASES[category];
   const phrases = categoryPhrases?.[currentLang] ?? categoryPhrases?.["en"] ?? [];
 
   if (phrases.length === 0) return "Thank you! ☕";
-  return phrases[Math.floor(Math.random() * phrases.length)]; // NOSONAR — non-cryptographic use for UI tooltip randomization
+  return phrases[Math.floor(Math.random() * phrases.length)] ?? "Thank you! ☕"; // NOSONAR — non-cryptographic use for UI tooltip randomization
 }
 
 export function getFontSize(supporter: Supporter, maxAmount: number): number {
@@ -124,5 +124,13 @@ export function cleanName(name: string): string {
   if (name.startsWith("https://github.com/")) {
     return "@" + name.replace("https://github.com/", "");
   }
+
+  const atIndex = name.indexOf("@");
+  // Only strip if "@" is present and NOT the very first character
+  // (leading "@" denotes a handle, e.g. "@Struppie", and stays untouched)
+  if (atIndex > 0) {
+    return name.slice(0, atIndex).trim();
+  }
+
   return name;
 }
