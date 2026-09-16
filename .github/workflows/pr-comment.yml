@@ -4,40 +4,39 @@
 # Posts/updates the sticky PR comments (CI summary, commit-lint failure) that
 # ci.yml's jobs stage as JSON artifacts instead of posting directly.
 #
-# Runs via `pull_request_target`, which always executes this file (never the
-# fork's copy) with this repository's normal GITHUB_TOKEN permissions — never
-# the read-only token GitHub forces on `pull_request`-triggered runs from
-# forks. This workflow never checks out or runs any code from the PR; it only
-# reads the small JSON payloads that ci.yml's own trusted jobs already staged
-# as artifacts. `github.event.pull_request.number` comes straight from the
-# trusted event context, so unlike a payload staged by the fork's own copy of
-# ci.yml, it can't be forged by the PR author.
+# Runs via `workflow_run`, triggered the moment `CI` completes, using this
+# file (never the fork's copy). This workflow never checks out or runs any
+# code from the PR; it only reads the small JSON payloads that ci.yml's own
+# trusted jobs already staged as artifacts.
 #
-# Previously this ran via `workflow_run` (triggered when `CI` completed),
-# which gave the same trusted-context guarantee. That was abandoned because
-# this repository's org-wide `default_workflow_permissions` is `read`, and
-# `workflow_run` runs cannot elevate past that default even with an explicit
-# `permissions:` block — every write attempt got a 403 "Resource not
-# accessible by integration" (verified live against a real fork PR,
-# opencloudtouch/opencloudtouch#433). `pull_request_target` isn't subject to
-# that ceiling (verified: pr-review.yml already elevates write permissions
-# successfully on this trigger), at the cost of no longer being told when CI
-# finished — this workflow starts around the same time as `ci.yml` and has to
-# poll for its completion itself (see the wait step below).
+# The comment-posting step authenticates with `secrets.BOT_PAT` (the same
+# token pr-review.yml's `review`/`approve-check` jobs use), not the default
+# GITHUB_TOKEN. This repository's org-wide `default_workflow_permissions` is
+# `read`, and — verified live against a real fork PR, opencloudtouch/
+# opencloudtouch#433 — that caps the auto-issued GITHUB_TOKEN to read-only
+# for every trigger type tried (`workflow_run` and `pull_request_target`
+# both got 403 "Resource not accessible by integration" despite an explicit
+# `permissions:` block). A personal access token isn't subject to that org
+# policy, which is why pr-review.yml's PAT-authenticated writes already work
+# today. `download-artifact` still uses GITHUB_TOKEN, since reading
+# artifacts only needs `actions: read`, which the default read-only token
+# already has.
+#
+# IMPORTANT: for a `pull_request` run from a fork, GitHub executes the FORK'S
+# OWN COPY of ci.yml — so the `pr_number` inside a staged JSON payload is
+# attacker-influenced, not trustworthy. This workflow never uses it to decide
+# which PR to comment on: the target PR is always resolved independently from
+# the trusted `workflow_run` event (via `pull_requests`, or a head-repo/branch
+# lookup when that's empty, as it is for fork PRs). Without this, a fork PR
+# could redirect this workflow's real write access at an arbitrary PR.
 # ==============================================================================
 
 name: PR Comment Relay
 
 on:
-  pull_request_target:
-    types: [opened, synchronize, reopened]
-
-# Roughly 4x the ~5 minute average full-suite duration observed for this
-# workflow, so it keeps working if the test suite doubles in size, plus
-# margin for runner queue delays under load.
-env:
-  CI_WAIT_TIMEOUT_MINUTES: 20
-  CI_WAIT_POLL_SECONDS: 30
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
 
 permissions: {}
 
@@ -45,79 +44,60 @@ jobs:
   post-comments:
     name: Post staged PR comments
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion != 'cancelled'
     permissions:
       actions: read
-      issues: write
 
     steps:
-      - name: Wait for the matching CI run to complete
-        id: wait-for-ci
-        uses: actions/github-script@v9
-        env:
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          POLL_SECONDS: ${{ env.CI_WAIT_POLL_SECONDS }}
-          TIMEOUT_MINUTES: ${{ env.CI_WAIT_TIMEOUT_MINUTES }}
-        with:
-          script: |
-            const headSha = process.env.HEAD_SHA;
-            const timeoutMinutes = Number(process.env.TIMEOUT_MINUTES);
-            const pollMs = Number(process.env.POLL_SECONDS) * 1000;
-            const deadline = Date.now() + timeoutMinutes * 60 * 1000;
-
-            let run;
-            while (Date.now() < deadline) {
-              const { data } = await github.rest.actions.listWorkflowRunsForRepo({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                head_sha: headSha,
-              });
-              const candidate = data.workflow_runs
-                .filter(r => r.name === 'CI')
-                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-
-              if (candidate && candidate.status === 'completed') {
-                run = candidate;
-                break;
-              }
-              await new Promise(resolve => setTimeout(resolve, pollMs));
-            }
-
-            if (!run) {
-              console.log(`Timed out after ${timeoutMinutes} minutes waiting for the CI run on ${headSha} to complete — no summary comment will be posted.`);
-              core.setOutput('run_id', '');
-              return;
-            }
-            if (run.conclusion === 'cancelled') {
-              console.log(`CI run ${run.id} on ${headSha} was cancelled — nothing to comment on.`);
-              core.setOutput('run_id', '');
-              return;
-            }
-            core.setOutput('run_id', String(run.id));
-
       - name: Download staged comment payloads
-        if: steps.wait-for-ci.outputs.run_id != ''
         uses: actions/download-artifact@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
-          run-id: ${{ steps.wait-for-ci.outputs.run_id }}
+          run-id: ${{ github.event.workflow_run.id }}
           pattern: pr-comment-*
           merge-multiple: true
           path: ./pr-comment-payloads
           if-no-artifact-found: ignore
 
       - name: Post or update sticky comments
-        if: steps.wait-for-ci.outputs.run_id != ''
         uses: actions/github-script@v9
         with:
+          github-token: ${{ secrets.BOT_PAT }}
           script: |
             const fs = require('fs');
 
-            // Trusted directly from the pull_request_target event context —
-            // not from the artifact payload, which ci.yml's fork-side copy
-            // could have forged.
-            const issueNumber = context.payload.pull_request.number;
+            // Resolve which PR this run belongs to from the trusted
+            // workflow_run event — never from the artifact payload. For a
+            // fork PR, ci.yml ran with the fork's own copy of the workflow
+            // file, so anything the payload claims (including pr_number) is
+            // attacker-influenced.
+            const runPRs = context.payload.workflow_run.pull_requests || [];
+            let issueNumber;
+            if (runPRs.length > 0) {
+              issueNumber = runPRs[0].number;
+            } else {
+              // Empty for fork-originated runs — resolve via the head
+              // repo owner + branch instead of the commit SHA:
+              // `listPullRequestsAssociatedWithCommit` does not reliably
+              // return open PRs for fork-originated commits (verified live
+              // against opencloudtouch/opencloudtouch#433).
+              const headOwner = context.payload.workflow_run.head_repository.owner.login;
+              const headBranch = context.payload.workflow_run.head_branch;
+              const { data: openPulls } = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                head: `${headOwner}:${headBranch}`,
+                state: 'open',
+              });
+              if (openPulls.length === 0) {
+                console.log(`No open PR found for ${headOwner}:${headBranch} — nothing to comment on.`);
+                return;
+              }
+              issueNumber = openPulls[0].number;
+            }
 
             const dir = './pr-comment-payloads';
 
