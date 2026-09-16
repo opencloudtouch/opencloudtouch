@@ -201,48 +201,6 @@ jobs:
           echo ""
           echo "✅ All commits follow Conventional Commits format!"
 
-      - name: Save PR comment payload on failure
-        if: failure()
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const fs = require('fs');
-            const marker = '<!-- commit-lint-check -->';
-            const body = `${marker}
-            ## ❌ Commit Message Validation Failed
-
-            Your PR contains commits that don't follow the [Conventional Commits](https://www.conventionalcommits.org/) format.
-
-            ### Required Format
-            \`\`\`
-            <type>(<scope>): <subject>
-            \`\`\`
-
-            ### Examples
-            ✅ \`feat(devices): add SSDP auto-discovery\`
-            ✅ \`fix(api): handle null response\`
-            ✅ \`docs(readme): update installation\`
-
-            ### Allowed Types
-            \`feat\`, \`fix\`, \`docs\`, \`style\`, \`refactor\`, \`perf\`, \`test\`, \`build\`, \`ci\`, \`chore\`, \`revert\`
-
-            📖 See [Conventional Commits](https://www.conventionalcommits.org/) for details.
-            `;
-            fs.mkdirSync('.pr-comment', { recursive: true });
-            fs.writeFileSync('.pr-comment/commit-lint.json', JSON.stringify({
-              pr_number: context.issue.number,
-              marker,
-              body,
-            }));
-
-      - name: Upload PR comment payload
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: pr-comment-commit-lint
-          path: .pr-comment/commit-lint.json
-          retention-days: 1
-
   # ============================================================================
   # SECURITY SCANNING
   # ============================================================================
@@ -717,54 +675,6 @@ jobs:
              [[ "${{ needs.frontend-tests.result }}" != "success" ]]; then
             exit 1
           fi
-
-      - name: Save PR summary comment payload
-        if: always() && github.event_name == 'pull_request'
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const fs = require('fs');
-            const statusIcon = (result) => result === 'success' ? '✅' : result === 'skipped' ? '⏭️' : '❌';
-            const jobs = [
-              ['Mojibake Check', '${{ needs.mojibake-check.result }}'],
-              ['Page Size Test', '${{ needs.test-page-size-detection.result }}'],
-              ['Commit Lint', '${{ needs.commit-lint.result }}'],
-              ['Security Scan', '${{ needs.security.result }}'],
-              ['License Check', '${{ needs.license-check.result }}'],
-              ['Lint', '${{ needs.lint.result }}'],
-              ['Backend Tests', '${{ needs.backend-tests.result }}'],
-              ['Frontend Tests', '${{ needs.frontend-tests.result }}'],
-              ['E2E Tests', '${{ needs.e2e-tests.result }}'],
-            ];
-
-            const allPassed = jobs.every(([_, r]) => r === 'success' || r === 'skipped');
-            const header = allPassed ? '## ✅ CI Passed' : '## ❌ CI Failed';
-
-            let body = `${header}\n\n`;
-            body += '| Job | Status |\n';
-            body += '|-----|--------|\n';
-            for (const [name, result] of jobs) {
-              body += `| ${name} | ${statusIcon(result)} ${result} |\n`;
-            }
-            body += `\n🔗 [Full details](${context.payload.pull_request.html_url}/checks)\n`;
-
-            const marker = '<!-- ci-summary -->';
-            body = marker + '\n' + body;
-
-            fs.mkdirSync('.pr-comment', { recursive: true });
-            fs.writeFileSync('.pr-comment/summary.json', JSON.stringify({
-              pr_number: context.issue.number,
-              marker,
-              body,
-            }));
-
-      - name: Upload PR comment payload
-        if: always() && github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v7
-        with:
-          name: pr-comment-summary
-          path: .pr-comment/summary.json
-          retention-days: 1
 
   # ============================================================================
   # AUTO-FORMAT (runs at the end — commits formatting fixes back to branch)
