@@ -113,6 +113,24 @@ class ZoneRepository(BaseRepository):
             sql="CREATE INDEX IF NOT EXISTS idx_zone_members_device ON zone_members(device_id)",
         )
 
+        await self._apply_migration(
+            version=205,
+            description="Delete members of previously dissolved zones",
+            sql="""
+                DELETE FROM zone_members
+                WHERE zone_id IN (
+                    SELECT id
+                    FROM zones
+                    WHERE dissolved_at IS NOT NULL
+                )
+            """,
+        )
+        await self._apply_migration(
+            version=206,
+            description="Delete previously dissolved zones",
+            sql="DELETE FROM zones WHERE dissolved_at IS NOT NULL",
+        )
+
         await self._conn.commit()
 
     async def create_zone(self, master_device_id: str) -> Zone:
@@ -182,29 +200,20 @@ class ZoneRepository(BaseRepository):
         logger.debug("Removed %s from zone %d", device_id, zone_id)
 
     async def dissolve_zone(self, zone_id: int) -> None:
-        """Dissolve a zone (soft delete)."""
+        """Dissolve a zone by permanently deleting it and its members."""
         db = self._ensure_initialized()
 
-        now = datetime.now(UTC)
-
-        # Mark zone as dissolved
         await db.execute(
-            "UPDATE zones SET dissolved_at = ? WHERE id = ? AND dissolved_at IS NULL",
-            (now, zone_id),
+            "DELETE FROM zone_members WHERE zone_id = ?",
+            (zone_id,),
         )
-
-        # Remove all members
         await db.execute(
-            """
-            UPDATE zone_members
-            SET removed_at = ?
-            WHERE zone_id = ? AND removed_at IS NULL
-            """,
-            (now, zone_id),
+            "DELETE FROM zones WHERE id = ?",
+            (zone_id,),
         )
-
         await db.commit()
-        logger.info("Dissolved zone %d", zone_id)
+
+        logger.info("Dissolved and deleted zone %d", zone_id)
 
     async def get_active_zone_by_master(self, master_device_id: str) -> Optional[Zone]:
         """Get active zone by master device ID."""
