@@ -16,7 +16,11 @@ from opencloudtouch.devices.capabilities import (
     get_capabilities_for_ip,
     get_feature_flags_for_ui,
 )
-from opencloudtouch.devices.client import NowPlayingInfo, VolumeInfo
+from opencloudtouch.devices.client import (
+    BassInfo,
+    NowPlayingInfo,
+    VolumeInfo,
+)
 from opencloudtouch.devices.events import DiscoveryEvent, DiscoveryEventType
 from opencloudtouch.devices.interfaces import (
     IDeviceRepository,
@@ -237,35 +241,44 @@ class DeviceService:
         return await self.repository.get_by_device_id(device_id)
 
     async def get_device_capabilities(self, device_id: str) -> dict:
-        """Get device capabilities for UI feature detection.
-
-        Args:
-            device_id: Device ID
-
-        Returns:
-            Feature flags and capabilities for UI rendering
-
-        Raises:
-            ValueError: If device not found
-            Exception: If device query fails
-        """
-        # Get device from DB
+        """Get persisted device capabilities for UI feature detection."""
         device = await self.repository.get_by_device_id(device_id)
-
         if not device:
             raise DeviceNotFoundError(device_id)
 
-        logger.info("Querying device capabilities")
+        if device.capabilities is not None:
+            return device.capabilities
 
+        # Backward-compatible fallback for devices stored before capability
+        # persistence was introduced. Re-discovery will persist the result.
+        logger.info("No stored capabilities for %s; querying device", device_id)
+        detected = await get_capabilities_for_ip(device.ip)
+        flags = get_feature_flags_for_ui(detected)
+
+        client = None
         try:
-            capabilities = await get_capabilities_for_ip(device.ip)
-            flags = get_feature_flags_for_ui(capabilities)
-            logger.debug("Device capabilities resolved")
-            return flags
-
+            base_url = f"http://{device.ip}:{SOUNDTOUCH_HTTP_PORT}"  # NOSONAR — Bose devices only support HTTP
+            client = await asyncio.to_thread(get_device_client, base_url)
+            bass = await client.get_bass_capabilities()
         except Exception:
-            logger.exception("Failed to get device capabilities")
-            raise
+            logger.debug(
+                "Could not fetch bass capabilities for %s",
+                device_id,
+                exc_info=True,
+            )
+        else:
+            flags.setdefault("features", {})["bass_control"] = bass.available
+            flags.setdefault("settings", {})["bass"] = {
+                "available": bass.available,
+                "minimum": bass.minimum,
+                "maximum": bass.maximum,
+                "default": bass.default,
+            }
+        finally:
+            if client is not None:
+                await client.close()
+
+        return flags
 
     @asynccontextmanager
     async def _device_client(self, device_id: str) -> AsyncIterator:
@@ -289,6 +302,29 @@ class DeviceService:
             yield client
         finally:
             await client.close()
+
+    async def get_device_bass(self, device_id: str) -> BassInfo:
+        """Get current bass state from a device."""
+        async with self._device_client(device_id) as client:
+            return await client.get_bass()
+
+    async def set_device_bass(self, device_id: str, level: int) -> None:
+        """Validate against discovered capabilities and set bass on the device."""
+        capabilities = await self.get_device_capabilities(device_id)
+        bass = capabilities.get("settings", {}).get("bass")
+
+        if not bass or not bass.get("available", False):
+            raise ValueError("Bass control is not available on this device")
+
+        minimum = bass.get("minimum")
+        maximum = bass.get("maximum")
+        if minimum is None or maximum is None:
+            raise ValueError("Bass range is not available for this device")
+        if level < minimum or level > maximum:
+            raise ValueError(f"Bass level must be between {minimum} and {maximum}")
+
+        async with self._device_client(device_id) as client:
+            await client.set_bass(level)
 
     async def press_key(self, device_id: str, key: str, state: str = "both") -> None:
         """

@@ -126,6 +126,9 @@ class TestRealAPIStack:
         ) as mock_get_discovery, patch(
             "opencloudtouch.devices.services.sync_service.get_device_client"
         ) as mock_get_client, patch(
+            "opencloudtouch.devices.services.sync_service.DeviceSyncService._fetch_device_capabilities",
+            new_callable=AsyncMock,
+        ) as mock_fetch_capabilities, patch(
             "opencloudtouch.devices.api.routes.get_config"
         ) as mock_config:
 
@@ -137,6 +140,20 @@ class TestRealAPIStack:
             mock_discovery_instance = AsyncMock()
             mock_discovery_instance.discover.return_value = discovered
             mock_get_discovery.return_value = mock_discovery_instance
+
+            mock_fetch_capabilities.return_value = {
+                "features": {
+                    "bass_control": True,
+                },
+                "settings": {
+                    "bass": {
+                        "available": True,
+                        "minimum": -9,
+                        "maximum": 0,
+                        "default": 0,
+                    }
+                },
+            }
 
             # Mock client factory to return device info
             def create_mock_client(base_url, timeout=5):
@@ -167,6 +184,13 @@ class TestRealAPIStack:
         assert device_1.name == "Living Room ST30"
         assert device_1.ip == "192.168.1.100"
         assert device_1.model == "SoundTouch 30 Series III"
+        assert device_1.capabilities["features"]["bass_control"] is True
+        assert device_1.capabilities["settings"]["bass"] == {
+            "available": True,
+            "minimum": -9,
+            "maximum": 0,
+            "default": 0,
+        }
 
         device_2 = await device_repo.get_by_device_id("DDEEFF445566")
         assert device_2 is not None
@@ -268,6 +292,9 @@ class TestRealAPIStack:
         ) as mock_get_discovery, patch(
             "opencloudtouch.devices.services.sync_service.get_device_client"
         ) as mock_get_client, patch(
+            "opencloudtouch.devices.services.sync_service.DeviceSyncService._fetch_device_capabilities",
+            new_callable=AsyncMock,
+        ) as mock_fetch_capabilities, patch(
             "opencloudtouch.devices.api.routes.get_config"
         ) as mock_config:
 
@@ -278,6 +305,20 @@ class TestRealAPIStack:
             mock_discovery_instance = AsyncMock()
             mock_discovery_instance.discover.return_value = discovered_v1
             mock_get_discovery.return_value = mock_discovery_instance
+
+            mock_fetch_capabilities.return_value = {
+                "features": {
+                    "bass_control": True,
+                },
+                "settings": {
+                    "bass": {
+                        "available": True,
+                        "minimum": -9,
+                        "maximum": 0,
+                        "default": 0,
+                    }
+                },
+            }
 
             mock_client_instance = AsyncMock()
             mock_client_instance.get_info.return_value = device_info_v1
@@ -309,6 +350,9 @@ class TestRealAPIStack:
         ) as mock_get_discovery, patch(
             "opencloudtouch.devices.services.sync_service.get_device_client"
         ) as mock_get_client, patch(
+            "opencloudtouch.devices.services.sync_service.DeviceSyncService._fetch_device_capabilities",
+            new_callable=AsyncMock,
+        ) as mock_fetch_capabilities, patch(
             "opencloudtouch.devices.api.routes.get_config"
         ) as mock_config:
 
@@ -319,6 +363,20 @@ class TestRealAPIStack:
             mock_discovery_instance = AsyncMock()
             mock_discovery_instance.discover.return_value = discovered_v1
             mock_get_discovery.return_value = mock_discovery_instance
+
+            mock_fetch_capabilities.return_value = {
+                "features": {
+                    "bass_control": True,
+                },
+                "settings": {
+                    "bass": {
+                        "available": True,
+                        "minimum": -9,
+                        "maximum": 0,
+                        "default": 0,
+                    }
+                },
+            }
 
             mock_client_instance = AsyncMock()
             mock_client_instance.get_info.return_value = device_info_v2

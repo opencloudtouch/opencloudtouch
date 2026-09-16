@@ -180,9 +180,17 @@ class TestGetDeviceCapabilities:
     @pytest.mark.asyncio
     async def test_returns_flags(self):
         repo = AsyncMock()
-        repo.get_by_device_id.return_value = _make_device()
+        device = _make_device()
+        device.capabilities = None
+        repo.get_by_device_id.return_value = device
 
         svc = _make_service(repo=repo)
+
+        mock_client = AsyncMock()
+        mock_client.get_bass_capabilities.side_effect = ConnectionError(
+            "bass capabilities unavailable"
+        )
+
         with (
             patch(
                 "opencloudtouch.devices.service.get_capabilities_for_ip",
@@ -192,6 +200,10 @@ class TestGetDeviceCapabilities:
             patch(
                 "opencloudtouch.devices.service.get_feature_flags_for_ui",
                 return_value={"aux": True},
+            ),
+            patch(
+                "opencloudtouch.devices.service.get_device_client",
+                return_value=mock_client,
             ),
         ):
             result = await svc.get_device_capabilities("D1")
@@ -209,7 +221,9 @@ class TestGetDeviceCapabilities:
     @pytest.mark.asyncio
     async def test_propagates_capability_error(self):
         repo = AsyncMock()
-        repo.get_by_device_id.return_value = _make_device()
+        device = _make_device()
+        device.capabilities = None
+        repo.get_by_device_id.return_value = device
 
         svc = _make_service(repo=repo)
         with patch(

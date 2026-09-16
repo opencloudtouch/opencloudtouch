@@ -199,6 +199,47 @@ async def get_device_capabilities_endpoint(
     )
 
 
+@router.get("/{device_id}/settings/bass")
+async def get_device_bass(
+    device_id: str,
+    device_service: DeviceService = Depends(get_device_service),
+):
+    """Get the current bass state reported by a SoundTouch device."""
+    bass = await _device_op(
+        device_id,
+        "get bass",
+        device_service.get_device_bass(device_id),
+    )
+    return {"actual": bass.actual, "target": bass.target}
+
+
+@router.put(
+    "/{device_id}/settings/bass",
+    responses={422: {"description": "Invalid bass level"}},
+)
+async def set_device_bass(
+    device_id: str,
+    body: Annotated[dict, Body()],
+    device_service: Annotated[DeviceService, Depends(get_device_service)],
+):
+    """Set the bass level supported by the selected SoundTouch device."""
+    level = body.get("level")
+
+    if isinstance(level, bool) or not isinstance(level, int):
+        raise HTTPException(status_code=422, detail="Bass level must be an integer")
+
+    try:
+        await device_service.set_device_bass(device_id, level)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+    return {
+        "message": "Bass level updated successfully",
+        "device_id": device_id,
+        "level": level,
+    }
+
+
 @router.post("/{device_id}/key")
 async def press_key(
     device_id: str,

@@ -3,6 +3,7 @@ Database models and repository for device management
 Uses aiosqlite for async SQLite operations
 """
 
+import json
 import logging
 import unicodedata
 from datetime import UTC, datetime
@@ -33,6 +34,7 @@ class Device:
         ssh_permanent: bool = False,
         setup_completed_at: Optional[datetime] = None,
         marge_account_uuid: Optional[str] = None,
+        capabilities: Optional[dict[str, Any]] = None,
     ):
         self.id = id
         self.device_id = device_id
@@ -49,6 +51,7 @@ class Device:
         self.ssh_permanent = ssh_permanent
         self.setup_completed_at = setup_completed_at
         self.marge_account_uuid = marge_account_uuid
+        self.capabilities = capabilities
 
     @staticmethod
     def _extract_schema_version(firmware_version: str) -> str:
@@ -140,6 +143,11 @@ class DeviceRepository(BaseRepository):
             description="Add marge_account_uuid column to devices",
             sql="ALTER TABLE devices ADD COLUMN marge_account_uuid TEXT",
         )
+        await self._apply_migration(
+            version=104,
+            description="Add capabilities_json column to devices",
+            sql="ALTER TABLE devices ADD COLUMN capabilities_json TEXT",
+        )
 
         # Indexes
         await self._conn.execute("""
@@ -165,8 +173,8 @@ class DeviceRepository(BaseRepository):
 
         cursor = await db.execute(
             """
-            INSERT INTO devices (device_id, ip, name, model, mac_address, firmware_version, schema_version, last_seen, marge_account_uuid)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO devices (device_id, ip, name, model, mac_address, firmware_version, schema_version, last_seen, marge_account_uuid, capabilities_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(device_id) DO UPDATE SET
                 ip = excluded.ip,
                 name = excluded.name,
@@ -175,6 +183,7 @@ class DeviceRepository(BaseRepository):
                 schema_version = excluded.schema_version,
                 last_seen = excluded.last_seen,
                 marge_account_uuid = COALESCE(excluded.marge_account_uuid, devices.marge_account_uuid),
+                capabilities_json = COALESCE(excluded.capabilities_json, devices.capabilities_json),
                 updated_at = CURRENT_TIMESTAMP
             RETURNING id
         """,
@@ -188,6 +197,11 @@ class DeviceRepository(BaseRepository):
                 device.schema_version,
                 device.last_seen,
                 device.marge_account_uuid,
+                (
+                    json.dumps(device.capabilities)
+                    if device.capabilities is not None
+                    else None
+                ),
             ),
         )
 
@@ -206,7 +220,7 @@ class DeviceRepository(BaseRepository):
         cursor = await db.execute("""
             SELECT id, device_id, ip, name, model, mac_address, firmware_version,
                    schema_version, last_seen, setup_status, ssh_permanent,
-                   setup_completed_at, marge_account_uuid
+                   setup_completed_at, marge_account_uuid, capabilities_json
             FROM devices
         """)
 
@@ -225,7 +239,7 @@ class DeviceRepository(BaseRepository):
             """
             SELECT id, device_id, ip, name, model, mac_address, firmware_version,
                    schema_version, last_seen, setup_status, ssh_permanent,
-                   setup_completed_at, marge_account_uuid
+                   setup_completed_at, marge_account_uuid, capabilities_json
             FROM devices
             WHERE device_id = ?
         """,
@@ -279,7 +293,7 @@ class DeviceRepository(BaseRepository):
             """
             SELECT id, device_id, ip, name, model, mac_address, firmware_version,
                    schema_version, last_seen, setup_status, ssh_permanent,
-                   setup_completed_at, marge_account_uuid
+                   setup_completed_at, marge_account_uuid, capabilities_json
             FROM devices
             WHERE marge_account_uuid = ?
         """,
@@ -326,7 +340,7 @@ class DeviceRepository(BaseRepository):
             """
             SELECT id, device_id, ip, name, model, mac_address, firmware_version,
                    schema_version, last_seen, setup_status, ssh_permanent,
-                   setup_completed_at, marge_account_uuid
+                   setup_completed_at, marge_account_uuid, capabilities_json
             FROM devices
             WHERE marge_account_uuid = ?
         """,
@@ -380,4 +394,5 @@ class DeviceRepository(BaseRepository):
             ssh_permanent=bool(row[10]) if row[10] is not None else False,
             setup_completed_at=(datetime.fromisoformat(row[11]) if row[11] else None),
             marge_account_uuid=row[12] if len(row) > 12 else None,
+            capabilities=(json.loads(row[13]) if len(row) > 13 and row[13] else None),
         )

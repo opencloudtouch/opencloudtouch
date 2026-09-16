@@ -10,6 +10,7 @@ import base64
 import json
 import logging
 from urllib.parse import urlparse
+from defusedxml import ElementTree
 from xml.sax.saxutils import escape as xml_escape
 
 import httpx
@@ -18,6 +19,8 @@ from bosesoundtouchapi import SoundTouchDevice
 
 from opencloudtouch.core.exceptions import DeviceConnectionError
 from opencloudtouch.devices.client import (
+    BassCapabilities,
+    BassInfo,
     DeviceClient,
     DeviceInfo,
     NowPlayingInfo,
@@ -371,6 +374,86 @@ class BoseDeviceClientAdapter(DeviceClient):
                 await asyncio.to_thread(self._client.MuteOff, refresh=False)
         except Exception as e:
             logger.exception("Failed to set mute on %s", self.base_url)
+            raise DeviceConnectionError(self.ip, str(e)) from e
+
+    async def get_bass(self) -> BassInfo:
+        """Get current bass state from the device."""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(f"{self.base_url}/bass")
+                response.raise_for_status()
+
+            root = ElementTree.fromstring(response.text)
+            target_text = root.findtext("targetbass")
+            actual_text = root.findtext("actualbass")
+            if target_text is None or actual_text is None:
+                raise ValueError("Invalid /bass response")
+
+            return BassInfo(
+                target=int(target_text),
+                actual=int(actual_text),
+            )
+
+        except httpx.HTTPStatusError as e:
+            raise DeviceConnectionError(
+                self.ip, f"HTTP {e.response.status_code}"
+            ) from e
+        except Exception as e:
+            logger.exception("Failed to get bass from %s", self.base_url)
+            raise DeviceConnectionError(self.ip, str(e)) from e
+
+    async def get_bass_capabilities(self) -> BassCapabilities:
+        """Get supported bass range from the device."""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(f"{self.base_url}/bassCapabilities")
+                response.raise_for_status()
+
+            root = ElementTree.fromstring(response.text)
+            available_text = root.findtext("bassAvailable")
+            minimum_text = root.findtext("bassMin")
+            maximum_text = root.findtext("bassMax")
+            default_text = root.findtext("bassDefault")
+
+            if None in (
+                available_text,
+                minimum_text,
+                maximum_text,
+                default_text,
+            ):
+                raise ValueError("Invalid /bassCapabilities response")
+
+            return BassCapabilities(
+                available=available_text.strip().lower() == "true",
+                minimum=int(minimum_text),
+                maximum=int(maximum_text),
+                default=int(default_text),
+            )
+
+        except httpx.HTTPStatusError as e:
+            raise DeviceConnectionError(
+                self.ip, f"HTTP {e.response.status_code}"
+            ) from e
+        except Exception as e:
+            logger.exception("Failed to get bass capabilities from %s", self.base_url)
+            raise DeviceConnectionError(self.ip, str(e)) from e
+
+    async def set_bass(self, level: int) -> None:
+        """Set bass level on the device."""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    f"{self.base_url}/bass",
+                    content=f"<bass>{level}</bass>",
+                    headers={"Content-Type": "application/xml"},
+                )
+                response.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            raise DeviceConnectionError(
+                self.ip, f"HTTP {e.response.status_code}"
+            ) from e
+        except Exception as e:
+            logger.exception("Failed to set bass on %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
     async def set_name(self, name: str) -> None:

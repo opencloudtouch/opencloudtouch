@@ -3322,6 +3322,51 @@ paths:
           content:
             application/json:
               schema: {}
+  /api/devices/{device_id}/settings/bass:
+    get:
+      tags:
+        - Devices
+      summary: Get Device Bass
+      description: Get the current bass state reported by the selected SoundTouch device.
+      operationId: get_device_bass_api_devices__device_id__settings_bass_get
+      parameters:
+        - name: device_id
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Device Id
+      responses:
+        "200":
+          description: Successful Response
+        "422":
+          description: Validation Error
+    put:
+      tags:
+        - Devices
+      summary: Set Device Bass
+      description: Set the bass level supported by the selected SoundTouch device.
+      operationId: set_device_bass_api_devices__device_id__settings_bass_put
+      parameters:
+        - name: device_id
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Device Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              title: Body
+      responses:
+        "200":
+          description: Successful Response
+        "422":
+          description: Invalid bass level
+
 components:
   schemas:
     AccountPairingRequest:

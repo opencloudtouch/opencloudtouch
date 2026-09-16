@@ -325,3 +325,46 @@ def test_supports_endpoint_with_and_without_slash():
     # Not supported
     assert capabilities.supports_endpoint("productcechdmicontrol") is False
     assert capabilities.supports_endpoint("/productcechdmicontrol") is False
+
+
+@pytest.mark.asyncio
+async def test_get_device_capabilities_supports_internal_library_fields():
+    """Support bosesoundtouchapi variants exposing internal capability/source fields."""
+    client = MagicMock()
+
+    info = MagicMock()
+    info.DeviceId = "A81B6A1DC457"
+    info.DeviceType = "SoundTouch 10"
+
+    caps = MagicMock()
+    caps.SupportedUrls = None
+    caps._Capabilities = {
+        "systemtimeout": "/systemtimeout",
+        "rebroadcastlatencymode": "/rebroadcastlatencymode",
+    }
+    caps.IsDisablePowerSavingCapable = True
+    caps.IsDualModeCapable = True
+    caps.IsLightSwitchCapable = False
+    caps.IsLrStereoCapable = True
+    caps.IsWebSocketApiProxyCapable = True
+    caps.IsBcoResetCapable = False
+    caps.IsClockDisplayCapable = False
+
+    source = MagicMock()
+    source.Source = "AUX"
+    source.Status = "READY"
+
+    sources = MagicMock()
+    sources.Sources = None
+    sources.SourceItems = None
+    sources._SourceItems = [source]
+
+    client.GetDeviceInfo.return_value = info
+    client.GetCapabilities.return_value = caps
+    client.GetSourceList.return_value = sources
+
+    result = await get_device_capabilities(client)
+
+    assert "systemtimeout" in result.supported_endpoints
+    assert "rebroadcastlatencymode" in result.supported_endpoints
+    assert "AUX" in result.supported_sources

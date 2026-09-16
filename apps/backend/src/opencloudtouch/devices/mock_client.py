@@ -8,6 +8,8 @@ import logging
 from typing import Optional
 
 from opencloudtouch.devices.client import (
+    BassCapabilities,
+    BassInfo,
     DeviceClient,
     DeviceInfo,
     NowPlayingInfo,
@@ -112,6 +114,7 @@ class MockDeviceClient(DeviceClient):
         self.device_id = device_id
         self.ip_address = ip_address
         self._volume = 45
+        self._bass = 0
         self._muted = False
         self._zone: ZoneStatus | None = None
 
@@ -198,6 +201,29 @@ class MockDeviceClient(DeviceClient):
         """Mock set mute."""
         logger.info("[MOCK] set_mute(%s) for device %s", muted, self.device_id)
         self._muted = muted
+
+    async def get_bass(self) -> BassInfo:
+        """Get mock bass state."""
+        return BassInfo(actual=self._bass, target=self._bass)
+
+    async def get_bass_capabilities(self) -> BassCapabilities:
+        """Get mock bass capabilities."""
+        return BassCapabilities(
+            available=True,
+            minimum=-9,
+            maximum=0,
+            default=0,
+        )
+
+    async def set_bass(self, level: int) -> None:
+        """Mock set bass."""
+        capabilities = await self.get_bass_capabilities()
+        if level < capabilities.minimum or level > capabilities.maximum:
+            raise ValueError(
+                f"Bass level must be between {capabilities.minimum} "
+                f"and {capabilities.maximum}"
+            )
+        self._bass = level
 
     async def set_name(self, name: str) -> None:
         """Mock set name."""

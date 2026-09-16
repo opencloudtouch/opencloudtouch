@@ -11,7 +11,12 @@ import httpx
 import pytest
 
 from opencloudtouch.core.exceptions import DeviceConnectionError
-from opencloudtouch.devices.client import DeviceInfo, NowPlayingInfo
+from opencloudtouch.devices.client import (
+    BassCapabilities,
+    BassInfo,
+    DeviceInfo,
+    NowPlayingInfo,
+)
 
 # RED: This import fails until client_adapter.py is created.
 from opencloudtouch.devices.client_adapter import BoseDeviceClientAdapter
@@ -307,3 +312,67 @@ class TestSetName:
         client = _make_client()
         with pytest.raises(DeviceConnectionError):
             await client.set_name("New Name")
+
+
+class TestBass:
+    """Tests for SoundTouch bass endpoints."""
+
+    @pytest.mark.asyncio
+    async def test_get_bass(self, respx_mock):
+        respx_mock.get("http://192.168.1.100:8090/bass").mock(
+            return_value=httpx.Response(
+                200,
+                text=(
+                    '<bass deviceID="ABC123">'
+                    "<targetbass>-3</targetbass>"
+                    "<actualbass>-3</actualbass>"
+                    "</bass>"
+                ),
+            )
+        )
+
+        client = _make_client()
+        result = await client.get_bass()
+
+        assert isinstance(result, BassInfo)
+        assert result.target == -3
+        assert result.actual == -3
+
+    @pytest.mark.asyncio
+    async def test_get_bass_capabilities(self, respx_mock):
+        respx_mock.get("http://192.168.1.100:8090/bassCapabilities").mock(
+            return_value=httpx.Response(
+                200,
+                text=(
+                    '<bassCapabilities deviceID="ABC123">'
+                    "<bassAvailable>true</bassAvailable>"
+                    "<bassMin>-9</bassMin>"
+                    "<bassMax>0</bassMax>"
+                    "<bassDefault>0</bassDefault>"
+                    "</bassCapabilities>"
+                ),
+            )
+        )
+
+        client = _make_client()
+        result = await client.get_bass_capabilities()
+
+        assert isinstance(result, BassCapabilities)
+        assert result.available is True
+        assert result.minimum == -9
+        assert result.maximum == 0
+        assert result.default == 0
+
+    @pytest.mark.asyncio
+    async def test_set_bass_posts_xml(self, respx_mock):
+        respx_mock.post("http://192.168.1.100:8090/bass").mock(
+            return_value=httpx.Response(200)
+        )
+
+        client = _make_client()
+        await client.set_bass(-4)
+
+        request = respx_mock.calls[-1].request
+        assert request.method == "POST"
+        assert request.url.path == "/bass"
+        assert b"<bass>-4</bass>" in request.content
