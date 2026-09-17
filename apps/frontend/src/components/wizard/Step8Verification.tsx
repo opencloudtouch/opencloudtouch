@@ -10,20 +10,21 @@ import { useTranslation } from "react-i18next";
 import { verifyRedirect, rebootDevice, finalizeDevice, verifySetup } from "../../api/wizard";
 import type { VerifyCheck, FinalizeResponse } from "../../api/wizard";
 import WizardStep from "./WizardStep";
-import "./Step7Verification.css";
+import "./Step8Verification.css";
 
 interface Step7Props {
   readonly deviceIp: string;
   readonly deviceId: string;
   readonly octIp: string;
+  readonly ntpServer: string;
   readonly onNext: () => void;
   readonly onPrevious: () => void;
   readonly onSkip?: () => void;
 }
 
 const TEST_DOMAINS = [
-  { domain: "bose.vtuner.com", descriptionKey: "setup.wizard.step7.domainInternetRadio" },
-  { domain: "streaming.bose.com", descriptionKey: "setup.wizard.step7.domainStreaming" },
+  { domain: "bose.vtuner.com", descriptionKey: "setup.wizard.step8.domainInternetRadio" },
+  { domain: "streaming.bose.com", descriptionKey: "setup.wizard.step8.domainStreaming" },
 ];
 
 // Checks already shown by finalize results — hide from verify list
@@ -31,16 +32,16 @@ const HIDDEN_CHECKS = new Set(["uuid_present", "system_config_present"]);
 
 // Group verify checks by file/category for tree display
 const CHECK_GROUPS = [
-  { labelKey: "setup.wizard.step7.groupSources", checks: ["sources_complete"] },
+  { labelKey: "setup.wizard.step8.groupSources", checks: ["sources_complete"] },
   {
-    labelKey: "setup.wizard.step7.groupConfig",
+    labelKey: "setup.wizard.step8.groupConfig",
     checks: ["config_files_present", "config_files_identical", "config_bmx_url"],
   },
   {
-    labelKey: "setup.wizard.step7.groupHosts",
+    labelKey: "setup.wizard.step8.groupHosts",
     checks: ["hosts_oct_block", "hosts_domains_complete", "hosts_ip_correct"],
   },
-  { labelKey: "setup.wizard.step7.groupSystemConfig", checks: ["system_config_uuid_match"] },
+  { labelKey: "setup.wizard.step8.groupSystemConfig", checks: ["system_config_uuid_match"] },
 ];
 const GROUPED_CHECKS = new Set(CHECK_GROUPS.flatMap((g) => g.checks));
 
@@ -53,10 +54,11 @@ interface TestResult {
   message: string;
 }
 
-export default function Step7Verification({
+export default function Step8Verification({
   deviceIp,
   deviceId,
   octIp,
+  ntpServer,
   onNext,
   onPrevious,
   onSkip,
@@ -96,36 +98,36 @@ export default function Step7Verification({
   };
 
   const PASS_KEY_MAP: Record<string, string> = {
-    uuid_in_db: "setup.wizard.step7.checkUuidInDb",
-    sources_complete: "setup.wizard.step7.checkSourcesComplete",
-    config_files_present: "setup.wizard.step7.checkConfigPresent",
-    config_files_identical: "setup.wizard.step7.checkConfigIdentical",
-    hosts_oct_block: "setup.wizard.step7.checkHostsOctBlock",
-    hosts_domains_complete: "setup.wizard.step7.checkHostsDomains",
-    system_config_uuid_match: "setup.wizard.step7.checkSysConfigUuid",
+    uuid_in_db: "setup.wizard.step8.checkUuidInDb",
+    sources_complete: "setup.wizard.step8.checkSourcesComplete",
+    config_files_present: "setup.wizard.step8.checkConfigPresent",
+    config_files_identical: "setup.wizard.step8.checkConfigIdentical",
+    hosts_oct_block: "setup.wizard.step8.checkHostsOctBlock",
+    hosts_domains_complete: "setup.wizard.step8.checkHostsDomains",
+    system_config_uuid_match: "setup.wizard.step8.checkSysConfigUuid",
   };
 
   const FAIL_KEY_MAP: Record<string, string> = {
-    sources_complete: "setup.wizard.step7.checkSourcesMissing",
-    config_files_present: "setup.wizard.step7.checkConfigMissing",
-    config_files_identical: "setup.wizard.step7.checkConfigDiffer",
-    hosts_oct_block: "setup.wizard.step7.checkHostsOctBlockMissing",
-    hosts_domains_complete: "setup.wizard.step7.checkHostsDomainsMissing",
-    hosts_ip_correct: "setup.wizard.step7.checkHostsIpWrong",
-    system_config_uuid_match: "setup.wizard.step7.checkSysConfigUuidMismatch",
-    uuid_in_db: "setup.wizard.step7.checkUuidNotInDb",
+    sources_complete: "setup.wizard.step8.checkSourcesMissing",
+    config_files_present: "setup.wizard.step8.checkConfigMissing",
+    config_files_identical: "setup.wizard.step8.checkConfigDiffer",
+    hosts_oct_block: "setup.wizard.step8.checkHostsOctBlockMissing",
+    hosts_domains_complete: "setup.wizard.step8.checkHostsDomainsMissing",
+    hosts_ip_correct: "setup.wizard.step8.checkHostsIpWrong",
+    system_config_uuid_match: "setup.wizard.step8.checkSysConfigUuidMismatch",
+    uuid_in_db: "setup.wizard.step8.checkUuidNotInDb",
   };
 
   /** Translate verify check messages — both passed and failed use i18n when available */
   const getCheckMessage = (check: VerifyCheck): string => {
     if (check.name === "config_bmx_url" && check.passed) {
       const hostPort = formatBmxHostPort(check.details?.bmx_url as string);
-      if (hostPort) return t("setup.wizard.step7.checkBmxUrl", { hostPort });
+      if (hostPort) return t("setup.wizard.step8.checkBmxUrl", { hostPort });
       return check.message;
     }
 
     if (check.name === "hosts_ip_correct" && check.passed) {
-      return t("setup.wizard.step7.checkHostsIp", { ip: octIp });
+      return t("setup.wizard.step8.checkHostsIp", { ip: octIp });
     }
 
     if (!check.passed) {
@@ -269,10 +271,10 @@ export default function Step7Verification({
 
   return (
     <WizardStep
-      stepNumber={6}
-      title={t("setup.wizard.step7.title")}
-      description={t("setup.wizard.step7.description")}
-      warning={t("setup.wizard.step7.warning")}
+      stepNumber={7}
+      title={t("setup.wizard.step8.title")}
+      description={t("setup.wizard.step8.description")}
+      warning={t("setup.wizard.step8.warning")}
       onNext={onNext}
       onPrevious={onPrevious}
       isNextDisabled={!allTestsPassed}
@@ -282,7 +284,7 @@ export default function Step7Verification({
         {setupPhase === "idle" && (
           <div className="finalize-section">
             <button className="btn btn-primary" onClick={handleFinalizeAndVerify}>
-              {t("setup.wizard.step7.btnFinalize", "Finalize Device Setup")}
+              {t("setup.wizard.step8.btnFinalize", "Finalize Device Setup")}
             </button>
           </div>
         )}
@@ -290,7 +292,7 @@ export default function Step7Verification({
         {setupPhase === "finalizing" && (
           <div className="finalize-status">
             <span className="spinner-small" />
-            {t("setup.wizard.step7.finalizing", "Setting up device...")}
+            {t("setup.wizard.step8.finalizing", "Setting up device...")}
           </div>
         )}
 
@@ -299,7 +301,7 @@ export default function Step7Verification({
             <div className="failed-icon">{"\u26a0\ufe0f"}</div>
             <p>{setupError}</p>
             <button className="btn btn-secondary" onClick={handleFinalizeAndVerify}>
-              {t("setup.wizard.step7.btnRetryFinalize", "Retry")}
+              {t("setup.wizard.step8.btnRetryFinalize", "Retry")}
             </button>
           </div>
         )}
@@ -309,7 +311,7 @@ export default function Step7Verification({
             <div className="verify-check-item passed">
               <span className="check-icon">{"\u2705"}</span>
               <span className="check-message">
-                {t("setup.wizard.step7.finalizeUuid", { uuid: finalizeResult.uuid })}
+                {t("setup.wizard.step8.finalizeUuid", { uuid: finalizeResult.uuid })}
               </span>
             </div>
             <div
@@ -318,11 +320,17 @@ export default function Step7Verification({
               <span className="check-icon">
                 {finalizeResult.sources_written ? "\u2705" : "\u274c"}
               </span>
-              <span className="check-message">{t("setup.wizard.step7.finalizeSources")}</span>
+              <span className="check-message">{t("setup.wizard.step8.finalizeSources")}</span>
             </div>
             <div className="verify-check-item passed">
               <span className="check-icon">{"\u2705"}</span>
-              <span className="check-message">{t("setup.wizard.step7.finalizeSystemConfig")}</span>
+              <span className="check-message">{t("setup.wizard.step8.finalizeSystemConfig")}</span>
+            </div>
+            <div className="verify-check-item passed">
+              <span className="check-icon">{"\u2705"}</span>
+              <span className="check-message">
+                {t("setup.wizard.step8.checkNtpServer", { server: ntpServer })}
+              </span>
             </div>
           </div>
         )}
@@ -333,12 +341,9 @@ export default function Step7Verification({
             <div className="reboot-header">
               <span className="reboot-icon">🔄</span>
               <div>
-                <strong>{t("setup.wizard.step7.rebootHeader")}</strong>
+                <strong>{t("setup.wizard.step8.rebootHeader")}</strong>
                 <p className="reboot-hint">
-                  {t(
-                    "setup.wizard.step7.rebootMandatoryHint",
-                    "A reboot is required for the configuration changes to take effect. The device must restart before verification."
-                  )}
+                  {t("setup.wizard.step8.rebootMandatoryHint")}
                 </p>
               </div>
             </div>
@@ -346,7 +351,7 @@ export default function Step7Verification({
             {rebootState === "idle" && setupPhase === "done_finalize" && (
               <div className="reboot-action">
                 <button className="btn btn-primary reboot-btn" onClick={handleReboot}>
-                  🔄 {t("setup.wizard.step7.btnReboot")}
+                  🔄 {t("setup.wizard.step8.btnReboot")}
                 </button>
               </div>
             )}
@@ -354,20 +359,20 @@ export default function Step7Verification({
             {rebootState === "rebooting" && (
               <div className="reboot-status reboot-status--progress">
                 <span className="spinner-small" />
-                {t("setup.wizard.step7.rebootRebooting")}
+                {t("setup.wizard.step8.rebootRebooting")}
               </div>
             )}
 
             {rebootState === "waiting" && (
               <div className="reboot-status reboot-status--waiting">
                 <span className="reboot-countdown">{rebootCountdown}s</span>
-                {t("setup.wizard.step7.rebootWaiting")}
+                {t("setup.wizard.step8.rebootWaiting")}
               </div>
             )}
 
             {rebootState === "done" && (
               <div className="reboot-status reboot-status--done">
-                ✅ {t("setup.wizard.step7.rebootDone")}
+                ✅ {t("setup.wizard.step8.rebootDone")}
               </div>
             )}
 
@@ -375,7 +380,7 @@ export default function Step7Verification({
               <div className="reboot-status reboot-status--error">
                 ❌ {rebootError}
                 <button className="btn btn-secondary reboot-retry" onClick={handleReboot}>
-                  {t("setup.wizard.step7.btnRetryReboot")}
+                  {t("setup.wizard.step8.btnRetryReboot")}
                 </button>
               </div>
             )}
@@ -388,29 +393,13 @@ export default function Step7Verification({
             <div className="verification-info">
               <div className="info-icon">🔍</div>
               <div className="info-content">
-                <h3>{t("setup.wizard.step7.fullVerifyTitle", "Full System Verification")}</h3>
+                <h3>{t("setup.wizard.step8.fullVerifyTitle", "Full System Verification")}</h3>
                 <ul>
-                  <li>
-                    {t("setup.wizard.step7.fullVerifyItem1", "Account UUID visible in device info")}
-                  </li>
-                  <li>
-                    {t(
-                      "setup.wizard.step7.fullVerifyItem2",
-                      "All music sources registered (AUX, TuneIn, Bluetooth, ...)"
-                    )}
-                  </li>
-                  <li>
-                    {t(
-                      "setup.wizard.step7.fullVerifyItem3",
-                      "Configuration files intact after reboot"
-                    )}
-                  </li>
-                  <li>
-                    {t(
-                      "setup.wizard.step7.fullVerifyItem4",
-                      "DNS redirects resolve to OpenCloudTouch server"
-                    )}
-                  </li>
+                  <li>{t("setup.wizard.step8.fullVerifyItem1")}</li>
+                  <li>{t("setup.wizard.step8.fullVerifyItem2")}</li>
+                  <li>{t("setup.wizard.step8.fullVerifyItem3")}</li>
+                  <li>{t("setup.wizard.step8.fullVerifyItem4")}</li>
+                  <li>{t("setup.wizard.step8.fullVerifyItem5")}</li>
                 </ul>
               </div>
             </div>
@@ -419,7 +408,7 @@ export default function Step7Verification({
               className="btn btn-primary verification-test-btn"
               onClick={handleFullVerification}
             >
-              🚀 {t("setup.wizard.step7.btnRunFullVerify", "Run Full Verification")}
+              🚀 {t("setup.wizard.step8.btnRunFullVerify", "Run Full Verification")}
             </button>
           </div>
         )}
@@ -427,7 +416,7 @@ export default function Step7Verification({
         {setupPhase === "post_reboot_verify" && (
           <div className="verify-status">
             <span className="spinner-small" />
-            {t("setup.wizard.step7.fullVerifying", "Running full system verification...")}
+            {t("setup.wizard.step8.fullVerifying", "Running full system verification...")}
           </div>
         )}
 
@@ -437,7 +426,7 @@ export default function Step7Verification({
             {/* Grouped Verify Checks */}
             {verifyChecks.length > 0 && (
               <div className="verify-checklist">
-                <h3>{t("setup.wizard.step7.verifyTitle", "Setup Verification")}</h3>
+                <h3>{t("setup.wizard.step8.verifyTitle", "Setup Verification")}</h3>
                 {/* Ungrouped checks (not hidden, not in any group) */}
                 {verifyChecks
                   .filter((c) => !HIDDEN_CHECKS.has(c.name) && !GROUPED_CHECKS.has(c.name))
@@ -479,13 +468,13 @@ export default function Step7Verification({
             {/* Test Results — Summary */}
             {testResults.length > 0 && (
               <div className="verification-results">
-                <h3 className="verification-title">{t("setup.wizard.step7.resultsTitle")}</h3>
+                <h3 className="verification-title">{t("setup.wizard.step8.resultsTitle")}</h3>
 
                 <div className="verification-summary-list">
                   <div className={`verify-check-item ${summaryConfigPassed ? "passed" : "failed"}`}>
                     <span className="check-icon">{summaryConfigPassed ? "\u2705" : "\u274c"}</span>
                     <span className="check-message">
-                      {t("setup.wizard.step7.summaryConfigCorrect")}
+                      {t("setup.wizard.step8.summaryConfigCorrect")}
                     </span>
                   </div>
                   <div
@@ -495,7 +484,7 @@ export default function Step7Verification({
                       {summaryRedirectsPassed ? "\u2705" : "\u274c"}
                     </span>
                     <span className="check-message">
-                      {t("setup.wizard.step7.summaryRedirectsCorrect")}
+                      {t("setup.wizard.step8.summaryRedirectsCorrect")}
                     </span>
                   </div>
                   <div
@@ -503,7 +492,7 @@ export default function Step7Verification({
                   >
                     <span className="check-icon">{summarySourcesPassed ? "\u2705" : "\u274c"}</span>
                     <span className="check-message">
-                      {t("setup.wizard.step7.summarySourcesPresent")}
+                      {t("setup.wizard.step8.summarySourcesPresent")}
                     </span>
                   </div>
                 </div>
@@ -514,24 +503,24 @@ export default function Step7Verification({
             {allTestsPassed ? (
               <div className="verification-success">
                 <div className="success-icon">{"\ud83c\udf89"}</div>
-                <h3 className="success-title">{t("setup.wizard.step7.allPassedTitle")}</h3>
-                <p className="success-message">{t("setup.wizard.step7.allPassedMessage")}</p>
+                <h3 className="success-title">{t("setup.wizard.step8.allPassedTitle")}</h3>
+                <p className="success-message">{t("setup.wizard.step8.allPassedMessage")}</p>
               </div>
             ) : (
               <div className="verification-failed">
                 <div className="failed-icon">{"\u26a0\ufe0f"}</div>
-                <h3 className="failed-title">{t("setup.wizard.step7.someFailedTitle")}</h3>
-                <p className="failed-message">{t("setup.wizard.step7.someFailedMessage")}</p>
+                <h3 className="failed-title">{t("setup.wizard.step8.someFailedTitle")}</h3>
+                <p className="failed-message">{t("setup.wizard.step8.someFailedMessage")}</p>
                 <button
                   className="btn btn-secondary verification-retry-btn"
                   onClick={handleFullVerification}
                 >
                   {"\ud83d\udd04"}{" "}
-                  {t("setup.wizard.step7.btnRetryFullVerify", "Run Verification Again")}
+                  {t("setup.wizard.step8.btnRetryFullVerify", "Run Verification Again")}
                 </button>
                 {onSkip && (
                   <button className="btn btn-ghost verification-skip-btn" onClick={onSkip}>
-                    {t("setup.wizard.step7.btnSkip")}
+                    {t("setup.wizard.step8.btnSkip")}
                   </button>
                 )}
               </div>

@@ -250,7 +250,7 @@ class WizardService:
             return {"success": True}
         except Exception as e:
             logger.exception("Unexpected error during reboot: %s", e)
-            return {"success": False, "error": f"Unexpected error: {str(e)}"}
+            return {"success": False, "error": f"Unexpected error: {e!s}"}
         finally:
             await ssh_client.close()
 
@@ -292,6 +292,30 @@ class WizardService:
                 "message": "",
                 "error": f"Account pairing failed: {e}",
             }
+
+    async def patch_ntp(self, device_ip: str, ntp_server: str = "time.cloudflare.com") -> dict:
+        """Write NTP server to /etc/ntpservers.txt and restart ntpd."""
+        async with ssh_operation(device_ip, "patch-ntp") as ssh:
+            await ssh.execute("mount -o remount,rw /")
+            write_result = await ssh.execute(
+                f"printf '{ntp_server}\\n0.pool.ntp.org\\n1.pool.ntp.org\\n'"
+                " > /etc/ntpservers.txt"
+            )
+            await ssh.execute("mount -o remount,ro /")
+            if not write_result.success:
+                return {
+                    "success": False,
+                    "error": write_result.error or "Failed to write /etc/ntpservers.txt",
+                }
+            sync_result = await ssh.execute(
+                f"/bin/ntpd -q -n -p {shlex.quote(ntp_server)}"
+            )
+            if not sync_result.success:
+                return {
+                    "success": False,
+                    "error": sync_result.error or "ntpd sync failed",
+                }
+            return {"success": True, "message": f"NTP server set to {ntp_server}"}
 
     async def mark_complete(self, device_id: str) -> dict:
         """Mark wizard setup as complete for a device."""

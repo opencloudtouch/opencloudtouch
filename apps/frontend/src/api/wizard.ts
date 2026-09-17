@@ -316,6 +316,30 @@ export interface VerifySetupResponse {
   message: string;
 }
 
+export interface PatchNtpRequest {
+  device_ip: string;
+  ntp_server?: string;
+}
+
+export interface PatchNtpResponse {
+  success: boolean;
+  message: string;
+  error?: string;
+}
+
+/**
+ * Patch NTP server on device
+ */
+export async function patchNtp(request: PatchNtpRequest): Promise<PatchNtpResponse> {
+  const response = await fetch(`${API_BASE}/api/setup/wizard/patch-ntp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+  await throwIfNotOk(response, "NTP patch failed");
+  return response.json();
+}
+
 /**
  * Finalize device setup: set UUID + write Sources.xml
  */

@@ -242,10 +242,14 @@
       "description": "Boseドメインのネットワークリダイレクトを設定"
     },
     "step6": {
+      "label": "NTP",
+      "description": "デバイスのNTPサーバーにパッチを適用"
+    },
+    "step7": {
       "label": "確認",
       "description": "設定をテストしてDNSリダイレクトを確認"
     },
-    "step7": {
+    "step8": {
       "label": "完了",
       "description": "セットアップ完了"
     },
@@ -455,6 +459,16 @@
         "hostsApplied": "hostsファイルが正常に変更されました。"
       },
       "step7": {
+        "title": "NTPサーバーにパッチを適用",
+        "description": "デバイスのNTPタイムサーバーを設定して、時刻を正確に保ちます。",
+        "serverLabel": "NTPサーバー:",
+        "btnPatch": "NTPサーバーを適用",
+        "btnPatching": "適用中...",
+        "errorTitle": "NTPパッチに失敗しました",
+        "successTitle": "NTPサーバーが更新されました！",
+        "nextDisabled": "最初にNTPサーバーを適用してください。"
+      },
+      "step8": {
         "title": "設定をテスト",
         "description": "ドメインリダイレクトが正しく機能することを確認します。",
         "warning": "テストが失敗した場合、デバイスの再起動が必要な場合があります。",
@@ -489,6 +503,7 @@
         "checkHostsOctBlockMissing": "/etc/hostsにOCTブロックが見つかりません",
         "checkHostsDomainsMissing": "/etc/hostsに一部の必要なドメインがありません",
         "checkHostsIpWrong": "すべてのホストエントリが期待されるIPを指していません",
+        "checkNtpServer": "NTPサーバーを設定しました: {{server}}",
         "checkSysConfigUuidMismatch": "SystemConfigurationDB.xmlのUUIDがデバイスと一致しません",
         "checkUuidNotInDb": "UUIDがデータベースに登録されていません",
         "summaryConfigCorrect": "設定が存在し正常",
@@ -509,11 +524,12 @@
         "fullVerifyItem2": "すべての音楽ソースが登録されている（AUX、TuneIn、Bluetooth、...）",
         "fullVerifyItem3": "再起動後も設定ファイルが正常",
         "fullVerifyItem4": "DNSリダイレクトがOpenCloudTouchサーバーに解決されている",
+        "fullVerifyItem5": "NTPサーバーにパッチ適用済み、時刻同期が有効",
         "btnRunFullVerify": "完全な検証を開始",
         "fullVerifying": "完全なシステム検証を実行中...",
         "btnRetryFullVerify": "検証を再実行"
       },
-      "step8": {
+      "step9": {
         "title": "セットアップ完了！",
         "description": "デバイスが正常に設定され、使用準備ができています。",
         "heroTitle": "おめでとうございます！",
@@ -525,6 +541,7 @@
         "summaryItem4": "設定ファイルを変更（bmxRegistryUrl）",
         "summaryItem5": "hostsファイルを変更（ドメインリダイレクト）",
         "summaryItem6": "設定をテストして確認",
+        "summaryItem7": "NTPサーバーにパッチを適用 ({{server}})",
         "backupTitle": "バックアップの場所：",
         "backupNote": "このバックアップは安全な場所に保管してください！緊急時にデバイスを復元するために使用できます。",
         "noBackupTitle": "バックアップが作成されていません",

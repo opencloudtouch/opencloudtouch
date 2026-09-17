@@ -242,10 +242,14 @@
       "description": "Configurer la redirection réseau pour les domaines Bose"
     },
     "step6": {
+      "label": "NTP",
+      "description": "Patcher le serveur NTP sur l'appareil"
+    },
+    "step7": {
       "label": "Vérification",
       "description": "Tester la configuration et vérifier la redirection DNS"
     },
-    "step7": {
+    "step8": {
       "label": "Terminé",
       "description": "Configuration terminée"
     },
@@ -455,6 +459,16 @@
         "hostsApplied": "Fichier hosts modifié avec succès."
       },
       "step7": {
+        "title": "Patcher le serveur NTP",
+        "description": "Définir le serveur de temps NTP sur l'appareil pour que l'horloge reste précise.",
+        "serverLabel": "Serveur NTP :",
+        "btnPatch": "Appliquer le serveur NTP",
+        "btnPatching": "Application en cours...",
+        "errorTitle": "Échec du patch NTP",
+        "successTitle": "Serveur NTP mis à jour !",
+        "nextDisabled": "Veuillez d'abord appliquer le serveur NTP."
+      },
+      "step8": {
         "title": "Tester la configuration",
         "description": "Vérifiez que les redirections de domaines fonctionnent correctement.",
         "warning": "Si les tests échouent, un redémarrage de l'appareil peut être nécessaire.",
@@ -489,6 +503,7 @@
         "checkHostsOctBlockMissing": "Bloc OCT introuvable dans /etc/hosts",
         "checkHostsDomainsMissing": "Certains domaines requis manquent dans /etc/hosts",
         "checkHostsIpWrong": "Toutes les entrées d'hôte ne pointent pas vers l'IP attendue",
+        "checkNtpServer": "Serveur NTP défini sur : {{server}}",
         "checkSysConfigUuidMismatch": "L'UUID dans SystemConfigurationDB.xml ne correspond pas à l'appareil",
         "checkUuidNotInDb": "UUID non enregistré dans la base de données",
         "summaryConfigCorrect": "Configurations présentes et correctes",
@@ -509,11 +524,12 @@
         "fullVerifyItem2": "Toutes les sources musicales enregistrées (AUX, TuneIn, Bluetooth, ...)",
         "fullVerifyItem3": "Fichiers de configuration intacts après le redémarrage",
         "fullVerifyItem4": "Redirections DNS résolues vers le serveur OpenCloudTouch",
+        "fullVerifyItem5": "Serveur NTP patché et synchronisation de l'heure active",
         "btnRunFullVerify": "Lancer la vérification complète",
         "fullVerifying": "Vérification complète du système en cours...",
         "btnRetryFullVerify": "Relancer la vérification"
       },
-      "step8": {
+      "step9": {
         "title": "Configuration terminée !",
         "description": "Votre appareil a été configuré avec succès et est prêt à l'emploi.",
         "heroTitle": "Félicitations !",
@@ -525,6 +541,7 @@
         "summaryItem4": "Fichier de configuration modifié (bmxRegistryUrl)",
         "summaryItem5": "Fichier hosts modifié (redirections de domaines)",
         "summaryItem6": "Configuration testée et vérifiée",
+        "summaryItem7": "Serveur NTP patché ({{server}})",
         "backupTitle": "Emplacement de la sauvegarde :",
         "backupNote": "Conservez cette sauvegarde en lieu sûr ! Vous pouvez l'utiliser pour restaurer votre appareil en cas d'urgence.",
         "noBackupTitle": "Aucune sauvegarde créée",

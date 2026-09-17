@@ -242,10 +242,14 @@
       "description": "Skonfiguruj przekierowanie sieci dla domen Bose"
     },
     "step6": {
+      "label": "NTP",
+      "description": "Zastosuj łatkę serwera NTP na urządzeniu"
+    },
+    "step7": {
       "label": "Weryfikacja",
       "description": "Przetestuj konfigurację i zweryfikuj przekierowanie DNS"
     },
-    "step7": {
+    "step8": {
       "label": "Gotowe",
       "description": "Konfiguracja zakończona"
     },
@@ -455,6 +459,16 @@
         "hostsApplied": "Plik hosts został pomyślnie zmodyfikowany."
       },
       "step7": {
+        "title": "Patch serwera NTP",
+        "description": "Ustaw serwer czasu NTP na urządzeniu, aby zegar był dokładny.",
+        "serverLabel": "Serwer NTP:",
+        "btnPatch": "Zastosuj serwer NTP",
+        "btnPatching": "Stosowanie...",
+        "errorTitle": "Patch NTP nie powiódł się",
+        "successTitle": "Serwer NTP zaktualizowany!",
+        "nextDisabled": "Najpierw zastosuj serwer NTP."
+      },
+      "step8": {
         "title": "Testuj konfigurację",
         "description": "Sprawdź, czy przekierowania domen działają poprawnie.",
         "warning": "Jeśli testy nie powiodą się, może być wymagany restart urządzenia.",
@@ -489,6 +503,7 @@
         "checkHostsOctBlockMissing": "Blok OCT nie znaleziony w /etc/hosts",
         "checkHostsDomainsMissing": "Brakuje niektórych wymaganych domen w /etc/hosts",
         "checkHostsIpWrong": "Nie wszystkie wpisy hosta wskazują na oczekiwany IP",
+        "checkNtpServer": "Serwer NTP ustawiony na: {{server}}",
         "checkSysConfigUuidMismatch": "UUID w SystemConfigurationDB.xml nie zgadza się z urządzeniem",
         "checkUuidNotInDb": "UUID nie zarejestrowany w bazie danych",
         "summaryConfigCorrect": "Konfiguracje obecne i poprawne",
@@ -509,11 +524,12 @@
         "fullVerifyItem2": "Wszystkie źródła muzyki zarejestrowane (AUX, TuneIn, Bluetooth, ...)",
         "fullVerifyItem3": "Pliki konfiguracyjne nienaruszone po restarcie",
         "fullVerifyItem4": "Przekierowania DNS rozwiązane do serwera OpenCloudTouch",
+        "fullVerifyItem5": "Serwer NTP zaktualizowany i synchronizacja czasu aktywna",
         "btnRunFullVerify": "Uruchom pełną weryfikację",
         "fullVerifying": "Trwa pełna weryfikacja systemu...",
         "btnRetryFullVerify": "Uruchom weryfikację ponownie"
       },
-      "step8": {
+      "step9": {
         "title": "Konfiguracja zakończona!",
         "description": "Urządzenie zostało pomyślnie skonfigurowane i jest gotowe do użycia.",
         "heroTitle": "Gratulacje!",
@@ -525,6 +541,7 @@
         "summaryItem4": "Plik konfiguracyjny zmodyfikowany (bmxRegistryUrl)",
         "summaryItem5": "Plik hosts zmodyfikowany (przekierowania domen)",
         "summaryItem6": "Konfiguracja przetestowana i zweryfikowana",
+        "summaryItem7": "Serwer NTP zaktualizowany ({{server}})",
         "backupTitle": "Lokalizacja kopii zapasowej:",
         "backupNote": "Przechowuj tę kopię zapasową w bezpiecznym miejscu! Możesz jej użyć do przywrócenia urządzenia w nagłym przypadku.",
         "noBackupTitle": "Brak kopii zapasowej",

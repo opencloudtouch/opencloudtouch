@@ -242,10 +242,14 @@
       "description": "Netwerkdoorverwijzing instellen voor Bose-domeinen"
     },
     "step6": {
+      "label": "NTP",
+      "description": "NTP-server op het apparaat patchen"
+    },
+    "step7": {
       "label": "Verificatie",
       "description": "Configuratie testen en DNS-doorverwijzing verifiëren"
     },
-    "step7": {
+    "step8": {
       "label": "Klaar",
       "description": "Installatie voltooid"
     },
@@ -455,6 +459,16 @@
         "hostsApplied": "Hosts-bestand succesvol gewijzigd."
       },
       "step7": {
+        "title": "NTP-server patchen",
+        "description": "Stel de NTP-tijdserver in op het apparaat zodat de klok nauwkeurig blijft.",
+        "serverLabel": "NTP-server:",
+        "btnPatch": "NTP-server toepassen",
+        "btnPatching": "Toepassen...",
+        "errorTitle": "NTP-patch mislukt",
+        "successTitle": "NTP-server bijgewerkt!",
+        "nextDisabled": "Pas eerst de NTP-server toe."
+      },
+      "step8": {
         "title": "Configuratie testen",
         "description": "Controleer of de domeindoorleidingen correct werken.",
         "warning": "Als tests mislukken, kan een apparaat herstart vereist zijn.",
@@ -489,6 +503,7 @@
         "checkHostsOctBlockMissing": "OCT-blok niet gevonden in /etc/hosts",
         "checkHostsDomainsMissing": "Sommige vereiste domeinen ontbreken in /etc/hosts",
         "checkHostsIpWrong": "Niet alle host-entries verwijzen naar het verwachte IP",
+        "checkNtpServer": "NTP-server ingesteld op: {{server}}",
         "checkSysConfigUuidMismatch": "UUID in SystemConfigurationDB.xml komt niet overeen met apparaat",
         "checkUuidNotInDb": "UUID niet geregistreerd in database",
         "summaryConfigCorrect": "Configuraties aanwezig en correct",
@@ -509,11 +524,12 @@
         "fullVerifyItem2": "Alle muziekbronnen geregistreerd (AUX, TuneIn, Bluetooth, ...)",
         "fullVerifyItem3": "Configuratiebestanden intact na herstart",
         "fullVerifyItem4": "DNS-doorleidingen opgelost naar de OpenCloudTouch-server",
+        "fullVerifyItem5": "NTP-server gepatcht en tijdsynchronisatie actief",
         "btnRunFullVerify": "Volledige verificatie starten",
         "fullVerifying": "Volledige systeemverificatie wordt uitgevoerd...",
         "btnRetryFullVerify": "Verificatie opnieuw uitvoeren"
       },
-      "step8": {
+      "step9": {
         "title": "Installatie voltooid!",
         "description": "Uw apparaat is succesvol geconfigureerd en klaar voor gebruik.",
         "heroTitle": "Gefeliciteerd!",
@@ -525,6 +541,7 @@
         "summaryItem4": "Configuratiebestand gewijzigd (bmxRegistryUrl)",
         "summaryItem5": "Hosts-bestand gewijzigd (domeindoorleidingen)",
         "summaryItem6": "Configuratie getest en geverifieerd",
+        "summaryItem7": "NTP-server gepatcht ({{server}})",
         "backupTitle": "Back-uplocatie:",
         "backupNote": "Bewaar deze back-up veilig! U kunt het gebruiken om uw apparaat te herstellen in noodgevallen.",
         "noBackupTitle": "Geen back-up gemaakt",

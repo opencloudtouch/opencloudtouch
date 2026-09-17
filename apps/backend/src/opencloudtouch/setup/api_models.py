@@ -7,7 +7,6 @@ setup/models.py; this file holds only the request/response DTOs.
 
 import ipaddress
 import re
-from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -334,7 +333,7 @@ class InitPersistenceResponse(BaseModel):
     created_files: list[str] = Field(default_factory=list)
     skipped_files: list[str] = Field(default_factory=list)
     message: str = ""
-    error: Optional[str] = None
+    error: str | None = None
 
 
 # Aliases for backward compatibility with main's naming
@@ -361,8 +360,8 @@ class BackupFileInfoResponse(BaseModel):
     volume_type: str
     file_path: str
     size_bytes: int = 0
-    device_id: Optional[str] = None
-    backup_date: Optional[str] = None
+    device_id: str | None = None
+    backup_date: str | None = None
     is_pre_restore: bool = False
     validation_status: str = "valid"
     validation_message: str = ""
@@ -371,8 +370,8 @@ class BackupFileInfoResponse(BaseModel):
 class BackupSetResponse(BaseModel):
     """Backup set in scan response."""
 
-    device_id: Optional[str] = None
-    backup_date: Optional[str] = None
+    device_id: str | None = None
+    backup_date: str | None = None
     files: list[BackupFileInfoResponse] = Field(default_factory=list)
     is_legacy: bool = False
     is_match: bool = False
@@ -383,9 +382,9 @@ class ScanBackupsResponse(BaseModel):
 
     usb_mounted: bool
     backup_dir: str = "/media/sda1/oct-backup"
-    selected_set: Optional[BackupSetResponse] = None
+    selected_set: BackupSetResponse | None = None
     all_sets: list[BackupSetResponse] = Field(default_factory=list)
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class RestoreWizardFileRef(BaseModel):
@@ -398,8 +397,8 @@ class RestoreWizardFileRef(BaseModel):
 class RestoreWizardBackupSet(BaseModel):
     """Backup set reference for restore execution."""
 
-    device_id: Optional[str] = None
-    backup_date: Optional[str] = None
+    device_id: str | None = None
+    backup_date: str | None = None
     files: list[RestoreWizardFileRef] = Field(default_factory=list)
 
 
@@ -410,7 +409,7 @@ class RestoreWizardRequest(WizardDeviceRequest):
     restore_type: str = Field(
         ..., description="'backup' or 'clean'", pattern=r"^(backup|clean)$"
     )
-    backup_set: Optional[RestoreWizardBackupSet] = None
+    backup_set: RestoreWizardBackupSet | None = None
     skip_snapshot: bool = Field(
         default=False, description="Skip pre-restore safety snapshot"
     )
@@ -422,7 +421,7 @@ class RestoreStepResponse(BaseModel):
     name: str
     status: str
     message: str = ""
-    error: Optional[str] = None
+    error: str | None = None
     duration_seconds: float = 0.0
 
 
@@ -432,7 +431,7 @@ class RestoreWizardResponse(BaseModel):
     success: bool
     restore_type: str
     steps: list[RestoreStepResponse] = Field(default_factory=list)
-    pre_restore_snapshot: Optional[dict] = None
+    pre_restore_snapshot: dict | None = None
     snapshot_skipped: bool = False
     device_rebooted: bool = False
     total_duration_seconds: float = 0.0
@@ -460,7 +459,7 @@ class FinalizeResponse(BaseModel):
     sources_backup_path: str = ""
     system_config_written: bool = False
     message: str = ""
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class VerifyCheck(BaseModel):
@@ -499,6 +498,33 @@ class VerifySetupResponse(BaseModel):
 # ============================================================================
 
 
+class PatchNtpRequest(WizardDeviceRequest):
+    """Request to patch NTP server on device."""
+
+    ntp_server: str = Field(
+        default="time.cloudflare.com",
+        description="NTP server hostname to write to /etc/ntpservers.txt",
+        min_length=1,
+        max_length=253,
+    )
+
+    @field_validator("ntp_server")
+    @classmethod
+    def validate_ntp_server(cls, v: str) -> str:
+        v = v.strip()
+        if not _HOSTNAME_RE.match(v):
+            raise ValueError(f"Invalid NTP server hostname: {v!r}")
+        return v
+
+
+class PatchNtpResponse(BaseModel):
+    """Response from NTP patch."""
+
+    success: bool
+    message: str = ""
+    error: str | None = None
+
+
 class ValidateHostnameRequest(BaseModel):
     """Request to validate a hostname or IP via DNS resolution and OCT reachability.
 
@@ -519,7 +545,7 @@ class ValidateHostnameRequest(BaseModel):
         ge=1,
         le=65535,
     )
-    expected_ip: Optional[str] = Field(
+    expected_ip: str | None = Field(
         None,
         description="Expected IP address to compare against resolved IP",
     )
@@ -534,7 +560,7 @@ class ValidateHostnameRequest(BaseModel):
 
     @field_validator("expected_ip")
     @classmethod
-    def validate_expected_ip(cls, v: Optional[str]) -> Optional[str]:
+    def validate_expected_ip(cls, v: str | None) -> str | None:
         if v is None:
             return None
         return _validate_ip_field(v)
@@ -544,10 +570,10 @@ class ValidateHostnameResponse(BaseModel):
     """Response from hostname DNS validation."""
 
     resolvable: bool = Field(description="Whether the hostname could be resolved")
-    resolved_ip: Optional[str] = Field(
+    resolved_ip: str | None = Field(
         None, description="Resolved IP address (if successful)"
     )
-    matches_expected: Optional[bool] = Field(
+    matches_expected: bool | None = Field(
         None,
         description="Whether resolved IP matches expected_ip (null if no expected_ip)",
     )
@@ -555,9 +581,9 @@ class ValidateHostnameResponse(BaseModel):
         False,
         description="Whether OCT is reachable at hostname:port",
     )
-    error: Optional[str] = Field(
+    error: str | None = Field(
         None, description="Error message (if resolution failed)"
     )
-    oct_error: Optional[str] = Field(
+    oct_error: str | None = Field(
         None, description="Error message (if OCT check failed)"
     )

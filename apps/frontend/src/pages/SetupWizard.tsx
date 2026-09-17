@@ -23,8 +23,9 @@ import Step3PowerCycle from "../components/wizard/Step3PowerCycle";
 import Step4Backup from "../components/wizard/Step4Backup";
 import Step5ConfigModification from "../components/wizard/Step5ConfigModification";
 import Step6HostsModification from "../components/wizard/Step6HostsModification";
-import Step7Verification from "../components/wizard/Step7Verification";
-import Step8Completion from "../components/wizard/Step8Completion";
+import Step7NtpPatch from "../components/wizard/Step7NtpPatch";
+import Step8Verification from "../components/wizard/Step8Verification";
+import Step9Completion from "../components/wizard/Step9Completion";
 import WizardChoice from "../components/wizard/WizardChoice";
 import RestoreChoice from "../components/wizard/RestoreChoice";
 import BackupScan from "../components/wizard/BackupScan";
@@ -88,6 +89,12 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
         description: t("setup.step7.description"),
         status: "pending",
       },
+      {
+        id: 8,
+        label: t("setup.step8.label"),
+        description: t("setup.step8.description"),
+        status: "pending",
+      },
     ],
     [t]
   );
@@ -113,10 +120,11 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
   // step 1 was device selection; remaining steps 2-8 map to internal steps 1-7).
   const urlStep = Number.parseInt(urlStepParam ?? "2", 10);
   const [currentStep, setCurrentStep] = useState(
-    Number.isNaN(urlStep) ? 1 : Math.max(1, Math.min(urlStep - 1, 7))
+    Number.isNaN(urlStep) ? 1 : Math.max(1, Math.min(urlStep - 1, 8))
   );
   const [steps, setSteps] = useState<WizardStep[]>(WIZARD_STEPS);
   const [backupPath, setBackupPath] = useState<string>("");
+  const [ntpServer, setNtpServer] = useState<string>("time.cloudflare.com");
   const [_detectedStrategy, setDetectedStrategy] = useState<DetectStrategyResponse | null>(null);
   const [serverIp, setServerIp] = useState<string>(window.location.hostname);
   const [audit, setAudit] = useState<WizardAuditLogger | null>(null);
@@ -468,12 +476,22 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
           />
         );
 
-      case 6: // Verification
+      case 6: // NTP Patch
         return (
-          <Step7Verification
+          <Step7NtpPatch
+            deviceIp={selectedDevice?.ip || ""}
+            onNext={(server) => { setNtpServer(server); handleNext(); }}
+            onPrevious={handlePrevious}
+          />
+        );
+
+      case 7: // Verification
+        return (
+          <Step8Verification
             deviceIp={selectedDevice?.ip || ""}
             deviceId={selectedDevice?.device_id || ""}
             octIp={octIp}
+            ntpServer={ntpServer}
             onNext={handleNext}
             onPrevious={handlePrevious}
             onSkip={() => {
@@ -485,11 +503,12 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
           />
         );
 
-      case 7: // Completion
+      case 8: // Completion
         return (
-          <Step8Completion
+          <Step9Completion
             deviceName={selectedDevice?.name || "Device"}
             backupPath={backupPath || null}
+            ntpServer={ntpServer}
             onFinish={handleComplete}
           />
         );

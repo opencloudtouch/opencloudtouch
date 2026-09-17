@@ -242,10 +242,14 @@
       "description": "Set up network redirect for Bose domains"
     },
     "step6": {
+      "label": "NTP",
+      "description": "Patch NTP server on device"
+    },
+    "step7": {
       "label": "Verification",
       "description": "Test configuration and verify DNS redirect"
     },
-    "step7": {
+    "step8": {
       "label": "Done",
       "description": "Setup complete"
     },
@@ -455,6 +459,16 @@
         "hostsApplied": "Hosts file successfully modified."
       },
       "step7": {
+        "title": "Patch NTP Server",
+        "description": "Set the NTP time server on the device so the clock stays accurate.",
+        "serverLabel": "NTP server:",
+        "btnPatch": "Apply NTP server",
+        "btnPatching": "Applying...",
+        "errorTitle": "NTP patch failed",
+        "successTitle": "NTP server updated!",
+        "nextDisabled": "Please apply the NTP server first."
+      },
+      "step8": {
         "title": "Verification & Test",
         "description": "Finalize device configuration, reboot, and verify everything works.",
         "warning": "We recommend that all checks pass before you continue.",
@@ -490,6 +504,7 @@
         "checkHostsOctBlockMissing": "OCT block not found in /etc/hosts",
         "checkHostsDomainsMissing": "Some required domains are missing from /etc/hosts",
         "checkHostsIpWrong": "Not all host entries point to the expected IP",
+        "checkNtpServer": "NTP server set to: {{server}}",
         "checkSysConfigUuidMismatch": "UUID in SystemConfigurationDB.xml does not match device",
         "checkUuidNotInDb": "UUID not registered in database",
         "summaryConfigCorrect": "Configurations present and correct",
@@ -501,6 +516,7 @@
         "fullVerifyItem2": "All music sources registered (AUX, TuneIn, Bluetooth, ...)",
         "fullVerifyItem3": "Configuration files intact after reboot",
         "fullVerifyItem4": "DNS redirects resolve to OpenCloudTouch server",
+        "fullVerifyItem5": "NTP server patched and time sync active",
         "btnRunFullVerify": "Run Full Verification",
         "fullVerifying": "Running full system verification...",
         "btnRetryFullVerify": "Run Verification Again",
@@ -513,7 +529,7 @@
         "someFailedMessage": "Not all verification checks passed. Review the results above and retry.",
         "btnSkip": "Continue anyway — device will not be marked as configured"
       },
-      "step8": {
+      "step9": {
         "title": "Setup complete!",
         "description": "Your device has been successfully configured and is ready to use.",
         "heroTitle": "Congratulations!",
@@ -525,6 +541,7 @@
         "summaryItem4": "Configuration file changed (bmxRegistryUrl)",
         "summaryItem5": "Hosts file changed (domain redirects)",
         "summaryItem6": "Configuration tested and verified",
+        "summaryItem7": "NTP server patched ({{server}})",
         "backupTitle": "Backup location:",
         "backupNote": "Keep this backup safe! You can use it to restore your device in an emergency.",
         "noBackupTitle": "No backup created",

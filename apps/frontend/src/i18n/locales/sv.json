@@ -242,10 +242,14 @@
       "description": "Konfigurera nätverksomdirigering för Bose-domäner"
     },
     "step6": {
+      "label": "NTP",
+      "description": "Patcha NTP-server på enheten"
+    },
+    "step7": {
       "label": "Verifiering",
       "description": "Testa konfiguration och verifiera DNS-omdirigering"
     },
-    "step7": {
+    "step8": {
       "label": "Klart",
       "description": "Installation slutförd"
     },
@@ -455,6 +459,16 @@
         "hostsApplied": "Hosts-filen har ändrats."
       },
       "step7": {
+        "title": "Patcha NTP-server",
+        "description": "Ställ in NTP-tidsservern på enheten så att klockan håller sig korrekt.",
+        "serverLabel": "NTP-server:",
+        "btnPatch": "Tillämpa NTP-server",
+        "btnPatching": "Tillämpar...",
+        "errorTitle": "NTP-patch misslyckades",
+        "successTitle": "NTP-server uppdaterad!",
+        "nextDisabled": "Tillämpa NTP-servern först."
+      },
+      "step8": {
         "title": "Testa konfiguration",
         "description": "Kontrollera att domänomdirigeringarna fungerar korrekt.",
         "warning": "Om testerna misslyckas kan en omstart av enheten krävas.",
@@ -489,6 +503,7 @@
         "checkHostsOctBlockMissing": "OCT-block hittades inte i /etc/hosts",
         "checkHostsDomainsMissing": "Vissa nödvändiga domäner saknas i /etc/hosts",
         "checkHostsIpWrong": "Inte alla värdposter pekar på den förväntade IP-adressen",
+        "checkNtpServer": "NTP-server inställd på: {{server}}",
         "checkSysConfigUuidMismatch": "UUID i SystemConfigurationDB.xml matchar inte enheten",
         "checkUuidNotInDb": "UUID inte registrerat i databasen",
         "summaryConfigCorrect": "Konfigurationer finns och är korrekta",
@@ -509,11 +524,12 @@
         "fullVerifyItem2": "Alla musikkällor registrerade (AUX, TuneIn, Bluetooth, ...)",
         "fullVerifyItem3": "Konfigurationsfiler intakta efter omstart",
         "fullVerifyItem4": "DNS-omdirigeringar lösta till OpenCloudTouch-servern",
+        "fullVerifyItem5": "NTP-server patchad och tidssynkronisering aktiv",
         "btnRunFullVerify": "Starta fullständig verifiering",
         "fullVerifying": "Fullständig systemverifiering pågår...",
         "btnRetryFullVerify": "Kör verifiering igen"
       },
-      "step8": {
+      "step9": {
         "title": "Installation klar!",
         "description": "Enheten har konfigurerats och är redo att användas.",
         "heroTitle": "Grattis!",
@@ -525,6 +541,7 @@
         "summaryItem4": "Konfigurationsfil ändrad (bmxRegistryUrl)",
         "summaryItem5": "Hosts-filen ändrad (domänomdirigering)",
         "summaryItem6": "Konfiguration testad och verifierad",
+        "summaryItem7": "NTP-server patchad ({{server}})",
         "backupTitle": "Säkerhetskopians plats:",
         "backupNote": "Förvara den här säkerhetskopian på en säker plats! Den kan användas för att återställa enheten i nödfall.",
         "noBackupTitle": "Ingen säkerhetskopia skapad",

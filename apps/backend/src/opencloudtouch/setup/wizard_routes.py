@@ -49,6 +49,8 @@ from opencloudtouch.setup.api_models import (
     VerifyRedirectResponse,
     VerifySetupRequest,
     VerifySetupResponse,
+    PatchNtpRequest,
+    PatchNtpResponse,
     ValidateHostnameRequest,
     ValidateHostnameResponse,
     WizardCompleteRequest,
@@ -581,6 +583,21 @@ async def wizard_init_persistence(request: InitPersistenceRequest):
         created_files=result.created_files,
         skipped_files=result.skipped_files,
         message=result.message,
+    )
+
+
+@wizard_router.post("/wizard/patch-ntp", response_model=PatchNtpResponse)
+async def wizard_patch_ntp(
+    request: PatchNtpRequest,
+    wizard: Annotated[WizardService, Depends(get_wizard_service)],
+):
+    """Patch NTP server on device (Wizard Step — after hosts modification)."""
+    logger.info("Patching NTP on %s (server: %s)", request.device_ip, request.ntp_server)
+    result = await wizard.patch_ntp(request.device_ip, request.ntp_server)
+    return PatchNtpResponse(
+        success=result["success"],
+        message=result.get("message", ""),
+        error=result.get("error"),
     )
 
 
