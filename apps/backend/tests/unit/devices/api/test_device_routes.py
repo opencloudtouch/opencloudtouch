@@ -991,6 +991,28 @@ class TestNowPlayingEndpoint:
         assert data["online"] is False
         assert data["station_name"] == "Jazz FM"
 
+    def test_get_now_playing_offline_device_with_empty_cached_state_returns_200(
+        self, client, mock_device_service
+    ):
+        """An existing cached state without now-playing data must fall back cleanly."""
+        from opencloudtouch.core.dependencies import get_device_state_manager
+        from opencloudtouch.devices.websocket.connection import ConnectionState
+
+        state_manager = client.app.dependency_overrides[get_device_state_manager]()
+        state_manager.update_connection("DEV123", ConnectionState.DISCONNECTED)
+
+        mock_device_service.get_now_playing = AsyncMock(
+            side_effect=DeviceConnectionError("192.168.1.50", "Connection refused")
+        )
+
+        response = client.get("/api/devices/DEV123/now-playing")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["online"] is False
+        assert data["source"] == ""
+        assert data["station_name"] is None
+
     def test_get_now_playing_offline_device_without_cache_still_returns_200(
         self, client, mock_device_service
     ):

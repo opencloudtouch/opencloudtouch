@@ -511,7 +511,11 @@ async def get_now_playing(
             # Offline devices are expected, not exceptional: return the last
             # known state (if any) instead of a 503 that just spams the
             # poller's browser console every cycle (#319).
-            fallback = cached.now_playing if cached else _OFFLINE_FALLBACK_INFO
+            fallback = (
+                cached.now_playing
+                if cached and cached.now_playing
+                else _OFFLINE_FALLBACK_INFO
+            )
             return _now_playing_to_dict(fallback, online=False)
     result = _now_playing_to_dict(info, online=True)
 
