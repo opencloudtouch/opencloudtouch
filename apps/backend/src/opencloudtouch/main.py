@@ -31,6 +31,7 @@ from opencloudtouch.core.static_files import (
 )
 from opencloudtouch.db import DeviceRepository
 from opencloudtouch.devices.adapter import get_discovery_adapter
+from opencloudtouch.dlna.routes import router as dlna_router
 from opencloudtouch.devices.api.discovery_routes import discovery_router
 from opencloudtouch.devices.api.event_routes import event_router
 from opencloudtouch.devices.api.preset_stream_routes import (
@@ -407,6 +408,7 @@ app.add_middleware(
 app.include_router(
     discovery_router
 )  # Device discovery endpoints (/discover, /sync, /stream)
+app.include_router(dlna_router)  # DLNA media server discovery and browsing
 app.include_router(devices_router)
 app.include_router(presets_router)
 app.include_router(radio_router)
