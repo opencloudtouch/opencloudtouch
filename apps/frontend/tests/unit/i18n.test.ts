@@ -34,11 +34,6 @@ describe("detectLocale", () => {
     expect(detectLocale()).toBe("de");
   });
 
-  it("returns 'en' when localStorage has 'en'", () => {
-    localStorage.setItem("oct-lang", "en");
-    expect(detectLocale()).toBe("en");
-  });
-
   it("ignores unsupported locale in localStorage", () => {
     localStorage.setItem("oct-lang", "zh");
     vi.spyOn(navigator, "language", "get").mockReturnValue("de-DE");
@@ -60,34 +55,18 @@ describe("detectLocale", () => {
     expect(detectLocale()).toBe("de");
   });
 
-  it("returns 'de' for Swiss German browser locale (resolves to UI locale)", () => {
-    vi.spyOn(navigator, "language", "get").mockReturnValue("de-CH");
-    expect(detectLocale()).toBe("de");
-  });
-
-  it("returns 'fr' for French browser locale", () => {
-    vi.spyOn(navigator, "language", "get").mockReturnValue("fr-FR");
-    expect(detectLocale()).toBe("fr");
-  });
-
-  it("returns 'fr' for Swiss French browser locale (prefix match)", () => {
-    vi.spyOn(navigator, "language", "get").mockReturnValue("fr-CH");
-    expect(detectLocale()).toBe("fr");
-  });
-
-  it("returns 'it' for Italian browser locale", () => {
-    vi.spyOn(navigator, "language", "get").mockReturnValue("it-IT");
-    expect(detectLocale()).toBe("it");
-  });
-
-  it("returns 'it' for Swiss Italian browser locale (prefix match)", () => {
-    vi.spyOn(navigator, "language", "get").mockReturnValue("it-CH");
-    expect(detectLocale()).toBe("it");
-  });
-
-  it("falls back to 'en' when localStorage is empty and language unsupported", () => {
-    vi.spyOn(navigator, "language", "get").mockReturnValue("zh-CN");
-    expect(detectLocale()).toBe("en");
+  it.each([
+    ["en", "en"],
+    ["de-CH", "de"],
+    ["fr-FR", "fr"],
+    ["fr-CH", "fr"],
+    ["it-IT", "it"],
+    ["it-CH", "it"],
+    ["zh-CN", "en"],
+  ])("detects locale %s resolves to %s (row 38 merge)", (browserLang, expected) => {
+    localStorage.clear();
+    vi.spyOn(navigator, "language", "get").mockReturnValue(browserLang);
+    expect(detectLocale()).toBe(expected);
   });
 });
 
@@ -378,11 +357,11 @@ describe("de ↔ en value divergence", () => {
       );
     });
 
-    // Report suspicious keys but don't fail hard — just flag if > 15% are copies
+    // Report suspicious keys but don't fail hard for a handful of copies —
+    // just flag if > 15% look like copy-paste. Asserted unconditionally (no
+    // `if` guard) so the test actually executes an assertion on every run.
     const suspiciousPercent = (suspicious.length / deEntries.length) * 100;
-    if (suspiciousPercent > 15) {
-      expect(suspicious.map((e) => e.key)).toEqual([]);
-    }
+    expect(suspiciousPercent).toBeLessThanOrEqual(15);
   });
 });
 

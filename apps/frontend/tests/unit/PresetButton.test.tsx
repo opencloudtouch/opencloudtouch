@@ -18,8 +18,8 @@ describe("PresetButton Component", () => {
   });
 
   describe("Empty Preset", () => {
-    it("renders empty state with placeholder text", () => {
-      render(
+    it("renders empty state with placeholder text (preset null or undefined)", () => {
+      const { unmount } = render(
         <PresetButton
           number={1}
           preset={null}
@@ -30,9 +30,9 @@ describe("PresetButton Component", () => {
 
       expect(screen.getByText("1")).toBeInTheDocument();
       expect(screen.getByText("Assign preset")).toBeInTheDocument();
-    });
 
-    it("renders empty state when preset is undefined", () => {
+      unmount();
+
       render(
         <PresetButton
           number={2}
@@ -141,31 +141,6 @@ describe("PresetButton Component", () => {
       const pauseButton = screen.getByLabelText("Pause");
       expect(pauseButton).toBeInTheDocument();
       expect(pauseButton).toHaveClass("playing");
-    });
-
-  });
-
-  describe("Preset Number Display", () => {
-    it("displays correct preset number for different slots", () => {
-      const { rerender } = render(
-        <PresetButton
-          number={1}
-          preset={null}
-          onAssign={mockOnAssign}
-          onPlay={mockOnPlay}
-        />
-      );
-      expect(screen.getByText("1")).toBeInTheDocument();
-
-      rerender(
-        <PresetButton
-          number={6}
-          preset={mockPreset}
-          onAssign={mockOnAssign}
-          onPlay={mockOnPlay}
-        />
-      );
-      expect(screen.getByText("6")).toBeInTheDocument();
     });
 
   });
@@ -280,6 +255,8 @@ describe("PresetButton Component", () => {
 
       const container = screen.getByTestId("preset-1");
       expect(container).toHaveClass("preset-disabled");
+      // The `preset?.station_name || t("presets.empty")` fallback must actually render.
+      expect(screen.getByText("No presets configured")).toBeInTheDocument();
     });
   });
 

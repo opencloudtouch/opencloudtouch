@@ -90,6 +90,12 @@ specs/
 # === Case Management ===
 bugs/
 
+# === Local Tooling ===
+.worktrees/
+.claude/
+.mcp.json
+.serena/
+
 # === SECRET Files ===
 doc
 memories

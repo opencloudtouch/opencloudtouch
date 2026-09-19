@@ -167,6 +167,57 @@ async def test_device_get_all(repo):
 
 
 @pytest.mark.asyncio
+async def test_device_get_all_sorted_by_name_case_insensitive(repo):
+    """Test case-insensitive Unicode sorting by device name."""
+    devices = [
+        Device(
+            device_id="DEV_A",
+            ip="192.168.1.100",
+            name="Zulu",
+            model="SoundTouch 10",
+            mac_address="AA:BB:CC:DD:EE:01",
+            firmware_version="1.0.0",
+        ),
+        Device(
+            device_id="DEV_Z",
+            ip="192.168.1.101",
+            name="alpha",
+            model="SoundTouch 10",
+            mac_address="AA:BB:CC:DD:EE:02",
+            firmware_version="1.0.0",
+        ),
+        Device(
+            device_id="DEV_B",
+            ip="192.168.1.102",
+            name="Bravo",
+            model="SoundTouch 10",
+            mac_address="AA:BB:CC:DD:EE:03",
+            firmware_version="1.0.0",
+        ),
+        Device(
+            device_id="DEV_M",
+            ip="192.168.1.103",
+            name="Ärger",
+            model="SoundTouch 10",
+            mac_address="AA:BB:CC:DD:EE:04",
+            firmware_version="1.0.0",
+        ),
+    ]
+
+    for device in devices:
+        await repo.upsert(device)
+
+    result = await repo.get_all()
+
+    assert [device.name for device in result] == [
+        "alpha",
+        "Ärger",
+        "Bravo",
+        "Zulu",
+    ]
+
+
+@pytest.mark.asyncio
 async def test_device_get_by_device_id(repo):
     """Test get_by_device_id."""
     device = Device(

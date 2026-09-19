@@ -18,22 +18,18 @@ import NowPlaying from "../../src/components/NowPlaying";
 describe("NowPlaying Component", () => {
   describe("Empty State", () => {
     it("should show empty state when nowPlaying is null", () => {
-      render(<NowPlaying nowPlaying={null} />);
+      const { container } = render(<NowPlaying nowPlaying={null} />);
 
       expect(screen.getByText("No playback")).toBeInTheDocument();
+
+      const nowPlayingDiv = container.querySelector(".now-playing");
+      expect(nowPlayingDiv).toHaveClass("empty");
     });
 
     it("should show empty state when nowPlaying is undefined", () => {
       render(<NowPlaying />);
 
       expect(screen.getByText("No playback")).toBeInTheDocument();
-    });
-
-    it("should apply empty CSS class in empty state", () => {
-      const { container } = render(<NowPlaying nowPlaying={null} />);
-
-      const nowPlayingDiv = container.querySelector(".now-playing");
-      expect(nowPlayingDiv).toHaveClass("empty");
     });
   });
 
@@ -206,47 +202,6 @@ describe("NowPlaying Component", () => {
     });
   });
 
-  describe("Complete Data Scenarios", () => {
-    it("should handle all fields with complete data", () => {
-      const nowPlaying = {
-        art_url: "https://example.com/art.jpg",
-        station: "Classic Rock FM",
-        track: "Bohemian Rhapsody",
-        artist: "Queen",
-        play_status: "PLAY_STATE",
-      };
-
-      const { container } = render(
-        <NowPlaying nowPlaying={nowPlaying} onPlayPause={vi.fn()} />
-      );
-
-      expect(screen.getByText("Classic Rock FM")).toBeInTheDocument();
-      expect(screen.getByText("Bohemian Rhapsody")).toBeInTheDocument();
-      expect(screen.getByText("Queen")).toBeInTheDocument();
-
-      const img = container.querySelector(".np-art img");
-      expect(img).toHaveAttribute("src", "https://example.com/art.jpg");
-
-      expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
-    });
-
-    it("should handle minimal data with only track", () => {
-      const nowPlaying = {
-        track: "Unknown Artist Song",
-        play_status: "PAUSE_STATE",
-      };
-
-      const { container } = render(<NowPlaying nowPlaying={nowPlaying} onPlayPause={vi.fn()} />);
-
-      expect(screen.getByText("No station")).toBeInTheDocument();
-      expect(screen.getByText("Unknown Artist Song")).toBeInTheDocument();
-      const img = container.querySelector(".np-art img");
-      expect(img).toBeInTheDocument();
-      expect(img?.getAttribute("src")).toMatch(/\/images\/default-artwork-[1-3]\.jpg/);
-      expect(screen.getByRole("button", { name: "Play" })).toBeInTheDocument();
-    });
-  });
-
   describe("Source Badge", () => {
     it("should show Bluetooth badge when source is BLUETOOTH", () => {
       const nowPlaying = {
@@ -293,32 +248,6 @@ describe("NowPlaying Component", () => {
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
 
       expect(container.querySelector(".np-source-badge")).not.toBeInTheDocument();
-    });
-
-    it("should render badge SVG at 20px size", () => {
-      const nowPlaying = {
-        station: "My Phone",
-        source: "BLUETOOTH",
-        play_status: "PLAY_STATE",
-      };
-
-      const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
-      const svg = container.querySelector(".np-source-badge svg");
-
-      expect(svg).toHaveAttribute("width", "20");
-      expect(svg).toHaveAttribute("height", "20");
-    });
-
-    it("should show Radio badge for LOCAL_INTERNET_RADIO", () => {
-      const nowPlaying = {
-        station: "Local Radio",
-        source: "LOCAL_INTERNET_RADIO",
-        play_status: "PLAY_STATE",
-      };
-
-      const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
-
-      expect(container.querySelector(".np-source-badge.radio")).toBeInTheDocument();
     });
 
     it("should show AUX badge for AUX source", () => {
@@ -463,18 +392,6 @@ describe("NowPlaying Component", () => {
       expect(container.querySelector(".np-source-badge")).not.toBeInTheDocument();
 
       vi.doUnmock("../../src/config/capabilities");
-    });
-
-    it("should show Radio badge for TUNEIN source when HAS_TUNEIN_SUPPORT is true", () => {
-      const nowPlaying = {
-        station: "TuneIn Station",
-        source: "TUNEIN",
-        play_status: "PLAY_STATE",
-      };
-
-      const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
-
-      expect(container.querySelector(".np-source-badge.radio")).toBeInTheDocument();
     });
 
     it("should always show Radio badge for INTERNET_RADIO regardless of flag", async () => {

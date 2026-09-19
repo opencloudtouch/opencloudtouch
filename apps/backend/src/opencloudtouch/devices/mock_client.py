@@ -285,3 +285,7 @@ class MockDeviceClient(DeviceClient):
         """Mock remove zone."""
         logger.info("[MOCK] remove_zone() for device %s", self.device_id)
         self._zone = None
+
+    async def reboot(self) -> None:
+        """Mock reboot (no-op)."""
+        logger.info("[MOCK] reboot() for device %s", self.device_id)

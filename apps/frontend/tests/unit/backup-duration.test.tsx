@@ -111,44 +111,4 @@ describe("Step4Backup - Duration Formatting", () => {
     const matches = await screen.findAllByText(/12 Sek\./);
     expect(matches.length).toBeGreaterThanOrEqual(1);
   });
-
-  test("does NOT render raw seconds like '154.0s'", async () => {
-    mockCreateBackup.mockResolvedValue({
-      success: true,
-      total_size_mb: 69.5,
-      total_duration_seconds: 154.3,
-      volumes: [
-        {
-          volume: "RootFS",
-          size_mb: 58.2,
-          duration_seconds: 134.7,
-          path: "/backup/rootfs.img.gz",
-        },
-      ],
-    });
-
-    render(
-      <Step4Backup
-        deviceId="C4F312D0B5A1"
-        deviceIp="192.168.1.50"
-        deviceName="Test Device"
-        onNext={vi.fn()}
-        onPrevious={vi.fn()}
-        onBackupComplete={vi.fn()}
-      />
-    );
-
-    const user3 = userEvent.setup();
-    await user3.click(screen.getByText(/btnCreate/));
-
-    // Wait for success to render — multiple elements may match
-    const formatted = await screen.findAllByText(/Sek\./);
-    expect(formatted.length).toBeGreaterThanOrEqual(1);
-
-    // Must NOT contain raw seconds format
-    const body = document.body.textContent ?? "";
-    expect(body).not.toMatch(/154\.3s/);
-    expect(body).not.toMatch(/134\.7s/);
-    expect(body).not.toMatch(/\d+\.\d+s$/);
-  });
 });

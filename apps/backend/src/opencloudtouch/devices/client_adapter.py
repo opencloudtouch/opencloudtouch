@@ -559,3 +559,20 @@ class BoseDeviceClientAdapter(DeviceClient):
         except Exception as e:
             logger.exception("Failed to remove zone on %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
+
+    async def reboot(self) -> None:
+        """Reboot the device via TCP telnet interface (port 17000)."""
+        try:
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(self.ip, 17000), timeout=5.0
+            )
+            try:
+                writer.write(b"sys reboot\n")
+                await writer.drain()
+            finally:
+                writer.close()
+                await writer.wait_closed()
+            logger.info("Reboot command sent to %s", self.ip)
+        except Exception as e:
+            logger.exception("Failed to reboot device at %s", self.ip)
+            raise DeviceConnectionError(self.ip, str(e)) from e

@@ -760,5 +760,10 @@
     "inputLabel": "Nom de l'appareil",
     "tooLong": "Le nom doit comporter 30 caractères maximum",
     "failed": "Échec du renommage"
+  },
+  "deviceHeader": {
+    "reboot": "Redémarrer l'appareil",
+    "sent": "Commande de redémarrage envoyée",
+    "confirmMessage": "Redémarrer {{name}} ? L'appareil sera indisponible pendant environ 60 secondes."
   }
 }

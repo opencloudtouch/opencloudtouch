@@ -760,5 +760,10 @@
     "inputLabel": "Nazwa urządzenia",
     "tooLong": "Nazwa musi mieć maksymalnie 30 znaków",
     "failed": "Nie udało się zmienić nazwy"
+  },
+  "deviceHeader": {
+    "reboot": "Uruchom ponownie urządzenie",
+    "sent": "Polecenie restartu wysłane",
+    "confirmMessage": "Uruchomić ponownie {{name}}? Urządzenie będzie niedostępne przez około 60 sekund."
   }
 }

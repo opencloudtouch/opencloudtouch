@@ -760,5 +760,10 @@
     "inputLabel": "Nome dispositivo",
     "tooLong": "Il nome deve avere al massimo 30 caratteri",
     "failed": "Rinominazione non riuscita"
+  },
+  "deviceHeader": {
+    "reboot": "Riavvia il dispositivo",
+    "sent": "Comando di riavvio inviato",
+    "confirmMessage": "Riavviare {{name}}? Il dispositivo non sarà disponibile per circa 60 secondi."
   }
 }

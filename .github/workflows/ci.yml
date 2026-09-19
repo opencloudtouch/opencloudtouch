@@ -42,7 +42,91 @@ jobs:
 
       - name: Check for CP1252-as-UTF8 encoding corruption
         run: python scripts/check-mojibake.py .
+        
+  # ============================================================================
+  # PAGE SIZE REGRESSION TEST
+  # ============================================================================
 
+  test-page-size-detection:
+    name: Test page size detection
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Test page size compatibility handling
+        run: |
+          run_page_size_test() {
+            VALUE="$1"
+            EXPECT_REJECT="$2"
+            EXPECTED_TEXT="$3"
+            LABEL="$4"
+
+            mkdir -p /tmp/fakebin
+            mkdir -p /tmp/oct-data
+
+            cat > /tmp/fakebin/getconf <<EOF
+          #!/bin/sh
+          if [ "\$1" = "PAGE_SIZE" ]; then
+            printf '%s' "$VALUE"
+          else
+            /usr/bin/getconf "\$@"
+          fi
+          EOF
+
+            chmod +x /tmp/fakebin/getconf
+
+            set +e
+            OUTPUT=$(
+              PATH="/tmp/fakebin:$PATH" \
+              OCT_PORT=7777 \
+              OCT_LOG_LEVEL=INFO \
+              OCT_DB_PATH=/tmp/oct-data/oct.db \
+              OCT_HOST=0.0.0.0 \
+              OCT_DISCOVERY_ENABLED=false \
+              sh apps/backend/entrypoint.sh version 2>&1
+            )
+            STATUS=$?
+            set -e
+
+            echo "$OUTPUT"
+
+            if [ "$EXPECT_REJECT" = "true" ]; then
+              if [ "$STATUS" -ne 1 ]; then
+                echo "ERROR: Expected page size check to reject value '$VALUE'"
+                exit 1
+              fi
+            else
+              if echo "$OUTPUT" | grep -q "page size, which is not supported"; then
+                echo "ERROR: Page size check unexpectedly rejected value '$VALUE'"
+                exit 1
+              fi
+            fi
+
+            if [ -n "$EXPECTED_TEXT" ] && ! echo "$OUTPUT" | grep -q "$EXPECTED_TEXT"; then
+              echo "ERROR: Expected output not found: $EXPECTED_TEXT"
+              exit 1
+            fi
+
+            echo "PASS: $LABEL"
+          }
+
+          run_page_size_test "4096" false "" "4KB page size accepted"
+          run_page_size_test "8192" false "has not been fully validated with OpenCloudTouch" "8KB page size allowed with info"
+          run_page_size_test "12288" false "has not been fully validated with OpenCloudTouch" "12KB page size allowed with info"
+          run_page_size_test "16384" false "has not been fully validated with OpenCloudTouch" "16KB page size allowed with info"
+          run_page_size_test "24576" false "has not been fully validated with OpenCloudTouch" "24KB page size allowed with info"
+          run_page_size_test "32768" true "32768-byte page size" "32KB page size rejected"
+          run_page_size_test "65536" false "has not been fully validated with OpenCloudTouch" "64KB page size allowed with info"
+          run_page_size_test "131072" false "has not been fully validated with OpenCloudTouch" "128KB page size allowed with info"
+          run_page_size_test "" false "Unable to determine system page size" "Empty page size handled with warning"
+          run_page_size_test "abc" false "Unable to determine system page size" "Non-numeric page size handled with warning"
+
+          echo "PASS: All page size compatibility tests passed."
+          
   # ============================================================================
   # COMMIT MESSAGE VALIDATION
   # ============================================================================
@@ -52,7 +136,6 @@ jobs:
     if: github.event_name == 'pull_request'
     permissions:
       contents: read
-      pull-requests: write
 
     steps:
       - name: Checkout code
@@ -117,36 +200,6 @@ jobs:
 
           echo ""
           echo "✅ All commits follow Conventional Commits format!"
-
-      - name: PR comment on failure
-        if: failure()
-        uses: actions/github-script@v9
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `## ❌ Commit Message Validation Failed
-
-            Your PR contains commits that don't follow the [Conventional Commits](https://www.conventionalcommits.org/) format.
-
-            ### Required Format
-            \`\`\`
-            <type>(<scope>): <subject>
-            \`\`\`
-
-            ### Examples
-            ✅ \`feat(devices): add SSDP auto-discovery\`
-            ✅ \`fix(api): handle null response\`
-            ✅ \`docs(readme): update installation\`
-
-            ### Allowed Types
-            \`feat\`, \`fix\`, \`docs\`, \`style\`, \`refactor\`, \`perf\`, \`test\`, \`build\`, \`ci\`, \`chore\`, \`revert\`
-
-            📖 See [Conventional Commits](https://www.conventionalcommits.org/) for details.
-            `,
-            });
 
   # ============================================================================
   # SECURITY SCANNING
@@ -562,10 +615,8 @@ jobs:
   summary:
     name: CI Summary
     runs-on: ubuntu-latest
-    needs: [mojibake-check, commit-lint, security, license-check, lint, backend-tests, frontend-tests, e2e-tests]
+    needs: [mojibake-check, test-page-size-detection, commit-lint, security, license-check, lint, backend-tests, frontend-tests, e2e-tests]
     if: always()
-    permissions:
-      pull-requests: write
 
     steps:
       - name: Download backend coverage
@@ -589,6 +640,7 @@ jobs:
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Mojibake Check| ${{ needs.mojibake-check.result == 'success' && 'Passed' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Page Size Test| ${{ needs.test-page-size-detection.result == 'success' && 'Passed' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Commit Lint   | ${{ needs.commit-lint.result == 'success' && 'Passed' || needs.commit-lint.result == 'skipped' && 'Skipped' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Security Scan | ${{ needs.security.result == 'success' && 'Passed' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| License Check | ${{ needs.license-check.result == 'success' && 'Passed' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
@@ -615,6 +667,7 @@ jobs:
         run: |
           if [[ "${{ needs.commit-lint.result }}" != "success" && "${{ needs.commit-lint.result }}" != "skipped" ]] || \
              [[ "${{ needs.mojibake-check.result }}" != "success" ]] || \
+             [[ "${{ needs.test-page-size-detection.result }}" != "success" ]] || \
              [[ "${{ needs.security.result }}" != "success" ]] || \
              [[ "${{ needs.license-check.result }}" != "success" ]] || \
              [[ "${{ needs.lint.result }}" != "success" ]] || \
@@ -622,61 +675,6 @@ jobs:
              [[ "${{ needs.frontend-tests.result }}" != "success" ]]; then
             exit 1
           fi
-
-      - name: Post CI summary as PR comment
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const statusIcon = (result) => result === 'success' ? '✅' : result === 'skipped' ? '⏭️' : '❌';
-            const jobs = [
-              ['Mojibake Check', '${{ needs.mojibake-check.result }}'],
-              ['Commit Lint', '${{ needs.commit-lint.result }}'],
-              ['Security Scan', '${{ needs.security.result }}'],
-              ['License Check', '${{ needs.license-check.result }}'],
-              ['Lint', '${{ needs.lint.result }}'],
-              ['Backend Tests', '${{ needs.backend-tests.result }}'],
-              ['Frontend Tests', '${{ needs.frontend-tests.result }}'],
-              ['E2E Tests', '${{ needs.e2e-tests.result }}'],
-            ];
-
-            const allPassed = jobs.every(([_, r]) => r === 'success' || r === 'skipped');
-            const header = allPassed ? '## ✅ CI Passed' : '## ❌ CI Failed';
-
-            let body = `${header}\n\n`;
-            body += '| Job | Status |\n';
-            body += '|-----|--------|\n';
-            for (const [name, result] of jobs) {
-              body += `| ${name} | ${statusIcon(result)} ${result} |\n`;
-            }
-            body += `\n🔗 [Full details](${context.payload.pull_request.html_url}/checks)\n`;
-
-            // Use sticky comment (update existing instead of spamming)
-            const marker = '<!-- ci-summary -->';
-            body = marker + '\n' + body;
-
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-            const existing = comments.find(c => c.body.includes(marker));
-
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body: body,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: body,
-              });
-            }
 
   # ============================================================================
   # AUTO-FORMAT (runs at the end — commits formatting fixes back to branch)

@@ -760,5 +760,10 @@
     "inputLabel": "Enhetsnamn",
     "tooLong": "Namnet får ha max 30 tecken",
     "failed": "Det gick inte att byta namn"
+  },
+  "deviceHeader": {
+    "reboot": "Starta om enheten",
+    "sent": "Omstartskommando skickat",
+    "confirmMessage": "Starta om {{name}}? Enheten kommer att vara otillgänglig i ungefär 60 sekunder."
   }
 }
