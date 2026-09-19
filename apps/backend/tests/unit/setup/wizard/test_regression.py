@@ -1,12 +1,12 @@
-"""Regression tests for stale mock patches fixed during Phase 1 (010-websocket-push).
+"""Regression tests guarding against previously-fixed stale-mock and dead-code bugs.
 
-These tests ensure that wizard_service internal methods exist and behave correctly,
-preventing future regressions from refactoring that removes methods without
-updating tests.
-
-Root cause: _read_file_content was removed from wizard_service but 5 tests still
-mocked it. _apply_existing_config and _fetch_device_metadata were inlined but
-6 tests still called them as standalone methods.
+Covers build_system_config_xml's acctMode/DeviceName/AccountUUID encoding
+(root cause of the Phase 1 / 010-websocket-push incident, where several tests
+kept mocking WizardService methods that had since been inlined or removed),
+confirmation that WizardService/opencloudtouch.setup.wizard no longer expose
+_apply_existing_config, _fetch_device_metadata, _read_file_content, or the
+removed legacy list_backups/ensure_account_pairing methods, and an edge case
+of _check_config_files_identical.
 """
 
 from unittest.mock import AsyncMock
@@ -15,7 +15,7 @@ import pytest
 
 from opencloudtouch.setup.persistence_service import build_system_config_xml
 from opencloudtouch.setup.ssh_client import CommandResult
-from opencloudtouch.setup.wizard_service import WizardService
+from opencloudtouch.setup.wizard import WizardService
 
 
 class TestBuildSystemConfigXmlAcctMode:
@@ -50,21 +50,31 @@ class TestWizardServiceRemovedMethods:
         assert not hasattr(WizardService, "_fetch_device_metadata")
 
     def test_no_read_file_content_in_module(self):
-        from opencloudtouch.setup import wizard_service as mod
+        from opencloudtouch.setup.wizard import service as mod
 
         assert not hasattr(mod, "_read_file_content")
+
+
+class TestLegacyWizardMethodsRemoved:
+    """Regression: dead pre-Restore-Wizard methods were deleted in the setup/wizard refactor."""
+
+    def test_no_list_backups(self):
+        assert not hasattr(WizardService, "list_backups")
+
+    def test_no_ensure_account_pairing(self):
+        assert not hasattr(WizardService, "ensure_account_pairing")
 
 
 class TestWizardServiceExistingMethods:
     """Regression: these internal methods MUST exist (tests mock them)."""
 
     def test_file_exists_importable(self):
-        from opencloudtouch.setup.wizard_service import _file_exists
+        from opencloudtouch.setup.persistence_service import _file_exists
 
         assert callable(_file_exists)
 
     def test_write_file_atomic_importable(self):
-        from opencloudtouch.setup.wizard_service import _write_file_atomic
+        from opencloudtouch.setup.persistence_service import _write_file_atomic
 
         assert callable(_write_file_atomic)
 

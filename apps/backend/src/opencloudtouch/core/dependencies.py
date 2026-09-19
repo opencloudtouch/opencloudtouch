@@ -24,7 +24,7 @@ from opencloudtouch.zones.service import ZoneService
 if TYPE_CHECKING:
     from opencloudtouch.setup.restore_service import RestoreService
     from opencloudtouch.setup.service import SetupService
-    from opencloudtouch.setup.wizard_service import WizardService
+    from opencloudtouch.setup.wizard import WizardService
 
 
 def get_device_repo(request: Request) -> DeviceRepository:

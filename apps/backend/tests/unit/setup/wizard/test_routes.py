@@ -1,18 +1,10 @@
-"""Tests for setup/wizard_routes.py — SSH-driven wizard step endpoints.
+"""Integration tests for the setup/wizard/ router package (all wizard step endpoints).
 
-TDD RED phase: tests fail until setup/wizard_routes.py is created and
-`wizard_router` is mounted in main.py.
-
-Covers all 9 wizard endpoints:
-  POST /api/setup/wizard/check-ports
-  POST /api/setup/wizard/backup
-  POST /api/setup/wizard/modify-config
-  POST /api/setup/wizard/modify-hosts
-  POST /api/setup/wizard/restore-config
-  POST /api/setup/wizard/restore-hosts
-  POST /api/setup/wizard/list-backups
-  POST /api/setup/wizard/reboot-device
-  POST /api/setup/wizard/verify-redirect
+Exercises the full wizard flow via FastAPI TestClient against the composed
+wizard router: server-info, check-ports, backup, modify-config, modify-hosts,
+restore-config, restore-hosts, reboot-device, verify-redirect, detect-strategy,
+validate-hostname, finalize, verify-setup, and complete — plus injection
+protection, SSH-unreachable (503) handling, and config-snapshot behavior.
 """
 
 import socket
@@ -56,8 +48,7 @@ def wizard_app():
     from opencloudtouch.core.config import clear_config
     from opencloudtouch.core.dependencies import get_wizard_service
     from opencloudtouch.core.exception_handlers import register_exception_handlers
-    from opencloudtouch.setup.wizard_routes import wizard_router
-    from opencloudtouch.setup.wizard_service import WizardService
+    from opencloudtouch.setup.wizard import WizardService, wizard_router
 
     # Ensure clean config state before importing router
     clear_config()
@@ -87,8 +78,7 @@ class TestWizardServerInfoPort:
         from fastapi.testclient import TestClient
         from opencloudtouch.core.dependencies import get_wizard_service
         from opencloudtouch.core.exception_handlers import register_exception_handlers
-        from opencloudtouch.setup.wizard_routes import wizard_router
-        from opencloudtouch.setup.wizard_service import WizardService
+        from opencloudtouch.setup.wizard import WizardService, wizard_router
 
         monkeypatch.setenv("OCT_PORT", "8080")
         clear_config()  # Reload config with new port
@@ -113,8 +103,7 @@ class TestWizardServerInfoPort:
         from fastapi.testclient import TestClient
         from opencloudtouch.core.dependencies import get_wizard_service
         from opencloudtouch.core.exception_handlers import register_exception_handlers
-        from opencloudtouch.setup.wizard_routes import wizard_router
-        from opencloudtouch.setup.wizard_service import WizardService
+        from opencloudtouch.setup.wizard import WizardService, wizard_router
 
         # Explicitly set OCT_PORT to DEFAULT_PORT to override any pollution
         monkeypatch.setenv("OCT_PORT", str(DEFAULT_PORT))
@@ -141,7 +130,7 @@ class TestWizardCheckPorts:
 
     def test_ssh_accessible(self, client):
         with patch(
-            "opencloudtouch.setup.wizard_service.check_ssh_port",
+            "opencloudtouch.setup.wizard.step3_connectivity.check_ssh_port",
             new_callable=AsyncMock,
             return_value=True,
         ):
@@ -156,7 +145,7 @@ class TestWizardCheckPorts:
 
     def test_ssh_not_accessible_returns_failure(self, client):
         with patch(
-            "opencloudtouch.setup.wizard_service.check_ssh_port",
+            "opencloudtouch.setup.wizard.step3_connectivity.check_ssh_port",
             new_callable=AsyncMock,
             return_value=False,
         ):
@@ -197,7 +186,7 @@ class TestWizardBackup:
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
             ) as mock_ssh,
             patch(
-                "opencloudtouch.setup.wizard_service.SoundTouchBackupService",
+                "opencloudtouch.setup.wizard.step4_backup.SoundTouchBackupService",
                 return_value=mock_backup_service,
             ),
         ):
@@ -220,7 +209,7 @@ class TestWizardBackup:
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
             ) as mock_ssh,
             patch(
-                "opencloudtouch.setup.wizard_service.SoundTouchBackupService",
+                "opencloudtouch.setup.wizard.step4_backup.SoundTouchBackupService",
                 return_value=mock_backup_service,
             ),
         ):
@@ -252,7 +241,7 @@ class TestWizardModifyConfig:
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
             ) as mock_ssh,
             patch(
-                "opencloudtouch.setup.wizard_service.SoundTouchConfigService",
+                "opencloudtouch.setup.wizard.step5_config.SoundTouchConfigService",
                 return_value=mock_config_service,
             ),
         ):
@@ -281,7 +270,7 @@ class TestWizardModifyConfig:
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
             ) as mock_ssh,
             patch(
-                "opencloudtouch.setup.wizard_service.SoundTouchConfigService",
+                "opencloudtouch.setup.wizard.step5_config.SoundTouchConfigService",
                 return_value=mock_config_service,
             ),
         ):
@@ -336,7 +325,7 @@ class TestWizardModifyConfig:
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
             ) as mock_ssh,
             patch(
-                "opencloudtouch.setup.wizard_service.SoundTouchConfigService",
+                "opencloudtouch.setup.wizard.step5_config.SoundTouchConfigService",
                 return_value=mock_config_service,
             ),
         ):
@@ -386,7 +375,7 @@ class TestWizardModifyHosts:
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
             ) as mock_ssh,
             patch(
-                "opencloudtouch.setup.wizard_service.SoundTouchHostsService",
+                "opencloudtouch.setup.wizard.step6_hosts.SoundTouchHostsService",
                 return_value=mock_hosts_service,
             ),
         ):
@@ -413,7 +402,7 @@ class TestWizardModifyHosts:
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
             ) as mock_ssh,
             patch(
-                "opencloudtouch.setup.wizard_service.SoundTouchHostsService",
+                "opencloudtouch.setup.wizard.step6_hosts.SoundTouchHostsService",
                 return_value=mock_hosts_service,
             ),
         ):
@@ -443,7 +432,7 @@ class TestWizardModifyHosts:
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
             ) as mock_ssh,
             patch(
-                "opencloudtouch.setup.wizard_service.SoundTouchHostsService",
+                "opencloudtouch.setup.wizard.step6_hosts.SoundTouchHostsService",
                 return_value=mock_hosts_service,
             ),
             patch(
@@ -505,7 +494,7 @@ class TestWizardRestoreConfig:
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
             ) as mock_ssh,
             patch(
-                "opencloudtouch.setup.wizard_service.SoundTouchConfigService",
+                "opencloudtouch.setup.wizard.legacy_routes.SoundTouchConfigService",
                 return_value=mock_config_service,
             ),
         ):
@@ -535,7 +524,7 @@ class TestWizardRestoreHosts:
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
             ) as mock_ssh,
             patch(
-                "opencloudtouch.setup.wizard_service.SoundTouchHostsService",
+                "opencloudtouch.setup.wizard.legacy_routes.SoundTouchHostsService",
                 return_value=mock_hosts_service,
             ),
         ):
@@ -549,43 +538,9 @@ class TestWizardRestoreHosts:
         assert response.json()["success"] is True
 
 
-# ── wizard/list-backups ───────────────────────────────────────────────────────
-
-
-class TestWizardListBackups:
-    """POST /api/setup/wizard/list-backups"""
-
-    def test_lists_config_and_hosts_backups(self, client):
-        mock_config_service = MagicMock()
-        mock_config_service.list_backups = AsyncMock(return_value=["/usb/cfg1.bak"])
-        mock_hosts_service = MagicMock()
-        mock_hosts_service.list_backups = AsyncMock(return_value=["/usb/hosts1.bak"])
-
-        with (
-            patch(
-                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
-            ) as mock_ssh,
-            patch(
-                "opencloudtouch.setup.wizard_service.SoundTouchConfigService",
-                return_value=mock_config_service,
-            ),
-            patch(
-                "opencloudtouch.setup.wizard_service.SoundTouchHostsService",
-                return_value=mock_hosts_service,
-            ),
-        ):
-            mock_ssh_instance = MagicMock()
-            mock_ssh.return_value.__aenter__ = AsyncMock(return_value=mock_ssh_instance)
-            mock_ssh.return_value.__aexit__ = AsyncMock(return_value=False)
-            response = client.post(
-                "/api/setup/wizard/list-backups",
-                json={"device_ip": "192.168.1.100"},
-            )
-        assert response.status_code == 200
-        body = response.json()
-        assert body["success"] is True
-        assert body["config_backups"] == ["/usb/cfg1.bak"]
-        assert body["hosts_backups"] == ["/usb/hosts1.bak"]
+# ── wizard/list-backups (endpoint removed 2026-08-17) ──────────────────────
+# Route deleted from legacy_routes.py; see test_regression.py::
+# TestLegacyWizardMethodsRemoved.
 
 
 # ── wizard/reboot-device ──────────────────────────────────────────────────────
@@ -603,7 +558,7 @@ class TestWizardRebootDevice:
         mock_ssh.close = AsyncMock()
 
         with patch(
-            "opencloudtouch.setup.wizard_service.SoundTouchSSHClient",
+            "opencloudtouch.setup.wizard.step7_finalize_verify.SoundTouchSSHClient",
             return_value=mock_ssh,
         ):
             response = client.post(
@@ -621,7 +576,7 @@ class TestWizardRebootDevice:
         mock_ssh.close = AsyncMock()
 
         with patch(
-            "opencloudtouch.setup.wizard_service.SoundTouchSSHClient",
+            "opencloudtouch.setup.wizard.step7_finalize_verify.SoundTouchSSHClient",
             return_value=mock_ssh,
         ):
             response = client.post(
@@ -791,7 +746,7 @@ class TestWizardDetectStrategy:
 
     def test_proxy_available_returns_hosts_only(self, client):
         with patch(
-            "opencloudtouch.setup.wizard_routes.check_port_443",
+            "opencloudtouch.setup.wizard.strategy.check_port_443",
             return_value=True,
         ):
             response = client.get("/api/setup/wizard/detect-strategy")
@@ -802,7 +757,7 @@ class TestWizardDetectStrategy:
 
     def test_no_proxy_returns_bmx_and_hosts(self, client):
         with patch(
-            "opencloudtouch.setup.wizard_routes.check_port_443",
+            "opencloudtouch.setup.wizard.strategy.check_port_443",
             return_value=False,
         ):
             response = client.get("/api/setup/wizard/detect-strategy")
@@ -819,7 +774,7 @@ class TestWizardComplete:
     def client_with_repo(self, wizard_app):
         """Client with mock device_repo on app.state."""
         from opencloudtouch.core.dependencies import get_wizard_service
-        from opencloudtouch.setup.wizard_service import WizardService
+        from opencloudtouch.setup.wizard import WizardService
 
         mock_repo = AsyncMock()
         wizard_app.dependency_overrides[get_wizard_service] = lambda: WizardService(
@@ -1020,7 +975,7 @@ class TestProxyDetectionRegression184:
     def test_scenario1_real_oct_proxy_hosts_only(self, client):
         """S1: Real reverse proxy with OCT behind it → hosts_only."""
         with patch(
-            "opencloudtouch.setup.wizard_routes.check_port_443",
+            "opencloudtouch.setup.wizard.strategy.check_port_443",
             return_value=True,  # Phase 1+2 both pass
         ):
             response = client.get("/api/setup/wizard/detect-strategy")
@@ -1031,7 +986,7 @@ class TestProxyDetectionRegression184:
     def test_scenario2_broken_proxy_requires_config(self, client):
         """S2: Proxy on 443, but OCT not responding (502/misconfigured) → bmx_and_hosts."""
         with patch(
-            "opencloudtouch.setup.wizard_routes.check_port_443",
+            "opencloudtouch.setup.wizard.strategy.check_port_443",
             return_value=False,  # Phase 2 fails (OCT not behind proxy)
         ):
             response = client.get("/api/setup/wizard/detect-strategy")
@@ -1045,7 +1000,7 @@ class TestProxyDetectionRegression184:
         THIS WAS THE BUG: old code returned True here, skipping config modification.
         """
         with patch(
-            "opencloudtouch.setup.wizard_routes.check_port_443",
+            "opencloudtouch.setup.wizard.strategy.check_port_443",
             return_value=False,  # Phase 2 fails (/health not OCT)
         ):
             response = client.get("/api/setup/wizard/detect-strategy")
@@ -1056,7 +1011,7 @@ class TestProxyDetectionRegression184:
     def test_scenario4_no_proxy_connection_refused_requires_config(self, client):
         """S4: Nothing on port 443 (refused) → bmx_and_hosts."""
         with patch(
-            "opencloudtouch.setup.wizard_routes.check_port_443",
+            "opencloudtouch.setup.wizard.strategy.check_port_443",
             return_value=False,  # Phase 1 fails (connection refused)
         ):
             response = client.get("/api/setup/wizard/detect-strategy")
@@ -1067,7 +1022,7 @@ class TestProxyDetectionRegression184:
     def test_scenario5_no_proxy_timeout_requires_config(self, client):
         """S5: Nothing on port 443 (timeout) → bmx_and_hosts."""
         with patch(
-            "opencloudtouch.setup.wizard_routes.check_port_443",
+            "opencloudtouch.setup.wizard.strategy.check_port_443",
             return_value=False,  # Phase 1 fails (timeout)
         ):
             response = client.get("/api/setup/wizard/detect-strategy")
@@ -1394,8 +1349,7 @@ class TestWizardServerInfo:
         from fastapi.testclient import TestClient
         from opencloudtouch.core.dependencies import get_wizard_service
         from opencloudtouch.core.exception_handlers import register_exception_handlers
-        from opencloudtouch.setup.wizard_routes import wizard_router
-        from opencloudtouch.setup.wizard_service import WizardService
+        from opencloudtouch.setup.wizard import WizardService, wizard_router
 
         # Ensure clean state with DEFAULT_PORT
         monkeypatch.setenv("OCT_PORT", str(DEFAULT_PORT))
@@ -1417,7 +1371,7 @@ class TestWizardServerInfo:
 
     def test_server_ip_uses_machine_hostname_not_request(self, client):
         """Bug #200: Server IP must reflect actual LAN IP, not request hostname."""
-        with patch("opencloudtouch.setup.wizard_routes.socket") as mock_socket:
+        with patch("opencloudtouch.setup.wizard.strategy.socket") as mock_socket:
             mock_socket.gethostname.return_value = "myserver"
             mock_socket.gethostbyname.return_value = "192.168.1.50"
             mock_socket.gaierror = OSError
@@ -1433,7 +1387,7 @@ class TestWizardServerInfo:
 
     def test_server_ip_fallback_on_hostname_failure(self, client):
         """Bug #200: When gethostname resolution fails, fall back to request hostname."""
-        with patch("opencloudtouch.setup.wizard_routes.socket") as mock_socket:
+        with patch("opencloudtouch.setup.wizard.strategy.socket") as mock_socket:
             mock_socket.gethostname.return_value = "unresolvable-host"
             mock_socket.gaierror = OSError
             mock_socket.gethostbyname.side_effect = [OSError("no host"), "10.0.0.1"]
@@ -1446,7 +1400,7 @@ class TestWizardServerInfo:
 
     def test_server_ip_double_fallback_returns_raw_hostname(self, client):
         """Bug #200: When BOTH gethostbyname calls fail, raw hostname is returned."""
-        with patch("opencloudtouch.setup.wizard_routes.socket") as mock_socket:
+        with patch("opencloudtouch.setup.wizard.strategy.socket") as mock_socket:
             mock_socket.gethostname.return_value = "broken-host"
             mock_socket.gaierror = OSError
             mock_socket.gethostbyname.side_effect = OSError("no resolution")
@@ -1467,7 +1421,7 @@ class TestWizardServerInfo:
         mock_udp_socket = MagicMock()
         mock_udp_socket.getsockname.return_value = ("192.168.1.99", 0)
 
-        with patch("opencloudtouch.setup.wizard_routes.socket") as mock_socket:
+        with patch("opencloudtouch.setup.wizard.strategy.socket") as mock_socket:
             mock_socket.gethostname.return_value = "container-abc123"
             mock_socket.gethostbyname.return_value = "127.0.0.1"
             mock_socket.gaierror = OSError
@@ -1486,7 +1440,7 @@ class TestWizardServerInfo:
         mock_udp_socket = MagicMock()
         mock_udp_socket.connect.side_effect = OSError("network unreachable")
 
-        with patch("opencloudtouch.setup.wizard_routes.socket") as mock_socket:
+        with patch("opencloudtouch.setup.wizard.strategy.socket") as mock_socket:
             mock_socket.gethostname.return_value = "container-id"
             mock_socket.gethostbyname.return_value = "127.0.0.1"
             mock_socket.gaierror = OSError
@@ -1510,7 +1464,7 @@ class TestWizardServerInfo:
         mock_udp_socket = MagicMock()
         mock_udp_socket.connect.side_effect = OSError("network unreachable")
 
-        with patch("opencloudtouch.setup.wizard_routes.socket") as mock_socket:
+        with patch("opencloudtouch.setup.wizard.strategy.socket") as mock_socket:
             mock_socket.gethostname.return_value = "container-id"
             mock_socket.gethostbyname.return_value = "127.0.0.1"
             mock_socket.gaierror = OSError
@@ -1537,7 +1491,7 @@ class TestWizardFinalize:
     def test_finalize_success(self, client):
         with patch.object(
             __import__(
-                "opencloudtouch.setup.wizard_service", fromlist=["WizardService"]
+                "opencloudtouch.setup.wizard", fromlist=["WizardService"]
             ).WizardService,
             "finalize_device",
             new_callable=AsyncMock,
@@ -1565,7 +1519,7 @@ class TestWizardFinalize:
     def test_finalize_failure(self, client):
         with patch.object(
             __import__(
-                "opencloudtouch.setup.wizard_service", fromlist=["WizardService"]
+                "opencloudtouch.setup.wizard", fromlist=["WizardService"]
             ).WizardService,
             "finalize_device",
             new_callable=AsyncMock,
@@ -1590,7 +1544,7 @@ class TestWizardVerifySetup:
     def test_verify_all_passed(self, client):
         with patch.object(
             __import__(
-                "opencloudtouch.setup.wizard_service", fromlist=["WizardService"]
+                "opencloudtouch.setup.wizard", fromlist=["WizardService"]
             ).WizardService,
             "verify_setup",
             new_callable=AsyncMock,
@@ -1626,7 +1580,7 @@ class TestWizardVerifySetup:
     def test_verify_with_failures(self, client):
         with patch.object(
             __import__(
-                "opencloudtouch.setup.wizard_service", fromlist=["WizardService"]
+                "opencloudtouch.setup.wizard", fromlist=["WizardService"]
             ).WizardService,
             "verify_setup",
             new_callable=AsyncMock,
@@ -1673,7 +1627,9 @@ class TestValidateHostname:
 
     def test_resolvable_hostname_matching_ip(self, client, respx_mock):
         """Hostname resolves to expected IP → resolvable=True, matches=True."""
-        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+        with patch(
+            "opencloudtouch.setup.wizard.strategy.socket.getaddrinfo"
+        ) as mock_dns:
             mock_dns.return_value = [
                 (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.100", 0))
             ]
@@ -1702,7 +1658,9 @@ class TestValidateHostname:
 
     def test_resolvable_hostname_mismatching_ip(self, client, respx_mock):
         """Hostname resolves to different IP → matches=False."""
-        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+        with patch(
+            "opencloudtouch.setup.wizard.strategy.socket.getaddrinfo"
+        ) as mock_dns:
             mock_dns.return_value = [
                 (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.5", 0))
             ]
@@ -1728,7 +1686,9 @@ class TestValidateHostname:
 
     def test_resolvable_hostname_no_expected_ip(self, client, respx_mock):
         """Hostname resolves, no expected_ip → matches=null."""
-        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+        with patch(
+            "opencloudtouch.setup.wizard.strategy.socket.getaddrinfo"
+        ) as mock_dns:
             mock_dns.return_value = [
                 (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.100", 0))
             ]
@@ -1749,7 +1709,9 @@ class TestValidateHostname:
 
     def test_unresolvable_hostname(self, client):
         """DNS lookup fails → resolvable=False with user-friendly error."""
-        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+        with patch(
+            "opencloudtouch.setup.wizard.strategy.socket.getaddrinfo"
+        ) as mock_dns:
             # errno -2 = EAI_NONAME (Name or service not known)
             mock_dns.side_effect = socket.gaierror(-2, "Name or service not known")
             response = client.post(
@@ -1772,7 +1734,9 @@ class TestValidateHostname:
 
     def test_dns_temporary_failure(self, client):
         """DNS temporary failure → user-friendly error."""
-        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+        with patch(
+            "opencloudtouch.setup.wizard.strategy.socket.getaddrinfo"
+        ) as mock_dns:
             # errno -3 = EAI_AGAIN (Temporary failure in name resolution)
             mock_dns.side_effect = socket.gaierror(-3, "Temporary failure")
             response = client.post(
@@ -1788,7 +1752,9 @@ class TestValidateHostname:
 
     def test_dns_no_address(self, client):
         """DNS returns no address → user-friendly error."""
-        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+        with patch(
+            "opencloudtouch.setup.wizard.strategy.socket.getaddrinfo"
+        ) as mock_dns:
             # errno -5 = EAI_NODATA (No address associated with hostname)
             mock_dns.side_effect = socket.gaierror(-5, "No address associated")
             response = client.post(
@@ -1812,7 +1778,9 @@ class TestValidateHostname:
 
     def test_empty_dns_result(self, client):
         """DNS returns empty list → resolvable=False."""
-        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+        with patch(
+            "opencloudtouch.setup.wizard.strategy.socket.getaddrinfo"
+        ) as mock_dns:
             mock_dns.return_value = []
             response = client.post(
                 "/api/setup/wizard/validate-hostname",
@@ -1831,7 +1799,9 @@ class TestValidateHostname:
 
     def test_unexpected_exception(self, client):
         """Unexpected non-socket exception → resolvable=False with user-friendly error."""
-        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+        with patch(
+            "opencloudtouch.setup.wizard.strategy.socket.getaddrinfo"
+        ) as mock_dns:
             mock_dns.side_effect = RuntimeError("Unexpected failure")
             response = client.post(
                 "/api/setup/wizard/validate-hostname",
@@ -1850,7 +1820,9 @@ class TestValidateHostname:
 
     def test_oct_not_reachable_connection_refused(self, client, respx_mock):
         """DNS OK but OCT not reachable (connection refused) → oct_reachable=False."""
-        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+        with patch(
+            "opencloudtouch.setup.wizard.strategy.socket.getaddrinfo"
+        ) as mock_dns:
             mock_dns.return_value = [
                 (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.100", 0))
             ]
@@ -1875,7 +1847,9 @@ class TestValidateHostname:
 
     def test_oct_not_reachable_timeout(self, client, respx_mock):
         """DNS OK but OCT times out → oct_reachable=False."""
-        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+        with patch(
+            "opencloudtouch.setup.wizard.strategy.socket.getaddrinfo"
+        ) as mock_dns:
             mock_dns.return_value = [
                 (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.100", 0))
             ]
@@ -1899,7 +1873,9 @@ class TestValidateHostname:
 
     def test_oct_wrong_service(self, client, respx_mock):
         """DNS OK but response is not OCT → oct_reachable=False."""
-        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+        with patch(
+            "opencloudtouch.setup.wizard.strategy.socket.getaddrinfo"
+        ) as mock_dns:
             mock_dns.return_value = [
                 (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.100", 0))
             ]
@@ -1925,7 +1901,9 @@ class TestValidateHostname:
 
     def test_oct_http_error(self, client, respx_mock):
         """DNS OK but HTTP 404 → oct_reachable=False."""
-        with patch("opencloudtouch.setup.wizard_routes.socket.getaddrinfo") as mock_dns:
+        with patch(
+            "opencloudtouch.setup.wizard.strategy.socket.getaddrinfo"
+        ) as mock_dns:
             mock_dns.return_value = [
                 (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.100", 0))
             ]

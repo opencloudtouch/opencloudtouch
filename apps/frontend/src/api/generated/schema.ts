@@ -1857,26 +1857,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/setup/wizard/list-backups": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Wizard List Backups
-     * @description List available backups (Wizard Step 8).
-     */
-    post: operations["wizard_list_backups_api_setup_wizard_list_backups_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   "/api/setup/wizard/reboot-device": {
     parameters: {
       query?: never;
@@ -1891,82 +1871,6 @@ export interface paths {
      * @description Reboot SoundTouch device via SSH (Wizard Step 7).
      */
     post: operations["wizard_reboot_device_api_setup_wizard_reboot_device_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/setup/wizard/account-pairing": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Wizard Account Pairing
-     * @description Ensure device has a margeAccountUUID (Wizard Step - Account Pairing).
-     *
-     *     Checks if the device already has a UUID. If not, generates one and
-     *     sets it via Telnet. Persists the UUID in the device repository for
-     *     streaming endpoint resolution.
-     */
-    post: operations["wizard_account_pairing_api_setup_wizard_account_pairing_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/setup/wizard/ensure-account": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Wizard Ensure Account
-     * @description Ensure device has a margeAccountUUID (Wizard Step � after config/hosts).
-     *
-     *     Devices without a margeAccountUUID cannot play presets (INVALID_SOURCE).
-     *     This endpoint checks GET :8090/info and sets a UUID via Telnet if missing.
-     *
-     *     Safe to call multiple times � no-op if UUID already present.
-     */
-    post: operations["wizard_ensure_account_api_setup_wizard_ensure_account_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/setup/wizard/init-persistence": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Wizard Init Persistence
-     * @description Initialize persistence files on factory-reset devices (Wizard Step — after account pairing).
-     *
-     *     Factory-reset devices lack SystemConfigurationDB.xml and Sources.xml.
-     *     Without them, the firmware never fully initialises playback state,
-     *     causing INVALID_SOURCE on preset recall (GitHub Issue #167).
-     *
-     *     Only creates files that are missing — never overwrites existing ones.
-     *     Safe to call multiple times.
-     */
-    post: operations["wizard_init_persistence_api_setup_wizard_init_persistence_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -2396,47 +2300,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
-    /**
-     * AccountPairingRequest
-     * @description Request to ensure device has a margeAccountUUID.
-     */
-    AccountPairingRequest: {
-      /**
-       * Device Ip
-       * @description Device IP address
-       */
-      device_ip: string;
-      /**
-       * Device Id
-       * @description Device ID (MAC address)
-       */
-      device_id: string;
-    };
-    /**
-     * AccountPairingResponse
-     * @description Response from account pairing.
-     */
-    AccountPairingResponse: {
-      /** Success */
-      success: boolean;
-      /**
-       * Had Uuid
-       * @description True if UUID was already present
-       * @default false
-       */
-      had_uuid: boolean;
-      /**
-       * Uuid
-       * @description The current or newly set UUID
-       * @default
-       */
-      uuid: string;
-      /**
-       * Message
-       * @default
-       */
-      message: string;
-    };
     /**
      * AuditBatchRequest
      * @description Batch of audit entries (reduces HTTP roundtrips).
@@ -2915,66 +2778,6 @@ export interface components {
        * @default
        */
       diff: string;
-    };
-    /**
-     * InitPersistenceRequest
-     * @description Request to initialize persistence files on a factory-reset device.
-     */
-    InitPersistenceRequest: {
-      /**
-       * Device Ip
-       * @description Device IP address
-       */
-      device_ip: string;
-      /**
-       * Device Name
-       * @description Device name from GET :8090/info <name>
-       */
-      device_name: string;
-      /**
-       * Account Uuid
-       * @description margeAccountUUID (7-digit numeric, from account pairing)
-       */
-      account_uuid: string;
-    };
-    /**
-     * InitPersistenceResponse
-     * @description Response from persistence initialization.
-     */
-    InitPersistenceResponse: {
-      /** Success */
-      success: boolean;
-      /** Created Files */
-      created_files?: string[];
-      /** Skipped Files */
-      skipped_files?: string[];
-      /**
-       * Message
-       * @default
-       */
-      message: string;
-      /** Error */
-      error?: string | null;
-    };
-    /**
-     * ListBackupsRequest
-     * @description Request to list backups.
-     */
-    ListBackupsRequest: {
-      /** Device Ip */
-      device_ip: string;
-    };
-    /**
-     * ListBackupsResponse
-     * @description Response with backup list.
-     */
-    ListBackupsResponse: {
-      /** Success */
-      success: boolean;
-      /** Config Backups */
-      config_backups?: string[];
-      /** Hosts Backups */
-      hosts_backups?: string[];
     };
     /**
      * LogDownloadRequest
@@ -5693,39 +5496,6 @@ export interface operations {
       };
     };
   };
-  wizard_list_backups_api_setup_wizard_list_backups_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ListBackupsRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ListBackupsResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
   wizard_reboot_device_api_setup_wizard_reboot_device_post: {
     parameters: {
       query?: never;
@@ -5746,105 +5516,6 @@ export interface operations {
         };
         content: {
           "application/json": Record<string, never>;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  wizard_account_pairing_api_setup_wizard_account_pairing_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["AccountPairingRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["AccountPairingResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  wizard_ensure_account_api_setup_wizard_ensure_account_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["AccountPairingRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["AccountPairingResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  wizard_init_persistence_api_setup_wizard_init_persistence_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["InitPersistenceRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["InitPersistenceResponse"];
         };
       };
       /** @description Validation Error */

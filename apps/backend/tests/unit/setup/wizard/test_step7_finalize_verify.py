@@ -1,4 +1,4 @@
-"""Tests for wizard_service.finalize_device() -- Issue #184."""
+"""Tests for setup/wizard/step7_finalize_verify.py's finalize_device() -- Issue #184."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -7,7 +7,7 @@ import pytest
 from opencloudtouch.setup.account_pairing_service import AccountPairingResult
 from opencloudtouch.setup.persistence_service import ForceWriteResult
 from opencloudtouch.setup.ssh_client import CommandResult
-from opencloudtouch.setup.wizard_service import WizardService
+from opencloudtouch.setup.wizard import WizardService
 
 
 def _make_device_repo(existing_uuid_owner=None):
@@ -42,7 +42,7 @@ class TestFinalizeDeviceNoUUID:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard_service.ensure_account_uuid_unique",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.ensure_account_uuid_unique",
                 new_callable=AsyncMock,
                 return_value=AccountPairingResult(
                     success=True,
@@ -52,7 +52,7 @@ class TestFinalizeDeviceNoUUID:
                 ),
             ),
             patch(
-                "opencloudtouch.setup.wizard_service.force_write_sources_xml",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.force_write_sources_xml",
                 new_callable=AsyncMock,
                 return_value=ForceWriteResult(
                     success=True,
@@ -60,7 +60,7 @@ class TestFinalizeDeviceNoUUID:
                 ),
             ),
             patch(
-                "opencloudtouch.setup.wizard_service.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value="1234567",
             ),
@@ -68,11 +68,11 @@ class TestFinalizeDeviceNoUUID:
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient",
             ) as mock_ssh_cls,
             patch(
-                "opencloudtouch.setup.wizard_service._write_file_atomic",
+                "opencloudtouch.setup.wizard.step7_finalize_verify._write_file_atomic",
                 new_callable=AsyncMock,
             ),
             patch(
-                "opencloudtouch.setup.wizard_service._file_exists",
+                "opencloudtouch.setup.wizard.step7_finalize_verify._file_exists",
                 new_callable=AsyncMock,
                 return_value=False,
             ),
@@ -110,7 +110,7 @@ class TestFinalizeDeviceExistingUUID:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard_service.ensure_account_uuid_unique",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.ensure_account_uuid_unique",
                 new_callable=AsyncMock,
                 return_value=AccountPairingResult(
                     success=True,
@@ -120,7 +120,7 @@ class TestFinalizeDeviceExistingUUID:
                 ),
             ),
             patch(
-                "opencloudtouch.setup.wizard_service.force_write_sources_xml",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.force_write_sources_xml",
                 new_callable=AsyncMock,
                 return_value=ForceWriteResult(
                     success=True,
@@ -130,7 +130,7 @@ class TestFinalizeDeviceExistingUUID:
                 ),
             ),
             patch(
-                "opencloudtouch.setup.wizard_service.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value="5448503",
             ),
@@ -138,12 +138,12 @@ class TestFinalizeDeviceExistingUUID:
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient",
             ) as mock_ssh_cls,
             patch(
-                "opencloudtouch.setup.wizard_service._write_file_atomic",
+                "opencloudtouch.setup.wizard.step7_finalize_verify._write_file_atomic",
                 new_callable=AsyncMock,
                 return_value=0,
             ),
             patch(
-                "opencloudtouch.setup.wizard_service._file_exists",
+                "opencloudtouch.setup.wizard.step7_finalize_verify._file_exists",
                 new_callable=AsyncMock,
                 return_value=False,
             ),
@@ -178,7 +178,7 @@ class TestFinalizeDeviceSSHFails:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard_service.ensure_account_uuid_unique",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.ensure_account_uuid_unique",
                 new_callable=AsyncMock,
                 return_value=AccountPairingResult(
                     success=True,
@@ -210,7 +210,7 @@ class TestFinalizeDeviceUUIDFails:
         service = WizardService(device_repo=repo)
 
         with patch(
-            "opencloudtouch.setup.wizard_service.ensure_account_uuid_unique",
+            "opencloudtouch.setup.wizard.step7_finalize_verify.ensure_account_uuid_unique",
             new_callable=AsyncMock,
             return_value=AccountPairingResult(
                 success=False,
@@ -247,7 +247,7 @@ class TestFinalizeSystemConfig:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard_service.ensure_account_uuid_unique",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.ensure_account_uuid_unique",
                 new_callable=AsyncMock,
                 return_value=AccountPairingResult(
                     success=True,
@@ -256,12 +256,12 @@ class TestFinalizeSystemConfig:
                 ),
             ),
             patch(
-                "opencloudtouch.setup.wizard_service.force_write_sources_xml",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.force_write_sources_xml",
                 new_callable=AsyncMock,
                 return_value=ForceWriteResult(success=True),
             ),
             patch(
-                "opencloudtouch.setup.wizard_service.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value="1234567",
             ),
@@ -269,12 +269,12 @@ class TestFinalizeSystemConfig:
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient",
             ) as mock_ssh_cls,
             patch(
-                "opencloudtouch.setup.wizard_service._write_file_atomic",
+                "opencloudtouch.setup.wizard.step7_finalize_verify._write_file_atomic",
                 new_callable=AsyncMock,
                 return_value=0,
             ) as mock_write,
             patch(
-                "opencloudtouch.setup.wizard_service._file_exists",
+                "opencloudtouch.setup.wizard.step7_finalize_verify._file_exists",
                 new_callable=AsyncMock,
                 return_value=False,
             ),
@@ -306,7 +306,7 @@ class TestFinalizeSystemConfig:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard_service.ensure_account_uuid_unique",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.ensure_account_uuid_unique",
                 new_callable=AsyncMock,
                 return_value=AccountPairingResult(
                     success=True,
@@ -315,12 +315,12 @@ class TestFinalizeSystemConfig:
                 ),
             ),
             patch(
-                "opencloudtouch.setup.wizard_service.force_write_sources_xml",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.force_write_sources_xml",
                 new_callable=AsyncMock,
                 return_value=ForceWriteResult(success=True),
             ),
             patch(
-                "opencloudtouch.setup.wizard_service.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value="1234567",
             ),
@@ -328,12 +328,12 @@ class TestFinalizeSystemConfig:
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient",
             ) as mock_ssh_cls,
             patch(
-                "opencloudtouch.setup.wizard_service._write_file_atomic",
+                "opencloudtouch.setup.wizard.step7_finalize_verify._write_file_atomic",
                 new_callable=AsyncMock,
                 return_value=0,
             ) as mock_write,
             patch(
-                "opencloudtouch.setup.wizard_service._file_exists",
+                "opencloudtouch.setup.wizard.step7_finalize_verify._file_exists",
                 new_callable=AsyncMock,
                 return_value=False,
             ),
@@ -372,7 +372,7 @@ class TestFinalizeIdempotent:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard_service.ensure_account_uuid_unique",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.ensure_account_uuid_unique",
                 new_callable=AsyncMock,
                 return_value=AccountPairingResult(
                     success=True,
@@ -381,12 +381,12 @@ class TestFinalizeIdempotent:
                 ),
             ),
             patch(
-                "opencloudtouch.setup.wizard_service.force_write_sources_xml",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.force_write_sources_xml",
                 new_callable=AsyncMock,
                 return_value=ForceWriteResult(success=True, had_existing=True),
             ),
             patch(
-                "opencloudtouch.setup.wizard_service.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value="5448503",
             ),
@@ -394,12 +394,12 @@ class TestFinalizeIdempotent:
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient",
             ) as mock_ssh_cls,
             patch(
-                "opencloudtouch.setup.wizard_service._write_file_atomic",
+                "opencloudtouch.setup.wizard.step7_finalize_verify._write_file_atomic",
                 new_callable=AsyncMock,
                 return_value=0,
             ),
             patch(
-                "opencloudtouch.setup.wizard_service._file_exists",
+                "opencloudtouch.setup.wizard.step7_finalize_verify._file_exists",
                 new_callable=AsyncMock,
                 return_value=False,
             ),

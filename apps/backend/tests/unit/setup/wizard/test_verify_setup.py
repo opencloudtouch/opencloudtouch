@@ -1,4 +1,4 @@
-"""Tests for wizard_service.verify_setup() -- Issue #184."""
+"""Tests for setup/wizard/step7_finalize_verify.py's verify_setup() -- Issue #184."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -6,7 +6,7 @@ import pytest
 
 from opencloudtouch.setup.persistence_service import _PERSISTENCE_DIR
 from opencloudtouch.setup.ssh_client import CommandResult
-from opencloudtouch.setup.wizard_service import WizardService
+from opencloudtouch.setup.wizard import WizardService
 
 FULL_SOURCES_XML = """<?xml version="1.0" encoding="UTF-8" ?>
 <sources>
@@ -108,7 +108,7 @@ class TestVerifySetupAllPass:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard_service.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value="5448503",
             ),
@@ -148,7 +148,7 @@ class TestVerifyUUIDMissing:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard_service.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value=None,
             ),
@@ -188,7 +188,7 @@ class TestVerifyUUIDNotInDB:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard_service.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value="5448503",
             ),
@@ -227,7 +227,7 @@ class TestVerifySourcesIncomplete:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard_service.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value="5448503",
             ),
@@ -267,7 +267,7 @@ class TestVerifyBMXStillBose:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard_service.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value="5448503",
             ),
@@ -307,7 +307,7 @@ class TestVerifyNoOCTBlock:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard_service.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value="5448503",
             ),
@@ -349,7 +349,7 @@ class TestVerifyMissingDomains:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard_service.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value="5448503",
             ),
@@ -404,7 +404,7 @@ class TestVerifyWrongIP:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard_service.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value="5448503",
             ),
