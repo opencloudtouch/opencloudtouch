@@ -235,6 +235,87 @@ async def press_key(
     return {"message": f"Key {key} pressed successfully", "device_id": device_id}
 
 
+@router.post(
+    "/{device_id}/play-preset/{preset_number}",
+    responses={
+        404: {"description": "Preset not configured or device not found"},
+    },
+)
+async def play_preset(
+    device_id: str,
+    preset_number: int,
+    device_service: Annotated[DeviceService, Depends(get_device_service)],
+    preset_service: Annotated[PresetService, Depends(get_preset_service)],
+    state_manager: Annotated[DeviceStateManager, Depends(get_device_state_manager)],
+):
+    """Play a preset on a device.
+
+    Unlike the generic ``/key`` endpoint, this ensures the device is
+    programmed with the correct station before sending the key press.
+    This fixes silent failures where the OCT database has the preset
+    but the device's internal preset slot is empty.
+
+    Flow:
+    1. Look up preset in OCT database
+    2. Re-program the device via ``/storePreset`` (idempotent)
+    3. Send ``PRESET_X`` key press to start playback
+
+    Args:
+        device_id: Device ID (MAC address)
+        preset_number: Preset number (1-6)
+
+    Returns:
+        Playback status including whether device was programmed
+    """
+    if not 1 <= preset_number <= 6:
+        raise HTTPException(status_code=400, detail="Preset number must be 1-6")
+
+    # 1. Look up preset in OCT database
+    preset = await preset_service.get_preset(device_id, preset_number)
+    if not preset:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Preset {preset_number} not configured for device {device_id}. "
+            "Assign a station first.",
+        )
+
+    # 2. Ensure device is programmed with current preset data
+    device_programmed = await preset_service.program_device_preset(preset)
+    if not device_programmed:
+        logger.warning(
+            "Device %s could not be programmed for preset %d (%s). "
+            "Attempting key press anyway — device may have stale preset.",
+            device_id,
+            preset_number,
+            preset.station_name,
+        )
+
+    # 3. Send PRESET_X key press
+    key = f"PRESET_{preset_number}"
+    await _device_op(
+        device_id,
+        "play preset",
+        device_service.press_key(device_id, key, "both"),
+        state_manager=state_manager,
+    )
+
+    logger.info(
+        "Play preset %d on %s: %s (programmed=%s)",
+        preset_number,
+        device_id,
+        preset.station_name,
+        device_programmed,
+    )
+
+    return {
+        "message": f"Playing preset {preset_number}: {preset.station_name}",
+        "device_id": device_id,
+        "preset_number": preset_number,
+        "station_name": preset.station_name,
+        "device_programmed": device_programmed,
+    }
+
+
 @router.put(
     "/{device_id}/name",
     responses={
