@@ -96,6 +96,33 @@ Pre-built images for Raspberry Pi 3/4/5 are available on the [Releases page](htt
 3. Boot — OpenCloudTouch starts automatically on port 7777
 4. Default login: `oct` / `opencloudtouch`
 
+### In-app self-update
+
+Official OpenCloudTouch Docker builds support backend-driven self-update.
+
+The updater pulls the exact target release before replacing the running
+container, preserves `/data`, waits for the new container health check, and
+automatically restores the previous image if the new container fails.
+
+Self-update requires access to the Docker daemon:
+
+```text
+/var/run/docker.sock:/var/run/docker.sock
+```
+
+The provided Docker Compose and Raspberry Pi appliance configurations include
+this mount. For a manual `docker run` installation, add:
+
+```bash
+-v /var/run/docker.sock:/var/run/docker.sock
+```
+
+> **Security:** Access to the Docker socket gives the OpenCloudTouch process
+> extensive control over the Docker host. If you do not want OpenCloudTouch
+> to perform container updates itself, omit this mount and continue to use
+> the existing manual upgrade procedure.
+
+
 ### Docker Tags
 
 | Tag | Description |

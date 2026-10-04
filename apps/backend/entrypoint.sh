@@ -143,6 +143,19 @@ main() {
     # Drop to non-root user if running as root
     if [ "$(id -u)" = "0" ]; then
         log_info "Dropping privileges to oct user"
+
+        if [ -S /var/run/docker.sock ]; then
+            docker_gid="$(stat -c '%g' /var/run/docker.sock)"
+            docker_group="$(getent group "$docker_gid" | cut -d: -f1 || true)"
+
+            if [ -z "$docker_group" ]; then
+                docker_group="docker-host"
+                groupadd -g "$docker_gid" "$docker_group"
+            fi
+
+            usermod -aG "$docker_group" oct
+        fi
+
         exec gosu oct "$0" "$@"
     fi
 

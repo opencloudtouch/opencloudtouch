@@ -61,6 +61,7 @@ from opencloudtouch.setup.routes import router as setup_router
 from opencloudtouch.setup.service import SetupService
 from opencloudtouch.setup.wizard import WizardService, wizard_router
 from opencloudtouch.swupdate.routes import router as swupdate_router
+from opencloudtouch.system.routes import router as system_router
 from opencloudtouch.wizard_audit.repository import WizardAuditRepository
 from opencloudtouch.wizard_audit.routes import audit_router as wizard_audit_router
 from opencloudtouch.zones.repository import ZoneRepository
@@ -421,6 +422,7 @@ app.include_router(playlist_router)  # M3U/PLS playlist files for Bose presets
 app.include_router(setup_router)  # Device setup wizard
 app.include_router(wizard_router)  # SSH-driven wizard step endpoints
 app.include_router(swupdate_router)  # SWUpdate firmware index emulation
+app.include_router(system_router)  # OCT self-update
 app.include_router(zones_router)  # Multi-room zone management
 app.include_router(device_zone_router)  # Per-device zone status
 app.include_router(logs_router)  # Backend log download

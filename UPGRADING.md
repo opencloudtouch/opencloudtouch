@@ -6,6 +6,65 @@ This guide explains how to upgrade OpenCloudTouch deployments. It covers Docker-
 
 ---
 
+## In-app self-update
+
+Official Docker-based OpenCloudTouch installations support backend-driven
+self-update.
+
+### Update process
+
+1. OpenCloudTouch checks the latest official release.
+2. The exact target image is pulled while the current container keeps running.
+3. A short-lived helper container is started from the currently working image.
+4. The helper replaces the OpenCloudTouch container while preserving `/data`.
+5. The new container must pass its Docker health check.
+6. If startup or the health check fails, the previous immutable image is
+   restored automatically.
+
+### Backend endpoints
+
+- `GET /api/system/check-update`
+- `POST /api/system/update`
+- `GET /api/system/update-status`
+
+The status endpoint reports the current phase, progress percentage, message,
+target version, and current version.
+
+Possible phases include:
+
+- `idle`
+- `pulling`
+- `restarting`
+- `ready`
+- `rolling_back`
+- `rolled_back`
+- `failed`
+
+Only one update can run at a time.
+
+Self-update is not triggered automatically. The backend provides the update
+mechanism; user-facing confirmation and the final protection of the update
+action remain part of the frontend/API integration.
+
+The current backend expects the OpenCloudTouch container to be named
+`opencloudtouch` and to use a persistent `/data` mount.
+
+### Docker socket requirement
+
+Self-update requires the Docker socket:
+
+```yaml
+volumes:
+  - /var/run/docker.sock:/var/run/docker.sock
+```
+
+> **Security:** Docker socket access provides extensive control over the
+> Docker host. Users who do not want to grant this access can omit the mount
+> and continue using the manual upgrade procedures below.
+
+---
+
+
 ## 1. Upgrade with Docker
 
 **Recommended for most users.**

@@ -3190,6 +3190,42 @@ paths:
           content:
             application/json:
               schema: {}
+  /api/system/check-update:
+    get:
+      tags:
+      - System
+      summary: Check Update
+      operationId: check_update_api_system_check_update_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/system/update:
+    post:
+      tags:
+      - System
+      summary: Update
+      operationId: update_api_system_update_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/system/update-status:
+    get:
+      tags:
+      - System
+      summary: Update Status
+      operationId: update_status_api_system_update_status_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
 components:
   schemas:
     AuditBatchRequest:
