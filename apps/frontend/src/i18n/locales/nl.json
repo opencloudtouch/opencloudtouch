@@ -51,6 +51,7 @@
     "presetSaved": "Preset {{number}} opgeslagen.",
     "presetDeleted": "Preset {{number}} verwijderd.",
     "playFailed": "Preset kon niet worden afgespeeld. Probeer het opnieuw.",
+    "deviceNotProgrammed": "Apparaat kon niet worden geprogrammeerd. Afspelen werkt mogelijk pas na de configuratie.",
     "noDevices": "Geen apparaten gevonden",
     "syncedFromDevice": "Presets succesvol geladen van apparaat.",
     "savedStations": "Opgeslagen stations",

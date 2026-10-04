@@ -51,6 +51,7 @@
     "presetSaved": "Preset {{number}} salvato.",
     "presetDeleted": "Preset {{number}} eliminato.",
     "playFailed": "Impossibile riprodurre il preset. Riprovare.",
+    "deviceNotProgrammed": "Impossibile programmare il dispositivo. La riproduzione potrebbe non funzionare fino alla configurazione.",
     "noDevices": "Nessun dispositivo trovato",
     "syncedFromDevice": "Preset caricati con successo dal dispositivo.",
     "savedStations": "Stazioni salvate",
