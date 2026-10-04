@@ -178,6 +178,36 @@ async def test_init_services_starts_health_check_when_device_polling_enabled(
     health_check_instance.start.assert_called_once()
 
 
+@pytest.mark.asyncio
+async def test_init_services_skips_health_check_in_mock_mode_regardless_of_polling_flag(
+    mock_init_services_deps,
+):
+    """mock_mode=True must skip DeviceHealthCheck.start() even when polling is enabled.
+
+    Covers the remaining branch of the if/elif in _init_services: mock_mode
+    True and device_polling_enabled True satisfies neither the `if` (blocked
+    by mock_mode) nor the `elif` (blocked by device_polling_enabled being
+    True), so neither log message should fire and start() must stay uncalled.
+    """
+    from fastapi import FastAPI
+
+    from opencloudtouch.main import _init_services
+
+    app = FastAPI()
+    cfg = MagicMock()
+    cfg.mock_mode = True
+    cfg.device_polling_enabled = True
+    cfg.discovery_timeout = 3
+    cfg.manual_device_ips_list = []
+    cfg.discovery_enabled = True
+
+    await _init_services(app, cfg, _build_init_services_repos(), MagicMock())
+
+    health_check_instance = mock_init_services_deps["health_check"].return_value
+    health_check_instance.start.assert_not_called()
+    assert app.state.health_check is health_check_instance
+
+
 def test_main_module_uses_config_port():
     """Regression test for #70: __main__.py must use config port, not hardcoded 7777."""
     import runpy
@@ -353,10 +383,12 @@ def test_version_falls_back_when_package_metadata_missing(monkeypatch):
     is - PackageNotFoundError is the documented failure mode.
     """
     monkeypatch.delenv("OCT_VERSION", raising=False)
-    from opencloudtouch import PackageNotFoundError, _resolve_version
+    import opencloudtouch
 
-    with patch("opencloudtouch.version", side_effect=PackageNotFoundError):
-        assert _resolve_version() == "0.0.0-unknown"
+    with patch.object(
+        opencloudtouch, "version", side_effect=opencloudtouch.PackageNotFoundError
+    ):
+        assert opencloudtouch._resolve_version() == "0.0.0-unknown"
 
 
 def test_version_ignores_blank_oct_version_override(monkeypatch):
@@ -383,6 +415,22 @@ def test_is_official_build_true_with_valid_signature(monkeypatch):
     from opencloudtouch import is_official_build
 
     assert is_official_build() is True
+
+
+def test_is_official_build_false_with_wrong_length_signature(monkeypatch):
+    """A non-empty signature that isn't 16 chars is rejected, not crashed on."""
+    monkeypatch.setenv("OCT_BUILD_SIGNATURE", "abc123")
+    from opencloudtouch import is_official_build
+
+    assert is_official_build() is False
+
+
+def test_is_official_build_false_with_non_hex_signature(monkeypatch):
+    """A 16-char signature that isn't valid hex is rejected, not crashed on."""
+    monkeypatch.setenv("OCT_BUILD_SIGNATURE", "zzzzzzzzzzzzzzzz")
+    from opencloudtouch import is_official_build
+
+    assert is_official_build() is False
 
 
 def test_app_version_matches_package_version():
