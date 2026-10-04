@@ -93,7 +93,11 @@ export default function RadioSearch({
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const handleSearch = async (searchQuery: string) => {
+  const handleSearch = async (
+    searchQuery: string,
+    provider: RadioProviderType = radioProvider,
+    type: SearchType = searchType
+  ) => {
     setQuery(searchQuery);
     setError(null);
     setOffset(0);
@@ -137,7 +141,7 @@ export default function RadioSearch({
       try {
         const baseUrl = getApiBaseUrl();
         const response = await fetch(
-          `${baseUrl}/api/radio/search?q=${encodeURIComponent(searchQuery)}&search_type=${searchType}&limit=${RESULTS_PER_PAGE}&offset=0&provider=${radioProvider}`,
+          `${baseUrl}/api/radio/search?q=${encodeURIComponent(searchQuery)}&search_type=${type}&limit=${RESULTS_PER_PAGE}&offset=0&provider=${provider}`,
           { signal: controller.signal }
         );
 
@@ -305,7 +309,9 @@ export default function RadioSearch({
                   className={`search-type-chip${searchType === st.value ? " active" : ""}`}
                   onClick={() => {
                     setSearchType(st.value);
-                    if (query.trim().length >= 2) handleSearch(query);
+                    if (query.trim().length >= 2) {
+                      handleSearch(query, radioProvider, st.value);
+                    }
                   }}
                 >
                   {t(`presets.searchTypeLabel.${st.value}`)}
@@ -320,7 +326,9 @@ export default function RadioSearch({
                     className={`search-type-chip${radioProvider === p.value ? " active" : ""}`}
                     onClick={() => {
                       setRadioProvider(p.value);
-                      if (query.trim().length >= 2) handleSearch(query);
+                      if (query.trim().length >= 2) {
+                        handleSearch(query, p.value, searchType);
+                      }
                     }}
                   >
                     {p.label}

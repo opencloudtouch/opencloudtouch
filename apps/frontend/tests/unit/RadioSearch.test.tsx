@@ -374,6 +374,80 @@ describe("RadioSearch Component", () => {
     expect(nativeDialog).not.toBeInTheDocument();
   });
 
+  it("uses the newly selected provider immediately when switching providers", async () => {
+    const fetchMock = vi.mocked(fetch);
+
+    render(
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
+
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
+    fireEvent.change(searchInput, { target: { value: "BBC" } });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+
+    // TuneIn -> RadioBrowser
+    fireEvent.click(screen.getByText("RadioBrowser"));
+
+    await waitFor(() => {
+      const searchCalls = fetchMock.mock.calls
+        .map(([input]) => new URL(String(input), "http://localhost"))
+        .filter((url) => url.pathname === "/api/radio/search");
+
+      expect(searchCalls.at(-1)?.searchParams.get("provider")).toBe("radiobrowser");
+    });
+
+    // RadioBrowser -> TuneIn
+    fireEvent.click(screen.getByText("TuneIn"));
+
+    await waitFor(() => {
+      const searchCalls = fetchMock.mock.calls
+        .map(([input]) => new URL(String(input), "http://localhost"))
+        .filter((url) => url.pathname === "/api/radio/search");
+
+      expect(searchCalls.at(-1)?.searchParams.get("provider")).toBe("tunein");
+    });
+  });
+
+  it("uses the newly selected search type immediately when switching search types", async () => {
+    const fetchMock = vi.mocked(fetch);
+
+    render(
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
+
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
+    fireEvent.change(searchInput, { target: { value: "Germany" } });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+
+    // Name -> Country
+    fireEvent.click(screen.getByText("Country"));
+
+    await waitFor(() => {
+      const searchCalls = fetchMock.mock.calls
+        .map(([input]) => new URL(String(input), "http://localhost"))
+        .filter((url) => url.pathname === "/api/radio/search");
+
+      expect(searchCalls.at(-1)?.searchParams.get("search_type")).toBe("country");
+    });
+
+    // Country -> Name
+    fireEvent.click(screen.getByText("Name"));
+
+    await waitFor(() => {
+      const searchCalls = fetchMock.mock.calls
+        .map(([input]) => new URL(String(input), "http://localhost"))
+        .filter((url) => url.pathname === "/api/radio/search");
+
+      expect(searchCalls.at(-1)?.searchParams.get("search_type")).toBe("name");
+    });
+  });
+
   describe("Feature Toggle (HAS_TUNEIN_SUPPORT)", () => {
     it("should hide provider row when HAS_TUNEIN_SUPPORT is false (only 1 provider)", async () => {
       vi.resetModules();
