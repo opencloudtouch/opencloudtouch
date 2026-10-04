@@ -83,7 +83,7 @@ async def wizard_server_info(request: Request) -> Dict[str, Any]:
     }
 
 
-@strategy_router.get("/wizard/detect-strategy", response_model=DetectStrategyResponse)
+@strategy_router.get("/wizard/detect-strategy")
 async def wizard_detect_strategy(request: Request) -> DetectStrategyResponse:
     """Detect whether an HTTPS reverse proxy is available on port 443.
 
