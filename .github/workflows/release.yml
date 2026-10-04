@@ -369,7 +369,7 @@ jobs:
           SD card images are released independently. Flash the latest image and it will
           automatically pull this version on first boot.
 
-          👉 **[Download Raspberry Pi SD Card Images](https://github.com/${{ github.repository }}/releases?q=raspi&expanded=true)**
+          👉 **[Download Raspberry Pi SD Card Images](https://github.com/${{ github.repository }}/releases/tag/raspi-latest)**
 
           ---
 

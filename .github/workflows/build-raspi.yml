@@ -171,3 +171,21 @@ jobs:
 
           echo "✅ Release $TAG created"
           gh release view "$TAG" --repo "${{ github.repository }}"
+
+          # Update the "raspi-latest" alias to point at this build. GitHub's release
+          # search (?q=raspi) doesn't reliably filter on direct URLs, so app release
+          # notes link here instead of relying on search.
+          gh release delete raspi-latest --repo "${{ github.repository }}" --yes 2>/dev/null || true
+          gh api "repos/${{ github.repository }}/git/refs/tags/raspi-latest" -X DELETE 2>/dev/null || true
+
+          gh release create raspi-latest \
+            --repo "${{ github.repository }}" \
+            --title "Raspberry Pi SD Card Images (latest: v${RASPI_VERSION})" \
+            --notes "$NOTES
+
+          ---
+          This is a stable link to the newest Raspberry Pi image build. Current build: [\`${TAG}\`](https://github.com/${{ github.repository }}/releases/tag/${TAG})." \
+            --latest=false \
+            images/*.img.xz images/*.sha256
+
+          echo "✅ Release raspi-latest updated -> ${TAG}"
