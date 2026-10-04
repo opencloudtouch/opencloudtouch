@@ -105,7 +105,7 @@ jobs:
 
     steps:
       - name: "Checkout base branch (security: never run PR code)"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.base.ref }}
 
@@ -157,7 +157,7 @@ jobs:
 
     steps:
       - name: "Checkout base branch (security: never run PR code)"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.base.ref }}
 
