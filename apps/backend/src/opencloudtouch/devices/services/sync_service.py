@@ -9,6 +9,10 @@ from typing import TYPE_CHECKING, List, Optional
 
 from opencloudtouch.db import Device
 from opencloudtouch.devices.adapter import get_device_client, get_discovery_adapter
+from opencloudtouch.devices.capabilities import (
+    get_capabilities_for_ip,
+    get_feature_flags_for_ui,
+)
 from opencloudtouch.devices.discovery.manual import ManualDiscovery
 from opencloudtouch.devices.events import (
     device_failed_event,
@@ -320,6 +324,7 @@ class DeviceSyncService:
 
         # Fetch margeAccountUUID separately (parsed from /info XML)
         marge_uuid = await self._fetch_marge_account_uuid(discovered.ip)
+        capabilities = await self._fetch_device_capabilities(discovered.ip, client)
 
         return Device(
             device_id=info.device_id,
@@ -329,7 +334,59 @@ class DeviceSyncService:
             mac_address=info.mac_address,
             firmware_version=info.firmware_version,
             marge_account_uuid=marge_uuid,
+            capabilities=capabilities,
         )
+
+    @staticmethod
+    async def _fetch_device_capabilities(device_ip: str, client) -> Optional[dict]:
+        """Detect UI capabilities for a device during discovery.
+
+        Capability detection is best-effort: a transient failure must not prevent
+        the device itself from being discovered and persisted.
+        """
+        try:
+            if os.getenv("OCT_MOCK_MODE", "false").lower() == "true":
+                bass = await client.get_bass_capabilities()
+                return {
+                    "features": {"bass_control": bass.available},
+                    "settings": {
+                        "bass": {
+                            "available": bass.available,
+                            "minimum": bass.minimum,
+                            "maximum": bass.maximum,
+                            "default": bass.default,
+                        }
+                    },
+                }
+
+            detected = await get_capabilities_for_ip(device_ip)
+            flags = get_feature_flags_for_ui(detected)
+
+            # /bassCapabilities is authoritative. Some bosesoundtouchapi
+            # versions do not expose an IsBassCapable property at all.
+            try:
+                bass = await client.get_bass_capabilities()
+            except Exception:
+                logger.debug(
+                    "Could not fetch bass capabilities from %s",
+                    device_ip,
+                    exc_info=True,
+                )
+            else:
+                flags.setdefault("features", {})["bass_control"] = bass.available
+                flags.setdefault("settings", {})["bass"] = {
+                    "available": bass.available,
+                    "minimum": bass.minimum,
+                    "maximum": bass.maximum,
+                    "default": bass.default,
+                }
+
+            return flags
+        except Exception:
+            logger.debug(
+                "Could not detect capabilities for %s", device_ip, exc_info=True
+            )
+            return None
 
     @staticmethod
     async def _fetch_marge_account_uuid(device_ip: str) -> Optional[str]:

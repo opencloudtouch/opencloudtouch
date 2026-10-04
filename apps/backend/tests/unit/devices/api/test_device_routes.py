@@ -25,7 +25,11 @@ from opencloudtouch.core.exceptions import (
     DeviceNotFoundError,
     DomainValidationError,
 )
-from opencloudtouch.devices.client import NowPlayingInfo, VolumeInfo
+from opencloudtouch.devices.client import (
+    BassInfo,
+    NowPlayingInfo,
+    VolumeInfo,
+)
 from opencloudtouch.devices.repository import Device
 from opencloudtouch.main import app
 
@@ -181,6 +185,47 @@ class TestDeviceDetailEndpoint:
         assert device["model"] == "SoundTouch 30"
         assert device["mac_address"] == "AA:BB:CC:DD:EE:FF"
         assert device["firmware_version"] == "28.0.5.46710"
+
+
+class TestBassEndpoint:
+    """Tests for SoundTouch bass endpoints."""
+
+    def test_get_bass(self, client, mock_device_service):
+        mock_device_service.get_device_bass = AsyncMock(
+            return_value=BassInfo(actual=-2, target=-2)
+        )
+
+        response = client.get("/api/devices/ABC123/settings/bass")
+
+        assert response.status_code == 200
+        assert response.json() == {"actual": -2, "target": -2}
+        mock_device_service.get_device_bass.assert_awaited_once_with("ABC123")
+
+    def test_set_bass(self, client, mock_device_service):
+        mock_device_service.set_device_bass = AsyncMock(return_value=None)
+
+        response = client.put("/api/devices/ABC123/settings/bass", json={"level": -4})
+
+        assert response.status_code == 200
+        assert response.json()["level"] == -4
+        mock_device_service.set_device_bass.assert_awaited_once_with("ABC123", -4)
+
+    def test_set_bass_rejects_non_integer(self, client, mock_device_service):
+        response = client.put("/api/devices/ABC123/settings/bass", json={"level": "-4"})
+
+        assert response.status_code == 422
+        assert "integer" in response.json()["detail"].lower()
+        mock_device_service.set_device_bass.assert_not_called()
+
+    def test_set_bass_returns_422_for_out_of_range(self, client, mock_device_service):
+        mock_device_service.set_device_bass = AsyncMock(
+            side_effect=ValueError("Bass level must be between -9 and 0")
+        )
+
+        response = client.put("/api/devices/ABC123/settings/bass", json={"level": 1})
+
+        assert response.status_code == 422
+        assert "between -9 and 0" in response.json()["detail"]
 
 
 class TestSyncEndpoint:

@@ -96,16 +96,32 @@ async def get_device_capabilities(client: SoundTouchClient) -> DeviceCapabilitie
         asyncio.to_thread(client.GetSourceList),
     )
 
-    # Parse supported endpoints from supportedURLs
+    # Parse supported endpoints. bosesoundtouchapi versions expose these
+    # either as SupportedUrls objects or as an internal _Capabilities mapping.
     supported_endpoints = set()
-    for url_obj in caps.SupportedUrls:
-        # url_obj is SupportedUrl with Url property
-        endpoint = url_obj.Url.lstrip("/")
-        supported_endpoints.add(endpoint)
+    supported_urls = getattr(caps, "SupportedUrls", None)
+    if supported_urls is not None:
+        for url_obj in supported_urls:
+            endpoint = url_obj.Url.lstrip("/")
+            supported_endpoints.add(endpoint)
+    else:
+        capability_map = getattr(caps, "_Capabilities", {}) or {}
+        if isinstance(capability_map, dict):
+            for endpoint_path in capability_map.values():
+                supported_endpoints.add(str(endpoint_path).lstrip("/"))
 
-    # Parse available sources
+    # Parse available sources. bosesoundtouchapi versions expose these
+    # either as Sources or as SourceItems/_SourceItems.
+    source_items = getattr(sources_response, "Sources", None)
+    if source_items is None:
+        source_items = getattr(sources_response, "SourceItems", None)
+    if source_items is None:
+        source_items = getattr(sources_response, "_SourceItems", [])
+
     supported_sources = [
-        source.Source for source in sources_response.Sources if source.Status == "READY"
+        source.Source
+        for source in source_items
+        if getattr(source, "Status", None) == "READY"
     ]
 
     # Build capabilities object
@@ -113,9 +129,19 @@ async def get_device_capabilities(client: SoundTouchClient) -> DeviceCapabilitie
         device_id=info.DeviceId,
         device_type=info.DeviceType,
         # Hardware capabilities from /capabilities
-        has_hdmi_control=caps.IsProductCECHDMIControlCapable,
-        has_bass_control=caps.IsBassCapable,
-        has_audio_product_level_control=caps.IsAudioProductLevelControlCapable,
+        has_hdmi_control=getattr(
+            caps,
+            "IsProductCECHDMIControlCapable",
+            getattr(caps, "IsProductCecHdmiControlCapable", False),
+        ),
+        # Not all bosesoundtouchapi versions expose IsBassCapable.
+        # Bass support is verified separately via /bassCapabilities.
+        has_bass_control=getattr(caps, "IsBassCapable", False),
+        has_audio_product_level_control=getattr(
+            caps,
+            "IsAudioProductLevelControlCapable",
+            getattr(caps, "IsAudioProductLevelControlsCapable", False),
+        ),
         has_audio_product_tone_control=(
             caps.IsAudioProductToneControlsCapable
             if hasattr(caps, "IsAudioProductToneControlsCapable")

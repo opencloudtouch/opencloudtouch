@@ -9,7 +9,13 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from opencloudtouch.core.exceptions import DeviceNotFoundError, DomainValidationError
-from opencloudtouch.devices.client import NowPlayingInfo, VolumeInfo
+from opencloudtouch.devices.capabilities import DeviceCapabilities
+from opencloudtouch.devices.client import (
+    BassCapabilities,
+    BassInfo,
+    NowPlayingInfo,
+    VolumeInfo,
+)
 from opencloudtouch.devices.models import KeyType, SyncResult
 from opencloudtouch.devices.repository import Device
 from opencloudtouch.devices.service import DeviceService
@@ -230,11 +236,13 @@ class TestDeviceServiceCapabilities:
         # Arrange
         mock_repository.get_by_device_id.return_value = sample_device
 
-        expected_capabilities = {
-            "model": "SoundTouch 30 Series III",
-            "api_version": "1.0",
-            "has_hdmi": False,
-        }
+        expected_capabilities = DeviceCapabilities(
+            device_id="AABBCC112233",
+            device_type="SoundTouch 30 Series III",
+            has_hdmi_control=False,
+            has_bass_control=True,
+            has_bluetooth=True,
+        )
 
         expected_feature_flags = {
             "device_id": "AABBCC112233",
@@ -247,13 +255,24 @@ class TestDeviceServiceCapabilities:
             },
         }
 
-        # Mock the capability detection and device client creation
+        mock_client = AsyncMock()
+        mock_client.get_bass_capabilities.return_value = BassCapabilities(
+            available=True,
+            minimum=-9,
+            maximum=0,
+            default=0,
+        )
+
+        # Mock capability detection and device communication.
         with patch(
             "opencloudtouch.devices.service.get_capabilities_for_ip",
             new_callable=AsyncMock,
         ) as mock_get_caps, patch(
             "opencloudtouch.devices.service.get_feature_flags_for_ui"
-        ) as mock_get_flags:
+        ) as mock_get_flags, patch(
+            "opencloudtouch.devices.service.get_device_client",
+            return_value=mock_client,
+        ):
 
             mock_get_caps.return_value = expected_capabilities
             mock_get_flags.return_value = expected_feature_flags
@@ -279,6 +298,53 @@ class TestDeviceServiceCapabilities:
         # Act & Assert
         with pytest.raises(DeviceNotFoundError):
             await device_service.get_device_capabilities("NONEXISTENT")
+
+
+class TestDeviceServiceBass:
+    """Test device bass operations."""
+
+    @pytest.mark.asyncio
+    async def test_get_device_bass(
+        self, device_service, mock_repository, sample_device
+    ):
+        mock_repository.get_by_device_id.return_value = sample_device
+        mock_client = AsyncMock()
+        mock_client.get_bass.return_value = BassInfo(actual=-3, target=-3)
+
+        with patch(
+            "opencloudtouch.devices.service.get_device_client",
+            return_value=mock_client,
+        ):
+            result = await device_service.get_device_bass(sample_device.device_id)
+
+        assert result == BassInfo(actual=-3, target=-3)
+        mock_client.get_bass.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_set_device_bass(
+        self, device_service, mock_repository, sample_device
+    ):
+        sample_device.capabilities = {
+            "features": {"bass_control": True},
+            "settings": {
+                "bass": {
+                    "available": True,
+                    "minimum": -9,
+                    "maximum": 0,
+                    "default": 0,
+                }
+            },
+        }
+        mock_repository.get_by_device_id.return_value = sample_device
+        mock_client = AsyncMock()
+
+        with patch(
+            "opencloudtouch.devices.service.get_device_client",
+            return_value=mock_client,
+        ):
+            await device_service.set_device_bass(sample_device.device_id, -4)
+
+        mock_client.set_bass.assert_awaited_once_with(-4)
 
 
 class TestDeviceServiceSendKey:

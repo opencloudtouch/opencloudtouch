@@ -39,6 +39,38 @@ def mock_device_info():
     return info
 
 
+@pytest.fixture(autouse=True)
+def mock_device_metadata_queries(monkeypatch):
+    """Keep sync unit tests isolated from real SoundTouch network calls."""
+
+    async def mock_fetch_capabilities(device_ip, client):
+        return {
+            "features": {"bass_control": True},
+            "settings": {
+                "bass": {
+                    "available": True,
+                    "minimum": -9,
+                    "maximum": 0,
+                    "default": 0,
+                }
+            },
+        }
+
+    async def mock_fetch_marge_uuid(device_ip):
+        return None
+
+    monkeypatch.setattr(
+        DeviceSyncService,
+        "_fetch_device_capabilities",
+        staticmethod(mock_fetch_capabilities),
+    )
+    monkeypatch.setattr(
+        DeviceSyncService,
+        "_fetch_marge_account_uuid",
+        staticmethod(mock_fetch_marge_uuid),
+    )
+
+
 class TestDeviceSyncService:
     """Test suite for DeviceSyncService."""
 
