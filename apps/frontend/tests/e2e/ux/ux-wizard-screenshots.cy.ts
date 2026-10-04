@@ -704,8 +704,8 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
       cy.get(".reboot-btn", { timeout: 5000 }).click({ force: true });
       cy.wait("@rebootDevice");
 
-      // Fast-forward the 60s reboot countdown
-      cy.tick(61000);
+      // Fast-forward the 100s reboot countdown
+      cy.tick(101000);
       cy.clock().then((clock) => clock.restore());
 
       // Click "Run Full Verification"

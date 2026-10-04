@@ -317,7 +317,7 @@
         "instructionStep3Desc": "Wait at least 10 seconds.",
         "instructionStep4": "Restore power",
         "instructionStep4Desc": "Plug the power adapter back in.",
-        "instructionStep5": "Wait (~60 seconds)",
+        "instructionStep5": "Wait (~100 seconds)",
         "instructionStep5Desc": "The device restarts and reads the remote_services file from the USB drive.",
         "sectionStatus": "Check status",
         "statusWaiting": "Waiting for device restart...",
@@ -362,7 +362,7 @@
         "troubleshootingTitle": "⚠️ Troubleshooting",
         "troubleshootingItem1": "Check that the USB drive is correctly inserted",
         "troubleshootingItem2": "Make sure the 'remote_services' file is correct",
-        "troubleshootingItem3": "Wait at least 60 seconds after restart",
+        "troubleshootingItem3": "Wait at least 100 seconds after restart",
         "troubleshootingItem4": "Try another power cycle (steps 2–5)",
         "troubleshootingItem5": "Check that the device is on the same network",
         "troubleshootingItem6": "Test the SSH connection manually with the command above — if that works, the device is ready."
@@ -450,8 +450,8 @@
         "successTitle": "Hosts file modified successfully!",
         "changedEntries": "Changed entries:",
         "backupLabel": "Backup:",
-        "btnShowDiff": "▶ Show diff",
-        "btnHideDiff": "▼ Hide diff",
+        "btnShowChanges": "▶ Show changes",
+        "btnHideChanges": "▼ Hide changes",
         "hostsApplied": "Hosts file successfully modified."
       },
       "step7": {
@@ -764,6 +764,6 @@
   "deviceHeader": {
     "reboot": "Reboot device",
     "sent": "Reboot command sent",
-    "confirmMessage": "Reboot {{name}}? The device will be unavailable for about 60 seconds."
+    "confirmMessage": "Reboot {{name}}? The device will be unavailable for about 100 seconds."
   }
 }

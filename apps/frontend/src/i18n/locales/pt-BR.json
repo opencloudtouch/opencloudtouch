@@ -317,7 +317,7 @@
         "instructionStep3Desc": "Aguarde pelo menos 10 segundos.",
         "instructionStep4": "Restaurar a alimentação",
         "instructionStep4Desc": "Reconecte o adaptador de alimentação.",
-        "instructionStep5": "Aguardar (~60 segundos)",
+        "instructionStep5": "Aguardar (~100 segundos)",
         "instructionStep5Desc": "O dispositivo reinicia e lê o arquivo remote_services do pendrive.",
         "sectionStatus": "Verificar status",
         "statusWaiting": "Aguardando reinício do dispositivo...",
@@ -362,7 +362,7 @@
         "troubleshootingTitle": "⚠️ Solução de problemas",
         "troubleshootingItem1": "Verifique se o pendrive está inserido corretamente",
         "troubleshootingItem2": "Certifique-se de que o arquivo 'remote_services' está correto",
-        "troubleshootingItem3": "Aguarde pelo menos 60 segundos após o reinício",
+        "troubleshootingItem3": "Aguarde pelo menos 100 segundos após o reinício",
         "troubleshootingItem4": "Tente outro ciclo de energia (etapas 2-5)",
         "troubleshootingItem5": "Verifique se o dispositivo está na mesma rede",
         "troubleshootingItem6": "Teste a conexão SSH manualmente com o comando acima — se funcionar, o dispositivo está pronto."
@@ -450,8 +450,8 @@
         "successTitle": "Arquivo hosts modificado com sucesso!",
         "changedEntries": "Entradas modificadas:",
         "backupLabel": "Backup:",
-        "btnShowDiff": "▶ Mostrar diff",
-        "btnHideDiff": "▼ Ocultar diff",
+        "btnShowChanges": "▶ Mostrar alterações",
+        "btnHideChanges": "▼ Ocultar alterações",
         "hostsApplied": "Arquivo hosts modificado com sucesso."
       },
       "step7": {
@@ -764,6 +764,6 @@
   "deviceHeader": {
     "reboot": "Reiniciar dispositivo",
     "sent": "Comando de reinicialização enviado",
-    "confirmMessage": "Reiniciar {{name}}? O dispositivo ficará indisponível por cerca de 60 segundos."
+    "confirmMessage": "Reiniciar {{name}}? O dispositivo ficará indisponível por cerca de 100 segundos."
   }
 }
