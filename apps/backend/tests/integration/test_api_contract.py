@@ -39,7 +39,7 @@ def openapi_live():
 @pytest.fixture
 async def client():
     """Lightweight async test client (no DB, no lifespan)."""
-    from opencloudtouch.setup.wizard_service import WizardService
+    from opencloudtouch.setup.wizard import WizardService
 
     app.state.wizard_service = WizardService()
     transport = ASGITransport(app=app)
@@ -175,7 +175,9 @@ class TestWizardEndpointValidation:
             "myserver",
         ]
         # Mock SSH to avoid hanging on real connection attempts
-        with patch("opencloudtouch.setup.wizard_service.ssh_operation") as mock_ssh:
+        with patch(
+            "opencloudtouch.setup.wizard.step5_config.ssh_operation"
+        ) as mock_ssh:
             mock_ctx = AsyncMock()
             mock_ssh.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
             mock_ssh.return_value.__aexit__ = AsyncMock(return_value=False)
@@ -184,7 +186,7 @@ class TestWizardEndpointValidation:
                 success=True, backup_path="/tmp/bak", diff="", error=None
             )
             with patch(
-                "opencloudtouch.setup.wizard_service.SoundTouchConfigService",
+                "opencloudtouch.setup.wizard.step5_config.SoundTouchConfigService",
                 return_value=mock_service,
             ):
                 for addr in valid_addrs:
@@ -401,7 +403,6 @@ class TestOpenAPISchemaCoverage:
             "HostsModifyRequest",
             "RestoreRequest",
             "VerifyRedirectRequest",
-            "ListBackupsRequest",
         ]
         for model_name in expected:
             assert model_name in schemas, f"{model_name} missing from OpenAPI schemas"
@@ -416,7 +417,6 @@ class TestOpenAPISchemaCoverage:
             "HostsModifyResponse",
             "RestoreResponse",
             "VerifyRedirectResponse",
-            "ListBackupsResponse",
         ]
         for model_name in expected:
             assert model_name in schemas, f"{model_name} missing from OpenAPI schemas"

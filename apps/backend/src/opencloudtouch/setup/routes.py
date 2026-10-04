@@ -2,7 +2,7 @@
 Device Setup API Routes
 
 General device setup endpoints: connectivity check, verification, SSH management.
-SSH-driven wizard step endpoints live in wizard_routes.py (STORY-304).
+SSH-driven wizard step endpoints live in setup/wizard/router.py (STORY-304).
 """
 
 import logging

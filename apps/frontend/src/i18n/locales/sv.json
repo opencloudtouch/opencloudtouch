@@ -317,7 +317,7 @@
         "instructionStep3Desc": "Vänta minst 10 sekunder.",
         "instructionStep4": "Återställ strömmen",
         "instructionStep4Desc": "Koppla in strömadaptern igen.",
-        "instructionStep5": "Vänta (~60 sekunder)",
+        "instructionStep5": "Vänta (~100 sekunder)",
         "instructionStep5Desc": "Enheten startar om och läser filen remote_services från USB-enheten.",
         "sectionStatus": "Kontrollera status",
         "statusWaiting": "Väntar på att enheten startar om...",
@@ -362,7 +362,7 @@
         "troubleshootingTitle": "⚠️ Felsökning",
         "troubleshootingItem1": "Kontrollera att USB-enheten är korrekt isatt",
         "troubleshootingItem2": "Kontrollera att filen 'remote_services' är korrekt",
-        "troubleshootingItem3": "Vänta minst 60 sekunder efter omstart",
+        "troubleshootingItem3": "Vänta minst 100 sekunder efter omstart",
         "troubleshootingItem4": "Prova en ny strömcykel (steg 2-5)",
         "troubleshootingItem5": "Kontrollera att enheten är i samma nätverk",
         "troubleshootingItem6": "Testa SSH-anslutning manuellt med kommandot ovan — om det fungerar är enheten redo."
@@ -450,8 +450,8 @@
         "successTitle": "Hosts-filen ändrad!",
         "changedEntries": "Ändrade poster:",
         "backupLabel": "Säkerhetskopia:",
-        "btnShowDiff": "▶ Visa diff",
-        "btnHideDiff": "▼ Dölj diff",
+        "btnShowChanges": "▶ Visa ändringar",
+        "btnHideChanges": "▼ Dölj ändringar",
         "hostsApplied": "Hosts-filen har ändrats."
       },
       "step7": {
@@ -764,6 +764,6 @@
   "deviceHeader": {
     "reboot": "Starta om enheten",
     "sent": "Omstartskommando skickat",
-    "confirmMessage": "Starta om {{name}}? Enheten kommer att vara otillgänglig i ungefär 60 sekunder."
+    "confirmMessage": "Starta om {{name}}? Enheten kommer att vara otillgänglig i ungefär 100 sekunder."
   }
 }

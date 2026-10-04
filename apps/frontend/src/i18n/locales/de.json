@@ -317,7 +317,7 @@
         "instructionStep3Desc": "Warten Sie mindestens 10 Sekunden.",
         "instructionStep4": "Stromversorgung wiederherstellen",
         "instructionStep4Desc": "Stecken Sie das Netzteil wieder ein.",
-        "instructionStep5": "Warten (~60 Sekunden)",
+        "instructionStep5": "Warten (~100 Sekunden)",
         "instructionStep5Desc": "Das Gerät startet neu und liest die remote_services Datei vom USB-Stick.",
         "sectionStatus": "Status überprüfen",
         "statusWaiting": "Warte auf Geräteneustart...",
@@ -362,7 +362,7 @@
         "troubleshootingTitle": "⚠️ Fehlerbehebung",
         "troubleshootingItem1": "Überprüfen Sie, ob der USB-Stick korrekt eingesteckt ist",
         "troubleshootingItem2": "Stellen Sie sicher, dass die Datei 'remote_services' korrekt ist",
-        "troubleshootingItem3": "Warten Sie mindestens 60 Sekunden nach dem Neustart",
+        "troubleshootingItem3": "Warten Sie mindestens 100 Sekunden nach dem Neustart",
         "troubleshootingItem4": "Versuchen Sie einen weiteren Power Cycle (Schritte 2–5)",
         "troubleshootingItem5": "Prüfen Sie, ob das Gerät im gleichen Netzwerk ist",
         "troubleshootingItem6": "Testen Sie die SSH-Verbindung manuell mit dem Befehl oben – wenn das funktioniert, ist das Gerät bereit."
@@ -450,8 +450,8 @@
         "successTitle": "Hosts-Datei erfolgreich geändert!",
         "changedEntries": "Geänderte Einträge:",
         "backupLabel": "Backup:",
-        "btnShowDiff": "▶ Diff anzeigen",
-        "btnHideDiff": "▼ Diff ausblenden",
+        "btnShowChanges": "▶ Änderungen anzeigen",
+        "btnHideChanges": "▼ Änderungen ausblenden",
         "hostsApplied": "Hosts-Datei erfolgreich geändert."
       },
       "step7": {
@@ -764,6 +764,6 @@
   "deviceHeader": {
     "reboot": "Gerät neu starten",
     "sent": "Neustart-Befehl gesendet",
-    "confirmMessage": "{{name}} neu starten? Das Gerät ist für ca. 60 Sekunden nicht erreichbar."
+    "confirmMessage": "{{name}} neu starten? Das Gerät ist für ca. 100 Sekunden nicht erreichbar."
   }
 }

@@ -47,6 +47,7 @@
 | `radio` | RadioBrowser search provider |
 | `settings` | User settings persistence |
 | `setup` | SSH/USB device configuration wizard |
+| `setup/wizard/` | Step-organized subpackage (one file per wizard step under `setup/wizard/`, mixins composed in `wizard/service.py`, routers aggregated in `wizard/router.py`) |
 | `bmx` | Bose Media Exchange emulation |
 | `marge` | Bose cloud API emulation (XML) |
 | `recents` | Recently played items |

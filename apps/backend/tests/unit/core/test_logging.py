@@ -309,7 +309,7 @@ class TestClusteredRingBuffer:
         assert _resolve_cluster("opencloudtouch.bmx.routes") == "bmx"
 
     def test_resolve_cluster_setup(self):
-        assert _resolve_cluster("opencloudtouch.setup.wizard_routes") == "setup"
+        assert _resolve_cluster("opencloudtouch.setup.wizard.router") == "setup"
 
     def test_resolve_cluster_presets(self):
         assert _resolve_cluster("opencloudtouch.presets.service") == "presets"
@@ -387,7 +387,7 @@ class TestClusterFileHandler:
         "devices": "opencloudtouch.devices.adapter",
         "marge": "opencloudtouch.marge.routes",
         "bmx": "opencloudtouch.bmx.routes",
-        "setup": "opencloudtouch.setup.wizard_routes",
+        "setup": "opencloudtouch.setup.wizard.router",
         "presets": "opencloudtouch.presets.service",
         "general": "opencloudtouch.core.config",
     }
@@ -539,7 +539,7 @@ class TestClusterFileHandler:
     def test_rotation_preserves_old_content_in_backups(self, tmp_path: Path):
         handler = ClusterFileHandler(tmp_path, base_level=logging.DEBUG)
         try:
-            logger_name = "opencloudtouch.setup.wizard_routes"
+            logger_name = "opencloudtouch.setup.wizard.router"
             marker = "MARKER_EARLY_LOG_ENTRY"
             handler.emit(self._make_record(logger_name, logging.INFO, marker))
 

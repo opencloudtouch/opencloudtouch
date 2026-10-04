@@ -179,7 +179,7 @@ describe("Step7Verification", () => {
 
     // 3. Fast-forward countdown
     await act(async () => {
-      vi.advanceTimersByTime(61000);
+      vi.advanceTimersByTime(101000);
     });
 
     vi.useRealTimers();
@@ -354,7 +354,7 @@ describe("Step7Verification", () => {
 
     // Fast-forward countdown
     await act(async () => {
-      vi.advanceTimersByTime(61000);
+      vi.advanceTimersByTime(101000);
     });
 
     // Switch back to real timers so waitFor works
@@ -561,7 +561,7 @@ describe("Step7Verification", () => {
 
     // Countdown
     await act(async () => {
-      vi.advanceTimersByTime(61000);
+      vi.advanceTimersByTime(101000);
     });
     vi.useRealTimers();
 

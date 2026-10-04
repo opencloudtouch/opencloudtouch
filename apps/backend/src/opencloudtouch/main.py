@@ -59,8 +59,7 @@ from opencloudtouch.settings.routes import router as settings_router
 from opencloudtouch.settings.service import SettingsService
 from opencloudtouch.setup.routes import router as setup_router
 from opencloudtouch.setup.service import SetupService
-from opencloudtouch.setup.wizard_routes import wizard_router
-from opencloudtouch.setup.wizard_service import WizardService
+from opencloudtouch.setup.wizard import WizardService, wizard_router
 from opencloudtouch.swupdate.routes import router as swupdate_router
 from opencloudtouch.wizard_audit.repository import WizardAuditRepository
 from opencloudtouch.wizard_audit.routes import audit_router as wizard_audit_router

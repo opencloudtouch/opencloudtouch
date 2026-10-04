@@ -218,8 +218,8 @@ export default function Step6HostsModification({
                   aria-controls="hosts-diff-content"
                 >
                   {showDiff
-                    ? t("setup.wizard.step6.btnHideDiff")
-                    : t("setup.wizard.step6.btnShowDiff")}
+                    ? t("setup.wizard.step6.btnHideChanges")
+                    : t("setup.wizard.step6.btnShowChanges")}
                 </button>
 
                 {showDiff && (
