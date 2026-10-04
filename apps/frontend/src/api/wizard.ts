@@ -17,8 +17,6 @@ export type ModifyConfigRequest = components["schemas"]["ConfigModifyRequest"];
 export type ModifyConfigResponse = components["schemas"]["ConfigModifyResponse"];
 export type ModifyHostsRequest = components["schemas"]["HostsModifyRequest"];
 export type ModifyHostsResponse = components["schemas"]["HostsModifyResponse"];
-export type RestoreRequest = components["schemas"]["RestoreRequest"];
-export type RestoreResponse = components["schemas"]["RestoreResponse"];
 export type VerifyRedirectRequest = components["schemas"]["VerifyRedirectRequest"];
 export type VerifyRedirectResponse = components["schemas"]["VerifyRedirectResponse"];
 export type RebootDeviceRequest = components["schemas"]["ConnectivityCheckRequest"];
@@ -174,36 +172,6 @@ export async function modifyHosts(request: ModifyHostsRequest): Promise<ModifyHo
   });
 
   await throwIfNotOk(response, "Hosts modification failed");
-
-  return response.json();
-}
-
-/**
- * Restore config from backup
- */
-export async function restoreConfig(request: RestoreRequest): Promise<RestoreResponse> {
-  const response = await fetch(`${API_BASE}/api/setup/wizard/restore-config`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(request),
-  });
-
-  await throwIfNotOk(response, "Config restore failed");
-
-  return response.json();
-}
-
-/**
- * Restore hosts from backup
- */
-export async function restoreHosts(request: RestoreRequest): Promise<RestoreResponse> {
-  const response = await fetch(`${API_BASE}/api/setup/wizard/restore-hosts`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(request),
-  });
-
-  await throwIfNotOk(response, "Hosts restore failed");
 
   return response.json();
 }

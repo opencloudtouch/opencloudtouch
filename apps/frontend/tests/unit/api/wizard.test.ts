@@ -11,8 +11,6 @@ import {
   createBackup,
   modifyConfig,
   modifyHosts,
-  restoreConfig,
-  restoreHosts,
   rebootDevice,
   enablePermanentSsh,
   completeWizard,
@@ -391,86 +389,6 @@ describe("Wizard API Client — Finalize & Verify", () => {
           target_addr: "10.0.0.5",
           include_optional: true,
         })
-      ).rejects.toThrow();
-    });
-  });
-
-  describe("restoreConfig", () => {
-    it("sends POST to /api/setup/wizard/restore-config with correct body", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ success: true, message: "Restored" }),
-      });
-
-      const result = await restoreConfig({
-        device_ip: "192.168.1.100",
-        backup_path: "/tmp/backup",
-      });
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        "/api/setup/wizard/restore-config",
-        expect.objectContaining({
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            device_ip: "192.168.1.100",
-            backup_path: "/tmp/backup",
-          }),
-        })
-      );
-      expect(result.success).toBe(true);
-    });
-
-    it("throws on HTTP error", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        statusText: "Internal Server Error",
-        text: () => Promise.resolve("Server error"),
-        headers: new Headers(),
-      });
-      await expect(
-        restoreConfig({ device_ip: "192.168.1.100", backup_path: "/tmp/backup" })
-      ).rejects.toThrow();
-    });
-  });
-
-  describe("restoreHosts", () => {
-    it("sends POST to /api/setup/wizard/restore-hosts with correct body", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ success: true, message: "Restored" }),
-      });
-
-      const result = await restoreHosts({
-        device_ip: "192.168.1.100",
-        backup_path: "/tmp/hosts.bak",
-      });
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        "/api/setup/wizard/restore-hosts",
-        expect.objectContaining({
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            device_ip: "192.168.1.100",
-            backup_path: "/tmp/hosts.bak",
-          }),
-        })
-      );
-      expect(result.success).toBe(true);
-    });
-
-    it("throws on HTTP error", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        statusText: "Internal Server Error",
-        text: () => Promise.resolve("Server error"),
-        headers: new Headers(),
-      });
-      await expect(
-        restoreHosts({ device_ip: "192.168.1.100", backup_path: "/tmp/hosts.bak" })
       ).rejects.toThrow();
     });
   });

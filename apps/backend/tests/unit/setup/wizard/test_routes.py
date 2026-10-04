@@ -2,9 +2,9 @@
 
 Exercises the full wizard flow via FastAPI TestClient against the composed
 wizard router: server-info, check-ports, backup, modify-config, modify-hosts,
-restore-config, restore-hosts, reboot-device, verify-redirect, detect-strategy,
-validate-hostname, finalize, verify-setup, and complete — plus injection
-protection, SSH-unreachable (503) handling, and config-snapshot behavior.
+reboot-device, verify-redirect, detect-strategy, validate-hostname, finalize,
+verify-setup, and complete — plus injection protection, SSH-unreachable (503)
+handling, and config-snapshot behavior.
 """
 
 import socket
@@ -478,64 +478,10 @@ class TestWizardModifyHosts:
         assert response.status_code == 400
 
 
-# ── wizard/restore-config ─────────────────────────────────────────────────────
-
-
-class TestWizardRestoreConfig:
-    """POST /api/setup/wizard/restore-config"""
-
-    def test_successful_restore(self, client):
-        mock_result = MagicMock(success=True, error=None)
-        mock_config_service = MagicMock()
-        mock_config_service.restore_config = AsyncMock(return_value=mock_result)
-
-        with (
-            patch(
-                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
-            ) as mock_ssh,
-            patch(
-                "opencloudtouch.setup.wizard.legacy_routes.SoundTouchConfigService",
-                return_value=mock_config_service,
-            ),
-        ):
-            mock_ssh.return_value.__aenter__ = AsyncMock(return_value=MagicMock())
-            mock_ssh.return_value.__aexit__ = AsyncMock(return_value=False)
-            response = client.post(
-                "/api/setup/wizard/restore-config",
-                json={"device_ip": "192.168.1.100", "backup_path": "/usb/config.bak"},
-            )
-        assert response.status_code == 200
-        assert response.json()["success"] is True
-
-
-# ── wizard/restore-hosts ──────────────────────────────────────────────────────
-
-
-class TestWizardRestoreHosts:
-    """POST /api/setup/wizard/restore-hosts"""
-
-    def test_successful_restore(self, client):
-        mock_result = MagicMock(success=True, error=None)
-        mock_hosts_service = MagicMock()
-        mock_hosts_service.restore_hosts = AsyncMock(return_value=mock_result)
-
-        with (
-            patch(
-                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
-            ) as mock_ssh,
-            patch(
-                "opencloudtouch.setup.wizard.legacy_routes.SoundTouchHostsService",
-                return_value=mock_hosts_service,
-            ),
-        ):
-            mock_ssh.return_value.__aenter__ = AsyncMock(return_value=MagicMock())
-            mock_ssh.return_value.__aexit__ = AsyncMock(return_value=False)
-            response = client.post(
-                "/api/setup/wizard/restore-hosts",
-                json={"device_ip": "192.168.1.100", "backup_path": "/usb/hosts.bak"},
-            )
-        assert response.status_code == 200
-        assert response.json()["success"] is True
+# ── wizard/restore-config, wizard/restore-hosts (endpoints removed) ────────
+# Dead code: zero frontend callers, superseded by /wizard/scan-backups +
+# /wizard/restore-wizard. Removed as part of #466 item 2. See
+# test_regression.py::TestLegacyWizardMethodsRemoved.
 
 
 # ── wizard/list-backups (endpoint removed 2026-08-17) ──────────────────────

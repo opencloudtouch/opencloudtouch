@@ -240,15 +240,6 @@ class TestWizardEndpointValidation:
         assert "default_port" in data
         assert data["default_port"] == 7777
 
-    @pytest.mark.asyncio
-    async def test_restore_requires_backup_path(self, client):
-        """POST /api/setup/wizard/restore-config rejects missing backup_path."""
-        response = await client.post(
-            "/api/setup/wizard/restore-config",
-            json={"device_ip": "192.168.1.100"},
-        )
-        assert response.status_code == 422
-
 
 # ---------------------------------------------------------------------------
 # 3. Core Endpoint Contracts
@@ -401,7 +392,6 @@ class TestOpenAPISchemaCoverage:
             "BackupRequest",
             "ConfigModifyRequest",
             "HostsModifyRequest",
-            "RestoreRequest",
             "VerifyRedirectRequest",
         ]
         for model_name in expected:
@@ -415,7 +405,6 @@ class TestOpenAPISchemaCoverage:
             "BackupResponse",
             "ConfigModifyResponse",
             "HostsModifyResponse",
-            "RestoreResponse",
             "VerifyRedirectResponse",
         ]
         for model_name in expected:

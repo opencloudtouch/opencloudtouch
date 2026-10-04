@@ -2,7 +2,6 @@
 
 from fastapi import APIRouter
 
-from opencloudtouch.setup.wizard.legacy_routes import legacy_router
 from opencloudtouch.setup.wizard.restore_wizard_routes import restore_wizard_router
 from opencloudtouch.setup.wizard.step3_connectivity import step3_router
 from opencloudtouch.setup.wizard.step4_backup import step4_router
@@ -21,5 +20,4 @@ wizard_router.include_router(step5_router)
 wizard_router.include_router(step6_router)
 wizard_router.include_router(step7_router)
 wizard_router.include_router(step8_router)
-wizard_router.include_router(legacy_router)
 wizard_router.include_router(restore_wizard_router)
