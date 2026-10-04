@@ -1188,129 +1188,11 @@ class TestWizardModifyHostsRoute:
         assert response.status_code == 503
 
 
-class TestWizardRestoreRoutes:
-    """Tests for restore-config and restore-hosts endpoints."""
-
-    def test_restore_config_success(self, client, monkeypatch):
-        """POST /wizard/restore-config success returns 200."""
-        from opencloudtouch.setup.config_service import RestoreResult
-        from opencloudtouch.setup.wizard import legacy_routes as routes
-
-        mock_ssh = AsyncMock()
-        mock_result = RestoreResult(success=True)
-
-        mock_config_svc = AsyncMock()
-        mock_config_svc.restore_config = AsyncMock(return_value=mock_result)
-
-        monkeypatch.setattr(
-            wizard_helpers,
-            "SoundTouchSSHClient",
-            lambda ip: _make_ssh_context(mock_ssh),
-        )
-        monkeypatch.setattr(
-            routes, "SoundTouchConfigService", lambda ssh: mock_config_svc
-        )
-
-        response = client.post(
-            "/api/setup/wizard/restore-config",
-            json={
-                "device_ip": "192.168.1.100",
-                "backup_path": "/usb/backups/config_backup.xml",
-            },
-        )
-        assert response.status_code == 200
-        assert response.json()["success"] is True
-
-    def test_restore_config_failure(self, client, monkeypatch):
-        """POST /wizard/restore-config failure returns 200 with success=False."""
-        from opencloudtouch.setup.config_service import RestoreResult
-        from opencloudtouch.setup.wizard import legacy_routes as routes
-
-        mock_ssh = AsyncMock()
-        mock_result = RestoreResult(success=False, error="File missing")
-
-        mock_config_svc = AsyncMock()
-        mock_config_svc.restore_config = AsyncMock(return_value=mock_result)
-
-        monkeypatch.setattr(
-            wizard_helpers,
-            "SoundTouchSSHClient",
-            lambda ip: _make_ssh_context(mock_ssh),
-        )
-        monkeypatch.setattr(
-            routes, "SoundTouchConfigService", lambda ssh: mock_config_svc
-        )
-
-        response = client.post(
-            "/api/setup/wizard/restore-config",
-            json={
-                "device_ip": "192.168.1.100",
-                "backup_path": "/usb/backups/config_backup.xml",
-            },
-        )
-        assert response.status_code == 200
-        assert response.json()["success"] is False
-
-    def test_restore_hosts_success(self, client, monkeypatch):
-        """POST /wizard/restore-hosts success returns 200."""
-        from opencloudtouch.setup.hosts_service import RestoreResult
-        from opencloudtouch.setup.wizard import legacy_routes as routes
-
-        mock_ssh = AsyncMock()
-        mock_result = RestoreResult(success=True)
-
-        mock_hosts_svc = AsyncMock()
-        mock_hosts_svc.restore_hosts = AsyncMock(return_value=mock_result)
-
-        monkeypatch.setattr(
-            wizard_helpers,
-            "SoundTouchSSHClient",
-            lambda ip: _make_ssh_context(mock_ssh),
-        )
-        monkeypatch.setattr(
-            routes, "SoundTouchHostsService", lambda ssh: mock_hosts_svc
-        )
-
-        response = client.post(
-            "/api/setup/wizard/restore-hosts",
-            json={
-                "device_ip": "192.168.1.100",
-                "backup_path": "/usb/backups/hosts.bak",
-            },
-        )
-        assert response.status_code == 200
-        assert response.json()["success"] is True
-
-    def test_restore_hosts_failure(self, client, monkeypatch):
-        """POST /wizard/restore-hosts failure returns 200 with success=False."""
-        from opencloudtouch.setup.hosts_service import RestoreResult
-        from opencloudtouch.setup.wizard import legacy_routes as routes
-
-        mock_ssh = AsyncMock()
-        mock_result = RestoreResult(success=False, error="Permission denied")
-
-        mock_hosts_svc = AsyncMock()
-        mock_hosts_svc.restore_hosts = AsyncMock(return_value=mock_result)
-
-        monkeypatch.setattr(
-            wizard_helpers,
-            "SoundTouchSSHClient",
-            lambda ip: _make_ssh_context(mock_ssh),
-        )
-        monkeypatch.setattr(
-            routes, "SoundTouchHostsService", lambda ssh: mock_hosts_svc
-        )
-
-        response = client.post(
-            "/api/setup/wizard/restore-hosts",
-            json={
-                "device_ip": "192.168.1.100",
-                "backup_path": "/usb/backups/hosts.bak",
-            },
-        )
-        assert response.status_code == 200
-        assert response.json()["success"] is False
-
+# TestWizardRestoreRoutes: POST /api/setup/wizard/restore-config,
+# /api/setup/wizard/restore-hosts — endpoints removed (#466 item 2;
+# dead code, zero frontend callers, superseded by /wizard/scan-backups +
+# /wizard/restore-wizard). See
+# test_regression.py::TestLegacyWizardMethodsRemoved.
 
 # TestWizardListBackupsRoute: POST /api/setup/wizard/list-backups —
 # endpoint removed 2026-08-17 (confirmed dead, no frontend caller).
@@ -1344,50 +1226,6 @@ class TestEnablePermanentSSHException:
             response.json()["detail"]
             == "An unexpected error occurred while enabling permanent SSH"
         )
-
-
-class TestWizardRestoreExceptionPaths:
-    """Tests for exception paths in restore-config, restore-hosts."""
-
-    def test_restore_config_ssh_exception_returns_503(self, client, monkeypatch):
-        """SSH exception in restore-config returns 503."""
-
-        def fail_ctx(ip):
-            ctx = MagicMock()
-            ctx.__aenter__ = AsyncMock(side_effect=OSError("SSH error"))
-            ctx.__aexit__ = AsyncMock(return_value=False)
-            return ctx
-
-        monkeypatch.setattr(wizard_helpers, "SoundTouchSSHClient", fail_ctx)
-
-        response = client.post(
-            "/api/setup/wizard/restore-config",
-            json={
-                "device_ip": "192.168.1.100",
-                "backup_path": "/usb/backups/config.xml",
-            },
-        )
-        assert response.status_code == 503
-
-    def test_restore_hosts_ssh_exception_returns_503(self, client, monkeypatch):
-        """SSH exception in restore-hosts returns 503."""
-
-        def fail_ctx(ip):
-            ctx = MagicMock()
-            ctx.__aenter__ = AsyncMock(side_effect=OSError("SSH error"))
-            ctx.__aexit__ = AsyncMock(return_value=False)
-            return ctx
-
-        monkeypatch.setattr(wizard_helpers, "SoundTouchSSHClient", fail_ctx)
-
-        response = client.post(
-            "/api/setup/wizard/restore-hosts",
-            json={
-                "device_ip": "192.168.1.100",
-                "backup_path": "/usb/backups/hosts.bak",
-            },
-        )
-        assert response.status_code == 503
 
 
 class TestWizardRebootExceptionPath:

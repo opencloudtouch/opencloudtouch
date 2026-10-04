@@ -64,6 +64,12 @@ class TestLegacyWizardMethodsRemoved:
     def test_no_ensure_account_pairing(self):
         assert not hasattr(WizardService, "ensure_account_pairing")
 
+    def test_no_restore_config(self):
+        assert not hasattr(WizardService, "restore_config")
+
+    def test_no_restore_hosts(self):
+        assert not hasattr(WizardService, "restore_hosts")
+
 
 class TestWizardServiceExistingMethods:
     """Regression: these internal methods MUST exist (tests mock them)."""

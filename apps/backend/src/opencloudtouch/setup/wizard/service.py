@@ -6,7 +6,6 @@ module table.
 """
 
 from opencloudtouch.setup.wizard.base import WizardServiceBase
-from opencloudtouch.setup.wizard.legacy_routes import LegacyWizardMixin
 from opencloudtouch.setup.wizard.step3_connectivity import Step3ConnectivityMixin
 from opencloudtouch.setup.wizard.step4_backup import Step4BackupMixin
 from opencloudtouch.setup.wizard.step5_config import Step5ConfigMixin
@@ -22,7 +21,6 @@ class WizardService(
     Step6HostsMixin,
     Step7FinalizeVerifyMixin,
     Step8CompletionMixin,
-    LegacyWizardMixin,
     WizardServiceBase,
 ):
     """Orchestrates the device setup wizard steps — see per-step mixins for logic."""

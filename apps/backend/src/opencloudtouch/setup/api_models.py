@@ -197,19 +197,6 @@ class HostsModifyResponse(BaseModel):
     diff: str = ""
 
 
-class RestoreRequest(WizardDeviceRequest):
-    """Request to restore from backup."""
-
-    backup_path: str
-
-
-class RestoreResponse(BaseModel):
-    """Response with restore result."""
-
-    success: bool
-    message: str
-
-
 class VerifyRedirectRequest(WizardDeviceRequest):
     """Request to verify domain redirect from device."""
 
@@ -343,8 +330,7 @@ EnsureAccountResponse = AccountPairingResponse
 
 
 # ============================================================================
-# Restore Wizard Models (separate from existing RestoreRequest/RestoreResponse
-# which serve the granular restore-config/restore-hosts endpoints)
+# Restore Wizard Models
 # ============================================================================
 
 
