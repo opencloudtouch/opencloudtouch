@@ -311,6 +311,57 @@ class TestStateManagerOnEvent:
         assert state is None
 
 
+
+class _SlowIcyWorker:
+    """Controllable ICY worker for stale-result race tests."""
+
+    def __init__(self):
+        self.started = asyncio.Event()
+        self.release = asyncio.Event()
+
+    async def _probe(self, event):
+        self.started.set()
+        await self.release.wait()
+
+        info = event.now_playing
+        assert info is not None
+        return DeviceEvent(
+            device_id=event.device_id,
+            event_type=EventType.METADATA_ENRICHED,
+            now_playing=NowPlayingInfo(
+                source=info.source,
+                state=info.state,
+                station_name=info.station_name,
+                artist="Late Artist",
+                track="Late Track",
+            ),
+        )
+
+    async def on_event(self, event):
+        info = event.now_playing
+        if info is None or info.state != "PLAY_STATE":
+            return None
+        return await self._probe(event)
+
+    async def poll_stream(self, event):
+        return await self._probe(event)
+
+
+def _radio_info(
+    *, state: str = "PLAY_STATE", station_name: str = "Test Radio"
+) -> NowPlayingInfo:
+    return NowPlayingInfo(
+        source="INTERNET_RADIO",
+        state=state,
+        station_name=station_name,
+    )
+
+
+async def _wait_for_background_tasks(mgr: DeviceStateManager) -> None:
+    if mgr._background_tasks:
+        await asyncio.gather(*list(mgr._background_tasks), return_exceptions=True)
+
+
 class TestDeviceStateManagerIcyIntegration:
     """Tests for ICY worker integration in DeviceStateManager."""
 
@@ -424,6 +475,105 @@ class TestDeviceStateManagerIcyIntegration:
 
         # Worker should not have been called for volume events
         worker.on_event.assert_not_called()
+
+
+    @pytest.mark.asyncio
+    async def test_late_icy_event_probe_does_not_restore_play_after_stop(self):
+        """Late event-driven ICY metadata must not overwrite a newer STOP_STATE."""
+        mgr = DeviceStateManager()
+        worker = _SlowIcyWorker()
+        mgr.set_icy_worker(worker)
+
+        await mgr.on_event(
+            DeviceEvent(
+                device_id="D1",
+                event_type=EventType.NOW_PLAYING,
+                now_playing=_radio_info(),
+            )
+        )
+        await worker.started.wait()
+
+        await mgr.on_event(
+            DeviceEvent(
+                device_id="D1",
+                event_type=EventType.NOW_PLAYING,
+                now_playing=_radio_info(state="STOP_STATE"),
+            )
+        )
+
+        worker.release.set()
+        await _wait_for_background_tasks(mgr)
+
+        final_state = mgr.get_state("D1")
+        assert final_state is not None
+        assert final_state.now_playing is not None
+        assert final_state.now_playing.state == "STOP_STATE"
+
+    @pytest.mark.asyncio
+    async def test_late_icy_poll_does_not_restore_play_after_stop(self):
+        """Late ICY metadata must not overwrite a newer STOP_STATE."""
+        mgr = DeviceStateManager()
+        worker = _SlowIcyWorker()
+        mgr.set_icy_worker(worker)
+        mgr.update_now_playing("D1", _radio_info())
+
+        state = mgr.get_state("D1")
+        assert state is not None
+        poll_task = asyncio.create_task(
+            mgr._icy_poll_device("D1", state, {"INTERNET_RADIO"})
+        )
+        await worker.started.wait()
+
+        await mgr.on_event(
+            DeviceEvent(
+                device_id="D1",
+                event_type=EventType.NOW_PLAYING,
+                now_playing=_radio_info(state="STOP_STATE"),
+            )
+        )
+
+        worker.release.set()
+        await poll_task
+
+        final_state = mgr.get_state("D1")
+        assert final_state is not None
+        assert final_state.now_playing is not None
+        assert final_state.now_playing.state == "STOP_STATE"
+
+        await _wait_for_background_tasks(mgr)
+
+    @pytest.mark.asyncio
+    async def test_late_icy_poll_does_not_overwrite_new_station(self):
+        """Late ICY metadata must not overwrite a newer station."""
+        mgr = DeviceStateManager()
+        worker = _SlowIcyWorker()
+        mgr.set_icy_worker(worker)
+        mgr.update_now_playing("D1", _radio_info(station_name="WDR 2"))
+
+        state = mgr.get_state("D1")
+        assert state is not None
+        poll_task = asyncio.create_task(
+            mgr._icy_poll_device("D1", state, {"INTERNET_RADIO"})
+        )
+        await worker.started.wait()
+
+        await mgr.on_event(
+            DeviceEvent(
+                device_id="D1",
+                event_type=EventType.NOW_PLAYING,
+                now_playing=_radio_info(station_name="SWR3"),
+            )
+        )
+
+        worker.release.set()
+        await poll_task
+
+        final_state = mgr.get_state("D1")
+        assert final_state is not None
+        assert final_state.now_playing is not None
+        assert final_state.now_playing.station_name == "SWR3"
+
+        await _wait_for_background_tasks(mgr)
 
 
 class TestDeviceStateManagerBackgroundTasks:

@@ -67,6 +67,18 @@ class TestIcyWorkerSkipsNonRadio:
         assert await worker.on_event(event) is None
 
     @pytest.mark.asyncio
+    async def test_skips_stopped_radio(self) -> None:
+        """Stopped radio playback must not trigger stream URL resolution."""
+
+        async def should_not_resolve(_device_id: str, _station: str) -> str | None:
+            pytest.fail("stream URL must not be resolved for stopped playback")
+
+        worker = IcyWorker(get_stream_url=should_not_resolve)
+        event = _np_event(state="STOP_STATE")
+
+        assert await worker.on_event(event) is None
+
+    @pytest.mark.asyncio
     async def test_skips_when_artwork_present(self) -> None:
         worker = IcyWorker(get_stream_url=_stream_url_found)
         event = _np_event(artwork_url="https://cdn.example.com/logo.png")
@@ -204,7 +216,7 @@ class TestIcyWorkerDebounce:
         assert call_count == 1
 
         # Simulate time passing beyond debounce window
-        worker._last_probe["WDR 2"] = time.monotonic() - 20.0
+        worker._last_probe[("DEV1", "WDR 2")] = time.monotonic() - 20.0
 
         await worker.on_event(event)
         assert call_count == 2

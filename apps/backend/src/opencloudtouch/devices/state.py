@@ -362,6 +362,22 @@ class DeviceStateManager:
         try:
             enriched = await self._icy_worker.on_event(event)
             if enriched:
+                original = event.now_playing
+                current_state = self.get_state(event.device_id)
+                current = current_state.now_playing if current_state else None
+
+                if (
+                    original is None
+                    or current is None
+                    or current.state != "PLAY_STATE"
+                    or current.source != original.source
+                    or current.station_name != original.station_name
+                ):
+                    logger.debug(
+                        "Discarding stale ICY event result for %s", event.device_id
+                    )
+                    return
+
                 await self.on_event(enriched)
         except Exception:
             logger.debug("ICY probe background task failed", exc_info=True)
@@ -416,13 +432,32 @@ class DeviceStateManager:
         if not self._icy_worker:
             return
         try:
+            original = state.now_playing
+            if original is None:
+                return
+
             event = DeviceEvent(
                 device_id=device_id,
                 event_type=EventType.NOW_PLAYING,
-                now_playing=state.now_playing,
+                now_playing=original,
             )
             enriched = await self._icy_worker.poll_stream(event)
             if enriched:
+                # The ICY request may have been in flight while playback
+                # changed. Do not let stale metadata overwrite a newer
+                # STOP state or a different station.
+                current_state = self.get_state(device_id)
+                current = current_state.now_playing if current_state else None
+
+                if (
+                    current is None
+                    or current.state != "PLAY_STATE"
+                    or current.source != original.source
+                    or current.station_name != original.station_name
+                ):
+                    logger.debug("Discarding stale ICY poll result for %s", device_id)
+                    return
+
                 await self.on_event(enriched)
         except Exception:
             logger.debug("ICY poll failed for %s", device_id, exc_info=True)
