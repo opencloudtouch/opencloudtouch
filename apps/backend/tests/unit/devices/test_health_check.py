@@ -730,27 +730,57 @@ class TestZoneSyncAll:
 
         mock_zone_repo.dissolve_zone.assert_not_called()
 
-    async def test_device_reports_no_zone_dissolves_in_db(
-        self, zone_health_check, mock_repo, mock_zone_repo
+    async def test_device_reports_no_zone_hard_deletes_from_db(
+        self, mock_repo, tmp_path
     ):
-        """Device reports no zone → dissolve_zone() called after grace period."""
+        """Device reporting no zone hard-deletes DB rows after grace period."""
         from opencloudtouch.devices.health_check import ZONE_FAIL_THRESHOLD
+        from opencloudtouch.zones.repository import ZoneRepository
 
-        zone = self._make_zone(zone_id=42)
-        mock_zone_repo.get_all_active_zones.return_value = [zone]
-        mock_repo.get_by_device_id.return_value = _make_device()
+        zone_repo = ZoneRepository(tmp_path / "zones.db")
+        await zone_repo.initialize()
 
-        mock_client = AsyncMock()
-        mock_client.get_zone_status.return_value = None
+        try:
+            zone = await zone_repo.create_zone("dev1")
+            assert zone.id is not None
+            await zone_repo.add_member(zone.id, "dev2", "slave")
 
-        with patch(
-            "opencloudtouch.devices.adapter.get_device_client",
-            return_value=mock_client,
-        ):
-            for _ in range(ZONE_FAIL_THRESHOLD):
-                await zone_health_check._zone_sync_all()
+            mock_repo.get_by_device_id.return_value = _make_device(
+                device_id="dev1"
+            )
 
-        mock_zone_repo.dissolve_zone.assert_called_once_with(42)
+            mock_client = AsyncMock()
+            mock_client.get_zone_status.return_value = None
+
+            health_check = DeviceHealthCheck(
+                mock_repo,
+                zone_repo=zone_repo,
+            )
+
+            with patch(
+                "opencloudtouch.devices.adapter.get_device_client",
+                return_value=mock_client,
+            ):
+                for _ in range(ZONE_FAIL_THRESHOLD):
+                    await health_check._zone_sync_all()
+
+            db = zone_repo._ensure_initialized()
+
+            cursor = await db.execute(
+                "SELECT COUNT(*) FROM zones WHERE id = ?",
+                (zone.id,),
+            )
+            assert (await cursor.fetchone())[0] == 0
+
+            cursor = await db.execute(
+                "SELECT COUNT(*) FROM zone_members WHERE zone_id = ?",
+                (zone.id,),
+            )
+            assert (await cursor.fetchone())[0] == 0
+
+            assert zone.id not in health_check._zone_fail_count
+        finally:
+            await zone_repo.close()
 
     async def test_members_match_no_update(
         self, zone_health_check, mock_repo, mock_zone_repo
