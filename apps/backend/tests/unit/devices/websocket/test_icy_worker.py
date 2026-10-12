@@ -77,7 +77,7 @@ class TestIcyWorkerOnEvent:
     async def test_debounce_skips_recent_probe(self):
         get_url = AsyncMock(return_value="http://stream.example.com/radio")
         worker = IcyWorker(get_stream_url=get_url)
-        worker._last_probe["WDR 2"] = time.monotonic()
+        worker._last_probe[("D1", "WDR 2")] = time.monotonic()
 
         event = _event(np=_np())
         result = await worker.on_event(event)
@@ -151,7 +151,9 @@ class TestIcyWorkerOnEvent:
     async def test_debounce_allows_after_timeout(self):
         get_url = AsyncMock(return_value="http://stream.example.com/radio")
         worker = IcyWorker(get_stream_url=get_url)
-        worker._last_probe["WDR 2"] = time.monotonic() - _DEBOUNCE_SECONDS - 1
+        worker._last_probe[("D1", "WDR 2")] = (
+            time.monotonic() - _DEBOUNCE_SECONDS - 1
+        )
 
         icy = IcyMetadata(artist="A", track="T", raw_title="A - T")
         with patch(
@@ -201,6 +203,23 @@ class TestIcyWorkerOnEvent:
 
 class TestIcyWorkerPollStream:
     @pytest.mark.asyncio
+    async def test_poll_skip_stopped_radio(self):
+        get_url = AsyncMock(return_value="http://stream.example.com/radio")
+        worker = IcyWorker(get_stream_url=get_url)
+
+        with patch(
+            "opencloudtouch.devices.websocket.icy_worker.probe_stream",
+            new_callable=AsyncMock,
+        ) as probe:
+            result = await worker.poll_stream(
+                _event(device_id="D1", np=_np(state="STOP_STATE"))
+            )
+
+        assert result is None
+        get_url.assert_not_awaited()
+        probe.assert_not_awaited()
+
+    @pytest.mark.asyncio
     async def test_poll_skip_no_now_playing(self):
         worker = IcyWorker(get_stream_url=AsyncMock())
         event = _event(np=None)
@@ -220,6 +239,60 @@ class TestIcyWorkerPollStream:
         event = _event(np=_np(station_name=None))
         result = await worker.poll_stream(event)
         assert result is None
+
+    @pytest.mark.asyncio
+    async def test_poll_debounce_skips_recent_probe(self):
+        get_url = AsyncMock(return_value="http://stream.example.com/radio")
+        worker = IcyWorker(get_stream_url=get_url)
+        worker._last_probe[("D1", "WDR 2")] = time.monotonic()
+
+        with patch(
+            "opencloudtouch.devices.websocket.icy_worker.probe_stream",
+            new_callable=AsyncMock,
+        ) as probe:
+            result = await worker.poll_stream(_event(device_id="D1", np=_np()))
+
+        assert result is None
+        get_url.assert_not_awaited()
+        probe.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_poll_debounce_does_not_block_other_device(self):
+        get_url = AsyncMock(return_value="http://stream.example.com/radio")
+        worker = IcyWorker(get_stream_url=get_url)
+        worker._last_probe[("D1", "WDR 2")] = time.monotonic()
+
+        icy = IcyMetadata(artist="A", track="T", raw_title="A - T")
+        with patch(
+            "opencloudtouch.devices.websocket.icy_worker.probe_stream",
+            new_callable=AsyncMock,
+            return_value=icy,
+        ) as probe:
+            result = await worker.poll_stream(_event(device_id="D2", np=_np()))
+
+        assert result is not None
+        get_url.assert_awaited_once_with("D2", "WDR 2")
+        probe.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_poll_debounce_allows_station_change_on_same_device(self):
+        get_url = AsyncMock(return_value="http://stream.example.com/swr3")
+        worker = IcyWorker(get_stream_url=get_url)
+        worker._last_probe[("D1", "WDR 2")] = time.monotonic()
+
+        icy = IcyMetadata(artist="A", track="T", raw_title="A - T")
+        with patch(
+            "opencloudtouch.devices.websocket.icy_worker.probe_stream",
+            new_callable=AsyncMock,
+            return_value=icy,
+        ) as probe:
+            result = await worker.poll_stream(
+                _event(device_id="D1", np=_np(station_name="SWR3"))
+            )
+
+        assert result is not None
+        get_url.assert_awaited_once_with("D1", "SWR3")
+        probe.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_poll_skip_no_stream_url(self):
