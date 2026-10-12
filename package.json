@@ -40,13 +40,13 @@
     "clean": "npm run clean --workspaces --if-present && rimraf node_modules .venv data-local .out .pytest_cache"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.1.5",
+    "@vitest/coverage-v8": "^5.0.3",
     "concurrently": "^9.2.4",
     "license-checker": "^25.0.1",
     "openapi-typescript": "^7.13.0",
     "prettier": "^3.8.1",
     "rimraf": "^6.1.3",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.3"
   },
   "engines": {
     "node": ">=24.0.0",
