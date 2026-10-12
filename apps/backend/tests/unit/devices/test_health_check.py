@@ -745,9 +745,7 @@ class TestZoneSyncAll:
             assert zone.id is not None
             await zone_repo.add_member(zone.id, "dev2", "slave")
 
-            mock_repo.get_by_device_id.return_value = _make_device(
-                device_id="dev1"
-            )
+            mock_repo.get_by_device_id.return_value = _make_device(device_id="dev1")
 
             mock_client = AsyncMock()
             mock_client.get_zone_status.return_value = None
@@ -822,6 +820,31 @@ class TestZoneSyncAll:
         mock_zone_repo.add_member.assert_not_called()
         mock_zone_repo.remove_member.assert_not_called()
         mock_zone_repo.dissolve_zone.assert_not_called()
+
+    async def test_deleted_zone_during_member_sync_is_skipped(
+        self, zone_health_check, mock_zone_repo
+    ):
+        """A deleted zone during synchronization is handled gracefully."""
+        from opencloudtouch.zones.repository import ZoneNotFoundError
+
+        zone = self._make_zone(zone_id=42)
+        mock_zone_repo.get_active_members.return_value = []
+
+        member = MagicMock()
+        member.device_id = "dev2"
+        member.role = "slave"
+
+        status = MagicMock()
+        status.members = [member]
+
+        mock_zone_repo.add_member.side_effect = ZoneNotFoundError(
+            "Zone 42 no longer exists"
+        )
+
+        await zone_health_check._sync_zone_members(zone, status)
+
+        mock_zone_repo.add_member.assert_awaited_once_with(42, "dev2", "slave")
+        mock_zone_repo.remove_member.assert_not_awaited()
 
     async def test_device_has_extra_member_adds_to_db(
         self, zone_health_check, mock_repo, mock_zone_repo

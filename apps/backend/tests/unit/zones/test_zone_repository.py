@@ -3,7 +3,7 @@
 import pytest
 
 from opencloudtouch.devices.repository import Device, DeviceRepository
-from opencloudtouch.zones.repository import ZoneRepository
+from opencloudtouch.zones.repository import ZoneNotFoundError, ZoneRepository
 
 
 @pytest.mark.asyncio
@@ -25,7 +25,6 @@ class TestZoneRepository:
 
         assert zone.id is not None
         assert zone.master_device_id == "MASTER_001"
-        assert zone.is_active()
 
         members = await repo.get_active_members(zone.id)
         assert len(members) == 1
@@ -120,9 +119,7 @@ class TestZoneRepository:
         )
 
         # Simulate a database that predates cleanup migrations 205/206.
-        await db.execute(
-            "DELETE FROM schema_versions WHERE version IN (205, 206)"
-        )
+        await db.execute("DELETE FROM schema_versions WHERE version IN (205, 206)")
         await db.commit()
 
         db_path = repo.db_path
@@ -288,3 +285,114 @@ class TestZoneRepository:
         assert members[0].device_id == "MASTER_001"
         assert members[1].role == "slave"
         assert members[2].role == "slave"
+
+    async def test_concurrent_add_member_and_dissolve_zone(self, repo):
+        """Concurrent add and delete must never leave orphaned members."""
+        import asyncio
+
+        db = repo._ensure_initialized()
+
+        for i in range(20):
+            zone = await repo.create_zone(f"MASTER_RACE_{i}")
+
+            results = await asyncio.gather(
+                repo.add_member(zone.id, f"SLAVE_RACE_{i}", "slave"),
+                repo.dissolve_zone(zone.id),
+                return_exceptions=True,
+            )
+
+            # Adding may succeed before deletion or fail after deletion.
+            assert not isinstance(results[1], BaseException)
+            assert not isinstance(results[0], BaseException) or isinstance(
+                results[0], ValueError
+            )
+
+            cursor = await db.execute(
+                "SELECT COUNT(*) FROM zones WHERE id = ?",
+                (zone.id,),
+            )
+            assert (await cursor.fetchone())[0] == 0
+
+            cursor = await db.execute(
+                "SELECT COUNT(*) FROM zone_members WHERE zone_id = ?",
+                (zone.id,),
+            )
+            assert (await cursor.fetchone())[0] == 0
+
+    async def test_add_member_to_deleted_zone_is_rejected(self, repo):
+        """Members cannot be added to a deleted zone."""
+        zone = await repo.create_zone("MASTER_DELETED")
+        await repo.dissolve_zone(zone.id)
+
+        with pytest.raises(ZoneNotFoundError):
+            await repo.add_member(zone.id, "SLAVE_DELETED", "slave")
+
+        db = repo._ensure_initialized()
+        cursor = await db.execute(
+            "SELECT COUNT(*) FROM zone_members WHERE zone_id = ?",
+            (zone.id,),
+        )
+        assert (await cursor.fetchone())[0] == 0
+
+    async def test_concurrent_add_and_dissolve_across_connections(self, repo):
+        """Concurrent writes from separate connections leave no orphaned members."""
+        import asyncio
+
+        second_repo = ZoneRepository(repo.db_path)
+        await second_repo.initialize()
+
+        try:
+            for i in range(20):
+                zone = await repo.create_zone(f"MASTER_CROSS_{i}")
+
+                results = await asyncio.gather(
+                    repo.dissolve_zone(zone.id),
+                    second_repo.add_member(zone.id, f"SLAVE_CROSS_{i}"),
+                    return_exceptions=True,
+                )
+
+                assert results[0] is None
+                assert not isinstance(results[1], BaseException) or isinstance(
+                    results[1], ZoneNotFoundError
+                )
+
+                db = repo._ensure_initialized()
+                cursor = await db.execute(
+                    "SELECT COUNT(*) FROM zone_members WHERE zone_id = ?",
+                    (zone.id,),
+                )
+                assert (await cursor.fetchone())[0] == 0
+        finally:
+            await second_repo.close()
+
+    async def test_dissolve_zone_rolls_back_on_delete_failure(self, repo):
+        """A failed hard delete preserves both the zone and its members."""
+        import aiosqlite
+
+        zone = await repo.create_zone("MASTER_ROLLBACK")
+        await repo.add_member(zone.id, "SLAVE_ROLLBACK")
+
+        db = repo._ensure_initialized()
+        await db.execute("""
+            CREATE TRIGGER prevent_zone_delete
+            BEFORE DELETE ON zones
+            BEGIN
+                SELECT RAISE(ABORT, 'simulated delete failure');
+            END
+        """)
+        await db.commit()
+
+        with pytest.raises(aiosqlite.DatabaseError, match="simulated delete failure"):
+            await repo.dissolve_zone(zone.id)
+
+        cursor = await db.execute(
+            "SELECT COUNT(*) FROM zones WHERE id = ?",
+            (zone.id,),
+        )
+        assert (await cursor.fetchone())[0] == 1
+
+        cursor = await db.execute(
+            "SELECT COUNT(*) FROM zone_members WHERE zone_id = ?",
+            (zone.id,),
+        )
+        assert (await cursor.fetchone())[0] == 2
