@@ -2,7 +2,7 @@
 Device Setup Service
 
 Provides connectivity checks, setup status, and verification.
-The step-by-step wizard flow lives in wizard_routes.py / config_service.py.
+The step-by-step wizard flow lives in setup/wizard/service.py / config_service.py.
 """
 
 import logging

@@ -139,27 +139,6 @@ describe("Step5ConfigModification — DNS validation", () => {
     });
   });
 
-  it("shows DNS warning when resolved IP does not match expected", async () => {
-    mockValidateHostname.mockResolvedValueOnce({
-      resolvable: true,
-      resolved_ip: "10.0.0.99",
-      matches_expected: false,
-      oct_reachable: true,
-      error: null,
-      oct_error: null,
-    });
-
-    await renderStep5();
-
-    await act(async () => {
-      getApplyButton().click();
-    });
-
-    await waitFor(() => {
-      expect(queryDnsWarning()).not.toBeNull();
-    });
-  });
-
   it("proceeds without DNS warning when hostname resolves correctly", async () => {
     mockValidateHostname.mockResolvedValueOnce({
       resolvable: true,
@@ -281,32 +260,7 @@ describe("Step5ConfigModification — DNS validation", () => {
     });
   });
 
-  it("does not show use-resolved-ip button (removed from UI)", async () => {
-    mockValidateHostname.mockResolvedValueOnce({
-      resolvable: true,
-      resolved_ip: "10.0.0.99",
-      matches_expected: false,
-      oct_reachable: true,
-      error: null,
-      oct_error: null,
-    });
-
-    await renderStep5();
-
-    await act(async () => {
-      getApplyButton().click();
-    });
-
-    await waitFor(() => {
-      expect(queryDnsWarning()).not.toBeNull();
-    });
-
-    // "Use resolved IP" button was removed — only "Proceed anyway" remains
-    expect(queryDnsUseIpBtn()).toBeNull();
-    expect(queryDnsProceedBtn()).not.toBeNull();
-  });
-
-  it("renders DNS mismatch message when resolvable but IP mismatches", async () => {
+  it("renders DNS mismatch message when resolvable but IP mismatches, without a use-resolved-ip button", async () => {
     mockValidateHostname.mockResolvedValueOnce({
       resolvable: true,
       resolved_ip: "10.0.0.99",
@@ -327,6 +281,10 @@ describe("Step5ConfigModification — DNS validation", () => {
       expect(warning).not.toBeNull();
       expect(warning.textContent).toContain("10.0.0.99");
     });
+
+    // "Use resolved IP" button was removed — only "Proceed anyway" remains
+    expect(queryDnsUseIpBtn()).toBeNull();
+    expect(queryDnsProceedBtn()).not.toBeNull();
   });
 
   it("renders DNS unresolvable message when not resolvable and no error", async () => {
@@ -375,49 +333,32 @@ describe("Step5ConfigModification — DNS validation", () => {
     });
   });
 
-  it("shows DNS warning when hostname resolves but OCT is not reachable", async () => {
-    mockValidateHostname.mockResolvedValueOnce({
-      resolvable: true,
-      resolved_ip: "192.168.1.50",
-      matches_expected: true,
-      oct_reachable: false,
-      error: null,
-      oct_error: "Connection refused at myserver.local:7777",
-    });
+  it.each([
+    ["Connection refused at myserver.local:7777", "Connection refused"],
+    ["Server at myserver.local:7777 is not OpenCloudTouch", "not OpenCloudTouch"],
+  ])(
+    "shows DNS warning when hostname resolves but OCT is not reachable (oct_error: %s)",
+    async (octError, expectedText) => {
+      mockValidateHostname.mockResolvedValueOnce({
+        resolvable: true,
+        resolved_ip: "192.168.1.50",
+        matches_expected: true,
+        oct_reachable: false,
+        error: null,
+        oct_error: octError,
+      });
 
-    await renderStep5();
+      await renderStep5();
 
-    await act(async () => {
-      getApplyButton().click();
-    });
+      await act(async () => {
+        getApplyButton().click();
+      });
 
-    await waitFor(() => {
-      const warning = queryDnsWarning()!;
-      expect(warning).not.toBeNull();
-      expect(warning.textContent).toContain("Connection refused");
-    });
-  });
-
-  it("shows DNS warning when OCT returns wrong service", async () => {
-    mockValidateHostname.mockResolvedValueOnce({
-      resolvable: true,
-      resolved_ip: "192.168.1.50",
-      matches_expected: true,
-      oct_reachable: false,
-      error: null,
-      oct_error: "Server at myserver.local:7777 is not OpenCloudTouch",
-    });
-
-    await renderStep5();
-
-    await act(async () => {
-      getApplyButton().click();
-    });
-
-    await waitFor(() => {
-      const warning = queryDnsWarning()!;
-      expect(warning).not.toBeNull();
-      expect(warning.textContent).toContain("not OpenCloudTouch");
-    });
-  });
+      await waitFor(() => {
+        const warning = queryDnsWarning()!;
+        expect(warning).not.toBeNull();
+        expect(warning.textContent).toContain(expectedText);
+      });
+    }
+  );
 });

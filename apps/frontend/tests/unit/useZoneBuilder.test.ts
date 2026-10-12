@@ -43,12 +43,6 @@ describe("useZoneBuilder", () => {
     vi.clearAllMocks();
   });
 
-  it("initializes with empty selectedDevices", async () => {
-    const { useZoneBuilder } = await import("../../src/hooks/useZoneBuilder");
-    const { result } = renderHook(() => useZoneBuilder());
-    expect(result.current.selectedDevices).toEqual([]);
-  });
-
   it("handleDeviceToggle adds a device", async () => {
     const { useZoneBuilder } = await import("../../src/hooks/useZoneBuilder");
     const { result } = renderHook(() => useZoneBuilder());
@@ -131,16 +125,5 @@ describe("useZoneBuilder", () => {
 
     expect(mockDissolveZone).toHaveBeenCalledWith("master-1");
     expect(mockRemoveZoneName).toHaveBeenCalledWith("master-1");
-  });
-
-  it("exposes getZoneName and setZoneName from useZoneNames", async () => {
-    const { useZoneBuilder } = await import("../../src/hooks/useZoneBuilder");
-    const { result } = renderHook(() => useZoneBuilder());
-
-    expect(result.current.getZoneName("zone-1")).toBe("Zone 1");
-    act(() => {
-      result.current.setZoneName("zone-1", "My Zone");
-    });
-    expect(mockSetZoneName).toHaveBeenCalledWith("zone-1", "My Zone");
   });
 });

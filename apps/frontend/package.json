@@ -1,7 +1,7 @@
 {
   "name": "opencloudtouch-frontend",
   "private": true,
-  "version": "1.5.7",
+  "version": "1.5.8",
   "type": "module",
   "description": "OpenCloudTouch - Local control for compatible streaming devices",
   "scripts": {
@@ -30,7 +30,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.100.14",
     "flag-icons": "^7.5.0",
-    "framer-motion": "^12.38.0",
+    "framer-motion": "^13.4.6",
     "html2canvas": "^1.4.1",
     "i18next": "^26.0.8",
     "react": "^19.2.4",
@@ -39,7 +39,7 @@
     "react-router": "^8.3.0"
   },
   "devDependencies": {
-    "@cypress/webpack-preprocessor": "^7.1.0",
+    "@cypress/webpack-preprocessor": "^8.0.0",
     "@eslint-react/eslint-plugin": "^5.7.2",
     "@eslint/css": "^1.0.0",
     "@eslint/js": "^10.0.1",
@@ -55,7 +55,7 @@
     "@vitest/ui": "^4.1.5",
     "axe-core": "^4.11.1",
     "colorette": "^2.0.20",
-    "cypress": "^15.15.0",
+    "cypress": "^16.1.1",
     "cypress-axe": "^1.7.0",
     "eslint": "^10.2.1",
     "globals": "^17.6.0",
@@ -68,7 +68,7 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.57.1",
     "vite": "^8.0.16",
-    "vitest": "^4.1.5",
+    "vitest": "^4.1.11",
     "webpack": "^5.106.2"
   }
 }

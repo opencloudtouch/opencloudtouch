@@ -60,11 +60,28 @@ describe("LanguageSelector", () => {
     render(<LanguageSelector />);
     fireEvent.click(screen.getByRole("button", { name: /language|select language/i }));
 
-    // Active option (en) should have aria-selected="true"
-    const activeOption = screen.getAllByRole("option").find(
-      (o) => o.getAttribute("aria-selected") === "true"
+    const options = screen.getAllByRole("option");
+    // Every option has an aria-selected attribute
+    for (const option of options) {
+      expect(option).toHaveAttribute("aria-selected");
+    }
+
+    // The "en" option specifically (the mocked i18n.language) should be
+    // marked active and show the checkmark — not just some option.
+    const enOption = options.find(
+      (o) => o.textContent?.includes("English") || o.textContent?.includes("EN")
     );
-    expect(activeOption).toBeDefined();
+    expect(enOption).toBeDefined();
+    expect(enOption).toHaveAttribute("aria-selected", "true");
+    expect(enOption?.querySelector(".lang-option-check")).not.toBeNull();
+    expect(enOption?.textContent).toContain("✓");
+
+    // No other option should be marked active or show the checkmark.
+    const otherOptions = options.filter((o) => o !== enOption);
+    for (const option of otherOptions) {
+      expect(option).toHaveAttribute("aria-selected", "false");
+      expect(option.querySelector(".lang-option-check")).toBeNull();
+    }
   });
 
   it("calls changeLanguage and closes dropdown on locale select", () => {
@@ -103,12 +120,6 @@ describe("LanguageSelector", () => {
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
-  it("has aria-label on the toggle button", () => {
-    render(<LanguageSelector />);
-    const button = screen.getByRole("button", { name: /language|select language/i });
-    expect(button).toHaveAttribute("aria-label");
-  });
-
   it("sets aria-expanded on toggle button", () => {
     render(<LanguageSelector />);
     const button = screen.getByRole("button", { name: /language|select language/i });
@@ -116,22 +127,6 @@ describe("LanguageSelector", () => {
 
     fireEvent.click(button);
     expect(button).toHaveAttribute("aria-expanded", "true");
-  });
-
-  it("listbox has role='listbox'", () => {
-    render(<LanguageSelector />);
-    fireEvent.click(screen.getByRole("button", { name: /language|select language/i }));
-    expect(screen.getByRole("listbox")).toBeInTheDocument();
-  });
-
-  it("options have role='option' and aria-selected", () => {
-    render(<LanguageSelector />);
-    fireEvent.click(screen.getByRole("button", { name: /language|select language/i }));
-    const options = screen.getAllByRole("option");
-    expect(options.length).toBeGreaterThan(0);
-    for (const option of options) {
-      expect(option).toHaveAttribute("aria-selected");
-    }
   });
 
   it("selects locale on Enter key press and closes dropdown", () => {

@@ -1,8 +1,5 @@
 /**
  * Restore Wizard API Client
- *
- * Separate from wizard.ts to avoid naming collision with existing
- * RestoreRequest/RestoreResponse (those serve restore-config/restore-hosts).
  */
 
 import { throwIfNotOk } from "./types";

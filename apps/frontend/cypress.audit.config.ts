@@ -11,8 +11,10 @@
 
 import { defineConfig } from "cypress";
 import { writeFileSync, mkdirSync, existsSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPORT_DIR = join(__dirname, "../../.out/reports/accessibility");
 const REPORT_JSON = join(REPORT_DIR, "violations.json");
 const REPORT_MD = join(REPORT_DIR, "accessibility-report.md");

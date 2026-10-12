@@ -1,9 +1,9 @@
-"""Tests for wizard_service coverage gaps.
+"""Coverage tests for WizardService's Step 7 logic (setup/wizard/step7_finalize_verify.py).
 
-Covers: _apply_existing_config, _fetch_device_metadata hardware profile branch,
-ensure_account_pairing error/success paths, verify_setup connection failure,
-finalize_device edge cases (Sources.xml fail, existing config merge, DeviceName fallback),
-_verify_sys_config XML parse error, and various check helper error branches.
+Covers: finalize_device edge cases (Sources.xml write failure, existing-config
+merge, DeviceName fallback, unexpected exception), _verify_sys_config XML
+parse error, verify_setup connection failure, and error branches of the
+individual _check_* helper methods.
 """
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -13,7 +13,7 @@ import pytest
 from opencloudtouch.setup.account_pairing_service import AccountPairingResult
 from opencloudtouch.setup.persistence_service import ForceWriteResult
 from opencloudtouch.setup.ssh_client import CommandResult
-from opencloudtouch.setup.wizard_service import WizardService
+from opencloudtouch.setup.wizard import WizardService
 
 
 def _make_device_repo(existing_uuid_owner=None):
@@ -40,42 +40,9 @@ def _mock_ssh():
 # Method was removed from WizardService; tests deleted.
 
 
-# ── ensure_account_pairing ───────────────────────────────────────────
-
-
-class TestEnsureAccountPairing:
-    @pytest.mark.asyncio
-    async def test_success_with_repo_persists_uuid(self):
-        repo = _make_device_repo()
-        service = WizardService(device_repo=repo)
-
-        with patch(
-            "opencloudtouch.setup.wizard_service.ensure_account_uuid",
-            new_callable=AsyncMock,
-            return_value=AccountPairingResult(
-                success=True, had_uuid=True, uuid="1234567", message="OK"
-            ),
-        ):
-            result = await service.ensure_account_pairing("192.168.1.10", "DEV001")
-
-        assert result["success"] is True
-        assert result["uuid"] == "1234567"
-        repo.update_marge_account_uuid.assert_called_once_with("DEV001", "1234567")
-
-    @pytest.mark.asyncio
-    async def test_exception_returns_error(self):
-        repo = _make_device_repo()
-        service = WizardService(device_repo=repo)
-
-        with patch(
-            "opencloudtouch.setup.wizard_service.ensure_account_uuid",
-            new_callable=AsyncMock,
-            side_effect=ConnectionError("SSH timeout"),
-        ):
-            result = await service.ensure_account_pairing("192.168.1.10", "DEV001")
-
-        assert result["success"] is False
-        assert "SSH timeout" in result["error"]
+# ── ensure_account_pairing (removed in refactor, 2026-08-17) ─────────
+# Method was removed from WizardService; tests deleted. See
+# test_regression.py::TestLegacyWizardMethodsRemoved.
 
 
 # ── _fetch_device_metadata hardware profile branch ───────────────────
@@ -104,14 +71,14 @@ def _finalize_patches(
 
         with (
             patch(
-                "opencloudtouch.setup.wizard_service.ensure_account_uuid_unique",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.ensure_account_uuid_unique",
                 new_callable=AsyncMock,
                 return_value=AccountPairingResult(
                     success=True, had_uuid=had_uuid, uuid=uuid, message="OK"
                 ),
             ),
             patch(
-                "opencloudtouch.setup.wizard_service.force_write_sources_xml",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.force_write_sources_xml",
                 new_callable=AsyncMock,
                 return_value=ForceWriteResult(
                     success=sources_success,
@@ -120,7 +87,7 @@ def _finalize_patches(
                 ),
             ),
             patch(
-                "opencloudtouch.setup.wizard_service.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value=uuid,
             ),
@@ -128,12 +95,12 @@ def _finalize_patches(
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient",
             ) as mock_ssh_cls,
             patch(
-                "opencloudtouch.setup.wizard_service._write_file_atomic",
+                "opencloudtouch.setup.wizard.step7_finalize_verify._write_file_atomic",
                 new_callable=AsyncMock,
                 return_value=0,
             ),
             patch(
-                "opencloudtouch.setup.wizard_service._file_exists",
+                "opencloudtouch.setup.wizard.step7_finalize_verify._file_exists",
                 new_callable=AsyncMock,
                 return_value=existing_config is not None,
             ),
@@ -204,7 +171,7 @@ class TestFinalizeDeviceEdgeCases:
         service = WizardService(device_repo=repo)
 
         with patch(
-            "opencloudtouch.setup.wizard_service.ensure_account_uuid_unique",
+            "opencloudtouch.setup.wizard.step7_finalize_verify.ensure_account_uuid_unique",
             new_callable=AsyncMock,
             side_effect=RuntimeError("Unexpected"),
         ):
@@ -242,7 +209,7 @@ class TestVerifySetupConnectionFailure:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard_service.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 side_effect=ConnectionError("Cannot connect"),
             ),

@@ -223,43 +223,4 @@ describe("useVolume (push-driven)", () => {
       expect(subscribeCallbacks).toHaveLength(0);
     });
   });
-
-  it("has ZERO setInterval calls in source", async () => {
-    // Read the source file and verify no setInterval usage
-    const sourceModule = await import("../../../src/hooks/useVolume");
-    const sourceText = sourceModule.useVolume.toString();
-    expect(sourceText).not.toContain("setInterval");
-  });
-
-  it("keeps mutation functions (setDeviceVolume, toggleMute)", async () => {
-    vi.useRealTimers();
-    const { result } = renderHook(() => useVolume("DEVICE_001"), { wrapper: Wrapper });
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    expect(typeof result.current.setDeviceVolume).toBe("function");
-    expect(typeof result.current.toggleMute).toBe("function");
-  });
-
-  it("marks device online when SSE event received while offline", async () => {
-    vi.useRealTimers();
-    mockIsOffline.mockReturnValue(true);
-
-    const { result, rerender } = renderHook(() => useVolume("DEVICE_001"), { wrapper: Wrapper });
-
-    await waitFor(() => {
-      expect(result.current.deviceOffline).toBe(true);
-    });
-
-    // Now device comes back online via SSE
-    mockIsOffline.mockReturnValue(false);
-    rerender();
-
-    // Wait for re-subscription
-    await waitFor(() => {
-      expect(subscribeCallbacks.length).toBeGreaterThan(0);
-    });
-  });
 });

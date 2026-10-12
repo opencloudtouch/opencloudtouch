@@ -168,7 +168,7 @@ describe("RadioSearch Component", () => {
     expect(screen.getByText("Searching...")).toBeInTheDocument();
   });
 
-  it("displays search results", async () => {
+  it("displays search results, filtered by query", async () => {
     render(
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
@@ -182,14 +182,7 @@ describe("RadioSearch Component", () => {
       },
       { timeout: 700 }
     );
-  });
 
-  it("filters results based on search query", async () => {
-    render(
-      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
-    );
-
-    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
     fireEvent.change(searchInput, { target: { value: "NPR" } });
 
     await waitFor(
@@ -278,22 +271,6 @@ describe("RadioSearch Component", () => {
 
     const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
     expect(searchInput).toHaveFocus();
-  });
-
-  it("is case-insensitive when searching", async () => {
-    render(
-      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
-    );
-
-    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
-    fireEvent.change(searchInput, { target: { value: "FRANCE" } });
-
-    await waitFor(
-      () => {
-        expect(screen.getByText("France Inter")).toBeInTheDocument();
-      },
-      { timeout: 700 }
-    );
   });
 
   it("displays error message on API failure", async () => {

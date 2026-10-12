@@ -317,7 +317,7 @@
         "instructionStep3Desc": "Attendez au moins 10 secondes.",
         "instructionStep4": "Rebrancher l'alimentation",
         "instructionStep4Desc": "Rebranchez l'adaptateur secteur.",
-        "instructionStep5": "Attendre (~60 secondes)",
+        "instructionStep5": "Attendre (~100 secondes)",
         "instructionStep5Desc": "L'appareil redémarre et lit le fichier remote_services depuis la clé USB.",
         "sectionStatus": "Vérifier le statut",
         "statusWaiting": "En attente du redémarrage de l'appareil...",
@@ -362,7 +362,7 @@
         "troubleshootingTitle": "⚠️ Dépannage",
         "troubleshootingItem1": "Vérifiez que la clé USB est correctement insérée",
         "troubleshootingItem2": "Assurez-vous que le fichier 'remote_services' est correct",
-        "troubleshootingItem3": "Attendez au moins 60 secondes après le redémarrage",
+        "troubleshootingItem3": "Attendez au moins 100 secondes après le redémarrage",
         "troubleshootingItem4": "Essayez un autre cycle d'alimentation (étapes 2–5)",
         "troubleshootingItem5": "Vérifiez que l'appareil est sur le même réseau",
         "troubleshootingItem6": "Testez la connexion SSH manuellement avec la commande ci-dessus — si cela fonctionne, l'appareil est prêt."
@@ -450,8 +450,8 @@
         "successTitle": "Fichier hosts modifié avec succès !",
         "changedEntries": "Entrées modifiées :",
         "backupLabel": "Sauvegarde :",
-        "btnShowDiff": "▶ Afficher le diff",
-        "btnHideDiff": "▼ Masquer le diff",
+        "btnShowChanges": "▶ Afficher les modifications",
+        "btnHideChanges": "▼ Masquer les modifications",
         "hostsApplied": "Fichier hosts modifié avec succès."
       },
       "step7": {
@@ -764,6 +764,6 @@
   "deviceHeader": {
     "reboot": "Redémarrer l'appareil",
     "sent": "Commande de redémarrage envoyée",
-    "confirmMessage": "Redémarrer {{name}} ? L'appareil sera indisponible pendant environ 60 secondes."
+    "confirmMessage": "Redémarrer {{name}} ? L'appareil sera indisponible pendant environ 100 secondes."
   }
 }

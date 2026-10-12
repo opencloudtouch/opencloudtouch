@@ -317,7 +317,7 @@
         "instructionStep3Desc": "Espere al menos 10 segundos.",
         "instructionStep4": "Restaurar la alimentación",
         "instructionStep4Desc": "Vuelva a enchufar el adaptador de alimentación.",
-        "instructionStep5": "Esperar (~60 segundos)",
+        "instructionStep5": "Esperar (~100 segundos)",
         "instructionStep5Desc": "El dispositivo se reinicia y lee el archivo remote_services de la unidad USB.",
         "sectionStatus": "Verificar estado",
         "statusWaiting": "Esperando el reinicio del dispositivo...",
@@ -362,7 +362,7 @@
         "troubleshootingTitle": "⚠️ Solución de problemas",
         "troubleshootingItem1": "Compruebe que la unidad USB esté correctamente insertada",
         "troubleshootingItem2": "Asegúrese de que el archivo 'remote_services' sea correcto",
-        "troubleshootingItem3": "Espere al menos 60 segundos después del reinicio",
+        "troubleshootingItem3": "Espere al menos 100 segundos después del reinicio",
         "troubleshootingItem4": "Pruebe otro ciclo de alimentación (pasos 2-5)",
         "troubleshootingItem5": "Compruebe que el dispositivo esté en la misma red",
         "troubleshootingItem6": "Pruebe la conexión SSH manualmente con el comando anterior — si funciona, el dispositivo está listo."
@@ -450,8 +450,8 @@
         "successTitle": "¡Archivo hosts modificado correctamente!",
         "changedEntries": "Entradas modificadas:",
         "backupLabel": "Copia de seg.:",
-        "btnShowDiff": "▶ Mostrar diferencias",
-        "btnHideDiff": "▼ Ocultar diferencias",
+        "btnShowChanges": "▶ Mostrar cambios",
+        "btnHideChanges": "▼ Ocultar cambios",
         "hostsApplied": "Archivo hosts modificado correctamente."
       },
       "step7": {
@@ -764,6 +764,6 @@
   "deviceHeader": {
     "reboot": "Reiniciar dispositivo",
     "sent": "Comando de reinicio enviado",
-    "confirmMessage": "¿Reiniciar {{name}}? El dispositivo no estará disponible durante unos 60 segundos."
+    "confirmMessage": "¿Reiniciar {{name}}? El dispositivo no estará disponible durante unos 100 segundos."
   }
 }

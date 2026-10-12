@@ -1,10 +1,11 @@
 import { defineConfig } from 'cypress'
 import webpackPreprocessor from '@cypress/webpack-preprocessor'
 import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
-  allowCypressEnv: false,
-
   // Public configuration values accessible in tests via Cypress.expose()
   expose: {
     apiUrl: 'http://localhost:7778/api'

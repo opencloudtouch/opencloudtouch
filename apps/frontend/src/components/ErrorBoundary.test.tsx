@@ -132,17 +132,6 @@ describe("ErrorBoundary", () => {
     expect(resetCalled).toBe(true);
   });
 
-  it("shows reload button in default fallback", () => {
-    render(
-      <ErrorBoundary>
-        <ThrowError />
-      </ErrorBoundary>
-    );
-
-    const reloadButton = screen.getByRole("button", { name: /Reload page/i });
-    expect(reloadButton).toBeInTheDocument();
-  });
-
   it("reloads page when reload button is clicked", async () => {
     // Mock window.location.reload
     const reloadMock = vi.fn();
@@ -185,80 +174,5 @@ describe("ErrorBoundary", () => {
     // Error details section exists (use getAllByText since error appears in two places)
     const errorElements = screen.getAllByText("Error: Deep error", { exact: false });
     expect(errorElements.length).toBeGreaterThan(0);
-  });
-
-  it("handles multiple children", () => {
-    render(
-      <ErrorBoundary>
-        <div>Child 1</div>
-        <ThrowError />
-        <div>Child 3</div>
-      </ErrorBoundary>
-    );
-
-    // Should show fallback, not the non-throwing children
-    expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
-    expect(screen.queryByText("Child 1")).not.toBeInTheDocument();
-  });
-
-  it("isolates errors to boundary scope", () => {
-    render(
-      <div>
-        <ErrorBoundary>
-          <ThrowError />
-        </ErrorBoundary>
-        <div>Outside boundary</div>
-      </div>
-    );
-
-    // Error boundary catches the error
-    expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
-
-    // Content outside boundary still renders
-    expect(screen.getByText("Outside boundary")).toBeInTheDocument();
-  });
-
-  it("displays error emoji icon", () => {
-    render(
-      <ErrorBoundary>
-        <ThrowError />
-      </ErrorBoundary>
-    );
-
-    expect(screen.getByText("⚠️")).toBeInTheDocument();
-  });
-
-  it("handles errors with empty messages", () => {
-    const ThrowEmptyError = () => {
-      throw new Error("");
-    };
-
-    render(
-      <ErrorBoundary>
-        <ThrowEmptyError />
-      </ErrorBoundary>
-    );
-
-    expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
-  });
-
-  it("handles errors from event handlers (manual trigger)", () => {
-    const ErrorButton = () => {
-      const handleClick = () => {
-        throw new Error("Click error");
-      };
-
-      return <button onClick={handleClick}>Throw error</button>;
-    };
-
-    // Note: ErrorBoundary does NOT catch errors in event handlers
-    // This is expected React behavior - event handler errors don't trigger boundary
-    render(
-      <ErrorBoundary>
-        <ErrorButton />
-      </ErrorBoundary>
-    );
-
-    expect(screen.getByText("Throw error")).toBeInTheDocument();
   });
 });

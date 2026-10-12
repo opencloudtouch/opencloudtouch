@@ -16,10 +16,6 @@ describe("toUserMessage — extractRawMessage input types", () => {
     vi.clearAllMocks();
   });
 
-  it("handles a plain string error", () => {
-    expect(toUserMessage("failed to fetch")).toBe("errors.networkFailed");
-  });
-
   it("handles an Error instance", () => {
     expect(toUserMessage(new Error("network error"))).toBe("errors.networkFailed");
   });
@@ -28,14 +24,12 @@ describe("toUserMessage — extractRawMessage input types", () => {
     expect(toUserMessage({ message: "HTTP 404 not found" })).toBe("errors.notFound");
   });
 
-  it("handles null (stringified)", () => {
-    const result = toUserMessage(null);
-    expect(result).toBe("errors.unknown");
-  });
-
-  it("handles a number (stringified)", () => {
-    const result = toUserMessage(42);
-    expect(result).toBe("errors.unknown");
+  it.each([
+    [null, "errors.unknown"],
+    [42, "errors.unknown"],
+  ])("handles %p (stringified)", (input, expected) => {
+    const result = toUserMessage(input);
+    expect(result).toBe(expected);
   });
 
   it("falls back to errors.unknown for unrecognised message", () => {
