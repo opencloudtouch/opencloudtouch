@@ -102,6 +102,36 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/devices/probe": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Probe Device
+     * @description Probe a single device by IP address.
+     *
+     *     Contacts the device at the given IP, fetches its info, upserts it
+     *     to the database, and adds the IP to the manual IPs list.
+     *
+     *     Returns:
+     *         Device data if reachable
+     *
+     *     Raises:
+     *         422: Invalid IP format
+     *         404: Device not reachable at the given IP
+     */
+    post: operations["probe_device_api_devices_probe_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/devices": {
     parameters: {
       query?: never;
@@ -163,7 +193,17 @@ export interface paths {
     get: operations["get_device_api_devices__device_id__get"];
     put?: never;
     post?: never;
-    delete?: never;
+    /**
+     * Delete By Device Id
+     * @description Delete device by id from database.
+     *
+     *     Args:
+     *         device_id: Device ID
+     *
+     *     Returns:
+     *         Confirmation message
+     */
+    delete: operations["delete_by_device_id_api_devices__device_id__delete"];
     options?: never;
     head?: never;
     patch?: never;
@@ -255,6 +295,41 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/devices/{device_id}/name": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Rename Device
+     * @description Rename a SoundTouch device.
+     *
+     *     Tries REST API first (POST /name), falls back to SSH if REST fails.
+     *     Updates the local database after successful rename.
+     *
+     *     Args:
+     *         device_id: Device ID (MAC address)
+     *         body: {"name": "New Name"} — 1-30 characters
+     *
+     *     Returns:
+     *         Updated device info with previous name
+     *
+     *     Raises:
+     *         DeviceNotFoundError: If device does not exist
+     *         HTTPException(422): If name validation fails
+     *         HTTPException(502): If both REST and SSH methods fail
+     */
+    put: operations["rename_device_api_devices__device_id__name_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/devices/{device_id}/now-playing": {
     parameters: {
       query?: never;
@@ -313,6 +388,26 @@ export interface paths {
      */
     put: operations["set_mute_api_devices__device_id__mute_put"];
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/devices/{device_id}/reboot": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Reboot Device
+     * @description Reboot a device.
+     */
+    post: operations["reboot_device_api_devices__device_id__reboot_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -444,7 +539,8 @@ export interface paths {
      *
      *     - **q**: Search query (required, min 1 character)
      *     - **search_type**: Type of search - name, country, or tag (default: name)
-     *     - **limit**: Maximum results (1-100, default: 10)
+     *     - **limit**: Maximum results (1-50, default: 10)
+     *     - **offset**: Offset for pagination (default: 0)
      *     - **provider**: Radio provider - radiobrowser or tunein (default: radiobrowser)
      */
     get: operations["search_stations_api_radio_search_get"];
@@ -1737,6 +1833,33 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/setup/wizard/validate-hostname": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Validate Hostname
+     * @description Validate a hostname or IP via DNS resolution and OCT reachability.
+     *
+     *     Used by Wizard Step 5 when the user enters a hostname or IP address.
+     *     For hostnames: validates DNS resolution and checks if OCT is reachable.
+     *     For IPs: skips DNS resolution and only checks if OCT is reachable.
+     *
+     *     Returns whether the hostname/IP resolves, if it matches the expected IP,
+     *     and whether OCT is reachable at the given hostname:port.
+     */
+    post: operations["wizard_validate_hostname_api_setup_wizard_validate_hostname_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/setup/wizard/check-ports": {
     parameters: {
       query?: never;
@@ -1817,66 +1940,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/setup/wizard/restore-config": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Wizard Restore Config
-     * @description Restore config from backup (Wizard Step 8).
-     */
-    post: operations["wizard_restore_config_api_setup_wizard_restore_config_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/setup/wizard/restore-hosts": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Wizard Restore Hosts
-     * @description Restore hosts from backup (Wizard Step 8).
-     */
-    post: operations["wizard_restore_hosts_api_setup_wizard_restore_hosts_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/setup/wizard/list-backups": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Wizard List Backups
-     * @description List available backups (Wizard Step 8).
-     */
-    post: operations["wizard_list_backups_api_setup_wizard_list_backups_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   "/api/setup/wizard/reboot-device": {
     parameters: {
       query?: never;
@@ -1897,7 +1960,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/setup/wizard/account-pairing": {
+  "/api/setup/wizard/verify-redirect": {
     parameters: {
       query?: never;
       header?: never;
@@ -1907,21 +1970,17 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Wizard Account Pairing
-     * @description Ensure device has a margeAccountUUID (Wizard Step - Account Pairing).
-     *
-     *     Checks if the device already has a UUID. If not, generates one and
-     *     sets it via Telnet. Persists the UUID in the device repository for
-     *     streaming endpoint resolution.
+     * Wizard Verify Redirect
+     * @description Verify a domain is redirected to OCT on the device (Wizard Step 7).
      */
-    post: operations["wizard_account_pairing_api_setup_wizard_account_pairing_post"];
+    post: operations["wizard_verify_redirect_api_setup_wizard_verify_redirect_post"];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  "/api/setup/wizard/ensure-account": {
+  "/api/setup/wizard/finalize": {
     parameters: {
       query?: never;
       header?: never;
@@ -1931,22 +1990,20 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Wizard Ensure Account
-     * @description Ensure device has a margeAccountUUID (Wizard Step � after config/hosts).
+     * Wizard Finalize
+     * @description Finalize device setup: set UUID + write Sources.xml (Issue #184).
      *
-     *     Devices without a margeAccountUUID cannot play presets (INVALID_SOURCE).
-     *     This endpoint checks GET :8090/info and sets a UUID via Telnet if missing.
-     *
-     *     Safe to call multiple times � no-op if UUID already present.
+     *     Atomic operation that ensures the device has a unique margeAccountUUID
+     *     and a complete Sources.xml. Safe to call multiple times (idempotent).
      */
-    post: operations["wizard_ensure_account_api_setup_wizard_ensure_account_post"];
+    post: operations["wizard_finalize_api_setup_wizard_finalize_post"];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  "/api/setup/wizard/init-persistence": {
+  "/api/setup/wizard/verify-setup": {
     parameters: {
       query?: never;
       header?: never;
@@ -1956,17 +2013,13 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Wizard Init Persistence
-     * @description Initialize persistence files on factory-reset devices (Wizard Step — after account pairing).
+     * Wizard Verify Setup
+     * @description Comprehensive post-setup health check (Issue #184).
      *
-     *     Factory-reset devices lack SystemConfigurationDB.xml and Sources.xml.
-     *     Without them, the firmware never fully initialises playback state,
-     *     causing INVALID_SOURCE on preset recall (GitHub Issue #167).
-     *
-     *     Only creates files that are missing — never overwrites existing ones.
-     *     Safe to call multiple times.
+     *     Read-only validation: checks UUID, Sources.xml, config files,
+     *     hosts entries, and SystemConfigurationDB.xml. Never modifies device.
      */
-    post: operations["wizard_init_persistence_api_setup_wizard_init_persistence_post"];
+    post: operations["wizard_verify_setup_api_setup_wizard_verify_setup_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -1987,26 +2040,6 @@ export interface paths {
      * @description Mark wizard setup as complete for a device.
      */
     post: operations["wizard_complete_api_setup_wizard_complete_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/setup/wizard/verify-redirect": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Wizard Verify Redirect
-     * @description Verify a domain is redirected to OCT on the device (Wizard Step 7).
-     */
-    post: operations["wizard_verify_redirect_api_setup_wizard_verify_redirect_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -2255,13 +2288,13 @@ export interface paths {
     };
     /**
      * Download backend log buffer (without frontend logs)
-     * @description Returns backend logs only. Use POST to include frontend console logs.
+     * @description Returns backend logs as plain text, or ZIP if persistent log files exist.
      */
     get: operations["download_backend_logs_get_api_logs_backend_get"];
     put?: never;
     /**
      * Download backend + frontend logs
-     * @description Returns backend logs with frontend console logs included.
+     * @description Returns backend + frontend logs as plain text, or ZIP if persistent log files exist.
      */
     post: operations["download_backend_logs_post_api_logs_backend_post"];
     delete?: never;
@@ -2306,6 +2339,52 @@ export interface paths {
      *     The user can drag-drop the .log.gz file into a manually created GitHub issue.
      */
     post: operations["download_diagnostics_api_bug_report_diagnostics_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/diagnostics": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Diagnostics
+     * @description Collect server and device diagnostics for the diagnostics page.
+     *
+     *     Returns server info (version, platform, config) and device status
+     *     with health indicators.
+     */
+    get: operations["get_diagnostics_api_diagnostics_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/diagnostics/memory": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Memory Diagnostics
+     * @description Detailed memory and cache statistics for monitoring (#366).
+     *
+     *     Moved from /health to keep the health endpoint minimal and avoid
+     *     exposing internal metrics on an unauthenticated path.
+     */
+    get: operations["get_memory_diagnostics_api_diagnostics_memory_get"];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -2372,6 +2451,29 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/events/device-stream": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Device Event Stream
+     * @description Stream device events via Server-Sent Events.
+     *
+     *     Pushes an initial snapshot of all known device states, then streams
+     *     real-time updates. A keepalive comment is sent every 15 seconds.
+     */
+    get: operations["device_event_stream_api_events_device_stream_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/health": {
     parameters: {
       query?: never;
@@ -2382,8 +2484,30 @@ export interface paths {
     /**
      * Health Check
      * @description Health check endpoint for Docker and monitoring.
+     *
+     *     Minimal response — detailed memory stats available at /api/diagnostics/memory.
      */
     get: operations["health_check_health_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/health/websockets": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Websocket Health
+     * @description WebSocket connection health for all managed devices.
+     */
+    get: operations["websocket_health_api_health_websockets_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -2396,47 +2520,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
-    /**
-     * AccountPairingRequest
-     * @description Request to ensure device has a margeAccountUUID.
-     */
-    AccountPairingRequest: {
-      /**
-       * Device Ip
-       * @description Device IP address
-       */
-      device_ip: string;
-      /**
-       * Device Id
-       * @description Device ID (MAC address)
-       */
-      device_id: string;
-    };
-    /**
-     * AccountPairingResponse
-     * @description Response from account pairing.
-     */
-    AccountPairingResponse: {
-      /** Success */
-      success: boolean;
-      /**
-       * Had Uuid
-       * @description True if UUID was already present
-       * @default false
-       */
-      had_uuid: boolean;
-      /**
-       * Uuid
-       * @description The current or newly set UUID
-       * @default
-       */
-      uuid: string;
-      /**
-       * Message
-       * @default
-       */
-      message: string;
-    };
     /**
      * AuditBatchRequest
      * @description Batch of audit entries (reduces HTTP roundtrips).
@@ -2560,7 +2643,9 @@ export interface components {
       /** Message */
       message: string;
       /** Volumes */
-      volumes?: Record<string, never>[];
+      volumes?: {
+        [key: string]: unknown;
+      }[];
       /**
        * Total Size Mb
        * @default 0
@@ -2655,7 +2740,9 @@ export interface components {
        * Frontend Logs
        * @default []
        */
-      frontend_logs: Record<string, never>[];
+      frontend_logs: {
+        [key: string]: unknown;
+      }[];
       /**
        * Browser Info
        * @default
@@ -2808,7 +2895,9 @@ export interface components {
        * Frontend Logs
        * @default []
        */
-      frontend_logs: Record<string, never>[];
+      frontend_logs: {
+        [key: string]: unknown;
+      }[];
       /**
        * Description
        * @default
@@ -2851,6 +2940,64 @@ export interface components {
        * @default true
        */
       make_permanent: boolean;
+    };
+    /**
+     * FinalizeRequest
+     * @description Request to finalize device setup (UUID + Sources.xml).
+     */
+    FinalizeRequest: {
+      /** Device Ip */
+      device_ip: string;
+      /**
+       * Device Id
+       * @description Device ID (MAC address)
+       */
+      device_id: string;
+    };
+    /**
+     * FinalizeResponse
+     * @description Response from device finalization.
+     */
+    FinalizeResponse: {
+      /** Success */
+      success: boolean;
+      /**
+       * Uuid
+       * @default
+       */
+      uuid: string;
+      /**
+       * Had Uuid
+       * @default false
+       */
+      had_uuid: boolean;
+      /**
+       * Uuid Was Collision
+       * @default false
+       */
+      uuid_was_collision: boolean;
+      /**
+       * Sources Written
+       * @default false
+       */
+      sources_written: boolean;
+      /**
+       * Sources Backup Path
+       * @default
+       */
+      sources_backup_path: string;
+      /**
+       * System Config Written
+       * @default false
+       */
+      system_config_written: boolean;
+      /**
+       * Message
+       * @default
+       */
+      message: string;
+      /** Error */
+      error?: string | null;
     };
     /**
      * FrontendLogEntry
@@ -2917,66 +3064,6 @@ export interface components {
       diff: string;
     };
     /**
-     * InitPersistenceRequest
-     * @description Request to initialize persistence files on a factory-reset device.
-     */
-    InitPersistenceRequest: {
-      /**
-       * Device Ip
-       * @description Device IP address
-       */
-      device_ip: string;
-      /**
-       * Device Name
-       * @description Device name from GET :8090/info <name>
-       */
-      device_name: string;
-      /**
-       * Account Uuid
-       * @description margeAccountUUID (7-digit numeric, from account pairing)
-       */
-      account_uuid: string;
-    };
-    /**
-     * InitPersistenceResponse
-     * @description Response from persistence initialization.
-     */
-    InitPersistenceResponse: {
-      /** Success */
-      success: boolean;
-      /** Created Files */
-      created_files?: string[];
-      /** Skipped Files */
-      skipped_files?: string[];
-      /**
-       * Message
-       * @default
-       */
-      message: string;
-      /** Error */
-      error?: string | null;
-    };
-    /**
-     * ListBackupsRequest
-     * @description Request to list backups.
-     */
-    ListBackupsRequest: {
-      /** Device Ip */
-      device_ip: string;
-    };
-    /**
-     * ListBackupsResponse
-     * @description Response with backup list.
-     */
-    ListBackupsResponse: {
-      /** Success */
-      success: boolean;
-      /** Config Backups */
-      config_backups?: string[];
-      /** Hosts Backups */
-      hosts_backups?: string[];
-    };
-    /**
      * LogDownloadRequest
      * @description Optional body for POST /api/logs/backend with frontend logs.
      */
@@ -2986,6 +3073,10 @@ export interface components {
        * @default []
        */
       frontend_logs: components["schemas"]["FrontendLogEntry"][];
+      /** Frontend Log Buffers */
+      frontend_log_buffers?: {
+        [key: string]: components["schemas"]["FrontendLogEntry"][];
+      } | null;
     };
     /**
      * LogLevelRequest
@@ -3123,6 +3214,17 @@ export interface components {
       station_favicon?: string | null;
     };
     /**
+     * ProbeRequest
+     * @description Request model for single-device probe.
+     */
+    ProbeRequest: {
+      /**
+       * Ip
+       * @description IP address of the device to probe
+       */
+      ip: string;
+    };
+    /**
      * ProviderType
      * @description Radio provider enum.
      * @enum {string}
@@ -3135,6 +3237,11 @@ export interface components {
     RadioSearchResponse: {
       /** Stations */
       stations: components["schemas"]["RadioStationResponse"][];
+      /**
+       * Has More
+       * @default false
+       */
+      has_more: boolean;
     };
     /**
      * RadioStationResponse
@@ -3164,26 +3271,6 @@ export interface components {
        * @default unknown
        */
       provider: string;
-    };
-    /**
-     * RestoreRequest
-     * @description Request to restore from backup.
-     */
-    RestoreRequest: {
-      /** Device Ip */
-      device_ip: string;
-      /** Backup Path */
-      backup_path: string;
-    };
-    /**
-     * RestoreResponse
-     * @description Response with restore result.
-     */
-    RestoreResponse: {
-      /** Success */
-      success: boolean;
-      /** Message */
-      message: string;
     };
     /**
      * RestoreStepResponse
@@ -3266,7 +3353,9 @@ export interface components {
       /** Steps */
       steps?: components["schemas"]["RestoreStepResponse"][];
       /** Pre Restore Snapshot */
-      pre_restore_snapshot?: Record<string, never> | null;
+      pre_restore_snapshot?: {
+        [key: string]: unknown;
+      } | null;
       /**
        * Snapshot Skipped
        * @default false
@@ -3331,6 +3420,69 @@ export interface components {
        */
       ips: string[];
     };
+    /**
+     * ValidateHostnameRequest
+     * @description Request to validate a hostname or IP via DNS resolution and OCT reachability.
+     *
+     *     Accepts both hostnames (e.g. 'hera', 'myserver.local') and IP addresses
+     *     (e.g. '192.168.1.100'). For IPs, DNS resolution is skipped but OCT
+     *     reachability is still checked.
+     */
+    ValidateHostnameRequest: {
+      /**
+       * Hostname
+       * @description Hostname or IP address to validate (e.g. 'hera', 'myserver.local', or '192.168.1.100')
+       */
+      hostname: string;
+      /**
+       * Port
+       * @description Port to check for OCT reachability (default: 7777)
+       * @default 7777
+       */
+      port: number;
+      /**
+       * Expected Ip
+       * @description Expected IP address to compare against resolved IP
+       */
+      expected_ip?: string | null;
+    };
+    /**
+     * ValidateHostnameResponse
+     * @description Response from hostname DNS validation.
+     */
+    ValidateHostnameResponse: {
+      /**
+       * Resolvable
+       * @description Whether the hostname could be resolved
+       */
+      resolvable: boolean;
+      /**
+       * Resolved Ip
+       * @description Resolved IP address (if successful)
+       */
+      resolved_ip?: string | null;
+      /**
+       * Matches Expected
+       * @description Whether resolved IP matches expected_ip (null if no expected_ip)
+       */
+      matches_expected?: boolean | null;
+      /**
+       * Oct Reachable
+       * @description Whether OCT is reachable at hostname:port
+       * @default false
+       */
+      oct_reachable: boolean;
+      /**
+       * Error
+       * @description Error message (if resolution failed)
+       */
+      error?: string | null;
+      /**
+       * Oct Error
+       * @description Error message (if OCT check failed)
+       */
+      oct_error?: string | null;
+    };
     /** ValidationError */
     ValidationError: {
       /** Location */
@@ -3343,6 +3495,22 @@ export interface components {
       input?: unknown;
       /** Context */
       ctx?: Record<string, never>;
+    };
+    /**
+     * VerifyCheck
+     * @description Single verification check result.
+     */
+    VerifyCheck: {
+      /** Name */
+      name: string;
+      /** Passed */
+      passed: boolean;
+      /** Message */
+      message: string;
+      /** Details */
+      details?: {
+        [key: string]: unknown;
+      };
     };
     /**
      * VerifyRedirectRequest
@@ -3381,6 +3549,49 @@ export interface components {
        */
       matches_expected: boolean;
       /** Message */
+      message: string;
+    };
+    /**
+     * VerifySetupRequest
+     * @description Request to verify device setup completeness.
+     */
+    VerifySetupRequest: {
+      /** Device Ip */
+      device_ip: string;
+      /**
+       * Device Id
+       * @description Device ID (MAC address)
+       */
+      device_id: string;
+      /**
+       * Expected Oct Ip
+       * @description Expected OCT server IP
+       */
+      expected_oct_ip: string;
+    };
+    /**
+     * VerifySetupResponse
+     * @description Response from device setup verification.
+     */
+    VerifySetupResponse: {
+      /** Success */
+      success: boolean;
+      /** Checks */
+      checks?: components["schemas"]["VerifyCheck"][];
+      /**
+       * Passed Count
+       * @default 0
+       */
+      passed_count: number;
+      /**
+       * Failed Count
+       * @default 0
+       */
+      failed_count: number;
+      /**
+       * Message
+       * @default
+       */
       message: string;
     };
     /**
@@ -3480,7 +3691,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": Record<string, never>;
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
       };
     };
@@ -3525,6 +3738,46 @@ export interface operations {
       };
     };
   };
+  probe_device_api_devices_probe_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ProbeRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Device not reachable at the given IP */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Invalid IP address format */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   get_devices_api_devices_get: {
     parameters: {
       query?: never;
@@ -3566,6 +3819,37 @@ export interface operations {
     };
   };
   get_device_api_devices__device_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_by_device_id_api_devices__device_id__delete: {
     parameters: {
       query?: never;
       header?: never;
@@ -3661,6 +3945,48 @@ export interface operations {
       };
     };
   };
+  rename_device_api_devices__device_id__name_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Invalid name */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Both REST and SSH rename failed */
+      502: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   get_now_playing_api_devices__device_id__now_playing_get: {
     parameters: {
       query?: never;
@@ -3678,7 +4004,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
       };
       /** @description Validation Error */
@@ -3790,6 +4118,51 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
         };
+      };
+    };
+  };
+  reboot_device_api_devices__device_id__reboot_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Device not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description Device unreachable */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -4006,6 +4379,8 @@ export interface operations {
         search_type?: components["schemas"]["SearchType"];
         /** @description Maximum number of results */
         limit?: number;
+        /** @description Offset for pagination */
+        offset?: number;
         /** @description Radio provider: radiobrowser or tunein */
         provider?: components["schemas"]["ProviderType"];
       };
@@ -5291,7 +5666,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": Record<string, never>;
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
       };
       /** @description Validation Error */
@@ -5324,7 +5701,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": Record<string, never>;
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
       };
       /** @description Validation Error */
@@ -5355,7 +5734,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": Record<string, never>;
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
       };
       /** @description Validation Error */
@@ -5388,7 +5769,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": Record<string, never>;
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
       };
       /** @description Validation Error */
@@ -5421,7 +5804,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": Record<string, never>;
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
       };
       /** @description Validation Error */
@@ -5450,7 +5835,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": Record<string, never>;
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
       };
     };
@@ -5470,7 +5857,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": Record<string, never>;
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
       };
     };
@@ -5491,6 +5880,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["DetectStrategyResponse"];
+        };
+      };
+    };
+  };
+  wizard_validate_hostname_api_setup_wizard_validate_hostname_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ValidateHostnameRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ValidateHostnameResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };
@@ -5627,105 +6049,6 @@ export interface operations {
       };
     };
   };
-  wizard_restore_config_api_setup_wizard_restore_config_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RestoreRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["RestoreResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  wizard_restore_hosts_api_setup_wizard_restore_hosts_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RestoreRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["RestoreResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  wizard_list_backups_api_setup_wizard_list_backups_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ListBackupsRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ListBackupsResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
   wizard_reboot_device_api_setup_wizard_reboot_device_post: {
     parameters: {
       query?: never;
@@ -5745,139 +6068,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": Record<string, never>;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  wizard_account_pairing_api_setup_wizard_account_pairing_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["AccountPairingRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["AccountPairingResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  wizard_ensure_account_api_setup_wizard_ensure_account_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["AccountPairingRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["AccountPairingResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  wizard_init_persistence_api_setup_wizard_init_persistence_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["InitPersistenceRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["InitPersistenceResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  wizard_complete_api_setup_wizard_complete_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["WizardCompleteRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["WizardCompleteResponse"];
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
       };
       /** @description Validation Error */
@@ -5924,6 +6117,119 @@ export interface operations {
       };
     };
   };
+  wizard_finalize_api_setup_wizard_finalize_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["FinalizeRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FinalizeResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description Finalization failed */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  wizard_verify_setup_api_setup_wizard_verify_setup_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["VerifySetupRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["VerifySetupResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description Verification failed */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  wizard_complete_api_setup_wizard_complete_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["WizardCompleteRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WizardCompleteResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   wizard_scan_backups_api_setup_wizard_scan_backups_post: {
     parameters: {
       query?: never;
@@ -5954,6 +6260,13 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
         };
+      };
+      /** @description Backup scan failed */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -5987,6 +6300,13 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
         };
+      };
+      /** @description Restore wizard execution failed */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -6370,7 +6690,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "text/plain": string;
+          "application/json": unknown;
         };
       };
     };
@@ -6394,7 +6714,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "text/plain": string;
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */
@@ -6470,6 +6790,46 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_diagnostics_api_diagnostics_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  get_memory_diagnostics_api_diagnostics_memory_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
     };
@@ -6573,7 +6933,47 @@ export interface operations {
       };
     };
   };
+  device_event_stream_api_events_device_stream_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
   health_check_health_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  websocket_health_api_health_websockets_get: {
     parameters: {
       query?: never;
       header?: never;

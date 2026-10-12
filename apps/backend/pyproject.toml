@@ -26,7 +26,7 @@ dependencies = [
     "starlette>=0.40.0",
     "psutil>=6.1.1",
     "jaraco-context==6.1.2",
-    "wheel==0.47.0",
+    "wheel==0.48.0",
 ]
 
 [project.optional-dependencies]

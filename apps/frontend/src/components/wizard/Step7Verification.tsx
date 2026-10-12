@@ -182,7 +182,7 @@ export default function Step7Verification({
     try {
       await rebootDevice({ ip: deviceIp });
       setRebootState("waiting");
-      setRebootCountdown(60);
+      setRebootCountdown(100);
       countdownRef.current = setInterval(() => {
         setRebootCountdown((prev) => {
           if (prev <= 1) {
