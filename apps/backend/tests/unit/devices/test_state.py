@@ -338,7 +338,6 @@ class TestStateManagerOnEvent:
         assert state is None
 
 
-
 class _SlowIcyWorker:
     """Controllable ICY worker for stale-result race tests."""
 
@@ -502,7 +501,6 @@ class TestDeviceStateManagerIcyIntegration:
 
         # Worker should not have been called for volume events
         worker.on_event.assert_not_called()
-
 
     @pytest.mark.asyncio
     async def test_late_icy_event_probe_does_not_restore_play_after_stop(self):
