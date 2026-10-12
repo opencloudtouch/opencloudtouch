@@ -91,9 +91,7 @@ class DeviceStateManager:
 
     # -- State updates -------------------------------------------------------
 
-    def update_now_playing(
-        self, device_id: str, info: NowPlayingInfo | None
-    ) -> None:
+    def update_now_playing(self, device_id: str, info: NowPlayingInfo | None) -> None:
         """Update now-playing state for *device_id*."""
         state = self._ensure_state(device_id)
         previous = state.now_playing
@@ -102,9 +100,7 @@ class DeviceStateManager:
             if previous
             else None
         )
-        current_context = (
-            (info.source, info.state, info.station_name) if info else None
-        )
+        current_context = (info.source, info.state, info.station_name) if info else None
         if current_context != previous_context:
             state.playback_generation += 1
 
@@ -307,9 +303,7 @@ class DeviceStateManager:
         if event.event_type == EventType.NOW_PLAYING and event.now_playing:
             state = self.get_state(event.device_id)
             generation = state.playback_generation if state else 0
-            task = asyncio.create_task(
-                self._run_enrichment_pipeline(event, generation)
-            )
+            task = asyncio.create_task(self._run_enrichment_pipeline(event, generation))
             self._background_tasks.add(task)
             task.add_done_callback(self._background_tasks.discard)
 

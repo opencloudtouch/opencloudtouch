@@ -151,9 +151,7 @@ class TestIcyWorkerOnEvent:
     async def test_debounce_allows_after_timeout(self):
         get_url = AsyncMock(return_value="http://stream.example.com/radio")
         worker = IcyWorker(get_stream_url=get_url)
-        worker._last_probe[("D1", "WDR 2")] = (
-            time.monotonic() - _DEBOUNCE_SECONDS - 1
-        )
+        worker._last_probe[("D1", "WDR 2")] = time.monotonic() - _DEBOUNCE_SECONDS - 1
 
         icy = IcyMetadata(artist="A", track="T", raw_title="A - T")
         with patch(
