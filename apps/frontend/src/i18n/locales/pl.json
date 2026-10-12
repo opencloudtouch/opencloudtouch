@@ -317,7 +317,7 @@
         "instructionStep3Desc": "Poczekaj co najmniej 10 sekund.",
         "instructionStep4": "Przywróć zasilanie",
         "instructionStep4Desc": "Ponownie podłącz adapter zasilania.",
-        "instructionStep5": "Poczekaj (~60 sekund)",
+        "instructionStep5": "Poczekaj (~100 sekund)",
         "instructionStep5Desc": "Urządzenie restartuje się i odczytuje plik remote_services z dysku USB.",
         "sectionStatus": "Sprawdź status",
         "statusWaiting": "Oczekiwanie na restart urządzenia...",
@@ -362,7 +362,7 @@
         "troubleshootingTitle": "⚠️ Rozwiązywanie problemów",
         "troubleshootingItem1": "Sprawdź, czy dysk USB jest prawidłowo włożony",
         "troubleshootingItem2": "Upewnij się, że plik 'remote_services' jest poprawny",
-        "troubleshootingItem3": "Poczekaj co najmniej 60 sekund po restarcie",
+        "troubleshootingItem3": "Poczekaj co najmniej 100 sekund po restarcie",
         "troubleshootingItem4": "Spróbuj kolejnego cyklu zasilania (kroki 2-5)",
         "troubleshootingItem5": "Sprawdź, czy urządzenie jest w tej samej sieci",
         "troubleshootingItem6": "Przetestuj połączenie SSH ręcznie poleceniem powyżej — jeśli działa, urządzenie jest gotowe."
@@ -450,8 +450,8 @@
         "successTitle": "Plik hosts zmodyfikowany pomyślnie!",
         "changedEntries": "Zmienione wpisy:",
         "backupLabel": "Kopia zap.:",
-        "btnShowDiff": "▶ Pokaż diff",
-        "btnHideDiff": "▼ Ukryj diff",
+        "btnShowChanges": "▶ Pokaż zmiany",
+        "btnHideChanges": "▼ Ukryj zmiany",
         "hostsApplied": "Plik hosts został pomyślnie zmodyfikowany."
       },
       "step7": {
@@ -764,6 +764,6 @@
   "deviceHeader": {
     "reboot": "Uruchom ponownie urządzenie",
     "sent": "Polecenie restartu wysłane",
-    "confirmMessage": "Uruchomić ponownie {{name}}? Urządzenie będzie niedostępne przez około 60 sekund."
+    "confirmMessage": "Uruchomić ponownie {{name}}? Urządzenie będzie niedostępne przez około 100 sekund."
   }
 }

@@ -317,7 +317,7 @@
         "instructionStep3Desc": "少なくとも10秒間待ちます。",
         "instructionStep4": "電源を復元",
         "instructionStep4Desc": "電源アダプターを再接続します。",
-        "instructionStep5": "待つ（約60秒）",
+        "instructionStep5": "待つ（約100秒）",
         "instructionStep5Desc": "デバイスが再起動してUSBドライブからremote_servicesファイルを読み込みます。",
         "sectionStatus": "ステータスを確認",
         "statusWaiting": "デバイスの再起動を待っています...",
@@ -362,7 +362,7 @@
         "troubleshootingTitle": "⚠️ トラブルシューティング",
         "troubleshootingItem1": "USBドライブが正しく挿入されているか確認",
         "troubleshootingItem2": "「remote_services」ファイルが正しいことを確認",
-        "troubleshootingItem3": "再起動後少なくとも60秒待つ",
+        "troubleshootingItem3": "再起動後少なくとも100秒待つ",
         "troubleshootingItem4": "別の電源サイクルを試す（手順2〜5）",
         "troubleshootingItem5": "デバイスが同じネットワークにあるか確認",
         "troubleshootingItem6": "上記のコマンドでSSH接続を手動でテストしてください — それが機能すれば、デバイスは準備できています。"
@@ -450,8 +450,8 @@
         "successTitle": "hostsファイルが正常に変更されました！",
         "changedEntries": "変更されたエントリ：",
         "backupLabel": "バックアップ：",
-        "btnShowDiff": "▶ 差分を表示",
-        "btnHideDiff": "▼ 差分を非表示",
+        "btnShowChanges": "▶ 変更を表示",
+        "btnHideChanges": "▼ 変更を非表示",
         "hostsApplied": "hostsファイルが正常に変更されました。"
       },
       "step7": {
@@ -764,6 +764,6 @@
   "deviceHeader": {
     "reboot": "デバイスを再起動",
     "sent": "再起動コマンドを送信しました",
-    "confirmMessage": "{{name}}を再起動しますか？デバイスは約60秒間使用できなくなります。"
+    "confirmMessage": "{{name}}を再起動しますか？デバイスは約100秒間使用できなくなります。"
   }
 }

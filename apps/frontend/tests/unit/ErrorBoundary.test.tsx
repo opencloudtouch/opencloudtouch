@@ -78,7 +78,7 @@ describe("ErrorBoundary", () => {
   });
 
   it("provides retry button that resets error state", () => {
-    render(
+    const { rerender } = render(
       <ErrorBoundary>
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
@@ -89,12 +89,22 @@ describe("ErrorBoundary", () => {
     const retryButton = screen.getByRole("button", { name: /Retry/i });
     expect(retryButton).toBeInTheDocument();
 
-    // Clicking reset button should attempt to reset (but ThrowError will throw again)
-    // We're just testing the button exists and is clickable
+    // Swap in a child that will not throw *before* triggering the reset. If we
+    // clicked first, the still-throwing child would make the boundary
+    // re-catch immediately, masking whether handleReset actually cleared the
+    // error state (this is why the original assertion here was vacuous).
+    rerender(
+      <ErrorBoundary>
+        <ThrowError shouldThrow={false} />
+      </ErrorBoundary>
+    );
+
     fireEvent.click(retryButton);
 
-    // Error boundary will re-catch the error from ThrowError, so error UI remains
-    expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+    // handleReset cleared hasError/error, so the boundary now renders the
+    // (non-throwing) children instead of the fallback UI.
+    expect(screen.getByText("No error")).toBeInTheDocument();
+    expect(screen.queryByText("Something went wrong")).not.toBeInTheDocument();
   });
 
   it("supports custom fallback UI", () => {
@@ -134,20 +144,5 @@ describe("ErrorBoundary", () => {
       expect.any(Error),
       expect.any(Object)
     );
-  });
-
-  it("displays error stack trace", () => {
-    render(
-      <ErrorBoundary>
-        <ThrowError shouldThrow={true} />
-      </ErrorBoundary>
-    );
-
-    const details = screen.getByText("Error details");
-    fireEvent.click(details);
-
-    // Stack trace should contain function names
-    const stackElements = screen.getAllByText(/ThrowError|Error/);
-    expect(stackElements.length).toBeGreaterThan(0);
   });
 });

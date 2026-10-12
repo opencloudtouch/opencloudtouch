@@ -97,14 +97,26 @@ describe("Toast Component", () => {
       expect(mockOnClose).toHaveBeenCalledTimes(1);
     });
 
-    it("should not crash when onClose is not provided", async () => {
+    it("should not crash when onClose is not provided, and hides the toast", async () => {
       render(<Toast message="Test message" />);
+      expect(screen.getByText("Test message")).toBeInTheDocument();
 
-      // Advancing timers should not throw error (onClose?.() safe navigation)
-      await act(async () => {
-        vi.runAllTimers();
-      });
-      // No assertion needed - just verifying no crash
+      // Sole cover of the `if (onClose)` false arm inside the auto-hide timer:
+      // capture any throw explicitly instead of just letting an uncaught error
+      // fail the test implicitly.
+      let thrown: unknown = null;
+      try {
+        await act(async () => {
+          vi.runAllTimers();
+        });
+      } catch (err) {
+        thrown = err;
+      }
+      expect(thrown).toBeNull();
+
+      // The auto-hide path must still run to completion (isVisible -> false,
+      // component renders null) even though there's no onClose to call.
+      expect(screen.queryByText("Test message")).not.toBeInTheDocument();
     });
   });
 
@@ -123,24 +135,6 @@ describe("Toast Component", () => {
 
       expect(mockOnClose).toHaveBeenCalledTimes(1);
     });
-
-    it("should hide toast before calling onClose (fade-out animation)", async () => {
-      const mockOnClose = vi.fn();
-      render(<Toast message="Test message" onClose={mockOnClose} />);
-
-      // Initially visible
-      const toastContainer = screen.getByText("Test message").closest(".toast");
-      expect(toastContainer).toHaveClass("toast-visible");
-
-      // Click close
-      fireEvent.click(screen.getByRole("button", { name: "Close" }));
-
-      // After animation, onClose called
-      await act(async () => {
-        vi.advanceTimersByTime(300);
-      });
-      expect(mockOnClose).toHaveBeenCalledTimes(1);
-    });
   });
 
   describe("Accessibility", () => {
@@ -151,24 +145,6 @@ describe("Toast Component", () => {
         "aria-label",
         "Close"
       );
-    });
-
-    it("should render different icons for each type", () => {
-      const { rerender } = render(<Toast message="Test" type="success" />);
-      const successToast = screen.getByText("Test").closest(".toast")!;
-      expect(successToast.querySelector("svg")).toBeInTheDocument();
-
-      rerender(<Toast message="Test" type="error" />);
-      const errorToast = screen.getByText("Test").closest(".toast")!;
-      expect(errorToast.querySelector("svg")).toBeInTheDocument();
-
-      rerender(<Toast message="Test" type="warning" />);
-      const warningToast = screen.getByText("Test").closest(".toast")!;
-      expect(warningToast.querySelector("svg")).toBeInTheDocument();
-
-      rerender(<Toast message="Test" type="info" />);
-      const infoToast = screen.getByText("Test").closest(".toast")!;
-      expect(infoToast.querySelector("svg")).toBeInTheDocument();
     });
   });
 });

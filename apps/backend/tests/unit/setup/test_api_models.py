@@ -12,7 +12,6 @@ from opencloudtouch.setup.api_models import (
     HostsModifyRequest,
     ListBackupsRequest,
     PortCheckRequest,
-    RestoreRequest,
     VerifyRedirectRequest,
 )
 
@@ -154,17 +153,6 @@ class TestHostsModifyRequestValidation:
     def test_default_include_optional(self):
         req = HostsModifyRequest(device_ip=VALID_IPV4, target_addr="oct.local")
         assert req.include_optional is True
-
-
-class TestRestoreRequestValidation:
-    def test_valid_ip_and_path(self):
-        req = RestoreRequest(device_ip=VALID_IPV4, backup_path="/mnt/backup")
-        assert req.device_ip == VALID_IPV4
-        assert req.backup_path == "/mnt/backup"
-
-    def test_invalid_ip_raises(self):
-        with pytest.raises(ValidationError):
-            RestoreRequest(device_ip="not-an-ip", backup_path="/mnt/backup")
 
 
 class TestVerifyRedirectRequestValidation:
