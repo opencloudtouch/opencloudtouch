@@ -55,6 +55,25 @@ class IcyWorker:
             oldest_key = next(iter(cache))
             cache.pop(oldest_key)
 
+    def _should_probe(self, device_id: str, station_name: str) -> bool:
+        """Check debounce and record a new probe attempt."""
+        probe_key = (device_id, station_name)
+        now = time.monotonic()
+        last = self._last_probe.get(probe_key, 0.0)
+        if (now - last) < _DEBOUNCE_SECONDS:
+            logger.debug(
+                "ICY probe debounced for %s on %s (%.1fs ago)",
+                station_name,
+                device_id,
+                now - last,
+            )
+            return False
+
+        self._last_probe[probe_key] = now
+        self._last_probe.move_to_end(probe_key)
+        self._evict_if_needed(self._last_probe)
+        return True
+
     async def on_event(self, event: DeviceEvent) -> DeviceEvent | None:
         """Process a device event.  Returns a ``metadata_enriched`` event
         if ICY probe succeeds, or ``None`` otherwise.
@@ -99,21 +118,8 @@ class IcyWorker:
 
         # Debounce per device/station so multiple devices do not block
         # each other, while repeated probes for the same playback are limited.
-        probe_key = (event.device_id, info.station_name)
-        now = time.monotonic()
-        last = self._last_probe.get(probe_key, 0.0)
-        if (now - last) < _DEBOUNCE_SECONDS:
-            logger.debug(
-                "ICY probe debounced for %s on %s (%.1fs ago)",
-                info.station_name,
-                event.device_id,
-                now - last,
-            )
+        if not self._should_probe(event.device_id, info.station_name):
             return None
-
-        self._last_probe[probe_key] = now
-        self._last_probe.move_to_end(probe_key)
-        self._evict_if_needed(self._last_probe)
 
         # Resolve stream URL from preset DB
         stream_url = await self._get_stream_url(event.device_id, info.station_name)
@@ -188,21 +194,8 @@ class IcyWorker:
         if not info.station_name:
             return None
 
-        probe_key = (event.device_id, info.station_name)
-        now = time.monotonic()
-        last = self._last_probe.get(probe_key, 0.0)
-        if (now - last) < _DEBOUNCE_SECONDS:
-            logger.debug(
-                "ICY poll debounced for %s on %s (%.1fs ago)",
-                info.station_name,
-                event.device_id,
-                now - last,
-            )
+        if not self._should_probe(event.device_id, info.station_name):
             return None
-
-        self._last_probe[probe_key] = now
-        self._last_probe.move_to_end(probe_key)
-        self._evict_if_needed(self._last_probe)
 
         stream_url = await self._get_stream_url(event.device_id, info.station_name)
         if not stream_url:
