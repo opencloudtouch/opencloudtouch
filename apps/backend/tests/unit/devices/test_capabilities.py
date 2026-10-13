@@ -12,6 +12,7 @@ from opencloudtouch.devices.capabilities import (
     DeviceCapabilities,
     get_device_capabilities,
     get_feature_flags_for_ui,
+    merge_bass_capabilities,
     safe_api_call,
 )
 
@@ -368,3 +369,45 @@ async def test_get_device_capabilities_supports_internal_library_fields():
     assert "systemtimeout" in result.supported_endpoints
     assert "rebroadcastlatencymode" in result.supported_endpoints
     assert "AUX" in result.supported_sources
+
+
+def test_merge_bass_capabilities_preserves_existing_fields():
+    """Adding bass must not replace other device capabilities."""
+    from opencloudtouch.devices.client import BassCapabilities
+
+    flags = {
+        "device_id": "AABBCC112233",
+        "device_type": "SoundTouch 20",
+        "is_soundbar": False,
+        "features": {
+            "bluetooth": True,
+            "zone_support": True,
+            "bass_control": False,
+        },
+        "sources": ["BLUETOOTH", "AUX"],
+        "advanced": {"introspect": True},
+    }
+
+    bass = BassCapabilities(
+        available=True,
+        minimum=-9,
+        maximum=0,
+        default=0,
+    )
+
+    result = merge_bass_capabilities(flags, bass)
+
+    assert result["device_id"] == "AABBCC112233"
+    assert result["device_type"] == "SoundTouch 20"
+    assert result["is_soundbar"] is False
+    assert result["features"]["bluetooth"] is True
+    assert result["features"]["zone_support"] is True
+    assert result["sources"] == ["BLUETOOTH", "AUX"]
+    assert result["advanced"] == {"introspect": True}
+    assert result["features"]["bass_control"] is True
+    assert result["settings"]["bass"] == {
+        "available": True,
+        "minimum": -9,
+        "maximum": 0,
+        "default": 0,
+    }

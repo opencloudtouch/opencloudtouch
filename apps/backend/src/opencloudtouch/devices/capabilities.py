@@ -16,6 +16,8 @@ from bosesoundtouchapi import (  # type: ignore[import-untyped]
     SoundTouchError,
 )
 
+from opencloudtouch.devices.client import BassCapabilities
+
 logger = logging.getLogger(__name__)
 
 
@@ -253,6 +255,18 @@ async def safe_api_call(
             },
         )
         raise
+
+
+def merge_bass_capabilities(flags: dict[str, Any], bass: BassCapabilities) -> dict[str, Any]:
+    """Add detected bass capabilities without replacing other device features."""
+    flags.setdefault("features", {})["bass_control"] = bass.available
+    flags.setdefault("settings", {})["bass"] = {
+        "available": bass.available,
+        "minimum": bass.minimum,
+        "maximum": bass.maximum,
+        "default": bass.default,
+    }
+    return flags
 
 
 def get_feature_flags_for_ui(capabilities: DeviceCapabilities) -> dict[str, Any]:

@@ -8,6 +8,7 @@ from collections.abc import Awaitable
 from typing import Annotated, TypeVar
 
 from fastapi import APIRouter, Body, Depends, HTTPException
+from pydantic import BaseModel, StrictInt
 
 from opencloudtouch.core.config import AppConfig, get_config
 from opencloudtouch.core.dependencies import (
@@ -199,6 +200,12 @@ async def get_device_capabilities_endpoint(
     )
 
 
+class SetBassRequest(BaseModel):
+    """Request body for setting a device's bass level."""
+
+    level: StrictInt
+
+
 @router.get("/{device_id}/settings/bass")
 async def get_device_bass(
     device_id: str,
@@ -219,14 +226,11 @@ async def get_device_bass(
 )
 async def set_device_bass(
     device_id: str,
-    body: Annotated[dict, Body()],
+    body: Annotated[SetBassRequest, Body()],
     device_service: Annotated[DeviceService, Depends(get_device_service)],
 ):
     """Set the bass level supported by the selected SoundTouch device."""
-    level = body.get("level")
-
-    if isinstance(level, bool) or not isinstance(level, int):
-        raise HTTPException(status_code=422, detail="Bass level must be an integer")
+    level = body.level
 
     try:
         await device_service.set_device_bass(device_id, level)

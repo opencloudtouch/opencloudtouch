@@ -3359,8 +3359,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              title: Body
+              $ref: '#/components/schemas/SetBassRequest'
       responses:
         "200":
           description: Successful Response
@@ -3369,6 +3368,16 @@ paths:
 
 components:
   schemas:
+    SetBassRequest:
+      properties:
+        level:
+          type: integer
+          title: Level
+      type: object
+      required:
+        - level
+      title: SetBassRequest
+      description: Request body for setting a device's bass level.
     AccountPairingRequest:
       properties:
         device_ip:

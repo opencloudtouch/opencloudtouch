@@ -79,6 +79,62 @@ async def test_device_upsert_update(repo):
 
 
 @pytest.mark.asyncio
+async def test_capabilities_persist_and_survive_failed_refresh(repo):
+    """Preserve complete capabilities across reads and failed refreshes."""
+    capabilities = {
+        "device_id": "AABBCC112233",
+        "device_type": "SoundTouch 20",
+        "is_soundbar": False,
+        "features": {
+            "bass_control": True,
+            "bluetooth": True,
+            "zone_support": True,
+            "group_support": False,
+        },
+        "sources": ["BLUETOOTH", "AUX"],
+        "advanced": {
+            "introspect": True,
+            "navigate": False,
+            "search": False,
+        },
+        "settings": {
+            "bass": {
+                "available": True,
+                "minimum": -9,
+                "maximum": 0,
+                "default": 0,
+            }
+        },
+    }
+
+    device = Device(
+        device_id="AABBCC112233",
+        ip="192.168.1.100",
+        name="Living Room",
+        model="SoundTouch 20",
+        mac_address="AA:BB:CC:11:22:33",
+        firmware_version="28.0.12",
+        capabilities=capabilities,
+    )
+
+    await repo.upsert(device)
+
+    retrieved = await repo.get_by_device_id(device.device_id)
+    assert retrieved is not None
+    assert retrieved.capabilities == capabilities
+
+    # A failed capability refresh must preserve persisted data.
+    device.capabilities = None
+    device.ip = "192.168.1.101"
+    await repo.upsert(device)
+
+    retrieved = await repo.get_by_device_id(device.device_id)
+    assert retrieved is not None
+    assert retrieved.ip == "192.168.1.101"
+    assert retrieved.capabilities == capabilities
+
+
+@pytest.mark.asyncio
 async def test_device_get_all_empty(repo):
     """Test get_all with empty database."""
     devices = await repo.get_all()

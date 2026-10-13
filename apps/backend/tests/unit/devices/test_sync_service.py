@@ -5,9 +5,13 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from opencloudtouch.db import Device
+from opencloudtouch.devices.mock_client import MockDeviceClient
 from opencloudtouch.devices.models import SyncResult
 from opencloudtouch.devices.services.sync_service import DeviceSyncService
 from opencloudtouch.discovery import DiscoveredDevice
+
+# Preserve the real implementation before the autouse fixture patches it.
+original_fetch_capabilities = DeviceSyncService._fetch_device_capabilities
 
 
 @pytest.fixture
@@ -69,6 +73,60 @@ def mock_device_metadata_queries(monkeypatch):
         "_fetch_marge_account_uuid",
         staticmethod(mock_fetch_marge_uuid),
     )
+
+
+@pytest.mark.asyncio
+async def test_mock_capabilities_preserve_existing_fields(monkeypatch):
+    """Bass discovery must retain the complete UI capabilities structure."""
+    monkeypatch.setenv("OCT_MOCK_MODE", "true")
+    monkeypatch.setattr(
+        DeviceSyncService,
+        "_fetch_device_capabilities",
+        staticmethod(original_fetch_capabilities),
+    )
+    client = MockDeviceClient("AABBCC112233")
+
+    flags = await DeviceSyncService._fetch_device_capabilities("192.168.1.100", client)
+
+    assert flags["device_id"] == "AABBCC112233"
+    assert flags["device_type"] == "SoundTouch 20"
+    assert flags["is_soundbar"] is False
+    assert "features" in flags
+    assert "sources" in flags
+    assert "advanced" in flags
+    assert "bluetooth" in flags["features"]
+    assert "zone_support" in flags["features"]
+    assert flags["features"]["bass_control"] is True
+    assert flags["settings"]["bass"] == {
+        "available": True,
+        "minimum": -9,
+        "maximum": 0,
+        "default": 0,
+    }
+
+
+@pytest.mark.asyncio
+async def test_mock_capabilities_survive_bass_probe_failure(monkeypatch):
+    """A failed bass probe must not discard other device capabilities."""
+    monkeypatch.setenv("OCT_MOCK_MODE", "true")
+    client = MockDeviceClient("AABBCC112233")
+
+    async def failing_bass_probe():
+        raise ConnectionError("Bass endpoint unavailable")
+
+    monkeypatch.setattr(client, "get_bass_capabilities", failing_bass_probe)
+
+    flags = await original_fetch_capabilities("192.168.1.100", client)
+
+    assert flags is not None
+    assert flags["device_id"] == "AABBCC112233"
+    assert flags["device_type"] == "SoundTouch 20"
+    assert flags["is_soundbar"] is False
+    assert "features" in flags
+    assert "sources" in flags
+    assert "advanced" in flags
+    assert flags["features"]["bass_control"] is False
+    assert "bass" not in flags.get("settings", {})
 
 
 class TestDeviceSyncService:

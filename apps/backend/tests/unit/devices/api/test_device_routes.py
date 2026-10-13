@@ -210,11 +210,22 @@ class TestBassEndpoint:
         assert response.json()["level"] == -4
         mock_device_service.set_device_bass.assert_awaited_once_with("ABC123", -4)
 
-    def test_set_bass_rejects_non_integer(self, client, mock_device_service):
-        response = client.put("/api/devices/ABC123/settings/bass", json={"level": "-4"})
+    @pytest.mark.parametrize(
+        "body",
+        [
+            {"level": "-4"},
+            {"level": True},
+            {"level": 2.5},
+            {},
+            {"level": None},
+        ],
+    )
+    def test_set_bass_rejects_non_integer(self, client, mock_device_service, body):
+        """Reject invalid bass input before calling the device service."""
+        response = client.put("/api/devices/ABC123/settings/bass", json=body)
 
         assert response.status_code == 422
-        assert "integer" in response.json()["detail"].lower()
+        assert response.json()["detail"] == "Request validation failed"
         mock_device_service.set_device_bass.assert_not_called()
 
     def test_set_bass_returns_422_for_out_of_range(self, client, mock_device_service):

@@ -15,6 +15,7 @@ from opencloudtouch.devices.adapter import get_device_client
 from opencloudtouch.devices.capabilities import (
     get_capabilities_for_ip,
     get_feature_flags_for_ui,
+    merge_bass_capabilities,
 )
 from opencloudtouch.devices.client import (
     BassInfo,
@@ -267,13 +268,7 @@ class DeviceService:
                 exc_info=True,
             )
         else:
-            flags.setdefault("features", {})["bass_control"] = bass.available
-            flags.setdefault("settings", {})["bass"] = {
-                "available": bass.available,
-                "minimum": bass.minimum,
-                "maximum": bass.maximum,
-                "default": bass.default,
-            }
+            merge_bass_capabilities(flags, bass)
         finally:
             if client is not None:
                 await client.close()

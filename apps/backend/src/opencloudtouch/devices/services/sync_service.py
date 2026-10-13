@@ -10,8 +10,10 @@ from typing import TYPE_CHECKING, List, Optional
 from opencloudtouch.db import Device
 from opencloudtouch.devices.adapter import get_device_client, get_discovery_adapter
 from opencloudtouch.devices.capabilities import (
+    DeviceCapabilities,
     get_capabilities_for_ip,
     get_feature_flags_for_ui,
+    merge_bass_capabilities,
 )
 from opencloudtouch.devices.discovery.manual import ManualDiscovery
 from opencloudtouch.devices.events import (
@@ -346,20 +348,14 @@ class DeviceSyncService:
         """
         try:
             if os.getenv("OCT_MOCK_MODE", "false").lower() == "true":
-                bass = await client.get_bass_capabilities()
-                return {
-                    "features": {"bass_control": bass.available},
-                    "settings": {
-                        "bass": {
-                            "available": bass.available,
-                            "minimum": bass.minimum,
-                            "maximum": bass.maximum,
-                            "default": bass.default,
-                        }
-                    },
-                }
+                info = await client.get_info()
+                detected = DeviceCapabilities(
+                    device_id=info.device_id,
+                    device_type=info.type,
+                )
+            else:
+                detected = await get_capabilities_for_ip(device_ip)
 
-            detected = await get_capabilities_for_ip(device_ip)
             flags = get_feature_flags_for_ui(detected)
 
             # /bassCapabilities is authoritative. Some bosesoundtouchapi
@@ -373,13 +369,7 @@ class DeviceSyncService:
                     exc_info=True,
                 )
             else:
-                flags.setdefault("features", {})["bass_control"] = bass.available
-                flags.setdefault("settings", {})["bass"] = {
-                    "available": bass.available,
-                    "minimum": bass.minimum,
-                    "maximum": bass.maximum,
-                    "default": bass.default,
-                }
+                merge_bass_capabilities(flags, bass)
 
             return flags
         except Exception:
