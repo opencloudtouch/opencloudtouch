@@ -4,8 +4,10 @@ Covers sync_presets_from_device (all source branches),
 set_preset, get_preset, get_all_presets, clear_preset, clear_all_presets.
 """
 
+import asyncio
 import base64
 import json
+import socket
 from unittest.mock import AsyncMock, MagicMock, patch
 from xml.etree import ElementTree as ET
 
@@ -560,6 +562,160 @@ async def test_validate_stream_url_rejects_non_http_scheme(service):
     """Manual streams only accept HTTP and HTTPS URLs."""
     with pytest.raises(ValueError, match="HTTP or HTTPS"):
         await service._validate_stream_url("file:///tmp/radio.mp3")
+
+
+def _mock_stream_network(monkeypatch, dns_records, handler):
+    """Replace DNS and HTTP transport without allowing real connections."""
+    real_client = httpx.AsyncClient
+    transport = httpx.MockTransport(handler)
+    monkeypatch.setattr(
+        httpx,
+        "AsyncClient",
+        lambda **kwargs: real_client(transport=transport, **kwargs),
+    )
+
+    def resolve(host, port, **kwargs):
+        if host not in dns_records:
+            raise OSError("Host not found")
+        return [
+            (
+                socket.AF_INET6 if ":" in ip else socket.AF_INET,
+                socket.SOCK_STREAM,
+                6,
+                "",
+                (ip, port),
+            )
+            for ip in dns_records[host]
+        ]
+
+    lookup = AsyncMock(side_effect=resolve)
+    monkeypatch.setattr(asyncio.get_running_loop(), "getaddrinfo", lookup)
+    return lookup
+
+
+@pytest.mark.asyncio
+async def test_stream_validation_pins_public_ip_with_https_hostname(service, monkeypatch):
+    """GET uses the verified IP but original Host and TLS certificate hostname."""
+    requests = []
+    lookup = _mock_stream_network(
+        monkeypatch,
+        {"radio.example.org": ["1.1.1.1"]},
+        lambda req: (requests.append(req), httpx.Response(200))[1],
+    )
+
+    await service._validate_stream_url("https://radio.example.org/live?quality=high")
+
+    assert len(requests) == 1
+    assert str(requests[0].url) == "https://1.1.1.1/live?quality=high"
+    assert requests[0].headers["host"] == "radio.example.org"
+    assert requests[0].extensions["sni_hostname"] == "radio.example.org"
+    lookup.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://192.168.1.1:8000/live",
+        "http://127.0.0.1/live",
+        "http://169.254.169.254/latest/meta-data",
+        "http://[::1]/live",
+        "http://[fe80::1]/live",
+        "http://224.0.0.1/live",
+        "http://private.example.org/live",
+        "http://mixed.example.org/live",
+    ],
+)
+async def test_stream_validation_blocks_non_public_addresses(service, monkeypatch, url):
+    """Reject unsafe literal IPs and DNS responses, including mixed records."""
+    requests = []
+    _mock_stream_network(
+        monkeypatch,
+        {
+            "192.168.1.1": ["192.168.1.1"],
+            "127.0.0.1": ["127.0.0.1"],
+            "169.254.169.254": ["169.254.169.254"],
+            "::1": ["::1"],
+            "fe80::1": ["fe80::1"],
+            "224.0.0.1": ["224.0.0.1"],
+            "private.example.org": ["10.0.0.1"],
+            "mixed.example.org": ["1.1.1.1", "10.0.0.1"],
+        },
+        lambda req: (requests.append(req), httpx.Response(200))[1],
+    )
+
+    with pytest.raises(ValueError, match="non-public"):
+        await service._validate_stream_url(url)
+    assert not requests
+
+
+@pytest.mark.asyncio
+async def test_stream_validation_rechecks_and_pins_public_redirect(service, monkeypatch):
+    requests = []
+
+    def respond(req):
+        requests.append(req)
+        if len(requests) == 1:
+            return httpx.Response(
+                302, headers={"Location": "https://next.example.org/live"}
+            )
+        return httpx.Response(200)
+
+    lookup = _mock_stream_network(
+        monkeypatch,
+        {
+            "radio.example.org": ["1.1.1.1"],
+            "next.example.org": ["2606:4700:4700::1111"],
+        },
+        respond,
+    )
+
+    await service._validate_stream_url("https://radio.example.org/start")
+
+    assert len(requests) == 2
+    assert lookup.await_count == 2
+    assert requests[1].url.host == "2606:4700:4700::1111"
+    assert requests[1].headers["host"] == "next.example.org"
+    assert requests[1].extensions["sni_hostname"] == "next.example.org"
+
+
+@pytest.mark.asyncio
+async def test_stream_validation_rejects_private_redirect(service, monkeypatch):
+    requests = []
+    _mock_stream_network(
+        monkeypatch,
+        {
+            "radio.example.org": ["1.1.1.1"],
+            "169.254.169.254": ["169.254.169.254"],
+        },
+        lambda req: (
+            requests.append(req),
+            httpx.Response(
+                302, headers={"Location": "http://169.254.169.254/latest/meta-data"}
+            ),
+        )[1],
+    )
+
+    with pytest.raises(ValueError, match="non-public"):
+        await service._validate_stream_url("http://radio.example.org/start")
+    assert len(requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_stream_validation_limits_redirects(service, monkeypatch):
+    requests = []
+    _mock_stream_network(
+        monkeypatch,
+        {"radio.example.org": ["1.1.1.1"]},
+        lambda req: (
+            requests.append(req),
+            httpx.Response(302, headers={"Location": "/again"}),
+        )[1],
+    )
+
+    with pytest.raises(ValueError, match="Too many"):
+        await service._validate_stream_url("http://radio.example.org/start")
+    assert len(requests) == 6
 
 
 @pytest.mark.asyncio
