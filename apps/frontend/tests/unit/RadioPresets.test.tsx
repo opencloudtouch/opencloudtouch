@@ -270,6 +270,12 @@ describe("RadioPresets Page", () => {
         render(<RadioPresets devices={mockDevices} />);
       });
 
+      // Allow the initial empty-DB auto-sync to finish before assigning.
+      await waitFor(() => {
+        expect(presetsApi.getDevicePresets).toHaveBeenCalledTimes(2);
+      });
+      await act(async () => {});
+
       // Open search for preset 1
       const assignButton = screen.getByTestId("preset-1-assign");
       fireEvent.click(assignButton);
@@ -304,6 +310,12 @@ describe("RadioPresets Page", () => {
       await act(async () => {
         render(<RadioPresets devices={mockDevices} />);
       });
+
+      // Allow the initial empty-DB auto-sync to finish before assigning.
+      await waitFor(() => {
+        expect(presetsApi.getDevicePresets).toHaveBeenCalledTimes(2);
+      });
+      await act(async () => {});
 
       // Assign to preset 1
       fireEvent.click(screen.getByTestId("preset-1-assign"));
