@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from opencloudtouch.core.dependencies import ZoneServiceDep
 from opencloudtouch.zones.models import ZoneStatus
+from opencloudtouch.zones.repository import ZoneNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +88,10 @@ async def add_zone_members(
     zone_service: ZoneServiceDep,
 ):
     """Add members to an existing zone."""
-    await zone_service.add_members(master_id, request.device_ids)
+    try:
+        await zone_service.add_members(master_id, request.device_ids)
+    except ZoneNotFoundError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
     return {"status": "ok"}
 
 

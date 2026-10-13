@@ -8,7 +8,7 @@ from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFound
 from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
-from opencloudtouch.zones.repository import ZoneRepository
+from opencloudtouch.zones.repository import ZoneNotFoundError, ZoneRepository
 
 if TYPE_CHECKING:
     from opencloudtouch.devices.client import DeviceClient
@@ -195,7 +195,14 @@ class ZoneService:
         zone_db = await self.zone_repo.get_active_zone_by_master(master.device_id)
         if zone_db and zone_db.id is not None:
             for slave_id in slave_ids:
-                await self.zone_repo.add_member(zone_db.id, slave_id, "slave")
+                try:
+                    await self.zone_repo.add_member(zone_db.id, slave_id, "slave")
+                except ZoneNotFoundError:
+                    logger.info(
+                        "Zone %d was dissolved while adding members",
+                        zone_db.id,
+                    )
+                    raise
 
     async def remove_members(self, master_id: str, slave_ids: list[str]) -> None:
         """Remove members from an existing zone."""
