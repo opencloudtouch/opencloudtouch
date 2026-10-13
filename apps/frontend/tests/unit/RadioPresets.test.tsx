@@ -6,7 +6,7 @@
  * Focus: Functional tests for preset management
  * - Display device information and presets (1-6)
  * - Assign radio station to preset (opens search modal)
- * - Play preset (future: triggers backend API)
+ * - Play preset (triggers backend API)
  * - Clear preset (removes assignment)
  * - Device switching with DeviceSwiper
  * - Edge cases: no devices, preset lifecycle
@@ -31,6 +31,15 @@ vi.mock("../../src/api/presets", () => ({
   syncPresetsFromDevice: vi.fn(),
 }));
 
+// Preserve the real device API methods and spy on the existing playPreset call.
+vi.mock("../../src/api/devices", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../src/api/devices")>();
+  return {
+    ...actual,
+    playPreset: vi.fn().mockResolvedValue(undefined),
+  };
+});
+
 // Mock device hooks
 const mockSetDeviceVolume = vi.fn();
 const mockToggleMute = vi.fn();
@@ -50,6 +59,7 @@ vi.mock("../../src/hooks/useNowPlaying", () => ({
 }));
 
 import * as presetsApi from "../../src/api/presets";
+import * as devicesApi from "../../src/api/devices";
 import type { PresetResponse } from "../../src/api/presets";
 import type { ReactNode } from "react";
 
@@ -356,12 +366,14 @@ describe("RadioPresets Page", () => {
         expect(screen.getByTestId("preset-3-play")).toBeInTheDocument();
       });
 
-      // Click play - should not throw error (TODO: backend API in Phase 3)
+      // Click play and verify it calls the already-shipped backend API.
       await act(async () => {
         fireEvent.click(screen.getByTestId("preset-3-play"));
       });
 
-      // Verify play button still exists after click
+      await waitFor(() => {
+        expect(devicesApi.playPreset).toHaveBeenCalledWith("AABBCC123456", 3);
+      });
       expect(screen.getByTestId("preset-3-play")).toBeInTheDocument();
     });
   });
