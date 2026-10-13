@@ -472,6 +472,97 @@ async def test_set_preset_saves_to_database(service, mock_device_repo):
 
 
 @pytest.mark.asyncio
+async def test_set_preset_manual_stream_validates_before_saving(service):
+    """Manual stream presets are validated before they are persisted."""
+    saved_preset = MagicMock()
+    service.repository.set_preset = AsyncMock(return_value=saved_preset)
+
+    with patch.object(
+        service,
+        "_validate_stream_url",
+        AsyncMock(return_value=None),
+    ) as mock_validate:
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client"
+        ) as mock_get_client:
+            mock_client = AsyncMock()
+            mock_client.store_preset = AsyncMock()
+            mock_client.close = AsyncMock()
+            mock_get_client.return_value = mock_client
+
+            result = await service.set_preset(
+                device_id="dev-001",
+                preset_number=1,
+                station_uuid="manual-123",
+                station_name="Manual Radio",
+                station_url="https://example.com/live.mp3",
+            )
+
+    assert result == saved_preset
+    mock_validate.assert_awaited_once_with("https://example.com/live.mp3")
+    service.repository.set_preset.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_set_preset_manual_unreachable_does_not_save(service):
+    """An unreachable manual stream must not be persisted."""
+    with patch.object(
+        service,
+        "_validate_stream_url",
+        AsyncMock(side_effect=ValueError("Stream URL is not reachable")),
+    ) as mock_validate:
+        with pytest.raises(ValueError, match="Stream URL is not reachable"):
+            await service.set_preset(
+                device_id="dev-001",
+                preset_number=1,
+                station_uuid="manual-123",
+                station_name="Broken Radio",
+                station_url="https://example.com/broken.mp3",
+            )
+
+    mock_validate.assert_awaited_once_with("https://example.com/broken.mp3")
+    service.repository.set_preset.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_set_preset_non_manual_skips_stream_validation(service):
+    """Existing provider presets must not trigger manual URL validation."""
+    saved_preset = MagicMock()
+    service.repository.set_preset = AsyncMock(return_value=saved_preset)
+
+    with patch.object(
+        service,
+        "_validate_stream_url",
+        AsyncMock(),
+    ) as mock_validate:
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client"
+        ) as mock_get_client:
+            mock_client = AsyncMock()
+            mock_client.store_preset = AsyncMock()
+            mock_client.close = AsyncMock()
+            mock_get_client.return_value = mock_client
+
+            await service.set_preset(
+                device_id="dev-001",
+                preset_number=1,
+                station_uuid="station-abc",
+                station_name="Provider Radio",
+                station_url="http://example.com/stream.mp3",
+            )
+
+    mock_validate.assert_not_awaited()
+    service.repository.set_preset.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_validate_stream_url_rejects_non_http_scheme(service):
+    """Manual streams only accept HTTP and HTTPS URLs."""
+    with pytest.raises(ValueError, match="HTTP or HTTPS"):
+        await service._validate_stream_url("file:///tmp/radio.mp3")
+
+
+@pytest.mark.asyncio
 async def test_set_preset_device_programming_failure_does_not_reraise(
     service, mock_device_repo
 ):

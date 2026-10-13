@@ -118,11 +118,16 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
       setSearchOpen(false);
       setPendingStation(null);
       showToast(t("presets.presetSaved", { number: presetNumber }), "success");
-    } catch {
-      // Error state is already set in usePresets — keep modal closed so user sees the error
+    } catch (err) {
+      setPendingStation(null);
+
+      if (station.stationuuid.startsWith("manual-")) {
+        throw err;
+      }
+
+      // Preserve the existing provider error behaviour.
       setAssigningPreset(null);
       setSearchOpen(false);
-      setPendingStation(null);
     }
   };
 
@@ -400,6 +405,7 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
         onDelete={handleDeletePreset}
         presetNumber={assigningPreset}
         hasExistingPreset={assigningPreset !== null && !!presets[assigningPreset]}
+        existingPreset={assigningPreset !== null ? presets[assigningPreset] : null}
       />
 
       {/* Confirm Overwrite Dialog */}

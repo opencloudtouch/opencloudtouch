@@ -8,6 +8,8 @@ Repository handles data persistence.
 import logging
 from typing import List, Optional
 
+from urllib.parse import urlparse
+
 import httpx
 
 from opencloudtouch.core.exceptions import DeviceNotFoundError
@@ -40,6 +42,26 @@ class PresetService:
         self.device_repository = device_repository
         self._parser = DevicePresetParser()
 
+    @staticmethod
+    async def _validate_stream_url(url: str) -> None:
+        """Ensure a manual stream URL is reachable before saving."""
+        stream_url = url.strip()
+        parsed_url = urlparse(stream_url)
+
+        if parsed_url.scheme.lower() not in {"http", "https"} or not parsed_url.netloc:
+            raise ValueError("Stream URL must use HTTP or HTTPS")
+
+        try:
+            timeout = httpx.Timeout(5.0, connect=3.0)
+            async with httpx.AsyncClient(
+                timeout=timeout,
+                follow_redirects=True,
+            ) as client:
+                async with client.stream("GET", stream_url) as response:
+                    response.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise ValueError("Stream URL is not reachable") from exc
+
     async def set_preset(
         self,
         device_id: str,
@@ -70,6 +92,9 @@ class PresetService:
         Raises:
             ValueError: If preset_number is not between 1-6 or device not found
         """
+        if station_uuid.startswith("manual-"):
+            await self._validate_stream_url(station_url)
+
         # 1. Save to OpenCloudTouch database
         preset = Preset(
             device_id=device_id,

@@ -11,6 +11,7 @@
 }
 
 .radio-search-modal {
+  position: relative;
   background-color: var(--color-bg-card);
   border-radius: var(--border-radius-xl);
   width: 100%;
@@ -240,4 +241,97 @@
   font-size: 13px;
   cursor: help;
   margin-top: var(--space-sm);
+}
+
+.manual-stream-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: 0 var(--space-lg);
+  margin-bottom: var(--space-md);
+}
+
+.manual-stream-submit {
+  width: 100%;
+  padding: var(--space-md);
+  border-radius: var(--border-radius-md);
+  background-color: var(--color-accent);
+  color: var(--color-text-primary);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.manual-stream-submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.manual-stream-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.manual-stream-fields .search-input,
+.search-header .search-input[type="url"] {
+  padding: 10px 12px;
+  font-size: 15px;
+  background-color: var(--color-bg);
+}
+
+.manual-stream-help {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.search-header .manual-stream-field {
+  flex: 1;
+}
+
+.stream-error-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  border-radius: inherit;
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.stream-error-dialog {
+  width: min(360px, calc(100% - 32px));
+  padding: var(--space-lg);
+  border-radius: var(--border-radius-lg);
+  background-color: var(--color-bg-secondary);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+
+.stream-error-title {
+  margin-bottom: var(--space-sm);
+  color: var(--color-text-primary);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.stream-error-message {
+  margin-bottom: var(--space-lg);
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.stream-error-button {
+  width: 100%;
+  padding: var(--space-md);
+  border: 0;
+  border-radius: var(--border-radius-md);
+  background-color: var(--color-accent);
+  color: var(--color-text-primary);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
 }

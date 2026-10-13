@@ -92,7 +92,19 @@
     "loadMore": "Meer laden",
     "loadingMore": "Laden...",
     "maxReached": "Maximum ({{count}}) bereikt",
-    "maxReachedTooltip": "Verfijn uw zoekopdracht om specifieke stations te vinden"
+    "maxReachedTooltip": "Verfijn uw zoekopdracht om specifieke stations te vinden",
+    "manualStreamUrlPlaceholder": "Stream-URL invoeren...",
+    "manualStationNamePlaceholder": "Stationsnaam",
+    "manualFaviconPlaceholder": "Logo-URL (optioneel)",
+    "manualStreamMode": "Stream-URL",
+    "manualUseStation": "Station gebruiken",
+    "manualStreamUrlHelp": "Direct HTTP/HTTPS-adres naar een audiostream die door het SoundTouch-apparaat wordt ondersteund. Voorbeeld: https://example.com/live.mp3",
+    "manualStationNameHelp": "Voorbeelden: SWR3, BBC Radio 1, Radio Paradise",
+    "manualFaviconHelp": "Direct HTTP/HTTPS-adres naar een afbeeldingsbestand. Aanbevolen: vierkant, 128×128 tot 600×600 px, PNG of JPG/JPEG.",
+    "manualStreamErrorTitle": "Streamfout",
+    "manualStreamUnreachable": "De stream-URL is niet bereikbaar.",
+    "manualStreamSaveFailed": "Het station kon niet worden opgeslagen.",
+    "manualStreamErrorOk": "OK"
   },
   "settings": {
     "title": "Instellingen",

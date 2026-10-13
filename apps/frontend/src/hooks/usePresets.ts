@@ -26,6 +26,7 @@ function buildPresetsMap(devicePresets: PresetResponse[]): Record<number, Preset
   const map: Record<number, Preset> = {};
   devicePresets.forEach((p) => {
     map[p.preset_number] = {
+      station_uuid: p.station_uuid,
       station_name: p.station_name,
       station_url: p.station_url,
       station_favicon: p.station_favicon,
@@ -171,6 +172,7 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
       setPresets((prev) => ({
         ...prev,
         [presetNumber]: {
+          station_uuid: station.stationuuid,
           station_name: station.name,
           station_favicon: station.favicon,
           station_url: station.url,
