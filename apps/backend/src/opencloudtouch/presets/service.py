@@ -5,10 +5,12 @@ It separates concerns: Routes handle HTTP, Service handles business logic,
 Repository handles data persistence.
 """
 
+import asyncio
+import ipaddress
 import logging
+import socket
 from typing import List, Optional
-
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import httpx
 
@@ -44,23 +46,73 @@ class PresetService:
 
     @staticmethod
     async def _validate_stream_url(url: str) -> None:
-        """Ensure a manual stream URL is reachable before saving."""
-        stream_url = url.strip()
-        parsed_url = urlparse(stream_url)
+        """Check reachability without connecting to private or unverified IPs."""
+        current_url = url.strip()
+        timeout = httpx.Timeout(5.0, connect=3.0)
 
-        if parsed_url.scheme.lower() not in {"http", "https"} or not parsed_url.netloc:
-            raise ValueError("Stream URL must use HTTP or HTTPS")
+        for _ in range(6):  # Initial request plus at most five redirects.
+            try:
+                parsed = urlsplit(current_url)
+                hostname = parsed.hostname
+                port = parsed.port
+            except ValueError as exc:
+                raise ValueError("Invalid stream URL") from exc
 
-        try:
-            timeout = httpx.Timeout(5.0, connect=3.0)
-            async with httpx.AsyncClient(
-                timeout=timeout,
-                follow_redirects=True,
-            ) as client:
-                async with client.stream("GET", stream_url) as response:
-                    response.raise_for_status()
-        except httpx.HTTPError as exc:
-            raise ValueError("Stream URL is not reachable") from exc
+            if (
+                parsed.scheme not in {"http", "https"}
+                or not hostname
+                or parsed.username is not None
+                or parsed.password is not None
+                or port == 0
+            ):
+                raise ValueError("Stream URL must use HTTP or HTTPS")
+
+            port = port if port is not None else (443 if parsed.scheme == "https" else 80)
+            try:
+                addresses = await asyncio.wait_for(
+                    asyncio.get_running_loop().getaddrinfo(
+                        hostname, port, type=socket.SOCK_STREAM
+                    ),
+                    timeout=3.0,
+                )
+            except (OSError, TimeoutError) as exc:
+                raise ValueError("Stream URL is not reachable") from exc
+
+            ips = [ipaddress.ip_address(address[4][0]) for address in addresses]
+            if not ips or any(not ip.is_global or ip.is_multicast for ip in ips):
+                raise ValueError("Stream URL resolves to a non-public IP address")
+
+            # Use the checked numeric IP for the socket, not another DNS lookup.
+            ip = ips[0]
+            ip_host = f"[{ip}]" if ip.version == 6 else str(ip)
+            pinned_url = urlunsplit(
+                (parsed.scheme, f"{ip_host}:{port}", parsed.path or "/", parsed.query, "")
+            )
+            extensions = {"sni_hostname": hostname} if parsed.scheme == "https" else {}
+
+            try:
+                # A fresh client per hop prevents TLS connection reuse across hosts.
+                async with httpx.AsyncClient(
+                    timeout=timeout, follow_redirects=False, trust_env=False
+                ) as client:
+                    async with client.stream(
+                        "GET",
+                        pinned_url,
+                        headers={"Host": parsed.netloc},
+                        extensions=extensions,
+                    ) as response:
+                        if response.status_code in {301, 302, 303, 307, 308}:
+                            location = response.headers.get("location")
+                            if not location:
+                                raise ValueError("Stream URL is not reachable")
+                            current_url = urljoin(current_url, location)
+                            continue
+                        response.raise_for_status()
+                        return
+            except httpx.HTTPError as exc:
+                raise ValueError("Stream URL is not reachable") from exc
+
+        raise ValueError("Too many stream URL redirects")
 
     async def set_preset(
         self,
