@@ -11,6 +11,7 @@ import asyncio
 import logging
 import socket
 import time
+from threading import Lock
 from typing import Dict, Optional
 from xml.etree.ElementTree import Element
 
@@ -20,6 +21,9 @@ from defusedxml.ElementTree import fromstring as parse_xml_string
 from opencloudtouch.discovery import SOUNDTOUCH_WEBSERVER_PORT
 
 logger = logging.getLogger(__name__)
+
+# Only one active SSDP socket on UDP 1900 per OCT process.
+_ssdp_search_lock = Lock()
 
 
 class SSDPDiscovery:
@@ -35,14 +39,16 @@ class SSDPDiscovery:
     SEARCH_TARGET = "ssdp:all"  # Broad search, filter by manufacturer later
     MX_DELAY = 2  # Max delay for device responses (seconds)
 
-    def __init__(self, timeout: int = 10):
+    def __init__(self, timeout: int = 10, search_target: str = SEARCH_TARGET):
         """
         Initialize SSDP discovery.
 
         Args:
             timeout: Discovery timeout in seconds
+            search_target: SSDP search target (defaults to ssdp:all)
         """
         self.timeout = timeout
+        self.search_target = search_target
 
     async def discover(self) -> Dict[str, Dict[str, str]]:
         """
@@ -76,6 +82,11 @@ class SSDPDiscovery:
             return {}
 
     def _ssdp_msearch(self) -> list[str]:
+        """Serialize searches sharing the SSDP UDP 1900 receive port."""
+        with _ssdp_search_lock:
+            return self._ssdp_msearch_unlocked()
+
+    def _ssdp_msearch_unlocked(self) -> list[str]:
         """
         Send SSDP M-SEARCH multicast and collect device location URLs.
 
@@ -88,9 +99,7 @@ class SSDPDiscovery:
 
         # Join multicast group (CRITICAL for receiving responses!)
         # Binding to 0.0.0.0 required for SSDP multicast membership
-        mreq = socket.inet_aton(self.SSDP_MULTICAST_ADDR) + socket.inet_aton(
-            "0.0.0.0"
-        )  # nosec B104
+        mreq = socket.inet_aton(self.SSDP_MULTICAST_ADDR) + socket.inet_aton("0.0.0.0")  # nosec B104
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
         # Bind to SSDP port to receive responses
@@ -109,7 +118,7 @@ class SSDPDiscovery:
             f"HOST: {self.SSDP_MULTICAST_ADDR}:{self.SSDP_PORT}\r\n"
             f'MAN: "ssdp:discover"\r\n'
             f"MX: {self.MX_DELAY}\r\n"
-            f"ST: {self.SEARCH_TARGET}\r\n"
+            f"ST: {self.search_target}\r\n"
             f"\r\n"
         ).encode("utf-8")
 

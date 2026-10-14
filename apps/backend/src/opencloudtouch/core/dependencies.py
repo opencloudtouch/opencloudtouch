@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Depends, Request
 
+from opencloudtouch.dlna.service import DlnaService
 from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.state import DeviceStateManager
@@ -74,6 +75,11 @@ def get_device_state_manager(request: Request) -> DeviceStateManager:
     )
 
 
+def get_dlna_service(request: Request) -> DlnaService:
+    """Get the application-scoped DLNA service."""
+    return request.app.state.dlna_service
+
+
 def get_zone_service(request: Request) -> ZoneService:
     """Get zone service instance from app.state (FastAPI dependency)."""
     return request.app.state.zone_service
@@ -104,6 +110,7 @@ DeviceServiceDep = Annotated[DeviceService, Depends(get_device_service)]
 PresetServiceDep = Annotated[PresetService, Depends(get_preset_service)]
 MargeServiceDep = Annotated[MargeService, Depends(get_marge_service)]
 ZoneServiceDep = Annotated[ZoneService, Depends(get_zone_service)]
+DlnaServiceDep = Annotated[DlnaService, Depends(get_dlna_service)]
 SettingsServiceDep = Annotated[SettingsService, Depends(get_settings_service)]
 DeviceStateManagerDep = Annotated[DeviceStateManager, Depends(get_device_state_manager)]
 WizardServiceDep = Annotated["WizardService", Depends(get_wizard_service)]

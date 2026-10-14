@@ -86,7 +86,7 @@ def test_parse_location_no_header():
     """Test parsing LOCATION when header is missing."""
     discovery = SSDPDiscovery()
 
-    response = "HTTP/1.1 200 OK\r\n" "CACHE-CONTROL: max-age=1800\r\n" "\r\n"
+    response = "HTTP/1.1 200 OK\r\nCACHE-CONTROL: max-age=1800\r\n\r\n"
 
     location = discovery._parse_location(response)
     assert location is None
@@ -574,9 +574,9 @@ async def test_ssdp_discovery_with_timeout_parameter():
     BUG-13: SSDPDiscovery(timeout=3) uses the specified timeout as deadline.
     """
     discovery = SSDPDiscovery(timeout=3)
-    assert (
-        discovery.timeout == 3
-    ), "SSDPDiscovery must store the timeout parameter for wall-clock deadline."
+    assert discovery.timeout == 3, (
+        "SSDPDiscovery must store the timeout parameter for wall-clock deadline."
+    )
 
 
 def test_ssdp_msearch_deduplicates_responses(caplog):
@@ -623,9 +623,9 @@ def test_ssdp_msearch_deduplicates_responses(caplog):
 
     # Should log "Found SSDP device" only ONCE, not 200 times
     found_msgs = [r for r in caplog.records if "Found SSDP device" in r.message]
-    assert (
-        len(found_msgs) == 1
-    ), f"Expected 1 log message for deduplicated SSDP, got {len(found_msgs)}"
+    assert len(found_msgs) == 1, (
+        f"Expected 1 log message for deduplicated SSDP, got {len(found_msgs)}"
+    )
 
 
 @pytest.mark.asyncio
@@ -695,3 +695,51 @@ async def test_fetch_device_descriptions_missing_required_fields():
 
         # Should be empty (manufacturer missing)
         assert devices == {}
+
+
+def test_ssdp_msearch_serializes_concurrent_searches(monkeypatch):
+    """Concurrent SSDP searches must not share UDP 1900 simultaneously."""
+    import threading
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+
+    active = 0
+    max_active = 0
+    counter_lock = threading.Lock()
+
+    def fake_search(self):
+        nonlocal active, max_active
+
+        with counter_lock:
+            active += 1
+            max_active = max(max_active, active)
+
+        try:
+            time.sleep(0.05)
+            return ["http://192.168.1.100/device.xml"]
+        finally:
+            with counter_lock:
+                active -= 1
+
+    monkeypatch.setattr(
+        SSDPDiscovery,
+        "_ssdp_msearch_unlocked",
+        fake_search,
+    )
+
+    bose = SSDPDiscovery(timeout=3)
+    dlna = SSDPDiscovery(
+        timeout=3,
+        search_target="urn:schemas-upnp-org:device:MediaServer:1",
+    )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [
+            executor.submit(bose._ssdp_msearch),
+            executor.submit(dlna._ssdp_msearch),
+        ]
+        results = [future.result() for future in futures]
+
+    assert len(results) == 2
+    assert max_active == 1
+    assert active == 0
