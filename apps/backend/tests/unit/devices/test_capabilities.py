@@ -366,6 +366,9 @@ async def test_get_device_capabilities_supports_internal_library_fields():
 
     result = await get_device_capabilities(client)
 
+    client.GetInformation.assert_called_once_with()
+    assert result.device_id == "A81B6A1DC457"
+    assert result.device_type == "SoundTouch 10"
     assert "systemtimeout" in result.supported_endpoints
     assert "rebroadcastlatencymode" in result.supported_endpoints
     assert "AUX" in result.supported_sources
