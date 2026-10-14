@@ -180,7 +180,6 @@ class ZoneRepository(BaseRepository):
         db = self._ensure_initialized()
 
         async with self._transaction(immediate=True):
-
             cursor = await db.execute(
                 "SELECT 1 FROM zones WHERE id = ?",
                 (zone_id,),
