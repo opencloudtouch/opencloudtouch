@@ -2,6 +2,8 @@
 
 import asyncio
 import logging
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
 from datetime import UTC, datetime
 from typing import List, Optional
 
@@ -62,6 +64,20 @@ class ZoneRepository(BaseRepository):
     def __init__(self, db_path):
         super().__init__(db_path)
         self._write_lock = asyncio.Lock()
+
+    @asynccontextmanager
+    async def _transaction(self, *, immediate: bool = False) -> AsyncIterator[None]:
+        """Serialize writes and roll back on errors or cancellation."""
+        db = self._ensure_initialized()
+        async with self._write_lock:
+            try:
+                if immediate:
+                    await db.execute("BEGIN IMMEDIATE")
+                yield
+                await db.commit()
+            except BaseException:
+                await db.rollback()
+                raise
 
     async def _create_schema(self) -> None:
         """Create zones and zone_members tables."""
@@ -137,16 +153,11 @@ class ZoneRepository(BaseRepository):
         """Create a new zone with the given master device."""
         db = self._ensure_initialized()
 
-        async with self._write_lock:
-            try:
-                cursor = await db.execute(
-                    "INSERT INTO zones (master_device_id, created_at) VALUES (?, ?)",
-                    (master_device_id, datetime.now(UTC)),
-                )
-                await db.commit()
-            except BaseException:
-                await db.rollback()
-                raise
+        async with self._transaction(immediate=False):
+            cursor = await db.execute(
+                "INSERT INTO zones (master_device_id, created_at) VALUES (?, ?)",
+                (master_device_id, datetime.now(UTC)),
+            )
 
         zone = Zone(
             master_device_id=master_device_id,
@@ -168,30 +179,24 @@ class ZoneRepository(BaseRepository):
         """Add a device only if its zone still exists."""
         db = self._ensure_initialized()
 
-        async with self._write_lock:
-            try:
-                await db.execute("BEGIN IMMEDIATE")
+        async with self._transaction(immediate=True):
 
-                cursor = await db.execute(
-                    "SELECT 1 FROM zones WHERE id = ?",
-                    (zone_id,),
-                )
-                if await cursor.fetchone() is None:
-                    raise ZoneNotFoundError(f"Zone {zone_id} no longer exists")
+            cursor = await db.execute(
+                "SELECT 1 FROM zones WHERE id = ?",
+                (zone_id,),
+            )
+            if await cursor.fetchone() is None:
+                raise ZoneNotFoundError(f"Zone {zone_id} no longer exists")
 
-                now = datetime.now(UTC)
-                cursor = await db.execute(
-                    """
-                    INSERT INTO zone_members (zone_id, device_id, role, added_at)
-                    VALUES (?, ?, ?, ?)
-                    """,
-                    (zone_id, device_id, role, now),
-                )
-                member_id = cursor.lastrowid
-                await db.commit()
-            except BaseException:
-                await db.rollback()
-                raise
+            now = datetime.now(UTC)
+            cursor = await db.execute(
+                """
+                INSERT INTO zone_members (zone_id, device_id, role, added_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (zone_id, device_id, role, now),
+            )
+            member_id = cursor.lastrowid
 
         member = ZoneMember(
             zone_id=zone_id,
@@ -208,20 +213,15 @@ class ZoneRepository(BaseRepository):
         """Remove a device from a zone (soft delete)."""
         db = self._ensure_initialized()
 
-        async with self._write_lock:
-            try:
-                await db.execute(
-                    """
-                    UPDATE zone_members
-                    SET removed_at = ?
-                    WHERE zone_id = ? AND device_id = ? AND removed_at IS NULL
-                    """,
-                    (datetime.now(UTC), zone_id, device_id),
-                )
-                await db.commit()
-            except BaseException:
-                await db.rollback()
-                raise
+        async with self._transaction(immediate=False):
+            await db.execute(
+                """
+                UPDATE zone_members
+                SET removed_at = ?
+                WHERE zone_id = ? AND device_id = ? AND removed_at IS NULL
+                """,
+                (datetime.now(UTC), zone_id, device_id),
+            )
 
         logger.debug("Removed %s from zone %d", device_id, zone_id)
 
@@ -229,21 +229,15 @@ class ZoneRepository(BaseRepository):
         """Dissolve a zone by permanently deleting it and its members."""
         db = self._ensure_initialized()
 
-        async with self._write_lock:
-            try:
-                await db.execute("BEGIN IMMEDIATE")
-                await db.execute(
-                    "DELETE FROM zone_members WHERE zone_id = ?",
-                    (zone_id,),
-                )
-                await db.execute(
-                    "DELETE FROM zones WHERE id = ?",
-                    (zone_id,),
-                )
-                await db.commit()
-            except BaseException:
-                await db.rollback()
-                raise
+        async with self._transaction(immediate=True):
+            await db.execute(
+                "DELETE FROM zone_members WHERE zone_id = ?",
+                (zone_id,),
+            )
+            await db.execute(
+                "DELETE FROM zones WHERE id = ?",
+                (zone_id,),
+            )
 
         logger.info("Dissolved and deleted zone %d", zone_id)
 
