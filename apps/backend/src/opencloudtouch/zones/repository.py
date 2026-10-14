@@ -3,9 +3,8 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 from datetime import UTC, datetime
-from typing import List, Optional
+from typing import AsyncIterator, List, Optional
 
 from opencloudtouch.core.repository import BaseRepository
 
