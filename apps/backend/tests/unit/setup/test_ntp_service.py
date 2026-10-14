@@ -56,9 +56,9 @@ class TestPatchNtp:
             if "/etc/ntpservers.txt" in cmd
             and any(x in cmd for x in ["echo", "base64", ">", "mv", "tee"])
         ]
-        assert len(write_calls) >= 1, (
-            f"patch_ntp must write to /etc/ntpservers.txt. SSH calls were: {calls}"
-        )
+        assert (
+            len(write_calls) >= 1
+        ), f"patch_ntp must write to /etc/ntpservers.txt. SSH calls were: {calls}"
 
     @pytest.mark.asyncio
     async def test_chosen_server_is_listed_first(self, service, mock_ssh):

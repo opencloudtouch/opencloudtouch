@@ -459,7 +459,9 @@ class RestoreService:
         """Restore /etc/ntpservers.txt from its pre-patch backup, if any."""
         step = RestoreStep(name=RestoreStepName.NTP)
         start = time.time()
-        backup_path = f"{SoundTouchNtpService.BACKUP_DIR}/{SoundTouchNtpService.BACKUP_NAME}"
+        backup_path = (
+            f"{SoundTouchNtpService.BACKUP_DIR}/{SoundTouchNtpService.BACKUP_NAME}"
+        )
 
         try:
             check = await ssh.execute(
@@ -471,7 +473,9 @@ class RestoreService:
                 step.duration_seconds = time.time() - start
                 return step
 
-            result = await ssh.execute(f"cp {backup_path} {SoundTouchNtpService.NTP_PATH}")
+            result = await ssh.execute(
+                f"cp {backup_path} {SoundTouchNtpService.NTP_PATH}"
+            )
             if result.exit_code != 0:
                 step.status = StepStatus.FAILED
                 step.error = "Failed to restore /etc/ntpservers.txt from backup"

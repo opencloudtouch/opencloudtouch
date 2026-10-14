@@ -486,7 +486,10 @@ class TestWizardPatchNtp:
 
     def test_successful_ntp_patch(self, client):
         mock_result = MagicMock(
-            success=True, error=None, backup_path="/mnt/nv/ntpservers_backup", diff="+ ntp.local"
+            success=True,
+            error=None,
+            backup_path="/mnt/nv/ntpservers_backup",
+            diff="+ ntp.local",
         )
         mock_ntp_service = MagicMock()
         mock_ntp_service.patch_ntp = AsyncMock(return_value=mock_result)
@@ -549,7 +552,9 @@ class TestWizardPatchNtp:
         mock_ntp_service.patch_ntp = AsyncMock(return_value=mock_result)
 
         with (
-            patch("opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient") as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
             patch(
                 "opencloudtouch.setup.wizard.ntp_patch.SoundTouchNtpService",
                 return_value=mock_ntp_service,

@@ -72,7 +72,9 @@ async def wizard_patch_ntp(
     wizard: WizardServiceDep,
 ):
     """Patch NTP server on device (Wizard Step — NTP)."""
-    logger.info("Patching NTP on %s (server: %s)", request.device_ip, request.ntp_server)
+    logger.info(
+        "Patching NTP on %s (server: %s)", request.device_ip, request.ntp_server
+    )
 
     result = await wizard.patch_ntp(request.device_ip, request.ntp_server)
 

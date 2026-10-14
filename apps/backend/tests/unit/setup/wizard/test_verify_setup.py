@@ -506,7 +506,9 @@ class TestVerifyNtpServer:
             )
 
         assert result["success"] is True
-        ntp_check = next(c for c in result["checks"] if c["name"] == "ntp_server_correct")
+        ntp_check = next(
+            c for c in result["checks"] if c["name"] == "ntp_server_correct"
+        )
         assert ntp_check["passed"] is True
 
     @pytest.mark.asyncio
@@ -549,6 +551,8 @@ class TestVerifyNtpServer:
             )
 
         assert result["success"] is False
-        ntp_check = next(c for c in result["checks"] if c["name"] == "ntp_server_correct")
+        ntp_check = next(
+            c for c in result["checks"] if c["name"] == "ntp_server_correct"
+        )
         assert ntp_check["passed"] is False
         assert "bose.pool.ntp.org" in ntp_check["message"]
