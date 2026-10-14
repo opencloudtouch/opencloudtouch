@@ -478,6 +478,92 @@ class TestWizardModifyHosts:
         assert response.status_code == 400
 
 
+# ── wizard/patch-ntp ──────────────────────────────────────────────────────────
+
+
+class TestWizardPatchNtp:
+    """POST /api/setup/wizard/patch-ntp"""
+
+    def test_successful_ntp_patch(self, client):
+        mock_result = MagicMock(
+            success=True, error=None, backup_path="/mnt/nv/ntpservers_backup", diff="+ ntp.local"
+        )
+        mock_ntp_service = MagicMock()
+        mock_ntp_service.patch_ntp = AsyncMock(return_value=mock_result)
+
+        with (
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard.ntp_patch.SoundTouchNtpService",
+                return_value=mock_ntp_service,
+            ),
+        ):
+            mock_ssh.return_value.__aenter__ = AsyncMock(return_value=MagicMock())
+            mock_ssh.return_value.__aexit__ = AsyncMock(return_value=False)
+            response = client.post(
+                "/api/setup/wizard/patch-ntp",
+                json={"device_ip": "192.168.1.100", "ntp_server": "ntp.local"},
+            )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["success"] is True
+        assert body["backup_path"] == "/mnt/nv/ntpservers_backup"
+
+    def test_ntp_patch_failure(self, client):
+        mock_result = MagicMock(success=False, error="ntpd sync failed")
+        mock_ntp_service = MagicMock()
+        mock_ntp_service.patch_ntp = AsyncMock(return_value=mock_result)
+
+        with (
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient"
+            ) as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard.ntp_patch.SoundTouchNtpService",
+                return_value=mock_ntp_service,
+            ),
+        ):
+            mock_ssh.return_value.__aenter__ = AsyncMock(return_value=MagicMock())
+            mock_ssh.return_value.__aexit__ = AsyncMock(return_value=False)
+            response = client.post(
+                "/api/setup/wizard/patch-ntp",
+                json={"device_ip": "192.168.1.100", "ntp_server": "ntp.local"},
+            )
+        assert response.status_code == 200
+        assert response.json()["success"] is False
+
+    def test_invalid_ntp_server_rejected_before_ssh(self, client):
+        """Issue #469: whitespace/shell metacharacters must be rejected before anything is sent."""
+        response = client.post(
+            "/api/setup/wizard/patch-ntp",
+            json={"device_ip": "192.168.1.100", "ntp_server": "ntp.local; rm -rf /"},
+        )
+        assert response.status_code == 422
+
+    def test_default_ntp_server_is_pool_ntp_org(self, client):
+        """Default must be a neutral public pool, not a third-party cloud service."""
+        mock_result = MagicMock(success=True, error=None, backup_path="", diff="")
+        mock_ntp_service = MagicMock()
+        mock_ntp_service.patch_ntp = AsyncMock(return_value=mock_result)
+
+        with (
+            patch("opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient") as mock_ssh,
+            patch(
+                "opencloudtouch.setup.wizard.ntp_patch.SoundTouchNtpService",
+                return_value=mock_ntp_service,
+            ),
+        ):
+            mock_ssh.return_value.__aenter__ = AsyncMock(return_value=MagicMock())
+            mock_ssh.return_value.__aexit__ = AsyncMock(return_value=False)
+            client.post(
+                "/api/setup/wizard/patch-ntp",
+                json={"device_ip": "192.168.1.100"},
+            )
+        mock_ntp_service.patch_ntp.assert_awaited_once_with("pool.ntp.org")
+
+
 # ── wizard/restore-config, wizard/restore-hosts (endpoints removed) ────────
 # Dead code: zero frontend callers, superseded by /wizard/scan-backups +
 # /wizard/restore-wizard. Removed as part of #466 item 2. See
@@ -504,7 +590,7 @@ class TestWizardRebootDevice:
         mock_ssh.close = AsyncMock()
 
         with patch(
-            "opencloudtouch.setup.wizard.step7_finalize_verify.SoundTouchSSHClient",
+            "opencloudtouch.setup.wizard.step8_finalize_verify.SoundTouchSSHClient",
             return_value=mock_ssh,
         ):
             response = client.post(
@@ -522,7 +608,7 @@ class TestWizardRebootDevice:
         mock_ssh.close = AsyncMock()
 
         with patch(
-            "opencloudtouch.setup.wizard.step7_finalize_verify.SoundTouchSSHClient",
+            "opencloudtouch.setup.wizard.step8_finalize_verify.SoundTouchSSHClient",
             return_value=mock_ssh,
         ):
             response = client.post(

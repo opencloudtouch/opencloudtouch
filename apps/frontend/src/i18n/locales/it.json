@@ -242,10 +242,14 @@
       "description": "Configurare il reindirizzamento di rete per i domini Bose"
     },
     "step6": {
+      "label": "NTP",
+      "description": "Applicare patch al server NTP sul dispositivo"
+    },
+    "step7": {
       "label": "Verifica",
       "description": "Testare la configurazione e verificare il reindirizzamento DNS"
     },
-    "step7": {
+    "step8": {
       "label": "Fatto",
       "description": "Configurazione completata"
     },
@@ -455,6 +459,18 @@
         "hostsApplied": "File hosts modificato con successo."
       },
       "step7": {
+        "title": "Patch server NTP",
+        "description": "Imposta il server NTP sul dispositivo per mantenere l'orologio preciso.",
+        "optionalNotice": "Questo passaggio è facoltativo e può essere saltato — il dispositivo manterrà la sua configurazione NTP attuale.",
+        "serverLabel": "Server NTP:",
+        "serverHint": "Ad esempio l'indirizzo IP del router o un server NTP pubblico.",
+        "btnPatch": "Applica server NTP",
+        "btnPatching": "Applicazione in corso...",
+        "errorTitle": "Patch NTP fallita",
+        "successTitle": "Server NTP aggiornato!",
+        "nextDisabled": "Applica prima il server NTP."
+      },
+      "step8": {
         "title": "Testare la configurazione",
         "description": "Verificare che i reindirizzamenti di dominio funzionino correttamente.",
         "warning": "Se i test falliscono, potrebbe essere necessario un riavvio del dispositivo.",
@@ -511,9 +527,12 @@
         "fullVerifyItem4": "Reindirizzamenti DNS risolti verso il server OpenCloudTouch",
         "btnRunFullVerify": "Avvia verifica completa",
         "fullVerifying": "Verifica completa del sistema in corso...",
-        "btnRetryFullVerify": "Ripeti verifica"
+        "btnRetryFullVerify": "Ripeti verifica",
+        "checkNtpServer": "Server NTP impostato su: {{server}}",
+        "checkNtpServerWrong": "Il server NTP è impostato su '{{found}}', previsto '{{expected}}'",
+        "fullVerifyItem5": "Server NTP patchato e sincronizzazione orario attiva"
       },
-      "step8": {
+      "step9": {
         "title": "Configurazione completata!",
         "description": "Il dispositivo è stato configurato con successo ed è pronto per l'uso.",
         "heroTitle": "Congratulazioni!",
@@ -538,7 +557,8 @@
         "nextStep3Desc": "Ripetere la procedura guidata per altri dispositivi SoundTouch.",
         "btnDone": "Fatto",
         "supportText": "Problemi o domande?",
-        "supportLink": "Contatta il supporto →"
+        "supportLink": "Contatta il supporto →",
+        "summaryItem7": "Server NTP patchato ({{server}})"
       }
     }
   },

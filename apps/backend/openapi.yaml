@@ -2358,6 +2358,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/patch-ntp:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Patch Ntp
+      description: Patch NTP server on device (Wizard Step — NTP).
+      operationId: wizard_patch_ntp_api_setup_wizard_patch_ntp_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NtpPatchRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NtpPatchResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/setup/wizard/reboot-device:
     post:
       tags:
@@ -3826,6 +3852,45 @@ components:
       - device_ids
       title: ModifyMembersRequest
       description: Request to add or remove zone members.
+    NtpPatchRequest:
+      properties:
+        device_ip:
+          type: string
+          title: Device Ip
+        ntp_server:
+          type: string
+          maxLength: 253
+          minLength: 1
+          title: Ntp Server
+          description: NTP server hostname or IP to write to /etc/ntpservers.txt
+          default: pool.ntp.org
+      type: object
+      required:
+      - device_ip
+      title: NtpPatchRequest
+      description: Request to patch the NTP server on device.
+    NtpPatchResponse:
+      properties:
+        success:
+          type: boolean
+          title: Success
+        message:
+          type: string
+          title: Message
+        backup_path:
+          type: string
+          title: Backup Path
+          default: ''
+        diff:
+          type: string
+          title: Diff
+          default: ''
+      type: object
+      required:
+      - success
+      - message
+      title: NtpPatchResponse
+      description: Response with NTP patch result.
     PortCheckRequest:
       properties:
         device_ip:
@@ -4424,6 +4489,13 @@ components:
           type: string
           title: Expected Oct Ip
           description: Expected OCT server IP
+        expected_ntp_server:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Expected Ntp Server
+          description: NTP server expected to be set (omit if the optional NTP step
+            was skipped)
       type: object
       required:
       - device_ip

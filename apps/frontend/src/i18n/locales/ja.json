@@ -242,10 +242,14 @@
       "description": "Boseドメインのネットワークリダイレクトを設定"
     },
     "step6": {
+      "label": "NTP",
+      "description": "デバイスのNTPサーバーにパッチを適用"
+    },
+    "step7": {
       "label": "確認",
       "description": "設定をテストしてDNSリダイレクトを確認"
     },
-    "step7": {
+    "step8": {
       "label": "完了",
       "description": "セットアップ完了"
     },
@@ -455,6 +459,18 @@
         "hostsApplied": "hostsファイルが正常に変更されました。"
       },
       "step7": {
+        "title": "NTPサーバーにパッチを適用",
+        "description": "デバイスのNTPタイムサーバーを設定して、時刻を正確に保ちます。",
+        "optionalNotice": "この手順は任意です。スキップしてもデバイスは既存のNTP設定を使い続けます。",
+        "serverLabel": "NTPサーバー:",
+        "serverHint": "例: ルーターのIPアドレスや公開NTPサーバー。",
+        "btnPatch": "NTPサーバーを適用",
+        "btnPatching": "適用中...",
+        "errorTitle": "NTPパッチに失敗しました",
+        "successTitle": "NTPサーバーが更新されました！",
+        "nextDisabled": "最初にNTPサーバーを適用してください。"
+      },
+      "step8": {
         "title": "設定をテスト",
         "description": "ドメインリダイレクトが正しく機能することを確認します。",
         "warning": "テストが失敗した場合、デバイスの再起動が必要な場合があります。",
@@ -511,9 +527,12 @@
         "fullVerifyItem4": "DNSリダイレクトがOpenCloudTouchサーバーに解決されている",
         "btnRunFullVerify": "完全な検証を開始",
         "fullVerifying": "完全なシステム検証を実行中...",
-        "btnRetryFullVerify": "検証を再実行"
+        "btnRetryFullVerify": "検証を再実行",
+        "checkNtpServer": "NTPサーバーを設定しました: {{server}}",
+        "checkNtpServerWrong": "NTPサーバーは '{{found}}' に設定されています（期待値: '{{expected}}'）",
+        "fullVerifyItem5": "NTPサーバーにパッチ適用済み、時刻同期が有効"
       },
-      "step8": {
+      "step9": {
         "title": "セットアップ完了！",
         "description": "デバイスが正常に設定され、使用準備ができています。",
         "heroTitle": "おめでとうございます！",
@@ -538,7 +557,8 @@
         "nextStep3Desc": "追加のSoundTouchデバイスに対してウィザードを繰り返します。",
         "btnDone": "完了",
         "supportText": "問題や質問がありますか？",
-        "supportLink": "サポートに連絡 →"
+        "supportLink": "サポートに連絡 →",
+        "summaryItem7": "NTPサーバーにパッチを適用 ({{server}})"
       }
     }
   },

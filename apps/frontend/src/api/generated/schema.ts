@@ -1940,6 +1940,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/setup/wizard/patch-ntp": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wizard Patch Ntp
+     * @description Patch NTP server on device (Wizard Step — NTP).
+     */
+    post: operations["wizard_patch_ntp_api_setup_wizard_patch_ntp_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/setup/wizard/reboot-device": {
     parameters: {
       query?: never;
@@ -3117,6 +3137,40 @@ export interface components {
       device_ids: string[];
     };
     /**
+     * NtpPatchRequest
+     * @description Request to patch the NTP server on device.
+     */
+    NtpPatchRequest: {
+      /** Device Ip */
+      device_ip: string;
+      /**
+       * Ntp Server
+       * @description NTP server hostname or IP to write to /etc/ntpservers.txt
+       * @default pool.ntp.org
+       */
+      ntp_server: string;
+    };
+    /**
+     * NtpPatchResponse
+     * @description Response with NTP patch result.
+     */
+    NtpPatchResponse: {
+      /** Success */
+      success: boolean;
+      /** Message */
+      message: string;
+      /**
+       * Backup Path
+       * @default
+       */
+      backup_path: string;
+      /**
+       * Diff
+       * @default
+       */
+      diff: string;
+    };
+    /**
      * PortCheckRequest
      * @description Request to check SSH port.
      */
@@ -3568,6 +3622,11 @@ export interface components {
        * @description Expected OCT server IP
        */
       expected_oct_ip: string;
+      /**
+       * Expected Ntp Server
+       * @description NTP server expected to be set (omit if the optional NTP step was skipped)
+       */
+      expected_ntp_server?: string | null;
     };
     /**
      * VerifySetupResponse
@@ -6036,6 +6095,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HostsModifyResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  wizard_patch_ntp_api_setup_wizard_patch_ntp_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["NtpPatchRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["NtpPatchResponse"];
         };
       };
       /** @description Validation Error */

@@ -17,6 +17,8 @@ export type ModifyConfigRequest = components["schemas"]["ConfigModifyRequest"];
 export type ModifyConfigResponse = components["schemas"]["ConfigModifyResponse"];
 export type ModifyHostsRequest = components["schemas"]["HostsModifyRequest"];
 export type ModifyHostsResponse = components["schemas"]["HostsModifyResponse"];
+export type PatchNtpRequest = components["schemas"]["NtpPatchRequest"];
+export type PatchNtpResponse = components["schemas"]["NtpPatchResponse"];
 export type VerifyRedirectRequest = components["schemas"]["VerifyRedirectRequest"];
 export type VerifyRedirectResponse = components["schemas"]["VerifyRedirectResponse"];
 export type RebootDeviceRequest = components["schemas"]["ConnectivityCheckRequest"];
@@ -177,6 +179,19 @@ export async function modifyHosts(request: ModifyHostsRequest): Promise<ModifyHo
 }
 
 /**
+ * Patch NTP server on device (optional, skippable Wizard Step)
+ */
+export async function patchNtp(request: PatchNtpRequest): Promise<PatchNtpResponse> {
+  const response = await fetch(`${API_BASE}/api/setup/wizard/patch-ntp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+  await throwIfNotOk(response, "NTP patch failed");
+  return response.json();
+}
+
+/**
  * Send reboot command to device via SSH (Wizard Step 7)
  */
 export async function rebootDevice(request: RebootDeviceRequest): Promise<RebootDeviceResponse> {
@@ -274,6 +289,8 @@ export interface VerifySetupRequest {
   device_ip: string;
   device_id: string;
   expected_oct_ip: string;
+  /** Omit if the optional NTP step was skipped. */
+  expected_ntp_server?: string;
 }
 
 export interface VerifySetupResponse {

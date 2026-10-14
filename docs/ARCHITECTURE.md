@@ -93,7 +93,7 @@ Cross-module dependencies are minimal:
 | Pre-built frontend | Eliminates Node.js from Docker image, solves ARM32 Rolldown issue |
 | Host networking | Required for SSDP multicast discovery on local network |
 | No authentication | Trusted local network only (documented in SECURITY.md) |
-| `setup/wizard/step7_finalize_verify.py` stays unsplit | Holds both `finalize_device`/`verify_setup` flows (778 LOC, largest file in the package) because they share `_verify_sys_config` and are both driven by the same frontend component (`Step7Verification.tsx`); see #466 item 1 |
+| `setup/wizard/step8_finalize_verify.py` stays unsplit | Holds both `finalize_device`/`verify_setup` flows (largest file in the package) because they share `_verify_sys_config` and are both driven by the same frontend component (`Step8Verification.tsx`); see #466 item 1. Renumbered from `step7_finalize_verify.py`/`Step7Verification.tsx` when #469 inserted the NTP step ahead of it. |
 
 ## Real-Time Architecture
 

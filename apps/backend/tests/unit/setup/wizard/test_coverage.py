@@ -1,4 +1,4 @@
-"""Coverage tests for WizardService's Step 7 logic (setup/wizard/step7_finalize_verify.py).
+"""Coverage tests for WizardService's finalize/verify logic (setup/wizard/step8_finalize_verify.py).
 
 Covers: finalize_device edge cases (Sources.xml write failure, existing-config
 merge, DeviceName fallback, unexpected exception), _verify_sys_config XML
@@ -71,14 +71,14 @@ def _finalize_patches(
 
         with (
             patch(
-                "opencloudtouch.setup.wizard.step7_finalize_verify.ensure_account_uuid_unique",
+                "opencloudtouch.setup.wizard.step8_finalize_verify.ensure_account_uuid_unique",
                 new_callable=AsyncMock,
                 return_value=AccountPairingResult(
                     success=True, had_uuid=had_uuid, uuid=uuid, message="OK"
                 ),
             ),
             patch(
-                "opencloudtouch.setup.wizard.step7_finalize_verify.force_write_sources_xml",
+                "opencloudtouch.setup.wizard.step8_finalize_verify.force_write_sources_xml",
                 new_callable=AsyncMock,
                 return_value=ForceWriteResult(
                     success=sources_success,
@@ -87,7 +87,7 @@ def _finalize_patches(
                 ),
             ),
             patch(
-                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step8_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value=uuid,
             ),
@@ -95,12 +95,12 @@ def _finalize_patches(
                 "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient",
             ) as mock_ssh_cls,
             patch(
-                "opencloudtouch.setup.wizard.step7_finalize_verify._write_file_atomic",
+                "opencloudtouch.setup.wizard.step8_finalize_verify._write_file_atomic",
                 new_callable=AsyncMock,
                 return_value=0,
             ),
             patch(
-                "opencloudtouch.setup.wizard.step7_finalize_verify._file_exists",
+                "opencloudtouch.setup.wizard.step8_finalize_verify._file_exists",
                 new_callable=AsyncMock,
                 return_value=existing_config is not None,
             ),
@@ -171,7 +171,7 @@ class TestFinalizeDeviceEdgeCases:
         service = WizardService(device_repo=repo)
 
         with patch(
-            "opencloudtouch.setup.wizard.step7_finalize_verify.ensure_account_uuid_unique",
+            "opencloudtouch.setup.wizard.step8_finalize_verify.ensure_account_uuid_unique",
             new_callable=AsyncMock,
             side_effect=RuntimeError("Unexpected"),
         ):
@@ -209,7 +209,7 @@ class TestVerifySetupConnectionFailure:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step8_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 side_effect=ConnectionError("Cannot connect"),
             ),

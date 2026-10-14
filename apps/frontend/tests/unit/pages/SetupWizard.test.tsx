@@ -96,19 +96,27 @@ vi.mock("../../../src/components/wizard/Step6HostsModification", () => ({
   ),
 }));
 
-vi.mock("../../../src/components/wizard/Step7Verification", () => ({
-  default: ({ onNext, onSkip, octIp }: { onNext: () => void; onSkip?: () => void; octIp?: string }) => (
-    <div data-testid="step7-verify">
-      <button onClick={onNext}>Verify weiter</button>
-      {onSkip && <button onClick={onSkip}>Verify überspringen</button>}
-      {octIp && <span data-testid="step7-oct-ip">{octIp}</span>}
+vi.mock("../../../src/components/wizard/Step7NtpPatch", () => ({
+  default: ({ onNext }: { onNext: (server: string | null) => void }) => (
+    <div data-testid="step7-ntp">
+      <button onClick={() => onNext(null)}>NTP weiter</button>
     </div>
   ),
 }));
 
-vi.mock("../../../src/components/wizard/Step8Completion", () => ({
+vi.mock("../../../src/components/wizard/Step8Verification", () => ({
+  default: ({ onNext, onSkip, octIp }: { onNext: () => void; onSkip?: () => void; octIp?: string }) => (
+    <div data-testid="step8-verify">
+      <button onClick={onNext}>Verify weiter</button>
+      {onSkip && <button onClick={onSkip}>Verify überspringen</button>}
+      {octIp && <span data-testid="step8-oct-ip">{octIp}</span>}
+    </div>
+  ),
+}));
+
+vi.mock("../../../src/components/wizard/Step9Completion", () => ({
   default: ({ onFinish }: { onFinish: () => void }) => (
-    <div data-testid="step8-completion">
+    <div data-testid="step9-completion">
       <button onClick={onFinish}>Fertig</button>
     </div>
   ),
@@ -266,22 +274,26 @@ describe("SetupWizard (pages/SetupWizard)", () => {
       await navigateToStep6();
       // Trigger onHostsModified with a custom IP
       fireEvent.click(screen.getByRole("button", { name: /hosts modify with ip/i }));
-      // Advance to Step7
+      // Advance to the NTP step, then skip it to reach Verification
       fireEvent.click(screen.getByRole("button", { name: /hosts weiter/i }));
-      await waitFor(() => expect(screen.getByTestId("step7-verify")).toBeInTheDocument());
-      // Step7 should receive the updated octIp
-      expect(screen.getByTestId("step7-oct-ip")).toHaveTextContent("10.0.0.42");
+      await waitFor(() => expect(screen.getByTestId("step7-ntp")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /ntp weiter/i }));
+      await waitFor(() => expect(screen.getByTestId("step8-verify")).toBeInTheDocument());
+      // Verification should receive the updated octIp
+      expect(screen.getByTestId("step8-oct-ip")).toHaveTextContent("10.0.0.42");
     });
 
     it("does not update serverIp when handleHostsModified receives empty IP", async () => {
       await navigateToStep6();
       // Trigger onHostsModified with empty IP
       fireEvent.click(screen.getByRole("button", { name: /hosts modify empty ip/i }));
-      // Advance to Step7
+      // Advance to the NTP step, then skip it to reach Verification
       fireEvent.click(screen.getByRole("button", { name: /hosts weiter/i }));
-      await waitFor(() => expect(screen.getByTestId("step7-verify")).toBeInTheDocument());
-      // Step7 octIp should still be the default (from getServerInfo mock: "192.168.1.50")
-      expect(screen.getByTestId("step7-oct-ip")).toHaveTextContent("192.168.1.50");
+      await waitFor(() => expect(screen.getByTestId("step7-ntp")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /ntp weiter/i }));
+      await waitFor(() => expect(screen.getByTestId("step8-verify")).toBeInTheDocument());
+      // Verification octIp should still be the default (from getServerInfo mock: "192.168.1.50")
+      expect(screen.getByTestId("step8-oct-ip")).toHaveTextContent("192.168.1.50");
     });
   });
 
@@ -302,7 +314,9 @@ describe("SetupWizard (pages/SetupWizard)", () => {
       fireEvent.click(screen.getByRole("button", { name: /config weiter/i }));
       await waitFor(() => expect(screen.getByTestId("step6-hosts")).toBeInTheDocument());
       fireEvent.click(screen.getByRole("button", { name: /hosts weiter/i }));
-      await waitFor(() => expect(screen.getByTestId("step7-verify")).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByTestId("step7-ntp")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /ntp weiter/i }));
+      await waitFor(() => expect(screen.getByTestId("step8-verify")).toBeInTheDocument());
 
       // Click skip
       fireEvent.click(screen.getByRole("button", { name: /verify überspringen/i }));

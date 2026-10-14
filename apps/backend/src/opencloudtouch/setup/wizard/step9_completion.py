@@ -16,10 +16,10 @@ from opencloudtouch.setup.wizard.base import _ERR_DEVICE_REPO_UNAVAILABLE
 
 logger = logging.getLogger(__name__)
 
-step8_router = APIRouter()
+step9_router = APIRouter()
 
 
-class Step8CompletionMixin:
+class Step9CompletionMixin:
     """Mark device setup as complete (Wizard Step 8)."""
 
     if TYPE_CHECKING:
@@ -42,7 +42,7 @@ class Step8CompletionMixin:
             return {"success": False, "error": f"Failed to update setup status: {e}"}
 
 
-@step8_router.post("/wizard/complete", response_model=WizardCompleteResponse)
+@step9_router.post("/wizard/complete", response_model=WizardCompleteResponse)
 async def wizard_complete(
     request: WizardCompleteRequest,
     wizard: WizardServiceDep,

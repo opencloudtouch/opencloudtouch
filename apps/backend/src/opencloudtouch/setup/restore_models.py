@@ -24,6 +24,7 @@ class RestoreStepName(str, Enum):
     CONFIG = "config"
     PRESETS = "presets"
     HOSTS = "hosts"
+    NTP = "ntp"
     REMOTE_SERVICES = "remote_services"
     REBOOT = "reboot"
 

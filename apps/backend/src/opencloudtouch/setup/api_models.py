@@ -197,6 +197,37 @@ class HostsModifyResponse(BaseModel):
     diff: str = ""
 
 
+class NtpPatchRequest(WizardDeviceRequest):
+    """Request to patch the NTP server on device."""
+
+    ntp_server: str = Field(
+        default="pool.ntp.org",
+        description="NTP server hostname or IP to write to /etc/ntpservers.txt",
+        min_length=1,
+        max_length=253,
+    )
+
+    @field_validator("ntp_server")
+    @classmethod
+    def validate_ntp_server(cls, v: str) -> str:
+        """Validate NTP server is a safe hostname (prevents shell injection)."""
+        v = v.strip()
+        if not _HOSTNAME_RE.match(v):
+            raise ValueError(
+                f"Invalid NTP server: {v!r}. Only letters, digits, dots and hyphens allowed."
+            )
+        return v
+
+
+class NtpPatchResponse(BaseModel):
+    """Response with NTP patch result."""
+
+    success: bool
+    message: str
+    backup_path: str = ""
+    diff: str = ""
+
+
 class VerifyRedirectRequest(WizardDeviceRequest):
     """Request to verify domain redirect from device."""
 
@@ -463,11 +494,25 @@ class VerifySetupRequest(WizardDeviceRequest):
 
     device_id: str = Field(..., description=_DEVICE_ID_DESC)
     expected_oct_ip: str = Field(..., description="Expected OCT server IP")
+    expected_ntp_server: str | None = Field(
+        None,
+        description="NTP server expected to be set (omit if the optional NTP step was skipped)",
+    )
 
     @field_validator("expected_oct_ip")
     @classmethod
     def validate_oct_ip(cls, v: str) -> str:
         return _validate_ip_field(v)
+
+    @field_validator("expected_ntp_server")
+    @classmethod
+    def validate_expected_ntp_server(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        if not _HOSTNAME_RE.match(v):
+            raise ValueError(f"Invalid NTP server: {v!r}")
+        return v
 
 
 class VerifySetupResponse(BaseModel):
