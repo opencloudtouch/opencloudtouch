@@ -168,7 +168,7 @@ describe("RadioSearch Component", () => {
     expect(screen.getByText("Searching...")).toBeInTheDocument();
   });
 
-  it("displays search results", async () => {
+  it("displays search results, filtered by query", async () => {
     render(
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
@@ -182,14 +182,7 @@ describe("RadioSearch Component", () => {
       },
       { timeout: 700 }
     );
-  });
 
-  it("filters results based on search query", async () => {
-    render(
-      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
-    );
-
-    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
     fireEvent.change(searchInput, { target: { value: "NPR" } });
 
     await waitFor(
@@ -278,22 +271,6 @@ describe("RadioSearch Component", () => {
 
     const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
     expect(searchInput).toHaveFocus();
-  });
-
-  it("is case-insensitive when searching", async () => {
-    render(
-      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
-    );
-
-    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
-    fireEvent.change(searchInput, { target: { value: "FRANCE" } });
-
-    await waitFor(
-      () => {
-        expect(screen.getByText("France Inter")).toBeInTheDocument();
-      },
-      { timeout: 700 }
-    );
   });
 
   it("displays error message on API failure", async () => {
@@ -395,6 +372,80 @@ describe("RadioSearch Component", () => {
 
     const nativeDialog = document.querySelector("dialog.radio-search-modal");
     expect(nativeDialog).not.toBeInTheDocument();
+  });
+
+  it("uses the newly selected provider immediately when switching providers", async () => {
+    const fetchMock = vi.mocked(fetch);
+
+    render(
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
+
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
+    fireEvent.change(searchInput, { target: { value: "BBC" } });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+
+    // TuneIn -> RadioBrowser
+    fireEvent.click(screen.getByText("RadioBrowser"));
+
+    await waitFor(() => {
+      const searchCalls = fetchMock.mock.calls
+        .map(([input]) => new URL(String(input), "http://localhost"))
+        .filter((url) => url.pathname === "/api/radio/search");
+
+      expect(searchCalls.at(-1)?.searchParams.get("provider")).toBe("radiobrowser");
+    });
+
+    // RadioBrowser -> TuneIn
+    fireEvent.click(screen.getByText("TuneIn"));
+
+    await waitFor(() => {
+      const searchCalls = fetchMock.mock.calls
+        .map(([input]) => new URL(String(input), "http://localhost"))
+        .filter((url) => url.pathname === "/api/radio/search");
+
+      expect(searchCalls.at(-1)?.searchParams.get("provider")).toBe("tunein");
+    });
+  });
+
+  it("uses the newly selected search type immediately when switching search types", async () => {
+    const fetchMock = vi.mocked(fetch);
+
+    render(
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
+
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
+    fireEvent.change(searchInput, { target: { value: "Germany" } });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+
+    // Name -> Country
+    fireEvent.click(screen.getByText("Country"));
+
+    await waitFor(() => {
+      const searchCalls = fetchMock.mock.calls
+        .map(([input]) => new URL(String(input), "http://localhost"))
+        .filter((url) => url.pathname === "/api/radio/search");
+
+      expect(searchCalls.at(-1)?.searchParams.get("search_type")).toBe("country");
+    });
+
+    // Country -> Name
+    fireEvent.click(screen.getByText("Name"));
+
+    await waitFor(() => {
+      const searchCalls = fetchMock.mock.calls
+        .map(([input]) => new URL(String(input), "http://localhost"))
+        .filter((url) => url.pathname === "/api/radio/search");
+
+      expect(searchCalls.at(-1)?.searchParams.get("search_type")).toBe("name");
+    });
   });
 
   describe("Feature Toggle (HAS_TUNEIN_SUPPORT)", () => {

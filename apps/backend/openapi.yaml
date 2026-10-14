@@ -2,27 +2,8 @@ openapi: 3.1.0
 info:
   title: OpenCloudTouch
   description: Open-Source replacement for discontinued streaming device cloud features
-  version: 1.5.7
+  version: 1.5.8
 paths:
-  /api/events/device-stream:
-    get:
-      tags:
-      - Events
-      summary: Device Event Stream
-      description: "Stream device events via Server-Sent Events (SSE).\n\nPushes\
-        \ an initial snapshot of all known device states, then streams real-time updates.\
-        \ A keepalive comment is sent every 15 seconds.\n\nEvent Types:\n    - snapshot:\
-        \ Initial state of all devices\n    - nowPlaying: Now-playing update for a\
-        \ device\n    - volume: Volume change for a device\n    - zones: Zone membership\
-        \ change\n    - connectionState: WebSocket connection state change"
-      operationId: device_event_stream_api_events_device_stream_get
-      responses:
-        '200':
-          description: SSE event stream
-          content:
-            text/event-stream:
-              schema:
-                type: string
   /api/devices/discover:
     get:
       tags:
@@ -37,6 +18,7 @@ paths:
           content:
             application/json:
               schema:
+                additionalProperties: true
                 type: object
                 title: Response Discover Devices Api Devices Discover Get
   /api/devices/sync:
@@ -102,22 +84,21 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
-        '404':
-          description: Device not reachable
-        '422':
-          description: Validation Error
-          content:
-            application/json:
               schema:
-                $ref: '#/components/schemas/HTTPValidationError'
+                additionalProperties: true
+                type: object
+                title: Response Probe Device Api Devices Probe Post
+        '422':
+          description: Invalid IP address format
+        '404':
+          description: Device not reachable at the given IP
   /api/devices:
     get:
       tags:
       - Devices
       summary: Get Devices
-      description: "Get all devices from database, sorted alphabetically by name (case-insensitive).\n\nReturns:\n    List of devices\
-          \ with details"
+      description: "Get all devices from database.\n\nReturns:\n    List of devices\
+        \ with details"
       operationId: get_devices_api_devices_get
       responses:
         '200':
@@ -231,6 +212,59 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/devices/{device_id}/settings/bass:
+    get:
+      tags:
+      - Devices
+      summary: Get Device Bass
+      description: Get the current bass state reported by a SoundTouch device.
+      operationId: get_device_bass_api_devices__device_id__settings_bass_get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - Devices
+      summary: Set Device Bass
+      description: Set the bass level supported by the selected SoundTouch device.
+      operationId: set_device_bass_api_devices__device_id__settings_bass_put
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetBassRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Invalid bass level
   /api/devices/{device_id}/key:
     post:
       tags:
@@ -281,13 +315,13 @@ paths:
       tags:
       - Devices
       summary: Rename Device
-      description: "Rename a SoundTouch device.\n\nUpdates the device name on the\
-        \ speaker via SSH (SystemConfigurationDB.xml)\nand in the local database.\n\
-        \nArgs:\n    device_id: Device ID (MAC address)\n    body: {\"name\": \"New\
-        \ Name\"} — 1-30 characters\n\nReturns:\n    Updated device info with previous\
-        \ name\n\nRaises:\n    DeviceNotFoundError: If device does not exist\n   \
-        \ HTTPException(422): If name validation fails\n    HTTPException(502): If\
-        \ SSH connection fails"
+      description: "Rename a SoundTouch device.\n\nTries REST API first (POST /name),\
+        \ falls back to SSH if REST fails.\nUpdates the local database after successful\
+        \ rename.\n\nArgs:\n    device_id: Device ID (MAC address)\n    body: {\"\
+        name\": \"New Name\"} — 1-30 characters\n\nReturns:\n    Updated device info\
+        \ with previous name\n\nRaises:\n    DeviceNotFoundError: If device does not\
+        \ exist\n    HTTPException(422): If name validation fails\n    HTTPException(502):\
+        \ If both REST and SSH methods fail"
       operationId: rename_device_api_devices__device_id__name_put
       parameters:
       - name: device_id
@@ -302,6 +336,7 @@ paths:
           application/json:
             schema:
               type: object
+              additionalProperties: true
               title: Body
       responses:
         '200':
@@ -310,11 +345,9 @@ paths:
             application/json:
               schema: {}
         '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
+          description: Invalid name
+        '502':
+          description: Both REST and SSH rename failed
   /api/devices/{device_id}/now-playing:
     get:
       tags:
@@ -336,6 +369,7 @@ paths:
             application/json:
               schema:
                 type: object
+                additionalProperties: true
                 title: Response Get Now Playing Api Devices  Device Id  Now Playing
                   Get
         '422':
@@ -452,16 +486,7 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  device_id:
-                    type: string
-                required:
-                - message
-                - device_id
+              schema: {}
         '404':
           description: Device not found
         '503':
@@ -2024,6 +2049,7 @@ paths:
             application/json:
               schema:
                 type: object
+                additionalProperties: true
                 title: Response Get Instructions Api Setup Instructions  Model  Get
         '422':
           description: Validation Error
@@ -2053,6 +2079,7 @@ paths:
           content:
             application/json:
               schema:
+                additionalProperties: true
                 type: object
                 title: Response Check Connectivity Api Setup Check Connectivity Post
         '422':
@@ -2085,6 +2112,7 @@ paths:
             application/json:
               schema:
                 type: object
+                additionalProperties: true
                 title: Response Get Status Api Setup Status  Device Id  Get
         '422':
           description: Validation Error
@@ -2125,6 +2153,7 @@ paths:
           content:
             application/json:
               schema:
+                additionalProperties: true
                 type: object
                 title: Response Enable Permanent Ssh Api Setup Ssh Enable Permanent
                   Post
@@ -2170,6 +2199,7 @@ paths:
             application/json:
               schema:
                 type: object
+                additionalProperties: true
                 title: Response Verify Setup Api Setup Verify  Device Id  Post
         '422':
           description: Validation Error
@@ -2190,6 +2220,7 @@ paths:
           content:
             application/json:
               schema:
+                additionalProperties: true
                 type: object
                 title: Response List Supported Models Api Setup Models Get
   /api/setup/wizard/server-info:
@@ -2212,6 +2243,7 @@ paths:
           content:
             application/json:
               schema:
+                additionalProperties: true
                 type: object
                 title: Response Wizard Server Info Api Setup Wizard Server Info Get
   /api/setup/wizard/detect-strategy:
@@ -2237,6 +2269,44 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DetectStrategyResponse'
+  /api/setup/wizard/validate-hostname:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Validate Hostname
+      description: 'Validate a hostname or IP via DNS resolution and OCT reachability.
+
+
+        Used by Wizard Step 5 when the user enters a hostname or IP address.
+
+        For hostnames: validates DNS resolution and checks if OCT is reachable.
+
+        For IPs: skips DNS resolution and only checks if OCT is reachable.
+
+
+        Returns whether the hostname/IP resolves, if it matches the expected IP,
+
+        and whether OCT is reachable at the given hostname:port.'
+      operationId: wizard_validate_hostname_api_setup_wizard_validate_hostname_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateHostnameRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateHostnameResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/setup/wizard/check-ports:
     post:
       tags:
@@ -2341,84 +2411,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /api/setup/wizard/restore-config:
-    post:
-      tags:
-      - Setup Wizard
-      summary: Wizard Restore Config
-      description: Restore config from backup (Wizard Step 8).
-      operationId: wizard_restore_config_api_setup_wizard_restore_config_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RestoreRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RestoreResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /api/setup/wizard/restore-hosts:
-    post:
-      tags:
-      - Setup Wizard
-      summary: Wizard Restore Hosts
-      description: Restore hosts from backup (Wizard Step 8).
-      operationId: wizard_restore_hosts_api_setup_wizard_restore_hosts_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RestoreRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RestoreResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /api/setup/wizard/list-backups:
-    post:
-      tags:
-      - Setup Wizard
-      summary: Wizard List Backups
-      description: List available backups (Wizard Step 8).
-      operationId: wizard_list_backups_api_setup_wizard_list_backups_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ListBackupsRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListBackupsResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
   /api/setup/wizard/reboot-device:
     post:
       tags:
@@ -2438,167 +2430,10 @@ paths:
           content:
             application/json:
               schema:
+                additionalProperties: true
                 type: object
                 title: Response Wizard Reboot Device Api Setup Wizard Reboot Device
                   Post
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /api/setup/wizard/account-pairing:
-    post:
-      tags:
-      - Setup Wizard
-      summary: Wizard Account Pairing
-      description: 'Ensure device has a margeAccountUUID (Wizard Step - Account Pairing).
-
-
-        Checks if the device already has a UUID. If not, generates one and
-
-        sets it via Telnet. Persists the UUID in the device repository for
-
-        streaming endpoint resolution.'
-      operationId: wizard_account_pairing_api_setup_wizard_account_pairing_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AccountPairingRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AccountPairingResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /api/setup/wizard/ensure-account:
-    post:
-      tags:
-      - Setup Wizard
-      summary: Wizard Ensure Account
-      description: 'Ensure device has a margeAccountUUID (Wizard Step � after config/hosts).
-
-
-        Devices without a margeAccountUUID cannot play presets (INVALID_SOURCE).
-
-        This endpoint checks GET :8090/info and sets a UUID via Telnet if missing.
-
-
-        Safe to call multiple times � no-op if UUID already present.'
-      operationId: wizard_ensure_account_api_setup_wizard_ensure_account_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AccountPairingRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AccountPairingResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /api/setup/wizard/init-persistence:
-    post:
-      tags:
-      - Setup Wizard
-      summary: Wizard Init Persistence
-      description: 'Initialize persistence files on factory-reset devices (Wizard
-        Step — after account pairing).
-
-
-        Factory-reset devices lack SystemConfigurationDB.xml and Sources.xml.
-
-        Without them, the firmware never fully initialises playback state,
-
-        causing INVALID_SOURCE on preset recall (GitHub Issue #167).
-
-
-        Only creates files that are missing — never overwrites existing ones.
-
-        Safe to call multiple times.'
-      operationId: wizard_init_persistence_api_setup_wizard_init_persistence_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/InitPersistenceRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InitPersistenceResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /api/setup/wizard/complete:
-    post:
-      tags:
-      - Setup Wizard
-      summary: Wizard Complete
-      description: Mark wizard setup as complete for a device.
-      operationId: wizard_complete_api_setup_wizard_complete_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/WizardCompleteRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WizardCompleteResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /api/setup/wizard/validate-hostname:
-    post:
-      tags:
-      - Setup Wizard
-      summary: Wizard Validate Hostname
-      description: Validate a hostname via DNS resolution.
-      operationId: wizard_validate_hostname_api_setup_wizard_validate_hostname_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ValidateHostnameRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ValidateHostnameResponse'
         '422':
           description: Validation Error
           content:
@@ -2692,6 +2527,32 @@ paths:
                 $ref: '#/components/schemas/VerifySetupResponse'
         '500':
           description: Verification failed
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/setup/wizard/complete:
+    post:
+      tags:
+      - Setup Wizard
+      summary: Wizard Complete
+      description: Mark wizard setup as complete for a device.
+      operationId: wizard_complete_api_setup_wizard_complete_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WizardCompleteRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WizardCompleteResponse'
         '422':
           description: Validation Error
           content:
@@ -3178,6 +3039,7 @@ paths:
       summary: Get Memory Diagnostics
       description: 'Detailed memory and cache statistics for monitoring (#366).
 
+
         Moved from /health to keep the health endpoint minimal and avoid
 
         exposing internal metrics on an unauthenticated path.'
@@ -3187,50 +3049,7 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  memory:
-                    type: object
-                    properties:
-                      rss_mb:
-                        type: number
-                      vms_mb:
-                        type: number
-                      percent:
-                        type: number
-                  cache_sizes:
-                    type: object
-                    properties:
-                      device_states:
-                        type: integer
-                      icy_probe_history:
-                        type: integer
-                      icy_metadata_tracking:
-                        type: integer
-  /api/health/websockets:
-    get:
-      tags:
-      - System
-      summary: WebSocket Health
-      description: WebSocket connection health for all managed devices.
-      operationId: websocket_health_api_health_websockets_get
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  connections:
-                    type: object
-                    additionalProperties:
-                      type: object
-                  total_connected:
-                    type: integer
-                  total_devices:
-                    type: integer
+              schema: {}
   /api/wizard/audit-log:
     post:
       tags:
@@ -3309,12 +3128,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/events/device-stream:
+    get:
+      tags:
+      - Events
+      summary: Device Event Stream
+      description: 'Stream device events via Server-Sent Events.
+
+
+        Pushes an initial snapshot of all known device states, then streams
+
+        real-time updates. A keepalive comment is sent every 15 seconds.'
+      operationId: device_event_stream_api_events_device_stream_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
   /health:
     get:
       tags:
       - System
       summary: Health Check
-      description: Health check endpoint for Docker and monitoring.
+      description: 'Health check endpoint for Docker and monitoring.
+
+
+        Minimal response — detailed memory stats available at /api/diagnostics/memory.'
       operationId: health_check_health_get
       responses:
         '200':
@@ -3322,102 +3162,21 @@ paths:
           content:
             application/json:
               schema: {}
-  /api/devices/{device_id}/settings/bass:
+  /api/health/websockets:
     get:
       tags:
-        - Devices
-      summary: Get Device Bass
-      description: Get the current bass state reported by the selected SoundTouch device.
-      operationId: get_device_bass_api_devices__device_id__settings_bass_get
-      parameters:
-        - name: device_id
-          in: path
-          required: true
-          schema:
-            type: string
-            title: Device Id
+      - System
+      summary: Websocket Health
+      description: WebSocket connection health for all managed devices.
+      operationId: websocket_health_api_health_websockets_get
       responses:
-        "200":
+        '200':
           description: Successful Response
-        "422":
-          description: Validation Error
-    put:
-      tags:
-        - Devices
-      summary: Set Device Bass
-      description: Set the bass level supported by the selected SoundTouch device.
-      operationId: set_device_bass_api_devices__device_id__settings_bass_put
-      parameters:
-        - name: device_id
-          in: path
-          required: true
-          schema:
-            type: string
-            title: Device Id
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SetBassRequest'
-      responses:
-        "200":
-          description: Successful Response
-        "422":
-          description: Invalid bass level
-
+          content:
+            application/json:
+              schema: {}
 components:
   schemas:
-    SetBassRequest:
-      properties:
-        level:
-          type: integer
-          title: Level
-      type: object
-      required:
-        - level
-      title: SetBassRequest
-      description: Request body for setting a device's bass level.
-    AccountPairingRequest:
-      properties:
-        device_ip:
-          type: string
-          title: Device Ip
-          description: Device IP address
-        device_id:
-          type: string
-          title: Device Id
-          description: Device ID (MAC address)
-      type: object
-      required:
-      - device_ip
-      - device_id
-      title: AccountPairingRequest
-      description: Request to ensure device has a margeAccountUUID.
-    AccountPairingResponse:
-      properties:
-        success:
-          type: boolean
-          title: Success
-        had_uuid:
-          type: boolean
-          title: Had Uuid
-          description: True if UUID was already present
-          default: false
-        uuid:
-          type: string
-          title: Uuid
-          description: The current or newly set UUID
-          default: ''
-        message:
-          type: string
-          title: Message
-          default: ''
-      type: object
-      required:
-      - success
-      title: AccountPairingResponse
-      description: Response from account pairing.
     AuditBatchRequest:
       properties:
         entries:
@@ -3573,6 +3332,7 @@ components:
           title: Message
         volumes:
           items:
+            additionalProperties: true
             type: object
           type: array
           title: Volumes
@@ -3693,6 +3453,7 @@ components:
           default: ''
         frontend_logs:
           items:
+            additionalProperties: true
             type: object
           type: array
           title: Frontend Logs
@@ -3877,6 +3638,7 @@ components:
       properties:
         frontend_logs:
           items:
+            additionalProperties: true
             type: object
           type: array
           title: Frontend Logs
@@ -4046,88 +3808,6 @@ components:
       - message
       title: HostsModifyResponse
       description: Response with hosts modification result.
-    InitPersistenceRequest:
-      properties:
-        device_ip:
-          type: string
-          title: Device Ip
-          description: Device IP address
-        device_name:
-          type: string
-          maxLength: 100
-          title: Device Name
-          description: Device name from GET :8090/info <name>
-        account_uuid:
-          type: string
-          pattern: ^\d{1,10}$
-          title: Account Uuid
-          description: margeAccountUUID (7-digit numeric, from account pairing)
-      type: object
-      required:
-      - device_ip
-      - device_name
-      - account_uuid
-      title: InitPersistenceRequest
-      description: Request to initialize persistence files on a factory-reset device.
-    InitPersistenceResponse:
-      properties:
-        success:
-          type: boolean
-          title: Success
-        created_files:
-          items:
-            type: string
-          type: array
-          title: Created Files
-        skipped_files:
-          items:
-            type: string
-          type: array
-          title: Skipped Files
-        message:
-          type: string
-          title: Message
-          default: ''
-        error:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Error
-      type: object
-      required:
-      - success
-      title: InitPersistenceResponse
-      description: Response from persistence initialization.
-    ListBackupsRequest:
-      properties:
-        device_ip:
-          type: string
-          title: Device Ip
-      type: object
-      required:
-      - device_ip
-      title: ListBackupsRequest
-      description: Request to list backups.
-    ListBackupsResponse:
-      properties:
-        success:
-          type: boolean
-          title: Success
-        config_backups:
-          items:
-            type: string
-          type: array
-          title: Config Backups
-        hosts_backups:
-          items:
-            type: string
-          type: array
-          title: Hosts Backups
-      type: object
-      required:
-      - success
-      title: ListBackupsResponse
-      description: Response with backup list.
     LogDownloadRequest:
       properties:
         frontend_logs:
@@ -4136,6 +3816,15 @@ components:
           type: array
           title: Frontend Logs
           default: []
+        frontend_log_buffers:
+          anyOf:
+          - additionalProperties:
+              items:
+                $ref: '#/components/schemas/FrontendLogEntry'
+              type: array
+            type: object
+          - type: 'null'
+          title: Frontend Log Buffers
       type: object
       title: LogDownloadRequest
       description: Optional body for POST /api/logs/backend with frontend logs.
@@ -4224,17 +3913,6 @@ components:
       - message
       title: PortCheckResponse
       description: Response with port check results.
-    ProbeRequest:
-      properties:
-        ip:
-          type: string
-          title: Ip
-          description: IP address of the device to probe
-      type: object
-      required:
-      - ip
-      title: ProbeRequest
-      description: Request model for single-device probe.
     PresetResponse:
       properties:
         id:
@@ -4336,6 +4014,17 @@ components:
       - station_url
       title: PresetSetRequest
       description: Request model for setting a preset.
+    ProbeRequest:
+      properties:
+        ip:
+          type: string
+          title: Ip
+          description: IP address of the device to probe
+      type: object
+      required:
+      - ip
+      title: ProbeRequest
+      description: Request model for single-device probe.
     ProviderType:
       type: string
       enum:
@@ -4412,34 +4101,6 @@ components:
       - country
       title: RadioStationResponse
       description: Radio station response model (unified across all providers).
-    RestoreRequest:
-      properties:
-        device_ip:
-          type: string
-          title: Device Ip
-        backup_path:
-          type: string
-          title: Backup Path
-      type: object
-      required:
-      - device_ip
-      - backup_path
-      title: RestoreRequest
-      description: Request to restore from backup.
-    RestoreResponse:
-      properties:
-        success:
-          type: boolean
-          title: Success
-        message:
-          type: string
-          title: Message
-      type: object
-      required:
-      - success
-      - message
-      title: RestoreResponse
-      description: Response with restore result.
     RestoreStepResponse:
       properties:
         name:
@@ -4546,7 +4207,8 @@ components:
           title: Steps
         pre_restore_snapshot:
           anyOf:
-          - type: object
+          - additionalProperties: true
+            type: object
           - type: 'null'
           title: Pre Restore Snapshot
         snapshot_skipped:
@@ -4618,6 +4280,16 @@ components:
       - tag
       title: SearchType
       description: Search type enum.
+    SetBassRequest:
+      properties:
+        level:
+          type: integer
+          title: Level
+      type: object
+      required:
+      - level
+      title: SetBassRequest
+      description: Request body for setting a device's bass level.
     SetManualIPsRequest:
       properties:
         ips:
@@ -4631,6 +4303,81 @@ components:
       - ips
       title: SetManualIPsRequest
       description: Request model for setting all manual IPs at once.
+    ValidateHostnameRequest:
+      properties:
+        hostname:
+          type: string
+          maxLength: 255
+          minLength: 1
+          title: Hostname
+          description: Hostname or IP address to validate (e.g. 'hera', 'myserver.local',
+            or '192.168.1.100')
+        port:
+          type: integer
+          maximum: 65535.0
+          minimum: 1.0
+          title: Port
+          description: 'Port to check for OCT reachability (default: 7777)'
+          default: 7777
+        expected_ip:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Expected Ip
+          description: Expected IP address to compare against resolved IP
+      type: object
+      required:
+      - hostname
+      title: ValidateHostnameRequest
+      description: 'Request to validate a hostname or IP via DNS resolution and OCT
+        reachability.
+
+
+        Accepts both hostnames (e.g. ''hera'', ''myserver.local'') and IP addresses
+
+        (e.g. ''192.168.1.100''). For IPs, DNS resolution is skipped but OCT
+
+        reachability is still checked.'
+    ValidateHostnameResponse:
+      properties:
+        resolvable:
+          type: boolean
+          title: Resolvable
+          description: Whether the hostname could be resolved
+        resolved_ip:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Resolved Ip
+          description: Resolved IP address (if successful)
+        matches_expected:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Matches Expected
+          description: Whether resolved IP matches expected_ip (null if no expected_ip)
+        oct_reachable:
+          type: boolean
+          title: Oct Reachable
+          description: Whether OCT is reachable at hostname:port
+          default: false
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+          description: Error message (if resolution failed)
+        oct_error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Oct Error
+          description: Error message (if OCT check failed)
+      type: object
+      required:
+      - resolvable
+      title: ValidateHostnameResponse
+      description: Response from hostname DNS validation.
     ValidationError:
       properties:
         loc:
@@ -4657,73 +4404,6 @@ components:
       - msg
       - type
       title: ValidationError
-    ValidateHostnameRequest:
-      properties:
-        hostname:
-          type: string
-          minLength: 1
-          maxLength: 255
-          title: Hostname
-          description: Hostname to resolve (e.g. 'hera' or 'myserver.local')
-        port:
-          type: integer
-          minimum: 1
-          maximum: 65535
-          default: 7777
-          title: Port
-          description: "Port to check for OCT reachability (default: 7777)"
-        expected_ip:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Expected Ip
-          description: Expected IP address to compare against resolved IP
-      type: object
-      required:
-      - hostname
-      title: ValidateHostnameRequest
-      description: Request to validate a hostname via DNS resolution.
-    ValidateHostnameResponse:
-      properties:
-        resolvable:
-          type: boolean
-          title: Resolvable
-          description: Whether the hostname could be resolved
-        resolved_ip:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Resolved Ip
-          description: Resolved IP address (if successful)
-        matches_expected:
-          anyOf:
-          - type: boolean
-          - type: 'null'
-          title: Matches Expected
-          description: Whether resolved IP matches expected_ip (null if no expected_ip)
-        oct_reachable:
-          type: boolean
-          default: false
-          title: Oct Reachable
-          description: Whether OCT is reachable at hostname:port
-        error:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Error
-          description: Error message (if resolution failed)
-        oct_error:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Oct Error
-          description: Error message (if OCT check failed)
-      type: object
-      required:
-      - resolvable
-      - oct_reachable
-      title: ValidateHostnameResponse
-      description: Response from hostname DNS validation.
     VerifyCheck:
       properties:
         name:
@@ -4736,6 +4416,7 @@ components:
           type: string
           title: Message
         details:
+          additionalProperties: true
           type: object
           title: Details
       type: object

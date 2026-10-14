@@ -4,9 +4,9 @@ Listens for ``now_playing`` events where the source is internet radio
 and the artwork URL is missing.  Triggers an asynchronous ICY probe and
 publishes a ``metadata_enriched`` event via the state manager on success.
 
-Debounce: re-probes for the same station are skipped within 15 s.
-Periodic polling: ``poll_stream`` re-probes every few seconds and
-only emits when artist/track actually changed.
+Debounce: re-probes for the same device/station are skipped within 15 s.
+Periodic polling uses the same debounce and only emits when artist/track
+actually changed.
 
 Memory leak fix (#366): Both _last_probe and _last_metadata now use
 LRU eviction with max 100 entries to prevent unbounded growth.
@@ -44,7 +44,7 @@ class IcyWorker:
     def __init__(self, get_stream_url: GetStreamUrl) -> None:
         self._get_stream_url = get_stream_url
         # LRU dicts with bounded size to prevent memory leak (#366)
-        self._last_probe: OrderedDict[str, float] = OrderedDict()
+        self._last_probe: OrderedDict[tuple[str, str], float] = OrderedDict()
         self._last_metadata: OrderedDict[str, tuple[str | None, str | None]] = (
             OrderedDict()
         )
@@ -54,6 +54,25 @@ class IcyWorker:
         if len(cache) > _MAX_PROBE_HISTORY:
             oldest_key = next(iter(cache))
             cache.pop(oldest_key)
+
+    def _should_probe(self, device_id: str, station_name: str) -> bool:
+        """Check debounce and record a new probe attempt."""
+        probe_key = (device_id, station_name)
+        now = time.monotonic()
+        last = self._last_probe.get(probe_key, 0.0)
+        if (now - last) < _DEBOUNCE_SECONDS:
+            logger.debug(
+                "ICY probe debounced for %s on %s (%.1fs ago)",
+                station_name,
+                device_id,
+                now - last,
+            )
+            return False
+
+        self._last_probe[probe_key] = now
+        self._last_probe.move_to_end(probe_key)
+        self._evict_if_needed(self._last_probe)
+        return True
 
     async def on_event(self, event: DeviceEvent) -> DeviceEvent | None:
         """Process a device event.  Returns a ``metadata_enriched`` event
@@ -76,6 +95,14 @@ class IcyWorker:
             )
             return None
 
+        if info.state != "PLAY_STATE":
+            logger.debug(
+                "ICY skip: playback state %s for %s",
+                info.state,
+                event.device_id,
+            )
+            return None
+
         # Already have artwork — no probe needed
         if info.artwork_url:
             logger.debug(
@@ -89,20 +116,10 @@ class IcyWorker:
             logger.debug("ICY skip: no station_name for %s", event.device_id)
             return None
 
-        # Debounce: skip if probed recently
-        now = time.monotonic()
-        last = self._last_probe.get(info.station_name, 0.0)
-        if (now - last) < _DEBOUNCE_SECONDS:
-            logger.debug(
-                "ICY probe debounced for %s (%.1fs ago)",
-                info.station_name,
-                now - last,
-            )
+        # Debounce per device/station so multiple devices do not block
+        # each other, while repeated probes for the same playback are limited.
+        if not self._should_probe(event.device_id, info.station_name):
             return None
-
-        self._last_probe[info.station_name] = now
-        self._last_probe.move_to_end(info.station_name)
-        self._evict_if_needed(self._last_probe)
 
         # Resolve stream URL from preset DB
         stream_url = await self._get_stream_url(event.device_id, info.station_name)
@@ -156,19 +173,28 @@ class IcyWorker:
         )
 
     async def poll_stream(self, event: DeviceEvent) -> DeviceEvent | None:
-        """Periodic poll — bypasses debounce, only emits on metadata change.
+        """Periodic poll with per-device/station debounce.
 
-        Called by the state manager's periodic poll loop.  Skips the
-        15 s debounce used for event-driven probes and instead relies on
-        the caller's polling interval for rate limiting.
+        Called by the state manager's periodic poll loop.  Network probes
+        are limited to at most once per 15 s for the same device/station.
         """
         if not event.now_playing:
             return None
 
         info = event.now_playing
+        if info.state != "PLAY_STATE":
+            logger.debug(
+                "ICY poll skip: playback state %s for %s",
+                info.state,
+                event.device_id,
+            )
+            return None
         if info.source not in RADIO_SOURCES:
             return None
         if not info.station_name:
+            return None
+
+        if not self._should_probe(event.device_id, info.station_name):
             return None
 
         stream_url = await self._get_stream_url(event.device_id, info.station_name)

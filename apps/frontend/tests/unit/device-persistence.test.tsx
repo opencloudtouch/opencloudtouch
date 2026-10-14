@@ -188,16 +188,4 @@ describe("Device persistence via URL parameter", () => {
       { replace: true }
     );
   });
-
-  test("URL parameter is set with replace:true to avoid history pollution", async () => {
-    render(<RadioPresets devices={mockDevices} />);
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("swipe-to-1"));
-    });
-
-    // Second argument must be { replace: true }
-    const callArgs = mockSetSearchParams.mock.calls[0];
-    expect(callArgs[1]).toEqual({ replace: true });
-  });
 });

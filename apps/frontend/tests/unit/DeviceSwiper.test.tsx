@@ -1,6 +1,35 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import DeviceSwiper from "../../src/components/DeviceSwiper";
+import type { ReactNode, HTMLAttributes } from "react";
+
+type DragInfo = {
+  offset: { x: number; y: number };
+  velocity: { x: number; y: number };
+};
+type DragEndHandler = (
+  event: MouseEvent | TouchEvent | PointerEvent,
+  info: DragInfo,
+) => void;
+
+let capturedOnDragEnd: DragEndHandler | undefined;
+
+vi.mock("framer-motion", () => ({
+  motion: {
+    div: ({
+      children,
+      onDragEnd,
+      ...rest
+    }: {
+      children: ReactNode;
+      onDragEnd?: DragEndHandler;
+    } & HTMLAttributes<HTMLDivElement>) => {
+      capturedOnDragEnd = onDragEnd;
+      return <div {...rest}>{children}</div>;
+    },
+  },
+  AnimatePresence: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
 
 describe("DeviceSwiper Component", () => {
   const mockDevices = [
@@ -89,32 +118,6 @@ describe("DeviceSwiper Component", () => {
     expect(mockOnIndexChange).toHaveBeenCalledWith(1);
   });
 
-  it("does not change index when clicking disabled previous arrow", () => {
-    render(
-      <DeviceSwiper devices={mockDevices} currentIndex={0} onIndexChange={mockOnIndexChange}>
-        <div>Device Content</div>
-      </DeviceSwiper>
-    );
-
-    const prevButton = screen.getByLabelText("Previous device");
-    fireEvent.click(prevButton);
-
-    expect(mockOnIndexChange).not.toHaveBeenCalled();
-  });
-
-  it("does not change index when clicking disabled next arrow", () => {
-    render(
-      <DeviceSwiper devices={mockDevices} currentIndex={2} onIndexChange={mockOnIndexChange}>
-        <div>Device Content</div>
-      </DeviceSwiper>
-    );
-
-    const nextButton = screen.getByLabelText("Next device");
-    fireEvent.click(nextButton);
-
-    expect(mockOnIndexChange).not.toHaveBeenCalled();
-  });
-
   it("calls onIndexChange when dot clicked", () => {
     render(
       <DeviceSwiper devices={mockDevices} currentIndex={0} onIndexChange={mockOnIndexChange}>
@@ -182,5 +185,123 @@ describe("DeviceSwiper Component", () => {
 
     expect(prevButton).toBeDisabled();
     expect(nextButton).toBeDisabled();
+  });
+
+  it("swipes right (via offset past threshold) to the previous device", () => {
+    render(
+      <DeviceSwiper devices={mockDevices} currentIndex={1} onIndexChange={mockOnIndexChange}>
+        <div>Device Content</div>
+      </DeviceSwiper>
+    );
+
+    capturedOnDragEnd!({} as MouseEvent, {
+      offset: { x: 100, y: 0 },
+      velocity: { x: 0, y: 0 },
+    });
+
+    expect(mockOnIndexChange).toHaveBeenCalledWith(0);
+  });
+
+  it("swipes right (via velocity past threshold, offset below it) to the previous device", () => {
+    render(
+      <DeviceSwiper devices={mockDevices} currentIndex={1} onIndexChange={mockOnIndexChange}>
+        <div>Device Content</div>
+      </DeviceSwiper>
+    );
+
+    capturedOnDragEnd!({} as MouseEvent, {
+      offset: { x: 10, y: 0 },
+      velocity: { x: 600, y: 0 },
+    });
+
+    expect(mockOnIndexChange).toHaveBeenCalledWith(0);
+  });
+
+  it("a rightward swipe gesture at the first device is a no-op", () => {
+    render(
+      <DeviceSwiper devices={mockDevices} currentIndex={0} onIndexChange={mockOnIndexChange}>
+        <div>Device Content</div>
+      </DeviceSwiper>
+    );
+
+    capturedOnDragEnd!({} as MouseEvent, {
+      offset: { x: 100, y: 0 },
+      velocity: { x: 0, y: 0 },
+    });
+
+    expect(mockOnIndexChange).not.toHaveBeenCalled();
+  });
+
+  it("swipes left (via offset past negative threshold) to the next device", () => {
+    render(
+      <DeviceSwiper devices={mockDevices} currentIndex={1} onIndexChange={mockOnIndexChange}>
+        <div>Device Content</div>
+      </DeviceSwiper>
+    );
+
+    capturedOnDragEnd!({} as MouseEvent, {
+      offset: { x: -100, y: 0 },
+      velocity: { x: 0, y: 0 },
+    });
+
+    expect(mockOnIndexChange).toHaveBeenCalledWith(2);
+  });
+
+  it("swipes left (via velocity past negative threshold, offset within bounds) to the next device", () => {
+    render(
+      <DeviceSwiper devices={mockDevices} currentIndex={1} onIndexChange={mockOnIndexChange}>
+        <div>Device Content</div>
+      </DeviceSwiper>
+    );
+
+    capturedOnDragEnd!({} as MouseEvent, {
+      offset: { x: -10, y: 0 },
+      velocity: { x: -600, y: 0 },
+    });
+
+    expect(mockOnIndexChange).toHaveBeenCalledWith(2);
+  });
+
+  it("a leftward swipe gesture at the last device is a no-op", () => {
+    render(
+      <DeviceSwiper devices={mockDevices} currentIndex={2} onIndexChange={mockOnIndexChange}>
+        <div>Device Content</div>
+      </DeviceSwiper>
+    );
+
+    capturedOnDragEnd!({} as MouseEvent, {
+      offset: { x: -100, y: 0 },
+      velocity: { x: 0, y: 0 },
+    });
+
+    expect(mockOnIndexChange).not.toHaveBeenCalled();
+  });
+
+  it("a gesture below both offset and velocity thresholds in either direction is a no-op", () => {
+    render(
+      <DeviceSwiper devices={mockDevices} currentIndex={1} onIndexChange={mockOnIndexChange}>
+        <div>Device Content</div>
+      </DeviceSwiper>
+    );
+
+    capturedOnDragEnd!({} as MouseEvent, {
+      offset: { x: 10, y: 0 },
+      velocity: { x: 10, y: 0 },
+    });
+
+    expect(mockOnIndexChange).not.toHaveBeenCalled();
+  });
+
+  it("clicking a dot before the current index sets the backward drag direction and switches", () => {
+    render(
+      <DeviceSwiper devices={mockDevices} currentIndex={2} onIndexChange={mockOnIndexChange}>
+        <div>Device Content</div>
+      </DeviceSwiper>
+    );
+
+    const dots = screen.getAllByRole("tab");
+    fireEvent.click(dots[0]!);
+
+    expect(mockOnIndexChange).toHaveBeenCalledWith(0);
   });
 });

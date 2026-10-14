@@ -317,7 +317,7 @@
         "instructionStep3Desc": "Attendere almeno 10 secondi.",
         "instructionStep4": "Ripristinare l'alimentazione",
         "instructionStep4Desc": "Ricollegare l'adattatore di alimentazione.",
-        "instructionStep5": "Attendere (~60 secondi)",
+        "instructionStep5": "Attendere (~100 secondi)",
         "instructionStep5Desc": "Il dispositivo si riavvia e legge il file remote_services dalla chiavetta USB.",
         "sectionStatus": "Verificare lo stato",
         "statusWaiting": "In attesa del riavvio del dispositivo...",
@@ -362,7 +362,7 @@
         "troubleshootingTitle": "⚠️ Risoluzione dei problemi",
         "troubleshootingItem1": "Verificare che la chiavetta USB sia inserita correttamente",
         "troubleshootingItem2": "Assicurarsi che il file 'remote_services' sia corretto",
-        "troubleshootingItem3": "Attendere almeno 60 secondi dopo il riavvio",
+        "troubleshootingItem3": "Attendere almeno 100 secondi dopo il riavvio",
         "troubleshootingItem4": "Provare un altro ciclo di alimentazione (passaggi 2–5)",
         "troubleshootingItem5": "Verificare che il dispositivo sia sulla stessa rete",
         "troubleshootingItem6": "Testare la connessione SSH manualmente con il comando sopra — se funziona, il dispositivo è pronto."
@@ -450,8 +450,8 @@
         "successTitle": "File hosts modificato con successo!",
         "changedEntries": "Voci modificate:",
         "backupLabel": "Backup:",
-        "btnShowDiff": "▶ Mostra diff",
-        "btnHideDiff": "▼ Nascondi diff",
+        "btnShowChanges": "▶ Mostra modifiche",
+        "btnHideChanges": "▼ Nascondi modifiche",
         "hostsApplied": "File hosts modificato con successo."
       },
       "step7": {
@@ -764,6 +764,6 @@
   "deviceHeader": {
     "reboot": "Riavvia il dispositivo",
     "sent": "Comando di riavvio inviato",
-    "confirmMessage": "Riavviare {{name}}? Il dispositivo non sarà disponibile per circa 60 secondi."
+    "confirmMessage": "Riavviare {{name}}? Il dispositivo non sarà disponibile per circa 100 secondi."
   }
 }

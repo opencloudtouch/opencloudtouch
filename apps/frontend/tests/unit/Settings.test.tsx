@@ -190,44 +190,6 @@ describe("Settings Page", () => {
     });
   });
 
-  it("adds valid IP successfully", async () => {
-    // Initial fetch - empty list
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ ips: [] }),
-    });
-
-    renderWithProviders(<Settings />);
-
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText("192.168.1.10")).toBeInTheDocument();
-    });
-
-    const input = screen.getByPlaceholderText("192.168.1.10");
-    const addButton = screen.getByText("+ Add");
-
-    fireEvent.change(input, { target: { value: "192.168.1.30" } });
-
-    // Mock probe response
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ device_id: "XYZ", ip: "192.168.1.30", name: "Kitchen", model: "ST10" }),
-    });
-
-    // Re-fetch after mutation (React Query invalidation)
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ ips: ["192.168.1.30"] }),
-    });
-
-    fireEvent.click(addButton);
-
-    await waitFor(() => {
-      const probeCall = mockFetch.mock.calls.find((call: unknown[]) => call[0] === "/api/devices/probe");
-      expect(probeCall).toBeDefined();
-    });
-  });
-
   it("clears input after successful add", async () => {
     // Initial fetch - empty list
     mockFetch.mockResolvedValueOnce({

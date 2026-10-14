@@ -7,6 +7,7 @@ import {
   cleanName,
 } from "../../src/pages/aboutUtils";
 import type { Supporter } from "../../src/pages/aboutUtils";
+import { THANK_YOU_PHRASES } from "../../src/pages/thankYouPhrases";
 
 describe("parseCSVLine", () => {
   it("parses simple unquoted fields", () => {
@@ -57,28 +58,24 @@ describe("parseCSVLine", () => {
 });
 
 describe("getRandomThankYou", () => {
-  it("returns a string for regular supporter in English", () => {
-    const result = getRandomThankYou(false, "en");
-    expect(typeof result).toBe("string");
-    expect(result.length).toBeGreaterThan(0);
-  });
-
-  it("returns a string for monthly supporter in English", () => {
-    const result = getRandomThankYou(true, "en");
-    expect(typeof result).toBe("string");
-    expect(result.length).toBeGreaterThan(0);
-  });
-
-  it("falls back to English for unknown language", () => {
+  it("falls back to English phrases for unknown language", () => {
+    // Exercises `categoryPhrases?.[currentLang] ?? categoryPhrases?.["en"]` — "xx"
+    // has no phrase list of its own, so the result must come from the `en` list.
     const result = getRandomThankYou(false, "xx");
-    expect(typeof result).toBe("string");
-    expect(result.length).toBeGreaterThan(0);
+    expect(THANK_YOU_PHRASES.regular.en).toContain(result);
   });
 
-  it("handles language with region code", () => {
-    const result = getRandomThankYou(false, "en-US");
-    expect(typeof result).toBe("string");
-    expect(result.length).toBeGreaterThan(0);
+  it("strips the region code so en-US resolves the same phrase list as en", () => {
+    // Exercises `lang.split("-")[0]`. With Math.random pinned, "en-US" must land
+    // on the exact same phrase as plain "en" — proving the split actually happened
+    // rather than the region-coded input just falling through to the fallback.
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const resultRegionCoded = getRandomThankYou(false, "en-US");
+    const resultPlainEn = getRandomThankYou(false, "en");
+    vi.restoreAllMocks();
+
+    expect(resultRegionCoded).toBe(resultPlainEn);
+    expect(resultRegionCoded).toBe(THANK_YOU_PHRASES.regular.en[0]);
   });
 
   it("returns German phrases for de", () => {

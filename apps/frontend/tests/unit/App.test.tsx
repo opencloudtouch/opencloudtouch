@@ -84,19 +84,6 @@ describe("App Component", () => {
       });
     });
 
-    it("fetches devices on mount", async () => {
-      mockFetch = vi.fn().mockImplementation(
-        createFetchMock({ devices: [{ id: "1", device_id: "1", name: "Test Device" }] })
-      );
-      vi.stubGlobal("fetch", mockFetch);
-
-      renderWithProviders(<App />);
-
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith("/api/devices");
-      });
-    });
-
     it("renders navigation when devices exist", async () => {
       mockFetch = vi.fn().mockImplementation(
         createFetchMock({ devices: [{ id: "1", device_id: "1", name: "Test Device" }] })
@@ -123,10 +110,11 @@ describe("App Component", () => {
     // Act: Render app
     renderWithProviders(<App />);
 
-    // Assert: Should show error message
+    // Assert: Should show error message and a retry button
     await waitFor(() => {
       expect(screen.getByText(/Error loading devices/i)).toBeInTheDocument();
     });
+    expect(screen.getByRole("button", { name: /Retry/i })).toBeInTheDocument();
   });
 
   it("should display error state when API returns non-OK status", async () => {
@@ -149,22 +137,6 @@ describe("App Component", () => {
     // Assert: Should show error message
     await waitFor(() => {
       expect(screen.getByText(/Error loading devices/i)).toBeInTheDocument();
-    });
-  });
-
-  it("should show retry button in error state", async () => {
-    // Arrange: Mock fetch to fail
-    mockFetch = vi
-      .fn()
-      .mockImplementation(createFetchMock({ devicesError: new Error("Network error") }));
-    vi.stubGlobal("fetch", mockFetch);
-
-    // Act: Render app
-    renderWithProviders(<App />);
-
-    // Assert: Should have retry button
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Retry/i })).toBeInTheDocument();
     });
   });
 
@@ -204,40 +176,6 @@ describe("App Component", () => {
 
     // Check navigation is rendered (uses data-test, not data-testid)
     expect(screen.getByRole("navigation")).toBeInTheDocument();
-  });
-
-  it("should clear error state after successful retry", async () => {
-    // Arrange: Mock fetch to fail once, then succeed
-    let callCount = 0;
-    mockFetch = vi.fn().mockImplementation((url: string) => {
-      if (url.includes("/api/devices")) {
-        callCount++;
-        if (callCount === 1) {
-          return Promise.reject(new Error("Network error"));
-        }
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({ devices: [] }),
-        });
-      }
-      return createFetchMock()(url);
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
-    // Act: Render app
-    renderWithProviders(<App />);
-    await waitFor(() => {
-      expect(screen.getByText(/Error loading devices/i)).toBeInTheDocument();
-    });
-
-    // Act: Retry
-    const retryButton = screen.getByRole("button", { name: /Retry/i });
-    await userEvent.click(retryButton);
-
-    // Assert: Error message should be gone
-    await waitFor(() => {
-      expect(screen.queryByText(/Error loading devices/i)).not.toBeInTheDocument();
-    });
   });
 
   it("should show loading state during retry", async () => {

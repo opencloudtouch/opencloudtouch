@@ -35,6 +35,7 @@ class DeviceState:
     volume: VolumeInfo | None = None
     connection_state: ConnectionState = ConnectionState.DISCONNECTED
     last_update: float = field(default_factory=time.time)
+    playback_generation: int = 0
 
     def is_fresh(self, max_age: float = 10.0) -> bool:
         """Return True if state was updated within *max_age* seconds."""
@@ -90,9 +91,19 @@ class DeviceStateManager:
 
     # -- State updates -------------------------------------------------------
 
-    def update_now_playing(self, device_id: str, info: NowPlayingInfo) -> None:
+    def update_now_playing(self, device_id: str, info: NowPlayingInfo | None) -> None:
         """Update now-playing state for *device_id*."""
         state = self._ensure_state(device_id)
+        previous = state.now_playing
+        previous_context = (
+            (previous.source, previous.state, previous.station_name)
+            if previous
+            else None
+        )
+        current_context = (info.source, info.state, info.station_name) if info else None
+        if current_context != previous_context:
+            state.playback_generation += 1
+
         state.now_playing = info
         state.last_update = time.time()
 
@@ -290,11 +301,15 @@ class DeviceStateManager:
 
         # Fire preset-favicon + ICY probe in background for radio events
         if event.event_type == EventType.NOW_PLAYING and event.now_playing:
-            task = asyncio.create_task(self._run_enrichment_pipeline(event))
+            state = self.get_state(event.device_id)
+            generation = state.playback_generation if state else 0
+            task = asyncio.create_task(self._run_enrichment_pipeline(event, generation))
             self._background_tasks.add(task)
             task.add_done_callback(self._background_tasks.discard)
 
-    async def _run_enrichment_pipeline(self, event: DeviceEvent) -> None:
+    async def _run_enrichment_pipeline(
+        self, event: DeviceEvent, generation: int
+    ) -> None:
         """Run preset-favicon lookup then ICY probe for radio events."""
         assert event.now_playing is not None
 
@@ -303,7 +318,7 @@ class DeviceStateManager:
 
         # Step 2: ICY metadata probe (slow, network)
         if self._icy_worker:
-            await self._run_icy_probe(event)
+            await self._run_icy_probe(event, generation)
 
     async def _run_preset_favicon_enrichment(self, event: DeviceEvent) -> None:
         """Look up preset favicon from DB and publish enriched event."""
@@ -356,12 +371,30 @@ class DeviceStateManager:
         )
         await self.on_event(enriched_event)
 
-    async def _run_icy_probe(self, event: DeviceEvent) -> None:
+    async def _run_icy_probe(self, event: DeviceEvent, generation: int) -> None:
         """Run ICY probe and publish enriched event if successful."""
         assert self._icy_worker is not None
         try:
             enriched = await self._icy_worker.on_event(event)
             if enriched:
+                original = event.now_playing
+                current_state = self.get_state(event.device_id)
+                current = current_state.now_playing if current_state else None
+
+                if (
+                    original is None
+                    or current_state is None
+                    or current is None
+                    or current_state.playback_generation != generation
+                    or current.state != "PLAY_STATE"
+                    or current.source != original.source
+                    or current.station_name != original.station_name
+                ):
+                    logger.debug(
+                        "Discarding stale ICY event result for %s", event.device_id
+                    )
+                    return
+
                 await self.on_event(enriched)
         except Exception:
             logger.debug("ICY probe background task failed", exc_info=True)
@@ -416,13 +449,35 @@ class DeviceStateManager:
         if not self._icy_worker:
             return
         try:
+            original = state.now_playing
+            if original is None:
+                return
+            generation = state.playback_generation
+
             event = DeviceEvent(
                 device_id=device_id,
                 event_type=EventType.NOW_PLAYING,
-                now_playing=state.now_playing,
+                now_playing=original,
             )
             enriched = await self._icy_worker.poll_stream(event)
             if enriched:
+                # The ICY request may have been in flight while playback
+                # changed. Reject results from an older playback generation,
+                # including a quick switch away from and back to the same station.
+                current_state = self.get_state(device_id)
+                current = current_state.now_playing if current_state else None
+
+                if (
+                    current_state is None
+                    or current is None
+                    or current_state.playback_generation != generation
+                    or current.state != "PLAY_STATE"
+                    or current.source != original.source
+                    or current.station_name != original.station_name
+                ):
+                    logger.debug("Discarding stale ICY poll result for %s", device_id)
+                    return
+
                 await self.on_event(enriched)
         except Exception:
             logger.debug("ICY poll failed for %s", device_id, exc_info=True)

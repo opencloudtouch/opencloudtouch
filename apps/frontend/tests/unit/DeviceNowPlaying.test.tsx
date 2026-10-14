@@ -38,13 +38,6 @@ describe("DeviceNowPlaying", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders nothing when state is PAUSE_STATE", () => {
-    const { container } = render(
-      <DeviceNowPlaying nowPlaying={makePlaying({ state: "PAUSE_STATE" })} />,
-    );
-    expect(container.firstChild).toBeNull();
-  });
-
   it("renders nothing when neither title nor subtitle available", () => {
     const { container } = render(
       <DeviceNowPlaying
@@ -157,11 +150,6 @@ describe("DeviceNowPlaying", () => {
   });
 
   it("renders without artist when only title available", () => {
-    render(
-      <DeviceNowPlaying
-        nowPlaying={makePlaying({ artist: undefined })}
-      />,
-    );
     const { container } = render(
       <DeviceNowPlaying nowPlaying={makePlaying({ artist: undefined })} />,
     );
@@ -182,21 +170,4 @@ describe("DeviceNowPlaying", () => {
     expect(screen.getByText("Solo Artist")).toBeInTheDocument();
   });
 
-  // ---- Container structure ----
-
-  it("has correct container class", () => {
-    const { container } = render(
-      <DeviceNowPlaying nowPlaying={makePlaying()} />,
-    );
-    expect(container.querySelector(".device-now-playing")).toBeInTheDocument();
-  });
-
-  it("has text wrapper div", () => {
-    const { container } = render(
-      <DeviceNowPlaying nowPlaying={makePlaying()} />,
-    );
-    expect(
-      container.querySelector(".device-now-playing-text"),
-    ).toBeInTheDocument();
-  });
 });

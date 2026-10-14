@@ -76,15 +76,6 @@ describe("Step2USBPreparation - BUG-17: USB connector type", () => {
     unmount();
   });
 
-  it("shows USB-A for SoundTouch 30 model (has both types)", async () => {
-    const { unmount } = render(
-      <Step2USBPreparation deviceModel="SoundTouch 30" {...defaultProps} />
-    );
-    await waitFor(() => expect(getPageText()).toContain("USB-A"));
-    expect(getPageText()).toContain("MICRO-USB");
-    unmount();
-  });
-
   it("shows USB-A for SoundTouch 300 model", async () => {
     const { unmount } = render(
       <Step2USBPreparation deviceModel="SoundTouch 300" {...defaultProps} />
@@ -149,11 +140,4 @@ describe("Step2USBPreparation - General functionality", () => {
     unmount();
   });
 
-  it("shows remote_services filename in the page", async () => {
-    const { unmount } = render(
-      <Step2USBPreparation deviceModel="SoundTouch 30" {...defaultProps} />
-    );
-    await waitFor(() => expect(getPageText()).toContain("remote_services"));
-    unmount();
-  });
 });

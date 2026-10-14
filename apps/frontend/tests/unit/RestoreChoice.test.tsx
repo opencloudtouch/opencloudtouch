@@ -29,16 +29,14 @@ describe("RestoreChoice", () => {
     onPrevious: vi.fn(),
   };
 
-  it("renders both restore type options", () => {
-    render(<RestoreChoice {...defaultProps} />);
-    expect(screen.getByText("Clean Restore")).toBeInTheDocument();
-    expect(screen.getByText("Restore from Backup")).toBeInTheDocument();
-  });
-
-  it("renders title and description", () => {
+  it("renders title, description, both restore options, and their descriptions", () => {
     render(<RestoreChoice {...defaultProps} />);
     expect(screen.getByText("Choose Restore Type")).toBeInTheDocument();
     expect(screen.getByText("Select how you want to restore the device.")).toBeInTheDocument();
+    expect(screen.getByText("Clean Restore")).toBeInTheDocument();
+    expect(screen.getByText("Restore from Backup")).toBeInTheDocument();
+    expect(screen.getByText("Remove all OCT modifications. No backup needed.")).toBeInTheDocument();
+    expect(screen.getByText("Restore original config files from USB backup.")).toBeInTheDocument();
   });
 
   it("calls onCleanRestore when clean option is clicked", () => {
@@ -53,11 +51,5 @@ describe("RestoreChoice", () => {
     render(<RestoreChoice {...defaultProps} onBackupRestore={onBackup} />);
     fireEvent.click(screen.getByText("Restore from Backup"));
     expect(onBackup).toHaveBeenCalledOnce();
-  });
-
-  it("shows descriptions for each option", () => {
-    render(<RestoreChoice {...defaultProps} />);
-    expect(screen.getByText("Remove all OCT modifications. No backup needed.")).toBeInTheDocument();
-    expect(screen.getByText("Restore original config files from USB backup.")).toBeInTheDocument();
   });
 });

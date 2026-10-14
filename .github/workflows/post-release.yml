@@ -50,6 +50,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
+      is_semver: ${{ steps.version.outputs.is_semver }}
 
     steps:
       - name: Determine version
@@ -67,6 +68,17 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Version: $VERSION (tag: $TAG)"
 
+          # Non-semver tags (e.g. the "raspi-v4"/"raspi-latest" Raspberry Pi image
+          # aliases) also fire `release: published` but aren't app releases — skip
+          # the changelog/announcement steps for those instead of producing
+          # garbage like "vraspi-latest Released".
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "is_semver=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_semver=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping non-semver release tag '$TAG' — not an app release"
+          fi
+
   # ============================================================================
   # UPDATE CHANGELOG.md
   # ============================================================================
@@ -75,15 +87,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: resolve
     if: >-
-      (github.event_name == 'release') ||
-      (github.event_name == 'workflow_dispatch' && inputs.skip_changelog != true)
+      needs.resolve.outputs.is_semver == 'true' &&
+      (
+        (github.event_name == 'release') ||
+        (github.event_name == 'workflow_dispatch' && inputs.skip_changelog != true)
+      )
 
     permissions:
       contents: write
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
@@ -190,15 +205,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: resolve
     if: >-
-      (github.event_name == 'release') ||
-      (github.event_name == 'workflow_dispatch' && inputs.skip_announcement != true)
+      needs.resolve.outputs.is_semver == 'true' &&
+      (
+        (github.event_name == 'release') ||
+        (github.event_name == 'workflow_dispatch' && inputs.skip_announcement != true)
+      )
 
     permissions:
       discussions: write
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.resolve.outputs.tag }}
           fetch-depth: 0

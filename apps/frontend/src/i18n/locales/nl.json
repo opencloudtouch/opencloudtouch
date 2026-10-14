@@ -317,7 +317,7 @@
         "instructionStep3Desc": "Wacht minstens 10 seconden.",
         "instructionStep4": "Stroom herstellen",
         "instructionStep4Desc": "Sluit de voedingsadapter opnieuw aan.",
-        "instructionStep5": "Wachten (~60 seconden)",
+        "instructionStep5": "Wachten (~100 seconden)",
         "instructionStep5Desc": "Het apparaat herstart en leest het remote_services-bestand van de USB-stick.",
         "sectionStatus": "Status controleren",
         "statusWaiting": "Wachten op apparaat herstart...",
@@ -362,7 +362,7 @@
         "troubleshootingTitle": "⚠️ Probleemoplossing",
         "troubleshootingItem1": "Controleer of de USB-stick correct is ingestoken",
         "troubleshootingItem2": "Zorg ervoor dat het bestand 'remote_services' correct is",
-        "troubleshootingItem3": "Wacht minstens 60 seconden na het herstarten",
+        "troubleshootingItem3": "Wacht minstens 100 seconden na het herstarten",
         "troubleshootingItem4": "Probeer een andere stroomcyclus (stappen 2-5)",
         "troubleshootingItem5": "Controleer of het apparaat in hetzelfde netwerk zit",
         "troubleshootingItem6": "Test de SSH-verbinding handmatig met het bovenstaande commando — als dat werkt, is het apparaat klaar."
@@ -450,8 +450,8 @@
         "successTitle": "Hosts-bestand succesvol gewijzigd!",
         "changedEntries": "Gewijzigde vermeldingen:",
         "backupLabel": "Back-up:",
-        "btnShowDiff": "▶ Diff tonen",
-        "btnHideDiff": "▼ Diff verbergen",
+        "btnShowChanges": "▶ Wijzigingen tonen",
+        "btnHideChanges": "▼ Wijzigingen verbergen",
         "hostsApplied": "Hosts-bestand succesvol gewijzigd."
       },
       "step7": {
@@ -764,6 +764,6 @@
   "deviceHeader": {
     "reboot": "Apparaat herstarten",
     "sent": "Herstartopdracht verzonden",
-    "confirmMessage": "{{name}} herstarten? Het apparaat is ongeveer 60 seconden niet beschikbaar."
+    "confirmMessage": "{{name}} herstarten? Het apparaat is ongeveer 100 seconden niet beschikbaar."
   }
 }

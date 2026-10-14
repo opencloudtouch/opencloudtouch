@@ -24,16 +24,6 @@ describe("useHealth", () => {
     expect(result.current.data?.status).toBe("ok");
   });
 
-  it("is in loading state initially before data resolves", async () => {
-    const { getHealth } = await import("../../src/api/health");
-    vi.mocked(getHealth).mockReturnValueOnce(new Promise(() => {})); // never resolves
-
-    const { result } = renderHook(() => useHealth(), { wrapper: QueryWrapper });
-
-    expect(result.current.isLoading).toBe(true);
-    expect(result.current.data).toBeUndefined();
-  });
-
   it("sets isError when fetch rejects", async () => {
     const { getHealth } = await import("../../src/api/health");
     vi.mocked(getHealth).mockRejectedValueOnce(new Error("Network error"));

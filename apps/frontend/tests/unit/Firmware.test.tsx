@@ -69,12 +69,8 @@ describe("Firmware Page", () => {
       expect(screen.getAllByText("Living Room").length).toBeGreaterThanOrEqual(2); // Current + All
       expect(screen.getByText("Küche")).toBeInTheDocument();
       expect(screen.getByText("Bad")).toBeInTheDocument();
-    });
 
-    it("should display firmware version for each device in list", () => {
-      render(<Firmware devices={mockDevices} />);
-
-      // Parsed versions should be shown
+      // Parsed firmware versions should be shown
       const versions = screen.getAllByText(/1\.0\.\d+/);
       expect(versions.length).toBeGreaterThanOrEqual(3);
     });

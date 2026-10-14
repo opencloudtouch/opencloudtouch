@@ -4,7 +4,7 @@ Date: 2026-05-12
 Issue: https://github.com/opencloudtouch/opencloudtouch/issues/184
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from xml.etree import ElementTree
 
 import pytest
@@ -137,59 +137,30 @@ class TestBug184AccountIdToDeviceIdMapping:
 
 
 class TestBug184AccountPairingInWizard:
-    """BUG 2: ensure_account_uuid() existed but was never called in wizard."""
+    """BUG 2: ensure_account_uuid() existed but was never called in wizard.
+
+    WizardService.ensure_account_pairing() was the original fix vehicle for
+    this bug (device UUID pairing + persistence to DeviceRepository). It
+    backed the /wizard/account-pairing endpoint, which was confirmed dead
+    (no frontend caller, no route-level test coverage) and removed
+    2026-08-17 along with its backing method — see
+    opencloudtouch/setup/wizard/legacy_routes.py and
+    test_regression.py::TestLegacyWizardMethodsRemoved.
+
+    The protection this bug guards against — UUID pairing plus persistence
+    to DeviceRepository so the streaming endpoint can resolve
+    account_id -> device_id — is exercised today by the live finalize step
+    instead (test_step7_finalize_verify.py, which asserts
+    repo.update_marge_account_uuid is called after
+    ensure_account_uuid_unique() succeeds).
+    """
 
     @pytest.mark.asyncio
-    async def test_wizard_has_ensure_account_pairing_method(self):
-        """Verify WizardService exposes ensure_account_pairing."""
-        from opencloudtouch.setup.wizard_service import WizardService
+    async def test_ensure_account_pairing_removed(self):
+        """Verify the dead ensure_account_pairing method was deleted."""
+        from opencloudtouch.setup.wizard import WizardService
 
-        wizard = WizardService()
-        assert hasattr(wizard, "ensure_account_pairing")
-        assert callable(wizard.ensure_account_pairing)
-
-    @pytest.mark.asyncio
-    async def test_ensure_account_pairing_persists_uuid(self):
-        """Verify pairing persists UUID to device repository."""
-        from opencloudtouch.setup.account_pairing_service import AccountPairingResult
-        from opencloudtouch.setup.wizard_service import WizardService
-
-        mock_device_repo = AsyncMock()
-        mock_device_repo.update_marge_account_uuid = AsyncMock()
-        wizard = WizardService(device_repo=mock_device_repo)
-        fake_result = AccountPairingResult(
-            success=True, had_uuid=False, uuid="1234567", message="UUID set"
-        )
-        with patch(
-            "opencloudtouch.setup.wizard_service.ensure_account_uuid",
-            new_callable=AsyncMock,
-            return_value=fake_result,
-        ):
-            result = await wizard.ensure_account_pairing(
-                "192.168.1.100", "F4E11EA01FE6"
-            )
-        assert result["success"] is True
-        assert result["uuid"] == "1234567"
-        mock_device_repo.update_marge_account_uuid.assert_called_once_with(
-            "F4E11EA01FE6", "1234567"
-        )
-
-    @pytest.mark.asyncio
-    async def test_ensure_account_pairing_handles_failure(self):
-        """Verify pairing handles failures gracefully."""
-        from opencloudtouch.setup.wizard_service import WizardService
-
-        wizard = WizardService()
-        with patch(
-            "opencloudtouch.setup.wizard_service.ensure_account_uuid",
-            new_callable=AsyncMock,
-            side_effect=ConnectionError("Device unreachable"),
-        ):
-            result = await wizard.ensure_account_pairing(
-                "192.168.1.100", "F4E11EA01FE6"
-            )
-        assert result["success"] is False
-        assert "Device unreachable" in result["error"]
+        assert not hasattr(WizardService, "ensure_account_pairing")
 
 
 class TestBug184DatabaseMigration:
