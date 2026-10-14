@@ -228,6 +228,26 @@ class TestBassEndpoint:
         assert response.json()["detail"] == "Request validation failed"
         mock_device_service.set_device_bass.assert_not_called()
 
+    @pytest.mark.parametrize("operation", ["get", "put"])
+    def test_bass_connection_error_marks_device_offline(
+        self, client, mock_device_service, operation
+    ):
+        """Both bass operations propagate connection errors and publish offline state."""
+        state_manager = AsyncMock()
+        app.dependency_overrides[get_device_state_manager] = lambda: state_manager
+        error = DeviceConnectionError("192.168.1.100", "Connection refused")
+        if operation == "get":
+            mock_device_service.get_device_bass = AsyncMock(side_effect=error)
+            response = client.get("/api/devices/ABC123/settings/bass")
+        else:
+            mock_device_service.set_device_bass = AsyncMock(side_effect=error)
+            response = client.put(
+                "/api/devices/ABC123/settings/bass", json={"level": -4}
+            )
+
+        assert response.status_code >= 400
+        state_manager.mark_device_offline.assert_awaited_once_with("ABC123")
+
     def test_set_bass_returns_422_for_out_of_range(self, client, mock_device_service):
         mock_device_service.set_device_bass = AsyncMock(
             side_effect=ValueError("Bass level must be between -9 and 0")

@@ -106,7 +106,7 @@ async def test_mock_capabilities_preserve_existing_fields(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_mock_capabilities_survive_bass_probe_failure(monkeypatch):
+async def test_mock_capabilities_return_none_on_bass_probe_failure(monkeypatch):
     """A failed bass probe must not discard other device capabilities."""
     monkeypatch.setenv("OCT_MOCK_MODE", "true")
     client = MockDeviceClient("AABBCC112233")
@@ -118,15 +118,8 @@ async def test_mock_capabilities_survive_bass_probe_failure(monkeypatch):
 
     flags = await original_fetch_capabilities("192.168.1.100", client)
 
-    assert flags is not None
-    assert flags["device_id"] == "AABBCC112233"
-    assert flags["device_type"] == "SoundTouch 20"
-    assert flags["is_soundbar"] is False
-    assert "features" in flags
-    assert "sources" in flags
-    assert "advanced" in flags
-    assert flags["features"]["bass_control"] is False
-    assert "bass" not in flags.get("settings", {})
+    # Partial capability dicts would overwrite previously persisted bass data.
+    assert flags is None
 
 
 class TestDeviceSyncService:

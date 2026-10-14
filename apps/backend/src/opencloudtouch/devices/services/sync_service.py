@@ -364,13 +364,15 @@ class DeviceSyncService:
                 bass = await client.get_bass_capabilities()
             except Exception:
                 logger.debug(
-                    "Could not fetch bass capabilities from %s",
+                    "Could not fetch bass capabilities from %s; preserving stored capabilities",
                     device_ip,
                     exc_info=True,
                 )
-            else:
-                merge_bass_capabilities(flags, bass)
+                # Returning partial flags would overwrite previously persisted bass metadata.
+                # None makes the repository retain the complete existing JSON.
+                return None
 
+            merge_bass_capabilities(flags, bass)
             return flags
         except Exception:
             logger.debug(

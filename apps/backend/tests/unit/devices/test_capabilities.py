@@ -360,7 +360,7 @@ async def test_get_device_capabilities_supports_internal_library_fields():
     sources.SourceItems = None
     sources._SourceItems = [source]
 
-    client.GetDeviceInfo.return_value = info
+    client.GetInformation.return_value = info
     client.GetCapabilities.return_value = caps
     client.GetSourceList.return_value = sources
 

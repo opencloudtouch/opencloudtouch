@@ -10,12 +10,12 @@ import base64
 import json
 import logging
 from urllib.parse import urlparse
-from defusedxml import ElementTree
 from xml.sax.saxutils import escape as xml_escape
 
 import httpx
 from bosesoundtouchapi import SoundTouchClient as BoseClient
 from bosesoundtouchapi import SoundTouchDevice
+from defusedxml import ElementTree
 
 from opencloudtouch.core.exceptions import DeviceConnectionError
 from opencloudtouch.devices.client import (
