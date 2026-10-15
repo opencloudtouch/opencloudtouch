@@ -438,10 +438,9 @@ export default function RadioSearch({
                   }
                   onClick={() =>
                     handleSelect({
-                      stationuuid:
-                        existingPreset?.station_uuid?.startsWith("manual-")
-                          ? existingPreset.station_uuid
-                          : `manual-${Date.now()}`,
+                      stationuuid: existingPreset?.station_uuid?.startsWith("manual-")
+                        ? existingPreset.station_uuid
+                        : `manual-${Date.now()}`,
                       name: manualName.trim(),
                       country: "",
                       url: manualUrl.trim(),
