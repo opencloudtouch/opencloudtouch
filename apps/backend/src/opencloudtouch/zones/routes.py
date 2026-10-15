@@ -81,7 +81,11 @@ async def dissolve_zone(
     await zone_service.dissolve_zone(master_id)
 
 
-@router.post("/{master_id}/members", status_code=200)
+@router.post(
+    "/{master_id}/members",
+    status_code=200,
+    responses={409: {"description": "Zone was dissolved during member addition"}},
+)
 async def add_zone_members(
     master_id: str,
     request: ModifyMembersRequest,
