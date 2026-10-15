@@ -615,6 +615,85 @@ async def test_stream_validation_pins_public_ip_with_https_hostname(
 
 
 @pytest.mark.asyncio
+async def test_stream_validation_falls_back_from_ipv6_to_ipv4(
+    service, monkeypatch
+):
+    """An unreachable public IPv6 must not reject a working IPv4 stream."""
+    requests = []
+
+    def respond(req):
+        requests.append(req)
+        if req.url.host == "2606:4700:4700::1111":
+            raise httpx.ConnectTimeout("IPv6 unavailable", request=req)
+        if req.url.host == "1.1.1.1":
+            return httpx.Response(
+                302, headers={"Location": "http://stream.example.org/live"}
+            )
+        return httpx.Response(200)
+
+    lookup = _mock_stream_network(
+        monkeypatch,
+        {
+            "radio.example.org": ["2606:4700:4700::1111", "1.1.1.1"],
+            "stream.example.org": ["1.0.0.1"],
+        },
+        respond,
+    )
+    await service._check_stream_reachable("http://radio.example.org/start")
+
+    assert [req.url.host for req in requests] == [
+        "2606:4700:4700::1111",
+        "1.1.1.1",
+        "1.0.0.1",
+    ]
+    assert [req.headers["host"] for req in requests] == [
+        "radio.example.org",
+        "radio.example.org",
+        "stream.example.org",
+    ]
+    assert lookup.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_stream_validation_does_not_retry_http_errors(service, monkeypatch):
+    """A server's HTTP error is not an IP connectivity failure."""
+    requests = []
+
+    def respond(req):
+        requests.append(req)
+        return httpx.Response(403)
+
+    _mock_stream_network(
+        monkeypatch,
+        {"radio.example.org": ["1.1.1.1", "1.0.0.1"]},
+        respond,
+    )
+    with pytest.raises(ValueError, match="not reachable"):
+        await service._check_stream_reachable("http://radio.example.org/live")
+    assert [req.url.host for req in requests] == ["1.1.1.1"]
+
+
+@pytest.mark.asyncio
+async def test_stream_validation_fails_when_all_public_ips_unreachable(
+    service, monkeypatch
+):
+    requests = []
+
+    def respond(req):
+        requests.append(req)
+        raise httpx.ConnectTimeout("unreachable", request=req)
+
+    _mock_stream_network(
+        monkeypatch,
+        {"radio.example.org": ["2606:4700:4700::1111", "1.1.1.1"]},
+        respond,
+    )
+    with pytest.raises(ValueError, match="not reachable"):
+        await service._check_stream_reachable("http://radio.example.org/live")
+    assert len(requests) == 2
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "url",
     [

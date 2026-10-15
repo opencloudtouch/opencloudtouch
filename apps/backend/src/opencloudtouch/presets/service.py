@@ -47,8 +47,8 @@ class PresetService:
     @staticmethod
     async def _validate_stream_url(
         url: str,
-    ) -> ipaddress.IPv4Address | ipaddress.IPv6Address:
-        """Validate HTTP(S) URL and public DNS target without fetching audio."""
+    ) -> list[ipaddress.IPv4Address | ipaddress.IPv6Address]:
+        """Validate HTTP(S) URL and return all safe DNS targets without fetching audio."""
         try:
             parsed = urlsplit(url.strip())
             hostname = parsed.hostname
@@ -79,7 +79,7 @@ class PresetService:
         ips = [ipaddress.ip_address(address[4][0]) for address in addresses]
         if not ips or any(not ip.is_global or ip.is_multicast for ip in ips):
             raise ValueError("Stream URL resolves to a non-public IP address")
-        return ips[0]
+        return list(dict.fromkeys(ips))
 
     @staticmethod
     async def _check_stream_reachable(url: str) -> None:
@@ -87,42 +87,52 @@ class PresetService:
         current_url = url.strip()
         timeout = httpx.Timeout(5.0, connect=3.0)
         for _ in range(6):
-            ip = await PresetService._validate_stream_url(current_url)
+            ips = await PresetService._validate_stream_url(current_url)
             parsed = urlsplit(current_url)
             port = parsed.port or (443 if parsed.scheme == "https" else 80)
-            ip_host = f"[{ip}]" if ip.version == 6 else str(ip)
-            pinned_url = urlunsplit(
-                (
-                    parsed.scheme,
-                    f"{ip_host}:{port}",
-                    parsed.path or "/",
-                    parsed.query,
-                    "",
-                )
-            )
             extensions = (
                 {"sni_hostname": parsed.hostname} if parsed.scheme == "https" else {}
             )
-            try:
-                async with httpx.AsyncClient(
-                    timeout=timeout, follow_redirects=False, trust_env=False
-                ) as client:
-                    async with client.stream(
-                        "GET",
-                        pinned_url,
-                        headers={"Host": parsed.netloc},
-                        extensions=extensions,
-                    ) as response:
-                        if response.status_code in {301, 302, 303, 307, 308}:
-                            location = response.headers.get("location")
-                            if not location:
-                                raise ValueError("Stream URL is not reachable")
-                            current_url = urljoin(current_url, location)
-                            continue
-                        response.raise_for_status()
-                        return
-            except httpx.HTTPError as exc:
-                raise ValueError("Stream URL is not reachable") from exc
+            redirect_url = None
+
+            for ip in ips:
+                ip_host = f"[{ip}]" if ip.version == 6 else str(ip)
+                pinned_url = urlunsplit(
+                    (
+                        parsed.scheme,
+                        f"{ip_host}:{port}",
+                        parsed.path or "/",
+                        parsed.query,
+                        "",
+                    )
+                )
+                try:
+                    async with httpx.AsyncClient(
+                        timeout=timeout, follow_redirects=False, trust_env=False
+                    ) as client:
+                        async with client.stream(
+                            "GET",
+                            pinned_url,
+                            headers={"Host": parsed.netloc},
+                            extensions=extensions,
+                        ) as response:
+                            if response.status_code in {301, 302, 303, 307, 308}:
+                                location = response.headers.get("location")
+                                if not location:
+                                    raise ValueError("Stream URL is not reachable")
+                                redirect_url = urljoin(current_url, location)
+                                break
+                            response.raise_for_status()
+                            return
+                except httpx.RequestError:
+                    # Try another verified DNS address if this one cannot connect.
+                    continue
+                except httpx.HTTPStatusError as exc:
+                    raise ValueError("Stream URL is not reachable") from exc
+
+            if redirect_url is None:
+                raise ValueError("Stream URL is not reachable")
+            current_url = redirect_url
         raise ValueError("Too many stream URL redirects")
 
     async def set_preset(
