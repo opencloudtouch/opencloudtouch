@@ -615,9 +615,7 @@ async def test_stream_validation_pins_public_ip_with_https_hostname(
 
 
 @pytest.mark.asyncio
-async def test_stream_validation_falls_back_from_ipv6_to_ipv4(
-    service, monkeypatch
-):
+async def test_stream_validation_falls_back_from_ipv6_to_ipv4(service, monkeypatch):
     """An unreachable public IPv6 must not reject a working IPv4 stream."""
     requests = []
 
