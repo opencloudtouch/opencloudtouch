@@ -4,8 +4,10 @@ Covers sync_presets_from_device (all source branches),
 set_preset, get_preset, get_all_presets, clear_preset, clear_all_presets.
 """
 
+import asyncio
 import base64
 import json
+import socket
 from unittest.mock import AsyncMock, MagicMock, patch
 from xml.etree import ElementTree as ET
 
@@ -469,6 +471,348 @@ async def test_set_preset_saves_to_database(service, mock_device_repo):
     assert called_preset.preset_number == 1
     assert called_preset.station_uuid == "station-abc"
     assert called_preset.source == "LOCAL_INTERNET_RADIO"
+
+
+@pytest.mark.asyncio
+async def test_set_preset_manual_stream_validates_before_saving(service):
+    """Manual stream presets are validated before they are persisted."""
+    saved_preset = MagicMock()
+    service.repository.set_preset = AsyncMock(return_value=saved_preset)
+
+    with patch.object(
+        service,
+        "_check_stream_reachable",
+        AsyncMock(return_value=None),
+    ) as mock_validate:
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client"
+        ) as mock_get_client:
+            mock_client = AsyncMock()
+            mock_client.store_preset = AsyncMock()
+            mock_client.close = AsyncMock()
+            mock_get_client.return_value = mock_client
+
+            result = await service.set_preset(
+                device_id="dev-001",
+                preset_number=1,
+                station_uuid="manual-123",
+                station_name="Manual Radio",
+                station_url="https://example.com/live.mp3",
+            )
+
+    assert result == saved_preset
+    mock_validate.assert_awaited_once_with("https://example.com/live.mp3")
+    service.repository.set_preset.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_set_preset_manual_unreachable_does_not_save(service):
+    """An unreachable manual stream must not be persisted."""
+    with patch.object(
+        service,
+        "_check_stream_reachable",
+        AsyncMock(side_effect=ValueError("Stream URL is not reachable")),
+    ) as mock_validate:
+        with pytest.raises(ValueError, match="Stream URL is not reachable"):
+            await service.set_preset(
+                device_id="dev-001",
+                preset_number=1,
+                station_uuid="manual-123",
+                station_name="Broken Radio",
+                station_url="https://example.com/broken.mp3",
+            )
+
+    mock_validate.assert_awaited_once_with("https://example.com/broken.mp3")
+    service.repository.set_preset.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_set_preset_non_manual_skips_reachability_test(service):
+    """Provider presets must not run the manual reachability probe."""
+    saved_preset = MagicMock()
+    service.repository.set_preset = AsyncMock(return_value=saved_preset)
+
+    with patch.object(
+        service,
+        "_check_stream_reachable",
+        AsyncMock(),
+    ) as mock_validate:
+        with patch(
+            "opencloudtouch.devices.adapter.get_device_client"
+        ) as mock_get_client:
+            mock_client = AsyncMock()
+            mock_client.store_preset = AsyncMock()
+            mock_client.close = AsyncMock()
+            mock_get_client.return_value = mock_client
+
+            await service.set_preset(
+                device_id="dev-001",
+                preset_number=1,
+                station_uuid="station-abc",
+                station_name="Provider Radio",
+                station_url="http://example.com/stream.mp3",
+            )
+
+    mock_validate.assert_not_awaited()
+    service.repository.set_preset.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_validate_stream_url_rejects_non_http_scheme(service):
+    """Manual streams only accept HTTP and HTTPS URLs."""
+    with pytest.raises(ValueError, match="HTTP or HTTPS"):
+        await service._check_stream_reachable("file:///tmp/radio.mp3")
+
+
+def _mock_stream_network(monkeypatch, dns_records, handler):
+    """Replace DNS and HTTP transport without allowing real connections."""
+    real_client = httpx.AsyncClient
+    transport = httpx.MockTransport(handler)
+    monkeypatch.setattr(
+        httpx,
+        "AsyncClient",
+        lambda **kwargs: real_client(transport=transport, **kwargs),
+    )
+
+    def resolve(host, port, **kwargs):
+        if host not in dns_records:
+            raise OSError("Host not found")
+        return [
+            (
+                socket.AF_INET6 if ":" in ip else socket.AF_INET,
+                socket.SOCK_STREAM,
+                6,
+                "",
+                (ip, port),
+            )
+            for ip in dns_records[host]
+        ]
+
+    lookup = AsyncMock(side_effect=resolve)
+    monkeypatch.setattr(asyncio.get_running_loop(), "getaddrinfo", lookup)
+    return lookup
+
+
+@pytest.mark.asyncio
+async def test_stream_validation_pins_public_ip_with_https_hostname(
+    service, monkeypatch
+):
+    """GET uses the verified IP but original Host and TLS certificate hostname."""
+    requests = []
+    lookup = _mock_stream_network(
+        monkeypatch,
+        {"radio.example.org": ["1.1.1.1"]},
+        lambda req: (requests.append(req), httpx.Response(200))[1],
+    )
+
+    await service._check_stream_reachable("https://radio.example.org/live?quality=high")
+
+    assert len(requests) == 1
+    assert str(requests[0].url) == "https://1.1.1.1/live?quality=high"
+    assert requests[0].headers["host"] == "radio.example.org"
+    assert requests[0].extensions["sni_hostname"] == "radio.example.org"
+    lookup.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_stream_validation_falls_back_from_ipv6_to_ipv4(service, monkeypatch):
+    """An unreachable public IPv6 must not reject a working IPv4 stream."""
+    requests = []
+
+    def respond(req):
+        requests.append(req)
+        if req.url.host == "2606:4700:4700::1111":
+            raise httpx.ConnectTimeout("IPv6 unavailable", request=req)
+        if req.url.host == "1.1.1.1":
+            return httpx.Response(
+                302, headers={"Location": "http://stream.example.org/live"}
+            )
+        return httpx.Response(200)
+
+    lookup = _mock_stream_network(
+        monkeypatch,
+        {
+            "radio.example.org": ["2606:4700:4700::1111", "1.1.1.1"],
+            "stream.example.org": ["1.0.0.1"],
+        },
+        respond,
+    )
+    await service._check_stream_reachable("http://radio.example.org/start")
+
+    assert [req.url.host for req in requests] == [
+        "2606:4700:4700::1111",
+        "1.1.1.1",
+        "1.0.0.1",
+    ]
+    assert [req.headers["host"] for req in requests] == [
+        "radio.example.org",
+        "radio.example.org",
+        "stream.example.org",
+    ]
+    assert lookup.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_stream_validation_does_not_retry_http_errors(service, monkeypatch):
+    """A server's HTTP error is not an IP connectivity failure."""
+    requests = []
+
+    def respond(req):
+        requests.append(req)
+        return httpx.Response(403)
+
+    _mock_stream_network(
+        monkeypatch,
+        {"radio.example.org": ["1.1.1.1", "1.0.0.1"]},
+        respond,
+    )
+    with pytest.raises(ValueError, match="not reachable"):
+        await service._check_stream_reachable("http://radio.example.org/live")
+    assert [req.url.host for req in requests] == ["1.1.1.1"]
+
+
+@pytest.mark.asyncio
+async def test_stream_validation_fails_when_all_public_ips_unreachable(
+    service, monkeypatch
+):
+    requests = []
+
+    def respond(req):
+        requests.append(req)
+        raise httpx.ConnectTimeout("unreachable", request=req)
+
+    _mock_stream_network(
+        monkeypatch,
+        {"radio.example.org": ["2606:4700:4700::1111", "1.1.1.1"]},
+        respond,
+    )
+    with pytest.raises(ValueError, match="not reachable"):
+        await service._check_stream_reachable("http://radio.example.org/live")
+    assert len(requests) == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://192.168.1.1:8000/live",
+        "http://127.0.0.1/live",
+        "http://169.254.169.254/latest/meta-data",
+        "http://[::1]/live",
+        "http://[fe80::1]/live",
+        "http://224.0.0.1/live",
+        "http://private.example.org/live",
+        "http://mixed.example.org/live",
+    ],
+)
+async def test_stream_validation_blocks_non_public_addresses(service, monkeypatch, url):
+    """Reject unsafe literal IPs and DNS responses, including mixed records."""
+    requests = []
+    _mock_stream_network(
+        monkeypatch,
+        {
+            "192.168.1.1": ["192.168.1.1"],
+            "127.0.0.1": ["127.0.0.1"],
+            "169.254.169.254": ["169.254.169.254"],
+            "::1": ["::1"],
+            "fe80::1": ["fe80::1"],
+            "224.0.0.1": ["224.0.0.1"],
+            "private.example.org": ["10.0.0.1"],
+            "mixed.example.org": ["1.1.1.1", "10.0.0.1"],
+        },
+        lambda req: (requests.append(req), httpx.Response(200))[1],
+    )
+
+    with pytest.raises(ValueError, match="non-public"):
+        await service._check_stream_reachable(url)
+    assert not requests
+
+
+@pytest.mark.asyncio
+async def test_stream_validation_rechecks_and_pins_public_redirect(
+    service, monkeypatch
+):
+    requests = []
+
+    def respond(req):
+        requests.append(req)
+        if len(requests) == 1:
+            return httpx.Response(
+                302, headers={"Location": "https://next.example.org/live"}
+            )
+        return httpx.Response(200)
+
+    lookup = _mock_stream_network(
+        monkeypatch,
+        {
+            "radio.example.org": ["1.1.1.1"],
+            "next.example.org": ["2606:4700:4700::1111"],
+        },
+        respond,
+    )
+
+    await service._check_stream_reachable("https://radio.example.org/start")
+
+    assert len(requests) == 2
+    assert lookup.await_count == 2
+    assert requests[1].url.host == "2606:4700:4700::1111"
+    assert requests[1].headers["host"] == "next.example.org"
+    assert requests[1].extensions["sni_hostname"] == "next.example.org"
+
+
+@pytest.mark.asyncio
+async def test_stream_validation_rejects_private_redirect(service, monkeypatch):
+    requests = []
+    _mock_stream_network(
+        monkeypatch,
+        {
+            "radio.example.org": ["1.1.1.1"],
+            "169.254.169.254": ["169.254.169.254"],
+        },
+        lambda req: (
+            requests.append(req),
+            httpx.Response(
+                302, headers={"Location": "http://169.254.169.254/latest/meta-data"}
+            ),
+        )[1],
+    )
+
+    with pytest.raises(ValueError, match="non-public"):
+        await service._check_stream_reachable("http://radio.example.org/start")
+    assert len(requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_stream_validation_limits_redirects(service, monkeypatch):
+    requests = []
+    _mock_stream_network(
+        monkeypatch,
+        {"radio.example.org": ["1.1.1.1"]},
+        lambda req: (
+            requests.append(req),
+            httpx.Response(302, headers={"Location": "/again"}),
+        )[1],
+    )
+
+    with pytest.raises(ValueError, match="Too many"):
+        await service._check_stream_reachable("http://radio.example.org/start")
+    assert len(requests) == 6
+
+
+@pytest.mark.asyncio
+async def test_common_url_validation_does_not_open_http_connection(
+    service, monkeypatch
+):
+    """Preset playback and descriptors only resolve/check the URL."""
+    lookup = _mock_stream_network(
+        monkeypatch,
+        {"radio.example.org": ["1.1.1.1"]},
+        lambda request: (_ for _ in ()).throw(AssertionError("Unexpected HTTP GET")),
+    )
+    with patch("opencloudtouch.presets.service.httpx.AsyncClient") as client:
+        await service._validate_stream_url("https://radio.example.org/live")
+    client.assert_not_called()
+    lookup.assert_awaited_once()
 
 
 @pytest.mark.asyncio

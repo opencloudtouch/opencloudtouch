@@ -5,6 +5,7 @@ Covers:
 - GET /descriptor/device/{device_id}/preset/{preset_id} — XML/redirect descriptor
 """
 
+import socket
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -18,6 +19,7 @@ from opencloudtouch.devices.client import NowPlayingInfo
 from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.main import app
 from opencloudtouch.presets.models import Preset
+from opencloudtouch.presets.service import PresetService
 
 
 @pytest.fixture
@@ -85,15 +87,22 @@ class TestStreamDevicePreset:
         mock_http_client.send = AsyncMock(return_value=mock_response)
         mock_http_client.aclose = AsyncMock()
 
-        with patch(
-            "opencloudtouch.devices.api.preset_stream_routes.httpx.AsyncClient",
-            return_value=mock_http_client,
-        ), patch(
-            "opencloudtouch.devices.api.preset_stream_routes.validate_stream_url",
+        with (
+            patch(
+                "opencloudtouch.devices.api.preset_stream_routes.httpx.AsyncClient",
+                return_value=mock_http_client,
+            ),
+            patch.object(
+                mock_preset_service, "_validate_stream_url", new_callable=AsyncMock
+            ) as validator,
         ):
             with client.stream("GET", "/device/689E194F7D2F/preset/1") as response:
                 assert response.status_code == 200
                 assert "audio" in response.headers.get("content-type", "")
+
+        # Address validation precedes the audio fetch without an extra HTTP GET.
+        validator.assert_awaited_once_with(sample_preset.station_url)
+        mock_http_client.send.assert_awaited_once()
 
     def test_stream_stops_when_device_no_longer_playing(
         self, client, mock_preset_service, sample_preset, state_manager
@@ -131,11 +140,14 @@ class TestStreamDevicePreset:
         mock_http_client.send = AsyncMock(return_value=mock_response)
         mock_http_client.aclose = AsyncMock()
 
-        with patch(
-            "opencloudtouch.devices.api.preset_stream_routes.httpx.AsyncClient",
-            return_value=mock_http_client,
-        ), patch(
-            "opencloudtouch.devices.api.preset_stream_routes.validate_stream_url",
+        with (
+            patch(
+                "opencloudtouch.devices.api.preset_stream_routes.httpx.AsyncClient",
+                return_value=mock_http_client,
+            ),
+            patch.object(
+                mock_preset_service, "_validate_stream_url", new_callable=AsyncMock
+            ),
         ):
             with client.stream("GET", f"/device/{device_id}/preset/1") as response:
                 body = b"".join(response.iter_bytes())
@@ -159,11 +171,14 @@ class TestStreamDevicePreset:
         mock_http_client.send = AsyncMock(return_value=mock_response)
         mock_http_client.aclose = AsyncMock()
 
-        with patch(
-            "opencloudtouch.devices.api.preset_stream_routes.httpx.AsyncClient",
-            return_value=mock_http_client,
-        ), patch(
-            "opencloudtouch.devices.api.preset_stream_routes.validate_stream_url",
+        with (
+            patch(
+                "opencloudtouch.devices.api.preset_stream_routes.httpx.AsyncClient",
+                return_value=mock_http_client,
+            ),
+            patch.object(
+                mock_preset_service, "_validate_stream_url", new_callable=AsyncMock
+            ),
         ):
             response = client.get("/device/689E194F7D2F/preset/1")
             assert response.status_code == 502
@@ -182,69 +197,115 @@ class TestStreamDevicePreset:
         )
         mock_http_client.aclose = AsyncMock()
 
-        with patch(
-            "opencloudtouch.devices.api.preset_stream_routes.httpx.AsyncClient",
-            return_value=mock_http_client,
-        ), patch(
-            "opencloudtouch.devices.api.preset_stream_routes.validate_stream_url",
+        with (
+            patch(
+                "opencloudtouch.devices.api.preset_stream_routes.httpx.AsyncClient",
+                return_value=mock_http_client,
+            ),
+            patch.object(
+                mock_preset_service, "_validate_stream_url", new_callable=AsyncMock
+            ),
         ):
             response = client.get("/device/689E194F7D2F/preset/1")
             assert response.status_code == 502
 
-
-class TestValidateStreamUrl:
-    """Tests for validate_stream_url SSRF protection."""
-
-    def test_rejects_ftp_scheme(self):
-        from opencloudtouch.devices.api.preset_stream_routes import validate_stream_url
-
-        with pytest.raises(Exception) as exc_info:
-            validate_stream_url("ftp://evil.com/stream")
-        assert exc_info.value.status_code == 400
-
-    def test_rejects_loopback(self):
-        from opencloudtouch.devices.api.preset_stream_routes import validate_stream_url
-
+    def test_proxy_rejects_invalid_stream_url_before_fetch(
+        self, client, mock_preset_service, sample_preset
+    ):
+        mock_preset_service.get_preset = AsyncMock(return_value=sample_preset)
+        mock_preset_service._validate_stream_url = AsyncMock(
+            side_effect=ValueError("Stream URL resolves to a non-public IP address")
+        )
         with patch(
-            "opencloudtouch.devices.api.preset_stream_routes.socket.getaddrinfo",
-            return_value=[(None, None, None, None, ("127.0.0.1", 0))],
-        ):
-            with pytest.raises(Exception) as exc_info:
-                validate_stream_url("https://evil.com/stream")
-            assert exc_info.value.status_code == 400
+            "opencloudtouch.devices.api.preset_stream_routes.httpx.AsyncClient"
+        ) as client_cls:
+            response = client.get("/device/689E194F7D2F/preset/1")
 
-    def test_rejects_link_local(self):
-        from opencloudtouch.devices.api.preset_stream_routes import validate_stream_url
+        assert response.status_code == 400
+        mock_preset_service._validate_stream_url.assert_awaited_once_with(
+            sample_preset.station_url
+        )
+        client_cls.assert_not_called()
 
-        with patch(
-            "opencloudtouch.devices.api.preset_stream_routes.socket.getaddrinfo",
-            return_value=[(None, None, None, None, ("169.254.1.1", 0))],
-        ):
-            with pytest.raises(Exception) as exc_info:
-                validate_stream_url("https://evil.com/stream")
-            assert exc_info.value.status_code == 400
 
-    def test_rejects_unresolvable_hostname(self):
-        import socket as _socket
+@pytest.mark.parametrize(
+    ("endpoint", "is_descriptor"),
+    [
+        ("/device/689E194F7D2F/preset/1", False),
+        ("/descriptor/device/689E194F7D2F/preset/1", True),
+    ],
+)
+@pytest.mark.parametrize(
+    ("resolved_ip", "allowed"),
+    [("1.1.1.1", True), ("192.168.1.50", False)],
+)
+def test_radiobrowser_preset_uses_real_shared_url_validator(
+    client,
+    mock_preset_service,
+    sample_preset,
+    endpoint,
+    is_descriptor,
+    resolved_ip,
+    allowed,
+):
+    """Exercise the actual DNS/IP policy for a normal RadioBrowser preset.
 
-        from opencloudtouch.devices.api.preset_stream_routes import validate_stream_url
+    Only DNS and the audio transport are mocked, not _validate_stream_url.
+    No external network connections are made.
+    """
+    assert not sample_preset.station_uuid.startswith("manual-")
+    mock_preset_service.get_preset = AsyncMock(return_value=sample_preset)
+    mock_preset_service._validate_stream_url = PresetService._validate_stream_url
 
-        with patch(
-            "opencloudtouch.devices.api.preset_stream_routes.socket.getaddrinfo",
-            side_effect=_socket.gaierror("Name resolution failed"),
-        ):
-            with pytest.raises(Exception) as exc_info:
-                validate_stream_url("https://nonexistent.invalid/stream")
-            assert exc_info.value.status_code == 400
+    upstream = MagicMock()
+    upstream.status_code = 200
+    upstream.headers = {"content-type": "audio/mpeg"}
+    upstream.aclose = AsyncMock()
 
-    def test_allows_valid_public_url(self):
-        from opencloudtouch.devices.api.preset_stream_routes import validate_stream_url
+    async def audio_chunks(chunk_size=8192):
+        yield b"radiobrowser_audio"
 
-        with patch(
-            "opencloudtouch.devices.api.preset_stream_routes.socket.getaddrinfo",
-            return_value=[(None, None, None, None, ("93.184.216.34", 0))],
-        ):
-            validate_stream_url("https://stream.example.com/audio.mp3")
+    upstream.aiter_bytes = audio_chunks
+    http_client = MagicMock()
+    http_client.send = AsyncMock(return_value=upstream)
+    http_client.aclose = AsyncMock()
+
+    address = (
+        socket.AF_INET,
+        socket.SOCK_STREAM,
+        6,
+        "",
+        (resolved_ip, 443),
+    )
+    with (
+        patch(
+            "asyncio.BaseEventLoop.getaddrinfo",
+            new_callable=AsyncMock,
+            return_value=[address],
+        ) as resolve,
+        patch(
+            "opencloudtouch.devices.api.preset_stream_routes.httpx.AsyncClient",
+            return_value=http_client,
+        ) as client_cls,
+    ):
+        response = client.get(endpoint, follow_redirects=False)
+
+    resolve.assert_awaited_once()
+    assert resolve.await_args.args[0] == "stream.absolutradio.de"
+
+    if not allowed:
+        assert response.status_code == 400
+        assert "non-public" in response.json()["detail"]
+        client_cls.assert_not_called()
+    elif is_descriptor:
+        assert response.status_code == 302
+        assert response.headers["location"] == sample_preset.station_url
+        client_cls.assert_not_called()
+    else:
+        assert response.status_code == 200
+        assert response.content == b"radiobrowser_audio"
+        http_client.send.assert_awaited_once()
+        http_client.aclose.assert_awaited_once()
 
 
 class TestGetPresetDescriptor:
@@ -256,13 +317,30 @@ class TestGetPresetDescriptor:
         """Test descriptor returns 302 redirect to stream URL."""
         mock_preset_service.get_preset = AsyncMock(return_value=sample_preset)
 
+        with patch.object(
+            mock_preset_service, "_validate_stream_url", new_callable=AsyncMock
+        ):
+            response = client.get(
+                "/descriptor/device/689E194F7D2F/preset/1",
+                follow_redirects=False,
+            )
+
+        assert response.status_code == 302
+        assert response.headers["location"] == sample_preset.station_url
+
+    def test_descriptor_rejects_invalid_stream_url(
+        self, client, mock_preset_service, sample_preset
+    ):
+        mock_preset_service.get_preset = AsyncMock(return_value=sample_preset)
+        mock_preset_service._validate_stream_url = AsyncMock(
+            side_effect=ValueError("Stream URL resolves to a non-public IP address")
+        )
         response = client.get(
             "/descriptor/device/689E194F7D2F/preset/1",
             follow_redirects=False,
         )
-
-        assert response.status_code == 302
-        assert response.headers["location"] == sample_preset.station_url
+        assert response.status_code == 400
+        assert "location" not in response.headers
 
     def test_descriptor_not_found_returns_404(self, client, mock_preset_service):
         """Test descriptor returns 404 when preset not configured."""

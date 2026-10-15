@@ -523,7 +523,7 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
       });
     });
 
-    it("02f — RadioSearch Modal: Geöffnet", () => {
+    it("02f — RadioSearch Modal: Geöffnet + manueller Stream", () => {
       cy.visit("/");
       cy.wait("@getDevices");
       cy.wait(600);
@@ -536,9 +536,27 @@ describe("UX Screenshots — App-Workflow Dokumentation", () => {
         if ($body.find(".preset-empty").length > 0) {
           cy.get(".preset-empty").eq(0).scrollIntoView().click();
           cy.wait(600);
+
           // Modal is position:fixed — fullPage capture duplicates it in every viewport
           // chunk. Use viewport-only capture to get a single clean modal screenshot.
           screenshotViewport("02f_presets_radio-search-modal__open");
+
+          // Manuellen Stream-Modus öffnen.
+          cy.get('[data-test="manual-stream-mode"]').click();
+          cy.wait(200);
+          screenshotViewport("02f_presets_manual-stream__empty");
+
+          // Felder ausfüllen und dokumentieren.
+          cy.get('[data-test="manual-stream-url"]').type(
+            "https://stream.laut.fm/astounded"
+          );
+          cy.get('[data-test="manual-station-name"]').type("UX Test Radio");
+          cy.get('[data-test="manual-favicon-url"]').type(
+            "https://example.com/logo.png"
+          );
+          cy.wait(200);
+
+          screenshotViewport("02f_presets_manual-stream__filled");
         } else {
           cy.log("No empty presets found — skipping modal screenshot");
           scrFull("02f_presets_radio-search-modal__no-empty-preset__dark");

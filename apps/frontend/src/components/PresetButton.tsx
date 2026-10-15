@@ -3,6 +3,7 @@ import { getAvatarColor, getStationInitials } from "../utils/stationAvatar";
 import "./PresetButton.css";
 
 export interface Preset {
+  station_uuid?: string;
   station_name: string;
   station_url?: string;
   station_favicon?: string;

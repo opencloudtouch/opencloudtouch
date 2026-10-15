@@ -168,7 +168,7 @@ describe("RadioSearch Component", () => {
     expect(screen.getByText("Searching...")).toBeInTheDocument();
   });
 
-  it("displays search results, filtered by query", async () => {
+  it("displays search results", async () => {
     render(
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
@@ -182,7 +182,14 @@ describe("RadioSearch Component", () => {
       },
       { timeout: 700 }
     );
+  });
 
+  it("filters results based on search query", async () => {
+    render(
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
+
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
     fireEvent.change(searchInput, { target: { value: "NPR" } });
 
     await waitFor(
@@ -271,6 +278,22 @@ describe("RadioSearch Component", () => {
 
     const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
     expect(searchInput).toHaveFocus();
+  });
+
+  it("is case-insensitive when searching", async () => {
+    render(
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
+
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
+    fireEvent.change(searchInput, { target: { value: "FRANCE" } });
+
+    await waitFor(
+      () => {
+        expect(screen.getByText("France Inter")).toBeInTheDocument();
+      },
+      { timeout: 700 }
+    );
   });
 
   it("displays error message on API failure", async () => {
@@ -448,8 +471,205 @@ describe("RadioSearch Component", () => {
     });
   });
 
+
+  it("updates results when switching search queries in the same dialog", async () => {
+    render(
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026");
+    fireEvent.change(searchInput, { target: { value: "BBC" } });
+    await waitFor(() => expect(screen.getByText("BBC Radio 1")).toBeInTheDocument(), {
+      timeout: 700,
+    });
+    fireEvent.change(searchInput, { target: { value: "NPR" } });
+    await waitFor(() => {
+      expect(screen.getByText("NPR (National Public Radio)")).toBeInTheDocument();
+      expect(screen.queryByText("BBC Radio 1")).not.toBeInTheDocument();
+    }, { timeout: 700 });
+  });
+
+  describe("Manual stream URL mode", () => {
+    it("clears provider search results when switching to manual mode", async () => {
+      render(
+        <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+      );
+
+      const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio…");
+      fireEvent.change(searchInput, { target: { value: "BBC" } });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("BBC Radio 1")).toBeInTheDocument();
+        },
+        { timeout: 700 }
+      );
+
+      fireEvent.click(screen.getByText("Stream URL"));
+
+      expect(screen.queryByText("BBC Radio 1")).not.toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Enter stream URL...")).toBeInTheDocument();
+    });
+
+    it("disables submit for an invalid optional logo URL", () => {
+      render(
+        <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+      );
+
+      fireEvent.click(screen.getByText("Stream URL"));
+
+      fireEvent.change(screen.getByPlaceholderText("Enter stream URL..."), {
+        target: { value: "https://example.com/live.mp3" },
+      });
+      fireEvent.change(screen.getByPlaceholderText("Station name"), {
+        target: { value: "Test Radio" },
+      });
+      fireEvent.change(screen.getByPlaceholderText("Logo URL (optional)"), {
+        target: { value: "not-a-url" },
+      });
+
+      expect(screen.getByRole("button", { name: "Use station" })).toBeDisabled();
+    });
+
+    it("shows a popup and keeps the dialog open when saving fails", async () => {
+      mockOnStationSelect.mockRejectedValueOnce(new Error("Stream URL is not reachable"));
+
+      render(
+        <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+      );
+
+      fireEvent.click(screen.getByText("Stream URL"));
+
+      fireEvent.change(screen.getByPlaceholderText("Enter stream URL..."), {
+        target: { value: "https://example.com/broken.mp3" },
+      });
+      fireEvent.change(screen.getByPlaceholderText("Station name"), {
+        target: { value: "Broken Radio" },
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Use station" }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Stream error")).toBeInTheDocument();
+        expect(screen.getByText("The stream URL is not reachable.")).toBeInTheDocument();
+      });
+
+      expect(mockOnClose).not.toHaveBeenCalled();
+      expect(screen.getByDisplayValue("https://example.com/broken.mp3")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("Broken Radio")).toBeInTheDocument();
+    });
+
+    it("Escape closes only the stream error, not RadioSearch", async () => {
+      mockOnStationSelect.mockRejectedValueOnce(
+        new Error("Stream URL is not reachable"),
+      );
+
+      render(
+        <RadioSearch
+          isOpen={true}
+          onStationSelect={mockOnStationSelect}
+          onClose={mockOnClose}
+        />,
+      );
+
+      fireEvent.click(screen.getByText("Stream URL"));
+      fireEvent.change(screen.getByPlaceholderText("Enter stream URL..."), {
+        target: { value: "https://example.com/broken.mp3" },
+      });
+      fireEvent.change(screen.getByPlaceholderText("Station name"), {
+        target: { value: "Broken Radio" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Use station" }));
+
+      await screen.findByRole("alertdialog");
+      const okButton = screen.getByRole("button", { name: "OK" });
+      expect(okButton).toHaveFocus();
+
+      fireEvent.keyDown(okButton, { key: "Escape" });
+
+      await waitFor(() =>
+        expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
+      );
+      expect(mockOnClose).not.toHaveBeenCalled();
+      expect(
+        screen.getByDisplayValue("https://example.com/broken.mp3"),
+      ).toBeInTheDocument();
+    });
+
+    it("prefills an existing manual preset", () => {
+      render(
+        <RadioSearch
+          isOpen={true}
+          onStationSelect={mockOnStationSelect}
+          onClose={mockOnClose}
+          existingPreset={{
+            station_uuid: "manual-123",
+            station_name: "Saved Radio",
+            station_url: "https://example.com/saved.mp3",
+            station_favicon: "https://example.com/logo.png",
+          }}
+        />
+      );
+
+      expect(screen.getByDisplayValue("https://example.com/saved.mp3")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("Saved Radio")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("https://example.com/logo.png")).toBeInTheDocument();
+    });
+  });
+
+
+  describe("Manual preset identity", () => {
+    it("preserves the UUID when saving an existing manual preset", async () => {
+      render(
+        <RadioSearch
+          isOpen={true}
+          onStationSelect={mockOnStationSelect}
+          onClose={mockOnClose}
+          existingPreset={{
+            station_uuid: "manual-existing-123",
+            station_name: "Saved Radio",
+            station_url: "https://example.com/live.mp3",
+          }}
+        />
+      );
+      fireEvent.change(screen.getByDisplayValue("Saved Radio"), {
+        target: { value: "Renamed Radio" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Use station" }));
+      await waitFor(() =>
+        expect(mockOnStationSelect).toHaveBeenCalledWith(
+          expect.objectContaining({
+            stationuuid: "manual-existing-123",
+            name: "Renamed Radio",
+          })
+        )
+      );
+    });
+
+    it("generates a new manual UUID for a new preset", async () => {
+      render(
+        <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+      );
+      fireEvent.click(screen.getByText("Stream URL"));
+      fireEvent.change(screen.getByPlaceholderText("Enter stream URL..."), {
+        target: { value: "https://example.com/live.mp3" },
+      });
+      fireEvent.change(screen.getByPlaceholderText("Station name"), {
+        target: { value: "New Radio" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Use station" }));
+      await waitFor(() =>
+        expect(mockOnStationSelect).toHaveBeenCalledWith(
+          expect.objectContaining({
+            stationuuid: expect.stringMatching(/^manual-\d+$/),
+            name: "New Radio",
+          })
+        )
+      );
+    });
+  });
+
   describe("Feature Toggle (HAS_TUNEIN_SUPPORT)", () => {
-    it("should hide provider row when HAS_TUNEIN_SUPPORT is false (only 1 provider)", async () => {
+    it("should show manual stream option when HAS_TUNEIN_SUPPORT is false", async () => {
       vi.resetModules();
       vi.doMock("../../src/config/capabilities", () => ({ HAS_TUNEIN_SUPPORT: false }));
       const { default: RadioSearchGated } = await import("../../src/components/RadioSearch");
@@ -458,13 +678,16 @@ describe("RadioSearch Component", () => {
         <RadioSearchGated isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
       );
 
-      // Search type row exists, but provider row should be hidden (only 1 provider)
+      // The provider row must still offer the manual mode with a single provider.
       const chipRows = container.querySelectorAll(".search-type-row");
-      // Only the search-type row (name/country/tag) should be visible
-      expect(chipRows.length).toBe(1);
-
-      // No TuneIn text in DOM
+      expect(chipRows.length).toBe(2);
+      expect(container.textContent).toContain("RadioBrowser");
       expect(container.textContent).not.toContain("TuneIn");
+
+      const manualButton = container.querySelector('[data-test="manual-stream-mode"]');
+      expect(manualButton).not.toBeNull();
+      fireEvent.click(manualButton!);
+      expect(screen.getByPlaceholderText("Enter stream URL...")).toBeInTheDocument();
 
       vi.doUnmock("../../src/config/capabilities");
     });

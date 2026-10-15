@@ -22,7 +22,7 @@ that Bose SoundTouch devices call when a custom preset button is pressed.
 to ensure mocks are active before the endpoint handler makes requests.
 """
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import respx
@@ -36,7 +36,7 @@ external_mock = respx.mock(assert_all_called=False)
 def setup_external_mocks():
     """Setup external HTTP mocks before each test.
 
-    Also patches validate_stream_url to skip DNS resolution in tests —
+    Also patches the shared stream validator to skip DNS resolution in tests —
     all stream URLs are mocked via respx, so SSRF checks are irrelevant here.
     """
     # Define common external stream mocks
@@ -94,8 +94,12 @@ def setup_external_mocks():
         return_value=Response(status_code=404, content=b"Not Found")
     )
 
-    with external_mock, patch(
-        "opencloudtouch.devices.api.preset_stream_routes.validate_stream_url"
+    with (
+        external_mock,
+        patch(
+            "opencloudtouch.presets.service.PresetService._validate_stream_url",
+            new_callable=AsyncMock,
+        ),
     ):
         yield
 
@@ -129,9 +133,9 @@ async def test_stream_preset_proxy_success(real_api_client: AsyncClient):
             "station_homepage": "https://www.absolutradio.de/relax",
         },
     )
-    assert (
-        set_response.status_code == 201
-    ), f"Failed to save preset: {set_response.text}"
+    assert set_response.status_code == 201, (
+        f"Failed to save preset: {set_response.text}"
+    )
 
     # Act: Simulate Bose device requesting stream
     stream_response = await real_api_client.get(
@@ -139,9 +143,9 @@ async def test_stream_preset_proxy_success(real_api_client: AsyncClient):
     )
 
     # Assert: HTTP 200 streaming proxy response
-    assert (
-        stream_response.status_code == 200
-    ), f"Expected 200, got {stream_response.status_code}"
+    assert stream_response.status_code == 200, (
+        f"Expected 200, got {stream_response.status_code}"
+    )
     assert stream_response.headers.get("content-type") == "audio/mpeg"
     assert stream_response.headers.get("icy-name") == station_name
     assert (
@@ -170,13 +174,13 @@ async def test_stream_preset_not_found(real_api_client: AsyncClient):
     )
 
     # Assert: HTTP 404
-    assert (
-        stream_response.status_code == 404
-    ), f"Expected 404, got {stream_response.status_code}"
+    assert stream_response.status_code == 404, (
+        f"Expected 404, got {stream_response.status_code}"
+    )
     error_detail = stream_response.json()
-    assert (
-        "not configured" in error_detail["detail"].lower()
-    ), f"Error message should mention 'not configured': {error_detail['detail']}"
+    assert "not configured" in error_detail["detail"].lower(), (
+        f"Error message should mention 'not configured': {error_detail['detail']}"
+    )
 
 
 @pytest.mark.asyncio
@@ -196,9 +200,9 @@ async def test_stream_preset_invalid_number(real_api_client: AsyncClient):
     )
 
     # Assert: HTTP 422 validation error
-    assert (
-        stream_response.status_code == 422
-    ), f"Expected 422, got {stream_response.status_code}"
+    assert stream_response.status_code == 422, (
+        f"Expected 422, got {stream_response.status_code}"
+    )
 
 
 @pytest.mark.asyncio
@@ -298,9 +302,9 @@ async def test_stream_preset_all_slots(real_api_client: AsyncClient):
 
     # Assert: All presets return HTTP 200 with correct audio
     for preset_num, response in responses:
-        assert (
-            response.status_code == 200
-        ), f"Preset {preset_num} failed: {response.status_code}"
+        assert response.status_code == 200, (
+            f"Preset {preset_num} failed: {response.status_code}"
+        )
         # Just verify we got some audio data (mocks are defined in fixture)
         assert len(response.content) > 0, f"Preset {preset_num} empty response"
 

@@ -1,9 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { HAS_TUNEIN_SUPPORT } from "../config/capabilities";
 import { getErrorMessage, parseApiError } from "../api/types";
 import { getAvatarColor, getStationInitials } from "../utils/stationAvatar";
 import StationDetail from "./StationDetail";
+import ConfirmDialog from "./ConfirmDialog";
 import "./RadioSearch.css";
 
 export interface RadioStation {
@@ -25,6 +26,13 @@ interface RawStationData {
   favicon?: string;
 }
 
+interface ExistingPreset {
+  station_uuid?: string;
+  station_name: string;
+  station_url?: string;
+  station_favicon?: string;
+}
+
 interface RadioSearchProps {
   onStationSelect: (station: RadioStation) => void | Promise<void>;
   isOpen: boolean;
@@ -32,6 +40,7 @@ interface RadioSearchProps {
   onDelete?: () => void | Promise<void>;
   presetNumber?: number | null;
   hasExistingPreset?: boolean;
+  existingPreset?: ExistingPreset | null;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
@@ -50,6 +59,16 @@ function getApiBaseUrl(): string {
 
 type SearchType = "name" | "country" | "tag";
 type RadioProviderType = "radiobrowser" | "tunein";
+type SearchMode = "provider" | "manual";
+
+function isValidHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
 
 const RESULTS_PER_PAGE = 10;
 const MAX_RESULTS = 200;
@@ -76,9 +95,15 @@ export default function RadioSearch({
   onDelete,
   presetNumber: _presetNumber,
   hasExistingPreset,
+  existingPreset,
 }: RadioSearchProps) {
   const { t } = useTranslation();
+  const [searchMode, setSearchMode] = useState<SearchMode>("provider");
   const [query, setQuery] = useState("");
+  const [manualUrl, setManualUrl] = useState("");
+  const [manualName, setManualName] = useState("");
+  const [manualFavicon, setManualFavicon] = useState("");
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [results, setResults] = useState<RadioStation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +117,32 @@ export default function RadioSearch({
   const [loadingMore, setLoadingMore] = useState(false);
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const isManualPreset = existingPreset?.station_uuid?.startsWith("manual-") ?? false;
+
+    setQuery("");
+    setResults([]);
+    setError(null);
+    setSaveError(null);
+    setDetailUuid(null);
+    setOffset(0);
+    setHasMore(false);
+
+    if (isManualPreset && existingPreset) {
+      setSearchMode("manual");
+      setManualUrl(existingPreset.station_url ?? "");
+      setManualName(existingPreset.station_name);
+      setManualFavicon(existingPreset.station_favicon ?? "");
+    } else {
+      setSearchMode("provider");
+      setManualUrl("");
+      setManualName("");
+      setManualFavicon("");
+    }
+  }, [isOpen, existingPreset]);
 
   const handleSearch = async (
     searchQuery: string,
@@ -239,11 +290,24 @@ export default function RadioSearch({
   };
 
   const handleSelect = async (station: RadioStation) => {
-    await onStationSelect(station);
-    setQuery("");
-    setResults([]);
-    setDetailUuid(null);
-    onClose?.();
+    setError(null);
+    setSaveError(null);
+
+    try {
+      await onStationSelect(station);
+      setQuery("");
+      setResults([]);
+      setDetailUuid(null);
+      onClose?.();
+    } catch (err) {
+      const message = getErrorMessage(err);
+      setSaveError(
+        message === "Stream URL is not reachable"
+          ? t("presets.manualStreamUnreachable")
+          : t("presets.manualStreamSaveFailed")
+      );
+      console.error("Failed to save station:", err);
+    }
   };
 
   if (!isOpen) return null;
@@ -266,6 +330,16 @@ export default function RadioSearch({
         aria-modal="true"
         aria-label={t("presets.searchTitle")}
       >
+        <ConfirmDialog
+          open={saveError !== null}
+          title={t("presets.manualStreamErrorTitle")}
+          message={saveError ?? ""}
+          confirmLabel={t("presets.manualStreamErrorOk")}
+          showCancelButton={false}
+          onConfirm={() => setSaveError(null)}
+          onCancel={() => setSaveError(null)}
+        />
+
         {detailUuid ? (
           <StationDetail
             stationUuid={detailUuid}
@@ -285,14 +359,33 @@ export default function RadioSearch({
         ) : (
           <>
             <div className="search-header">
-              <input
-                type="search"
-                className="search-input"
-                placeholder={t(`presets.searchPlaceholder.${searchType}`)}
-                value={query}
-                onChange={(e) => handleSearch(e.target.value)}
-                autoFocus
-              />
+              {searchMode === "manual" ? (
+                <div className="manual-stream-field">
+                  <input
+                    type="url"
+                    className="search-input"
+                    placeholder={t("presets.manualStreamUrlPlaceholder")}
+                    value={manualUrl}
+                    onChange={(e) => setManualUrl(e.target.value)}
+                    aria-label={t("presets.manualStreamUrlPlaceholder")}
+                    data-test="manual-stream-url"
+                    aria-describedby="manual-stream-url-help"
+                    autoFocus
+                  />
+                  <div id="manual-stream-url-help" className="manual-stream-help">
+                    {t("presets.manualStreamUrlHelp")}
+                  </div>
+                </div>
+              ) : (
+                <input
+                  type="search"
+                  className="search-input"
+                  placeholder={t(`presets.searchPlaceholder.${searchType}`)}
+                  value={query}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  autoFocus
+                />
+              )}
               <button
                 className="search-close"
                 onClick={onClose}
@@ -302,11 +395,73 @@ export default function RadioSearch({
                 ✕
               </button>
             </div>
+
+            {searchMode === "manual" && (
+              <div className="manual-stream-fields">
+                <div className="manual-stream-field">
+                  <input
+                    type="text"
+                    className="search-input"
+                    placeholder={t("presets.manualStationNamePlaceholder")}
+                    value={manualName}
+                    onChange={(e) => setManualName(e.target.value)}
+                    aria-label={t("presets.manualStationNamePlaceholder")}
+                    data-test="manual-station-name"
+                    aria-describedby="manual-station-name-help"
+                  />
+                  <div id="manual-station-name-help" className="manual-stream-help">
+                    {t("presets.manualStationNameHelp")}
+                  </div>
+                </div>
+
+                <div className="manual-stream-field">
+                  <input
+                    type="url"
+                    className="search-input"
+                    placeholder={t("presets.manualFaviconPlaceholder")}
+                    value={manualFavicon}
+                    onChange={(e) => setManualFavicon(e.target.value)}
+                    aria-label={t("presets.manualFaviconPlaceholder")}
+                    data-test="manual-favicon-url"
+                    aria-describedby="manual-favicon-help"
+                  />
+                  <div id="manual-favicon-help" className="manual-stream-help">
+                    {t("presets.manualFaviconHelp")}
+                  </div>
+                </div>
+                <button
+                  className="manual-stream-submit"
+                  disabled={
+                    !manualName.trim() ||
+                    !isValidHttpUrl(manualUrl) ||
+                    (manualFavicon.trim() !== "" && !isValidHttpUrl(manualFavicon))
+                  }
+                  onClick={() =>
+                    handleSelect({
+                      stationuuid:
+                        existingPreset?.station_uuid?.startsWith("manual-")
+                          ? existingPreset.station_uuid
+                          : `manual-${Date.now()}`,
+                      name: manualName.trim(),
+                      country: "",
+                      url: manualUrl.trim(),
+                      favicon: manualFavicon.trim() || undefined,
+                    })
+                  }
+                >
+                  {t("presets.manualUseStation")}
+                </button>
+              </div>
+            )}
+
             <div className="search-type-row">
               {SEARCH_TYPES.map((st) => (
                 <button
                   key={st.value}
-                  className={`search-type-chip${searchType === st.value ? " active" : ""}`}
+                  className={`search-type-chip${
+                    searchMode === "provider" && searchType === st.value ? " active" : ""
+                  }`}
+                  disabled={searchMode === "manual"}
                   onClick={() => {
                     setSearchType(st.value);
                     if (query.trim().length >= 2) {
@@ -318,24 +473,38 @@ export default function RadioSearch({
                 </button>
               ))}
             </div>
-            {PROVIDERS.length > 1 && (
-              <div className="search-type-row">
-                {PROVIDERS.map((p) => (
-                  <button
-                    key={p.value}
-                    className={`search-type-chip${radioProvider === p.value ? " active" : ""}`}
-                    onClick={() => {
-                      setRadioProvider(p.value);
-                      if (query.trim().length >= 2) {
-                        handleSearch(query, p.value, searchType);
-                      }
-                    }}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="search-type-row">
+              {PROVIDERS.map((p) => (
+                <button
+                  key={p.value}
+                  className={`search-type-chip${searchMode === "provider" && radioProvider === p.value ? " active" : ""}`}
+                  onClick={() => {
+                    setSearchMode("provider");
+                    setRadioProvider(p.value);
+                    if (query.trim().length >= 2) {
+                      handleSearch(query, p.value, searchType);
+                    }
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+              <button
+                data-test="manual-stream-mode"
+                className={`search-type-chip${searchMode === "manual" ? " active" : ""}`}
+                onClick={() => {
+                  setSearchMode("manual");
+                  setQuery("");
+                  setResults([]);
+                  setError(null);
+                  setDetailUuid(null);
+                  setOffset(0);
+                  setHasMore(false);
+                }}
+              >
+                {t("presets.manualStreamMode")}
+              </button>
+            </div>
 
             {hasExistingPreset && onDelete && (
               <div className="search-delete-row">
