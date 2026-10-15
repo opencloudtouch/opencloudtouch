@@ -224,6 +224,7 @@ class NtpPatchResponse(BaseModel):
 
     success: bool
     message: str
+    synced: bool = True
     backup_path: str = ""
     diff: str = ""
 

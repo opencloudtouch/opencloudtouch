@@ -1,4 +1,8 @@
-/* NTP Patch Styles — mirrors Step6HostsModification.css for visual consistency */
+/* NTP Patch Styles — matches the visual language of the other wizard steps.
+   Shares the .error-icon/.success-* idiom already duplicated across
+   Step4Backup/Step5ConfigModification/Step6HostsModification/Step8Verification;
+   its own input/error/success containers use ntp-* names so they don't
+   collide with Step6's hosts-* ones (Vite CSS is global, not scoped). */
 .ntp-patch {
   max-width: 600px;
   margin: 0 auto;
@@ -27,18 +31,18 @@
 }
 
 /* Input Group */
-.hosts-input-group {
+.ntp-input-group {
   margin-bottom: 2rem;
 }
 
-.hosts-label {
+.ntp-label {
   display: block;
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 0.5rem;
 }
 
-.hosts-input {
+.ntp-input {
   width: 100%;
   padding: 0.75rem;
   border: 2px solid var(--border-color);
@@ -50,18 +54,18 @@
   color: var(--text-primary);
 }
 
-.hosts-input:focus {
+.ntp-input:focus {
   outline: none;
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
 }
 
-.hosts-input:focus-visible {
+.ntp-input:focus-visible {
   outline: 2px solid var(--primary-color);
   outline-offset: 2px;
 }
 
-.hosts-hint {
+.ntp-hint {
   display: block;
   font-size: 0.875rem;
   color: var(--text-secondary);
@@ -75,7 +79,7 @@
 }
 
 /* Error */
-.hosts-error {
+.ntp-error {
   display: flex;
   gap: 1rem;
   align-items: flex-start;
@@ -105,7 +109,7 @@
 }
 
 /* Success */
-.hosts-success {
+.ntp-success {
   text-align: center;
 }
 

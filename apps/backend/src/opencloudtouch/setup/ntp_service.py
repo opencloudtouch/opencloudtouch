@@ -17,19 +17,17 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class PatchResult:
-    """Result of an NTP server patch."""
+    """Result of an NTP server patch.
+
+    `success` reflects the persistent effect (the file write); `synced`
+    reflects the best-effort immediate resync, which may fail independently
+    (unreachable server, DNS hiccup) without the patch itself having failed.
+    """
 
     success: bool
+    synced: bool = True
     backup_path: str = ""
     diff: str = ""
-    error: str | None = None
-
-
-@dataclass
-class RestoreResult:
-    """Result of an NTP server restoration."""
-
-    success: bool
     error: str | None = None
 
 
@@ -39,10 +37,11 @@ class SoundTouchNtpService:
     NTP_PATH = "/etc/ntpservers.txt"
     BACKUP_DIR = "/mnt/nv"
     BACKUP_NAME = "ntpservers_backup"
+    NTPD_RESYNC_TIMEOUT = 15.0
 
     # Public pool fallbacks appended after the chosen server, so time sync
     # still has somewhere to go if the chosen server becomes unreachable.
-    FALLBACK_SERVERS = ["0.pool.ntp.org", "1.pool.ntp.org"]
+    FALLBACK_SERVERS = ("0.pool.ntp.org", "1.pool.ntp.org")
 
     def __init__(self, ssh: SoundTouchSSHClient):
         """
@@ -95,18 +94,26 @@ class SoundTouchNtpService:
                 new_content = "\n".join(servers) + "\n"
                 await self._write_ntp_servers(new_content)
 
+                # The file write is the persistent effect; resync is
+                # best-effort — a failure here must not be reported as a
+                # failed patch, since the device already has the new config.
                 sync_result = await self.ssh.execute(
-                    f"/bin/ntpd -q -n -p {shlex.quote(ntp_server)}"
+                    f"/bin/ntpd -q -n -p {shlex.quote(ntp_server)}",
+                    timeout=self.NTPD_RESYNC_TIMEOUT,
                 )
-                if not sync_result.success:
-                    return PatchResult(
-                        success=False,
-                        error=sync_result.error or "ntpd sync failed",
+                synced = sync_result.success
+                if not synced:
+                    self.logger.warning(
+                        "ntpd resync failed (file already patched to %s): %s",
+                        ntp_server,
+                        sync_result.error,
                     )
 
-                diff = f"+ {ntp_server}"
+                diff = "\n".join(f"+ {s}" for s in servers)
                 self.logger.info("NTP server patched successfully to %s", ntp_server)
-                return PatchResult(success=True, backup_path=backup_path, diff=diff)
+                return PatchResult(
+                    success=True, synced=synced, backup_path=backup_path, diff=diff
+                )
             finally:
                 await self._remount_ro()
 
@@ -122,7 +129,12 @@ class SoundTouchNtpService:
         if "missing" in (check.output or ""):
             backup_result = await self.ssh.execute(f"cp {self.NTP_PATH} {backup_path}")
             if not backup_result.success:
-                self.logger.warning("Backup may have failed: %s", backup_result.error)
+                # Unlike /etc/hosts (restorable by stripping OCT's markers),
+                # this backup is the only way back for NTP — abort before
+                # overwriting the original rather than patch unrecoverably.
+                raise RuntimeError(
+                    f"Cannot back up {self.NTP_PATH}: {backup_result.error}"
+                )
 
     async def _write_ntp_servers(self, content: str) -> None:
         """Write NTP servers file content atomically via base64 piping."""
@@ -137,44 +149,3 @@ class SoundTouchNtpService:
                 f"Failed to write NTP servers file: "
                 f"{write_result.error or write_result.output}"
             )
-
-    async def restore_ntp(self, backup_path: str) -> RestoreResult:
-        """Restore NTP servers file from backup.
-
-        Protocol: verify backup exists → remount rw → copy → remount ro.
-
-        Args:
-            backup_path: Path to backup file on device
-
-        Returns:
-            Restoration result
-        """
-        self.logger.info("Restoring NTP servers from %s", backup_path)
-
-        try:
-            check = await self.ssh.execute(
-                f"test -f {backup_path} && echo 'exists' || echo 'missing'"
-            )
-            if "missing" in (check.output or ""):
-                return RestoreResult(
-                    success=False,
-                    error=f"Backup not found: {backup_path}",
-                )
-
-            await self._remount_rw()
-            try:
-                result = await self.ssh.execute(f"cp {backup_path} {self.NTP_PATH}")
-                if not result.success:
-                    return RestoreResult(
-                        success=False,
-                        error=f"Copy failed: {result.error or result.output}",
-                    )
-
-                self.logger.info("NTP servers restored successfully")
-                return RestoreResult(success=True)
-            finally:
-                await self._remount_ro()
-
-        except Exception as e:
-            self.logger.error("NTP restore failed: %s", e)
-            return RestoreResult(success=False, error=str(e))

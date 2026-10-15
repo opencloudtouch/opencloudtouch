@@ -1,4 +1,4 @@
-"""Setup Wizard Step 8 (Completion) — mark device as configured."""
+"""Setup Wizard Step 9 (Completion) — mark device as configured."""
 
 import logging
 from datetime import UTC, datetime
@@ -20,7 +20,7 @@ step9_router = APIRouter()
 
 
 class Step9CompletionMixin:
-    """Mark device setup as complete (Wizard Step 8)."""
+    """Mark device setup as complete (Wizard Step 9)."""
 
     if TYPE_CHECKING:
         _device_repo: Any

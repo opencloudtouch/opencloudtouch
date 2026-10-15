@@ -1971,7 +1971,7 @@ export interface paths {
     put?: never;
     /**
      * Wizard Reboot Device
-     * @description Reboot SoundTouch device via SSH (Wizard Step 7).
+     * @description Reboot SoundTouch device via SSH (Wizard Step 8).
      */
     post: operations["wizard_reboot_device_api_setup_wizard_reboot_device_post"];
     delete?: never;
@@ -1991,7 +1991,7 @@ export interface paths {
     put?: never;
     /**
      * Wizard Verify Redirect
-     * @description Verify a domain is redirected to OCT on the device (Wizard Step 7).
+     * @description Verify a domain is redirected to OCT on the device (Wizard Step 8).
      */
     post: operations["wizard_verify_redirect_api_setup_wizard_verify_redirect_post"];
     delete?: never;
@@ -3159,6 +3159,11 @@ export interface components {
       success: boolean;
       /** Message */
       message: string;
+      /**
+       * Synced
+       * @default true
+       */
+      synced: boolean;
       /**
        * Backup Path
        * @default

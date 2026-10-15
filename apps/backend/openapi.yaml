@@ -2389,7 +2389,7 @@ paths:
       tags:
       - Setup Wizard
       summary: Wizard Reboot Device
-      description: Reboot SoundTouch device via SSH (Wizard Step 7).
+      description: Reboot SoundTouch device via SSH (Wizard Step 8).
       operationId: wizard_reboot_device_api_setup_wizard_reboot_device_post
       requestBody:
         content:
@@ -2419,7 +2419,7 @@ paths:
       - Setup Wizard
       summary: Wizard Verify Redirect
       description: Verify a domain is redirected to OCT on the device (Wizard Step
-        7).
+        8).
       operationId: wizard_verify_redirect_api_setup_wizard_verify_redirect_post
       requestBody:
         content:
@@ -3877,6 +3877,10 @@ components:
         message:
           type: string
           title: Message
+        synced:
+          type: boolean
+          title: Synced
+          default: true
         backup_path:
           type: string
           title: Backup Path

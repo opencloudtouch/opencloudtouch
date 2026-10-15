@@ -284,7 +284,7 @@ export default function Step8Verification({
 
   return (
     <WizardStep
-      stepNumber={6}
+      stepNumber={7}
       title={t("setup.wizard.step8.title")}
       description={t("setup.wizard.step8.description")}
       warning={t("setup.wizard.step8.warning")}

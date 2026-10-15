@@ -1,7 +1,10 @@
 """Setup Wizard Step — NTP server patching.
 
-Named ``ntp_patch`` (not ``stepN_...``) because the frontend step numbering
-shifts independently of these backend module numbers — see issue #469.
+Named ``ntp_patch`` rather than ``stepN_...`` to sidestep the backend's
+step-number sequence entirely — see issue #469. (This PR does renumber the
+other backend step modules to track the shifted frontend steps; this one
+is named by function instead so it never needs a second rename if the
+frontend step order changes again.)
 """
 
 import logging
@@ -29,28 +32,19 @@ class NtpPatchMixin:
         """Patch NTP server on device.
 
         Returns:
-            Dict with success, message, backup_path, diff
+            Dict with success, message, synced, backup_path, diff
         """
         async with ssh_operation(device_ip, "patch-ntp") as ssh:
             await snapshot_config_files(
                 ssh,
                 self._audit_repo,
                 device_ip,
-                ["/etc/ntpservers.txt"],
+                [SoundTouchNtpService.NTP_PATH],
                 "before_patch_ntp",
             )
 
             ntp_service = SoundTouchNtpService(ssh)
             result = await ntp_service.patch_ntp(ntp_server)
-
-            if result.success:
-                await snapshot_config_files(
-                    ssh,
-                    self._audit_repo,
-                    device_ip,
-                    ["/etc/ntpservers.txt"],
-                    "after_patch_ntp",
-                )
 
             if not result.success:
                 return {
@@ -58,9 +52,22 @@ class NtpPatchMixin:
                     "message": result.error or "NTP patch failed",
                 }
 
+            await snapshot_config_files(
+                ssh,
+                self._audit_repo,
+                device_ip,
+                [SoundTouchNtpService.NTP_PATH],
+                "after_patch_ntp",
+            )
+
+            message = f"NTP server set to {ntp_server}"
+            if not result.synced:
+                message += " (time sync pending — server did not respond yet)"
+
             return {
                 "success": True,
-                "message": f"NTP server set to {ntp_server}",
+                "message": message,
+                "synced": result.synced,
                 "backup_path": result.backup_path,
                 "diff": result.diff,
             }
@@ -84,6 +91,7 @@ async def wizard_patch_ntp(
     return NtpPatchResponse(
         success=True,
         message=result["message"],
+        synced=result.get("synced", True),
         backup_path=result.get("backup_path", ""),
         diff=result.get("diff", ""),
     )

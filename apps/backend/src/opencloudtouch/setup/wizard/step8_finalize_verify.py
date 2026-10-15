@@ -1,9 +1,9 @@
-"""Setup Wizard Step 7 (Verification) — reboot, DNS redirect check, UUID/config
+"""Setup Wizard Step 8 (Verification) — reboot, DNS redirect check, UUID/config
 finalization, and the 11-point post-setup verification sweep (Issue #184).
 
 finalize_device and verify_setup are kept in one file (not split further):
 both read/write the same on-device persistence files and share
-_verify_sys_config, and both fire from the same Step7Verification.tsx
+_verify_sys_config, and both fire from the same Step8Verification.tsx
 component alongside reboot_device/verify_redirect.
 """
 
@@ -38,6 +38,7 @@ from opencloudtouch.setup.config_service import (
     SoundTouchConfigService,
 )
 from opencloudtouch.setup.hosts_service import SoundTouchHostsService
+from opencloudtouch.setup.ntp_service import SoundTouchNtpService
 from opencloudtouch.setup.persistence_service import (
     _PERSISTENCE_DIR,
     REQUIRED_SOURCE_TYPES,
@@ -56,7 +57,7 @@ step8_router = APIRouter()
 
 
 class Step8FinalizeVerifyMixin:
-    """WizardService methods for Step 7 (Verification, incl. Issue #184).
+    """WizardService methods for Step 8 (Verification, incl. Issue #184).
 
     Covers device reboot, DNS redirect verification, UUID/config
     finalization, and the 11-point post-setup verification sweep.
@@ -627,7 +628,7 @@ class Step8FinalizeVerifyMixin:
         optional and skippable, so this check is skipped entirely (not
         failed) when the user never patched it.
         """
-        r = await ssh.execute("cat /etc/ntpservers.txt 2>/dev/null")
+        r = await ssh.execute(f"cat {SoundTouchNtpService.NTP_PATH} 2>/dev/null")
         content = r.output or "" if r.success else ""
         first_line = content.splitlines()[0].strip() if content.strip() else ""
         matches = first_line == expected_ntp_server
@@ -637,7 +638,7 @@ class Step8FinalizeVerifyMixin:
             (
                 f"NTP server set to {expected_ntp_server}"
                 if matches
-                else f"/etc/ntpservers.txt lists '{first_line or '(empty)'}' first, expected '{expected_ntp_server}'"
+                else f"{SoundTouchNtpService.NTP_PATH} lists '{first_line or '(empty)'}' first, expected '{expected_ntp_server}'"
             ),
             {"ntp_server": first_line},
         )
@@ -688,7 +689,7 @@ async def wizard_reboot_device(
     request: ConnectivityCheckRequest,
     wizard: WizardServiceDep,
 ) -> Dict[str, Any]:
-    """Reboot SoundTouch device via SSH (Wizard Step 7)."""
+    """Reboot SoundTouch device via SSH (Wizard Step 8)."""
     logger.info("Sending reboot command to %s", request.ip)
 
     result = await wizard.reboot_device(request.ip)
@@ -714,7 +715,7 @@ async def wizard_verify_redirect(
     request: VerifyRedirectRequest,
     wizard: WizardServiceDep,
 ):
-    """Verify a domain is redirected to OCT on the device (Wizard Step 7)."""
+    """Verify a domain is redirected to OCT on the device (Wizard Step 8)."""
     logger.info(
         "Verifying redirect of %s on %s (expected: %s)",
         request.domain,

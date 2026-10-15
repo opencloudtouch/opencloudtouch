@@ -147,8 +147,9 @@ class TestPatchNtp:
         assert result.success is False
 
     @pytest.mark.asyncio
-    async def test_handles_ntpd_sync_failure(self, service, mock_ssh):
-        """If ntpd fails to sync, patch_ntp must return success=False."""
+    async def test_ntpd_sync_failure_does_not_fail_the_patch(self, service, mock_ssh):
+        """ntpd is best-effort: a failed resync must not be reported as a failed
+        patch, since the file was already written (PR #504 review finding)."""
 
         async def side_effect(cmd, **kwargs):
             if "ntpd" in cmd:
@@ -159,30 +160,85 @@ class TestPatchNtp:
 
         result = await service.patch_ntp("ntp.example.local")
 
-        assert result.success is False
-
-
-class TestRestoreNtp:
-    """restore_ntp() reverts /etc/ntpservers.txt from the pre-patch backup."""
+        assert result.success is True
+        assert result.synced is False
 
     @pytest.mark.asyncio
-    async def test_restore_success(self, service, mock_ssh):
-        """Successful restore copies backup to /etc/ntpservers.txt."""
+    async def test_synced_is_true_on_successful_resync(self, service, mock_ssh):
+        """synced reflects the immediate resync outcome, separate from success."""
+        mock_ssh.execute.return_value = _ok()
+
+        result = await service.patch_ntp("ntp.example.local")
+
+        assert result.synced is True
+
+    @pytest.mark.asyncio
+    async def test_ntpd_call_uses_bounded_timeout(self, service, mock_ssh):
+        """The resync call must not use the generic unbounded SSH default —
+        a short timeout keeps it from blocking the whole patch request."""
+        mock_ssh.execute.return_value = _ok()
+
+        await service.patch_ntp("ntp.example.local")
+
+        ntpd_call = next(
+            c for c in mock_ssh.execute.call_args_list if "ntpd" in c[0][0]
+        )
+        assert ntpd_call.kwargs.get("timeout") == service.NTPD_RESYNC_TIMEOUT
+
+    @pytest.mark.asyncio
+    async def test_handles_backup_failure(self, service, mock_ssh):
+        """If the pre-patch backup can't be created, abort before overwriting
+        the original file — unlike /etc/hosts, the backup is the only way back."""
+
+        async def side_effect(cmd, **kwargs):
+            if cmd.startswith("test -f"):
+                return _ok("missing")
+            if cmd.startswith("cp "):
+                return _fail("Permission denied")
+            return _ok()
+
+        mock_ssh.execute = AsyncMock(side_effect=side_effect)
+
+        result = await service.patch_ntp("ntp.example.local")
+
+        assert result.success is False
+        calls = [c[0][0] for c in mock_ssh.execute.call_args_list]
+        write_calls = [c for c in calls if "base64" in c]
+        assert not write_calls, "Must not write the new file when the backup failed"
+
+    @pytest.mark.asyncio
+    async def test_does_not_overwrite_an_existing_backup(self, service, mock_ssh):
+        """_ensure_backup must preserve the first-ever backup, not refresh it."""
         mock_ssh.execute.return_value = _ok("exists")
 
-        result = await service.restore_ntp("/mnt/nv/ntpservers_backup")
+        await service.patch_ntp("ntp.example.local")
 
-        assert result.success is True
         calls = [c[0][0] for c in mock_ssh.execute.call_args_list]
-        cp_calls = [c for c in calls if "cp" in c and "/etc/ntpservers.txt" in c]
-        assert len(cp_calls) >= 1
+        cp_calls = [c for c in calls if c.startswith("cp ")]
+        assert not cp_calls, "Backup must not be re-copied once it already exists"
 
     @pytest.mark.asyncio
-    async def test_restore_backup_not_found(self, service, mock_ssh):
-        """Restore fails gracefully when no backup exists."""
-        mock_ssh.execute.return_value = _ok("missing")
+    async def test_diff_lists_chosen_and_fallback_servers(self, service, mock_ssh):
+        """diff must describe the real written content, not just the chosen server."""
+        mock_ssh.execute.return_value = _ok()
 
-        result = await service.restore_ntp("/mnt/nv/ntpservers_backup")
+        result = await service.patch_ntp("ntp.example.local")
 
-        assert result.success is False
-        assert "not found" in (result.error or "").lower()
+        for server in ["ntp.example.local", *service.FALLBACK_SERVERS]:
+            assert server in result.diff
+
+    @pytest.mark.asyncio
+    async def test_written_payload_decodes_to_servers_in_order(self, service, mock_ssh):
+        """The base64 payload actually sent to the device must contain the
+        chosen server first, followed by the fallback servers."""
+        import base64
+
+        mock_ssh.execute.return_value = _ok()
+
+        await service.patch_ntp("ntp.example.local")
+
+        calls = [c[0][0] for c in mock_ssh.execute.call_args_list]
+        write_cmd = next(c for c in calls if "base64 -d" in c)
+        b64_payload = write_cmd.split("'")[1]
+        decoded = base64.b64decode(b64_payload).decode()
+        assert decoded == "ntp.example.local\n0.pool.ntp.org\n1.pool.ntp.org\n"

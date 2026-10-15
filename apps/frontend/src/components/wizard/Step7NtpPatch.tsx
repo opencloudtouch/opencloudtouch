@@ -44,7 +44,7 @@ export default function Step7NtpPatch({ deviceIp, onNext, onPrevious }: Step7Pro
       description={t("setup.wizard.step7.description")}
       onNext={() => onNext(ntpServer.trim())}
       onPrevious={onPrevious}
-      onSkip={() => onNext(null)}
+      onSkip={result?.success ? undefined : () => onNext(null)}
       isNextDisabled={!result?.success}
       nextDisabledReason={t("setup.wizard.step7.nextDisabled")}
     >
@@ -57,19 +57,19 @@ export default function Step7NtpPatch({ deviceIp, onNext, onPrevious }: Step7Pro
         </div>
 
         {!result?.success && (
-          <div className="hosts-input-group">
-            <label htmlFor="ntp-server" className="hosts-label">
+          <div className="ntp-input-group">
+            <label htmlFor="ntp-server" className="ntp-label">
               {t("setup.wizard.step7.serverLabel")}
             </label>
             <input
               id="ntp-server"
               type="text"
-              className="hosts-input"
+              className="ntp-input"
               value={ntpServer}
               onChange={(e) => setNtpServer(e.target.value)}
               placeholder={DEFAULT_NTP_SERVER}
             />
-            <small className="hosts-hint">{t("setup.wizard.step7.serverHint")}</small>
+            <small className="ntp-hint">{t("setup.wizard.step7.serverHint")}</small>
 
             <button
               className="btn btn-primary ntp-patch-btn"
@@ -89,7 +89,7 @@ export default function Step7NtpPatch({ deviceIp, onNext, onPrevious }: Step7Pro
         )}
 
         {error && (
-          <div className="hosts-error">
+          <div className="ntp-error">
             <div className="error-icon">❌</div>
             <div className="error-content">
               <strong>{t("setup.wizard.step7.errorTitle")}</strong>
@@ -99,7 +99,7 @@ export default function Step7NtpPatch({ deviceIp, onNext, onPrevious }: Step7Pro
         )}
 
         {result?.success && (
-          <div className="hosts-success">
+          <div className="ntp-success">
             <div className="success-icon">✅</div>
             <h3 className="success-title">{t("setup.wizard.step7.successTitle")}</h3>
             <p className="success-message">{result.message}</p>

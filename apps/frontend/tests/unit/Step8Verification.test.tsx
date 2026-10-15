@@ -83,6 +83,11 @@ describe("Step8Verification", () => {
     expect(screen.getByRole("button", { name: /finalize/i })).toBeInTheDocument();
   });
 
+  it("shows step 7, not a duplicate of the preceding NTP step's step 6", () => {
+    render(<Step8Verification {...defaultProps} />);
+    expect(screen.getByText("Step 7")).toBeInTheDocument();
+  });
+
   it("renders navigation buttons", () => {
     render(<Step8Verification {...defaultProps} />);
     expect(screen.getByRole("button", { name: /back/i })).toBeInTheDocument();

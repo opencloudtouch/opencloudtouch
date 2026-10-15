@@ -458,6 +458,28 @@ describe("Step7NtpPatch — render", () => {
     expect(onNext).toHaveBeenCalledWith(null);
   });
 
+  it("no longer offers Skip once the patch has succeeded (would discard it)", async () => {
+    const { patchNtp } = await import("../../src/api/wizard");
+    (patchNtp as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      message: "NTP server set to pool.ntp.org",
+    });
+
+    const { default: Step7 } = await import(
+      "../../src/components/wizard/Step7NtpPatch"
+    );
+    render(<Step7 deviceIp="192.168.1.1" onNext={vi.fn()} onPrevious={vi.fn()} />);
+
+    const patchBtn = screen.getByRole("button", { name: /Apply NTP server/i });
+    await act(async () => {
+      patchBtn.click();
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: /skip/i })).not.toBeInTheDocument();
+    });
+  });
+
   it("shows an error message when the patch fails", async () => {
     const { patchNtp } = await import("../../src/api/wizard");
     (patchNtp as ReturnType<typeof vi.fn>).mockResolvedValue({
