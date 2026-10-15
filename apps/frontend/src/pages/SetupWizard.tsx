@@ -481,12 +481,10 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
           <Step7NtpPatch
             deviceIp={selectedDevice?.ip || ""}
             onNext={(server) => {
-              audit?.logDetail(
-                "config",
-                server === null ? "ntp_skipped" : "ntp_patched",
-                6,
-                { device_id: selectedDevice?.device_id, ntp_server: server }
-              );
+              audit?.logDetail("config", server === null ? "ntp_skipped" : "ntp_patched", 6, {
+                device_id: selectedDevice?.device_id,
+                ntp_server: server,
+              });
               setNtpServer(server);
               handleNext();
             }}
