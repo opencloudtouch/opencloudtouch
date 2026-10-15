@@ -2732,6 +2732,8 @@ paths:
           content:
             application/json:
               schema: {}
+        '409':
+          description: Zone was dissolved during member addition
         '422':
           description: Validation Error
           content:

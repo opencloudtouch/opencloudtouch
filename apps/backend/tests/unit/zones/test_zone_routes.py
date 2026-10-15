@@ -9,6 +9,7 @@ from opencloudtouch.core.dependencies import get_zone_service
 from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFoundError
 from opencloudtouch.main import app
 from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
+from opencloudtouch.zones.repository import ZoneNotFoundError
 
 
 def _make_zone_status(master_id="DEV001", master_ip="192.168.1.100"):
@@ -125,6 +126,27 @@ class TestAddZoneMembers:
         mock_service.add_members.side_effect = DeviceNotFoundError("DEV003")
         r = client.post("/api/zones/DEV001/members", json={"device_ids": ["DEV003"]})
         assert r.status_code == 404
+
+    def test_returns_409_when_zone_deleted_during_add(self, client, mock_service):
+        """Return HTTP 409 when the zone disappears during member addition."""
+        mock_service.add_members.side_effect = ZoneNotFoundError(
+            "Zone 42 no longer exists"
+        )
+
+        response = client.post(
+            "/api/zones/DEV001/members",
+            json={"device_ids": ["DEV003"]},
+        )
+
+        assert response.status_code == 409
+        assert response.json()["detail"] == "Zone 42 no longer exists"
+
+    def test_openapi_documents_409_conflict(self):
+        """Document the conflict status returned for a dissolved zone."""
+        responses = app.openapi()["paths"]["/api/zones/{master_id}/members"]["post"][
+            "responses"
+        ]
+        assert "409" in responses
 
 
 class TestRemoveZoneMembers:
