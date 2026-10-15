@@ -45,53 +45,65 @@ class PresetService:
         self._parser = DevicePresetParser()
 
     @staticmethod
-    async def _validate_stream_url(url: str) -> None:
-        """Check reachability without connecting to private or unverified IPs."""
+    async def _validate_stream_url(
+        url: str,
+    ) -> ipaddress.IPv4Address | ipaddress.IPv6Address:
+        """Validate HTTP(S) URL and public DNS target without fetching audio."""
+        try:
+            parsed = urlsplit(url.strip())
+            hostname = parsed.hostname
+            port = parsed.port
+        except ValueError as exc:
+            raise ValueError("Invalid stream URL") from exc
+
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not hostname
+            or parsed.username is not None
+            or parsed.password is not None
+            or port == 0
+        ):
+            raise ValueError("Stream URL must use HTTP or HTTPS")
+
+        port = port if port is not None else (443 if parsed.scheme == "https" else 80)
+        try:
+            addresses = await asyncio.wait_for(
+                asyncio.get_running_loop().getaddrinfo(
+                    hostname, port, type=socket.SOCK_STREAM
+                ),
+                timeout=3.0,
+            )
+        except (OSError, TimeoutError) as exc:
+            raise ValueError("Stream URL is not reachable") from exc
+
+        ips = [ipaddress.ip_address(address[4][0]) for address in addresses]
+        if not ips or any(not ip.is_global or ip.is_multicast for ip in ips):
+            raise ValueError("Stream URL resolves to a non-public IP address")
+        return ips[0]
+
+    @staticmethod
+    async def _check_stream_reachable(url: str) -> None:
+        """Check a manually entered stream before saving, including redirects."""
         current_url = url.strip()
         timeout = httpx.Timeout(5.0, connect=3.0)
-
-        for _ in range(6):  # Initial request plus at most five redirects.
-            try:
-                parsed = urlsplit(current_url)
-                hostname = parsed.hostname
-                port = parsed.port
-            except ValueError as exc:
-                raise ValueError("Invalid stream URL") from exc
-
-            if (
-                parsed.scheme not in {"http", "https"}
-                or not hostname
-                or parsed.username is not None
-                or parsed.password is not None
-                or port == 0
-            ):
-                raise ValueError("Stream URL must use HTTP or HTTPS")
-
-            port = port if port is not None else (443 if parsed.scheme == "https" else 80)
-            try:
-                addresses = await asyncio.wait_for(
-                    asyncio.get_running_loop().getaddrinfo(
-                        hostname, port, type=socket.SOCK_STREAM
-                    ),
-                    timeout=3.0,
-                )
-            except (OSError, TimeoutError) as exc:
-                raise ValueError("Stream URL is not reachable") from exc
-
-            ips = [ipaddress.ip_address(address[4][0]) for address in addresses]
-            if not ips or any(not ip.is_global or ip.is_multicast for ip in ips):
-                raise ValueError("Stream URL resolves to a non-public IP address")
-
-            # Use the checked numeric IP for the socket, not another DNS lookup.
-            ip = ips[0]
+        for _ in range(6):
+            ip = await PresetService._validate_stream_url(current_url)
+            parsed = urlsplit(current_url)
+            port = parsed.port or (443 if parsed.scheme == "https" else 80)
             ip_host = f"[{ip}]" if ip.version == 6 else str(ip)
             pinned_url = urlunsplit(
-                (parsed.scheme, f"{ip_host}:{port}", parsed.path or "/", parsed.query, "")
+                (
+                    parsed.scheme,
+                    f"{ip_host}:{port}",
+                    parsed.path or "/",
+                    parsed.query,
+                    "",
+                )
             )
-            extensions = {"sni_hostname": hostname} if parsed.scheme == "https" else {}
-
+            extensions = (
+                {"sni_hostname": parsed.hostname} if parsed.scheme == "https" else {}
+            )
             try:
-                # A fresh client per hop prevents TLS connection reuse across hosts.
                 async with httpx.AsyncClient(
                     timeout=timeout, follow_redirects=False, trust_env=False
                 ) as client:
@@ -111,7 +123,6 @@ class PresetService:
                         return
             except httpx.HTTPError as exc:
                 raise ValueError("Stream URL is not reachable") from exc
-
         raise ValueError("Too many stream URL redirects")
 
     async def set_preset(
@@ -145,7 +156,7 @@ class PresetService:
             ValueError: If preset_number is not between 1-6 or device not found
         """
         if station_uuid.startswith("manual-"):
-            await self._validate_stream_url(station_url)
+            await self._check_stream_reachable(station_url)
 
         # 1. Save to OpenCloudTouch database
         preset = Preset(

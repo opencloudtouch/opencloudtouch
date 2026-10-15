@@ -4,6 +4,7 @@ import { HAS_TUNEIN_SUPPORT } from "../config/capabilities";
 import { getErrorMessage, parseApiError } from "../api/types";
 import { getAvatarColor, getStationInitials } from "../utils/stationAvatar";
 import StationDetail from "./StationDetail";
+import ConfirmDialog from "./ConfirmDialog";
 import "./RadioSearch.css";
 
 export interface RadioStation {
@@ -329,39 +330,15 @@ export default function RadioSearch({
         aria-modal="true"
         aria-label={t("presets.searchTitle")}
       >
-        {saveError && (
-          <div
-            className="stream-error-overlay"
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                e.stopPropagation();
-                setSaveError(null);
-              }
-            }}
-          >
-            <div
-              className="stream-error-dialog"
-              role="alertdialog"
-              aria-labelledby="stream-error-title"
-              aria-describedby="stream-error-message"
-            >
-              <div id="stream-error-title" className="stream-error-title">
-                {t("presets.manualStreamErrorTitle")}
-              </div>
-              <div id="stream-error-message" className="stream-error-message">
-                {saveError}
-              </div>
-              <button
-                type="button"
-                className="stream-error-button"
-                onClick={() => setSaveError(null)}
-                autoFocus
-              >
-                {t("presets.manualStreamErrorOk")}
-              </button>
-            </div>
-          </div>
-        )}
+        <ConfirmDialog
+          open={saveError !== null}
+          title={t("presets.manualStreamErrorTitle")}
+          message={saveError ?? ""}
+          confirmLabel={t("presets.manualStreamErrorOk")}
+          showCancelButton={false}
+          onConfirm={() => setSaveError(null)}
+          onCancel={() => setSaveError(null)}
+        />
 
         {detailUuid ? (
           <StationDetail

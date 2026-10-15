@@ -558,6 +558,43 @@ describe("RadioSearch Component", () => {
       expect(screen.getByDisplayValue("Broken Radio")).toBeInTheDocument();
     });
 
+    it("Escape closes only the stream error, not RadioSearch", async () => {
+      mockOnStationSelect.mockRejectedValueOnce(
+        new Error("Stream URL is not reachable"),
+      );
+
+      render(
+        <RadioSearch
+          isOpen={true}
+          onStationSelect={mockOnStationSelect}
+          onClose={mockOnClose}
+        />,
+      );
+
+      fireEvent.click(screen.getByText("Stream URL"));
+      fireEvent.change(screen.getByPlaceholderText("Enter stream URL..."), {
+        target: { value: "https://example.com/broken.mp3" },
+      });
+      fireEvent.change(screen.getByPlaceholderText("Station name"), {
+        target: { value: "Broken Radio" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Use station" }));
+
+      await screen.findByRole("alertdialog");
+      const okButton = screen.getByRole("button", { name: "OK" });
+      expect(okButton).toHaveFocus();
+
+      fireEvent.keyDown(okButton, { key: "Escape" });
+
+      await waitFor(() =>
+        expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
+      );
+      expect(mockOnClose).not.toHaveBeenCalled();
+      expect(
+        screen.getByDisplayValue("https://example.com/broken.mp3"),
+      ).toBeInTheDocument();
+    });
+
     it("prefills an existing manual preset", () => {
       render(
         <RadioSearch
