@@ -141,7 +141,6 @@ class TestAddZoneMembers:
         assert response.status_code == 409
         assert response.json()["detail"] == "Zone 42 no longer exists"
 
-
     def test_openapi_documents_409_conflict(self):
         """Document the conflict status returned for a dissolved zone."""
         responses = app.openapi()["paths"]["/api/zones/{master_id}/members"]["post"][

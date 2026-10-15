@@ -396,3 +396,47 @@ class TestZoneRepository:
             (zone.id,),
         )
         assert (await cursor.fetchone())[0] == 2
+
+
+@pytest.mark.asyncio
+async def test_transaction_rollback_on_cancellation(tmp_path):
+    """Cancelled writes must roll back and release the repository lock."""
+    import asyncio
+
+    repo = ZoneRepository(str(tmp_path / "cancel_test.db"))
+    await repo.initialize()
+
+    inserted = asyncio.Event()
+
+    async def interrupted_write():
+        async with repo._transaction(immediate=True):
+            await repo._conn.execute(
+                "INSERT INTO zones (master_device_id) VALUES (?)",
+                ("CANCELLED_MASTER",),
+            )
+            inserted.set()
+            await asyncio.Event().wait()
+
+    try:
+        task = asyncio.create_task(interrupted_write())
+        await asyncio.wait_for(inserted.wait(), timeout=2)
+
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await asyncio.wait_for(task, timeout=2)
+
+        cursor = await repo._conn.execute(
+            "SELECT COUNT(*) FROM zones WHERE master_device_id = ?",
+            ("CANCELLED_MASTER",),
+        )
+        assert (await cursor.fetchone())[0] == 0
+
+        # A subsequent write must succeed without a stale lock.
+        zone = await asyncio.wait_for(
+            repo.create_zone("NEW_MASTER"),
+            timeout=2,
+        )
+        assert zone.id is not None
+
+    finally:
+        await repo.close()
