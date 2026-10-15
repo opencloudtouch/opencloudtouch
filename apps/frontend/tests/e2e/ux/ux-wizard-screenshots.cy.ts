@@ -21,8 +21,9 @@ export {};
  *   Step 4: Backup (optional)
  *   Step 5: Konfiguration ändern
  *   Step 6: Hosts-Datei ändern
- *   Step 7: Verifikation
- *   Step 8: Abschluss
+ *   Step 7: NTP-Server patchen (optional, wird hier übersprungen)
+ *   Step 8: Verifikation
+ *   Step 9: Abschluss
  *
  * Output: tests/e2e/screenshots/ux/ (Dateinamen: wiz_{step}_{beschreibung}__{dark|light}.png)
  *
@@ -363,6 +364,13 @@ function completeHostsStep() {
   cy.wait(300);
 }
 
+/** Skip the optional NTP step — these screenshots cover Verification/Completion,
+ * not the NTP step itself. */
+function skipNtpStep() {
+  cy.contains("button", /überspringen|skip/i, { timeout: 8000 }).click({ force: true });
+  cy.wait(300);
+}
+
 // =============================================================================
 // TESTS
 // =============================================================================
@@ -634,6 +642,7 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
       skipBackupStep();
       completeConfigStep();
       completeHostsStep();
+      skipNtpStep();
     });
 
     it("wiz_06a — Verifikation: Initialzustand (vor DNS-Check)", () => {
@@ -681,7 +690,7 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
   });
 
   // ===========================================================================
-  // SCHRITT 7: Abschluss (Step 8 Completion)
+  // SCHRITT 7: Abschluss (Step 9 Completion)
   // ===========================================================================
 
   describe("Schritt 7 — Abschluss", () => {
@@ -694,6 +703,7 @@ describe("UX Screenshots — Setup Wizard (Vollständiger Durchlauf)", () => {
       skipBackupStep();
       completeConfigStep();
       completeHostsStep();
+      skipNtpStep();
 
       // Verification step: finalize → reboot → countdown → full verify → advance
       cy.contains("button", /abschließen|finalize/i, { timeout: 8000 }).click({ force: true });
