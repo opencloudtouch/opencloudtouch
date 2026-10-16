@@ -1,5 +1,6 @@
 """Unit tests for ZoneService."""
 
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -7,6 +8,7 @@ import pytest
 from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFoundError
 from opencloudtouch.devices.repository import Device
 from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
+from opencloudtouch.zones.repository import Zone, ZoneNotFoundError
 from opencloudtouch.zones.service import ZoneService
 
 
@@ -256,6 +258,33 @@ class TestAddMembers:
 
         with pytest.raises(DeviceNotFoundError):
             await service.add_members("DEV001", ["UNKNOWN"])
+
+    @pytest.mark.asyncio
+    async def test_zone_deleted_during_add_members(self):
+        """Propagate ZoneNotFoundError if the zone disappears during update."""
+        service, device_repo, zone_repo = _make_service()
+
+        devices = {
+            "DEV001": _make_device("DEV001"),
+            "DEV003": _make_device("DEV003", "192.168.1.102"),
+        }
+        device_repo.get_by_device_id.side_effect = devices.get
+
+        zone_db = Zone(
+            master_device_id="DEV001",
+            created_at=datetime.now(UTC),
+            id=42,
+        )
+        zone_repo.get_active_zone_by_master.return_value = zone_db
+        zone_repo.add_member.side_effect = ZoneNotFoundError("Zone 42 no longer exists")
+
+        mock_client = AsyncMock()
+        with patch.object(service, "_get_client", return_value=mock_client):
+            with pytest.raises(ZoneNotFoundError):
+                await service.add_members("DEV001", ["DEV003"])
+
+        mock_client.add_zone_members.assert_awaited_once()
+        zone_repo.add_member.assert_awaited_once_with(42, "DEV003", "slave")
 
 
 class TestRemoveMembers:

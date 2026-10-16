@@ -15,6 +15,7 @@ from defusedxml.ElementTree import fromstring as parse_xml_string
 from opencloudtouch.core.config import get_config
 from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
+from opencloudtouch.zones.repository import ZoneNotFoundError
 from opencloudtouch.setup.ssh_client import SoundTouchSSHClient, check_ssh_port
 
 logger = logging.getLogger(__name__)
@@ -428,7 +429,14 @@ class DeviceHealthCheck:
         for device_id in added:
             member = next((m for m in status.members if m.device_id == device_id), None)
             if member:
-                await self._zone_repo.add_member(zone_db.id, device_id, member.role)
+                try:
+                    await self._zone_repo.add_member(zone_db.id, device_id, member.role)
+                except ZoneNotFoundError:
+                    logger.debug(
+                        "Zone sync: zone %d no longer exists, skipping",
+                        zone_db.id,
+                    )
+                    return
                 logger.debug("Zone sync: added %s to zone %d", device_id, zone_db.id)
 
         for device_id in removed:

@@ -31,6 +31,8 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   /** Called when the user confirms */
   onConfirm: () => void;
+  /** Hide Cancel for informational dialogs that only need an OK action. */
+  showCancelButton?: boolean;
   /** Called when the user cancels (Escape, overlay click, cancel button) */
   onCancel: () => void;
 }
@@ -43,19 +45,21 @@ export default function ConfirmDialog({
   cancelLabel,
   onConfirm,
   onCancel,
+  showCancelButton = true,
 }: ConfirmDialogProps) {
   const { t } = useTranslation();
   const resolvedTitle = title ?? t("common.confirm");
   const resolvedConfirmLabel = confirmLabel ?? t("common.confirm");
   const resolvedCancelLabel = cancelLabel ?? t("common.cancel");
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const confirmRef = useRef<HTMLButtonElement>(null);
 
   // Focus the cancel button when dialog opens (safe default)
   useEffect(() => {
     if (open) {
-      cancelRef.current?.focus();
+      (showCancelButton ? cancelRef : confirmRef).current?.focus();
     }
-  }, [open]);
+  }, [open, showCancelButton]);
 
   // Close on Escape key
   useEffect(() => {
@@ -78,7 +82,10 @@ export default function ConfirmDialog({
       className="confirm-dialog-overlay"
       onClick={onCancel}
       onKeyDown={(e) => {
-        if (e.key === "Escape") onCancel();
+        if (e.key === "Escape") {
+          e.stopPropagation();
+          onCancel();
+        }
       }}
       role="presentation"
       data-testid="confirm-dialog-overlay"
@@ -98,15 +105,18 @@ export default function ConfirmDialog({
           {message}
         </p>
         <div className="confirm-dialog-actions">
+          {showCancelButton && (
+            <button
+              ref={cancelRef}
+              className="confirm-dialog-btn confirm-dialog-btn--cancel"
+              onClick={onCancel}
+              data-testid="confirm-dialog-cancel"
+            >
+              {resolvedCancelLabel}
+            </button>
+          )}
           <button
-            ref={cancelRef}
-            className="confirm-dialog-btn confirm-dialog-btn--cancel"
-            onClick={onCancel}
-            data-testid="confirm-dialog-cancel"
-          >
-            {resolvedCancelLabel}
-          </button>
-          <button
+            ref={confirmRef}
             className="confirm-dialog-btn confirm-dialog-btn--confirm"
             onClick={onConfirm}
             data-testid="confirm-dialog-confirm"

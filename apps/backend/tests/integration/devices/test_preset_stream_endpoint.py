@@ -22,7 +22,7 @@ that Bose SoundTouch devices call when a custom preset button is pressed.
 to ensure mocks are active before the endpoint handler makes requests.
 """
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import respx
@@ -36,7 +36,7 @@ external_mock = respx.mock(assert_all_called=False)
 def setup_external_mocks():
     """Setup external HTTP mocks before each test.
 
-    Also patches validate_stream_url to skip DNS resolution in tests —
+    Also patches the shared stream validator to skip DNS resolution in tests —
     all stream URLs are mocked via respx, so SSRF checks are irrelevant here.
     """
     # Define common external stream mocks
@@ -94,8 +94,12 @@ def setup_external_mocks():
         return_value=Response(status_code=404, content=b"Not Found")
     )
 
-    with external_mock, patch(
-        "opencloudtouch.devices.api.preset_stream_routes.validate_stream_url"
+    with (
+        external_mock,
+        patch(
+            "opencloudtouch.presets.service.PresetService._validate_stream_url",
+            new_callable=AsyncMock,
+        ),
     ):
         yield
 

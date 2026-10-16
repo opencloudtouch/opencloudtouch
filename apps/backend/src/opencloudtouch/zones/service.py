@@ -8,7 +8,7 @@ from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceNotFound
 from opencloudtouch.devices.repository import DeviceRepository
 from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT
 from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
-from opencloudtouch.zones.repository import ZoneRepository
+from opencloudtouch.zones.repository import ZoneNotFoundError, ZoneRepository
 
 if TYPE_CHECKING:
     from opencloudtouch.devices.client import DeviceClient
@@ -195,7 +195,14 @@ class ZoneService:
         zone_db = await self.zone_repo.get_active_zone_by_master(master.device_id)
         if zone_db and zone_db.id is not None:
             for slave_id in slave_ids:
-                await self.zone_repo.add_member(zone_db.id, slave_id, "slave")
+                try:
+                    await self.zone_repo.add_member(zone_db.id, slave_id, "slave")
+                except ZoneNotFoundError:
+                    logger.info(
+                        "Zone %d was dissolved while adding members",
+                        zone_db.id,
+                    )
+                    raise
 
     async def remove_members(self, master_id: str, slave_ids: list[str]) -> None:
         """Remove members from an existing zone."""
@@ -254,7 +261,7 @@ class ZoneService:
             logger.warning(
                 "No zone found for master_id=%s, nothing to dissolve", master_id
             )
-            # Still update DB to mark as dissolved
+            # Remove stale zone from database
             zone_db = await self.zone_repo.get_active_zone_by_master(master.device_id)
             if zone_db and zone_db.id is not None:
                 await self.zone_repo.dissolve_zone(zone_db.id)
@@ -276,12 +283,12 @@ class ZoneService:
                 master_id,
             )
         finally:
-            # Update database ALWAYS (even if remove_zone() threw exception)
+            # Remove database entry ALWAYS (even if remove_zone() threw exception)
             # Physical zone state is source of truth (WebSocket events)
             zone_db = await self.zone_repo.get_active_zone_by_master(master.device_id)
             if zone_db and zone_db.id is not None:
                 await self.zone_repo.dissolve_zone(zone_db.id)
-                logger.info("Zone marked as dissolved in DB (zone_id=%d)", zone_db.id)
+                logger.info("Zone removed from DB (zone_id=%d)", zone_db.id)
 
     async def change_master(self, old_master_id: str, new_master_id: str) -> ZoneStatus:
         """Change the master of a zone. Dissolve old, recreate with new master."""

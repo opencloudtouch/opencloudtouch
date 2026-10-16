@@ -92,7 +92,19 @@
     "loadMore": "Carregar mais",
     "loadingMore": "Carregando...",
     "maxReached": "Máximo ({{count}}) atingido",
-    "maxReachedTooltip": "Refine sua pesquisa para encontrar estações específicas"
+    "maxReachedTooltip": "Refine sua pesquisa para encontrar estações específicas",
+    "manualStreamUrlPlaceholder": "Inserir URL do stream...",
+    "manualStationNamePlaceholder": "Nome da estação",
+    "manualFaviconPlaceholder": "URL do logotipo (opcional)",
+    "manualStreamMode": "URL do stream",
+    "manualUseStation": "Usar estação",
+    "manualStreamUrlHelp": "Endereço HTTP/HTTPS direto para um stream de áudio compatível com o dispositivo SoundTouch. Exemplo: https://example.com/live.mp3",
+    "manualStationNameHelp": "Exemplos: SWR3, BBC Radio 1, Radio Paradise",
+    "manualFaviconHelp": "Endereço HTTP/HTTPS direto para um arquivo de imagem. Recomendado: quadrado, de 128×128 a 600×600 px, PNG ou JPG/JPEG.",
+    "manualStreamErrorTitle": "Erro de stream",
+    "manualStreamUnreachable": "A URL do stream não está acessível.",
+    "manualStreamSaveFailed": "Não foi possível salvar a estação.",
+    "manualStreamErrorOk": "OK"
   },
   "settings": {
     "title": "Configurações",

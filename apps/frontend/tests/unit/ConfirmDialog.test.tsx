@@ -102,6 +102,21 @@ describe("ConfirmDialog", () => {
     });
   });
 
+  it("shows and focuses only OK for informational dialogs", () => {
+    render(
+      <ConfirmDialog
+        {...defaultProps}
+        showCancelButton={false}
+        confirmLabel="OK"
+      />,
+    );
+    expect(screen.queryByTestId("confirm-dialog-cancel")).not.toBeInTheDocument();
+    const ok = screen.getByRole("button", { name: "OK" });
+    expect(ok).toHaveFocus();
+    fireEvent.click(ok);
+    expect(defaultProps.onConfirm).toHaveBeenCalledTimes(1);
+  });
+
   describe("Accessibility", () => {
     it("has correct ARIA attributes", () => {
       render(<ConfirmDialog {...defaultProps} />);

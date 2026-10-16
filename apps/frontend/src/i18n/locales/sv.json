@@ -92,7 +92,19 @@
     "loadMore": "Ladda fler",
     "loadingMore": "Laddar...",
     "maxReached": "Maximum ({{count}}) nått",
-    "maxReachedTooltip": "Förfina din sökning för att hitta specifika stationer"
+    "maxReachedTooltip": "Förfina din sökning för att hitta specifika stationer",
+    "manualStreamUrlPlaceholder": "Ange stream-URL...",
+    "manualStationNamePlaceholder": "Stationsnamn",
+    "manualFaviconPlaceholder": "Logotyp-URL (valfritt)",
+    "manualStreamMode": "Stream-URL",
+    "manualUseStation": "Använd station",
+    "manualStreamUrlHelp": "Direkt HTTP/HTTPS-adress till en ljudström som stöds av SoundTouch-enheten. Exempel: https://example.com/live.mp3",
+    "manualStationNameHelp": "Exempel: SWR3, BBC Radio 1, Radio Paradise",
+    "manualFaviconHelp": "Direkt HTTP/HTTPS-adress till en bildfil. Rekommenderat: kvadratisk, 128×128 till 600×600 px, PNG eller JPG/JPEG.",
+    "manualStreamErrorTitle": "Streamfel",
+    "manualStreamUnreachable": "Stream-URL:en kan inte nås.",
+    "manualStreamSaveFailed": "Stationen kunde inte sparas.",
+    "manualStreamErrorOk": "OK"
   },
   "settings": {
     "title": "Inställningar",
