@@ -1,0 +1,46 @@
+/* RestoreVerification — post-reboot device poll.
+   Mirrors Step3PowerCycle's .power-cycle-status boxes (pending while
+   counting down, success once the device answers, error on timeout). */
+
+.restore-verification__countdown,
+.restore-verification__timeout,
+.restore-verification__online {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.restore-verification__countdown {
+  background: rgba(255, 193, 7, 0.1);
+  border: 2px solid #ffa726;
+  color: var(--text-primary);
+}
+
+.restore-verification__timeout {
+  background: rgba(244, 67, 54, 0.1);
+  border: 2px solid #ef5350;
+  color: var(--text-primary);
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.restore-verification__online {
+  background: rgba(76, 175, 80, 0.1);
+  border: 2px solid #66bb6a;
+  color: var(--text-primary);
+}
+
+.restore-verification__countdown p,
+.restore-verification__timeout p,
+.restore-verification__online p {
+  margin: 0;
+}
+
+.restore-verification__timeout-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
