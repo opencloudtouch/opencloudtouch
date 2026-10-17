@@ -1,4 +1,4 @@
-"""Tests for setup/wizard/step7_finalize_verify.py's verify_setup() -- Issue #184."""
+"""Tests for setup/wizard/step8_finalize_verify.py's verify_setup() -- Issue #184."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -108,7 +108,7 @@ class TestVerifySetupAllPass:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step8_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value="5448503",
             ),
@@ -148,7 +148,7 @@ class TestVerifyUUIDMissing:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step8_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value=None,
             ),
@@ -188,7 +188,7 @@ class TestVerifyUUIDNotInDB:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step8_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value="5448503",
             ),
@@ -227,7 +227,7 @@ class TestVerifySourcesIncomplete:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step8_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value="5448503",
             ),
@@ -267,7 +267,7 @@ class TestVerifyBMXStillBose:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step8_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value="5448503",
             ),
@@ -307,7 +307,7 @@ class TestVerifyNoOCTBlock:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step8_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value="5448503",
             ),
@@ -349,7 +349,7 @@ class TestVerifyMissingDomains:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step8_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value="5448503",
             ),
@@ -404,7 +404,7 @@ class TestVerifyWrongIP:
 
         with (
             patch(
-                "opencloudtouch.setup.wizard.step7_finalize_verify.check_marge_account_uuid",
+                "opencloudtouch.setup.wizard.step8_finalize_verify.check_marge_account_uuid",
                 new_callable=AsyncMock,
                 return_value="5448503",
             ),
@@ -422,3 +422,137 @@ class TestVerifyWrongIP:
         ip_check = next(c for c in result["checks"] if c["name"] == "hosts_ip_correct")
         assert ip_check["passed"] is False
         assert "wrong IP" in ip_check["message"]
+
+
+class TestVerifyNtpServer:
+    """NTP server check (Issue #469) -- optional, only runs when expected_ntp_server is given."""
+
+    @pytest.mark.asyncio
+    async def test_skipped_when_no_expected_server_given(self):
+        """Step is skippable, so verify must not fail setup when NTP was never patched."""
+        repo = _make_device_repo(uuid_device_id="AABBCCDDEEFF")
+        service = WizardService(device_repo=repo)
+
+        ssh = _make_ssh_responses(
+            {
+                f"cat {_PERSISTENCE_DIR}/Sources.xml": FULL_SOURCES_XML,
+                "test -f /mnt/nv/Override": "exists",
+                "test -f /mnt/nv/SoundTouch": "exists",
+                "md5sum": "abc  f1\nabc  f2\nabc  f3",
+                "cat /mnt/nv/OverrideSdkPrivateCfg.xml": GOOD_CONFIG,
+                "cat /etc/hosts": GOOD_HOSTS,
+                f"test -f {_PERSISTENCE_DIR}/SystemConfigurationDB.xml": "exists",
+                f"cat {_PERSISTENCE_DIR}/SystemConfigurationDB.xml": GOOD_SYS_CONFIG,
+            }
+        )
+
+        with (
+            patch(
+                "opencloudtouch.setup.wizard.step8_finalize_verify.check_marge_account_uuid",
+                new_callable=AsyncMock,
+                return_value="5448503",
+            ),
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient",
+            ) as mock_ssh_cls,
+        ):
+            mock_ssh_cls.return_value.__aenter__ = AsyncMock(return_value=ssh)
+            mock_ssh_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+            result = await service.verify_setup(
+                "192.168.1.100", "AABBCCDDEEFF", "192.168.1.50"
+            )
+
+        assert result["success"] is True
+        assert not any(c["name"] == "ntp_server_correct" for c in result["checks"])
+
+    @pytest.mark.asyncio
+    async def test_passes_when_device_ntp_matches_expected(self):
+        repo = _make_device_repo(uuid_device_id="AABBCCDDEEFF")
+        service = WizardService(device_repo=repo)
+
+        ssh = _make_ssh_responses(
+            {
+                f"cat {_PERSISTENCE_DIR}/Sources.xml": FULL_SOURCES_XML,
+                "test -f /mnt/nv/Override": "exists",
+                "test -f /mnt/nv/SoundTouch": "exists",
+                "md5sum": "abc  f1\nabc  f2\nabc  f3",
+                "cat /mnt/nv/OverrideSdkPrivateCfg.xml": GOOD_CONFIG,
+                "cat /etc/hosts": GOOD_HOSTS,
+                f"test -f {_PERSISTENCE_DIR}/SystemConfigurationDB.xml": "exists",
+                f"cat {_PERSISTENCE_DIR}/SystemConfigurationDB.xml": GOOD_SYS_CONFIG,
+                "cat /etc/ntpservers.txt": "pool.ntp.org\n0.pool.ntp.org\n1.pool.ntp.org\n",
+            }
+        )
+
+        with (
+            patch(
+                "opencloudtouch.setup.wizard.step8_finalize_verify.check_marge_account_uuid",
+                new_callable=AsyncMock,
+                return_value="5448503",
+            ),
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient",
+            ) as mock_ssh_cls,
+        ):
+            mock_ssh_cls.return_value.__aenter__ = AsyncMock(return_value=ssh)
+            mock_ssh_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+            result = await service.verify_setup(
+                "192.168.1.100",
+                "AABBCCDDEEFF",
+                "192.168.1.50",
+                expected_ntp_server="pool.ntp.org",
+            )
+
+        assert result["success"] is True
+        ntp_check = next(
+            c for c in result["checks"] if c["name"] == "ntp_server_correct"
+        )
+        assert ntp_check["passed"] is True
+
+    @pytest.mark.asyncio
+    async def test_fails_when_device_ntp_does_not_match(self):
+        repo = _make_device_repo(uuid_device_id="AABBCCDDEEFF")
+        service = WizardService(device_repo=repo)
+
+        ssh = _make_ssh_responses(
+            {
+                f"cat {_PERSISTENCE_DIR}/Sources.xml": FULL_SOURCES_XML,
+                "test -f /mnt/nv/Override": "exists",
+                "test -f /mnt/nv/SoundTouch": "exists",
+                "md5sum": "abc  f1\nabc  f2\nabc  f3",
+                "cat /mnt/nv/OverrideSdkPrivateCfg.xml": GOOD_CONFIG,
+                "cat /etc/hosts": GOOD_HOSTS,
+                f"test -f {_PERSISTENCE_DIR}/SystemConfigurationDB.xml": "exists",
+                f"cat {_PERSISTENCE_DIR}/SystemConfigurationDB.xml": GOOD_SYS_CONFIG,
+                "cat /etc/ntpservers.txt": "0.bose.pool.ntp.org\n1.bose.pool.ntp.org\n",
+            }
+        )
+
+        with (
+            patch(
+                "opencloudtouch.setup.wizard.step8_finalize_verify.check_marge_account_uuid",
+                new_callable=AsyncMock,
+                return_value="5448503",
+            ),
+            patch(
+                "opencloudtouch.setup.wizard_helpers.SoundTouchSSHClient",
+            ) as mock_ssh_cls,
+        ):
+            mock_ssh_cls.return_value.__aenter__ = AsyncMock(return_value=ssh)
+            mock_ssh_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+            result = await service.verify_setup(
+                "192.168.1.100",
+                "AABBCCDDEEFF",
+                "192.168.1.50",
+                expected_ntp_server="pool.ntp.org",
+            )
+
+        assert result["success"] is False
+        ntp_check = next(
+            c for c in result["checks"] if c["name"] == "ntp_server_correct"
+        )
+        assert ntp_check["passed"] is False
+        assert "bose.pool.ntp.org" in ntp_check["message"]

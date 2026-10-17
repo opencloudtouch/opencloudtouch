@@ -1,7 +1,7 @@
 /**
  * E2E Tests: Wizard i18n — Translation Smoke Tests
  *
- * Verifies that all wizard step pages (Step 1–8) render translated strings
+ * Verifies that all wizard step pages (Step 1–9) render translated strings
  * in the active language (English default + German switch).
  *
  * These are smoke tests, not full regression tests. Each test checks that
@@ -164,15 +164,22 @@ describe("Wizard i18n — English (default)", () => {
     cy.contains("Hosts-Datei ändern").should("not.exist");
   });
 
-  it("Step 7 (verification) renders English title", () => {
+  it("Step 7 (NTP patch, optional) renders English title", () => {
     visitEn(`${FRONTEND_BASE}/setup-wizard?step=7&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.wait("@getDevices");
+    cy.contains("Patch NTP Server").should("exist");
+    cy.contains("NTP-Server patchen").should("not.exist");
+  });
+
+  it("Step 8 (verification) renders English title", () => {
+    visitEn(`${FRONTEND_BASE}/setup-wizard?step=8&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
     cy.wait("@getDevices");
     cy.contains("Verification & Test").should("exist");
     cy.contains("Überprüfung & Test").should("not.exist");
   });
 
-  it("Step 8 (completion) renders English title", () => {
-    visitEn(`${FRONTEND_BASE}/setup-wizard?step=8&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79&deviceName=Wohnzimmer`);
+  it("Step 9 (completion) renders English title", () => {
+    visitEn(`${FRONTEND_BASE}/setup-wizard?step=9&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79&deviceName=Wohnzimmer`);
     cy.wait("@getDevices");
     cy.contains("Setup complete").should("exist");
     cy.contains("Setup abgeschlossen").should("not.exist");
@@ -218,8 +225,14 @@ describe("Wizard i18n — German (language switch)", () => {
     cy.contains("Erforderlich").should("exist");
   });
 
-  it("Step 8 completion title is in German", () => {
-    visitDe(`${FRONTEND_BASE}/setup-wizard?step=8&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79&deviceName=Wohnzimmer`);
+  it("Step 7 NTP patch title is in German", () => {
+    visitDe(`${FRONTEND_BASE}/setup-wizard?step=7&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.wait("@getDevices");
+    cy.contains("NTP-Server patchen").should("exist");
+  });
+
+  it("Step 9 completion title is in German", () => {
+    visitDe(`${FRONTEND_BASE}/setup-wizard?step=9&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79&deviceName=Wohnzimmer`);
     cy.wait("@getDevices");
     cy.contains("Setup abgeschlossen").should("exist");
   });

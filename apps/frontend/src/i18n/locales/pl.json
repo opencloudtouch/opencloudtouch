@@ -254,10 +254,14 @@
       "description": "Skonfiguruj przekierowanie sieci dla domen Bose"
     },
     "step6": {
+      "label": "NTP",
+      "description": "Zastosuj łatkę serwera NTP na urządzeniu"
+    },
+    "step7": {
       "label": "Weryfikacja",
       "description": "Przetestuj konfigurację i zweryfikuj przekierowanie DNS"
     },
-    "step7": {
+    "step8": {
       "label": "Gotowe",
       "description": "Konfiguracja zakończona"
     },
@@ -467,6 +471,18 @@
         "hostsApplied": "Plik hosts został pomyślnie zmodyfikowany."
       },
       "step7": {
+        "title": "Patch serwera NTP",
+        "description": "Ustaw serwer czasu NTP na urządzeniu, aby zegar był dokładny.",
+        "optionalNotice": "Ten krok jest opcjonalny i można go pominąć — urządzenie zachowa swoją obecną konfigurację NTP.",
+        "serverLabel": "Serwer NTP:",
+        "serverHint": "Na przykład adres IP routera lub publiczny serwer NTP.",
+        "btnPatch": "Zastosuj serwer NTP",
+        "btnPatching": "Stosowanie...",
+        "errorTitle": "Patch NTP nie powiódł się",
+        "successTitle": "Serwer NTP zaktualizowany!",
+        "nextDisabled": "Najpierw zastosuj serwer NTP."
+      },
+      "step8": {
         "title": "Testuj konfigurację",
         "description": "Sprawdź, czy przekierowania domen działają poprawnie.",
         "warning": "Jeśli testy nie powiodą się, może być wymagany restart urządzenia.",
@@ -523,9 +539,12 @@
         "fullVerifyItem4": "Przekierowania DNS rozwiązane do serwera OpenCloudTouch",
         "btnRunFullVerify": "Uruchom pełną weryfikację",
         "fullVerifying": "Trwa pełna weryfikacja systemu...",
-        "btnRetryFullVerify": "Uruchom weryfikację ponownie"
+        "btnRetryFullVerify": "Uruchom weryfikację ponownie",
+        "checkNtpServer": "Serwer NTP ustawiony na: {{server}}",
+        "checkNtpServerWrong": "Serwer NTP jest ustawiony na „{{found}}”, oczekiwano „{{expected}}”",
+        "fullVerifyItem5": "Serwer NTP skonfigurowany na urządzeniu"
       },
-      "step8": {
+      "step9": {
         "title": "Konfiguracja zakończona!",
         "description": "Urządzenie zostało pomyślnie skonfigurowane i jest gotowe do użycia.",
         "heroTitle": "Gratulacje!",
@@ -550,7 +569,8 @@
         "nextStep3Desc": "Powtórz kreator dla dodatkowych urządzeń SoundTouch.",
         "btnDone": "Gotowe",
         "supportText": "Problemy lub pytania?",
-        "supportLink": "Skontaktuj się z pomocą techniczną →"
+        "supportLink": "Skontaktuj się z pomocą techniczną →",
+        "summaryItem7": "Serwer NTP zaktualizowany ({{server}})"
       }
     }
   },

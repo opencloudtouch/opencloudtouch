@@ -26,6 +26,7 @@ const STEP_LABELS: Record<string, string> = {
   config: "Config Files",
   presets: "Presets",
   hosts: "/etc/hosts",
+  ntp: "/etc/ntpservers.txt",
   remote_services: "SSH Persistence",
   reboot: "Reboot",
 };

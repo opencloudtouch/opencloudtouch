@@ -1,0 +1,132 @@
+/* NTP Patch Styles — matches the visual language of the other wizard steps.
+   Shares the .error-icon/.success-* idiom already duplicated across
+   Step4Backup/Step5ConfigModification/Step6HostsModification/Step8Verification;
+   its own input/error/success containers use ntp-* names so they don't
+   collide with Step6's hosts-* ones (Vite CSS is global, not scoped). */
+.ntp-patch {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Optional-step notice */
+.ntp-optional-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(74, 144, 217, 0.1);
+  border: 1px solid var(--primary-color, #4a90d9);
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.ntp-optional-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.ntp-optional-text {
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+/* Input Group */
+.ntp-input-group {
+  margin-bottom: 2rem;
+}
+
+.ntp-label {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.ntp-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: "Courier New", monospace;
+  transition: border-color 0.2s;
+  background: var(--surface-color);
+  color: var(--text-primary);
+}
+
+.ntp-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+.ntp-input:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.ntp-hint {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+}
+
+.ntp-patch-btn {
+  width: 100%;
+  font-size: 1.125rem;
+  margin-top: 0.75rem;
+}
+
+/* Error */
+.ntp-error {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1.5rem;
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid #f44336;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.error-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.error-content strong {
+  display: block;
+  color: #ef5350;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.error-content p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Success */
+.ntp-success {
+  text-align: center;
+}
+
+.success-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.success-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-success, #81c784);
+  margin: 0.5rem 0;
+}
+
+.success-message {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}

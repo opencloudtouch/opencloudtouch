@@ -150,7 +150,7 @@ class TestBug184AccountPairingInWizard:
     The protection this bug guards against — UUID pairing plus persistence
     to DeviceRepository so the streaming endpoint can resolve
     account_id -> device_id — is exercised today by the live finalize step
-    instead (test_step7_finalize_verify.py, which asserts
+    instead (test_step8_finalize_verify.py, which asserts
     repo.update_marge_account_uuid is called after
     ensure_account_uuid_unique() succeeds).
     """

@@ -1,9 +1,9 @@
-"""Setup Wizard Step 7 (Verification) — reboot, DNS redirect check, UUID/config
+"""Setup Wizard Step 8 (Verification) — reboot, DNS redirect check, UUID/config
 finalization, and the 11-point post-setup verification sweep (Issue #184).
 
 finalize_device and verify_setup are kept in one file (not split further):
 both read/write the same on-device persistence files and share
-_verify_sys_config, and both fire from the same Step7Verification.tsx
+_verify_sys_config, and both fire from the same Step8Verification.tsx
 component alongside reboot_device/verify_redirect.
 """
 
@@ -38,6 +38,7 @@ from opencloudtouch.setup.config_service import (
     SoundTouchConfigService,
 )
 from opencloudtouch.setup.hosts_service import SoundTouchHostsService
+from opencloudtouch.setup.ntp_service import SoundTouchNtpService
 from opencloudtouch.setup.persistence_service import (
     _PERSISTENCE_DIR,
     REQUIRED_SOURCE_TYPES,
@@ -52,11 +53,11 @@ from opencloudtouch.setup.wizard_helpers import ssh_operation
 
 logger = logging.getLogger(__name__)
 
-step7_router = APIRouter()
+step8_router = APIRouter()
 
 
-class Step7FinalizeVerifyMixin:
-    """WizardService methods for Step 7 (Verification, incl. Issue #184).
+class Step8FinalizeVerifyMixin:
+    """WizardService methods for Step 8 (Verification, incl. Issue #184).
 
     Covers device reboot, DNS redirect verification, UUID/config
     finalization, and the 11-point post-setup verification sweep.
@@ -332,7 +333,11 @@ class Step7FinalizeVerifyMixin:
         return checks
 
     async def verify_setup(
-        self, device_ip: str, device_id: str, expected_oct_ip: str
+        self,
+        device_ip: str,
+        device_id: str,
+        expected_oct_ip: str,
+        expected_ntp_server: str | None = None,
     ) -> dict:
         """Comprehensive post-setup health check. Read-only, never modifies device.
 
@@ -369,6 +374,8 @@ class Step7FinalizeVerifyMixin:
                 )
                 sys_exists = await self._check_system_config_present(ssh, _add)
                 await self._check_system_config_uuid(ssh, sys_exists, device_uuid, _add)
+                if expected_ntp_server:
+                    await self._check_ntp_server(ssh, expected_ntp_server, _add)
 
         except Exception as e:
             logger.exception("Verify setup failed for %s: %s", device_ip, e)
@@ -614,6 +621,28 @@ class Step7FinalizeVerifyMixin:
             {"wrong": wrong_ips},
         )
 
+    async def _check_ntp_server(self, ssh, expected_ntp_server, _add):
+        """Check: /etc/ntpservers.txt lists the chosen server first (Issue #469).
+
+        Only invoked when expected_ntp_server is given — the NTP step is
+        optional and skippable, so this check is skipped entirely (not
+        failed) when the user never patched it.
+        """
+        r = await ssh.execute(f"cat {SoundTouchNtpService.NTP_PATH} 2>/dev/null")
+        content = r.output or "" if r.success else ""
+        first_line = content.splitlines()[0].strip() if content.strip() else ""
+        matches = first_line == expected_ntp_server
+        _add(
+            "ntp_server_correct",
+            matches,
+            (
+                f"NTP server set to {expected_ntp_server}"
+                if matches
+                else f"{SoundTouchNtpService.NTP_PATH} lists '{first_line or '(empty)'}' first, expected '{expected_ntp_server}'"
+            ),
+            {"ntp_server": first_line},
+        )
+
     async def _check_system_config_present(self, ssh, _add):
         """Check 10: SystemConfigurationDB.xml exists on device."""
         sys_config_path = f"{_PERSISTENCE_DIR}/SystemConfigurationDB.xml"
@@ -655,12 +684,12 @@ class Step7FinalizeVerifyMixin:
         )
 
 
-@step7_router.post("/wizard/reboot-device")
+@step8_router.post("/wizard/reboot-device")
 async def wizard_reboot_device(
     request: ConnectivityCheckRequest,
     wizard: WizardServiceDep,
 ) -> Dict[str, Any]:
-    """Reboot SoundTouch device via SSH (Wizard Step 7)."""
+    """Reboot SoundTouch device via SSH (Wizard Step 8)."""
     logger.info("Sending reboot command to %s", request.ip)
 
     result = await wizard.reboot_device(request.ip)
@@ -681,12 +710,12 @@ async def wizard_reboot_device(
     }
 
 
-@step7_router.post("/wizard/verify-redirect", response_model=VerifyRedirectResponse)
+@step8_router.post("/wizard/verify-redirect", response_model=VerifyRedirectResponse)
 async def wizard_verify_redirect(
     request: VerifyRedirectRequest,
     wizard: WizardServiceDep,
 ):
-    """Verify a domain is redirected to OCT on the device (Wizard Step 7)."""
+    """Verify a domain is redirected to OCT on the device (Wizard Step 8)."""
     logger.info(
         "Verifying redirect of %s on %s (expected: %s)",
         request.domain,
@@ -708,7 +737,7 @@ async def wizard_verify_redirect(
     )
 
 
-@step7_router.post(
+@step8_router.post(
     "/wizard/finalize",
     response_model=FinalizeResponse,
     responses={500: {"description": "Finalization failed"}},
@@ -744,7 +773,7 @@ async def wizard_finalize(
     )
 
 
-@step7_router.post(
+@step8_router.post(
     "/wizard/verify-setup",
     response_model=VerifySetupResponse,
     responses={500: {"description": "Verification failed"}},
@@ -766,7 +795,10 @@ async def wizard_verify_setup(
     )
 
     result = await wizard.verify_setup(
-        request.device_ip, request.device_id, request.expected_oct_ip
+        request.device_ip,
+        request.device_id,
+        request.expected_oct_ip,
+        request.expected_ntp_server,
     )
 
     return VerifySetupResponse(

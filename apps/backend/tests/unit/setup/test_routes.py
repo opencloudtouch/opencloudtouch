@@ -587,7 +587,7 @@ class TestWizardRebootDevice:
         )
         mock_ssh_client.close = AsyncMock()
 
-        from opencloudtouch.setup.wizard import step7_finalize_verify as routes
+        from opencloudtouch.setup.wizard import step8_finalize_verify as routes
 
         monkeypatch.setattr(
             routes, "SoundTouchSSHClient", lambda host, port: mock_ssh_client
@@ -611,7 +611,7 @@ class TestWizardRebootDevice:
         )
         mock_ssh_client.close = AsyncMock()
 
-        from opencloudtouch.setup.wizard import step7_finalize_verify as routes
+        from opencloudtouch.setup.wizard import step8_finalize_verify as routes
 
         monkeypatch.setattr(
             routes, "SoundTouchSSHClient", lambda host, port: mock_ssh_client
@@ -1233,7 +1233,7 @@ class TestWizardRebootExceptionPath:
 
     def test_unexpected_exception_returns_500(self, client, monkeypatch):
         """Unexpected exception during reboot returns 500."""
-        from opencloudtouch.setup.wizard import step7_finalize_verify as routes
+        from opencloudtouch.setup.wizard import step8_finalize_verify as routes
 
         mock_ssh = AsyncMock()
         mock_ssh.connect = AsyncMock(return_value=MagicMock(success=True))

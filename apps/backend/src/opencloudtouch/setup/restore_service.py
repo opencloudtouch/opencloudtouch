@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 from typing import Optional
 
+from opencloudtouch.setup.ntp_service import SoundTouchNtpService
 from opencloudtouch.setup.restore_models import (
     BackupFileInfo,
     BackupScanResult,
@@ -202,7 +203,7 @@ class RestoreService:
     ) -> RestoreResult:
         """Execute full restore sequence.
 
-        Sequence: pre-snapshot → config → presets → hosts → remote_services → reboot.
+        Sequence: pre-snapshot → config → presets → hosts → ntp → remote_services → reboot.
         """
         start = time.time()
         steps: list[RestoreStep] = []
@@ -228,6 +229,10 @@ class RestoreService:
 
                 # Hosts
                 step = await self._restore_hosts(ssh)
+                steps.append(step)
+
+                # NTP
+                step = await self._restore_ntp(ssh)
                 steps.append(step)
 
                 # Remote services
@@ -446,6 +451,44 @@ class RestoreService:
             step.status = StepStatus.FAILED
             step.error = str(e)
             step.message = f"Hosts restore failed: {e}"
+
+        step.duration_seconds = time.time() - start
+        return step
+
+    async def _restore_ntp(self, ssh) -> RestoreStep:
+        """Restore /etc/ntpservers.txt from its pre-patch backup, if any."""
+        step = RestoreStep(name=RestoreStepName.NTP)
+        start = time.time()
+        backup_path = (
+            f"{SoundTouchNtpService.BACKUP_DIR}/{SoundTouchNtpService.BACKUP_NAME}"
+        )
+
+        try:
+            check = await ssh.execute(
+                f"test -f {backup_path} && echo 'exists' || echo 'missing'"
+            )
+            if "missing" in (check.output or ""):
+                step.status = StepStatus.SKIPPED
+                step.message = "No NTP backup found (already clean)"
+                step.duration_seconds = time.time() - start
+                return step
+
+            result = await ssh.execute(
+                f"cp {backup_path} {SoundTouchNtpService.NTP_PATH}"
+            )
+            if result.exit_code != 0:
+                step.status = StepStatus.FAILED
+                step.error = "Failed to restore /etc/ntpservers.txt from backup"
+                step.message = step.error
+                step.duration_seconds = time.time() - start
+                return step
+
+            step.status = StepStatus.COMPLETED
+            step.message = "NTP servers restored from backup"
+        except Exception as e:
+            step.status = StepStatus.FAILED
+            step.error = str(e)
+            step.message = f"NTP restore failed: {e}"
 
         step.duration_seconds = time.time() - start
         return step

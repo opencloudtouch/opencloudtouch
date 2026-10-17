@@ -306,6 +306,51 @@ class TestRestoreHosts:
         assert step.status == StepStatus.SKIPPED
 
 
+class TestRestoreNtp:
+    """Issue #469: Tests for _restore_ntp()."""
+
+    @pytest.fixture
+    def service(self):
+        return RestoreService()
+
+    @pytest.mark.asyncio
+    async def test_restores_from_backup_when_present(self, service):
+        mock_ssh = AsyncMock()
+        mock_ssh.execute.side_effect = [
+            MagicMock(output="exists", exit_code=0),  # test -f backup
+            MagicMock(output="", exit_code=0),  # cp backup -> /etc/ntpservers.txt
+        ]
+
+        step = await service._restore_ntp(mock_ssh)
+
+        assert step.status == StepStatus.COMPLETED
+        cp_call = mock_ssh.execute.call_args_list[1][0][0]
+        assert "cp" in cp_call
+        assert "/etc/ntpservers.txt" in cp_call
+
+    @pytest.mark.asyncio
+    async def test_skips_when_no_backup_exists(self, service):
+        mock_ssh = AsyncMock()
+        mock_ssh.execute.return_value = MagicMock(output="missing", exit_code=0)
+
+        step = await service._restore_ntp(mock_ssh)
+
+        assert step.status == StepStatus.SKIPPED
+        mock_ssh.execute.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_failed_copy_marks_step_failed(self, service):
+        mock_ssh = AsyncMock()
+        mock_ssh.execute.side_effect = [
+            MagicMock(output="exists", exit_code=0),  # test -f backup
+            MagicMock(output="", exit_code=1),  # cp fails
+        ]
+
+        step = await service._restore_ntp(mock_ssh)
+
+        assert step.status == StepStatus.FAILED
+
+
 class TestRemoveRemoteServices:
     """T036: Tests for _remove_remote_services()."""
 
@@ -578,6 +623,9 @@ class TestExecuteRestoreOrchestration:
             MagicMock(output="", exit_code=0),  # rm -f overrides (config step2)
             MagicMock(output="", exit_code=1),  # find Presets.xml → not found
             MagicMock(output="", exit_code=1),  # cat /etc/hosts → fail
+            MagicMock(
+                output="missing", exit_code=0
+            ),  # test -f ntp backup → missing, skip
             MagicMock(output="", exit_code=0),  # rm -f remote_services
             MagicMock(output="", exit_code=0),  # remount ro /mnt/nv
             MagicMock(output="", exit_code=0),  # remount ro /

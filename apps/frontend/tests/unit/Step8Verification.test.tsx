@@ -1,5 +1,5 @@
 /**
- * Tests for Step7Verification — finalize, reboot, full verification
+ * Tests for Step8Verification — finalize, reboot, full verification
  *
  * Tests the Issue #184 flow: finalize device (UUID + Sources.xml + SystemConfig),
  * mandatory reboot with countdown, then full verification (verify_setup + DNS).
@@ -34,12 +34,13 @@ vi.mock("framer-motion", () => ({
   AnimatePresence: ({ children }: React.PropsWithChildren) => children,
 }));
 
-import Step7Verification from "../../src/components/wizard/Step7Verification";
+import Step8Verification from "../../src/components/wizard/Step8Verification";
 
 const defaultProps = {
   deviceIp: "192.168.1.100",
   deviceId: "AABBCCDDEEFF",
   octIp: "192.168.1.50",
+  ntpServer: null,
   onNext: vi.fn(),
   onPrevious: vi.fn(),
 };
@@ -68,7 +69,7 @@ function mockSuccessFlow() {
   });
 }
 
-describe("Step7Verification", () => {
+describe("Step8Verification", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -78,23 +79,28 @@ describe("Step7Verification", () => {
   // ===================================================================
 
   it("renders finalize button in idle state", () => {
-    render(<Step7Verification {...defaultProps} />);
+    render(<Step8Verification {...defaultProps} />);
     expect(screen.getByRole("button", { name: /finalize/i })).toBeInTheDocument();
   });
 
+  it("shows step 7, not a duplicate of the preceding NTP step's step 6", () => {
+    render(<Step8Verification {...defaultProps} />);
+    expect(screen.getByText("Step 7")).toBeInTheDocument();
+  });
+
   it("renders navigation buttons", () => {
-    render(<Step7Verification {...defaultProps} />);
+    render(<Step8Verification {...defaultProps} />);
     expect(screen.getByRole("button", { name: /back/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /next/i })).toBeInTheDocument();
   });
 
   it("disables next button initially (no tests passed yet)", () => {
-    render(<Step7Verification {...defaultProps} />);
+    render(<Step8Verification {...defaultProps} />);
     expect(screen.getByRole("button", { name: /next/i })).toBeDisabled();
   });
 
   it("does not show reboot section before finalize", () => {
-    render(<Step7Verification {...defaultProps} />);
+    render(<Step8Verification {...defaultProps} />);
     // Reboot section only appears after finalize succeeds
     const buttons = screen.getAllByRole("button");
     const rebootBtn = buttons.find((b) =>
@@ -110,7 +116,7 @@ describe("Step7Verification", () => {
   it("calls finalizeDevice with correct device_ip and device_id", async () => {
     mockSuccessFlow();
 
-    render(<Step7Verification {...defaultProps} />);
+    render(<Step8Verification {...defaultProps} />);
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /finalize/i }));
@@ -125,7 +131,7 @@ describe("Step7Verification", () => {
   it("does not call verifySetup immediately after finalize (needs reboot first)", async () => {
     mockSuccessFlow();
 
-    render(<Step7Verification {...defaultProps} />);
+    render(<Step8Verification {...defaultProps} />);
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /finalize/i }));
@@ -138,7 +144,7 @@ describe("Step7Verification", () => {
   it("shows reboot button after successful finalize", async () => {
     mockSuccessFlow();
 
-    render(<Step7Verification {...defaultProps} />);
+    render(<Step8Verification {...defaultProps} />);
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /finalize/i }));
@@ -161,7 +167,7 @@ describe("Step7Verification", () => {
     mockSuccessFlow();
     mockRebootDevice.mockResolvedValue({});
 
-    render(<Step7Verification {...defaultProps} />);
+    render(<Step8Verification {...defaultProps} />);
 
     // 1. Finalize
     await act(async () => {
@@ -217,7 +223,7 @@ describe("Step7Verification", () => {
       error: "SSH connection refused",
     });
 
-    render(<Step7Verification {...defaultProps} />);
+    render(<Step8Verification {...defaultProps} />);
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /finalize/i }));
@@ -231,7 +237,7 @@ describe("Step7Verification", () => {
   it("shows error when finalizeDevice throws", async () => {
     mockFinalizeDevice.mockRejectedValue(new Error("Network error"));
 
-    render(<Step7Verification {...defaultProps} />);
+    render(<Step8Verification {...defaultProps} />);
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /finalize/i }));
@@ -248,7 +254,7 @@ describe("Step7Verification", () => {
       error: "Device unreachable",
     });
 
-    render(<Step7Verification {...defaultProps} />);
+    render(<Step8Verification {...defaultProps} />);
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /finalize/i }));
@@ -260,7 +266,7 @@ describe("Step7Verification", () => {
   it("shows retry button after finalize error", async () => {
     mockFinalizeDevice.mockRejectedValue(new Error("Timeout"));
 
-    render(<Step7Verification {...defaultProps} />);
+    render(<Step8Verification {...defaultProps} />);
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /finalize/i }));
@@ -279,7 +285,7 @@ describe("Step7Verification", () => {
     mockSuccessFlow();
     mockRebootDevice.mockResolvedValue({});
 
-    render(<Step7Verification {...defaultProps} />);
+    render(<Step8Verification {...defaultProps} />);
 
     // Finalize first
     await act(async () => {
@@ -304,7 +310,7 @@ describe("Step7Verification", () => {
     mockSuccessFlow();
     mockRebootDevice.mockRejectedValue(new Error("Connection lost"));
 
-    render(<Step7Verification {...defaultProps} />);
+    render(<Step8Verification {...defaultProps} />);
 
     // Finalize first
     await act(async () => {
@@ -336,7 +342,7 @@ describe("Step7Verification", () => {
     mockSuccessFlow();
     mockRebootDevice.mockResolvedValue({});
 
-    render(<Step7Verification {...defaultProps} />);
+    render(<Step8Verification {...defaultProps} />);
 
     // Finalize
     await act(async () => {
@@ -544,7 +550,7 @@ describe("Step7Verification", () => {
     });
 
     const onSkip = vi.fn();
-    render(<Step7Verification {...defaultProps} onSkip={onSkip} />);
+    render(<Step8Verification {...defaultProps} onSkip={onSkip} />);
 
     // Finalize
     await act(async () => {
@@ -703,6 +709,33 @@ describe("Step7Verification", () => {
 
     await waitFor(() => {
       expect(screen.getByText(/192\.168\.1\.50/)).toBeInTheDocument();
+    });
+  });
+
+  it("shows translated ntp_server_correct passed check with the applied server", async () => {
+    await reachVerificationPhase();
+
+    mockVerifySetup.mockResolvedValue({
+      success: true,
+      checks: [
+        { name: "ntp_server_correct", passed: true, message: "NTP server set to: pool.ntp.org", details: { ntp_server: "pool.ntp.org" } },
+      ],
+      passed_count: 1,
+      failed_count: 0,
+      message: "1/1 checks passed",
+    });
+    mockVerifyRedirect.mockResolvedValue({ success: true, resolved_ip: "192.168.1.50", expected_ip: "192.168.1.50", matches_expected: true, message: "OK" });
+
+    let verifyBtn: HTMLElement | undefined;
+    await waitFor(() => {
+      const buttons = screen.getAllByRole("button");
+      verifyBtn = buttons.find((b) => (b.textContent || "").toLowerCase().includes("verification"));
+      expect(verifyBtn).toBeTruthy();
+    });
+    await act(async () => { fireEvent.click(verifyBtn!); });
+
+    await waitFor(() => {
+      expect(screen.getByText(/pool\.ntp\.org/)).toBeInTheDocument();
     });
   });
 

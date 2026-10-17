@@ -254,10 +254,14 @@
       "description": "Netzwerk-Weiterleitung für Bose-Domains einrichten"
     },
     "step6": {
+      "label": "NTP",
+      "description": "NTP-Server auf dem Gerät patchen"
+    },
+    "step7": {
       "label": "Prüfung",
       "description": "Konfiguration testen und DNS-Weiterleitung verifizieren"
     },
-    "step7": {
+    "step8": {
       "label": "Fertig",
       "description": "Einrichtung abgeschlossen"
     },
@@ -467,6 +471,18 @@
         "hostsApplied": "Hosts-Datei erfolgreich geändert."
       },
       "step7": {
+        "title": "NTP-Server patchen",
+        "description": "Den NTP-Zeitserver auf dem Gerät setzen, damit die Uhr korrekt läuft.",
+        "optionalNotice": "Dieser Schritt ist optional und kann übersprungen werden — das Gerät behält dann seine bisherige NTP-Konfiguration.",
+        "serverLabel": "NTP-Server:",
+        "serverHint": "Zum Beispiel die IP-Adresse Ihres Routers oder ein öffentlicher NTP-Server.",
+        "btnPatch": "NTP-Server anwenden",
+        "btnPatching": "Wird angewendet...",
+        "errorTitle": "NTP-Patch fehlgeschlagen",
+        "successTitle": "NTP-Server aktualisiert!",
+        "nextDisabled": "Bitte zuerst den NTP-Server anwenden."
+      },
+      "step8": {
         "title": "Überprüfung & Test",
         "description": "Geräte-Konfiguration abschließen, neu starten und alles überprüfen.",
         "warning": "Wir empfehlen, dass alle Checks bestanden werden, bevor Sie fortfahren.",
@@ -523,9 +539,12 @@
         "allPassedMessage": "Ihr Gerät ist vollständig konfiguriert und einsatzbereit. Alle System-Checks und DNS-Umleitungen funktionieren korrekt.",
         "someFailedTitle": "Einige Checks sind fehlgeschlagen",
         "someFailedMessage": "Nicht alle Überprüfungen waren erfolgreich. Prüfen Sie die Ergebnisse oben und versuchen Sie es erneut.",
-        "btnSkip": "Trotzdem fortfahren — Gerät wird nicht als konfiguriert markiert"
+        "btnSkip": "Trotzdem fortfahren — Gerät wird nicht als konfiguriert markiert",
+        "checkNtpServer": "NTP-Server gesetzt auf: {{server}}",
+        "checkNtpServerWrong": "NTP-Server ist auf '{{found}}' gesetzt, erwartet wurde '{{expected}}'",
+        "fullVerifyItem5": "NTP-Server auf dem Gerät konfiguriert"
       },
-      "step8": {
+      "step9": {
         "title": "Setup abgeschlossen!",
         "description": "Ihr Gerät wurde erfolgreich konfiguriert und ist einsatzbereit.",
         "heroTitle": "Herzlichen Glückwunsch!",
@@ -550,7 +569,8 @@
         "nextStep3Desc": "Wiederholen Sie den Wizard für weitere SoundTouch-Geräte.",
         "btnDone": "Fertig",
         "supportText": "Probleme oder Fragen?",
-        "supportLink": "Support kontaktieren →"
+        "supportLink": "Support kontaktieren →",
+        "summaryItem7": "NTP-Server gepatcht ({{server}})"
       }
     }
   },

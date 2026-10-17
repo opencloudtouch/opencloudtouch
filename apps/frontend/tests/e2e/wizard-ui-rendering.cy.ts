@@ -237,7 +237,26 @@ describe("Wizard Step 6 — Hosts Modification (emoji rendering)", () => {
   });
 });
 
-describe("Wizard Step 7 — Verification (emoji rendering)", () => {
+describe("Wizard Step 7 — NTP Patch (emoji rendering)", () => {
+  beforeEach(() => {
+    setupWizardMocks();
+    cy.visit(`${FRONTEND_BASE}/setup-wizard?step=7&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.wait("@getDevices");
+  });
+
+  it("does not render any mojibake characters", () => {
+    assertNoMojibake();
+  });
+
+  it("clock icon on the patch button renders correctly (🕐 not mojibake)", () => {
+    cy.get(".ntp-patch-btn").invoke("text").then((text) => {
+      expect(text).to.include("🕐");
+      expect(text).not.to.include("ðŸ");
+    });
+  });
+});
+
+describe("Wizard Step 8 — Verification (emoji rendering)", () => {
   beforeEach(() => {
     setupWizardMocks();
     cy.intercept("POST", "/api/setup/wizard/finalize", {
@@ -256,7 +275,7 @@ describe("Wizard Step 7 — Verification (emoji rendering)", () => {
       statusCode: 200,
       body: { success: true, resolved_ip: "192.168.1.100", expected_ip: "192.168.1.100", matches_expected: true, message: "OK" },
     }).as("verifyRedirect");
-    cy.visit(`${FRONTEND_BASE}/setup-wizard?step=7&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
+    cy.visit(`${FRONTEND_BASE}/setup-wizard?step=8&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79`);
     cy.wait("@getDevices");
     // Click Finalize to transition setupPhase from idle to done_finalize
     cy.contains("button", /finalize|abschließen/i).click();
@@ -284,10 +303,10 @@ describe("Wizard Step 7 — Verification (emoji rendering)", () => {
   });
 });
 
-describe("Wizard Step 8 — Completion (emoji rendering)", () => {
+describe("Wizard Step 9 — Completion (emoji rendering)", () => {
   beforeEach(() => {
     setupWizardMocks();
-    cy.visit(`${FRONTEND_BASE}/setup-wizard?step=8&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79&deviceName=Wohnzimmer`);
+    cy.visit(`${FRONTEND_BASE}/setup-wizard?step=9&deviceId=DEVICE_WOHNZIMMER&deviceIp=192.168.1.79&deviceName=Wohnzimmer`);
     cy.wait("@getDevices");
   });
 

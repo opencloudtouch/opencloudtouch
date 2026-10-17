@@ -544,14 +544,16 @@ describe("Setup Wizard — Bug Regression Suite", () => {
     });
   });
 
-  // ─── BUG-30: Reboot-Button in Step 7 ────────────────────────────────────────
-  describe("BUG-30: Step 7 (Verification) has a Reboot button", () => {
+  // ─── BUG-30: Reboot-Button in Verification ─────────────────────────────────
+  describe("BUG-30: Verification has a Reboot button", () => {
     /**
      * Step 6 kündigte „Neustart im nächsten Schritt" an.
-     * Step 7 zeigte nur Text, keinen Reboot-Button → kein Neustart möglich.
+     * Verification zeigte nur Text, keinen Reboot-Button → kein Neustart möglich.
      * Fix: Backend POST /api/setup/wizard/reboot-device + UI-Reboot-Sektion.
+     * (Verification was step 7 before #469 inserted the optional NTP step
+     * ahead of it; it's step 8 now.)
      */
-    it("should show a reboot button in Step 7", () => {
+    it("should show a reboot button in Verification", () => {
       cy.intercept("POST", "/api/setup/wizard/reboot-device", {
         statusCode: 200,
         body: { success: true, message: "Reboot initiated" },
@@ -580,9 +582,10 @@ describe("Setup Wizard — Bug Regression Suite", () => {
       cy.contains("button", /weiter/i).click({ force: true }); // → 6
       cy.contains("button", /hosts.*datei/i, { timeout: 5000 }).click({ force: true });
       cy.wait("@modifyHosts");
-      cy.contains("button", /weiter/i).click({ force: true }); // → 7
+      cy.contains("button", /weiter/i).click({ force: true }); // → 7 (NTP, optional)
+      cy.contains("button", /überspringen|skip/i, { timeout: 5000 }).click({ force: true }); // → 8 (Verification)
 
-      // Step 7 starts in "idle" phase — must finalize first to reveal reboot button
+      // Verification starts in "idle" phase — must finalize first to reveal reboot button
       // Button text is "Geräte-Setup abschließen" (DE) or "Finalize Device Setup" (EN)
       cy.contains("button", /abschließen|finalize/i, { timeout: 5000 }).click();
       cy.wait("@finalizeDevice");

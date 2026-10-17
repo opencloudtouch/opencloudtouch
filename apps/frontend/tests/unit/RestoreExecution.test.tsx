@@ -101,6 +101,24 @@ describe("RestoreExecution", () => {
     });
   });
 
+  it("shows a readable label for the ntp restore step, not the raw step name", async () => {
+    mockRestoreData = {
+      success: true,
+      total_duration_seconds: 4.0,
+      steps: [
+        { name: "ntp", status: "completed", message: "NTP servers restored from backup", error: null, duration_seconds: 0.3 },
+      ],
+    };
+    const { default: RestoreExecution } = await import(
+      "../../src/components/wizard/RestoreExecution"
+    );
+    render(<RestoreExecution {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText("/etc/ntpservers.txt")).toBeInTheDocument();
+      expect(screen.queryByText("ntp")).not.toBeInTheDocument();
+    });
+  });
+
   it("shows success message with total time", async () => {
     mockRestoreData = {
       success: true,

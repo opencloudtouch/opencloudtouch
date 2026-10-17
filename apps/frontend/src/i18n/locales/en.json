@@ -254,10 +254,14 @@
       "description": "Set up network redirect for Bose domains"
     },
     "step6": {
+      "label": "NTP",
+      "description": "Patch NTP server on device"
+    },
+    "step7": {
       "label": "Verification",
       "description": "Test configuration and verify DNS redirect"
     },
-    "step7": {
+    "step8": {
       "label": "Done",
       "description": "Setup complete"
     },
@@ -467,6 +471,18 @@
         "hostsApplied": "Hosts file successfully modified."
       },
       "step7": {
+        "title": "Patch NTP Server",
+        "description": "Set the NTP time server on the device so the clock stays accurate.",
+        "optionalNotice": "This step is optional and can be skipped — the device will keep using its existing NTP configuration.",
+        "serverLabel": "NTP server:",
+        "serverHint": "For example your router's IP address, or a public NTP server.",
+        "btnPatch": "Apply NTP server",
+        "btnPatching": "Applying...",
+        "errorTitle": "NTP patch failed",
+        "successTitle": "NTP server updated!",
+        "nextDisabled": "Please apply the NTP server first."
+      },
+      "step8": {
         "title": "Verification & Test",
         "description": "Finalize device configuration, reboot, and verify everything works.",
         "warning": "We recommend that all checks pass before you continue.",
@@ -523,9 +539,12 @@
         "allPassedMessage": "Your device is fully configured and ready for use. All system checks and DNS redirects are working correctly.",
         "someFailedTitle": "Some checks failed",
         "someFailedMessage": "Not all verification checks passed. Review the results above and retry.",
-        "btnSkip": "Continue anyway — device will not be marked as configured"
+        "btnSkip": "Continue anyway — device will not be marked as configured",
+        "checkNtpServer": "NTP server set to: {{server}}",
+        "checkNtpServerWrong": "NTP server is set to '{{found}}', expected '{{expected}}'",
+        "fullVerifyItem5": "NTP server configured on device"
       },
-      "step8": {
+      "step9": {
         "title": "Setup complete!",
         "description": "Your device has been successfully configured and is ready to use.",
         "heroTitle": "Congratulations!",
@@ -550,7 +569,8 @@
         "nextStep3Desc": "Repeat the wizard for additional SoundTouch devices.",
         "btnDone": "Done",
         "supportText": "Problems or questions?",
-        "supportLink": "Contact support →"
+        "supportLink": "Contact support →",
+        "summaryItem7": "NTP server patched ({{server}})"
       }
     }
   },

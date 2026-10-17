@@ -254,10 +254,14 @@
       "description": "Configurar redirección de red para dominios Bose"
     },
     "step6": {
+      "label": "NTP",
+      "description": "Parchear servidor NTP en el dispositivo"
+    },
+    "step7": {
       "label": "Verificación",
       "description": "Probar la configuración y verificar la redirección DNS"
     },
-    "step7": {
+    "step8": {
       "label": "Listo",
       "description": "Configuración completada"
     },
@@ -467,6 +471,18 @@
         "hostsApplied": "Archivo hosts modificado correctamente."
       },
       "step7": {
+        "title": "Parchear servidor NTP",
+        "description": "Configura el servidor de tiempo NTP en el dispositivo para mantener el reloj preciso.",
+        "optionalNotice": "Este paso es opcional y se puede omitir — el dispositivo mantendrá su configuración NTP actual.",
+        "serverLabel": "Servidor NTP:",
+        "serverHint": "Por ejemplo, la IP de su router o un servidor NTP público.",
+        "btnPatch": "Aplicar servidor NTP",
+        "btnPatching": "Aplicando...",
+        "errorTitle": "Error al parchear NTP",
+        "successTitle": "¡Servidor NTP actualizado!",
+        "nextDisabled": "Por favor, aplica primero el servidor NTP."
+      },
+      "step8": {
         "title": "Probar configuración",
         "description": "Verifique que las redirecciones de dominio funcionen correctamente.",
         "warning": "Si las pruebas fallan, puede ser necesario reiniciar el dispositivo.",
@@ -523,9 +539,12 @@
         "fullVerifyItem4": "Redirecciones DNS resueltas hacia el servidor OpenCloudTouch",
         "btnRunFullVerify": "Iniciar verificación completa",
         "fullVerifying": "Ejecutando verificación completa del sistema...",
-        "btnRetryFullVerify": "Ejecutar verificación de nuevo"
+        "btnRetryFullVerify": "Ejecutar verificación de nuevo",
+        "checkNtpServer": "Servidor NTP configurado en: {{server}}",
+        "checkNtpServerWrong": "El servidor NTP está configurado en '{{found}}', se esperaba '{{expected}}'",
+        "fullVerifyItem5": "Servidor NTP configurado en el dispositivo"
       },
-      "step8": {
+      "step9": {
         "title": "¡Configuración completada!",
         "description": "Su dispositivo ha sido configurado correctamente y está listo para usar.",
         "heroTitle": "¡Felicitaciones!",
@@ -550,7 +569,8 @@
         "nextStep3Desc": "Repita el asistente para dispositivos SoundTouch adicionales.",
         "btnDone": "Listo",
         "supportText": "¿Problemas o preguntas?",
-        "supportLink": "Contactar soporte →"
+        "supportLink": "Contactar soporte →",
+        "summaryItem7": "Servidor NTP parcheado ({{server}})"
       }
     }
   },

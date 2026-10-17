@@ -18,6 +18,7 @@ vi.mock("../../src/api/wizard", () => ({
   rebootDevice: vi.fn().mockResolvedValue({}),
   createBackup: vi.fn().mockResolvedValue({ path: "/backup/file.bak" }),
   modifyHosts: vi.fn().mockResolvedValue({}),
+  patchNtp: vi.fn().mockResolvedValue({}),
   validateHostname: vi.fn().mockResolvedValue({ resolvable: true, resolved_ip: "192.168.1.50", matches_expected: true, error: null }),
 }));
 
@@ -398,17 +399,123 @@ describe("Step6HostsModification — render", () => {
 });
 
 // ------------------------------------------------------------------
+// Step 7 — NTP Patch (optional, skippable)
+// ------------------------------------------------------------------
+describe("Step7NtpPatch — render", () => {
+  it("renders the optional-step notice and a pre-filled server field", async () => {
+    const { default: Step7 } = await import(
+      "../../src/components/wizard/Step7NtpPatch"
+    );
+    render(<Step7 deviceIp="192.168.1.1" onNext={vi.fn()} onPrevious={vi.fn()} />);
+
+    expect(screen.getByText(/optional/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/NTP server/i)).toHaveValue("pool.ntp.org");
+    expect(
+      screen.getByRole("button", { name: /Apply NTP server/i })
+    ).toBeInTheDocument();
+  });
+
+  it("calls onNext with the trimmed server after a successful patch", async () => {
+    const { patchNtp } = await import("../../src/api/wizard");
+    (patchNtp as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      message: "NTP server set to pool.ntp.org",
+    });
+
+    const onNext = vi.fn();
+    const { default: Step7 } = await import(
+      "../../src/components/wizard/Step7NtpPatch"
+    );
+    render(<Step7 deviceIp="192.168.1.1" onNext={onNext} onPrevious={vi.fn()} />);
+
+    const patchBtn = screen.getByRole("button", { name: /Apply NTP server/i });
+    await act(async () => {
+      patchBtn.click();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("NTP server set to pool.ntp.org")).toBeInTheDocument();
+    });
+
+    const nextBtn = screen.getByRole("button", { name: /next/i });
+    await act(async () => {
+      nextBtn.click();
+    });
+    expect(onNext).toHaveBeenCalledWith("pool.ntp.org");
+  });
+
+  it("calls onNext(null) when the step is skipped", async () => {
+    const onNext = vi.fn();
+    const { default: Step7 } = await import(
+      "../../src/components/wizard/Step7NtpPatch"
+    );
+    render(<Step7 deviceIp="192.168.1.1" onNext={onNext} onPrevious={vi.fn()} />);
+
+    const skipBtn = screen.getByRole("button", { name: /skip/i });
+    await act(async () => {
+      skipBtn.click();
+    });
+    expect(onNext).toHaveBeenCalledWith(null);
+  });
+
+  it("no longer offers Skip once the patch has succeeded (would discard it)", async () => {
+    const { patchNtp } = await import("../../src/api/wizard");
+    (patchNtp as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      message: "NTP server set to pool.ntp.org",
+    });
+
+    const { default: Step7 } = await import(
+      "../../src/components/wizard/Step7NtpPatch"
+    );
+    render(<Step7 deviceIp="192.168.1.1" onNext={vi.fn()} onPrevious={vi.fn()} />);
+
+    const patchBtn = screen.getByRole("button", { name: /Apply NTP server/i });
+    await act(async () => {
+      patchBtn.click();
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: /skip/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it("shows an error message when the patch fails", async () => {
+    const { patchNtp } = await import("../../src/api/wizard");
+    (patchNtp as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: false,
+      message: "ntpd sync failed",
+    });
+
+    const { default: Step7 } = await import(
+      "../../src/components/wizard/Step7NtpPatch"
+    );
+    render(<Step7 deviceIp="192.168.1.1" onNext={vi.fn()} onPrevious={vi.fn()} />);
+
+    const patchBtn = screen.getByRole("button", { name: /Apply NTP server/i });
+    await act(async () => {
+      patchBtn.click();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("ntpd sync failed")).toBeInTheDocument();
+    });
+  });
+});
+
+// ------------------------------------------------------------------
 // Step 8 — Completion
 // ------------------------------------------------------------------
-describe("Step8Completion — render", () => {
+describe("Step9Completion — render", () => {
   it("shows the backup location when a backup was created", async () => {
-    const { default: Step8 } = await import(
-      "../../src/components/wizard/Step8Completion"
+    const { default: Step9 } = await import(
+      "../../src/components/wizard/Step9Completion"
     );
     render(
-      <Step8
+      <Step9
         deviceName="SoundTouch 10"
         backupPath="/backup/remote_services.bak"
+        ntpServer={null}
         onFinish={vi.fn()}
       />
     );
@@ -421,14 +528,31 @@ describe("Step8Completion — render", () => {
     expect(screen.queryByText("No backup created")).not.toBeInTheDocument();
   });
 
-  it("shows a no-backup warning when backupPath is null", async () => {
-    const { default: Step8 } = await import(
-      "../../src/components/wizard/Step8Completion"
+  it("shows the patched NTP server in the summary when set", async () => {
+    const { default: Step9 } = await import(
+      "../../src/components/wizard/Step9Completion"
     );
     render(
-      <Step8
+      <Step9
+        deviceName="SoundTouch 10"
+        backupPath="/backup/remote_services.bak"
+        ntpServer="pool.ntp.org"
+        onFinish={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/pool\.ntp\.org/)).toBeInTheDocument();
+  });
+
+  it("shows a no-backup warning when backupPath is null", async () => {
+    const { default: Step9 } = await import(
+      "../../src/components/wizard/Step9Completion"
+    );
+    render(
+      <Step9
         deviceName="SoundTouch 10"
         backupPath={null}
+        ntpServer={null}
         onFinish={vi.fn()}
       />
     );
