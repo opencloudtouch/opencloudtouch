@@ -5,6 +5,7 @@ modifications on a SoundTouch device.
 """
 
 import logging
+import posixpath
 import re
 import time
 from pathlib import Path
@@ -195,6 +196,7 @@ class RestoreService:
 
         return BackupScanResult(
             usb_mounted=True,
+            backup_dir=posixpath.dirname(files[0].file_path),
             selected_set=selected,
             all_sets=sets,
             error=error,

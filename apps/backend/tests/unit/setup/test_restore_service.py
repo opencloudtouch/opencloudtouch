@@ -720,7 +720,7 @@ class TestScanBackupsOrchestration:
             if call_count[0] == 0:
                 # _find_usb_backups: files found
                 mock_ssh.execute.side_effect = [
-                    MagicMock(output="/media/sda1", exit_code=0),
+                    MagicMock(output="/tmp/mnt/usb", exit_code=0),
                     MagicMock(
                         output="soundtouch-ABC123-20260101-rootfs.tgz\nsoundtouch-ABC123-20260101-nv.tgz\n",
                         exit_code=0,
@@ -746,6 +746,7 @@ class TestScanBackupsOrchestration:
         assert result.usb_mounted is True
         assert result.selected_set is not None
         assert result.selected_set.device_id == "ABC123"
+        assert result.backup_dir == "/tmp/mnt/usb/oct-backup"
         assert result.error is None
 
     @pytest.mark.asyncio

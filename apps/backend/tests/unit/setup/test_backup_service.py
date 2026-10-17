@@ -13,7 +13,11 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from opencloudtouch.setup.backup_service import SoundTouchBackupService, VolumeType
+from opencloudtouch.setup.backup_service import (
+    BackupResult,
+    SoundTouchBackupService,
+    VolumeType,
+)
 from opencloudtouch.setup.wizard_helpers import find_usb_mount
 from opencloudtouch.setup.ssh_client import CommandResult
 
@@ -74,17 +78,18 @@ class TestFindUsbMount:
 
         assert result == "/media/usb0"
 
-    async def test_falls_through_to_filesystem_strategy(self, mock_ssh):
-        """Strategy 3: vfat/ext filesystem detection."""
+    async def test_does_not_fall_back_to_filesystem_type(self, mock_ssh):
+        """No filesystem-type heuristic: it could match internal flash."""
         mock_ssh.execute.side_effect = [
             _ok(""),  # no block device
             _ok(""),  # no path match
-            _ok("/mnt/usb"),  # filesystem match
+            _ok("/mnt/internal"),  # must never be queried or returned
         ]
 
-        result = await find_usb_mount(mock_ssh)
+        with pytest.raises(RuntimeError, match="No USB stick detected"):
+            await find_usb_mount(mock_ssh)
 
-        assert result == "/mnt/usb"
+        assert mock_ssh.execute.await_count == 2
 
     async def test_raises_when_no_usb_found(self, mock_ssh):
         """All strategies fail → RuntimeError."""
@@ -348,6 +353,43 @@ class TestBackupAll:
 
         with pytest.raises(RuntimeError, match="No USB stick detected"):
             await service.backup_all()
+
+    async def test_verification_quotes_path_and_refreshes_size(self, service, mock_ssh):
+        """Verification shell-quotes the path and stores the verified size."""
+        result = BackupResult(
+            volume=VolumeType.ROOTFS,
+            success=True,
+            backup_path="/media/my usb/oct-backup/rootfs.tgz",
+            size_bytes=1,
+        )
+        mock_ssh.execute.return_value = _ok("4096")
+
+        await service._verify_backup_files([result])
+
+        command = mock_ssh.execute.await_args[0][0]
+        assert "'/media/my usb/oct-backup/rootfs.tgz'" in command
+        assert result.success is True
+        assert result.size_bytes == 4096
+
+    async def test_step4_reports_missing_usb_as_failed_result(self, mock_ssh):
+        """Step 4 turns 'no USB stick' into a normal failure instead of a 500."""
+        from unittest.mock import patch
+
+        from opencloudtouch.setup.wizard.step4_backup import Step4BackupMixin
+
+        mock_ssh.execute.return_value = _ok("")
+        ctx = AsyncMock()
+        ctx.__aenter__.return_value = mock_ssh
+        ctx.__aexit__.return_value = False
+
+        with patch(
+            "opencloudtouch.setup.wizard.step4_backup.ssh_operation",
+            return_value=ctx,
+        ):
+            result = await Step4BackupMixin().backup_all("192.168.1.50", "ABC123")
+
+        assert result["success"] is False
+        assert "No USB stick detected" in result["message"]
 
     async def test_wave_iv_non_standard_mount(self, service, mock_ssh):
         """Wave SoundTouch IV uses different mount path — backup still works."""

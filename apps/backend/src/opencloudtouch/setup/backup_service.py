@@ -20,6 +20,7 @@ BusyBox v1.19.4 limitations:
 """
 
 import logging
+import shlex
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -132,12 +133,6 @@ class SoundTouchBackupService:
             try:
                 result = await self._backup_volume(volume, backup_dir, device_id)
                 results.append(result)
-                self.logger.info(
-                    "Backed up %s: %.2f MB in %.1fs",
-                    volume.value,
-                    result.size_bytes / 1024 / 1024,
-                    result.duration_seconds,
-                )
             except Exception as e:
                 self.logger.error(
                     "Failed to backup %s: %s", volume.value, e, exc_info=True
@@ -149,6 +144,15 @@ class SoundTouchBackupService:
         if successful:
             await self._verify_backup_files(successful)
 
+        for result in results:
+            if result.success:
+                self.logger.info(
+                    "Backed up %s: %.2f MB in %.1fs",
+                    result.volume.value,
+                    result.size_bytes / 1024 / 1024,
+                    result.duration_seconds,
+                )
+
         return results
 
     async def _verify_backup_files(self, results: List[BackupResult]) -> None:
@@ -158,8 +162,9 @@ class SoundTouchBackupService:
         was written to a local path instead of the actual USB stick.
         """
         for result in results:
+            quoted_path = shlex.quote(result.backup_path)
             check = await self.ssh.execute(
-                f"test -f {result.backup_path} && wc -c < {result.backup_path}"
+                f"test -f {quoted_path} && wc -c < {quoted_path}"
             )
             if not check.success or not check.output.strip().isdigit():
                 self.logger.error(
@@ -183,6 +188,7 @@ class SoundTouchBackupService:
                     result.success = False
                     result.error = f"Backup file is empty at {result.backup_path}"
                 else:
+                    result.size_bytes = verified_size
                     self.logger.debug(
                         "Verified %s: %d bytes at %s",
                         result.volume.value,

@@ -68,14 +68,16 @@ async def find_usb_mount(ssh: SoundTouchSSHClient) -> str:
     Strategy order:
     1. Block device: look for /dev/sd* partitions in /proc/mounts
     2. Path-based: look for mounts under /media/ or /tmp/mnt/
-    3. Filesystem-based: look for vfat/ext/ntfs on non-UBI devices
+
+    A filesystem-type heuristic is deliberately not used: it could match an
+    internal flash partition and send backups there instead of to the stick.
 
     Raises:
         RuntimeError: If no USB stick mount is detected
     """
     # Strategy 1: Block device partitions (most reliable — works on all models)
     result = await ssh.execute(
-        "grep '/dev/sd' /proc/mounts | awk '{print $2}' | head -1"
+        "awk '$1 ~ /^\\/dev\\/sd/ {print $2}' /proc/mounts | head -1"
     )
     if result.success and result.output.strip():
         mount_path = result.output.strip()
@@ -84,20 +86,11 @@ async def find_usb_mount(ssh: SoundTouchSSHClient) -> str:
 
     # Strategy 2: Common USB mount paths across firmware versions
     result = await ssh.execute(
-        "awk '$2 ~ /^\\/(media|tmp\\/mnt)/ {print $2}' /proc/mounts | head -1"
+        "awk '$2 ~ /^\\/(media|tmp\\/mnt)(\\/|$)/ {print $2}' /proc/mounts | head -1"
     )
     if result.success and result.output.strip():
         mount_path = result.output.strip()
         logger.debug("USB detected via mount path: %s", mount_path)
-        return mount_path
-
-    # Strategy 3: Filesystem type (vfat = FAT32 USB sticks, ignore UBI/system)
-    result = await ssh.execute(
-        "awk '$3 ~ /^(vfat|ext[234]|ntfs|exfat|fuseblk)$/ {print $2}' /proc/mounts | head -1"
-    )
-    if result.success and result.output.strip():
-        mount_path = result.output.strip()
-        logger.debug("USB detected via filesystem type: %s", mount_path)
         return mount_path
 
     raise RuntimeError(
