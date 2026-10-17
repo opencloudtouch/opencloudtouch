@@ -10,6 +10,8 @@ services:
     volumes:
       - oct-data:/data
       - oct-logs:/logs
+      # Required for the self-update feature. Grants OCT access to the Docker daemon.
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - OCT_HOST=0.0.0.0
       - OCT_PORT=7777
