@@ -11,6 +11,20 @@
 | Devices mostly offline, polling noise in logs | Set `OCT_DEVICE_POLLING_ENABLED=false` (see [Configuration](CONFIGURATION.md#discovery--device-polling)) |
 | "Update available" shown for a self-built image | Expected to no longer happen — self-built images report `build: "community"` on `/health` and the update check is skipped entirely for them. If you still see it, check that you're on a build that includes the fix (>= the release that closed the negative-dentry-growth issue). |
 
+## Self-update problems
+
+| Problem | Solution |
+|---------|----------|
+| Docker socket or permission error | Verify that `/var/run/docker.sock` is mounted into the OpenCloudTouch container. |
+| Update returns `409` | An update is already running or no newer official release is available. Check `/api/system/update-status` and `/api/system/check-update`. |
+| Status is `rolled_back` | The new image failed to start or become healthy. The previous immutable image was restored automatically. Check the OpenCloudTouch update status and host Docker logs for the recorded failure. |
+| Status is `failed` | The update or recovery process could not complete. Check the Docker and OpenCloudTouch logs before retrying. |
+| Community/self-built image is not updated automatically | Expected. Automatic replacement with an official image is disabled for community builds. |
+
+The existing `/data` mount is preserved during container replacement and
+rollback. Do not delete Docker volumes while diagnosing an update problem.
+
+
 ## Understanding `docker stats` memory numbers
 
 `docker stats` MEM USAGE includes the container's kernel page cache and dentry/inode slab caches, not just the application's own memory. These caches are reclaimable by the kernel under memory pressure and are expected to grow over time — **this is not a leak**.
