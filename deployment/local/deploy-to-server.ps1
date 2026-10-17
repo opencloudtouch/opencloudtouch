@@ -133,9 +133,13 @@ ClearDatabase=$ClearDatabase
 
 echo "[>] Checking Docker access..."
 if ! $dockerCmd version &>/dev/null; then
-    echo "[ERROR] Cannot access Docker. You may need to:"
-    echo "  1. Add user to docker group: sudo usermod -aG docker \`$USER"
-    echo "  2. Or use -UseSudo flag if you have sudo rights"
+    echo "[ERROR] Cannot access Docker with: $dockerCmd"
+    if [ "$UseSudo" = "True" ]; then
+        echo "  Check that sudo permits Docker for this user and that the Docker service is running."
+    else
+        echo "  Run with -UseSudo when the account is managed by SSSD/LDAP or cannot be added to the local docker group."
+        echo "  Example: .\deploy-to-server.ps1 -UseSudo"
+    fi
     exit 1
 fi
 
@@ -161,7 +165,7 @@ else
     chmod 750 $DataPath $LogPath 2>/dev/null || true
 fi
 
-if [ "\$ClearDatabase" = "True" ]; then
+if [ "`$ClearDatabase" = "True" ]; then
     echo "[>] Clearing database..."
     if [ "$UseSudo" = "True" ]; then
         sudo rm -f $DataPath/oct.db
@@ -185,7 +189,12 @@ echo "View logs: $dockerCmd logs -f $ContainerName"
 
     # Execute deployment - convert to Unix line endings
     $deployScript = $deployScript -replace "`r`n", "`n"
-    $deployScript | ssh "${RemoteUser}@${RemoteHost}" "bash -s"
+    $sshArgs = if ($UseSudo) {
+        @("-tt", "${RemoteUser}@${RemoteHost}", "bash -s")
+    } else {
+        @("${RemoteUser}@${RemoteHost}", "bash -s")
+    }
+    $deployScript | ssh @sshArgs
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
