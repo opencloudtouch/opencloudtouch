@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import WizardStep from "./WizardStep";
+import "./RestoreVerification.css";
 
 interface RestoreVerificationProps {
   readonly stepNumber: number;
@@ -68,6 +69,7 @@ export default function RestoreVerification({
     >
       {!deviceOnline && countdown > 0 && (
         <div className="restore-verification__countdown">
+          <span aria-hidden="true">⏳</span>
           <p>
             {t("restore.verification.countdown", "Checking in {{seconds}}s...", {
               seconds: countdown,
@@ -79,28 +81,33 @@ export default function RestoreVerification({
       {!deviceOnline && countdown <= 0 && (
         <div className="restore-verification__timeout">
           <p>
+            <span aria-hidden="true">⚠️</span>{" "}
             {t(
               "restore.verification.timeout",
               "Device not detected after 120s. It may have received a new IP via DHCP."
             )}
           </p>
-          <button
-            onClick={() => {
-              setCountdown(120);
-              setChecking(true);
-            }}
-          >
-            {t("common.retry", "Retry")}
-          </button>
-          <button onClick={onVerified}>
-            {t("restore.verification.manual_confirm", "Device is back — I can see it")}
-          </button>
+          <div className="restore-verification__timeout-actions">
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                setCountdown(120);
+                setChecking(true);
+              }}
+            >
+              {t("common.retry", "Retry")}
+            </button>
+            <button className="btn btn-primary" onClick={onVerified}>
+              {t("restore.verification.manual_confirm", "Device is back — I can see it")}
+            </button>
+          </div>
         </div>
       )}
 
       {deviceOnline && (
         <div className="restore-verification__online">
-          <p>✅ {t("restore.verification.online", "Device is back online!")}</p>
+          <span aria-hidden="true">✅</span>
+          <p>{t("restore.verification.online", "Device is back online!")}</p>
         </div>
       )}
     </WizardStep>
