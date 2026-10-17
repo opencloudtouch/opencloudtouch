@@ -4,7 +4,13 @@ Tests for MockDeviceClient.
 
 import pytest
 
-from opencloudtouch.devices.client import DeviceInfo, NowPlayingInfo, VolumeInfo
+from opencloudtouch.devices.client import (
+    BassCapabilities,
+    BassInfo,
+    DeviceInfo,
+    NowPlayingInfo,
+    VolumeInfo,
+)
 from opencloudtouch.devices.mock_client import MockDeviceClient
 
 
@@ -177,3 +183,42 @@ class TestMockDeviceClientVolume:
         vol = await client.get_volume()
 
         assert vol.muted is False
+
+
+class TestMockDeviceClientBass:
+    """Tests for mock device bass control."""
+
+    @pytest.mark.asyncio
+    async def test_get_bass_default(self):
+        client = MockDeviceClient(device_id="AABBCC112233")
+        bass = await client.get_bass()
+
+        assert isinstance(bass, BassInfo)
+        assert bass.actual == 0
+        assert bass.target == 0
+
+    @pytest.mark.asyncio
+    async def test_get_bass_capabilities(self):
+        client = MockDeviceClient(device_id="AABBCC112233")
+        caps = await client.get_bass_capabilities()
+
+        assert isinstance(caps, BassCapabilities)
+        assert caps.available is True
+        assert caps.minimum == -9
+        assert caps.maximum == 0
+        assert caps.default == 0
+
+    @pytest.mark.asyncio
+    async def test_set_bass(self):
+        client = MockDeviceClient(device_id="AABBCC112233")
+        await client.set_bass(-5)
+        bass = await client.get_bass()
+
+        assert bass.actual == -5
+        assert bass.target == -5
+
+    @pytest.mark.asyncio
+    async def test_set_bass_rejects_out_of_range(self):
+        client = MockDeviceClient(device_id="AABBCC112233")
+        with pytest.raises(ValueError, match="between -9 and 0"):
+            await client.set_bass(-10)

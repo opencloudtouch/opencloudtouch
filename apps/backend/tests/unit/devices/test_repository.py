@@ -79,6 +79,106 @@ async def test_device_upsert_update(repo):
 
 
 @pytest.mark.asyncio
+async def test_capabilities_persist_and_survive_failed_refresh(repo):
+    """Preserve complete capabilities across reads and failed refreshes."""
+    capabilities = {
+        "device_id": "AABBCC112233",
+        "device_type": "SoundTouch 20",
+        "is_soundbar": False,
+        "features": {
+            "bass_control": True,
+            "bluetooth": True,
+            "zone_support": True,
+            "group_support": False,
+        },
+        "sources": ["BLUETOOTH", "AUX"],
+        "advanced": {
+            "introspect": True,
+            "navigate": False,
+            "search": False,
+        },
+        "settings": {
+            "bass": {
+                "available": True,
+                "minimum": -9,
+                "maximum": 0,
+                "default": 0,
+            }
+        },
+    }
+
+    device = Device(
+        device_id="AABBCC112233",
+        ip="192.168.1.100",
+        name="Living Room",
+        model="SoundTouch 20",
+        mac_address="AA:BB:CC:11:22:33",
+        firmware_version="28.0.12",
+        capabilities=capabilities,
+    )
+
+    await repo.upsert(device)
+
+    retrieved = await repo.get_by_device_id(device.device_id)
+    assert retrieved is not None
+    assert retrieved.capabilities == capabilities
+
+    # A failed capability refresh must preserve persisted data.
+    device.capabilities = None
+    device.ip = "192.168.1.101"
+    await repo.upsert(device)
+
+    retrieved = await repo.get_by_device_id(device.device_id)
+    assert retrieved is not None
+    assert retrieved.ip == "192.168.1.101"
+    assert retrieved.capabilities == capabilities
+
+
+@pytest.mark.asyncio
+async def test_bass_probe_failure_keeps_persisted_capabilities_after_sync(
+    repo, monkeypatch
+):
+    """A transient bass failure must not destroy previously saved support."""
+    from unittest.mock import AsyncMock
+
+    from opencloudtouch.devices.mock_client import MockDeviceClient
+    from opencloudtouch.devices.services import sync_service
+    from opencloudtouch.devices.services.sync_service import DeviceSyncService
+    from opencloudtouch.discovery import DiscoveredDevice
+
+    monkeypatch.setenv("OCT_MOCK_MODE", "true")
+    client = MockDeviceClient("AABBCC112233")
+    monkeypatch.setattr(sync_service, "get_device_client", lambda url: client)
+    monkeypatch.setattr(
+        DeviceSyncService,
+        "_fetch_marge_account_uuid",
+        staticmethod(AsyncMock(return_value=None)),
+    )
+    service = DeviceSyncService(repository=repo)
+    discovered = DiscoveredDevice(
+        ip="192.168.1.100", port=8090, model="SoundTouch 20"
+    )
+
+    await service.fetch_and_upsert_one(discovered)
+    saved = await repo.get_by_device_id("AABBCC112233")
+    assert saved is not None
+    assert saved.capabilities["settings"]["bass"]["minimum"] == -9
+    assert saved.capabilities["features"]["bass_control"] is True
+
+    monkeypatch.setattr(
+        client,
+        "get_bass_capabilities",
+        AsyncMock(side_effect=ConnectionError("Transient bass failure")),
+    )
+    await service.fetch_and_upsert_one(discovered)
+
+    persisted = await repo.get_by_device_id("AABBCC112233")
+    assert persisted is not None
+    assert persisted.capabilities == saved.capabilities
+    assert persisted.capabilities["settings"]["bass"]["maximum"] == 0
+
+
+@pytest.mark.asyncio
 async def test_device_get_all_empty(repo):
     """Test get_all with empty database."""
     devices = await repo.get_all()

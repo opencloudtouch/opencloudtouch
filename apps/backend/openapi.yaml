@@ -212,6 +212,59 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/devices/{device_id}/settings/bass:
+    get:
+      tags:
+      - Devices
+      summary: Get Device Bass
+      description: Get the current bass state reported by a SoundTouch device.
+      operationId: get_device_bass_api_devices__device_id__settings_bass_get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - Devices
+      summary: Set Device Bass
+      description: Set the bass level supported by the selected SoundTouch device.
+      operationId: set_device_bass_api_devices__device_id__settings_bass_put
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetBassRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Invalid bass level
   /api/devices/{device_id}/key:
     post:
       tags:
@@ -4298,6 +4351,16 @@ components:
       - tag
       title: SearchType
       description: Search type enum.
+    SetBassRequest:
+      properties:
+        level:
+          type: integer
+          title: Level
+      type: object
+      required:
+      - level
+      title: SetBassRequest
+      description: Request body for setting a device's bass level.
     SetManualIPsRequest:
       properties:
         ips:

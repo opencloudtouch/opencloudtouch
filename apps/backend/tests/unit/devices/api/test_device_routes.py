@@ -25,7 +25,11 @@ from opencloudtouch.core.exceptions import (
     DeviceNotFoundError,
     DomainValidationError,
 )
-from opencloudtouch.devices.client import NowPlayingInfo, VolumeInfo
+from opencloudtouch.devices.client import (
+    BassInfo,
+    NowPlayingInfo,
+    VolumeInfo,
+)
 from opencloudtouch.devices.repository import Device
 from opencloudtouch.main import app
 
@@ -181,6 +185,78 @@ class TestDeviceDetailEndpoint:
         assert device["model"] == "SoundTouch 30"
         assert device["mac_address"] == "AA:BB:CC:DD:EE:FF"
         assert device["firmware_version"] == "28.0.5.46710"
+
+
+class TestBassEndpoint:
+    """Tests for SoundTouch bass endpoints."""
+
+    def test_get_bass(self, client, mock_device_service):
+        mock_device_service.get_device_bass = AsyncMock(
+            return_value=BassInfo(actual=-2, target=-2)
+        )
+
+        response = client.get("/api/devices/ABC123/settings/bass")
+
+        assert response.status_code == 200
+        assert response.json() == {"actual": -2, "target": -2}
+        mock_device_service.get_device_bass.assert_awaited_once_with("ABC123")
+
+    def test_set_bass(self, client, mock_device_service):
+        mock_device_service.set_device_bass = AsyncMock(return_value=None)
+
+        response = client.put("/api/devices/ABC123/settings/bass", json={"level": -4})
+
+        assert response.status_code == 200
+        assert response.json()["level"] == -4
+        mock_device_service.set_device_bass.assert_awaited_once_with("ABC123", -4)
+
+    @pytest.mark.parametrize(
+        "body",
+        [
+            {"level": "-4"},
+            {"level": True},
+            {"level": 2.5},
+            {},
+            {"level": None},
+        ],
+    )
+    def test_set_bass_rejects_non_integer(self, client, mock_device_service, body):
+        """Reject invalid bass input before calling the device service."""
+        response = client.put("/api/devices/ABC123/settings/bass", json=body)
+
+        assert response.status_code == 422
+        assert response.json()["detail"] == "Request validation failed"
+        mock_device_service.set_device_bass.assert_not_called()
+
+    @pytest.mark.parametrize("operation", ["get", "put"])
+    def test_bass_connection_error_marks_device_offline(
+        self, client, mock_device_service, operation
+    ):
+        """Both bass operations propagate connection errors and publish offline state."""
+        state_manager = AsyncMock()
+        app.dependency_overrides[get_device_state_manager] = lambda: state_manager
+        error = DeviceConnectionError("192.168.1.100", "Connection refused")
+        if operation == "get":
+            mock_device_service.get_device_bass = AsyncMock(side_effect=error)
+            response = client.get("/api/devices/ABC123/settings/bass")
+        else:
+            mock_device_service.set_device_bass = AsyncMock(side_effect=error)
+            response = client.put(
+                "/api/devices/ABC123/settings/bass", json={"level": -4}
+            )
+
+        assert response.status_code >= 400
+        state_manager.mark_device_offline.assert_awaited_once_with("ABC123")
+
+    def test_set_bass_returns_422_for_out_of_range(self, client, mock_device_service):
+        mock_device_service.set_device_bass = AsyncMock(
+            side_effect=ValueError("Bass level must be between -9 and 0")
+        )
+
+        response = client.put("/api/devices/ABC123/settings/bass", json={"level": 1})
+
+        assert response.status_code == 422
+        assert "between -9 and 0" in response.json()["detail"]
 
 
 class TestSyncEndpoint:

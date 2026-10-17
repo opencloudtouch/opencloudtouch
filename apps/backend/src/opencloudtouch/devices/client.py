@@ -50,6 +50,24 @@ class VolumeInfo:
     muted: bool  # Whether device is muted
 
 
+@dataclass
+class BassInfo:
+    """Device bass state."""
+
+    actual: int
+    target: int
+
+
+@dataclass
+class BassCapabilities:
+    """Device bass capabilities."""
+
+    available: bool
+    minimum: int
+    maximum: int
+    default: int
+
+
 class DeviceClient(ABC):
     """Abstract client for device HTTP API."""
 
@@ -109,6 +127,21 @@ class DeviceClient(ABC):
     @abstractmethod
     async def set_mute(self, muted: bool) -> None:
         """Set mute state."""
+        pass
+
+    @abstractmethod
+    async def get_bass(self) -> BassInfo:
+        """Get current bass state."""
+        pass
+
+    @abstractmethod
+    async def get_bass_capabilities(self) -> BassCapabilities:
+        """Get supported bass capabilities."""
+        pass
+
+    @abstractmethod
+    async def set_bass(self, level: int) -> None:
+        """Set bass level."""
         pass
 
     @abstractmethod

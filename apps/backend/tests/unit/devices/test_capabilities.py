@@ -12,6 +12,7 @@ from opencloudtouch.devices.capabilities import (
     DeviceCapabilities,
     get_device_capabilities,
     get_feature_flags_for_ui,
+    merge_bass_capabilities,
     safe_api_call,
 )
 
@@ -325,3 +326,91 @@ def test_supports_endpoint_with_and_without_slash():
     # Not supported
     assert capabilities.supports_endpoint("productcechdmicontrol") is False
     assert capabilities.supports_endpoint("/productcechdmicontrol") is False
+
+
+@pytest.mark.asyncio
+async def test_get_device_capabilities_supports_internal_library_fields():
+    """Support bosesoundtouchapi variants exposing internal capability/source fields."""
+    client = MagicMock()
+
+    info = MagicMock()
+    info.DeviceId = "A81B6A1DC457"
+    info.DeviceType = "SoundTouch 10"
+
+    caps = MagicMock()
+    caps.SupportedUrls = None
+    caps._Capabilities = {
+        "systemtimeout": "/systemtimeout",
+        "rebroadcastlatencymode": "/rebroadcastlatencymode",
+    }
+    caps.IsDisablePowerSavingCapable = True
+    caps.IsDualModeCapable = True
+    caps.IsLightSwitchCapable = False
+    caps.IsLrStereoCapable = True
+    caps.IsWebSocketApiProxyCapable = True
+    caps.IsBcoResetCapable = False
+    caps.IsClockDisplayCapable = False
+
+    source = MagicMock()
+    source.Source = "AUX"
+    source.Status = "READY"
+
+    sources = MagicMock()
+    sources.Sources = None
+    sources.SourceItems = None
+    sources._SourceItems = [source]
+
+    client.GetInformation.return_value = info
+    client.GetCapabilities.return_value = caps
+    client.GetSourceList.return_value = sources
+
+    result = await get_device_capabilities(client)
+
+    client.GetInformation.assert_called_once_with()
+    assert result.device_id == "A81B6A1DC457"
+    assert result.device_type == "SoundTouch 10"
+    assert "systemtimeout" in result.supported_endpoints
+    assert "rebroadcastlatencymode" in result.supported_endpoints
+    assert "AUX" in result.supported_sources
+
+
+def test_merge_bass_capabilities_preserves_existing_fields():
+    """Adding bass must not replace other device capabilities."""
+    from opencloudtouch.devices.client import BassCapabilities
+
+    flags = {
+        "device_id": "AABBCC112233",
+        "device_type": "SoundTouch 20",
+        "is_soundbar": False,
+        "features": {
+            "bluetooth": True,
+            "zone_support": True,
+            "bass_control": False,
+        },
+        "sources": ["BLUETOOTH", "AUX"],
+        "advanced": {"introspect": True},
+    }
+
+    bass = BassCapabilities(
+        available=True,
+        minimum=-9,
+        maximum=0,
+        default=0,
+    )
+
+    result = merge_bass_capabilities(flags, bass)
+
+    assert result["device_id"] == "AABBCC112233"
+    assert result["device_type"] == "SoundTouch 20"
+    assert result["is_soundbar"] is False
+    assert result["features"]["bluetooth"] is True
+    assert result["features"]["zone_support"] is True
+    assert result["sources"] == ["BLUETOOTH", "AUX"]
+    assert result["advanced"] == {"introspect": True}
+    assert result["features"]["bass_control"] is True
+    assert result["settings"]["bass"] == {
+        "available": True,
+        "minimum": -9,
+        "maximum": 0,
+        "default": 0,
+    }
