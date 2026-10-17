@@ -508,7 +508,7 @@ async def test_set_preset_manual_stream_validates_before_saving(service):
                 station_url="https://example.com/live.mp3",
             )
 
-    assert result == saved_preset
+    assert result.preset == saved_preset
     mock_validate.assert_awaited_once_with("https://example.com/live.mp3")
     service.repository.set_preset.assert_called_once()
 
