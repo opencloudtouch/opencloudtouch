@@ -365,6 +365,50 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/devices/{device_id}/play-preset/{preset_number}:
+    post:
+      tags:
+      - Devices
+      summary: Play Preset
+      description: "Play a preset on a device.\n\nUnlike the generic ``/key`` endpoint,\
+        \ this ensures the device is\nprogrammed with the correct station before sending\
+        \ the key press.\nThis fixes silent failures where the OCT database has the\
+        \ preset\nbut the device's internal preset slot is empty.\n\nFlow:\n1. Look\
+        \ up preset in OCT database\n2. Re-program the device via ``/storePreset``\
+        \ (idempotent)\n3. Send ``PRESET_X`` key press to start playback\n\nArgs:\n\
+        \    device_id: Device ID (MAC address)\n    preset_number: Preset number\
+        \ (1-6)\n\nReturns:\n    Playback status including whether device was programmed"
+      operationId: play_preset_api_devices__device_id__play_preset__preset_number__post
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: preset_number
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Preset Number
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayPresetResponse'
+        '400':
+          description: Preset number out of range (1-6)
+        '404':
+          description: Preset not configured or device not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/devices/{device_id}/name:
     put:
       tags:
@@ -4005,6 +4049,32 @@ components:
       - message
       title: NtpPatchResponse
       description: Response with NTP patch result.
+    PlayPresetResponse:
+      properties:
+        message:
+          type: string
+          title: Message
+        device_id:
+          type: string
+          title: Device Id
+        preset_number:
+          type: integer
+          title: Preset Number
+        station_name:
+          type: string
+          title: Station Name
+        device_programmed:
+          type: boolean
+          title: Device Programmed
+      type: object
+      required:
+      - message
+      - device_id
+      - preset_number
+      - station_name
+      - device_programmed
+      title: PlayPresetResponse
+      description: Result of a play-preset request.
     PortCheckRequest:
       properties:
         device_ip:
@@ -4080,6 +4150,11 @@ components:
         updated_at:
           type: string
           title: Updated At
+        device_programmed:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Device Programmed
       type: object
       required:
       - id

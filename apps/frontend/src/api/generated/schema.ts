@@ -297,6 +297,30 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/devices/{device_id}/settings/bass": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Device Bass
+     * @description Get the current bass state reported by a SoundTouch device.
+     */
+    get: operations["get_device_bass_api_devices__device_id__settings_bass_get"];
+    /**
+     * Set Device Bass
+     * @description Set the bass level supported by the selected SoundTouch device.
+     */
+    put: operations["set_device_bass_api_devices__device_id__settings_bass_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/devices/{device_id}/key": {
     parameters: {
       query?: never;
@@ -329,6 +353,43 @@ export interface paths {
      *         POST /api/devices/AABBCC112233/key?key=PRESET_1&state=both
      */
     post: operations["press_key_api_devices__device_id__key_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/devices/{device_id}/play-preset/{preset_number}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Play Preset
+     * @description Play a preset on a device.
+     *
+     *     Unlike the generic ``/key`` endpoint, this ensures the device is
+     *     programmed with the correct station before sending the key press.
+     *     This fixes silent failures where the OCT database has the preset
+     *     but the device's internal preset slot is empty.
+     *
+     *     Flow:
+     *     1. Look up preset in OCT database
+     *     2. Re-program the device via ``/storePreset`` (idempotent)
+     *     3. Send ``PRESET_X`` key press to start playback
+     *
+     *     Args:
+     *         device_id: Device ID (MAC address)
+     *         preset_number: Preset number (1-6)
+     *
+     *     Returns:
+     *         Playback status including whether device was programmed
+     */
+    post: operations["play_preset_api_devices__device_id__play_preset__preset_number__post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -3216,6 +3277,22 @@ export interface components {
       diff: string;
     };
     /**
+     * PlayPresetResponse
+     * @description Result of a play-preset request.
+     */
+    PlayPresetResponse: {
+      /** Message */
+      message: string;
+      /** Device Id */
+      device_id: string;
+      /** Preset Number */
+      preset_number: number;
+      /** Station Name */
+      station_name: string;
+      /** Device Programmed */
+      device_programmed: boolean;
+    };
+    /**
      * PortCheckRequest
      * @description Request to check SSH port.
      */
@@ -3270,6 +3347,8 @@ export interface components {
       created_at: string;
       /** Updated At */
       updated_at: string;
+      /** Device Programmed */
+      device_programmed?: boolean | null;
     };
     /**
      * PresetSetRequest
@@ -3508,6 +3587,14 @@ export interface components {
      * @enum {string}
      */
     SearchType: "name" | "country" | "tag";
+    /**
+     * SetBassRequest
+     * @description Request body for setting a device's bass level.
+     */
+    SetBassRequest: {
+      /** Level */
+      level: number;
+    };
     /**
      * SetManualIPsRequest
      * @description Request model for setting all manual IPs at once.
@@ -4072,6 +4159,70 @@ export interface operations {
       };
     };
   };
+  get_device_bass_api_devices__device_id__settings_bass_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  set_device_bass_api_devices__device_id__settings_bass_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SetBassRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Invalid bass level */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   press_key_api_devices__device_id__key_post: {
     parameters: {
       query: {
@@ -4094,6 +4245,52 @@ export interface operations {
         content: {
           "application/json": unknown;
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  play_preset_api_devices__device_id__play_preset__preset_number__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+        preset_number: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlayPresetResponse"];
+        };
+      };
+      /** @description Preset number out of range (1-6) */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Preset not configured or device not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {
@@ -6698,6 +6895,13 @@ export interface operations {
         content: {
           "application/json": unknown;
         };
+      };
+      /** @description Zone was dissolved during member addition */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {
