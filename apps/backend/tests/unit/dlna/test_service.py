@@ -1,5 +1,6 @@
 """Tests for the DLNA application service."""
 
+import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
@@ -68,3 +69,128 @@ async def test_browse_unknown_server():
 
     with pytest.raises(LookupError):
         await service.browse("missing-server")
+
+
+@pytest.mark.asyncio
+async def test_browse_reuses_discovered_server_without_new_ssdp():
+    server = DlnaServer(
+        id="server-1",
+        name="NAS",
+        location="http://192.0.2.10/device.xml",
+        control_url="http://192.0.2.10/control",
+    )
+    discovery = AsyncMock()
+    discovery.discover.return_value = [server]
+    client = AsyncMock()
+    client.browse.return_value = []
+    service = DlnaService(discovery=discovery, client=client)
+
+    assert await service.get_servers() == [server]
+    await service.browse(server.id, "folder-a")
+    await service.browse(server.id, "folder-b")
+    discovery.discover.assert_awaited_once()
+    assert client.browse.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_cache_expires_and_refreshes():
+    server = DlnaServer(
+        id="server-1",
+        name="NAS",
+        location="http://192.0.2.10/device.xml",
+        control_url="http://192.0.2.10/control",
+    )
+    clock = [100.0]
+    discovery = AsyncMock()
+    discovery.discover.return_value = [server]
+    service = DlnaService(
+        discovery=discovery, client=AsyncMock(), cache_ttl=30.0, clock=lambda: clock[0]
+    )
+
+    await service.get_servers()
+    clock[0] = 129.0
+    await service.browse(server.id)
+    assert discovery.discover.await_count == 1
+    clock[0] = 131.0
+    await service.browse(server.id)
+    assert discovery.discover.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_missing_server_triggers_refresh_and_404():
+    server = DlnaServer(
+        id="server-1",
+        name="NAS",
+        location="http://192.0.2.10/device.xml",
+        control_url="http://192.0.2.10/control",
+    )
+    discovery = AsyncMock()
+    discovery.discover.side_effect = [[server], []]
+    service = DlnaService(discovery=discovery, client=AsyncMock())
+    await service.get_servers()
+
+    with pytest.raises(LookupError, match="missing"):
+        await service.browse("missing")
+    assert discovery.discover.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_concurrent_browse_refreshes_expired_cache_only_once():
+    server = DlnaServer(
+        id="server-1",
+        name="NAS",
+        location="http://192.0.2.10/device.xml",
+        control_url="http://192.0.2.10/control",
+    )
+    clock = [100.0]
+    discovery = AsyncMock()
+    discovery.discover.return_value = [server]
+    client = AsyncMock()
+    client.browse.return_value = []
+    service = DlnaService(
+        discovery=discovery, client=client, cache_ttl=30.0, clock=lambda: clock[0]
+    )
+
+    await service.get_servers()
+    clock[0] = 131.0
+    await asyncio.gather(
+        service.browse(server.id, "a"),
+        service.browse(server.id, "b"),
+        service.browse(server.id, "c"),
+    )
+    assert discovery.discover.await_count == 2
+    assert client.browse.await_count == 3
+
+
+@pytest.mark.asyncio
+async def test_repeated_missing_server_does_not_repeat_discovery():
+    discovery = AsyncMock()
+    discovery.discover.return_value = []
+    service = DlnaService(discovery=discovery, client=AsyncMock())
+
+    for _ in range(3):
+        with pytest.raises(LookupError, match="missing"):
+            await service.browse("missing")
+
+    discovery.discover.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_explicit_refresh_clears_missing_server_cache():
+    server = DlnaServer(
+        id="missing",
+        name="NAS",
+        location="http://192.0.2.10/device.xml",
+        control_url="http://192.0.2.10/control",
+    )
+    discovery = AsyncMock()
+    discovery.discover.side_effect = [[], [server]]
+    client = AsyncMock()
+    client.browse.return_value = []
+    service = DlnaService(discovery=discovery, client=client)
+
+    with pytest.raises(LookupError):
+        await service.browse(server.id)
+    await service.get_servers()
+    assert await service.browse(server.id) == []
+    assert discovery.discover.await_count == 2
