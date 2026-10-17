@@ -428,10 +428,7 @@ export default function Step8Verification({
                   </li>
                   {ntpServer && (
                     <li>
-                      {t(
-                        "setup.wizard.step8.fullVerifyItem5",
-                        "NTP server configured on device"
-                      )}
+                      {t("setup.wizard.step8.fullVerifyItem5", "NTP server configured on device")}
                     </li>
                   )}
                 </ul>
