@@ -155,9 +155,7 @@ async def test_bass_probe_failure_keeps_persisted_capabilities_after_sync(
         staticmethod(AsyncMock(return_value=None)),
     )
     service = DeviceSyncService(repository=repo)
-    discovered = DiscoveredDevice(
-        ip="192.168.1.100", port=8090, model="SoundTouch 20"
-    )
+    discovered = DiscoveredDevice(ip="192.168.1.100", port=8090, model="SoundTouch 20")
 
     await service.fetch_and_upsert_one(discovered)
     saved = await repo.get_by_device_id("AABBCC112233")

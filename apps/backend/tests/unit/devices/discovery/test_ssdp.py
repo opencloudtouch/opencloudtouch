@@ -574,9 +574,9 @@ async def test_ssdp_discovery_with_timeout_parameter():
     BUG-13: SSDPDiscovery(timeout=3) uses the specified timeout as deadline.
     """
     discovery = SSDPDiscovery(timeout=3)
-    assert discovery.timeout == 3, (
-        "SSDPDiscovery must store the timeout parameter for wall-clock deadline."
-    )
+    assert (
+        discovery.timeout == 3
+    ), "SSDPDiscovery must store the timeout parameter for wall-clock deadline."
 
 
 def test_ssdp_msearch_deduplicates_responses(caplog):
@@ -623,9 +623,9 @@ def test_ssdp_msearch_deduplicates_responses(caplog):
 
     # Should log "Found SSDP device" only ONCE, not 200 times
     found_msgs = [r for r in caplog.records if "Found SSDP device" in r.message]
-    assert len(found_msgs) == 1, (
-        f"Expected 1 log message for deduplicated SSDP, got {len(found_msgs)}"
-    )
+    assert (
+        len(found_msgs) == 1
+    ), f"Expected 1 log message for deduplicated SSDP, got {len(found_msgs)}"
 
 
 @pytest.mark.asyncio

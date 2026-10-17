@@ -257,7 +257,9 @@ async def safe_api_call(
         raise
 
 
-def merge_bass_capabilities(flags: dict[str, Any], bass: BassCapabilities) -> dict[str, Any]:
+def merge_bass_capabilities(
+    flags: dict[str, Any], bass: BassCapabilities
+) -> dict[str, Any]:
     """Add detected bass capabilities without replacing other device features."""
     flags.setdefault("features", {})["bass_control"] = bass.available
     flags.setdefault("settings", {})["bass"] = {
