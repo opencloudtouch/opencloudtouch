@@ -164,7 +164,6 @@ class RestoreService:
                     usb_mounted = True
                 except RuntimeError:
                     usb_mounted = False
-                    usb_path = None
 
             if not usb_mounted:
                 return BackupScanResult(
