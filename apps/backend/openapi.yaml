@@ -410,6 +410,8 @@ paths:
                     type: string
                   device_programmed:
                     type: boolean
+        '400':
+          description: Preset number out of range (1-6)
         '404':
           description: Preset not configured or device not found
         '422':

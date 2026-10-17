@@ -294,6 +294,7 @@ async def press_key(
 @router.post(
     "/{device_id}/play-preset/{preset_number}",
     responses={
+        400: {"description": "Preset number out of range (1-6)"},
         404: {"description": "Preset not configured or device not found"},
     },
 )
@@ -339,11 +340,9 @@ async def play_preset(
     device_programmed = await preset_service.program_device_preset(preset)
     if not device_programmed:
         logger.warning(
-            "Device %s could not be programmed for preset %d (%s). "
+            "Device could not be programmed for preset %d. "
             "Attempting key press anyway — device may have stale preset.",
-            device_id,
             preset_number,
-            preset.station_name,
         )
 
     # 3. Send PRESET_X key press
@@ -356,10 +355,8 @@ async def play_preset(
     )
 
     logger.info(
-        "Play preset %d on %s: %s (programmed=%s)",
+        "Play preset %d (programmed=%s)",
         preset_number,
-        device_id,
-        preset.station_name,
         device_programmed,
     )
 
