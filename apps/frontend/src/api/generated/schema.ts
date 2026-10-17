@@ -132,6 +132,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/dlna/servers": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Dlna Servers
+     * @description Discover DLNA media servers.
+     */
+    get: operations["get_dlna_servers_api_dlna_servers_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/dlna/servers/{server_id}/browse": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Browse Dlna Server
+     * @description Browse a DLNA MediaServer ContentDirectory.
+     */
+    get: operations["browse_dlna_server_api_dlna_servers__server_id__browse_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/devices": {
     parameters: {
       query?: never;
@@ -3839,6 +3879,63 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  get_dlna_servers_api_dlna_servers_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          }[];
+        };
+      };
+    };
+  };
+  browse_dlna_server_api_dlna_servers__server_id__browse_get: {
+    parameters: {
+      query?: {
+        object_id?: string;
+      };
+      header?: never;
+      path: {
+        server_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
       };
     };
   };
