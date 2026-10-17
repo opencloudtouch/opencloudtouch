@@ -542,7 +542,7 @@
         "btnRetryFullVerify": "検証を再実行",
         "checkNtpServer": "NTPサーバーを設定しました: {{server}}",
         "checkNtpServerWrong": "NTPサーバーは '{{found}}' に設定されています（期待値: '{{expected}}'）",
-        "fullVerifyItem5": "NTPサーバーにパッチ適用済み、時刻同期が有効"
+        "fullVerifyItem5": "NTPサーバーがデバイスに設定済み"
       },
       "step9": {
         "title": "セットアップ完了！",

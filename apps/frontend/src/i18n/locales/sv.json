@@ -542,7 +542,7 @@
         "btnRetryFullVerify": "Kör verifiering igen",
         "checkNtpServer": "NTP-server inställd på: {{server}}",
         "checkNtpServerWrong": "NTP-servern är inställd på '{{found}}', förväntat '{{expected}}'",
-        "fullVerifyItem5": "NTP-server patchad och tidssynkronisering aktiv"
+        "fullVerifyItem5": "NTP-server konfigurerad på enheten"
       },
       "step9": {
         "title": "Installation klar!",

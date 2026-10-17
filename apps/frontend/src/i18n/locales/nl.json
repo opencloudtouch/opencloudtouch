@@ -542,7 +542,7 @@
         "btnRetryFullVerify": "Verificatie opnieuw uitvoeren",
         "checkNtpServer": "NTP-server ingesteld op: {{server}}",
         "checkNtpServerWrong": "NTP-server is ingesteld op '{{found}}', verwacht werd '{{expected}}'",
-        "fullVerifyItem5": "NTP-server gepatcht en tijdsynchronisatie actief"
+        "fullVerifyItem5": "NTP-server op het apparaat geconfigureerd"
       },
       "step9": {
         "title": "Installatie voltooid!",

@@ -542,7 +542,7 @@
         "btnRetryFullVerify": "Executar verificação novamente",
         "checkNtpServer": "Servidor NTP definido como: {{server}}",
         "checkNtpServerWrong": "O servidor NTP está definido como '{{found}}', esperado '{{expected}}'",
-        "fullVerifyItem5": "Servidor NTP com patch aplicado e sincronização de tempo ativa"
+        "fullVerifyItem5": "Servidor NTP configurado no dispositivo"
       },
       "step9": {
         "title": "Configuração concluída!",

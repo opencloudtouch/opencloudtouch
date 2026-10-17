@@ -430,7 +430,7 @@ export default function Step8Verification({
                     <li>
                       {t(
                         "setup.wizard.step8.fullVerifyItem5",
-                        "NTP server patched and time sync active"
+                        "NTP server configured on device"
                       )}
                     </li>
                   )}

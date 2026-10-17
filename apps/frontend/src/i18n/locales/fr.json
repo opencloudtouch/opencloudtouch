@@ -542,7 +542,7 @@
         "btnRetryFullVerify": "Relancer la vérification",
         "checkNtpServer": "Serveur NTP défini sur : {{server}}",
         "checkNtpServerWrong": "Le serveur NTP est défini sur « {{found}} », « {{expected}} » attendu",
-        "fullVerifyItem5": "Serveur NTP patché et synchronisation de l'heure active"
+        "fullVerifyItem5": "Serveur NTP configuré sur l'appareil"
       },
       "step9": {
         "title": "Configuration terminée !",

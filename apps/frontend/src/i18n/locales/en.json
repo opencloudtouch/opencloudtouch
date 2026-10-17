@@ -542,7 +542,7 @@
         "btnSkip": "Continue anyway — device will not be marked as configured",
         "checkNtpServer": "NTP server set to: {{server}}",
         "checkNtpServerWrong": "NTP server is set to '{{found}}', expected '{{expected}}'",
-        "fullVerifyItem5": "NTP server patched and time sync active"
+        "fullVerifyItem5": "NTP server configured on device"
       },
       "step9": {
         "title": "Setup complete!",

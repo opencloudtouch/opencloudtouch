@@ -8,6 +8,7 @@ Covers issue #469 acceptance criteria:
 """
 
 import asyncio
+import shlex
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -80,6 +81,21 @@ class TestPatchNtp:
         calls = [c[0][0] for c in mock_ssh.execute.call_args_list]
         ntpd_calls = [c for c in calls if "ntpd" in c and "ntp.example.local" in c]
         assert len(ntpd_calls) >= 1, f"No ntpd resync call found. SSH calls: {calls}"
+
+    @pytest.mark.asyncio
+    async def test_ntpd_argument_is_shell_quoted(self, service, mock_ssh):
+        """The server name is interpolated into the ntpd command line, so shell
+        metacharacters must be neutralised even though the API validates input."""
+        mock_ssh.execute.return_value = _ok()
+        hostile = "ntp.example.local; reboot"
+
+        await service.patch_ntp(hostile)
+
+        ntpd_cmd = next(
+            c[0][0] for c in mock_ssh.execute.call_args_list if "ntpd" in c[0][0]
+        )
+        assert shlex.quote(hostile) in ntpd_cmd
+        assert f"-p {hostile}" not in ntpd_cmd
 
     @pytest.mark.asyncio
     async def test_remounts_rw_before_write(self, service, mock_ssh):
