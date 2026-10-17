@@ -20,6 +20,7 @@ BusyBox v1.19.4 limitations:
 """
 
 import logging
+import shlex
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -27,6 +28,7 @@ from enum import Enum
 from typing import List
 
 from opencloudtouch.setup.ssh_client import SoundTouchSSHClient
+from opencloudtouch.setup.wizard_helpers import find_usb_mount
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +118,7 @@ class SoundTouchBackupService:
             "Starting backup of all partitions (device=%s)", device_id or "unknown"
         )
 
-        usb_path = await self._find_usb_mount()
+        usb_path = await find_usb_mount(self.ssh)
         self.logger.info("USB mount point: %s", usb_path)
 
         backup_dir = f"{usb_path}/oct-backup"
@@ -131,39 +133,68 @@ class SoundTouchBackupService:
             try:
                 result = await self._backup_volume(volume, backup_dir, device_id)
                 results.append(result)
-                self.logger.info(
-                    "Backed up %s: %.2f MB in %.1fs",
-                    volume.value,
-                    result.size_bytes / 1024 / 1024,
-                    result.duration_seconds,
-                )
             except Exception as e:
                 self.logger.error(
                     "Failed to backup %s: %s", volume.value, e, exc_info=True
                 )
                 results.append(BackupResult(volume=volume, success=False, error=str(e)))
 
+        # Post-backup verification: confirm files exist on USB
+        successful = [r for r in results if r.success]
+        if successful:
+            await self._verify_backup_files(successful)
+
+        for result in results:
+            if result.success:
+                self.logger.info(
+                    "Backed up %s: %.2f MB in %.1fs",
+                    result.volume.value,
+                    result.size_bytes / 1024 / 1024,
+                    result.duration_seconds,
+                )
+
         return results
 
-    async def _find_usb_mount(self) -> str:
-        """
-        Detect USB stick mount point from /proc/mounts.
+    async def _verify_backup_files(self, results: List[BackupResult]) -> None:
+        """Verify backup files are accessible on USB after creation.
 
-        SoundTouch mounts USB at /media/sda1 (or /media/usb on some firmware).
-        Falls back to /media/sda1 if detection fails.
+        Logs warnings if files are missing or empty — indicates the backup
+        was written to a local path instead of the actual USB stick.
         """
-        result = await self.ssh.execute(
-            "grep '/media/' /proc/mounts | awk '{print $2}' | head -1"
-        )
-        if result.success and result.output.strip():
-            mount_path = result.output.strip()
-            self.logger.debug("Detected USB mount: %s", mount_path)
-            return mount_path
-
-        self.logger.warning(
-            "USB mount not found in /proc/mounts, falling back to /media/sda1"
-        )
-        return "/media/sda1"
+        for result in results:
+            quoted_path = shlex.quote(result.backup_path)
+            check = await self.ssh.execute(
+                f"test -f {quoted_path} && wc -c < {quoted_path}"
+            )
+            if not check.success or not check.output.strip().isdigit():
+                self.logger.error(
+                    "Post-backup verification FAILED for %s: file not found at %s",
+                    result.volume.value,
+                    result.backup_path,
+                )
+                result.success = False
+                result.error = (
+                    f"Backup file not found at {result.backup_path} after writing. "
+                    "USB stick may not be properly mounted."
+                )
+            else:
+                verified_size = int(check.output.strip())
+                if verified_size == 0:
+                    self.logger.error(
+                        "Post-backup verification FAILED for %s: file empty at %s",
+                        result.volume.value,
+                        result.backup_path,
+                    )
+                    result.success = False
+                    result.error = f"Backup file is empty at {result.backup_path}"
+                else:
+                    result.size_bytes = verified_size
+                    self.logger.debug(
+                        "Verified %s: %d bytes at %s",
+                        result.volume.value,
+                        verified_size,
+                        result.backup_path,
+                    )
 
     async def _backup_volume(
         self, volume: VolumeType, backup_dir: str, device_id: str | None = None
