@@ -24,6 +24,9 @@ from opencloudtouch.presets.repository import PresetRepository
 
 logger = logging.getLogger(__name__)
 
+# Source type of presets that OCT programs on the device itself.
+OCT_PRESET_SOURCE = "LOCAL_INTERNET_RADIO"
+
 
 @dataclass
 class SetPresetResult:
@@ -186,7 +189,7 @@ class PresetService:
             station_url=station_url,
             station_homepage=station_homepage,
             station_favicon=station_favicon,
-            source="LOCAL_INTERNET_RADIO",  # OCT-managed presets from RadioBrowser
+            source=OCT_PRESET_SOURCE,  # OCT-managed presets from RadioBrowser
         )
 
         saved_preset = await self.repository.set_preset(preset)

@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: OpenCloudTouch
   description: Open-Source replacement for discontinued streaming device cloud features
-  version: 1.6.0
+  version: 1.5.8
 paths:
   /api/devices/discover:
     get:
@@ -370,12 +370,14 @@ paths:
       tags:
       - Devices
       summary: Play Preset
-      description: "Play a preset on a device.\n\nEnsures the device is programmed\
-        \ with the correct station before sending the key press. This fixes silent\
-        \ failures where the OCT database has the preset but the device's internal\
-        \ preset slot is empty.\n\nFlow:\n1. Look up preset in OCT database\n2. Re-program\
-        \ the device via /storePreset (idempotent)\n3. Send PRESET_X key press to\
-        \ start playback"
+      description: "Play a preset on a device.\n\nUnlike the generic ``/key`` endpoint,\
+        \ this ensures the device is\nprogrammed with the correct station before sending\
+        \ the key press.\nThis fixes silent failures where the OCT database has the\
+        \ preset\nbut the device's internal preset slot is empty.\n\nFlow:\n1. Look\
+        \ up preset in OCT database\n2. Re-program the device via ``/storePreset``\
+        \ (idempotent)\n3. Send ``PRESET_X`` key press to start playback\n\nArgs:\n\
+        \    device_id: Device ID (MAC address)\n    preset_number: Preset number\
+        \ (1-6)\n\nReturns:\n    Playback status including whether device was programmed"
       operationId: play_preset_api_devices__device_id__play_preset__preset_number__post
       parameters:
       - name: device_id
@@ -389,8 +391,6 @@ paths:
         required: true
         schema:
           type: integer
-          minimum: 1
-          maximum: 6
           title: Preset Number
       responses:
         '200':
@@ -398,18 +398,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  device_id:
-                    type: string
-                  preset_number:
-                    type: integer
-                  station_name:
-                    type: string
-                  device_programmed:
-                    type: boolean
+                $ref: '#/components/schemas/PlayPresetResponse'
         '400':
           description: Preset number out of range (1-6)
         '404':
@@ -4060,6 +4049,32 @@ components:
       - message
       title: NtpPatchResponse
       description: Response with NTP patch result.
+    PlayPresetResponse:
+      properties:
+        message:
+          type: string
+          title: Message
+        device_id:
+          type: string
+          title: Device Id
+        preset_number:
+          type: integer
+          title: Preset Number
+        station_name:
+          type: string
+          title: Station Name
+        device_programmed:
+          type: boolean
+          title: Device Programmed
+      type: object
+      required:
+      - message
+      - device_id
+      - preset_number
+      - station_name
+      - device_programmed
+      title: PlayPresetResponse
+      description: Result of a play-preset request.
     PortCheckRequest:
       properties:
         device_ip:
@@ -4135,6 +4150,11 @@ components:
         updated_at:
           type: string
           title: Updated At
+        device_programmed:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Device Programmed
       type: object
       required:
       - id

@@ -27,7 +27,7 @@ from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.state import DeviceStateManager
 from opencloudtouch.devices.websocket.icy_worker import RADIO_SOURCES
 from opencloudtouch.presets.models import Preset
-from opencloudtouch.presets.service import PresetService
+from opencloudtouch.presets.service import OCT_PRESET_SOURCE, PresetService
 from opencloudtouch.streaming.icy_metadata import IcyMetadata, probe_stream
 from opencloudtouch.streaming.metadata_cache import MISSING, MetadataCache, _Missing
 
@@ -291,8 +291,19 @@ async def press_key(
     return {"message": f"Key {key} pressed successfully", "device_id": device_id}
 
 
+class PlayPresetResponse(BaseModel):
+    """Result of a play-preset request."""
+
+    message: str
+    device_id: str
+    preset_number: int
+    station_name: str
+    device_programmed: bool
+
+
 @router.post(
     "/{device_id}/play-preset/{preset_number}",
+    response_model=PlayPresetResponse,
     responses={
         400: {"description": "Preset number out of range (1-6)"},
         404: {"description": "Preset not configured or device not found"},
@@ -337,7 +348,12 @@ async def play_preset(
         )
 
     # 2. Ensure device is programmed with current preset data
-    device_programmed = await preset_service.program_device_preset(preset)
+    # Presets imported from the device (TuneIn, Spotify, ...) are device-native:
+    # re-programming them would replace them with an OCT radio wrapper.
+    if preset.source in (None, OCT_PRESET_SOURCE):
+        device_programmed = await preset_service.program_device_preset(preset)
+    else:
+        device_programmed = True
     if not device_programmed:
         logger.warning(
             "Device could not be programmed for preset %d. "

@@ -1310,6 +1310,25 @@ class TestPlayPreset:
             "AABBCC112233", "PRESET_1", "both"
         )
 
+    def test_play_preset_device_native_source_not_reprogrammed(
+        self, client, mock_device_service, mock_preset_service
+    ):
+        """Presets imported from the device (e.g. TUNEIN) must not be overwritten."""
+        preset = self._make_preset()
+        preset.source = "TUNEIN"
+        mock_preset_service.get_preset = AsyncMock(return_value=preset)
+        mock_preset_service.program_device_preset = AsyncMock(return_value=True)
+        mock_device_service.press_key = AsyncMock(return_value=None)
+
+        response = client.post("/api/devices/AABBCC112233/play-preset/1")
+
+        assert response.status_code == 200
+        assert response.json()["device_programmed"] is True
+        mock_preset_service.program_device_preset.assert_not_awaited()
+        mock_device_service.press_key.assert_awaited_once_with(
+            "AABBCC112233", "PRESET_1", "both"
+        )
+
     def test_play_preset_invalid_number_zero(
         self, client, mock_device_service, mock_preset_service
     ):

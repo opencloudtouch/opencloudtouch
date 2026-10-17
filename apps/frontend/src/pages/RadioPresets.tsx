@@ -160,7 +160,7 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
 
     try {
       const result = await playPresetAPI(currentDevice.device_id, presetNumber);
-      if (!result.device_programmed) {
+      if (result?.device_programmed === false) {
         showToast(t("presets.deviceNotProgrammed"), "warning");
       }
     } catch (err) {
