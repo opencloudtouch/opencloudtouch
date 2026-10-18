@@ -194,3 +194,50 @@ async def test_explicit_refresh_clears_missing_server_cache():
     await service.get_servers()
     assert await service.browse(server.id) == []
     assert discovery.discover.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_play_uses_cached_server_and_closes_subscriptions():
+    server = DlnaServer(
+        id="server-1",
+        name="NAS",
+        location="http://192.0.2.10/device.xml",
+        control_url="http://192.0.2.10/control",
+    )
+    item = DlnaItem(
+        id="track-1",
+        parent_id="folder",
+        title="Song",
+        is_container=False,
+        resource_url="http://192.0.2.10/song.mp3",
+    )
+    discovery = AsyncMock()
+    discovery.discover.return_value = [server]
+    client = AsyncMock()
+    client.browse.return_value = [item]
+    playback = AsyncMock()
+    playback.play.return_value = item
+    service = DlnaService(discovery=discovery, client=client, playback=playback)
+    service.subscriptions.ensure = AsyncMock()
+    service.subscriptions.close = AsyncMock()
+
+    await service.get_servers()
+    result = await service.play(
+        device_id="device-1",
+        device_ip="192.0.2.20",
+        server_id="server-1",
+        parent_id="folder",
+        object_id="track-1",
+        callback_base_url="http://192.0.2.30:7777",
+    )
+
+    assert result == item
+    discovery.discover.assert_awaited_once()
+    service.subscriptions.ensure.assert_awaited_once_with(
+        device_id="device-1",
+        device_ip="192.0.2.20",
+        callback_url="http://192.0.2.30:7777/api/dlna/events/device-1",
+    )
+    playback.play.assert_awaited_once()
+    await service.close()
+    service.subscriptions.close.assert_awaited_once()

@@ -147,6 +147,202 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/dlna/servers/{server_id}/items/{object_id}/play/{device_id}:
+    post:
+      tags:
+      - dlna
+      summary: Play Dlna Item
+      description: Play a media server item directly on a SoundTouch device.
+      operationId: play_dlna_item_api_dlna_servers__server_id__items__object_id__play__device_id__post
+      parameters:
+      - name: server_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Server Id
+      - name: object_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Object Id
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: parent_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Parent Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Play Dlna Item Api Dlna Servers  Server Id  Items  Object
+                  Id  Play  Device Id  Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/dlna/devices/{device_id}/current:
+    get:
+      tags:
+      - dlna
+      summary: Get Current Dlna Item
+      description: Return the current media server item managed by the OCT playback
+        queue.
+      operationId: get_current_dlna_item_api_dlna_devices__device_id__current_get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Current Dlna Item Api Dlna Devices  Device Id  Current
+                  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/dlna/devices/{device_id}/pause:
+    post:
+      tags:
+      - dlna
+      summary: Pause Dlna
+      description: Pause current DLNA playback.
+      operationId: pause_dlna_api_dlna_devices__device_id__pause_post
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Pause Dlna Api Dlna Devices  Device Id  Pause Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/dlna/devices/{device_id}/resume:
+    post:
+      tags:
+      - dlna
+      summary: Resume Dlna
+      description: Resume current DLNA playback.
+      operationId: resume_dlna_api_dlna_devices__device_id__resume_post
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Resume Dlna Api Dlna Devices  Device Id  Resume Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/dlna/devices/{device_id}/next:
+    post:
+      tags:
+      - dlna
+      summary: Next Dlna
+      description: Play the next DLNA track.
+      operationId: next_dlna_api_dlna_devices__device_id__next_post
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Next Dlna Api Dlna Devices  Device Id  Next Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/dlna/devices/{device_id}/previous:
+    post:
+      tags:
+      - dlna
+      summary: Previous Dlna
+      description: Play the previous DLNA track.
+      operationId: previous_dlna_api_dlna_devices__device_id__previous_post
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Previous Dlna Api Dlna Devices  Device Id  Previous
+                  Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/devices:
     get:
       tags:
