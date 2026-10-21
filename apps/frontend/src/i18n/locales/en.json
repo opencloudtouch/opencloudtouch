@@ -793,6 +793,17 @@
     "tooLong": "Name must be 30 characters or fewer",
     "failed": "Failed to rename device"
   },
+  "deviceSettings": {
+    "open": "Open settings for {{name}}",
+    "title": "Device settings",
+    "close": "Close",
+    "loading": "Loading device settings…",
+    "bass": "Bass",
+    "reset": "Restore default",
+    "noOptions": "No additional settings are currently available for this device.",
+    "loadFailed": "Could not load device settings.",
+    "saveFailed": "Could not change bass."
+  },
   "deviceHeader": {
     "reboot": "Reboot device",
     "sent": "Reboot command sent",

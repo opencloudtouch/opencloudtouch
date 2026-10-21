@@ -793,6 +793,17 @@
     "tooLong": "O nome deve ter no máximo 30 caracteres",
     "failed": "Falha ao renomear o dispositivo"
   },
+  "deviceSettings": {
+    "open": "Abrir configurações de {{name}}",
+    "title": "Configurações do dispositivo",
+    "close": "Fechar",
+    "loading": "Carregando configurações do dispositivo…",
+    "bass": "Graves",
+    "reset": "Restaurar valor padrão",
+    "noOptions": "Não há configurações adicionais disponíveis para este dispositivo no momento.",
+    "loadFailed": "Não foi possível carregar as configurações do dispositivo.",
+    "saveFailed": "Não foi possível alterar os graves."
+  },
   "deviceHeader": {
     "reboot": "Reiniciar dispositivo",
     "sent": "Comando de reinicialização enviado",
