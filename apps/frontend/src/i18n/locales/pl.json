@@ -793,6 +793,17 @@
     "tooLong": "Nazwa musi mieć maksymalnie 30 znaków",
     "failed": "Nie udało się zmienić nazwy"
   },
+  "deviceSettings": {
+    "open": "Otwórz ustawienia urządzenia {{name}}",
+    "title": "Ustawienia urządzenia",
+    "close": "Zamknij",
+    "loading": "Ładowanie ustawień urządzenia…",
+    "bass": "Basy",
+    "reset": "Przywróć wartość domyślną",
+    "noOptions": "Dla tego urządzenia nie są obecnie dostępne dodatkowe ustawienia.",
+    "loadFailed": "Nie udało się wczytać ustawień urządzenia.",
+    "saveFailed": "Nie udało się zmienić poziomu basów."
+  },
   "deviceHeader": {
     "reboot": "Uruchom ponownie urządzenie",
     "sent": "Polecenie restartu wysłane",

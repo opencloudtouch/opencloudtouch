@@ -793,6 +793,17 @@
     "tooLong": "Il nome deve avere al massimo 30 caratteri",
     "failed": "Rinominazione non riuscita"
   },
+  "deviceSettings": {
+    "open": "Apri le impostazioni di {{name}}",
+    "title": "Impostazioni dispositivo",
+    "close": "Chiudi",
+    "loading": "Caricamento delle impostazioni del dispositivo…",
+    "bass": "Bassi",
+    "reset": "Ripristina valore predefinito",
+    "noOptions": "Al momento non sono disponibili impostazioni aggiuntive per questo dispositivo.",
+    "loadFailed": "Impossibile caricare le impostazioni del dispositivo.",
+    "saveFailed": "Impossibile modificare i bassi."
+  },
   "deviceHeader": {
     "reboot": "Riavvia il dispositivo",
     "sent": "Comando di riavvio inviato",

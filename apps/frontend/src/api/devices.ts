@@ -181,6 +181,46 @@ export async function renameDevice(deviceId: string, name: string): Promise<Rena
   return response.json();
 }
 
+// ---- Device Settings API ----
+
+export interface BassCapabilities {
+  available: boolean;
+  minimum: number;
+  maximum: number;
+  default: number;
+}
+
+export interface DeviceSettingsCapabilities {
+  features?: { bass_control?: boolean };
+  settings?: { bass?: BassCapabilities };
+}
+
+export interface BassState {
+  actual: number;
+  target: number;
+}
+
+export async function getDeviceSettingsCapabilities(
+  deviceId: string
+): Promise<DeviceSettingsCapabilities> {
+  return getDeviceCapabilities(deviceId) as Promise<DeviceSettingsCapabilities>;
+}
+
+export async function getBass(deviceId: string): Promise<BassState> {
+  const response = await fetch(`${API_BASE_URL}/api/devices/${encodeURIComponent(deviceId)}/settings/bass`);
+  await throwIfNotOk(response, "Failed to read bass");
+  return response.json();
+}
+
+export async function setBass(deviceId: string, level: number): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/devices/${encodeURIComponent(deviceId)}/settings/bass`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ level }),
+  });
+  await throwIfNotOk(response, "Failed to set bass");
+}
+
 // ---- Volume API ----
 
 export interface VolumeState {

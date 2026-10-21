@@ -793,6 +793,17 @@
     "tooLong": "Namnet får ha max 30 tecken",
     "failed": "Det gick inte att byta namn"
   },
+  "deviceSettings": {
+    "open": "Öppna inställningar för {{name}}",
+    "title": "Enhetsinställningar",
+    "close": "Stäng",
+    "loading": "Läser in enhetsinställningar…",
+    "bass": "Bas",
+    "reset": "Återställ standardvärde",
+    "noOptions": "Det finns för närvarande inga ytterligare inställningar för den här enheten.",
+    "loadFailed": "Det gick inte att läsa in enhetsinställningarna.",
+    "saveFailed": "Det gick inte att ändra basen."
+  },
   "deviceHeader": {
     "reboot": "Starta om enheten",
     "sent": "Omstartskommando skickat",
