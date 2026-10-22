@@ -11,7 +11,6 @@ from opencloudtouch.db import Device
 from opencloudtouch.devices.adapter import get_device_client, get_discovery_adapter
 from opencloudtouch.devices.capabilities import (
     DeviceCapabilities,
-    get_capabilities_for_ip,
     get_feature_flags_for_ui,
     merge_bass_capabilities,
 )
@@ -354,7 +353,7 @@ class DeviceSyncService:
                     device_type=info.type,
                 )
             else:
-                detected = await get_capabilities_for_ip(device_ip)
+                detected = await client.get_detailed_capabilities()
 
             flags = get_feature_flags_for_ui(detected)
 
