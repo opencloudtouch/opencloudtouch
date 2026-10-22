@@ -65,6 +65,12 @@ class BoseDeviceClientAdapter(DeviceClient):
             logger.exception("Failed to connect to device at %s", base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
 
+    async def get_detailed_capabilities(self):
+        """Detect capabilities using the existing Bose client."""
+        from opencloudtouch.devices.capabilities import get_device_capabilities
+
+        return await get_device_capabilities(self._client)
+
     def _extract_firmware_version(self, info) -> str:
         """Extract firmware version from Components list."""
         if not hasattr(info, "Components") or not info.Components:
