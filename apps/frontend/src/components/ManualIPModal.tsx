@@ -89,9 +89,7 @@ export default function ManualIPModal({ isOpen, onClose }: ManualIPModalProps) {
     }
   };
 
-  const describedBy = validationError
-    ? "ip-validation-error manual-ip-hint"
-    : "manual-ip-hint";
+  const describedBy = validationError ? "ip-validation-error manual-ip-hint" : "manual-ip-hint";
 
   return (
     <Modal
@@ -107,7 +105,11 @@ export default function ManualIPModal({ isOpen, onClose }: ManualIPModalProps) {
         <h2 id="manual-ip-title" className="dlg-title" data-test="modal-title">
           {t("manualIpModal.title")}
         </h2>
-        <button className="btn btn-ghost btn-icon dlg-close" onClick={onClose} aria-label={t("common.close")}>
+        <button
+          className="btn btn-ghost btn-icon dlg-close"
+          onClick={onClose}
+          aria-label={t("common.close")}
+        >
           {Icon.X(22)}
         </button>
       </div>

@@ -1,6 +1,32 @@
 /* sk-: skeleton layouts. The .ui-skeleton block itself lives in ui-base.css. Heights match the real items (no layout shift). */
-.sk-device, .sk-preset, .sk-station { box-sizing: border-box; display: flex; align-items: center; gap: 12px; min-width: 0; padding: 12px; background: var(--color-bg-card); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); }
-.sk-device { padding: var(--space-md); gap: var(--space-md); }
-.sk-preset { min-height: 74px; }
-.sk-station { border-color: transparent; background: none; }
-.sk-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.sk-device,
+.sk-preset,
+.sk-station {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+}
+.sk-device {
+  padding: var(--space-md);
+  gap: var(--space-md);
+}
+.sk-preset {
+  min-height: 74px;
+}
+.sk-station {
+  border-color: transparent;
+  background: none;
+}
+.sk-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

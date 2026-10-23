@@ -87,7 +87,9 @@ export default function EmptyState() {
 
         <ol className="es-steps">
           <li className="es-step">
-            <span className="es-step-num" aria-hidden="true">1</span>
+            <span className="es-step-num" aria-hidden="true">
+              1
+            </span>
             <div className="es-step-body">
               <h2>{t("discovery.step1Title")}</h2>
               <p>{t("discovery.step1Desc")}</p>
@@ -95,7 +97,9 @@ export default function EmptyState() {
           </li>
 
           <li className="es-step">
-            <span className="es-step-num" aria-hidden="true">2</span>
+            <span className="es-step-num" aria-hidden="true">
+              2
+            </span>
             <div className="es-step-body">
               <h2>{t("discovery.step2Title")}</h2>
               <p>{t("discovery.step2Desc")}</p>
@@ -103,7 +107,9 @@ export default function EmptyState() {
           </li>
 
           <li className="es-step">
-            <span className="es-step-num" aria-hidden="true">3</span>
+            <span className="es-step-num" aria-hidden="true">
+              3
+            </span>
             <div className="es-step-body">
               <h2>{t("discovery.step3Title")}</h2>
               <p>{t("discovery.step3Desc")}</p>
@@ -119,7 +125,11 @@ export default function EmptyState() {
             aria-busy={isDiscovering}
             data-test="discover-button"
           >
-            {isDiscovering ? <span className="spinner-small" aria-hidden="true" /> : Icon.Search(20)}
+            {isDiscovering ? (
+              <span className="spinner-small" aria-hidden="true" />
+            ) : (
+              Icon.Search(20)
+            )}
             {isDiscovering
               ? t("discovery.searchingWithCount", { count: stats.synced })
               : hasManualIPs

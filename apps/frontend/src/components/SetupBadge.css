@@ -1,9 +1,49 @@
 /* sb-: setup badge button (44x44). Replaces SetupBadge.css (.setup-badge, .badge-*). */
-.sb { --c: var(--text-secondary); --bg: rgba(255,255,255,.05); --bd: var(--ui-control-border); box-sizing: border-box; width: var(--touch-target-min); height: var(--touch-target-min); border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--bg); border: 1px solid var(--bd); color: var(--c); transition: background var(--motion-base); }
-.sb:hover { background: rgba(255,255,255,.12); }
-.sb-icon { display: flex; }
-.sb--configured { --c: var(--color-success); --bg: rgba(76,175,80,.12); --bd: rgba(76,175,80,.6); }
-.sb--pending { --c: var(--primary-text); --bg: rgba(var(--primary-rgb), .12); --bd: rgba(var(--primary-rgb), .6); }
-.sb--unconfigured, .sb--outdated { --c: var(--warning-color); --bg: rgba(255,193,7,.10); --bd: rgba(255,193,7,.6); }
-.sb--failed { --c: var(--danger-text); --bg: rgba(244,67,54,.12); --bd: rgba(244,67,54,.65); }
-@media (prefers-reduced-motion: reduce) { .sb { transition: none; } }
+.sb {
+  --c: var(--text-secondary);
+  --bg: rgba(255, 255, 255, 0.05);
+  --bd: var(--ui-control-border);
+  box-sizing: border-box;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  color: var(--c);
+  transition: background var(--motion-base);
+}
+.sb:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.sb-icon {
+  display: flex;
+}
+.sb--configured {
+  --c: var(--color-success);
+  --bg: rgba(76, 175, 80, 0.12);
+  --bd: rgba(76, 175, 80, 0.6);
+}
+.sb--pending {
+  --c: var(--primary-text);
+  --bg: rgba(var(--primary-rgb), 0.12);
+  --bd: rgba(var(--primary-rgb), 0.6);
+}
+.sb--unconfigured,
+.sb--outdated {
+  --c: var(--warning-color);
+  --bg: rgba(255, 193, 7, 0.1);
+  --bd: rgba(255, 193, 7, 0.6);
+}
+.sb--failed {
+  --c: var(--danger-text);
+  --bg: rgba(244, 67, 54, 0.12);
+  --bd: rgba(244, 67, 54, 0.65);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sb {
+    transition: none;
+  }
+}

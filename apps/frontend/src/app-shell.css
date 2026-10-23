@@ -1,19 +1,97 @@
 /* Replaces App.css. Shell: fixed-height header + scrolling <main> (as before), loading/error screens, skip link. */
-.app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; background: var(--color-bg-dark); color: var(--color-text-primary); }
-.app-header { flex: none; position: relative; z-index: 20; height: var(--header-h); background: var(--color-bg-card); border-bottom: 1px solid var(--border-color); }
-.app-main { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; }
-.app-main:focus { outline: none; }                       /* programmatic focus target of the skip link only */
-.app-main--center { display: flex; padding: var(--space-md); }
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--color-bg-dark);
+  color: var(--color-text-primary);
+}
+.app-header {
+  flex: none;
+  position: relative;
+  z-index: 20;
+  height: var(--header-h);
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--border-color);
+}
+.app-main {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.app-main:focus {
+  outline: none;
+} /* programmatic focus target of the skip link only */
+.app-main--center {
+  display: flex;
+  padding: var(--space-md);
+}
 
 .skip-link {
-  position: absolute; z-index: 100; left: 8px; top: -120px; display: inline-flex; align-items: center; min-height: var(--touch-target-min);
-  padding: 0 var(--space-md); border-radius: var(--border-radius-sm); background: var(--color-accent); color: #fff; font-weight: var(--font-weight-medium);
+  position: absolute;
+  z-index: 100;
+  left: 8px;
+  top: -120px;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target-min);
+  padding: 0 var(--space-md);
+  border-radius: var(--border-radius-sm);
+  background: var(--color-accent);
+  color: #fff;
+  font-weight: var(--font-weight-medium);
 }
-.skip-link:focus { top: 8px; }
+.skip-link:focus {
+  top: 8px;
+}
 
 /* loading / devices-load error: a centred card that can never be cut off (margin:auto) */
-.app-state { box-sizing: border-box; width: 100%; max-width: 480px; margin: auto; display: flex; flex-direction: column; align-items: center; gap: var(--space-md); padding: 40px var(--space-lg); text-align: center; background: var(--color-bg-card); border: 1px solid var(--border-color); border-radius: var(--border-radius-lg); }
-.app-state-icon { width: 64px; height: 64px; border-radius: var(--border-radius-lg); background: var(--bg-tertiary); color: var(--color-danger); display: flex; align-items: center; justify-content: center; }
-.app-state-title { margin: 0; font-size: 22px; line-height: 1.25; font-weight: var(--font-weight-bold); color: var(--color-text-primary); }
-.app-state-message { margin: 0; font-size: 17px; line-height: 1.4; color: var(--text-primary); overflow-wrap: anywhere; }
-.app-state-hint { margin: 0; max-width: 40ch; font-size: 14px; line-height: 1.5; color: var(--color-text-secondary); text-wrap: pretty; }
+.app-state {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 480px;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 40px var(--space-lg);
+  text-align: center;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+}
+.app-state-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--border-radius-lg);
+  background: var(--bg-tertiary);
+  color: var(--color-danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.app-state-title {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+.app-state-message {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.4;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.app-state-hint {
+  margin: 0;
+  max-width: 40ch;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}

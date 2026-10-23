@@ -1,12 +1,68 @@
 /* dne-: device name editor. Replaces DeviceNameEditor.css (.device-name, .device-name-editable, .device-name-input, .device-name-error). */
-.dne { min-width: 0; width: 100%; display: flex; flex-direction: column; gap: 6px; }
-.dne-heading { margin: 0; min-width: 0; width: 100%; font-size: inherit; font-weight: inherit; line-height: inherit; }
-.dne-btn { box-sizing: border-box; display: inline-flex; align-items: center; gap: 8px; max-width: 100%; min-height: var(--touch-target-min); padding: 0 8px; margin-left: -8px; border-radius: var(--border-radius-sm); color: var(--color-text-primary); font-weight: var(--font-weight-bold); line-height: 1.2; text-align: left; transition: background var(--motion-base); }
-.dne-btn:hover { background: var(--bg-tertiary); }
-.dne-text { min-width: 0; overflow-wrap: anywhere; }       /* a 40-character name wraps to a second line instead of widening the card */
-.dne-icon { flex: none; display: flex; color: var(--primary-text); }
-.dne-field { position: relative; display: block; }
-.dne-input { font-size: 18px; font-weight: var(--font-weight-bold); padding-right: 40px; }
-.dne-saving { position: absolute; right: 12px; top: 50%; margin-top: -9px; color: var(--primary-text); }
-.dne-error { font-weight: var(--font-weight-normal); }
-@media (prefers-reduced-motion: reduce) { .dne-btn { transition: none; } }
+.dne {
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dne-heading {
+  margin: 0;
+  min-width: 0;
+  width: 100%;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+.dne-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  min-height: var(--touch-target-min);
+  padding: 0 8px;
+  margin-left: -8px;
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.2;
+  text-align: left;
+  transition: background var(--motion-base);
+}
+.dne-btn:hover {
+  background: var(--bg-tertiary);
+}
+.dne-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+} /* a 40-character name wraps to a second line instead of widening the card */
+.dne-icon {
+  flex: none;
+  display: flex;
+  color: var(--primary-text);
+}
+.dne-field {
+  position: relative;
+  display: block;
+}
+.dne-input {
+  font-size: 18px;
+  font-weight: var(--font-weight-bold);
+  padding-right: 40px;
+}
+.dne-saving {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  margin-top: -9px;
+  color: var(--primary-text);
+}
+.dne-error {
+  font-weight: var(--font-weight-normal);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dne-btn {
+    transition: none;
+  }
+}

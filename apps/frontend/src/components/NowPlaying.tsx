@@ -31,19 +31,47 @@ interface SourceBadgeConfig {
 }
 
 const SOURCE_BADGE_MAP: Record<string, SourceBadgeConfig> = {
-  BLUETOOTH: { className: "bluetooth", titleKey: "player.source.bluetooth", icon: () => Icon.Bluetooth(20) },
-  INTERNET_RADIO: { className: "radio", titleKey: "player.source.radio", icon: () => Icon.Radio(20) },
-  LOCAL_INTERNET_RADIO: { className: "radio", titleKey: "player.source.radio", icon: () => Icon.Radio(20) },
+  BLUETOOTH: {
+    className: "bluetooth",
+    titleKey: "player.source.bluetooth",
+    icon: () => Icon.Bluetooth(20),
+  },
+  INTERNET_RADIO: {
+    className: "radio",
+    titleKey: "player.source.radio",
+    icon: () => Icon.Radio(20),
+  },
+  LOCAL_INTERNET_RADIO: {
+    className: "radio",
+    titleKey: "player.source.radio",
+    icon: () => Icon.Radio(20),
+  },
   AUX: { className: "aux", titleKey: "player.source.aux", icon: () => Icon.Headphones(20) },
-  AIRPLAY: { className: "airplay", titleKey: "player.source.airplay", icon: () => Icon.Airplay(20) },
+  AIRPLAY: {
+    className: "airplay",
+    titleKey: "player.source.airplay",
+    icon: () => Icon.Airplay(20),
+  },
   DLNA: { className: "dlna", titleKey: "player.source.dlna", icon: () => Icon.Speaker(20) },
   TV: { className: "tv", titleKey: "player.source.tv", icon: () => Icon.Tv(20) },
   HDMI_1: { className: "tv", titleKey: "player.source.tv", icon: () => Icon.Tv(20) },
-  SPOTIFY: { className: "streaming", titleKey: "player.source.spotify", icon: () => Icon.Music(20) },
+  SPOTIFY: {
+    className: "streaming",
+    titleKey: "player.source.spotify",
+    icon: () => Icon.Music(20),
+  },
   DEEZER: { className: "streaming", titleKey: "player.source.deezer", icon: () => Icon.Music(20) },
-  PANDORA: { className: "streaming", titleKey: "player.source.pandora", icon: () => Icon.Music(20) },
+  PANDORA: {
+    className: "streaming",
+    titleKey: "player.source.pandora",
+    icon: () => Icon.Music(20),
+  },
   AMAZON: { className: "streaming", titleKey: "player.source.amazon", icon: () => Icon.Music(20) },
-  STORED_MUSIC: { className: "streaming", titleKey: "player.source.storedMusic", icon: () => Icon.Music(20) },
+  STORED_MUSIC: {
+    className: "streaming",
+    titleKey: "player.source.storedMusic",
+    icon: () => Icon.Music(20),
+  },
 };
 
 function getSourceBadge(t: (key: string) => string, source?: string) {

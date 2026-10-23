@@ -316,12 +316,7 @@ export default function RadioSearch({
   const faviconInvalid = manualFavicon.trim() !== "" && !isValidHttpUrl(manualFavicon);
 
   return (
-    <Modal
-      open={isOpen}
-      onClose={() => onClose?.()}
-      size="lg"
-      labelledBy="rs-title"
-    >
+    <Modal open={isOpen} onClose={() => onClose?.()} size="lg" labelledBy="rs-title">
       <ConfirmDialog
         open={saveError !== null}
         title={t("presets.manualStreamErrorTitle")}
@@ -412,7 +407,12 @@ export default function RadioSearch({
           </div>
 
           {searchMode === "manual" && (
-            <div className="rs-manual rs-scroll" tabIndex={0} role="region" aria-label={t("presets.manualStreamMode")}>
+            <div
+              className="rs-manual rs-scroll"
+              tabIndex={0}
+              role="region"
+              aria-label={t("presets.manualStreamMode")}
+            >
               <div className="ui-field">
                 <div id="manual-stream-url-help" className="ui-field-hint">
                   {t("presets.manualStreamUrlHelp")}
@@ -451,7 +451,9 @@ export default function RadioSearch({
                   aria-label={t("presets.manualFaviconPlaceholder")}
                   data-test="manual-favicon-url"
                   aria-describedby={
-                    faviconInvalid ? "manual-favicon-help manual-favicon-error" : "manual-favicon-help"
+                    faviconInvalid
+                      ? "manual-favicon-help manual-favicon-error"
+                      : "manual-favicon-help"
                   }
                   aria-invalid={faviconInvalid ? true : undefined}
                 />

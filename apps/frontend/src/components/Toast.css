@@ -1,24 +1,92 @@
 /* toast-: replaces Toast.css. Sits below the header, so it never covers a dialog's action bar or the page's bottom actions.
    Enter animation moves only (no opacity), so contrast is stable from the first frame. */
 .toast {
-  --c: var(--primary-text); --bd: rgba(var(--primary-rgb), .6);
-  position: fixed; z-index: 1000; box-sizing: border-box; display: flex; align-items: flex-start; gap: 12px;
-  top: calc(var(--header-h) + 8px + env(safe-area-inset-top)); right: max(var(--space-md), env(safe-area-inset-right));
-  width: 400px; max-width: calc(100vw - 2 * var(--space-md)); padding: 12px 4px 12px 14px;
-  background: #2f2f2f; border: 1px solid var(--bd); border-radius: var(--border-radius-md); box-shadow: var(--elev-toast); color: var(--color-text-primary);
+  --c: var(--primary-text);
+  --bd: rgba(var(--primary-rgb), 0.6);
+  position: fixed;
+  z-index: 1000;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  top: calc(var(--header-h) + 8px + env(safe-area-inset-top));
+  right: max(var(--space-md), env(safe-area-inset-right));
+  width: 400px;
+  max-width: calc(100vw - 2 * var(--space-md));
+  padding: 12px 4px 12px 14px;
+  background: #2f2f2f;
+  border: 1px solid var(--bd);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--elev-toast);
+  color: var(--color-text-primary);
   animation: toast-in var(--motion-slow) ease-out;
 }
-.toast-success { --c: var(--color-success); --bd: rgba(76,175,80,.7); }
-.toast-warning { --c: var(--warning-color); --bd: rgba(255,193,7,.7); }
-.toast-error { --c: var(--danger-text); --bd: rgba(244,67,54,.75); }
-.toast-icon { flex: none; display: flex; padding-top: 1px; color: var(--c); }
-.toast-content { flex: 1; min-width: 0; padding-top: 2px; }
-.toast-message { margin: 0; font-size: 15px; line-height: 1.5; color: var(--color-text-primary); overflow-wrap: anywhere; }
-.toast-close { flex: none; margin: -6px 0; color: var(--color-text-secondary); border-radius: var(--border-radius-sm); display: flex; align-items: center; justify-content: center; }
-.toast-close:hover { color: var(--color-text-primary); background: rgba(255,255,255,.08); }
-@keyframes toast-in { from { transform: translateY(-12px); } to { transform: none; } }
-@media (max-width: 600px) {
-  .toast { left: max(var(--space-sm), env(safe-area-inset-left)); right: max(var(--space-sm), env(safe-area-inset-right)); width: auto; max-width: none; }
+.toast-success {
+  --c: var(--color-success);
+  --bd: rgba(76, 175, 80, 0.7);
 }
-@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
-@media (forced-colors: active) { .toast { border: 2px solid CanvasText; } }
+.toast-warning {
+  --c: var(--warning-color);
+  --bd: rgba(255, 193, 7, 0.7);
+}
+.toast-error {
+  --c: var(--danger-text);
+  --bd: rgba(244, 67, 54, 0.75);
+}
+.toast-icon {
+  flex: none;
+  display: flex;
+  padding-top: 1px;
+  color: var(--c);
+}
+.toast-content {
+  flex: 1;
+  min-width: 0;
+  padding-top: 2px;
+}
+.toast-message {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+.toast-close {
+  flex: none;
+  margin: -6px 0;
+  color: var(--color-text-secondary);
+  border-radius: var(--border-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.toast-close:hover {
+  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+@keyframes toast-in {
+  from {
+    transform: translateY(-12px);
+  }
+  to {
+    transform: none;
+  }
+}
+@media (max-width: 600px) {
+  .toast {
+    left: max(var(--space-sm), env(safe-area-inset-left));
+    right: max(var(--space-sm), env(safe-area-inset-right));
+    width: auto;
+    max-width: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}
+@media (forced-colors: active) {
+  .toast {
+    border: 2px solid CanvasText;
+  }
+}

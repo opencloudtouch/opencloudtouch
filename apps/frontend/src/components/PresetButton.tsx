@@ -47,7 +47,9 @@ export default function PresetButton({
       <div className="pb pb--disabled" data-testid={`preset-${number}`}>
         <div className="pb-info">
           <span className="pb-num">{number}</span>
-          <span className="pb-name pb-name--muted">{preset?.station_name || t("presets.empty")}</span>
+          <span className="pb-name pb-name--muted">
+            {preset?.station_name || t("presets.empty")}
+          </span>
         </div>
       </div>
     );

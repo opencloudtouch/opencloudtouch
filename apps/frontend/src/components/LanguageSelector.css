@@ -1,23 +1,95 @@
 /* lang-: language selector. Replaces LanguageSelector.css. */
-.lang-selector-wrapper { position: relative; flex: none; }
+.lang-selector-wrapper {
+  position: relative;
+  flex: none;
+}
 .lang-selector {
-  box-sizing: border-box; display: inline-flex; align-items: center; gap: 6px; min-height: var(--touch-target-min); padding: 0 10px;
-  border: 1px solid var(--ui-control-border); border-radius: var(--border-radius-sm); color: var(--color-text-primary); font-size: 14px; font-weight: var(--font-weight-medium);
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--touch-target-min);
+  padding: 0 10px;
+  border: 1px solid var(--ui-control-border);
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
 }
-.lang-selector:hover { background: var(--surface-color); }
-.lang-selector[aria-expanded="true"] { background: var(--bg-tertiary); }
-.lang-flag, .lang-option-flag { flex: none; font-size: 16px; border-radius: 2px; }
-.lang-code { font-family: var(--font-mono); letter-spacing: .02em; }
+.lang-selector:hover {
+  background: var(--surface-color);
+}
+.lang-selector[aria-expanded="true"] {
+  background: var(--bg-tertiary);
+}
+.lang-flag,
+.lang-option-flag {
+  flex: none;
+  font-size: 16px;
+  border-radius: 2px;
+}
+.lang-code {
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
 .lang-dropdown {
-  position: absolute; z-index: 30; top: calc(100% + 4px); right: 0; box-sizing: border-box; width: 280px; max-width: calc(100vw - 16px);
-  max-height: calc(100vh - var(--header-h) - 16px); max-height: calc(100dvh - var(--header-h) - 16px); overflow-y: auto; padding: 4px;
-  background: var(--color-bg-card); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); box-shadow: var(--elev-modal);
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  right: 0;
+  box-sizing: border-box;
+  width: 280px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - var(--header-h) - 16px);
+  max-height: calc(100dvh - var(--header-h) - 16px);
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--elev-modal);
 }
-.lang-option { display: flex; align-items: center; gap: 12px; min-height: var(--touch-target-min); padding: 0 12px; border-radius: var(--border-radius-sm); color: var(--text-primary); cursor: pointer; }
-.lang-option:hover { background: var(--bg-tertiary); }
-.lang-option:focus-visible { outline-offset: -2px; }
-.lang-option--active { background: rgba(var(--primary-rgb), .15); color: var(--color-text-primary); }
-.lang-option-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lang-option-code { flex: none; font-family: var(--font-mono); font-size: 13px; color: var(--color-text-secondary); }
-.lang-option-check { flex: none; width: 18px; height: 18px; color: var(--primary-text); }
-@media (forced-colors: active) { .lang-option--active { border: 1px solid Highlight; } }
+.lang-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--touch-target-min);
+  padding: 0 12px;
+  border-radius: var(--border-radius-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.lang-option:hover {
+  background: var(--bg-tertiary);
+}
+.lang-option:focus-visible {
+  outline-offset: -2px;
+}
+.lang-option--active {
+  background: rgba(var(--primary-rgb), 0.15);
+  color: var(--color-text-primary);
+}
+.lang-option-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lang-option-code {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.lang-option-check {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--primary-text);
+}
+@media (forced-colors: active) {
+  .lang-option--active {
+    border: 1px solid Highlight;
+  }
+}

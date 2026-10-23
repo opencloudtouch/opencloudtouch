@@ -46,7 +46,9 @@ export default function LanguageSelector() {
   useEffect(() => {
     if (!open) return;
     const options = wrapperRef.current?.querySelectorAll<HTMLElement>('[role="option"]');
-    const active = wrapperRef.current?.querySelector<HTMLElement>('[role="option"][aria-selected="true"]');
+    const active = wrapperRef.current?.querySelector<HTMLElement>(
+      '[role="option"][aria-selected="true"]'
+    );
     (active ?? options?.[0])?.focus();
   }, [open]);
 

@@ -1,7 +1,56 @@
 /* nf-: 404 page. Replaces NotFound.css. */
-.nf { box-sizing: border-box; min-height: 100%; display: flex; padding: var(--space-lg) var(--space-md); }
-.nf-card { box-sizing: border-box; width: 100%; max-width: 480px; margin: auto; display: flex; flex-direction: column; align-items: center; gap: var(--space-md); padding: 40px var(--space-lg); text-align: center; background: var(--color-bg-card); border: 1px solid var(--border-color); border-radius: var(--border-radius-lg); }
-.nf-code { margin: 0; font-size: 72px; line-height: 1; font-weight: var(--font-weight-bold); letter-spacing: .04em; color: var(--primary-text); font-variant-numeric: tabular-nums; }
-.nf-title { margin: 0; font-size: 24px; line-height: 1.25; font-weight: var(--font-weight-bold); color: var(--color-text-primary); text-wrap: balance; overflow-wrap: anywhere; }
-.nf-description { margin: 0; max-width: 40ch; font-size: 15px; line-height: 1.5; color: var(--color-text-secondary); text-wrap: pretty; }
-@media (max-width: 400px) { .nf-card { padding-inline: var(--space-md); } .nf-code { font-size: 56px; } }
+.nf {
+  box-sizing: border-box;
+  min-height: 100%;
+  display: flex;
+  padding: var(--space-lg) var(--space-md);
+}
+.nf-card {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 480px;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 40px var(--space-lg);
+  text-align: center;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+}
+.nf-code {
+  margin: 0;
+  font-size: 72px;
+  line-height: 1;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.04em;
+  color: var(--primary-text);
+  font-variant-numeric: tabular-nums;
+}
+.nf-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.nf-description {
+  margin: 0;
+  max-width: 40ch;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}
+@media (max-width: 400px) {
+  .nf-card {
+    padding-inline: var(--space-md);
+  }
+  .nf-code {
+    font-size: 56px;
+  }
+}

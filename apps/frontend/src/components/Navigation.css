@@ -1,25 +1,113 @@
 /* nav-: header navigation. Replaces Navigation.css. Height comes from .app-header (64px). */
-.nav { height: 100%; }
-.nav-inner { box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 100%; max-width: var(--page-max); margin: 0 auto; padding: 0 var(--space-md); }
-.nav-container { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.nav {
+  height: 100%;
+}
+.nav-inner {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 100%;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+.nav-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
 .nav-link {
-  position: relative; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  min-width: var(--touch-target-min); min-height: 52px; padding: 4px 12px; border-radius: var(--border-radius-sm);
-  color: var(--color-text-secondary); font-size: 12px; line-height: 1.2; font-weight: var(--font-weight-medium); text-align: center;
-  transition: background var(--motion-base), color var(--motion-base);
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: var(--touch-target-min);
+  min-height: 52px;
+  padding: 4px 12px;
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: var(--font-weight-medium);
+  text-align: center;
+  transition:
+    background var(--motion-base),
+    color var(--motion-base);
 }
-.nav-link:hover { color: var(--color-text-primary); background: var(--surface-color); }
-.nav-icon { display: flex; }
-.nav-link[aria-current="page"] { color: var(--color-text-primary); background: rgba(var(--primary-rgb), .15); }
-.nav-link[aria-current="page"]::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 2px; height: 2px; border-radius: 1px; background: var(--primary-color); }
-@media (min-width: 601px) { .nav-link { padding-inline: 16px; font-size: 13px; } .nav-container { gap: 8px; } }
+.nav-link:hover {
+  color: var(--color-text-primary);
+  background: var(--surface-color);
+}
+.nav-icon {
+  display: flex;
+}
+.nav-link[aria-current="page"] {
+  color: var(--color-text-primary);
+  background: rgba(var(--primary-rgb), 0.15);
+}
+.nav-link[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 2px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--primary-color);
+}
+@media (min-width: 601px) {
+  .nav-link {
+    padding-inline: 16px;
+    font-size: 13px;
+  }
+  .nav-container {
+    gap: 8px;
+  }
+}
 @media (max-width: 360px) {
-  .nav-inner { padding-inline: 8px; gap: 4px; }
-  .nav-container { gap: 2px; }
-  .nav-link { padding-inline: 8px; }
-  .nav-link[aria-current="page"]::after { left: 8px; right: 8px; }
+  .nav-inner {
+    padding-inline: 8px;
+    gap: 4px;
+  }
+  .nav-container {
+    gap: 2px;
+  }
+  .nav-link {
+    padding-inline: 8px;
+  }
+  .nav-link[aria-current="page"]::after {
+    left: 8px;
+    right: 8px;
+  }
   /* only the active link shows its label; the others keep it for screen readers */
-  .nav-link:not([aria-current="page"]) .nav-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  .nav-link:not([aria-current="page"]) .nav-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
 }
-@media (prefers-reduced-motion: reduce) { .nav-link { transition: none; } }
-@media (forced-colors: active) { .nav-link[aria-current="page"] { border: 1px solid Highlight; } .nav-link[aria-current="page"]::after { background: Highlight; } }
+@media (prefers-reduced-motion: reduce) {
+  .nav-link {
+    transition: none;
+  }
+}
+@media (forced-colors: active) {
+  .nav-link[aria-current="page"] {
+    border: 1px solid Highlight;
+  }
+  .nav-link[aria-current="page"]::after {
+    background: Highlight;
+  }
+}

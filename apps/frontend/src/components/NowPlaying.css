@@ -1,24 +1,133 @@
 /* np-: now playing. Replaces NowPlaying.css. Marquee only when the text overflows; otherwise (or with reduced motion) it ellipsizes. */
-.np { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.np--empty { align-items: center; justify-content: center; gap: 8px; min-height: 160px; border: 1px dashed var(--ui-control-border); border-radius: var(--border-radius-md); color: var(--color-text-secondary); }
-.np-empty-icon { display: flex; }
-.np-placeholder { font-size: 15px; color: var(--color-text-secondary); }
-.np-header { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.np-station { flex: 1; min-width: 0; font-size: 15px; font-weight: var(--font-weight-medium); color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.np-art { position: relative; width: 100%; max-width: 300px; margin: 0 auto; aspect-ratio: 1; border-radius: var(--border-radius-md); overflow: hidden; background: var(--bg-tertiary); }
-.np-art img { width: 100%; height: 100%; object-fit: cover; }
-.np-play-overlay { position: absolute; right: 12px; bottom: 12px; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.72); border: 2px solid #fff; color: #fff; transition: background var(--motion-base); }
-.np-play-overlay:hover { background: var(--color-accent); }
-.np-play-overlay svg { fill: currentColor; }
-.np-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: center; }
-.np-marquee { min-width: 0; overflow: hidden; white-space: nowrap; }
-.np-track { font-size: 17px; font-weight: var(--font-weight-bold); color: var(--color-text-primary); }
-.np-artist { font-size: 15px; color: var(--color-text-secondary); }
-.np-marquee-inner { display: block; overflow: hidden; text-overflow: ellipsis; }
-.np-marquee-inner--scrolling { display: inline-block; overflow: visible; text-overflow: clip; animation: np-marquee 8s linear infinite alternate; }
-@keyframes np-marquee { 0%, 12% { transform: translateX(0); } 88%, 100% { transform: translateX(var(--marquee-distance)); } }
-@media (prefers-reduced-motion: reduce) {
-  .np-marquee-inner--scrolling { display: block; overflow: hidden; text-overflow: ellipsis; animation: none; }
-  .np-play-overlay { transition: none; }
+.np {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
 }
-@media (forced-colors: active) { .np-play-overlay { border-color: ButtonText; } }
+.np--empty {
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 160px;
+  border: 1px dashed var(--ui-control-border);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-secondary);
+}
+.np-empty-icon {
+  display: flex;
+}
+.np-placeholder {
+  font-size: 15px;
+  color: var(--color-text-secondary);
+}
+.np-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.np-station {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.np-art {
+  position: relative;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+  aspect-ratio: 1;
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  background: var(--bg-tertiary);
+}
+.np-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.np-play-overlay {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.72);
+  border: 2px solid #fff;
+  color: #fff;
+  transition: background var(--motion-base);
+}
+.np-play-overlay:hover {
+  background: var(--color-accent);
+}
+.np-play-overlay svg {
+  fill: currentColor;
+}
+.np-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  text-align: center;
+}
+.np-marquee {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.np-track {
+  font-size: 17px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+.np-artist {
+  font-size: 15px;
+  color: var(--color-text-secondary);
+}
+.np-marquee-inner {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.np-marquee-inner--scrolling {
+  display: inline-block;
+  overflow: visible;
+  text-overflow: clip;
+  animation: np-marquee 8s linear infinite alternate;
+}
+@keyframes np-marquee {
+  0%,
+  12% {
+    transform: translateX(0);
+  }
+  88%,
+  100% {
+    transform: translateX(var(--marquee-distance));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .np-marquee-inner--scrolling {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    animation: none;
+  }
+  .np-play-overlay {
+    transition: none;
+  }
+}
+@media (forced-colors: active) {
+  .np-play-overlay {
+    border-color: ButtonText;
+  }
+}

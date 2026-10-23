@@ -20,19 +20,27 @@ export default function Navigation() {
       <div className="nav-inner">
         <div className="nav-container">
           <NavLink to={withDevice("/")} className="nav-link">
-            <span className="nav-icon" aria-hidden="true">{Icon.Radio(22)}</span>
+            <span className="nav-icon" aria-hidden="true">
+              {Icon.Radio(22)}
+            </span>
             <span className="nav-label">{t("nav.presets")}</span>
           </NavLink>
           <NavLink to={withDevice("/multiroom")} className="nav-link">
-            <span className="nav-icon" aria-hidden="true">{Icon.Volume2(22)}</span>
+            <span className="nav-icon" aria-hidden="true">
+              {Icon.Volume2(22)}
+            </span>
             <span className="nav-label">{t("nav.zones")}</span>
           </NavLink>
           <NavLink to={withDevice("/settings")} className="nav-link">
-            <span className="nav-icon" aria-hidden="true">{Icon.Settings(22)}</span>
+            <span className="nav-icon" aria-hidden="true">
+              {Icon.Settings(22)}
+            </span>
             <span className="nav-label">{t("nav.settings")}</span>
           </NavLink>
           <NavLink to={withDevice("/about")} className="nav-link">
-            <span className="nav-icon" aria-hidden="true">{Icon.Info(22)}</span>
+            <span className="nav-icon" aria-hidden="true">
+              {Icon.Info(22)}
+            </span>
             <span className="nav-label">{t("nav.about")}</span>
           </NavLink>
         </div>

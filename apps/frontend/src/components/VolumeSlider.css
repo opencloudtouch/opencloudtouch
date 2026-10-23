@@ -1,13 +1,85 @@
 /* vs-: volume slider. Replaces VolumeSlider.css. The track is a 44px-high touch area around a 6px bar. */
-.vs { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.vs-mute { flex: none; width: var(--touch-target-min); height: var(--touch-target-min); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--color-text-primary); }
-.vs-mute:hover { background: var(--bg-tertiary); }
-.vs-mute.muted { color: var(--danger-text); }
-.vs-track { position: relative; flex: 1; min-width: 0; height: var(--touch-target-min); cursor: pointer; touch-action: none; border-radius: var(--border-radius-sm); }
-.vs-track-bg { position: absolute; left: 0; right: 0; top: 50%; height: 6px; margin-top: -3px; border-radius: 3px; background: #4d4d4d; }
-.vs-track-fill { position: absolute; left: 0; top: 50%; height: 6px; margin-top: -3px; border-radius: 3px; background: #5dade2; }
-.vs-thumb { position: absolute; top: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; background: #fff; border: 2px solid var(--color-bg-darker); box-shadow: var(--shadow-sm); }
-.vs-track:focus-visible .vs-thumb { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-.vs-track:focus-visible { outline: none; }
-.vs-value { flex: none; min-width: 3ch; text-align: right; font-size: 14px; font-variant-numeric: tabular-nums; color: var(--color-text-secondary); }
-@media (forced-colors: active) { .vs-track-fill { background: Highlight; } .vs-thumb { background: ButtonText; } }
+.vs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.vs-mute {
+  flex: none;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-primary);
+}
+.vs-mute:hover {
+  background: var(--bg-tertiary);
+}
+.vs-mute.muted {
+  color: var(--danger-text);
+}
+.vs-track {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: var(--touch-target-min);
+  cursor: pointer;
+  touch-action: none;
+  border-radius: var(--border-radius-sm);
+}
+.vs-track-bg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 6px;
+  margin-top: -3px;
+  border-radius: 3px;
+  background: #4d4d4d;
+}
+.vs-track-fill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 6px;
+  margin-top: -3px;
+  border-radius: 3px;
+  background: #5dade2;
+}
+.vs-thumb {
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--color-bg-darker);
+  box-shadow: var(--shadow-sm);
+}
+.vs-track:focus-visible .vs-thumb {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.vs-track:focus-visible {
+  outline: none;
+}
+.vs-value {
+  flex: none;
+  min-width: 3ch;
+  text-align: right;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+@media (forced-colors: active) {
+  .vs-track-fill {
+    background: Highlight;
+  }
+  .vs-thumb {
+    background: ButtonText;
+  }
+}

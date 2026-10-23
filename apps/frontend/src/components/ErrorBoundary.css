@@ -1,17 +1,116 @@
 /* eb-: replaces ErrorBoundary.css (renders outside .app, so it fills the viewport itself) */
-.eb { box-sizing: border-box; min-height: 100vh; min-height: 100dvh; display: flex; padding: var(--space-md); background: var(--color-bg-dark); }
-.eb-card { box-sizing: border-box; width: 100%; max-width: 640px; margin: auto; display: flex; flex-direction: column; align-items: center; gap: var(--space-md); padding: 32px var(--space-md); text-align: center; background: var(--color-bg-card); border: 1px solid var(--border-color); border-radius: var(--border-radius-lg); }
-@media (min-width: 601px) { .eb-card { padding: 40px var(--space-lg); } }
-.eb-icon { width: 64px; height: 64px; border-radius: var(--border-radius-lg); background: var(--bg-tertiary); color: var(--color-danger); display: flex; align-items: center; justify-content: center; }
-.eb-title { margin: 0; font-size: 24px; line-height: 1.25; font-weight: var(--font-weight-bold); color: var(--color-text-primary); }
-.eb-message { margin: 0; max-width: 46ch; font-size: 15px; line-height: 1.5; color: var(--color-text-secondary); text-wrap: pretty; }
-.eb-details { width: 100%; min-width: 0; text-align: left; border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); }
-.eb-details > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: var(--touch-target-min); padding: 0 var(--space-md); cursor: pointer; list-style: none; color: var(--text-primary); font-size: 14px; font-weight: var(--font-weight-medium); }
-.eb-details > summary::-webkit-details-marker { display: none; }
-.eb-chevron { display: flex; transition: transform var(--motion-base); }
-.eb-details[open] .eb-chevron { transform: rotate(180deg); }
-.eb-details pre { margin: 0; padding: 12px var(--space-md); max-height: 220px; overflow: auto; border-top: 1px solid var(--border-color); background: var(--color-bg-darker); font: 13px/1.5 var(--font-mono); color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
-.eb-stack { color: var(--color-text-secondary); }
-.eb-actions { width: 100%; display: flex; flex-direction: column; gap: 12px; }
-@media (min-width: 601px) { .eb-actions { flex-direction: row; justify-content: center; } }
-@media (prefers-reduced-motion: reduce) { .eb-chevron { transition: none; } }
+.eb {
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  padding: var(--space-md);
+  background: var(--color-bg-dark);
+}
+.eb-card {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 640px;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 32px var(--space-md);
+  text-align: center;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+}
+@media (min-width: 601px) {
+  .eb-card {
+    padding: 40px var(--space-lg);
+  }
+}
+.eb-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--border-radius-lg);
+  background: var(--bg-tertiary);
+  color: var(--color-danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.eb-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+.eb-message {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}
+.eb-details {
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+}
+.eb-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: var(--touch-target-min);
+  padding: 0 var(--space-md);
+  cursor: pointer;
+  list-style: none;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
+}
+.eb-details > summary::-webkit-details-marker {
+  display: none;
+}
+.eb-chevron {
+  display: flex;
+  transition: transform var(--motion-base);
+}
+.eb-details[open] .eb-chevron {
+  transform: rotate(180deg);
+}
+.eb-details pre {
+  margin: 0;
+  padding: 12px var(--space-md);
+  max-height: 220px;
+  overflow: auto;
+  border-top: 1px solid var(--border-color);
+  background: var(--color-bg-darker);
+  font: 13px/1.5 var(--font-mono);
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.eb-stack {
+  color: var(--color-text-secondary);
+}
+.eb-actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+@media (min-width: 601px) {
+  .eb-actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eb-chevron {
+    transition: none;
+  }
+}
