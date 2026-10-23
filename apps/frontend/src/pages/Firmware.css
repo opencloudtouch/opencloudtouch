@@ -1,57 +1,273 @@
 /* fw-: Firmware page. Replaces Firmware.css (.firmware-*, .detail-*, .status-badge, .status-icon, .warning-*, .upload-*, .info-*). */
-.fw { box-sizing: border-box; width: 100%; max-width: 960px; margin: 0 auto; padding: var(--space-md); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-lg); align-items: start; }
-.fw > * { min-width: 0; }
-.fw--empty { display: flex; flex-direction: column; }
-.fw-title { margin: 0; }
-.fw-section { display: flex; flex-direction: column; gap: var(--space-md); }
-@media (min-width: 769px) { .fw { padding: var(--space-lg); } }
+.fw {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--space-md);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-lg);
+  align-items: start;
+}
+.fw > * {
+  min-width: 0;
+}
+.fw--empty {
+  display: flex;
+  flex-direction: column;
+}
+.fw-title {
+  margin: 0;
+}
+.fw-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+@media (min-width: 769px) {
+  .fw {
+    padding: var(--space-lg);
+  }
+}
 @media (min-width: 1024px) {
-  .fw { max-width: var(--page-max); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "title title" "cur warn" "all upl" "all info"; column-gap: var(--space-xl); }
-  .fw-title { grid-area: title; } .fw-cur { grid-area: cur; } .fw-warn { grid-area: warn; } .fw-all { grid-area: all; } .fw-upl { grid-area: upl; } .fw-info { grid-area: info; }
+  .fw {
+    max-width: var(--page-max);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "title title" "cur warn" "all upl" "all info";
+    column-gap: var(--space-xl);
+  }
+  .fw-title {
+    grid-area: title;
+  }
+  .fw-cur {
+    grid-area: cur;
+  }
+  .fw-warn {
+    grid-area: warn;
+  }
+  .fw-all {
+    grid-area: all;
+  }
+  .fw-upl {
+    grid-area: upl;
+  }
+  .fw-info {
+    grid-area: info;
+  }
 }
 
 /* current device */
-.fw-current { display: flex; flex-direction: column; gap: var(--space-md); }
-.fw-device { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.fw-tile, .fw-item-icon { flex: none; }
-.fw-tile { width: 48px; height: 48px; }
-.fw-device-info { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.fw-device-name { overflow-wrap: anywhere; }
-.fw-model, .fw-item-model { font-size: 14px; line-height: 1.4; color: var(--color-text-secondary); overflow-wrap: anywhere; }
-.fw-details { margin: 0; display: flex; flex-direction: column; border-top: 1px solid var(--border-color); }
-.fw-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; min-height: var(--touch-target-min); padding: 6px 0; border-bottom: 1px solid var(--border-color); }
-.fw-row:last-child { border-bottom: 0; }
-.fw-label { font-size: 15px; color: var(--color-text-secondary); }
-.fw-value { margin: 0; font-size: 15px; font-weight: var(--font-weight-medium); color: var(--color-text-primary); }
+.fw-current {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.fw-device {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.fw-tile,
+.fw-item-icon {
+  flex: none;
+}
+.fw-tile {
+  width: 48px;
+  height: 48px;
+}
+.fw-device-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fw-device-name {
+  overflow-wrap: anywhere;
+}
+.fw-model,
+.fw-item-model {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+.fw-details {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border-color);
+}
+.fw-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  min-height: var(--touch-target-min);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+.fw-row:last-child {
+  border-bottom: 0;
+}
+.fw-label {
+  font-size: 15px;
+  color: var(--color-text-secondary);
+}
+.fw-value {
+  margin: 0;
+  font-size: 15px;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
 
 /* all devices */
-.fw-list { display: flex; flex-direction: column; gap: 8px; }
-.fw-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; background: var(--color-bg-card); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); }
-.fw-item-info { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.fw-item-name { font-size: 16px; font-weight: var(--font-weight-bold); line-height: 1.3; color: var(--color-text-primary); overflow-wrap: anywhere; }
-.fw-item-end { display: flex; align-items: center; gap: 10px; }
-.fw-version { font-size: 14px; color: var(--text-primary); white-space: nowrap; }
+.fw-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fw-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+}
+.fw-item-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fw-item-name {
+  font-size: 16px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.3;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+.fw-item-end {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.fw-version {
+  font-size: 14px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
 @media (max-width: 380px) {
-  .fw-item { grid-template-columns: auto minmax(0, 1fr); }
-  .fw-item-end { grid-column: 2; justify-content: space-between; }
+  .fw-item {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .fw-item-end {
+    grid-column: 2;
+    justify-content: space-between;
+  }
 }
 
 /* warning / info boxes */
-.fw-box-title { margin: 0; font-size: 16px; line-height: 1.3; font-weight: var(--font-weight-bold); color: var(--color-text-primary); }
-.fw-info { align-items: flex-start; }
-.fw-info .wz-icon { color: var(--primary-text); }
-.fw-info-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
-.fw-info-list li { position: relative; padding-left: 16px; font-size: 14px; line-height: 1.5; color: var(--text-primary); overflow-wrap: anywhere; }
-.fw-info-list li::before { content: ""; position: absolute; left: 3px; top: 9px; width: 5px; height: 5px; border-radius: 50%; background: var(--primary-text); }
+.fw-box-title {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.3;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+.fw-info {
+  align-items: flex-start;
+}
+.fw-info .wz-icon {
+  color: var(--primary-text);
+}
+.fw-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+.fw-info-list li {
+  position: relative;
+  padding-left: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.fw-info-list li::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 9px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--primary-text);
+}
 
 /* upload (unavailable): dashed frame + lock + readable explanation; the disabled button keeps full opacity and a dashed outline */
-.fw-upload { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; border-style: dashed; border-color: var(--ui-control-border); }
-.fw-upload-icon { width: 48px; height: 48px; background: var(--bg-tertiary); color: var(--color-text-secondary); }
-.fw-upload-text { margin: 0; font-size: 16px; line-height: 1.4; font-weight: var(--font-weight-medium); color: var(--color-text-primary); overflow-wrap: anywhere; }
-.fw-upload-btn:disabled { opacity: 1; background: var(--bg-tertiary); border-style: dashed; border-color: var(--ui-control-border); color: var(--text-secondary); cursor: not-allowed; }
-.fw-upload-hint { margin: 0; display: flex; align-items: flex-start; gap: 8px; font-size: 14px; line-height: 1.5; color: var(--text-primary); overflow-wrap: anywhere; }
-.fw-upload-hint svg { margin-top: 3px; flex: none; }
-@media (max-width: 600px) { .fw-upload-btn { align-self: stretch; } }
+.fw-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  border-style: dashed;
+  border-color: var(--ui-control-border);
+}
+.fw-upload-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--bg-tertiary);
+  color: var(--color-text-secondary);
+}
+.fw-upload-text {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.4;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+.fw-upload-btn:disabled {
+  opacity: 1;
+  background: var(--bg-tertiary);
+  border-style: dashed;
+  border-color: var(--ui-control-border);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+.fw-upload-hint {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.fw-upload-hint svg {
+  margin-top: 3px;
+  flex: none;
+}
+@media (max-width: 600px) {
+  .fw-upload-btn {
+    align-self: stretch;
+  }
+}
 
-@media (prefers-reduced-motion: reduce) { .fw-item { transition: none; } }
-.fw-list:focus-visible { outline-offset: 4px; border-radius: var(--border-radius-md); }
+@media (prefers-reduced-motion: reduce) {
+  .fw-item {
+    transition: none;
+  }
+}
+.fw-list:focus-visible {
+  outline-offset: 4px;
+  border-radius: var(--border-radius-md);
+}

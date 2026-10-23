@@ -45,7 +45,8 @@ export default function DeviceNameEditor({
       const fontFamily = elStyle.fontFamily || "system-ui, -apple-system, sans-serif";
       const gapWidth = parseFloat(elStyle.gap) || 0;
       // Text and icon sit inside the button's horizontal padding
-      const paddingX = (parseFloat(elStyle.paddingLeft) || 0) + (parseFloat(elStyle.paddingRight) || 0);
+      const paddingX =
+        (parseFloat(elStyle.paddingLeft) || 0) + (parseFloat(elStyle.paddingRight) || 0);
 
       for (let size = 24; size >= 17; size--) {
         ctx.font = `${fontWeight} ${size}px ${fontFamily}`;

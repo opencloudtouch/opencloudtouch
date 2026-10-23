@@ -26,10 +26,25 @@ interface Source {
 }
 
 const SOURCES: Source[] = [
-  { id: "INTERNET_RADIO", labelKey: "player.source.radio", icon: () => Icon.Radio(20), supported: true },
-  { id: "BLUETOOTH", labelKey: "player.source.bluetooth", icon: () => Icon.Bluetooth(20), supported: true },
+  {
+    id: "INTERNET_RADIO",
+    labelKey: "player.source.radio",
+    icon: () => Icon.Radio(20),
+    supported: true,
+  },
+  {
+    id: "BLUETOOTH",
+    labelKey: "player.source.bluetooth",
+    icon: () => Icon.Bluetooth(20),
+    supported: true,
+  },
   { id: "AUX", labelKey: "player.source.aux", icon: () => Icon.Headphones(20), supported: true },
-  { id: "AIRPLAY", labelKey: "player.source.airplay", icon: () => Icon.Airplay(20), supported: "conditional" },
+  {
+    id: "AIRPLAY",
+    labelKey: "player.source.airplay",
+    icon: () => Icon.Airplay(20),
+    supported: "conditional",
+  },
 ];
 
 interface LocalControlProps {
@@ -85,7 +100,11 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
   const currentDevice = devices[currentDeviceIndex];
   const deviceId = currentDevice?.device_id;
 
-  const { nowPlaying, loading: nowPlayingLoading, deviceOffline: hookOffline } = useNowPlaying(deviceId);
+  const {
+    nowPlaying,
+    loading: nowPlayingLoading,
+    deviceOffline: hookOffline,
+  } = useNowPlaying(deviceId);
   const deviceOffline = hookOffline || (deviceId ? isDeviceOfflineInStore(deviceId) : false);
   const { volume, muted, setDeviceVolume, toggleMute } = useVolume(deviceId);
 
@@ -171,7 +190,8 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
   const keyIcon = (key: string, icon: ReactElement, size = 24) =>
     keyLoading === key ? <span className="ui-spin">{Icon.Loader(size)}</span> : icon;
 
-  const roleLabel = deviceRole === "master" ? t("multiroom.masterBadge") : t("multiroom.slaveBadge");
+  const roleLabel =
+    deviceRole === "master" ? t("multiroom.masterBadge") : t("multiroom.slaveBadge");
 
   return (
     <div className="lc">
@@ -204,7 +224,9 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
                 ) : (
                   <h2 className="lc-unknown-name">{t("player.unknownDevice")}</h2>
                 )}
-                <span className="lc-model">{currentDevice?.model || t("firmware.unknownModel")}</span>
+                <span className="lc-model">
+                  {currentDevice?.model || t("firmware.unknownModel")}
+                </span>
               </div>
               <div className="lc-end">
                 {deviceZone && (
@@ -216,7 +238,9 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
                   >
                     {Icon.Link(16)}
                     <span>
-                      {deviceRole === "master" ? t("multiroom.masterBadge") : t("player.zoneBadgeMember")}
+                      {deviceRole === "master"
+                        ? t("multiroom.masterBadge")
+                        : t("player.zoneBadgeMember")}
                     </span>
                   </button>
                 )}

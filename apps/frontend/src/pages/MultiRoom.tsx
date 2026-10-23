@@ -121,7 +121,10 @@ function DeviceCard({
         {hasBadges && (
           <div className="mr-dev-badges" id={badgesId}>
             {stale && (
-              <span className="ui-badge ui-badge--warning ui-badge--small" title={t("errors.offlineTitle")}>
+              <span
+                className="ui-badge ui-badge--warning ui-badge--small"
+                title={t("errors.offlineTitle")}
+              >
                 <span className="ui-badge-icon" aria-hidden="true">
                   {Icon.Alert(14)}
                 </span>
@@ -524,7 +527,12 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
       </motion.section>
 
       {/* Info Box */}
-      <motion.div className="wz-status mr-info" initial={{ y: 8 }} animate={{ y: 0 }} transition={{ delay: 0.4 }}>
+      <motion.div
+        className="wz-status mr-info"
+        initial={{ y: 8 }}
+        animate={{ y: 0 }}
+        transition={{ delay: 0.4 }}
+      >
         <span className="wz-icon" aria-hidden="true">
           {Icon.Info(24)}
         </span>

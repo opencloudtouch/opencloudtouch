@@ -1,9 +1,50 @@
 /* dnp-: compact now-playing row. Replaces DeviceNowPlaying.css (.device-now-playing*). One line, never wider than its card. */
-.dnp { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; margin-top: 2px; }
-.dnp-art { flex: none; width: 32px; height: 32px; border-radius: 4px; object-fit: cover; background: var(--bg-tertiary); }
-.dnp-icon { width: 32px; height: 32px; }   /* .ui-source tile */
-.dnp-text { display: flex; align-items: baseline; gap: 6px; flex: 1; min-width: 0; overflow: hidden; }
-.dnp-title, .dnp-artist { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dnp-title { font-size: 14px; font-weight: var(--font-weight-medium); color: var(--color-text-primary); }
-.dnp-artist { font-size: 13px; color: var(--color-text-secondary); }
-.dnp-title + .dnp-artist::before { content: "\00b7"; margin-right: 6px; }
+.dnp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  margin-top: 2px;
+}
+.dnp-art {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: var(--bg-tertiary);
+}
+.dnp-icon {
+  width: 32px;
+  height: 32px;
+} /* .ui-source tile */
+.dnp-text {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.dnp-title,
+.dnp-artist {
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dnp-title {
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+.dnp-artist {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.dnp-title + .dnp-artist::before {
+  content: "\00b7";
+  margin-right: 6px;
+}

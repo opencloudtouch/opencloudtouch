@@ -151,7 +151,9 @@ export default function Firmware({ devices = [] }: FirmwareProps) {
                   <span className="fw-item-model">{device.model}</span>
                 </div>
                 <div className="fw-item-end">
-                  <span className="fw-version ui-mono">{parseFirmwareVersion(device.firmware)}</span>
+                  <span className="fw-version ui-mono">
+                    {parseFirmwareVersion(device.firmware)}
+                  </span>
                   {statusIcon(status)}
                 </div>
               </motion.li>

@@ -41,9 +41,7 @@ export function DeviceNowPlaying({ nowPlaying, loading }: DeviceNowPlayingProps)
 
   return (
     <div className="dnp">
-      {hasArtwork && (
-        <img src={nowPlaying.artwork_url} alt="" className="dnp-art" loading="lazy" />
-      )}
+      {hasArtwork && <img src={nowPlaying.artwork_url} alt="" className="dnp-art" loading="lazy" />}
       {sourceIcon && (
         <span className="ui-source dnp-icon" aria-hidden="true">
           {sourceIcon()}
