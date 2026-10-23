@@ -113,7 +113,12 @@ export default function Settings() {
 
   if (loading) {
     return (
-      <div className="loading-container" role="status" aria-live="polite" aria-label={t("common.loading")}>
+      <div
+        className="loading-container"
+        role="status"
+        aria-live="polite"
+        aria-label={t("common.loading")}
+      >
         <h1 className="visually-hidden">{t("settings.title")}</h1>
         <div className="spinner" aria-hidden="true" />
         <p className="loading-message">{t("settings.loading")}</p>

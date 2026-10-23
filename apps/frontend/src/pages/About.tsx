@@ -63,13 +63,21 @@ export default function About() {
           .filter((line) => line.trim())
           .map((line) => parseCSVLine(line))
           .filter((fields): fields is string[] => fields.length >= 5)
-          .map(([name = "", type = "one-time", amount = "", monthlyAmount = "", firstSupportDate = ""]) => ({
-            name,
-            type: type as "monthly" | "one-time",
-            amount: Number.parseFloat(amount) || 0,
-            monthlyAmount: Number.parseFloat(monthlyAmount) || 0,
-            firstSupportDate,
-          }));
+          .map(
+            ([
+              name = "",
+              type = "one-time",
+              amount = "",
+              monthlyAmount = "",
+              firstSupportDate = "",
+            ]) => ({
+              name,
+              type: type as "monthly" | "one-time",
+              amount: Number.parseFloat(amount) || 0,
+              monthlyAmount: Number.parseFloat(monthlyAmount) || 0,
+              firstSupportDate,
+            })
+          );
 
         // Sort: amount DESC, then monthlyAmount DESC, then firstSupportDate ASC (older first)
         parsed.sort((a, b) => {

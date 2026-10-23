@@ -14,7 +14,12 @@ export default function SetupWizardNoDevices({ isLoading }: { isLoading: boolean
     <div className="page setup-wizard-page">
       <h1 className="visually-hidden">{t("restore.choice.setup_title", "Setup Wizard")}</h1>
       {isLoading ? (
-        <div className="wizard-loading" role="status" aria-live="polite" aria-label={t("setup.loadingAriaLabel")}>
+        <div
+          className="wizard-loading"
+          role="status"
+          aria-live="polite"
+          aria-label={t("setup.loadingAriaLabel")}
+        >
           <div className="spinner" aria-hidden="true" />
           <p className="loading-message">{t("setup.loading")}</p>
         </div>

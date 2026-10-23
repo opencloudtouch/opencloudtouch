@@ -1,60 +1,266 @@
 /* Step 4 (Verbindung): step-specific rules only. */
-.config-modification { display: flex; flex-direction: column; gap: var(--space-lg); min-width: 0; }
-.config-input-section { display: flex; flex-direction: column; gap: var(--space-md); min-width: 0; }
-.config-title { margin: 0; font-size: 18px; line-height: 1.3; color: var(--color-text-primary); }
-.config-description { margin: 0; font-size: 15px; line-height: 1.5; color: var(--color-text-secondary); }
-.config-detecting { align-items: center; }
-.config-detecting p { margin: 0; font-size: 15px; color: var(--color-text-primary); }
+.config-modification {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+.config-input-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+.config-title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+}
+.config-description {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+.config-detecting {
+  align-items: center;
+}
+.config-detecting p {
+  margin: 0;
+  font-size: 15px;
+  color: var(--color-text-primary);
+}
 
 /* field */
-.config-input-group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.config-label { font-size: 14px; font-weight: var(--font-weight-bold); color: var(--text-primary); }
-.config-input:focus { border-color: var(--primary-color); }
-.config-input[aria-invalid="true"] { border-color: #f44336; }
-.config-hint { font-size: 13px; line-height: 1.5; color: var(--color-text-tertiary); white-space: pre-line; overflow-wrap: anywhere; }
+.config-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.config-label {
+  font-size: 14px;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+.config-input:focus {
+  border-color: var(--primary-color);
+}
+.config-input[aria-invalid="true"] {
+  border-color: #f44336;
+}
+.config-hint {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-tertiary);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
 
 /* validation + DNS warning (status box variant: warning) */
-.config-validation-error, .config-dns-warning { align-items: flex-start; }
-.config-validation-error .error-icon { color: #ffc107; }
-.config-validation-error .error-content strong, .config-dns-warning .warning-content strong { color: #ffc107; }
-.config-validation-error .error-details { margin: 0; font: 14px/1.6 inherit; color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
-.config-dns-warning .warning-content { display: flex; flex-direction: column; gap: 8px; }
-.config-dns-warning .warning-content strong { margin: 0; }
-.dns-warning-actions { display: flex; flex-direction: column; margin-top: 4px; }
-.dns-warning-actions .btn { width: 100%; }
-@media (min-width: 601px) { .dns-warning-actions { flex-direction: row; } .dns-warning-actions .btn { width: auto; } }
+.config-validation-error,
+.config-dns-warning {
+  align-items: flex-start;
+}
+.config-validation-error .error-icon {
+  color: #ffc107;
+}
+.config-validation-error .error-content strong,
+.config-dns-warning .warning-content strong {
+  color: #ffc107;
+}
+.config-validation-error .error-details {
+  margin: 0;
+  font: 14px/1.6 inherit;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.config-dns-warning .warning-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.config-dns-warning .warning-content strong {
+  margin: 0;
+}
+.dns-warning-actions {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+}
+.dns-warning-actions .btn {
+  width: 100%;
+}
+@media (min-width: 601px) {
+  .dns-warning-actions {
+    flex-direction: row;
+  }
+  .dns-warning-actions .btn {
+    width: auto;
+  }
+}
 
 /* change preview: side by side from 601 px, stacked with a downward arrow on phones */
-.config-change-preview { padding: var(--space-md); background: var(--color-bg-darker); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); }
-.config-preview-title { margin: 0 0 12px; font-size: 15px; color: var(--color-text-primary); }
-.config-change-item { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; justify-items: stretch; align-items: center; }
-.config-change-from, .config-change-to { min-width: 0; padding: 10px 12px; border-radius: var(--border-radius-sm); }
-.config-change-from { background: rgba(239,83,80,.12); border: 1px solid #ef5350; }
-.config-change-to { background: rgba(76,175,80,.12); border: 1px solid #4caf50; }
-.config-change-label { display: block; margin-bottom: 2px; font-size: 12px; font-weight: var(--font-weight-bold); text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-secondary); }
-.config-change-from code, .config-change-to code { display: block; font: 14px/1.5 ui-monospace, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
-.config-change-from code { color: var(--color-danger); }
-.config-change-to code { color: var(--color-success); }
-.config-change-arrow { display: flex; justify-content: center; color: var(--color-text-secondary); transform: rotate(90deg); }
-@media (min-width: 601px) {
-  .config-change-item { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; }
-  .config-change-arrow { transform: none; }
+.config-change-preview {
+  padding: var(--space-md);
+  background: var(--color-bg-darker);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
 }
-.config-modify-btn { width: 100%; min-height: 52px; font-size: 17px; }
+.config-preview-title {
+  margin: 0 0 12px;
+  font-size: 15px;
+  color: var(--color-text-primary);
+}
+.config-change-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  justify-items: stretch;
+  align-items: center;
+}
+.config-change-from,
+.config-change-to {
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: var(--border-radius-sm);
+}
+.config-change-from {
+  background: rgba(239, 83, 80, 0.12);
+  border: 1px solid #ef5350;
+}
+.config-change-to {
+  background: rgba(76, 175, 80, 0.12);
+  border: 1px solid #4caf50;
+}
+.config-change-label {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+}
+.config-change-from code,
+.config-change-to code {
+  display: block;
+  font:
+    14px/1.5 ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
+  overflow-wrap: anywhere;
+}
+.config-change-from code {
+  color: var(--color-danger);
+}
+.config-change-to code {
+  color: var(--color-success);
+}
+.config-change-arrow {
+  display: flex;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  transform: rotate(90deg);
+}
+@media (min-width: 601px) {
+  .config-change-item {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 12px;
+  }
+  .config-change-arrow {
+    transform: none;
+  }
+}
+.config-modify-btn {
+  width: 100%;
+  min-height: 52px;
+  font-size: 17px;
+}
 
 /* result cards: details */
-.config-proxy-hint { margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-text-secondary); }
-.config-details { display: flex; flex-direction: column; gap: 12px; padding: var(--space-md); background: var(--color-bg-darker); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); }
-.config-detail-item { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.config-detail-item strong { font-size: 13px; color: var(--color-text-secondary); font-weight: var(--font-weight-medium); }
-.config-detail-item span { font-size: 15px; line-height: 1.5; color: var(--text-primary); overflow-wrap: anywhere; }
-.config-detail-item code { display: block; padding: 6px 8px; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 4px; font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; color: var(--text-primary); overflow-wrap: anywhere; }
+.config-proxy-hint {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+.config-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: var(--space-md);
+  background: var(--color-bg-darker);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+}
+.config-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.config-detail-item strong {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+.config-detail-item span {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.config-detail-item code {
+  display: block;
+  padding: 6px 8px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font:
+    13px/1.5 ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
 
 /* diff: scrolls inside only */
-.config-diff-section { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.config-diff-toggle { width: 100%; justify-content: flex-start; text-align: left; }
-.config-diff { max-height: 360px; margin: 0; padding: 12px var(--space-md); overflow: auto; background: var(--color-bg-darker); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); font: 13px/1.6 ui-monospace, Menlo, Consolas, monospace; color: var(--color-success); }
-.config-diff code { color: inherit; }
+.config-diff-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.config-diff-toggle {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+.config-diff {
+  max-height: 360px;
+  margin: 0;
+  padding: 12px var(--space-md);
+  overflow: auto;
+  background: var(--color-bg-darker);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font:
+    13px/1.6 ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
+  color: var(--color-success);
+}
+.config-diff code {
+  color: inherit;
+}
 
 /* error box uses the shared .wz-status--error */
-.config-error { align-items: flex-start; }
+.config-error {
+  align-items: flex-start;
+}

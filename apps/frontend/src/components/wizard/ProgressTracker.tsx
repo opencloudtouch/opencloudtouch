@@ -38,7 +38,11 @@ export default function ProgressTracker({ steps, currentStep }: ProgressTrackerP
   return (
     <div className="progress-tracker">
       <div className="progress-tracker-compact" aria-hidden="true">
-        {t("setup.trackerCompact", { current: currentStep, total: steps.length, label: current?.label ?? "" })}
+        {t("setup.trackerCompact", {
+          current: currentStep,
+          total: steps.length,
+          label: current?.label ?? "",
+        })}
       </div>
       <div className="progress-steps">
         {steps.map((step, index) => (

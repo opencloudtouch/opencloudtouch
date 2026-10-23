@@ -1,6 +1,26 @@
 /* Step 6 (NTP): step-specific rules only. Status box, fields and result card come from wizard-base.css. */
-.ntp-patch { display: flex; flex-direction: column; gap: var(--space-lg); min-width: 0; }
-.ntp-optional-notice { align-items: flex-start; }
-.ntp-optional-text { min-width: 0; font-size: 15px; line-height: 1.5; color: var(--text-primary); overflow-wrap: anywhere; }
-.ntp-input-group { gap: 8px; }
-.ntp-patch-btn { width: 100%; min-height: 52px; margin-top: 8px; font-size: 17px; }
+.ntp-patch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+.ntp-optional-notice {
+  align-items: flex-start;
+}
+.ntp-optional-text {
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.ntp-input-group {
+  gap: 8px;
+}
+.ntp-patch-btn {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 8px;
+  font-size: 17px;
+}

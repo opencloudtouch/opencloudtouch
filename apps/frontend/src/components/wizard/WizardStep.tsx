@@ -25,9 +25,21 @@ export interface WizardStepProps {
 }
 
 export default function WizardStep({
-  stepNumber, title, description, children, warning,
-  onNext, onPrevious, onSkip, nextLabel, previousLabel, skipLabel,
-  isNextDisabled = false, isPreviousDisabled = false, isLoading = false, nextDisabledReason,
+  stepNumber,
+  title,
+  description,
+  children,
+  warning,
+  onNext,
+  onPrevious,
+  onSkip,
+  nextLabel,
+  previousLabel,
+  skipLabel,
+  isNextDisabled = false,
+  isPreviousDisabled = false,
+  isLoading = false,
+  nextDisabledReason,
 }: WizardStepProps) {
   const { t } = useTranslation();
   const titleRef = useRef<HTMLHeadingElement>(null);

@@ -117,11 +117,26 @@ export default function Step3PowerCycle({
         : t("setup.wizard.step3.answerUnknown");
 
   const instructionSteps = [
-    { title: "setup.wizard.step3.instructionStep1", desc: "setup.wizard.step3.instructionStep1Desc" },
-    { title: "setup.wizard.step3.instructionStep2", desc: "setup.wizard.step3.instructionStep2Desc" },
-    { title: "setup.wizard.step3.instructionStep3", desc: "setup.wizard.step3.instructionStep3Desc" },
-    { title: "setup.wizard.step3.instructionStep4", desc: "setup.wizard.step3.instructionStep4Desc" },
-    { title: "setup.wizard.step3.instructionStep5", desc: "setup.wizard.step3.instructionStep5Desc" },
+    {
+      title: "setup.wizard.step3.instructionStep1",
+      desc: "setup.wizard.step3.instructionStep1Desc",
+    },
+    {
+      title: "setup.wizard.step3.instructionStep2",
+      desc: "setup.wizard.step3.instructionStep2Desc",
+    },
+    {
+      title: "setup.wizard.step3.instructionStep3",
+      desc: "setup.wizard.step3.instructionStep3Desc",
+    },
+    {
+      title: "setup.wizard.step3.instructionStep4",
+      desc: "setup.wizard.step3.instructionStep4Desc",
+    },
+    {
+      title: "setup.wizard.step3.instructionStep5",
+      desc: "setup.wizard.step3.instructionStep5Desc",
+    },
   ];
 
   const riskIcon =
@@ -293,7 +308,9 @@ export default function Step3PowerCycle({
                   <span className="risk-card-label">
                     {t("setup.wizard.step3.sshPermanentLabel")}
                   </span>
-                  {sshDecision === true && <span className="risk-card-check">{Icon.Check(20)}</span>}
+                  {sshDecision === true && (
+                    <span className="risk-card-check">{Icon.Check(20)}</span>
+                  )}
                 </button>
                 <button
                   className={`risk-card risk-card--temporary${sshDecision === false ? " selected" : ""}`}

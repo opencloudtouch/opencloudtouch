@@ -43,7 +43,9 @@ export default function CopyableCommand({ command }: CopyableCommandProps) {
 
   return (
     <div className="ssh-command-wrapper">
-      <pre className="ssh-hint-command" tabIndex={0}>{command}</pre>
+      <pre className="ssh-hint-command" tabIndex={0}>
+        {command}
+      </pre>
       <button
         className={`ssh-copy-btn ${copied ? "copied" : ""}`}
         onClick={handleCopy}

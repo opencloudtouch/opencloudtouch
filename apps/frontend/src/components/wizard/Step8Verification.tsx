@@ -421,7 +421,10 @@ export default function Step8Verification({
                 </span>
                 <span className="reboot-status-text">{t("setup.wizard.step8.rebootWaiting")}</span>
                 <span className="reboot-progress" aria-hidden="true">
-                  <span className="reboot-progress-bar" style={{ width: `${100 - rebootCountdown}%` }} />
+                  <span
+                    className="reboot-progress-bar"
+                    style={{ width: `${100 - rebootCountdown}%` }}
+                  />
                 </span>
               </div>
             )}
@@ -489,8 +492,7 @@ export default function Step8Verification({
               className="btn btn-primary verification-test-btn"
               onClick={handleFullVerification}
             >
-              {Icon.Rocket(20)}{" "}
-              {t("setup.wizard.step8.btnRunFullVerify", "Run Full Verification")}
+              {Icon.Rocket(20)} {t("setup.wizard.step8.btnRunFullVerify", "Run Full Verification")}
             </button>
           </div>
         )}

@@ -163,7 +163,9 @@ export default function Step4Backup({
                         {formatDuration(vol.duration_seconds, t)}
                       </small>
                     </div>
-                    <code className="backup-file-path" tabIndex={0}>{vol.path}</code>
+                    <code className="backup-file-path" tabIndex={0}>
+                      {vol.path}
+                    </code>
                   </div>
                 )
               )}

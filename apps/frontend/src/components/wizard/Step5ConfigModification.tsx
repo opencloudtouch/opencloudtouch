@@ -365,7 +365,9 @@ export default function Step5ConfigModification({
                 <div className="error-icon">{Icon.Alert()}</div>
                 <div className="error-content">
                   <strong>{t("setup.wizard.step5.validationErrorTitle")}</strong>
-                  <pre className="error-details" tabIndex={0}>{validationError}</pre>
+                  <pre className="error-details" tabIndex={0}>
+                    {validationError}
+                  </pre>
                 </div>
               </div>
             )}
