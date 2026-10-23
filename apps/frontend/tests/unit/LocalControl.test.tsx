@@ -13,12 +13,12 @@ import userEvent from "@testing-library/user-event";
 import React from "react";
 import LocalControl from "../../src/pages/LocalControl";
 
-// Mock framer-motion to avoid animation issues in tests
-vi.mock("framer-motion", () => ({
-  motion: {
-    /* eslint-disable @typescript-eslint/no-unused-vars */
-    div: ({
+// Mock framer-motion to avoid animation issues in tests: every motion.<tag> renders as a plain element
+vi.mock("framer-motion", () => {
+  const plain = (Tag: string) => {
+    const Component = ({
       children,
+      /* eslint-disable @typescript-eslint/no-unused-vars */
       dragConstraints,
       dragElastic,
       whileTap,
@@ -27,12 +27,19 @@ vi.mock("framer-motion", () => ({
       animate,
       exit,
       transition,
+      /* eslint-enable @typescript-eslint/no-unused-vars */
       ...props
-    }: Record<string, unknown>) => <div {...props}>{children as React.ReactNode}</div>,
-    /* eslint-enable @typescript-eslint/no-unused-vars */
-  },
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
+    }: Record<string, unknown>) => React.createElement(Tag, props, children as React.ReactNode);
+    return Component;
+  };
+  const cache: Record<string, unknown> = {};
+  return {
+    motion: new Proxy(cache, {
+      get: (target, tag: string) => (target[tag] ??= plain(tag)),
+    }),
+    AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  };
+});
 
 // Mock hooks
 const mockNowPlaying = {
@@ -185,7 +192,7 @@ describe("LocalControl - Core Playback Functionality", () => {
     render(<LocalControl devices={mockDevices} />);
 
     // Use the playback controls button (not the NowPlaying overlay)
-    const playPauseButton = document.querySelector(".playback-button.play-pause") as HTMLButtonElement;
+    const playPauseButton = document.querySelector(".lc-key--primary") as HTMLButtonElement;
     await user.click(playPauseButton);
 
     expect(mockTogglePlayPause).toHaveBeenCalledWith("ST10-001");
@@ -222,7 +229,7 @@ describe("LocalControl - Core Playback Functionality", () => {
       render(<LocalControl devices={mockDevices} />);
     });
 
-    const playButton = document.querySelector(".playback-button.play-pause") as HTMLButtonElement;
+    const playButton = document.querySelector(".lc-key--primary") as HTMLButtonElement;
     expect(playButton).toHaveAttribute("aria-label", "Play");
   });
 
@@ -240,7 +247,8 @@ describe("LocalControl - Core Playback Functionality", () => {
     const user = userEvent.setup();
     render(<LocalControl devices={mockDevices} />);
 
-    const muteButton = screen.getByRole("button", { name: "Mute" });
+    // The slider and the quick action both offer a mute button
+    const muteButton = screen.getAllByRole("button", { name: "Mute" })[0]!;
     await user.click(muteButton);
 
     expect(mockToggleMute).toHaveBeenCalled();
@@ -304,7 +312,7 @@ describe("LocalControl - Source Selection", () => {
     const bluetoothTab = screen.getByRole("button", { name: /Bluetooth/i });
     await user.click(bluetoothTab);
 
-    expect(bluetoothTab).toHaveClass("active");
+    expect(bluetoothTab).toHaveAttribute("aria-pressed", "true");
   });
 
   test("should show AirPlay only when device supports it", async () => {
@@ -374,6 +382,45 @@ describe("LocalControl - Edge Cases", () => {
       render(<LocalControl devices={mockDevices} />);
     });
 
-    expect(screen.getByRole("button", { name: "Unmute" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Unmute" }).length).toBeGreaterThan(0);
+  });
+});
+
+describe("LocalControl - Standby and key loading", () => {
+  beforeEach(() => {
+    mockUseNowPlaying.mockReturnValue({
+      nowPlaying: mockNowPlaying,
+      loading: false,
+      refresh: vi.fn(),
+    });
+  });
+
+  test("shows the standby look and no player while the device is in standby", async () => {
+    mockUseNowPlaying.mockReturnValue({
+      nowPlaying: { ...mockNowPlaying, source: "STANDBY", state: "STOP_STATE" },
+      loading: false,
+      refresh: vi.fn(),
+    });
+
+    await act(async () => {
+      render(<LocalControl devices={mockDevices} />);
+    });
+
+    const power = screen.getByRole("button", { name: /power/i });
+    expect(power).toHaveAttribute("aria-pressed", "false");
+    expect(power).toHaveClass("lc-power--off");
+    expect(screen.getByText("No playback")).toBeInTheDocument();
+  });
+
+  test("disables all playback keys while one of them is loading", async () => {
+    mockTogglePlayPause.mockReturnValueOnce(new Promise(() => {}));
+    const user = userEvent.setup();
+    render(<LocalControl devices={mockDevices} />);
+
+    await user.click(document.querySelector(".lc-key--primary") as HTMLButtonElement);
+
+    expect(screen.getByRole("button", { name: /Previous Track/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Next Track/i })).toBeDisabled();
+    expect(document.querySelector(".lc-key--primary")).toHaveAttribute("aria-busy", "true");
   });
 });

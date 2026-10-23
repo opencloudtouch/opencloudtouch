@@ -30,8 +30,10 @@ export default function DeviceNameEditor({
     const el = buttonRef.current;
     if (!el) return;
 
+    // The button shrinks to its content, so the space it may use is the width of its heading.
+    const host = el.parentElement ?? el;
     const compute = () => {
-      const containerWidth = el.clientWidth;
+      const containerWidth = host.clientWidth;
       if (!containerWidth) return;
 
       const canvas = document.createElement("canvas");
@@ -42,6 +44,8 @@ export default function DeviceNameEditor({
       const fontWeight = elStyle.fontWeight || "600";
       const fontFamily = elStyle.fontFamily || "system-ui, -apple-system, sans-serif";
       const gapWidth = parseFloat(elStyle.gap) || 0;
+      // Text and icon sit inside the button's horizontal padding
+      const paddingX = (parseFloat(elStyle.paddingLeft) || 0) + (parseFloat(elStyle.paddingRight) || 0);
 
       for (let size = 24; size >= 17; size--) {
         ctx.font = `${fontWeight} ${size}px ${fontFamily}`;
@@ -49,7 +53,7 @@ export default function DeviceNameEditor({
         // The pencil is an SVG of exactly 0.65em (was an emoji glyph measured via canvas)
         const iconWidth = size * 0.65;
         const safetyBuffer = 2; // 1px subpixel rounding tolerance
-        if (textWidth + iconWidth + gapWidth + safetyBuffer <= containerWidth) {
+        if (textWidth + iconWidth + gapWidth + paddingX + safetyBuffer <= containerWidth) {
           setFontSizePx(size);
           return;
         }
@@ -59,7 +63,7 @@ export default function DeviceNameEditor({
 
     compute();
     const observer = new ResizeObserver(compute);
-    observer.observe(el);
+    observer.observe(host);
     return () => observer.disconnect();
   }, [name]);
 

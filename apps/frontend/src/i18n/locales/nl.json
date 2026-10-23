@@ -56,7 +56,10 @@
       "pandora": "Pandora",
       "amazon": "Amazon Music",
       "storedMusic": "Mediabibliotheek"
-    }
+    },
+    "unknownDevice": "Onbekend apparaat",
+    "zoneBadgeMember": "Zone",
+    "zoneTitle": "Zone: {{role}}"
   },
   "presets": {
     "pageTitle": "Radio Presets",
@@ -204,7 +207,6 @@
     "infoItem5": "Klik op de zonenaam om deze te hernoemen",
     "editZone": "Bewerken",
     "dissolve": "Ontbinden",
-    "dissolveConfirm": "Echt ontbinden?",
     "zoneUpdated": "Zone bijgewerkt",
     "zoneCreated": "Zone aangemaakt",
     "zoneCreateFailed": "Zone kon niet worden aangemaakt",
@@ -216,7 +218,12 @@
     "clickToEdit": "Klik om te bewerken",
     "cancel": "Annuleren",
     "masterBadge": "Master",
-    "slaveBadge": "Slave"
+    "slaveBadge": "Slave",
+    "unknownDevice": "Onbekend apparaat",
+    "defaultZoneName": "Zone {{name}}",
+    "staleBadge": "Al lang niet gezien",
+    "confirmDissolveTitle": "Zone opheffen?",
+    "confirmDissolveMessage": "“{{name}}” wordt opgeheven. De apparaten spelen daarna weer afzonderlijk."
   },
   "firmware": {
     "title": "Firmware-updates",

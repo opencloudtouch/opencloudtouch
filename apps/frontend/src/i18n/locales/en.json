@@ -56,7 +56,10 @@
       "pandora": "Pandora",
       "amazon": "Amazon Music",
       "storedMusic": "Media library"
-    }
+    },
+    "unknownDevice": "Unknown device",
+    "zoneBadgeMember": "Zone",
+    "zoneTitle": "Zone: {{role}}"
   },
   "presets": {
     "pageTitle": "Radio Presets",
@@ -204,7 +207,6 @@
     "infoItem5": "Click the zone name to rename it",
     "editZone": "Edit",
     "dissolve": "Dissolve",
-    "dissolveConfirm": "Really dissolve?",
     "zoneUpdated": "Zone updated",
     "zoneCreated": "Zone created",
     "zoneCreateFailed": "Zone could not be created",
@@ -216,7 +218,12 @@
     "clickToEdit": "Click to edit",
     "cancel": "Cancel",
     "masterBadge": "Master",
-    "slaveBadge": "Slave"
+    "slaveBadge": "Slave",
+    "unknownDevice": "Unknown device",
+    "defaultZoneName": "{{name}} zone",
+    "staleBadge": "Not seen for a while",
+    "confirmDissolveTitle": "Dissolve zone?",
+    "confirmDissolveMessage": "“{{name}}” will be dissolved. The devices will play individually again."
   },
   "firmware": {
     "title": "Firmware Updates",

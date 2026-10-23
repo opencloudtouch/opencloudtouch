@@ -56,7 +56,10 @@
       "pandora": "Pandora",
       "amazon": "Amazon Music",
       "storedMusic": "Mediebibliotek"
-    }
+    },
+    "unknownDevice": "Okänd enhet",
+    "zoneBadgeMember": "Zon",
+    "zoneTitle": "Zon: {{role}}"
   },
   "presets": {
     "pageTitle": "Radioförinställningar",
@@ -204,7 +207,6 @@
     "infoItem5": "Klicka på zonnamnet för att byta namn",
     "editZone": "Redigera",
     "dissolve": "Upplös",
-    "dissolveConfirm": "Verkligen upplösa?",
     "zoneUpdated": "Zon uppdaterad",
     "zoneCreated": "Zon skapad",
     "zoneCreateFailed": "Det gick inte att skapa zonen",
@@ -216,7 +218,12 @@
     "clickToEdit": "Klicka för att redigera",
     "cancel": "Avbryt",
     "masterBadge": "Master",
-    "slaveBadge": "Slav"
+    "slaveBadge": "Slav",
+    "unknownDevice": "Okänd enhet",
+    "defaultZoneName": "{{name}}-zon",
+    "staleBadge": "Inte sedd på länge",
+    "confirmDissolveTitle": "Lösa upp zonen?",
+    "confirmDissolveMessage": "”{{name}}” löses upp. Enheterna spelar sedan separat igen."
   },
   "firmware": {
     "title": "Firmwareuppdateringar",

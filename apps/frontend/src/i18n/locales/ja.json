@@ -56,7 +56,10 @@
       "pandora": "Pandora",
       "amazon": "Amazon Music",
       "storedMusic": "メディアライブラリ"
-    }
+    },
+    "unknownDevice": "不明なデバイス",
+    "zoneBadgeMember": "ゾーン",
+    "zoneTitle": "ゾーン: {{role}}"
   },
   "presets": {
     "pageTitle": "ラジオプリセット",
@@ -204,7 +207,6 @@
     "infoItem5": "ゾーン名をクリックして名前を変更",
     "editZone": "編集",
     "dissolve": "解散",
-    "dissolveConfirm": "本当に解散しますか？",
     "zoneUpdated": "ゾーンを更新しました",
     "zoneCreated": "ゾーンを作成しました",
     "zoneCreateFailed": "ゾーンを作成できませんでした",
@@ -216,7 +218,12 @@
     "clickToEdit": "クリックして編集",
     "cancel": "キャンセル",
     "masterBadge": "マスター",
-    "slaveBadge": "スレーブ"
+    "slaveBadge": "スレーブ",
+    "unknownDevice": "不明なデバイス",
+    "defaultZoneName": "{{name}} ゾーン",
+    "staleBadge": "しばらく確認されていません",
+    "confirmDissolveTitle": "ゾーンを解除しますか?",
+    "confirmDissolveMessage": "「{{name}}」を解除します。デバイスは再び個別に再生されます。"
   },
   "firmware": {
     "title": "ファームウェアアップデート",

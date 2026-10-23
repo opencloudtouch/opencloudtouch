@@ -56,7 +56,10 @@
       "pandora": "Pandora",
       "amazon": "Amazon Music",
       "storedMusic": "Libreria multimediale"
-    }
+    },
+    "unknownDevice": "Dispositivo sconosciuto",
+    "zoneBadgeMember": "Zona",
+    "zoneTitle": "Zona: {{role}}"
   },
   "presets": {
     "pageTitle": "Preset radio",
@@ -204,7 +207,6 @@
     "infoItem5": "Clicca sul nome della zona per rinominarla",
     "editZone": "Modifica",
     "dissolve": "Sciogli",
-    "dissolveConfirm": "Sciogliere davvero?",
     "zoneUpdated": "Zona aggiornata",
     "zoneCreated": "Zona creata",
     "zoneCreateFailed": "Impossibile creare la zona",
@@ -216,7 +218,12 @@
     "clickToEdit": "Clicca per modificare",
     "cancel": "Annulla",
     "masterBadge": "Master",
-    "slaveBadge": "Slave"
+    "slaveBadge": "Slave",
+    "unknownDevice": "Dispositivo sconosciuto",
+    "defaultZoneName": "Zona {{name}}",
+    "staleBadge": "Non visto da tempo",
+    "confirmDissolveTitle": "Sciogliere la zona?",
+    "confirmDissolveMessage": "«{{name}}» verrà sciolta. I dispositivi riprodurranno di nuovo separatamente."
   },
   "firmware": {
     "title": "Aggiornamenti firmware",

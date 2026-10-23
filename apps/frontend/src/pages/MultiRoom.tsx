@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Device } from "../components/DeviceSwiper";
@@ -8,25 +8,13 @@ import { useNowPlaying } from "../hooks/useNowPlaying";
 import type { ZoneInfo } from "../api/zones";
 import VolumeSlider from "../components/VolumeSlider";
 import NowPlaying from "../components/NowPlaying";
+import ConfirmDialog from "../components/ConfirmDialog";
 import { DeviceNowPlaying } from "../components/DeviceNowPlaying";
+import { Icon } from "../components/Icon";
 import "./MultiRoom.css";
 
 interface MultiRoomProps {
   readonly devices?: Device[];
-}
-
-// ---- Zone icon SVG (lighter color for dark card backgrounds) ----
-const ZONE_MUSIC_PATH =
-  "M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z";
-
-function ZoneIcon() {
-  return (
-    <span className="zone-icon">
-      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-        <path fill="#7ab8e8" d={ZONE_MUSIC_PATH} />
-      </svg>
-    </span>
-  );
 }
 
 // ---- Zone Volume per Member ----
@@ -34,7 +22,7 @@ function ZoneIcon() {
 function ZoneMemberVolume({ deviceId }: Readonly<{ deviceId: string }>) {
   const { volume, muted, setDeviceVolume, toggleMute } = useVolume(deviceId);
   return (
-    <div className="zone-member-volume">
+    <div className="zn-member-volume">
       <VolumeSlider
         volume={volume}
         onVolumeChange={setDeviceVolume}
@@ -51,10 +39,15 @@ function ZoneNowPlaying({ masterId }: Readonly<{ masterId: string }>) {
   const { t } = useTranslation();
   const { nowPlaying } = useNowPlaying(masterId);
   if (!nowPlaying || nowPlaying.source === "STANDBY") {
-    return <div className="zone-now-playing standby">{t("multiroom.standby")}</div>;
+    return (
+      <div className="zn-np zn-np--standby">
+        <span aria-hidden="true">{Icon.Power(18)}</span>
+        <span>{t("multiroom.standby")}</span>
+      </div>
+    );
   }
   return (
-    <div className="zone-now-playing">
+    <div className="zn-np">
       <NowPlaying
         nowPlaying={{
           art_url: nowPlaying.artwork_url ?? undefined,
@@ -69,7 +62,9 @@ function ZoneNowPlaying({ masterId }: Readonly<{ masterId: string }>) {
   );
 }
 
-// ---- Device Card with Now-Playing ----
+// ---- Selectable device card ----
+// The checkbox is a real <input> whose <label> is only the device name. The label is stretched over the card
+// (::after), so the whole card toggles, while the "make master" button is a sibling outside the label.
 
 interface DeviceCardProps {
   device: Device;
@@ -96,55 +91,83 @@ function DeviceCard({
 }: Readonly<DeviceCardProps>) {
   const { t } = useTranslation();
   const { nowPlaying, loading } = useNowPlaying(device.device_id);
+  const checkId = useId();
+  const badgesId = `${checkId}-badges`;
+  const inOtherZone = inZone && !isSelected && !inEditZone;
+  const showSlave = isSelected && !isMaster;
+  const hasBadges = stale || isMaster || showSlave || inOtherZone;
 
   return (
-    <motion.label
-      key={device.device_id}
-      className={`device-checkbox-card ${isSelected ? "selected" : ""} ${inZone && !isSelected && !inEditZone ? "in-zone" : ""} ${stale ? "stale" : ""}`}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.1 * index }}
+    <motion.div
+      className={`mr-dev${isSelected ? " mr-dev--selected" : ""}${inOtherZone ? " mr-dev--zone" : ""}${stale ? " mr-dev--stale" : ""}`}
+      initial={{ y: 12 }}
+      animate={{ y: 0 }}
+      transition={{ delay: Math.min(index, 6) * 0.05 }}
     >
       <input
+        id={checkId}
+        className="mr-dev-check"
         type="checkbox"
         checked={isSelected}
         onChange={onToggle}
-        disabled={inZone && !isSelected && !inEditZone}
+        disabled={inOtherZone}
+        aria-describedby={hasBadges ? badgesId : undefined}
       />
-      <div className="device-checkbox-content">
-        <div className="device-checkbox-header">
-          <span className="device-checkbox-name">{device.name}</span>
-          {stale && (
-            <span className="device-badge stale-badge" title={t("errors.offlineTitle")}>
-              ⚠️
-            </span>
-          )}
-          {isMaster && (
-            <span className="device-badge master-badge">{t("multiroom.masterBadge")}</span>
-          )}
-          {isSelected && !isMaster && (
-            <>
-              <span className="device-badge slave-badge">{t("multiroom.slaveBadge")}</span>
-              <button
-                className="set-master-btn"
-                onClick={(e) => {
-                  e.preventDefault();
-                  onSetMaster(device.device_id);
-                }}
-                title={t("multiroom.setMaster")}
-              >
-                ★
-              </button>
-            </>
-          )}
-          {inZone && !isSelected && !inEditZone && (
-            <span className="device-badge in-zone-badge">{t("multiroom.inZone")}</span>
-          )}
-        </div>
-        <span className="device-checkbox-model">{device.model}</span>
+      <div className="mr-dev-main">
+        <label className="mr-dev-name" htmlFor={checkId}>
+          {device.name}
+        </label>
+        <span className="mr-dev-model">{device.model}</span>
+        {hasBadges && (
+          <div className="mr-dev-badges" id={badgesId}>
+            {stale && (
+              <span className="ui-badge ui-badge--warning ui-badge--small" title={t("errors.offlineTitle")}>
+                <span className="ui-badge-icon" aria-hidden="true">
+                  {Icon.Alert(14)}
+                </span>
+                {t("multiroom.staleBadge")}
+              </span>
+            )}
+            {isMaster && (
+              <span className="ui-badge ui-badge--info ui-badge--small">
+                <span className="ui-badge-icon mr-fill" aria-hidden="true">
+                  {Icon.Star(14)}
+                </span>
+                {t("multiroom.masterBadge")}
+              </span>
+            )}
+            {showSlave && (
+              <span className="ui-badge ui-badge--small">
+                <span className="ui-badge-icon" aria-hidden="true">
+                  {Icon.Speaker(14)}
+                </span>
+                {t("multiroom.slaveBadge")}
+              </span>
+            )}
+            {inOtherZone && (
+              <span className="ui-badge ui-badge--small">
+                <span className="ui-badge-icon" aria-hidden="true">
+                  {Icon.Link(14)}
+                </span>
+                {t("multiroom.inZone")}
+              </span>
+            )}
+          </div>
+        )}
         <DeviceNowPlaying nowPlaying={nowPlaying} loading={loading} />
       </div>
-    </motion.label>
+      {showSlave && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-icon mr-star"
+          onClick={() => onSetMaster(device.device_id)}
+          title={t("multiroom.setMaster")}
+          aria-label={t("multiroom.setMaster")}
+        >
+          {Icon.Star(20)}
+        </button>
+      )}
+    </motion.div>
   );
 }
 
@@ -160,9 +183,15 @@ function EditableZoneName({
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(name);
+  // Esc cancels the edit; the blur that follows the unmount must not save the draft.
+  const cancelledRef = useRef(false);
 
   const handleSave = () => {
     setEditing(false);
+    if (cancelledRef.current) {
+      cancelledRef.current = false;
+      return;
+    }
     if (draft.trim() !== name) {
       onSave(draft.trim());
     }
@@ -170,36 +199,53 @@ function EditableZoneName({
 
   if (editing) {
     return (
-      <input
-        className="zone-name-input"
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={handleSave}
-        onKeyDown={(e) => e.key === "Enter" && handleSave()}
-        maxLength={30}
-        autoFocus
-        aria-label={t("multiroom.zoneNameEdit")}
-      />
+      <h3 className="zn-title">
+        <input
+          className="ui-input zn-name-input"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleSave();
+            } else if (e.key === "Escape") {
+              cancelledRef.current = true;
+              setDraft(name);
+              setEditing(false);
+            }
+          }}
+          maxLength={30}
+          autoFocus
+          aria-label={t("multiroom.zoneNameEdit")}
+        />
+      </h3>
     );
   }
 
   return (
-    <button
-      type="button"
-      className="zone-name editable"
-      onClick={() => {
-        setDraft(name);
-        setEditing(true);
-      }}
-      title={t("multiroom.clickToEdit")}
-    >
-      {name}
-    </button>
+    <h3 className="zn-title">
+      <button
+        type="button"
+        className="zn-name"
+        onClick={() => {
+          cancelledRef.current = false;
+          setDraft(name);
+          setEditing(true);
+        }}
+        title={t("multiroom.clickToEdit")}
+      >
+        <span className="zn-name-text">{name}</span>
+        <span className="zn-name-icon" aria-hidden="true">
+          {Icon.Pencil(16)}
+        </span>
+      </button>
+    </h3>
   );
 }
 
 export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
   const { t } = useTranslation();
+  const [dissolving, setDissolving] = useState<{ masterId: string; name: string } | null>(null);
   const {
     zones,
     isLoading,
@@ -207,8 +253,6 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
     selectedDevices,
     editingZone,
     operationLoading,
-    confirmDissolve,
-    setConfirmDissolve,
     handleDeviceToggle,
     handleSetMaster,
     handleCreateZone: createZoneAction,
@@ -245,19 +289,27 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
 
   const getMasterName = (zone: ZoneInfo): string => {
     const master = zone.members.find((m) => m.role === "master");
-    return master?.name || getDeviceById(zone.master_id)?.name || "Unknown";
+    return master?.name || getDeviceById(zone.master_id)?.name || t("multiroom.unknownDevice");
   };
+
+  const getDefaultZoneName = (zone: ZoneInfo): string =>
+    t("multiroom.defaultZoneName", { name: getMasterName(zone) });
 
   // ---- Loading State ----
   if (isLoading && zones.length === 0) {
     return (
-      <div className="page multiroom-page">
-        <h1 className="page-title">{t("multiroom.pageTitle")}</h1>
-        <div className="zone-card" style={{ opacity: 0.5 }}>
-          <div className="zone-header">
-            <ZoneIcon />
-            <h3 className="zone-name">{t("multiroom.loadingZones")}</h3>
+      <div className="mr">
+        <h1 className="ui-h1">{t("multiroom.pageTitle")}</h1>
+        <div className="ui-card mr-loading" role="status">
+          <span className="wz-spinner" aria-hidden="true" />
+          <span>{t("multiroom.loadingZones")}</span>
+        </div>
+        <div className="ui-card zn zn--skeleton" aria-hidden="true">
+          <div className="zn-head">
+            <span className="ui-skeleton zn-sk-icon" />
+            <span className="ui-skeleton zn-sk-line" />
           </div>
+          <span className="ui-skeleton zn-sk-block" />
         </div>
       </div>
     );
@@ -266,12 +318,14 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
   // ---- Error State ----
   if (error && zones.length === 0) {
     return (
-      <div className="page multiroom-page">
-        <h1 className="page-title">{t("multiroom.pageTitle")}</h1>
-        <div className="info-box" style={{ borderColor: "#ff6b6b" }}>
-          <div className="info-icon">⚠️</div>
-          <div className="info-content">
-            <h4 className="info-title">{t("multiroom.errorLoading")}</h4>
+      <div className="mr">
+        <h1 className="ui-h1">{t("multiroom.pageTitle")}</h1>
+        <div className="wz-status wz-status--error" role="alert">
+          <span className="wz-icon" aria-hidden="true">
+            {Icon.CircleX(24)}
+          </span>
+          <div className="wz-status-body">
+            <h2 className="wz-status-title">{t("multiroom.errorLoading")}</h2>
             <p>{error}</p>
           </div>
         </div>
@@ -280,32 +334,36 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
   }
 
   return (
-    <div className="page multiroom-page">
-      <h1 className="page-title">{t("multiroom.pageTitle")}</h1>
+    <div className="mr">
+      <h1 className="ui-h1">{t("multiroom.pageTitle")}</h1>
 
       {/* Active Zones */}
       {zones.length > 0 && (
         <motion.section
-          className="zones-section"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          className="mr-section"
+          aria-labelledby="mr-zones-title"
+          initial={{ y: 12 }}
+          animate={{ y: 0 }}
         >
-          <h2 className="section-title">{t("multiroom.activeZones")}</h2>
-          <div className="zones-list">
+          <h2 id="mr-zones-title" className="ui-h2">
+            {t("multiroom.activeZones")}
+          </h2>
+          <div className="mr-zones">
             {zones.map((zone) => {
-              const defaultName = `${getMasterName(zone)} Zone`;
-              const zoneName = getZoneName(zone.master_id, defaultName);
+              const zoneName = getZoneName(zone.master_id, getDefaultZoneName(zone));
 
               return (
                 <motion.div
                   key={zone.master_id}
-                  className="zone-card"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  className="ui-card zn"
+                  initial={{ scale: 0.97 }}
+                  animate={{ scale: 1 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <div className="zone-header">
-                    <ZoneIcon />
+                  <div className="zn-head">
+                    <span className="zn-icon" aria-hidden="true">
+                      {Icon.Music(22)}
+                    </span>
                     <EditableZoneName
                       name={zoneName}
                       onSave={(name) => setZoneName(zone.master_id, name)}
@@ -316,19 +374,27 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
                   <ZoneNowPlaying masterId={zone.master_id} />
 
                   {/* Zone Members with Volume (STORY-1007) */}
-                  <div className="zone-devices">
+                  <div className="zn-members">
                     {zone.members.map((member) => (
-                      <div key={member.device_id} className={`zone-device ${member.role}`}>
-                        <div className="zone-device-header">
-                          <span className={`device-badge ${member.role}-badge`}>
+                      <div key={member.device_id} className={`zn-member zn-member--${member.role}`}>
+                        <div className="zn-member-head">
+                          <span
+                            className={`ui-badge ui-badge--small${member.role === "master" ? " ui-badge--info" : ""}`}
+                          >
+                            <span
+                              className={`ui-badge-icon${member.role === "master" ? " mr-fill" : ""}`}
+                              aria-hidden="true"
+                            >
+                              {member.role === "master" ? Icon.Star(14) : Icon.Speaker(14)}
+                            </span>
                             {member.role === "master"
                               ? t("multiroom.masterBadge")
                               : t("multiroom.slaveBadge")}
                           </span>
-                          <span className="device-name">
+                          <span className="zn-member-name">
                             {member.name ||
                               getDeviceById(member.device_id)?.name ||
-                              "Unknown Device"}
+                              t("multiroom.unknownDevice")}
                           </span>
                         </div>
                         <ZoneMemberVolume deviceId={member.device_id} />
@@ -337,34 +403,25 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
                   </div>
 
                   {/* Zone Actions */}
-                  <div className="zone-actions">
+                  <div className="zn-actions">
                     <button
-                      className="zone-action-button edit"
+                      type="button"
+                      className="btn btn-secondary"
                       onClick={() => handleEditZone(zone)}
                       disabled={operationLoading}
                     >
-                      <span className="button-icon">✏️</span>
+                      {Icon.Pencil(18)}
                       <span>{t("multiroom.editZone")}</span>
                     </button>
-                    {confirmDissolve === zone.master_id ? (
-                      <button
-                        className="zone-action-button dissolve"
-                        onClick={() => handleDissolveZone(zone.master_id)}
-                        disabled={operationLoading}
-                      >
-                        <span className="button-icon">⚠️</span>
-                        <span>{t("multiroom.dissolveConfirm")}</span>
-                      </button>
-                    ) : (
-                      <button
-                        className="zone-action-button dissolve"
-                        onClick={() => setConfirmDissolve(zone.master_id)}
-                        disabled={operationLoading}
-                      >
-                        <span className="button-icon">❌</span>
-                        <span>{t("multiroom.dissolve")}</span>
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      className="btn btn-danger-outline"
+                      onClick={() => setDissolving({ masterId: zone.master_id, name: zoneName })}
+                      disabled={operationLoading}
+                    >
+                      {Icon.Unlink(18)}
+                      <span>{t("multiroom.dissolve")}</span>
+                    </button>
                   </div>
                 </motion.div>
               );
@@ -375,10 +432,12 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
 
       {/* Empty State */}
       {zones.length === 0 && (
-        <motion.div className="info-box" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <div className="info-icon">ℹ️</div>
-          <div className="info-content">
-            <h4 className="info-title">{t("multiroom.noActiveZones")}</h4>
+        <motion.div className="wz-status mr-info" initial={{ y: 8 }} animate={{ y: 0 }}>
+          <span className="wz-icon" aria-hidden="true">
+            {Icon.Info(24)}
+          </span>
+          <div className="wz-status-body">
+            <h2 className="mr-info-title">{t("multiroom.noActiveZones")}</h2>
             <p>{t("multiroom.noActiveZonesHint")}</p>
           </div>
         </motion.div>
@@ -386,18 +445,21 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
 
       {/* Device Selection */}
       <motion.section
-        className="device-selection-section"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        className="mr-section"
+        aria-labelledby="mr-select-title"
+        initial={{ y: 12 }}
+        animate={{ y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <h2 className="section-title">
+        <h2 id="mr-select-title" className="ui-h2">
           {editingZone
-            ? `${t("multiroom.editTitle")}: ${getZoneName(editingZone.master_id, getMasterName(editingZone) + " Zone")}`
+            ? t("multiroom.editTitle", {
+                name: getZoneName(editingZone.master_id, getDefaultZoneName(editingZone)),
+              })
             : t("multiroom.newTitle")}
         </h2>
 
-        <div className="devices-grid">
+        <div className="mr-grid" role="group" aria-labelledby="mr-select-title">
           {devices.map((device, index) => {
             const inZone = isDeviceInZone(device.device_id);
             const isSelected = selectedDevices.includes(device.device_id);
@@ -424,50 +486,51 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
         </div>
 
         {selectedDevices.length > 0 && (
-          <motion.div
-            className="selection-info"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <p className="selection-count">
+          <motion.div className="mr-bar" initial={{ y: 10 }} animate={{ y: 0 }}>
+            <p className="mr-bar-count" role="status">
               {selectedDevices.length < 2
                 ? t("multiroom.selectedCountMin", { count: selectedDevices.length })
                 : t("multiroom.selectedCount", { count: selectedDevices.length })}
             </p>
-            <button
-              className="create-zone-button"
-              onClick={handleCreateZone}
-              disabled={selectedDevices.length < 2 || operationLoading}
-            >
-              <span className="button-icon">{operationLoading ? "⏳" : "➕"}</span>
-              <span>
-                {operationLoading
-                  ? t("multiroom.creating")
-                  : editingZone
-                    ? t("multiroom.updateZone")
-                    : t("multiroom.createZone")}
-              </span>
-            </button>
-            {editingZone && (
-              <button className="zone-action-button" onClick={cancelEdit}>
-                {t("multiroom.cancel")}
+            <div className="mr-bar-actions">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleCreateZone}
+                disabled={selectedDevices.length < 2 || operationLoading}
+                aria-busy={operationLoading || undefined}
+              >
+                {operationLoading ? (
+                  <span className="ui-spin">{Icon.Loader(18)}</span>
+                ) : (
+                  Icon.Plus(18)
+                )}
+                <span>
+                  {operationLoading
+                    ? t("multiroom.creating")
+                    : editingZone
+                      ? t("multiroom.updateZone")
+                      : t("multiroom.createZone")}
+                </span>
               </button>
-            )}
+              {editingZone && (
+                <button type="button" className="btn btn-secondary" onClick={cancelEdit}>
+                  {t("multiroom.cancel")}
+                </button>
+              )}
+            </div>
           </motion.div>
         )}
       </motion.section>
 
       {/* Info Box */}
-      <motion.div
-        className="info-box"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-      >
-        <div className="info-icon">ℹ️</div>
-        <div className="info-content">
-          <h4 className="info-title">{t("multiroom.infoTitle")}</h4>
-          <ul className="info-list">
+      <motion.div className="wz-status mr-info" initial={{ y: 8 }} animate={{ y: 0 }} transition={{ delay: 0.4 }}>
+        <span className="wz-icon" aria-hidden="true">
+          {Icon.Info(24)}
+        </span>
+        <div className="wz-status-body">
+          <h2 className="mr-info-title">{t("multiroom.infoTitle")}</h2>
+          <ul className="mr-info-list">
             <li>{t("multiroom.infoItem1")}</li>
             <li>{t("multiroom.infoItem2")}</li>
             <li>{t("multiroom.infoItem3")}</li>
@@ -476,6 +539,22 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
           </ul>
         </div>
       </motion.div>
+
+      {/* Confirm Dissolve Dialog */}
+      <ConfirmDialog
+        open={dissolving !== null}
+        title={t("multiroom.confirmDissolveTitle")}
+        message={t("multiroom.confirmDissolveMessage", { name: dissolving?.name })}
+        confirmLabel={t("multiroom.dissolve")}
+        cancelLabel={t("multiroom.cancel")}
+        destructive
+        onConfirm={() => {
+          const masterId = dissolving?.masterId;
+          setDissolving(null);
+          if (masterId) handleDissolveZone(masterId);
+        }}
+        onCancel={() => setDissolving(null)}
+      />
     </div>
   );
 }
