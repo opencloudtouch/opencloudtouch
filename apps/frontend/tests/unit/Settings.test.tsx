@@ -4,11 +4,6 @@ import Settings from "../../src/pages/Settings";
 import { QueryWrapper } from "../utils/reactQueryTestUtils";
 import { ToastProvider } from "../../src/contexts/ToastContext";
 
-// Mock AboutSection to avoid extra fetch calls (health + devices) in Settings tests
-vi.mock("../../src/components/AboutSection", () => ({
-  default: () => null,
-}));
-
 // Create typed mock for fetch
 let mockFetch: Mock;
 
