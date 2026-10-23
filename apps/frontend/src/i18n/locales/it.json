@@ -892,7 +892,8 @@
   "deviceHeader": {
     "reboot": "Riavvia il dispositivo",
     "sent": "Comando di riavvio inviato",
-    "confirmMessage": "Riavviare {{name}}? Il dispositivo non sarà disponibile per circa 100 secondi."
+    "confirmMessage": "Riavviare {{name}}? Il dispositivo non sarà disponibile per circa 100 secondi.",
+    "backToDevice": "Torna a {{name}}"
   },
   "a11y": {
     "skipToContent": "Vai al contenuto",

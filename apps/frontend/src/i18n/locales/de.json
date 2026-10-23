@@ -892,7 +892,8 @@
   "deviceHeader": {
     "reboot": "Gerät neu starten",
     "sent": "Neustart-Befehl gesendet",
-    "confirmMessage": "{{name}} neu starten? Das Gerät ist für ca. 100 Sekunden nicht erreichbar."
+    "confirmMessage": "{{name}} neu starten? Das Gerät ist für ca. 100 Sekunden nicht erreichbar.",
+    "backToDevice": "Zurück zu {{name}}"
   },
   "a11y": {
     "skipToContent": "Zum Inhalt springen",

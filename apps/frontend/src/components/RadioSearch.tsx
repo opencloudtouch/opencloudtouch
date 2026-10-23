@@ -532,13 +532,10 @@ export default function RadioSearch({
                 className="ui-chip"
                 aria-pressed={searchMode === "manual"}
                 onClick={() => {
+                  // Keep the query and its results: switching back to a provider shows them again
                   setSearchMode("manual");
-                  setQuery("");
-                  setResults([]);
                   setError(null);
                   setDetailUuid(null);
-                  setOffset(0);
-                  setHasMore(false);
                 }}
               >
                 {t("presets.manualStreamMode")}

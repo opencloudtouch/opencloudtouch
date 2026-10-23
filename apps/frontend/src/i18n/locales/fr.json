@@ -892,7 +892,8 @@
   "deviceHeader": {
     "reboot": "Redémarrer l'appareil",
     "sent": "Commande de redémarrage envoyée",
-    "confirmMessage": "Redémarrer {{name}} ? L'appareil sera indisponible pendant environ 100 secondes."
+    "confirmMessage": "Redémarrer {{name}} ? L'appareil sera indisponible pendant environ 100 secondes.",
+    "backToDevice": "Retour à {{name}}"
   },
   "a11y": {
     "skipToContent": "Aller au contenu",

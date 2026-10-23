@@ -892,7 +892,8 @@
   "deviceHeader": {
     "reboot": "Starta om enheten",
     "sent": "Omstartskommando skickat",
-    "confirmMessage": "Starta om {{name}}? Enheten kommer att vara otillgänglig i ungefär 100 sekunder."
+    "confirmMessage": "Starta om {{name}}? Enheten kommer att vara otillgänglig i ungefär 100 sekunder.",
+    "backToDevice": "Tillbaka till {{name}}"
   },
   "a11y": {
     "skipToContent": "Hoppa till innehåll",

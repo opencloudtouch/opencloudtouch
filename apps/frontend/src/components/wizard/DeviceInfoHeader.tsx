@@ -1,5 +1,6 @@
 /** Device Info Header: logic unchanged, markup restyled. File: components/wizard/DeviceInfoHeader.tsx */
 import { useState } from "react";
+import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Device, rebootDevice } from "../../api/devices";
 import ConfirmDialog from "../ConfirmDialog";
@@ -30,7 +31,14 @@ export default function DeviceInfoHeader({ device }: DeviceInfoHeaderProps) {
   return (
     <div className="device-info-header">
       <div className="device-info-main">
-        <div className="device-icon">{Icon.Speaker()}</div>
+        <Link
+          className="device-icon"
+          to={`/?device=${device.device_id}`}
+          aria-label={t("deviceHeader.backToDevice", { name: device.name || device.device_id })}
+          title={t("deviceHeader.backToDevice", { name: device.name || device.device_id })}
+        >
+          {Icon.Speaker()}
+        </Link>
         <div className="device-details">
           <h2 className="device-name">{device.name || device.device_id}</h2>
           <div className="device-meta">

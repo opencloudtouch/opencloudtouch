@@ -892,7 +892,8 @@
   "deviceHeader": {
     "reboot": "Reboot device",
     "sent": "Reboot command sent",
-    "confirmMessage": "Reboot {{name}}? The device will be unavailable for about 100 seconds."
+    "confirmMessage": "Reboot {{name}}? The device will be unavailable for about 100 seconds.",
+    "backToDevice": "Back to {{name}}"
   },
   "a11y": {
     "skipToContent": "Skip to content",

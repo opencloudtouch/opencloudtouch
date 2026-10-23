@@ -892,7 +892,8 @@
   "deviceHeader": {
     "reboot": "Reiniciar dispositivo",
     "sent": "Comando de reinicialização enviado",
-    "confirmMessage": "Reiniciar {{name}}? O dispositivo ficará indisponível por cerca de 100 segundos."
+    "confirmMessage": "Reiniciar {{name}}? O dispositivo ficará indisponível por cerca de 100 segundos.",
+    "backToDevice": "Voltar para {{name}}"
   },
   "a11y": {
     "skipToContent": "Ir para o conteúdo",

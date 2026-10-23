@@ -892,7 +892,8 @@
   "deviceHeader": {
     "reboot": "デバイスを再起動",
     "sent": "再起動コマンドを送信しました",
-    "confirmMessage": "{{name}}を再起動しますか？デバイスは約100秒間使用できなくなります。"
+    "confirmMessage": "{{name}}を再起動しますか？デバイスは約100秒間使用できなくなります。",
+    "backToDevice": "{{name}} に戻る"
   },
   "a11y": {
     "skipToContent": "メインコンテンツへ移動",

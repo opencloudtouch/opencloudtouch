@@ -7,6 +7,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Device } from "../api/devices";
 import {
@@ -43,6 +44,16 @@ interface SetupWizardProps {
 
 export default function SetupWizard({ devices, isLoading = false }: SetupWizardProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // The wizard changes setup_status in the backend: refresh the device list as soon as the wizard is left,
+  // so the status badge on the Presets page is current without a page reload.
+  useEffect(
+    () => () => {
+      void queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
+    [queryClient]
+  );
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
 
@@ -244,6 +255,7 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
     if (selectedDevice) {
       try {
         await completeWizard({ device_id: selectedDevice.device_id });
+        void queryClient.invalidateQueries({ queryKey: ["devices"] });
       } catch (err) {
         console.error("Failed to mark setup as complete:", err);
       }

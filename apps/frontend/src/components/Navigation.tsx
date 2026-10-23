@@ -7,7 +7,8 @@ import "./Navigation.css";
 export default function Navigation() {
   const [searchParams] = useSearchParams();
   const { t } = useTranslation();
-  const deviceParam = searchParams.get("device");
+  // The wizard uses ?deviceId=, all other pages ?device=
+  const deviceParam = searchParams.get("device") ?? searchParams.get("deviceId");
 
   // Preserve device parameter across all navigation
   const withDevice = (path: string) => {

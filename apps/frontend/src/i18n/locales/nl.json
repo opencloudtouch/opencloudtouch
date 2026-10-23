@@ -892,7 +892,8 @@
   "deviceHeader": {
     "reboot": "Apparaat herstarten",
     "sent": "Herstartopdracht verzonden",
-    "confirmMessage": "{{name}} herstarten? Het apparaat is ongeveer 100 seconden niet beschikbaar."
+    "confirmMessage": "{{name}} herstarten? Het apparaat is ongeveer 100 seconden niet beschikbaar.",
+    "backToDevice": "Terug naar {{name}}"
   },
   "a11y": {
     "skipToContent": "Ga naar inhoud",

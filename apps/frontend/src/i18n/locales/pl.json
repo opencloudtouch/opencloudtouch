@@ -892,7 +892,8 @@
   "deviceHeader": {
     "reboot": "Uruchom ponownie urządzenie",
     "sent": "Polecenie restartu wysłane",
-    "confirmMessage": "Uruchomić ponownie {{name}}? Urządzenie będzie niedostępne przez około 100 sekund."
+    "confirmMessage": "Uruchomić ponownie {{name}}? Urządzenie będzie niedostępne przez około 100 sekund.",
+    "backToDevice": "Wróć do: {{name}}"
   },
   "a11y": {
     "skipToContent": "Przejdź do treści",

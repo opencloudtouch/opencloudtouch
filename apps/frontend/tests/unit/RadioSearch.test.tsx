@@ -91,6 +91,21 @@ describe("RadioSearch Component", () => {
     expect(screen.getByRole("button", { name: "Close search" })).toBeInTheDocument();
   });
 
+  it("keeps the search text when switching to the stream URL and back to a provider", () => {
+    render(
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
+
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio…");
+    fireEvent.change(searchInput, { target: { value: "rock" } });
+
+    fireEvent.click(document.querySelector('[data-test="manual-stream-mode"]')!);
+    expect(screen.getByPlaceholderText("Enter stream URL...")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("RadioBrowser"));
+    expect(screen.getByPlaceholderText("e.g. SWR3, BBC Radio…")).toHaveValue("rock");
+  });
+
   it("renders search type chips", () => {
     render(
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
