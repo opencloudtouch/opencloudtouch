@@ -782,7 +782,6 @@
     "support": "Unterstützen",
     "reportBug": "Problem melden",
     "diagnostics": "Diagnose",
-    "buildTime": "Erstellt am {{time}}",
     "checkingUpdates": "Suche nach Updates...",
     "updateAvailable": "Update verfügbar: {{version}}",
     "viewRelease": "Release ansehen",
@@ -806,7 +805,8 @@
     "licenseApache": "Apache License 2.0",
     "trademarkTitle": "Markenhinweis",
     "trademarkText1": "OpenCloudTouch steht in <0>keiner Verbindung zur Bose Corporation</0>. Bose® und SoundTouch® sind eingetragene Marken der Bose Corporation.",
-    "trademarkText2": "Diese Software nutzt die öffentlich dokumentierten lokalen Schnittstellen von Bose-SoundTouch®-Geräten. Details stehen in der <0>TRADEMARK.md</0>."
+    "trademarkText2": "Diese Software nutzt die öffentlich dokumentierten lokalen Schnittstellen von Bose-SoundTouch®-Geräten. Details stehen in der <0>TRADEMARK.md</0>.",
+    "runningSince": "Läuft seit {{time}}"
   },
   "discovery": {
     "alreadyRunning": "Gerätesuche läuft bereits. Bitte warten...",

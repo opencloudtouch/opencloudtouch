@@ -4,6 +4,7 @@ Iteration 0: Basic setup with /health endpoint
 """
 
 import logging
+import time
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -436,6 +437,10 @@ app.include_router(wizard_audit_router)  # Wizard audit trail
 app.include_router(event_router)  # SSE device event stream
 
 
+# Monotonic start of the process: /health reports the seconds since then (the About page shows "running since")
+_STARTED_AT = time.monotonic()
+
+
 # Health endpoint
 @app.get("/health", tags=["System"])
 async def health_check(request: Request):
@@ -452,6 +457,7 @@ async def health_check(request: Request):
             "service": "opencloudtouch",
             "version": __version__,
             "build": "official" if is_official_build() else "community",
+            "uptime": int(time.monotonic() - _STARTED_AT),
             "config": {
                 "discovery_enabled": cfg.discovery_enabled,
             },

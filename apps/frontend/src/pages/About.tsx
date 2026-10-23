@@ -178,9 +178,9 @@ export default function About() {
             <span className="ui-badge ui-badge--info ui-badge--large">v{health.version}</span>
           )}
         </div>
-        {/* stays optional; /health sends no uptime yet (#521), so nothing is rendered today */}
+        {/* /health sends the seconds since server start; older servers do not, then nothing is rendered */}
         {!healthLoading && health?.uptime && (
-          <p className="ui-small ab-build-time">{t("about.buildTime", { time: startTime })}</p>
+          <p className="ui-small ab-build-time">{t("about.runningSince", { time: startTime })}</p>
         )}
       </header>
 

@@ -782,7 +782,6 @@
     "support": "サポート",
     "reportBug": "バグ報告",
     "diagnostics": "診断",
-    "buildTime": "ビルド日時：{{time}}",
     "checkingUpdates": "アップデート確認中...",
     "updateAvailable": "アップデート可能：{{version}}",
     "viewRelease": "リリースを表示",
@@ -806,7 +805,8 @@
     "licenseApache": "Apache License 2.0",
     "trademarkTitle": "商標に関する注意",
     "trademarkText1": "OpenCloudTouch は <0>Bose Corporation とは無関係</0>です。Bose® および SoundTouch® は Bose Corporation の登録商標です。",
-    "trademarkText2": "このソフトウェアは、Bose SoundTouch® デバイスの公開されているローカルAPIを利用しています。詳細は <0>TRADEMARK.md</0> をご覧ください。"
+    "trademarkText2": "このソフトウェアは、Bose SoundTouch® デバイスの公開されているローカルAPIを利用しています。詳細は <0>TRADEMARK.md</0> をご覧ください。",
+    "runningSince": "{{time}} から稼働中"
   },
   "discovery": {
     "alreadyRunning": "デバイス検索はすでに実行中です。お待ちください...",
