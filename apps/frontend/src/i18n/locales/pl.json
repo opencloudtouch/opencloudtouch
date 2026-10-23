@@ -43,7 +43,20 @@
     "manageZone": "Zarządzaj strefą",
     "multiRoom": "Wiele pomieszczeń",
     "prevDevice": "Poprzednie urządzenie",
-    "nextDevice": "Następne urządzenie"
+    "nextDevice": "Następne urządzenie",
+    "source": {
+      "bluetooth": "Bluetooth",
+      "radio": "Radio",
+      "aux": "AUX",
+      "airplay": "AirPlay",
+      "dlna": "DLNA",
+      "tv": "TV / HDMI",
+      "spotify": "Spotify",
+      "deezer": "Deezer",
+      "pandora": "Pandora",
+      "amazon": "Amazon Music",
+      "storedMusic": "Biblioteka multimediów"
+    }
   },
   "presets": {
     "pageTitle": "Presety radiowe",
@@ -62,8 +75,8 @@
     "infoTitle": "Informacje o presetach",
     "infoItem1": "Kliknij pusty preset, aby przypisać stację",
     "infoItem2": "Kliknij przypisaną stację, aby ją zmienić lub usunąć",
-    "infoItem3": "Zielony przycisk ► odtwarza stację bezpośrednio",
-    "infoItem5": "⚙️ otwiera kreator konfiguracji urządzenia",
+    "infoItem3": "Przycisk odtwarzania po prawej stronie presetu od razu odtwarza stację",
+    "infoItem5": "Ikona stanu w prawym górnym rogu karty urządzenia otwiera kreator konfiguracji urządzenia",
     "infoItem6": "\"Załaduj z urządzenia\" synchronizuje presety z SoundTouch",
     "changeStation": "Kliknij, aby zmienić stację",
     "assignPreset": "Przypisz preset",
@@ -105,7 +118,15 @@
     "manualStreamErrorTitle": "Błąd strumienia",
     "manualStreamUnreachable": "Adres URL strumienia jest nieosiągalny.",
     "manualStreamSaveFailed": "Nie udało się zapisać stacji.",
-    "manualStreamErrorOk": "OK"
+    "manualStreamErrorOk": "OK",
+    "unknownDevice": "Nieznane urządzenie",
+    "unknownModel": "Nieznany model",
+    "unknownIp": "Nieznany adres IP",
+    "searchHint": "Wpisz co najmniej 2 znaki, aby wyszukać.",
+    "manualInvalidUrl": "Wpisz prawidłowy adres HTTP lub HTTPS.",
+    "searchTypeGroup": "Szukaj według",
+    "providerGroup": "Źródło",
+    "searchResults": "Wyniki wyszukiwania"
   },
   "settings": {
     "title": "Ustawienia",
@@ -153,7 +174,9 @@
     "saveError": "Błąd podczas zapisywania adresów IP",
     "save": "Zapisz",
     "saving": "Zapisywanie...",
-    "hint": "Adres IP znajdziesz w powiązanej aplikacji w Ustawienia → Informacje lub w swoim routerze."
+    "hint": "Adres IP znajdziesz w powiązanej aplikacji w Ustawienia → Informacje lub w swoim routerze.",
+    "placeholder": "Przykład:\n192.168.1.100\n192.168.1.101\n192.168.1.102",
+    "saved": "Zapisano adresy IP!"
   },
   "multiroom": {
     "pageTitle": "Strefy wielopomieszczeniowe",
@@ -785,7 +808,8 @@
     "helpFirewall": "Reguły zapory mogą blokować wykrywanie urządzeń",
     "helpRestart": "Uruchom ponownie urządzenia i OpenCloudTouch",
     "helpManualAdd": "Dodaj ręcznie adresy IP urządzeń",
-    "helpSetupWizard": "Postępuj zgodnie z kreatorem konfiguracji, aby uzyskać instrukcje krok po kroku"
+    "helpSetupWizard": "Postępuj zgodnie z kreatorem konfiguracji, aby uzyskać instrukcje krok po kroku",
+    "deviceSaved": "Zapisano"
   },
   "setupBadge": {
     "unknown": "Skonfiguruj urządzenie",
@@ -868,5 +892,10 @@
     "volume": "Głośność",
     "copyCommand": "Kopiuj polecenie",
     "copyToClipboard": "Kopiuj do schowka"
+  },
+  "stationDetail": {
+    "codec": "Kodek",
+    "bitrate": "Przepływność",
+    "homepage": "Strona internetowa"
   }
 }

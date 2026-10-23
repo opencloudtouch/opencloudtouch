@@ -43,7 +43,20 @@
     "manageZone": "ゾーンを管理",
     "multiRoom": "マルチルーム",
     "prevDevice": "前のデバイス",
-    "nextDevice": "次のデバイス"
+    "nextDevice": "次のデバイス",
+    "source": {
+      "bluetooth": "Bluetooth",
+      "radio": "ラジオ",
+      "aux": "AUX",
+      "airplay": "AirPlay",
+      "dlna": "DLNA",
+      "tv": "テレビ / HDMI",
+      "spotify": "Spotify",
+      "deezer": "Deezer",
+      "pandora": "Pandora",
+      "amazon": "Amazon Music",
+      "storedMusic": "メディアライブラリ"
+    }
   },
   "presets": {
     "pageTitle": "ラジオプリセット",
@@ -62,8 +75,8 @@
     "infoTitle": "プリセットについて",
     "infoItem1": "空のプリセットをクリックしてステーションを割り当てる",
     "infoItem2": "割り当て済みのステーションをクリックして変更または削除する",
-    "infoItem3": "緑色の ► ボタンでステーションを直接再生",
-    "infoItem5": "⚙️ デバイスのセットアップウィザードを開く",
+    "infoItem3": "プリセット右側の再生ボタンで放送局を直接再生します",
+    "infoItem5": "デバイスカード右上のステータスアイコンで、そのデバイスのセットアップウィザードを開きます",
     "infoItem6": "「デバイスから読み込む」でSoundTouchからプリセットを同期",
     "changeStation": "クリックしてステーションを変更",
     "assignPreset": "プリセットを割り当て",
@@ -105,7 +118,15 @@
     "manualStreamErrorTitle": "ストリームエラー",
     "manualStreamUnreachable": "ストリームURLにアクセスできません。",
     "manualStreamSaveFailed": "局を保存できませんでした。",
-    "manualStreamErrorOk": "OK"
+    "manualStreamErrorOk": "OK",
+    "unknownDevice": "不明なデバイス",
+    "unknownModel": "不明なモデル",
+    "unknownIp": "不明なIP",
+    "searchHint": "2文字以上入力して検索してください。",
+    "manualInvalidUrl": "有効なHTTPまたはHTTPSアドレスを入力してください。",
+    "searchTypeGroup": "検索対象",
+    "providerGroup": "ソース",
+    "searchResults": "検索結果"
   },
   "settings": {
     "title": "設定",
@@ -153,7 +174,9 @@
     "saveError": "IPアドレスの保存エラー",
     "save": "保存",
     "saving": "保存中...",
-    "hint": "IPアドレスは関連アプリの設定→情報、またはルーターで確認できます。"
+    "hint": "IPアドレスは関連アプリの設定→情報、またはルーターで確認できます。",
+    "placeholder": "例:\n192.168.1.100\n192.168.1.101\n192.168.1.102",
+    "saved": "IPアドレスを保存しました!"
   },
   "multiroom": {
     "pageTitle": "マルチルームゾーン",
@@ -785,7 +808,8 @@
     "helpFirewall": "ファイアウォールルールがデバイス検出をブロックしている可能性があります",
     "helpRestart": "デバイスとOpenCloudTouchを再起動する",
     "helpManualAdd": "デバイスIPを手動で追加する",
-    "helpSetupWizard": "ステップバイステップの手順についてはセットアップウィザードに従ってください"
+    "helpSetupWizard": "ステップバイステップの手順についてはセットアップウィザードに従ってください",
+    "deviceSaved": "保存済み"
   },
   "setupBadge": {
     "unknown": "デバイスをセットアップ",
@@ -868,5 +892,10 @@
     "volume": "音量",
     "copyCommand": "コマンドをコピー",
     "copyToClipboard": "クリップボードにコピー"
+  },
+  "stationDetail": {
+    "codec": "コーデック",
+    "bitrate": "ビットレート",
+    "homepage": "ホームページ"
   }
 }

@@ -12,6 +12,7 @@ import RadioSearch, { RadioStation } from "../components/RadioSearch";
 import VolumeSlider from "../components/VolumeSlider";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { PresetSkeleton } from "../components/LoadingSkeleton";
+import { Icon } from "../components/Icon";
 import {
   playPreset as playPresetAPI,
   togglePlayPause,
@@ -182,27 +183,33 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
 
   if (devices.length === 0) {
     return (
-      <div className="empty-container">
-        <p className="empty-message">{t("presets.noDevices")}</p>
+      <div className="rp rp--empty">
+        <h1 className="visually-hidden">{t("presets.pageTitle")}</h1>
+        <div className="ui-state">
+          <div className="ui-state-icon" aria-hidden="true">
+            {Icon.Radio(32)}
+          </div>
+          <p>{t("presets.noDevices")}</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="page radio-presets-page">
-      <h1 className="page-title">{t("presets.pageTitle")}</h1>
+    <div className="rp">
+      <h1 className="rp-title">{t("presets.pageTitle")}</h1>
 
       {/* Swipeable Device Cards */}
-      <DeviceSwiper
-        devices={devices}
-        currentIndex={currentDeviceIndex}
-        onIndexChange={handleDeviceChange}
-      >
-        <div className="device-card" data-test="device-card">
-          <div className="device-card-header">
-            <div className="device-header-left">
+      <div className="rp-device">
+        <DeviceSwiper
+          devices={devices}
+          currentIndex={currentDeviceIndex}
+          onIndexChange={handleDeviceChange}
+        >
+          <div className="rp-card" data-test="device-card">
+            <div className="rp-card-head">
               <button
-                className={`power-header-btn ${isStandby ? "off" : "on"}`}
+                className={`rp-power ${isStandby ? "rp-power--off" : "rp-power--on"}`}
                 onClick={async () => {
                   if (!currentDevice?.device_id || powerLoading || deviceOffline) return;
                   setPowerLoading(true);
@@ -220,92 +227,97 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
                 }}
                 disabled={powerLoading || deviceOffline}
                 aria-label={t("player.powerButton")}
+                aria-pressed={!isStandby}
+                aria-busy={powerLoading}
                 title={t("player.powerButton")}
               >
-                {powerLoading ? "⏳" : "⏻"}
+                {powerLoading ? <span className="ui-spin">{Icon.Loader(22)}</span> : Icon.Power(22)}
               </button>
+              <div className="rp-device-info">
+                {currentDevice ? (
+                  <DeviceNameEditor deviceId={currentDevice.device_id} name={currentDevice.name} />
+                ) : (
+                  <h2 className="rp-device-name" data-test="device-name">
+                    {t("presets.unknownDevice")}
+                  </h2>
+                )}
+                <span className="rp-device-model" data-test="device-model">
+                  {currentDevice?.model || t("presets.unknownModel")}
+                </span>
+                <span className="rp-device-ip" data-test="device-ip">
+                  {currentDevice?.ip || t("presets.unknownIp")}
+                </span>
+              </div>
+              <div className="rp-card-badge">
+                {currentDevice && (
+                  <SetupBadge
+                    deviceId={currentDevice.device_id}
+                    setupStatus={currentDevice.setup_status}
+                  />
+                )}
+              </div>
             </div>
-            <div className="device-info">
-              {currentDevice ? (
-                <DeviceNameEditor deviceId={currentDevice.device_id} name={currentDevice.name} />
-              ) : (
-                <h2 className="device-name" data-test="device-name">
-                  Unknown Device
-                </h2>
-              )}
-              <span className="device-model" data-test="device-model">
-                {currentDevice?.model || "Unknown Model"}
-              </span>
-              <span className="device-ip" data-test="device-ip">
-                {currentDevice?.ip || "Unknown IP"}
-              </span>
-            </div>
-            <div className="device-header-right">
-              {currentDevice && (
-                <SetupBadge
-                  deviceId={currentDevice.device_id}
-                  setupStatus={currentDevice.setup_status}
-                />
-              )}
-            </div>
-          </div>
 
-          {/* Device Offline Banner */}
-          {deviceOffline && (
-            <>
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <DeviceOfflineBanner deviceName={currentDevice?.name} />
-              </motion.div>
-              <button className="btn btn-secondary" onClick={deleteCurrentDevice}>
-                {t("presets.deleteDevice")}
-              </button>
-            </>
-          )}
+            {/* Device Offline Banner */}
+            {deviceOffline && (
+              <>
+                <motion.div
+                  initial={{ y: -10 }}
+                  animate={{ y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <DeviceOfflineBanner deviceName={currentDevice?.name} />
+                </motion.div>
+                <button className="btn btn-secondary rp-remove" onClick={deleteCurrentDevice}>
+                  {Icon.Trash(18)} {t("presets.deleteDevice")}
+                </button>
+              </>
+            )}
 
-          {!deviceOffline && (
-            <NowPlaying
-              nowPlaying={nowPlaying}
-              onPlayPause={
-                currentDevice
-                  ? async () => {
-                      if (isStandby) {
-                        await power(currentDevice.device_id);
-                        await refreshNowPlaying();
-                      } else {
-                        await togglePlayPause(currentDevice.device_id);
+            {!deviceOffline && (
+              <NowPlaying
+                nowPlaying={nowPlaying}
+                onPlayPause={
+                  currentDevice
+                    ? async () => {
+                        if (isStandby) {
+                          await power(currentDevice.device_id);
+                          await refreshNowPlaying();
+                        } else {
+                          await togglePlayPause(currentDevice.device_id);
+                        }
                       }
-                    }
-                  : undefined
-              }
-            />
-          )}
+                    : undefined
+                }
+              />
+            )}
 
-          {!deviceOffline && (
-            <VolumeSlider
-              volume={volume}
-              onVolumeChange={setDeviceVolume}
-              muted={muted}
-              onMuteToggle={toggleMute}
-            />
-          )}
-        </div>
-      </DeviceSwiper>
+            {!deviceOffline && (
+              <VolumeSlider
+                volume={volume}
+                onVolumeChange={setDeviceVolume}
+                muted={muted}
+                onMuteToggle={toggleMute}
+              />
+            )}
+          </div>
+        </DeviceSwiper>
+      </div>
 
       {/* Presets for Current Device */}
-      <div className="presets-section">
-        <div className="section-header">
-          <h2 className="section-title">{t("presets.savedStations")}</h2>
+      <section className="rp-presets" aria-labelledby="rp-presets-title">
+        <div className="ui-section-header">
+          <h2 id="rp-presets-title" className="ui-h2">
+            {t("presets.savedStations")}
+          </h2>
           <button
-            className="sync-button"
+            className="btn btn-secondary rp-sync"
             onClick={handleSyncPresets}
             disabled={syncing || loading || deviceOffline}
+            aria-busy={syncing}
             title={deviceOffline ? t("presets.deviceOffline") : t("presets.syncFromDeviceTitle")}
           >
-            <span className="sync-icon">{syncing ? "\u23f3" : "\ud83d\udd04"}</span>
+            <span className={syncing ? "ui-spin" : undefined}>{Icon.RefreshCw(18)}</span>
             <span>
               {syncing ? t("presets.syncFromDeviceSyncing") : t("presets.syncFromDevice")}
             </span>
@@ -314,20 +326,34 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
 
         {/* Error Message */}
         {error && !deviceOffline && (
-          <div className="error-message" data-testid="error-message">
-            <p>{error}</p>
-            <button onClick={clearError} aria-label={t("common.close")}>
-              ✕
+          <div className="wz-status wz-status--error" role="alert" data-testid="error-message">
+            <span className="wz-icon" aria-hidden="true">
+              {Icon.CircleX(20)}
+            </span>
+            <div className="wz-status-body">
+              <p>{error}</p>
+            </div>
+            <button className="ui-alert-close" onClick={clearError} aria-label={t("common.close")}>
+              {Icon.X(18)}
             </button>
           </div>
         )}
 
         {/* Play Error Message */}
         {playError && (
-          <div className="error-message" data-testid="play-error-message">
-            <p>{playError}</p>
-            <button onClick={() => setPlayError(null)} aria-label={t("common.close")}>
-              ✕
+          <div className="wz-status wz-status--error" role="alert" data-testid="play-error-message">
+            <span className="wz-icon" aria-hidden="true">
+              {Icon.CircleX(20)}
+            </span>
+            <div className="wz-status-body">
+              <p>{playError}</p>
+            </div>
+            <button
+              className="ui-alert-close"
+              onClick={() => setPlayError(null)}
+              aria-label={t("common.close")}
+            >
+              {Icon.X(18)}
             </button>
           </div>
         )}
@@ -335,16 +361,17 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
         {/* Loading Indicator / Skeleton — REFACT-112 */}
         {loading && (
           <div
-            className="loading-indicator"
+            className="rp-loading"
             data-testid="loading-indicator"
             role="status"
             aria-live="polite"
           >
-            Lädt...
+            <span className="spinner-small rp-loading-spinner" aria-hidden="true" />
+            {t("common.loading")}
           </div>
         )}
 
-        <div className="presets-grid">
+        <div className="rp-grid">
           {loading && !deviceOffline
             ? // REFACT-112: Skeleton placeholders reduce CLS (layout shift)
               [1, 2, 3, 4, 5, 6].map((num) => <PresetSkeleton key={num} />)
@@ -376,14 +403,18 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
                   />
                 ))}
         </div>
-      </div>
+      </section>
 
       {/* Info Box */}
-      <div className="presets-info-box">
-        <div className="presets-info-icon">ℹ️</div>
-        <div className="presets-info-content">
-          <h3 className="presets-info-title">{t("presets.infoTitle")}</h3>
-          <ul className="presets-info-list">
+      <aside className="wz-status rp-info" aria-labelledby="rp-info-title">
+        <span className="wz-icon" aria-hidden="true">
+          {Icon.Info(22)}
+        </span>
+        <div className="wz-status-body">
+          <h2 id="rp-info-title" className="rp-info-title">
+            {t("presets.infoTitle")}
+          </h2>
+          <ul className="rp-info-list">
             <li>{t("presets.infoItem1")}</li>
             <li>{t("presets.infoItem2")}</li>
             <li>{t("presets.infoItem3")}</li>
@@ -391,7 +422,7 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
             <li>{t("presets.infoItem6")}</li>
           </ul>
         </div>
-      </div>
+      </aside>
 
       {/* Radio Search Modal */}
       <RadioSearch
@@ -426,6 +457,7 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
         message={t("presets.confirmDeleteMessage", { preset: clearingPreset })}
         confirmLabel={t("presets.confirmDelete")}
         cancelLabel={t("common.cancel")}
+        destructive
         onConfirm={handleConfirmClear}
         onCancel={() => setClearingPreset(null)}
       />

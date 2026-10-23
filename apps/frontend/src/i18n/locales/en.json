@@ -43,7 +43,20 @@
     "manageZone": "Manage zone",
     "multiRoom": "Multi-room",
     "prevDevice": "Previous device",
-    "nextDevice": "Next device"
+    "nextDevice": "Next device",
+    "source": {
+      "bluetooth": "Bluetooth",
+      "radio": "Radio",
+      "aux": "AUX",
+      "airplay": "AirPlay",
+      "dlna": "DLNA",
+      "tv": "TV / HDMI",
+      "spotify": "Spotify",
+      "deezer": "Deezer",
+      "pandora": "Pandora",
+      "amazon": "Amazon Music",
+      "storedMusic": "Media library"
+    }
   },
   "presets": {
     "pageTitle": "Radio Presets",
@@ -62,8 +75,8 @@
     "infoTitle": "Preset Notes",
     "infoItem1": "Click an empty preset to assign a station",
     "infoItem2": "Click an assigned station to change or delete it",
-    "infoItem3": "The green ► button plays the station directly",
-    "infoItem5": "⚙️ opens the Setup Wizard for the device",
+    "infoItem3": "The play button on the right of a preset plays the station directly",
+    "infoItem5": "The status icon at the top right of the device card opens the setup wizard for the device",
     "infoItem6": "\"Load from device\" syncs presets from SoundTouch",
     "changeStation": "Click to change station",
     "assignPreset": "Assign preset",
@@ -105,7 +118,15 @@
     "manualStreamErrorTitle": "Stream error",
     "manualStreamUnreachable": "The stream URL is not reachable.",
     "manualStreamSaveFailed": "The station could not be saved.",
-    "manualStreamErrorOk": "OK"
+    "manualStreamErrorOk": "OK",
+    "unknownDevice": "Unknown device",
+    "unknownModel": "Unknown model",
+    "unknownIp": "Unknown IP",
+    "searchHint": "Enter at least 2 characters to search.",
+    "manualInvalidUrl": "Please enter a valid HTTP or HTTPS address.",
+    "searchTypeGroup": "Search by",
+    "providerGroup": "Source",
+    "searchResults": "Search results"
   },
   "settings": {
     "title": "Settings",
@@ -153,7 +174,9 @@
     "saveError": "Error saving IP addresses",
     "save": "Save",
     "saving": "Saving...",
-    "hint": "You can find the IP address in the associated app under Settings → Info or in your router."
+    "hint": "You can find the IP address in the associated app under Settings → Info or in your router.",
+    "placeholder": "Example:\n192.168.1.100\n192.168.1.101\n192.168.1.102",
+    "saved": "IP addresses saved!"
   },
   "multiroom": {
     "pageTitle": "Multi-Room Zones",
@@ -785,7 +808,8 @@
     "helpFirewall": "Firewall rules might block device discovery",
     "helpRestart": "Restart the devices and OpenCloudTouch",
     "helpManualAdd": "Add device IPs manually",
-    "helpSetupWizard": "Follow the Setup Wizard for step-by-step instructions"
+    "helpSetupWizard": "Follow the Setup Wizard for step-by-step instructions",
+    "deviceSaved": "Saved"
   },
   "setupBadge": {
     "unknown": "Set up device",
@@ -868,5 +892,10 @@
     "volume": "Volume",
     "copyCommand": "Copy command",
     "copyToClipboard": "Copy to clipboard"
+  },
+  "stationDetail": {
+    "codec": "Codec",
+    "bitrate": "Bitrate",
+    "homepage": "Homepage"
   }
 }

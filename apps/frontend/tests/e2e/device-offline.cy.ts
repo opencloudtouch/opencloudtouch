@@ -98,7 +98,7 @@ describe("Device Offline Display", () => {
       // Banner should include device name (from the device card header)
       cy.get('[data-testid="device-offline-banner"]', { timeout: 10000 })
         .should("be.visible")
-        .find(".offline-detail")
+        .find(".wz-status-text")
         .should("contain.text", "ist offline oder nicht im Netzwerk");
     });
 
@@ -156,7 +156,7 @@ describe("Device Offline Display", () => {
 
       // Device header (name, power button) must remain visible even when offline
       cy.get(".control-card-header").should("be.visible");
-      cy.get(".device-name").should("be.visible");
+      cy.get('[data-test="device-name"]').should("be.visible");
     });
   });
 

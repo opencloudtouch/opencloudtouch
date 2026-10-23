@@ -76,7 +76,7 @@ describe("AboutSection — US1 (P1): Version badge", () => {
     render(<AboutSection />, { wrapper: QueryWrapper });
 
     // Skeleton exists (test-id or role aria-hidden skeleton)
-    const skeleton = document.querySelector(".skeleton");
+    const skeleton = document.querySelector(".ui-skeleton");
     expect(skeleton).toBeInTheDocument();
   });
 
@@ -184,7 +184,7 @@ describe("AboutSection — US2 (P2): Device count & external links", () => {
     const { default: AboutSection } = await import("../../src/components/AboutSection");
     render(<AboutSection />, { wrapper: QueryWrapper });
 
-    const skeletons = document.querySelectorAll(".skeleton");
+    const skeletons = document.querySelectorAll(".ui-skeleton");
     expect(skeletons.length).toBeGreaterThan(0);
   });
 

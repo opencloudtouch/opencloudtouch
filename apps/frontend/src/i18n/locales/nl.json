@@ -43,7 +43,20 @@
     "manageZone": "Zone beheren",
     "multiRoom": "Meerkamers",
     "prevDevice": "Vorig apparaat",
-    "nextDevice": "Volgend apparaat"
+    "nextDevice": "Volgend apparaat",
+    "source": {
+      "bluetooth": "Bluetooth",
+      "radio": "Radio",
+      "aux": "AUX",
+      "airplay": "AirPlay",
+      "dlna": "DLNA",
+      "tv": "TV / HDMI",
+      "spotify": "Spotify",
+      "deezer": "Deezer",
+      "pandora": "Pandora",
+      "amazon": "Amazon Music",
+      "storedMusic": "Mediabibliotheek"
+    }
   },
   "presets": {
     "pageTitle": "Radio Presets",
@@ -62,8 +75,8 @@
     "infoTitle": "Preset notities",
     "infoItem1": "Klik op een lege preset om een station toe te wijzen",
     "infoItem2": "Klik op een toegewezen station om het te wijzigen of te verwijderen",
-    "infoItem3": "De groene ► knop speelt het station direct af",
-    "infoItem5": "⚙️ opent de installatiewizard voor het apparaat",
+    "infoItem3": "De afspeelknop rechts van een preset speelt de zender direct af",
+    "infoItem5": "Het statuspictogram rechtsboven op de apparaatkaart opent de installatiewizard voor het apparaat",
     "infoItem6": "\"Laden van apparaat\" synchroniseert presets van SoundTouch",
     "changeStation": "Klik om station te wijzigen",
     "assignPreset": "Preset toewijzen",
@@ -105,7 +118,15 @@
     "manualStreamErrorTitle": "Streamfout",
     "manualStreamUnreachable": "De stream-URL is niet bereikbaar.",
     "manualStreamSaveFailed": "Het station kon niet worden opgeslagen.",
-    "manualStreamErrorOk": "OK"
+    "manualStreamErrorOk": "OK",
+    "unknownDevice": "Onbekend apparaat",
+    "unknownModel": "Onbekend model",
+    "unknownIp": "Onbekend IP-adres",
+    "searchHint": "Voer minstens 2 tekens in om te zoeken.",
+    "manualInvalidUrl": "Voer een geldig HTTP- of HTTPS-adres in.",
+    "searchTypeGroup": "Zoeken op",
+    "providerGroup": "Bron",
+    "searchResults": "Zoekresultaten"
   },
   "settings": {
     "title": "Instellingen",
@@ -153,7 +174,9 @@
     "saveError": "Fout bij opslaan van IP-adressen",
     "save": "Opslaan",
     "saving": "Opslaan...",
-    "hint": "Het IP-adres staat in de bijbehorende app onder Instellingen → Info of in uw router."
+    "hint": "Het IP-adres staat in de bijbehorende app onder Instellingen → Info of in uw router.",
+    "placeholder": "Voorbeeld:\n192.168.1.100\n192.168.1.101\n192.168.1.102",
+    "saved": "IP-adressen opgeslagen!"
   },
   "multiroom": {
     "pageTitle": "Meerkamers zones",
@@ -785,7 +808,8 @@
     "helpFirewall": "Firewallregels kunnen apparaatdetectie blokkeren",
     "helpRestart": "Herstart de apparaten en OpenCloudTouch",
     "helpManualAdd": "Voeg apparaat-IPs handmatig toe",
-    "helpSetupWizard": "Volg de installatiewizard voor stapsgewijze instructies"
+    "helpSetupWizard": "Volg de installatiewizard voor stapsgewijze instructies",
+    "deviceSaved": "Opgeslagen"
   },
   "setupBadge": {
     "unknown": "Apparaat instellen",
@@ -868,5 +892,10 @@
     "volume": "Volume",
     "copyCommand": "Opdracht kopiëren",
     "copyToClipboard": "Naar klembord kopiëren"
+  },
+  "stationDetail": {
+    "codec": "Codec",
+    "bitrate": "Bitrate",
+    "homepage": "Website"
   }
 }

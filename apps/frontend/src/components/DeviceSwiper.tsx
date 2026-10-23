@@ -2,6 +2,7 @@ import { useState, ReactNode } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import type { Device } from "../api/devices";
+import { Icon } from "./Icon";
 import "./DeviceSwiper.css";
 
 export type { Device } from "../api/devices";
@@ -74,54 +75,30 @@ export default function DeviceSwiper({
   };
 
   return (
-    <div className="device-swiper" data-test="device-swiper">
-      {/* Navigation Arrows */}
+    <div className="ds" data-test="device-swiper">
+      {/* Navigation Arrows (desktop: left/right of the card; phones <= 480px: in the dots row) */}
       <button
-        className="swipe-arrow swipe-arrow-left"
+        className="ds-arrow ds-arrow--prev"
         onClick={goToPrevious}
         disabled={currentIndex === 0}
         aria-label={t("player.prevDevice")}
         data-test="device-prev"
       >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
+        {Icon.ChevronLeft(24)}
       </button>
 
       <button
-        className="swipe-arrow swipe-arrow-right"
+        className="ds-arrow ds-arrow--next"
         onClick={goToNext}
         disabled={currentIndex === devices.length - 1}
         aria-label={t("player.nextDevice")}
         data-test="device-next"
       >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
+        {Icon.ChevronRight(24)}
       </button>
 
       {/* Swipeable Card Container */}
-      <div className="swiper-container">
+      <div className="ds-viewport">
         <AnimatePresence initial={false} custom={dragDirection} mode="wait">
           <motion.div
             key={currentIndex}
@@ -139,26 +116,26 @@ export default function DeviceSwiper({
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.2}
             onDragEnd={handleDragEnd}
-            className="swiper-card"
+            className="ds-card"
           >
             {children}
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* Dots Indicator */}
-      <div className="swiper-dots" role="tablist" aria-label={t("a11y.deviceSelection")}>
+      {/* Device picker: group of buttons, current one has aria-current (no tab pattern: there is no tab panel) */}
+      <div className="ds-dots" role="group" aria-label={t("a11y.deviceSelection")}>
         {devices.map((device, index) => (
           <button
             key={device.device_id}
-            className={`dot ${index === currentIndex ? "active" : ""}`}
+            className={`ds-dot${index === currentIndex ? " ds-dot--active" : ""}`}
             onClick={() => {
               setDragDirection(index > currentIndex ? 1 : -1);
               onIndexChange(index);
             }}
-            role="tab"
-            aria-selected={index === currentIndex}
+            aria-current={index === currentIndex ? "true" : undefined}
             aria-label={t("a11y.switchToDevice", { name: device.name })}
+            title={device.name}
           />
         ))}
       </div>

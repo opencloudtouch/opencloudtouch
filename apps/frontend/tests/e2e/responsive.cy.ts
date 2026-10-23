@@ -257,7 +257,7 @@ describe("Responsive layout", { retries: 0 }, () => {
         }
         // There is no Next button after a failed restore (onNext is only set on success); Back is available to try again
         cy.get(".wizard-btn-next").should("not.exist");
-        cy.get(".wizard-btn-previous").should("be.visible");
+        cy.get(".wizard-btn-previous").scrollIntoView().should("be.visible");
         settle();
         assertNoLayoutIssues(`restore-partial@${width}`);
         assertWizardFrame(`restore-partial@${width}`);
@@ -357,7 +357,7 @@ describe("Responsive layout", { retries: 0 }, () => {
           assertNoLayoutIssues(`verify-idle@${width}`);
 
           cy.get(".finalize-section .btn").click();
-          cy.get(".reboot-btn").should("be.visible");
+          cy.get(".reboot-btn").scrollIntoView().should("be.visible");
           settle();
           assertNoLayoutIssues(`verify-finalized@${width}`);
 
@@ -367,12 +367,12 @@ describe("Responsive layout", { retries: 0 }, () => {
           assertNoLayoutIssues(`verify-countdown@${width}`);
 
           cy.tick(101000);
-          cy.get(".verification-test-btn").should("be.visible");
+          cy.get(".verification-test-btn").scrollIntoView().should("be.visible");
           settle();
           assertNoLayoutIssues(`verify-start@${width}`);
 
           cy.get(".verification-test-btn").click();
-          cy.get(allPassed ? ".verification-success" : ".verification-failed").should("be.visible");
+          cy.get(allPassed ? ".verification-success" : ".verification-failed").scrollIntoView().should("be.visible");
           settle();
           assertNoLayoutIssues(`verify-results@${width}`);
           assertWizardFrame(`verify@${width}`);

@@ -1,100 +1,13 @@
-/* Volume Slider — A3 DOM-direct, 60fps smooth */
-.volume-slider {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 12px;
-  height: 40px;
-  border-radius: var(--border-radius-md);
-  background-color: var(--color-bg-darker);
-}
-
-.volume-mute {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  min-width: auto;
-  min-height: auto;
-  outline: none;
-  color: var(--color-text-primary);
-}
-
-.volume-mute:hover {
-  opacity: 0.8;
-}
-
-.volume-mute.muted svg path {
-  fill: #cc4444;
-}
-
-/* Track container — full 40px height = touch target */
-.volume-track {
-  flex: 1;
-  position: relative;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  touch-action: none;
-  outline: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.volume-track:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-  border-radius: 2px;
-}
-
-.volume-track.muted {
-  opacity: 0.5;
-}
-
-/* Background rail */
-.volume-track-bg {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 4px;
-  transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
-  pointer-events: none;
-}
-
-/* Colored fill */
-.volume-track-fill {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  height: 4px;
-  transform: translateY(-50%);
-  border-radius: 2px;
-  pointer-events: none;
-  /* NO transition — DOM-direct updates must be instant */
-}
-
-/* Thumb — always visible */
-.volume-thumb {
-  position: absolute;
-  top: 50%;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  /* NO left-transition — kills the hakelig effect */
-  transition: transform 0.1s ease; /* only scale on :active */
-}
-
-.volume-track:active .volume-thumb {
-  transform: translate(-50%, -50%) scale(1.2);
-}
+/* vs-: volume slider. Replaces VolumeSlider.css. The track is a 44px-high touch area around a 6px bar. */
+.vs { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.vs-mute { flex: none; width: var(--touch-target-min); height: var(--touch-target-min); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--color-text-primary); }
+.vs-mute:hover { background: var(--bg-tertiary); }
+.vs-mute.muted { color: var(--danger-text); }
+.vs-track { position: relative; flex: 1; min-width: 0; height: var(--touch-target-min); cursor: pointer; touch-action: none; border-radius: var(--border-radius-sm); }
+.vs-track-bg { position: absolute; left: 0; right: 0; top: 50%; height: 6px; margin-top: -3px; border-radius: 3px; background: #4d4d4d; }
+.vs-track-fill { position: absolute; left: 0; top: 50%; height: 6px; margin-top: -3px; border-radius: 3px; background: #5dade2; }
+.vs-thumb { position: absolute; top: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; background: #fff; border: 2px solid var(--color-bg-darker); box-shadow: var(--shadow-sm); }
+.vs-track:focus-visible .vs-thumb { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.vs-track:focus-visible { outline: none; }
+.vs-value { flex: none; min-width: 3ch; text-align: right; font-size: 14px; font-variant-numeric: tabular-nums; color: var(--color-text-secondary); }
+@media (forced-colors: active) { .vs-track-fill { background: Highlight; } .vs-thumb { background: ButtonText; } }

@@ -1,58 +1,12 @@
-.device-name-editable {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  width: 100%;
-  min-width: 0;
-  padding: 0;
-}
-
-.device-name-text {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: center;
-}
-
-.device-name-edit-icon {
-  font-size: 0.65em;
-  opacity: 0.3;
-  transition: opacity 0.2s ease;
-  flex-shrink: 0;
-}
-
-.device-name-editable:hover .device-name-edit-icon,
-.device-name-editable:focus .device-name-edit-icon {
-  opacity: 1;
-}
-
-.device-name-editor {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.device-name-input {
-  font-size: 1.1rem;
-  font-weight: 600;
-  padding: 0.25rem 0.5rem;
-  border: 2px solid var(--accent-color, #007aff);
-  border-radius: 6px;
-  background: var(--bg-card, #1c1c1e);
-  color: var(--text-primary, #fff);
-  outline: none;
-  width: 100%;
-  max-width: 250px;
-}
-
-.device-name-input:focus {
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3);
-}
-
-.device-name-error {
-  font-size: 0.75rem;
-  color: var(--color-error, #ff453a);
-}
+/* dne-: device name editor. Replaces DeviceNameEditor.css (.device-name, .device-name-editable, .device-name-input, .device-name-error). */
+.dne { min-width: 0; width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.dne-heading { margin: 0; min-width: 0; width: 100%; font-size: inherit; font-weight: inherit; line-height: inherit; }
+.dne-btn { box-sizing: border-box; display: inline-flex; align-items: center; gap: 8px; max-width: 100%; min-height: var(--touch-target-min); padding: 0 8px; margin-left: -8px; border-radius: var(--border-radius-sm); color: var(--color-text-primary); font-weight: var(--font-weight-bold); line-height: 1.2; text-align: left; transition: background var(--motion-base); }
+.dne-btn:hover { background: var(--bg-tertiary); }
+.dne-text { min-width: 0; overflow-wrap: anywhere; }       /* a 40-character name wraps to a second line instead of widening the card */
+.dne-icon { flex: none; display: flex; color: var(--primary-text); }
+.dne-field { position: relative; display: block; }
+.dne-input { font-size: 18px; font-weight: var(--font-weight-bold); padding-right: 40px; }
+.dne-saving { position: absolute; right: 12px; top: 50%; margin-top: -9px; color: var(--primary-text); }
+.dne-error { font-weight: var(--font-weight-normal); }
+@media (prefers-reduced-motion: reduce) { .dne-btn { transition: none; } }

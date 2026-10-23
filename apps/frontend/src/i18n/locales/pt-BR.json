@@ -43,7 +43,20 @@
     "manageZone": "Gerenciar zona",
     "multiRoom": "Multissala",
     "prevDevice": "Dispositivo anterior",
-    "nextDevice": "Próximo dispositivo"
+    "nextDevice": "Próximo dispositivo",
+    "source": {
+      "bluetooth": "Bluetooth",
+      "radio": "Rádio",
+      "aux": "AUX",
+      "airplay": "AirPlay",
+      "dlna": "DLNA",
+      "tv": "TV / HDMI",
+      "spotify": "Spotify",
+      "deezer": "Deezer",
+      "pandora": "Pandora",
+      "amazon": "Amazon Music",
+      "storedMusic": "Biblioteca de mídia"
+    }
   },
   "presets": {
     "pageTitle": "Presets de rádio",
@@ -62,8 +75,8 @@
     "infoTitle": "Notas sobre presets",
     "infoItem1": "Clique em um preset vazio para atribuir uma estação",
     "infoItem2": "Clique em uma estação atribuída para alterá-la ou excluí-la",
-    "infoItem3": "O botão verde ► reproduz a estação diretamente",
-    "infoItem5": "⚙️ abre o assistente de configuração do dispositivo",
+    "infoItem3": "O botão de reprodução à direita do preset toca a estação diretamente",
+    "infoItem5": "O ícone de status no canto superior direito do cartão do dispositivo abre o assistente de configuração do dispositivo",
     "infoItem6": "\"Carregar do dispositivo\" sincroniza os presets do SoundTouch",
     "changeStation": "Clique para mudar a estação",
     "assignPreset": "Atribuir preset",
@@ -105,7 +118,15 @@
     "manualStreamErrorTitle": "Erro de stream",
     "manualStreamUnreachable": "A URL do stream não está acessível.",
     "manualStreamSaveFailed": "Não foi possível salvar a estação.",
-    "manualStreamErrorOk": "OK"
+    "manualStreamErrorOk": "OK",
+    "unknownDevice": "Dispositivo desconhecido",
+    "unknownModel": "Modelo desconhecido",
+    "unknownIp": "IP desconhecido",
+    "searchHint": "Digite pelo menos 2 caracteres para pesquisar.",
+    "manualInvalidUrl": "Digite um endereço HTTP ou HTTPS válido.",
+    "searchTypeGroup": "Pesquisar por",
+    "providerGroup": "Fonte",
+    "searchResults": "Resultados da pesquisa"
   },
   "settings": {
     "title": "Configurações",
@@ -153,7 +174,9 @@
     "saveError": "Erro ao salvar endereços IP",
     "save": "Salvar",
     "saving": "Salvando...",
-    "hint": "O endereço IP pode ser encontrado no aplicativo associado em Configurações → Info ou no seu roteador."
+    "hint": "O endereço IP pode ser encontrado no aplicativo associado em Configurações → Info ou no seu roteador.",
+    "placeholder": "Exemplo:\n192.168.1.100\n192.168.1.101\n192.168.1.102",
+    "saved": "Endereços IP salvos!"
   },
   "multiroom": {
     "pageTitle": "Zonas multissala",
@@ -785,7 +808,8 @@
     "helpFirewall": "Regras de firewall podem bloquear a detecção de dispositivos",
     "helpRestart": "Reinicie os dispositivos e o OpenCloudTouch",
     "helpManualAdd": "Adicione IPs de dispositivos manualmente",
-    "helpSetupWizard": "Siga o assistente de configuração para instruções passo a passo"
+    "helpSetupWizard": "Siga o assistente de configuração para instruções passo a passo",
+    "deviceSaved": "Salvo"
   },
   "setupBadge": {
     "unknown": "Configurar dispositivo",
@@ -868,5 +892,10 @@
     "volume": "Volume",
     "copyCommand": "Copiar comando",
     "copyToClipboard": "Copiar para a área de transferência"
+  },
+  "stationDetail": {
+    "codec": "Codec",
+    "bitrate": "Taxa de bits",
+    "homepage": "Site"
   }
 }

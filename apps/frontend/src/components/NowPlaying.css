@@ -1,221 +1,24 @@
-/* Now Playing - Device Card Display */
-.now-playing {
-  position: relative;
-  background: linear-gradient(135deg, var(--color-bg-card) 0%, rgba(0, 102, 204, 0.1) 100%);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-xl);
-  padding: var(--space-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  height: 100%;
-  box-shadow: var(--shadow-md);
+/* np-: now playing. Replaces NowPlaying.css. Marquee only when the text overflows; otherwise (or with reduced motion) it ellipsizes. */
+.np { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.np--empty { align-items: center; justify-content: center; gap: 8px; min-height: 160px; border: 1px dashed var(--ui-control-border); border-radius: var(--border-radius-md); color: var(--color-text-secondary); }
+.np-empty-icon { display: flex; }
+.np-placeholder { font-size: 15px; color: var(--color-text-secondary); }
+.np-header { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.np-station { flex: 1; min-width: 0; font-size: 15px; font-weight: var(--font-weight-medium); color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.np-art { position: relative; width: 100%; max-width: 300px; margin: 0 auto; aspect-ratio: 1; border-radius: var(--border-radius-md); overflow: hidden; background: var(--bg-tertiary); }
+.np-art img { width: 100%; height: 100%; object-fit: cover; }
+.np-play-overlay { position: absolute; right: 12px; bottom: 12px; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.72); border: 2px solid #fff; color: #fff; transition: background var(--motion-base); }
+.np-play-overlay:hover { background: var(--color-accent); }
+.np-play-overlay svg { fill: currentColor; }
+.np-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: center; }
+.np-marquee { min-width: 0; overflow: hidden; white-space: nowrap; }
+.np-track { font-size: 17px; font-weight: var(--font-weight-bold); color: var(--color-text-primary); }
+.np-artist { font-size: 15px; color: var(--color-text-secondary); }
+.np-marquee-inner { display: block; overflow: hidden; text-overflow: ellipsis; }
+.np-marquee-inner--scrolling { display: inline-block; overflow: visible; text-overflow: clip; animation: np-marquee 8s linear infinite alternate; }
+@keyframes np-marquee { 0%, 12% { transform: translateX(0); } 88%, 100% { transform: translateX(var(--marquee-distance)); } }
+@media (prefers-reduced-motion: reduce) {
+  .np-marquee-inner--scrolling { display: block; overflow: hidden; text-overflow: ellipsis; animation: none; }
+  .np-play-overlay { transition: none; }
 }
-
-.now-playing.empty {
-  justify-content: center;
-  align-items: center;
-}
-
-/* REFACT-143: Italic + muted to distinguish placeholder from real content */
-.np-placeholder {
-  color: var(--color-text-tertiary);
-  font-size: 18px;
-  text-align: center;
-  font-style: italic;
-  opacity: 0.75;
-}
-
-.np-art {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: var(--border-radius-lg);
-  overflow: hidden;
-  background-color: var(--color-bg-darker);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.np-art img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.np-art-placeholder {
-  font-size: 64px;
-  opacity: 0.3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* On mobile the play button is always visible — hide placeholder to avoid show-through */
-@media (hover: none), (max-width: 768px) {
-  .np-art-placeholder {
-    visibility: hidden;
-  }
-}
-
-/* Play/Pause overlay button */
-.np-play-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  min-width: auto;
-  min-height: auto;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-/* Desktop: show on hover */
-.np-art:hover .np-play-overlay {
-  opacity: 1;
-}
-
-/* Mobile: always visible with subtle background */
-@media (hover: none), (max-width: 768px) {
-  .np-play-overlay {
-    opacity: 1;
-  }
-
-  .np-play-overlay svg {
-    background: rgba(0, 0, 0, 0.4);
-  }
-}
-
-.np-play-overlay svg {
-  background: rgba(0, 0, 0, 0.6);
-  border-radius: 50%;
-  padding: 12px;
-  width: 56px;
-  height: 56px;
-  box-sizing: content-box;
-}
-
-.np-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-xs);
-  max-width: 100%;
-  overflow: hidden;
-  min-height: 42px; /* Reserve space for track + artist to prevent layout shift */
-}
-
-.np-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  min-height: 0;
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.np-station {
-  font-size: 18px;
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: center;
-  max-width: 100%;
-  min-width: 0;
-}
-
-.np-track {
-  font-size: 16px;
-  color: var(--color-text-secondary);
-  overflow: hidden;
-  white-space: nowrap;
-  max-width: 100%;
-}
-
-.np-artist {
-  font-size: 14px;
-  color: var(--color-text-tertiary);
-  overflow: hidden;
-  white-space: nowrap;
-  max-width: 100%;
-}
-
-/* Source mode badge (Bluetooth / Radio) */
-/* Marquee scroll for overflowing text */
-.marquee-inner {
-  display: inline-block;
-  white-space: nowrap;
-}
-
-.marquee-scrolling {
-  animation: marquee-scroll ease-in-out infinite;
-  will-change: transform;
-}
-
-@keyframes marquee-scroll {
-  0%,
-  20% {
-    transform: translateX(0);
-  }
-  40%,
-  60% {
-    transform: translateX(var(--marquee-distance));
-  }
-  80%,
-  100% {
-    transform: translateX(0);
-  }
-}
-
-/* Source mode badge (Bluetooth / Radio) */
-.np-source-badge {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 1;
-}
-
-.np-source-badge svg {
-  width: 20px;
-  height: 20px;
-}
-
-.np-source-badge.bluetooth {
-  color: #3b82f6;
-}
-
-.np-source-badge.radio {
-  color: #f59e0b;
-}
-
-.np-source-badge.aux {
-  color: #8b5cf6;
-}
-
-.np-source-badge.airplay {
-  color: #6366f1;
-}
-
-.np-source-badge.dlna {
-  color: #14b8a6;
-}
-
-.np-source-badge.tv {
-  color: #ef4444;
-}
-
-.np-source-badge.streaming {
-  color: #22c55e;
-}
+@media (forced-colors: active) { .np-play-overlay { border-color: ButtonText; } }

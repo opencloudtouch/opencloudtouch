@@ -173,14 +173,14 @@ describe("Accessibility: wizard dynamic states", { retries: 0 }, () => {
         cy.viewport(width, 800);
         visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}&step=8`);
         cy.get(".finalize-section .btn").click();
-        cy.get(".reboot-btn").should("be.visible");
+        cy.get(".reboot-btn").scrollIntoView().should("be.visible");
         assertNoAxeViolations(`verify-finalized@${width}`);
         cy.get(".reboot-btn").click();
         cy.get(".reboot-status--waiting").should("be.visible");
         assertNoAxeViolations(`verify-countdown@${width}`);
         cy.tick(101000);
         cy.get(".verification-test-btn").click();
-        cy.get(passed ? ".verification-success" : ".verification-failed").should("be.visible");
+        cy.get(passed ? ".verification-success" : ".verification-failed").scrollIntoView().should("be.visible");
         assertNoAxeViolations(`verify-results-${label}@${width}`);
       });
     }

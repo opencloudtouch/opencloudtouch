@@ -43,7 +43,20 @@
     "manageZone": "Gérer la zone",
     "multiRoom": "Multi-pièces",
     "prevDevice": "Appareil précédent",
-    "nextDevice": "Appareil suivant"
+    "nextDevice": "Appareil suivant",
+    "source": {
+      "bluetooth": "Bluetooth",
+      "radio": "Radio",
+      "aux": "AUX",
+      "airplay": "AirPlay",
+      "dlna": "DLNA",
+      "tv": "TV / HDMI",
+      "spotify": "Spotify",
+      "deezer": "Deezer",
+      "pandora": "Pandora",
+      "amazon": "Amazon Music",
+      "storedMusic": "Médiathèque"
+    }
   },
   "presets": {
     "pageTitle": "Préréglages radio",
@@ -62,8 +75,8 @@
     "infoTitle": "Notes sur les préréglages",
     "infoItem1": "Cliquez sur un préréglage vide pour attribuer une station",
     "infoItem2": "Cliquez sur une station attribuée pour la modifier ou la supprimer",
-    "infoItem3": "Le bouton vert ► lit la station directement",
-    "infoItem5": "⚙️ ouvre l'assistant de configuration pour l'appareil",
+    "infoItem3": "Le bouton de lecture à droite du preset lance directement la station",
+    "infoItem5": "L'icône d'état en haut à droite de la carte de l'appareil ouvre l'assistant de configuration de l'appareil",
     "infoItem6": "\"Charger depuis l'appareil\" synchronise les préréglages depuis SoundTouch",
     "changeStation": "Cliquer pour changer de station",
     "assignPreset": "Attribuer un préréglage",
@@ -105,7 +118,15 @@
     "manualStreamErrorTitle": "Erreur de flux",
     "manualStreamUnreachable": "L’URL du flux est inaccessible.",
     "manualStreamSaveFailed": "La station n’a pas pu être enregistrée.",
-    "manualStreamErrorOk": "OK"
+    "manualStreamErrorOk": "OK",
+    "unknownDevice": "Appareil inconnu",
+    "unknownModel": "Modèle inconnu",
+    "unknownIp": "IP inconnue",
+    "searchHint": "Saisissez au moins 2 caractères pour lancer la recherche.",
+    "manualInvalidUrl": "Veuillez saisir une adresse HTTP ou HTTPS valide.",
+    "searchTypeGroup": "Rechercher par",
+    "providerGroup": "Source",
+    "searchResults": "Résultats de la recherche"
   },
   "settings": {
     "title": "Paramètres",
@@ -153,7 +174,9 @@
     "saveError": "Erreur lors de l'enregistrement des adresses IP",
     "save": "Enregistrer",
     "saving": "Enregistrement...",
-    "hint": "Vous trouverez l'adresse IP dans l'application associée sous Paramètres → Infos ou dans votre routeur."
+    "hint": "Vous trouverez l'adresse IP dans l'application associée sous Paramètres → Infos ou dans votre routeur.",
+    "placeholder": "Exemple :\n192.168.1.100\n192.168.1.101\n192.168.1.102",
+    "saved": "Adresses IP enregistrées !"
   },
   "multiroom": {
     "pageTitle": "Zones multi-pièces",
@@ -785,7 +808,8 @@
     "helpFirewall": "Les règles de pare-feu peuvent bloquer la détection des appareils",
     "helpRestart": "Redémarrez les appareils et OpenCloudTouch",
     "helpManualAdd": "Ajouter les IPs des appareils manuellement",
-    "helpSetupWizard": "Suivez l'assistant de configuration pour des instructions étape par étape"
+    "helpSetupWizard": "Suivez l'assistant de configuration pour des instructions étape par étape",
+    "deviceSaved": "Enregistré"
   },
   "setupBadge": {
     "unknown": "Configurer l'appareil",
@@ -868,5 +892,10 @@
     "volume": "Volume",
     "copyCommand": "Copier la commande",
     "copyToClipboard": "Copier dans le presse-papiers"
+  },
+  "stationDetail": {
+    "codec": "Codec",
+    "bitrate": "Débit",
+    "homepage": "Site web"
   }
 }

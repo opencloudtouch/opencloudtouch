@@ -76,17 +76,17 @@ describe("Preset Search Modal — layout", () => {
     cy.wait("@getPresets");
   });
 
-  it("modal is rendered as div[role=dialog], not as dialog element", () => {
-    // Click an empty preset slot (preset 2 or 3) to open search modal
-    cy.get("[data-preset='2'], .preset-empty").first().click();
-    cy.get("[role='dialog'].radio-search-modal").should("exist");
-    // Must NOT be a native dialog element
-    cy.get("dialog.radio-search-modal").should("not.exist");
+  it("modal is rendered as a native modal dialog with an accessible name", () => {
+    // Click an empty preset slot to open the search modal
+    cy.get(".pb-empty").first().click();
+    cy.get("dialog.dlg[role='dialog'][aria-modal='true']").should("have.attr", "open");
+    cy.get("dialog.dlg").should("have.attr", "aria-labelledby", "rs-title");
+    cy.get("#rs-title").should("be.visible");
   });
 
   it("modal overlay has correct flexbox centering styles", () => {
-    cy.get("[data-preset='2'], .preset-empty").first().click();
-    cy.get(".radio-search-overlay").should("exist").then(($overlay) => {
+    cy.get(".pb-empty").first().click();
+    cy.get(".dlg-overlay").should("exist").then(($overlay) => {
       const styles = window.getComputedStyle($overlay[0]);
       expect(styles.display).to.equal("flex");
       expect(styles.alignItems).to.equal("center");
@@ -95,8 +95,8 @@ describe("Preset Search Modal — layout", () => {
   });
 
   it("modal is visually centered (left edge > 0)", () => {
-    cy.get("[data-preset='2'], .preset-empty").first().click();
-    cy.get(".radio-search-modal").should("exist").then(($modal) => {
+    cy.get(".pb-empty").first().click();
+    cy.get(".dlg-panel").should("exist").then(($modal) => {
       const rect = $modal[0].getBoundingClientRect();
       // Must not be at the very left edge
       expect(rect.left).to.be.greaterThan(10);
@@ -106,17 +106,20 @@ describe("Preset Search Modal — layout", () => {
   });
 
   it("modal closes on overlay click", () => {
-    cy.get("[data-preset='2'], .preset-empty").first().click();
-    cy.get(".radio-search-modal").should("exist");
-    cy.get(".radio-search-overlay").click("topLeft");
-    cy.get(".radio-search-modal").should("not.exist");
+    cy.get(".pb-empty").first().click();
+    cy.get("dialog.dlg").should("exist");
+    cy.get(".dlg-overlay").click("topLeft");
+    cy.get("dialog.dlg").should("not.exist");
   });
 
   it("modal closes on Escape key", () => {
-    cy.get("[data-preset='2'], .preset-empty").first().click();
-    cy.get(".radio-search-modal").should("exist");
-    cy.get(".radio-search-overlay").type("{esc}");
-    cy.get(".radio-search-modal").should("not.exist");
+    cy.get(".pb-empty").first().click();
+    cy.get("dialog.dlg").should("exist");
+    // Chrome ignores synthetic Esc key events on a native <dialog>, so fire the event it would dispatch itself
+    cy.get("dialog.dlg").then(($dialog) => {
+      $dialog[0].dispatchEvent(new Event("cancel", { cancelable: true }));
+    });
+    cy.get("dialog.dlg").should("not.exist");
   });
 });
 

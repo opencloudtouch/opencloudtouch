@@ -289,15 +289,15 @@ describe("DeviceNameEditor", () => {
   });
 
   // REGRESSION TEST for edit icon visibility (updated 2026-06-06)
-  it("renders edit icon always visible at low opacity", () => {
+  it("renders the edit icon always visible", () => {
     render(<DeviceNameEditor deviceId="ABC123" name="Living Room" />);
 
     const heading = screen.getByRole("button");
     const icons = heading.querySelectorAll('span[aria-hidden="true"]');
 
-    // Should have exactly 1 icon: the pencil edit icon (always visible at 30% opacity)
+    // Should have exactly 1 icon: the pencil edit icon (always visible)
     expect(icons).toHaveLength(1);
-    expect(icons[0]).toHaveClass("device-name-edit-icon");
+    expect(icons[0]).toHaveClass("dne-icon");
   });
 
   describe("font size scaling via canvas.measureText", () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import DeviceSwiper from "../../src/components/DeviceSwiper";
 import type { ReactNode, HTMLAttributes } from "react";
 
@@ -62,7 +62,7 @@ describe("DeviceSwiper Component", () => {
       </DeviceSwiper>
     );
 
-    const dots = screen.getAllByRole("tab");
+    const dots = within(screen.getByRole("group", { name: "Device selection" })).getAllByRole("button");
     expect(dots).toHaveLength(3);
   });
 
@@ -125,7 +125,7 @@ describe("DeviceSwiper Component", () => {
       </DeviceSwiper>
     );
 
-    const dots = screen.getAllByRole("tab");
+    const dots = within(screen.getByRole("group", { name: "Device selection" })).getAllByRole("button");
     fireEvent.click(dots[2]!);
 
     expect(mockOnIndexChange).toHaveBeenCalledWith(2);
@@ -156,17 +156,17 @@ describe("DeviceSwiper Component", () => {
     expect(screen.getByLabelText("Switch to Schlafzimmer")).toBeInTheDocument();
   });
 
-  it("sets correct aria-selected on dots", () => {
+  it("marks the current device dot with aria-current", () => {
     render(
       <DeviceSwiper devices={mockDevices} currentIndex={1} onIndexChange={mockOnIndexChange}>
         <div>Device Content</div>
       </DeviceSwiper>
     );
 
-    const dots = screen.getAllByRole("tab");
-    expect(dots[0]).toHaveAttribute("aria-selected", "false");
-    expect(dots[1]).toHaveAttribute("aria-selected", "true");
-    expect(dots[2]).toHaveAttribute("aria-selected", "false");
+    const dots = within(screen.getByRole("group", { name: "Device selection" })).getAllByRole("button");
+    expect(dots[0]).not.toHaveAttribute("aria-current");
+    expect(dots[1]).toHaveAttribute("aria-current", "true");
+    expect(dots[2]).not.toHaveAttribute("aria-current");
   });
 
 
@@ -299,7 +299,7 @@ describe("DeviceSwiper Component", () => {
       </DeviceSwiper>
     );
 
-    const dots = screen.getAllByRole("tab");
+    const dots = within(screen.getByRole("group", { name: "Device selection" })).getAllByRole("button");
     fireEvent.click(dots[0]!);
 
     expect(mockOnIndexChange).toHaveBeenCalledWith(0);

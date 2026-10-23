@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { ToastType } from "../contexts/ToastContext";
+import { Icon } from "./Icon";
 import "./Toast.css";
 
 /**
  * Toast Notification Component
  *
- * Displays temporary notifications in the top-right corner.
+ * Displays temporary notifications below the header (top-right; full width on phones).
  * Auto-hides after specified duration (default 5s).
  *
  * Types: success, error, info, warning
@@ -40,51 +41,11 @@ export default function Toast({ message, type = "info", duration = 5000, onClose
 
   if (!isVisible) return null;
 
-  const icons: Record<ToastType, React.ReactElement> = {
-    success: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path
-          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
-    error: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path
-          d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
-    warning: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path
-          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
-    info: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path
-          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
+  const icons: Record<ToastType, ReactElement> = {
+    success: Icon.CircleCheck(22),
+    error: Icon.CircleX(22),
+    warning: Icon.Alert(22),
+    info: Icon.Info(22),
   };
 
   return (
@@ -111,14 +72,7 @@ export default function Toast({ message, type = "info", duration = 5000, onClose
         aria-label={t("common.close")}
         data-test="toast-close-button"
       >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path
-            d="M6 6l8 8M14 6l-8 8"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
+        {Icon.X(18)}
       </button>
     </div>
   );
