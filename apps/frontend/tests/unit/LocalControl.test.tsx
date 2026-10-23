@@ -38,7 +38,7 @@ vi.mock("framer-motion", () => {
       get: (target, tag: string) => (target[tag] ??= plain(tag)),
     }),
     AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-    usePresence: () => [true, undefined],
+    useIsPresent: () => true,
   };
 });
 

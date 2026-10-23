@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { motion, AnimatePresence, PanInfo, usePresence } from "framer-motion";
+import { motion, AnimatePresence, PanInfo, useIsPresent } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import type { Device } from "../api/devices";
 import { Icon } from "./Icon";
@@ -53,7 +53,7 @@ const EXIT_X_S = 0.24;
 
 /** While the old card fades out (both cards are in the DOM) it is hidden from assistive technology and not operable. */
 function CardShell({ children }: Readonly<{ children: ReactNode }>) {
-  const [isPresent] = usePresence();
+  const isPresent = useIsPresent(); // not usePresence(): that would make this component responsible for calling safeToRemove, and the old card would never be removed
   return (
     <div
       className="ds-card-shell"

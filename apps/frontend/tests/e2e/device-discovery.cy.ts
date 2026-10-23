@@ -55,6 +55,8 @@ describe("Device Discovery", () => {
           expect($ip.text()).to.not.equal(firstIP);
         });
       });
+      // The leaving card must be removed after the crossfade (a card stuck on top swallowed every tap on phones)
+      cy.get(".ds-card-shell").should("have.length", 1);
       cy.get(".ds-arrow--prev").should("not.be.disabled");
       cy.get(".ds-arrow--next").should("not.be.disabled");
 

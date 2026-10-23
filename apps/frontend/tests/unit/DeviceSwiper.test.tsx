@@ -30,7 +30,7 @@ vi.mock("framer-motion", () => ({
     },
   },
   AnimatePresence: ({ children }: { children: ReactNode }) => <>{children}</>,
-  usePresence: () => [presence.present, undefined],
+  useIsPresent: () => presence.present,
 }));
 
 describe("DeviceSwiper Component", () => {
