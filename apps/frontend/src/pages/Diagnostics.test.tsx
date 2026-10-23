@@ -307,7 +307,9 @@ describe("Diagnostics Page", () => {
       await waitFor(() => {
         expect(screen.getByText("Disabled")).toBeInTheDocument();
       });
-      expect(screen.getByText("Disabled").closest(".ui-badge")).not.toHaveClass("ui-badge--success");
+      expect(screen.getByText("Disabled").closest(".ui-badge")).not.toHaveClass(
+        "ui-badge--success"
+      );
     });
 
     it("shows the Not enabled badge when ssh_permanent is false", async () => {

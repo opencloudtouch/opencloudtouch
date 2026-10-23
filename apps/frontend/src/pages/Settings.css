@@ -1,43 +1,166 @@
 /* st-: Settings page (stage 7). Replaces Settings.css and uses nothing of the old .page/.page-title/.section-title/.settings-card/.alert/.spinner-inline rules. */
-.st { box-sizing: border-box; width: 100%; max-width: 800px; margin: 0 auto; padding: var(--space-md); display: flex; flex-direction: column; gap: var(--space-lg); }
-.st > * { min-width: 0; }
-@media (min-width: 769px) { .st { padding: var(--space-lg); } }
-.st--state { min-height: 100%; justify-content: center; }
-.st-section { display: flex; flex-direction: column; gap: var(--space-md); }
-.st-h2 { display: flex; align-items: center; gap: 10px; }
-.st-h2-icon { display: flex; flex: none; color: var(--primary-text); }
-.st-card { display: flex; flex-direction: column; gap: var(--space-lg); }
-.st-method { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; min-width: 0; }
-.st-method + .st-method { padding-top: var(--space-lg); border-top: 1px solid var(--border-color); }
-.st-method > .ui-h3, .st-card > .st-text { align-self: stretch; }
-.st-text { margin: 0; font-size: var(--fs-body); line-height: 1.5; color: var(--color-text-secondary); text-wrap: pretty; overflow-wrap: anywhere; }
+.st {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+.st > * {
+  min-width: 0;
+}
+@media (min-width: 769px) {
+  .st {
+    padding: var(--space-lg);
+  }
+}
+.st--state {
+  min-height: 100%;
+  justify-content: center;
+}
+.st-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.st-h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.st-h2-icon {
+  display: flex;
+  flex: none;
+  color: var(--primary-text);
+}
+.st-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+.st-method {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+.st-method + .st-method {
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border-color);
+}
+.st-method > .ui-h3,
+.st-card > .st-text {
+  align-self: stretch;
+}
+.st-text {
+  margin: 0;
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
 
 /* scan */
-.st-scan { min-width: 200px; }   /* idle and busy label have the same width: no jump */
-.st-scan[aria-busy="true"]:disabled, .st-add[aria-busy="true"]:disabled, .st-download-btn[aria-busy="true"]:disabled { opacity: 1; }
+.st-scan {
+  min-width: 200px;
+} /* idle and busy label have the same width: no jump */
+.st-scan[aria-busy="true"]:disabled,
+.st-add[aria-busy="true"]:disabled,
+.st-download-btn[aria-busy="true"]:disabled {
+  opacity: 1;
+}
 
 /* manual IP */
-.st-ip { align-self: stretch; }
-.st-ip-row { display: flex; flex-wrap: wrap; gap: 8px; }
-.st-ip-row .ui-input { flex: 1 1 200px; width: auto; font-family: var(--font-mono); }
-.st-add { flex: 0 0 auto; min-width: 150px; }
-.st-ip-msg { min-height: 39px; }   /* two lines of 13px: hint and error share one slot */
-.st-ip-msg > * { margin: 0; }
+.st-ip {
+  align-self: stretch;
+}
+.st-ip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.st-ip-row .ui-input {
+  flex: 1 1 200px;
+  width: auto;
+  font-family: var(--font-mono);
+}
+.st-add {
+  flex: 0 0 auto;
+  min-width: 150px;
+}
+.st-ip-msg {
+  min-height: 39px;
+} /* two lines of 13px: hint and error share one slot */
+.st-ip-msg > * {
+  margin: 0;
+}
 
 /* log level: native select, custom chevron (an inline SVG, so it also shows in forced-colors) */
-.st-level { align-items: flex-start; }
-.st-select { position: relative; width: 100%; max-width: 320px; }
-.st-select .ui-select { appearance: none; -webkit-appearance: none; padding-right: 44px; cursor: pointer; }
-.st-select .ui-select:disabled { cursor: progress; opacity: 1; color: var(--color-text-secondary); }
-.st-select-icon { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: flex; color: var(--color-text-secondary); pointer-events: none; }
+.st-level {
+  align-items: flex-start;
+}
+.st-select {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+}
+.st-select .ui-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 44px;
+  cursor: pointer;
+}
+.st-select .ui-select:disabled {
+  cursor: progress;
+  opacity: 1;
+  color: var(--color-text-secondary);
+}
+.st-select-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+}
 
 /* log download */
-.st-download { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding-top: var(--space-lg); border-top: 1px solid var(--border-color); }
-.st-download-btn { min-width: 200px; }
-.st-download-error { align-self: stretch; }
+.st-download {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border-color);
+}
+.st-download-btn {
+  min-width: 200px;
+}
+.st-download-error {
+  align-self: stretch;
+}
 
 @media (max-width: 480px) {
-  .st-scan, .st-add, .st-download-btn { width: 100%; }
-  .st-method { align-items: stretch; }
+  .st-scan,
+  .st-add,
+  .st-download-btn {
+    width: 100%;
+  }
+  .st-method {
+    align-items: stretch;
+  }
 }
-@media (forced-colors: active) { .st-select-icon { color: ButtonText; } .st-h2-icon { color: CanvasText; } }
+@media (forced-colors: active) {
+  .st-select-icon {
+    color: ButtonText;
+  }
+  .st-h2-icon {
+    color: CanvasText;
+  }
+}

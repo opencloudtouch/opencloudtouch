@@ -271,7 +271,9 @@ export default function About() {
                   }
                 >
                   {cleanName(supporter.name)}
-                  {isMonthly && <span className="visually-hidden"> {t("about.monthlySupporter")}</span>}
+                  {isMonthly && (
+                    <span className="visually-hidden"> {t("about.monthlySupporter")}</span>
+                  )}
                 </li>
               );
             })}

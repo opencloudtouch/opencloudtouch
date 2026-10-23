@@ -181,7 +181,11 @@ export default function Diagnostics() {
       </div>
 
       {/* Server Info */}
-      <section className="dg-section" data-test="diagnostics-server" aria-labelledby="dg-server-title">
+      <section
+        className="dg-section"
+        data-test="diagnostics-server"
+        aria-labelledby="dg-server-title"
+      >
         <h2 id="dg-server-title" className="ui-h2">
           {t("diagnostics.serverInfo")}
         </h2>
@@ -220,7 +224,11 @@ export default function Diagnostics() {
       </section>
 
       {/* Devices */}
-      <section className="dg-section" data-test="diagnostics-devices" aria-labelledby="dg-devices-title">
+      <section
+        className="dg-section"
+        data-test="diagnostics-devices"
+        aria-labelledby="dg-devices-title"
+      >
         <h2 id="dg-devices-title" className="ui-h2">
           {t("diagnostics.devices")}
         </h2>
@@ -248,7 +256,11 @@ export default function Diagnostics() {
                     {device.firmware_version}
                   </Row>
                   <Row label={t("diagnostics.setupStatus")}>
-                    <StatusBadge status={toSetupStatus(device.setup_status)} size="small" showLabel />
+                    <StatusBadge
+                      status={toSetupStatus(device.setup_status)}
+                      size="small"
+                      showLabel
+                    />
                   </Row>
                   <Row label={t("diagnostics.lastSeen")}>
                     {device.last_seen ? (
@@ -263,7 +275,9 @@ export default function Diagnostics() {
                   <Row label={t("diagnostics.ssh")}>
                     <OnOffBadge
                       on={device.ssh_permanent}
-                      label={device.ssh_permanent ? t("diagnostics.sshOn") : t("diagnostics.sshOff")}
+                      label={
+                        device.ssh_permanent ? t("diagnostics.sshOn") : t("diagnostics.sshOff")
+                      }
                     />
                   </Row>
                 </dl>

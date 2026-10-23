@@ -1,29 +1,130 @@
 /* lic-: Licenses page (stage 7). Replaces Licenses.css (.licenses-*, .license-*, .lib-*, .compliance-notice, .trademark-notice, .attribution).
    Each library is a list item: [name link] [version] [licence badge]. One line from 600px, wrapped on phones; the link is the name, so there is no icon-only link. */
-.lic { box-sizing: border-box; width: 100%; max-width: 800px; margin: 0 auto; padding: var(--space-md); display: flex; flex-direction: column; gap: var(--space-lg); }
-.lic > * { min-width: 0; }
-@media (min-width: 769px) { .lic { padding: var(--space-lg); } }
-.lic-header { display: flex; flex-direction: column; gap: 8px; }
-.lic-text { margin: 0; font-size: var(--fs-body); line-height: 1.5; color: var(--color-text-secondary); text-wrap: pretty; overflow-wrap: anywhere; }
-.lic-group { display: flex; flex-direction: column; gap: 12px; }
-.lic-list { list-style: none; padding: 4px var(--space-md); }
-.lic-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0 12px; padding: 4px 0; border-top: 1px solid var(--border-color); }
-.lic-item:first-child { border-top: 0; }
-.lic-name { grid-column: 1; display: inline-flex; align-items: center; gap: 6px; min-height: var(--touch-target-min); max-width: max-content; font-size: 16px; font-weight: var(--font-weight-medium); color: var(--primary-text); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
-.lic-name:hover { color: #fff; }
-.lic-ext { display: flex; flex: none; }
-.lic-badge { grid-column: 2; grid-row: 1; justify-self: end; }
-.lic-version { grid-column: 1 / -1; padding-bottom: 8px; font-size: var(--fs-small); color: var(--color-text-secondary); overflow-wrap: anywhere; }
-.lic-k { margin-right: 2px; }
-@media (min-width: 600px) {
-  .lic-item { grid-template-columns: minmax(0, 1fr) 160px 140px; }
-  .lic-version { grid-column: 2; grid-row: 1; padding: 0; }
-  .lic-badge { grid-column: 3; justify-self: start; }
+.lic {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
 }
-.lic-note { display: flex; flex-direction: column; gap: 8px; }
-.lic-link { color: var(--primary-text); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
-.lic-link:hover { color: #fff; }
-.lic-trademark .wz-status-body { gap: 8px; }
-.lic-trademark .wz-status-body > p { font-size: 14px; }
-.lic-trademark .lic-link { display: inline-block; min-height: 24px; }
-.lic-attribution { padding: 0 var(--space-xs) var(--space-lg); }
+.lic > * {
+  min-width: 0;
+}
+@media (min-width: 769px) {
+  .lic {
+    padding: var(--space-lg);
+  }
+}
+.lic-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lic-text {
+  margin: 0;
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+.lic-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.lic-list {
+  list-style: none;
+  padding: 4px var(--space-md);
+}
+.lic-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0 12px;
+  padding: 4px 0;
+  border-top: 1px solid var(--border-color);
+}
+.lic-item:first-child {
+  border-top: 0;
+}
+.lic-name {
+  grid-column: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--touch-target-min);
+  max-width: max-content;
+  font-size: 16px;
+  font-weight: var(--font-weight-medium);
+  color: var(--primary-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+.lic-name:hover {
+  color: #fff;
+}
+.lic-ext {
+  display: flex;
+  flex: none;
+}
+.lic-badge {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+}
+.lic-version {
+  grid-column: 1 / -1;
+  padding-bottom: 8px;
+  font-size: var(--fs-small);
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+.lic-k {
+  margin-right: 2px;
+}
+@media (min-width: 600px) {
+  .lic-item {
+    grid-template-columns: minmax(0, 1fr) 160px 140px;
+  }
+  .lic-version {
+    grid-column: 2;
+    grid-row: 1;
+    padding: 0;
+  }
+  .lic-badge {
+    grid-column: 3;
+    justify-self: start;
+  }
+}
+.lic-note {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lic-link {
+  color: var(--primary-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+.lic-link:hover {
+  color: #fff;
+}
+.lic-trademark .wz-status-body {
+  gap: 8px;
+}
+.lic-trademark .wz-status-body > p {
+  font-size: 14px;
+}
+.lic-trademark .lic-link {
+  display: inline-block;
+  min-height: 24px;
+}
+.lic-attribution {
+  padding: 0 var(--space-xs) var(--space-lg);
+}

@@ -1,27 +1,132 @@
 /* dg-: Diagnostics page (stage 7). Replaces Diagnostics.css (.page, .diagnostics-*, .status-dot*, .device-card-*). Key/value pairs are <dl> rows: two columns from 480px, stacked below, nothing scrolls sideways. */
-.dg { box-sizing: border-box; width: 100%; max-width: 960px; margin: 0 auto; padding: var(--space-md); display: flex; flex-direction: column; gap: var(--space-lg); }
-.dg > * { min-width: 0; }
-@media (min-width: 769px) { .dg { padding: var(--space-lg); } }
-.dg-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; }
-.dg-download-btn { min-width: min(100%, 19rem); }   /* idle and busy label share the width */
-.dg-download-btn[aria-disabled="true"] { cursor: progress; }
-@media (max-width: 480px) { .dg-head > div, .dg-download-btn { width: 100%; } }
-.dg-section { display: flex; flex-direction: column; gap: 12px; }
+.dg {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+.dg > * {
+  min-width: 0;
+}
+@media (min-width: 769px) {
+  .dg {
+    padding: var(--space-lg);
+  }
+}
+.dg-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+}
+.dg-download-btn {
+  min-width: min(100%, 19rem);
+} /* idle and busy label share the width */
+.dg-download-btn[aria-disabled="true"] {
+  cursor: progress;
+}
+@media (max-width: 480px) {
+  .dg-head > div,
+  .dg-download-btn {
+    width: 100%;
+  }
+}
+.dg-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
-.dg-kv { margin: 0; display: flex; flex-direction: column; padding-block: 4px; }
-.dg-kv--compact { padding: 0; }
-.dg-row { display: grid; grid-template-columns: minmax(110px, 32%) minmax(0, 1fr); align-items: center; gap: 4px 16px; padding: 10px 0; border-top: 1px solid var(--border-color); min-height: 44px; }
-.dg-row:first-child { border-top: 0; }
-.dg-row dt { font-size: 14px; line-height: 1.4; color: var(--color-text-secondary); }
-.dg-row dd { margin: 0; min-width: 0; font-size: 15px; line-height: 1.4; color: var(--text-primary); overflow-wrap: anywhere; }
-.dg-row dd.ui-mono { font-size: 14px; }
-@media (max-width: 479px) { .dg-row { grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 8px 0; } }
+.dg-kv {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  padding-block: 4px;
+}
+.dg-kv--compact {
+  padding: 0;
+}
+.dg-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 32%) minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border-color);
+  min-height: 44px;
+}
+.dg-row:first-child {
+  border-top: 0;
+}
+.dg-row dt {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+.dg-row dd {
+  margin: 0;
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.dg-row dd.ui-mono {
+  font-size: 14px;
+}
+@media (max-width: 479px) {
+  .dg-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+    padding: 8px 0;
+  }
+}
 
-.dg-devices { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 12px; align-items: start; }
-.dg-device { display: flex; flex-direction: column; gap: 8px; }
-.dg-device-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
-.dg-device-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 140px; }
-.dg-device-title > .ui-h3 { overflow-wrap: anywhere; }
-.dg-device-head .ui-badge { white-space: normal; text-align: left; }
-.dg-empty { display: flex; align-items: center; gap: 12px; margin: 0; font-size: var(--fs-body); color: var(--color-text-secondary); }
-.dg-empty svg { flex: none; }
+.dg-devices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.dg-device {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dg-device-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.dg-device-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 140px;
+}
+.dg-device-title > .ui-h3 {
+  overflow-wrap: anywhere;
+}
+.dg-device-head .ui-badge {
+  white-space: normal;
+  text-align: left;
+}
+.dg-empty {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  font-size: var(--fs-body);
+  color: var(--color-text-secondary);
+}
+.dg-empty svg {
+  flex: none;
+}
