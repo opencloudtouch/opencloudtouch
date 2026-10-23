@@ -38,7 +38,6 @@
   background: var(--color-bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-lg);
-  container-type: inline-size;
 }
 @media (min-width: 601px) {
   .lc-card {
@@ -47,13 +46,13 @@
   }
 }
 
-/* header: power | name + model | setup badge (zone badge gets its own row, so 320px never gets cramped) */
+/* header: [power] name [setup badge], model centred below, then the zone badge. One arrangement at every width (same as .rp-card-head). */
 .lc-head {
   display: grid;
   grid-template-columns: var(--touch-target-min) minmax(0, 1fr) var(--touch-target-min);
   grid-template-areas: "power name setup" ". model .";
   align-items: start;
-  column-gap: 12px;
+  column-gap: 8px;
   row-gap: 2px;
 } /* equal side columns: the name is centred on the CARD */
 .lc-head--zone {
@@ -72,20 +71,6 @@
   min-width: 0;
   justify-content: center;
   text-align: center;
-}
-/* narrow card (320 to 414px phones): model between the two round buttons, name on its own full-width row, zone badge below */
-@container (max-width: 359px) {
-  .lc-head {
-    grid-template-areas: "power model setup" "name name name";
-  }
-  .lc-head--zone {
-    grid-template-areas: "power model setup" "name name name" "zone zone zone";
-  }
-  .lc-info > .dne,
-  .lc-info > .dne-heading,
-  .lc-info > .lc-unknown-name {
-    margin-top: 4px;
-  }
 }
 .lc-end {
   display: contents;

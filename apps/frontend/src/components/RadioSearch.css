@@ -37,6 +37,10 @@
 .rs-chips .ui-chip[aria-pressed="true"]::before {
   content: none;
 }
+/* second cue besides the blue fill that does not change the chip width: 2 px frame (1 px border + 1 px inset, same box size) */
+.rs-chips .ui-chip[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1px currentColor;
+}
 /* delete-preset row: footer of the dialog (destructive, rarely used, away from the controls at the top and from the close button) */
 .rs-foot {
   flex: none;

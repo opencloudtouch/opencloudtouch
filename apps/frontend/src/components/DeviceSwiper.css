@@ -1,4 +1,5 @@
-/* ds-: device swiper. Desktop: arrows left/right of the card. Phones <= 480px: arrows sit in the dots row under the card.
+/* ds-: device swiper. Desktop / tablet: arrows left/right of the card, dots below. Phones (<= 480px wide) and short screens (<= 500px high, e.g. a phone in landscape):
+   ONE bar ABOVE the card, directly under the page title: [prev] dots [next]. On the first screen at every height, away from the browser toolbar and the home indicator.
    Dots: one row at any count. --ds-pitch (set by DeviceSwiper.tsx) is the width of one dot button: 44px, or 24-44px when dense / windowed. */
 .ds {
   display: grid;
@@ -96,9 +97,11 @@
   height: var(--ds-dot);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 480px), (max-height: 500px) {
   .ds {
-    grid-template-areas: "card card card" "prev dots next";
+    grid-template-areas: "prev dots next" "card card card";
+    grid-template-rows: var(--touch-target-min) auto;
+    row-gap: 8px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
