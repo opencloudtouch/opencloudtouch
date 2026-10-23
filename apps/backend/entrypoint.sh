@@ -31,6 +31,11 @@ check_page_size() {
         return 0
     fi
 
+    if [ "$PAGE_SIZE" -eq 32768 ] && [ "${OCT_SKIP_PAGE_SIZE_CHECK:-0}" = "1" ]; then
+        log_warn "This platform uses a 32768-byte page size; OCT_SKIP_PAGE_SIZE_CHECK=1 is set, continuing (experimental)."
+        return 0
+    fi
+
     if [ "$PAGE_SIZE" -eq 32768 ]; then
         log_error "This platform uses a 32768-byte page size, which is not supported."
         log_error "Affected platforms include QNAP ARM NAS systems using 32KB pages."

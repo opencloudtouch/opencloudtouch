@@ -72,6 +72,48 @@ RUN find /install -path "*setuptools/_vendor/jaraco*" -delete 2>/dev/null || tru
 # dentries from the failed stat() lookups)
 RUN apt-get purge -y --auto-remove gcc libc6-dev libffi-dev make autoconf automake libtool
 
+# Stage 1b: Rebuild Debian libraries/tools with 64 KB ELF segment alignment
+# (experiment #530). The stock armv7 packages are linked for 4 KB pages and
+# fail to load on 32 KB page-size kernels. Rebuilt with
+# -Wl,-z,max-page-size=0x10000 and version suffix +oct1 so they supersede
+# the archive versions.
+FROM python:3.11-slim@sha256:ae52c5bef62a6bdd42cd1e8dffef86b9cd284bde9427da79839de7a4b983e7ca AS aligned-debs
+
+ARG ALIGNED_SOURCES="zlib bzip2 acl libbsd libmd libpsl rtmpdump db5.3 gdbm gmp readline findutils grep hostname"
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    . /etc/os-release && \
+    if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+        sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/debian.sources; \
+    else \
+        sed -n 's/^deb /deb-src /p' /etc/apt/sources.list >> /etc/apt/sources.list; \
+    fi && \
+    apt-get update && \
+    apt-get upgrade -y --no-install-recommends && \
+    apt-get install -y --no-install-recommends build-essential devscripts dpkg-dev fakeroot
+
+WORKDIR /rebuild
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    . /etc/os-release && \
+    export DEBFULLNAME="OpenCloudTouch" DEBEMAIL="noreply@opencloudtouch.org" \
+           DEB_BUILD_OPTIONS="nocheck nodoc noautodbgsym parallel=$(nproc)" \
+           DEB_LDFLAGS_APPEND="-Wl,-z,max-page-size=0x10000" && \
+    mkdir -p /out && \
+    for src in $ALIGNED_SOURCES; do \
+        echo "=== rebuilding $src ===" && \
+        mkdir "$src" && cd "$src" && \
+        apt-get build-dep -y --no-install-recommends "$src" && \
+        apt-get source "$src" && \
+        cd */ && \
+        dch --local +oct "Rebuild with 64 KB ELF segment alignment (OCT #530)" --distribution "$VERSION_CODENAME" && \
+        dpkg-buildpackage -b -uc -us && \
+        cd .. && cp *.deb /out/ && cd /rebuild; \
+    done && \
+    ls -l /out
+
 # Stage 2: Frontend Build (platform-independent HTML/CSS/JS)
 # Force amd64 — output is static files, no native binaries needed.
 # This avoids Node.js platform availability issues (e.g. Node 24 dropped armv7).
@@ -129,6 +171,20 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update && \
     apt-get upgrade -y --no-install-recommends && \
     apt-get install -y --no-install-recommends gosu curl
+
+# Install the 64 KB-aligned rebuilds (runtime packages only, and only those
+# actually present in this image) over the stock Debian versions.
+RUN --mount=type=bind,from=aligned-debs,source=/out,target=/aligned-debs \
+    set -e; \
+    list=""; \
+    for deb in /aligned-debs/*.deb; do \
+        name=$(dpkg-deb -f "$deb" Package); \
+        if dpkg-query -W -f='${Status}' "$name" 2>/dev/null | grep -q "install ok installed"; then \
+            list="$list $deb"; \
+        fi; \
+    done; \
+    echo "Installing aligned packages:$list"; \
+    dpkg -i --force-confold $list
 
 # Copy Python dependencies from build stage
 COPY --from=python-deps /install /usr/local
