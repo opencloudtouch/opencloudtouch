@@ -31,11 +31,13 @@ export interface UseVolumeResult {
 
 export function useVolume(deviceId: string | undefined): UseVolumeResult {
   // Keyed by device (see useNowPlaying): no volume of the previous device after a switch, cached value at once.
-  const [store, setStore] = useState<{ id: string | undefined; volume: number; muted: boolean }>(() => ({
-    id: deviceId,
-    volume: getCachedDeviceData(deviceId)?.volume?.actual ?? 0,
-    muted: getCachedDeviceData(deviceId)?.volume?.muted ?? false,
-  }));
+  const [store, setStore] = useState<{ id: string | undefined; volume: number; muted: boolean }>(
+    () => ({
+      id: deviceId,
+      volume: getCachedDeviceData(deviceId)?.volume?.actual ?? 0,
+      muted: getCachedDeviceData(deviceId)?.volume?.muted ?? false,
+    })
+  );
   const cachedVolume = getCachedDeviceData(deviceId)?.volume;
   const volume = store.id === deviceId ? store.volume : (cachedVolume?.actual ?? 0);
   const muted = store.id === deviceId ? store.muted : (cachedVolume?.muted ?? false);
@@ -43,7 +45,11 @@ export function useVolume(deviceId: string | undefined): UseVolumeResult {
     (value: number) =>
       setStore((prev) => {
         const cached = getCachedDeviceData(deviceId)?.volume;
-        return { id: deviceId, volume: value, muted: prev.id === deviceId ? prev.muted : (cached?.muted ?? false) };
+        return {
+          id: deviceId,
+          volume: value,
+          muted: prev.id === deviceId ? prev.muted : (cached?.muted ?? false),
+        };
       }),
     [deviceId]
   );
@@ -51,12 +57,19 @@ export function useVolume(deviceId: string | undefined): UseVolumeResult {
     (value: boolean) =>
       setStore((prev) => {
         const cached = getCachedDeviceData(deviceId)?.volume;
-        return { id: deviceId, volume: prev.id === deviceId ? prev.volume : (cached?.actual ?? 0), muted: value };
+        return {
+          id: deviceId,
+          volume: prev.id === deviceId ? prev.volume : (cached?.actual ?? 0),
+          muted: value,
+        };
       }),
     [deviceId]
   );
   useEffect(() => {
-    if (deviceId && store.id === deviceId) setCachedDeviceData(deviceId, { volume: { actual: store.volume, target: store.volume, muted: store.muted } });
+    if (deviceId && store.id === deviceId)
+      setCachedDeviceData(deviceId, {
+        volume: { actual: store.volume, target: store.volume, muted: store.muted },
+      });
   }, [deviceId, store]);
   const [loading, setLoading] = useState(false);
   const [deviceOffline, setDeviceOffline] = useState(false);

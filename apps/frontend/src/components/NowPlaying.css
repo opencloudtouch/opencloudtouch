@@ -3,7 +3,9 @@
   --np-head-h: 32px;
   --np-track-h: 24px;
   --np-artist-h: 20px;
-  --np-info-h: calc(var(--np-track-h) + 2px + var(--np-artist-h)); /* 46px, reserved from the first frame */
+  --np-info-h: calc(
+    var(--np-track-h) + 2px + var(--np-artist-h)
+  ); /* 46px, reserved from the first frame */
   display: flex;
   flex-direction: column;
   gap: 12px;

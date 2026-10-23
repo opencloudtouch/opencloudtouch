@@ -24,15 +24,21 @@ export interface UseNowPlayingResult {
 export function useNowPlaying(deviceId: string | undefined): UseNowPlayingResult {
   // The state is keyed by device: after a device switch the new card must not show the data of the previous device
   // (it used to, until the new response arrived). Cached data of the new device is shown at once.
-  const [store, setStore] = useState<{ id: string | undefined; data: NowPlayingState | null }>(() => ({
-    id: deviceId,
-    data: getCachedDeviceData(deviceId)?.nowPlaying ?? null,
-  }));
-  const nowPlaying = store.id === deviceId ? store.data : (getCachedDeviceData(deviceId)?.nowPlaying ?? null);
+  const [store, setStore] = useState<{ id: string | undefined; data: NowPlayingState | null }>(
+    () => ({
+      id: deviceId,
+      data: getCachedDeviceData(deviceId)?.nowPlaying ?? null,
+    })
+  );
+  const nowPlaying =
+    store.id === deviceId ? store.data : (getCachedDeviceData(deviceId)?.nowPlaying ?? null);
   const setNowPlaying = useCallback(
-    (value: NowPlayingState | null | ((prev: NowPlayingState | null) => NowPlayingState | null)) => {
+    (
+      value: NowPlayingState | null | ((prev: NowPlayingState | null) => NowPlayingState | null)
+    ) => {
       setStore((prev) => {
-        const base = prev.id === deviceId ? prev.data : (getCachedDeviceData(deviceId)?.nowPlaying ?? null);
+        const base =
+          prev.id === deviceId ? prev.data : (getCachedDeviceData(deviceId)?.nowPlaying ?? null);
         return { id: deviceId, data: typeof value === "function" ? value(base) : value };
       });
     },

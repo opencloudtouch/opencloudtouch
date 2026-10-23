@@ -100,7 +100,10 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
   const navigate = useNavigate();
   const currentDevice = devices[currentDeviceIndex];
   const deviceId = currentDevice?.device_id;
-  usePrefetchDevices(devices.map((d) => d.device_id), currentDeviceIndex);
+  usePrefetchDevices(
+    devices.map((d) => d.device_id),
+    currentDeviceIndex
+  );
 
   const {
     nowPlaying,

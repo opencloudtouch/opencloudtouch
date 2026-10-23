@@ -41,7 +41,10 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
 
   const currentDevice = devices[currentDeviceIndex];
   // Warm the data of the other devices so the next card is complete when it slides in
-  usePrefetchDevices(devices.map((d) => d.device_id), currentDeviceIndex);
+  usePrefetchDevices(
+    devices.map((d) => d.device_id),
+    currentDeviceIndex
+  );
   const deviceOffline = currentDevice ? isDeviceOffline(currentDevice.device_id) : false;
 
   const { presets, loading, syncing, error, clearError, syncPresets, assignStation, removePreset } =

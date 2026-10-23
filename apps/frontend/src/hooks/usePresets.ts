@@ -44,14 +44,17 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
   // Keyed by device: after a device switch the presets of the previous device must not stay on screen; cached presets of
   // the new device (prefetch) are shown at once.
   const cachedPresets = getCachedDeviceData(deviceId)?.presets;
-  const [store, setStore] = useState<{ id: string | undefined; map: Record<number, Preset> }>(() => ({
-    id: deviceId,
-    map: cachedPresets ?? {},
-  }));
-  const presets =
-    store.id === deviceId ? store.map : (cachedPresets ?? EMPTY_PRESETS);
+  const [store, setStore] = useState<{ id: string | undefined; map: Record<number, Preset> }>(
+    () => ({
+      id: deviceId,
+      map: cachedPresets ?? {},
+    })
+  );
+  const presets = store.id === deviceId ? store.map : (cachedPresets ?? EMPTY_PRESETS);
   const setPresets = useCallback(
-    (value: Record<number, Preset> | ((prev: Record<number, Preset>) => Record<number, Preset>)) => {
+    (
+      value: Record<number, Preset> | ((prev: Record<number, Preset>) => Record<number, Preset>)
+    ) => {
       setStore((prev) => {
         const cached = getCachedDeviceData(deviceId)?.presets;
         const base = prev.id === deviceId ? prev.map : (cached ?? {});
