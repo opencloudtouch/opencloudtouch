@@ -265,7 +265,10 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
                 <motion.div initial={{ y: -10 }} animate={{ y: 0 }} transition={{ duration: 0.3 }}>
                   <DeviceOfflineBanner deviceName={currentDevice?.name} />
                 </motion.div>
-                <button className="btn btn-secondary rp-remove" onClick={() => setRemovingDevice(true)}>
+                <button
+                  className="btn btn-secondary rp-remove"
+                  onClick={() => setRemovingDevice(true)}
+                >
                   {Icon.Trash(18)} {t("presets.deleteDevice")}
                 </button>
               </>
