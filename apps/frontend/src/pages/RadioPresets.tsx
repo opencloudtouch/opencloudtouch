@@ -52,6 +52,7 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
   const [powerLoading, setPowerLoading] = useState(false);
   const [pendingStation, setPendingStation] = useState<RadioStation | null>(null);
   const [clearingPreset, setClearingPreset] = useState<number | null>(null);
+  const [removingDevice, setRemovingDevice] = useState(false);
 
   const isStandby = npState?.source === "STANDBY";
 
@@ -264,7 +265,7 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
                 <motion.div initial={{ y: -10 }} animate={{ y: 0 }} transition={{ duration: 0.3 }}>
                   <DeviceOfflineBanner deviceName={currentDevice?.name} />
                 </motion.div>
-                <button className="btn btn-secondary rp-remove" onClick={deleteCurrentDevice}>
+                <button className="btn btn-secondary rp-remove" onClick={() => setRemovingDevice(true)}>
                   {Icon.Trash(18)} {t("presets.deleteDevice")}
                 </button>
               </>
@@ -444,6 +445,21 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
         cancelLabel={t("common.cancel")}
         onConfirm={handleConfirmOverwrite}
         onCancel={() => setPendingStation(null)}
+      />
+
+      {/* Confirm Remove Device Dialog */}
+      <ConfirmDialog
+        open={removingDevice}
+        title={t("presets.confirmRemoveDeviceTitle")}
+        message={t("presets.confirmRemoveDeviceMessage", { name: currentDevice?.name })}
+        confirmLabel={t("presets.confirmRemoveDevice")}
+        cancelLabel={t("common.cancel")}
+        destructive
+        onConfirm={() => {
+          setRemovingDevice(false);
+          void deleteCurrentDevice();
+        }}
+        onCancel={() => setRemovingDevice(false)}
       />
 
       {/* Confirm Clear Dialog */}

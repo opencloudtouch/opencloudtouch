@@ -126,7 +126,10 @@
     "manualInvalidUrl": "有効なHTTPまたはHTTPSアドレスを入力してください。",
     "searchTypeGroup": "検索対象",
     "providerGroup": "ソース",
-    "searchResults": "検索結果"
+    "searchResults": "検索結果",
+    "confirmRemoveDeviceTitle": "デバイスを削除しますか?",
+    "confirmRemoveDeviceMessage": "{{name}} は保存済みのプリセットとともに OpenCloudTouch から削除されます。後でデバイス検索から再度追加できます。",
+    "confirmRemoveDevice": "デバイスを削除"
   },
   "settings": {
     "title": "設定",

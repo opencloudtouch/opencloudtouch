@@ -160,6 +160,37 @@ describe("Device Offline Display", () => {
     });
   });
 
+  describe("Removing an offline device (#520)", () => {
+    beforeEach(() => {
+      cy.intercept("GET", "/api/devices/*/now-playing", { statusCode: 503 }).as("nowPlaying503");
+      cy.intercept("GET", "/api/devices/*/volume", { statusCode: 503 }).as("volume503");
+      cy.intercept("DELETE", "/api/devices/*", { statusCode: 200, body: {} }).as("deleteDevice");
+    });
+
+    it("asks for confirmation and keeps the device when cancelled", () => {
+      visitDe("/");
+      cy.wait("@nowPlaying503", { timeout: 10000 });
+
+      cy.get(".rp-remove", { timeout: 10000 }).scrollIntoView().click();
+      cy.get("dialog.dlg[role='alertdialog']").should("be.visible");
+      cy.get('[data-testid="confirm-dialog-cancel"]').click();
+
+      cy.get("dialog.dlg").should("not.exist");
+      cy.get("@deleteDevice.all").should("have.length", 0);
+      cy.get(".rp-remove").should("exist");
+    });
+
+    it("removes the device only after the user confirms", () => {
+      visitDe("/");
+      cy.wait("@nowPlaying503", { timeout: 10000 });
+
+      cy.get(".rp-remove", { timeout: 10000 }).scrollIntoView().click();
+      cy.get('[data-testid="confirm-dialog-confirm"]').click();
+
+      cy.wait("@deleteDevice");
+    });
+  });
+
   describe("Recovery: Device Comes Back Online", () => {
     it("should remove offline banner and restore controls when device recovers", () => {
       // Phase 1: offline — intercept registered BEFORE visit so initial mount request gets 503

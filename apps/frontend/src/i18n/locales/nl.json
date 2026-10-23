@@ -126,7 +126,10 @@
     "manualInvalidUrl": "Voer een geldig HTTP- of HTTPS-adres in.",
     "searchTypeGroup": "Zoeken op",
     "providerGroup": "Bron",
-    "searchResults": "Zoekresultaten"
+    "searchResults": "Zoekresultaten",
+    "confirmRemoveDeviceTitle": "Apparaat verwijderen?",
+    "confirmRemoveDeviceMessage": "{{name}} wordt samen met de opgeslagen presets uit OpenCloudTouch verwijderd. Je kunt het later opnieuw toevoegen via het zoeken naar apparaten.",
+    "confirmRemoveDevice": "Apparaat verwijderen"
   },
   "settings": {
     "title": "Instellingen",

@@ -126,7 +126,10 @@
     "manualInvalidUrl": "Ange en giltig HTTP- eller HTTPS-adress.",
     "searchTypeGroup": "Sök efter",
     "providerGroup": "Källa",
-    "searchResults": "Sökresultat"
+    "searchResults": "Sökresultat",
+    "confirmRemoveDeviceTitle": "Ta bort enheten?",
+    "confirmRemoveDeviceMessage": "{{name}} tas bort från OpenCloudTouch tillsammans med sparade förinställningar. Du kan lägga till den igen senare via enhetssökningen.",
+    "confirmRemoveDevice": "Ta bort enhet"
   },
   "settings": {
     "title": "Inställningar",

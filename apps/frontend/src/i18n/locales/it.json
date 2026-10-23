@@ -126,7 +126,10 @@
     "manualInvalidUrl": "Inserisci un indirizzo HTTP o HTTPS valido.",
     "searchTypeGroup": "Cerca per",
     "providerGroup": "Sorgente",
-    "searchResults": "Risultati della ricerca"
+    "searchResults": "Risultati della ricerca",
+    "confirmRemoveDeviceTitle": "Rimuovere il dispositivo?",
+    "confirmRemoveDeviceMessage": "{{name}} verrà rimosso da OpenCloudTouch insieme ai preset salvati. Potrai aggiungerlo di nuovo più tardi con la ricerca dei dispositivi.",
+    "confirmRemoveDevice": "Rimuovi dispositivo"
   },
   "settings": {
     "title": "Impostazioni",
