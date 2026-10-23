@@ -50,26 +50,11 @@ describe("DeviceNameEditor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Simulate a 200px-wide container for font-size computation
+    // A 200px-wide container for the overflow measurement
     Object.defineProperty(HTMLElement.prototype, "clientWidth", {
       configurable: true,
       value: 200,
     });
-
-    // Canvas mock: measureText scales with font size
-    // Normal text: 0.55 avg char width; emoji ✏️: treated as 1.0 × size (square)
-    const mockCtx = {
-      font: "",
-      measureText(text: string) {
-        const m = /(\d+)px/.exec(this.font);
-        const size = m ? parseInt(m[1]) : 16;
-        if (text === "✏️") return { width: size }; // emoji = square (1em)
-        return { width: text.length * size * 0.55 };
-      },
-    };
-    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
-      mockCtx as unknown as RenderingContext,
-    );
   });
 
   it("renders device name as heading", () => {
@@ -300,32 +285,25 @@ describe("DeviceNameEditor", () => {
     expect(icons[0]).toHaveClass("dne-icon");
   });
 
-  describe("font size scaling via canvas.measureText", () => {
-    it("uses a font size between 17px and 24px for short names", () => {
-      const names = ["TV", "Kitchen", "Wohnzimmer"];
-      for (const name of names) {
-        const { unmount } = render(<DeviceNameEditor deviceId="ABC123" name={name} />);
-        const size = parseInt(screen.getByRole("button").style.fontSize);
-        expect(size).toBeGreaterThanOrEqual(17);
-        expect(size).toBeLessThanOrEqual(24);
-        unmount();
+  describe("centred name with marquee for overlong names", () => {
+    it("keeps a name that fits static (no marquee)", () => {
+      render(<DeviceNameEditor deviceId="ABC123" name="Wohnzimmer" />);
+      expect(screen.getByText("Wohnzimmer")).not.toHaveClass("dne-text--scrolling");
+    });
+
+    it("scrolls a name that is wider than the available space", () => {
+      Object.defineProperty(HTMLElement.prototype, "scrollWidth", {
+        configurable: true,
+        value: 320,
+      });
+      try {
+        render(<DeviceNameEditor deviceId="ABC123" name="A very long device name that does not fit" />);
+        const text = screen.getByText("A very long device name that does not fit");
+        expect(text).toHaveClass("dne-text--scrolling");
+        expect(text.style.getPropertyValue("--marquee-distance")).toBe("-120px");
+      } finally {
+        delete (HTMLElement.prototype as unknown as Record<string, unknown>).scrollWidth;
       }
-    });
-
-    it("longer names get a smaller or equal font size than shorter names", () => {
-      const { unmount } = render(<DeviceNameEditor deviceId="ABC123" name="TV" />);
-      const shortSize = parseInt(screen.getByRole("button").style.fontSize);
-      unmount();
-
-      render(<DeviceNameEditor deviceId="ABC123" name="Wohnzimmer Süd" />);
-      const longSize = parseInt(screen.getByRole("button").style.fontSize);
-
-      expect(longSize).toBeLessThanOrEqual(shortSize);
-    });
-
-    it("floors at 17px minimum for very long names", () => {
-      render(<DeviceNameEditor deviceId="ABC123" name="My Very Long Device Name Here" />);
-      expect(screen.getByRole("button").style.fontSize).toBe("17px");
     });
   });
 });

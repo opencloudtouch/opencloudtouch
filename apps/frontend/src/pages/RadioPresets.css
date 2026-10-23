@@ -79,19 +79,39 @@
   background: var(--color-bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-lg);
+  container-type: inline-size; /* the header layout reacts to the card width, not to the viewport */
 }
 .rp-card-head {
   display: grid;
-  grid-template-columns: var(--touch-target-min) minmax(0, 1fr) var(--touch-target-min);
+  grid-template-columns: var(--touch-target-min) minmax(0, 1fr) var(--touch-target-min); /* equal side columns: the name is centred on the CARD */
+  grid-template-areas: "power name setup" ". model ." ". ip .";
   align-items: start;
-  gap: 12px;
+  column-gap: 12px;
+  row-gap: 2px;
 }
 .rp-device-info {
+  display: contents; /* name, model and IP are grid items of the header */
+}
+.rp-power {
+  grid-area: power;
+}
+.rp-device-info > .dne,
+.rp-device-info > .dne-heading,
+.rp-device-info > .rp-device-name {
+  grid-area: name;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  text-align: center;
+}
+/* narrow card (320 to 414px phones): model + IP sit between the two round buttons, the name gets its own full-width row */
+@container (max-width: 359px) {
+  .rp-card-head {
+    grid-template-areas: "power model setup" "power ip setup" "name name name";
+  }
+  .rp-device-info > .dne,
+  .rp-device-info > .dne-heading,
+  .rp-device-info > .rp-device-name {
+    margin-top: 4px;
+  }
 }
 .rp-device-name {
   margin: 0;
@@ -105,6 +125,9 @@
   line-height: 1.4;
   color: var(--color-text-secondary);
   overflow-wrap: anywhere;
+  grid-area: model;
+  text-align: center;
+  align-self: center;
 }
 .rp-device-ip {
   font-family: var(--font-mono);
@@ -112,10 +135,14 @@
   line-height: 1.4;
   color: var(--color-text-secondary);
   overflow-wrap: anywhere;
+  grid-area: ip;
+  text-align: center;
+  align-self: center;
 }
 .rp-card-badge {
   display: flex;
   justify-content: flex-end;
+  grid-area: setup;
 }
 .rp-remove {
   align-self: stretch;

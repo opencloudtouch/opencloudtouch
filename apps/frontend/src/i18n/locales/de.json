@@ -902,7 +902,8 @@
     "switchToDevice": "Zu {{name}} wechseln",
     "volume": "Lautstärke",
     "copyCommand": "Befehl kopieren",
-    "copyToClipboard": "In Zwischenablage kopieren"
+    "copyToClipboard": "In Zwischenablage kopieren",
+    "deviceCounter": "Gerät {{current}} von {{total}}"
   },
   "stationDetail": {
     "codec": "Codec",

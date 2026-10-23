@@ -1,96 +1,22 @@
-/* ds-: device swiper. Replaces DeviceSwiper.css. Desktop: arrows left/right of the card. Phones <= 480px: arrows sit in the dots row under the card. */
-.ds {
-  display: grid;
-  grid-template-columns: var(--touch-target-min) minmax(0, 1fr) var(--touch-target-min);
-  grid-template-areas: "prev card next" ". dots .";
-  column-gap: 8px;
-  row-gap: 4px;
-  align-items: center;
-  min-width: 0;
-}
-.ds-viewport {
-  grid-area: card;
-  min-width: 0;
-  overflow-x: clip;
-  padding: 2px;
-} /* clips the slide animation, not the focus rings */
-.ds-card {
-  min-width: 0;
-}
-.ds-arrow {
-  width: var(--touch-target-min);
-  height: var(--touch-target-min);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--surface-color);
-  border: 1px solid var(--ui-control-border);
-  color: var(--color-text-primary);
-  transition: background var(--motion-base);
-}
-.ds-arrow:hover:not(:disabled) {
-  background: var(--bg-tertiary);
-}
-.ds-arrow--prev {
-  grid-area: prev;
-}
-.ds-arrow--next {
-  grid-area: next;
-}
-.ds-dots {
-  grid-area: dots;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  min-width: 0;
-}
-.ds-dot {
-  position: relative;
-  width: var(--touch-target-min);
-  height: var(--touch-target-min);
-  border-radius: 50%;
-}
-.ds-dot::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 12px;
-  height: 12px;
-  margin: -6px 0 0 -6px;
-  border-radius: 50%;
-  background: #8c8c8c;
-  transition:
-    width var(--motion-base),
-    margin var(--motion-base),
-    background var(--motion-base);
-}
-.ds-dot:hover::before {
-  background: #fff;
-}
-.ds-dot--active::before {
-  width: 24px;
-  margin-left: -12px;
-  border-radius: 6px;
-  background: var(--primary-text);
-} /* wider pill: the active dot differs in shape, not only in colour */
-@media (max-width: 480px) {
-  .ds {
-    grid-template-areas: "card card card" "prev dots next";
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .ds-arrow,
-  .ds-dot::before {
-    transition: none;
-  }
-}
-@media (forced-colors: active) {
-  .ds-dot::before {
-    background: CanvasText;
-  }
-  .ds-dot--active::before {
-    background: Highlight;
-  }
-}
+/* ds-: device swiper. Desktop: arrows left/right of the card. Phones <= 480px: arrows sit in the dots row under the card.
+   Dots: one row at any count. --ds-pitch (set by DeviceSwiper.tsx) is the width of one dot button: 44px, or 24-44px when dense / windowed. */
+.ds { display: grid; grid-template-columns: var(--touch-target-min) minmax(0, 1fr) var(--touch-target-min); grid-template-areas: "prev card next" ". dots ."; column-gap: 8px; row-gap: 4px; align-items: center; min-width: 0; }
+.ds-viewport { position: relative; grid-area: card; min-width: 0; overflow-x: clip; padding: 2px; }   /* anchor of the leaving card during the crossfade; clips the slide, not the focus rings */
+.ds-card { min-width: 0; }
+.ds-card-shell { display: contents; }   /* only carries aria-hidden/inert while the old card fades out */
+.ds-arrow { width: var(--touch-target-min); height: var(--touch-target-min); border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--surface-color); border: 1px solid var(--ui-control-border); color: var(--color-text-primary); transition: background var(--motion-base); }
+.ds-arrow:hover:not(:disabled) { background: var(--bg-tertiary); }
+.ds-arrow--prev { grid-area: prev; } .ds-arrow--next { grid-area: next; }
+
+.ds-dots { --ds-pitch: var(--touch-target-min); grid-area: dots; display: flex; flex-wrap: nowrap; justify-content: center; min-width: 0; }
+.ds-dot { position: relative; flex: none; width: var(--ds-pitch); min-width: 0; height: var(--touch-target-min); border-radius: 50%; }   /* min-width: 0 beats the global button min-width of 44px */
+.ds-dot::before { content: ""; position: absolute; left: 50%; top: 50%; width: var(--ds-dot, 12px); height: var(--ds-dot, 12px); transform: translate(-50%, -50%); border-radius: 50%; background: #8c8c8c; transition: width var(--motion-base), height var(--motion-base), background var(--motion-base); }
+.ds-dot:hover::before { background: #fff; }
+.ds-dot--active::before { width: calc(var(--ds-dot, 12px) * 2); border-radius: 999px; background: var(--primary-text); }   /* wider pill: the active dot differs in shape, not only in colour */
+.ds-dots--dense, .ds-dots--window { --ds-dot: clamp(6px, calc(var(--ds-pitch) * 0.4), 10px); }
+.ds-dots--window .ds-dot--edge::before { width: calc(var(--ds-dot) * 0.6); height: calc(var(--ds-dot) * 0.6); }   /* more devices beyond this side */
+.ds-dots--window .ds-dot--active::before { width: calc(var(--ds-dot) * 2); height: var(--ds-dot); }
+
+@media (max-width: 480px) { .ds { grid-template-areas: "card card card" "prev dots next"; } }
+@media (prefers-reduced-motion: reduce) { .ds-arrow, .ds-dot::before { transition: none; } }
+@media (forced-colors: active) { .ds-dot::before { background: CanvasText; } .ds-dot--active::before { background: Highlight; } }

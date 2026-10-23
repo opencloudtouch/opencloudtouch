@@ -140,8 +140,9 @@
   color: var(--color-text-secondary);
 }
 .zn-np .np {
+  --np-art: calc(var(--np-head-h) + 4px + var(--np-info-h));
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: var(--np-art) minmax(0, 1fr);
   grid-template-areas: "art header" "art info";
   column-gap: 12px;
   row-gap: 4px;
@@ -153,8 +154,8 @@
 }
 .zn-np .np-art {
   grid-area: art;
-  width: 72px;
-  max-width: 72px;
+  width: var(--np-art);
+  max-width: var(--np-art);
   margin: 0;
 }
 .zn-np .np-info {

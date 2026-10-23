@@ -364,6 +364,69 @@ export default function RadioSearch({
             <h2 id="rs-title" className="dlg-title">
               {t("presets.searchTitle")}
             </h2>
+            <button
+              className="btn btn-ghost btn-icon dlg-close rs-close"
+              onClick={onClose}
+              aria-label={t("presets.searchClose")}
+              title={t("presets.searchClose")}
+            >
+              {Icon.X(22)}
+            </button>
+          </div>
+
+          <div className="rs-chips">
+            <div className="ui-chips" role="group" aria-label={t("presets.searchTypeGroup")}>
+              {SEARCH_TYPES.map((st) => (
+                <button
+                  key={st.value}
+                  className="ui-chip"
+                  aria-pressed={searchType === st.value}
+                  disabled={searchMode === "manual"}
+                  onClick={() => {
+                    setSearchType(st.value);
+                    if (query.trim().length >= 2) {
+                      handleSearch(query, radioProvider, st.value);
+                    }
+                  }}
+                >
+                  {t(`presets.searchTypeLabel.${st.value}`)}
+                </button>
+              ))}
+            </div>
+            <div className="ui-chips" role="group" aria-label={t("presets.providerGroup")}>
+              {PROVIDERS.map((p) => (
+                <button
+                  key={p.value}
+                  className="ui-chip"
+                  aria-pressed={searchMode === "provider" && radioProvider === p.value}
+                  onClick={() => {
+                    setSearchMode("provider");
+                    setRadioProvider(p.value);
+                    if (query.trim().length >= 2) {
+                      handleSearch(query, p.value, searchType);
+                    }
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+              <button
+                data-test="manual-stream-mode"
+                className="ui-chip"
+                aria-pressed={searchMode === "manual"}
+                onClick={() => {
+                  // Keep the query and its results: switching back to a provider shows them again
+                  setSearchMode("manual");
+                  setError(null);
+                  setDetailUuid(null);
+                }}
+              >
+                {t("presets.manualStreamMode")}
+              </button>
+            </div>
+          </div>
+
+          <div className="rs-field">
             {searchMode === "manual" ? (
               <div className="rs-url-field">
                 <input
@@ -381,39 +444,7 @@ export default function RadioSearch({
                   }
                   aria-invalid={urlInvalid ? true : undefined}
                   data-autofocus
-                  autoFocus
                 />
-              </div>
-            ) : (
-              <input
-                type="search"
-                className="ui-input rs-search"
-                placeholder={t(`presets.searchPlaceholder.${searchType}`)}
-                aria-label={t("presets.searchTitle")}
-                value={query}
-                onChange={(e) => handleSearch(e.target.value)}
-                data-autofocus
-                autoFocus
-              />
-            )}
-            <button
-              className="btn btn-ghost btn-icon dlg-close rs-close"
-              onClick={onClose}
-              aria-label={t("presets.searchClose")}
-              title={t("presets.searchClose")}
-            >
-              {Icon.X(22)}
-            </button>
-          </div>
-
-          {searchMode === "manual" && (
-            <div
-              className="rs-manual rs-scroll"
-              tabIndex={0}
-              role="region"
-              aria-label={t("presets.manualStreamMode")}
-            >
-              <div className="ui-field">
                 <div id="manual-stream-url-help" className="ui-field-hint">
                   {t("presets.manualStreamUrlHelp")}
                 </div>
@@ -424,7 +455,26 @@ export default function RadioSearch({
                   </div>
                 )}
               </div>
+            ) : (
+              <input
+                type="search"
+                className="ui-input rs-search"
+                placeholder={t(`presets.searchPlaceholder.${searchType}`)}
+                aria-label={t("presets.searchTitle")}
+                value={query}
+                onChange={(e) => handleSearch(e.target.value)}
+                data-autofocus
+              />
+            )}
+          </div>
 
+          {searchMode === "manual" && (
+            <div
+              className="rs-manual rs-scroll"
+              tabIndex={0}
+              role="region"
+              aria-label={t("presets.manualStreamMode")}
+            >
               <div className="ui-field">
                 <input
                   type="text"
@@ -487,71 +537,6 @@ export default function RadioSearch({
                 }
               >
                 {t("presets.manualUseStation")}
-              </button>
-            </div>
-          )}
-
-          <div className="rs-chips">
-            <div className="ui-chips" role="group" aria-label={t("presets.searchTypeGroup")}>
-              {SEARCH_TYPES.map((st) => (
-                <button
-                  key={st.value}
-                  className="ui-chip"
-                  aria-pressed={searchMode === "provider" && searchType === st.value}
-                  disabled={searchMode === "manual"}
-                  onClick={() => {
-                    setSearchType(st.value);
-                    if (query.trim().length >= 2) {
-                      handleSearch(query, radioProvider, st.value);
-                    }
-                  }}
-                >
-                  {t(`presets.searchTypeLabel.${st.value}`)}
-                </button>
-              ))}
-            </div>
-            <div className="ui-chips" role="group" aria-label={t("presets.providerGroup")}>
-              {PROVIDERS.map((p) => (
-                <button
-                  key={p.value}
-                  className="ui-chip"
-                  aria-pressed={searchMode === "provider" && radioProvider === p.value}
-                  onClick={() => {
-                    setSearchMode("provider");
-                    setRadioProvider(p.value);
-                    if (query.trim().length >= 2) {
-                      handleSearch(query, p.value, searchType);
-                    }
-                  }}
-                >
-                  {p.label}
-                </button>
-              ))}
-              <button
-                data-test="manual-stream-mode"
-                className="ui-chip"
-                aria-pressed={searchMode === "manual"}
-                onClick={() => {
-                  // Keep the query and its results: switching back to a provider shows them again
-                  setSearchMode("manual");
-                  setError(null);
-                  setDetailUuid(null);
-                }}
-              >
-                {t("presets.manualStreamMode")}
-              </button>
-            </div>
-          </div>
-
-          {hasExistingPreset && onDelete && (
-            <div className="rs-delete">
-              <button
-                className="btn btn-danger-outline rs-delete-btn"
-                onClick={onDelete}
-                aria-label={t("presets.deletePreset")}
-                title={t("presets.deletePreset")}
-              >
-                {Icon.Trash(18)} {t("presets.deletePreset")}
               </button>
             </div>
           )}
@@ -648,6 +633,19 @@ export default function RadioSearch({
                   <span>{t("presets.maxReached", { count: MAX_RESULTS })}</span>
                 </div>
               )}
+            </div>
+          )}
+
+          {hasExistingPreset && onDelete && (
+            <div className="rs-foot">
+              <button
+                className="btn btn-danger-outline rs-delete-btn"
+                onClick={onDelete}
+                aria-label={t("presets.deletePreset")}
+                title={t("presets.deletePreset")}
+              >
+                {Icon.Trash(18)} {t("presets.deletePreset")}
+              </button>
             </div>
           )}
         </>

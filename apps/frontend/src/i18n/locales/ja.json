@@ -902,7 +902,8 @@
     "switchToDevice": "{{name}} に切り替え",
     "volume": "音量",
     "copyCommand": "コマンドをコピー",
-    "copyToClipboard": "クリップボードにコピー"
+    "copyToClipboard": "クリップボードにコピー",
+    "deviceCounter": "デバイス {{current}} / {{total}}"
   },
   "stationDetail": {
     "codec": "コーデック",

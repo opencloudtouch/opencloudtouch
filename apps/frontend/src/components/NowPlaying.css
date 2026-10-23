@@ -1,18 +1,31 @@
 /* np-: now playing. Replaces NowPlaying.css. Marquee only when the text overflows; otherwise (or with reduced motion) it ellipsizes. */
 .np {
+  --np-head-h: 32px;
+  --np-track-h: 24px;
+  --np-artist-h: 20px;
+  --np-info-h: calc(var(--np-track-h) + 2px + var(--np-artist-h)); /* 46px, reserved from the first frame */
   display: flex;
   flex-direction: column;
   gap: 12px;
   min-width: 0;
 }
-.np--empty {
+/* no playback data (yet): the same silhouette as the filled card (header, square art, two text slots),
+   so the card does not jump when the data arrives */
+.np--empty .np-art {
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 160px;
   border: 1px dashed var(--ui-control-border);
-  border-radius: var(--border-radius-md);
+  background: transparent;
   color: var(--color-text-secondary);
+}
+.np-empty-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: var(--space-md);
+  text-align: center;
 }
 .np-empty-icon {
   display: flex;
@@ -26,6 +39,7 @@
   align-items: center;
   gap: 10px;
   min-width: 0;
+  min-height: var(--np-head-h); /* the 32px source badge may arrive after the station name */
 }
 .np-station {
   flex: 1;
@@ -74,9 +88,9 @@
   fill: currentColor;
 }
 .np-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  display: grid;
+  grid-template-rows: var(--np-track-h) var(--np-artist-h); /* two fixed slots: nothing moves when track / artist arrive, and a late track does not shift an artist */
+  row-gap: 2px;
   min-width: 0;
   text-align: center;
 }
@@ -86,12 +100,16 @@
   white-space: nowrap;
 }
 .np-track {
+  grid-row: 1;
   font-size: 17px;
+  line-height: var(--np-track-h);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
 }
 .np-artist {
+  grid-row: 2;
   font-size: 15px;
+  line-height: var(--np-artist-h);
   color: var(--color-text-secondary);
 }
 .np-marquee-inner {

@@ -16,6 +16,7 @@ import {
 import { isDeviceOffline, markDeviceOffline } from "../api/offlineDeviceStore";
 import { useDeviceEventContext } from "../contexts/DeviceEventContext";
 import { octDebug } from "../utils/debug";
+import { getCachedDeviceData, setCachedDeviceData } from "../utils/deviceDataCache";
 
 const THROTTLE_MS = 150;
 
@@ -29,8 +30,34 @@ export interface UseVolumeResult {
 }
 
 export function useVolume(deviceId: string | undefined): UseVolumeResult {
-  const [volume, setVolume] = useState(0);
-  const [muted, setMuted] = useState(false);
+  // Keyed by device (see useNowPlaying): no volume of the previous device after a switch, cached value at once.
+  const [store, setStore] = useState<{ id: string | undefined; volume: number; muted: boolean }>(() => ({
+    id: deviceId,
+    volume: getCachedDeviceData(deviceId)?.volume?.actual ?? 0,
+    muted: getCachedDeviceData(deviceId)?.volume?.muted ?? false,
+  }));
+  const cachedVolume = getCachedDeviceData(deviceId)?.volume;
+  const volume = store.id === deviceId ? store.volume : (cachedVolume?.actual ?? 0);
+  const muted = store.id === deviceId ? store.muted : (cachedVolume?.muted ?? false);
+  const setVolume = useCallback(
+    (value: number) =>
+      setStore((prev) => {
+        const cached = getCachedDeviceData(deviceId)?.volume;
+        return { id: deviceId, volume: value, muted: prev.id === deviceId ? prev.muted : (cached?.muted ?? false) };
+      }),
+    [deviceId]
+  );
+  const setMuted = useCallback(
+    (value: boolean) =>
+      setStore((prev) => {
+        const cached = getCachedDeviceData(deviceId)?.volume;
+        return { id: deviceId, volume: prev.id === deviceId ? prev.volume : (cached?.actual ?? 0), muted: value };
+      }),
+    [deviceId]
+  );
+  useEffect(() => {
+    if (deviceId && store.id === deviceId) setCachedDeviceData(deviceId, { volume: { actual: store.volume, target: store.volume, muted: store.muted } });
+  }, [deviceId, store]);
   const [loading, setLoading] = useState(false);
   const [deviceOffline, setDeviceOffline] = useState(false);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -64,7 +91,7 @@ export function useVolume(deviceId: string | undefined): UseVolumeResult {
       }
       console.warn("[useVolume] Failed to fetch volume:", err);
     }
-  }, [deviceId]);
+  }, [deviceId, setMuted, setVolume]);
 
   // Initial fetch on mount / device change
   useEffect(() => {
@@ -128,7 +155,7 @@ export function useVolume(deviceId: string | undefined): UseVolumeResult {
       unsubscribe();
       unsubConnection();
     };
-  }, [deviceId, subscribe]);
+  }, [deviceId, setMuted, setVolume, subscribe]);
 
   // Throttled volume setter — sends API calls during drag, not just on drop
   const setDeviceVolume = useCallback(
@@ -157,7 +184,7 @@ export function useVolume(deviceId: string | undefined): UseVolumeResult {
         }
       }, THROTTLE_MS);
     },
-    [deviceId]
+    [deviceId, setMuted, setVolume]
   );
 
   // Mute toggler
@@ -174,7 +201,7 @@ export function useVolume(deviceId: string | undefined): UseVolumeResult {
         console.error("[useVolume] Failed to toggle mute:", err);
         setMuted(!newMuted); // Rollback
       });
-  }, [deviceId, muted]);
+  }, [deviceId, muted, setMuted, setVolume]);
 
   return { volume, muted, loading, deviceOffline, setDeviceVolume, toggleMute };
 }

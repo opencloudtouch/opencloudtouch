@@ -46,6 +46,8 @@ function isVisible(el: Element, win: Window): DOMRect | null {
   ) {
     return null;
   }
+  // The card that is fading out during a device switch is inert and hidden from assistive technology: not part of the UI.
+  if (el.closest("[inert]")) return null;
   // Content of a closed <details> (except its <summary>) is not rendered.
   const details = el.closest("details:not([open])");
   if (details && !el.closest("summary")) return null;

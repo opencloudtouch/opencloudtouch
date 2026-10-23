@@ -10,6 +10,7 @@ import DeviceOfflineBanner from "../components/DeviceOfflineBanner";
 import DeviceNameEditor from "../components/DeviceNameEditor";
 import { Icon } from "../components/Icon";
 import { useNowPlaying } from "../hooks/useNowPlaying";
+import { usePrefetchDevices } from "../hooks/usePrefetchDevices";
 import { useVolume } from "../hooks/useVolume";
 import { useZones } from "../hooks/useZones";
 import { togglePlayPause, nextTrack, prevTrack, power } from "../api/devices";
@@ -99,6 +100,7 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
   const navigate = useNavigate();
   const currentDevice = devices[currentDeviceIndex];
   const deviceId = currentDevice?.device_id;
+  usePrefetchDevices(devices.map((d) => d.device_id), currentDeviceIndex);
 
   const {
     nowPlaying,

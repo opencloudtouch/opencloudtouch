@@ -902,7 +902,8 @@
     "switchToDevice": "Passa a {{name}}",
     "volume": "Volume",
     "copyCommand": "Copia comando",
-    "copyToClipboard": "Copia negli appunti"
+    "copyToClipboard": "Copia negli appunti",
+    "deviceCounter": "Dispositivo {{current}} di {{total}}"
   },
   "stationDetail": {
     "codec": "Codec",

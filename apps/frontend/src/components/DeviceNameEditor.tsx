@@ -1,4 +1,11 @@
-import { useState, useRef, useEffect, useLayoutEffect, KeyboardEvent } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  KeyboardEvent,
+  type CSSProperties,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { renameDevice } from "../api/devices";
@@ -23,50 +30,26 @@ export default function DeviceNameEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const [fontSizePx, setFontSizePx] = useState(24);
+  const wrapRef = useRef<HTMLSpanElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const [overflowPx, setOverflowPx] = useState(0);
 
+  // The name is centred at a fixed size; only a name that does not fit scrolls (marquee as in NowPlaying), it is never shrunk or wrapped.
   useLayoutEffect(() => {
-    const el = buttonRef.current;
-    if (!el) return;
+    const wrap = wrapRef.current;
+    const text = textRef.current;
+    if (!wrap || !text) return;
 
-    // The button shrinks to its content, so the space it may use is the width of its heading.
-    const host = el.parentElement ?? el;
-    const compute = () => {
-      const containerWidth = host.clientWidth;
-      if (!containerWidth) return;
-
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      const elStyle = getComputedStyle(el);
-      const fontWeight = elStyle.fontWeight || "600";
-      const fontFamily = elStyle.fontFamily || "system-ui, -apple-system, sans-serif";
-      const gapWidth = parseFloat(elStyle.gap) || 0;
-      // Text and icon sit inside the button's horizontal padding
-      const paddingX =
-        (parseFloat(elStyle.paddingLeft) || 0) + (parseFloat(elStyle.paddingRight) || 0);
-
-      for (let size = 24; size >= 17; size--) {
-        ctx.font = `${fontWeight} ${size}px ${fontFamily}`;
-        const textWidth = ctx.measureText(name).width;
-        // The pencil is an SVG of exactly 0.65em (was an emoji glyph measured via canvas)
-        const iconWidth = size * 0.65;
-        const safetyBuffer = 2; // 1px subpixel rounding tolerance
-        if (textWidth + iconWidth + gapWidth + paddingX + safetyBuffer <= containerWidth) {
-          setFontSizePx(size);
-          return;
-        }
-      }
-      setFontSizePx(17);
+    const measure = () => {
+      const extra = text.scrollWidth - wrap.clientWidth;
+      setOverflowPx(extra > 1 ? Math.ceil(extra) : 0);
     };
 
-    compute();
-    const observer = new ResizeObserver(compute);
-    observer.observe(host);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(wrap);
     return () => observer.disconnect();
-  }, [name]);
+  }, [name, editing]);
 
   useEffect(() => {
     if (editing && inputRef.current) {
@@ -175,13 +158,13 @@ export default function DeviceNameEditor({
     );
   }
 
+  const scrolling = overflowPx > 0;
+
   return (
     <h2 className="dne-heading">
       <button
-        ref={buttonRef}
         type="button"
         className="dne-btn"
-        style={{ fontSize: `${fontSizePx}px` }}
         onClick={startEditing}
         title={t("deviceRename.clickToEdit")}
         data-test="device-name"
@@ -190,9 +173,24 @@ export default function DeviceNameEditor({
           if (e.key === "Enter" || e.key === " ") startEditing();
         }}
       >
-        <span className="dne-text">{name}</span>
+        <span ref={wrapRef} className="dne-text-wrap">
+          <span
+            ref={textRef}
+            className={`dne-text${scrolling ? " dne-text--scrolling" : ""}`}
+            style={
+              scrolling
+                ? ({
+                    "--marquee-distance": `-${overflowPx}px`,
+                    animationDuration: `${Math.max(6, overflowPx / 10)}s`,
+                  } as CSSProperties)
+                : undefined
+            }
+          >
+            {name}
+          </span>
+        </span>
         <span className="dne-icon" aria-hidden="true">
-          {Icon.Pencil(Math.round(fontSizePx * 0.65))}
+          {Icon.Pencil(16)}
         </span>
       </button>
     </h2>

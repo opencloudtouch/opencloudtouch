@@ -30,7 +30,7 @@ describe("Device Discovery", () => {
 
       // Verify devices visible (MockDiscoveryAdapter returns 3 devices)
       cy.get('[data-test="app-header"]').should("be.visible");
-      cy.get('[data-test="device-card"]').should("have.length", 1);
+      cy.get('.ds-card-shell[data-state="current"] [data-test="device-card"]').should("have.length", 1);
 
       // Wait for ALL 3 devices to load before checking navigation
       // (progressive SSE may deliver devices incrementally)
@@ -42,27 +42,26 @@ describe("Device Discovery", () => {
       cy.get(".ds-arrow--next").should("not.be.disabled");
 
       // Get IP of first device for comparison
-      cy.get('[data-test="device-card"]')
+      cy.get('.ds-card-shell[data-state="current"] [data-test="device-card"]')
         .find('[data-test="device-ip"]')
         .invoke("text")
-        .as("firstDeviceIP");
+        .then((text) => cy.wrap(text, { log: false }).as("firstDeviceIP")); // wrap: a query alias would re-run and follow the current card
 
       // Swipe right 1x → device 1
       cy.get(".ds-arrow--next").click();
-      cy.wait(150); // Animation (Phase 2 optimization)
-      cy.get('[data-test="device-card"]')
-        .find('[data-test="device-ip"]')
-        .invoke("text")
-        .then((secondIP) => {
-          cy.get("@firstDeviceIP").should("not.equal", secondIP);
+      // The card is replaced by a crossfade: wait until the current card shows the next device
+      cy.get("@firstDeviceIP").then((firstIP) => {
+        cy.get('.ds-card-shell[data-state="current"] [data-test="device-ip"]').should(($ip) => {
+          expect($ip.text()).to.not.equal(firstIP);
         });
+      });
       cy.get(".ds-arrow--prev").should("not.be.disabled");
       cy.get(".ds-arrow--next").should("not.be.disabled");
 
       // Swipe right 2x → device 2 (last device)
       cy.get(".ds-arrow--next").click();
       cy.wait(150); // Animation (Phase 2 optimization)
-      cy.get('[data-test="device-card"]')
+      cy.get('.ds-card-shell[data-state="current"] [data-test="device-card"]')
         .find('[data-test="device-ip"]')
         .invoke("text")
         .then((thirdIP) => {

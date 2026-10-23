@@ -229,10 +229,16 @@ export default function NowPlaying({ nowPlaying, onPlayPause }: NowPlayingProps)
   if (!nowPlaying) {
     return (
       <div className="np np--empty">
-        <span className="np-empty-icon" aria-hidden="true">
-          {Icon.Music(28)}
-        </span>
-        <div className="np-placeholder">{t("player.noPlayback")}</div>
+        <div className="np-header" />
+        <div className="np-art">
+          <div className="np-empty-inner">
+            <span className="np-empty-icon" aria-hidden="true">
+              {Icon.Music(28)}
+            </span>
+            <div className="np-placeholder">{t("player.noPlayback")}</div>
+          </div>
+        </div>
+        <div className="np-info" />
       </div>
     );
   }

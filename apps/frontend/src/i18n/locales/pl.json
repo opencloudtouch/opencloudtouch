@@ -902,7 +902,8 @@
     "switchToDevice": "Przełącz na {{name}}",
     "volume": "Głośność",
     "copyCommand": "Kopiuj polecenie",
-    "copyToClipboard": "Kopiuj do schowka"
+    "copyToClipboard": "Kopiuj do schowka",
+    "deviceCounter": "Urządzenie {{current}} z {{total}}"
   },
   "stationDetail": {
     "codec": "Kodek",

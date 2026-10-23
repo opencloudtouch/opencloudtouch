@@ -106,6 +106,17 @@ describe("RadioSearch Component", () => {
     expect(screen.getByPlaceholderText("e.g. SWR3, BBC Radio…")).toHaveValue("rock");
   });
 
+  it("shows the provider/type chips above the single input row in every mode", () => {
+    const { container } = render(
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
+    const order = (el: Element | null) => Array.from(container.querySelectorAll(".rs-chips, .rs-field")).indexOf(el!);
+
+    expect(order(container.querySelector(".rs-chips"))).toBeLessThan(order(container.querySelector(".rs-field")));
+    fireEvent.click(container.querySelector('[data-test="manual-stream-mode"]')!);
+    expect(order(container.querySelector(".rs-chips"))).toBeLessThan(order(container.querySelector(".rs-field")));
+  });
+
   it("renders search type chips", () => {
     render(
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />

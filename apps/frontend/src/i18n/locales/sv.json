@@ -902,7 +902,8 @@
     "switchToDevice": "Byt till {{name}}",
     "volume": "Volym",
     "copyCommand": "Kopiera kommando",
-    "copyToClipboard": "Kopiera till urklipp"
+    "copyToClipboard": "Kopiera till urklipp",
+    "deviceCounter": "Enhet {{current}} av {{total}}"
   },
   "stationDetail": {
     "codec": "Codec",

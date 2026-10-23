@@ -3,7 +3,7 @@
   flex: none;
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--touch-target-min);
-  grid-template-areas: "title close" "field field";
+  grid-template-areas: "title close";
   align-items: center;
   gap: 8px 12px;
   padding: var(--space-md) var(--space-md) 12px 20px;
@@ -15,10 +15,7 @@
   grid-area: close;
   margin: 0;
 }
-.rs-head > .rs-search,
-.rs-head > .rs-url-field {
-  grid-area: field;
-}
+
 .rs-head--detail {
   display: flex;
   align-items: flex-start;
@@ -35,9 +32,16 @@
   gap: 8px;
   padding: 0 var(--space-md) 12px 20px;
 }
-.rs-delete {
+/* The chips never change their width when the selection changes: no check mark here, the selection shows as the blue fill
+   (a check mark made the chips jump when switching between providers and the stream URL). */
+.rs-chips .ui-chip[aria-pressed="true"]::before {
+  content: none;
+}
+/* delete-preset row: footer of the dialog (destructive, rarely used, away from the controls at the top and from the close button) */
+.rs-foot {
   flex: none;
-  padding: 0 var(--space-md) 12px 20px;
+  padding: 12px var(--space-md) var(--space-md) 20px;
+  border-top: 1px solid var(--border-color);
 }
 .rs-delete-btn {
   width: 100%;
@@ -177,5 +181,50 @@
 @media (prefers-reduced-motion: reduce) {
   .rs-item {
     transition: none;
+  }
+}
+
+/* chips first, then ONE input row (search or stream URL): the controls stay where they are for every provider */
+.rs-field {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 var(--space-md) 12px 20px;
+}
+.rs-url-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ---- phones: the chips take up to three rows, so claw back vertical space ---- */
+@media (max-width: 600px) {
+  .rs-head {
+    padding-bottom: 4px;
+  }
+  .rs-chips {
+    gap: 4px;
+    padding-bottom: 8px;
+  }
+  .rs-chips .ui-chip {
+    padding-inline: 12px;
+  }
+  .rs-field {
+    padding-bottom: 8px;
+  }
+}
+/* ---- short screens (phone in landscape, keyboard open): the whole dialog scrolls as one sheet instead of leaving 100px for the results ---- */
+@media (max-height: 520px) {
+  .dlg.dlg--lg .dlg-panel {
+    height: auto;
+    max-height: none;
+  }
+  .dlg.dlg--lg .dlg-overlay {
+    align-items: flex-start;
+  }
+  .dlg.dlg--lg .rs-scroll {
+    overflow: visible;
+    flex: none;
   }
 }

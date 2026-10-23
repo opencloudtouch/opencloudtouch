@@ -23,6 +23,7 @@ import { isDeviceOffline } from "../api/offlineDeviceStore";
 import { usePresets } from "../hooks/usePresets";
 import { useVolume } from "../hooks/useVolume";
 import { useNowPlaying } from "../hooks/useNowPlaying";
+import { usePrefetchDevices } from "../hooks/usePrefetchDevices";
 import { useToast } from "../contexts/ToastContext";
 import "./RadioPresets.css";
 
@@ -39,6 +40,8 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
   const [assigningPreset, setAssigningPreset] = useState<number | null>(null);
 
   const currentDevice = devices[currentDeviceIndex];
+  // Warm the data of the other devices so the next card is complete when it slides in
+  usePrefetchDevices(devices.map((d) => d.device_id), currentDeviceIndex);
   const deviceOffline = currentDevice ? isDeviceOffline(currentDevice.device_id) : false;
 
   const { presets, loading, syncing, error, clearError, syncPresets, assignStation, removePreset } =
