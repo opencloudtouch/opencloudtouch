@@ -121,19 +121,17 @@ describe("Diagnostics Page", () => {
     });
   });
 
-  it("renders StatusDot with green status for recently seen device", async () => {
+  it("shows the Online presence badge (icon + text) for a recently seen device", async () => {
     mockedGetDiagnostics.mockResolvedValue(MOCK_RESPONSE);
     render(<Diagnostics />);
     await waitFor(() => {
       expect(screen.getByText("Living Room")).toBeInTheDocument();
     });
-    // StatusDot renders <span aria-label="green"> — multiple may exist (server + device)
-    const greenDots = screen.getAllByLabelText("green");
-    expect(greenDots.length).toBeGreaterThan(0);
-    expect(greenDots[0]).toHaveClass("status-dot", "status-green");
+    const badge = screen.getByText("Online").closest(".ui-badge");
+    expect(badge).toHaveClass("ui-badge--success");
   });
 
-  it("renders StatusDot with red status for device with null last_seen", async () => {
+  it("shows the Offline presence badge for a device with null last_seen", async () => {
     mockedGetDiagnostics.mockResolvedValue({
       ...MOCK_RESPONSE,
       devices: [{ ...MOCK_DEVICE, last_seen: null }],
@@ -142,13 +140,10 @@ describe("Diagnostics Page", () => {
     await waitFor(() => {
       expect(screen.getByText("Living Room")).toBeInTheDocument();
     });
-    // Device status dot should be red (null last_seen)
-    const dots = screen.getAllByLabelText("red");
-    expect(dots.length).toBeGreaterThan(0);
-    expect(dots[0]).toHaveClass("status-dot", "status-red");
+    expect(screen.getByText("Offline").closest(".ui-badge")).toHaveClass("ui-badge--danger");
   });
 
-  it("renders StatusDot with yellow for device seen 10 min ago", async () => {
+  it("shows the Not seen recently badge for a device seen 10 min ago", async () => {
     mockedGetDiagnostics.mockResolvedValue({
       ...MOCK_RESPONSE,
       devices: [
@@ -162,8 +157,9 @@ describe("Diagnostics Page", () => {
     await waitFor(() => {
       expect(screen.getByText("Living Room")).toBeInTheDocument();
     });
-    const yellowDot = screen.getByLabelText("yellow");
-    expect(yellowDot).toHaveClass("status-dot", "status-yellow");
+    expect(screen.getByText("Not seen recently").closest(".ui-badge")).toHaveClass(
+      "ui-badge--warning"
+    );
   });
 
   it("calls downloadDiagnostics when download button is clicked", async () => {
@@ -210,7 +206,7 @@ describe("Diagnostics Page", () => {
   });
 
   describe("Additional branch coverage", () => {
-    it("shows red status for a device last seen 30+ minutes ago (not null)", async () => {
+    it("shows the Offline badge for a device last seen 30+ minutes ago (not null)", async () => {
       mockedGetDiagnostics.mockResolvedValue({
         ...MOCK_RESPONSE,
         devices: [
@@ -224,9 +220,7 @@ describe("Diagnostics Page", () => {
       await waitFor(() => {
         expect(screen.getByText("Living Room")).toBeInTheDocument();
       });
-      const redDots = screen.getAllByLabelText("red");
-      expect(redDots.length).toBeGreaterThan(0);
-      expect(redDots[0]).toHaveClass("status-dot", "status-red");
+      expect(screen.getByText("Offline").closest(".ui-badge")).toHaveClass("ui-badge--danger");
     });
 
     it("executes the cancelled-guard arm when unmounted before the fetch resolves (coverage-only, see comment)", async () => {
@@ -304,7 +298,7 @@ describe("Diagnostics Page", () => {
       });
     });
 
-    it("shows yellow/disabled discovery status when discovery is disabled", async () => {
+    it("shows the neutral Disabled badge when discovery is disabled", async () => {
       mockedGetDiagnostics.mockResolvedValue({
         ...MOCK_RESPONSE,
         server: { ...MOCK_RESPONSE.server, discovery_enabled: false },
@@ -313,11 +307,10 @@ describe("Diagnostics Page", () => {
       await waitFor(() => {
         expect(screen.getByText("Disabled")).toBeInTheDocument();
       });
-      const discoveryDot = screen.getByLabelText("yellow");
-      expect(discoveryDot).toHaveClass("status-dot", "status-yellow");
+      expect(screen.getByText("Disabled").closest(".ui-badge")).not.toHaveClass("ui-badge--success");
     });
 
-    it("shows the cross icon when ssh_permanent is false", async () => {
+    it("shows the Not enabled badge when ssh_permanent is false", async () => {
       mockedGetDiagnostics.mockResolvedValue({
         ...MOCK_RESPONSE,
         devices: [{ ...MOCK_DEVICE, ssh_permanent: false }],
@@ -326,7 +319,7 @@ describe("Diagnostics Page", () => {
       await waitFor(() => {
         expect(screen.getByText("Living Room")).toBeInTheDocument();
       });
-      expect(screen.getByText("❌")).toBeInTheDocument();
+      expect(screen.getByText("Not enabled")).toBeInTheDocument();
     });
   });
 });

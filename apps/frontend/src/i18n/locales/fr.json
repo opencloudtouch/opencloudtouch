@@ -145,7 +145,9 @@
       "enterIp": "Veuillez saisir une adresse IP",
       "probing": "Recherche...",
       "deviceAdded": "{{name}} ({{ip}}) ajouté",
-      "probeError": "Aucun appareil trouvé à {{ip}}"
+      "probeError": "Aucun appareil trouvé à {{ip}}",
+      "label": "Adresse IP de l'appareil",
+      "hint": "Format : 192.168.1.10"
     },
     "discovery": {
       "devicesFound_one": "{{count}} nouvel appareil trouvé",
@@ -158,7 +160,8 @@
       "scanButton": "Rechercher",
       "scanning": "Recherche en cours...",
       "manualTitle": "Adresse IP manuelle",
-      "manualDescription": "Utilisez cette option si la recherche automatique échoue à cause d'un VLAN, réseau Docker ou pare-feu."
+      "manualDescription": "Utilisez cette option si la recherche automatique échoue à cause d'un VLAN, réseau Docker ou pare-feu.",
+      "scanningStatus": "Recherche réseau en cours"
     },
     "logging": {
       "sectionTitle": "Journalisation",
@@ -170,7 +173,10 @@
       "downloadLogs": "Télécharger les journaux",
       "downloadDescription": "Téléchargez les 1000 dernières entrées du journal backend sous forme de fichier texte.",
       "levelChanged": "Niveau de journal défini sur {{level}}",
-      "levelError": "Impossible de modifier le niveau de journal"
+      "levelError": "Impossible de modifier le niveau de journal",
+      "levelSaving": "Enregistrement du niveau de journal",
+      "downloading": "Préparation...",
+      "downloadFailed": "Impossible de télécharger les journaux : {{error}}"
     }
   },
   "manualIpModal": {
@@ -781,7 +787,26 @@
     "updateAvailable": "Mise à jour disponible : {{version}}",
     "viewRelease": "Voir la version",
     "upToDate": "Vous êtes à jour !",
-    "devBuild": "Version auto-compilée — vérification des mises à jour désactivée"
+    "devBuild": "Version auto-compilée — vérification des mises à jour désactivée",
+    "github": "GitHub",
+    "externalLink": "(s'ouvre dans un nouvel onglet)",
+    "licenses": "Licences open source",
+    "linksLabel": "Plus d'informations",
+    "supportersTitle": "Supp<0/>rters",
+    "supportersLabel": "Soutiens",
+    "monthlySupporter": "(soutien mensuel)",
+    "libraryWebsite": "Site web de {{name}}",
+    "licensesVersion": "Version",
+    "licensesGroup": {
+      "frontend": "Frontend",
+      "backend": "Backend",
+      "build": "Outils de build"
+    },
+    "licenseProject": "Licence d'OpenCloudTouch",
+    "licenseApache": "Apache License 2.0",
+    "trademarkTitle": "Mention de marque",
+    "trademarkText1": "OpenCloudTouch n'est <0>pas affilié à Bose Corporation</0>. Bose® et SoundTouch® sont des marques déposées de Bose Corporation.",
+    "trademarkText2": "Ce logiciel utilise les interfaces locales publiquement documentées des appareils Bose SoundTouch®. Voir <0>TRADEMARK.md</0> pour les détails."
   },
   "discovery": {
     "alreadyRunning": "Recherche d'appareils déjà en cours. Veuillez patienter...",
@@ -849,7 +874,15 @@
     "firmware": "Firmware",
     "setupStatus": "Statut de configuration",
     "lastSeen": "Dernière activité",
-    "downloadBundle": "Télécharger le bundle de support"
+    "downloadBundle": "Télécharger le bundle de support",
+    "ip": "Adresse IP",
+    "ssh": "SSH",
+    "sshOn": "Activé en permanence",
+    "sshOff": "Non activé",
+    "statusOnline": "En ligne",
+    "statusStale": "Pas vu récemment",
+    "statusOffline": "Hors ligne",
+    "unknownValue": "inconnu"
   },
   "deviceRename": {
     "clickToEdit": "Cliquer pour renommer",

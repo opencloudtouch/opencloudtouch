@@ -145,7 +145,9 @@
       "enterIp": "Voer een IP-adres in",
       "probing": "Zoeken...",
       "deviceAdded": "{{name}} ({{ip}}) toegevoegd",
-      "probeError": "Geen apparaat gevonden op {{ip}}"
+      "probeError": "Geen apparaat gevonden op {{ip}}",
+      "label": "IP-adres van het apparaat",
+      "hint": "Formaat: 192.168.1.10"
     },
     "discovery": {
       "devicesFound_one": "{{count}} nieuw apparaat gevonden",
@@ -158,7 +160,8 @@
       "scanButton": "Nu zoeken",
       "scanning": "Zoeken...",
       "manualTitle": "Handmatig IP-adres",
-      "manualDescription": "Gebruik deze optie als automatisch zoeken niets vindt vanwege VLAN, Docker-netwerk of firewall."
+      "manualDescription": "Gebruik deze optie als automatisch zoeken niets vindt vanwege VLAN, Docker-netwerk of firewall.",
+      "scanningStatus": "Netwerkzoekopdracht bezig"
     },
     "logging": {
       "sectionTitle": "Logboek",
@@ -170,7 +173,10 @@
       "downloadLogs": "Logs downloaden",
       "downloadDescription": "Download de laatste 1000 backend-logvermeldingen als tekstbestand.",
       "levelChanged": "Logniveau ingesteld op {{level}}",
-      "levelError": "Logniveau kon niet worden gewijzigd"
+      "levelError": "Logniveau kon niet worden gewijzigd",
+      "levelSaving": "Logniveau wordt opgeslagen",
+      "downloading": "Wordt voorbereid...",
+      "downloadFailed": "Logs konden niet worden gedownload: {{error}}"
     }
   },
   "manualIpModal": {
@@ -781,7 +787,26 @@
     "updateAvailable": "Update beschikbaar: {{version}}",
     "viewRelease": "Release bekijken",
     "upToDate": "Je bent up-to-date!",
-    "devBuild": "Zelfgebouwde versie — updatecontrole uitgeschakeld"
+    "devBuild": "Zelfgebouwde versie — updatecontrole uitgeschakeld",
+    "github": "GitHub",
+    "externalLink": "(opent in een nieuw tabblad)",
+    "licenses": "Open-sourcelicenties",
+    "linksLabel": "Meer informatie",
+    "supportersTitle": "Supp<0/>rters",
+    "supportersLabel": "Ondersteuners",
+    "monthlySupporter": "(maandelijkse ondersteuner)",
+    "libraryWebsite": "Website van {{name}}",
+    "licensesVersion": "Versie",
+    "licensesGroup": {
+      "frontend": "Frontend",
+      "backend": "Backend",
+      "build": "Buildhulpmiddelen"
+    },
+    "licenseProject": "OpenCloudTouch-licentie",
+    "licenseApache": "Apache License 2.0",
+    "trademarkTitle": "Merkvermelding",
+    "trademarkText1": "OpenCloudTouch is <0>niet verbonden met Bose Corporation</0>. Bose® en SoundTouch® zijn geregistreerde handelsmerken van Bose Corporation.",
+    "trademarkText2": "Deze software gebruikt de openbaar gedocumenteerde lokale API's van Bose SoundTouch®-apparaten. Zie <0>TRADEMARK.md</0> voor details."
   },
   "discovery": {
     "alreadyRunning": "Apparaatzoektocht loopt al. Wacht even...",
@@ -849,7 +874,15 @@
     "firmware": "Firmware",
     "setupStatus": "Configuratiestatus",
     "lastSeen": "Laatst gezien",
-    "downloadBundle": "Ondersteuningsbundel downloaden"
+    "downloadBundle": "Ondersteuningsbundel downloaden",
+    "ip": "IP-adres",
+    "ssh": "SSH",
+    "sshOn": "Permanent ingeschakeld",
+    "sshOff": "Niet ingeschakeld",
+    "statusOnline": "Online",
+    "statusStale": "Lang niet gezien",
+    "statusOffline": "Offline",
+    "unknownValue": "onbekend"
   },
   "deviceRename": {
     "clickToEdit": "Klik om te hernoemen",

@@ -145,7 +145,9 @@
       "enterIp": "Please enter an IP address",
       "probing": "Searching...",
       "deviceAdded": "{{name}} ({{ip}}) added",
-      "probeError": "No device found at {{ip}}"
+      "probeError": "No device found at {{ip}}",
+      "label": "Device IP address",
+      "hint": "Format: 192.168.1.10"
     },
     "discovery": {
       "devicesFound_one": "{{count}} new device found",
@@ -158,7 +160,8 @@
       "scanButton": "Scan Now",
       "scanning": "Scanning...",
       "manualTitle": "Manual IP Address",
-      "manualDescription": "Use this if automatic search doesn't find anything due to VLAN, Docker network, or firewall."
+      "manualDescription": "Use this if automatic search doesn't find anything due to VLAN, Docker network, or firewall.",
+      "scanningStatus": "Network scan running"
     },
     "logging": {
       "sectionTitle": "Logging",
@@ -170,7 +173,10 @@
       "downloadLogs": "Download Logs",
       "downloadDescription": "Download the last 1000 backend log entries as a text file.",
       "levelChanged": "Log level set to {{level}}",
-      "levelError": "Could not change log level"
+      "levelError": "Could not change log level",
+      "levelSaving": "Saving log level",
+      "downloading": "Preparing...",
+      "downloadFailed": "Logs could not be downloaded: {{error}}"
     }
   },
   "manualIpModal": {
@@ -781,7 +787,26 @@
     "updateAvailable": "Update available: {{version}}",
     "viewRelease": "View Release",
     "upToDate": "You're up to date!",
-    "devBuild": "Self-built / dev version — update checks are disabled"
+    "devBuild": "Self-built / dev version — update checks are disabled",
+    "github": "GitHub",
+    "externalLink": "(opens in new tab)",
+    "licenses": "Open-source licenses",
+    "linksLabel": "More information",
+    "supportersTitle": "Supp<0/>rters",
+    "supportersLabel": "Supporters",
+    "monthlySupporter": "(monthly supporter)",
+    "libraryWebsite": "{{name}} website",
+    "licensesVersion": "Version",
+    "licensesGroup": {
+      "frontend": "Frontend",
+      "backend": "Backend",
+      "build": "Build tools"
+    },
+    "licenseProject": "OpenCloudTouch licence",
+    "licenseApache": "Apache License 2.0",
+    "trademarkTitle": "Trademark notice",
+    "trademarkText1": "OpenCloudTouch is <0>not affiliated with Bose Corporation</0>. Bose® and SoundTouch® are registered trademarks of Bose Corporation.",
+    "trademarkText2": "This software interfaces with Bose SoundTouch® devices using their publicly documented local APIs. See <0>TRADEMARK.md</0> for details."
   },
   "discovery": {
     "alreadyRunning": "Device search already running. Please wait...",
@@ -849,7 +874,15 @@
     "firmware": "Firmware",
     "setupStatus": "Setup Status",
     "lastSeen": "Last Seen",
-    "downloadBundle": "Download Support Bundle"
+    "downloadBundle": "Download Support Bundle",
+    "ip": "IP address",
+    "ssh": "SSH",
+    "sshOn": "Permanently enabled",
+    "sshOff": "Not enabled",
+    "statusOnline": "Online",
+    "statusStale": "Not seen recently",
+    "statusOffline": "Offline",
+    "unknownValue": "unknown"
   },
   "deviceRename": {
     "clickToEdit": "Click to rename",

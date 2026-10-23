@@ -156,7 +156,8 @@ describe("Settings — Scan Button trigger", () => {
     renderSettings();
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /scan now/i })).toBeDisabled();
+      // while scanning the button name is its busy label
+      expect(screen.getByRole("button", { name: /scanning/i })).toBeDisabled();
     });
   });
 });
@@ -179,7 +180,8 @@ describe("Settings — Scan Button on page reload", () => {
     const { rerender } = render(<Wrapper qc={qc}><Settings /></Wrapper>);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /scan now/i })).toBeDisabled();
+      // while scanning the button name is its busy label
+      expect(screen.getByRole("button", { name: /scanning/i })).toBeDisabled();
     });
 
     // Discovery finishes — update mock and force re-render with same QueryClient

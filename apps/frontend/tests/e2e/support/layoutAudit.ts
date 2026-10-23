@@ -207,6 +207,10 @@ export function collectLayoutIssues(win: Window): LayoutIssue[] {
       // An icon drawn over an image (e.g. the play button over the cover art) is intentional.
       const tags = [a.el.tagName.toLowerCase(), b.el.tagName.toLowerCase()].sort();
       if (tags[0] === "img" && tags[1] === "svg") continue;
+      // A decorative icon (aria-hidden) drawn inside a form field, e.g. the chevron of a custom select, is intentional.
+      const field = /^(input|select|textarea)$/.test(a.el.tagName.toLowerCase()) ? a.el : /^(input|select|textarea)$/.test(b.el.tagName.toLowerCase()) ? b.el : null;
+      const icon = field === a.el ? b.el : a.el;
+      if (field && icon.tagName.toLowerCase() === "svg" && icon.closest('[aria-hidden="true"]')) continue;
       // Parts hidden by a scrolling/clipping ancestor (e.g. content scrolled under the nav) do not count.
       if (!a.box || !b.box) continue;
       const w = Math.min(a.box.right, b.box.right) - Math.max(a.box.left, b.box.left);

@@ -145,7 +145,9 @@
       "enterIp": "IPアドレスを入力してください",
       "probing": "検索中...",
       "deviceAdded": "{{name}}（{{ip}}）を追加しました",
-      "probeError": "{{ip}} にデバイスが見つかりません"
+      "probeError": "{{ip}} にデバイスが見つかりません",
+      "label": "デバイスのIPアドレス",
+      "hint": "形式: 192.168.1.10"
     },
     "discovery": {
       "devicesFound_one": "新しいデバイスが{{count}}台見つかりました",
@@ -158,7 +160,8 @@
       "scanButton": "今すぐ検索",
       "scanning": "検索中...",
       "manualTitle": "手動IPアドレス",
-      "manualDescription": "VLAN、Dockerネットワーク、ファイアウォールなどで自動検索が見つからない場合に使用します。"
+      "manualDescription": "VLAN、Dockerネットワーク、ファイアウォールなどで自動検索が見つからない場合に使用します。",
+      "scanningStatus": "ネットワークを検索中"
     },
     "logging": {
       "sectionTitle": "ログ",
@@ -170,7 +173,10 @@
       "downloadLogs": "ログをダウンロード",
       "downloadDescription": "バックエンドの最新1000件のログエントリをテキストファイルとしてダウンロードします。",
       "levelChanged": "ログレベルを{{level}}に設定しました",
-      "levelError": "ログレベルを変更できませんでした"
+      "levelError": "ログレベルを変更できませんでした",
+      "levelSaving": "ログレベルを保存中",
+      "downloading": "準備中...",
+      "downloadFailed": "ログをダウンロードできませんでした: {{error}}"
     }
   },
   "manualIpModal": {
@@ -781,7 +787,26 @@
     "updateAvailable": "アップデート可能：{{version}}",
     "viewRelease": "リリースを表示",
     "upToDate": "最新版です！",
-    "devBuild": "自己ビルド版 — アップデート確認は無効です"
+    "devBuild": "自己ビルド版 — アップデート確認は無効です",
+    "github": "GitHub",
+    "externalLink": "(新しいタブで開きます)",
+    "licenses": "オープンソースライセンス",
+    "linksLabel": "詳細情報",
+    "supportersTitle": "Supp<0/>rters",
+    "supportersLabel": "サポーター",
+    "monthlySupporter": "(月額サポーター)",
+    "libraryWebsite": "{{name}} のウェブサイト",
+    "licensesVersion": "バージョン",
+    "licensesGroup": {
+      "frontend": "フロントエンド",
+      "backend": "バックエンド",
+      "build": "ビルドツール"
+    },
+    "licenseProject": "OpenCloudTouch ライセンス",
+    "licenseApache": "Apache License 2.0",
+    "trademarkTitle": "商標に関する注意",
+    "trademarkText1": "OpenCloudTouch は <0>Bose Corporation とは無関係</0>です。Bose® および SoundTouch® は Bose Corporation の登録商標です。",
+    "trademarkText2": "このソフトウェアは、Bose SoundTouch® デバイスの公開されているローカルAPIを利用しています。詳細は <0>TRADEMARK.md</0> をご覧ください。"
   },
   "discovery": {
     "alreadyRunning": "デバイス検索はすでに実行中です。お待ちください...",
@@ -849,7 +874,15 @@
     "firmware": "ファームウェア",
     "setupStatus": "セットアップ状況",
     "lastSeen": "最終確認",
-    "downloadBundle": "サポートバンドルをダウンロード"
+    "downloadBundle": "サポートバンドルをダウンロード",
+    "ip": "IPアドレス",
+    "ssh": "SSH",
+    "sshOn": "常時有効",
+    "sshOff": "無効",
+    "statusOnline": "オンライン",
+    "statusStale": "しばらく確認されていません",
+    "statusOffline": "オフライン",
+    "unknownValue": "不明"
   },
   "deviceRename": {
     "clickToEdit": "クリックして名前を変更",

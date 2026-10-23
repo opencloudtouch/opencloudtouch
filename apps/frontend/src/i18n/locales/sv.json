@@ -145,7 +145,9 @@
       "enterIp": "Ange en IP-adress",
       "probing": "Söker...",
       "deviceAdded": "{{name}} ({{ip}}) tillagd",
-      "probeError": "Ingen enhet hittades på {{ip}}"
+      "probeError": "Ingen enhet hittades på {{ip}}",
+      "label": "Enhetens IP-adress",
+      "hint": "Format: 192.168.1.10"
     },
     "discovery": {
       "devicesFound_one": "{{count}} ny enhet hittad",
@@ -158,7 +160,8 @@
       "scanButton": "Sök nu",
       "scanning": "Söker...",
       "manualTitle": "Manuell IP-adress",
-      "manualDescription": "Använd detta om automatisk sökning inte hittar något på grund av VLAN, Docker-nätverk eller brandvägg."
+      "manualDescription": "Använd detta om automatisk sökning inte hittar något på grund av VLAN, Docker-nätverk eller brandvägg.",
+      "scanningStatus": "Nätverkssökning pågår"
     },
     "logging": {
       "sectionTitle": "Loggning",
@@ -170,7 +173,10 @@
       "downloadLogs": "Ladda ned loggar",
       "downloadDescription": "Ladda ned de senaste 1000 backend-loggposterna som textfil.",
       "levelChanged": "Loggnivå inställd på {{level}}",
-      "levelError": "Det gick inte att ändra loggnivån"
+      "levelError": "Det gick inte att ändra loggnivån",
+      "levelSaving": "Sparar loggnivån",
+      "downloading": "Förbereder...",
+      "downloadFailed": "Loggarna kunde inte laddas ned: {{error}}"
     }
   },
   "manualIpModal": {
@@ -781,7 +787,26 @@
     "updateAvailable": "Uppdatering tillgänglig: {{version}}",
     "viewRelease": "Visa version",
     "upToDate": "Du är uppdaterad!",
-    "devBuild": "Egenbyggd version — uppdateringskontroll inaktiverad"
+    "devBuild": "Egenbyggd version — uppdateringskontroll inaktiverad",
+    "github": "GitHub",
+    "externalLink": "(öppnas i en ny flik)",
+    "licenses": "Öppen källkod-licenser",
+    "linksLabel": "Mer information",
+    "supportersTitle": "Supp<0/>rters",
+    "supportersLabel": "Supportrar",
+    "monthlySupporter": "(månatlig supporter)",
+    "libraryWebsite": "{{name}} webbplats",
+    "licensesVersion": "Version",
+    "licensesGroup": {
+      "frontend": "Frontend",
+      "backend": "Backend",
+      "build": "Byggverktyg"
+    },
+    "licenseProject": "OpenCloudTouch-licens",
+    "licenseApache": "Apache License 2.0",
+    "trademarkTitle": "Varumärkesmeddelande",
+    "trademarkText1": "OpenCloudTouch är <0>inte knutet till Bose Corporation</0>. Bose® och SoundTouch® är registrerade varumärken som tillhör Bose Corporation.",
+    "trademarkText2": "Den här programvaran använder de offentligt dokumenterade lokala gränssnitten hos Bose SoundTouch®-enheter. Se <0>TRADEMARK.md</0> för detaljer."
   },
   "discovery": {
     "alreadyRunning": "Enhetssökning pågår redan. Vänta...",
@@ -849,7 +874,15 @@
     "firmware": "Firmware",
     "setupStatus": "Konfigurationsstatus",
     "lastSeen": "Senast sedd",
-    "downloadBundle": "Ladda ner supportpaket"
+    "downloadBundle": "Ladda ner supportpaket",
+    "ip": "IP-adress",
+    "ssh": "SSH",
+    "sshOn": "Permanent aktiverad",
+    "sshOff": "Inte aktiverad",
+    "statusOnline": "Online",
+    "statusStale": "Inte sedd på länge",
+    "statusOffline": "Offline",
+    "unknownValue": "okänd"
   },
   "deviceRename": {
     "clickToEdit": "Klicka för att byta namn",
