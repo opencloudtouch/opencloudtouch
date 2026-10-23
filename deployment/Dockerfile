@@ -84,11 +84,8 @@ ARG ALIGNED_SOURCES="zlib bzip2 acl libbsd libmd libpsl rtmpdump db5.3 gdbm gmp 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     . /etc/os-release && \
-    if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
-        sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/debian.sources; \
-    else \
-        sed -n 's/^deb /deb-src /p' /etc/apt/sources.list >> /etc/apt/sources.list; \
-    fi && \
+    printf 'Types: deb-src\nURIs: http://deb.debian.org/debian\nSuites: %s %s-updates\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n\nTypes: deb-src\nURIs: http://deb.debian.org/debian-security\nSuites: %s-security\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n' \
+        "$VERSION_CODENAME" "$VERSION_CODENAME" "$VERSION_CODENAME" > /etc/apt/sources.list.d/debian-src.sources && \
     apt-get update && \
     apt-get upgrade -y --no-install-recommends && \
     apt-get install -y --no-install-recommends build-essential devscripts dpkg-dev fakeroot
@@ -97,21 +94,22 @@ WORKDIR /rebuild
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    . /etc/os-release && \
+    set -e; \
+    . /etc/os-release; \
     export DEBFULLNAME="OpenCloudTouch" DEBEMAIL="noreply@opencloudtouch.org" \
            DEB_BUILD_OPTIONS="nocheck nodoc noautodbgsym parallel=$(nproc)" \
            DEB_LDFLAGS_APPEND="-Wl,-z,max-page-size=0x10000" && \
-    mkdir -p /out && \
+    mkdir -p /out; \
     for src in $ALIGNED_SOURCES; do \
-        echo "=== rebuilding $src ===" && \
-        mkdir "$src" && cd "$src" && \
-        apt-get build-dep -y --no-install-recommends "$src" && \
-        apt-get source "$src" && \
-        cd */ && \
-        dch --local +oct "Rebuild with 64 KB ELF segment alignment (OCT #530)" --distribution "$VERSION_CODENAME" && \
-        dpkg-buildpackage -b -uc -us && \
-        cd .. && cp *.deb /out/ && cd /rebuild; \
-    done && \
+        echo "=== rebuilding $src ==="; \
+        mkdir "$src"; cd "$src"; \
+        apt-get build-dep -y --no-install-recommends "$src"; \
+        apt-get source "$src"; \
+        cd */; \
+        dch --local +oct "Rebuild with 64 KB ELF segment alignment (OCT #530)" --distribution "$VERSION_CODENAME"; \
+        dpkg-buildpackage -b -uc -us; \
+        cd ..; cp *.deb /out/; cd /rebuild; \
+    done; \
     ls -l /out
 
 # Stage 2: Frontend Build (platform-independent HTML/CSS/JS)
