@@ -2,22 +2,62 @@
    <= 768px wide and >= 600px high: the bar sticks to the top of the scrolling <main>, full width, opaque. Below 600px height it stays a normal bar (52px of 568px is too much).
    .rp-device / .lc-device and .ds become display: contents, so the bar is a direct child of the page grid (.rp) / column (.lc) and sticks over the WHOLE page, not only over the card. */
 @media (max-width: 768px) and (min-height: 600px) {
-  .rp-device, .lc-device, .ds { display: contents; }
+  .rp-device,
+  .lc-device,
+  .ds {
+    display: contents;
+  }
   .ds-bar {
-    position: sticky; top: 0; z-index: 10;
-    display: grid; grid-template-columns: var(--touch-target-min) minmax(0, 1fr) var(--touch-target-min); grid-template-areas: "prev dots next"; align-items: center; column-gap: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: var(--touch-target-min) minmax(0, 1fr) var(--touch-target-min);
+    grid-template-areas: "prev dots next";
+    align-items: center;
+    column-gap: 8px;
     box-sizing: border-box;
-    margin: 0 calc(-1 * var(--space-md)) calc(8px - var(--space-lg));   /* full bleed over the page padding; 8px to the card instead of the page gap */
-    padding: 4px max(var(--space-md), calc((100% - 560px) / 2 + var(--space-md)));   /* arrows stay on the 560px column of the card */
+    margin: 0 calc(-1 * var(--space-md)) calc(8px - var(--space-lg)); /* full bleed over the page padding; 8px to the card instead of the page gap */
+    padding: 4px max(var(--space-md), calc((100% - 560px) / 2 + var(--space-md))); /* arrows stay on the 560px column of the card */
     background: var(--color-bg-dark);
     box-shadow: 0 1px 0 transparent;
     transition: box-shadow var(--motion-base);
   }
-  .ds-bar[data-stuck] { box-shadow: 0 1px 0 var(--border-color), 0 8px 12px -8px rgba(0, 0, 0, 0.7); }   /* hairline + soft edge, only while content runs underneath */
-  .ds-viewport { grid-area: auto; width: 100%; max-width: 560px; justify-self: center; align-self: center; box-sizing: border-box; }
+  .ds-bar[data-stuck] {
+    box-shadow:
+      0 1px 0 var(--border-color),
+      0 8px 12px -8px rgba(0, 0, 0, 0.7);
+  } /* hairline + soft edge, only while content runs underneath */
+  .ds-viewport {
+    grid-area: auto;
+    width: 100%;
+    max-width: 560px;
+    justify-self: center;
+    align-self: center;
+    box-sizing: border-box;
+  }
   /* while stuck: the name replaces the dots, so the presets below clearly belong to a device */
-  .ds-bar[data-stuck] .ds-dots { display: none; }
-  .ds-bar[data-stuck] .ds-bar-name { display: block; grid-area: dots; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font-size: 16px; font-weight: var(--font-weight-bold); color: var(--color-text-primary); }
-  .app-main { scroll-padding-top: calc(var(--touch-target-min) + 16px); }   /* keyboard focus / anchors never end up under the bar (WCAG 2.4.11) */
+  .ds-bar[data-stuck] .ds-dots {
+    display: none;
+  }
+  .ds-bar[data-stuck] .ds-bar-name {
+    display: block;
+    grid-area: dots;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+    font-size: 16px;
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-primary);
+  }
+  .app-main {
+    scroll-padding-top: calc(var(--touch-target-min) + 16px);
+  } /* keyboard focus / anchors never end up under the bar (WCAG 2.4.11) */
 }
-@media (prefers-reduced-motion: reduce) { .ds-bar { transition: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .ds-bar {
+    transition: none;
+  }
+}
