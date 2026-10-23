@@ -23,7 +23,8 @@
     "presets": "Presets",
     "zones": "Zonen",
     "settings": "Einstellungen",
-    "about": "Über"
+    "about": "Über",
+    "ariaLabel": "Hauptnavigation"
   },
   "player": {
     "noPlayback": "Keine Wiedergabe",
@@ -381,7 +382,8 @@
         "troubleshootingItem3": "Warten Sie mindestens 100 Sekunden nach dem Neustart",
         "troubleshootingItem4": "Versuchen Sie einen weiteren Power Cycle (Schritte 2–5)",
         "troubleshootingItem5": "Prüfen Sie, ob das Gerät im gleichen Netzwerk ist",
-        "troubleshootingItem6": "Testen Sie die SSH-Verbindung manuell mit dem Befehl oben – wenn das funktioniert, ist das Gerät bereit."
+        "troubleshootingItem6": "Testen Sie die SSH-Verbindung manuell mit dem Befehl oben – wenn das funktioniert, ist das Gerät bereit.",
+        "nextDisabled": "Bitte SSH-Zugang prüfen und eine Entscheidung zur SSH-Dauerhaftigkeit treffen."
       },
       "step4": {
         "title": "Backup erstellen",
@@ -392,14 +394,15 @@
         "btnCreate": "Backup jetzt erstellen",
         "btnCreating": "Erstelle Backup...",
         "progressMessage": "Backup wird erstellt für {{device}}",
-        "progressNote": "Dies kann bis zu 2 Minuten dauern...",
+        "progressNote": "Dies kann bis zu 10 Minuten dauern...",
         "errorTitle": "Backup fehlgeschlagen",
         "successTitle": "Backup erfolgreich erstellt!",
         "successHint": "Die Backups wurden auf Ihren USB-Stick geschrieben. Ziehen Sie den Stick nach dem Wizard ab – er enthält Ihre Wiederherstellungs-Dateien.",
         "filesTitle": "Gespeicherte Dateien (auf USB-Stick):",
         "totalLabel": "Gesamt:",
         "durationMinSec": "{{min}} Min. {{sec}} Sek.",
-        "durationSec": "{{sec}} Sek."
+        "durationSec": "{{sec}} Sek.",
+        "nextWarning": "Ohne Backup ist keine Wiederherstellung möglich. Wenn Sie jetzt fortfahren, geschieht das auf eigenes Risiko."
       },
       "step5": {
         "titleProxy": "Reverse-Proxy erkannt",
@@ -467,8 +470,7 @@
         "changedEntries": "Geänderte Einträge:",
         "backupLabel": "Backup:",
         "btnShowChanges": "▶ Änderungen anzeigen",
-        "btnHideChanges": "▼ Änderungen ausblenden",
-        "hostsApplied": "Hosts-Datei erfolgreich geändert."
+        "btnHideChanges": "▼ Änderungen ausblenden"
       },
       "step7": {
         "title": "NTP-Server patchen",
@@ -542,7 +544,11 @@
         "btnSkip": "Trotzdem fortfahren — Gerät wird nicht als konfiguriert markiert",
         "checkNtpServer": "NTP-Server gesetzt auf: {{server}}",
         "checkNtpServerWrong": "NTP-Server ist auf '{{found}}' gesetzt, erwartet wurde '{{expected}}'",
-        "fullVerifyItem5": "NTP-Server auf dem Gerät konfiguriert"
+        "fullVerifyItem5": "NTP-Server auf dem Gerät konfiguriert",
+        "phaseFinalize": "Einrichten",
+        "phaseReboot": "Neustart",
+        "phaseVerify": "Prüfen",
+        "nextDisabled": "Bitte zuerst alle Prüfungen erfolgreich abschließen."
       },
       "step9": {
         "title": "Setup abgeschlossen!",
@@ -572,9 +578,18 @@
         "supportLink": "Support kontaktieren →",
         "summaryItem7": "NTP-Server gepatcht ({{server}})"
       }
-    }
+    },
+    "trackerCompact": "Schritt {{current}} von {{total}} – {{label}}",
+    "stepAriaSkipped": "Schritt {{id}}: {{label}} — {{description}} – übersprungen"
   },
   "restore": {
+    "steps": {
+      "choice": "Auswahl",
+      "backup": "Backup",
+      "restore": "Wiederherstellen",
+      "verify": "Prüfen",
+      "done": "Fertig"
+    },
     "choice": {
       "title": "Was möchten Sie tun?",
       "setup_title": "Setup-Assistent",
@@ -606,7 +621,10 @@
       "running": "Wiederherstellung läuft...",
       "error": "Wiederherstellung fehlgeschlagen: {{message}}",
       "success": "Alle Schritte erfolgreich abgeschlossen! Gesamt: {{time}}s",
-      "continue": "Weiter"
+      "continue": "Weiter",
+      "running_hint": "Dieser Vorgang kann mehrere Minuten dauern (meist 8 bis 9). Lassen Sie diese Seite geöffnet und trennen Sie das Gerät nicht.",
+      "error_hint": "Gehen Sie zurück und versuchen Sie es erneut.",
+      "failed_title": "Wiederherstellung unvollständig"
     },
     "verification": {
       "title": "Warte auf Gerät",
@@ -627,6 +645,50 @@
       "failed": "Fehlgeschlagen",
       "note": "Das Gerät ist jetzt im Originalzustand. Sie können es sicher trennen.",
       "done": "Fertig"
+    },
+    "step_labels": {
+      "pre_snapshot": "Snapshot vor der Wiederherstellung",
+      "config": "Konfigurationsdateien",
+      "presets": "Presets",
+      "hosts": "/etc/hosts",
+      "ntp": "/etc/ntpservers.txt",
+      "remote_services": "SSH-Dauerhaftigkeit",
+      "reboot": "Neustart"
+    },
+    "messages": {
+      "snapshot_saved": "Snapshot vor der Wiederherstellung gespeichert",
+      "snapshot_unavailable": "Kein Wizard-Dienst verfügbar",
+      "snapshot_failed": "Snapshot fehlgeschlagen: {{error}}",
+      "config_restored": "Konfigurationsdateien wiederhergestellt",
+      "config_restore_failed": "Wiederherstellung der Konfiguration fehlgeschlagen: {{error}}",
+      "presets_clean": "Keine Presets.xml auf dem Gerät gefunden (bereits sauber)",
+      "presets_restored": "Presets wiederhergestellt unter {{path}}",
+      "presets_restore_failed": "Wiederherstellung der Presets fehlgeschlagen: {{error}}",
+      "hosts_read_failed": "/etc/hosts konnte nicht gelesen werden",
+      "hosts_clean": "Kein OCT-Block in /etc/hosts gefunden (bereits sauber)",
+      "hosts_restored": "OCT-Block aus /etc/hosts entfernt",
+      "hosts_restore_failed": "Wiederherstellung von /etc/hosts fehlgeschlagen: {{error}}",
+      "ntp_no_backup": "Kein NTP-Backup gefunden (bereits sauber)",
+      "ntp_copy_failed": "/etc/ntpservers.txt konnte nicht aus dem Backup wiederhergestellt werden",
+      "ntp_restored": "NTP-Server aus dem Backup wiederhergestellt",
+      "ntp_restore_failed": "Wiederherstellung der NTP-Server fehlgeschlagen: {{error}}",
+      "remote_services_deleted": "/mnt/nv/remote_services gelöscht",
+      "remote_services_failed": "remote_services konnte nicht entfernt werden: {{error}}",
+      "reboot_sent": "Neustart-Befehl gesendet",
+      "reboot_failed": "Neustart fehlgeschlagen: {{error}}"
+    },
+    "validation": {
+      "archive_corrupt": "Archiv ist beschädigt oder nicht lesbar",
+      "archive_empty": "Archiv ist leer",
+      "archive_unverified": "Archivinhalt konnte nicht geprüft werden (Scan fehlgeschlagen oder Zeitüberschreitung)",
+      "archive_path_missing": "Erwartete Pfade mit {{expected}} wurden im Archiv nicht gefunden"
+    },
+    "status": {
+      "completed": "Abgeschlossen",
+      "skipped": "Übersprungen",
+      "failed": "Fehlgeschlagen",
+      "in_progress": "Läuft",
+      "pending": "Ausstehend"
     }
   },
   "errors": {
@@ -797,5 +859,14 @@
     "reboot": "Gerät neu starten",
     "sent": "Neustart-Befehl gesendet",
     "confirmMessage": "{{name}} neu starten? Das Gerät ist für ca. 100 Sekunden nicht erreichbar."
+  },
+  "a11y": {
+    "skipToContent": "Zum Inhalt springen",
+    "selectLanguage": "Sprache auswählen",
+    "deviceSelection": "Geräteauswahl",
+    "switchToDevice": "Zu {{name}} wechseln",
+    "volume": "Lautstärke",
+    "copyCommand": "Befehl kopieren",
+    "copyToClipboard": "In Zwischenablage kopieren"
   }
 }

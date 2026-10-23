@@ -85,3 +85,25 @@
     font-size: 10px;
   }
 }
+
+/* Very narrow phones: four labelled links no longer fit next to the language selector.
+   Only the active link shows its label; the others keep a visually hidden label for screen readers. */
+@media (max-width: 360px) {
+  .nav-link {
+    min-width: 0;
+    padding: var(--space-sm) var(--space-xs);
+  }
+
+  .nav-link:not(.active) .nav-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .nav-link.active {
+    flex: 2;
+  }
+}

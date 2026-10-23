@@ -84,14 +84,9 @@ async function renderStep5(serverUrl = "http://myserver.local:7777") {
 }
 
 function getApplyButton(): HTMLButtonElement {
-  const buttons = screen.getAllByRole("button");
-  const applyBtn = buttons.find(
-    (btn) =>
-      btn.textContent?.includes("setup.wizard.step5.btnApply") ||
-      btn.textContent?.includes("⚙️")
-  );
+  const applyBtn = document.querySelector<HTMLButtonElement>("button.config-modify-btn");
   if (!applyBtn) throw new Error("Apply button not found");
-  return applyBtn as HTMLButtonElement;
+  return applyBtn;
 }
 
 describe("Step5ConfigModification — URL Normalization", () => {

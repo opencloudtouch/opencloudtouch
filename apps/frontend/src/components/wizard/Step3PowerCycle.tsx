@@ -1,11 +1,15 @@
 /**
- * Step 3: Power Cycle
+ * Step 3: Power Cycle (tracker step 2)
+ * Logic, props, API call, 30 s auto-check and t() keys unchanged. Markup/classNames/icons only.
+ * The three risk questions are rendered from one list (same DOM order and classes as before).
  */
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { checkPorts } from "../../api/wizard";
 import WizardStep from "./WizardStep";
 import CopyableCommand from "./CopyableCommand";
+import { Icon } from "./Icon";
+import "./wizard-base.css";
 import "./Step3PowerCycle.css";
 
 // ─── SSH Persistence Risk Assessment ───────────────────────────────────────────
@@ -32,6 +36,12 @@ function calcRiskLevel(answers: RiskAnswers): "gering" | "mittel" | "hoch" | nul
   if (score >= 1) return "mittel";
   return "gering";
 }
+
+const QUESTIONS: { key: keyof RiskAnswers; num: number; textKey: string; order: RiskAnswer[] }[] = [
+  { key: "q1", num: 1, textKey: "setup.wizard.step3.q1", order: ["ja", "nein", "unbekannt"] },
+  { key: "q2", num: 2, textKey: "setup.wizard.step3.q2", order: ["ja", "nein", "unbekannt"] },
+  { key: "q3", num: 3, textKey: "setup.wizard.step3.q3", order: ["nein", "ja", "unbekannt"] },
+];
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
@@ -99,6 +109,28 @@ export default function Step3PowerCycle({
     // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [checkAttempts]);
 
+  const answerLabel = (a: RiskAnswer): string =>
+    a === "ja"
+      ? t("setup.wizard.step3.answerYes")
+      : a === "nein"
+        ? t("setup.wizard.step3.answerNo")
+        : t("setup.wizard.step3.answerUnknown");
+
+  const instructionSteps = [
+    { title: "setup.wizard.step3.instructionStep1", desc: "setup.wizard.step3.instructionStep1Desc" },
+    { title: "setup.wizard.step3.instructionStep2", desc: "setup.wizard.step3.instructionStep2Desc" },
+    { title: "setup.wizard.step3.instructionStep3", desc: "setup.wizard.step3.instructionStep3Desc" },
+    { title: "setup.wizard.step3.instructionStep4", desc: "setup.wizard.step3.instructionStep4Desc" },
+    { title: "setup.wizard.step3.instructionStep5", desc: "setup.wizard.step3.instructionStep5Desc" },
+  ];
+
+  const riskIcon =
+    riskLevel === "gering"
+      ? Icon.ShieldCheck()
+      : riskLevel === "mittel"
+        ? Icon.Alert()
+        : Icon.ShieldAlert();
+
   return (
     <WizardStep
       stepNumber={2}
@@ -108,51 +140,21 @@ export default function Step3PowerCycle({
       onNext={() => onSSHDecision(sshDecision ?? false)}
       onPrevious={onPrevious}
       isNextDisabled={!portsAvailable || sshDecision === null}
+      nextDisabledReason={t("setup.wizard.step3.nextDisabled")}
     >
       <div className="power-cycle">
         {/* Instructions */}
         <div className="power-cycle-steps">
           <h3 className="power-cycle-title">{t("setup.wizard.step3.sectionInstructions")}</h3>
-
-          <div className="power-cycle-step">
-            <div className="power-cycle-step-number">1</div>
-            <div className="power-cycle-step-content">
-              <strong>{t("setup.wizard.step3.instructionStep1")}</strong>
-              <p>{t("setup.wizard.step3.instructionStep1Desc")}</p>
+          {instructionSteps.map((s, i) => (
+            <div className="power-cycle-step" key={s.title}>
+              <div className="power-cycle-step-number">{i + 1}</div>
+              <div className="power-cycle-step-content">
+                <strong>{t(s.title)}</strong>
+                <p>{t(s.desc)}</p>
+              </div>
             </div>
-          </div>
-
-          <div className="power-cycle-step">
-            <div className="power-cycle-step-number">2</div>
-            <div className="power-cycle-step-content">
-              <strong>{t("setup.wizard.step3.instructionStep2")}</strong>
-              <p>{t("setup.wizard.step3.instructionStep2Desc")}</p>
-            </div>
-          </div>
-
-          <div className="power-cycle-step">
-            <div className="power-cycle-step-number">3</div>
-            <div className="power-cycle-step-content">
-              <strong>{t("setup.wizard.step3.instructionStep3")}</strong>
-              <p>{t("setup.wizard.step3.instructionStep3Desc")}</p>
-            </div>
-          </div>
-
-          <div className="power-cycle-step">
-            <div className="power-cycle-step-number">4</div>
-            <div className="power-cycle-step-content">
-              <strong>{t("setup.wizard.step3.instructionStep4")}</strong>
-              <p>{t("setup.wizard.step3.instructionStep4Desc")}</p>
-            </div>
-          </div>
-
-          <div className="power-cycle-step">
-            <div className="power-cycle-step-number">5</div>
-            <div className="power-cycle-step-content">
-              <strong>{t("setup.wizard.step3.instructionStep5")}</strong>
-              <p>{t("setup.wizard.step3.instructionStep5Desc")}</p>
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* Status Check */}
@@ -160,9 +162,9 @@ export default function Step3PowerCycle({
           <h3 className="power-cycle-title">{t("setup.wizard.step3.sectionStatus")}</h3>
 
           {!checking && !portsAvailable && checkAttempts === 0 && (
-            <div className="power-cycle-status pending">
+            <div className="power-cycle-status pending wz-status wz-status--warning" role="status">
               <div className="status-icon" aria-hidden="true">
-                ⏳
+                {Icon.Hourglass()}
               </div>
               <div className="status-content">
                 <p>{t("setup.wizard.step3.statusWaiting")}</p>
@@ -172,7 +174,7 @@ export default function Step3PowerCycle({
           )}
 
           {checking && (
-            <div className="power-cycle-status checking">
+            <div className="power-cycle-status checking wz-status" role="status">
               <div className="status-icon">
                 <div className="spinner" />
               </div>
@@ -186,9 +188,9 @@ export default function Step3PowerCycle({
           )}
 
           {!checking && portsAvailable && (
-            <div className="power-cycle-status success">
+            <div className="power-cycle-status success wz-status wz-status--success" role="status">
               <div className="status-icon" aria-hidden="true">
-                ✅
+                {Icon.CircleCheck()}
               </div>
               <div className="status-content">
                 <p>
@@ -200,9 +202,9 @@ export default function Step3PowerCycle({
           )}
 
           {!checking && !portsAvailable && checkAttempts > 0 && errorMessage && (
-            <div className="power-cycle-status error">
+            <div className="power-cycle-status error wz-status wz-status--error" role="status">
               <div className="status-icon" aria-hidden="true">
-                ❌
+                {Icon.CircleX()}
               </div>
               <div className="status-content">
                 <p>
@@ -218,91 +220,50 @@ export default function Step3PowerCycle({
             onClick={handleCheckPorts}
             disabled={checking}
           >
-            {checking
-              ? t("setup.wizard.step3.btnChecking")
-              : checkAttempts === 0
-                ? t("setup.wizard.step3.btnCheckNow")
-                : t("setup.wizard.step3.btnCheckAgain")}
+            {checking ? (
+              <>
+                <span className="spinner-small" />
+                {t("setup.wizard.step3.btnChecking")}
+              </>
+            ) : checkAttempts === 0 ? (
+              t("setup.wizard.step3.btnCheckNow")
+            ) : (
+              t("setup.wizard.step3.btnCheckAgain")
+            )}
           </button>
 
           {/* SSH Persistence Risk Assessment */}
           {portsAvailable && (
             <div className="ssh-risk-assessment">
-              <h4 className="risk-title">🔐 {t("setup.wizard.step3.sshTitle")}</h4>
+              <h4 className="risk-title">
+                {Icon.Lock(20)} {t("setup.wizard.step3.sshTitle")}
+              </h4>
               <p className="risk-intro">{t("setup.wizard.step3.sshIntro")}</p>
 
-              {/* Q1 */}
-              <div className="risk-question">
-                <p className="risk-question-text">
-                  <strong>1.</strong> {t("setup.wizard.step3.q1")}
-                </p>
-                <div className="risk-answers">
-                  {(["ja", "nein", "unbekannt"] as RiskAnswer[]).map((a) => (
-                    <button
-                      key={a}
-                      className={`risk-answer-btn ${riskAnswers.q1 === a ? "selected" : ""} ${a === "unbekannt" ? "unknown" : ""}`}
-                      onClick={() => setRiskAnswers((prev) => ({ ...prev, q1: a }))}
-                    >
-                      {a === "ja"
-                        ? t("setup.wizard.step3.answerYes")
-                        : a === "nein"
-                          ? t("setup.wizard.step3.answerNo")
-                          : t("setup.wizard.step3.answerUnknown")}
-                    </button>
-                  ))}
+              {QUESTIONS.map((q) => (
+                <div className="risk-question" key={q.key}>
+                  <p className="risk-question-text">
+                    <strong>{q.num}.</strong> {t(q.textKey)}
+                  </p>
+                  <div className="risk-answers">
+                    {q.order.map((a) => (
+                      <button
+                        key={a}
+                        className={`risk-answer-btn ${riskAnswers[q.key] === a ? "selected" : ""} ${a === "unbekannt" ? "unknown" : ""}`}
+                        aria-pressed={riskAnswers[q.key] === a}
+                        onClick={() => setRiskAnswers((prev) => ({ ...prev, [q.key]: a }))}
+                      >
+                        {answerLabel(a)}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-
-              {/* Q2 */}
-              <div className="risk-question">
-                <p className="risk-question-text">
-                  <strong>2.</strong> {t("setup.wizard.step3.q2")}
-                </p>
-                <div className="risk-answers">
-                  {(["ja", "nein", "unbekannt"] as RiskAnswer[]).map((a) => (
-                    <button
-                      key={a}
-                      className={`risk-answer-btn ${riskAnswers.q2 === a ? "selected" : ""} ${a === "unbekannt" ? "unknown" : ""}`}
-                      onClick={() => setRiskAnswers((prev) => ({ ...prev, q2: a }))}
-                    >
-                      {a === "ja"
-                        ? t("setup.wizard.step3.answerYes")
-                        : a === "nein"
-                          ? t("setup.wizard.step3.answerNo")
-                          : t("setup.wizard.step3.answerUnknown")}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Q3 */}
-              <div className="risk-question">
-                <p className="risk-question-text">
-                  <strong>3.</strong> {t("setup.wizard.step3.q3")}
-                </p>
-                <div className="risk-answers">
-                  {(["nein", "ja", "unbekannt"] as RiskAnswer[]).map((a) => (
-                    <button
-                      key={a}
-                      className={`risk-answer-btn ${riskAnswers.q3 === a ? "selected" : ""} ${a === "unbekannt" ? "unknown" : ""}`}
-                      onClick={() => setRiskAnswers((prev) => ({ ...prev, q3: a }))}
-                    >
-                      {a === "ja"
-                        ? t("setup.wizard.step3.answerYes")
-                        : a === "nein"
-                          ? t("setup.wizard.step3.answerNo")
-                          : t("setup.wizard.step3.answerUnknown")}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              ))}
 
               {/* Risk level badge */}
               {allAnswered && riskLevel && (
-                <div className={`risk-level risk-level--${riskLevel}`}>
-                  <span className="risk-level-icon">
-                    {riskLevel === "gering" ? "🟢" : riskLevel === "mittel" ? "🟡" : "🔴"}
-                  </span>
+                <div className={`risk-level risk-level--${riskLevel}`} role="status">
+                  <span className="risk-level-icon">{riskIcon}</span>
                   <div>
                     <strong>
                       {t("setup.wizard.step3.riskLabel")}{" "}
@@ -325,23 +286,27 @@ export default function Step3PowerCycle({
               <div className="risk-decision-buttons">
                 <button
                   className={`risk-card risk-card--permanent${sshDecision === true ? " selected" : ""}${riskLevel === "hoch" ? " danger" : ""}`}
+                  aria-pressed={sshDecision === true}
                   onClick={() => handleDecision(true)}
                 >
-                  <span className="risk-card-icon">🔓</span>
+                  <span className="risk-card-icon">{Icon.LockOpen()}</span>
                   <span className="risk-card-label">
                     {t("setup.wizard.step3.sshPermanentLabel")}
                   </span>
-                  {sshDecision === true && <span className="risk-card-check">✓</span>}
+                  {sshDecision === true && <span className="risk-card-check">{Icon.Check(20)}</span>}
                 </button>
                 <button
                   className={`risk-card risk-card--temporary${sshDecision === false ? " selected" : ""}`}
+                  aria-pressed={sshDecision === false}
                   onClick={() => handleDecision(false)}
                 >
-                  <span className="risk-card-icon">🚪</span>
+                  <span className="risk-card-icon">{Icon.DoorOpen()}</span>
                   <span className="risk-card-label">
                     {t("setup.wizard.step3.sshTemporaryLabel")}
                   </span>
-                  {sshDecision === false && <span className="risk-card-check">✓</span>}
+                  {sshDecision === false && (
+                    <span className="risk-card-check">{Icon.Check(20)}</span>
+                  )}
                 </button>
               </div>
             </div>
@@ -351,7 +316,8 @@ export default function Step3PowerCycle({
         {/* SSH Command Hint — collapsible */}
         <details className="ssh-manual-test-collapsible">
           <summary className="ssh-manual-test-summary">
-            🔧 {t("setup.wizard.step3.advancedTitle")}
+            {Icon.Wrench()}
+            <span>{t("setup.wizard.step3.advancedTitle")}</span>
           </summary>
           <div className="power-cycle-ssh-hint">
             <p className="ssh-manual-test-hint">
@@ -364,12 +330,14 @@ export default function Step3PowerCycle({
             <div className="ssh-client-tabs">
               <button
                 className={`ssh-client-tab ${sshClient === "terminal" ? "active" : ""}`}
+                aria-pressed={sshClient === "terminal"}
                 onClick={() => setSshClient("terminal")}
               >
                 {t("setup.wizard.step3.tabTerminal")}
               </button>
               <button
                 className={`ssh-client-tab ${sshClient === "putty" ? "active" : ""}`}
+                aria-pressed={sshClient === "putty"}
                 onClick={() => setSshClient("putty")}
               >
                 {t("setup.wizard.step3.tabPuTTY")}
@@ -418,18 +386,23 @@ export default function Step3PowerCycle({
 
         {/* Troubleshooting */}
         {checkAttempts > 0 && !portsAvailable && (
-          <div className="power-cycle-troubleshooting">
-            <h4 className="troubleshooting-title">
-              {t("setup.wizard.step3.troubleshootingTitle")}
-            </h4>
-            <ul className="troubleshooting-list">
-              <li>{t("setup.wizard.step3.troubleshootingItem1")}</li>
-              <li>{t("setup.wizard.step3.troubleshootingItem2")}</li>
-              <li>{t("setup.wizard.step3.troubleshootingItem3")}</li>
-              <li>{t("setup.wizard.step3.troubleshootingItem4")}</li>
-              <li>{t("setup.wizard.step3.troubleshootingItem5")}</li>
-              <li>{t("setup.wizard.step3.troubleshootingItem6")}</li>
-            </ul>
+          <div className="power-cycle-troubleshooting wz-status wz-status--warning">
+            <div className="warning-icon" aria-hidden="true">
+              {Icon.Alert()}
+            </div>
+            <div className="warning-content">
+              <h4 className="troubleshooting-title">
+                {t("setup.wizard.step3.troubleshootingTitle")}
+              </h4>
+              <ul className="troubleshooting-list">
+                <li>{t("setup.wizard.step3.troubleshootingItem1")}</li>
+                <li>{t("setup.wizard.step3.troubleshootingItem2")}</li>
+                <li>{t("setup.wizard.step3.troubleshootingItem3")}</li>
+                <li>{t("setup.wizard.step3.troubleshootingItem4")}</li>
+                <li>{t("setup.wizard.step3.troubleshootingItem5")}</li>
+                <li>{t("setup.wizard.step3.troubleshootingItem6")}</li>
+              </ul>
+            </div>
           </div>
         )}
       </div>

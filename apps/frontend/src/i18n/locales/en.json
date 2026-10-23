@@ -23,7 +23,8 @@
     "presets": "Presets",
     "zones": "Zones",
     "settings": "Settings",
-    "about": "About"
+    "about": "About",
+    "ariaLabel": "Main navigation"
   },
   "player": {
     "noPlayback": "No playback",
@@ -381,7 +382,8 @@
         "troubleshootingItem3": "Wait at least 100 seconds after restart",
         "troubleshootingItem4": "Try another power cycle (steps 2–5)",
         "troubleshootingItem5": "Check that the device is on the same network",
-        "troubleshootingItem6": "Test the SSH connection manually with the command above — if that works, the device is ready."
+        "troubleshootingItem6": "Test the SSH connection manually with the command above — if that works, the device is ready.",
+        "nextDisabled": "Please check SSH access and decide whether SSH stays enabled."
       },
       "step4": {
         "title": "Create backup",
@@ -392,14 +394,15 @@
         "btnCreate": "Create backup now",
         "btnCreating": "Creating backup...",
         "progressMessage": "Creating backup for {{device}}",
-        "progressNote": "This can take up to 2 minutes...",
+        "progressNote": "This can take up to 10 minutes...",
         "errorTitle": "Backup failed",
         "successTitle": "Backup created successfully!",
         "successHint": "The backups were written to your USB drive. Remove the drive after the wizard — it contains your recovery files.",
         "filesTitle": "Saved files (on USB drive):",
         "totalLabel": "Total:",
         "durationMinSec": "{{min}} min {{sec}} s",
-        "durationSec": "{{sec}} s"
+        "durationSec": "{{sec}} s",
+        "nextWarning": "Without a backup, restoring is not possible. If you continue now, you do so at your own risk."
       },
       "step5": {
         "titleProxy": "Reverse proxy detected",
@@ -467,8 +470,7 @@
         "changedEntries": "Changed entries:",
         "backupLabel": "Backup:",
         "btnShowChanges": "▶ Show changes",
-        "btnHideChanges": "▼ Hide changes",
-        "hostsApplied": "Hosts file successfully modified."
+        "btnHideChanges": "▼ Hide changes"
       },
       "step7": {
         "title": "Patch NTP Server",
@@ -542,7 +544,11 @@
         "btnSkip": "Continue anyway — device will not be marked as configured",
         "checkNtpServer": "NTP server set to: {{server}}",
         "checkNtpServerWrong": "NTP server is set to '{{found}}', expected '{{expected}}'",
-        "fullVerifyItem5": "NTP server configured on device"
+        "fullVerifyItem5": "NTP server configured on device",
+        "phaseFinalize": "Setup",
+        "phaseReboot": "Restart",
+        "phaseVerify": "Verify",
+        "nextDisabled": "Please complete all checks successfully first."
       },
       "step9": {
         "title": "Setup complete!",
@@ -572,9 +578,18 @@
         "supportLink": "Contact support →",
         "summaryItem7": "NTP server patched ({{server}})"
       }
-    }
+    },
+    "trackerCompact": "Step {{current}} of {{total}} – {{label}}",
+    "stepAriaSkipped": "Step {{id}}: {{label}} — {{description}} – skipped"
   },
   "restore": {
+    "steps": {
+      "choice": "Choice",
+      "backup": "Backup",
+      "restore": "Restore",
+      "verify": "Verify",
+      "done": "Done"
+    },
     "choice": {
       "title": "What would you like to do?",
       "setup_title": "Setup Wizard",
@@ -606,7 +621,10 @@
       "running": "Restore in progress...",
       "error": "Restore failed: {{message}}",
       "success": "All steps completed successfully! Total: {{time}}s",
-      "continue": "Continue"
+      "continue": "Continue",
+      "running_hint": "This can take several minutes (usually 8 to 9). Keep this page open and do not disconnect the device.",
+      "error_hint": "Go back and try again.",
+      "failed_title": "Restore incomplete"
     },
     "verification": {
       "title": "Waiting for Device",
@@ -627,6 +645,50 @@
       "failed": "Failed",
       "note": "The device is now in its original state. You can safely disconnect it.",
       "done": "Done"
+    },
+    "step_labels": {
+      "pre_snapshot": "Pre-restore snapshot",
+      "config": "Config files",
+      "presets": "Presets",
+      "hosts": "/etc/hosts",
+      "ntp": "/etc/ntpservers.txt",
+      "remote_services": "SSH persistence",
+      "reboot": "Reboot"
+    },
+    "messages": {
+      "snapshot_saved": "Pre-restore snapshot saved",
+      "snapshot_unavailable": "No wizard service available",
+      "snapshot_failed": "Snapshot failed: {{error}}",
+      "config_restored": "Config files restored",
+      "config_restore_failed": "Config restore failed: {{error}}",
+      "presets_clean": "No Presets.xml found on device (already clean)",
+      "presets_restored": "Presets restored at {{path}}",
+      "presets_restore_failed": "Preset restore failed: {{error}}",
+      "hosts_read_failed": "Failed to read /etc/hosts",
+      "hosts_clean": "No OCT block found in /etc/hosts (already clean)",
+      "hosts_restored": "OCT block removed from /etc/hosts",
+      "hosts_restore_failed": "Hosts restore failed: {{error}}",
+      "ntp_no_backup": "No NTP backup found (already clean)",
+      "ntp_copy_failed": "Failed to restore /etc/ntpservers.txt from backup",
+      "ntp_restored": "NTP servers restored from backup",
+      "ntp_restore_failed": "NTP restore failed: {{error}}",
+      "remote_services_deleted": "/mnt/nv/remote_services deleted",
+      "remote_services_failed": "Failed to remove remote_services: {{error}}",
+      "reboot_sent": "Reboot command sent",
+      "reboot_failed": "Reboot failed: {{error}}"
+    },
+    "validation": {
+      "archive_corrupt": "Archive is corrupt or unreadable",
+      "archive_empty": "Archive is empty",
+      "archive_unverified": "Archive contents could not be verified (scan failed or timed out)",
+      "archive_path_missing": "Expected paths starting with {{expected}} not found in archive"
+    },
+    "status": {
+      "completed": "Completed",
+      "skipped": "Skipped",
+      "failed": "Failed",
+      "in_progress": "In progress",
+      "pending": "Pending"
     }
   },
   "errors": {
@@ -797,5 +859,14 @@
     "reboot": "Reboot device",
     "sent": "Reboot command sent",
     "confirmMessage": "Reboot {{name}}? The device will be unavailable for about 100 seconds."
+  },
+  "a11y": {
+    "skipToContent": "Skip to content",
+    "selectLanguage": "Select language",
+    "deviceSelection": "Device selection",
+    "switchToDevice": "Switch to {{name}}",
+    "volume": "Volume",
+    "copyCommand": "Copy command",
+    "copyToClipboard": "Copy to clipboard"
   }
 }

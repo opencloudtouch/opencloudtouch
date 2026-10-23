@@ -2,6 +2,8 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import CopyableCommand from "../../src/components/wizard/CopyableCommand";
 
+const CHECK_PATH = 'path[d="M20 6 9 17l-5-5"]';
+
 describe("CopyableCommand", () => {
   const originalClipboard = navigator.clipboard;
   const originalIsSecureContext = window.isSecureContext;
@@ -25,8 +27,9 @@ describe("CopyableCommand", () => {
     render(<CopyableCommand command="ssh user@host" />);
 
     expect(screen.getByText("ssh user@host")).toBeInTheDocument();
-    const button = screen.getByRole("button", { name: "Befehl kopieren" });
-    expect(button).toHaveTextContent("⎘");
+    const button = screen.getByRole("button", { name: "Copy command" });
+    expect(button.querySelector(CHECK_PATH)).toBeNull();
+    expect(button.querySelector("svg")).not.toBeNull();
     expect(button.className).not.toContain("copied");
   });
 
@@ -37,19 +40,20 @@ describe("CopyableCommand", () => {
     Object.defineProperty(window, "isSecureContext", { value: true, configurable: true });
 
     render(<CopyableCommand command="ssh user@host" />);
-    const button = screen.getByRole("button", { name: "Befehl kopieren" });
+    const button = screen.getByRole("button", { name: "Copy command" });
 
     fireEvent.click(button);
     // Flush the writeText() promise's .then() microtask under fake timers.
     await act(() => vi.advanceTimersByTimeAsync(0));
 
     expect(writeText).toHaveBeenCalledWith("ssh user@host");
-    expect(button).toHaveTextContent("✓");
+    expect(button.querySelector(CHECK_PATH)).not.toBeNull();
     expect(button.className).toContain("copied");
 
     await act(() => vi.advanceTimersByTimeAsync(2000));
 
-    expect(button).toHaveTextContent("⎘");
+    expect(button.querySelector(CHECK_PATH)).toBeNull();
+    expect(button.querySelector("svg")).not.toBeNull();
     expect(button.className).not.toContain("copied");
   });
 
@@ -61,19 +65,20 @@ describe("CopyableCommand", () => {
     document.execCommand = execCommand;
 
     render(<CopyableCommand command="ssh user@host" />);
-    const button = screen.getByRole("button", { name: "Befehl kopieren" });
+    const button = screen.getByRole("button", { name: "Copy command" });
 
     fireEvent.click(button);
 
     expect(execCommand).toHaveBeenCalledWith("copy");
-    expect(button).toHaveTextContent("✓");
+    expect(button.querySelector(CHECK_PATH)).not.toBeNull();
     expect(button.className).toContain("copied");
     // The finally block must have removed the temporary textarea from the DOM.
     expect(document.querySelector("textarea")).toBeNull();
 
     await act(() => vi.advanceTimersByTimeAsync(2000));
 
-    expect(button).toHaveTextContent("⎘");
+    expect(button.querySelector(CHECK_PATH)).toBeNull();
+    expect(button.querySelector("svg")).not.toBeNull();
     expect(button.className).not.toContain("copied");
   });
 
@@ -85,7 +90,7 @@ describe("CopyableCommand", () => {
     document.execCommand = execCommand;
 
     render(<CopyableCommand command="ssh user@host" />);
-    const button = screen.getByRole("button", { name: "Befehl kopieren" });
+    const button = screen.getByRole("button", { name: "Copy command" });
 
     fireEvent.click(button);
 

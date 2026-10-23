@@ -298,7 +298,7 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
       {/* Presets for Current Device */}
       <div className="presets-section">
         <div className="section-header">
-          <h3 className="section-title">{t("presets.savedStations")}</h3>
+          <h2 className="section-title">{t("presets.savedStations")}</h2>
           <button
             className="sync-button"
             onClick={handleSyncPresets}
@@ -382,7 +382,7 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
       <div className="presets-info-box">
         <div className="presets-info-icon">ℹ️</div>
         <div className="presets-info-content">
-          <h4 className="presets-info-title">{t("presets.infoTitle")}</h4>
+          <h3 className="presets-info-title">{t("presets.infoTitle")}</h3>
           <ul className="presets-info-list">
             <li>{t("presets.infoItem1")}</li>
             <li>{t("presets.infoItem2")}</li>

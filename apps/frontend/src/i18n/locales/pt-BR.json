@@ -23,7 +23,8 @@
     "presets": "Presets",
     "zones": "Zonas",
     "settings": "Configurações",
-    "about": "Sobre"
+    "about": "Sobre",
+    "ariaLabel": "Navegação principal"
   },
   "player": {
     "noPlayback": "Sem reprodução",
@@ -381,7 +382,8 @@
         "troubleshootingItem3": "Aguarde pelo menos 100 segundos após o reinício",
         "troubleshootingItem4": "Tente outro ciclo de energia (etapas 2-5)",
         "troubleshootingItem5": "Verifique se o dispositivo está na mesma rede",
-        "troubleshootingItem6": "Teste a conexão SSH manualmente com o comando acima — se funcionar, o dispositivo está pronto."
+        "troubleshootingItem6": "Teste a conexão SSH manualmente com o comando acima — se funcionar, o dispositivo está pronto.",
+        "nextDisabled": "Verifique o acesso SSH e decida se o SSH continua ativado."
       },
       "step4": {
         "title": "Criar backup",
@@ -392,14 +394,15 @@
         "btnCreate": "Criar backup agora",
         "btnCreating": "Criando backup...",
         "progressMessage": "Criando backup para {{device}}",
-        "progressNote": "Isso pode levar até 2 minutos...",
+        "progressNote": "Isso pode levar até 10 minutos...",
         "errorTitle": "Backup falhou",
         "successTitle": "Backup criado com sucesso!",
         "successHint": "Os backups foram gravados no seu pendrive. Remova o pendrive após o assistente — ele contém seus arquivos de recuperação.",
         "filesTitle": "Arquivos salvos (no pendrive):",
         "totalLabel": "Total:",
         "durationMinSec": "{{min}} min {{sec}} s",
-        "durationSec": "{{sec}} s"
+        "durationSec": "{{sec}} s",
+        "nextWarning": "Sem backup não é possível restaurar. Se continuar agora, você o faz por sua conta e risco."
       },
       "step5": {
         "titleProxy": "Proxy reverso detectado",
@@ -467,8 +470,7 @@
         "changedEntries": "Entradas modificadas:",
         "backupLabel": "Backup:",
         "btnShowChanges": "▶ Mostrar alterações",
-        "btnHideChanges": "▼ Ocultar alterações",
-        "hostsApplied": "Arquivo hosts modificado com sucesso."
+        "btnHideChanges": "▼ Ocultar alterações"
       },
       "step7": {
         "title": "Aplicar patch no servidor NTP",
@@ -542,7 +544,11 @@
         "btnRetryFullVerify": "Executar verificação novamente",
         "checkNtpServer": "Servidor NTP definido como: {{server}}",
         "checkNtpServerWrong": "O servidor NTP está definido como '{{found}}', esperado '{{expected}}'",
-        "fullVerifyItem5": "Servidor NTP configurado no dispositivo"
+        "fullVerifyItem5": "Servidor NTP configurado no dispositivo",
+        "phaseFinalize": "Configurar",
+        "phaseReboot": "Reinício",
+        "phaseVerify": "Verificar",
+        "nextDisabled": "Conclua primeiro todas as verificações com sucesso."
       },
       "step9": {
         "title": "Configuração concluída!",
@@ -572,9 +578,18 @@
         "supportLink": "Contatar suporte →",
         "summaryItem7": "Servidor NTP com patch aplicado ({{server}})"
       }
-    }
+    },
+    "trackerCompact": "Etapa {{current}} de {{total}} – {{label}}",
+    "stepAriaSkipped": "Etapa {{id}}: {{label}} — {{description}} – ignorada"
   },
   "restore": {
+    "steps": {
+      "choice": "Escolha",
+      "backup": "Backup",
+      "restore": "Restaurar",
+      "verify": "Verificar",
+      "done": "Concluído"
+    },
     "choice": {
       "title": "O que você gostaria de fazer?",
       "setup_title": "Assistente de configuração",
@@ -606,7 +621,10 @@
       "running": "Restauração em andamento...",
       "error": "Restore failed: {{message}}",
       "success": "All steps completed successfully! Total: {{time}}s",
-      "continue": "Continuar"
+      "continue": "Continuar",
+      "running_hint": "Isso pode levar vários minutos (geralmente 8 a 9). Mantenha esta página aberta e não desconecte o dispositivo.",
+      "error_hint": "Volte e tente novamente.",
+      "failed_title": "Restauração incompleta"
     },
     "verification": {
       "title": "Aguardando dispositivo",
@@ -627,6 +645,50 @@
       "failed": "Falhou",
       "note": "O dispositivo está agora em seu estado original. Você pode desconectá-lo com segurança.",
       "done": "Done"
+    },
+    "step_labels": {
+      "pre_snapshot": "Snapshot pré-restauração",
+      "config": "Arquivos de configuração",
+      "presets": "Presets",
+      "hosts": "/etc/hosts",
+      "ntp": "/etc/ntpservers.txt",
+      "remote_services": "Persistência do SSH",
+      "reboot": "Reinício"
+    },
+    "messages": {
+      "snapshot_saved": "Snapshot pré-restauração salvo",
+      "snapshot_unavailable": "Nenhum serviço do assistente disponível",
+      "snapshot_failed": "Falha no snapshot: {{error}}",
+      "config_restored": "Arquivos de configuração restaurados",
+      "config_restore_failed": "Falha ao restaurar a configuração: {{error}}",
+      "presets_clean": "Nenhum Presets.xml encontrado no dispositivo (já limpo)",
+      "presets_restored": "Presets restaurados em {{path}}",
+      "presets_restore_failed": "Falha ao restaurar os presets: {{error}}",
+      "hosts_read_failed": "Não foi possível ler /etc/hosts",
+      "hosts_clean": "Nenhum bloco do OCT encontrado em /etc/hosts (já limpo)",
+      "hosts_restored": "Bloco do OCT removido de /etc/hosts",
+      "hosts_restore_failed": "Falha ao restaurar /etc/hosts: {{error}}",
+      "ntp_no_backup": "Nenhum backup do NTP encontrado (já limpo)",
+      "ntp_copy_failed": "Não foi possível restaurar /etc/ntpservers.txt a partir do backup",
+      "ntp_restored": "Servidores NTP restaurados a partir do backup",
+      "ntp_restore_failed": "Falha ao restaurar os servidores NTP: {{error}}",
+      "remote_services_deleted": "/mnt/nv/remote_services excluído",
+      "remote_services_failed": "Não foi possível remover remote_services: {{error}}",
+      "reboot_sent": "Comando de reinício enviado",
+      "reboot_failed": "Falha ao reiniciar: {{error}}"
+    },
+    "validation": {
+      "archive_corrupt": "O arquivo está corrompido ou ilegível",
+      "archive_empty": "O arquivo está vazio",
+      "archive_unverified": "Não foi possível verificar o conteúdo do arquivo (falha na verificação ou tempo esgotado)",
+      "archive_path_missing": "Os caminhos esperados que começam com {{expected}} não foram encontrados no arquivo"
+    },
+    "status": {
+      "completed": "Concluído",
+      "skipped": "Ignorado",
+      "failed": "Falhou",
+      "in_progress": "Em andamento",
+      "pending": "Pendente"
     }
   },
   "errors": {
@@ -797,5 +859,14 @@
     "reboot": "Reiniciar dispositivo",
     "sent": "Comando de reinicialização enviado",
     "confirmMessage": "Reiniciar {{name}}? O dispositivo ficará indisponível por cerca de 100 segundos."
+  },
+  "a11y": {
+    "skipToContent": "Ir para o conteúdo",
+    "selectLanguage": "Selecionar idioma",
+    "deviceSelection": "Seleção de dispositivo",
+    "switchToDevice": "Mudar para {{name}}",
+    "volume": "Volume",
+    "copyCommand": "Copiar comando",
+    "copyToClipboard": "Copiar para a área de transferência"
   }
 }

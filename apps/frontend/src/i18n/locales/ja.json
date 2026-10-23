@@ -23,7 +23,8 @@
     "presets": "プリセット",
     "zones": "ゾーン",
     "settings": "設定",
-    "about": "について"
+    "about": "について",
+    "ariaLabel": "メインナビゲーション"
   },
   "player": {
     "noPlayback": "再生なし",
@@ -381,7 +382,8 @@
         "troubleshootingItem3": "再起動後少なくとも100秒待つ",
         "troubleshootingItem4": "別の電源サイクルを試す（手順2〜5）",
         "troubleshootingItem5": "デバイスが同じネットワークにあるか確認",
-        "troubleshootingItem6": "上記のコマンドでSSH接続を手動でテストしてください — それが機能すれば、デバイスは準備できています。"
+        "troubleshootingItem6": "上記のコマンドでSSH接続を手動でテストしてください — それが機能すれば、デバイスは準備できています。",
+        "nextDisabled": "SSHアクセスを確認し、SSHを有効のままにするか選択してください。"
       },
       "step4": {
         "title": "バックアップを作成",
@@ -392,14 +394,15 @@
         "btnCreate": "今すぐバックアップを作成",
         "btnCreating": "バックアップを作成中...",
         "progressMessage": "{{device}}のバックアップを作成しています",
-        "progressNote": "これには最大2分かかる場合があります...",
+        "progressNote": "これには最大10分かかる場合があります...",
         "errorTitle": "バックアップ失敗",
         "successTitle": "バックアップが正常に作成されました！",
         "successHint": "バックアップはUSBドライブに書き込まれました。ウィザード後にドライブを取り外してください — 復元ファイルが含まれています。",
         "filesTitle": "保存されたファイル（USBドライブ上）：",
         "totalLabel": "合計：",
         "durationMinSec": "{{min}}分{{sec}}秒",
-        "durationSec": "{{sec}}秒"
+        "durationSec": "{{sec}}秒",
+        "nextWarning": "バックアップがないと復元できません。このまま続行する場合は、自己責任となります。"
       },
       "step5": {
         "titleProxy": "リバースプロキシ検出",
@@ -467,8 +470,7 @@
         "changedEntries": "変更されたエントリ：",
         "backupLabel": "バックアップ：",
         "btnShowChanges": "▶ 変更を表示",
-        "btnHideChanges": "▼ 変更を非表示",
-        "hostsApplied": "hostsファイルが正常に変更されました。"
+        "btnHideChanges": "▼ 変更を非表示"
       },
       "step7": {
         "title": "NTPサーバーにパッチを適用",
@@ -542,7 +544,11 @@
         "btnRetryFullVerify": "検証を再実行",
         "checkNtpServer": "NTPサーバーを設定しました: {{server}}",
         "checkNtpServerWrong": "NTPサーバーは '{{found}}' に設定されています（期待値: '{{expected}}'）",
-        "fullVerifyItem5": "NTPサーバーがデバイスに設定済み"
+        "fullVerifyItem5": "NTPサーバーがデバイスに設定済み",
+        "phaseFinalize": "セットアップ",
+        "phaseReboot": "再起動",
+        "phaseVerify": "確認",
+        "nextDisabled": "まずすべての確認を正常に完了してください。"
       },
       "step9": {
         "title": "セットアップ完了！",
@@ -572,9 +578,18 @@
         "supportLink": "サポートに連絡 →",
         "summaryItem7": "NTPサーバーにパッチを適用 ({{server}})"
       }
-    }
+    },
+    "trackerCompact": "ステップ {{current}}/{{total}} – {{label}}",
+    "stepAriaSkipped": "ステップ {{id}}: {{label}} — {{description}} – スキップ"
   },
   "restore": {
+    "steps": {
+      "choice": "選択",
+      "backup": "バックアップ",
+      "restore": "復元",
+      "verify": "確認",
+      "done": "完了"
+    },
     "choice": {
       "title": "何をしますか？",
       "setup_title": "セットアップウィザード",
@@ -606,7 +621,10 @@
       "running": "復元中...",
       "error": "Restore failed: {{message}}",
       "success": "All steps completed successfully! Total: {{time}}s",
-      "continue": "続行"
+      "continue": "続行",
+      "running_hint": "この処理には数分かかる場合があります(通常8〜9分)。このページを開いたままにし、デバイスを取り外さないでください。",
+      "error_hint": "前の画面に戻って、もう一度お試しください。",
+      "failed_title": "復元が完了していません"
     },
     "verification": {
       "title": "デバイスを待機中",
@@ -627,6 +645,50 @@
       "failed": "失敗",
       "note": "デバイスは元の状態に戻りました。安全に切断できます。",
       "done": "Done"
+    },
+    "step_labels": {
+      "pre_snapshot": "復元前のスナップショット",
+      "config": "設定ファイル",
+      "presets": "プリセット",
+      "hosts": "/etc/hosts",
+      "ntp": "/etc/ntpservers.txt",
+      "remote_services": "SSHの永続化",
+      "reboot": "再起動"
+    },
+    "messages": {
+      "snapshot_saved": "復元前のスナップショットを保存しました",
+      "snapshot_unavailable": "ウィザードサービスを利用できません",
+      "snapshot_failed": "スナップショットに失敗しました: {{error}}",
+      "config_restored": "設定ファイルを復元しました",
+      "config_restore_failed": "設定の復元に失敗しました: {{error}}",
+      "presets_clean": "デバイスに Presets.xml が見つかりません(すでにクリーンです)",
+      "presets_restored": "プリセットを {{path}} に復元しました",
+      "presets_restore_failed": "プリセットの復元に失敗しました: {{error}}",
+      "hosts_read_failed": "/etc/hosts を読み取れませんでした",
+      "hosts_clean": "/etc/hosts に OCT ブロックが見つかりません(すでにクリーンです)",
+      "hosts_restored": "/etc/hosts から OCT ブロックを削除しました",
+      "hosts_restore_failed": "/etc/hosts の復元に失敗しました: {{error}}",
+      "ntp_no_backup": "NTP のバックアップが見つかりません(すでにクリーンです)",
+      "ntp_copy_failed": "バックアップから /etc/ntpservers.txt を復元できませんでした",
+      "ntp_restored": "バックアップから NTP サーバーを復元しました",
+      "ntp_restore_failed": "NTP サーバーの復元に失敗しました: {{error}}",
+      "remote_services_deleted": "/mnt/nv/remote_services を削除しました",
+      "remote_services_failed": "remote_services を削除できませんでした: {{error}}",
+      "reboot_sent": "再起動コマンドを送信しました",
+      "reboot_failed": "再起動に失敗しました: {{error}}"
+    },
+    "validation": {
+      "archive_corrupt": "アーカイブが破損しているか、読み取れません",
+      "archive_empty": "アーカイブが空です",
+      "archive_unverified": "アーカイブの内容を確認できませんでした(スキャンの失敗またはタイムアウト)",
+      "archive_path_missing": "{{expected}} で始まる想定パスがアーカイブ内に見つかりません"
+    },
+    "status": {
+      "completed": "完了",
+      "skipped": "スキップ",
+      "failed": "失敗",
+      "in_progress": "実行中",
+      "pending": "待機中"
     }
   },
   "errors": {
@@ -797,5 +859,14 @@
     "reboot": "デバイスを再起動",
     "sent": "再起動コマンドを送信しました",
     "confirmMessage": "{{name}}を再起動しますか？デバイスは約100秒間使用できなくなります。"
+  },
+  "a11y": {
+    "skipToContent": "メインコンテンツへ移動",
+    "selectLanguage": "言語を選択",
+    "deviceSelection": "デバイスの選択",
+    "switchToDevice": "{{name}} に切り替え",
+    "volume": "音量",
+    "copyCommand": "コマンドをコピー",
+    "copyToClipboard": "クリップボードにコピー"
   }
 }

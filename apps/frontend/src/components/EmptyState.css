@@ -1,13 +1,14 @@
 .empty-state {
   min-height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
   padding: 2rem;
   background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
 }
 
+/* margin: auto centres the content like align/justify center, but when the content is taller
+   than the viewport it starts at the top instead of being cut off above it. */
 .empty-state-content {
+  margin: auto;
   max-width: 600px;
   text-align: center;
   animation: fadeInUp 0.6s ease-out;
@@ -26,8 +27,21 @@
 
 .empty-state-icon {
   margin: 0 auto 2rem;
-  color: var(--primary-blue);
   animation: pulse 2s ease-in-out infinite;
+}
+
+.empty-state-logo {
+  display: block;
+  width: 160px;
+  max-width: 60%;
+  height: auto;
+  margin: 0 auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .empty-state-icon {
+    animation: none;
+  }
 }
 
 @keyframes pulse {
@@ -69,7 +83,7 @@
   align-items: flex-start;
 }
 
-.step-number {
+.setup-step .step-number {
   flex-shrink: 0;
   width: 40px;
   height: 40px;
@@ -84,7 +98,7 @@
   font-size: 1.125rem;
 }
 
-.step-content h3 {
+.step-content h2 {
   font-size: 1rem;
   font-weight: 600;
   color: #ffffff;
@@ -100,24 +114,37 @@
   margin-bottom: 0;
 }
 
+/* Both CTA buttons (search / manual setup) look identical: outlined, full width of the content column.
+   Only the primary one turns blue on hover. */
 .cta-button {
-  background: var(--primary-blue);
-  color: #ffffff;
-  border: none;
-  padding: 1rem 2rem;
-  font-size: 1rem;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
   font-weight: 600;
   border-radius: 8px;
   cursor: pointer;
-  display: inline-flex;
+  display: flex;
+  width: 100%;
+  justify-content: center;
   align-items: center;
   gap: 0.5rem;
+  margin-bottom: 1rem;
   transition: all 0.2s;
 }
 
 .cta-button:hover {
-  background: #0052a3;
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.9);
+  transform: translateY(-1px);
+}
+
+.cta-button:not(.secondary):hover:not(:disabled) {
+  background: var(--primary-blue);
+  border-color: var(--primary-blue);
+  color: #ffffff;
   box-shadow: 0 8px 16px rgba(0, 102, 204, 0.3);
 }
 
@@ -125,23 +152,8 @@
   transform: translateY(0);
 }
 
-/* REFACT-131: Secondary button has reduced visual weight vs primary */
-/* REFACT-145: Both CTA buttons have consistent SVG icon prefix + same border-radius */
-.cta-button.secondary {
-  background: transparent;
-  border: 1.5px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
-  padding: 0.75rem 1.5rem;
-}
-
-.cta-button.secondary:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.5);
-  color: rgba(255, 255, 255, 0.9);
-  transform: translateY(-1px);
-  box-shadow: none;
+.cta-button:disabled {
+  cursor: progress;
 }
 
 /* Progressive Discovery Results */
@@ -198,7 +210,7 @@
   }
 }
 
-.device-icon {
+.discovered-device .device-icon {
   width: 32px;
   height: 32px;
   display: flex;
@@ -211,18 +223,18 @@
   flex-shrink: 0;
 }
 
-.device-info {
+.discovered-device .device-info {
   flex: 1;
   text-align: left;
 }
 
-.device-name {
+.discovered-device .device-name {
   font-weight: 500;
   color: #ffffff;
   margin-bottom: 0.25rem;
 }
 
-.device-model {
+.discovered-device .device-model {
   font-size: 0.85rem;
   color: var(--text-secondary);
 }
@@ -404,7 +416,7 @@
 }
 
 .modal-description {
-  color: #888;
+  color: #a8a8a8;
   margin-bottom: 1.5rem;
   line-height: 1.5;
 }
@@ -461,7 +473,7 @@
   padding: 0.75rem;
   background: rgba(0, 102, 204, 0.1);
   border-radius: 6px;
-  color: var(--primary-blue);
+  color: #8ab4ff;
   font-size: 0.85rem;
   line-height: 1.4;
   margin-bottom: 1rem;
@@ -559,13 +571,13 @@
     gap: 1rem;
   }
 
-  .step-number {
+  .setup-step .step-number {
     width: 32px;
     height: 32px;
     font-size: 1rem;
   }
 
-  .step-content h3 {
+  .step-content h2 {
     font-size: 0.875rem;
   }
 

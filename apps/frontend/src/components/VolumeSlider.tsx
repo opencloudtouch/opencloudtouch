@@ -1,4 +1,5 @@
 import { useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import "./VolumeSlider.css";
 
 interface VolumeSliderProps {
@@ -27,6 +28,7 @@ export default function VolumeSlider({
   muted,
   onMuteToggle,
 }: Readonly<VolumeSliderProps>) {
+  const { t } = useTranslation();
   const trackRef = useRef<HTMLDivElement>(null);
   const fillRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
@@ -143,7 +145,7 @@ export default function VolumeSlider({
         aria-valuenow={volume}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label="Volume"
+        aria-label={t("a11y.volume")}
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === "ArrowLeft" || e.key === "ArrowDown")

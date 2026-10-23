@@ -1,9 +1,7 @@
 /**
- * Step 5: Config Modification
- *
- * Auto-detects setup strategy:
- * - If HTTPS reverse proxy on port 443 → hosts-only (skip BMX URL change)
- * - If no proxy → change BMX URL + hosts
+ * Step 5: Config Modification (tracker step 4, "Verbindung")
+ * Logic, props, API calls and t() keys unchanged. Markup/classNames/icons only.
+ * Additive attributes on #oct-url: inputMode, autoCapitalize, spellCheck, aria-invalid.
  */
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -17,6 +15,8 @@ import {
   ValidateHostnameResponse,
 } from "../../api/wizard";
 import WizardStep from "./WizardStep";
+import { Icon } from "./Icon";
+import "./wizard-base.css";
 import "./Step5ConfigModification.css";
 
 interface Step5Props {
@@ -298,7 +298,7 @@ export default function Step5ConfigModification({
       <div className="config-modification">
         {/* Detection spinner */}
         {detecting && (
-          <div className="config-detecting">
+          <div className="config-detecting wz-status" role="status" aria-live="polite">
             <span className="spinner-small" />
             <p>{t("setup.wizard.step5.detecting")}</p>
           </div>
@@ -306,8 +306,8 @@ export default function Step5ConfigModification({
 
         {/* Proxy detected → hosts-only strategy */}
         {!detecting && strategy?.proxy_available && (
-          <div className="config-success">
-            <div className="success-icon">🔒</div>
+          <div className="config-success wz-result">
+            <div className="success-icon">{Icon.Lock(28)}</div>
             <h3 className="success-title">{t("setup.wizard.step5.proxySuccessTitle")}</h3>
             <p className="success-message">
               {t(
@@ -351,24 +351,32 @@ export default function Step5ConfigModification({
                 value={customUrl}
                 onChange={(e) => handleInputChange(e.target.value)}
                 placeholder="http://192.168.1.100:7777"
+                inputMode="url"
+                autoCapitalize="none"
+                spellCheck={false}
+                aria-invalid={Boolean(validationError)}
               />
               <small className="config-hint">{t("setup.wizard.step5.urlHint")}</small>
             </div>
 
             {/* Validation Error */}
             {validationError && (
-              <div className="config-validation-error">
-                <div className="error-icon">� ️</div>
+              <div className="config-validation-error wz-status wz-status--warning" role="alert">
+                <div className="error-icon">{Icon.Alert()}</div>
                 <div className="error-content">
                   <strong>{t("setup.wizard.step5.validationErrorTitle")}</strong>
-                  <pre className="error-details">{validationError}</pre>
+                  <pre className="error-details" tabIndex={0}>{validationError}</pre>
                 </div>
               </div>
             )}
             {/* Reachability Warning (DNS or OCT) */}
             {dnsWarning && (
-              <div className="config-dns-warning" data-test="dns-warning">
-                <div className="warning-icon">⚠️</div>
+              <div
+                className="config-dns-warning wz-status wz-status--warning"
+                data-test="dns-warning"
+                role="alert"
+              >
+                <div className="warning-icon">{Icon.Alert()}</div>
                 <div className="warning-content">
                   <strong>
                     {dnsWarning.oct_reachable
@@ -415,7 +423,9 @@ export default function Step5ConfigModification({
                   <span className="config-change-label">{t("setup.wizard.step5.changeFrom")}</span>
                   <code>https://streaming.bose.com/...</code>
                 </div>
-                <div className="config-change-arrow">→</div>
+                <div className="config-change-arrow" aria-hidden="true">
+                  {Icon.ArrowRight(22)}
+                </div>
                 <div className="config-change-to">
                   <span className="config-change-label">{t("setup.wizard.step5.changeTo")}</span>
                   <code>{normalizeUrl(customUrl)}</code>
@@ -434,7 +444,9 @@ export default function Step5ConfigModification({
                   {t("setup.wizard.step5.btnApplying")}
                 </>
               ) : (
-                <>⚙️ {t("setup.wizard.step5.btnApply")}</>
+                <>
+                  {Icon.Settings(20)} {t("setup.wizard.step5.btnApply")}
+                </>
               )}
             </button>
           </div>
@@ -442,8 +454,8 @@ export default function Step5ConfigModification({
 
         {/* Error */}
         {error && (
-          <div className="config-error">
-            <div className="error-icon">❌</div>
+          <div className="config-error wz-status wz-status--error" role="alert">
+            <div className="error-icon">{Icon.CircleX()}</div>
             <div className="error-content">
               <strong>{t("setup.wizard.step5.errorTitle")}</strong>
               <p>{error}</p>
@@ -453,8 +465,8 @@ export default function Step5ConfigModification({
 
         {/* Success */}
         {modifyData?.success && (
-          <div className="config-success">
-            <div className="success-icon">✅</div>
+          <div className="config-success wz-result">
+            <div className="success-icon">{Icon.CircleCheck(28)}</div>
             <h3 className="success-title">{t("setup.wizard.step5.successTitle")}</h3>
             <p className="success-message">{t("setup.wizard.step5.configApplied")}</p>
 
@@ -470,7 +482,7 @@ export default function Step5ConfigModification({
               {modifyData.backup_path && (
                 <div className="config-detail-item">
                   <strong>{t("setup.wizard.step5.backupLabel")}</strong>
-                  <code>{modifyData.backup_path}</code>
+                  <code tabIndex={0}>{modifyData.backup_path}</code>
                 </div>
               )}
             </div>
@@ -490,7 +502,7 @@ export default function Step5ConfigModification({
                 </button>
 
                 {showDiff && (
-                  <pre className="config-diff" id="config-diff-content">
+                  <pre className="config-diff" id="config-diff-content" tabIndex={0}>
                     <code>{modifyData.diff}</code>
                   </pre>
                 )}

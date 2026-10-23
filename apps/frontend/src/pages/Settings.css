@@ -474,6 +474,26 @@
   }
 }
 
+@media (max-width: 480px) {
+  .ip-add-form {
+    flex-direction: column;
+  }
+
+  .ip-add-form .btn {
+    width: 100%;
+  }
+
+  .save-button {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .log-level-row,
+  .log-download-row {
+    flex-wrap: wrap;
+  }
+}
+
 /* IP Management Styles */
 .section-description {
   color: var(--color-text-secondary);
@@ -489,6 +509,7 @@
 
 .ip-input {
   flex: 1;
+  min-width: 0;
   padding: var(--space-md);
   border: 2px solid var(--color-border);
   border-radius: var(--border-radius-md);
@@ -671,7 +692,13 @@
 /* Network Discovery */
 .device-discovery-options {
   display: grid;
+  /* minmax(0, 1fr): an implicit `auto` track grows with its widest child and overflows narrow screens */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-lg);
+}
+
+.discovery-method-card {
+  min-width: 0;
 }
 
 .discovery-method-card {

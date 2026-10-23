@@ -1,250 +1,81 @@
-/* USB Preparation Styles */
-.usb-preparation {
-  max-width: 600px;
-  margin: 0 auto;
-}
+/* Step 1 (USB): step-specific rules only. Shared pieces live in wizard-base.css. */
+.usb-preparation { display: flex; flex-direction: column; gap: var(--space-lg); min-width: 0; }
 
-/* Device Info */
+/* device info */
 .usb-device-info {
-  background: rgba(33, 150, 243, 0.1);
-  border: 1px solid #2196f3;
-  border-radius: 8px;
-  padding: 1rem;
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  margin-bottom: 2rem;
+  display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: start;
+  padding: var(--space-md); background: rgba(var(--primary-rgb), .08);
+  border: 1px solid rgba(var(--primary-rgb), .45); border-radius: var(--border-radius-md);
 }
-
-.usb-icon {
-  font-size: 2.5rem;
+.usb-icon { width: 44px; height: 44px; border-radius: var(--border-radius-sm); background: var(--bg-tertiary); color: var(--primary-text); display: flex; align-items: center; justify-content: center; }
+.usb-device-details { min-width: 0; display: flex; flex-direction: column; gap: 6px; font-size: 15px; line-height: 1.5; color: var(--text-primary); }
+.usb-device-needs { overflow-wrap: anywhere; }
+.usb-device-line { display: flex; align-items: flex-start; gap: 6px; font-size: 14px; color: var(--color-text-secondary); overflow-wrap: anywhere; }
+.usb-device-line svg { flex: none; margin-top: 3px; }
+.usb-dual-hint, .usb-adapter-hint {
+  margin-top: 6px; padding: 12px; border-radius: var(--border-radius-sm);
+  background: var(--color-bg-darker); border: 1px solid var(--border-color); font-size: 14px; line-height: 1.5; color: var(--text-primary);
 }
-
-.usb-device-details {
-  color: var(--text-primary);
-  line-height: 1.6;
+.usb-dual-hint { display: flex; gap: 8px; align-items: flex-start; }
+.usb-dual-hint svg, .usb-adapter-text svg { flex: none; margin-top: 2px; color: var(--primary-text); }
+.usb-adapter-text { display: flex; gap: 8px; align-items: flex-start; margin: 0 0 4px; }
+.usb-adapter-links { display: flex; flex-direction: column; margin: 0; padding: 0; }
+.usb-adapter-links li { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; }
+.usb-adapter-links a {
+  display: inline-flex; align-items: center; gap: 6px; min-height: var(--touch-target-min);
+  color: var(--primary-text); text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere;
 }
+.usb-adapter-links a:hover { color: var(--color-text-primary); }
+.usb-adapter-price { color: var(--color-text-secondary); white-space: nowrap; }
 
-.usb-device-details strong {
-  font-weight: 600;
-}
-
-.usb-device-details small {
-  font-size: 0.875rem;
-  opacity: 0.9;
-}
-
-/* Sections */
-.usb-section {
-  margin-bottom: 2.5rem;
-}
-
-.usb-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.usb-section-header .usb-section-title {
-  margin-bottom: 0;
-}
-
-.usb-section-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
+/* numbered sections */
+.usb-section { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.usb-section-title { display: flex; align-items: flex-start; gap: 12px; margin: 0; font-size: 18px; line-height: 1.3; color: var(--color-text-primary); }
+.usb-section-title-text { min-width: 0; padding-top: 4px; overflow-wrap: anywhere; }
 .usb-section-number {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: var(--primary-color);
-  color: white;
-  border-radius: 50%;
-  font-size: 1rem;
-  font-weight: 700;
-  flex-shrink: 0;
+  flex: none; width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--color-accent); color: #fff; font-size: 16px; font-weight: var(--font-weight-bold);
 }
+.usb-section-description { margin: 0; font-size: 15px; line-height: 1.6; color: var(--color-text-secondary); overflow-wrap: anywhere; }
+.usb-section-description code, .usb-section-description strong { color: var(--text-primary); }
+.usb-section-description code { padding: 2px 6px; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 4px; font: .9em ui-monospace, Menlo, Consolas, monospace; }
 
-.usb-section-description {
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin-bottom: 1rem;
-}
-
-.usb-section-description code {
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  padding: 0.125rem 0.375rem;
-  border-radius: 4px;
-  font-family: "Courier New", monospace;
-  font-size: 0.9em;
-}
-
-/* Instruction List */
-.usb-instruction-list {
-  list-style: none;
-  counter-reset: instruction-counter;
-  padding-left: 0;
-}
-
-.usb-instruction-item {
-  counter-increment: instruction-counter;
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  position: relative;
-  padding-left: 3rem;
-}
-
-.usb-instruction-item::before {
-  content: counter(instruction-counter);
-  position: absolute;
-  left: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  background: var(--primary-color);
-  color: white;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-/* File Content Box */
-.usb-file-content {
-  background: #263238;
-  color: #aed581;
-  padding: 1rem;
-  border-radius: 6px;
-  font-family: "Courier New", monospace;
-  font-size: 0.9rem;
-  line-height: 1.6;
-  overflow-x: auto;
-  margin-bottom: 1rem;
-}
-
-.usb-file-content code {
-  color: inherit;
-}
-
-.usb-copy-btn {
-  width: 100%;
-}
-
-/* Checklist */
-.usb-checklist {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.usb-checklist-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.875rem;
-  min-height: var(--touch-target-min, 44px); /* REFACT-213: explizite Touch-Target-Höhe */
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.usb-checklist-item:hover {
-  background: rgba(var(--primary-rgb), 0.05);
-  border-color: var(--primary-color);
-}
-
-.usb-checklist-item input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.usb-checklist-item:has(input:checked) {
-  background: rgba(76, 175, 80, 0.1);
-  border-color: #4caf50;
-}
-
-.usb-checklist-item strong {
-  color: var(--primary-color);
-}
-
-/* Platform Switcher */
-.usb-platform-switcher {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-}
-
-.usb-platform-label {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
+/* platform header: title / label / select. Phone = stacked, select full width, never beyond the card. */
+.usb-section-header { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px 12px; align-items: center; }
+.usb-platform-label { font-size: 14px; font-weight: var(--font-weight-medium); color: var(--color-text-secondary); }
 .usb-platform-select {
-  padding: 0.5rem 0.75rem;
-  border: 2px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--color-bg-card, #2a2a2a);
-  color: var(--text-primary, #e0e0e0);
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  box-sizing: border-box; width: 100%; max-width: 100%; min-width: 0; min-height: var(--touch-target-min); padding: 0 12px;
+  background: var(--color-bg-dark); color: var(--text-primary); border: 1px solid var(--color-disabled); border-radius: var(--border-radius-sm);
+  font: 16px inherit; cursor: pointer;
+}
+.usb-platform-select:hover { border-color: var(--primary-color); }
+.usb-platform-select option { background: var(--color-bg-dark); color: var(--text-primary); }
+@media (min-width: 601px) {
+  .usb-section-header { grid-template-columns: minmax(0, 1fr) auto minmax(150px, 190px); }
 }
 
-.usb-platform-select:hover {
-  border-color: var(--primary-color, #4a90d9);
-  background: var(--color-bg-hover, #333);
+/* instruction list */
+.usb-instruction-list { display: flex; flex-direction: column; gap: var(--space-sm); counter-reset: usb-step; margin: 0; padding: 0; }
+.usb-instruction-item {
+  counter-increment: usb-step; position: relative; min-height: var(--touch-target-min); display: flex; align-items: center;
+  padding: 10px 12px 10px 52px; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm);
+  font-size: 15px; line-height: 1.5; color: var(--text-primary); overflow-wrap: anywhere;
+}
+.usb-instruction-item::before {
+  content: counter(usb-step); position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: rgba(var(--primary-rgb), .18); color: var(--primary-text); font-size: 13px; font-weight: var(--font-weight-bold);
 }
 
-.usb-platform-select:focus {
-  outline: none;
-  border-color: var(--primary-color, #4a90d9);
-  box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.2);
+/* verify checklist */
+.usb-checklist { display: flex; flex-direction: column; gap: 12px; }
+.usb-checklist-item {
+  display: flex; align-items: center; gap: 12px; min-height: var(--touch-target-min); padding: 10px 12px;
+  background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm);
+  font-size: 15px; line-height: 1.4; cursor: pointer; overflow-wrap: anywhere;
 }
-
-.usb-platform-select:focus-visible {
-  outline: 2px solid var(--primary-color, #4a90d9);
-  outline-offset: 2px;
-}
-
-.usb-platform-select option {
-  background: var(--color-bg-card, #2a2a2a);
-  color: var(--text-primary, #e0e0e0);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .usb-preparation {
-    max-width: 100%;
-  }
-
-  .usb-instruction-item {
-    padding-left: 2.5rem;
-  }
-}
+.usb-checklist-item:hover { border-color: var(--primary-color); }
+.usb-checklist-item input[type="checkbox"] { flex: none; width: 22px; height: 22px; margin: 0; accent-color: var(--color-accent); cursor: pointer; }
+.usb-checklist-item:has(input:checked) { background: rgba(76,175,80,.10); border-color: #4caf50; }
+.usb-checklist-item:has(input:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.usb-checklist-item strong { color: var(--color-text-primary); }

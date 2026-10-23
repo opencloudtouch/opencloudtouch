@@ -15,23 +15,23 @@ export default function Navigation() {
   };
 
   return (
-    <nav className="nav">
+    <nav className="nav" aria-label={t("nav.ariaLabel")}>
       <div className="nav-inner">
         <div className="nav-container">
           <NavLink to={withDevice("/")} className="nav-link">
-            <span className="nav-icon">📻</span>
+            <span className="nav-icon" aria-hidden="true">📻</span>
             <span className="nav-label">{t("nav.presets")}</span>
           </NavLink>
           <NavLink to={withDevice("/multiroom")} className="nav-link">
-            <span className="nav-icon">🔊</span>
+            <span className="nav-icon" aria-hidden="true">🔊</span>
             <span className="nav-label">{t("nav.zones")}</span>
           </NavLink>
           <NavLink to={withDevice("/settings")} className="nav-link">
-            <span className="nav-icon">⚙️</span>
+            <span className="nav-icon" aria-hidden="true">⚙️</span>
             <span className="nav-label">{t("nav.settings")}</span>
           </NavLink>
           <NavLink to={withDevice("/about")} className="nav-link">
-            <span className="nav-icon">ℹ️</span>
+            <span className="nav-icon" aria-hidden="true">ℹ️</span>
             <span className="nav-label">{t("nav.about")}</span>
           </NavLink>
         </div>

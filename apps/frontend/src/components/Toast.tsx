@@ -91,8 +91,12 @@ export default function Toast({ message, type = "info", duration = 5000, onClose
     <div
       className={`toast toast-${type} ${isVisible ? "toast-visible" : "toast-hidden"}`}
       data-test="toast-notification"
+      // Announced to screen readers: errors/warnings interrupt (alert), success/info wait (status)
+      role={type === "error" || type === "warning" ? "alert" : "status"}
     >
-      <div className="toast-icon">{icons[type]}</div>
+      <div className="toast-icon" aria-hidden="true">
+        {icons[type]}
+      </div>
       <div className="toast-content">
         <p className="toast-message" data-test="toast-message">
           {message}

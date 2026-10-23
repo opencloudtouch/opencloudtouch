@@ -23,7 +23,8 @@
     "presets": "Presets",
     "zones": "Zones",
     "settings": "Instellingen",
-    "about": "Over"
+    "about": "Over",
+    "ariaLabel": "Hoofdnavigatie"
   },
   "player": {
     "noPlayback": "Geen weergave",
@@ -381,7 +382,8 @@
         "troubleshootingItem3": "Wacht minstens 100 seconden na het herstarten",
         "troubleshootingItem4": "Probeer een andere stroomcyclus (stappen 2-5)",
         "troubleshootingItem5": "Controleer of het apparaat in hetzelfde netwerk zit",
-        "troubleshootingItem6": "Test de SSH-verbinding handmatig met het bovenstaande commando — als dat werkt, is het apparaat klaar."
+        "troubleshootingItem6": "Test de SSH-verbinding handmatig met het bovenstaande commando — als dat werkt, is het apparaat klaar.",
+        "nextDisabled": "Controleer de SSH-toegang en beslis of SSH ingeschakeld blijft."
       },
       "step4": {
         "title": "Back-up maken",
@@ -392,14 +394,15 @@
         "btnCreate": "Nu back-up maken",
         "btnCreating": "Back-up maken...",
         "progressMessage": "Back-up maken voor {{device}}",
-        "progressNote": "Dit kan tot 2 minuten duren...",
+        "progressNote": "Dit kan tot 10 minuten duren...",
         "errorTitle": "Back-up mislukt",
         "successTitle": "Back-up succesvol gemaakt!",
         "successHint": "De back-ups zijn naar uw USB-stick geschreven. Verwijder de stick na de wizard — hij bevat uw herstelbestanden.",
         "filesTitle": "Opgeslagen bestanden (op USB-stick):",
         "totalLabel": "Totaal:",
         "durationMinSec": "{{min}} min {{sec}} s",
-        "durationSec": "{{sec}} s"
+        "durationSec": "{{sec}} s",
+        "nextWarning": "Zonder back-up is herstellen niet mogelijk. Als u nu doorgaat, doet u dat op eigen risico."
       },
       "step5": {
         "titleProxy": "Reverse proxy gedetecteerd",
@@ -467,8 +470,7 @@
         "changedEntries": "Gewijzigde vermeldingen:",
         "backupLabel": "Back-up:",
         "btnShowChanges": "▶ Wijzigingen tonen",
-        "btnHideChanges": "▼ Wijzigingen verbergen",
-        "hostsApplied": "Hosts-bestand succesvol gewijzigd."
+        "btnHideChanges": "▼ Wijzigingen verbergen"
       },
       "step7": {
         "title": "NTP-server patchen",
@@ -542,7 +544,11 @@
         "btnRetryFullVerify": "Verificatie opnieuw uitvoeren",
         "checkNtpServer": "NTP-server ingesteld op: {{server}}",
         "checkNtpServerWrong": "NTP-server is ingesteld op '{{found}}', verwacht werd '{{expected}}'",
-        "fullVerifyItem5": "NTP-server op het apparaat geconfigureerd"
+        "fullVerifyItem5": "NTP-server op het apparaat geconfigureerd",
+        "phaseFinalize": "Instellen",
+        "phaseReboot": "Herstart",
+        "phaseVerify": "Controleren",
+        "nextDisabled": "Voltooi eerst alle controles met succes."
       },
       "step9": {
         "title": "Installatie voltooid!",
@@ -572,9 +578,18 @@
         "supportLink": "Contact opnemen met ondersteuning →",
         "summaryItem7": "NTP-server gepatcht ({{server}})"
       }
-    }
+    },
+    "trackerCompact": "Stap {{current}} van {{total}} – {{label}}",
+    "stepAriaSkipped": "Stap {{id}}: {{label}} — {{description}} – overgeslagen"
   },
   "restore": {
+    "steps": {
+      "choice": "Keuze",
+      "backup": "Back-up",
+      "restore": "Herstellen",
+      "verify": "Controleren",
+      "done": "Klaar"
+    },
     "choice": {
       "title": "Wat wil je doen?",
       "setup_title": "Installatiewizard",
@@ -606,7 +621,10 @@
       "running": "Herstel bezig...",
       "error": "Restore failed: {{message}}",
       "success": "All steps completed successfully! Total: {{time}}s",
-      "continue": "Doorgaan"
+      "continue": "Doorgaan",
+      "running_hint": "Dit kan enkele minuten duren (meestal 8 tot 9). Laat deze pagina open en koppel het apparaat niet los.",
+      "error_hint": "Ga terug en probeer het opnieuw.",
+      "failed_title": "Herstel onvolledig"
     },
     "verification": {
       "title": "Wachten op apparaat",
@@ -627,6 +645,50 @@
       "failed": "Mislukt",
       "note": "Het apparaat is nu in de oorspronkelijke staat. Je kunt het veilig loskoppelen.",
       "done": "Done"
+    },
+    "step_labels": {
+      "pre_snapshot": "Snapshot vóór het herstel",
+      "config": "Configuratiebestanden",
+      "presets": "Presets",
+      "hosts": "/etc/hosts",
+      "ntp": "/etc/ntpservers.txt",
+      "remote_services": "SSH-persistentie",
+      "reboot": "Herstart"
+    },
+    "messages": {
+      "snapshot_saved": "Snapshot vóór het herstel opgeslagen",
+      "snapshot_unavailable": "Geen wizard-service beschikbaar",
+      "snapshot_failed": "Snapshot mislukt: {{error}}",
+      "config_restored": "Configuratiebestanden hersteld",
+      "config_restore_failed": "Herstel van de configuratie mislukt: {{error}}",
+      "presets_clean": "Geen Presets.xml op het apparaat gevonden (al schoon)",
+      "presets_restored": "Presets hersteld in {{path}}",
+      "presets_restore_failed": "Herstel van de presets mislukt: {{error}}",
+      "hosts_read_failed": "/etc/hosts kon niet worden gelezen",
+      "hosts_clean": "Geen OCT-blok in /etc/hosts gevonden (al schoon)",
+      "hosts_restored": "OCT-blok uit /etc/hosts verwijderd",
+      "hosts_restore_failed": "Herstel van /etc/hosts mislukt: {{error}}",
+      "ntp_no_backup": "Geen NTP-back-up gevonden (al schoon)",
+      "ntp_copy_failed": "/etc/ntpservers.txt kon niet uit de back-up worden hersteld",
+      "ntp_restored": "NTP-servers hersteld uit de back-up",
+      "ntp_restore_failed": "Herstel van de NTP-servers mislukt: {{error}}",
+      "remote_services_deleted": "/mnt/nv/remote_services verwijderd",
+      "remote_services_failed": "remote_services kon niet worden verwijderd: {{error}}",
+      "reboot_sent": "Herstartcommando verzonden",
+      "reboot_failed": "Herstart mislukt: {{error}}"
+    },
+    "validation": {
+      "archive_corrupt": "Archief is beschadigd of onleesbaar",
+      "archive_empty": "Archief is leeg",
+      "archive_unverified": "De inhoud van het archief kon niet worden gecontroleerd (scan mislukt of time-out)",
+      "archive_path_missing": "Verwachte paden die beginnen met {{expected}} zijn niet gevonden in het archief"
+    },
+    "status": {
+      "completed": "Voltooid",
+      "skipped": "Overgeslagen",
+      "failed": "Mislukt",
+      "in_progress": "Bezig",
+      "pending": "In afwachting"
     }
   },
   "errors": {
@@ -797,5 +859,14 @@
     "reboot": "Apparaat herstarten",
     "sent": "Herstartopdracht verzonden",
     "confirmMessage": "{{name}} herstarten? Het apparaat is ongeveer 100 seconden niet beschikbaar."
+  },
+  "a11y": {
+    "skipToContent": "Ga naar inhoud",
+    "selectLanguage": "Taal kiezen",
+    "deviceSelection": "Apparaatselectie",
+    "switchToDevice": "Overschakelen naar {{name}}",
+    "volume": "Volume",
+    "copyCommand": "Opdracht kopiëren",
+    "copyToClipboard": "Naar klembord kopiëren"
   }
 }

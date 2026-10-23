@@ -23,7 +23,8 @@
     "presets": "Presety",
     "zones": "Strefy",
     "settings": "Ustawienia",
-    "about": "O programie"
+    "about": "O programie",
+    "ariaLabel": "Nawigacja główna"
   },
   "player": {
     "noPlayback": "Brak odtwarzania",
@@ -381,7 +382,8 @@
         "troubleshootingItem3": "Poczekaj co najmniej 100 sekund po restarcie",
         "troubleshootingItem4": "Spróbuj kolejnego cyklu zasilania (kroki 2-5)",
         "troubleshootingItem5": "Sprawdź, czy urządzenie jest w tej samej sieci",
-        "troubleshootingItem6": "Przetestuj połączenie SSH ręcznie poleceniem powyżej — jeśli działa, urządzenie jest gotowe."
+        "troubleshootingItem6": "Przetestuj połączenie SSH ręcznie poleceniem powyżej — jeśli działa, urządzenie jest gotowe.",
+        "nextDisabled": "Sprawdź dostęp SSH i zdecyduj, czy SSH ma pozostać włączony."
       },
       "step4": {
         "title": "Utwórz kopię zapasową",
@@ -392,14 +394,15 @@
         "btnCreate": "Utwórz kopię zapasową teraz",
         "btnCreating": "Tworzenie kopii zapasowej...",
         "progressMessage": "Tworzenie kopii zapasowej dla {{device}}",
-        "progressNote": "Może to potrwać do 2 minut...",
+        "progressNote": "Może to potrwać do 10 minut...",
         "errorTitle": "Kopia zapasowa nie powiodła się",
         "successTitle": "Kopia zapasowa utworzona pomyślnie!",
         "successHint": "Kopie zapasowe zostały zapisane na dysku USB. Wyjmij dysk po kreatorze — zawiera pliki odzyskiwania.",
         "filesTitle": "Zapisane pliki (na dysku USB):",
         "totalLabel": "Łącznie:",
         "durationMinSec": "{{min}} min {{sec}} s",
-        "durationSec": "{{sec}} s"
+        "durationSec": "{{sec}} s",
+        "nextWarning": "Bez kopii zapasowej przywrócenie nie jest możliwe. Jeśli kontynuujesz teraz, robisz to na własne ryzyko."
       },
       "step5": {
         "titleProxy": "Wykryto reverse proxy",
@@ -467,8 +470,7 @@
         "changedEntries": "Zmienione wpisy:",
         "backupLabel": "Kopia zap.:",
         "btnShowChanges": "▶ Pokaż zmiany",
-        "btnHideChanges": "▼ Ukryj zmiany",
-        "hostsApplied": "Plik hosts został pomyślnie zmodyfikowany."
+        "btnHideChanges": "▼ Ukryj zmiany"
       },
       "step7": {
         "title": "Patch serwera NTP",
@@ -542,7 +544,11 @@
         "btnRetryFullVerify": "Uruchom weryfikację ponownie",
         "checkNtpServer": "Serwer NTP ustawiony na: {{server}}",
         "checkNtpServerWrong": "Serwer NTP jest ustawiony na „{{found}}”, oczekiwano „{{expected}}”",
-        "fullVerifyItem5": "Serwer NTP skonfigurowany na urządzeniu"
+        "fullVerifyItem5": "Serwer NTP skonfigurowany na urządzeniu",
+        "phaseFinalize": "Konfiguracja",
+        "phaseReboot": "Restart",
+        "phaseVerify": "Weryfikacja",
+        "nextDisabled": "Najpierw pomyślnie ukończ wszystkie testy."
       },
       "step9": {
         "title": "Konfiguracja zakończona!",
@@ -572,9 +578,18 @@
         "supportLink": "Skontaktuj się z pomocą techniczną →",
         "summaryItem7": "Serwer NTP zaktualizowany ({{server}})"
       }
-    }
+    },
+    "trackerCompact": "Krok {{current}} z {{total}} – {{label}}",
+    "stepAriaSkipped": "Krok {{id}}: {{label}} — {{description}} – pominięty"
   },
   "restore": {
+    "steps": {
+      "choice": "Wybór",
+      "backup": "Kopia",
+      "restore": "Przywracanie",
+      "verify": "Weryfikacja",
+      "done": "Gotowe"
+    },
     "choice": {
       "title": "Co chcesz zrobić?",
       "setup_title": "Kreator konfiguracji",
@@ -606,7 +621,10 @@
       "running": "Przywracanie w toku...",
       "error": "Restore failed: {{message}}",
       "success": "All steps completed successfully! Total: {{time}}s",
-      "continue": "Kontynuuj"
+      "continue": "Kontynuuj",
+      "running_hint": "Może to potrwać kilka minut (zwykle 8–9). Pozostaw tę stronę otwartą i nie odłączaj urządzenia.",
+      "error_hint": "Wróć i spróbuj ponownie.",
+      "failed_title": "Przywracanie niekompletne"
     },
     "verification": {
       "title": "Oczekiwanie na urządzenie",
@@ -627,6 +645,50 @@
       "failed": "Niepowodzenie",
       "note": "Urządzenie jest teraz w stanie fabrycznym. Możesz je bezpiecznie odłączyć.",
       "done": "Done"
+    },
+    "step_labels": {
+      "pre_snapshot": "Migawka przed przywróceniem",
+      "config": "Pliki konfiguracyjne",
+      "presets": "Presety",
+      "hosts": "/etc/hosts",
+      "ntp": "/etc/ntpservers.txt",
+      "remote_services": "Trwałość SSH",
+      "reboot": "Restart"
+    },
+    "messages": {
+      "snapshot_saved": "Zapisano migawkę przed przywróceniem",
+      "snapshot_unavailable": "Usługa kreatora jest niedostępna",
+      "snapshot_failed": "Migawka nie powiodła się: {{error}}",
+      "config_restored": "Przywrócono pliki konfiguracyjne",
+      "config_restore_failed": "Przywracanie konfiguracji nie powiodło się: {{error}}",
+      "presets_clean": "Nie znaleziono pliku Presets.xml na urządzeniu (już czyste)",
+      "presets_restored": "Przywrócono presety w {{path}}",
+      "presets_restore_failed": "Przywracanie presetów nie powiodło się: {{error}}",
+      "hosts_read_failed": "Nie udało się odczytać /etc/hosts",
+      "hosts_clean": "Nie znaleziono bloku OCT w /etc/hosts (już czyste)",
+      "hosts_restored": "Usunięto blok OCT z /etc/hosts",
+      "hosts_restore_failed": "Przywracanie /etc/hosts nie powiodło się: {{error}}",
+      "ntp_no_backup": "Nie znaleziono kopii zapasowej NTP (już czyste)",
+      "ntp_copy_failed": "Nie udało się przywrócić /etc/ntpservers.txt z kopii zapasowej",
+      "ntp_restored": "Przywrócono serwery NTP z kopii zapasowej",
+      "ntp_restore_failed": "Przywracanie serwerów NTP nie powiodło się: {{error}}",
+      "remote_services_deleted": "Usunięto /mnt/nv/remote_services",
+      "remote_services_failed": "Nie udało się usunąć remote_services: {{error}}",
+      "reboot_sent": "Wysłano polecenie restartu",
+      "reboot_failed": "Restart nie powiódł się: {{error}}"
+    },
+    "validation": {
+      "archive_corrupt": "Archiwum jest uszkodzone lub nieczytelne",
+      "archive_empty": "Archiwum jest puste",
+      "archive_unverified": "Nie udało się zweryfikować zawartości archiwum (skanowanie nie powiodło się lub upłynął limit czasu)",
+      "archive_path_missing": "Nie znaleziono w archiwum oczekiwanych ścieżek zaczynających się od {{expected}}"
+    },
+    "status": {
+      "completed": "Ukończono",
+      "skipped": "Pominięto",
+      "failed": "Niepowodzenie",
+      "in_progress": "W toku",
+      "pending": "Oczekuje"
     }
   },
   "errors": {
@@ -797,5 +859,14 @@
     "reboot": "Uruchom ponownie urządzenie",
     "sent": "Polecenie restartu wysłane",
     "confirmMessage": "Uruchomić ponownie {{name}}? Urządzenie będzie niedostępne przez około 100 sekund."
+  },
+  "a11y": {
+    "skipToContent": "Przejdź do treści",
+    "selectLanguage": "Wybierz język",
+    "deviceSelection": "Wybór urządzenia",
+    "switchToDevice": "Przełącz na {{name}}",
+    "volume": "Głośność",
+    "copyCommand": "Kopiuj polecenie",
+    "copyToClipboard": "Kopiuj do schowka"
   }
 }

@@ -72,28 +72,13 @@ export default function EmptyState() {
     <div className="empty-state" data-test="empty-state">
       <div className="empty-state-content">
         <div className="empty-state-icon">
-          <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
-            <circle cx="60" cy="60" r="50" stroke="currentColor" strokeWidth="2" opacity="0.2" />
-            <path
-              d="M40 60L55 75L80 50"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity="0.3"
-            />
-            <rect
-              x="35"
-              y="45"
-              width="50"
-              height="30"
-              rx="4"
-              stroke="currentColor"
-              strokeWidth="2"
-            />
-            <rect x="45" y="55" width="10" height="10" rx="2" fill="currentColor" opacity="0.5" />
-            <rect x="60" y="55" width="10" height="10" rx="2" fill="currentColor" opacity="0.5" />
-          </svg>
+          <img
+            className="empty-state-logo"
+            src="/images/logo/oct-logo-dark_539x539.png"
+            alt="OpenCloudTouch"
+            width="160"
+            height="160"
+          />
         </div>
 
         <h1 className="empty-state-title" data-test="welcome-title">
@@ -105,7 +90,7 @@ export default function EmptyState() {
           <div className="setup-step">
             <div className="step-number">1</div>
             <div className="step-content">
-              <h3>{t("discovery.step1Title")}</h3>
+              <h2>{t("discovery.step1Title")}</h2>
               <p>{t("discovery.step1Desc")}</p>
             </div>
           </div>
@@ -113,7 +98,7 @@ export default function EmptyState() {
           <div className="setup-step">
             <div className="step-number">2</div>
             <div className="step-content">
-              <h3>{t("discovery.step2Title")}</h3>
+              <h2>{t("discovery.step2Title")}</h2>
               <p>{t("discovery.step2Desc")}</p>
             </div>
           </div>
@@ -121,7 +106,7 @@ export default function EmptyState() {
           <div className="setup-step">
             <div className="step-number">3</div>
             <div className="step-content">
-              <h3>{t("discovery.step3Title")}</h3>
+              <h2>{t("discovery.step3Title")}</h2>
               <p>{t("discovery.step3Desc")}</p>
             </div>
           </div>

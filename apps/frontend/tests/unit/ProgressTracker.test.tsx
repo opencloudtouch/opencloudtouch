@@ -93,16 +93,16 @@ describe("ProgressTracker", () => {
     expect(stepDivs[2].querySelector(".step-number")?.textContent).toBe("3");
     expect(stepDivs[2].querySelector(".step-icon")).toBeNull();
 
-    // completed (index 4) shows the checkmark.
-    expect(stepDivs[4].querySelector(".step-icon")?.textContent).toBe("✓");
+    // completed (index 4) shows the checkmark icon (Lucide "check" path).
+    expect(stepDivs[4].querySelector('.step-icon svg path[d="M20 6 9 17l-5-5"]')).not.toBeNull();
     expect(stepDivs[4].querySelector(".step-number")).toBeNull();
 
-    // error (index 6) shows the cross.
-    expect(stepDivs[6].querySelector(".step-icon")?.textContent).toBe("✗");
+    // error (index 6) shows the cross icon (Lucide "x" path).
+    expect(stepDivs[6].querySelector('.step-icon svg path[d="M18 6 6 18"]')).not.toBeNull();
     expect(stepDivs[6].querySelector(".step-number")).toBeNull();
   });
 
-  it("marks only the step matching currentStep as active, and omits the connector after the last step", () => {
+  it("marks only the step matching currentStep as active, and omits the connector before the first step", () => {
     const { container } = render(<ProgressTracker steps={steps} currentStep={3} />);
 
     const stepDivs = container.querySelectorAll(".progress-step");
@@ -112,9 +112,9 @@ describe("ProgressTracker", () => {
     expect(stepDivs[0].className).not.toContain("active");
     expect(stepDivs[7].className).not.toContain("active");
 
-    // Every step except the last renders a connector; the last does not.
-    expect(stepDivs[0].querySelector(".step-connector")).not.toBeNull();
-    expect(stepDivs[6].querySelector(".step-connector")).not.toBeNull();
-    expect(stepDivs[7].querySelector(".step-connector")).toBeNull();
+    // Every step except the first renders a connector (drawn between the previous circle and its own).
+    expect(stepDivs[0].querySelector(".step-connector")).toBeNull();
+    expect(stepDivs[1].querySelector(".step-connector")).not.toBeNull();
+    expect(stepDivs[7].querySelector(".step-connector")).not.toBeNull();
   });
 });

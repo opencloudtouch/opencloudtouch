@@ -78,7 +78,7 @@ export default function StationDetail({
 
     fetchDetail();
     return () => controller.abort();
-  }, [stationUuid, provider]);
+  }, [stationUuid, provider, t]);
 
   if (loading) {
     return (

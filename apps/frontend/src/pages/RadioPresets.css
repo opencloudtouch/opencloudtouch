@@ -32,7 +32,7 @@
   flex-shrink: 0;
 }
 
-.device-info {
+.radio-presets-page .device-info {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -46,7 +46,7 @@
   flex-shrink: 0;
 }
 
-.device-name {
+.radio-presets-page .device-name {
   font-size: 13px;
   font-weight: var(--font-weight-medium);
   color: var(--color-text-secondary);
@@ -56,13 +56,13 @@
   white-space: nowrap;
 }
 
-.device-model {
+.radio-presets-page .device-model {
   font-size: 11px;
   color: var(--color-text-secondary);
 }
 
 /* REFACT-109: IP stays visible but is visually secondary to name/model */
-.device-ip {
+.radio-presets-page .device-ip {
   font-size: 11px;
   color: var(--color-text-secondary);
   opacity: 0.65;
@@ -182,7 +182,7 @@
     padding: var(--space-md);
   }
 
-  .device-name {
+  .radio-presets-page .device-name {
     font-size: 15px;
   }
 

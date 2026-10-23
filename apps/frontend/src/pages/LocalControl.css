@@ -37,7 +37,7 @@
   flex-shrink: 0;
 }
 
-.device-info {
+.local-control-page .device-info {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -73,7 +73,7 @@
   opacity: 0.85;
 }
 
-.device-name {
+.local-control-page .device-name {
   font-size: 13px;
   font-weight: var(--font-weight-medium);
   color: var(--color-text-secondary);
@@ -83,7 +83,7 @@
   white-space: nowrap;
 }
 
-.device-model {
+.local-control-page .device-model {
   font-size: 11px;
   color: var(--color-text-secondary);
 }

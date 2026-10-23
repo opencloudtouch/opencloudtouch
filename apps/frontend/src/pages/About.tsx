@@ -63,12 +63,12 @@ export default function About() {
           .filter((line) => line.trim())
           .map((line) => parseCSVLine(line))
           .filter((fields): fields is string[] => fields.length >= 5)
-          .map((fields) => ({
-            name: fields[0],
-            type: fields[1] as "monthly" | "one-time",
-            amount: Number.parseFloat(fields[2]) || 0,
-            monthlyAmount: Number.parseFloat(fields[3]) || 0,
-            firstSupportDate: fields[4],
+          .map(([name = "", type = "one-time", amount = "", monthlyAmount = "", firstSupportDate = ""]) => ({
+            name,
+            type: type as "monthly" | "one-time",
+            amount: Number.parseFloat(amount) || 0,
+            monthlyAmount: Number.parseFloat(monthlyAmount) || 0,
+            firstSupportDate,
           }));
 
         // Sort: amount DESC, then monthlyAmount DESC, then firstSupportDate ASC (older first)
@@ -132,7 +132,8 @@ export default function About() {
       const timer = setTimeout(checkUpdate, 3000);
       return () => clearTimeout(timer);
     }
-  }, [health?.version]);
+    return undefined;
+  }, [health?.version, health?.build]);
 
   const maxAmount = Math.max(...supporters.map((s) => s.amount + s.monthlyAmount), 1);
 

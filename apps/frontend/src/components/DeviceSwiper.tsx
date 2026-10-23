@@ -147,7 +147,7 @@ export default function DeviceSwiper({
       </div>
 
       {/* Dots Indicator */}
-      <div className="swiper-dots" role="tablist" aria-label="Device selection">
+      <div className="swiper-dots" role="tablist" aria-label={t("a11y.deviceSelection")}>
         {devices.map((device, index) => (
           <button
             key={device.device_id}
@@ -158,7 +158,7 @@ export default function DeviceSwiper({
             }}
             role="tab"
             aria-selected={index === currentIndex}
-            aria-label={`Switch to ${device.name}`}
+            aria-label={t("a11y.switchToDevice", { name: device.name })}
           />
         ))}
       </div>

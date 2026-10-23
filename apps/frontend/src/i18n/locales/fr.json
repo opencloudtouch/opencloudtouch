@@ -23,7 +23,8 @@
     "presets": "Préréglages",
     "zones": "Zones",
     "settings": "Paramètres",
-    "about": "À propos"
+    "about": "À propos",
+    "ariaLabel": "Navigation principale"
   },
   "player": {
     "noPlayback": "Pas de lecture",
@@ -381,7 +382,8 @@
         "troubleshootingItem3": "Attendez au moins 100 secondes après le redémarrage",
         "troubleshootingItem4": "Essayez un autre cycle d'alimentation (étapes 2–5)",
         "troubleshootingItem5": "Vérifiez que l'appareil est sur le même réseau",
-        "troubleshootingItem6": "Testez la connexion SSH manuellement avec la commande ci-dessus — si cela fonctionne, l'appareil est prêt."
+        "troubleshootingItem6": "Testez la connexion SSH manuellement avec la commande ci-dessus — si cela fonctionne, l'appareil est prêt.",
+        "nextDisabled": "Vérifiez l'accès SSH et décidez si SSH reste activé."
       },
       "step4": {
         "title": "Créer une sauvegarde",
@@ -392,14 +394,15 @@
         "btnCreate": "Créer la sauvegarde maintenant",
         "btnCreating": "Création en cours...",
         "progressMessage": "Création de la sauvegarde pour {{device}}",
-        "progressNote": "Cela peut prendre jusqu'à 2 minutes...",
+        "progressNote": "Cela peut prendre jusqu'à 10 minutes...",
         "errorTitle": "Échec de la sauvegarde",
         "successTitle": "Sauvegarde créée avec succès !",
         "successHint": "Les sauvegardes ont été écrites sur votre clé USB. Retirez la clé après l'assistant — elle contient vos fichiers de restauration.",
         "filesTitle": "Fichiers sauvegardés (sur la clé USB) :",
         "totalLabel": "Total :",
         "durationMinSec": "{{min}} min {{sec}} s",
-        "durationSec": "{{sec}} s"
+        "durationSec": "{{sec}} s",
+        "nextWarning": "Sans sauvegarde, la restauration est impossible. Si vous continuez maintenant, c'est à vos risques et périls."
       },
       "step5": {
         "titleProxy": "Proxy inverse détecté",
@@ -467,8 +470,7 @@
         "changedEntries": "Entrées modifiées :",
         "backupLabel": "Sauvegarde :",
         "btnShowChanges": "▶ Afficher les modifications",
-        "btnHideChanges": "▼ Masquer les modifications",
-        "hostsApplied": "Fichier hosts modifié avec succès."
+        "btnHideChanges": "▼ Masquer les modifications"
       },
       "step7": {
         "title": "Patcher le serveur NTP",
@@ -542,7 +544,11 @@
         "btnRetryFullVerify": "Relancer la vérification",
         "checkNtpServer": "Serveur NTP défini sur : {{server}}",
         "checkNtpServerWrong": "Le serveur NTP est défini sur « {{found}} », « {{expected}} » attendu",
-        "fullVerifyItem5": "Serveur NTP configuré sur l'appareil"
+        "fullVerifyItem5": "Serveur NTP configuré sur l'appareil",
+        "phaseFinalize": "Configuration",
+        "phaseReboot": "Redémarrage",
+        "phaseVerify": "Vérifier",
+        "nextDisabled": "Veuillez d'abord réussir toutes les vérifications."
       },
       "step9": {
         "title": "Configuration terminée !",
@@ -572,9 +578,18 @@
         "supportLink": "Contacter le support →",
         "summaryItem7": "Serveur NTP patché ({{server}})"
       }
-    }
+    },
+    "trackerCompact": "Étape {{current}} sur {{total}} – {{label}}",
+    "stepAriaSkipped": "Étape {{id}} : {{label}} — {{description}} – ignorée"
   },
   "restore": {
+    "steps": {
+      "choice": "Choix",
+      "backup": "Sauvegarde",
+      "restore": "Restaurer",
+      "verify": "Vérifier",
+      "done": "Terminé"
+    },
     "choice": {
       "title": "Que souhaitez-vous faire ?",
       "setup_title": "Assistant d'installation",
@@ -606,7 +621,10 @@
       "running": "Restauration en cours...",
       "error": "Restore failed: {{message}}",
       "success": "All steps completed successfully! Total: {{time}}s",
-      "continue": "Continuer"
+      "continue": "Continuer",
+      "running_hint": "Cela peut prendre plusieurs minutes (en général 8 à 9). Gardez cette page ouverte et ne débranchez pas l'appareil.",
+      "error_hint": "Revenez en arrière et réessayez.",
+      "failed_title": "Restauration incomplète"
     },
     "verification": {
       "title": "En attente de l'appareil",
@@ -627,6 +645,50 @@
       "failed": "Échoué",
       "note": "L'appareil est maintenant dans son état d'origine. Vous pouvez le déconnecter en toute sécurité.",
       "done": "Done"
+    },
+    "step_labels": {
+      "pre_snapshot": "Instantané avant restauration",
+      "config": "Fichiers de configuration",
+      "presets": "Presets",
+      "hosts": "/etc/hosts",
+      "ntp": "/etc/ntpservers.txt",
+      "remote_services": "Persistance SSH",
+      "reboot": "Redémarrage"
+    },
+    "messages": {
+      "snapshot_saved": "Instantané avant restauration enregistré",
+      "snapshot_unavailable": "Aucun service d'assistant disponible",
+      "snapshot_failed": "Échec de l'instantané : {{error}}",
+      "config_restored": "Fichiers de configuration restaurés",
+      "config_restore_failed": "Échec de la restauration de la configuration : {{error}}",
+      "presets_clean": "Aucun Presets.xml trouvé sur l'appareil (déjà propre)",
+      "presets_restored": "Presets restaurés dans {{path}}",
+      "presets_restore_failed": "Échec de la restauration des presets : {{error}}",
+      "hosts_read_failed": "Impossible de lire /etc/hosts",
+      "hosts_clean": "Aucun bloc OCT trouvé dans /etc/hosts (déjà propre)",
+      "hosts_restored": "Bloc OCT supprimé de /etc/hosts",
+      "hosts_restore_failed": "Échec de la restauration de /etc/hosts : {{error}}",
+      "ntp_no_backup": "Aucune sauvegarde NTP trouvée (déjà propre)",
+      "ntp_copy_failed": "Impossible de restaurer /etc/ntpservers.txt depuis la sauvegarde",
+      "ntp_restored": "Serveurs NTP restaurés depuis la sauvegarde",
+      "ntp_restore_failed": "Échec de la restauration des serveurs NTP : {{error}}",
+      "remote_services_deleted": "/mnt/nv/remote_services supprimé",
+      "remote_services_failed": "Impossible de supprimer remote_services : {{error}}",
+      "reboot_sent": "Commande de redémarrage envoyée",
+      "reboot_failed": "Échec du redémarrage : {{error}}"
+    },
+    "validation": {
+      "archive_corrupt": "L'archive est corrompue ou illisible",
+      "archive_empty": "L'archive est vide",
+      "archive_unverified": "Le contenu de l'archive n'a pas pu être vérifié (analyse échouée ou délai dépassé)",
+      "archive_path_missing": "Les chemins attendus commençant par {{expected}} sont introuvables dans l'archive"
+    },
+    "status": {
+      "completed": "Terminé",
+      "skipped": "Ignoré",
+      "failed": "Échec",
+      "in_progress": "En cours",
+      "pending": "En attente"
     }
   },
   "errors": {
@@ -797,5 +859,14 @@
     "reboot": "Redémarrer l'appareil",
     "sent": "Commande de redémarrage envoyée",
     "confirmMessage": "Redémarrer {{name}} ? L'appareil sera indisponible pendant environ 100 secondes."
+  },
+  "a11y": {
+    "skipToContent": "Aller au contenu",
+    "selectLanguage": "Choisir la langue",
+    "deviceSelection": "Sélection de l'appareil",
+    "switchToDevice": "Passer à {{name}}",
+    "volume": "Volume",
+    "copyCommand": "Copier la commande",
+    "copyToClipboard": "Copier dans le presse-papiers"
   }
 }

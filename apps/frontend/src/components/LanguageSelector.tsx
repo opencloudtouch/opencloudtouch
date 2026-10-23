@@ -5,7 +5,7 @@ import { changeLanguage, UI_LOCALES, LOCALE_CONFIGS, UILocale } from "../i18n";
 import "./LanguageSelector.css";
 
 export default function LanguageSelector() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -46,7 +46,7 @@ export default function LanguageSelector() {
     <div className="lang-selector-wrapper" ref={wrapperRef}>
       <button
         className="lang-selector"
-        aria-label="Select language"
+        aria-label={t("a11y.selectLanguage")}
         aria-expanded={open}
         aria-haspopup="listbox"
         onClick={() => setOpen((prev) => !prev)}
@@ -56,7 +56,7 @@ export default function LanguageSelector() {
       </button>
 
       {open && (
-        <ul className="lang-dropdown" role="listbox" aria-label="Select language">
+        <ul className="lang-dropdown" role="listbox" aria-label={t("a11y.selectLanguage")}>
           {UI_LOCALES.map((locale) => {
             const config = LOCALE_CONFIGS[locale];
             const isActive = locale === currentLocale;

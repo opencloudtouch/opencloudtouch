@@ -141,3 +141,26 @@
     font-size: 24px;
   }
 }
+
+/* Skip link: first tab stop, visible only while focused */
+.skip-link {
+  position: absolute;
+  left: var(--space-md);
+  top: 0;
+  z-index: 1000;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-accent);
+  color: #fff;
+  border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);
+  font-weight: var(--font-weight-medium);
+  transform: translateY(-120%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* <main> receives programmatic focus from the skip link; no ring needed for that */
+.app-main:focus {
+  outline: none;
+}

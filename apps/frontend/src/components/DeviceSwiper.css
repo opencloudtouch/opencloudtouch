@@ -70,6 +70,7 @@
 /* Dots Indicator */
 .swiper-dots {
   display: flex;
+  flex-wrap: wrap; /* many devices (e.g. 12) must not push dots beyond the viewport */
   justify-content: center;
   gap: var(--space-sm);
   margin-top: var(--space-lg);
@@ -129,8 +130,44 @@
   }
 }
 
+/* Phones: the card fills the screen, so arrows overlaid on it would cover its content (source tabs,
+   artwork). Put them left/right of the dots below the card instead. */
 @media (max-width: 480px) {
+  .device-swiper {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    align-items: center;
+    column-gap: var(--space-sm);
+    row-gap: var(--space-md);
+  }
+
+  .swiper-container {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
   .swipe-arrow {
+    position: static;
+    transform: none;
+    grid-row: 2;
     background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .swipe-arrow:hover:not(:disabled) {
+    transform: scale(1.1);
+  }
+
+  .swipe-arrow-left {
+    grid-column: 1;
+  }
+
+  .swipe-arrow-right {
+    grid-column: 3;
+  }
+
+  .swiper-dots {
+    grid-column: 2;
+    grid-row: 2;
+    margin-top: 0;
   }
 }

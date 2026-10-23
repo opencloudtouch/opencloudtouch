@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ToastProvider } from "./contexts/ToastContext";
 import { DeviceEventProvider } from "./contexts/DeviceEventContext";
+import { MotionConfig } from "framer-motion";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Navigation from "./components/Navigation";
 import EmptyState from "./components/EmptyState";
@@ -109,7 +110,9 @@ function AppRouter({ devices: initialDevices, isLoading, error, onRetry }: AppRo
         element={
           devices.length === 0 ? (
             <div className="app">
-              <EmptyState />
+              <main id="main-content" className="app-main" tabIndex={-1}>
+                <EmptyState />
+              </main>
             </div>
           ) : (
             <Navigate to="/" replace />
@@ -122,10 +125,13 @@ function AppRouter({ devices: initialDevices, isLoading, error, onRetry }: AppRo
         path="/*"
         element={
           <div className="app">
+            <a className="skip-link" href="#main-content">
+              {t("a11y.skipToContent")}
+            </a>
             <header className="app-header" data-test="app-header">
               <Navigation />
             </header>
-            <main className="app-main">
+            <main id="main-content" tabIndex={-1} className="app-main">
               <Routes>
                 {/* Setup Wizard — always available, manages its own loading/empty states */}
                 <Route
@@ -179,18 +185,21 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <BrowserRouter {...routerFutureFlagsAny}>
-        <ToastProvider>
-          <DeviceEventProvider>
-            <AppRouter
-              devices={devices}
-              isLoading={isLoading}
-              error={error}
-              onRetry={() => refetch()}
-            />
-          </DeviceEventProvider>
-        </ToastProvider>
-      </BrowserRouter>
+      {/* reducedMotion="user": framer-motion animations respect the OS "reduce motion" setting */}
+      <MotionConfig reducedMotion="user">
+        <BrowserRouter {...routerFutureFlagsAny}>
+          <ToastProvider>
+            <DeviceEventProvider>
+              <AppRouter
+                devices={devices}
+                isLoading={isLoading}
+                error={error}
+                onRetry={() => refetch()}
+              />
+            </DeviceEventProvider>
+          </ToastProvider>
+        </BrowserRouter>
+      </MotionConfig>
     </ErrorBoundary>
   );
 }

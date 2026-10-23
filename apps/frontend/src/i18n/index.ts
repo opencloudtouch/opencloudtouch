@@ -112,6 +112,15 @@ void i18next.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
+/** Keep <html lang> in sync with the UI language (screen readers pick the pronunciation from it). */
+function syncDocumentLang(lng: string | undefined): void {
+  if (typeof document !== "undefined" && lng) {
+    document.documentElement.lang = lng;
+  }
+}
+syncDocumentLang(i18next.language);
+i18next.on("languageChanged", syncDocumentLang);
+
 export function changeLanguage(locale: UILocale): void {
   void i18next.changeLanguage(locale);
   try {

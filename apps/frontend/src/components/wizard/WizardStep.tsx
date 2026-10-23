@@ -1,10 +1,9 @@
-/**
- * WizardStep - Base component for wizard steps
- */
-import { ReactNode } from "react";
+/** WizardStep: props and behaviour unchanged, markup restyled. File: components/wizard/WizardStep.tsx */
+import { ReactNode, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import "./WizardStep.css";
+import { Icon } from "./Icon";
+import "./wizard-base.css"; // replaces WizardStep.css
 
 export interface WizardStepProps {
   stepNumber: number;
@@ -26,24 +25,17 @@ export interface WizardStepProps {
 }
 
 export default function WizardStep({
-  stepNumber,
-  title,
-  description,
-  children,
-  warning,
-  onNext,
-  onPrevious,
-  onSkip,
-  nextLabel,
-  previousLabel,
-  skipLabel,
-  isNextDisabled = false,
-  isPreviousDisabled = false,
-  isLoading = false,
-  nextDisabledReason,
+  stepNumber, title, description, children, warning,
+  onNext, onPrevious, onSkip, nextLabel, previousLabel, skipLabel,
+  isNextDisabled = false, isPreviousDisabled = false, isLoading = false, nextDisabledReason,
 }: WizardStepProps) {
   const { t } = useTranslation();
+  const titleRef = useRef<HTMLHeadingElement>(null);
 
+  // Each wizard step is a new "page": move focus to its title so screen reader and keyboard users start there.
+  useEffect(() => {
+    titleRef.current?.focus({ preventScroll: true });
+  }, []);
   const labelNext = nextLabel ?? t("setup.next");
   const labelPrev = previousLabel ?? t("setup.back");
   const labelSkip = skipLabel ?? t("setup.skip");
@@ -56,27 +48,25 @@ export default function WizardStep({
       exit={{ opacity: 0, x: -50 }}
       transition={{ duration: 0.3 }}
     >
-      {/* Step Header */}
       <div className="wizard-step-header">
         <div className="wizard-step-number">{t("setup.stepLabel", { step: stepNumber })}</div>
-        <h2 className="wizard-step-title">{title}</h2>
+        <h2 ref={titleRef} tabIndex={-1} className="wizard-step-title">
+          {title}
+        </h2>
         {description && <p className="wizard-step-description">{description}</p>}
       </div>
 
-      {/* Warning Banner */}
       {warning && (
         <div className="wizard-warning" role="alert">
           <span className="wizard-warning-icon" aria-hidden="true">
-            {"\u26A0\uFE0F"}
+            {Icon.Alert()}
           </span>
           <span className="wizard-warning-text">{warning}</span>
         </div>
       )}
 
-      {/* Step Content */}
       <div className="wizard-step-content">{children}</div>
 
-      {/* Step Actions */}
       <div className="wizard-step-actions">
         {onPrevious && (
           <button
@@ -85,7 +75,7 @@ export default function WizardStep({
             disabled={isPreviousDisabled || isLoading}
             aria-label={labelPrev}
           >
-            {"\u2190"} {labelPrev}
+            {Icon.ArrowLeft()} {labelPrev}
           </button>
         )}
 
@@ -103,7 +93,7 @@ export default function WizardStep({
 
           {isNextDisabled && nextDisabledReason && !isLoading && (
             <span className="wizard-next-hint" role="status" aria-live="polite">
-              {"\u2139\uFE0F"} {nextDisabledReason}
+              {Icon.Info()} <span>{nextDisabledReason}</span>
             </span>
           )}
 
@@ -122,7 +112,7 @@ export default function WizardStep({
                 </>
               ) : (
                 <>
-                  {labelNext} {"\u2192"}
+                  {labelNext} {Icon.ArrowRight()}
                 </>
               )}
             </button>

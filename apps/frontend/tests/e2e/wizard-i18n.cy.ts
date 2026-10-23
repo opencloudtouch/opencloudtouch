@@ -248,23 +248,23 @@ describe("LanguageSelector — flag-icons rendering", () => {
   });
 
   it("shows language selector button", () => {
-    cy.get("[aria-label='Select language']").should("exist").and("be.visible");
+    cy.get("button.lang-selector").should("exist").and("be.visible");
   });
 
   it("flag is rendered as CSS class element (fi fi-*), not emoji text", () => {
-    cy.get("[aria-label='Select language']")
+    cy.get("button.lang-selector")
       .find(".fi")
       .should("exist")
       .and("have.class", "fi");
   });
 
   it("opens dropdown with 10 language options", () => {
-    cy.get("[aria-label='Select language']").click();
+    cy.get("button.lang-selector").click();
     cy.get("[role='listbox'] [role='option']").should("have.length", 10);
   });
 
   it("dropdown shows all 10 language options", () => {
-    cy.get("[aria-label='Select language']").click();
+    cy.get("button.lang-selector").click();
     cy.get("[role='option']").contains("English").should("exist");
     cy.get("[role='option']").contains("Deutsch").should("exist");
     cy.get("[role='option']").contains("Français").should("exist");
@@ -278,16 +278,16 @@ describe("LanguageSelector — flag-icons rendering", () => {
   });
 
   it("each option has a flag-icons CSS element", () => {
-    cy.get("[aria-label='Select language']").click();
+    cy.get("button.lang-selector").click();
     cy.get("[role='option'] .fi").should("have.length.at.least", 10);
   });
 
   it("selecting German updates the active language to DE", () => {
-    cy.get("[aria-label='Select language']").click();
+    cy.get("button.lang-selector").click();
     cy.get("[role='option']").contains("Deutsch").click();
-    cy.get("[aria-label='Select language']").contains("DE").should("exist");
+    cy.get("button.lang-selector").contains("DE").should("exist");
     // Reset
-    cy.get("[aria-label='Select language']").click();
+    cy.get("button.lang-selector").click();
     cy.get("[role='option']").contains("English").click();
   });
 });

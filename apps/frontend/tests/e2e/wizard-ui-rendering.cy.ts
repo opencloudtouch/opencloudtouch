@@ -55,11 +55,12 @@ function setupWizardMocks() {
     statusCode: 200,
     body: { success: true, has_ssh: true, has_telnet: false, message: "SSH available" },
   }).as("checkPorts");
-  cy.intercept("GET", "/api/setup/server-info", {
+  cy.intercept("GET", "/api/setup/wizard/server-info", {
     statusCode: 200,
     body: { server_url: "http://192.168.1.100:7777" },
   }).as("serverInfo");
-  cy.intercept("POST", "/api/setup/wizard/detect-strategy", {
+  // The app calls GET /detect-strategy (a POST mock never matched, so the result depended on backend state)
+  cy.intercept("GET", "/api/setup/wizard/detect-strategy", {
     statusCode: 200,
     body: { proxy_available: false, strategy: "bmx_and_hosts", message: "No proxy" },
   }).as("detectStrategy");
@@ -159,10 +160,11 @@ describe("Wizard Step 2 — USB Preparation (emoji rendering)", () => {
     assertNoMojibake();
   });
 
-  it("USB plug icon renders correctly (🔌 not ðŸ\"Œ)", () => {
+  // Icons are inline SVG since the wizard redesign (no emoji, so no emoji encoding to break).
+  it("USB plug icon renders as an SVG icon without stray text", () => {
+    cy.get(".usb-icon svg").should("exist");
     cy.get(".usb-icon").invoke("text").then((text) => {
-      expect(text).to.include("🔌");
-      expect(text).not.to.include("ðŸ");
+      expect(text.trim()).to.equal("");
     });
   });
 
@@ -248,9 +250,10 @@ describe("Wizard Step 7 — NTP Patch (emoji rendering)", () => {
     assertNoMojibake();
   });
 
-  it("clock icon on the patch button renders correctly (🕐 not mojibake)", () => {
+  it("clock icon on the patch button renders as an SVG icon next to the label", () => {
+    cy.get(".ntp-patch-btn svg").should("exist");
     cy.get(".ntp-patch-btn").invoke("text").then((text) => {
-      expect(text).to.include("🕐");
+      expect(text.trim().length).to.be.greaterThan(0);
       expect(text).not.to.include("ðŸ");
     });
   });
@@ -294,12 +297,9 @@ describe("Wizard Step 8 — Verification (emoji rendering)", () => {
     });
   });
 
-  it("success icon renders correctly after finalize (✅ not âœ…)", () => {
-    // Finalize result shows ✅ in verify-checklist
-    cy.get(".verify-checklist .check-icon", { timeout: 5000 }).first().invoke("text").then((text) => {
-      expect(text).to.include("✅");
-      expect(text).not.to.include("âœ");
-    });
+  it("success icon renders as an SVG icon after finalize", () => {
+    // Finalize result shows a check icon in the verify-checklist
+    cy.get(".verify-checklist .check-icon svg", { timeout: 5000 }).should("exist");
   });
 });
 
@@ -314,18 +314,12 @@ describe("Wizard Step 9 — Completion (emoji rendering)", () => {
     assertNoMojibake();
   });
 
-  it("party popper icon renders correctly (🎉 not ðŸŽ‰)", () => {
-    cy.get(".completion-icon").invoke("text").then((text) => {
-      expect(text).to.include("🎉");
-      expect(text).not.to.include("ðŸŽ");
-    });
+  it("party popper icon renders as an SVG icon", () => {
+    cy.get(".completion-icon svg").should("exist");
   });
 
-  it("checkmarks in summary list render correctly (✅ not âœ…)", () => {
-    cy.get(".summary-icon").first().invoke("text").then((text) => {
-      expect(text).to.include("✅");
-      expect(text).not.to.include("âœ");
-    });
+  it("checkmarks in the summary list render as SVG icons", () => {
+    cy.get(".summary-icon svg").should("exist");
   });
 
   it("done button renders with correct text", () => {
