@@ -39,11 +39,13 @@ class VolumeType(Enum):
     UPDATE = "update"
 
 
-# SSH command timeouts per volume (rootfs ~58 MB takes longest)
+# SSH command timeout per volume. Writing the archive to a USB stick on the device's slow CPU/flash can take
+# minutes (rootfs ~58 MB took more than the former 180 s on real hardware), so every volume gets 10 minutes.
+_BACKUP_TIMEOUT_SECONDS = 600.0
 _BACKUP_TIMEOUTS: dict[VolumeType, float] = {
-    VolumeType.ROOTFS: 180.0,
-    VolumeType.PERSISTENT: 30.0,
-    VolumeType.UPDATE: 60.0,
+    VolumeType.ROOTFS: _BACKUP_TIMEOUT_SECONDS,
+    VolumeType.PERSISTENT: _BACKUP_TIMEOUT_SECONDS,
+    VolumeType.UPDATE: _BACKUP_TIMEOUT_SECONDS,
 }
 
 # tar commands per volume (BusyBox-compatible, explicit directory list)

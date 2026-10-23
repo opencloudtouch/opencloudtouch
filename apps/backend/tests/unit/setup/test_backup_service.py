@@ -98,6 +98,18 @@ class TestBackupVolume:
         assert expected_file in cmd
         assert "bin boot etc home lib mnt opt sbin srv usr var" in cmd
 
+    @pytest.mark.parametrize(
+        "volume", [VolumeType.ROOTFS, VolumeType.PERSISTENT, VolumeType.UPDATE]
+    )
+    async def test_tar_command_timeout_is_ten_minutes(self, service, mock_ssh, volume):
+        """Real devices need minutes to write the archives; the former 180 s/30 s/60 s timed out."""
+        mock_ssh.execute.side_effect = [_ok(), _ok("1024")]
+
+        await service._backup_volume(volume, "/media/sda1/oct-backup")
+
+        tar_call = mock_ssh.execute.await_args_list[0]
+        assert tar_call.kwargs["timeout"] == 600.0
+
     async def test_persistent_uses_mnt_nv(self, service, mock_ssh):
         backup_dir = "/media/sda1/oct-backup"
         mock_ssh.execute.side_effect = [_ok(), _ok("10240")]
