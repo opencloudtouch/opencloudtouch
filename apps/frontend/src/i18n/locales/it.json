@@ -802,6 +802,7 @@
     "reset": "Ripristina valore predefinito",
     "noOptions": "Al momento non sono disponibili impostazioni aggiuntive per questo dispositivo.",
     "loadFailed": "Impossibile caricare le impostazioni del dispositivo.",
+    "offline": "Questo dispositivo è offline.",
     "saveFailed": "Impossibile modificare i bassi."
   },
   "deviceHeader": {

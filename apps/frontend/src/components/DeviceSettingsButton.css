@@ -2,7 +2,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
+  gap: 0.15rem;
   min-width: 0;
   max-width: 100%;
 }
@@ -25,6 +25,7 @@
   background: transparent;
   color: var(--color-text-secondary);
   cursor: pointer;
+  margin-left: -4px;
 }
 
 .device-settings-trigger:hover,
@@ -92,6 +93,7 @@
   margin: 1rem 0 0;
   accent-color: var(--color-accent);
   cursor: pointer;
+  touch-action: none;
 }
 
 .device-settings-bass-range {
@@ -117,19 +119,10 @@
 }
 
 .device-settings-error {
-  color: var(--color-error, #ff453a);
+  color: var(--color-danger);
 }
 
 /* Visually align the settings icon with the rename pencil */
 .device-settings-trigger svg {
   transform: translateY(-3px);
-}
-
-/* Keep rename and settings icons visually grouped */
-.device-name-actions {
-  gap: 0.15rem;
-}
-
-.device-settings-trigger {
-  margin-left: -4px;
 }

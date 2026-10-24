@@ -802,6 +802,7 @@
     "reset": "Rétablir la valeur par défaut",
     "noOptions": "Aucun paramètre supplémentaire n’est actuellement disponible pour cet appareil.",
     "loadFailed": "Impossible de charger les paramètres de l’appareil.",
+    "offline": "Cet appareil est hors ligne.",
     "saveFailed": "Impossible de modifier les graves."
   },
   "deviceHeader": {

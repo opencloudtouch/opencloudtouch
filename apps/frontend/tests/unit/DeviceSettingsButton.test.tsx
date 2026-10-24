@@ -1,16 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import DeviceSettingsButton from "../../src/components/DeviceSettingsButton";
 
 const api = vi.hoisted(() => ({
   capabilities: vi.fn(),
   getBass: vi.fn(),
+  offline: vi.fn(),
   setBass: vi.fn(),
 }));
 
 vi.mock("../../src/api/devices", () => ({
   getDeviceSettingsCapabilities: api.capabilities,
   getBass: api.getBass,
+  isDeviceOfflineError: api.offline,
   setBass: api.setBass,
 }));
 
@@ -24,6 +26,7 @@ vi.mock("react-i18next", () => {
 describe("DeviceSettingsButton", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    api.offline.mockReturnValue(false);
     api.capabilities.mockResolvedValue({
       features: { bass_control: true },
       settings: { bass: { available: true, minimum: -9, maximum: 0, default: 0 } },
@@ -66,35 +69,123 @@ describe("DeviceSettingsButton", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("deviceSettings.saveFailed");
   });
 
-  it("ignores a delayed save response after unmounting", async () => {
-    let resolveSave!: () => void;
+  it("ignores a late save rejection after closing and reopening", async () => {
+    let rejectSave!: (error: Error) => void;
+    api.setBass.mockImplementationOnce(() => new Promise<void>((_, reject) => { rejectSave = reject; }));
+    render(<DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />);
+    const trigger = screen.getByRole("button", { name: "deviceSettings.open" });
+    fireEvent.click(trigger);
+    const slider = await screen.findByRole("slider");
+    fireEvent.change(slider, { target: { value: "-5" } });
+    fireEvent.pointerUp(slider);
+    await waitFor(() => expect(api.setBass).toHaveBeenCalledTimes(1));
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    fireEvent.click(trigger);
+    expect(await screen.findByRole("slider")).toHaveValue("-3");
+    await act(async () => { rejectSave(new Error("late failure")); });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("slider")).toHaveValue("-3");
+  });
 
-    api.setBass.mockImplementation(
-      () =>
-        new Promise<void>((resolve) => {
-          resolveSave = resolve;
-        })
-    );
-
-    const { unmount } = render(<DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />);
-
+  it("keeps keyboard focus while saving and queues the latest value", async () => {
+    let resolveFirst!: () => void;
+    api.setBass.mockImplementationOnce(() => new Promise<void>((resolve) => { resolveFirst = resolve; }));
+    render(<DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />);
     fireEvent.click(screen.getByRole("button", { name: "deviceSettings.open" }));
     const slider = await screen.findByRole("slider");
+    slider.focus();
+    fireEvent.change(slider, { target: { value: "-5" } });
+    fireEvent.keyUp(slider, { key: "ArrowLeft" });
+    expect(slider).toHaveFocus();
+    expect(slider).not.toBeDisabled();
+    fireEvent.change(slider, { target: { value: "-7" } });
+    fireEvent.keyUp(slider, { key: "ArrowLeft" });
+    expect(api.setBass).toHaveBeenCalledTimes(1);
+    await act(async () => { resolveFirst(); });
+    await waitFor(() => expect(api.setBass).toHaveBeenNthCalledWith(2, "D1", -7));
+  });
 
-    fireEvent.input(slider, { target: { value: "-5" } });
-    expect(screen.getByText("-5")).toBeInTheDocument();
+  it("shows a load error when reading bass fails", async () => {
+    api.getBass.mockRejectedValue(new Error("read failed"));
+    render(<DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />);
+    fireEvent.click(screen.getByRole("button", { name: "deviceSettings.open" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("deviceSettings.loadFailed");
+  });
 
+  it("closes on Escape while a write remains pending", async () => {
+    api.setBass.mockImplementationOnce(() => new Promise<void>(() => {}));
+    render(<DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />);
+    const trigger = screen.getByRole("button", { name: "deviceSettings.open" });
+    fireEvent.click(trigger);
+    const slider = await screen.findByRole("slider");
+    fireEvent.change(slider, { target: { value: "-5" } });
     fireEvent.pointerUp(slider);
-    await waitFor(() => {
-      expect(api.setBass).toHaveBeenCalledExactlyOnceWith("D1", -5);
-    });
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("cycles Tab focus inside the dialog", async () => {
+    render(<DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />);
+    fireEvent.click(screen.getByRole("button", { name: "deviceSettings.open" }));
+
+    await screen.findByRole("slider");
+
+    const close = screen.getByRole("button", { name: "deviceSettings.close" });
+    const reset = screen.getByRole("button", { name: "deviceSettings.reset" });
+
+    expect(reset).toBeEnabled();
+
+    reset.focus();
+    fireEvent.keyDown(reset, { key: "Tab" });
+    expect(close).toHaveFocus();
+
+    fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
+    expect(reset).toHaveFocus();
+  });
+
+  it("ignores a late save response after unmounting", async () => {
+    let rejectSave!: (error: Error) => void;
+
+    api.setBass.mockImplementationOnce(
+      () => new Promise<void>((_, reject) => {
+        rejectSave = reject;
+      })
+    );
+
+    const { unmount } = render(
+      <DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "deviceSettings.open" }));
+
+    const slider = await screen.findByRole("slider");
+    fireEvent.change(slider, { target: { value: "-5" } });
+    fireEvent.pointerUp(slider);
+
+    await waitFor(() => expect(api.setBass).toHaveBeenCalledTimes(1));
 
     unmount();
 
-    resolveSave();
-    await Promise.resolve();
+    await act(async () => {
+      rejectSave(new Error("late failure"));
+    });
 
-    expect(api.setBass).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("shows the offline message when bass loading fails for an offline device", async () => {
+    api.getBass.mockRejectedValue(new Error("Device offline"));
+    api.offline.mockReturnValue(true);
+
+    render(<DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />);
+    fireEvent.click(screen.getByRole("button", { name: "deviceSettings.open" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "deviceSettings.offline"
+    );
+    expect(api.offline).toHaveBeenCalled();
   });
 
   it("cancels a pointer gesture without saving bass", async () => {

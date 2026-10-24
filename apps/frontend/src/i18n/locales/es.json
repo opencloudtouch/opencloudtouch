@@ -802,6 +802,7 @@
     "reset": "Restablecer valor predeterminado",
     "noOptions": "Actualmente no hay ajustes adicionales disponibles para este dispositivo.",
     "loadFailed": "No se pudieron cargar los ajustes del dispositivo.",
+    "offline": "Este dispositivo está desconectado.",
     "saveFailed": "No se pudieron cambiar los graves."
   },
   "deviceHeader": {

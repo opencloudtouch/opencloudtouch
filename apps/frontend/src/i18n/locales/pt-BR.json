@@ -802,6 +802,7 @@
     "reset": "Restaurar valor padrão",
     "noOptions": "Não há configurações adicionais disponíveis para este dispositivo no momento.",
     "loadFailed": "Não foi possível carregar as configurações do dispositivo.",
+    "offline": "Este dispositivo está offline.",
     "saveFailed": "Não foi possível alterar os graves."
   },
   "deviceHeader": {

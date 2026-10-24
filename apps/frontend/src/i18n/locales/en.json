@@ -802,6 +802,7 @@
     "reset": "Restore default",
     "noOptions": "No additional settings are currently available for this device.",
     "loadFailed": "Could not load device settings.",
+    "offline": "This device is offline.",
     "saveFailed": "Could not change bass."
   },
   "deviceHeader": {

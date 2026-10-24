@@ -802,6 +802,7 @@
     "reset": "Standaardwaarde herstellen",
     "noOptions": "Er zijn momenteel geen aanvullende instellingen beschikbaar voor dit apparaat.",
     "loadFailed": "Apparaatinstellingen konden niet worden geladen.",
+    "offline": "Dit apparaat is offline.",
     "saveFailed": "De bas kon niet worden aangepast."
   },
   "deviceHeader": {

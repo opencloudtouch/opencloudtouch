@@ -802,6 +802,7 @@
     "reset": "Auf Standardwert zurücksetzen",
     "noOptions": "Für dieses Gerät sind derzeit keine zusätzlichen Einstellungen verfügbar.",
     "loadFailed": "Geräteeinstellungen konnten nicht geladen werden.",
+    "offline": "Dieses Gerät ist offline.",
     "saveFailed": "Bass konnte nicht geändert werden."
   },
   "deviceHeader": {

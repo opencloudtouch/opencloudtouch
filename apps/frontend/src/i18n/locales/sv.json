@@ -802,6 +802,7 @@
     "reset": "Återställ standardvärde",
     "noOptions": "Det finns för närvarande inga ytterligare inställningar för den här enheten.",
     "loadFailed": "Det gick inte att läsa in enhetsinställningarna.",
+    "offline": "Den här enheten är offline.",
     "saveFailed": "Det gick inte att ändra basen."
   },
   "deviceHeader": {

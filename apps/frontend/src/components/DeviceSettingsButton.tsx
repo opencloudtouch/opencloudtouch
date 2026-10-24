@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
   getBass,
   getDeviceSettingsCapabilities,
+  isDeviceOfflineError,
   setBass,
   type BassCapabilities,
 } from "../api/devices";
@@ -24,10 +25,12 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const valueRef = useRef(0);
   const confirmedRef = useRef(0);
   const savingRef = useRef(false);
+  const pendingRef = useRef<number | null>(null);
   const requestGenerationRef = useRef(0);
 
   useEffect(() => {
@@ -50,8 +53,8 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
         confirmedRef.current = state.target;
         setValue(state.target);
         setConfirmed(state.target);
-      } catch {
-        if (active) setError(t("deviceSettings.loadFailed"));
+      } catch (err) {
+        if (active) setError(t(isDeviceOfflineError(err) ? "deviceSettings.offline" : "deviceSettings.loadFailed"));
       } finally {
         if (active) setLoading(false);
       }
@@ -62,11 +65,16 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
     return () => {
       active = false;
       requestGenerationRef.current += 1;
+      pendingRef.current = null;
     };
   }, [open, deviceId, t]);
 
   const close = () => {
-    if (savingRef.current) return;
+    // Pending responses must not update a closed (or subsequently reopened) dialog.
+    requestGenerationRef.current += 1;
+    pendingRef.current = null;
+    savingRef.current = false;
+    setSaving(false);
     setOpen(false);
     triggerRef.current?.focus();
   };
@@ -77,7 +85,12 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
   };
 
   const save = async (next: number) => {
-    if (savingRef.current || next === confirmedRef.current) return;
+    if (savingRef.current) {
+      // Keep the latest release while a previous write is still in flight.
+      pendingRef.current = next;
+      return;
+    }
+    if (next === confirmedRef.current) return;
     savingRef.current = true;
     const generation = requestGenerationRef.current;
     setSaving(true);
@@ -87,15 +100,53 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
       if (generation !== requestGenerationRef.current) return;
       confirmedRef.current = next;
       setConfirmed(next);
-    } catch {
+    } catch (err) {
       if (generation !== requestGenerationRef.current) return;
+      pendingRef.current = null;
       changeValue(confirmedRef.current);
-      setError(t("deviceSettings.saveFailed"));
+      setError(t(isDeviceOfflineError(err) ? "deviceSettings.offline" : "deviceSettings.saveFailed"));
+      return;
     } finally {
-      savingRef.current = false;
       if (generation === requestGenerationRef.current) {
+        savingRef.current = false;
         setSaving(false);
       }
+    }
+    if (generation !== requestGenerationRef.current) return;
+    const pending = pendingRef.current;
+    pendingRef.current = null;
+    if (pending !== null && pending !== confirmedRef.current) {
+      void save(pending);
+    }
+  };
+
+  const onDialogKeyDown = (e: KeyboardEvent<HTMLElement>) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      close();
+      return;
+    }
+    if (e.key !== "Tab") return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const focusable = Array.from(
+      dialog.querySelectorAll<HTMLElement>(
+        "button, input, select, textarea, a[href], [tabindex]"
+      )
+    ).filter((element) =>
+      element.tabIndex >= 0 &&
+      !element.hasAttribute("disabled")
+    );
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
     }
   };
 
@@ -134,13 +185,12 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
             }}
           >
             <section
+              ref={dialogRef}
               className="device-settings-dialog"
               role="dialog"
               aria-modal="true"
               aria-label={t("deviceSettings.title")}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") close();
-              }}
+              onKeyDown={onDialogKeyDown}
               data-test="device-settings-dialog"
             >
               <header className="device-settings-header">
@@ -152,7 +202,6 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
                   ref={closeButtonRef}
                   type="button"
                   onClick={close}
-                  disabled={saving}
                   aria-label={t("deviceSettings.close")}
                 >
                   ×
@@ -173,7 +222,7 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
                     max={capabilities.maximum}
                     step={1}
                     value={value}
-                    disabled={saving}
+                    aria-busy={saving}
                     onChange={(e) => changeValue(Number(e.currentTarget.value))}
                     onPointerUp={() => void save(valueRef.current)}
                     onPointerCancel={() => {
@@ -204,10 +253,7 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
                   <button
                     type="button"
                     className="device-settings-reset"
-                    disabled={
-                      saving ||
-                      (value === capabilities.default && confirmed === capabilities.default)
-                    }
+                    disabled={value === capabilities.default && confirmed === capabilities.default}
                     onClick={() => {
                       changeValue(capabilities.default);
                       void save(capabilities.default);
