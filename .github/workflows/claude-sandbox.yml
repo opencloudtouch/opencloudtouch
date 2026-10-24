@@ -1,0 +1,203 @@
+# ==============================================================================
+# SANDBOX - on-demand test runs on GitHub runners (with Docker)
+#
+# Manual only (workflow_dispatch). Lets a maintainer or a remote agent run the
+# backend/frontend test suites, lint and a Docker build against any branch
+# without a local Docker setup:
+#
+#   gh workflow run claude-sandbox.yml --ref <branch> -f suite=backend
+#   gh run watch / gh run view --log-failed
+#
+# The `experiment` suite runs .github/sandbox/experiment.sh from the dispatched
+# ref with QEMU and Buildx available (multi-arch builds, entrypoint/page-size
+# checks, container probes). Edit that script on a branch to try things out
+# without touching this workflow. `all` does not include `experiment`.
+#
+# Note: GitHub only registers dispatchable workflows from the default branch,
+# but a dispatch with --ref runs the version of this file on that ref, so it
+# can be adjusted on a feature branch and reviewed like any other change.
+# ==============================================================================
+
+name: Sandbox
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'What to run'
+        type: choice
+        default: backend
+        options:
+          - backend
+          - frontend
+          - lint
+          - docker
+          - experiment
+          - all
+      pytest_target:
+        description: 'Optional pytest path or node id (backend suite only), e.g. tests/unit/devices'
+        type: string
+        default: ''
+
+# Least-privilege: read-only, no secrets are used by any job.
+permissions:
+  contents: read
+
+concurrency:
+  group: sandbox-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend tests
+    if: inputs.suite == 'backend' || inputs.suite == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          # Must match Dockerfile (python:3.11-slim); see ci.yml.
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: apps/backend/requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          pip install -e apps/backend
+          pip install -r apps/backend/requirements-dev.txt
+
+      - name: Run pytest
+        working-directory: apps/backend
+        env:
+          OCT_MOCK_MODE: 'true'
+          OCT_HAS_DEVICES: 'false'
+          CI: 'true'
+          # Passed via env, never interpolated into the script.
+          PYTEST_TARGET: ${{ inputs.pytest_target }}
+        run: |
+          if [ -n "$PYTEST_TARGET" ]; then
+            pytest "$PYTEST_TARGET" -x -q
+          else
+            pytest --cov=opencloudtouch --cov-report=term-missing --cov-fail-under=80
+          fi
+
+  frontend:
+    name: Frontend tests
+    if: inputs.suite == 'frontend' || inputs.suite == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm install @rollup/rollup-linux-x64-gnu --save-optional
+
+      - name: Unit tests with coverage
+        working-directory: apps/frontend
+        run: npm run test:coverage
+
+      - name: Type check
+        working-directory: apps/frontend
+        run: npx tsc --noEmit
+
+  lint:
+    name: Lint
+    if: inputs.suite == 'lint' || inputs.suite == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Backend lint
+        run: |
+          pip install ruff mypy
+          ruff check apps/backend/ --select=E,F,W --ignore=E501
+
+      - name: Frontend lint
+        run: |
+          npm ci --prefer-offline
+          npm run lint
+        working-directory: apps/frontend
+
+  docker:
+    name: Docker build and smoke test
+    if: inputs.suite == 'docker' || inputs.suite == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build image (amd64, not pushed)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deployment/Dockerfile
+          load: true
+          push: false
+          tags: oct-sandbox:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test in mock mode
+        run: |
+          docker run -d --name oct-sandbox -p 7777:7777 \
+            -e OCT_MOCK_MODE=true \
+            -e OCT_DISCOVERY_ENABLED=false \
+            oct-sandbox:test
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:7777/health; then
+              echo
+              echo "Health check passed"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Container did not become healthy"
+          docker logs oct-sandbox
+          exit 1
+
+      - name: Container logs
+        if: always()
+        run: docker logs oct-sandbox || true
+
+  experiment:
+    name: Experiment script
+    if: inputs.suite == 'experiment'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-qemu-action@v4
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Run .github/sandbox/experiment.sh
+        run: |
+          if [ ! -f .github/sandbox/experiment.sh ]; then
+            echo "No .github/sandbox/experiment.sh on this ref, nothing to run"
+            exit 1
+          fi
+          bash .github/sandbox/experiment.sh
