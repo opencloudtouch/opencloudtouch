@@ -120,6 +120,7 @@ class TestBug184AccountIdToDeviceIdMapping:
         mock_device_repo = AsyncMock(spec=DeviceRepository)
         mock_device_repo.get_by_account_uuid = AsyncMock(return_value=None)
         mock_device_repo.get_by_device_id = AsyncMock(return_value=None)
+        mock_device_repo.get_all = AsyncMock(return_value=[])
         mock_preset_repo = AsyncMock(spec=PresetRepository)
         mock_recents_repo = AsyncMock(spec=RecentsRepository)
         service = MargeService(mock_preset_repo, mock_recents_repo, mock_device_repo)

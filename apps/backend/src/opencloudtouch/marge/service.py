@@ -4,7 +4,9 @@ Orchestrates preset and recents data for Bose streaming.bose.com
 account sync protocol. Keeps route handlers thin.
 """
 
+import asyncio
 import logging
+import time
 from typing import Optional
 
 from opencloudtouch.devices.repository import DeviceRepository
@@ -14,6 +16,11 @@ from opencloudtouch.recents.models import RecentPlay
 from opencloudtouch.recents.repository import RecentsRepository
 
 logger = logging.getLogger(__name__)
+
+
+def _uuid_refresh_now() -> float:
+    """Return monotonic time for UUID refresh rate limiting."""
+    return time.monotonic()
 
 
 class MargeService:
@@ -28,6 +35,8 @@ class MargeService:
         self._preset_repo = preset_repo
         self._recents_repo = recents_repo
         self._device_repo = device_repo
+        self._uuid_refresh_lock = asyncio.Lock()
+        self._uuid_refresh_times: list[float] = []
 
     async def resolve_device_id_for_account(self, account_id: str) -> Optional[str]:
         """Resolve account_id (margeAccountUUID) to device_id (MAC).
@@ -65,9 +74,77 @@ class MargeService:
             )
             return device.device_id
 
+        recovered = await self._recover_unknown_account(account_id)
+        if recovered:
+            return recovered
+
         logger.warning(  # NOSONAR
             "[MARGE] No device found for account UUID %s", account_id
         )
+        return None
+
+    async def _recover_unknown_account(self, account_id: str) -> Optional[str]:
+        """Read known speakers on unknown UUID, with one scan at most per 5s
+        and three scans in a sliding minute. Never change speaker UUIDs.
+        """
+        from opencloudtouch.setup.account_pairing_service import (
+            check_marge_account_uuid,
+        )
+
+        if not self._device_repo or not account_id.isdigit() or len(account_id) < 7:
+            return None
+        async with self._uuid_refresh_lock:
+            # Another request may already have reconciled this UUID.
+            resolved = await self._device_repo.get_by_account_uuid(account_id)
+            if resolved:
+                return resolved.device_id
+            now = _uuid_refresh_now()
+            self._uuid_refresh_times = [
+                t for t in self._uuid_refresh_times if now - t < 60
+            ]
+            if (
+                self._uuid_refresh_times and now - self._uuid_refresh_times[-1] < 5
+            ) or len(self._uuid_refresh_times) >= 3:
+                return None
+            self._uuid_refresh_times.append(now)
+            for device in await self._device_repo.get_all():
+                if not device.ip:
+                    continue
+                try:
+                    uuid = await asyncio.wait_for(
+                        check_marge_account_uuid(device.ip, raise_on_error=True),
+                        timeout=3,
+                    )
+                except Exception:
+                    logger.debug(
+                        "[MARGE] UUID refresh failed for %s",
+                        device.device_id,
+                        exc_info=True,
+                    )
+                    continue
+                if uuid != account_id:
+                    continue
+                owner = await self._device_repo.get_by_account_uuid(uuid)
+                if owner is not None and owner.device_id != device.device_id:
+                    logger.warning(
+                        "[MARGE] UUID collision on refresh: %s and %s",
+                        owner.device_id,
+                        device.device_id,
+                    )
+                    return None
+                try:
+                    await self._device_repo.update_marge_account_uuid(
+                        device.device_id, uuid
+                    )
+                except ValueError:
+                    logger.warning(
+                        "[MARGE] UUID %s could not be reconciled for %s",
+                        uuid,
+                        device.device_id,
+                    )
+                    return None
+                logger.info("[MARGE] Reconciled UUID for %s", device.device_id)
+                return device.device_id
         return None
 
     async def get_full_account(

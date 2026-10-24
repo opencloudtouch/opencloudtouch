@@ -289,7 +289,7 @@ class TestEnsureAccountUuid:
             "opencloudtouch.setup.account_pairing_service.set_account_uuid_via_ssh",
             new_callable=AsyncMock,
         ) as mock_set:
-            result = await ensure_account_uuid("192.168.1.100")
+            result = await ensure_account_uuid("192.168.1.100", device_id="AABBCCDDEEFF")
 
             assert result.success is True
             assert result.had_uuid is True
@@ -316,7 +316,7 @@ class TestEnsureAccountUuid:
                 success=True, had_uuid=False, uuid="9876543", message="Set via SSH"
             )
 
-            result = await ensure_account_uuid("192.168.1.100", ssh=ssh)
+            result = await ensure_account_uuid("192.168.1.100", ssh=ssh, device_id="AABBCCDDEEFF")
 
             assert result.success is True
             assert result.uuid == "9876543"
@@ -347,7 +347,7 @@ class TestEnsureAccountUuid:
                 success=True, had_uuid=False, uuid="9876543", message="Set via SSH"
             )
 
-            result = await ensure_account_uuid("192.168.1.100")
+            result = await ensure_account_uuid("192.168.1.100", device_id="AABBCCDDEEFF")
 
             assert result.success is True
             mock_set.assert_called_once()
@@ -372,7 +372,7 @@ class TestEnsureAccountUuid:
                 success=False, had_uuid=False, error="SSH write failed"
             )
 
-            result = await ensure_account_uuid("192.168.1.100", ssh=ssh)
+            result = await ensure_account_uuid("192.168.1.100", ssh=ssh, device_id="AABBCCDDEEFF")
 
             assert result.success is False
 
@@ -386,8 +386,8 @@ class TestEnsureAccountUuid:
             "opencloudtouch.setup.account_pairing_service.set_account_uuid_via_ssh",
             new_callable=AsyncMock,
         ) as mock_set:
-            r1 = await ensure_account_uuid("192.168.1.100")
-            r2 = await ensure_account_uuid("192.168.1.100")
+            r1 = await ensure_account_uuid("192.168.1.100", device_id="AABBCCDDEEFF")
+            r2 = await ensure_account_uuid("192.168.1.100", device_id="AABBCCDDEEFF")
 
             assert r1.success is True
             assert r2.success is True
@@ -402,12 +402,12 @@ class TestEnsureAccountUuid:
 class TestGenerateAccountUuid:
     def test_is_7_digits(self):
         for _ in range(20):
-            uuid = _generate_account_uuid()
+            uuid = _generate_account_uuid("AABBCCDDEEFF")
             assert len(uuid) == 7
             assert uuid.isdigit()
 
     def test_is_string(self):
-        assert isinstance(_generate_account_uuid(), str)
+        assert isinstance(_generate_account_uuid("AABBCCDDEEFF"), str)
 
 
 # ── ensure_account_uuid_unique ───────────────────────────────────
@@ -457,7 +457,7 @@ class TestEnsureAccountUuidUnique:
     async def test_generates_new_uuid_on_collision(self):
         """When existing UUID is owned by another device, generate a new one."""
         other_owner = MagicMock()
-        other_owner.device_id = "OTHER_DEVICE"
+        other_owner.device_id = "001122334455"
         device_repo = AsyncMock()
         # First call returns the other owner (collision), second call returns None (no collision for new UUID)
         device_repo.get_by_account_uuid = AsyncMock(side_effect=[other_owner, None])
@@ -526,7 +526,7 @@ class TestEnsureAccountUuidUnique:
     async def test_fails_after_max_retries_on_persistent_collision(self):
         """When every generated UUID collides, return failure."""
         other_device = MagicMock()
-        other_device.device_id = "OTHER_DEVICE"
+        other_device.device_id = "001122334455"
         device_repo = AsyncMock()
         # Always return a collision
         device_repo.get_by_account_uuid = AsyncMock(
