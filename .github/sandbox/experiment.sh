@@ -37,13 +37,14 @@ for _ in $(seq 1 90); do
 done
 
 echo "== Container logs =="
-docker logs oct-smoke 2>&1 | head -80
+LOGS=$(docker logs oct-smoke 2>&1)
+printf '%s\n' "$LOGS" | sed -n '1,80p'
 
 if [ "$healthy" != "true" ]; then
   echo "Container did not become healthy"
   exit 1
 fi
-if docker logs oct-smoke 2>&1 | grep -q "Python self-test failed"; then
+if printf '%s\n' "$LOGS" | grep -q "Python self-test failed"; then
   echo "Entrypoint self-test reported a problem"
   exit 1
 fi
