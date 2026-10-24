@@ -297,6 +297,63 @@ describe("Settings — Discover Button completion toast", () => {
     });
   });
 
+  it("names the new devices in the toast, like the manual search by IP", async () => {
+    const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
+    (useDiscoveryStream as Mock).mockReturnValue({
+      ...makeDiscoveryState({
+        completed: true,
+        devicesFound: [
+          { device_id: "KNOWN1", ip: "192.168.1.10", name: "Alt", model: "ST10", firmware: "1.0" },
+          { device_id: "NEW1", ip: "192.168.1.20", name: "Küche", model: "ST10", firmware: "1.0" },
+        ],
+      }),
+      startDiscovery: mockStartDiscovery,
+    });
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
+
+    renderSettings([{ device_id: "KNOWN1", ip: "192.168.1.10" }]);
+
+    await waitFor(() => {
+      expect(screen.getByText("1 new device found: Küche (192.168.1.20)")).toBeInTheDocument();
+    });
+  });
+
+  it("shows the result toast again for every further scan, not only the first", async () => {
+    const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
+    const useStream = useDiscoveryStream as Mock;
+    useStream.mockReturnValue({
+      ...makeDiscoveryState({ completed: true, devicesFound: [] }),
+      startDiscovery: mockStartDiscovery,
+    });
+    mockFetch.mockResolvedValue({ ok: true, json: async () => ({ ips: [] }) });
+
+    const qc = buildQueryClient();
+    const { rerender } = render(<Wrapper qc={qc}><Settings /></Wrapper>);
+    await waitFor(() => {
+      expect(screen.getByText("0 new devices found")).toBeInTheDocument();
+    });
+
+    // second scan: starts (state is reset), runs, completes with one new device
+    fireEvent.click(await screen.findByRole("button", { name: /scan now/i }));
+    useStream.mockReturnValue({
+      ...makeDiscoveryState({ isDiscovering: true }),
+      startDiscovery: mockStartDiscovery,
+    });
+    rerender(<Wrapper qc={qc}><Settings /></Wrapper>);
+    useStream.mockReturnValue({
+      ...makeDiscoveryState({
+        completed: true,
+        devicesFound: [{ device_id: "NEW1", ip: "192.168.1.20", name: "Bad", model: "ST10", firmware: "1.0" }],
+      }),
+      startDiscovery: mockStartDiscovery,
+    });
+    rerender(<Wrapper qc={qc}><Settings /></Wrapper>);
+
+    await waitFor(() => {
+      expect(screen.getByText("1 new device found: Bad (192.168.1.20)")).toBeInTheDocument();
+    });
+  });
+
   it.each([
     {
       scenario: "discovery is still idle (not completed)",

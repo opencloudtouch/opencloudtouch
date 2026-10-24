@@ -62,26 +62,42 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const { show } = useToast();
 
-  // Capture device IDs that existed before this component was mounted.
-  // Used to determine how many NEW devices were found by the discovery.
-  const [preDiscoveryDeviceIds] = useState<Set<string>>(() => {
-    const existing = queryClient.getQueryData<Device[]>(["devices"]) ?? [];
-    return new Set(existing.map((d) => d.device_id));
-  });
+  // Device IDs that were known when the current scan started (initially: when this page was mounted, because a scan
+  // can already be running after a reload). Used to determine how many NEW devices the scan found.
+  const knownDeviceIdsRef = useRef<Set<string> | null>(null);
+  knownDeviceIdsRef.current ??= new Set(
+    (queryClient.getQueryData<Device[]>(["devices"]) ?? []).map((d) => d.device_id)
+  );
 
   const completedRef = useRef(false);
 
-  // Show toast when discovery completes
+  // A new scan resets the "toast shown" flag, otherwise only the first scan per page visit would show its result
+  useEffect(() => {
+    if (!completed) completedRef.current = false;
+  }, [completed]);
+
+  // Show toast when discovery completes: the count and the names of the new devices (like the manual search by IP)
   useEffect(() => {
     if (completed && !completedRef.current) {
       completedRef.current = true;
-      const newDeviceCount = devicesFound.filter(
-        (d) => !preDiscoveryDeviceIds.has(d.device_id)
-      ).length;
-      const message = t("settings.discovery.devicesFound", { count: newDeviceCount });
-      show(message, "success");
+      const known = knownDeviceIdsRef.current ?? new Set<string>();
+      const newDevices = devicesFound.filter(
+        (d, index) =>
+          !known.has(d.device_id) && devicesFound.findIndex((o) => o.device_id === d.device_id) === index
+      );
+      const summary = t("settings.discovery.devicesFound", { count: newDevices.length });
+      const names = newDevices.map((d) => `${d.name} (${d.ip})`).join(", "); // same form as "{{name}} ({{ip}}) added"
+      show(newDevices.length > 0 ? `${summary}: ${names}` : summary, "success");
     }
-  }, [completed, devicesFound, preDiscoveryDeviceIds, show, t]);
+  }, [completed, devicesFound, show, t]);
+
+  const handleScan = () => {
+    knownDeviceIdsRef.current = new Set(
+      (queryClient.getQueryData<Device[]>(["devices"]) ?? []).map((d) => d.device_id)
+    );
+    completedRef.current = false;
+    void startDiscovery();
+  };
 
   const validateIP = (ip: string): boolean => {
     const parts = ip.split(".");
@@ -208,7 +224,7 @@ export default function Settings() {
             <button
               type="button"
               className="btn btn-primary st-scan"
-              onClick={() => void startDiscovery()}
+              onClick={handleScan}
               disabled={isDiscovering}
               aria-busy={isDiscovering}
             >
