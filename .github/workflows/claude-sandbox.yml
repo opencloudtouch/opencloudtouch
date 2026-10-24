@@ -8,6 +8,11 @@
 #   gh workflow run claude-sandbox.yml --ref <branch> -f suite=backend
 #   gh run watch / gh run view --log-failed
 #
+# The `experiment` suite runs .github/sandbox/experiment.sh from the dispatched
+# ref with QEMU and Buildx available (multi-arch builds, entrypoint/page-size
+# checks, container probes). Edit that script on a branch to try things out
+# without touching this workflow. `all` does not include `experiment`.
+#
 # Note: GitHub only registers dispatchable workflows from the default branch,
 # but a dispatch with --ref runs the version of this file on that ref, so it
 # can be adjusted on a feature branch and reviewed like any other change.
@@ -27,6 +32,7 @@ on:
           - frontend
           - lint
           - docker
+          - experiment
           - all
       pytest_target:
         description: 'Optional pytest path or node id (backend suite only), e.g. tests/unit/devices'
@@ -175,3 +181,23 @@ jobs:
       - name: Container logs
         if: always()
         run: docker logs oct-sandbox || true
+
+  experiment:
+    name: Experiment script
+    if: inputs.suite == 'experiment'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-qemu-action@v4
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Run .github/sandbox/experiment.sh
+        run: |
+          if [ ! -f .github/sandbox/experiment.sh ]; then
+            echo "No .github/sandbox/experiment.sh on this ref, nothing to run"
+            exit 1
+          fi
+          bash .github/sandbox/experiment.sh
