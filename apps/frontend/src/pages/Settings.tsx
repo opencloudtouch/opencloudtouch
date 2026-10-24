@@ -83,7 +83,8 @@ export default function Settings() {
       const known = knownDeviceIdsRef.current ?? new Set<string>();
       const newDevices = devicesFound.filter(
         (d, index) =>
-          !known.has(d.device_id) && devicesFound.findIndex((o) => o.device_id === d.device_id) === index
+          !known.has(d.device_id) &&
+          devicesFound.findIndex((o) => o.device_id === d.device_id) === index
       );
       const summary = t("settings.discovery.devicesFound", { count: newDevices.length });
       const names = newDevices.map((d) => `${d.name} (${d.ip})`).join(", "); // same form as "{{name}} ({{ip}}) added"
