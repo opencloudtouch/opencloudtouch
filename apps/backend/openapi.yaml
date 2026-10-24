@@ -3382,6 +3382,16 @@ components:
           type: string
           title: Validation Message
           default: ''
+        validation_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Validation Code
+        validation_params:
+          additionalProperties:
+            type: string
+          type: object
+          title: Validation Params
       type: object
       required:
       - filename
@@ -4248,6 +4258,16 @@ components:
           type: number
           title: Duration Seconds
           default: 0.0
+        message_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Message Code
+        message_params:
+          additionalProperties:
+            type: string
+          type: object
+          title: Message Params
       type: object
       required:
       - name

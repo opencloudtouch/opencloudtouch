@@ -258,6 +258,13 @@ class TestCoreEndpointContracts:
         assert "status" in data
 
     @pytest.mark.asyncio
+    async def test_health_reports_uptime_seconds(self, client):
+        """GET /health includes the seconds since server start (About page: running since)."""
+        data = (await client.get("/health")).json()
+        assert isinstance(data["uptime"], int)
+        assert data["uptime"] >= 0
+
+    @pytest.mark.asyncio
     async def test_openapi_json_available(self, client):
         """GET /openapi.json must return valid OpenAPI spec."""
         response = await client.get("/openapi.json")

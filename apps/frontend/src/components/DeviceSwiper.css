@@ -1,136 +1,203 @@
-/* Device Swiper - Horizontal Card Navigation */
-.device-swiper {
+/* ds-: device swiper (stage 6d). <= 768px wide (the app's own breakpoint) and short screens (<= 500px high, phone in landscape): ONE bar ABOVE the card, directly under the page title: [prev] dots [next].
+   > 768px: arrows left/right of the card, dots below.
+   Swipe: the card follows the finger through --ds-x (CSS `translate`, so it never collides with framer-motion's `transform`). Set by DeviceSwiper.tsx.
+   Hit-test rule: a leaving card and every purely decorative element is pointer-events: none. */
+.ds {
   position: relative;
-  width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
-  padding: var(--space-xl) 0;
+  display: grid;
+  grid-template-columns: var(--touch-target-min) minmax(0, 1fr) var(--touch-target-min);
+  grid-template-areas: "prev card next" ". dots .";
+  column-gap: 8px;
+  row-gap: 4px;
+  align-items: center;
+  min-width: 0;
 }
-
-/* Swiper Container */
-.swiper-container {
+.ds-bar {
+  display: contents;
+} /* wrapper of the sticky bar (DeviceSwiper.sticky.css); neutral without it */
+.ds-bar-name {
+  display: none;
+}
+.ds-viewport {
   position: relative;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: stretch;
-  overflow: hidden;
-  perspective: 1000px;
-}
+  grid-area: card;
+  min-width: 0;
+  overflow-x: clip;
+  padding: 2px;
+} /* anchor of the leaving card during the crossfade; clips the slide, not the focus rings */
 
-.swiper-card {
-  width: var(--card-width);
-  max-width: 90%;
-  margin: 0 auto;
-  cursor: grab;
-  user-select: none;
+/* the card: follows the finger (--ds-x), vertical scrolling stays with the browser */
+.ds-card {
+  min-width: 0;
   touch-action: pan-y;
+  translate: var(--ds-x, 0px) 0;
 }
-
-.swiper-card:active {
-  cursor: grabbing;
+.ds-card[data-settle] {
+  transition: translate 220ms cubic-bezier(0.2, 0.9, 0.3, 1);
+} /* snap back */
+.ds-card[data-dragging] {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
+.ds-card:has(> .ds-card-shell[data-state="leaving"]) {
+  pointer-events: none;
+} /* the old card never swallows a tap; the TSX also sets pointerEvents: "none" in the exit variant */
+.ds-card-shell {
+  display: contents;
+} /* carries aria-hidden/inert while the old card fades out */
 
-/* Navigation Arrows */
-.swipe-arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 48px;
-  height: 48px;
-  background-color: rgba(255, 255, 255, 0.1);
+.ds-arrow {
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
   border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-color);
+  border: 1px solid var(--ui-control-border);
   color: var(--color-text-primary);
+  transition:
+    background var(--motion-base),
+    border-color var(--motion-base);
+}
+.ds-arrow:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+}
+.ds-arrow--prev {
+  grid-area: prev;
+}
+.ds-arrow--next {
+  grid-area: next;
+}
+/* swipe cue 1: while dragging, the arrow of the target side lights up; it gets the fill when releasing now would switch */
+.ds[data-pull="next"] .ds-arrow--next,
+.ds[data-pull="prev"] .ds-arrow--prev {
+  border-color: var(--primary-text);
+}
+.ds[data-armed] .ds-arrow--next,
+.ds[data-armed] .ds-arrow--prev {
+  background: rgba(var(--primary-rgb), 0.22);
+}
+.ds[data-pull="next"]:not([data-armed]) .ds-arrow--prev,
+.ds[data-pull="prev"]:not([data-armed]) .ds-arrow--next {
+  border-color: var(--ui-control-border);
+}
+.ds[data-armed][data-pull="next"] .ds-arrow--prev,
+.ds[data-armed][data-pull="prev"] .ds-arrow--next {
+  background: var(--surface-color);
+}
+
+.ds-dots {
+  --ds-pitch: var(--touch-target-min);
+  grid-area: dots;
   display: flex;
-  align-items: center;
+  flex-wrap: nowrap;
   justify-content: center;
-  z-index: 10;
-  transition: all 0.2s ease;
-  backdrop-filter: blur(10px);
+  min-width: 0;
 }
-
-.swipe-arrow:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-50%) scale(1.1);
-}
-
-.swipe-arrow:disabled {
-  opacity: 0.2;
-  cursor: not-allowed;
-}
-
-.swipe-arrow-left {
-  left: var(--space-md);
-}
-
-.swipe-arrow-right {
-  right: var(--space-md);
-}
-
-/* Dots Indicator */
-.swiper-dots {
-  display: flex;
-  justify-content: center;
-  gap: var(--space-sm);
-  margin-top: var(--space-lg);
-}
-
-.dot {
-  /* 44px vertical touch target; visual dot rendered via ::after to avoid
-     grid/flex layout distortion from a wide invisible hit area */
-  min-width: unset;
-  min-height: unset;
-  padding: 18px 8px;
-  background: transparent;
-  border-radius: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.dot::after {
-  content: "";
-  width: 8px;
-  height: 8px;
+.ds-dot {
+  position: relative;
+  flex: none;
+  width: var(--ds-pitch);
+  min-width: 0;
+  height: var(--touch-target-min);
   border-radius: 50%;
-  background-color: var(--color-border);
-  transition: all 0.3s ease;
-  flex-shrink: 0;
+} /* min-width: 0 beats the global button min-width of 44px */
+.ds-dot::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--ds-dot, 12px);
+  height: var(--ds-dot, 12px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #8c8c8c;
+  pointer-events: none;
+  transition:
+    width var(--motion-base),
+    height var(--motion-base),
+    background var(--motion-base);
+}
+.ds-dot:hover::before {
+  background: #fff;
+}
+.ds-dot--active::before {
+  width: calc(var(--ds-dot, 12px) * 2);
+  border-radius: 999px;
+  background: var(--primary-text);
+} /* wider pill: the active dot differs in shape, not only in colour */
+.ds-dots--dense,
+.ds-dots--window {
+  --ds-dot: clamp(6px, calc(var(--ds-pitch) * 0.4), 10px);
+}
+.ds-dots--window .ds-dot--edge::before {
+  width: calc(var(--ds-dot) * 0.6);
+  height: calc(var(--ds-dot) * 0.6);
+} /* more devices beyond this side */
+.ds-dots--window .ds-dot--active::before {
+  width: calc(var(--ds-dot) * 2);
+  height: var(--ds-dot);
 }
 
-.dot:hover::after {
-  background-color: var(--color-text-secondary);
-  transform: scale(1.2);
+@media (max-width: 768px), (max-height: 500px) {
+  .ds {
+    grid-template-areas: "prev dots next" "card card card";
+    grid-template-rows: var(--touch-target-min) auto;
+    row-gap: 8px;
+  }
+  .ds-viewport {
+    overflow-x: visible;
+  } /* the card may follow the finger into the page gutter (the page clips at the screen edge); on > 768px the old clip stays */
+  /* swipe cue 2: a sliver of the neighbour card in the gutter, only on the side that has another device. Decorative: pointer-events none. */
+  .ds-viewport::before,
+  .ds-viewport::after {
+    content: "";
+    position: absolute;
+    top: 28px;
+    bottom: 28px;
+    width: calc(var(--space-md) - 8px);
+    box-sizing: border-box;
+    background: var(--color-bg-card);
+    border: 1px solid var(--border-color);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--motion-base);
+  }
+  .ds-viewport::before {
+    left: calc(4px - var(--space-md));
+    border-right: 0;
+    border-radius: 6px 0 0 6px;
+  }
+  .ds-viewport::after {
+    right: calc(4px - var(--space-md));
+    border-left: 0;
+    border-radius: 0 6px 6px 0;
+  }
+  .ds[data-prev] .ds-viewport::before,
+  .ds[data-next] .ds-viewport::after {
+    opacity: 1;
+  }
 }
-
-.dot.active::after {
-  width: 24px;
-  border-radius: 4px;
-  background-color: var(--color-accent);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .device-swiper {
-    padding: var(--space-lg) 0;
-  }
-
-  .swipe-arrow {
-    width: 44px;
-    height: 44px;
-  }
-
-  .swipe-arrow-left {
-    left: var(--space-sm);
-  }
-
-  .swipe-arrow-right {
-    right: var(--space-sm);
+@media (prefers-reduced-motion: reduce) {
+  .ds-arrow,
+  .ds-dot::before,
+  .ds-viewport::before,
+  .ds-viewport::after,
+  .ds-card[data-settle] {
+    transition: none;
   }
 }
-
-@media (max-width: 480px) {
-  .swipe-arrow {
-    background-color: rgba(255, 255, 255, 0.05);
+@media (forced-colors: active) {
+  .ds-dot::before {
+    background: CanvasText;
+  }
+  .ds-dot--active::before {
+    background: Highlight;
+  }
+  .ds-viewport::before,
+  .ds-viewport::after {
+    border-color: CanvasText;
   }
 }

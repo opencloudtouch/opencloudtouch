@@ -5,7 +5,7 @@
  * Components subscribe to specific (eventType, deviceId) pairs.
  */
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, use, type ReactNode } from "react";
 import { useDeviceEvents, type UseDeviceEventsReturn } from "../hooks/useDeviceEvents";
 
 const DeviceEventContext = createContext<UseDeviceEventsReturn | null>(null);
@@ -13,7 +13,7 @@ const DeviceEventContext = createContext<UseDeviceEventsReturn | null>(null);
 export function DeviceEventProvider({ children }: Readonly<{ children: ReactNode }>) {
   const deviceEvents = useDeviceEvents();
 
-  return <DeviceEventContext.Provider value={deviceEvents}>{children}</DeviceEventContext.Provider>;
+  return <DeviceEventContext value={deviceEvents}>{children}</DeviceEventContext>;
 }
 
 /**
@@ -21,7 +21,7 @@ export function DeviceEventProvider({ children }: Readonly<{ children: ReactNode
  * Must be used within a DeviceEventProvider.
  */
 export function useDeviceEventContext(): UseDeviceEventsReturn {
-  const ctx = useContext(DeviceEventContext);
+  const ctx = use(DeviceEventContext);
   if (!ctx) {
     throw new Error("useDeviceEventContext must be used within a DeviceEventProvider");
   }

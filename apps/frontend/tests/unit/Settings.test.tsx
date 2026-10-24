@@ -4,11 +4,6 @@ import Settings from "../../src/pages/Settings";
 import { QueryWrapper } from "../utils/reactQueryTestUtils";
 import { ToastProvider } from "../../src/contexts/ToastContext";
 
-// Mock AboutSection to avoid extra fetch calls (health + devices) in Settings tests
-vi.mock("../../src/components/AboutSection", () => ({
-  default: () => null,
-}));
-
 // Create typed mock for fetch
 let mockFetch: Mock;
 
@@ -369,7 +364,10 @@ describe("Settings Page", () => {
     });
 
     const mockAnchor = { href: "", download: "", click: vi.fn(), remove: vi.fn() };
-    vi.spyOn(document, "createElement").mockReturnValue(mockAnchor as unknown as HTMLElement);
+    // only the download anchor is faked: React creates real elements while the busy state re-renders
+    const realCreateElement = document.createElement.bind(document);
+    vi.spyOn(document, "createElement").mockImplementation(((tag: string, options?: ElementCreationOptions) =>
+      tag === "a" ? mockAnchor : realCreateElement(tag, options)) as typeof document.createElement);
     vi.spyOn(document.body, "appendChild").mockImplementation((node) => node);
 
     fireEvent.click(downloadButton!);
@@ -380,6 +378,22 @@ describe("Settings Page", () => {
         expect.objectContaining({ method: "POST" }),
       );
     });
+  });
+
+  it("shows an inline error when the log download fails", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
+    renderWithProviders(<Settings />);
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("192.168.1.10")).toBeInTheDocument();
+    });
+
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+    fireEvent.click(screen.getByRole("button", { name: /download logs/i }));
+
+    const alert = await screen.findByText(/Logs could not be downloaded: HTTP 500/);
+    expect(alert.closest('[role="alert"]')).toBeInTheDocument();
+    consoleSpy.mockRestore();
   });
 
   it("shows scan button in automatic search card", async () => {

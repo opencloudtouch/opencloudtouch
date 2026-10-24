@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getErrorMessage } from "../api/types";
+import { Icon } from "./Icon";
 import "./StationDetail.css";
 
 export interface StationDetailData {
@@ -78,89 +79,108 @@ export default function StationDetail({
 
     fetchDetail();
     return () => controller.abort();
-  }, [stationUuid, provider]);
+  }, [stationUuid, provider, t]);
 
   if (loading) {
     return (
-      <div className="station-detail">
-        <div className="sd-loading">{t("common.loading")}</div>
+      <div className="sd">
+        <div className="sd-loading" role="status">
+          <span className="spinner" aria-hidden="true" />
+          {t("common.loading")}
+        </div>
       </div>
     );
   }
 
   if (error || !station) {
     return (
-      <div className="station-detail">
-        <div className="sd-error">{error || t("common.stationNotFound")}</div>
-        <button className="sd-back" onClick={onBack}>
-          ← {t("common.back")}
-        </button>
+      <div className="sd">
+        <div className="sd-body">
+          <div className="wz-status wz-status--error" role="alert">
+            <span className="wz-icon" aria-hidden="true">
+              {Icon.CircleX(20)}
+            </span>
+            <div className="wz-status-body">
+              <p className="sd-error">{error || t("common.stationNotFound")}</p>
+            </div>
+          </div>
+        </div>
+        <div className="sd-actions">
+          <button className="btn btn-secondary" onClick={onBack}>
+            {Icon.ArrowLeft(18)} {t("common.back")}
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="station-detail">
-      <div className="sd-header">
-        {station.favicon && (
-          <img
-            className="sd-favicon"
-            src={station.favicon}
-            alt=""
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = "none";
-            }}
-          />
-        )}
-        <div className="sd-title">
-          <h3 className="sd-name">{station.name}</h3>
-          <span className="sd-country">{station.country}</span>
+    <div className="sd">
+      <div className="sd-body" tabIndex={0} role="region" aria-label={station.name}>
+        <div className="sd-header">
+          {station.favicon && (
+            <img
+              className="sd-favicon"
+              src={station.favicon}
+              alt=""
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          )}
+          <div className="sd-title">
+            <h3 className="sd-name">{station.name}</h3>
+            <span className="sd-country">{station.country}</span>
+          </div>
         </div>
-      </div>
 
-      <div className="sd-meta">
-        {station.codec && (
-          <div className="sd-meta-item">
-            <span className="sd-label">Codec</span>
-            <span className="sd-value">{station.codec}</span>
-          </div>
-        )}
-        {station.bitrate != null && station.bitrate > 0 && (
-          <div className="sd-meta-item">
-            <span className="sd-label">Bitrate</span>
-            <span className="sd-value">{station.bitrate} kbps</span>
-          </div>
-        )}
-        {station.homepage && (
-          <div className="sd-meta-item">
-            <span className="sd-label">Homepage</span>
-            <a
-              className="sd-link"
-              href={station.homepage}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {new URL(station.homepage).hostname}
-            </a>
-          </div>
+        <dl className="sd-meta">
+          {station.codec && (
+            <div className="sd-meta-item">
+              <dt className="sd-label">{t("stationDetail.codec")}</dt>
+              <dd className="sd-value">{station.codec}</dd>
+            </div>
+          )}
+          {station.bitrate != null && station.bitrate > 0 && (
+            <div className="sd-meta-item">
+              <dt className="sd-label">{t("stationDetail.bitrate")}</dt>
+              <dd className="sd-value">{station.bitrate} kbps</dd>
+            </div>
+          )}
+          {station.homepage && (
+            <div className="sd-meta-item">
+              <dt className="sd-label">{t("stationDetail.homepage")}</dt>
+              <dd className="sd-value">
+                <a
+                  className="sd-link"
+                  href={station.homepage}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {new URL(station.homepage).hostname}
+                  {Icon.ExternalLink(14)}
+                </a>
+              </dd>
+            </div>
+          )}
+        </dl>
+
+        {station.tags && station.tags.length > 0 && (
+          <ul className="sd-tags">
+            {station.tags.map((tag) => (
+              <li key={tag} className="ui-badge sd-tag">
+                {tag}
+              </li>
+            ))}
+          </ul>
         )}
       </div>
-
-      {station.tags && station.tags.length > 0 && (
-        <div className="sd-tags">
-          {station.tags.map((tag) => (
-            <span key={tag} className="sd-tag">
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
 
       <div className="sd-actions">
-        <button className="sd-back" onClick={onBack}>
-          ← {t("common.back")}
+        <button className="btn btn-secondary" onClick={onBack}>
+          {Icon.ArrowLeft(18)} {t("common.back")}
         </button>
-        <button className="sd-select" onClick={() => onSelect(station)}>
+        <button className="btn btn-primary" onClick={() => onSelect(station)}>
           {t("common.saveAsPreset")}
         </button>
       </div>

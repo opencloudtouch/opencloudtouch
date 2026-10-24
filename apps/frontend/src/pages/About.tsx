@@ -1,9 +1,9 @@
-import { motion } from "framer-motion";
-import { useTranslation } from "react-i18next";
-import { useState, useEffect, useMemo } from "react";
+import { useTranslation, Trans } from "react-i18next";
+import { useState, useEffect, useMemo, type CSSProperties } from "react";
 import { Link } from "react-router";
 import { useHealth } from "../hooks/useHealth";
 import { Skeleton } from "../components/LoadingSkeleton";
+import { Icon } from "../components/Icon";
 import {
   type Supporter,
   type UpdateInfo,
@@ -19,6 +19,19 @@ const GITHUB_REPO = "opencloudtouch/opencloudtouch";
 const GITHUB_API = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
 const BMC_URL = "https://buymeacoffee.com/b49rjg5k6vj";
 
+/** Marks a link that opens a new tab: icon for the eye, text for assistive technology. */
+function NewTabHint() {
+  const { t } = useTranslation();
+  return (
+    <>
+      <span className="ab-ext" aria-hidden="true">
+        {Icon.ExternalLink(16)}
+      </span>
+      <span className="visually-hidden">{t("about.externalLink")}</span>
+    </>
+  );
+}
+
 export default function About() {
   const { t, i18n } = useTranslation();
   const { data: health, isLoading: healthLoading } = useHealth();
@@ -31,6 +44,8 @@ export default function About() {
   const [supportersLoading, setSupportersLoading] = useState(true);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo>({ available: false });
   const [updateLoading, setUpdateLoading] = useState(true);
+  // one thank-you sentence per visit instead of a tooltip on every name
+  const thanks = useMemo(() => getRandomThankYou(false, i18n.language), [i18n.language]);
 
   // Load supporters from CSV
   useEffect(() => {
@@ -63,13 +78,21 @@ export default function About() {
           .filter((line) => line.trim())
           .map((line) => parseCSVLine(line))
           .filter((fields): fields is string[] => fields.length >= 5)
-          .map((fields) => ({
-            name: fields[0],
-            type: fields[1] as "monthly" | "one-time",
-            amount: Number.parseFloat(fields[2]) || 0,
-            monthlyAmount: Number.parseFloat(fields[3]) || 0,
-            firstSupportDate: fields[4],
-          }));
+          .map(
+            ([
+              name = "",
+              type = "one-time",
+              amount = "",
+              monthlyAmount = "",
+              firstSupportDate = "",
+            ]) => ({
+              name,
+              type: type as "monthly" | "one-time",
+              amount: Number.parseFloat(amount) || 0,
+              monthlyAmount: Number.parseFloat(monthlyAmount) || 0,
+              firstSupportDate,
+            })
+          );
 
         // Sort: amount DESC, then monthlyAmount DESC, then firstSupportDate ASC (older first)
         parsed.sort((a, b) => {
@@ -132,151 +155,202 @@ export default function About() {
       const timer = setTimeout(checkUpdate, 3000);
       return () => clearTimeout(timer);
     }
-  }, [health?.version]);
+    return undefined;
+  }, [health?.version, health?.build]);
 
   const maxAmount = Math.max(...supporters.map((s) => s.amount + s.monthlyAmount), 1);
 
   return (
-    <div className="about-page">
-      <motion.div
-        className="about-container"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        {/* Header */}
-        <div className="about-header">
-          <div className="about-icon">🎵</div>
-          <h1 className="about-title">OpenCloudTouch</h1>
+    <div className="ab">
+      {/* Header */}
+      <header className="ab-header">
+        <img
+          className="ab-logo"
+          src="/images/logo/oct-logo-dark_539x539.png"
+          alt=""
+          width={96}
+          height={96}
+        />
+        <h1 className="ab-title">OpenCloudTouch</h1>
+        <div className="ab-version-slot">
           {healthLoading && <Skeleton width="60px" height="24px" borderRadius="20px" />}
-          {!healthLoading && health && <span className="about-version">v{health.version}</span>}
+          {!healthLoading && health && (
+            <span className="ui-badge ui-badge--info ui-badge--large">v{health.version}</span>
+          )}
         </div>
-
-        {/* Build Info */}
+        {/* /health sends the seconds since server start; older servers do not, then nothing is rendered */}
         {!healthLoading && health?.uptime && (
-          <p className="about-build-time">{t("about.buildTime", { time: startTime })}</p>
+          <p className="ui-small ab-build-time">{t("about.runningSince", { time: startTime })}</p>
         )}
+      </header>
 
-        {/* Update Check */}
-        <div className="about-update-section">
-          {updateLoading && (
-            <div className="about-update-loading">
-              <div className="spinner-small" />
-              <span>{t("about.checkingUpdates")}</span>
+      {/* Update Check: the slot is always there, so the result is announced and the page does not jump */}
+      <div className="ab-update" aria-live="polite">
+        {updateLoading && (
+          <div className="wz-status ab-status">
+            <span className="wz-icon">
+              <span className="spinner-small" aria-hidden="true" />
+            </span>
+            <div className="wz-status-body">
+              <p>{t("about.checkingUpdates")}</p>
             </div>
-          )}
-          {!updateLoading && updateInfo.available && (
-            <motion.div
-              className="about-update-available"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-            >
-              <div className="update-icon">🆕</div>
-              <div className="update-content">
-                <p className="update-title">
-                  {t("about.updateAvailable", { version: updateInfo.latestVersion })}
-                </p>
-                <a
-                  href={updateInfo.releaseUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-primary btn-sm"
-                >
-                  {t("about.viewRelease")}
-                </a>
-              </div>
-            </motion.div>
-          )}
-          {!updateLoading && !updateInfo.available && health && health.build !== "official" && (
-            <div className="about-update-current">
-              <span className="update-check-icon">🛠️</span>
-              <span>{t("about.devBuild")}</span>
+          </div>
+        )}
+        {!updateLoading && updateInfo.available && (
+          <div className="wz-status ab-status">
+            <span className="wz-icon" aria-hidden="true">
+              {Icon.Sparkles(22)}
+            </span>
+            <div className="wz-status-body ab-update-body">
+              <p>{t("about.updateAvailable", { version: updateInfo.latestVersion })}</p>
+              <a
+                href={updateInfo.releaseUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary btn-sm"
+              >
+                {t("about.viewRelease")}
+                <NewTabHint />
+              </a>
             </div>
-          )}
-          {!updateLoading && !updateInfo.available && health?.build === "official" && (
-            <div className="about-update-current">
-              <span className="update-check-icon">✅</span>
-              <span>{t("about.upToDate")}</span>
+          </div>
+        )}
+        {!updateLoading && !updateInfo.available && health && health.build !== "official" && (
+          <div className="wz-status ab-status">
+            <span className="wz-icon" aria-hidden="true">
+              {Icon.Wrench(22)}
+            </span>
+            <div className="wz-status-body">
+              <p>{t("about.devBuild")}</p>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+        {!updateLoading && !updateInfo.available && health?.build === "official" && (
+          <div className="wz-status wz-status--success ab-status">
+            <span className="wz-icon" aria-hidden="true">
+              {Icon.CircleCheck(22)}
+            </span>
+            <div className="wz-status-body">
+              <p>{t("about.upToDate")}</p>
+            </div>
+          </div>
+        )}
+      </div>
 
-        {/* Supporters Wimmelbild */}
-        {!supportersLoading && supporters.length > 0 && (
-          <motion.div
-            className="supporters-wimmelbild-section"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <h2 className="supporters-wimmelbild-title">Supp❤️rters</h2>
+      {/* Supporters Wimmelbild */}
+      {!supportersLoading && supporters.length > 0 && (
+        <section className="ab-supporters" aria-labelledby="ab-supporters-title">
+          <h2 id="ab-supporters-title" className="ui-h2" aria-label={t("about.supportersLabel")}>
+            <Trans
+              i18nKey="about.supportersTitle"
+              components={[
+                <span className="ab-heart" aria-hidden="true" key="heart">
+                  {Icon.Heart(22)}
+                </span>,
+              ]}
+            />
+          </h2>
+          <p className="ui-small ab-thanks">{thanks}</p>
+          <ul className="ui-card ab-cloud">
+            {supporters.map((supporter, index) => {
+              const fontSize = getFontSize(supporter, maxAmount);
+              const color = generateGradientColor(index, supporters.length);
+              const isMonthly = supporter.monthlyAmount > 0;
+              const supporterKey = `${supporter.name}-${index}`;
 
-            <div className="supporters-wimmelbild">
-              {supporters.map((supporter, index) => {
-                const fontSize = getFontSize(supporter, maxAmount);
-                const color = generateGradientColor(index, supporters.length);
-                const isMonthly = supporter.monthlyAmount > 0;
-                const supporterKey = `${supporter.name}-${index}`;
-
-                return (
-                  <motion.span
-                    key={supporterKey}
-                    className={
-                      isMonthly ? "supporter-name-wimmelbild monthly" : "supporter-name-wimmelbild"
-                    }
-                    style={{
+              return (
+                <li
+                  key={supporterKey}
+                  className={isMonthly ? "ab-name ab-name--monthly" : "ab-name"}
+                  style={
+                    {
                       fontSize: `${fontSize}px`,
                       color: isMonthly ? undefined : color,
-                    }}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.02 }}
-                    title={getRandomThankYou(isMonthly, i18n.language)}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.title = getRandomThankYou(isMonthly, i18n.language);
-                    }}
-                  >
-                    {cleanName(supporter.name)}
-                  </motion.span>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
+                      "--i": Math.min(index, 40),
+                    } as CSSProperties
+                  }
+                >
+                  {cleanName(supporter.name)}
+                  {isMonthly && (
+                    <span className="visually-hidden"> {t("about.monthlySupporter")}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
-        {/* Links */}
-        <div className="about-links-simple">
-          <a
-            href={`https://github.com/${GITHUB_REPO}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="about-link-simple"
-          >
-            <svg className="icon-github" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
-            </svg>
-            GitHub›
-          </a>
-          <a
-            href={`https://github.com/${GITHUB_REPO}/issues/new?template=bug_report.yml`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="about-link-simple"
-          >
-            🐛 {t("about.reportBug")}›
-          </a>
-          <Link to="/diagnostics" className="about-link-simple">
-            🔧 {t("about.diagnostics")}›
-          </Link>
-          <a
-            href={BMC_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="about-link-simple about-link-support"
-          >
-            ☕ {t("about.support")}›
-          </a>
-        </div>
-      </motion.div>
+      {/* Links */}
+      <nav className="ab-links" aria-label={t("about.linksLabel")}>
+        <ul>
+          <li>
+            <a
+              href={`https://github.com/${GITHUB_REPO}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ab-link"
+            >
+              <span className="ab-link-icon" aria-hidden="true">
+                {Icon.Github(22)}
+              </span>
+              <span className="ab-link-label">{t("about.github")}</span>
+              <NewTabHint />
+            </a>
+          </li>
+          <li>
+            <a
+              href={`https://github.com/${GITHUB_REPO}/issues/new?template=bug_report.yml`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ab-link"
+            >
+              <span className="ab-link-icon" aria-hidden="true">
+                {Icon.Bug(22)}
+              </span>
+              <span className="ab-link-label">{t("about.reportBug")}</span>
+              <NewTabHint />
+            </a>
+          </li>
+          <li>
+            <Link to="/diagnostics" className="ab-link">
+              <span className="ab-link-icon" aria-hidden="true">
+                {Icon.Wrench(22)}
+              </span>
+              <span className="ab-link-label">{t("about.diagnostics")}</span>
+              <span className="ab-ext" aria-hidden="true">
+                {Icon.ChevronRight(18)}
+              </span>
+            </Link>
+          </li>
+          {/* the Licenses page was only reachable by URL */}
+          <li>
+            <Link to="/licenses" className="ab-link">
+              <span className="ab-link-icon" aria-hidden="true">
+                {Icon.FileText(22)}
+              </span>
+              <span className="ab-link-label">{t("about.licenses")}</span>
+              <span className="ab-ext" aria-hidden="true">
+                {Icon.ChevronRight(18)}
+              </span>
+            </Link>
+          </li>
+          <li>
+            <a
+              href={BMC_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ab-link ab-link--support"
+            >
+              <span className="ab-link-icon" aria-hidden="true">
+                {Icon.Coffee(22)}
+              </span>
+              <span className="ab-link-label">{t("about.support")}</span>
+              <NewTabHint />
+            </a>
+          </li>
+        </ul>
+      </nav>
     </div>
   );
 }

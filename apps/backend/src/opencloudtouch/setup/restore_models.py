@@ -52,6 +52,9 @@ class BackupFileInfo:
     is_pre_restore: bool = False
     validation_status: ValidationStatus = ValidationStatus.VALID
     validation_message: str = ""
+    # Translation code + parameters of `validation_message` (message stays English as fallback).
+    validation_code: str | None = None
+    validation_params: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -85,6 +88,15 @@ class RestoreStep:
     message: str = ""
     error: Optional[str] = None
     duration_seconds: float = 0.0
+    # Stable code + parameters of `message` so clients can translate it; `message` stays English (logs, fallback).
+    message_code: str | None = None
+    message_params: dict[str, str] = field(default_factory=dict)
+
+    def set_message(self, code: str, message: str, **params: object) -> None:
+        """Set the English message together with its translation code and parameters."""
+        self.message = message
+        self.message_code = code
+        self.message_params = {k: str(v) for k, v in params.items()}
 
 
 @dataclass

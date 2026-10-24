@@ -413,83 +413,116 @@ class TestRestorePresets:
 
 
 class TestValidateArchive:
-    """T014: Tests for _validate_archive()."""
+    """T014: Tests for _validate_archive().
+
+    _validate_archive() runs two SSH commands: (1) the first tar entries (readable / not empty) and
+    (2) an awk search over the whole listing that prints 1 when an entry starts with the expected prefix.
+    """
 
     @pytest.fixture
     def service(self):
         return RestoreService()
 
+    @staticmethod
+    def _info(volume_type: str, suffix: str) -> BackupFileInfo:
+        return BackupFileInfo(
+            filename=f"soundtouch-ABC-20250512-{suffix}.tgz",
+            volume_type=volume_type,
+            file_path=f"/media/sda1/oct-backup/soundtouch-ABC-20250512-{suffix}.tgz",
+        )
+
+    @staticmethod
+    def _ssh(first_entries: str, search_output: str = "1\n", search_ok: bool = True):
+        mock_ssh = AsyncMock()
+        mock_ssh.execute.side_effect = [
+            MagicMock(output=first_entries, exit_code=0, success=True),
+            MagicMock(output=search_output, exit_code=0, success=search_ok),
+        ]
+        return mock_ssh
+
     @pytest.mark.asyncio
     async def test_valid_rootfs_archive(self, service):
-        mock_ssh = AsyncMock()
-        mock_ssh.execute.return_value = MagicMock(
-            output="opt/Bose/etc/SoundTouchSdkPrivateCfg.xml\nopt/Bose/bin/foo\n",
-            exit_code=0,
-        )
-        info = BackupFileInfo(
-            filename="soundtouch-ABC-20250512-rootfs.tgz",
-            volume_type="rootfs",
-            file_path="/media/sda1/oct-backup/soundtouch-ABC-20250512-rootfs.tgz",
-        )
+        # The first entries are bin/ and etc/ (as in a real rootfs archive); opt/Bose/ comes much later.
+        mock_ssh = self._ssh("bin/\nbin/busybox\netc/\n")
+        info = self._info("rootfs", "rootfs")
         await service._validate_archive(mock_ssh, info)
         assert info.validation_status == ValidationStatus.VALID
 
     @pytest.mark.asyncio
+    async def test_rootfs_search_covers_whole_listing(self, service):
+        """Regression: only the first 20 entries were checked, so opt/Bose/ was never found in rootfs."""
+        mock_ssh = self._ssh("bin/\n")
+        await service._validate_archive(mock_ssh, self._info("rootfs", "rootfs"))
+
+        search_cmd = mock_ssh.execute.await_args_list[1][0][0]
+        assert "head -20" not in search_cmd
+        assert "opt/Bose/" in search_cmd
+        assert search_cmd.startswith(
+            "tar tzf /media/sda1/oct-backup/soundtouch-ABC-20250512-rootfs.tgz"
+        )
+        assert "awk" in search_cmd
+
+    @pytest.mark.asyncio
     async def test_valid_nv_archive(self, service):
-        mock_ssh = AsyncMock()
-        mock_ssh.execute.return_value = MagicMock(
-            output="mnt/nv/Presets.xml\nmnt/nv/SoundTouchSdkPrivateCfg.xml\n",
-            exit_code=0,
-        )
-        info = BackupFileInfo(
-            filename="soundtouch-ABC-20250512-nv.tgz",
-            volume_type="persistent",
-            file_path="/media/sda1/oct-backup/soundtouch-ABC-20250512-nv.tgz",
-        )
+        mock_ssh = self._ssh("mnt/nv/Presets.xml\nmnt/nv/SoundTouchSdkPrivateCfg.xml\n")
+        info = self._info("persistent", "nv")
         await service._validate_archive(mock_ssh, info)
         assert info.validation_status == ValidationStatus.VALID
+        assert "mnt/nv/" in mock_ssh.execute.await_args_list[1][0][0]
+
+    @pytest.mark.asyncio
+    async def test_update_archive_is_checked_for_mnt_update(self, service):
+        """Regression: update archives hold mnt/update/..., not opt/Bose/ (always gave a false warning)."""
+        mock_ssh = self._ssh("mnt/update/\nmnt/update/firmware.bin\n")
+        info = self._info("update", "update")
+        await service._validate_archive(mock_ssh, info)
+        assert info.validation_status == ValidationStatus.VALID
+        search_cmd = mock_ssh.execute.await_args_list[1][0][0]
+        assert "mnt/update/" in search_cmd
+        assert "opt/Bose/" not in search_cmd
 
     @pytest.mark.asyncio
     async def test_corrupt_archive(self, service):
         mock_ssh = AsyncMock()
         mock_ssh.execute.return_value = MagicMock(output="", exit_code=2)
-        info = BackupFileInfo(
-            filename="soundtouch-ABC-20250512-rootfs.tgz",
-            volume_type="rootfs",
-            file_path="/media/sda1/oct-backup/soundtouch-ABC-20250512-rootfs.tgz",
-        )
+        info = self._info("rootfs", "rootfs")
         await service._validate_archive(mock_ssh, info)
         assert info.validation_status == ValidationStatus.INVALID
         assert "corrupt" in info.validation_message
+        assert info.validation_code == "archive_corrupt"
 
     @pytest.mark.asyncio
     async def test_empty_archive(self, service):
         mock_ssh = AsyncMock()
         mock_ssh.execute.return_value = MagicMock(output="", exit_code=0)
-        info = BackupFileInfo(
-            filename="soundtouch-ABC-20250512-rootfs.tgz",
-            volume_type="rootfs",
-            file_path="/media/sda1/oct-backup/soundtouch-ABC-20250512-rootfs.tgz",
-        )
+        info = self._info("rootfs", "rootfs")
         await service._validate_archive(mock_ssh, info)
         assert info.validation_status == ValidationStatus.INVALID
         assert "empty" in info.validation_message
+        assert info.validation_code == "archive_empty"
 
     @pytest.mark.asyncio
     async def test_wrong_paths_gives_warning(self, service):
-        mock_ssh = AsyncMock()
-        mock_ssh.execute.return_value = MagicMock(
-            output="usr/local/bin/something\nvar/log/test.log\n",
-            exit_code=0,
+        mock_ssh = self._ssh(
+            "usr/local/bin/something\nvar/log/test.log\n", search_output="0\n"
         )
-        info = BackupFileInfo(
-            filename="soundtouch-ABC-20250512-rootfs.tgz",
-            volume_type="rootfs",
-            file_path="/media/sda1/oct-backup/soundtouch-ABC-20250512-rootfs.tgz",
-        )
+        info = self._info("rootfs", "rootfs")
         await service._validate_archive(mock_ssh, info)
         assert info.validation_status == ValidationStatus.WARNING
         assert "opt/Bose/" in info.validation_message
+        assert info.validation_code == "archive_path_missing"
+        assert info.validation_params == {"expected": "opt/Bose/"}
+
+    @pytest.mark.asyncio
+    async def test_failed_scan_gives_unverified_warning_not_missing_path(self, service):
+        """A scan that fails or times out must not claim the path is missing."""
+        mock_ssh = self._ssh("bin/\n", search_output="", search_ok=False)
+        info = self._info("rootfs", "rootfs")
+        await service._validate_archive(mock_ssh, info)
+        assert info.validation_status == ValidationStatus.WARNING
+        assert "could not be verified" in info.validation_message
+        assert "not found" not in info.validation_message
+        assert info.validation_code == "archive_unverified"
 
 
 class TestPreRestoreSnapshot:
@@ -901,3 +934,76 @@ class TestRestorePresetsBackupMode:
         step = await service._restore_presets(mock_ssh, "clean")
         assert step.status == StepStatus.FAILED
         assert "Connection lost" in step.error
+
+
+class TestStepMessageCodes:
+    """Every step message carries a stable code (and parameters) so clients can translate it.
+
+    The English `message` stays as fallback/log text; the codes are what the UI translates.
+    """
+
+    @pytest.fixture
+    def service(self):
+        return RestoreService()
+
+    @pytest.mark.asyncio
+    async def test_remote_services_deleted_has_code(self, service):
+        step = await service._remove_remote_services(AsyncMock())
+        assert step.message_code == "remote_services_deleted"
+        assert step.message == "/mnt/nv/remote_services deleted"
+        assert step.message_params == {}
+
+    @pytest.mark.asyncio
+    async def test_remote_services_failure_has_code_and_error_param(self, service):
+        ssh = AsyncMock()
+        ssh.execute.side_effect = RuntimeError("boom")
+        step = await service._remove_remote_services(ssh)
+        assert step.status == StepStatus.FAILED
+        assert step.message_code == "remote_services_failed"
+        assert step.message_params == {"error": "boom"}
+
+    @pytest.mark.asyncio
+    async def test_presets_restored_has_path_param(self, service):
+        ssh = AsyncMock()
+        ssh.execute.side_effect = [
+            MagicMock(
+                output="/mnt/nv/BoseApp-Persistence/1/Presets.xml\n", exit_code=0
+            ),
+            MagicMock(output="", exit_code=0),
+        ]
+        step = await service._restore_presets(ssh, restore_type="clean")
+        assert step.message_code == "presets_restored"
+        assert step.message_params == {
+            "path": "/mnt/nv/BoseApp-Persistence/1/Presets.xml"
+        }
+        assert "/mnt/nv/BoseApp-Persistence/1/Presets.xml" in step.message
+
+    @pytest.mark.asyncio
+    async def test_presets_skipped_has_code(self, service):
+        ssh = AsyncMock()
+        ssh.execute.return_value = MagicMock(output="", exit_code=1)
+        step = await service._restore_presets(ssh, restore_type="clean")
+        assert step.message_code == "presets_clean"
+
+    @pytest.mark.asyncio
+    async def test_hosts_clean_has_code(self, service):
+        ssh = AsyncMock()
+        ssh.execute.return_value = MagicMock(
+            output="127.0.0.1 localhost\n", exit_code=0
+        )
+        step = await service._restore_hosts(ssh)
+        assert step.status == StepStatus.SKIPPED
+        assert step.message_code == "hosts_clean"
+
+    @pytest.mark.asyncio
+    async def test_hosts_read_failure_has_code(self, service):
+        ssh = AsyncMock()
+        ssh.execute.return_value = MagicMock(output="", exit_code=1)
+        step = await service._restore_hosts(ssh)
+        assert step.status == StepStatus.FAILED
+        assert step.message_code == "hosts_read_failed"
+
+    @pytest.mark.asyncio
+    async def test_reboot_sent_has_code(self, service):
+        step = await service._reboot_device(AsyncMock())
+        assert step.message_code == "reboot_sent"

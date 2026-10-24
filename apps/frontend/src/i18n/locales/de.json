@@ -23,7 +23,8 @@
     "presets": "Presets",
     "zones": "Zonen",
     "settings": "Einstellungen",
-    "about": "Über"
+    "about": "Über",
+    "ariaLabel": "Hauptnavigation"
   },
   "player": {
     "noPlayback": "Keine Wiedergabe",
@@ -42,7 +43,23 @@
     "manageZone": "Zone verwalten",
     "multiRoom": "Multi-Room",
     "prevDevice": "Vorheriges Gerät",
-    "nextDevice": "Nächstes Gerät"
+    "nextDevice": "Nächstes Gerät",
+    "source": {
+      "bluetooth": "Bluetooth",
+      "radio": "Radio",
+      "aux": "AUX",
+      "airplay": "AirPlay",
+      "dlna": "DLNA",
+      "tv": "TV / HDMI",
+      "spotify": "Spotify",
+      "deezer": "Deezer",
+      "pandora": "Pandora",
+      "amazon": "Amazon Music",
+      "storedMusic": "Mediathek"
+    },
+    "unknownDevice": "Unbekanntes Gerät",
+    "zoneBadgeMember": "Zone",
+    "zoneTitle": "Zone: {{role}}"
   },
   "presets": {
     "pageTitle": "Radio Presets",
@@ -61,8 +78,8 @@
     "infoTitle": "Preset Hinweise",
     "infoItem1": "Klicke auf ein leeres Preset um einen Sender zuzuweisen",
     "infoItem2": "Klicke auf einen belegten Sender um ihn zu ändern oder zu löschen",
-    "infoItem3": "Der grüne ► Button spielt den Sender direkt ab",
-    "infoItem5": "⚙️ öffnet den Setup-Wizard für das Gerät",
+    "infoItem3": "Der Play-Button rechts im Preset spielt den Sender direkt ab",
+    "infoItem5": "Das Status-Symbol oben rechts an der Gerätekarte öffnet den Setup-Wizard für das Gerät",
     "infoItem6": "\"Vom Gerät laden\" synchronisiert die Presets vom SoundTouch",
     "changeStation": "Klicken um Sender zu ändern",
     "assignPreset": "Preset zuweisen",
@@ -104,7 +121,18 @@
     "manualStreamErrorTitle": "Stream-Fehler",
     "manualStreamUnreachable": "Die Stream-URL ist nicht erreichbar.",
     "manualStreamSaveFailed": "Der Sender konnte nicht gespeichert werden.",
-    "manualStreamErrorOk": "OK"
+    "manualStreamErrorOk": "OK",
+    "unknownDevice": "Unbekanntes Gerät",
+    "unknownModel": "Unbekanntes Modell",
+    "unknownIp": "Unbekannte IP",
+    "searchHint": "Mindestens 2 Zeichen eingeben, um zu suchen.",
+    "manualInvalidUrl": "Bitte eine gültige HTTP- oder HTTPS-Adresse eingeben.",
+    "searchTypeGroup": "Suchen nach",
+    "providerGroup": "Quelle",
+    "searchResults": "Suchergebnisse",
+    "confirmRemoveDeviceTitle": "Gerät entfernen?",
+    "confirmRemoveDeviceMessage": "{{name}} wird samt gespeicherten Presets aus OpenCloudTouch entfernt. Du kannst es später über die Gerätesuche wieder hinzufügen.",
+    "confirmRemoveDevice": "Gerät entfernen"
   },
   "settings": {
     "title": "Einstellungen",
@@ -117,7 +145,9 @@
       "enterIp": "Bitte geben Sie eine IP-Adresse ein",
       "probing": "Suche...",
       "deviceAdded": "{{name}} ({{ip}}) hinzugefügt",
-      "probeError": "Kein Gerät unter {{ip}} gefunden"
+      "probeError": "Kein Gerät unter {{ip}} gefunden",
+      "label": "IP-Adresse des Geräts",
+      "hint": "Format: 192.168.1.10"
     },
     "discovery": {
       "devicesFound_one": "{{count}} neues Gerät gefunden",
@@ -130,7 +160,8 @@
       "scanButton": "Jetzt suchen",
       "scanning": "Suche läuft...",
       "manualTitle": "Manuelle IP-Adresse",
-      "manualDescription": "Nutze diesen Weg, wenn die automatische Suche wegen VLAN, Docker-Netzwerk oder Firewall nichts findet."
+      "manualDescription": "Nutze diesen Weg, wenn die automatische Suche wegen VLAN, Docker-Netzwerk oder Firewall nichts findet.",
+      "scanningStatus": "Netzwerksuche läuft"
     },
     "logging": {
       "sectionTitle": "Logging",
@@ -142,7 +173,10 @@
       "downloadLogs": "Logs herunterladen",
       "downloadDescription": "Laden Sie die letzten 1000 Backend-Logeinträge als Textdatei herunter.",
       "levelChanged": "Log-Level auf {{level}} gesetzt",
-      "levelError": "Log-Level konnte nicht geändert werden"
+      "levelError": "Log-Level konnte nicht geändert werden",
+      "levelSaving": "Log-Level wird gespeichert",
+      "downloading": "Wird erstellt...",
+      "downloadFailed": "Logs konnten nicht heruntergeladen werden: {{error}}"
     }
   },
   "manualIpModal": {
@@ -152,7 +186,9 @@
     "saveError": "Fehler beim Speichern der IP-Adressen",
     "save": "Speichern",
     "saving": "Speichere...",
-    "hint": "Die IP-Adresse finden Sie in der zugehörigen App unter Einstellungen → Info oder in Ihrem Router."
+    "hint": "Die IP-Adresse finden Sie in der zugehörigen App unter Einstellungen → Info oder in Ihrem Router.",
+    "placeholder": "Beispiel:\n192.168.1.100\n192.168.1.101\n192.168.1.102",
+    "saved": "IP-Adressen gespeichert!"
   },
   "multiroom": {
     "pageTitle": "Multi-Room Zonen",
@@ -177,7 +213,6 @@
     "infoItem5": "Klicke auf den Zonen-Namen um ihn zu ändern",
     "editZone": "Bearbeiten",
     "dissolve": "Auflösen",
-    "dissolveConfirm": "Wirklich auflösen?",
     "zoneUpdated": "Zone aktualisiert",
     "zoneCreated": "Zone erstellt",
     "zoneCreateFailed": "Zone konnte nicht erstellt werden",
@@ -189,7 +224,12 @@
     "clickToEdit": "Klick zum Bearbeiten",
     "cancel": "Abbrechen",
     "masterBadge": "Master",
-    "slaveBadge": "Slave"
+    "slaveBadge": "Slave",
+    "unknownDevice": "Unbekanntes Gerät",
+    "defaultZoneName": "{{name}} Zone",
+    "staleBadge": "Lange nicht gesehen",
+    "confirmDissolveTitle": "Zone auflösen?",
+    "confirmDissolveMessage": "„{{name}}“ wird aufgelöst. Die Geräte spielen danach wieder einzeln."
   },
   "firmware": {
     "title": "Firmware Updates",
@@ -381,7 +421,8 @@
         "troubleshootingItem3": "Warten Sie mindestens 100 Sekunden nach dem Neustart",
         "troubleshootingItem4": "Versuchen Sie einen weiteren Power Cycle (Schritte 2–5)",
         "troubleshootingItem5": "Prüfen Sie, ob das Gerät im gleichen Netzwerk ist",
-        "troubleshootingItem6": "Testen Sie die SSH-Verbindung manuell mit dem Befehl oben – wenn das funktioniert, ist das Gerät bereit."
+        "troubleshootingItem6": "Testen Sie die SSH-Verbindung manuell mit dem Befehl oben – wenn das funktioniert, ist das Gerät bereit.",
+        "nextDisabled": "Bitte SSH-Zugang prüfen und eine Entscheidung zur SSH-Dauerhaftigkeit treffen."
       },
       "step4": {
         "title": "Backup erstellen",
@@ -392,14 +433,15 @@
         "btnCreate": "Backup jetzt erstellen",
         "btnCreating": "Erstelle Backup...",
         "progressMessage": "Backup wird erstellt für {{device}}",
-        "progressNote": "Dies kann bis zu 2 Minuten dauern...",
+        "progressNote": "Dies kann bis zu 10 Minuten dauern...",
         "errorTitle": "Backup fehlgeschlagen",
         "successTitle": "Backup erfolgreich erstellt!",
         "successHint": "Die Backups wurden auf Ihren USB-Stick geschrieben. Ziehen Sie den Stick nach dem Wizard ab – er enthält Ihre Wiederherstellungs-Dateien.",
         "filesTitle": "Gespeicherte Dateien (auf USB-Stick):",
         "totalLabel": "Gesamt:",
         "durationMinSec": "{{min}} Min. {{sec}} Sek.",
-        "durationSec": "{{sec}} Sek."
+        "durationSec": "{{sec}} Sek.",
+        "nextWarning": "Ohne Backup ist keine Wiederherstellung möglich. Wenn Sie jetzt fortfahren, geschieht das auf eigenes Risiko."
       },
       "step5": {
         "titleProxy": "Reverse-Proxy erkannt",
@@ -467,8 +509,7 @@
         "changedEntries": "Geänderte Einträge:",
         "backupLabel": "Backup:",
         "btnShowChanges": "▶ Änderungen anzeigen",
-        "btnHideChanges": "▼ Änderungen ausblenden",
-        "hostsApplied": "Hosts-Datei erfolgreich geändert."
+        "btnHideChanges": "▼ Änderungen ausblenden"
       },
       "step7": {
         "title": "NTP-Server patchen",
@@ -542,7 +583,11 @@
         "btnSkip": "Trotzdem fortfahren — Gerät wird nicht als konfiguriert markiert",
         "checkNtpServer": "NTP-Server gesetzt auf: {{server}}",
         "checkNtpServerWrong": "NTP-Server ist auf '{{found}}' gesetzt, erwartet wurde '{{expected}}'",
-        "fullVerifyItem5": "NTP-Server auf dem Gerät konfiguriert"
+        "fullVerifyItem5": "NTP-Server auf dem Gerät konfiguriert",
+        "phaseFinalize": "Einrichten",
+        "phaseReboot": "Neustart",
+        "phaseVerify": "Prüfen",
+        "nextDisabled": "Bitte zuerst alle Prüfungen erfolgreich abschließen."
       },
       "step9": {
         "title": "Setup abgeschlossen!",
@@ -572,9 +617,18 @@
         "supportLink": "Support kontaktieren →",
         "summaryItem7": "NTP-Server gepatcht ({{server}})"
       }
-    }
+    },
+    "trackerCompact": "Schritt {{current}} von {{total}} – {{label}}",
+    "stepAriaSkipped": "Schritt {{id}}: {{label}} — {{description}} – übersprungen"
   },
   "restore": {
+    "steps": {
+      "choice": "Auswahl",
+      "backup": "Backup",
+      "restore": "Wiederherstellen",
+      "verify": "Prüfen",
+      "done": "Fertig"
+    },
     "choice": {
       "title": "Was möchten Sie tun?",
       "setup_title": "Setup-Assistent",
@@ -606,7 +660,10 @@
       "running": "Wiederherstellung läuft...",
       "error": "Wiederherstellung fehlgeschlagen: {{message}}",
       "success": "Alle Schritte erfolgreich abgeschlossen! Gesamt: {{time}}s",
-      "continue": "Weiter"
+      "continue": "Weiter",
+      "running_hint": "Dieser Vorgang kann mehrere Minuten dauern (meist 8 bis 9). Lassen Sie diese Seite geöffnet und trennen Sie das Gerät nicht.",
+      "error_hint": "Gehen Sie zurück und versuchen Sie es erneut.",
+      "failed_title": "Wiederherstellung unvollständig"
     },
     "verification": {
       "title": "Warte auf Gerät",
@@ -627,6 +684,50 @@
       "failed": "Fehlgeschlagen",
       "note": "Das Gerät ist jetzt im Originalzustand. Sie können es sicher trennen.",
       "done": "Fertig"
+    },
+    "step_labels": {
+      "pre_snapshot": "Snapshot vor der Wiederherstellung",
+      "config": "Konfigurationsdateien",
+      "presets": "Presets",
+      "hosts": "/etc/hosts",
+      "ntp": "/etc/ntpservers.txt",
+      "remote_services": "SSH-Dauerhaftigkeit",
+      "reboot": "Neustart"
+    },
+    "messages": {
+      "snapshot_saved": "Snapshot vor der Wiederherstellung gespeichert",
+      "snapshot_unavailable": "Kein Wizard-Dienst verfügbar",
+      "snapshot_failed": "Snapshot fehlgeschlagen: {{error}}",
+      "config_restored": "Konfigurationsdateien wiederhergestellt",
+      "config_restore_failed": "Wiederherstellung der Konfiguration fehlgeschlagen: {{error}}",
+      "presets_clean": "Keine Presets.xml auf dem Gerät gefunden (bereits sauber)",
+      "presets_restored": "Presets wiederhergestellt unter {{path}}",
+      "presets_restore_failed": "Wiederherstellung der Presets fehlgeschlagen: {{error}}",
+      "hosts_read_failed": "/etc/hosts konnte nicht gelesen werden",
+      "hosts_clean": "Kein OCT-Block in /etc/hosts gefunden (bereits sauber)",
+      "hosts_restored": "OCT-Block aus /etc/hosts entfernt",
+      "hosts_restore_failed": "Wiederherstellung von /etc/hosts fehlgeschlagen: {{error}}",
+      "ntp_no_backup": "Kein NTP-Backup gefunden (bereits sauber)",
+      "ntp_copy_failed": "/etc/ntpservers.txt konnte nicht aus dem Backup wiederhergestellt werden",
+      "ntp_restored": "NTP-Server aus dem Backup wiederhergestellt",
+      "ntp_restore_failed": "Wiederherstellung der NTP-Server fehlgeschlagen: {{error}}",
+      "remote_services_deleted": "/mnt/nv/remote_services gelöscht",
+      "remote_services_failed": "remote_services konnte nicht entfernt werden: {{error}}",
+      "reboot_sent": "Neustart-Befehl gesendet",
+      "reboot_failed": "Neustart fehlgeschlagen: {{error}}"
+    },
+    "validation": {
+      "archive_corrupt": "Archiv ist beschädigt oder nicht lesbar",
+      "archive_empty": "Archiv ist leer",
+      "archive_unverified": "Archivinhalt konnte nicht geprüft werden (Scan fehlgeschlagen oder Zeitüberschreitung)",
+      "archive_path_missing": "Erwartete Pfade mit {{expected}} wurden im Archiv nicht gefunden"
+    },
+    "status": {
+      "completed": "Abgeschlossen",
+      "skipped": "Übersprungen",
+      "failed": "Fehlgeschlagen",
+      "in_progress": "Läuft",
+      "pending": "Ausstehend"
     }
   },
   "errors": {
@@ -678,27 +779,34 @@
     "licensesDescription": "OpenCloudTouch nutzt folgende Open-Source Bibliotheken:",
     "licenseCompliance": "Lizenz-Compliance",
     "licenseComplianceText": "OpenCloudTouch ist Open-Source Software unter der Apache License 2.0. Alle verwendeten Bibliotheken sind mit dieser Lizenz kompatibel.",
-    "devicesConnected_zero": "Keine Geräte verbunden",
-    "devicesConnected_one": "{{count}} Gerät verbunden",
-    "devicesConnected_other": "{{count}} Geräte verbunden",
-    "github": "GitHub",
-    "reportIssue": "Problem melden",
     "support": "Unterstützen",
-    "versionUnavailable": "Version nicht verfügbar",
-    "hallOfFameTitle": "Hall of Fame",
-    "hallOfFameDescription": "Top 3 Mitwirkende aller Zeiten — anerkannt für außergewöhnlichen technischen Impact.",
-    "supportersTitle": "Unterstützer",
     "reportBug": "Problem melden",
     "diagnostics": "Diagnose",
-    "supportersDescription": "Vielen Dank an alle, die OpenCloudTouch finanziell unterstützen. Eure Beiträge helfen das Projekt am Leben zu erhalten!",
-    "supportersMonthly": "Monatliche Unterstützer",
-    "supportersOneTime": "Einmalige Unterstützer",
-    "buildTime": "Erstellt am {{time}}",
     "checkingUpdates": "Suche nach Updates...",
     "updateAvailable": "Update verfügbar: {{version}}",
     "viewRelease": "Release ansehen",
     "upToDate": "Du bist auf dem neuesten Stand!",
-    "devBuild": "Selbstgebaute Version — Update-Prüfung deaktiviert"
+    "devBuild": "Selbstgebaute Version — Update-Prüfung deaktiviert",
+    "github": "GitHub",
+    "externalLink": "(öffnet in neuem Tab)",
+    "licenses": "Open-Source-Lizenzen",
+    "linksLabel": "Weitere Informationen",
+    "supportersTitle": "Supp<0/>rters",
+    "supportersLabel": "Unterstützer",
+    "monthlySupporter": "(monatlicher Unterstützer)",
+    "libraryWebsite": "{{name}} Website",
+    "licensesVersion": "Version",
+    "licensesGroup": {
+      "frontend": "Frontend",
+      "backend": "Backend",
+      "build": "Build-Werkzeuge"
+    },
+    "licenseProject": "OpenCloudTouch-Lizenz",
+    "licenseApache": "Apache License 2.0",
+    "trademarkTitle": "Markenhinweis",
+    "trademarkText1": "OpenCloudTouch steht in <0>keiner Verbindung zur Bose Corporation</0>. Bose® und SoundTouch® sind eingetragene Marken der Bose Corporation.",
+    "trademarkText2": "Diese Software nutzt die öffentlich dokumentierten lokalen Schnittstellen von Bose-SoundTouch®-Geräten. Details stehen in der <0>TRADEMARK.md</0>.",
+    "runningSince": "Läuft seit {{time}}"
   },
   "discovery": {
     "alreadyRunning": "Gerätesuche läuft bereits. Bitte warten...",
@@ -723,7 +831,8 @@
     "helpFirewall": "Firewall-Regeln könnten die Geräteerkennung blockieren",
     "helpRestart": "Starte die Geräte und OpenCloudTouch neu",
     "helpManualAdd": "Füge Geräte-IPs manuell hinzu",
-    "helpSetupWizard": "Folge dem Setup-Assistenten für eine Schritt-für-Schritt Anleitung"
+    "helpSetupWizard": "Folge dem Setup-Assistenten für eine Schritt-für-Schritt Anleitung",
+    "deviceSaved": "Gespeichert"
   },
   "setupBadge": {
     "unknown": "Gerät einrichten",
@@ -744,27 +853,7 @@
     "unknown": "Unbekannt"
   },
   "bugReport": {
-    "title": "Fehler melden",
-    "description": "Fehlerbeschreibung",
-    "descriptionPlaceholder": "Was ist schiefgelaufen?",
-    "steps": "Schritte zum Reproduzieren",
-    "stepsPlaceholder": "1. Gehe zu...\n2. Klicke auf...\n3. Fehler erscheint...",
-    "expected": "Erwartetes Verhalten",
-    "expectedPlaceholder": "Was hätte passieren sollen?",
-    "installationType": "Installationsart",
-    "whichInstallation": "Welche Installation?",
-    "hardware": "Hardware / Plattform",
-    "whichHardware": "Welche Hardware?",
-    "devices": "SoundTouch Gerät(e)",
-    "whichDevice": "Welches Gerät?",
-    "networkConfig": "Netzwerk-Konfiguration",
-    "additionalInfo": "Zusätzliche Informationen",
-    "submit": "Fehlerbericht senden",
-    "submitting": "Wird gesendet...",
-    "downloadLogs": "Logs herunterladen",
     "downloading": "Wird heruntergeladen...",
-    "submitSuccess": "Fehlerbericht erstellt! {{url}}",
-    "submitFailed": "Fehlerbericht konnte nicht gesendet werden: {{error}}",
     "diagnosticsSuccess": "Diagnose heruntergeladen! Hängen Sie die .log.gz-Datei an Ihr GitHub Issue an.",
     "diagnosticsFailed": "Diagnose konnte nicht heruntergeladen werden: {{error}}"
   },
@@ -785,7 +874,15 @@
     "firmware": "Firmware",
     "setupStatus": "Setup-Status",
     "lastSeen": "Zuletzt gesehen",
-    "downloadBundle": "Support-Bundle herunterladen"
+    "downloadBundle": "Support-Bundle herunterladen",
+    "ip": "IP-Adresse",
+    "ssh": "SSH",
+    "sshOn": "Dauerhaft aktiv",
+    "sshOff": "Nicht aktiv",
+    "statusOnline": "Online",
+    "statusStale": "Länger nicht gesehen",
+    "statusOffline": "Offline",
+    "unknownValue": "unbekannt"
   },
   "deviceRename": {
     "clickToEdit": "Klicken zum Umbenennen",
@@ -796,6 +893,22 @@
   "deviceHeader": {
     "reboot": "Gerät neu starten",
     "sent": "Neustart-Befehl gesendet",
-    "confirmMessage": "{{name}} neu starten? Das Gerät ist für ca. 100 Sekunden nicht erreichbar."
+    "confirmMessage": "{{name}} neu starten? Das Gerät ist für ca. 100 Sekunden nicht erreichbar.",
+    "backToDevice": "Zurück zu {{name}}"
+  },
+  "a11y": {
+    "skipToContent": "Zum Inhalt springen",
+    "selectLanguage": "Sprache auswählen",
+    "deviceSelection": "Geräteauswahl",
+    "switchToDevice": "Zu {{name}} wechseln",
+    "volume": "Lautstärke",
+    "copyCommand": "Befehl kopieren",
+    "copyToClipboard": "In Zwischenablage kopieren",
+    "deviceCounter": "Gerät {{current}} von {{total}}"
+  },
+  "stationDetail": {
+    "codec": "Codec",
+    "bitrate": "Bitrate",
+    "homepage": "Homepage"
   }
 }

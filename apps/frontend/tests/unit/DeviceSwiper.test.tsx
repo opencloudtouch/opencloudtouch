@@ -1,35 +1,55 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import DeviceSwiper from "../../src/components/DeviceSwiper";
 import type { ReactNode, HTMLAttributes } from "react";
 
-type DragInfo = {
+type PanInfo = {
   offset: { x: number; y: number };
   velocity: { x: number; y: number };
 };
-type DragEndHandler = (
-  event: MouseEvent | TouchEvent | PointerEvent,
-  info: DragInfo,
-) => void;
+type Handlers = {
+  onPan?: (e: PointerEvent, info: PanInfo) => void;
+  onPanEnd?: (e: PointerEvent, info: PanInfo) => void;
+  onPointerDownCapture?: (e: unknown) => void;
+};
 
-let capturedOnDragEnd: DragEndHandler | undefined;
+let handlers: Handlers = {};
 
+const presence = vi.hoisted(() => ({ present: true }));
 vi.mock("framer-motion", () => ({
   motion: {
     div: ({
       children,
-      onDragEnd,
+      onPan,
+      onPanEnd,
+      onPointerDownCapture,
+      /* eslint-disable @typescript-eslint/no-unused-vars */
+      drag,
+      custom,
+      variants,
+      initial,
+      animate,
+      exit,
+      /* eslint-enable @typescript-eslint/no-unused-vars */
       ...rest
-    }: {
-      children: ReactNode;
-      onDragEnd?: DragEndHandler;
-    } & HTMLAttributes<HTMLDivElement>) => {
-      capturedOnDragEnd = onDragEnd;
-      return <div {...rest}>{children}</div>;
+    }: { children: ReactNode } & Handlers & Record<string, unknown> & HTMLAttributes<HTMLDivElement>) => {
+      handlers = { onPan, onPanEnd, onPointerDownCapture };
+      return <div {...(rest as HTMLAttributes<HTMLDivElement>)}>{children}</div>;
     },
   },
   AnimatePresence: ({ children }: { children: ReactNode }) => <>{children}</>,
+  useIsPresent: () => presence.present,
+  useReducedMotion: () => false,
 }));
+
+/** Simulates one touch swipe: pointer down on `target`, a pan to `dx`, then release with the given velocity (px/s). */
+function swipeTouch(dx: number, velocityX = 0, target?: Element, dy = 0) {
+  const card = target ?? document.body;
+  handlers.onPointerDownCapture!({ currentTarget: card, target: card, pointerType: "touch" });
+  const info = { offset: { x: dx, y: dy }, velocity: { x: velocityX, y: 0 } };
+  handlers.onPan!({} as PointerEvent, info);
+  handlers.onPanEnd!({} as PointerEvent, info);
+}
 
 describe("DeviceSwiper Component", () => {
   const mockDevices = [
@@ -62,7 +82,7 @@ describe("DeviceSwiper Component", () => {
       </DeviceSwiper>
     );
 
-    const dots = screen.getAllByRole("tab");
+    const dots = within(screen.getByRole("group", { name: "Device selection" })).getAllByRole("button");
     expect(dots).toHaveLength(3);
   });
 
@@ -125,7 +145,7 @@ describe("DeviceSwiper Component", () => {
       </DeviceSwiper>
     );
 
-    const dots = screen.getAllByRole("tab");
+    const dots = within(screen.getByRole("group", { name: "Device selection" })).getAllByRole("button");
     fireEvent.click(dots[2]!);
 
     expect(mockOnIndexChange).toHaveBeenCalledWith(2);
@@ -156,17 +176,17 @@ describe("DeviceSwiper Component", () => {
     expect(screen.getByLabelText("Switch to Schlafzimmer")).toBeInTheDocument();
   });
 
-  it("sets correct aria-selected on dots", () => {
+  it("marks the current device dot with aria-current", () => {
     render(
       <DeviceSwiper devices={mockDevices} currentIndex={1} onIndexChange={mockOnIndexChange}>
         <div>Device Content</div>
       </DeviceSwiper>
     );
 
-    const dots = screen.getAllByRole("tab");
-    expect(dots[0]).toHaveAttribute("aria-selected", "false");
-    expect(dots[1]).toHaveAttribute("aria-selected", "true");
-    expect(dots[2]).toHaveAttribute("aria-selected", "false");
+    const dots = within(screen.getByRole("group", { name: "Device selection" })).getAllByRole("button");
+    expect(dots[0]).not.toHaveAttribute("aria-current");
+    expect(dots[1]).toHaveAttribute("aria-current", "true");
+    expect(dots[2]).not.toHaveAttribute("aria-current");
   });
 
 
@@ -187,108 +207,84 @@ describe("DeviceSwiper Component", () => {
     expect(nextButton).toBeDisabled();
   });
 
-  it("swipes right (via offset past threshold) to the previous device", () => {
+  const renderAt = (index: number) =>
     render(
-      <DeviceSwiper devices={mockDevices} currentIndex={1} onIndexChange={mockOnIndexChange}>
+      <DeviceSwiper devices={mockDevices} currentIndex={index} onIndexChange={mockOnIndexChange}>
         <div>Device Content</div>
       </DeviceSwiper>
     );
 
-    capturedOnDragEnd!({} as MouseEvent, {
-      offset: { x: 100, y: 0 },
-      velocity: { x: 0, y: 0 },
-    });
-
+  it("swipes right (distance past the threshold) to the previous device", () => {
+    renderAt(1);
+    swipeTouch(100);
     expect(mockOnIndexChange).toHaveBeenCalledWith(0);
   });
 
-  it("swipes right (via velocity past threshold, offset below it) to the previous device", () => {
-    render(
-      <DeviceSwiper devices={mockDevices} currentIndex={1} onIndexChange={mockOnIndexChange}>
-        <div>Device Content</div>
-      </DeviceSwiper>
-    );
-
-    capturedOnDragEnd!({} as MouseEvent, {
-      offset: { x: 10, y: 0 },
-      velocity: { x: 600, y: 0 },
-    });
-
+  it("swipes right as a flick (short distance, fast) to the previous device", () => {
+    renderAt(1);
+    swipeTouch(30, 600);
     expect(mockOnIndexChange).toHaveBeenCalledWith(0);
   });
 
-  it("a rightward swipe gesture at the first device is a no-op", () => {
-    render(
-      <DeviceSwiper devices={mockDevices} currentIndex={0} onIndexChange={mockOnIndexChange}>
-        <div>Device Content</div>
-      </DeviceSwiper>
-    );
-
-    capturedOnDragEnd!({} as MouseEvent, {
-      offset: { x: 100, y: 0 },
-      velocity: { x: 0, y: 0 },
-    });
-
+  it("a rightward swipe at the first device is a no-op (rubber band, snap back)", () => {
+    renderAt(0);
+    swipeTouch(100, 600);
     expect(mockOnIndexChange).not.toHaveBeenCalled();
   });
 
-  it("swipes left (via offset past negative threshold) to the next device", () => {
-    render(
-      <DeviceSwiper devices={mockDevices} currentIndex={1} onIndexChange={mockOnIndexChange}>
-        <div>Device Content</div>
-      </DeviceSwiper>
-    );
-
-    capturedOnDragEnd!({} as MouseEvent, {
-      offset: { x: -100, y: 0 },
-      velocity: { x: 0, y: 0 },
-    });
-
+  it("swipes left (distance past the threshold) to the next device", () => {
+    renderAt(1);
+    swipeTouch(-100);
     expect(mockOnIndexChange).toHaveBeenCalledWith(2);
   });
 
-  it("swipes left (via velocity past negative threshold, offset within bounds) to the next device", () => {
-    render(
-      <DeviceSwiper devices={mockDevices} currentIndex={1} onIndexChange={mockOnIndexChange}>
-        <div>Device Content</div>
-      </DeviceSwiper>
-    );
-
-    capturedOnDragEnd!({} as MouseEvent, {
-      offset: { x: -10, y: 0 },
-      velocity: { x: -600, y: 0 },
-    });
-
+  it("swipes left as a flick to the next device", () => {
+    renderAt(1);
+    swipeTouch(-30, -600);
     expect(mockOnIndexChange).toHaveBeenCalledWith(2);
   });
 
-  it("a leftward swipe gesture at the last device is a no-op", () => {
-    render(
-      <DeviceSwiper devices={mockDevices} currentIndex={2} onIndexChange={mockOnIndexChange}>
-        <div>Device Content</div>
-      </DeviceSwiper>
-    );
-
-    capturedOnDragEnd!({} as MouseEvent, {
-      offset: { x: -100, y: 0 },
-      velocity: { x: 0, y: 0 },
-    });
-
+  it("a leftward swipe at the last device is a no-op", () => {
+    renderAt(2);
+    swipeTouch(-100, -600);
     expect(mockOnIndexChange).not.toHaveBeenCalled();
   });
 
-  it("a gesture below both offset and velocity thresholds in either direction is a no-op", () => {
-    render(
-      <DeviceSwiper devices={mockDevices} currentIndex={1} onIndexChange={mockOnIndexChange}>
-        <div>Device Content</div>
-      </DeviceSwiper>
-    );
+  it("a short, slow drag snaps back without switching", () => {
+    renderAt(1);
+    swipeTouch(40, 100);
+    swipeTouch(-40, -100);
+    expect(mockOnIndexChange).not.toHaveBeenCalled();
+  });
 
-    capturedOnDragEnd!({} as MouseEvent, {
-      offset: { x: 10, y: 0 },
-      velocity: { x: 10, y: 0 },
-    });
+  it("a twitch (tiny distance, high speed) is not a flick", () => {
+    renderAt(1);
+    swipeTouch(8, 900);
+    expect(mockOnIndexChange).not.toHaveBeenCalled();
+  });
 
+  it("a mostly vertical gesture belongs to the page (scrolling), not to the swipe", () => {
+    renderAt(1);
+    swipeTouch(40, 0, undefined, 100);
+    expect(mockOnIndexChange).not.toHaveBeenCalled();
+  });
+
+  it("a mouse never swipes", () => {
+    renderAt(1);
+    handlers.onPointerDownCapture!({ currentTarget: document.body, target: document.body, pointerType: "mouse" });
+    const info = { offset: { x: -200, y: 0 }, velocity: { x: -900, y: 0 } };
+    handlers.onPan!({} as PointerEvent, info);
+    handlers.onPanEnd!({} as PointerEvent, info);
+    expect(mockOnIndexChange).not.toHaveBeenCalled();
+  });
+
+  it("a gesture that starts on the volume slider does not swipe", () => {
+    renderAt(1);
+    const slider = document.createElement("div");
+    slider.setAttribute("role", "slider");
+    document.body.appendChild(slider);
+    swipeTouch(-150, -900, slider);
+    slider.remove();
     expect(mockOnIndexChange).not.toHaveBeenCalled();
   });
 
@@ -299,9 +295,63 @@ describe("DeviceSwiper Component", () => {
       </DeviceSwiper>
     );
 
-    const dots = screen.getAllByRole("tab");
+    const dots = within(screen.getByRole("group", { name: "Device selection" })).getAllByRole("button");
     fireEvent.click(dots[0]!);
 
     expect(mockOnIndexChange).toHaveBeenCalledWith(0);
+  });
+});
+
+describe("DeviceSwiper dots and leaving card", () => {
+  const many = Array.from({ length: 12 }, (_, i) => ({
+    device_id: `D${i}`,
+    name: `Device ${i + 1}`,
+    model: "SoundTouch 10",
+    ip: `192.168.1.${i}`,
+  })) as unknown as Parameters<typeof DeviceSwiper>[0]["devices"];
+
+  afterEach(() => {
+    presence.present = true;
+    delete (HTMLElement.prototype as unknown as Record<string, unknown>).clientWidth;
+  });
+
+  it("shows only a window of dots around the current device when even 24px per dot does not fit", () => {
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, value: 184 });
+    render(
+      <DeviceSwiper devices={many} currentIndex={6} onIndexChange={vi.fn()}>
+        <div>Card</div>
+      </DeviceSwiper>,
+    );
+
+    const group = screen.getByRole("group", { name: "Device selection" });
+    const dots = within(group).getAllByRole("button");
+    expect(dots).toHaveLength(7); // floor(184 / 24)
+    expect(dots.filter((d) => d.getAttribute("aria-current") === "true")).toHaveLength(1);
+    expect(within(group).getByRole("status")).toHaveTextContent("Device 7 of 12");
+  });
+
+  it("keeps all dots (dense, no window) when 24px per dot fits", () => {
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, value: 456 });
+    render(
+      <DeviceSwiper devices={many} currentIndex={0} onIndexChange={vi.fn()}>
+        <div>Card</div>
+      </DeviceSwiper>,
+    );
+    const group = screen.getByRole("group", { name: "Device selection" });
+    expect(within(group).getAllByRole("button")).toHaveLength(12);
+    expect(within(group).queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("hides the leaving card from assistive technology and makes it inert", () => {
+    presence.present = false;
+    const { container } = render(
+      <DeviceSwiper devices={many} currentIndex={0} onIndexChange={vi.fn()}>
+        <div>Card</div>
+      </DeviceSwiper>,
+    );
+    const shell = container.querySelector(".ds-card-shell")!;
+    expect(shell).toHaveAttribute("aria-hidden", "true");
+    expect(shell).toHaveAttribute("data-state", "leaving");
+    expect(shell.hasAttribute("inert")).toBe(true);
   });
 });

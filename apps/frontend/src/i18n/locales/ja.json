@@ -23,7 +23,8 @@
     "presets": "プリセット",
     "zones": "ゾーン",
     "settings": "設定",
-    "about": "について"
+    "about": "について",
+    "ariaLabel": "メインナビゲーション"
   },
   "player": {
     "noPlayback": "再生なし",
@@ -42,7 +43,23 @@
     "manageZone": "ゾーンを管理",
     "multiRoom": "マルチルーム",
     "prevDevice": "前のデバイス",
-    "nextDevice": "次のデバイス"
+    "nextDevice": "次のデバイス",
+    "source": {
+      "bluetooth": "Bluetooth",
+      "radio": "ラジオ",
+      "aux": "AUX",
+      "airplay": "AirPlay",
+      "dlna": "DLNA",
+      "tv": "テレビ / HDMI",
+      "spotify": "Spotify",
+      "deezer": "Deezer",
+      "pandora": "Pandora",
+      "amazon": "Amazon Music",
+      "storedMusic": "メディアライブラリ"
+    },
+    "unknownDevice": "不明なデバイス",
+    "zoneBadgeMember": "ゾーン",
+    "zoneTitle": "ゾーン: {{role}}"
   },
   "presets": {
     "pageTitle": "ラジオプリセット",
@@ -61,8 +78,8 @@
     "infoTitle": "プリセットについて",
     "infoItem1": "空のプリセットをクリックしてステーションを割り当てる",
     "infoItem2": "割り当て済みのステーションをクリックして変更または削除する",
-    "infoItem3": "緑色の ► ボタンでステーションを直接再生",
-    "infoItem5": "⚙️ デバイスのセットアップウィザードを開く",
+    "infoItem3": "プリセット右側の再生ボタンで放送局を直接再生します",
+    "infoItem5": "デバイスカード右上のステータスアイコンで、そのデバイスのセットアップウィザードを開きます",
     "infoItem6": "「デバイスから読み込む」でSoundTouchからプリセットを同期",
     "changeStation": "クリックしてステーションを変更",
     "assignPreset": "プリセットを割り当て",
@@ -104,7 +121,18 @@
     "manualStreamErrorTitle": "ストリームエラー",
     "manualStreamUnreachable": "ストリームURLにアクセスできません。",
     "manualStreamSaveFailed": "局を保存できませんでした。",
-    "manualStreamErrorOk": "OK"
+    "manualStreamErrorOk": "OK",
+    "unknownDevice": "不明なデバイス",
+    "unknownModel": "不明なモデル",
+    "unknownIp": "不明なIP",
+    "searchHint": "2文字以上入力して検索してください。",
+    "manualInvalidUrl": "有効なHTTPまたはHTTPSアドレスを入力してください。",
+    "searchTypeGroup": "検索対象",
+    "providerGroup": "ソース",
+    "searchResults": "検索結果",
+    "confirmRemoveDeviceTitle": "デバイスを削除しますか?",
+    "confirmRemoveDeviceMessage": "{{name}} は保存済みのプリセットとともに OpenCloudTouch から削除されます。後でデバイス検索から再度追加できます。",
+    "confirmRemoveDevice": "デバイスを削除"
   },
   "settings": {
     "title": "設定",
@@ -117,7 +145,9 @@
       "enterIp": "IPアドレスを入力してください",
       "probing": "検索中...",
       "deviceAdded": "{{name}}（{{ip}}）を追加しました",
-      "probeError": "{{ip}} にデバイスが見つかりません"
+      "probeError": "{{ip}} にデバイスが見つかりません",
+      "label": "デバイスのIPアドレス",
+      "hint": "形式: 192.168.1.10"
     },
     "discovery": {
       "devicesFound_one": "新しいデバイスが{{count}}台見つかりました",
@@ -130,7 +160,8 @@
       "scanButton": "今すぐ検索",
       "scanning": "検索中...",
       "manualTitle": "手動IPアドレス",
-      "manualDescription": "VLAN、Dockerネットワーク、ファイアウォールなどで自動検索が見つからない場合に使用します。"
+      "manualDescription": "VLAN、Dockerネットワーク、ファイアウォールなどで自動検索が見つからない場合に使用します。",
+      "scanningStatus": "ネットワークを検索中"
     },
     "logging": {
       "sectionTitle": "ログ",
@@ -142,7 +173,10 @@
       "downloadLogs": "ログをダウンロード",
       "downloadDescription": "バックエンドの最新1000件のログエントリをテキストファイルとしてダウンロードします。",
       "levelChanged": "ログレベルを{{level}}に設定しました",
-      "levelError": "ログレベルを変更できませんでした"
+      "levelError": "ログレベルを変更できませんでした",
+      "levelSaving": "ログレベルを保存中",
+      "downloading": "準備中...",
+      "downloadFailed": "ログをダウンロードできませんでした: {{error}}"
     }
   },
   "manualIpModal": {
@@ -152,7 +186,9 @@
     "saveError": "IPアドレスの保存エラー",
     "save": "保存",
     "saving": "保存中...",
-    "hint": "IPアドレスは関連アプリの設定→情報、またはルーターで確認できます。"
+    "hint": "IPアドレスは関連アプリの設定→情報、またはルーターで確認できます。",
+    "placeholder": "例:\n192.168.1.100\n192.168.1.101\n192.168.1.102",
+    "saved": "IPアドレスを保存しました!"
   },
   "multiroom": {
     "pageTitle": "マルチルームゾーン",
@@ -177,7 +213,6 @@
     "infoItem5": "ゾーン名をクリックして名前を変更",
     "editZone": "編集",
     "dissolve": "解散",
-    "dissolveConfirm": "本当に解散しますか？",
     "zoneUpdated": "ゾーンを更新しました",
     "zoneCreated": "ゾーンを作成しました",
     "zoneCreateFailed": "ゾーンを作成できませんでした",
@@ -189,7 +224,12 @@
     "clickToEdit": "クリックして編集",
     "cancel": "キャンセル",
     "masterBadge": "マスター",
-    "slaveBadge": "スレーブ"
+    "slaveBadge": "スレーブ",
+    "unknownDevice": "不明なデバイス",
+    "defaultZoneName": "{{name}} ゾーン",
+    "staleBadge": "しばらく確認されていません",
+    "confirmDissolveTitle": "ゾーンを解除しますか?",
+    "confirmDissolveMessage": "「{{name}}」を解除します。デバイスは再び個別に再生されます。"
   },
   "firmware": {
     "title": "ファームウェアアップデート",
@@ -381,7 +421,8 @@
         "troubleshootingItem3": "再起動後少なくとも100秒待つ",
         "troubleshootingItem4": "別の電源サイクルを試す（手順2〜5）",
         "troubleshootingItem5": "デバイスが同じネットワークにあるか確認",
-        "troubleshootingItem6": "上記のコマンドでSSH接続を手動でテストしてください — それが機能すれば、デバイスは準備できています。"
+        "troubleshootingItem6": "上記のコマンドでSSH接続を手動でテストしてください — それが機能すれば、デバイスは準備できています。",
+        "nextDisabled": "SSHアクセスを確認し、SSHを有効のままにするか選択してください。"
       },
       "step4": {
         "title": "バックアップを作成",
@@ -392,14 +433,15 @@
         "btnCreate": "今すぐバックアップを作成",
         "btnCreating": "バックアップを作成中...",
         "progressMessage": "{{device}}のバックアップを作成しています",
-        "progressNote": "これには最大2分かかる場合があります...",
+        "progressNote": "これには最大10分かかる場合があります...",
         "errorTitle": "バックアップ失敗",
         "successTitle": "バックアップが正常に作成されました！",
         "successHint": "バックアップはUSBドライブに書き込まれました。ウィザード後にドライブを取り外してください — 復元ファイルが含まれています。",
         "filesTitle": "保存されたファイル（USBドライブ上）：",
         "totalLabel": "合計：",
         "durationMinSec": "{{min}}分{{sec}}秒",
-        "durationSec": "{{sec}}秒"
+        "durationSec": "{{sec}}秒",
+        "nextWarning": "バックアップがないと復元できません。このまま続行する場合は、自己責任となります。"
       },
       "step5": {
         "titleProxy": "リバースプロキシ検出",
@@ -467,8 +509,7 @@
         "changedEntries": "変更されたエントリ：",
         "backupLabel": "バックアップ：",
         "btnShowChanges": "▶ 変更を表示",
-        "btnHideChanges": "▼ 変更を非表示",
-        "hostsApplied": "hostsファイルが正常に変更されました。"
+        "btnHideChanges": "▼ 変更を非表示"
       },
       "step7": {
         "title": "NTPサーバーにパッチを適用",
@@ -542,7 +583,11 @@
         "btnRetryFullVerify": "検証を再実行",
         "checkNtpServer": "NTPサーバーを設定しました: {{server}}",
         "checkNtpServerWrong": "NTPサーバーは '{{found}}' に設定されています（期待値: '{{expected}}'）",
-        "fullVerifyItem5": "NTPサーバーがデバイスに設定済み"
+        "fullVerifyItem5": "NTPサーバーがデバイスに設定済み",
+        "phaseFinalize": "セットアップ",
+        "phaseReboot": "再起動",
+        "phaseVerify": "確認",
+        "nextDisabled": "まずすべての確認を正常に完了してください。"
       },
       "step9": {
         "title": "セットアップ完了！",
@@ -572,9 +617,18 @@
         "supportLink": "サポートに連絡 →",
         "summaryItem7": "NTPサーバーにパッチを適用 ({{server}})"
       }
-    }
+    },
+    "trackerCompact": "ステップ {{current}}/{{total}} – {{label}}",
+    "stepAriaSkipped": "ステップ {{id}}: {{label}} — {{description}} – スキップ"
   },
   "restore": {
+    "steps": {
+      "choice": "選択",
+      "backup": "バックアップ",
+      "restore": "復元",
+      "verify": "確認",
+      "done": "完了"
+    },
     "choice": {
       "title": "何をしますか？",
       "setup_title": "セットアップウィザード",
@@ -606,7 +660,10 @@
       "running": "復元中...",
       "error": "Restore failed: {{message}}",
       "success": "All steps completed successfully! Total: {{time}}s",
-      "continue": "続行"
+      "continue": "続行",
+      "running_hint": "この処理には数分かかる場合があります(通常8〜9分)。このページを開いたままにし、デバイスを取り外さないでください。",
+      "error_hint": "前の画面に戻って、もう一度お試しください。",
+      "failed_title": "復元が完了していません"
     },
     "verification": {
       "title": "デバイスを待機中",
@@ -627,6 +684,50 @@
       "failed": "失敗",
       "note": "デバイスは元の状態に戻りました。安全に切断できます。",
       "done": "Done"
+    },
+    "step_labels": {
+      "pre_snapshot": "復元前のスナップショット",
+      "config": "設定ファイル",
+      "presets": "プリセット",
+      "hosts": "/etc/hosts",
+      "ntp": "/etc/ntpservers.txt",
+      "remote_services": "SSHの永続化",
+      "reboot": "再起動"
+    },
+    "messages": {
+      "snapshot_saved": "復元前のスナップショットを保存しました",
+      "snapshot_unavailable": "ウィザードサービスを利用できません",
+      "snapshot_failed": "スナップショットに失敗しました: {{error}}",
+      "config_restored": "設定ファイルを復元しました",
+      "config_restore_failed": "設定の復元に失敗しました: {{error}}",
+      "presets_clean": "デバイスに Presets.xml が見つかりません(すでにクリーンです)",
+      "presets_restored": "プリセットを {{path}} に復元しました",
+      "presets_restore_failed": "プリセットの復元に失敗しました: {{error}}",
+      "hosts_read_failed": "/etc/hosts を読み取れませんでした",
+      "hosts_clean": "/etc/hosts に OCT ブロックが見つかりません(すでにクリーンです)",
+      "hosts_restored": "/etc/hosts から OCT ブロックを削除しました",
+      "hosts_restore_failed": "/etc/hosts の復元に失敗しました: {{error}}",
+      "ntp_no_backup": "NTP のバックアップが見つかりません(すでにクリーンです)",
+      "ntp_copy_failed": "バックアップから /etc/ntpservers.txt を復元できませんでした",
+      "ntp_restored": "バックアップから NTP サーバーを復元しました",
+      "ntp_restore_failed": "NTP サーバーの復元に失敗しました: {{error}}",
+      "remote_services_deleted": "/mnt/nv/remote_services を削除しました",
+      "remote_services_failed": "remote_services を削除できませんでした: {{error}}",
+      "reboot_sent": "再起動コマンドを送信しました",
+      "reboot_failed": "再起動に失敗しました: {{error}}"
+    },
+    "validation": {
+      "archive_corrupt": "アーカイブが破損しているか、読み取れません",
+      "archive_empty": "アーカイブが空です",
+      "archive_unverified": "アーカイブの内容を確認できませんでした(スキャンの失敗またはタイムアウト)",
+      "archive_path_missing": "{{expected}} で始まる想定パスがアーカイブ内に見つかりません"
+    },
+    "status": {
+      "completed": "完了",
+      "skipped": "スキップ",
+      "failed": "失敗",
+      "in_progress": "実行中",
+      "pending": "待機中"
     }
   },
   "errors": {
@@ -678,27 +779,34 @@
     "licensesDescription": "OpenCloudTouchは以下のオープンソースライブラリを使用しています：",
     "licenseCompliance": "ライセンスコンプライアンス",
     "licenseComplianceText": "OpenCloudTouchはApache License 2.0のオープンソースソフトウェアです。使用されているすべてのライブラリはこのライセンスと互換性があります。",
-    "devicesConnected_zero": "接続されているデバイスなし",
-    "devicesConnected_one": "{{count}}台のデバイスが接続されています",
-    "devicesConnected_other": "{{count}}台のデバイスが接続されています",
-    "github": "GitHub",
-    "reportIssue": "問題を報告",
     "support": "サポート",
-    "versionUnavailable": "バージョン不明",
-    "hallOfFameTitle": "殿堂入り",
-    "hallOfFameDescription": "歴代トップ3の貢献者 — 卓越した技術的影響力で認められています。",
-    "supportersTitle": "支援者",
     "reportBug": "バグ報告",
     "diagnostics": "診断",
-    "supportersDescription": "OpenCloudTouchを財政的に支援してくださる皆様に感謝します。皆様の貢献がプロジェクトを支えています！",
-    "supportersMonthly": "月額支援者",
-    "supportersOneTime": "一回限りの支援者",
-    "buildTime": "ビルド日時：{{time}}",
     "checkingUpdates": "アップデート確認中...",
     "updateAvailable": "アップデート可能：{{version}}",
     "viewRelease": "リリースを表示",
     "upToDate": "最新版です！",
-    "devBuild": "自己ビルド版 — アップデート確認は無効です"
+    "devBuild": "自己ビルド版 — アップデート確認は無効です",
+    "github": "GitHub",
+    "externalLink": "(新しいタブで開きます)",
+    "licenses": "オープンソースライセンス",
+    "linksLabel": "詳細情報",
+    "supportersTitle": "Supp<0/>rters",
+    "supportersLabel": "サポーター",
+    "monthlySupporter": "(月額サポーター)",
+    "libraryWebsite": "{{name}} のウェブサイト",
+    "licensesVersion": "バージョン",
+    "licensesGroup": {
+      "frontend": "フロントエンド",
+      "backend": "バックエンド",
+      "build": "ビルドツール"
+    },
+    "licenseProject": "OpenCloudTouch ライセンス",
+    "licenseApache": "Apache License 2.0",
+    "trademarkTitle": "商標に関する注意",
+    "trademarkText1": "OpenCloudTouch は <0>Bose Corporation とは無関係</0>です。Bose® および SoundTouch® は Bose Corporation の登録商標です。",
+    "trademarkText2": "このソフトウェアは、Bose SoundTouch® デバイスの公開されているローカルAPIを利用しています。詳細は <0>TRADEMARK.md</0> をご覧ください。",
+    "runningSince": "{{time}} から稼働中"
   },
   "discovery": {
     "alreadyRunning": "デバイス検索はすでに実行中です。お待ちください...",
@@ -723,7 +831,8 @@
     "helpFirewall": "ファイアウォールルールがデバイス検出をブロックしている可能性があります",
     "helpRestart": "デバイスとOpenCloudTouchを再起動する",
     "helpManualAdd": "デバイスIPを手動で追加する",
-    "helpSetupWizard": "ステップバイステップの手順についてはセットアップウィザードに従ってください"
+    "helpSetupWizard": "ステップバイステップの手順についてはセットアップウィザードに従ってください",
+    "deviceSaved": "保存済み"
   },
   "setupBadge": {
     "unknown": "デバイスをセットアップ",
@@ -744,27 +853,7 @@
     "unknown": "不明"
   },
   "bugReport": {
-    "title": "バグを報告",
-    "description": "バグの説明",
-    "descriptionPlaceholder": "何が問題でしたか？",
-    "steps": "再現手順",
-    "stepsPlaceholder": "1. ...へ移動\n2. ...をクリック\n3. エラーが表示...",
-    "expected": "期待される動作",
-    "expectedPlaceholder": "何が起こるべきでしたか？",
-    "installationType": "インストールタイプ",
-    "whichInstallation": "どのインストール？",
-    "hardware": "ハードウェア / プラットフォーム",
-    "whichHardware": "どのハードウェア？",
-    "devices": "SoundTouchデバイス",
-    "whichDevice": "どのデバイス？",
-    "networkConfig": "ネットワーク設定",
-    "additionalInfo": "追加情報",
-    "submit": "バグレポートを送信",
-    "submitting": "送信中...",
-    "downloadLogs": "ログをダウンロード",
     "downloading": "ダウンロード中...",
-    "submitSuccess": "バグレポートが作成されました！ {{url}}",
-    "submitFailed": "バグレポートの送信に失敗しました: {{error}}",
     "diagnosticsSuccess": "診断がダウンロードされました！.log.gzファイルをGitHub issueに添付してください。",
     "diagnosticsFailed": "診断のダウンロードに失敗しました: {{error}}"
   },
@@ -785,7 +874,15 @@
     "firmware": "ファームウェア",
     "setupStatus": "セットアップ状況",
     "lastSeen": "最終確認",
-    "downloadBundle": "サポートバンドルをダウンロード"
+    "downloadBundle": "サポートバンドルをダウンロード",
+    "ip": "IPアドレス",
+    "ssh": "SSH",
+    "sshOn": "常時有効",
+    "sshOff": "無効",
+    "statusOnline": "オンライン",
+    "statusStale": "しばらく確認されていません",
+    "statusOffline": "オフライン",
+    "unknownValue": "不明"
   },
   "deviceRename": {
     "clickToEdit": "クリックして名前を変更",
@@ -796,6 +893,22 @@
   "deviceHeader": {
     "reboot": "デバイスを再起動",
     "sent": "再起動コマンドを送信しました",
-    "confirmMessage": "{{name}}を再起動しますか？デバイスは約100秒間使用できなくなります。"
+    "confirmMessage": "{{name}}を再起動しますか？デバイスは約100秒間使用できなくなります。",
+    "backToDevice": "{{name}} に戻る"
+  },
+  "a11y": {
+    "skipToContent": "メインコンテンツへ移動",
+    "selectLanguage": "言語を選択",
+    "deviceSelection": "デバイスの選択",
+    "switchToDevice": "{{name}} に切り替え",
+    "volume": "音量",
+    "copyCommand": "コマンドをコピー",
+    "copyToClipboard": "クリップボードにコピー",
+    "deviceCounter": "デバイス {{current}} / {{total}}"
+  },
+  "stationDetail": {
+    "codec": "コーデック",
+    "bitrate": "ビットレート",
+    "homepage": "ホームページ"
   }
 }

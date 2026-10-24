@@ -218,7 +218,7 @@ describe("PresetButton Component", () => {
         />
       );
 
-      const img = document.querySelector(".preset-favicon") as HTMLImageElement;
+      const img = document.querySelector(".pb-favicon") as HTMLImageElement;
       fireEvent.error(img);
 
       expect((img as HTMLImageElement).style.display).toBe("none");
@@ -239,7 +239,7 @@ describe("PresetButton Component", () => {
 
       expect(screen.getByText("BBC Radio 1")).toBeInTheDocument();
       const container = screen.getByTestId("preset-1");
-      expect(container).toHaveClass("preset-disabled");
+      expect(container).toHaveClass("pb--disabled");
     });
 
     it("renders disabled preset with fallback text when no station name", () => {
@@ -254,7 +254,7 @@ describe("PresetButton Component", () => {
       );
 
       const container = screen.getByTestId("preset-1");
-      expect(container).toHaveClass("preset-disabled");
+      expect(container).toHaveClass("pb--disabled");
       // The `preset?.station_name || t("presets.empty")` fallback must actually render.
       expect(screen.getByText("No presets configured")).toBeInTheDocument();
     });

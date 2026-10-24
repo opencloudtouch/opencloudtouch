@@ -1,10 +1,15 @@
 /**
- * Step 4: Backup Creation
+ * Step 4: Backup Creation (tracker step 3)
+ * Logic, props, API call and t() keys unchanged (Next stays `isNextDisabled={creating}`).
+ * Added: a warning hint above the action bar while `error` is set (new key setup.wizard.step4.nextWarning).
+ * The failed state also recolours Next via `.wizard-step:has(.backup-error)` in Step4Backup.css.
  */
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { createBackup, BackupResponse, BackupVolume } from "../../api/wizard";
 import WizardStep from "./WizardStep";
+import { Icon } from "./Icon";
+import "./wizard-base.css";
 import "./Step4Backup.css";
 
 /** Format seconds into human-readable "Xm Ys" / "Xs" using i18n */
@@ -78,8 +83,8 @@ export default function Step4Backup({
       isNextDisabled={creating}
     >
       <div className="backup">
-        {/* Backup Action */}
-        {!backupData && (
+        {/* Backup Action: shown until a backup succeeded, so a failed attempt can be repeated */}
+        {!backupData?.success && (
           <div className="backup-selection">
             <h3 className="backup-title">{t("setup.wizard.step4.sectionTitle")}</h3>
             <p className="backup-info">{t("setup.wizard.step4.backupInfo")}</p>
@@ -95,7 +100,10 @@ export default function Step4Backup({
                   {t("setup.wizard.step4.btnCreating")}
                 </>
               ) : (
-                <>💾 {t("setup.wizard.step4.btnCreate")}</>
+                <>
+                  {error ? Icon.Rotate() : Icon.Save()}{" "}
+                  {error ? t("common.retry") : t("setup.wizard.step4.btnCreate")}
+                </>
               )}
             </button>
           </div>
@@ -103,7 +111,7 @@ export default function Step4Backup({
 
         {/* Backup Progress/Error */}
         {creating && (
-          <div className="backup-progress">
+          <div className="backup-progress wz-status" role="status" aria-live="polite">
             <div className="progress-icon">
               <div className="spinner-large" />
             </div>
@@ -115,9 +123,9 @@ export default function Step4Backup({
         )}
 
         {error && (
-          <div className="backup-error">
+          <div className="backup-error wz-status wz-status--error" role="alert">
             <div className="error-icon" role="img" aria-label={t("setup.wizard.step4.errorTitle")}>
-              ❌
+              {Icon.CircleX(28)}
             </div>
             <div className="error-content">
               <strong>{t("setup.wizard.step4.errorTitle")}</strong>
@@ -128,19 +136,17 @@ export default function Step4Backup({
 
         {/* Backup Success */}
         {backupData?.success && (
-          <div className="backup-success">
+          <div className="backup-success wz-result">
             <div
               className="success-icon"
               role="img"
               aria-label={t("setup.wizard.step4.successTitle")}
             >
-              ✅
+              {Icon.CircleCheck(28)}
             </div>
             <h3 className="success-title">{t("setup.wizard.step4.successTitle")}</h3>
-            <p className="success-message">{t("setup.wizard.step4.successHint")}</p>
-
             <div className="backup-location-hint">
-              <span className="backup-location-icon">🔌</span>
+              <span className="backup-location-icon">{Icon.Plug(20)}</span>
               <span>{t("setup.wizard.step4.successHint")}</span>
             </div>
 
@@ -149,7 +155,7 @@ export default function Step4Backup({
               {(backupData.volumes as unknown as BackupVolume[] | undefined)?.map(
                 (vol: BackupVolume) => (
                   <div key={vol.volume} className="backup-file-item">
-                    <span className="backup-file-icon">📁</span>
+                    <span className="backup-file-icon">{Icon.Folder()}</span>
                     <div className="backup-file-details">
                       <strong>{vol.volume}</strong>
                       <small>
@@ -157,7 +163,9 @@ export default function Step4Backup({
                         {formatDuration(vol.duration_seconds, t)}
                       </small>
                     </div>
-                    <code className="backup-file-path">{vol.path}</code>
+                    <code className="backup-file-path" tabIndex={0}>
+                      {vol.path}
+                    </code>
                   </div>
                 )
               )}
@@ -168,6 +176,14 @@ export default function Step4Backup({
               {backupData.total_size_mb.toFixed(2)} MB in{" "}
               {formatDuration(backupData.total_duration_seconds, t)}
             </div>
+          </div>
+        )}
+
+        {/* Failed backup, Next still enabled: make the risk explicit right above the action bar */}
+        {error && !creating && (
+          <div className="backup-next-warning" role="alert">
+            {Icon.Alert(20)}
+            <span>{t("setup.wizard.step4.nextWarning")}</span>
           </div>
         )}
       </div>

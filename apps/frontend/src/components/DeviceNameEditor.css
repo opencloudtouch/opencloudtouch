@@ -1,58 +1,114 @@
-.device-name-editable {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
+/* dne-: device name editor. The name is centred (with the pencil) at a fixed size. A name that does not fit scrolls like the track title in
+   NowPlaying; it never wraps or shrinks. Reduced motion: ellipsis. The full name stays in title and aria-label. */
+.dne {
+  --dne-fs: 22px;
+  min-width: 0;
   width: 100%;
-  min-width: 0;
-  padding: 0;
-}
-
-.device-name-text {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: center;
-}
-
-.device-name-edit-icon {
-  font-size: 0.65em;
-  opacity: 0.3;
-  transition: opacity 0.2s ease;
-  flex-shrink: 0;
-}
-
-.device-name-editable:hover .device-name-edit-icon,
-.device-name-editable:focus .device-name-edit-icon {
-  opacity: 1;
-}
-
-.device-name-editor {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 6px;
 }
-
-.device-name-input {
-  font-size: 1.1rem;
-  font-weight: 600;
-  padding: 0.25rem 0.5rem;
-  border: 2px solid var(--accent-color, #007aff);
-  border-radius: 6px;
-  background: var(--bg-card, #1c1c1e);
-  color: var(--text-primary, #fff);
-  outline: none;
+.dne-heading {
+  --dne-fs: 22px;
+  margin: 0;
+  min-width: 0;
   width: 100%;
-  max-width: 250px;
+  display: flex;
+  justify-content: center;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+.dne-btn {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: var(--touch-target-min);
+  padding: 0 6px;
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-primary);
+  font-size: var(--dne-fs);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.2;
+  transition: background var(--motion-base);
+}
+.dne-btn:hover {
+  background: var(--bg-tertiary);
+}
+.dne-text-wrap {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.dne-text {
+  display: inline-block;
+  white-space: nowrap;
+}
+.dne-text--scrolling {
+  animation: dne-marquee 8s linear infinite alternate;
+}
+.dne-btn:hover .dne-text--scrolling,
+.dne-btn:focus-visible .dne-text--scrolling {
+  animation-play-state: paused;
+} /* readable on hover / keyboard focus */
+@keyframes dne-marquee {
+  0%,
+  12% {
+    transform: translateX(0);
+  }
+  88%,
+  100% {
+    transform: translateX(var(--marquee-distance));
+  }
+}
+.dne-icon {
+  flex: none;
+  display: flex;
+  color: var(--primary-text);
 }
 
-.device-name-input:focus {
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3);
+.dne-field {
+  position: relative;
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+.dne-input {
+  font-size: 18px;
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+  padding-inline: 40px;
+} /* symmetric: the saving spinner on the right does not push the text off-centre */
+.dne-saving {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  margin-top: -9px;
+  color: var(--primary-text);
+}
+.dne-error {
+  justify-content: center;
+  font-weight: var(--font-weight-normal);
 }
 
-.device-name-error {
-  font-size: 0.75rem;
-  color: var(--color-error, #ff453a);
+@media (prefers-reduced-motion: reduce) {
+  .dne-btn {
+    transition: none;
+  }
+  .dne-text--scrolling {
+    animation: none;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+@media (forced-colors: active) {
+  .dne-btn:focus-visible {
+    outline-color: Highlight;
+  }
 }

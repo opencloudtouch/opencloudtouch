@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, type ReactElement } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -8,7 +8,9 @@ import VolumeSlider from "../components/VolumeSlider";
 import SetupBadge from "../components/SetupBadge";
 import DeviceOfflineBanner from "../components/DeviceOfflineBanner";
 import DeviceNameEditor from "../components/DeviceNameEditor";
+import { Icon } from "../components/Icon";
 import { useNowPlaying } from "../hooks/useNowPlaying";
+import { usePrefetchDevices } from "../hooks/usePrefetchDevices";
 import { useVolume } from "../hooks/useVolume";
 import { useZones } from "../hooks/useZones";
 import { togglePlayPause, nextTrack, prevTrack, power } from "../api/devices";
@@ -19,20 +21,73 @@ type SourceId = "INTERNET_RADIO" | "BLUETOOTH" | "AUX" | "AIRPLAY";
 
 interface Source {
   id: SourceId;
-  label: string;
-  icon: string;
+  labelKey: string;
+  icon: () => ReactElement;
   supported: boolean | "conditional";
 }
 
 const SOURCES: Source[] = [
-  { id: "INTERNET_RADIO", label: "Radio", icon: "📻", supported: true },
-  { id: "BLUETOOTH", label: "Bluetooth", icon: "📱", supported: true },
-  { id: "AUX", label: "AUX", icon: "🎵", supported: true },
-  { id: "AIRPLAY", label: "AirPlay", icon: "📡", supported: "conditional" },
+  {
+    id: "INTERNET_RADIO",
+    labelKey: "player.source.radio",
+    icon: () => Icon.Radio(20),
+    supported: true,
+  },
+  {
+    id: "BLUETOOTH",
+    labelKey: "player.source.bluetooth",
+    icon: () => Icon.Bluetooth(20),
+    supported: true,
+  },
+  { id: "AUX", labelKey: "player.source.aux", icon: () => Icon.Headphones(20), supported: true },
+  {
+    id: "AIRPLAY",
+    labelKey: "player.source.airplay",
+    icon: () => Icon.Airplay(20),
+    supported: "conditional",
+  },
 ];
 
 interface LocalControlProps {
   devices?: Device[];
+}
+
+/** Same silhouette as <NowPlaying>: no layout jump when data arrives. */
+function NowPlayingPlaceholder({ loading }: Readonly<{ loading: boolean }>) {
+  const { t } = useTranslation();
+  return (
+    <div
+      className={`np lc-ph${loading ? "" : " lc-ph--idle"}`}
+      {...(loading ? { role: "status", "aria-label": t("common.loading") } : {})}
+    >
+      <div className="np-header lc-ph-head">
+        {loading && (
+          <>
+            <span className="ui-skeleton lc-ph-tile" />
+            <span className="ui-skeleton lc-ph-line lc-ph-station" />
+          </>
+        )}
+      </div>
+      <div className="np-art lc-ph-art">
+        {loading ? (
+          <span className="ui-skeleton lc-ph-fill" />
+        ) : (
+          <div className="lc-ph-empty">
+            <span aria-hidden="true">{Icon.Music(32)}</span>
+            <span>{t("player.noPlayback")}</span>
+          </div>
+        )}
+      </div>
+      <div className="np-info lc-ph-info">
+        {loading && (
+          <>
+            <span className="ui-skeleton lc-ph-line lc-ph-track" />
+            <span className="ui-skeleton lc-ph-line lc-ph-artist" />
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function LocalControl({ devices = [] }: LocalControlProps) {
@@ -45,8 +100,16 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
   const navigate = useNavigate();
   const currentDevice = devices[currentDeviceIndex];
   const deviceId = currentDevice?.device_id;
+  usePrefetchDevices(
+    devices.map((d) => d.device_id),
+    currentDeviceIndex
+  );
 
-  const { nowPlaying, deviceOffline: hookOffline } = useNowPlaying(deviceId);
+  const {
+    nowPlaying,
+    loading: nowPlayingLoading,
+    deviceOffline: hookOffline,
+  } = useNowPlaying(deviceId);
   const deviceOffline = hookOffline || (deviceId ? isDeviceOfflineInStore(deviceId) : false);
   const { volume, muted, setDeviceVolume, toggleMute } = useVolume(deviceId);
 
@@ -81,6 +144,7 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
   }, [deviceZone, deviceId]);
 
   const isPlaying = nowPlaying?.state === "PLAY_STATE";
+  const standby = nowPlaying?.source === "STANDBY";
 
   useEffect(() => {
     if (nowPlaying?.source) {
@@ -109,8 +173,14 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
 
   if (devices.length === 0) {
     return (
-      <div className="empty-container">
-        <p className="empty-message">{t("player.noDevices")}</p>
+      <div className="lc lc--empty">
+        <h1 className="visually-hidden">{t("player.localControl")}</h1>
+        <div className="ui-state">
+          <div className="ui-state-icon" aria-hidden="true">
+            {Icon.Speaker(32)}
+          </div>
+          <p>{t("player.noDevices")}</p>
+        </div>
       </div>
     );
   }
@@ -122,198 +192,232 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
     return source.supported;
   });
 
-  return (
-    <div className="page local-control-page">
-      <h1 className="page-title">{t("player.localControl")}</h1>
+  const keyIcon = (key: string, icon: ReactElement, size = 24) =>
+    keyLoading === key ? <span className="ui-spin">{Icon.Loader(size)}</span> : icon;
 
-      <DeviceSwiper
-        devices={devices}
-        currentIndex={currentDeviceIndex}
-        onIndexChange={handleDeviceChange}
-      >
-        <div className="control-card">
-          {/* Device Header: Power (left) | Name | Settings (right) */}
-          <div className="control-card-header">
-            <div className="device-header-left">
+  const roleLabel =
+    deviceRole === "master" ? t("multiroom.masterBadge") : t("multiroom.slaveBadge");
+
+  return (
+    <div className="lc">
+      <h1 className="ui-h1 lc-title">{t("player.localControl")}</h1>
+
+      <div className="lc-device">
+        <DeviceSwiper
+          devices={devices}
+          currentIndex={currentDeviceIndex}
+          onIndexChange={handleDeviceChange}
+        >
+          <div className="lc-card">
+            {/* Device header: power | name + model | zone badge, setup badge */}
+            <div className={`lc-head${deviceZone ? " lc-head--zone" : ""}`}>
               <button
-                className="power-header-btn on"
+                type="button"
+                className={`lc-power ${standby ? "lc-power--off" : "lc-power--on"}`}
                 onClick={() => handleKey("POWER", power)}
                 disabled={keyLoading === "POWER" || deviceOffline}
+                aria-pressed={!standby}
+                aria-busy={keyLoading === "POWER" || undefined}
                 aria-label={t("player.powerButton")}
                 title={t("player.powerButton")}
               >
-                {keyLoading === "POWER" ? "⏳" : "⏻"}
+                {keyIcon("POWER", Icon.Power(22), 22)}
               </button>
-            </div>
-            <div className="device-info">
-              {currentDevice ? (
-                <DeviceNameEditor deviceId={currentDevice.device_id} name={currentDevice.name} />
-              ) : (
-                <h2 className="device-name">Unknown Device</h2>
-              )}
-              <span className="device-model">{currentDevice?.model || "Unknown Model"}</span>
-            </div>
-            <div className="device-header-right">
-              {deviceZone && (
-                <button
-                  className="zone-indicator-badge"
-                  onClick={() => navigate("/multiroom")}
-                  title={`Zone: ${deviceRole === "master" ? "Master" : "Slave"}`}
-                >
-                  🔗 {deviceRole === "master" ? "Master" : "Zone"}
-                </button>
-              )}
-              {currentDevice && (
-                <SetupBadge
-                  deviceId={currentDevice.device_id}
-                  setupStatus={currentDevice.setup_status}
-                />
-              )}
-            </div>
-          </div>
-
-          {/* Device Offline Banner */}
-          {deviceOffline && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <DeviceOfflineBanner deviceName={currentDevice?.name} />
-            </motion.div>
-          )}
-
-          {/* Now Playing */}
-          {nowPlaying && !deviceOffline && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <NowPlaying
-                nowPlaying={{
-                  station: nowPlaying.station_name,
-                  track: nowPlaying.track,
-                  artist: nowPlaying.artist,
-                  art_url: nowPlaying.artwork_url,
-                  play_status: nowPlaying.state,
-                  source: nowPlaying.source,
-                }}
-                onPlayPause={() => handleKey("PLAY_PAUSE", togglePlayPause)}
-              />
-            </motion.div>
-          )}
-
-          {/* Volume Control */}
-          {!deviceOffline && (
-            <motion.div
-              className="volume-section"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <VolumeSlider
-                volume={volume}
-                muted={muted}
-                onVolumeChange={setDeviceVolume}
-                onMuteToggle={toggleMute}
-              />
-            </motion.div>
-          )}
-
-          {/* Source Selection */}
-          {!deviceOffline && (
-            <motion.div
-              className="source-section"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <h3 className="source-title">{t("player.sourceTitle")}</h3>
-              <div className="source-tabs">
-                {supportedSources.map((source) => (
+              <div className="lc-info">
+                {currentDevice ? (
+                  <DeviceNameEditor deviceId={currentDevice.device_id} name={currentDevice.name} />
+                ) : (
+                  <h2 className="lc-unknown-name">{t("player.unknownDevice")}</h2>
+                )}
+                <span className="lc-model">
+                  {currentDevice?.model || t("firmware.unknownModel")}
+                </span>
+              </div>
+              <div className="lc-end">
+                {deviceZone && (
                   <button
-                    key={source.id}
-                    className={`source-tab ${selectedSource === source.id ? "active" : ""}`}
-                    onClick={() => handleSourceChange(source.id)}
+                    type="button"
+                    className="lc-zone"
+                    onClick={() => navigate("/multiroom")}
+                    title={t("player.zoneTitle", { role: roleLabel })}
                   >
-                    <span className="source-icon">{source.icon}</span>
-                    <span className="source-label">{source.label}</span>
+                    {Icon.Link(16)}
+                    <span>
+                      {deviceRole === "master"
+                        ? t("multiroom.masterBadge")
+                        : t("player.zoneBadgeMember")}
+                    </span>
                   </button>
-                ))}
+                )}
+                {currentDevice && (
+                  <SetupBadge
+                    deviceId={currentDevice.device_id}
+                    setupStatus={currentDevice.setup_status}
+                  />
+                )}
               </div>
-            </motion.div>
-          )}
+            </div>
 
-          {/* Playback Controls */}
-          {!deviceOffline && (
+            {/* Device offline banner */}
+            {deviceOffline && (
+              <motion.div initial={{ y: -10 }} animate={{ y: 0 }} transition={{ duration: 0.3 }}>
+                <DeviceOfflineBanner deviceName={currentDevice?.name} />
+              </motion.div>
+            )}
+
+            {/* Now playing (placeholder of the same height while loading, in standby or without data) */}
+            {!deviceOffline && (
+              <motion.div
+                className="lc-np"
+                initial={{ y: 20 }}
+                animate={{ y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                {nowPlaying && !standby ? (
+                  <NowPlaying
+                    nowPlaying={{
+                      station: nowPlaying.station_name,
+                      track: nowPlaying.track,
+                      artist: nowPlaying.artist,
+                      art_url: nowPlaying.artwork_url,
+                      play_status: nowPlaying.state,
+                      source: nowPlaying.source,
+                    }}
+                    onPlayPause={() => handleKey("PLAY_PAUSE", togglePlayPause)}
+                  />
+                ) : (
+                  <NowPlayingPlaceholder loading={nowPlayingLoading && !nowPlaying} />
+                )}
+              </motion.div>
+            )}
+
+            {/* Volume */}
+            {!deviceOffline && (
+              <motion.div
+                className="lc-volume"
+                data-test="lc-volume"
+                initial={{ y: 20 }}
+                animate={{ y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <VolumeSlider
+                  volume={volume}
+                  muted={muted}
+                  onVolumeChange={setDeviceVolume}
+                  onMuteToggle={toggleMute}
+                />
+              </motion.div>
+            )}
+
+            {/* Source selection (local UI state, follows nowPlaying.source) */}
+            {!deviceOffline && (
+              <motion.section
+                className="lc-section"
+                data-test="lc-source"
+                aria-labelledby="lc-source-title"
+                initial={{ y: 20 }}
+                animate={{ y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <h3 id="lc-source-title" className="ui-h3">
+                  {t("player.sourceTitle")}
+                </h3>
+                <div className="ui-chips lc-sources" role="group" aria-labelledby="lc-source-title">
+                  {supportedSources.map((source) => (
+                    <button
+                      key={source.id}
+                      type="button"
+                      className="ui-chip lc-chip"
+                      aria-pressed={selectedSource === source.id}
+                      onClick={() => handleSourceChange(source.id)}
+                    >
+                      <span className="lc-chip-icon" aria-hidden="true">
+                        {source.icon()}
+                      </span>
+                      <span>{t(source.labelKey)}</span>
+                    </button>
+                  ))}
+                </div>
+              </motion.section>
+            )}
+
+            {/* Playback controls */}
+            {!deviceOffline && (
+              <motion.section
+                className="lc-section"
+                data-test="lc-playback"
+                aria-labelledby="lc-playback-title"
+                initial={{ y: 20 }}
+                animate={{ y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <h3 id="lc-playback-title" className="ui-h3">
+                  {t("player.playbackTitle")}
+                </h3>
+                <div className="lc-controls">
+                  <button
+                    type="button"
+                    className="lc-key"
+                    onClick={() => handleKey("PREV_TRACK", prevTrack)}
+                    disabled={keyLoading !== null}
+                    aria-busy={keyLoading === "PREV_TRACK" || undefined}
+                    aria-label={t("player.prevTrack")}
+                  >
+                    {keyIcon("PREV_TRACK", Icon.SkipBack(24))}
+                  </button>
+                  <button
+                    type="button"
+                    className="lc-key lc-key--primary"
+                    onClick={() => handleKey("PLAY_PAUSE", togglePlayPause)}
+                    disabled={keyLoading !== null}
+                    aria-busy={keyLoading === "PLAY_PAUSE" || undefined}
+                    aria-label={isPlaying ? t("player.pause") : t("player.play")}
+                  >
+                    {keyIcon("PLAY_PAUSE", isPlaying ? Icon.Pause(32) : Icon.Play(32), 32)}
+                  </button>
+                  <button
+                    type="button"
+                    className="lc-key"
+                    onClick={() => handleKey("NEXT_TRACK", nextTrack)}
+                    disabled={keyLoading !== null}
+                    aria-busy={keyLoading === "NEXT_TRACK" || undefined}
+                    aria-label={t("player.nextTrack")}
+                  >
+                    {keyIcon("NEXT_TRACK", Icon.SkipForward(24))}
+                  </button>
+                </div>
+              </motion.section>
+            )}
+
+            {/* Quick actions */}
             <motion.div
-              className="playback-section"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
+              className="lc-quick-actions"
+              data-test="lc-quick-actions"
+              initial={{ y: 20 }}
+              animate={{ y: 0 }}
+              transition={{ delay: 0.6 }}
             >
-              <h3 className="playback-title">{t("player.playbackTitle")}</h3>
-              <div className="playback-controls">
-                <button
-                  className="playback-button previous"
-                  onClick={() => handleKey("PREV_TRACK", prevTrack)}
-                  disabled={keyLoading === "PREV_TRACK"}
-                  aria-label={t("player.prevTrack")}
-                >
-                  <span className="playback-icon">{keyLoading === "PREV_TRACK" ? "⏳" : "⏮"}</span>
-                </button>
-                <button
-                  className="playback-button play-pause primary"
-                  onClick={() => handleKey("PLAY_PAUSE", togglePlayPause)}
-                  disabled={keyLoading === "PLAY_PAUSE"}
-                  aria-label={isPlaying ? t("player.pause") : t("player.play")}
-                >
-                  <span className="playback-icon">
-                    {keyLoading === "PLAY_PAUSE" ? "⏳" : isPlaying ? "⏸️" : "▶️"}
-                  </span>
-                </button>
-                <button
-                  className="playback-button next"
-                  onClick={() => handleKey("NEXT_TRACK", nextTrack)}
-                  disabled={keyLoading === "NEXT_TRACK"}
-                  aria-label={t("player.nextTrack")}
-                >
-                  <span className="playback-icon">{keyLoading === "NEXT_TRACK" ? "⏳" : "⏭"}</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                className={`btn btn-secondary lc-quick${muted ? " lc-quick--active" : ""}`}
+                onClick={toggleMute}
+                disabled={deviceOffline}
+              >
+                {muted ? Icon.VolumeX(20) : Icon.Volume2(20)}
+                <span>{muted ? t("player.muteOn") : t("player.muteOff")}</span>
+              </button>
+              <button
+                type="button"
+                className={`btn btn-secondary lc-quick${deviceZone ? " lc-quick--active" : ""}`}
+                onClick={() => navigate("/multiroom")}
+              >
+                {Icon.Link(20)}
+                <span>{deviceZone ? t("player.manageZone") : t("player.multiRoom")}</span>
+              </button>
             </motion.div>
-          )}
-
-          {/* Quick Actions */}
-          <motion.div
-            className="quick-actions"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-          >
-            <button
-              className={`quick-action-button ${muted ? "active" : ""}`}
-              onClick={toggleMute}
-              disabled={deviceOffline}
-            >
-              <span className="quick-action-icon">{muted ? "🔇" : "🔊"}</span>
-              <span className="quick-action-label">
-                {muted ? t("player.muteOn") : t("player.muteOff")}
-              </span>
-            </button>
-            <button
-              className={`quick-action-button ${deviceZone ? "active" : ""}`}
-              onClick={() => navigate("/multiroom")}
-            >
-              <span className="quick-action-icon">🔗</span>
-              <span className="quick-action-label">
-                {deviceZone ? t("player.manageZone") : t("player.multiRoom")}
-              </span>
-            </button>
-          </motion.div>
-        </div>
-      </DeviceSwiper>
+          </div>
+        </DeviceSwiper>
+      </div>
     </div>
   );
 }

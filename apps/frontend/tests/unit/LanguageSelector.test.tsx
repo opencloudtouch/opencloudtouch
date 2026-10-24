@@ -74,13 +74,13 @@ describe("LanguageSelector", () => {
     expect(enOption).toBeDefined();
     expect(enOption).toHaveAttribute("aria-selected", "true");
     expect(enOption?.querySelector(".lang-option-check")).not.toBeNull();
-    expect(enOption?.textContent).toContain("✓");
+    expect(enOption?.querySelector(".lang-option-check svg")).not.toBeNull();
 
     // No other option should be marked active or show the checkmark.
     const otherOptions = options.filter((o) => o !== enOption);
     for (const option of otherOptions) {
       expect(option).toHaveAttribute("aria-selected", "false");
-      expect(option.querySelector(".lang-option-check")).toBeNull();
+      expect(option.querySelector(".lang-option-check svg")).toBeNull();
     }
   });
 

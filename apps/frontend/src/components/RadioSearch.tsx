@@ -5,6 +5,8 @@ import { getErrorMessage, parseApiError } from "../api/types";
 import { getAvatarColor, getStationInitials } from "../utils/stationAvatar";
 import StationDetail from "./StationDetail";
 import ConfirmDialog from "./ConfirmDialog";
+import Modal from "./Modal";
+import { Icon } from "./Icon";
 import "./RadioSearch.css";
 
 export interface RadioStation {
@@ -310,37 +312,36 @@ export default function RadioSearch({
     }
   };
 
-  if (!isOpen) return null;
+  const urlInvalid = manualUrl.trim() !== "" && !isValidHttpUrl(manualUrl);
+  const faviconInvalid = manualFavicon.trim() !== "" && !isValidHttpUrl(manualFavicon);
 
   return (
-    <div
-      className="radio-search-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose?.();
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") onClose?.();
-      }}
-      tabIndex={-1}
-      role="none"
-    >
-      <div
-        className="radio-search-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label={t("presets.searchTitle")}
-      >
-        <ConfirmDialog
-          open={saveError !== null}
-          title={t("presets.manualStreamErrorTitle")}
-          message={saveError ?? ""}
-          confirmLabel={t("presets.manualStreamErrorOk")}
-          showCancelButton={false}
-          onConfirm={() => setSaveError(null)}
-          onCancel={() => setSaveError(null)}
-        />
+    <Modal open={isOpen} onClose={() => onClose?.()} size="lg" labelledBy="rs-title">
+      <ConfirmDialog
+        open={saveError !== null}
+        title={t("presets.manualStreamErrorTitle")}
+        message={saveError ?? ""}
+        confirmLabel={t("presets.manualStreamErrorOk")}
+        showCancelButton={false}
+        onConfirm={() => setSaveError(null)}
+        onCancel={() => setSaveError(null)}
+      />
 
-        {detailUuid ? (
+      {detailUuid ? (
+        <>
+          <div className="rs-head rs-head--detail">
+            <h2 id="rs-title" className="dlg-title">
+              {t("presets.searchTitle")}
+            </h2>
+            <button
+              className="btn btn-ghost btn-icon dlg-close"
+              onClick={onClose}
+              aria-label={t("presets.searchClose")}
+              title={t("presets.searchClose")}
+            >
+              {Icon.X(22)}
+            </button>
+          </div>
           <StationDetail
             stationUuid={detailUuid}
             provider={radioProvider}
@@ -356,110 +357,30 @@ export default function RadioSearch({
               })
             }
           />
-        ) : (
-          <>
-            <div className="search-header">
-              {searchMode === "manual" ? (
-                <div className="manual-stream-field">
-                  <input
-                    type="url"
-                    className="search-input"
-                    placeholder={t("presets.manualStreamUrlPlaceholder")}
-                    value={manualUrl}
-                    onChange={(e) => setManualUrl(e.target.value)}
-                    aria-label={t("presets.manualStreamUrlPlaceholder")}
-                    data-test="manual-stream-url"
-                    aria-describedby="manual-stream-url-help"
-                    autoFocus
-                  />
-                  <div id="manual-stream-url-help" className="manual-stream-help">
-                    {t("presets.manualStreamUrlHelp")}
-                  </div>
-                </div>
-              ) : (
-                <input
-                  type="search"
-                  className="search-input"
-                  placeholder={t(`presets.searchPlaceholder.${searchType}`)}
-                  value={query}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  autoFocus
-                />
-              )}
-              <button
-                className="search-close"
-                onClick={onClose}
-                aria-label={t("presets.searchClose")}
-                title={t("presets.searchClose")}
-              >
-                ✕
-              </button>
-            </div>
+        </>
+      ) : (
+        <>
+          <div className="rs-head">
+            <h2 id="rs-title" className="dlg-title">
+              {t("presets.searchTitle")}
+            </h2>
+            <button
+              className="btn btn-ghost btn-icon dlg-close rs-close"
+              onClick={onClose}
+              aria-label={t("presets.searchClose")}
+              title={t("presets.searchClose")}
+            >
+              {Icon.X(22)}
+            </button>
+          </div>
 
-            {searchMode === "manual" && (
-              <div className="manual-stream-fields">
-                <div className="manual-stream-field">
-                  <input
-                    type="text"
-                    className="search-input"
-                    placeholder={t("presets.manualStationNamePlaceholder")}
-                    value={manualName}
-                    onChange={(e) => setManualName(e.target.value)}
-                    aria-label={t("presets.manualStationNamePlaceholder")}
-                    data-test="manual-station-name"
-                    aria-describedby="manual-station-name-help"
-                  />
-                  <div id="manual-station-name-help" className="manual-stream-help">
-                    {t("presets.manualStationNameHelp")}
-                  </div>
-                </div>
-
-                <div className="manual-stream-field">
-                  <input
-                    type="url"
-                    className="search-input"
-                    placeholder={t("presets.manualFaviconPlaceholder")}
-                    value={manualFavicon}
-                    onChange={(e) => setManualFavicon(e.target.value)}
-                    aria-label={t("presets.manualFaviconPlaceholder")}
-                    data-test="manual-favicon-url"
-                    aria-describedby="manual-favicon-help"
-                  />
-                  <div id="manual-favicon-help" className="manual-stream-help">
-                    {t("presets.manualFaviconHelp")}
-                  </div>
-                </div>
-                <button
-                  className="manual-stream-submit"
-                  disabled={
-                    !manualName.trim() ||
-                    !isValidHttpUrl(manualUrl) ||
-                    (manualFavicon.trim() !== "" && !isValidHttpUrl(manualFavicon))
-                  }
-                  onClick={() =>
-                    handleSelect({
-                      stationuuid: existingPreset?.station_uuid?.startsWith("manual-")
-                        ? existingPreset.station_uuid
-                        : `manual-${Date.now()}`,
-                      name: manualName.trim(),
-                      country: "",
-                      url: manualUrl.trim(),
-                      favicon: manualFavicon.trim() || undefined,
-                    })
-                  }
-                >
-                  {t("presets.manualUseStation")}
-                </button>
-              </div>
-            )}
-
-            <div className="search-type-row">
+          <div className="rs-chips">
+            <div className="ui-chips" role="group" aria-label={t("presets.searchTypeGroup")}>
               {SEARCH_TYPES.map((st) => (
                 <button
                   key={st.value}
-                  className={`search-type-chip${
-                    searchMode === "provider" && searchType === st.value ? " active" : ""
-                  }`}
+                  className="ui-chip"
+                  aria-pressed={searchType === st.value}
                   disabled={searchMode === "manual"}
                   onClick={() => {
                     setSearchType(st.value);
@@ -472,11 +393,12 @@ export default function RadioSearch({
                 </button>
               ))}
             </div>
-            <div className="search-type-row">
+            <div className="ui-chips" role="group" aria-label={t("presets.providerGroup")}>
               {PROVIDERS.map((p) => (
                 <button
                   key={p.value}
-                  className={`search-type-chip${searchMode === "provider" && radioProvider === p.value ? " active" : ""}`}
+                  className="ui-chip"
+                  aria-pressed={searchMode === "provider" && radioProvider === p.value}
                   onClick={() => {
                     setSearchMode("provider");
                     setRadioProvider(p.value);
@@ -490,66 +412,193 @@ export default function RadioSearch({
               ))}
               <button
                 data-test="manual-stream-mode"
-                className={`search-type-chip${searchMode === "manual" ? " active" : ""}`}
+                className="ui-chip"
+                aria-pressed={searchMode === "manual"}
                 onClick={() => {
+                  // Keep the query and its results: switching back to a provider shows them again
                   setSearchMode("manual");
-                  setQuery("");
-                  setResults([]);
                   setError(null);
                   setDetailUuid(null);
-                  setOffset(0);
-                  setHasMore(false);
                 }}
               >
                 {t("presets.manualStreamMode")}
               </button>
             </div>
+          </div>
 
-            {hasExistingPreset && onDelete && (
-              <div className="search-delete-row">
-                <button
-                  className="search-delete-btn"
-                  onClick={onDelete}
-                  aria-label={t("presets.deletePreset")}
-                  title={t("presets.deletePreset")}
-                >
-                  {t("presets.deletePreset")}
-                </button>
+          <div className="rs-field">
+            {searchMode === "manual" ? (
+              <div className="rs-url-field">
+                <input
+                  type="url"
+                  className="ui-input"
+                  placeholder={t("presets.manualStreamUrlPlaceholder")}
+                  value={manualUrl}
+                  onChange={(e) => setManualUrl(e.target.value)}
+                  aria-label={t("presets.manualStreamUrlPlaceholder")}
+                  data-test="manual-stream-url"
+                  aria-describedby={
+                    urlInvalid
+                      ? "manual-stream-url-help manual-stream-url-error"
+                      : "manual-stream-url-help"
+                  }
+                  aria-invalid={urlInvalid ? true : undefined}
+                  data-autofocus
+                />
+                <div id="manual-stream-url-help" className="ui-field-hint">
+                  {t("presets.manualStreamUrlHelp")}
+                </div>
+                {urlInvalid && (
+                  <div id="manual-stream-url-error" className="ui-field-error">
+                    {Icon.CircleX(16)}
+                    <span>{t("presets.manualInvalidUrl")}</span>
+                  </div>
+                )}
               </div>
+            ) : (
+              <input
+                type="search"
+                className="ui-input rs-search"
+                placeholder={t(`presets.searchPlaceholder.${searchType}`)}
+                aria-label={t("presets.searchTitle")}
+                value={query}
+                onChange={(e) => handleSearch(e.target.value)}
+                data-autofocus
+              />
             )}
+          </div>
 
-            <div className="search-results">
-              {error && <div className="search-error">{error}</div>}
-              {loading && <div className="search-loading">{t("presets.searchLoading")}</div>}
+          {searchMode === "manual" && (
+            <div
+              className="rs-manual rs-scroll"
+              tabIndex={0}
+              role="region"
+              aria-label={t("presets.manualStreamMode")}
+            >
+              <div className="ui-field">
+                <input
+                  type="text"
+                  className="ui-input"
+                  placeholder={t("presets.manualStationNamePlaceholder")}
+                  value={manualName}
+                  onChange={(e) => setManualName(e.target.value)}
+                  aria-label={t("presets.manualStationNamePlaceholder")}
+                  data-test="manual-station-name"
+                  aria-describedby="manual-station-name-help"
+                />
+                <div id="manual-station-name-help" className="ui-field-hint">
+                  {t("presets.manualStationNameHelp")}
+                </div>
+              </div>
+
+              <div className="ui-field">
+                <input
+                  type="url"
+                  className="ui-input"
+                  placeholder={t("presets.manualFaviconPlaceholder")}
+                  value={manualFavicon}
+                  onChange={(e) => setManualFavicon(e.target.value)}
+                  aria-label={t("presets.manualFaviconPlaceholder")}
+                  data-test="manual-favicon-url"
+                  aria-describedby={
+                    faviconInvalid
+                      ? "manual-favicon-help manual-favicon-error"
+                      : "manual-favicon-help"
+                  }
+                  aria-invalid={faviconInvalid ? true : undefined}
+                />
+                <div id="manual-favicon-help" className="ui-field-hint">
+                  {t("presets.manualFaviconHelp")}
+                </div>
+                {faviconInvalid && (
+                  <div id="manual-favicon-error" className="ui-field-error">
+                    {Icon.CircleX(16)}
+                    <span>{t("presets.manualInvalidUrl")}</span>
+                  </div>
+                )}
+              </div>
+              <button
+                className="btn btn-primary btn-block-phone rs-submit"
+                disabled={
+                  !manualName.trim() ||
+                  !isValidHttpUrl(manualUrl) ||
+                  (manualFavicon.trim() !== "" && !isValidHttpUrl(manualFavicon))
+                }
+                onClick={() =>
+                  handleSelect({
+                    stationuuid: existingPreset?.station_uuid?.startsWith("manual-")
+                      ? existingPreset.station_uuid
+                      : `manual-${Date.now()}`,
+                    name: manualName.trim(),
+                    country: "",
+                    url: manualUrl.trim(),
+                    favicon: manualFavicon.trim() || undefined,
+                  })
+                }
+              >
+                {t("presets.manualUseStation")}
+              </button>
+            </div>
+          )}
+
+          {searchMode === "provider" && (
+            <div
+              className="rs-results rs-scroll"
+              tabIndex={0}
+              role="region"
+              aria-label={t("presets.searchResults")}
+            >
+              {error && (
+                <div className="wz-status wz-status--error" role="alert">
+                  <span className="wz-icon" aria-hidden="true">
+                    {Icon.CircleX(20)}
+                  </span>
+                  <div className="wz-status-body">
+                    <p className="search-error">{error}</p>
+                  </div>
+                </div>
+              )}
+              {loading && (
+                <div className="rs-note" role="status">
+                  <span className="spinner-small rs-spinner" aria-hidden="true" />
+                  {t("presets.searchLoading")}
+                </div>
+              )}
+              {!loading && !error && results.length === 0 && !query.trim() && (
+                <div className="rs-note rs-note--hint">
+                  {Icon.Search(20)}
+                  <span>{t("presets.searchHint")}</span>
+                </div>
+              )}
               {!loading && !error && results.length === 0 && query && (
-                <div className="search-empty">{t("presets.searchEmpty")}</div>
+                <div className="rs-note" role="status">
+                  {t("presets.searchEmpty")}
+                </div>
               )}
               {results.map((station) => (
                 <button
                   key={station.stationuuid}
-                  className="search-result-item"
+                  className="rs-item"
                   onClick={() => setDetailUuid(station.stationuuid)}
                 >
-                  <div className="result-station-logo">
+                  <div className="rs-logo">
                     {station.favicon ? (
                       <img
                         src={station.favicon}
                         alt=""
-                        className="result-favicon"
+                        className="rs-favicon"
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = "none";
                           const parent = (e.target as HTMLImageElement).parentElement;
                           if (parent) {
-                            const fb = parent.querySelector(
-                              ".result-avatar-fallback"
-                            ) as HTMLElement;
+                            const fb = parent.querySelector(".rs-avatar") as HTMLElement;
                             if (fb) fb.style.display = "flex";
                           }
                         }}
                       />
                     ) : null}
                     <span
-                      className="result-avatar-fallback"
+                      className="rs-avatar"
                       style={{
                         backgroundColor: getAvatarColor(station.name),
                         display: station.favicon ? "none" : "flex",
@@ -558,26 +607,49 @@ export default function RadioSearch({
                       {getStationInitials(station.name)}
                     </span>
                   </div>
-                  <div className="result-info">
-                    <div className="result-name">{station.name}</div>
-                    <div className="result-country">{station.country}</div>
+                  <div className="rs-info">
+                    <div className="rs-name">{station.name}</div>
+                    <div className="rs-country">{station.country}</div>
                   </div>
+                  <span className="rs-chevron" aria-hidden="true">
+                    {Icon.ChevronRight(20)}
+                  </span>
                 </button>
               ))}
               {hasMore && results.length < MAX_RESULTS && (
-                <button className="load-more-btn" onClick={handleLoadMore} disabled={loadingMore}>
+                <button
+                  className="btn btn-secondary rs-more"
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  aria-busy={loadingMore}
+                >
+                  {loadingMore && <span className="spinner-small" aria-hidden="true" />}
                   {loadingMore ? t("presets.loadingMore") : t("presets.loadMore")}
                 </button>
               )}
               {results.length >= MAX_RESULTS && (
-                <div className="max-reached" title={t("presets.maxReachedTooltip")}>
-                  {t("presets.maxReached", { count: MAX_RESULTS })}
+                <div className="rs-note rs-note--max" title={t("presets.maxReachedTooltip")}>
+                  {Icon.Info(18)}
+                  <span>{t("presets.maxReached", { count: MAX_RESULTS })}</span>
                 </div>
               )}
             </div>
-          </>
-        )}
-      </div>
-    </div>
+          )}
+
+          {hasExistingPreset && onDelete && (
+            <div className="rs-foot">
+              <button
+                className="btn btn-danger-outline rs-delete-btn"
+                onClick={onDelete}
+                aria-label={t("presets.deletePreset")}
+                title={t("presets.deletePreset")}
+              >
+                {Icon.Trash(18)} {t("presets.deletePreset")}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </Modal>
   );
 }

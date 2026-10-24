@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Tests for Toast.tsx
  *
  * User Story: "Als User möchte ich visuelles Feedback für Aktionen erhalten"
@@ -145,6 +145,24 @@ describe("Toast Component", () => {
         "aria-label",
         "Close"
       );
+    });
+  });
+
+  describe("screen reader announcements", () => {
+    it("announces errors and warnings as alerts", () => {
+      const { unmount } = render(<Toast message="Failed!" type="error" />);
+      expect(screen.getByRole("alert")).toHaveTextContent("Failed!");
+      unmount();
+      render(<Toast message="Careful" type="warning" />);
+      expect(screen.getByRole("alert")).toHaveTextContent("Careful");
+    });
+
+    it("announces success and info politely as status", () => {
+      const { unmount } = render(<Toast message="Saved" type="success" />);
+      expect(screen.getByRole("status")).toHaveTextContent("Saved");
+      unmount();
+      render(<Toast message="FYI" type="info" />);
+      expect(screen.getByRole("status")).toHaveTextContent("FYI");
     });
   });
 });

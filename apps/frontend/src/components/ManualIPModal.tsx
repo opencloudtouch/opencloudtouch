@@ -2,10 +2,14 @@
  * ManualIPModal – dialog for manually configuring device IP addresses.
  *
  * Validates IP format and persists via the settings API.
+ * Stage 5: markup moved onto the shared Modal (native <dialog>).
  */
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useManualIPs, useSetManualIPs } from "../hooks/useSettings";
+import Modal from "./Modal";
+import { Icon } from "./Icon";
+import "./ManualIPModal.css";
 
 interface ManualIPModalProps {
   /** Whether the modal is visible */
@@ -85,121 +89,120 @@ export default function ManualIPModal({ isOpen, onClose }: ManualIPModalProps) {
     }
   };
 
-  if (!isOpen) return null;
+  const describedBy = validationError ? "ip-validation-error manual-ip-hint" : "manual-ip-hint";
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") onClose();
-      }}
-      tabIndex={-1}
-      role="none"
-      data-test="modal-overlay"
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      size="md"
+      labelledBy="manual-ip-title"
+      describedBy="manual-ip-desc"
+      overlayData={{ "data-test": "modal-overlay" }}
+      panelData={{ "data-test": "modal-content" }}
     >
-      <dialog className="modal-content" open data-test="modal-content">
-        <div className="modal-header">
-          <h2 data-test="modal-title">{t("manualIpModal.title")}</h2>
-          <button className="modal-close" onClick={onClose} aria-label={t("common.close")}>
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
+      <div className="dlg-head">
+        <h2 id="manual-ip-title" className="dlg-title" data-test="modal-title">
+          {t("manualIpModal.title")}
+        </h2>
+        <button
+          className="btn btn-ghost btn-icon dlg-close"
+          onClick={onClose}
+          aria-label={t("common.close")}
+        >
+          {Icon.X(22)}
+        </button>
+      </div>
+
+      <div className="dlg-body">
+        <p id="manual-ip-desc" className="dlg-text">
+          {t("manualIpModal.description")}
+        </p>
+
+        <div className="ui-field">
+          <textarea
+            value={ipList}
+            onChange={(e) => handleIpListChange(e.target.value)}
+            placeholder={t("manualIpModal.placeholder")}
+            rows={6}
+            maxLength={600}
+            disabled={setManualIPs.isPending}
+            className="ui-textarea"
+            data-test="ip-textarea"
+            data-autofocus
+            aria-labelledby="manual-ip-desc"
+            aria-describedby={describedBy}
+            aria-invalid={validationError ? true : undefined}
+            spellCheck={false}
+          />
+
+          {/* REFACT-135: Real-time validation feedback */}
+          {validationError && (
+            <div
+              id="ip-validation-error"
+              className="ui-field-error modal-validation-error"
+              role="alert"
+              aria-live="polite"
+              data-test="modal-validation-error"
             >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+              {Icon.CircleX(16)}
+              <span>{validationError}</span>
+            </div>
+          )}
         </div>
 
-        <p className="modal-description">{t("manualIpModal.description")}</p>
-
-        <textarea
-          value={ipList}
-          onChange={(e) => handleIpListChange(e.target.value)}
-          placeholder="Beispiel:&#10;192.168.1.100&#10;192.168.1.101&#10;192.168.1.102"
-          rows={6}
-          maxLength={600}
-          disabled={setManualIPs.isPending}
-          className={`modal-textarea${validationError ? " modal-textarea--error" : ""}`}
-          data-test="ip-textarea"
-          aria-describedby={validationError ? "ip-validation-error" : undefined}
-        />
-
-        {/* REFACT-135: Real-time validation feedback */}
-        {validationError && (
-          <div
-            id="ip-validation-error"
-            className="modal-validation-error"
-            role="alert"
-            aria-live="polite"
-          >
-            {validationError}
+        <div className="wz-status" id="manual-ip-hint">
+          <span className="wz-icon" aria-hidden="true">
+            {Icon.Info(20)}
+          </span>
+          <div className="wz-status-body">
+            <p className="mip-hint-text">{t("manualIpModal.hint")}</p>
           </div>
-        )}
-
-        <div className="modal-hint">
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              fillRule="evenodd"
-              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-              clipRule="evenodd"
-            />
-          </svg>
-          <span>{t("manualIpModal.hint")}</span>
         </div>
 
         {error && (
-          <div className="modal-error">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                clipRule="evenodd"
-              />
-            </svg>
-            {error}
+          <div className="wz-status wz-status--error" role="alert">
+            <span className="wz-icon" aria-hidden="true">
+              {Icon.CircleX(20)}
+            </span>
+            <div className="wz-status-body">
+              <p>{error}</p>
+            </div>
           </div>
         )}
 
         {success && (
-          <div className="modal-success">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                clipRule="evenodd"
-              />
-            </svg>
-            IP-Adressen gespeichert!
+          <div className="wz-status wz-status--success" role="status">
+            <span className="wz-icon" aria-hidden="true">
+              {Icon.CircleCheck(20)}
+            </span>
+            <div className="wz-status-body">
+              <p>{t("manualIpModal.saved")}</p>
+            </div>
           </div>
         )}
+      </div>
 
-        <div className="modal-actions">
-          <button
-            className="modal-cancel"
-            onClick={onClose}
-            disabled={setManualIPs.isPending}
-            data-test="cancel-button"
-          >
-            {t("common.cancel")}
-          </button>
-          <button
-            className="modal-save"
-            onClick={handleSaveIPs}
-            disabled={setManualIPs.isPending}
-            data-test="save-button"
-          >
-            {setManualIPs.isPending ? t("manualIpModal.saving") : t("manualIpModal.save")}
-          </button>
-        </div>
-      </dialog>
-    </div>
+      <div className="dlg-actions">
+        <button
+          className="btn btn-secondary"
+          onClick={onClose}
+          disabled={setManualIPs.isPending}
+          data-test="cancel-button"
+        >
+          {t("common.cancel")}
+        </button>
+        <button
+          className="btn btn-primary"
+          onClick={handleSaveIPs}
+          disabled={setManualIPs.isPending}
+          aria-busy={setManualIPs.isPending}
+          data-test="save-button"
+        >
+          {setManualIPs.isPending && <span className="spinner-small" aria-hidden="true" />}
+          {setManualIPs.isPending ? t("manualIpModal.saving") : t("manualIpModal.save")}
+        </button>
+      </div>
+    </Modal>
   );
 }

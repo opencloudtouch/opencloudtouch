@@ -23,7 +23,8 @@
     "presets": "Presety",
     "zones": "Strefy",
     "settings": "Ustawienia",
-    "about": "O programie"
+    "about": "O programie",
+    "ariaLabel": "Nawigacja główna"
   },
   "player": {
     "noPlayback": "Brak odtwarzania",
@@ -42,7 +43,23 @@
     "manageZone": "Zarządzaj strefą",
     "multiRoom": "Wiele pomieszczeń",
     "prevDevice": "Poprzednie urządzenie",
-    "nextDevice": "Następne urządzenie"
+    "nextDevice": "Następne urządzenie",
+    "source": {
+      "bluetooth": "Bluetooth",
+      "radio": "Radio",
+      "aux": "AUX",
+      "airplay": "AirPlay",
+      "dlna": "DLNA",
+      "tv": "TV / HDMI",
+      "spotify": "Spotify",
+      "deezer": "Deezer",
+      "pandora": "Pandora",
+      "amazon": "Amazon Music",
+      "storedMusic": "Biblioteka multimediów"
+    },
+    "unknownDevice": "Nieznane urządzenie",
+    "zoneBadgeMember": "Strefa",
+    "zoneTitle": "Strefa: {{role}}"
   },
   "presets": {
     "pageTitle": "Presety radiowe",
@@ -61,8 +78,8 @@
     "infoTitle": "Informacje o presetach",
     "infoItem1": "Kliknij pusty preset, aby przypisać stację",
     "infoItem2": "Kliknij przypisaną stację, aby ją zmienić lub usunąć",
-    "infoItem3": "Zielony przycisk ► odtwarza stację bezpośrednio",
-    "infoItem5": "⚙️ otwiera kreator konfiguracji urządzenia",
+    "infoItem3": "Przycisk odtwarzania po prawej stronie presetu od razu odtwarza stację",
+    "infoItem5": "Ikona stanu w prawym górnym rogu karty urządzenia otwiera kreator konfiguracji urządzenia",
     "infoItem6": "\"Załaduj z urządzenia\" synchronizuje presety z SoundTouch",
     "changeStation": "Kliknij, aby zmienić stację",
     "assignPreset": "Przypisz preset",
@@ -104,7 +121,18 @@
     "manualStreamErrorTitle": "Błąd strumienia",
     "manualStreamUnreachable": "Adres URL strumienia jest nieosiągalny.",
     "manualStreamSaveFailed": "Nie udało się zapisać stacji.",
-    "manualStreamErrorOk": "OK"
+    "manualStreamErrorOk": "OK",
+    "unknownDevice": "Nieznane urządzenie",
+    "unknownModel": "Nieznany model",
+    "unknownIp": "Nieznany adres IP",
+    "searchHint": "Wpisz co najmniej 2 znaki, aby wyszukać.",
+    "manualInvalidUrl": "Wpisz prawidłowy adres HTTP lub HTTPS.",
+    "searchTypeGroup": "Szukaj według",
+    "providerGroup": "Źródło",
+    "searchResults": "Wyniki wyszukiwania",
+    "confirmRemoveDeviceTitle": "Usunąć urządzenie?",
+    "confirmRemoveDeviceMessage": "Urządzenie {{name}} zostanie usunięte z OpenCloudTouch razem z zapisanymi presetami. Możesz je później dodać ponownie przez wyszukiwanie urządzeń.",
+    "confirmRemoveDevice": "Usuń urządzenie"
   },
   "settings": {
     "title": "Ustawienia",
@@ -117,7 +145,9 @@
       "enterIp": "Wprowadź adres IP",
       "probing": "Wyszukiwanie...",
       "deviceAdded": "{{name}} ({{ip}}) dodano",
-      "probeError": "Nie znaleziono urządzenia pod {{ip}}"
+      "probeError": "Nie znaleziono urządzenia pod {{ip}}",
+      "label": "Adres IP urządzenia",
+      "hint": "Format: 192.168.1.10"
     },
     "discovery": {
       "devicesFound_one": "Znaleziono {{count}} nowe urządzenie",
@@ -130,7 +160,8 @@
       "scanButton": "Szukaj teraz",
       "scanning": "Wyszukiwanie...",
       "manualTitle": "Ręczny adres IP",
-      "manualDescription": "Użyj tej opcji, jeśli automatyczne wyszukiwanie nie znajduje niczego z powodu VLAN, sieci Docker lub zapory."
+      "manualDescription": "Użyj tej opcji, jeśli automatyczne wyszukiwanie nie znajduje niczego z powodu VLAN, sieci Docker lub zapory.",
+      "scanningStatus": "Trwa wyszukiwanie w sieci"
     },
     "logging": {
       "sectionTitle": "Logi",
@@ -142,7 +173,10 @@
       "downloadLogs": "Pobierz logi",
       "downloadDescription": "Pobierz ostatnie 1000 wpisów logu backendu jako plik tekstowy.",
       "levelChanged": "Poziom logowania ustawiony na {{level}}",
-      "levelError": "Nie można zmienić poziomu logowania"
+      "levelError": "Nie można zmienić poziomu logowania",
+      "levelSaving": "Zapisywanie poziomu logów",
+      "downloading": "Przygotowywanie...",
+      "downloadFailed": "Nie udało się pobrać logów: {{error}}"
     }
   },
   "manualIpModal": {
@@ -152,7 +186,9 @@
     "saveError": "Błąd podczas zapisywania adresów IP",
     "save": "Zapisz",
     "saving": "Zapisywanie...",
-    "hint": "Adres IP znajdziesz w powiązanej aplikacji w Ustawienia → Informacje lub w swoim routerze."
+    "hint": "Adres IP znajdziesz w powiązanej aplikacji w Ustawienia → Informacje lub w swoim routerze.",
+    "placeholder": "Przykład:\n192.168.1.100\n192.168.1.101\n192.168.1.102",
+    "saved": "Zapisano adresy IP!"
   },
   "multiroom": {
     "pageTitle": "Strefy wielopomieszczeniowe",
@@ -177,7 +213,6 @@
     "infoItem5": "Kliknij nazwę strefy, aby ją zmienić",
     "editZone": "Edytuj",
     "dissolve": "Rozwiąż",
-    "dissolveConfirm": "Naprawdę rozwiązać?",
     "zoneUpdated": "Strefa zaktualizowana",
     "zoneCreated": "Strefa utworzona",
     "zoneCreateFailed": "Nie można było utworzyć strefy",
@@ -189,7 +224,12 @@
     "clickToEdit": "Kliknij, aby edytować",
     "cancel": "Anuluj",
     "masterBadge": "Master",
-    "slaveBadge": "Slave"
+    "slaveBadge": "Slave",
+    "unknownDevice": "Nieznane urządzenie",
+    "defaultZoneName": "Strefa {{name}}",
+    "staleBadge": "Dawno niewidziane",
+    "confirmDissolveTitle": "Rozwiązać strefę?",
+    "confirmDissolveMessage": "Strefa „{{name}}” zostanie rozwiązana. Urządzenia będą znów odtwarzać osobno."
   },
   "firmware": {
     "title": "Aktualizacje firmware",
@@ -381,7 +421,8 @@
         "troubleshootingItem3": "Poczekaj co najmniej 100 sekund po restarcie",
         "troubleshootingItem4": "Spróbuj kolejnego cyklu zasilania (kroki 2-5)",
         "troubleshootingItem5": "Sprawdź, czy urządzenie jest w tej samej sieci",
-        "troubleshootingItem6": "Przetestuj połączenie SSH ręcznie poleceniem powyżej — jeśli działa, urządzenie jest gotowe."
+        "troubleshootingItem6": "Przetestuj połączenie SSH ręcznie poleceniem powyżej — jeśli działa, urządzenie jest gotowe.",
+        "nextDisabled": "Sprawdź dostęp SSH i zdecyduj, czy SSH ma pozostać włączony."
       },
       "step4": {
         "title": "Utwórz kopię zapasową",
@@ -392,14 +433,15 @@
         "btnCreate": "Utwórz kopię zapasową teraz",
         "btnCreating": "Tworzenie kopii zapasowej...",
         "progressMessage": "Tworzenie kopii zapasowej dla {{device}}",
-        "progressNote": "Może to potrwać do 2 minut...",
+        "progressNote": "Może to potrwać do 10 minut...",
         "errorTitle": "Kopia zapasowa nie powiodła się",
         "successTitle": "Kopia zapasowa utworzona pomyślnie!",
         "successHint": "Kopie zapasowe zostały zapisane na dysku USB. Wyjmij dysk po kreatorze — zawiera pliki odzyskiwania.",
         "filesTitle": "Zapisane pliki (na dysku USB):",
         "totalLabel": "Łącznie:",
         "durationMinSec": "{{min}} min {{sec}} s",
-        "durationSec": "{{sec}} s"
+        "durationSec": "{{sec}} s",
+        "nextWarning": "Bez kopii zapasowej przywrócenie nie jest możliwe. Jeśli kontynuujesz teraz, robisz to na własne ryzyko."
       },
       "step5": {
         "titleProxy": "Wykryto reverse proxy",
@@ -467,8 +509,7 @@
         "changedEntries": "Zmienione wpisy:",
         "backupLabel": "Kopia zap.:",
         "btnShowChanges": "▶ Pokaż zmiany",
-        "btnHideChanges": "▼ Ukryj zmiany",
-        "hostsApplied": "Plik hosts został pomyślnie zmodyfikowany."
+        "btnHideChanges": "▼ Ukryj zmiany"
       },
       "step7": {
         "title": "Patch serwera NTP",
@@ -542,7 +583,11 @@
         "btnRetryFullVerify": "Uruchom weryfikację ponownie",
         "checkNtpServer": "Serwer NTP ustawiony na: {{server}}",
         "checkNtpServerWrong": "Serwer NTP jest ustawiony na „{{found}}”, oczekiwano „{{expected}}”",
-        "fullVerifyItem5": "Serwer NTP skonfigurowany na urządzeniu"
+        "fullVerifyItem5": "Serwer NTP skonfigurowany na urządzeniu",
+        "phaseFinalize": "Konfiguracja",
+        "phaseReboot": "Restart",
+        "phaseVerify": "Weryfikacja",
+        "nextDisabled": "Najpierw pomyślnie ukończ wszystkie testy."
       },
       "step9": {
         "title": "Konfiguracja zakończona!",
@@ -572,9 +617,18 @@
         "supportLink": "Skontaktuj się z pomocą techniczną →",
         "summaryItem7": "Serwer NTP zaktualizowany ({{server}})"
       }
-    }
+    },
+    "trackerCompact": "Krok {{current}} z {{total}} – {{label}}",
+    "stepAriaSkipped": "Krok {{id}}: {{label}} — {{description}} – pominięty"
   },
   "restore": {
+    "steps": {
+      "choice": "Wybór",
+      "backup": "Kopia",
+      "restore": "Przywracanie",
+      "verify": "Weryfikacja",
+      "done": "Gotowe"
+    },
     "choice": {
       "title": "Co chcesz zrobić?",
       "setup_title": "Kreator konfiguracji",
@@ -606,7 +660,10 @@
       "running": "Przywracanie w toku...",
       "error": "Restore failed: {{message}}",
       "success": "All steps completed successfully! Total: {{time}}s",
-      "continue": "Kontynuuj"
+      "continue": "Kontynuuj",
+      "running_hint": "Może to potrwać kilka minut (zwykle 8–9). Pozostaw tę stronę otwartą i nie odłączaj urządzenia.",
+      "error_hint": "Wróć i spróbuj ponownie.",
+      "failed_title": "Przywracanie niekompletne"
     },
     "verification": {
       "title": "Oczekiwanie na urządzenie",
@@ -627,6 +684,50 @@
       "failed": "Niepowodzenie",
       "note": "Urządzenie jest teraz w stanie fabrycznym. Możesz je bezpiecznie odłączyć.",
       "done": "Done"
+    },
+    "step_labels": {
+      "pre_snapshot": "Migawka przed przywróceniem",
+      "config": "Pliki konfiguracyjne",
+      "presets": "Presety",
+      "hosts": "/etc/hosts",
+      "ntp": "/etc/ntpservers.txt",
+      "remote_services": "Trwałość SSH",
+      "reboot": "Restart"
+    },
+    "messages": {
+      "snapshot_saved": "Zapisano migawkę przed przywróceniem",
+      "snapshot_unavailable": "Usługa kreatora jest niedostępna",
+      "snapshot_failed": "Migawka nie powiodła się: {{error}}",
+      "config_restored": "Przywrócono pliki konfiguracyjne",
+      "config_restore_failed": "Przywracanie konfiguracji nie powiodło się: {{error}}",
+      "presets_clean": "Nie znaleziono pliku Presets.xml na urządzeniu (już czyste)",
+      "presets_restored": "Przywrócono presety w {{path}}",
+      "presets_restore_failed": "Przywracanie presetów nie powiodło się: {{error}}",
+      "hosts_read_failed": "Nie udało się odczytać /etc/hosts",
+      "hosts_clean": "Nie znaleziono bloku OCT w /etc/hosts (już czyste)",
+      "hosts_restored": "Usunięto blok OCT z /etc/hosts",
+      "hosts_restore_failed": "Przywracanie /etc/hosts nie powiodło się: {{error}}",
+      "ntp_no_backup": "Nie znaleziono kopii zapasowej NTP (już czyste)",
+      "ntp_copy_failed": "Nie udało się przywrócić /etc/ntpservers.txt z kopii zapasowej",
+      "ntp_restored": "Przywrócono serwery NTP z kopii zapasowej",
+      "ntp_restore_failed": "Przywracanie serwerów NTP nie powiodło się: {{error}}",
+      "remote_services_deleted": "Usunięto /mnt/nv/remote_services",
+      "remote_services_failed": "Nie udało się usunąć remote_services: {{error}}",
+      "reboot_sent": "Wysłano polecenie restartu",
+      "reboot_failed": "Restart nie powiódł się: {{error}}"
+    },
+    "validation": {
+      "archive_corrupt": "Archiwum jest uszkodzone lub nieczytelne",
+      "archive_empty": "Archiwum jest puste",
+      "archive_unverified": "Nie udało się zweryfikować zawartości archiwum (skanowanie nie powiodło się lub upłynął limit czasu)",
+      "archive_path_missing": "Nie znaleziono w archiwum oczekiwanych ścieżek zaczynających się od {{expected}}"
+    },
+    "status": {
+      "completed": "Ukończono",
+      "skipped": "Pominięto",
+      "failed": "Niepowodzenie",
+      "in_progress": "W toku",
+      "pending": "Oczekuje"
     }
   },
   "errors": {
@@ -678,27 +779,34 @@
     "licensesDescription": "OpenCloudTouch używa następujących bibliotek open source:",
     "licenseCompliance": "Zgodność licencji",
     "licenseComplianceText": "OpenCloudTouch jest oprogramowaniem open source na licencji Apache 2.0. Wszystkie używane biblioteki są zgodne z tą licencją.",
-    "devicesConnected_zero": "Brak podłączonych urządzeń",
-    "devicesConnected_one": "{{count}} urządzenie podłączone",
-    "devicesConnected_other": "{{count}} urządzenia podłączone",
-    "github": "GitHub",
-    "reportIssue": "Zgłoś problem",
     "support": "Wesprzyj",
-    "versionUnavailable": "Wersja niedostępna",
-    "hallOfFameTitle": "Galeria Sław",
-    "hallOfFameDescription": "Top 3 współtwórców wszech czasów — uznanych za wyjątkowy wpływ techniczny.",
-    "supportersTitle": "Sponsorzy",
     "reportBug": "Zgłoś błąd",
     "diagnostics": "Diagnostyka",
-    "supportersDescription": "Dziękujemy wszystkim, którzy wspierają OpenCloudTouch finansowo. Wasze wkłady pomagają utrzymać projekt przy życiu!",
-    "supportersMonthly": "Miesięczni Sponsorzy",
-    "supportersOneTime": "Jednorazowi Sponsorzy",
-    "buildTime": "Zbudowano {{time}}",
     "checkingUpdates": "Sprawdzanie aktualizacji...",
     "updateAvailable": "Dostępna aktualizacja: {{version}}",
     "viewRelease": "Zobacz wydanie",
     "upToDate": "Jesteś na bieżąco!",
-    "devBuild": "Wersja budowana lokalnie — sprawdzanie aktualizacji wyłączone"
+    "devBuild": "Wersja budowana lokalnie — sprawdzanie aktualizacji wyłączone",
+    "github": "GitHub",
+    "externalLink": "(otwiera się w nowej karcie)",
+    "licenses": "Licencje open source",
+    "linksLabel": "Więcej informacji",
+    "supportersTitle": "Supp<0/>rters",
+    "supportersLabel": "Wspierający",
+    "monthlySupporter": "(wspierający miesięcznie)",
+    "libraryWebsite": "Strona {{name}}",
+    "licensesVersion": "Wersja",
+    "licensesGroup": {
+      "frontend": "Frontend",
+      "backend": "Backend",
+      "build": "Narzędzia budowania"
+    },
+    "licenseProject": "Licencja OpenCloudTouch",
+    "licenseApache": "Apache License 2.0",
+    "trademarkTitle": "Informacja o znaku towarowym",
+    "trademarkText1": "OpenCloudTouch <0>nie jest powiązany z Bose Corporation</0>. Bose® i SoundTouch® są zastrzeżonymi znakami towarowymi Bose Corporation.",
+    "trademarkText2": "To oprogramowanie korzysta z publicznie udokumentowanych lokalnych interfejsów urządzeń Bose SoundTouch®. Szczegóły w <0>TRADEMARK.md</0>.",
+    "runningSince": "Działa od {{time}}"
   },
   "discovery": {
     "alreadyRunning": "Wyszukiwanie urządzeń już trwa. Poczekaj...",
@@ -723,7 +831,8 @@
     "helpFirewall": "Reguły zapory mogą blokować wykrywanie urządzeń",
     "helpRestart": "Uruchom ponownie urządzenia i OpenCloudTouch",
     "helpManualAdd": "Dodaj ręcznie adresy IP urządzeń",
-    "helpSetupWizard": "Postępuj zgodnie z kreatorem konfiguracji, aby uzyskać instrukcje krok po kroku"
+    "helpSetupWizard": "Postępuj zgodnie z kreatorem konfiguracji, aby uzyskać instrukcje krok po kroku",
+    "deviceSaved": "Zapisano"
   },
   "setupBadge": {
     "unknown": "Skonfiguruj urządzenie",
@@ -744,27 +853,7 @@
     "unknown": "Nieznane"
   },
   "bugReport": {
-    "title": "Zgłoś błąd",
-    "description": "Opis błędu",
-    "descriptionPlaceholder": "Co poszło nie tak?",
-    "steps": "Kroki do odtworzenia",
-    "stepsPlaceholder": "1. Przejdź do...\n2. Kliknij na...\n3. Pojawia się błąd...",
-    "expected": "Oczekiwane zachowanie",
-    "expectedPlaceholder": "Co powinno się było wydarzyć?",
-    "installationType": "Typ instalacji",
-    "whichInstallation": "Która instalacja?",
-    "hardware": "Sprzęt / Platforma",
-    "whichHardware": "Jaki sprzęt?",
-    "devices": "Urządzenie(a) SoundTouch",
-    "whichDevice": "Które urządzenie?",
-    "networkConfig": "Konfiguracja sieci",
-    "additionalInfo": "Dodatkowe informacje",
-    "submit": "Wyślij zgłoszenie błędu",
-    "submitting": "Wysyłanie...",
-    "downloadLogs": "Pobierz logi",
     "downloading": "Pobieranie...",
-    "submitSuccess": "Zgłoszenie błędu utworzone! {{url}}",
-    "submitFailed": "Nie udało się wysłać zgłoszenia błędu: {{error}}",
     "diagnosticsSuccess": "Diagnostyka pobrana! Dołącz plik .log.gz do swojego zgłoszenia na GitHub.",
     "diagnosticsFailed": "Nie udało się pobrać diagnostyki: {{error}}"
   },
@@ -785,7 +874,15 @@
     "firmware": "Firmware",
     "setupStatus": "Status konfiguracji",
     "lastSeen": "Ostatnio widziany",
-    "downloadBundle": "Pobierz pakiet wsparcia"
+    "downloadBundle": "Pobierz pakiet wsparcia",
+    "ip": "Adres IP",
+    "ssh": "SSH",
+    "sshOn": "Włączony na stałe",
+    "sshOff": "Niewłączony",
+    "statusOnline": "Online",
+    "statusStale": "Dawno niewidziane",
+    "statusOffline": "Offline",
+    "unknownValue": "nieznane"
   },
   "deviceRename": {
     "clickToEdit": "Kliknij, aby zmienić nazwę",
@@ -796,6 +893,22 @@
   "deviceHeader": {
     "reboot": "Uruchom ponownie urządzenie",
     "sent": "Polecenie restartu wysłane",
-    "confirmMessage": "Uruchomić ponownie {{name}}? Urządzenie będzie niedostępne przez około 100 sekund."
+    "confirmMessage": "Uruchomić ponownie {{name}}? Urządzenie będzie niedostępne przez około 100 sekund.",
+    "backToDevice": "Wróć do: {{name}}"
+  },
+  "a11y": {
+    "skipToContent": "Przejdź do treści",
+    "selectLanguage": "Wybierz język",
+    "deviceSelection": "Wybór urządzenia",
+    "switchToDevice": "Przełącz na {{name}}",
+    "volume": "Głośność",
+    "copyCommand": "Kopiuj polecenie",
+    "copyToClipboard": "Kopiuj do schowka",
+    "deviceCounter": "Urządzenie {{current}} z {{total}}"
+  },
+  "stationDetail": {
+    "codec": "Kodek",
+    "bitrate": "Przepływność",
+    "homepage": "Strona internetowa"
   }
 }

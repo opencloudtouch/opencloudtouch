@@ -115,8 +115,8 @@ export function getFontSize(supporter: Supporter, maxAmount: number): number {
 
 export function generateGradientColor(index: number, total: number): string {
   const hue = (index / total) * 360;
-  const saturation = 60 + (index % 3) * 10;
-  const lightness = 55 + (index % 2) * 10;
+  const saturation = 55 + (index % 3) * 10; // 55 / 65 / 75 %
+  const lightness = 74 + (index % 2) * 6; // 74 / 80 %: at least 4.5:1 on the card surface for every hue (the old 55 / 65 % gave 2.0:1)
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 

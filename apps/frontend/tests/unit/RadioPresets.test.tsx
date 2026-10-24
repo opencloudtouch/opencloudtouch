@@ -15,6 +15,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import RadioPresets from "../../src/pages/RadioPresets";
+import { deleteDeviceById } from "../../src/api/devices";
+import { markDeviceOffline, _resetOfflineStore } from "../../src/api/offlineDeviceStore";
 
 // Mock toast context so tests don't require ToastProvider wrapper
 const mockShowToast = vi.fn();
@@ -37,6 +39,7 @@ vi.mock("../../src/api/devices", async (importOriginal) => {
   return {
     ...actual,
     playPreset: vi.fn().mockResolvedValue(undefined),
+    deleteDeviceById: vi.fn().mockResolvedValue(undefined),
   };
 });
 
@@ -908,6 +911,50 @@ describe("RadioPresets Page", () => {
       // Loading should disappear
       await waitFor(() => {
         expect(screen.queryByTestId("loading-indicator")).not.toBeInTheDocument();
+      });
+    });
+  });
+  describe("Remove offline device", () => {
+    afterEach(() => {
+      _resetOfflineStore();
+    });
+
+    const openRemoveDialog = async () => {
+      markDeviceOffline(mockDevices[0]!.device_id);
+      const onRemoveDevice = vi.fn();
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} onRemoveDevice={onRemoveDevice} />);
+      });
+      fireEvent.click(screen.getByRole("button", { name: /remove device|delete device/i }));
+      return onRemoveDevice;
+    };
+
+    it("asks for confirmation naming the device before removing it", async () => {
+      await openRemoveDialog();
+
+      const dialog = await screen.findByRole("alertdialog");
+      expect(dialog).toHaveTextContent("Living Room");
+      expect(deleteDeviceById).not.toHaveBeenCalled();
+    });
+
+    it("does not remove the device when the user cancels", async () => {
+      const onRemoveDevice = await openRemoveDialog();
+
+      fireEvent.click(await screen.findByTestId("confirm-dialog-cancel"));
+
+      expect(deleteDeviceById).not.toHaveBeenCalled();
+      expect(onRemoveDevice).not.toHaveBeenCalled();
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    });
+
+    it("removes the device after the user confirms", async () => {
+      const onRemoveDevice = await openRemoveDialog();
+
+      fireEvent.click(await screen.findByTestId("confirm-dialog-confirm"));
+
+      await waitFor(() => {
+        expect(deleteDeviceById).toHaveBeenCalledWith(mockDevices[0]!.device_id);
+        expect(onRemoveDevice).toHaveBeenCalledWith(mockDevices[0]!.device_id);
       });
     });
   });

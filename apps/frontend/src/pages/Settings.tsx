@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef, FormEvent } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useRef, useId, FormEvent } from "react";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useManualIPs, useProbeDevice } from "../hooks/useSettings";
@@ -9,12 +8,19 @@ import { toUserMessage } from "../utils/errorMessages";
 import { getLogEntries, getLogBuffers } from "../utils/logBuffer";
 import { syncDebugFromBackendLevel } from "../utils/debug";
 import type { Device } from "../api/devices";
+import { Icon } from "../components/Icon";
 import "./Settings.css";
 
 export default function Settings() {
   const { t } = useTranslation();
   const [newIP, setNewIP] = useState("");
   const [error, setError] = useState("");
+  const ipId = useId();
+  const ipHintId = `${ipId}-hint`;
+  const ipErrorId = `${ipId}-error`;
+  // state of the log download (a failed download used to be silent)
+  const [downloadState, setDownloadState] = useState<"idle" | "busy" | "error">("idle");
+  const [downloadError, setDownloadError] = useState("");
 
   // React Query hooks
   const { isLoading: loading, error: queryError, refetch } = useManualIPs();
@@ -56,26 +62,43 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const { show } = useToast();
 
-  // Capture device IDs that existed before this component was mounted.
-  // Used to determine how many NEW devices were found by the discovery.
-  const [preDiscoveryDeviceIds] = useState<Set<string>>(() => {
-    const existing = queryClient.getQueryData<Device[]>(["devices"]) ?? [];
-    return new Set(existing.map((d) => d.device_id));
-  });
+  // Device IDs that were known when the current scan started (initially: when this page was mounted, because a scan
+  // can already be running after a reload). Used to determine how many NEW devices the scan found.
+  const knownDeviceIdsRef = useRef<Set<string> | null>(null);
+  knownDeviceIdsRef.current ??= new Set(
+    (queryClient.getQueryData<Device[]>(["devices"]) ?? []).map((d) => d.device_id)
+  );
 
   const completedRef = useRef(false);
 
-  // Show toast when discovery completes
+  // A new scan resets the "toast shown" flag, otherwise only the first scan per page visit would show its result
+  useEffect(() => {
+    if (!completed) completedRef.current = false;
+  }, [completed]);
+
+  // Show toast when discovery completes: the count and the names of the new devices (like the manual search by IP)
   useEffect(() => {
     if (completed && !completedRef.current) {
       completedRef.current = true;
-      const newDeviceCount = devicesFound.filter(
-        (d) => !preDiscoveryDeviceIds.has(d.device_id)
-      ).length;
-      const message = t("settings.discovery.devicesFound", { count: newDeviceCount });
-      show(message, "success");
+      const known = knownDeviceIdsRef.current ?? new Set<string>();
+      const newDevices = devicesFound.filter(
+        (d, index) =>
+          !known.has(d.device_id) &&
+          devicesFound.findIndex((o) => o.device_id === d.device_id) === index
+      );
+      const summary = t("settings.discovery.devicesFound", { count: newDevices.length });
+      const names = newDevices.map((d) => `${d.name} (${d.ip})`).join(", "); // same form as "{{name}} ({{ip}}) added"
+      show(newDevices.length > 0 ? `${summary}: ${names}` : summary, "success");
     }
-  }, [completed, devicesFound, preDiscoveryDeviceIds, show, t]);
+  }, [completed, devicesFound, show, t]);
+
+  const handleScan = () => {
+    knownDeviceIdsRef.current = new Set(
+      (queryClient.getQueryData<Device[]>(["devices"]) ?? []).map((d) => d.device_id)
+    );
+    completedRef.current = false;
+    void startDiscovery();
+  };
 
   const validateIP = (ip: string): boolean => {
     const parts = ip.split(".");
@@ -111,181 +134,258 @@ export default function Settings() {
     }
   };
 
+  const handleDownloadLogs = async () => {
+    setDownloadState("busy");
+    setDownloadError("");
+    try {
+      const resp = await fetch("/api/logs/backend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          frontend_logs: getLogEntries(),
+          frontend_log_buffers: getLogBuffers(),
+        }),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const blob = await resp.blob();
+      const disposition = resp.headers.get("Content-Disposition") || "";
+      const execResult = /filename="(.+?)"/.exec(disposition);
+      const filename = execResult?.[1] || "oct-backend.log";
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setDownloadState("idle");
+    } catch (err) {
+      console.error("Log download failed:", err);
+      setDownloadError(err instanceof Error ? err.message : t("errors.unknown"));
+      setDownloadState("error");
+    }
+  };
+
   if (loading) {
     return (
-      <div className="loading-container" role="status" aria-live="polite" aria-label="Ladevorgang">
-        <div className="spinner" aria-hidden="true" />
-        <p className="loading-message">{t("settings.loading")}</p>
+      <div className="st st--state">
+        <h1 className="visually-hidden">{t("settings.title")}</h1>
+        <div className="ui-state" role="status" aria-live="polite" aria-label={t("common.loading")}>
+          <div className="spinner" aria-hidden="true" />
+          <p>{t("settings.loading")}</p>
+        </div>
       </div>
     );
   }
 
   if (queryError) {
     return (
-      <div className="error-container">
-        <div className="error-icon">⚠️</div>
-        <h2 className="error-title">{t("settings.errorTitle")}</h2>
-        <p className="error-message">{toUserMessage(queryError.message)}</p>
-        <button
-          className="btn btn-primary"
-          onClick={() => {
-            refetch();
-          }}
-        >
-          {t("common.retry")}
-        </button>
+      <div className="st st--state">
+        <h1 className="visually-hidden">{t("settings.title")}</h1>
+        <div className="ui-state ui-state--error" role="alert">
+          <div className="ui-state-icon" aria-hidden="true">
+            {Icon.Alert(32)}
+          </div>
+          <h2>{t("settings.errorTitle")}</h2>
+          <p>{toUserMessage(queryError.message)}</p>
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              refetch();
+            }}
+          >
+            {t("common.retry")}
+          </button>
+        </div>
       </div>
     );
   }
 
+  const downloading = downloadState === "busy";
+
   return (
-    <div className="page settings-page">
-      <h1 className="page-title">{t("settings.title")}</h1>
+    <div className="st">
+      <h1 className="ui-h1">{t("settings.title")}</h1>
 
       {/* Device Discovery Section */}
-      <motion.section
-        className="settings-section"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <h2 className="section-title">
-          <span className="section-icon">🔍</span>
+      <section className="st-section" aria-labelledby="st-discovery-title">
+        <h2 id="st-discovery-title" className="ui-h2 st-h2">
+          <span className="st-h2-icon" aria-hidden="true">
+            {Icon.Search(22)}
+          </span>
           {t("settings.deviceDiscovery.sectionTitle")}
         </h2>
 
-        <div className="settings-card device-discovery-options">
+        <div className="ui-card st-card">
           {/* Primary: Automatic Discovery */}
-          <div className="discovery-method-card primary-method">
-            <h3 className="method-title">{t("settings.deviceDiscovery.autoTitle")}</h3>
-            <p className="method-description">{t("settings.deviceDiscovery.autoDescription")}</p>
-
-            <div className="discover-action">
-              <button
-                className="btn btn-primary network-scan-btn"
-                onClick={() => void startDiscovery()}
-                disabled={isDiscovering}
-                aria-label={t("settings.deviceDiscovery.scanButton")}
-              >
-                {isDiscovering ? (
-                  <>
-                    <span className="spinner-inline" aria-hidden="true" />
-                    {t("settings.deviceDiscovery.scanning")}
-                  </>
-                ) : (
-                  t("settings.deviceDiscovery.scanButton")
-                )}
-              </button>
-            </div>
+          <div className="st-method">
+            <h3 className="ui-h3">{t("settings.deviceDiscovery.autoTitle")}</h3>
+            <p className="st-text">{t("settings.deviceDiscovery.autoDescription")}</p>
+            <button
+              type="button"
+              className="btn btn-primary st-scan"
+              onClick={handleScan}
+              disabled={isDiscovering}
+              aria-busy={isDiscovering}
+            >
+              {isDiscovering ? (
+                <>
+                  <span className="spinner-small" aria-hidden="true" />
+                  {t("settings.deviceDiscovery.scanning")}
+                </>
+              ) : (
+                <>
+                  {Icon.Search(18)}
+                  {t("settings.deviceDiscovery.scanButton")}
+                </>
+              )}
+            </button>
+            <span className="visually-hidden" role="status">
+              {isDiscovering ? t("settings.deviceDiscovery.scanningStatus") : ""}
+            </span>
           </div>
 
           {/* Secondary: Manual IPs */}
-          <div className="discovery-method-card secondary-method">
-            <h3 className="method-title">{t("settings.deviceDiscovery.manualTitle")}</h3>
-            <p className="method-description">{t("settings.deviceDiscovery.manualDescription")}</p>
+          <div className="st-method">
+            <h3 className="ui-h3">{t("settings.deviceDiscovery.manualTitle")}</h3>
+            <p className="st-text">{t("settings.deviceDiscovery.manualDescription")}</p>
 
-            {/* Add IP Form */}
-            <form onSubmit={handleAddIP} className="ip-add-form">
-              <input
-                type="text"
-                value={newIP}
-                onChange={(e) => setNewIP(e.target.value)}
-                placeholder={t("settings.manualIps.placeholder")}
-                className="ip-input"
-                pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-                disabled={probeDevice.isPending}
-              />
-              <button type="submit" className="btn btn-primary" disabled={probeDevice.isPending}>
-                {probeDevice.isPending ? (
-                  <>
-                    <span className="spinner-inline" aria-hidden="true" />
-                    {t("settings.manualIps.probing")}
-                  </>
+            {/* noValidate: our own messages appear instead of the browser bubble */}
+            <form onSubmit={handleAddIP} className="ui-field st-ip" noValidate>
+              <label htmlFor={ipId} className="ui-label">
+                {t("settings.manualIps.label")}
+              </label>
+              <div className="st-ip-row">
+                <input
+                  id={ipId}
+                  type="text"
+                  value={newIP}
+                  onChange={(e) => setNewIP(e.target.value)}
+                  placeholder={t("settings.manualIps.placeholder")}
+                  className="ui-input"
+                  pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+                  autoComplete="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  aria-invalid={error ? true : undefined}
+                  aria-describedby={error ? ipErrorId : ipHintId}
+                  disabled={probeDevice.isPending}
+                />
+                <button
+                  type="submit"
+                  className="btn btn-primary st-add"
+                  disabled={probeDevice.isPending}
+                  aria-busy={probeDevice.isPending}
+                >
+                  {probeDevice.isPending ? (
+                    <>
+                      <span className="spinner-small" aria-hidden="true" />
+                      {t("settings.manualIps.probing")}
+                    </>
+                  ) : (
+                    t("settings.manualIps.addButton")
+                  )}
+                </button>
+              </div>
+              {/* one reserved slot: hint, or the error in its place */}
+              <div className="st-ip-msg">
+                {error ? (
+                  <div id={ipErrorId} className="ui-field-error" role="alert">
+                    {Icon.CircleX(16)}
+                    <span>{error}</span>
+                  </div>
                 ) : (
-                  t("settings.manualIps.addButton")
+                  <p id={ipHintId} className="ui-field-hint">
+                    {t("settings.manualIps.hint")}
+                  </p>
                 )}
-              </button>
+              </div>
             </form>
-
-            {/* Error Messages */}
-            {error && <div className="alert alert-error">{error}</div>}
           </div>
         </div>
-      </motion.section>
+      </section>
 
       {/* Logging Section */}
-      <motion.section
-        className="settings-section"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
-        <h2 className="section-title">
-          <span className="section-icon">📋</span>
+      <section className="st-section" aria-labelledby="st-logging-title">
+        <h2 id="st-logging-title" className="ui-h2 st-h2">
+          <span className="st-h2-icon" aria-hidden="true">
+            {Icon.FileText(22)}
+          </span>
           {t("settings.logging.sectionTitle")}
         </h2>
 
-        <div className="settings-card">
-          <p className="section-description">{t("settings.logging.description")}</p>
+        <div className="ui-card st-card">
+          <p className="st-text">{t("settings.logging.description")}</p>
 
           {/* Log Level Dropdown */}
-          <div className="log-level-row">
-            <label htmlFor="log-level-select" className="log-level-label">
+          <div className="ui-field st-level">
+            <label htmlFor="log-level-select" className="ui-label">
               {t("settings.logging.logLevel")}
             </label>
-            <select
-              id="log-level-select"
-              className="log-level-select"
-              value={
-                logLevelData?.level === "CRITICAL" ? "CRITICAL" : (logLevelData?.level ?? "INFO")
-              }
-              onChange={(e) => setLogLevel.mutate(e.target.value)}
-              disabled={setLogLevel.isPending}
-            >
-              <option value="CRITICAL">{t("settings.logging.levelOff")}</option>
-              <option value="INFO">{t("settings.logging.levelInfo")}</option>
-              <option value="DEBUG">{t("settings.logging.levelDebug")}</option>
-            </select>
+            <div className="st-select">
+              <select
+                id="log-level-select"
+                className="ui-select"
+                value={
+                  logLevelData?.level === "CRITICAL" ? "CRITICAL" : (logLevelData?.level ?? "INFO")
+                }
+                onChange={(e) => setLogLevel.mutate(e.target.value)}
+                disabled={setLogLevel.isPending}
+                aria-busy={setLogLevel.isPending}
+              >
+                <option value="CRITICAL">{t("settings.logging.levelOff")}</option>
+                <option value="INFO">{t("settings.logging.levelInfo")}</option>
+                <option value="DEBUG">{t("settings.logging.levelDebug")}</option>
+              </select>
+              <span className="st-select-icon" aria-hidden="true">
+                {setLogLevel.isPending ? (
+                  <span className="ui-spin">{Icon.Loader(18)}</span>
+                ) : (
+                  Icon.ChevronDown(18)
+                )}
+              </span>
+            </div>
+            <span className="visually-hidden" role="status">
+              {setLogLevel.isPending ? t("settings.logging.levelSaving") : ""}
+            </span>
           </div>
 
           {/* Download Logs */}
-          <div className="log-download-row">
-            <p className="section-description">{t("settings.logging.downloadDescription")}</p>
+          <div className="st-download">
+            <p className="st-text">{t("settings.logging.downloadDescription")}</p>
             <button
               type="button"
-              className="btn btn-primary"
-              onClick={async () => {
-                try {
-                  const resp = await fetch("/api/logs/backend", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      frontend_logs: getLogEntries(),
-                      frontend_log_buffers: getLogBuffers(),
-                    }),
-                  });
-                  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                  const blob = await resp.blob();
-                  const disposition = resp.headers.get("Content-Disposition") || "";
-                  const execResult = /filename="(.+?)"/.exec(disposition);
-                  const filename = execResult?.[1] || "oct-backend.log";
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = filename;
-                  document.body.appendChild(a);
-                  a.click();
-                  a.remove();
-                  URL.revokeObjectURL(url);
-                } catch (err) {
-                  console.error("Log download failed:", err);
-                }
-              }}
+              className="btn btn-secondary st-download-btn"
+              onClick={() => void handleDownloadLogs()}
+              disabled={downloading}
+              aria-busy={downloading}
             >
-              {t("settings.logging.downloadLogs")}
+              {downloading ? (
+                <>
+                  <span className="spinner-small" aria-hidden="true" />
+                  {t("settings.logging.downloading")}
+                </>
+              ) : (
+                <>
+                  {Icon.Download(18)}
+                  {t("settings.logging.downloadLogs")}
+                </>
+              )}
             </button>
+            {downloadState === "error" && (
+              <div className="wz-status wz-status--error st-download-error" role="alert">
+                <span className="wz-icon" aria-hidden="true">
+                  {Icon.CircleX(20)}
+                </span>
+                <div className="wz-status-body">
+                  <p>{t("settings.logging.downloadFailed", { error: downloadError })}</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      </motion.section>
+      </section>
     </div>
   );
 }
