@@ -83,10 +83,15 @@ validate_data_dir() {
         exit 1
     fi
 
-    if [ ! -w "$DB_DIR" ]; then
+    # Probe with a real write instead of `[ -w ]`: test(1) uses faccessat2(),
+    # which old seccomp profiles (Docker < 20.10.9) reject with EPERM, so the
+    # directory is reported as unwritable although it is writable.
+    PROBE_FILE="$DB_DIR/.oct_write_test.$$"
+    if ! ( : > "$PROBE_FILE" ) 2>/dev/null; then
         log_error "Data directory is not writable: $DB_DIR"
         exit 1
     fi
+    rm -f "$PROBE_FILE"
 
     log_info "Data directory OK"
 }
