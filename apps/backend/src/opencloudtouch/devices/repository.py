@@ -35,6 +35,7 @@ class Device:
         setup_completed_at: Optional[datetime] = None,
         marge_account_uuid: Optional[str] = None,
         capabilities: Optional[dict[str, Any]] = None,
+        uuid_source: str = "unknown",
     ):
         self.id = id
         self.device_id = device_id
@@ -52,6 +53,7 @@ class Device:
         self.setup_completed_at = setup_completed_at
         self.marge_account_uuid = marge_account_uuid
         self.capabilities = capabilities
+        self.uuid_source = uuid_source
 
     @staticmethod
     def _extract_schema_version(firmware_version: str) -> str:
@@ -88,6 +90,7 @@ class Device:
                 self.setup_completed_at.isoformat() if self.setup_completed_at else None
             ),
             "marge_account_uuid": self.marge_account_uuid,
+            "uuid_source": self.uuid_source,
         }
 
 
@@ -149,6 +152,12 @@ class DeviceRepository(BaseRepository):
             sql="ALTER TABLE devices ADD COLUMN capabilities_json TEXT",
         )
 
+        await self._apply_migration(
+            version=105,
+            description="Track account UUID provenance",
+            sql="ALTER TABLE devices ADD COLUMN uuid_source TEXT NOT NULL DEFAULT 'unknown'",
+        )
+
         # Indexes
         await self._conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_devices_device_id ON devices(device_id)
@@ -171,10 +180,53 @@ class DeviceRepository(BaseRepository):
         """
         db = self._ensure_initialized()
 
+        # Discovery may observe an externally changed account UUID. Never
+        # silently map it to a second MAC in the same OCT database.
+        incoming_uuid = device.marge_account_uuid
+        uuid_collision = False
+        if incoming_uuid:
+            owner = await self.get_by_account_uuid(incoming_uuid)
+            if owner is not None and owner.device_id != device.device_id:
+                logger.warning(
+                    "Skipping conflicting UUID %s for %s (owned by %s)",
+                    device.marge_account_uuid,
+                    device.device_id,
+                    owner.device_id,
+                )
+                uuid_collision = True
+                incoming_uuid = None
+
+        if incoming_uuid:
+            previous = await self.get_by_device_id(device.device_id)
+            if (
+                previous is not None
+                and previous.marge_account_uuid
+                and previous.marge_account_uuid != device.marge_account_uuid
+            ):
+                # An external OCT instance may have changed the speaker UUID.
+                # Count the observed transition for this process's write limiter.
+                from opencloudtouch.setup.account_pairing_service import (
+                    _record_uuid_write,
+                )
+
+                _record_uuid_write(device.device_id)
+
         cursor = await db.execute(
             """
             INSERT INTO devices (device_id, ip, name, model, mac_address, firmware_version, schema_version, last_seen, marge_account_uuid, capabilities_json)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?,
+                CASE
+                    WHEN ? IS NULL THEN NULL
+                    WHEN EXISTS (
+                        SELECT 1 FROM devices AS other
+                        WHERE other.marge_account_uuid = ?
+                          AND other.device_id != ?
+                    ) THEN NULL
+                    ELSE ?
+                END,
+                ?
+            )
             ON CONFLICT(device_id) DO UPDATE SET
                 ip = excluded.ip,
                 name = excluded.name,
@@ -182,7 +234,19 @@ class DeviceRepository(BaseRepository):
                 firmware_version = excluded.firmware_version,
                 schema_version = excluded.schema_version,
                 last_seen = excluded.last_seen,
-                marge_account_uuid = COALESCE(excluded.marge_account_uuid, devices.marge_account_uuid),
+                marge_account_uuid = CASE
+                    WHEN ? OR (? IS NOT NULL AND excluded.marge_account_uuid IS NULL)
+                        THEN NULL
+                    ELSE COALESCE(excluded.marge_account_uuid, devices.marge_account_uuid)
+                END,
+                uuid_source = CASE
+                    WHEN ? OR (? IS NOT NULL AND excluded.marge_account_uuid IS NULL)
+                        THEN 'unknown'
+                    WHEN excluded.marge_account_uuid IS NOT NULL
+                      AND excluded.marge_account_uuid != devices.marge_account_uuid
+                        THEN 'unknown'
+                    ELSE devices.uuid_source
+                END,
                 capabilities_json = COALESCE(excluded.capabilities_json, devices.capabilities_json),
                 updated_at = CURRENT_TIMESTAMP
             RETURNING id
@@ -196,12 +260,19 @@ class DeviceRepository(BaseRepository):
                 device.firmware_version,
                 device.schema_version,
                 device.last_seen,
-                device.marge_account_uuid,
+                incoming_uuid,
+                incoming_uuid,
+                device.device_id,
+                incoming_uuid,
                 (
                     json.dumps(device.capabilities)
                     if device.capabilities is not None
                     else None
                 ),
+                uuid_collision,
+                incoming_uuid,
+                uuid_collision,
+                incoming_uuid,
             ),
         )
 
@@ -220,7 +291,7 @@ class DeviceRepository(BaseRepository):
         cursor = await db.execute("""
             SELECT id, device_id, ip, name, model, mac_address, firmware_version,
                    schema_version, last_seen, setup_status, ssh_permanent,
-                   setup_completed_at, marge_account_uuid, capabilities_json
+                   setup_completed_at, marge_account_uuid, capabilities_json, uuid_source
             FROM devices
         """)
 
@@ -239,7 +310,7 @@ class DeviceRepository(BaseRepository):
             """
             SELECT id, device_id, ip, name, model, mac_address, firmware_version,
                    schema_version, last_seen, setup_status, ssh_permanent,
-                   setup_completed_at, marge_account_uuid, capabilities_json
+                   setup_completed_at, marge_account_uuid, capabilities_json, uuid_source
             FROM devices
             WHERE device_id = ?
         """,
@@ -293,7 +364,7 @@ class DeviceRepository(BaseRepository):
             """
             SELECT id, device_id, ip, name, model, mac_address, firmware_version,
                    schema_version, last_seen, setup_status, ssh_permanent,
-                   setup_completed_at, marge_account_uuid, capabilities_json
+                   setup_completed_at, marge_account_uuid, capabilities_json, uuid_source
             FROM devices
             WHERE marge_account_uuid = ?
         """,
@@ -306,15 +377,53 @@ class DeviceRepository(BaseRepository):
         return self._row_to_device(row)
 
     async def update_marge_account_uuid(
-        self, device_id: str, marge_account_uuid: str
+        self, device_id: str, marge_account_uuid: str, uuid_source: str | None = None
     ) -> None:
         """Update marge_account_uuid for a device."""
         db = self._ensure_initialized()
+        if uuid_source is not None and uuid_source not in {
+            "existing",
+            "derived",
+            "collision_fallback",
+            "unknown",
+        }:
+            raise ValueError("Invalid UUID source")
 
-        await db.execute(
-            "UPDATE devices SET marge_account_uuid = ?, updated_at = CURRENT_TIMESTAMP WHERE device_id = ?",
-            (marge_account_uuid, device_id),
+        cursor = await db.execute(
+            """
+            UPDATE devices
+            SET marge_account_uuid = ?,
+                uuid_source = CASE
+                    WHEN ? IS NOT NULL AND uuid_source != 'unknown'
+                         AND marge_account_uuid = ? THEN uuid_source
+                    WHEN ? IS NOT NULL THEN ?
+                    WHEN marge_account_uuid != ? THEN 'unknown'
+                    ELSE uuid_source
+                END,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE device_id = ?
+              AND NOT EXISTS (
+                  SELECT 1 FROM devices AS other
+                  WHERE other.marge_account_uuid = ?
+                    AND other.device_id != ?
+              )
+            """,
+            (
+                marge_account_uuid,
+                uuid_source,
+                marge_account_uuid,
+                uuid_source,
+                uuid_source,
+                marge_account_uuid,
+                device_id,
+                marge_account_uuid,
+                device_id,
+            ),
         )
+        if cursor.rowcount == 0:
+            raise ValueError(
+                f"UUID collision or device not found: {marge_account_uuid}"
+            )
         await db.commit()
         logger.info(
             "Updated marge_account_uuid for %s: %s", device_id, marge_account_uuid
@@ -340,7 +449,7 @@ class DeviceRepository(BaseRepository):
             """
             SELECT id, device_id, ip, name, model, mac_address, firmware_version,
                    schema_version, last_seen, setup_status, ssh_permanent,
-                   setup_completed_at, marge_account_uuid, capabilities_json
+                   setup_completed_at, marge_account_uuid, capabilities_json, uuid_source
             FROM devices
             WHERE marge_account_uuid = ?
         """,
@@ -395,4 +504,5 @@ class DeviceRepository(BaseRepository):
             setup_completed_at=(datetime.fromisoformat(row[11]) if row[11] else None),
             marge_account_uuid=row[12] if len(row) > 12 else None,
             capabilities=(json.loads(row[13]) if len(row) > 13 and row[13] else None),
+            uuid_source=row[14] if len(row) > 14 and row[14] else "unknown",
         )

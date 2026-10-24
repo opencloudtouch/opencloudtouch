@@ -176,7 +176,9 @@ class Step8FinalizeVerifyMixin:
 
             # Persist UUID to DB
             await self._device_repo.update_marge_account_uuid(
-                device_id, uuid_result.uuid
+                device_id,
+                uuid_result.uuid,
+                uuid_source=uuid_result.uuid_source,
             )
 
             uuid_was_collision = not uuid_result.had_uuid and uuid_result.uuid != ""

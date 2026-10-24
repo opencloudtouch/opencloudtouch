@@ -96,7 +96,7 @@ class TestFinalizeDeviceNoUUID:
             assert result["uuid"] == "1234567"
             assert result["had_uuid"] is False
             repo.update_marge_account_uuid.assert_called_once_with(
-                "AABBCCDDEEFF", "1234567"
+                "AABBCCDDEEFF", "1234567", uuid_source="unknown"
             )
 
 
