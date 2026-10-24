@@ -723,3 +723,18 @@
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
+
+/* Newly discovered devices (issue #512). */
+.discovery-results {
+  margin-top: var(--space-md);
+  min-width: 0;
+}
+.discovery-device-list {
+  margin: var(--space-sm) 0;
+  padding-inline-start: var(--space-lg);
+}
+.discovery-device-list li {
+  overflow-wrap: anywhere;
+  min-width: 0;
+  margin-bottom: var(--space-xs);
+}
