@@ -48,6 +48,23 @@ check_page_size() {
     fi
 }
 
+# Verify the interpreter can read the clock and start threads. Newer libc
+# versions use system calls (time64, clone3, faccessat2) that old Docker
+# seccomp profiles (Docker < 20.10.9) reject with EPERM instead of ENOSYS.
+check_runtime() {
+    if ! RUNTIME_ERR=$(python -B -c "
+import sqlite3, ssl, threading, time
+time.monotonic()
+t = threading.Thread(target=lambda: None)
+t.start()
+t.join()
+" 2>&1); then
+        log_warn "Python self-test failed: $(echo "$RUNTIME_ERR" | tail -n 1)"
+        log_warn "If this host runs an old Docker (< 20.10.9), its default seccomp profile may block system calls the image needs."
+        log_warn "Upgrade Docker or start the container with --security-opt seccomp=unconfined."
+    fi
+}
+
 # Validate required environment variables
 validate_env() {
     log_info "Validating environment variables..."
@@ -146,7 +163,10 @@ fix_permissions() {
 main() {
     # Check system page size compatibility
     check_page_size
-    
+
+    # Check that the Python runtime works under this host's seccomp profile
+    check_runtime
+
     # Fix volume permissions before dropping privileges (runs as root)
     fix_permissions
 

@@ -23,7 +23,7 @@
 #   docker inspect --format='{{.RepoDigests}}' <image>:<tag>
 #
 # Current versions:
-#   Python: python:3.11-slim with openssl fixes (Debian Bookworm)
+#   Python: python:3.11-slim-bullseye (Debian 11, glibc 2.31; experiment #529)
 #   Node.js: 24-slim (for frontend build)
 #
 # IMPORTANT: Pin to the multi-arch INDEX digest, NOT a platform-specific one.
@@ -32,7 +32,17 @@
 #   curl ... /manifests/<digest> → mediaType must be image.index, NOT image.manifest
 
 # Stage 1: Python Dependencies (separate for better caching)
-FROM python:3.11-slim@sha256:ae52c5bef62a6bdd42cd1e8dffef86b9cd284bde9427da79839de7a4b983e7ca AS python-deps
+FROM python:3.11-slim-bullseye@sha256:9e25f400253a5fa3191813d6a67eb801ca1e6f012b3bd2588fa6920b59e3eba6 AS python-deps
+
+# Debian 11 (bullseye) is past its LTS end; point apt at the archive mirrors.
+# glibc 2.31 does not use the time64/clone3/faccessat2 system calls that old
+# Docker seccomp profiles (Docker < 20.10.9) reject with EPERM (experiment #529).
+RUN printf '%s\n' \
+        'deb http://archive.debian.org/debian bullseye main' \
+        'deb http://archive.debian.org/debian bullseye-updates main' \
+        'deb http://archive.debian.org/debian-security bullseye-security main' \
+        > /etc/apt/sources.list && \
+    echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99archive
 
 # Install build dependencies (full toolchain needed for arm/v7 cross-compilation)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -42,6 +52,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         gcc libc6-dev libffi-dev make autoconf automake libtool
 
 WORKDIR /build
+
+# Link source-built extension modules for 64 KB segment alignment so they also
+# load on 32 KB page-size kernels (experiment #530).
+ENV LDFLAGS="-Wl,-z,max-page-size=0x10000"
 
 # Upgrade pip, setuptools, wheel FIRST to get latest versions with security fixes
 RUN --mount=type=cache,target=/root/.cache/pip \
@@ -71,45 +85,6 @@ RUN find /install -path "*setuptools/_vendor/jaraco*" -delete 2>/dev/null || tru
 # non-root user with no write access, producing millions of negative
 # dentries from the failed stat() lookups)
 RUN apt-get purge -y --auto-remove gcc libc6-dev libffi-dev make autoconf automake libtool
-
-# Stage 1b: Rebuild Debian libraries/tools with 64 KB ELF segment alignment
-# (experiment #530). The stock armv7 packages are linked for 4 KB pages and
-# fail to load on 32 KB page-size kernels. Rebuilt with
-# -Wl,-z,max-page-size=0x10000 and version suffix +oct1 so they supersede
-# the archive versions.
-FROM python:3.11-slim@sha256:ae52c5bef62a6bdd42cd1e8dffef86b9cd284bde9427da79839de7a4b983e7ca AS aligned-debs
-
-ARG ALIGNED_SOURCES="zlib bzip2 acl libbsd libmd libpsl rtmpdump db5.3 gdbm gmp readline findutils grep hostname"
-
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    sed 's/^Types:.*/Types: deb-src/' /etc/apt/sources.list.d/debian.sources > /etc/apt/sources.list.d/debian-src.sources && \
-    grep -q '^Types: deb-src' /etc/apt/sources.list.d/debian-src.sources && \
-    apt-get update && \
-    apt-get upgrade -y --no-install-recommends && \
-    apt-get install -y --no-install-recommends build-essential devscripts dpkg-dev fakeroot
-
-WORKDIR /rebuild
-
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    set -e; \
-    . /etc/os-release; \
-    export DEBFULLNAME="OpenCloudTouch" DEBEMAIL="noreply@opencloudtouch.org" \
-           DEB_BUILD_OPTIONS="nocheck nodoc noautodbgsym parallel=$(nproc)" \
-           DEB_LDFLAGS_APPEND="-Wl,-z,max-page-size=0x10000" && \
-    mkdir -p /out; \
-    for src in $ALIGNED_SOURCES; do \
-        echo "=== rebuilding $src ==="; \
-        mkdir "$src"; cd "$src"; \
-        apt-get build-dep -y --no-install-recommends "$src"; \
-        apt-get source "$src"; \
-        cd */; \
-        dch --local +oct "Rebuild with 64 KB ELF segment alignment (OCT #530)" --distribution "$VERSION_CODENAME"; \
-        dpkg-buildpackage -b -uc -us; \
-        cd ..; cp *.deb /out/; cd /rebuild; \
-    done; \
-    ls -l /out
 
 # Stage 2: Frontend Build (platform-independent HTML/CSS/JS)
 # Force amd64 — output is static files, no native binaries needed.
@@ -143,7 +118,7 @@ COPY apps/frontend/tsconfig.json ./apps/frontend/
 RUN cd apps/frontend && npm run build
 
 # Stage 3: Backend Runtime
-FROM python:3.11-slim@sha256:ae52c5bef62a6bdd42cd1e8dffef86b9cd284bde9427da79839de7a4b983e7ca AS backend
+FROM python:3.11-slim-bullseye@sha256:9e25f400253a5fa3191813d6a67eb801ca1e6f012b3bd2588fa6920b59e3eba6 AS backend
 
 # OCI Image Labels
 LABEL org.opencontainers.image.title="OpenCloudTouch" \
@@ -155,6 +130,16 @@ LABEL org.opencontainers.image.title="OpenCloudTouch" \
       org.opencontainers.image.vendor="OpenCloudTouch"
 
 WORKDIR /app
+
+# Debian 11 (bullseye) is past its LTS end; point apt at the archive mirrors.
+# glibc 2.31 does not use the time64/clone3/faccessat2 system calls that old
+# Docker seccomp profiles (Docker < 20.10.9) reject with EPERM (experiment #529).
+RUN printf '%s\n' \
+        'deb http://archive.debian.org/debian bullseye main' \
+        'deb http://archive.debian.org/debian bullseye-updates main' \
+        'deb http://archive.debian.org/debian-security bullseye-security main' \
+        > /etc/apt/sources.list && \
+    echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99archive
 
 # Apply OS security patches (fixes CVE-2026-0861 glibc and other HIGH vulns in base image)
 # and install gosu/curl (entrypoint privilege drop / HEALTHCHECK probe).
@@ -168,20 +153,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update && \
     apt-get upgrade -y --no-install-recommends && \
     apt-get install -y --no-install-recommends gosu curl
-
-# Install the 64 KB-aligned rebuilds (runtime packages only, and only those
-# actually present in this image) over the stock Debian versions.
-RUN --mount=type=bind,from=aligned-debs,source=/out,target=/aligned-debs \
-    set -e; \
-    list=""; \
-    for deb in /aligned-debs/*.deb; do \
-        name=$(dpkg-deb -f "$deb" Package); \
-        if dpkg-query -W -f='${Status}' "$name" 2>/dev/null | grep -q "install ok installed"; then \
-            list="$list $deb"; \
-        fi; \
-    done; \
-    echo "Installing aligned packages:$list"; \
-    dpkg -i --force-confold $list
 
 # Copy Python dependencies from build stage
 COPY --from=python-deps /install /usr/local
