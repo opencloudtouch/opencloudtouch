@@ -103,7 +103,9 @@ class SSDPDiscovery:
 
         # Join multicast group (CRITICAL for receiving responses!)
         # Binding to 0.0.0.0 required for SSDP multicast membership
-        mreq = socket.inet_aton(self.SSDP_MULTICAST_ADDR) + socket.inet_aton("0.0.0.0")  # nosec B104
+        mreq = socket.inet_aton(self.SSDP_MULTICAST_ADDR) + socket.inet_aton(
+            "0.0.0.0"
+        )  # nosec B104
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
         # Bind to SSDP port to receive responses
