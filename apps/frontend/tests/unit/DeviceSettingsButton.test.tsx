@@ -16,16 +16,16 @@ vi.mock("../../src/api/devices", () => ({
   setBass: api.setBass,
 }));
 
-vi.mock("react-i18next", () => {
-  const t = (key: string) => key;
-  return {
-    useTranslation: () => ({ t }),
-  };
-});
+const translation = vi.hoisted(() => ({ t: (key: string) => key }));
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: translation.t }),
+}));
 
 describe("DeviceSettingsButton", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    translation.t = (key: string) => key;
     api.offline.mockReturnValue(false);
     api.capabilities.mockResolvedValue({
       features: { bass_control: true },
@@ -241,19 +241,86 @@ describe("DeviceSettingsButton", () => {
     );
   });
 
-  it("does not save a debounced change after closing", async () => {
+  it("preserves the latest change when closing during a pending write", async () => {
+    let resolveFirst!: () => void;
+
+    api.setBass.mockImplementationOnce(
+      () => new Promise<void>((resolve) => {
+        resolveFirst = resolve;
+      })
+    );
+
+    render(<DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />);
+    fireEvent.click(screen.getByRole("button", { name: "deviceSettings.open" }));
+
+    const slider = await screen.findByRole("slider");
+
+    fireEvent.change(slider, { target: { value: "-5" } });
+    fireEvent.pointerUp(slider);
+
+    await waitFor(() =>
+      expect(api.setBass).toHaveBeenCalledExactlyOnceWith("D1", -5)
+    );
+
+    fireEvent.change(slider, { target: { value: "-7" } });
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveFirst();
+    });
+
+    await waitFor(() =>
+      expect(api.setBass).toHaveBeenNthCalledWith(2, "D1", -7)
+    );
+  });
+
+  it("flushes a debounced change once when closing with Escape", async () => {
     render(<DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />);
     fireEvent.click(screen.getByRole("button", { name: "deviceSettings.open" }));
 
     const slider = await screen.findByRole("slider");
     fireEvent.change(slider, { target: { value: "-6" } });
+    fireEvent.keyDown(document, { key: "Escape" });
 
-    fireEvent.click(screen.getByRole("button", { name: "deviceSettings.close" }));
-
-    await new Promise((resolve) => setTimeout(resolve, 550));
-
-    expect(api.setBass).not.toHaveBeenCalled();
+    await waitFor(() => expect(api.setBass).toHaveBeenCalledExactlyOnceWith("D1", -6));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 550));
+    expect(api.setBass).toHaveBeenCalledTimes(1);
+  });
+
+  it("flushes a debounced change once when closing with the button", async () => {
+    render(<DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />);
+    fireEvent.click(screen.getByRole("button", { name: "deviceSettings.open" }));
+    const slider = await screen.findByRole("slider");
+    slider.focus();
+    fireEvent.change(slider, { target: { value: "-7" } });
+    fireEvent.click(screen.getByRole("button", { name: "deviceSettings.close" }));
+    await waitFor(() => expect(api.setBass).toHaveBeenCalledExactlyOnceWith("D1", -7));
+    await new Promise((resolve) => setTimeout(resolve, 550));
+    expect(api.setBass).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not reload device state when translated labels change", async () => {
+    const { rerender } = render(<DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />);
+    fireEvent.click(screen.getByRole("button", { name: "deviceSettings.open" }));
+    const slider = await screen.findByRole("slider");
+    slider.focus();
+    const reads = api.getBass.mock.calls.length;
+    translation.t = (key: string) => `translated.${key}`;
+    rerender(<DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />);
+    expect(api.getBass).toHaveBeenCalledTimes(reads);
+    expect(slider).toHaveFocus();
+  });
+
+  it("exposes a meaningful accessible value for the bass slider", async () => {
+    render(<DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />);
+    fireEvent.click(screen.getByRole("button", { name: "deviceSettings.open" }));
+    const slider = await screen.findByRole("slider");
+    expect(slider).toHaveAttribute("aria-valuetext", "deviceSettings.bass: -3");
+    fireEvent.change(slider, { target: { value: "-6" } });
+    expect(slider).toHaveAttribute("aria-valuetext", "deviceSettings.bass: -6");
   });
 
   it("saves pointer changes only on release without a duplicate write", async () => {

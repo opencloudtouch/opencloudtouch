@@ -17,6 +17,8 @@ interface DeviceSettingsButtonProps {
 
 export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSettingsButtonProps) {
   const { t } = useTranslation();
+  const translationRef = useRef(t);
+  translationRef.current = t;
   const [open, setOpen] = useState(false);
   const [capabilities, setCapabilities] = useState<BassCapabilities | null>(null);
   const [value, setValue] = useState(0);
@@ -30,6 +32,7 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
   const valueRef = useRef(0);
   const confirmedRef = useRef(0);
   const savingRef = useRef(false);
+  const inFlightWriteRef = useRef<Promise<void> | null>(null);
   const pendingRef = useRef<number | null>(null);
   const requestGenerationRef = useRef(0);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -63,13 +66,12 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
         setValue(state.target);
         setConfirmed(state.target);
       } catch (err) {
-        if (active) setError(t(isDeviceOfflineError(err) ? "deviceSettings.offline" : "deviceSettings.loadFailed"));
+        if (active) setError(translationRef.current(isDeviceOfflineError(err) ? "deviceSettings.offline" : "deviceSettings.loadFailed"));
       } finally {
         if (active) setLoading(false);
       }
     }
     void load();
-    closeButtonRef.current?.focus();
 
     return () => {
       active = false;
@@ -80,10 +82,33 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
       savingRef.current = false;
       setSaving(false);
     };
-  }, [open, deviceId, t]);
+  }, [open, deviceId]);
+
+  useEffect(() => {
+    if (open) closeButtonRef.current?.focus();
+  }, [open]);
 
   const close = () => {
+    const flushPending =
+      !pointerActiveRef.current &&
+      (saveTimerRef.current !== null || pendingRef.current !== null);
+    const finalValue = valueRef.current;
+    const inFlight = inFlightWriteRef.current;
+
     clearSaveTimer();
+
+    if (flushPending) {
+      if (inFlight) {
+        // Preserve write order after closing, without updating the closed dialog.
+        void inFlight
+          .catch(() => undefined)
+          .then(() => setBass(deviceId, finalValue))
+          .catch(() => undefined);
+      } else if (finalValue !== confirmedRef.current) {
+        void setBass(deviceId, finalValue).catch(() => undefined);
+      }
+    }
+
     pointerActiveRef.current = false;
     // Pending responses must not update a closed (or subsequently reopened) dialog.
     requestGenerationRef.current += 1;
@@ -110,8 +135,10 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
     const generation = requestGenerationRef.current;
     setSaving(true);
     setError(null);
+    const write = setBass(deviceId, next);
+    inFlightWriteRef.current = write;
     try {
-      await setBass(deviceId, next);
+      await write;
       if (generation !== requestGenerationRef.current) return;
       confirmedRef.current = next;
       setConfirmed(next);
@@ -122,6 +149,9 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
       setError(t(isDeviceOfflineError(err) ? "deviceSettings.offline" : "deviceSettings.saveFailed"));
       return;
     } finally {
+      if (inFlightWriteRef.current === write) {
+        inFlightWriteRef.current = null;
+      }
       if (generation === requestGenerationRef.current) {
         savingRef.current = false;
         setSaving(false);
@@ -181,16 +211,19 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
     }
   };
 
+  const keyHandlerRef = useRef(onDialogKeyDown);
+  keyHandlerRef.current = onDialogKeyDown;
+
   useEffect(() => {
     if (!open) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      onDialogKeyDown(event);
+      keyHandlerRef.current(event);
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  });
+  }, [open]);
 
   return (
     <>
@@ -264,6 +297,7 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
                     step={1}
                     value={value}
                     aria-busy={saving}
+                    aria-valuetext={`${t("deviceSettings.bass")}: ${value}`}
                     onChange={(e) => {
                       changeValue(Number(e.currentTarget.value));
                       if (!pointerActiveRef.current) scheduleSave();
@@ -298,10 +332,6 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
                         clearSaveTimer();
                         void save(Number(e.currentTarget.value));
                       }
-                    }}
-                    onBlur={() => {
-                      clearSaveTimer();
-                      if (!pointerActiveRef.current) void save(valueRef.current);
                     }}
                     data-test="bass-slider"
                   />
