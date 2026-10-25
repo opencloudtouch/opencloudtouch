@@ -3364,6 +3364,75 @@ paths:
           content:
             application/json:
               schema: {}
+  /api/stream-recovery:
+    get:
+      tags:
+      - Stream recovery
+      summary: Get Stream Recovery
+      description: Current configuration (defaults while nothing was stored).
+      operationId: get_stream_recovery_api_stream_recovery_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreamRecoveryConfigResponse'
+    put:
+      tags:
+      - Stream recovery
+      summary: Put Stream Recovery
+      description: Store the configuration and apply it immediately.
+      operationId: put_stream_recovery_api_stream_recovery_put
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StreamRecoveryConfigRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreamRecoveryConfigResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/stream-recovery/events:
+    get:
+      tags:
+      - Stream recovery
+      summary: List Stream Recovery Events
+      description: Recent activity, newest first.
+      operationId: list_stream_recovery_events_api_stream_recovery_events_get
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreamRecoveryEventsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /health:
     get:
       tags:
@@ -4754,6 +4823,100 @@ components:
       - clock
       - power_saving
       title: SettingsAvailability
+    StreamRecoveryConfigRequest:
+      properties:
+        enabled:
+          type: boolean
+          title: Enabled
+        min_play_seconds:
+          title: Min Play Seconds
+        max_attempts_per_hour:
+          title: Max Attempts Per Hour
+      type: object
+      required:
+      - enabled
+      - min_play_seconds
+      - max_attempts_per_hour
+      title: StreamRecoveryConfigRequest
+      description: Full replacement. Ranges are validated by the service (coded errors).
+    StreamRecoveryConfigResponse:
+      properties:
+        enabled:
+          type: boolean
+          title: Enabled
+        min_play_seconds:
+          type: integer
+          title: Min Play Seconds
+        max_attempts_per_hour:
+          type: integer
+          title: Max Attempts Per Hour
+        updated_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated At
+      type: object
+      required:
+      - enabled
+      - min_play_seconds
+      - max_attempts_per_hour
+      title: StreamRecoveryConfigResponse
+    StreamRecoveryEventItem:
+      properties:
+        id:
+          type: integer
+          title: Id
+        occurred_at:
+          type: string
+          title: Occurred At
+        device_id:
+          type: string
+          title: Device Id
+        preset_number:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Preset Number
+        station_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Station Name
+        play_seconds:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Play Seconds
+        outcome:
+          type: string
+          title: Outcome
+        attempts:
+          type: integer
+          title: Attempts
+        error_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Code
+      type: object
+      required:
+      - id
+      - occurred_at
+      - device_id
+      - outcome
+      - attempts
+      title: StreamRecoveryEventItem
+    StreamRecoveryEventsResponse:
+      properties:
+        events:
+          items:
+            $ref: '#/components/schemas/StreamRecoveryEventItem'
+          type: array
+          title: Events
+      type: object
+      required:
+      - events
+      title: StreamRecoveryEventsResponse
     ValidateHostnameRequest:
       properties:
         hostname:

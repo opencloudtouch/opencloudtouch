@@ -11,6 +11,7 @@ acts as an HTTP proxy to fetch HTTPS streams from RadioBrowser.
 """
 
 import logging
+import time
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
@@ -208,10 +209,13 @@ async def stream_device_preset(
             },
         )
 
+        stream_opened_at = time.monotonic()
+
         async def stream_generator():
             """Generator that yields audio chunks from the already-opened upstream."""
             chunks = 0
             total_bytes = 0
+            deliberate_stop = False
             try:
                 async for chunk in upstream_response.aiter_bytes(chunk_size=8192):
                     if not _should_keep_streaming(state_manager, device_id, preset):
@@ -222,6 +226,7 @@ async def stream_device_preset(
                             chunks,
                             total_bytes,
                         )
+                        deliberate_stop = True
                         break
                     chunks += 1
                     total_bytes += len(chunk)
@@ -234,11 +239,15 @@ async def stream_device_preset(
                     extra={"device_id": device_id, "preset_id": preset_id},
                 )
             finally:
-                logger.debug(
-                    "[STREAM END] %s: %d chunks, %d bytes total",
+                # An end nobody asked for (upstream EOF/error, client disconnect) is
+                # the diagnostic for dropped stations: INFO. A deliberate stop stays DEBUG.
+                logger.log(
+                    logging.DEBUG if deliberate_stop else logging.INFO,
+                    "[STREAM END] %s: %d chunks, %d bytes total, elapsed=%.1f",
                     preset.station_name,
                     chunks,
                     total_bytes,
+                    time.monotonic() - stream_opened_at,
                 )
                 await upstream_response.aclose()
                 await http_client.aclose()
