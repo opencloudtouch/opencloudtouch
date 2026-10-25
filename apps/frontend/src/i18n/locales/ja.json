@@ -122,7 +122,8 @@
     "discovery": {
       "devicesFound_one": "新しいデバイスが{{count}}台見つかりました",
       "devicesFound_other": "新しいデバイスが{{count}}台見つかりました",
-      "showMore": "ほか{{count}}台"
+      "showMore": "ほか{{count}}台",
+      "showLess": "表示を減らす"
     },
     "deviceDiscovery": {
       "sectionTitle": "デバイスを探す",

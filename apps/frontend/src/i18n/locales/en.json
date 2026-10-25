@@ -122,7 +122,8 @@
     "discovery": {
       "devicesFound_one": "{{count}} new device found",
       "devicesFound_other": "{{count}} new devices found",
-      "showMore": "+ {{count}} more"
+      "showMore": "+ {{count}} more",
+      "showLess": "Show less"
     },
     "deviceDiscovery": {
       "sectionTitle": "Find Devices",

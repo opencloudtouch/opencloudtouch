@@ -185,9 +185,9 @@ describe("Device Discovery", () => {
 
         // On the next scan the same device already exists in the database.
         cy.get(".network-scan-btn").click();
-        cy.contains(/0 (new devices found|neue Geräte gefunden)/i, {
+        cy.get('[data-test="discovery-result-count"]', {
           timeout: 15000,
-        }).should("be.visible");
+        }).should("have.attr", "data-count", "0");
         cy.get('[data-test="newly-discovered-devices"]').should("not.exist");
       });
     });

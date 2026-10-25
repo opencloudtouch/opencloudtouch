@@ -122,7 +122,8 @@
     "discovery": {
       "devicesFound_one": "{{count}} nieuw apparaat gevonden",
       "devicesFound_other": "{{count}} nieuwe apparaten gevonden",
-      "showMore": "+ {{count}} meer"
+      "showMore": "+ {{count}} meer",
+      "showLess": "Minder tonen"
     },
     "deviceDiscovery": {
       "sectionTitle": "Apparaten zoeken",

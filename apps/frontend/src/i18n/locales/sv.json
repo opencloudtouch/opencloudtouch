@@ -122,7 +122,8 @@
     "discovery": {
       "devicesFound_one": "{{count}} ny enhet hittad",
       "devicesFound_other": "{{count}} nya enheter hittade",
-      "showMore": "+ {{count}} till"
+      "showMore": "+ {{count}} till",
+      "showLess": "Visa färre"
     },
     "deviceDiscovery": {
       "sectionTitle": "Hitta enheter",

@@ -251,7 +251,9 @@ describe("Settings — Scan Button trigger", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/0 new devices found/i)).toBeInTheDocument();
+      expect(screen.getByText(/0 new devices found/i, {
+        selector: '[data-test="toast-message"]',
+      })).toBeInTheDocument();
       expect(screen.queryByText("Kitchen")).not.toBeInTheDocument();
     });
   });
@@ -544,5 +546,59 @@ describe("Settings — Discover Button completion toast", () => {
 
     expect(screen.queryByText(/new devices found/i)).toBeNull();
     expect(screen.queryByText(/new device found/i)).toBeNull();
+  });
+});
+
+describe("Settings — discovery review regressions", () => {
+  it("aborts the scan if the pre-scan device fetch fails", async () => {
+    mockFetch.mockImplementation(async (url: string) => {
+      if (String(url).endsWith("/api/devices")) {
+        throw new Error("Failed to fetch devices");
+      }
+      return { ok: true, json: async () => ({ ips: [] }) };
+    });
+
+    renderSettings();
+    const button = await screen.findByRole("button", { name: /scan now/i });
+    fireEvent.click(button);
+
+    await waitFor(() => expect(button).not.toBeDisabled());
+    expect(mockStartDiscovery).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText(
+        /Could not connect to the server\. Please check your network connection\./i
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the expand button mounted and supports collapsing", async () => {
+    const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
+    (useDiscoveryStream as Mock).mockReturnValue({
+      ...makeDiscoveryState({
+        completed: true,
+        devicesFound: Array.from({ length: 7 }, (_, i) => ({
+          device_id: `NEW${i}`,
+          name: `Device ${i}`,
+        })),
+      }),
+      startDiscovery: mockStartDiscovery,
+    });
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ ips: [] }),
+    });
+
+    renderSettings();
+    const expand = await screen.findByRole("button", { name: /more/i });
+    expect(expand).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getAllByRole("listitem")).toHaveLength(5);
+
+    fireEvent.click(expand);
+    expect(expand).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getAllByRole("listitem")).toHaveLength(7);
+
+    fireEvent.click(expand);
+    expect(expand).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getAllByRole("listitem")).toHaveLength(5);
   });
 });

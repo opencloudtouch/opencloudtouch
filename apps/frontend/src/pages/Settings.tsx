@@ -222,24 +222,30 @@ export default function Settings() {
                 )}
               </button>
             </div>
+            {completed && (
+              <p role="status" aria-live="polite"
+                 data-test="discovery-result-count"
+                 data-count={newDevices.length}>
+                {t("settings.discovery.devicesFound", { count: newDevices.length })}
+              </p>
+            )}
             {newDevices.length > 0 && (
               <div className="discovery-results" data-test="newly-discovered-devices">
-                <p role="status" aria-live="polite">
-                  {t("settings.discovery.devicesFound", { count: newDevices.length })}
-                </p>
                 <ul className="discovery-device-list">
                   {(showAllDevices ? newDevices : newDevices.slice(0, 5)).map((device) => (
                     <li key={device.device_id}>{device.name}</li>
                   ))}
                 </ul>
-                {newDevices.length > 5 && !showAllDevices && (
+                {newDevices.length > 5 && (
                   <button
                     type="button"
                     className="btn btn-secondary"
-                    onClick={() => setShowAllDevices(true)}
+                    onClick={() => setShowAllDevices((current) => !current)}
                     aria-expanded={showAllDevices}
                   >
-                    {t("settings.discovery.showMore", { count: newDevices.length - 5 })}
+                    {showAllDevices
+                      ? t("settings.discovery.showLess")
+                      : t("settings.discovery.showMore", { count: newDevices.length - 5 })}
                   </button>
                 )}
               </div>
