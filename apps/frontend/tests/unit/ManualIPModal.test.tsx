@@ -27,9 +27,7 @@ describe("ManualIPModal", () => {
   });
 
   it("renders nothing when closed", () => {
-    const { container } = render(
-      <ManualIPModal isOpen={false} onClose={mockOnClose} />,
-    );
+    const { container } = render(<ManualIPModal isOpen={false} onClose={mockOnClose} />);
     expect(container.firstChild).toBeNull();
   });
 
@@ -87,7 +85,7 @@ describe("ManualIPModal", () => {
 
   it("shows the translated message for a coded API error on save", async () => {
     mockMutateAsync.mockRejectedValue(
-      new ApiError("Device unreachable: 192.168.1.100", { status: 503, code: "device_unreachable" }),
+      new ApiError("Device unreachable: 192.168.1.100", { status: 503, code: "device_unreachable" })
     );
     render(<ManualIPModal isOpen={true} onClose={mockOnClose} />);
     fireEvent.click(screen.getByRole("button", { name: i18next.t("manualIpModal.save") }));
@@ -102,7 +100,7 @@ describe("ManualIPModal", () => {
     fireEvent.click(screen.getByRole("button", { name: i18next.t("manualIpModal.save") }));
 
     await waitFor(() =>
-      expect(screen.getByText(i18next.t("manualIpModal.saveError"))).toBeInTheDocument(),
+      expect(screen.getByText(i18next.t("manualIpModal.saveError"))).toBeInTheDocument()
     );
   });
 });

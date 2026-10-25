@@ -80,7 +80,12 @@ describe("Settings API Client", () => {
 
   describe("probeDevice", () => {
     it("POSTs the ip and returns the probe result", async () => {
-      const probeResult = { device_id: "ST10-001", ip: "192.168.1.70", name: "Kitchen", model: "SoundTouch 10" };
+      const probeResult = {
+        device_id: "ST10-001",
+        ip: "192.168.1.70",
+        name: "Kitchen",
+        model: "SoundTouch 10",
+      };
       mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(probeResult) });
 
       const result = await probeDevice("192.168.1.70");

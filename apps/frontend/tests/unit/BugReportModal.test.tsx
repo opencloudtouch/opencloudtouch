@@ -98,8 +98,12 @@ describe("BugReportModal", () => {
     const BugReportModal = await getBugReportModal();
     render(<BugReportModal open onClose={vi.fn()} />);
 
-    fireEvent.change(screen.getAllByRole("textbox")[0], { target: { value: "This is a detailed bug description that is long enough" } });
-    fireEvent.change(screen.getAllByRole("textbox")[1], { target: { value: "1. Click here\n2. Then there\n3. Error" } });
+    fireEvent.change(screen.getAllByRole("textbox")[0], {
+      target: { value: "This is a detailed bug description that is long enough" },
+    });
+    fireEvent.change(screen.getAllByRole("textbox")[1], {
+      target: { value: "1. Click here\n2. Then there\n3. Error" },
+    });
     fireEvent.change(screen.getAllByRole("textbox")[2], { target: { value: "Should work fine" } });
 
     const selects = screen.getAllByRole("combobox");
@@ -115,8 +119,12 @@ describe("BugReportModal", () => {
     const onClose = vi.fn();
     render(<BugReportModal open onClose={onClose} />);
 
-    fireEvent.change(screen.getAllByRole("textbox")[0], { target: { value: "This is a detailed bug description that is long enough" } });
-    fireEvent.change(screen.getAllByRole("textbox")[1], { target: { value: "1. Click here\n2. Then there\n3. Error" } });
+    fireEvent.change(screen.getAllByRole("textbox")[0], {
+      target: { value: "This is a detailed bug description that is long enough" },
+    });
+    fireEvent.change(screen.getAllByRole("textbox")[1], {
+      target: { value: "1. Click here\n2. Then there\n3. Error" },
+    });
     fireEvent.change(screen.getAllByRole("textbox")[2], { target: { value: "Should work fine" } });
 
     const selects = screen.getAllByRole("combobox");
@@ -143,8 +151,12 @@ describe("BugReportModal", () => {
     const BugReportModal = await getBugReportModal();
     render(<BugReportModal open onClose={vi.fn()} />);
 
-    fireEvent.change(screen.getAllByRole("textbox")[0], { target: { value: "This is a detailed bug description that is long enough" } });
-    fireEvent.change(screen.getAllByRole("textbox")[1], { target: { value: "1. Click here\n2. Then there\n3. Error" } });
+    fireEvent.change(screen.getAllByRole("textbox")[0], {
+      target: { value: "This is a detailed bug description that is long enough" },
+    });
+    fireEvent.change(screen.getAllByRole("textbox")[1], {
+      target: { value: "1. Click here\n2. Then there\n3. Error" },
+    });
     fireEvent.change(screen.getAllByRole("textbox")[2], { target: { value: "Should work fine" } });
 
     const selects = screen.getAllByRole("combobox");
@@ -154,11 +166,7 @@ describe("BugReportModal", () => {
     fireEvent.click(screen.getByRole("button", { name: /Submit Bug Report/i }));
 
     await waitFor(() => {
-      expect(mockShowToast).toHaveBeenCalledWith(
-        expect.stringContaining("Failed"),
-        "error",
-        8000
-      );
+      expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining("Failed"), "error", 8000);
     });
   });
 
@@ -216,14 +224,14 @@ describe("BugReportModal", () => {
           frontend_logs: expect.any(Array),
           browser_info: expect.any(String),
           current_route: "/test",
-        }),
+        })
       );
     });
     await waitFor(() => {
       expect(mockShowToast).toHaveBeenCalledWith(
         expect.stringContaining("Diagnostics downloaded"),
         "success",
-        8000,
+        8000
       );
     });
   });
@@ -240,20 +248,24 @@ describe("BugReportModal", () => {
       expect(mockShowToast).toHaveBeenCalledWith(
         expect.stringContaining("Failed to download"),
         "error",
-        8000,
+        8000
       );
     });
   });
 
   it("shows the translated API error message in the submit failure toast", async () => {
     mockSubmitBugReport.mockRejectedValue(
-      new ApiError("raw backend text", { status: 503, code: "device_unreachable" }),
+      new ApiError("raw backend text", { status: 503, code: "device_unreachable" })
     );
     const BugReportModal = await getBugReportModal();
     render(<BugReportModal open onClose={vi.fn()} />);
 
-    fireEvent.change(screen.getAllByRole("textbox")[0], { target: { value: "This is a detailed bug description that is long enough" } });
-    fireEvent.change(screen.getAllByRole("textbox")[1], { target: { value: "1. Click here\n2. Then there\n3. Error" } });
+    fireEvent.change(screen.getAllByRole("textbox")[0], {
+      target: { value: "This is a detailed bug description that is long enough" },
+    });
+    fireEvent.change(screen.getAllByRole("textbox")[1], {
+      target: { value: "1. Click here\n2. Then there\n3. Error" },
+    });
     fireEvent.change(screen.getAllByRole("textbox")[2], { target: { value: "Should work fine" } });
     const selects = screen.getAllByRole("combobox");
     fireEvent.change(selects[0], { target: { value: "docker" } });
@@ -264,14 +276,14 @@ describe("BugReportModal", () => {
       expect(mockShowToast).toHaveBeenCalledWith(
         i18next.t("bugReport.submitFailed", { error: i18next.t("errors.api.device_unreachable") }),
         "error",
-        8000,
+        8000
       );
     });
   });
 
   it("shows the translated API error message in the diagnostics failure toast", async () => {
     mockDownloadDiagnostics.mockRejectedValue(
-      new ApiError("raw backend text", { status: 503, code: "device_unreachable" }),
+      new ApiError("raw backend text", { status: 503, code: "device_unreachable" })
     );
     const BugReportModal = await getBugReportModal();
     render(<BugReportModal open onClose={vi.fn()} />);
@@ -284,7 +296,7 @@ describe("BugReportModal", () => {
           error: i18next.t("errors.api.device_unreachable"),
         }),
         "error",
-        8000,
+        8000
       );
     });
   });

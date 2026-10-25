@@ -8,6 +8,8 @@ export interface HealthResponse {
   version: string;
   /** "official" for signed CI builds, "community" for self-built/local-dev. */
   build: "official" | "community";
+  /** Seconds since start; optional, the current /health payload does not send it. */
+  uptime?: number;
 }
 
 export async function getHealth(): Promise<HealthResponse> {

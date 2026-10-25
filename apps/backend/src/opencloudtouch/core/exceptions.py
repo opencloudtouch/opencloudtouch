@@ -30,8 +30,6 @@ from pydantic import BaseModel
 class OpenCloudTouchError(Exception):
     """Base exception for all OpenCloudTouch errors."""
 
-    pass
-
 
 # ============================================================================
 # Device Exceptions
@@ -56,8 +54,6 @@ class DeviceConnectionError(OpenCloudTouchError):
 
 class DiscoveryError(OpenCloudTouchError):
     """Raised when device discovery fails."""
-
-    pass
 
 
 # ============================================================================
@@ -131,19 +127,13 @@ def raise_coded(
 class RadioError(OpenCloudTouchError):
     """Base exception for radio provider errors (RadioBrowser, TuneIn)."""
 
-    pass
-
 
 class RadioTimeoutError(RadioError):
     """Raised when radio provider API times out. Maps to 504."""
 
-    pass
-
 
 class RadioConnectionError(RadioError):
     """Raised when connection to radio provider fails. Maps to 503."""
-
-    pass
 
 
 # ============================================================================
@@ -209,8 +199,6 @@ class BackupScanError(OpenCloudTouchError):
 
 class ExternalServiceError(OpenCloudTouchError):
     """Raised when an external service (GitHub, etc.) fails. Maps to 502."""
-
-    pass
 
 
 # ============================================================================
