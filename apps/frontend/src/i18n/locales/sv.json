@@ -630,6 +630,15 @@
     }
   },
   "errors": {
+    "api": {
+      "unknown": "Något gick fel.",
+      "unknownWithCode": "Något gick fel (kod: {{code}}).",
+      "device_not_found": "Enheten hittades inte.",
+      "device_unreachable": "Enheten kan inte nås. Kontrollera att den är påslagen och ansluten till nätverket.",
+      "not_found": "Den begärda resursen hittades inte.",
+      "validation_error": "Begäran innehåller ogiltiga data. Kontrollera dina inmatningar.",
+      "internal_error": "Ett internt fel inträffade. Försök igen senare."
+    },
     "loadFailed": "Inläsning misslyckades. Försök igen.",
     "unknown": "Ett oväntat fel uppstod. Försök igen.",
     "networkFailed": "Det gick inte att ansluta till servern. Kontrollera nätverksanslutningen.",

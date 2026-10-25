@@ -4,13 +4,17 @@
  * Covers: overlay onKeyDown handler, role attributes, keyboard dismissal.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import ManualIPModal from "../../src/components/ManualIPModal";
+import { ApiError } from "../../src/api/types";
+import { i18next } from "../../src/i18n";
+
+const mockMutateAsync = vi.hoisted(() => vi.fn());
 
 // Mock the settings hooks
 vi.mock("../../src/hooks/useSettings", () => ({
   useManualIPs: () => ({ data: ["192.168.1.100"] }),
-  useSetManualIPs: () => vi.fn().mockResolvedValue(undefined),
+  useSetManualIPs: () => ({ mutateAsync: mockMutateAsync, isPending: false }),
 }));
 
 describe("ManualIPModal", () => {
@@ -18,6 +22,8 @@ describe("ManualIPModal", () => {
 
   beforeEach(() => {
     mockOnClose.mockClear();
+    mockMutateAsync.mockReset();
+    mockMutateAsync.mockResolvedValue(undefined);
   });
 
   it("renders nothing when closed", () => {
@@ -77,5 +83,26 @@ describe("ManualIPModal", () => {
     render(<ManualIPModal isOpen={true} onClose={mockOnClose} />);
     const textarea = screen.getByRole("textbox");
     expect(textarea).toHaveValue("192.168.1.100");
+  });
+
+  it("shows the translated message for a coded API error on save", async () => {
+    mockMutateAsync.mockRejectedValue(
+      new ApiError("Device unreachable: 192.168.1.100", { status: 503, code: "device_unreachable" }),
+    );
+    render(<ManualIPModal isOpen={true} onClose={mockOnClose} />);
+    fireEvent.click(screen.getByRole("button", { name: i18next.t("manualIpModal.save") }));
+
+    expect(await screen.findByText(i18next.t("errors.api.device_unreachable"))).toBeInTheDocument();
+    expect(screen.queryByText(/Device unreachable: 192/)).not.toBeInTheDocument();
+  });
+
+  it("falls back to the fixed save error for an error without code", async () => {
+    mockMutateAsync.mockRejectedValue(new Error("boom"));
+    render(<ManualIPModal isOpen={true} onClose={mockOnClose} />);
+    fireEvent.click(screen.getByRole("button", { name: i18next.t("manualIpModal.save") }));
+
+    await waitFor(() =>
+      expect(screen.getByText(i18next.t("manualIpModal.saveError"))).toBeInTheDocument(),
+    );
   });
 });

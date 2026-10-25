@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import { submitBugReport, downloadDiagnostics } from "../api/bugReport";
+import { getApiErrorMessage } from "../utils/apiErrors";
 import { getLogEntries } from "../utils/logBuffer";
 import { useToast } from "../contexts/ToastContext";
 import "./BugReportModal.css";
@@ -141,7 +142,7 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
       resetForm();
       onClose();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : t("errors.unknown");
+      const msg = getApiErrorMessage(t, err);
       showToast(t("bugReport.submitFailed", { error: msg }), "error", 8000);
     } finally {
       setSubmitting(false);
@@ -161,7 +162,7 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
       });
       showToast(t("bugReport.diagnosticsSuccess"), "success", 8000);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : t("errors.unknown");
+      const msg = getApiErrorMessage(t, err);
       showToast(t("bugReport.diagnosticsFailed", { error: msg }), "error", 8000);
     } finally {
       setDownloading(false);

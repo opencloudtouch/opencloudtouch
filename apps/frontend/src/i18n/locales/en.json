@@ -630,6 +630,15 @@
     }
   },
   "errors": {
+    "api": {
+      "unknown": "Something went wrong.",
+      "unknownWithCode": "Something went wrong (code: {{code}}).",
+      "device_not_found": "The device was not found.",
+      "device_unreachable": "The device is not reachable. Check that it is switched on and connected to the network.",
+      "not_found": "The requested resource was not found.",
+      "validation_error": "The request contains invalid data. Please check your inputs.",
+      "internal_error": "An internal error occurred. Please try again later."
+    },
     "loadFailed": "Failed to load. Please try again.",
     "unknown": "An unexpected error occurred. Please try again.",
     "networkFailed": "Could not connect to the server. Please check your network connection.",

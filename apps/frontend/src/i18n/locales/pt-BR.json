@@ -630,6 +630,15 @@
     }
   },
   "errors": {
+    "api": {
+      "unknown": "Algo deu errado.",
+      "unknownWithCode": "Algo deu errado (código: {{code}}).",
+      "device_not_found": "O dispositivo não foi encontrado.",
+      "device_unreachable": "Não foi possível acessar o dispositivo. Verifique se ele está ligado e conectado à rede.",
+      "not_found": "O recurso solicitado não foi encontrado.",
+      "validation_error": "A solicitação contém dados inválidos. Verifique o que você digitou.",
+      "internal_error": "Ocorreu um erro interno. Tente novamente mais tarde."
+    },
     "loadFailed": "Carregamento falhou. Tente novamente.",
     "unknown": "Ocorreu um erro inesperado. Tente novamente.",
     "networkFailed": "Não foi possível conectar ao servidor. Verifique sua conexão de rede.",

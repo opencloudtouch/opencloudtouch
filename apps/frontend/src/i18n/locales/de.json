@@ -630,6 +630,15 @@
     }
   },
   "errors": {
+    "api": {
+      "unknown": "Etwas ist schiefgelaufen.",
+      "unknownWithCode": "Etwas ist schiefgelaufen (Code: {{code}}).",
+      "device_not_found": "Das Gerät wurde nicht gefunden.",
+      "device_unreachable": "Das Gerät ist nicht erreichbar. Prüfe, ob es eingeschaltet und mit dem Netzwerk verbunden ist.",
+      "not_found": "Die angeforderte Ressource wurde nicht gefunden.",
+      "validation_error": "Die Anfrage enthält ungültige Daten. Bitte prüfe deine Eingaben.",
+      "internal_error": "Ein interner Fehler ist aufgetreten. Bitte versuche es später erneut."
+    },
     "loadFailed": "Laden fehlgeschlagen. Bitte erneut versuchen.",
     "unknown": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
     "networkFailed": "Verbindung zum Server fehlgeschlagen. Bitte prüfen Sie Ihre Netzwerkverbindung.",

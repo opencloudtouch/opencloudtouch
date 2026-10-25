@@ -51,6 +51,7 @@ describe("Setup API Client", () => {
         ok: false,
         statusText: "Not Found",
         json: () => Promise.resolve({ detail: "Model not found" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "Model not found" })),
       });
 
       // getErrorMessage returns fallback for non-ApiError objects
@@ -102,6 +103,7 @@ describe("Setup API Client", () => {
         ok: false,
         statusText: "Service Unavailable",
         json: () => Promise.resolve({ detail: "Device unreachable" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "Device unreachable" })),
       });
 
       // getErrorMessage returns fallback for non-ApiError objects
@@ -161,6 +163,7 @@ describe("Setup API Client", () => {
         ok: false,
         statusText: "Not Found",
         json: () => Promise.resolve({ detail: "Device not found" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "Device not found" })),
       });
 
       // getErrorMessage returns fallback for non-ApiError objects
@@ -213,6 +216,7 @@ describe("Setup API Client", () => {
         ok: false,
         statusText: "Bad Request",
         json: () => Promise.resolve({ detail: "SSH not accessible" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "SSH not accessible" })),
       });
 
       // getErrorMessage returns fallback for non-ApiError objects
@@ -280,6 +284,7 @@ describe("Setup API Client", () => {
         ok: false,
         statusText: "Internal Server Error",
         json: () => Promise.resolve({ detail: "Database error" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "Database error" })),
       });
 
       // getErrorMessage returns fallback for non-ApiError objects

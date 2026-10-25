@@ -630,6 +630,15 @@
     }
   },
   "errors": {
+    "api": {
+      "unknown": "Algo salió mal.",
+      "unknownWithCode": "Algo salió mal (código: {{code}}).",
+      "device_not_found": "No se encontró el dispositivo.",
+      "device_unreachable": "No se puede acceder al dispositivo. Comprueba que esté encendido y conectado a la red.",
+      "not_found": "No se encontró el recurso solicitado.",
+      "validation_error": "La solicitud contiene datos no válidos. Revisa los datos introducidos.",
+      "internal_error": "Se produjo un error interno. Inténtalo de nuevo más tarde."
+    },
     "loadFailed": "Error al cargar. Inténtelo de nuevo.",
     "unknown": "Se produjo un error inesperado. Inténtelo de nuevo.",
     "networkFailed": "No se pudo conectar al servidor. Compruebe su conexión de red.",
