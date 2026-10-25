@@ -2,6 +2,11 @@
 
 These rules apply to every agent working in this repository (local and cloud sessions). Humans contributing here follow the same quality gates; see [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md).
 
+## Language (applies to every session)
+
+- **Communication with the user in the chat: German.** This includes answers, questions, status reports and summaries addressed directly to the user.
+- **Everything else: English** — code, comments, identifiers, commit messages, branch names, issues, PR titles and descriptions, review comments, repository documentation and file contents.
+
 ## Project in one minute
 
 - Monorepo: `apps/backend/` (Python 3.11+, FastAPI, async, clean architecture: routes → service → repository/adapter) and `apps/frontend/` (React 19, TypeScript strict, TanStack Query). Deployment and CI live in `deployment/`, `scripts/`, `.github/`.
@@ -9,10 +14,6 @@ These rules apply to every agent working in this repository (local and cloud ses
 - Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Configuration: [docs/CONFIGURATION.md](docs/CONFIGURATION.md). Commits: [docs/CONVENTIONAL_COMMITS.md](docs/CONVENTIONAL_COMMITS.md).
 - Test-first development; coverage ≥ 80 %; deterministic tests only (no real-device tests in CI). Never bypass hooks (`--no-verify`).
 - Threat model: trusted LAN, no authentication by design ([.github/SECURITY.md](.github/SECURITY.md)). No secrets or full token-bearing URLs in code or logs.
-
-## Language
-
-Code, comments, commit messages, issues, PR titles/descriptions and repository documentation are written in **English**.
 
 ## Definition of Ready and Definition of Done
 
