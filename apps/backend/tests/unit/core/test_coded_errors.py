@@ -408,3 +408,10 @@ def _run(coro):
     import asyncio
 
     return asyncio.new_event_loop().run_until_complete(coro)
+
+
+def test_status_title_defaults_and_fallback():
+    from opencloudtouch.core.exceptions import status_title
+
+    assert status_title(409) == "Conflict"
+    assert status_title(418) == "HTTP 418"
