@@ -577,4 +577,4 @@ def test_raise_coded_rejects_invalid_code_pattern(bad):
 
 def test_domain_validation_error_rejects_invalid_code_pattern():
     with pytest.raises(ValueError, match="invalid error code"):
-        DomainValidationError("m", code="Bad Code")
+        raise DomainValidationError("m", code="Bad Code")
