@@ -702,7 +702,7 @@
     "supportersDescription": "Gracias a todos los que apoyan OpenCloudTouch financieramente. ¡Sus contribuciones ayudan a mantener el proyecto vivo!",
     "supportersMonthly": "Patrocinadores Mensuales",
     "supportersOneTime": "Patrocinadores Únicos",
-    "buildTime": "Creado el {{time}}",
+    "uptime": "Tiempo de actividad: {{duration}}",
     "checkingUpdates": "Buscando actualizaciones...",
     "updateAvailable": "Actualización disponible: {{version}}",
     "viewRelease": "Ver lanzamiento",

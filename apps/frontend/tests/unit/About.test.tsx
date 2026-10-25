@@ -4,6 +4,7 @@ import React from "react";
 import { MemoryRouter } from "react-router";
 import { QueryWrapper } from "../utils/reactQueryTestUtils";
 import { useHealth } from "../../src/hooks/useHealth";
+import { i18next } from "../../src/i18n";
 import About from "../../src/pages/About";
 
 // Mock framer-motion
@@ -70,11 +71,10 @@ describe("About page", () => {
     expect(screen.getByText("OpenCloudTouch")).toBeTruthy();
   });
 
-  it("shows the start time derived from the health uptime", () => {
-    setupHealthMock("1.5.0", "community", 3600);
+  it("shows the uptime from the health response", () => {
+    setupHealthMock("1.5.0", "community", 2 * 86400 + 3 * 3600 + 14 * 60);
+
     mockFetchWith({ ok: false });
-    const now = new Date("2026-06-01T12:00:00Z").getTime();
-    vi.spyOn(Date, "now").mockReturnValue(now);
 
     render(
       <MemoryRouter>
@@ -84,11 +84,13 @@ describe("About page", () => {
       </MemoryRouter>
     );
 
-    const expected = new Date(now - 3600 * 1000).toLocaleString();
-    expect(document.querySelector(".about-build-time")?.textContent).toContain(expected);
+    expect(document.querySelector(".about-uptime")?.textContent).toBe(
+      i18next.t("about.uptime", { duration: "2d 3h 14m" })
+    );
+    expect(document.querySelector(".about-uptime")?.textContent).not.toMatch(/built|erstellt/i);
   });
 
-  it("hides the build time when the backend sends no uptime", () => {
+  it("hides the uptime when the backend sends none", () => {
     setupHealthMock("1.5.0", "community");
     mockFetchWith({ ok: false });
 
@@ -100,7 +102,7 @@ describe("About page", () => {
       </MemoryRouter>
     );
 
-    expect(document.querySelector(".about-build-time")).toBeNull();
+    expect(document.querySelector(".about-uptime")).toBeNull();
   });
 
   it("renders version badge when health data available", () => {

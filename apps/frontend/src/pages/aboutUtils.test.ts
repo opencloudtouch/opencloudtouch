@@ -6,7 +6,13 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { cleanName, parseCSVLine, getFontSize, generateGradientColor } from "./aboutUtils";
+import {
+  cleanName,
+  parseCSVLine,
+  getFontSize,
+  generateGradientColor,
+  formatUptime,
+} from "./aboutUtils";
 
 describe("cleanName", () => {
   it("leaves plain names untouched", () => {
@@ -75,5 +81,26 @@ describe("aboutUtils (existing helpers, regression guard)", () => {
 
   it("generateGradientColor returns an hsl string", () => {
     expect(generateGradientColor(0, 5)).toMatch(/^hsl\(/);
+  });
+
+  describe("formatUptime", () => {
+    it("shows days, hours and minutes for long uptimes", () => {
+      expect(formatUptime(2 * 86400 + 3 * 3600 + 14 * 60 + 59)).toBe("2d 3h 14m");
+    });
+
+    it("omits days below one day", () => {
+      expect(formatUptime(3600)).toBe("1h 0m");
+    });
+
+    it("shows only minutes below one hour", () => {
+      expect(formatUptime(125)).toBe("2m");
+    });
+
+    it("returns 0m for less than a minute, zero, negative and non-finite values", () => {
+      expect(formatUptime(59)).toBe("0m");
+      expect(formatUptime(0)).toBe("0m");
+      expect(formatUptime(-10)).toBe("0m");
+      expect(formatUptime(Number.NaN)).toBe("0m");
+    });
   });
 });

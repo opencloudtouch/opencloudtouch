@@ -43,7 +43,7 @@
   font-weight: 600;
 }
 
-.about-build-time {
+.about-uptime {
   color: var(--color-text-secondary);
   font-size: 14px;
   margin-bottom: var(--space-lg, 24px);

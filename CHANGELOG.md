@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ErrorDetail` and `ErrorItem` are part of the generated OpenAPI schema.
 
 ### Fixed
-- `/health` now returns `uptime` (seconds since the backend process started); the "Built on" line on the About page expected it but never received it.
+- `/health` now returns `uptime` (seconds since the backend process started). The About page shows it as "Uptime: 2d 3h 14m" instead of the misleading "Built on" line, which never rendered because the backend did not send the value.
 
 ---
 

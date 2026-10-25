@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { useHealth } from "../hooks/useHealth";
 import { Skeleton } from "../components/LoadingSkeleton";
@@ -12,6 +12,7 @@ import {
   getFontSize,
   generateGradientColor,
   cleanName,
+  formatUptime,
 } from "./aboutUtils";
 import "./About.css";
 
@@ -22,11 +23,6 @@ const BMC_URL = "https://buymeacoffee.com/b49rjg5k6vj";
 export default function About() {
   const { t, i18n } = useTranslation();
   const { data: health, isLoading: healthLoading } = useHealth();
-  const startTime = useMemo(
-    () => (health?.uptime ? new Date(Date.now() - health.uptime * 1000).toLocaleString() : ""),
-    [health?.uptime]
-  );
-
   const [supporters, setSupporters] = useState<Supporter[]>([]);
   const [supportersLoading, setSupportersLoading] = useState(true);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo>({ available: false });
@@ -160,9 +156,11 @@ export default function About() {
           {!healthLoading && health && <span className="about-version">v{health.version}</span>}
         </div>
 
-        {/* Build Info */}
-        {!healthLoading && health?.uptime && (
-          <p className="about-build-time">{t("about.buildTime", { time: startTime })}</p>
+        {/* Uptime */}
+        {!healthLoading && health?.uptime !== undefined && (
+          <p className="about-uptime">
+            {t("about.uptime", { duration: formatUptime(health.uptime) })}
+          </p>
         )}
 
         {/* Update Check */}

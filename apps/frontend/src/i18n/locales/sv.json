@@ -702,7 +702,7 @@
     "supportersDescription": "Tack till alla som stödjer OpenCloudTouch ekonomiskt. Era bidrag hjälper till att hålla projektet vid liv!",
     "supportersMonthly": "Månatliga Supportrar",
     "supportersOneTime": "Engångssupportrar",
-    "buildTime": "Skapad {{time}}",
+    "uptime": "Drifttid: {{duration}}",
     "checkingUpdates": "Söker efter uppdateringar...",
     "updateAvailable": "Uppdatering tillgänglig: {{version}}",
     "viewRelease": "Visa version",

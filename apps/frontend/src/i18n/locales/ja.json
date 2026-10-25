@@ -702,7 +702,7 @@
     "supportersDescription": "OpenCloudTouchを財政的に支援してくださる皆様に感謝します。皆様の貢献がプロジェクトを支えています！",
     "supportersMonthly": "月額支援者",
     "supportersOneTime": "一回限りの支援者",
-    "buildTime": "ビルド日時：{{time}}",
+    "uptime": "稼働時間：{{duration}}",
     "checkingUpdates": "アップデート確認中...",
     "updateAvailable": "アップデート可能：{{version}}",
     "viewRelease": "リリースを表示",
