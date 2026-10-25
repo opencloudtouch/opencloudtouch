@@ -793,6 +793,18 @@
     "tooLong": "Le nom doit comporter 30 caractères maximum",
     "failed": "Échec du renommage"
   },
+  "deviceSettings": {
+    "open": "Ouvrir les paramètres de {{name}}",
+    "title": "Paramètres de l’appareil",
+    "close": "Fermer",
+    "loading": "Chargement des paramètres de l’appareil…",
+    "bass": "Graves",
+    "reset": "Rétablir la valeur par défaut",
+    "noOptions": "Aucun paramètre supplémentaire n’est actuellement disponible pour cet appareil.",
+    "loadFailed": "Impossible de charger les paramètres de l’appareil.",
+    "offline": "Cet appareil est hors ligne.",
+    "saveFailed": "Impossible de modifier les graves."
+  },
   "deviceHeader": {
     "reboot": "Redémarrer l'appareil",
     "sent": "Commande de redémarrage envoyée",

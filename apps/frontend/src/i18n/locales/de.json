@@ -793,6 +793,18 @@
     "tooLong": "Name darf maximal 30 Zeichen lang sein",
     "failed": "Umbenennung fehlgeschlagen"
   },
+  "deviceSettings": {
+    "open": "Geräteeinstellungen für {{name}} öffnen",
+    "title": "Geräteeinstellungen",
+    "close": "Schließen",
+    "loading": "Geräteeinstellungen werden geladen …",
+    "bass": "Bass",
+    "reset": "Auf Standardwert zurücksetzen",
+    "noOptions": "Für dieses Gerät sind derzeit keine zusätzlichen Einstellungen verfügbar.",
+    "loadFailed": "Geräteeinstellungen konnten nicht geladen werden.",
+    "offline": "Dieses Gerät ist offline.",
+    "saveFailed": "Bass konnte nicht geändert werden."
+  },
   "deviceHeader": {
     "reboot": "Gerät neu starten",
     "sent": "Neustart-Befehl gesendet",
