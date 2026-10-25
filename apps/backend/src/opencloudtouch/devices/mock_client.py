@@ -4,20 +4,51 @@ Mock device client for testing and development without real devices.
 Provides deterministic responses that simulate device HTTP API.
 """
 
+import copy
 import logging
 from typing import Optional
 
 from opencloudtouch.devices.client import (
     BassCapabilities,
     BassInfo,
+    ClockSetting,
     DeviceClient,
     DeviceInfo,
+    LanguageSetting,
     NowPlayingInfo,
+    PowerSavingSetting,
     VolumeInfo,
 )
+from opencloudtouch.devices.device_settings import LANGUAGES
 from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
 
 logger = logging.getLogger(__name__)
+
+# Device settings (language, clock, power saving) per device id. MockDeviceClient is
+# created per call, so the values live at module level; tests reset them with
+# reset_mock_device_settings().
+_DEFAULT_SETTINGS: dict = {
+    "language": 3,
+    "clock": {
+        "enabled": True,
+        "time_format": "24h",
+        "timezone": "Europe/Berlin",
+        "extra": {},
+    },
+    "power_saving": False,
+}
+_mock_settings: dict[str, dict] = {}
+
+
+def reset_mock_device_settings() -> None:
+    """Forget all mock device settings (test isolation)."""
+    _mock_settings.clear()
+
+
+def _settings_of(device_id: str) -> dict:
+    if device_id not in _mock_settings:
+        _mock_settings[device_id] = copy.deepcopy(_DEFAULT_SETTINGS)
+    return _mock_settings[device_id]
 
 
 class MockDeviceClient(DeviceClient):
@@ -315,3 +346,47 @@ class MockDeviceClient(DeviceClient):
     async def reboot(self) -> None:
         """Mock reboot (no-op)."""
         logger.info("[MOCK] reboot() for device %s", self.device_id)
+
+    # --- Device settings (language, clock, power saving) -------------------
+
+    async def get_language(self) -> LanguageSetting | None:
+        """Get the mock display language."""
+        language_id = _settings_of(self.device_id)["language"]
+        return LanguageSetting(id=language_id, name=LANGUAGES.get(language_id))
+
+    async def set_language(self, language_id: int) -> None:
+        """Mock set display language."""
+        _settings_of(self.device_id)["language"] = language_id
+
+    async def get_clock(self) -> ClockSetting | None:
+        """Get the mock standby clock."""
+        clock = _settings_of(self.device_id)["clock"]
+        return ClockSetting(
+            enabled=clock["enabled"],
+            time_format=clock["time_format"],
+            timezone=clock["timezone"],
+            extra=dict(clock["extra"]),
+        )
+
+    async def set_clock(
+        self,
+        enabled: bool,
+        time_format: str | None,
+        timezone: str | None,
+        extra: dict[str, str],
+    ) -> None:
+        """Mock set standby clock."""
+        _settings_of(self.device_id)["clock"] = {
+            "enabled": enabled,
+            "time_format": time_format,
+            "timezone": timezone,
+            "extra": dict(extra),
+        }
+
+    async def get_power_saving(self) -> PowerSavingSetting | None:
+        """Get the mock power saving flag."""
+        return PowerSavingSetting(enabled=_settings_of(self.device_id)["power_saving"])
+
+    async def set_power_saving(self, enabled: bool) -> None:
+        """Mock set power saving."""
+        _settings_of(self.device_id)["power_saving"] = enabled

@@ -320,6 +320,141 @@ paths:
               schema: {}
         '422':
           description: Invalid bass level
+  /api/devices/{device_id}/settings:
+    get:
+      tags:
+      - Devices
+      summary: Get Device Settings
+      description: 'Read display language, standby clock and power saving of a device.
+
+
+        Each setting is read independently; a setting the speaker does not support
+        is
+
+        null with ``available.<name> = false``.'
+      operationId: get_device_settings_api_devices__device_id__settings_get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceSettingsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/devices/{device_id}/settings/language:
+    put:
+      tags:
+      - Devices
+      summary: Set Device Language
+      description: Set the display language; ``applied`` tells whether the speaker
+        kept it.
+      operationId: set_device_language_api_devices__device_id__settings_language_put
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetLanguageRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LanguageWriteResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/devices/{device_id}/settings/clock:
+    put:
+      tags:
+      - Devices
+      summary: Set Device Clock
+      description: Configure the standby clock; ``applied`` tells whether the speaker
+        kept it.
+      operationId: set_device_clock_api_devices__device_id__settings_clock_put
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetClockRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClockWriteResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/devices/{device_id}/settings/power-saving:
+    put:
+      tags:
+      - Devices
+      summary: Set Device Power Saving
+      description: Switch power saving on or off; ``applied`` tells whether the speaker
+        kept it.
+      operationId: set_device_power_saving_api_devices__device_id__settings_power_saving_put
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetPowerSavingRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerSavingWriteResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/devices/{device_id}/key:
     post:
       tags:
@@ -3581,6 +3716,38 @@ components:
       - new_master_id
       title: ChangeMasterRequest
       description: Request to change zone master.
+    ClockItem:
+      properties:
+        enabled:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Enabled
+        time_format:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Time Format
+        timezone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Timezone
+      type: object
+      title: ClockItem
+    ClockWriteResponse:
+      properties:
+        applied:
+          type: boolean
+          title: Applied
+        value:
+          anyOf:
+          - $ref: '#/components/schemas/ClockItem'
+          - type: 'null'
+      type: object
+      required:
+      - applied
+      title: ClockWriteResponse
     ConfigModifyRequest:
       properties:
         device_ip:
@@ -3718,6 +3885,33 @@ components:
       - message
       title: DetectStrategyResponse
       description: Response with detected setup strategy.
+    DeviceSettingsResponse:
+      properties:
+        language:
+          anyOf:
+          - $ref: '#/components/schemas/LanguageItem'
+          - type: 'null'
+        clock:
+          anyOf:
+          - $ref: '#/components/schemas/ClockItem'
+          - type: 'null'
+        power_saving:
+          anyOf:
+          - $ref: '#/components/schemas/PowerSavingItem'
+          - type: 'null'
+        available:
+          $ref: '#/components/schemas/SettingsAvailability'
+        languages:
+          items:
+            $ref: '#/components/schemas/LanguageItem'
+          type: array
+          title: Languages
+      type: object
+      required:
+      - available
+      - languages
+      title: DeviceSettingsResponse
+      description: All device settings; a missing setting is null with available=false.
     DiagnosticsRequest:
       properties:
         frontend_logs:
@@ -3934,6 +4128,33 @@ components:
       - message
       title: HostsModifyResponse
       description: Response with hosts modification result.
+    LanguageItem:
+      properties:
+        id:
+          type: integer
+          title: Id
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+      type: object
+      required:
+      - id
+      title: LanguageItem
+    LanguageWriteResponse:
+      properties:
+        applied:
+          type: boolean
+          title: Applied
+        value:
+          anyOf:
+          - $ref: '#/components/schemas/LanguageItem'
+          - type: 'null'
+      type: object
+      required:
+      - applied
+      title: LanguageWriteResponse
     LogDownloadRequest:
       properties:
         frontend_logs:
@@ -4082,6 +4303,28 @@ components:
       - message
       title: PortCheckResponse
       description: Response with port check results.
+    PowerSavingItem:
+      properties:
+        enabled:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Enabled
+      type: object
+      title: PowerSavingItem
+    PowerSavingWriteResponse:
+      properties:
+        applied:
+          type: boolean
+          title: Applied
+        value:
+          anyOf:
+          - $ref: '#/components/schemas/PowerSavingItem'
+          - type: 'null'
+      type: object
+      required:
+      - applied
+      title: PowerSavingWriteResponse
     PresetResponse:
       properties:
         id:
@@ -4459,6 +4702,22 @@ components:
       - level
       title: SetBassRequest
       description: Request body for setting a device's bass level.
+    SetClockRequest:
+      properties:
+        enabled:
+          title: Enabled
+        time_format:
+          title: Time Format
+        timezone:
+          title: Timezone
+      type: object
+      title: SetClockRequest
+    SetLanguageRequest:
+      properties:
+        language_id:
+          title: Language Id
+      type: object
+      title: SetLanguageRequest
     SetManualIPsRequest:
       properties:
         ips:
@@ -4472,6 +4731,29 @@ components:
       - ips
       title: SetManualIPsRequest
       description: Request model for setting all manual IPs at once.
+    SetPowerSavingRequest:
+      properties:
+        enabled:
+          title: Enabled
+      type: object
+      title: SetPowerSavingRequest
+    SettingsAvailability:
+      properties:
+        language:
+          type: boolean
+          title: Language
+        clock:
+          type: boolean
+          title: Clock
+        power_saving:
+          type: boolean
+          title: Power Saving
+      type: object
+      required:
+      - language
+      - clock
+      - power_saving
+      title: SettingsAvailability
     ValidateHostnameRequest:
       properties:
         hostname:

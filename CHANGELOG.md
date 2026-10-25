@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Machine-readable `code`, `params` and `extra` in API error responses (`ErrorDetail`), `errors[].path`/`code` for field errors, `raise_coded()` and an error-code registry (`core/error_codes.py`); all existing keys are unchanged.
 - Frontend: typed `ApiError` thrown by `throwIfNotOk` and translated messages via `getApiErrorMessage`/`getFieldErrors` (`errors.api.*` in all locales).
+- Device settings API: `GET /api/devices/{id}/settings` and `PUT …/settings/language|clock|power-saving` for display language, standby clock (format, IANA time zone) and power saving, with a verified write (`applied`) and per-setting availability; new error codes `setting_not_available`, `settings_*_invalid` and `device_rejected` (HTTP 502 when the speaker answers with an error); new dependency `tzdata`.
 
 ### Changed
 - Frontend: the wire-shape interface `ApiError` is now `ApiErrorBody`.
