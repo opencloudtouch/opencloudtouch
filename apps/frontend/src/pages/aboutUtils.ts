@@ -134,3 +134,17 @@ export function cleanName(name: string): string {
 
   return name;
 }
+
+/**
+ * Format a duration in seconds as a compact string such as "2d 3h 14m".
+ * Units are language-neutral abbreviations; invalid or negative input yields "0m".
+ */
+export function formatUptime(totalSeconds: number): string {
+  if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return "0m";
+  const minutes = Math.floor(totalSeconds / 60) % 60;
+  const hours = Math.floor(totalSeconds / 3600) % 24;
+  const days = Math.floor(totalSeconds / 86400);
+  if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}

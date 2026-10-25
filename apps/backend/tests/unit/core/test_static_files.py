@@ -175,6 +175,10 @@ class TestSpa404Handler:
         client = TestClient(spa_app, raise_server_exceptions=False)
         response = client.get("/%2e%2e/%2e%2e/%2e%2e/etc/passwd")
         assert response.status_code == 404
+        body = response.json()
+        assert body["detail"] == "Not found"
+        assert body["type"] == "not_found"
+        assert body["code"] == "not_found"
 
     def test_path_traversal_backslash_blocked(self, spa_app):
         """Backslash in path (Windows escape) must be rejected."""

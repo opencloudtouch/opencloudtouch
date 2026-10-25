@@ -3244,7 +3244,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
   /api/health/websockets:
     get:
       tags:
@@ -3850,6 +3851,48 @@ components:
           title: Detail
       type: object
       title: HTTPValidationError
+    HealthConfig:
+      properties:
+        discovery_enabled:
+          type: boolean
+          title: Discovery Enabled
+      type: object
+      required:
+      - discovery_enabled
+      title: HealthConfig
+      description: Configuration flags exposed by ``/health``.
+    HealthResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+        service:
+          type: string
+          title: Service
+        version:
+          type: string
+          title: Version
+        build:
+          type: string
+          enum:
+          - official
+          - community
+          title: Build
+        uptime:
+          type: integer
+          title: Uptime
+        config:
+          $ref: '#/components/schemas/HealthConfig'
+      type: object
+      required:
+      - status
+      - service
+      - version
+      - build
+      - uptime
+      - config
+      title: HealthResponse
+      description: Minimal health payload for Docker health checks and the About page.
     HostsModifyRequest:
       properties:
         device_ip:
@@ -4763,3 +4806,112 @@ components:
       - ip
       title: MessageResponse
       description: Generic message response.
+    ErrorItem:
+      description: 'One field-level error inside ``ErrorDetail.errors``.
+
+
+        ``field`` keeps the legacy dotted location (``body.port``); ``path`` is the
+
+        same location without the leading ``body``/``query``/``path``/``header``
+
+        segment (``port``) and is what clients map to input names.'
+      properties:
+        field:
+          title: Field
+          type: string
+        path:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Path
+        message:
+          title: Message
+          type: string
+        type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Type
+        code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Code
+      required:
+      - field
+      - message
+      title: ErrorItem
+      type: object
+    ErrorDetail:
+      description: "Standardized error response format (RFC 7807-inspired).\n\nProvides\
+        \ consistent error structure across all API endpoints.\n\nAttributes:\n  \
+        \  type: Error category (validation_error, not_found, server_error, etc.)\n\
+        \    title: Human-readable error title\n    status: HTTP status code\n   \
+        \ detail: Detailed error message\n    instance: Request path that triggered\
+        \ error (optional)\n    errors: Field-level validation errors (optional, for\
+        \ 422 responses)\n    code: Stable machine-readable error identifier (see\
+        \ ``error_codes``)\n    params: Flat string map for message interpolation\
+        \ on the client\n    extra: Structured data for the client (not for translation)\n\
+        \nExample:\n    {\n        \"type\": \"not_found\",\n        \"title\": \"\
+        Device Not Found\",\n        \"status\": 404,\n        \"detail\": \"Device\
+        \ not found: abc123\",\n        \"instance\": \"/api/devices/abc123\",\n \
+        \       \"errors\": null,\n        \"code\": \"device_not_found\",\n     \
+        \   \"params\": null,\n        \"extra\": null\n    }"
+      properties:
+        type:
+          title: Type
+          type: string
+        title:
+          title: Title
+          type: string
+        status:
+          title: Status
+          type: integer
+        detail:
+          title: Detail
+          type: string
+        instance:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Instance
+        errors:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/ErrorItem'
+            type: array
+          - type: 'null'
+          default: null
+          title: Errors
+        code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Code
+        params:
+          anyOf:
+          - additionalProperties:
+              type: string
+            type: object
+          - type: 'null'
+          default: null
+          title: Params
+        extra:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          default: null
+          title: Extra
+      required:
+      - type
+      - title
+      - status
+      - detail
+      title: ErrorDetail
+      type: object

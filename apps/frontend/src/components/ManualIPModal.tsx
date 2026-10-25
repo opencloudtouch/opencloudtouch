@@ -6,6 +6,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useManualIPs, useSetManualIPs } from "../hooks/useSettings";
+import { getApiErrorMessage } from "../utils/apiErrors";
 
 interface ManualIPModalProps {
   /** Whether the modal is visible */
@@ -80,8 +81,8 @@ export default function ManualIPModal({ isOpen, onClose }: ManualIPModalProps) {
         setIpList("");
         setSuccess(false);
       }, 1500);
-    } catch {
-      setError(t("manualIpModal.saveError"));
+    } catch (e) {
+      setError(getApiErrorMessage(t, e, "manualIpModal.saveError"));
     }
   };
 

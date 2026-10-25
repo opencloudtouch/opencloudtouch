@@ -261,6 +261,33 @@ def test_health_endpoint():
     assert isinstance(data["config"]["discovery_enabled"], bool)
 
 
+def test_health_endpoint_reports_uptime_in_seconds(monkeypatch):
+    """/health returns the whole seconds since process start."""
+    from opencloudtouch import main
+
+    monkeypatch.setattr(main, "_PROCESS_START", main.time.monotonic() - 125.4)
+    response = TestClient(main.app).get("/health")
+
+    assert response.status_code == 200
+    uptime = response.json()["uptime"]
+    assert isinstance(uptime, int)
+    assert 125 <= uptime <= 127
+
+
+def test_health_endpoint_is_typed_in_openapi():
+    """/health is part of the contract so the frontend can derive its types."""
+    from opencloudtouch.main import app
+
+    spec = app.openapi()
+    props = spec["components"]["schemas"]["HealthResponse"]["properties"]
+    assert {"status", "service", "version", "build", "uptime", "config"} <= set(props)
+    assert props["uptime"]["type"] == "integer"
+    schema = spec["paths"]["/health"]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    assert schema["$ref"].endswith("/HealthResponse")
+
+
 def test_websocket_health_no_manager():
     """WebSocket health returns empty when no manager is attached."""
     from opencloudtouch.main import app

@@ -41,6 +41,7 @@ describe("Restore Wizard API Client", () => {
         ok: false,
         statusText: "Not Found",
         json: () => Promise.resolve({ detail: "USB not mounted" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "USB not mounted" })),
       });
 
       await expect(scanBackups(request)).rejects.toThrow("USB not mounted");
@@ -96,6 +97,8 @@ describe("Restore Wizard API Client", () => {
         ok: false,
         statusText: "Bad Gateway",
         json: () => Promise.resolve({ detail: "Device unreachable during restore" }),
+        text: () =>
+          Promise.resolve(JSON.stringify({ detail: "Device unreachable during restore" })),
       });
 
       await expect(executeRestore(request)).rejects.toThrow("Device unreachable during restore");

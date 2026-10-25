@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 import Diagnostics from "./Diagnostics";
-import type { DiagnosticsResponse } from "../api/diagnostics";
+import type { DiagnosticsDevice, DiagnosticsResponse } from "../api/diagnostics";
 
 // Mock getDiagnostics
 vi.mock("../api/diagnostics", () => ({
@@ -32,6 +32,18 @@ import { downloadDiagnostics } from "../api/bugReport";
 const mockedGetDiagnostics = vi.mocked(getDiagnostics);
 const mockedDownloadDiagnostics = vi.mocked(downloadDiagnostics);
 
+const MOCK_DEVICE: DiagnosticsDevice = {
+  device_id: "AABBCCDDEEFF",
+  name: "Living Room",
+  model: "SoundTouch 30",
+  ip: "192.168.1.100",
+  firmware_version: "24.0.5",
+  setup_status: "complete",
+  last_seen: new Date(Date.now() - 60_000).toISOString(), // 1 min ago → green
+  setup_completed_at: "2026-01-01T00:00:00+00:00",
+  ssh_permanent: true,
+};
+
 const MOCK_RESPONSE: DiagnosticsResponse = {
   server: {
     version: "1.2.3",
@@ -43,19 +55,7 @@ const MOCK_RESPONSE: DiagnosticsResponse = {
     manual_device_ips: 2,
     timestamp: "2026-06-01T12:00:00+00:00",
   },
-  devices: [
-    {
-      device_id: "AABBCCDDEEFF",
-      name: "Living Room",
-      model: "SoundTouch 30",
-      ip: "192.168.1.100",
-      firmware_version: "24.0.5",
-      setup_status: "complete",
-      last_seen: new Date(Date.now() - 60_000).toISOString(), // 1 min ago → green
-      setup_completed_at: "2026-01-01T00:00:00+00:00",
-      ssh_permanent: true,
-    },
-  ],
+  devices: [MOCK_DEVICE],
   db_stats: { devices: 1, presets: 6 },
 };
 
@@ -136,7 +136,7 @@ describe("Diagnostics Page", () => {
   it("renders StatusDot with red status for device with null last_seen", async () => {
     mockedGetDiagnostics.mockResolvedValue({
       ...MOCK_RESPONSE,
-      devices: [{ ...MOCK_RESPONSE.devices[0], last_seen: null }],
+      devices: [{ ...MOCK_DEVICE, last_seen: null }],
     });
     render(<Diagnostics />);
     await waitFor(() => {
@@ -153,7 +153,7 @@ describe("Diagnostics Page", () => {
       ...MOCK_RESPONSE,
       devices: [
         {
-          ...MOCK_RESPONSE.devices[0],
+          ...MOCK_DEVICE,
           last_seen: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
         },
       ],
@@ -215,7 +215,7 @@ describe("Diagnostics Page", () => {
         ...MOCK_RESPONSE,
         devices: [
           {
-            ...MOCK_RESPONSE.devices[0],
+            ...MOCK_DEVICE,
             last_seen: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
           },
         ],
@@ -320,7 +320,7 @@ describe("Diagnostics Page", () => {
     it("shows the cross icon when ssh_permanent is false", async () => {
       mockedGetDiagnostics.mockResolvedValue({
         ...MOCK_RESPONSE,
-        devices: [{ ...MOCK_RESPONSE.devices[0], ssh_permanent: false }],
+        devices: [{ ...MOCK_DEVICE, ssh_permanent: false }],
       });
       render(<Diagnostics />);
       await waitFor(() => {

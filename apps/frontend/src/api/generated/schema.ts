@@ -297,6 +297,30 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/devices/{device_id}/settings/bass": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Device Bass
+     * @description Get the current bass state reported by a SoundTouch device.
+     */
+    get: operations["get_device_bass_api_devices__device_id__settings_bass_get"];
+    /**
+     * Set Device Bass
+     * @description Set the bass level supported by the selected SoundTouch device.
+     */
+    put: operations["set_device_bass_api_devices__device_id__settings_bass_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/devices/{device_id}/key": {
     parameters: {
       query?: never;
@@ -3086,6 +3110,34 @@ export interface components {
       detail?: components["schemas"]["ValidationError"][];
     };
     /**
+     * HealthConfig
+     * @description Configuration flags exposed by ``/health``.
+     */
+    HealthConfig: {
+      /** Discovery Enabled */
+      discovery_enabled: boolean;
+    };
+    /**
+     * HealthResponse
+     * @description Minimal health payload for Docker health checks and the About page.
+     */
+    HealthResponse: {
+      /** Status */
+      status: string;
+      /** Service */
+      service: string;
+      /** Version */
+      version: string;
+      /**
+       * Build
+       * @enum {string}
+       */
+      build: "official" | "community";
+      /** Uptime */
+      uptime: number;
+      config: components["schemas"]["HealthConfig"];
+    };
+    /**
      * HostsModifyRequest
      * @description Request to modify hosts file.
      */
@@ -3509,6 +3561,14 @@ export interface components {
      */
     SearchType: "name" | "country" | "tag";
     /**
+     * SetBassRequest
+     * @description Request body for setting a device's bass level.
+     */
+    SetBassRequest: {
+      /** Level */
+      level: number;
+    };
+    /**
      * SetManualIPsRequest
      * @description Request model for setting all manual IPs at once.
      */
@@ -3770,6 +3830,104 @@ export interface components {
       message: string;
       /** Ip */
       ip: string;
+    };
+    /**
+     * ErrorItem
+     * @description One field-level error inside ``ErrorDetail.errors``.
+     *
+     *     ``field`` keeps the legacy dotted location (``body.port``); ``path`` is the
+     *     same location without the leading ``body``/``query``/``path``/``header``
+     *     segment (``port``) and is what clients map to input names.
+     */
+    ErrorItem: {
+      /** Field */
+      field: string;
+      /**
+       * Path
+       * @default null
+       */
+      path: string | null;
+      /** Message */
+      message: string;
+      /**
+       * Type
+       * @default null
+       */
+      type: string | null;
+      /**
+       * Code
+       * @default null
+       */
+      code: string | null;
+    };
+    /**
+     * ErrorDetail
+     * @description Standardized error response format (RFC 7807-inspired).
+     *
+     *     Provides consistent error structure across all API endpoints.
+     *
+     *     Attributes:
+     *         type: Error category (validation_error, not_found, server_error, etc.)
+     *         title: Human-readable error title
+     *         status: HTTP status code
+     *         detail: Detailed error message
+     *         instance: Request path that triggered error (optional)
+     *         errors: Field-level validation errors (optional, for 422 responses)
+     *         code: Stable machine-readable error identifier (see ``error_codes``)
+     *         params: Flat string map for message interpolation on the client
+     *         extra: Structured data for the client (not for translation)
+     *
+     *     Example:
+     *         {
+     *             "type": "not_found",
+     *             "title": "Device Not Found",
+     *             "status": 404,
+     *             "detail": "Device not found: abc123",
+     *             "instance": "/api/devices/abc123",
+     *             "errors": null,
+     *             "code": "device_not_found",
+     *             "params": null,
+     *             "extra": null
+     *         }
+     */
+    ErrorDetail: {
+      /** Type */
+      type: string;
+      /** Title */
+      title: string;
+      /** Status */
+      status: number;
+      /** Detail */
+      detail: string;
+      /**
+       * Instance
+       * @default null
+       */
+      instance: string | null;
+      /**
+       * Errors
+       * @default null
+       */
+      errors: components["schemas"]["ErrorItem"][] | null;
+      /**
+       * Code
+       * @default null
+       */
+      code: string | null;
+      /**
+       * Params
+       * @default null
+       */
+      params: {
+        [key: string]: string;
+      } | null;
+      /**
+       * Extra
+       * @default null
+       */
+      extra: {
+        [key: string]: unknown;
+      } | null;
     };
   };
   responses: never;
@@ -4069,6 +4227,70 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
         };
+      };
+    };
+  };
+  get_device_bass_api_devices__device_id__settings_bass_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  set_device_bass_api_devices__device_id__settings_bass_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SetBassRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Invalid bass level */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -6699,6 +6921,13 @@ export interface operations {
           "application/json": unknown;
         };
       };
+      /** @description Zone was dissolved during member addition */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
       /** @description Validation Error */
       422: {
         headers: {
@@ -7162,7 +7391,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["HealthResponse"];
         };
       };
     };

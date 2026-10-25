@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { submitBugReport, downloadDiagnostics } from "../api/bugReport";
+import { getApiErrorMessage } from "../utils/apiErrors";
+import { isApiErrorInstance } from "../api/types";
 import { getLogEntries } from "../utils/logBuffer";
 import { useToast } from "../contexts/ToastContext";
 import "./BugReportModal.css";
@@ -9,6 +12,16 @@ import "./BugReportModal.css";
 interface BugReportModalProps {
   readonly open: boolean;
   readonly onClose: () => void;
+}
+
+/**
+ * Text for a failed request in this dialog. Coded API errors are translated; for
+ * everything else (uncoded 5xx, GitHub 502, network errors) the raw message stays visible
+ * because this dialog exists to report problems.
+ */
+function describeError(t: TFunction, err: unknown): string {
+  if (isApiErrorInstance(err) && err.code) return getApiErrorMessage(t, err);
+  return err instanceof Error ? err.message : t("errors.unknown");
 }
 
 const INSTALLATION_OPTIONS = [
@@ -141,7 +154,7 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
       resetForm();
       onClose();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : t("errors.unknown");
+      const msg = describeError(t, err);
       showToast(t("bugReport.submitFailed", { error: msg }), "error", 8000);
     } finally {
       setSubmitting(false);
@@ -161,7 +174,7 @@ export default function BugReportModal({ open, onClose }: BugReportModalProps) {
       });
       showToast(t("bugReport.diagnosticsSuccess"), "success", 8000);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : t("errors.unknown");
+      const msg = describeError(t, err);
       showToast(t("bugReport.diagnosticsFailed", { error: msg }), "error", 8000);
     } finally {
       setDownloading(false);

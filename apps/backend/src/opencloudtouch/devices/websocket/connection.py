@@ -15,7 +15,8 @@ from enum import Enum
 from typing import Awaitable, Callable, Optional
 
 import websockets
-from websockets.client import connect as ws_connect
+from websockets.asyncio.client import ClientConnection
+from websockets.asyncio.client import connect as ws_connect
 from websockets.exceptions import ConnectionClosed, InvalidHandshake
 
 from opencloudtouch.devices.websocket.parser import DeviceEvent, parse_event
@@ -65,7 +66,7 @@ class DeviceWebSocket:
         self.port = port
         self._on_event = on_event
         self._on_state_change = on_state_change
-        self._ws: Optional[websockets.WebSocketClientProtocol] = None
+        self._ws: Optional[ClientConnection] = None
         self._listen_task: Optional[asyncio.Task] = None
         self._state = ConnectionState.DISCONNECTED
         self._should_run = False
@@ -164,6 +165,7 @@ class DeviceWebSocket:
                     subprotocols=[websockets.Subprotocol("gabbo")],
                     ping_interval=30,
                     ping_timeout=10,
+                    proxy=None,  # LAN devices: ignore HTTP(S)_PROXY / ALL_PROXY (websockets >= 15)
                 )
                 await self._set_state(ConnectionState.CONNECTED)
                 self._backoff_attempt = 0

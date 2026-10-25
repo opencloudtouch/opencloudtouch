@@ -30,6 +30,7 @@ describe("Settings API Client", () => {
         ok: false,
         statusText: "Internal Server Error",
         json: () => Promise.resolve({ detail: "DB error" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "DB error" })),
       });
 
       await expect(getManualIPs()).rejects.toThrow("DB error");
@@ -70,6 +71,7 @@ describe("Settings API Client", () => {
         ok: false,
         statusText: "Not Found",
         json: () => Promise.resolve({ detail: "IP not found" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "IP not found" })),
       });
 
       await expect(deleteManualIP("192.168.1.99")).rejects.toThrow("IP not found");
@@ -78,7 +80,12 @@ describe("Settings API Client", () => {
 
   describe("probeDevice", () => {
     it("POSTs the ip and returns the probe result", async () => {
-      const probeResult = { device_id: "ST10-001", ip: "192.168.1.70", name: "Kitchen", model: "SoundTouch 10" };
+      const probeResult = {
+        device_id: "ST10-001",
+        ip: "192.168.1.70",
+        name: "Kitchen",
+        model: "SoundTouch 10",
+      };
       mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(probeResult) });
 
       const result = await probeDevice("192.168.1.70");

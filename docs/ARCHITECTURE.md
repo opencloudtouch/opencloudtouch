@@ -114,6 +114,76 @@ Browser ← event: completed ←────── FastAPI
 | `/bmx/*` | JSON/XML | Bose device firmware |
 | `/swupdate/*` | XML | Bose device firmware |
 
+## API error format
+
+Every `/api/*` error is an `ErrorDetail` JSON object (`core/exceptions.py`). The keys
+`code`, `params` and `extra` are always present (`null` when unset); all other keys are
+unchanged from the original RFC 7807-inspired format. Only a few errors carry a `code`
+today (`device_not_found`, `device_unreachable`, `not_found`, `validation_error`,
+`internal_error`); radio, SSH, external-service, restore and most route-level errors are
+already `ErrorDetail` but have `code: null` until their domain migration (see the
+error-code rollout specs).
+
+```json
+{
+  "type": "validation_error",
+  "title": "Invalid Request Data",
+  "status": 422,
+  "detail": "Request validation failed",
+  "instance": "/api/mqtt/config",
+  "errors": [
+    {
+      "field": "body.port",
+      "path": "port",
+      "message": "Invalid value",
+      "type": "value_error",
+      "code": "mqtt_invalid_port"
+    }
+  ],
+  "code": "validation_error",
+  "params": null,
+  "extra": null
+}
+```
+
+- `type` is the coarse category (derived from the HTTP status); `code` is the precise,
+  stable identifier (`^[a-z][a-z0-9_]*$`, prefixed by domain when feature-specific, for
+  example `mqtt_invalid_host`). Codes are public contract and are never renamed after release.
+- `params` is a flat `{string: string}` map for message interpolation (values are coerced
+  with `str()`); `extra` carries structured data the client needs (not for translation).
+- `errors[].field` is the legacy dotted location (`body.port`); `errors[].path` is the same
+  location without the leading `body.`/`query.`/`path.`/`header.` segment (`port`,
+  `config.url`). Clients map field errors with `path`.
+- Status conventions: `DomainValidationError` → 400, request-body validation → 422,
+  unknown resource → 404, state conflict → 409, upstream failures → 502/503/504.
+  `raise_coded` enforces this: for status ≥ 500 the given text is only logged and the
+  response carries the generic text ("An unexpected error occurred. Please try again
+  later."); clients show the translated `code` instead.
+
+**Code format.** `raise_coded` and `DomainValidationError(code=…)` reject codes that do not match
+`^[a-z][a-z0-9_]*$` with a `ValueError`. `extra` is passed through `jsonable_encoder`; a value
+that cannot be serialised is dropped (with a warning) instead of breaking the error response.
+
+**Raising coded errors.** Use `raise_coded(status, code, detail, *, field=None, params=None,
+extra=None, title=None)` from any route or service. Pydantic validators signal a code with
+`raise ValueError("code:my_code")`; the validation handler then sets `errors[].code` to
+`my_code` and `message` to `"Invalid value"`. Model-level validators have no field
+(`field: "body"`, `path: ""`); raise `raise_coded(422, code, ..., field="<name>")` from the
+service when a field attribution is needed.
+
+**Registry rule.** Every code is a constant in `core/error_codes.py`. A test checks the
+pattern, uniqueness and that no code from the committed snapshot
+(`tests/unit/core/error_codes_snapshot.txt`) was removed or renamed. Feature changes add
+their constants to both.
+
+**Never put secrets, stack traces, filesystem paths or raw exception text into `params`,
+`extra` or the `detail` of a 5xx response.**
+
+The frontend turns the response into a typed `ApiError` (`api/types.ts`) and shows
+translated messages through `getApiErrorMessage` / `getFieldErrors` (`utils/apiErrors.ts`),
+using the keys `errors.api.<code>` in all locales. The `bmx/` routes keep the Bose protocol
+formats and are out of scope.
+
 ## Security
 
 - Parameterized SQL queries (no injection risk)

@@ -9,7 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No changes yet._
+### Added
+- Machine-readable `code`, `params` and `extra` in API error responses (`ErrorDetail`), `errors[].path`/`code` for field errors, `raise_coded()` and an error-code registry (`core/error_codes.py`); all existing keys are unchanged.
+- Frontend: typed `ApiError` thrown by `throwIfNotOk` and translated messages via `getApiErrorMessage`/`getFieldErrors` (`errors.api.*` in all locales).
+
+### Changed
+- Frontend: the wire-shape interface `ApiError` is now `ApiErrorBody`.
+- `ErrorDetail` and `ErrorItem` are part of the generated OpenAPI schema.
+- `/health` has a typed response model (`HealthResponse`) in the OpenAPI schema; the frontend type is generated from it.
+- The SoundTouch WebSocket client uses the `websockets.asyncio` API and ignores `HTTP(S)_PROXY`/`ALL_PROXY` for LAN devices; minimum `websockets` is now 15.0.
+
+### Fixed
+- `/health` now returns `uptime` (seconds since the backend process started). The About page shows it as "Uptime: 2d 3h 14m" instead of the misleading "Built on" line, which never rendered because the backend did not send the value.
 
 ---
 

@@ -4,6 +4,7 @@ Iteration 0: Basic setup with /health endpoint
 """
 
 import logging
+import time
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -15,6 +16,7 @@ from fastapi.responses import JSONResponse
 from opencloudtouch import __version__, is_official_build
 from opencloudtouch.api import devices_router
 from opencloudtouch.api.bug_report import router as bug_report_router
+from opencloudtouch.api.health_models import HealthConfig, HealthResponse
 from opencloudtouch.bmx.radiobrowser_routes import radiobrowser_router
 from opencloudtouch.bmx.resolve_routes import resolve_router
 from opencloudtouch.bmx.routes import router as bmx_router
@@ -24,6 +26,7 @@ from opencloudtouch.core.exception_handlers import (
 )
 from opencloudtouch.core.logging import setup_logging
 from opencloudtouch.core.logs_routes import router as logs_router
+from opencloudtouch.core.openapi import install_error_schemas
 from opencloudtouch.api.diagnostics import router as diagnostics_router
 from opencloudtouch.core.static_files import (
     find_frontend_static_dir,
@@ -383,6 +386,7 @@ app = FastAPI(
 # ============================================================================
 
 register_exception_handlers(app)
+install_error_schemas(app)
 
 # ============================================================================
 # CORS Middleware
@@ -436,26 +440,26 @@ app.include_router(wizard_audit_router)  # Wizard audit trail
 app.include_router(event_router)  # SSE device event stream
 
 
+# Monotonic reference taken at import time (= process start) for /health uptime.
+_PROCESS_START = time.monotonic()
+
+
 # Health endpoint
 @app.get("/health", tags=["System"])
-async def health_check(request: Request):
+async def health_check() -> HealthResponse:
     """Health check endpoint for Docker and monitoring.
 
     Minimal response — detailed memory stats available at /api/diagnostics/memory.
     """
     cfg = get_config()
 
-    return JSONResponse(
-        status_code=200,
-        content={
-            "status": "healthy",
-            "service": "opencloudtouch",
-            "version": __version__,
-            "build": "official" if is_official_build() else "community",
-            "config": {
-                "discovery_enabled": cfg.discovery_enabled,
-            },
-        },
+    return HealthResponse(
+        status="healthy",
+        service="opencloudtouch",
+        version=__version__,
+        build="official" if is_official_build() else "community",
+        uptime=int(time.monotonic() - _PROCESS_START),
+        config=HealthConfig(discovery_enabled=cfg.discovery_enabled),
     )
 
 

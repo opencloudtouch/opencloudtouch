@@ -630,6 +630,15 @@
     }
   },
   "errors": {
+    "api": {
+      "unknown": "Er is iets misgegaan.",
+      "unknownWithCode": "Er is iets misgegaan (code: {{code}}).",
+      "device_not_found": "Het apparaat is niet gevonden.",
+      "device_unreachable": "Het apparaat is niet bereikbaar. Controleer of het is ingeschakeld en met het netwerk is verbonden.",
+      "not_found": "De gevraagde bron is niet gevonden.",
+      "validation_error": "De aanvraag bevat ongeldige gegevens. Controleer je invoer.",
+      "internal_error": "Er is een interne fout opgetreden. Probeer het later opnieuw."
+    },
     "loadFailed": "Laden mislukt. Probeer het opnieuw.",
     "unknown": "Er is een onverwachte fout opgetreden. Probeer het opnieuw.",
     "networkFailed": "Kon geen verbinding maken met de server. Controleer uw netwerkverbinding.",
@@ -693,7 +702,7 @@
     "supportersDescription": "Dank aan iedereen die OpenCloudTouch financieel steunt. Jullie bijdragen helpen het project levend te houden!",
     "supportersMonthly": "Maandelijkse Supporters",
     "supportersOneTime": "Eenmalige supporters",
-    "buildTime": "Gebouwd op {{time}}",
+    "uptime": "Uptime: {{duration}}",
     "checkingUpdates": "Controleren op updates...",
     "updateAvailable": "Update beschikbaar: {{version}}",
     "viewRelease": "Release bekijken",

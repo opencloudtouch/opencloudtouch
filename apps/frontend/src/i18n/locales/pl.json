@@ -630,6 +630,15 @@
     }
   },
   "errors": {
+    "api": {
+      "unknown": "Coś poszło nie tak.",
+      "unknownWithCode": "Coś poszło nie tak (kod: {{code}}).",
+      "device_not_found": "Nie znaleziono urządzenia.",
+      "device_unreachable": "Urządzenie jest nieosiągalne. Sprawdź, czy jest włączone i połączone z siecią.",
+      "not_found": "Nie znaleziono żądanego zasobu.",
+      "validation_error": "Żądanie zawiera nieprawidłowe dane. Sprawdź wprowadzone wartości.",
+      "internal_error": "Wystąpił błąd wewnętrzny. Spróbuj ponownie później."
+    },
     "loadFailed": "Ładowanie nie powiodło się. Spróbuj ponownie.",
     "unknown": "Wystąpił nieoczekiwany błąd. Spróbuj ponownie.",
     "networkFailed": "Nie można połączyć się z serwerem. Sprawdź połączenie sieciowe.",
@@ -693,7 +702,7 @@
     "supportersDescription": "Dziękujemy wszystkim, którzy wspierają OpenCloudTouch finansowo. Wasze wkłady pomagają utrzymać projekt przy życiu!",
     "supportersMonthly": "Miesięczni Sponsorzy",
     "supportersOneTime": "Jednorazowi Sponsorzy",
-    "buildTime": "Zbudowano {{time}}",
+    "uptime": "Czas działania: {{duration}}",
     "checkingUpdates": "Sprawdzanie aktualizacji...",
     "updateAvailable": "Dostępna aktualizacja: {{version}}",
     "viewRelease": "Zobacz wydanie",

@@ -1,0 +1,5 @@
+device_not_found
+device_unreachable
+internal_error
+not_found
+validation_error
