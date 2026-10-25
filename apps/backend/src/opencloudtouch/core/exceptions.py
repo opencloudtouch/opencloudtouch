@@ -297,6 +297,18 @@ _HTTP_STATUS_TYPE_MAP: dict[int, str] = {
 }
 
 
+def status_title(status_code: int) -> str:
+    """Return the default error title for an HTTP status code.
+
+    Args:
+        status_code: HTTP status code
+
+    Returns:
+        Title such as 'Conflict', or 'HTTP <code>' for unmapped statuses
+    """
+    return _STATUS_TITLES.get(status_code, f"HTTP {status_code}")
+
+
 def map_status_to_type(status_code: int) -> str:
     """Map HTTP status code to error type string.
 

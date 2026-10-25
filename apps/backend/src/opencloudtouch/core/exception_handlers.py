@@ -17,7 +17,6 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from opencloudtouch.core import error_codes
 from opencloudtouch.core.exceptions import (
-    _STATUS_TITLES,
     CodedApiError,
     DeviceConnectionError,
     DeviceNotFoundError,
@@ -33,6 +32,7 @@ from opencloudtouch.core.exceptions import (
     SSHConnectionError,
     SSHError,
     map_status_to_type,
+    status_title,
 )
 from opencloudtouch.radio.providers.radiobrowser import (
     RadioBrowserConnectionError,
@@ -139,8 +139,7 @@ async def coded_api_error_handler(request: Request, exc: CodedApiError) -> JSONR
         status_code=exc.status_code,
         content=ErrorDetail(
             type=map_status_to_type(exc.status_code),
-            title=exc.title
-            or _STATUS_TITLES.get(exc.status_code, f"HTTP {exc.status_code}"),
+            title=exc.title or status_title(exc.status_code),
             status=exc.status_code,
             detail=exc.detail,
             instance=str(request.url.path),
