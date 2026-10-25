@@ -3110,6 +3110,34 @@ export interface components {
       detail?: components["schemas"]["ValidationError"][];
     };
     /**
+     * HealthConfig
+     * @description Configuration flags exposed by ``/health``.
+     */
+    HealthConfig: {
+      /** Discovery Enabled */
+      discovery_enabled: boolean;
+    };
+    /**
+     * HealthResponse
+     * @description Minimal health payload for Docker health checks and the About page.
+     */
+    HealthResponse: {
+      /** Status */
+      status: string;
+      /** Service */
+      service: string;
+      /** Version */
+      version: string;
+      /**
+       * Build
+       * @enum {string}
+       */
+      build: "official" | "community";
+      /** Uptime */
+      uptime: number;
+      config: components["schemas"]["HealthConfig"];
+    };
+    /**
      * HostsModifyRequest
      * @description Request to modify hosts file.
      */
@@ -3854,8 +3882,12 @@ export interface components {
      *             "type": "not_found",
      *             "title": "Device Not Found",
      *             "status": 404,
-     *             "detail": "Device with ID 'abc123' does not exist",
-     *             "instance": "/api/devices/abc123"
+     *             "detail": "Device not found: abc123",
+     *             "instance": "/api/devices/abc123",
+     *             "errors": null,
+     *             "code": "device_not_found",
+     *             "params": null,
+     *             "extra": null
      *         }
      */
     ErrorDetail: {
@@ -7359,7 +7391,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["HealthResponse"];
         };
       };
     };

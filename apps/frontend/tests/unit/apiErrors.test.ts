@@ -46,18 +46,43 @@ describe("getApiErrorMessage", () => {
     expect(getApiErrorMessage(t, "weird")).toBe(i18next.t("errors.api.unknown"));
   });
 
-  it("strips reserved i18next option names from params", () => {
+  it("passes params only as interpolation values, never as i18next options", () => {
     const spy = vi.fn(
       (key: string, options?: Record<string, unknown>) => `${key}|${JSON.stringify(options)}`
     );
-    const error = apiError({
-      code: "device_not_found",
-      params: { count: "5", context: "x", lng: "de", ns: "n", id: "abc" },
-    });
-    const result = getApiErrorMessage(spy as unknown as typeof t, error);
+    const params = {
+      count: "5",
+      context: "x",
+      lng: "de",
+      ns: "n",
+      replace: "r",
+      postProcess: "p",
+      skipInterpolation: "true",
+      keySeparator: "-",
+      id: "abc",
+    };
+    const result = getApiErrorMessage(
+      spy as unknown as typeof t,
+      apiError({ code: "device_not_found", params })
+    );
+
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy).toHaveBeenCalledWith("errors.api.device_not_found", { id: "abc" });
+    expect(spy).toHaveBeenCalledWith("errors.api.device_not_found", { replace: params });
     expect(result).toContain("errors.api.device_not_found");
+  });
+
+  it("interpolates params into the translated message", () => {
+    i18next.addResource(
+      "en",
+      "translation",
+      "errors.api.test_with_param",
+      "Value {{id}} / {{count}}"
+    );
+    const message = getApiErrorMessage(
+      t,
+      apiError({ code: "test_with_param", params: { id: "abc", count: "5" } })
+    );
+    expect(message).toBe("Value abc / 5");
   });
 });
 
@@ -87,5 +112,24 @@ describe("getFieldErrors", () => {
   it("returns an empty object for errors without field errors or non-ApiErrors", () => {
     expect(getFieldErrors(apiError(), t)).toEqual({});
     expect(getFieldErrors(new Error("x"), t)).toEqual({});
+  });
+
+  it("keeps the first error even for paths named like Object.prototype members", () => {
+    const error = apiError({
+      status: 422,
+      fieldErrors: [
+        { field: "body.toString", path: "toString", message: "first toString" },
+        { field: "body.toString", path: "toString", message: "second toString" },
+        { field: "body.constructor", path: "constructor", message: "first ctor" },
+        { field: "body.__proto__", path: "__proto__", message: "proto message" },
+      ],
+    });
+
+    const result = getFieldErrors(error, t);
+
+    expect(Object.keys(result).sort()).toEqual(["__proto__", "constructor", "toString"]);
+    expect(Object.getOwnPropertyDescriptor(result, "toString")?.value).toBe("first toString");
+    expect(Object.getOwnPropertyDescriptor(result, "constructor")?.value).toBe("first ctor");
+    expect(Object.getOwnPropertyDescriptor(result, "__proto__")?.value).toBe("proto message");
   });
 });

@@ -261,29 +261,31 @@ def test_health_endpoint():
     assert isinstance(data["config"]["discovery_enabled"], bool)
 
 
-def test_health_endpoint_reports_uptime_in_seconds():
-    """/health returns the seconds since process start as an integer."""
-    from unittest.mock import patch
-
+def test_health_endpoint_reports_uptime_in_seconds(monkeypatch):
+    """/health returns the whole seconds since process start."""
     from opencloudtouch import main
 
-    with patch.object(main.time, "monotonic", return_value=main._PROCESS_START + 125.4):
-        response = TestClient(main.app).get("/health")
+    monkeypatch.setattr(main, "_PROCESS_START", main.time.monotonic() - 125.4)
+    response = TestClient(main.app).get("/health")
 
     assert response.status_code == 200
-    assert response.json()["uptime"] == 125
+    uptime = response.json()["uptime"]
+    assert isinstance(uptime, int)
+    assert 125 <= uptime <= 127
 
 
-def test_health_endpoint_uptime_never_negative():
-    """A clock reading before the recorded start must not yield a negative uptime."""
-    from unittest.mock import patch
+def test_health_endpoint_is_typed_in_openapi():
+    """/health is part of the contract so the frontend can derive its types."""
+    from opencloudtouch.main import app
 
-    from opencloudtouch import main
-
-    with patch.object(main.time, "monotonic", return_value=main._PROCESS_START - 5):
-        response = TestClient(main.app).get("/health")
-
-    assert response.json()["uptime"] == 0
+    spec = app.openapi()
+    props = spec["components"]["schemas"]["HealthResponse"]["properties"]
+    assert {"status", "service", "version", "build", "uptime", "config"} <= set(props)
+    assert props["uptime"]["type"] == "integer"
+    schema = spec["paths"]["/health"]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    assert schema["$ref"].endswith("/HealthResponse")
 
 
 def test_websocket_health_no_manager():

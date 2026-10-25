@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Frontend: the wire-shape interface `ApiError` is now `ApiErrorBody`.
 - `ErrorDetail` and `ErrorItem` are part of the generated OpenAPI schema.
+- `/health` has a typed response model (`HealthResponse`) in the OpenAPI schema; the frontend type is generated from it.
+- The SoundTouch WebSocket client uses the `websockets.asyncio` API and ignores `HTTP(S)_PROXY`/`ALL_PROXY` for LAN devices; minimum `websockets` is now 15.0.
 
 ### Fixed
 - `/health` now returns `uptime` (seconds since the backend process started). The About page shows it as "Uptime: 2d 3h 14m" instead of the misleading "Built on" line, which never rendered because the backend did not send the value.

@@ -11,12 +11,14 @@ from collections.abc import Callable, Coroutine
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from opencloudtouch.core import error_codes
 from opencloudtouch.core.exceptions import (
+    GENERIC_SERVER_ERROR_DETAIL,
     CodedApiError,
     DeviceConnectionError,
     DeviceNotFoundError,
@@ -119,21 +121,37 @@ def _validation_item(err: dict[str, Any]) -> ErrorItem:
     )
 
 
+def _json_safe_extra(extra: dict[str, Any] | None, code: str) -> dict[str, Any] | None:
+    """Encode ``extra`` for JSON; drop it (and warn) if it cannot be serialised."""
+    if extra is None:
+        return None
+    try:
+        return jsonable_encoder(extra)
+    except Exception:  # noqa: BLE001 - never fail while building an error response
+        logger.warning("extra of %s is not JSON serialisable, dropped", code)
+        return None
+
+
 async def coded_api_error_handler(  # NOSONAR
     request: Request, exc: CodedApiError
 ) -> JSONResponse:
-    """Render a ``CodedApiError`` (``raise_coded``) as ``ErrorDetail``."""
-    if exc.status_code >= 500:
+    """Render a ``CodedApiError`` (``raise_coded``) as ``ErrorDetail``.
+
+    For 5xx the given detail is only logged; the response carries the generic text.
+    """
+    is_server_error = exc.status_code >= 500
+    if is_server_error:
         logger.error("%s: %s", exc.code, exc.detail, exc_info=exc)
     else:
         logger.warning("%s: %s", exc.code, exc.detail)
+    detail = GENERIC_SERVER_ERROR_DETAIL if is_server_error else exc.detail
     errors = None
     if exc.field:
         errors = [
             ErrorItem(
                 field=exc.field,
                 path=exc.field,
-                message=exc.detail,
+                message=detail,
                 code=exc.code,
             )
         ]
@@ -143,7 +161,7 @@ async def coded_api_error_handler(  # NOSONAR
             type=map_status_to_type(exc.status_code),
             title=exc.title or status_title(exc.status_code),
             status=exc.status_code,
-            detail=exc.detail,
+            detail=detail,
             instance=str(request.url.path),
             errors=errors,
             code=exc.code,
@@ -152,7 +170,7 @@ async def coded_api_error_handler(  # NOSONAR
                 if exc.params is not None
                 else None
             ),
-            extra=exc.extra,
+            extra=_json_safe_extra(exc.extra, exc.code),
         ).model_dump(),
     )
 
@@ -275,7 +293,7 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
             type="server_error",
             title="Internal Server Error",
             status=500,
-            detail="An unexpected error occurred. Please try again later.",
+            detail=GENERIC_SERVER_ERROR_DETAIL,
             instance=str(request.url.path),
             code=error_codes.INTERNAL_ERROR,
         ).model_dump(),

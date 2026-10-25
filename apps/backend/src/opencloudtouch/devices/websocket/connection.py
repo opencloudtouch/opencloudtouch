@@ -165,6 +165,7 @@ class DeviceWebSocket:
                     subprotocols=[websockets.Subprotocol("gabbo")],
                     ping_interval=30,
                     ping_timeout=10,
+                    proxy=None,  # LAN devices: ignore HTTP(S)_PROXY / ALL_PROXY (websockets >= 15)
                 )
                 await self._set_state(ConnectionState.CONNECTED)
                 self._backoff_attempt = 0

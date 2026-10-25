@@ -1,7 +1,7 @@
 """Tests for machine-readable error codes (additive ErrorDetail contract)."""
 
 import json
-from unittest.mock import MagicMock
+from datetime import datetime, timezone
 
 import pytest
 from fastapi import FastAPI, HTTPException
@@ -10,8 +10,10 @@ from fastapi.testclient import TestClient
 from pydantic import BaseModel, field_validator, model_validator
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from opencloudtouch.core import exception_handlers
-from opencloudtouch.core.exception_handlers import register_exception_handlers
+from opencloudtouch.core.exception_handlers import (
+    _validation_item,
+    register_exception_handlers,
+)
 from opencloudtouch.core.exceptions import (
     CodedApiError,
     DeviceConnectionError,
@@ -27,6 +29,7 @@ from opencloudtouch.core.exceptions import (
     SSHConnectionError,
     SSHError,
     raise_coded,
+    status_title,
 )
 from opencloudtouch.core.static_files import mount_static_files
 from opencloudtouch.radio.providers.radiobrowser import (
@@ -266,88 +269,168 @@ def test_spa_route_still_serves_index(client_with_dist):
 
 
 # ---------------------------------------------------------------------------
-# AC 8: one parametrised test over every registered handler
+# AC 8: one parametrised test over every handler registered in
+# register_exception_handlers, driven through real requests
 # ---------------------------------------------------------------------------
 
-# exception class -> (instance, status, type, expected code)
+_GENERIC_500 = "An unexpected error occurred. Please try again later."
+_RADIO_TIMEOUT = "Radio station search timed out. Please try again."
+_RADIO_DOWN = "Radio station search is temporarily unavailable. Please try again later."
+
+# exception class -> (instance, status, type, title, detail, expected code)
+# title/detail/type/status are the values the handlers returned BEFORE codes were added.
 _CASES = {
     StarletteHTTPException: (
         StarletteHTTPException(404, "Not Found"),
         404,
         "not_found",
+        "Not Found",
+        "Not Found",
         "not_found",
     ),
-    HTTPException: (HTTPException(404, "gone"), 404, "not_found", "not_found"),
+    HTTPException: (
+        HTTPException(404, "gone"),
+        404,
+        "not_found",
+        "gone",
+        "gone",
+        "not_found",
+    ),
     DeviceNotFoundError: (
         DeviceNotFoundError("d1"),
         404,
         "not_found",
+        "Device Not Found",
+        "Device not found: d1",
         "device_not_found",
     ),
     DeviceConnectionError: (
         DeviceConnectionError("1.2.3.4"),
         503,
         "service_unavailable",
+        "Device Unavailable",
+        "Device unreachable: 1.2.3.4",
         "device_unreachable",
     ),
-    DiscoveryError: (DiscoveryError("x"), 500, "server_error", "internal_error"),
+    DiscoveryError: (
+        DiscoveryError("x"),
+        500,
+        "server_error",
+        "Device Discovery Failed",
+        "x",
+        "internal_error",
+    ),
     DomainValidationError: (
         DomainValidationError("bad"),
         400,
         "bad_request",
+        "Validation Error",
+        "bad",
         "validation_error",
     ),
-    RadioTimeoutError: (RadioTimeoutError("t"), 504, "gateway_timeout", None),
-    RadioConnectionError: (RadioConnectionError("c"), 503, "service_unavailable", None),
-    RadioError: (RadioError("r"), 500, "server_error", None),
+    RadioTimeoutError: (
+        RadioTimeoutError("t"),
+        504,
+        "gateway_timeout",
+        "Radio Service Timeout",
+        _RADIO_TIMEOUT,
+        None,
+    ),
+    RadioConnectionError: (
+        RadioConnectionError("c"),
+        503,
+        "service_unavailable",
+        "Radio Service Unavailable",
+        _RADIO_DOWN,
+        None,
+    ),
+    RadioError: (
+        RadioError("r"),
+        500,
+        "server_error",
+        "Radio Service Error",
+        "r",
+        None,
+    ),
     RadioBrowserTimeoutError: (
         RadioBrowserTimeoutError("t"),
         504,
         "gateway_timeout",
+        "Radio Service Timeout",
+        _RADIO_TIMEOUT,
         None,
     ),
     RadioBrowserConnectionError: (
         RadioBrowserConnectionError("c"),
         503,
         "service_unavailable",
+        "Radio Service Unavailable",
+        _RADIO_DOWN,
         None,
     ),
-    RadioBrowserError: (RadioBrowserError("e"), 503, "service_unavailable", None),
+    RadioBrowserError: (
+        RadioBrowserError("e"),
+        503,
+        "service_unavailable",
+        "Radio Service Unavailable",
+        _RADIO_DOWN,
+        None,
+    ),
     SSHConnectionError: (
         SSHConnectionError("1.2.3.4"),
         503,
         "service_unavailable",
+        "SSH Connection Failed",
+        "SSH connection refused: 1.2.3.4",
         None,
     ),
-    SSHError: (SSHError("1.2.3.4"), 500, "server_error", None),
-    ExternalServiceError: (ExternalServiceError("e"), 502, "bad_gateway", None),
+    SSHError: (
+        SSHError("1.2.3.4"),
+        500,
+        "server_error",
+        "SSH Operation Failed",
+        "SSH operation failed: 1.2.3.4",
+        None,
+    ),
+    ExternalServiceError: (
+        ExternalServiceError("e"),
+        502,
+        "bad_gateway",
+        "External Service Error",
+        "e",
+        None,
+    ),
     OpenCloudTouchError: (
         OpenCloudTouchError("o"),
         500,
         "server_error",
+        "Internal Error",
+        "o",
         "internal_error",
     ),
-    Exception: (RuntimeError("boom"), 500, "server_error", "internal_error"),
+    Exception: (
+        RuntimeError("boom"),
+        500,
+        "server_error",
+        "Internal Server Error",
+        _GENERIC_500,
+        "internal_error",
+    ),
 }
 
 
-def _registered_handlers() -> dict:
+def _registered_handler_classes() -> set:
     app = FastAPI()
     register_exception_handlers(app)
-    return {
-        k: v
-        for k, v in app.exception_handlers.items()
-        if k
-        not in (
-            RequestValidationError,
-            WebSocketRequestValidationError,  # FastAPI default
-            CodedApiError,
-        )
+    return set(app.exception_handlers) - {
+        RequestValidationError,
+        WebSocketRequestValidationError,  # FastAPI default
+        CodedApiError,  # covered by the raise_coded tests
     }
 
 
 def test_case_table_covers_every_registered_handler():
-    assert set(_registered_handlers()) == set(_CASES)
+    assert _registered_handler_classes() == set(_CASES)
 
 
 @pytest.mark.parametrize(
@@ -355,20 +438,25 @@ def test_case_table_covers_every_registered_handler():
     sorted(_CASES, key=lambda c: c.__module__ + c.__qualname__),
     ids=lambda c: f"{c.__module__}.{c.__qualname__}",
 )
-def test_every_handler_keeps_old_keys_and_adds_new(exc_cls):
-    exc, status, type_, code = _CASES[exc_cls]
-    handler = _registered_handlers()[exc_cls]
-    req = MagicMock()
-    req.url.path = "/api/x"
+def test_every_handler_keeps_old_values_and_adds_new_keys(exc_cls):
+    exc, status, type_, title, detail, code = _CASES[exc_cls]
+    app = FastAPI()
+    register_exception_handlers(app)
 
-    response = _run(handler(req, exc))
-    body = json.loads(response.body.decode())
+    @app.get("/api/x")
+    async def raiser():
+        raise exc
+
+    response = TestClient(app, raise_server_exceptions=False).get("/api/x")
+    body = response.json()
 
     assert response.status_code == status
     assert body["status"] == status
     assert body["type"] == type_
+    assert body["title"] == title
+    assert body["detail"] == detail
     assert body["instance"] == "/api/x"
-    assert {"title", "detail", "errors"} <= set(body)
+    assert body["errors"] is None
     assert body["code"] == code
     assert "params" in body
     assert body["params"] is None
@@ -376,44 +464,117 @@ def test_every_handler_keeps_old_keys_and_adds_new(exc_cls):
     assert body["extra"] is None
 
 
-def test_request_validation_handler_present_and_additive():
-    handler = exception_handlers.validation_exception_handler
-    req = MagicMock()
-    req.url.path = "/api/x"
-    exc = RequestValidationError(
-        [
-            {
-                "type": "missing",
-                "loc": ("body", "a", "b"),
-                "msg": "Field required",
-                "input": {},
-            }
-        ]
+def test_request_validation_error_keeps_old_values_and_adds_path_and_code(client):
+    body = client.post("/api/plain", json={"port": "abc"}).json()
+    item = body["errors"][0]
+    assert body["title"] == "Invalid Request Data"
+    assert body["detail"] == "Request validation failed"
+    assert item["field"] == "body.port"
+    assert item["type"] == "int_parsing"
+    assert (
+        item["message"]
+        == "Input should be a valid integer, unable to parse string as an integer"
     )
-    body = json.loads(_run(handler(req, exc)).body.decode())
-    assert body["code"] == "validation_error"
-    assert body["errors"][0]["field"] == "body.a.b"
-    assert body["errors"][0]["path"] == "a.b"
-    assert body["errors"][0]["message"] == "Field required"
-    assert body["errors"][0]["type"] == "missing"
+    assert item["path"] == "port"
+    assert item["code"] == "validation_error"
+
+
+def test_validation_item_without_ctx_falls_back_to_msg_prefix():
+    item = _validation_item(
+        {
+            "type": "value_error",
+            "loc": ("body", "x"),
+            "msg": "Value error, code:my_code",
+        }
+    )
+    assert item.code == "my_code"
+    assert item.message == "Invalid value"
+    assert item.path == "x"
+
+
+def test_validation_item_value_error_without_code_convention():
+    item = _validation_item(
+        {"type": "value_error", "loc": ("query", "n"), "msg": "Value error, too small"}
+    )
+    assert item.code == "validation_error"
+    assert item.message == "Value error, too small"
+    assert item.path == "n"
 
 
 def test_error_detail_model_defaults():
-    d = ErrorDetail(type="t", title="T", status=400, detail="d")
-    dumped = d.model_dump()
+    dumped = ErrorDetail(type="t", title="T", status=400, detail="d").model_dump()
     assert dumped["code"] is None
     assert dumped["params"] is None
     assert dumped["extra"] is None
 
 
-def _run(coro):
-    import asyncio
-
-    return asyncio.new_event_loop().run_until_complete(coro)
-
-
 def test_status_title_defaults_and_fallback():
-    from opencloudtouch.core.exceptions import status_title
-
     assert status_title(409) == "Conflict"
     assert status_title(418) == "HTTP 418"
+
+
+# ---------------------------------------------------------------------------
+# raise_coded hardening: 5xx detail, extra serialisation, code pattern
+# ---------------------------------------------------------------------------
+
+
+def _coded_app(*, status: int, detail: str, **kwargs) -> TestClient:
+    app = FastAPI()
+    register_exception_handlers(app)
+
+    @app.get("/api/coded")
+    async def coded():
+        raise_coded(status, "x_failed", detail, **kwargs)
+
+    return TestClient(app, raise_server_exceptions=False)
+
+
+@pytest.mark.parametrize("status", [500, 502, 503, 504])
+def test_raise_coded_5xx_replaces_detail_with_generic_text(status, caplog):
+    client = _coded_app(
+        status=status, detail="failed: /etc/secret raised ValueError", field="f"
+    )
+    with caplog.at_level("ERROR"):
+        response = client.get("/api/coded")
+    body = response.json()
+
+    assert response.status_code == status
+    assert body["code"] == "x_failed"
+    assert body["detail"] == _GENERIC_500
+    assert body["errors"][0]["message"] == _GENERIC_500
+    assert "/etc/secret" not in json.dumps(body)
+    assert "/etc/secret" in caplog.text
+
+
+def test_raise_coded_4xx_keeps_detail():
+    response = _coded_app(status=409, detail="exact reason").get("/api/coded")
+    assert response.json()["detail"] == "exact reason"
+
+
+def test_raise_coded_serialises_extra_with_json_encoder():
+    when = datetime(2026, 6, 1, 12, 0, tzinfo=timezone.utc)
+    response = _coded_app(status=409, detail="d", extra={"at": when}).get("/api/coded")
+    assert response.status_code == 409
+    assert response.json()["extra"] == {"at": "2026-06-01T12:00:00+00:00"}
+
+
+def test_raise_coded_non_serialisable_extra_still_returns_error_detail(caplog):
+    with caplog.at_level("WARNING"):
+        response = _coded_app(status=409, detail="d", extra={"x": object()}).get(
+            "/api/coded"
+        )
+    body = response.json()
+    assert response.status_code == 409
+    assert body["code"] == "x_failed"
+    assert body["extra"] is None
+
+
+@pytest.mark.parametrize("bad", ["Bad-Code", "1code", "", "with space", "UPPER"])
+def test_raise_coded_rejects_invalid_code_pattern(bad):
+    with pytest.raises(ValueError, match="invalid error code"):
+        raise_coded(409, bad, "msg")
+
+
+def test_domain_validation_error_rejects_invalid_code_pattern():
+    with pytest.raises(ValueError, match="invalid error code"):
+        DomainValidationError("m", code="Bad Code")

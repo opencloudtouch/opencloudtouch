@@ -16,7 +16,7 @@ from fastapi.responses import JSONResponse
 from opencloudtouch import __version__, is_official_build
 from opencloudtouch.api import devices_router
 from opencloudtouch.api.bug_report import router as bug_report_router
-from opencloudtouch.api.diagnostics import router as diagnostics_router
+from opencloudtouch.api.health_models import HealthConfig, HealthResponse
 from opencloudtouch.bmx.radiobrowser_routes import radiobrowser_router
 from opencloudtouch.bmx.resolve_routes import resolve_router
 from opencloudtouch.bmx.routes import router as bmx_router
@@ -27,12 +27,15 @@ from opencloudtouch.core.exception_handlers import (
 from opencloudtouch.core.logging import setup_logging
 from opencloudtouch.core.logs_routes import router as logs_router
 from opencloudtouch.core.openapi import install_error_schemas
+from opencloudtouch.api.diagnostics import router as diagnostics_router
 from opencloudtouch.core.static_files import (
     find_frontend_static_dir,
     mount_static_files,
 )
 from opencloudtouch.db import DeviceRepository
+from opencloudtouch.dlna.service import DlnaService
 from opencloudtouch.devices.adapter import get_discovery_adapter
+from opencloudtouch.dlna.routes import router as dlna_router
 from opencloudtouch.devices.api.discovery_routes import discovery_router
 from opencloudtouch.devices.api.event_routes import event_router
 from opencloudtouch.devices.api.preset_stream_routes import (
@@ -46,8 +49,6 @@ from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.services.sync_service import DeviceSyncService
 from opencloudtouch.devices.startup_check import StartupCheck
 from opencloudtouch.devices.state import DeviceStateManager
-from opencloudtouch.dlna.routes import router as dlna_router
-from opencloudtouch.dlna.service import DlnaService
 from opencloudtouch.marge.routes import router as marge_router
 from opencloudtouch.marge.service import MargeService
 from opencloudtouch.presets.api.playlist_routes import router as playlist_router
@@ -361,7 +362,7 @@ async def _shutdown(app: FastAPI, repos: dict, logger: logging.Logger) -> None:
         await tunein_adapter.close()
         logger.info("TuneInProvider closed")
 
-    for repo in repos.values():
+    for attr_name, repo in repos.items():
         await repo.close()
         logger.info("%s closed", type(repo).__name__)
 
@@ -439,31 +440,26 @@ app.include_router(wizard_audit_router)  # Wizard audit trail
 app.include_router(event_router)  # SSE device event stream
 
 
-# Health endpoint
 # Monotonic reference taken at import time (= process start) for /health uptime.
 _PROCESS_START = time.monotonic()
 
 
-@app.get("/health", tags=["System"])
-async def health_check(request: Request):
+# Health endpoint
+@app.get("/health", tags=["System"], response_model=HealthResponse)
+async def health_check() -> HealthResponse:
     """Health check endpoint for Docker and monitoring.
 
     Minimal response — detailed memory stats available at /api/diagnostics/memory.
     """
     cfg = get_config()
 
-    return JSONResponse(
-        status_code=200,
-        content={
-            "status": "healthy",
-            "service": "opencloudtouch",
-            "version": __version__,
-            "build": "official" if is_official_build() else "community",
-            "uptime": max(0, int(time.monotonic() - _PROCESS_START)),
-            "config": {
-                "discovery_enabled": cfg.discovery_enabled,
-            },
-        },
+    return HealthResponse(
+        status="healthy",
+        service="opencloudtouch",
+        version=__version__,
+        build="official" if is_official_build() else "community",
+        uptime=int(time.monotonic() - _PROCESS_START),
+        config=HealthConfig(discovery_enabled=cfg.discovery_enabled),
     )
 
 

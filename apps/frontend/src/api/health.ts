@@ -3,14 +3,9 @@
  * Fetches application version and status from the /health endpoint
  */
 
-export interface HealthResponse {
-  status: string;
-  version: string;
-  /** "official" for signed CI builds, "community" for self-built/local-dev. */
-  build: "official" | "community";
-  /** Seconds since the backend process started. Optional for older backends. */
-  uptime?: number;
-}
+import type { components } from "./generated/schema";
+
+export type HealthResponse = components["schemas"]["HealthResponse"];
 
 export async function getHealth(): Promise<HealthResponse> {
   const res = await fetch("/health");

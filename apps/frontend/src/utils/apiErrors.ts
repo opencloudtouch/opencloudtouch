@@ -7,24 +7,6 @@ import type { TFunction } from "i18next";
 import { i18next } from "../i18n";
 import { isApiErrorInstance } from "../api/types";
 
-const RESERVED_OPTIONS = new Set([
-  "count",
-  "context",
-  "lng",
-  "ns",
-  "defaultValue",
-  "returnObjects",
-  "interpolation",
-]);
-
-function safeParams(params: Record<string, string> | undefined): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const [key, value] of Object.entries(params ?? {})) {
-    if (!RESERVED_OPTIONS.has(key)) result[key] = value;
-  }
-  return result;
-}
-
 /**
  * Message for an API failure: translated by `code` when known, a generic message
  * naming the code when unknown, otherwise `fallbackKey` (default `errors.api.unknown`).
@@ -32,7 +14,8 @@ function safeParams(params: Record<string, string> | undefined): Record<string, 
 export function getApiErrorMessage(t: TFunction, error: unknown, fallbackKey?: string): string {
   if (isApiErrorInstance(error) && error.code) {
     if (i18next.exists(`errors.api.${error.code}`)) {
-      return t(`errors.api.${error.code}`, safeParams(error.params));
+      // params go through `replace`, so no key of the server data can act as an i18next option
+      return t(`errors.api.${error.code}`, { replace: error.params });
     }
     return t("errors.api.unknownWithCode", { code: error.code });
   }
@@ -45,14 +28,17 @@ export function getApiErrorMessage(t: TFunction, error: unknown, fallbackKey?: s
  * the first error per path wins.
  */
 export function getFieldErrors(error: unknown, t: TFunction): Record<string, string> {
-  const result: Record<string, string> = {};
-  if (!isApiErrorInstance(error)) return result;
+  if (!isApiErrorInstance(error)) return {};
+  // A Map keeps "first wins" correct for paths such as "constructor" or "__proto__".
+  const messages = new Map<string, string>();
   for (const item of error.fieldErrors) {
-    if (item.path in result) continue;
-    result[item.path] =
+    if (messages.has(item.path)) continue;
+    messages.set(
+      item.path,
       item.code && i18next.exists(`errors.api.${item.code}`)
         ? t(`errors.api.${item.code}`)
-        : item.message;
+        : item.message
+    );
   }
-  return result;
+  return Object.fromEntries(messages);
 }

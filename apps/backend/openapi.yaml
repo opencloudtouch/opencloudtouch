@@ -3244,7 +3244,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
   /api/health/websockets:
     get:
       tags:
@@ -3850,6 +3851,48 @@ components:
           title: Detail
       type: object
       title: HTTPValidationError
+    HealthConfig:
+      properties:
+        discovery_enabled:
+          type: boolean
+          title: Discovery Enabled
+      type: object
+      required:
+      - discovery_enabled
+      title: HealthConfig
+      description: Configuration flags exposed by ``/health``.
+    HealthResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+        service:
+          type: string
+          title: Service
+        version:
+          type: string
+          title: Version
+        build:
+          type: string
+          enum:
+          - official
+          - community
+          title: Build
+        uptime:
+          type: integer
+          title: Uptime
+        config:
+          $ref: '#/components/schemas/HealthConfig'
+      type: object
+      required:
+      - status
+      - service
+      - version
+      - build
+      - uptime
+      - config
+      title: HealthResponse
+      description: Minimal health payload for Docker health checks and the About page.
     HostsModifyRequest:
       properties:
         device_ip:
@@ -4814,8 +4857,9 @@ components:
         \ on the client\n    extra: Structured data for the client (not for translation)\n\
         \nExample:\n    {\n        \"type\": \"not_found\",\n        \"title\": \"\
         Device Not Found\",\n        \"status\": 404,\n        \"detail\": \"Device\
-        \ with ID 'abc123' does not exist\",\n        \"instance\": \"/api/devices/abc123\"\
-        \n    }"
+        \ not found: abc123\",\n        \"instance\": \"/api/devices/abc123\",\n \
+        \       \"errors\": null,\n        \"code\": \"device_not_found\",\n     \
+        \   \"params\": null,\n        \"extra\": null\n    }"
       properties:
         type:
           title: Type

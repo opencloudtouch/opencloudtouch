@@ -300,4 +300,46 @@ describe("BugReportModal", () => {
       );
     });
   });
+
+  it("keeps the raw error message in the submit failure toast when the error has no code", async () => {
+    mockSubmitBugReport.mockRejectedValue(new ApiError("GitHub API error: 502", { status: 502 }));
+    const BugReportModal = await getBugReportModal();
+    render(<BugReportModal open onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getAllByRole("textbox")[0], {
+      target: { value: "This is a detailed bug description that is long enough" },
+    });
+    fireEvent.change(screen.getAllByRole("textbox")[1], {
+      target: { value: "1. Click here\n2. Then there\n3. Error" },
+    });
+    fireEvent.change(screen.getAllByRole("textbox")[2], { target: { value: "Should work fine" } });
+    const selects = screen.getAllByRole("combobox");
+    fireEvent.change(selects[0], { target: { value: "docker" } });
+    fireEvent.change(selects[1], { target: { value: "raspberry-pi-4" } });
+    fireEvent.click(screen.getByRole("button", { name: /Submit Bug Report/i }));
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith(
+        i18next.t("bugReport.submitFailed", { error: "GitHub API error: 502" }),
+        "error",
+        8000
+      );
+    });
+  });
+
+  it("keeps the raw error message in the diagnostics failure toast for a network error", async () => {
+    mockDownloadDiagnostics.mockRejectedValue(new TypeError("Failed to fetch"));
+    const BugReportModal = await getBugReportModal();
+    render(<BugReportModal open onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getByTitle(/Download diagnostic logs/i));
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith(
+        i18next.t("bugReport.diagnosticsFailed", { error: "Failed to fetch" }),
+        "error",
+        8000
+      );
+    });
+  });
 });

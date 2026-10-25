@@ -236,6 +236,7 @@ describe("Settings Page", () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       json: async () => ({ detail: "Device not reachable at 192.168.1.30" }),
+      text: async () => JSON.stringify({ detail: "Device not reachable at 192.168.1.30" }),
     });
 
     renderWithProviders(<Settings />);
