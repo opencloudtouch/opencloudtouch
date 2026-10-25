@@ -165,4 +165,31 @@ describe("Device Discovery", () => {
       cy.url().should("eq", Cypress.config().baseUrl + "/");
     });
   });
+  describe("Settings – newly discovered device names (#512)", () => {
+    it("lists only devices absent from the database before the scan", () => {
+      const apiUrl = Cypress.expose("apiUrl");
+      // Populate the DB with all 3 mock devices, then remove one.
+      cy.request("POST", `${apiUrl}/devices/sync`);
+      cy.request("GET", `${apiUrl}/devices`).then(({ body }) => {
+        const devices = body.devices as Array<{ device_id: string; name: string }>;
+        expect(devices).to.have.length(3);
+        const removed = devices[0];
+        cy.request("DELETE", `${apiUrl}/devices/${removed.device_id}`);
+        cy.visit("/settings");
+        cy.get(".network-scan-btn").click();
+        cy.get('[data-test="newly-discovered-devices"]', { timeout: 15000 })
+          .should("be.visible")
+          .within(() => {
+            cy.get("li").should("have.length", 1).and("contain", removed.name);
+          });
+
+        // On the next scan the same device already exists in the database.
+        cy.get(".network-scan-btn").click();
+        cy.get('[data-test="discovery-result-count"]', {
+          timeout: 15000,
+        }).should("have.attr", "data-count", "0");
+        cy.get('[data-test="newly-discovered-devices"]').should("not.exist");
+      });
+    });
+  });
 });

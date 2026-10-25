@@ -8,7 +8,7 @@
  * - Singular vs. plural phrasing in toast message
  */
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import Settings from "../../src/pages/Settings";
@@ -131,7 +131,10 @@ describe("Settings — Scan Button visibility", () => {
 // ---------------------------------------------------------------------------
 describe("Settings — Scan Button trigger", () => {
   it("calls startDiscovery when button is clicked", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
+    mockFetch.mockImplementation(async (url: string) => ({
+      ok: true,
+      json: async () => (String(url).endsWith("/api/devices") ? { devices: [] } : { ips: [] }),
+    }));
 
     renderSettings();
 
@@ -141,7 +144,174 @@ describe("Settings — Scan Button trigger", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /scan now/i }));
 
-    expect(mockStartDiscovery).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mockStartDiscovery).toHaveBeenCalledTimes(1));
+  });
+
+  it("reads the database again before a second scan", async () => {
+    const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
+
+    const databaseSnapshots = [
+      { devices: [] },
+      { devices: [{ device_id: "NEW1", name: "Kitchen" }] },
+    ];
+    let reads = 0;
+
+    mockFetch.mockImplementation(async (url: string) => ({
+      ok: true,
+      json: async () => {
+        if (String(url).endsWith("/api/devices")) {
+          return databaseSnapshots[reads++];
+        }
+        return { ips: [] };
+      },
+    }));
+
+    (useDiscoveryStream as Mock).mockReturnValue({
+      ...makeDiscoveryState(),
+      startDiscovery: mockStartDiscovery,
+    });
+
+    renderSettings();
+
+    const button = await screen.findByRole("button", { name: /scan now/i });
+
+    fireEvent.click(button);
+    await waitFor(() => expect(mockStartDiscovery).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(button);
+    await waitFor(() => expect(mockStartDiscovery).toHaveBeenCalledTimes(2));
+
+    expect(reads).toBe(2);
+  });
+
+  it("does not list a device as new on the second scan", async () => {
+    const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
+
+    let dbDevices: { device_id: string; name: string }[] = [];
+    mockFetch.mockImplementation(async (url: string) => ({
+      ok: true,
+      json: async () =>
+        String(url).endsWith("/api/devices") ? { devices: dbDevices } : { ips: [] },
+    }));
+
+    const discoveryResult = {
+      ...makeDiscoveryState({
+        completed: true,
+        devicesFound: [{ device_id: "NEW1", name: "Kitchen" }],
+      }),
+      startDiscovery: mockStartDiscovery,
+    };
+
+    (useDiscoveryStream as Mock).mockReturnValue({
+      ...makeDiscoveryState(),
+      startDiscovery: mockStartDiscovery,
+    });
+
+    const qc = buildQueryClient();
+    const { rerender } = render(
+      <Wrapper qc={qc}>
+        <Settings />
+      </Wrapper>
+    );
+
+    const button = await screen.findByRole("button", { name: /scan now/i });
+
+    fireEvent.click(button);
+    await waitFor(() => expect(mockStartDiscovery).toHaveBeenCalledTimes(1));
+
+    (useDiscoveryStream as Mock).mockReturnValue(discoveryResult);
+    rerender(
+      <Wrapper qc={qc}>
+        <Settings />
+      </Wrapper>
+    );
+
+    expect(await screen.findByText("Kitchen")).toBeInTheDocument();
+
+    dbDevices = [{ device_id: "NEW1", name: "Kitchen" }];
+
+    fireEvent.click(button);
+    await waitFor(() => expect(mockStartDiscovery).toHaveBeenCalledTimes(2));
+
+    (useDiscoveryStream as Mock).mockReturnValue({
+      ...makeDiscoveryState(),
+      startDiscovery: mockStartDiscovery,
+    });
+    rerender(
+      <Wrapper qc={qc}>
+        <Settings />
+      </Wrapper>
+    );
+
+    (useDiscoveryStream as Mock).mockReturnValue(discoveryResult);
+    rerender(
+      <Wrapper qc={qc}>
+        <Settings />
+      </Wrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/0 new devices found/i, {
+        selector: '[data-test="toast-message"]',
+      })).toBeInTheDocument();
+      expect(screen.queryByText("Kitchen")).not.toBeInTheDocument();
+    });
+  });
+
+  it("prevents double clicks while preparing discovery", async () => {
+    let resolveDevices!: (value: unknown) => void;
+    const pendingDevices = new Promise<unknown>((resolve) => {
+      resolveDevices = resolve;
+    });
+    let deviceRequests = 0;
+
+    mockFetch.mockImplementation(async (url: string) => {
+      if (String(url).endsWith("/api/devices")) {
+        deviceRequests++;
+        return pendingDevices;
+      }
+      return { ok: true, json: async () => ({ ips: [] }) };
+    });
+
+    renderSettings();
+    const button = await screen.findByRole("button", { name: /scan now/i });
+
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    expect(deviceRequests).toBe(1);
+    expect(button).toBeDisabled();
+    expect(mockStartDiscovery).not.toHaveBeenCalled();
+
+    resolveDevices({ ok: true, json: async () => ({ devices: [] }) });
+
+    await waitFor(() => {
+      expect(mockStartDiscovery).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("does not start discovery if the page unmounts during the pre-scan read", async () => {
+    let resolveDevices!: (value: unknown) => void;
+    const pendingDevices = new Promise<unknown>((resolve) => {
+      resolveDevices = resolve;
+    });
+
+    mockFetch.mockImplementation(async (url: string) => {
+      if (String(url).endsWith("/api/devices")) return pendingDevices;
+      return { ok: true, json: async () => ({ ips: [] }) };
+    });
+
+    const { unmount } = renderSettings();
+    const button = await screen.findByRole("button", { name: /scan now/i });
+    fireEvent.click(button);
+    await waitFor(() => expect(button).toBeDisabled());
+
+    unmount();
+    await act(async () => {
+      resolveDevices({ ok: true, json: async () => ({ devices: [] }) });
+      await pendingDevices;
+    });
+    expect(mockStartDiscovery).not.toHaveBeenCalled();
   });
 
   it("button is disabled while discovery is running", async () => {
@@ -295,6 +465,57 @@ describe("Settings — Discover Button completion toast", () => {
     });
   });
 
+  it("lists only newly synced devices, excluding previously known devices", async () => {
+    const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
+    (useDiscoveryStream as Mock).mockReturnValue({
+      ...makeDiscoveryState({
+        completed: true,
+        devicesFound: [
+          { device_id: "OLD", name: "Already Known", ip: "192.168.1.10" },
+          { device_id: "NEW", name: "Living Room", ip: "192.168.1.11" },
+        ],
+      }),
+      startDiscovery: mockStartDiscovery,
+    });
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
+    renderSettings([{ device_id: "OLD", ip: "192.168.1.10" }]);
+    const list = await screen.findByRole("list");
+    expect(list).toHaveTextContent("Living Room");
+    expect(list).not.toHaveTextContent("Already Known");
+  });
+
+  it("shows no results list when all discovered devices are known", async () => {
+    const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
+    (useDiscoveryStream as Mock).mockReturnValue({
+      ...makeDiscoveryState({
+        completed: true,
+        devicesFound: [{ device_id: "OLD", name: "Known", ip: "192.168.1.10" }],
+      }),
+      startDiscovery: mockStartDiscovery,
+    });
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
+    renderSettings([{ device_id: "OLD", ip: "192.168.1.10" }]);
+    await screen.findByText(/0 new devices found/i);
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
+  });
+
+  it("deduplicates repeated synced events by device ID", async () => {
+    const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
+    (useDiscoveryStream as Mock).mockReturnValue({
+      ...makeDiscoveryState({
+        completed: true,
+        devicesFound: [
+          { device_id: "NEW", name: "Kitchen" },
+          { device_id: "NEW", name: "Kitchen" },
+        ],
+      }),
+      startDiscovery: mockStartDiscovery,
+    });
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
+    renderSettings();
+    expect(await screen.findAllByText("Kitchen")).toHaveLength(1);
+  });
+
   it.each([
     {
       scenario: "discovery is still idle (not completed)",
@@ -325,5 +546,59 @@ describe("Settings — Discover Button completion toast", () => {
 
     expect(screen.queryByText(/new devices found/i)).toBeNull();
     expect(screen.queryByText(/new device found/i)).toBeNull();
+  });
+});
+
+describe("Settings — discovery review regressions", () => {
+  it("aborts the scan if the pre-scan device fetch fails", async () => {
+    mockFetch.mockImplementation(async (url: string) => {
+      if (String(url).endsWith("/api/devices")) {
+        throw new Error("Failed to fetch devices");
+      }
+      return { ok: true, json: async () => ({ ips: [] }) };
+    });
+
+    renderSettings();
+    const button = await screen.findByRole("button", { name: /scan now/i });
+    fireEvent.click(button);
+
+    await waitFor(() => expect(button).not.toBeDisabled());
+    expect(mockStartDiscovery).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText(
+        /Could not connect to the server\. Please check your network connection\./i
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the expand button mounted and supports collapsing", async () => {
+    const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
+    (useDiscoveryStream as Mock).mockReturnValue({
+      ...makeDiscoveryState({
+        completed: true,
+        devicesFound: Array.from({ length: 7 }, (_, i) => ({
+          device_id: `NEW${i}`,
+          name: `Device ${i}`,
+        })),
+      }),
+      startDiscovery: mockStartDiscovery,
+    });
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ ips: [] }),
+    });
+
+    renderSettings();
+    const expand = await screen.findByRole("button", { name: /more/i });
+    expect(expand).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getAllByRole("listitem")).toHaveLength(5);
+
+    fireEvent.click(expand);
+    expect(expand).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getAllByRole("listitem")).toHaveLength(7);
+
+    fireEvent.click(expand);
+    expect(expand).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getAllByRole("listitem")).toHaveLength(5);
   });
 });

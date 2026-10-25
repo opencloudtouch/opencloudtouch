@@ -8,7 +8,7 @@ import { useToast } from "../contexts/ToastContext";
 import { toUserMessage } from "../utils/errorMessages";
 import { getLogEntries, getLogBuffers } from "../utils/logBuffer";
 import { syncDebugFromBackendLevel } from "../utils/debug";
-import type { Device } from "../api/devices";
+import { getDevices, type Device } from "../api/devices";
 import "./Settings.css";
 
 export default function Settings() {
@@ -56,26 +56,72 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const { show } = useToast();
 
-  // Capture device IDs that existed before this component was mounted.
-  // Used to determine how many NEW devices were found by the discovery.
-  const [preDiscoveryDeviceIds] = useState<Set<string>>(() => {
-    const existing = queryClient.getQueryData<Device[]>(["devices"]) ?? [];
-    return new Set(existing.map((d) => d.device_id));
-  });
-
+  // Snapshot the database before each scan, never after discovery has started.
+  const preDiscoveryIdsRef = useRef<Set<string>>(
+    new Set((queryClient.getQueryData<Device[]>(["devices"]) ?? []).map((d) => d.device_id))
+  );
+  const [newDevices, setNewDevices] = useState<Device[]>([]);
+  const [showAllDevices, setShowAllDevices] = useState(false);
+  const [isPreparingDiscovery, setIsPreparingDiscovery] = useState(false);
+  const preparingDiscoveryRef = useRef(false);
   const completedRef = useRef(false);
+  const mountedRef = useRef(true);
 
-  // Show toast when discovery completes
   useEffect(() => {
-    if (completed && !completedRef.current) {
-      completedRef.current = true;
-      const newDeviceCount = devicesFound.filter(
-        (d) => !preDiscoveryDeviceIds.has(d.device_id)
-      ).length;
-      const message = t("settings.discovery.devicesFound", { count: newDeviceCount });
-      show(message, "success");
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const handleDiscovery = async () => {
+    if (isDiscovering || preparingDiscoveryRef.current) return;
+
+    preparingDiscoveryRef.current = true;
+    setIsPreparingDiscovery(true);
+
+    try {
+      const existing = await queryClient.fetchQuery({
+        queryKey: ["devices"],
+        queryFn: getDevices,
+        staleTime: 0,
+      });
+      if (!mountedRef.current) return;
+      preDiscoveryIdsRef.current = new Set(existing.map((d) => d.device_id));
+
+      completedRef.current = false;
+      setNewDevices([]);
+      setShowAllDevices(false);
+      startDiscovery();
+    } catch (err) {
+      if (mountedRef.current) {
+        show(toUserMessage(err instanceof Error ? err.message : String(err)), "error");
+      }
+    } finally {
+      preparingDiscoveryRef.current = false;
+      if (mountedRef.current) setIsPreparingDiscovery(false);
     }
-  }, [completed, devicesFound, preDiscoveryDeviceIds, show, t]);
+  };
+
+  useEffect(() => {
+    if (!completed) {
+      completedRef.current = false;
+      return;
+    }
+    if (completedRef.current) return;
+    completedRef.current = true;
+
+    const seen = new Set<string>();
+    const newlyAdded = devicesFound.filter((device) => {
+      if (preDiscoveryIdsRef.current.has(device.device_id) || seen.has(device.device_id)) {
+        return false;
+      }
+      seen.add(device.device_id);
+      return true;
+    });
+    setNewDevices(newlyAdded);
+    show(t("settings.discovery.devicesFound", { count: newlyAdded.length }), "success");
+  }, [completed, devicesFound, show, t]);
 
   const validateIP = (ip: string): boolean => {
     const parts = ip.split(".");
@@ -162,8 +208,8 @@ export default function Settings() {
             <div className="discover-action">
               <button
                 className="btn btn-primary network-scan-btn"
-                onClick={() => void startDiscovery()}
-                disabled={isDiscovering}
+                onClick={() => void handleDiscovery()}
+                disabled={isDiscovering || isPreparingDiscovery}
                 aria-label={t("settings.deviceDiscovery.scanButton")}
               >
                 {isDiscovering ? (
@@ -176,6 +222,34 @@ export default function Settings() {
                 )}
               </button>
             </div>
+            {completed && (
+              <p role="status" aria-live="polite"
+                 data-test="discovery-result-count"
+                 data-count={newDevices.length}>
+                {t("settings.discovery.devicesFound", { count: newDevices.length })}
+              </p>
+            )}
+            {newDevices.length > 0 && (
+              <div className="discovery-results" data-test="newly-discovered-devices">
+                <ul className="discovery-device-list">
+                  {(showAllDevices ? newDevices : newDevices.slice(0, 5)).map((device) => (
+                    <li key={device.device_id}>{device.name}</li>
+                  ))}
+                </ul>
+                {newDevices.length > 5 && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setShowAllDevices((current) => !current)}
+                    aria-expanded={showAllDevices}
+                  >
+                    {showAllDevices
+                      ? t("settings.discovery.showLess")
+                      : t("settings.discovery.showMore", { count: newDevices.length - 5 })}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Secondary: Manual IPs */}

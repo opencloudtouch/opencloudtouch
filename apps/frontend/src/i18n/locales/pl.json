@@ -121,7 +121,9 @@
     },
     "discovery": {
       "devicesFound_one": "Znaleziono {{count}} nowe urządzenie",
-      "devicesFound_other": "Znaleziono {{count}} nowe urządzenia"
+      "devicesFound_other": "Znaleziono {{count}} nowe urządzenia",
+      "showMore": "+ {{count}} więcej",
+      "showLess": "Pokaż mniej"
     },
     "deviceDiscovery": {
       "sectionTitle": "Znajdź urządzenia",
