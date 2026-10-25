@@ -194,10 +194,10 @@ async def test_play_dlna_item(monkeypatch):
 
     result = await routes.play_dlna_item(
         request=Request(),
-        server_id="server-1",
-        object_id="track-1",
         device_id="device-1",
-        parent_id="folder-1",
+        payload=routes.DlnaPlayRequest(
+            server_id="server-1", object_id="track-1", parent_id="folder-1"
+        ),
         service=service,
     )
 
@@ -279,10 +279,10 @@ async def test_play_dlna_missing_device(monkeypatch):
     with pytest.raises(HTTPException) as exc_info:
         await routes.play_dlna_item(
             request=Request(),
-            server_id="server-1",
-            object_id="track-1",
             device_id="missing",
-            parent_id="folder-1",
+            payload=routes.DlnaPlayRequest(
+                server_id="server-1", object_id="track-1", parent_id="folder-1"
+            ),
             service=service,
         )
 
@@ -295,14 +295,20 @@ class MockNotifyRequest:
     def __init__(self, body: bytes):
         self._body = body
 
-    async def body(self) -> bytes:
-        return self._body
+    headers = {"sid": "uuid:test"}
+    client = MagicMock(host="192.168.1.10")
+
+    async def stream(self):
+        yield self._body
 
 
 @pytest.mark.asyncio
 async def test_avtransport_notify(monkeypatch):
     service = AsyncMock()
     service.playback.handle_transport_state = AsyncMock()
+    service.subscriptions.get = MagicMock(
+        return_value=MagicMock(sid="uuid:test", device_ip="192.168.1.10")
+    )
 
     body = b"""<?xml version="1.0"?>
 <e:propertyset xmlns:e="urn:schemas-upnp-org:event-1-0">
@@ -327,6 +333,12 @@ async def test_avtransport_notify(monkeypatch):
 @pytest.mark.asyncio
 async def test_avtransport_notify_ignores_malformed_xml(monkeypatch):
     service = AsyncMock()
+    service.subscriptions.get = MagicMock(
+        return_value=MagicMock(
+            sid="uuid:test",
+            device_ip="192.168.1.10",
+        )
+    )
     service.playback.handle_transport_state = AsyncMock()
 
     response = await routes.dlna_avtransport_event(
@@ -380,6 +392,12 @@ async def test_get_current_dlna_item_when_idle(monkeypatch):
 async def test_avtransport_notify_ignores_malformed_bose_lastchange():
     """Ignore the malformed initial LastChange sent by SoundTouch."""
     service = AsyncMock()
+    service.subscriptions.get = MagicMock(
+        return_value=MagicMock(
+            sid="uuid:test",
+            device_ip="192.168.1.10",
+        )
+    )
     service.playback.handle_transport_state = AsyncMock()
 
     body = b"""<?xml version="1.0"?>
@@ -397,3 +415,113 @@ async def test_avtransport_notify_ignores_malformed_bose_lastchange():
 
     assert response.status_code == 200
     service.playback.handle_transport_state.assert_not_awaited()
+
+
+def test_http_play_route_with_slash_object_id(monkeypatch):
+    app = FastAPI()
+    app.include_router(routes.router)
+    service = AsyncMock()
+    service.play.return_value = DlnaItem(
+        id="folder/track$1",
+        parent_id="folder",
+        title="Track",
+        is_container=False,
+        resource_url="http://server/track.mp3",
+    )
+    app.state.device_service = MagicMock()
+    app.state.device_service.get_device_by_id = AsyncMock(
+        return_value=MagicMock(ip="192.168.1.10")
+    )
+    app.dependency_overrides[get_dlna_service] = lambda: service
+    monkeypatch.setattr(
+        routes, "_get_callback_base_url", lambda *_: "http://192.0.2.20:7777"
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/dlna/devices/device-1/play",
+            json={
+                "server_id": "server-1",
+                "object_id": "folder/track$1",
+                "parent_id": "folder",
+            },
+        )
+    assert response.status_code == 200
+    assert response.json()["item"]["id"] == "folder/track$1"
+    assert service.play.await_args.kwargs["object_id"] == "folder/track$1"
+
+
+@pytest.mark.parametrize(
+    ("failure", "expected"),
+    [
+        (LookupError("missing"), 404),
+        (routes.DlnaPlaybackError("inactive"), 409),
+        (routes.DlnaRendererError("unavailable"), 502),
+    ],
+)
+def test_http_play_error_mappings(monkeypatch, failure, expected):
+    app = FastAPI()
+    app.include_router(routes.router)
+    service = AsyncMock()
+    service.play.side_effect = failure
+    app.state.device_service = MagicMock()
+    app.state.device_service.get_device_by_id = AsyncMock(
+        return_value=MagicMock(ip="192.168.1.10")
+    )
+    app.dependency_overrides[get_dlna_service] = lambda: service
+    monkeypatch.setattr(
+        routes, "_get_callback_base_url", lambda *_: "http://192.0.2.20:7777"
+    )
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/dlna/devices/device-1/play",
+            json={
+                "server_id": "server-1",
+                "object_id": "folder/track",
+                "parent_id": "folder",
+            },
+        )
+    assert response.status_code == expected
+
+
+def test_http_notify_dispatch_and_xml_hardening():
+    app = FastAPI()
+    app.include_router(routes.router)
+    service = MagicMock()
+    service.playback.handle_transport_state = AsyncMock()
+    service.subscriptions.get.return_value = MagicMock(
+        sid="uuid:test", device_ip="testclient"
+    )
+    app.dependency_overrides[get_dlna_service] = lambda: service
+    body = (
+        '<e:propertyset xmlns:e="urn:schemas-upnp-org:event-1-0">'
+        '<e:property><LastChange>&lt;Event&gt;&lt;TransportState val="PLAYING"/&gt;&lt;/Event&gt;'
+        "</LastChange></e:property></e:propertyset>"
+    )
+    headers = {"sid": "uuid:test"}
+    with TestClient(app) as client:
+        good = client.request(
+            "NOTIFY", "/api/dlna/events/device-1", content=body, headers=headers
+        )
+        forbidden = client.request(
+            "NOTIFY",
+            "/api/dlna/events/device-1",
+            content='<!DOCTYPE foo [<!ENTITY x "bad">]><foo>&x;</foo>',
+            headers=headers,
+        )
+        oversized = client.request(
+            "NOTIFY", "/api/dlna/events/device-1", content="X" * 65537, headers=headers
+        )
+        bad_sid = client.request(
+            "NOTIFY",
+            "/api/dlna/events/device-1",
+            content=body,
+            headers={"sid": "wrong"},
+        )
+    assert good.status_code == 200
+    assert forbidden.status_code == 200
+    assert oversized.status_code == 413
+    assert bad_sid.status_code == 200
+    service.playback.handle_transport_state.assert_awaited_once_with(
+        "device-1", "PLAYING"
+    )

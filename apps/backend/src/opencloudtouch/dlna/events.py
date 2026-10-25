@@ -114,6 +114,10 @@ class DlnaEventSubscriptions:
                 timeout_seconds,
             )
 
+    def get(self, device_id: str) -> DlnaSubscription | None:
+        """Return the registered subscription for callback validation."""
+        return self._subscriptions.get(device_id)
+
     async def remove(self, device_id: str) -> None:
         """Remove and unsubscribe a device without racing with ensure."""
         async with self._locks.setdefault(device_id, asyncio.Lock()):
@@ -147,7 +151,7 @@ class DlnaEventSubscriptions:
         """Renew periodically, re-subscribing after transient renewal failures."""
         try:
             while True:
-                delay = max(1, int(subscription.timeout_seconds * 0.8))
+                delay = max(5, int(subscription.timeout_seconds * 0.8))
                 await asyncio.sleep(delay)
                 try:
                     sid, timeout_seconds = await self.renderer.renew_subscription(

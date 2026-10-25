@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from urllib.parse import urlsplit
 from dataclasses import dataclass
 
 from opencloudtouch.dlna.models import DlnaItem
@@ -188,6 +189,8 @@ class DlnaPlaybackService:
         if transport_state == "PAUSED_PLAYBACK":
             self._cancel_advance(device_id)
 
+        if self._closed or device_id not in self._states:
+            return None
         async with self._lock_for(device_id):
             if self._closed:
                 return None
@@ -293,6 +296,9 @@ class DlnaPlaybackService:
         """Send a playable item to the SoundTouch renderer."""
         if not item.resource_url:
             raise DlnaPlaybackError(f"DLNA item has no playable resource: {item.id}")
+
+        if urlsplit(item.resource_url).scheme.lower() not in ("http", "https"):
+            raise DlnaPlaybackError(f"Unsupported DLNA resource URL: {item.id}")
 
         await self.renderer.play_uri(device_ip, item.resource_url)
 

@@ -241,3 +241,44 @@ async def test_play_uses_cached_server_and_closes_subscriptions():
     playback.play.assert_awaited_once()
     await service.close()
     service.subscriptions.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_play_continues_when_event_subscription_fails():
+    """Playback works even if AVTransport subscription fails."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    from opencloudtouch.dlna.models import DlnaItem
+    from opencloudtouch.dlna.service import DlnaService
+
+    item = DlnaItem(
+        id="track-1",
+        parent_id="folder-1",
+        title="Test Track",
+        is_container=False,
+        resource_url="http://192.0.2.10/track.mp3",
+    )
+
+    service = DlnaService(
+        discovery=MagicMock(),
+        client=MagicMock(),
+        playback=MagicMock(),
+    )
+    service.browse = AsyncMock(return_value=[item])
+    service.subscriptions.ensure = AsyncMock(
+        side_effect=OSError("SUBSCRIBE unavailable")
+    )
+    service.playback.play = AsyncMock(return_value=item)
+
+    result = await service.play(
+        device_id="device-1",
+        device_ip="192.0.2.20",
+        server_id="server-1",
+        parent_id="folder-1",
+        object_id="track-1",
+        callback_base_url="http://192.0.2.30:7777",
+    )
+
+    assert result == item
+    service.playback.play.assert_awaited_once()
+    service.subscriptions.ensure.assert_awaited_once()

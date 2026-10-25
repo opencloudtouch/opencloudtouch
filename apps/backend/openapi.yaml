@@ -106,8 +106,7 @@ paths:
             application/json:
               schema:
                 items:
-                  additionalProperties: true
-                  type: object
+                  $ref: '#/components/schemas/DlnaServerResponse'
                 type: array
                 title: Response Get Dlna Servers Api Dlna Servers Get
   /api/dlna/servers/{server_id}/browse:
@@ -137,58 +136,50 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response Browse Dlna Server Api Dlna Servers  Server Id  Browse
-                  Get
+                $ref: '#/components/schemas/DlnaBrowseResponse'
+        '404':
+          description: Device, server or object not found
+        '502':
+          description: DLNA server or renderer communication failed
         '422':
           description: Validation Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /api/dlna/servers/{server_id}/items/{object_id}/play/{device_id}:
+  /api/dlna/devices/{device_id}/play:
     post:
       tags:
       - dlna
       summary: Play Dlna Item
       description: Play a media server item directly on a SoundTouch device.
-      operationId: play_dlna_item_api_dlna_servers__server_id__items__object_id__play__device_id__post
+      operationId: play_dlna_item_api_dlna_devices__device_id__play_post
       parameters:
-      - name: server_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Server Id
-      - name: object_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Object Id
       - name: device_id
         in: path
         required: true
         schema:
           type: string
           title: Device Id
-      - name: parent_id
-        in: query
+      requestBody:
         required: true
-        schema:
-          type: string
-          title: Parent Id
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DlnaPlayRequest'
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response Play Dlna Item Api Dlna Servers  Server Id  Items  Object
-                  Id  Play  Device Id  Post
+                $ref: '#/components/schemas/DlnaItemResult'
+        '404':
+          description: Device, server or object not found
+        '409':
+          description: Playback cannot be performed in the current state
+        '502':
+          description: DLNA server or renderer communication failed
         '422':
           description: Validation Error
           content:
@@ -216,10 +207,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response Get Current Dlna Item Api Dlna Devices  Device Id  Current
-                  Get
+                $ref: '#/components/schemas/DlnaCurrentResponse'
         '422':
           description: Validation Error
           content:
@@ -246,9 +234,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response Pause Dlna Api Dlna Devices  Device Id  Pause Post
+                $ref: '#/components/schemas/DlnaStatusResponse'
+        '404':
+          description: Device, server or object not found
+        '409':
+          description: Playback cannot be performed in the current state
+        '502':
+          description: DLNA server or renderer communication failed
         '422':
           description: Validation Error
           content:
@@ -275,9 +267,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response Resume Dlna Api Dlna Devices  Device Id  Resume Post
+                $ref: '#/components/schemas/DlnaStatusResponse'
+        '404':
+          description: Device, server or object not found
+        '409':
+          description: Playback cannot be performed in the current state
+        '502':
+          description: DLNA server or renderer communication failed
         '422':
           description: Validation Error
           content:
@@ -304,9 +300,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response Next Dlna Api Dlna Devices  Device Id  Next Post
+                $ref: '#/components/schemas/DlnaItemResult'
+        '404':
+          description: Device, server or object not found
+        '409':
+          description: Playback cannot be performed in the current state
+        '502':
+          description: DLNA server or renderer communication failed
         '422':
           description: Validation Error
           content:
@@ -333,10 +333,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response Previous Dlna Api Dlna Devices  Device Id  Previous
-                  Post
+                $ref: '#/components/schemas/DlnaItemResult'
+        '404':
+          description: Device, server or object not found
+        '409':
+          description: Playback cannot be performed in the current state
+        '502':
+          description: DLNA server or renderer communication failed
         '422':
           description: Validation Error
           content:
@@ -3941,6 +3944,191 @@ components:
       type: object
       title: DiagnosticsRequest
       description: Request body for diagnostics download (no GitHub token needed).
+    DlnaBrowseResponse:
+      properties:
+        server_id:
+          type: string
+          title: Server Id
+        object_id:
+          type: string
+          title: Object Id
+        items:
+          items:
+            $ref: '#/components/schemas/DlnaItemResponse'
+          type: array
+          title: Items
+      type: object
+      required:
+      - server_id
+      - object_id
+      - items
+      title: DlnaBrowseResponse
+    DlnaCurrentResponse:
+      properties:
+        device_id:
+          type: string
+          title: Device Id
+        item:
+          anyOf:
+          - $ref: '#/components/schemas/DlnaItemResponse'
+          - type: 'null'
+      type: object
+      required:
+      - device_id
+      - item
+      title: DlnaCurrentResponse
+    DlnaItemResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        parent_id:
+          type: string
+          title: Parent Id
+        title:
+          type: string
+          title: Title
+        is_container:
+          type: boolean
+          title: Is Container
+        resource_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Resource Url
+        media_class:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Media Class
+        artist:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artist
+        album:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Album
+        genre:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Genre
+        creator:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Creator
+        album_art_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Album Art Url
+        duration:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Duration
+        size:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Size
+        bitrate:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Bitrate
+        sample_frequency:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Sample Frequency
+        audio_channels:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Audio Channels
+        protocol_info:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Protocol Info
+      type: object
+      required:
+      - id
+      - parent_id
+      - title
+      - is_container
+      title: DlnaItemResponse
+    DlnaItemResult:
+      properties:
+        device_id:
+          type: string
+          title: Device Id
+        item:
+          $ref: '#/components/schemas/DlnaItemResponse'
+      type: object
+      required:
+      - device_id
+      - item
+      title: DlnaItemResult
+    DlnaPlayRequest:
+      properties:
+        server_id:
+          type: string
+          title: Server Id
+        object_id:
+          type: string
+          title: Object Id
+        parent_id:
+          type: string
+          title: Parent Id
+      type: object
+      required:
+      - server_id
+      - object_id
+      - parent_id
+      title: DlnaPlayRequest
+    DlnaServerResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+        location:
+          type: string
+          title: Location
+        control_url:
+          type: string
+          title: Control Url
+      type: object
+      required:
+      - id
+      - name
+      - location
+      - control_url
+      title: DlnaServerResponse
+    DlnaStatusResponse:
+      properties:
+        device_id:
+          type: string
+          title: Device Id
+        status:
+          type: string
+          enum:
+          - paused
+          - playing
+          title: Status
+      type: object
+      required:
+      - device_id
+      - status
+      title: DlnaStatusResponse
     EnablePermanentSSHRequest:
       properties:
         device_id:

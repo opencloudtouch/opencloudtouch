@@ -2,8 +2,11 @@
 
 import socket
 from dataclasses import asdict
+from typing import Any, Literal
 from xml.etree.ElementTree import ParseError
 
+from defusedxml.common import DefusedXmlException
+from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 
 from opencloudtouch.dlna.client import DlnaBrowseError
@@ -13,6 +16,61 @@ from opencloudtouch.dlna.renderer import DlnaRendererError
 from opencloudtouch.core.dependencies import DlnaServiceDep
 
 router = APIRouter(prefix="/api/dlna", tags=["dlna"])
+
+
+class DlnaServerResponse(BaseModel):
+    id: str
+    name: str
+    location: str
+    control_url: str
+
+
+class DlnaItemResponse(BaseModel):
+    id: str
+    parent_id: str
+    title: str
+    is_container: bool
+    resource_url: str | None = None
+    media_class: str | None = None
+    artist: str | None = None
+    album: str | None = None
+    genre: str | None = None
+    creator: str | None = None
+    album_art_url: str | None = None
+    duration: str | None = None
+    size: int | None = None
+    bitrate: int | None = None
+    sample_frequency: int | None = None
+    audio_channels: int | None = None
+    protocol_info: str | None = None
+
+
+class DlnaBrowseResponse(BaseModel):
+    server_id: str
+    object_id: str
+    items: list[DlnaItemResponse]
+
+
+class DlnaItemResult(BaseModel):
+    device_id: str
+    item: DlnaItemResponse
+
+
+class DlnaCurrentResponse(BaseModel):
+    device_id: str
+    item: DlnaItemResponse | None
+
+
+class DlnaStatusResponse(BaseModel):
+    device_id: str
+    status: Literal["paused", "playing"]
+
+
+DLNA_ERRORS: dict[int | str, dict[str, Any]] = {
+    404: {"description": "Device, server or object not found"},
+    409: {"description": "Playback cannot be performed in the current state"},
+    502: {"description": "DLNA server or renderer communication failed"},
+}
 
 
 async def _get_device_ip(request: Request, device_id: str) -> str:
@@ -34,6 +92,11 @@ def _get_callback_base_url(request: Request, device_ip: str) -> str:
 
     The LAN interface is selected using the renderer address and the callback
     uses the actual OCT backend port.
+
+    Automatic track advancement requires a callback address reachable by the
+    SoundTouch device. This currently assumes host networking. In Docker bridge
+    mode, the detected container address and port may not be reachable from
+    the LAN. IPv6 callback address selection is not supported here.
     """
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         sock.connect((device_ip, 8091))
@@ -48,14 +111,18 @@ def _get_callback_base_url(request: Request, device_ip: str) -> str:
     return f"http://{callback_host}:{callback_port}"
 
 
-@router.get("/servers")
+@router.get("/servers", response_model=list[DlnaServerResponse])
 async def get_dlna_servers(service: DlnaServiceDep) -> list[dict]:
     """Discover DLNA media servers."""
     servers = await service.get_servers()
     return [asdict(server) for server in servers]
 
 
-@router.get("/servers/{server_id}/browse")
+@router.get(
+    "/servers/{server_id}/browse",
+    response_model=DlnaBrowseResponse,
+    responses={404: DLNA_ERRORS[404], 502: DLNA_ERRORS[502]},
+)
 async def browse_dlna_server(
     server_id: str,
     service: DlnaServiceDep,
@@ -85,14 +152,20 @@ async def browse_dlna_server(
     }
 
 
-@router.post("/servers/{server_id}/items/{object_id}/play/{device_id}")
+class DlnaPlayRequest(BaseModel):
+    server_id: str
+    object_id: str
+    parent_id: str
+
+
+@router.post(
+    "/devices/{device_id}/play", response_model=DlnaItemResult, responses=DLNA_ERRORS
+)
 async def play_dlna_item(
     request: Request,
-    server_id: str,
-    object_id: str,
     device_id: str,
+    payload: DlnaPlayRequest,
     service: DlnaServiceDep,
-    parent_id: str = Query(...),
 ) -> dict:
     """Play a media server item directly on a SoundTouch device."""
     device_ip = await _get_device_ip(request, device_id)
@@ -101,9 +174,9 @@ async def play_dlna_item(
         item = await service.play(
             device_id=device_id,
             device_ip=device_ip,
-            server_id=server_id,
-            parent_id=parent_id,
-            object_id=object_id,
+            server_id=payload.server_id,
+            parent_id=payload.parent_id,
+            object_id=payload.object_id,
             callback_base_url=_get_callback_base_url(request, device_ip),
         )
     except LookupError as exc:
@@ -131,11 +204,23 @@ async def dlna_avtransport_event(
     service: DlnaServiceDep,
 ) -> Response:
     """Receive AVTransport events from a SoundTouch renderer."""
-    body = (await request.body()).decode("utf-8", errors="replace")
+    received = bytearray()
+    async for chunk in request.stream():
+        received.extend(chunk)
+        if len(received) > 65536:
+            return Response(status_code=413)
+
+    subscription = service.subscriptions.get(device_id)
+    if subscription is None or request.headers.get("sid") != subscription.sid:
+        return Response(status_code=200)
+    if request.client is None or request.client.host != subscription.device_ip:
+        return Response(status_code=200)
+
+    body = received.decode("utf-8", errors="replace")
 
     try:
         event = parse_avtransport_event(body)
-    except ParseError:
+    except (ParseError, DefusedXmlException):
         # UPnP event callbacks must remain tolerant of malformed
         # notifications from the renderer.
         return Response(status_code=200)
@@ -149,7 +234,7 @@ async def dlna_avtransport_event(
     return Response(status_code=200)
 
 
-@router.get("/devices/{device_id}/current")
+@router.get("/devices/{device_id}/current", response_model=DlnaCurrentResponse)
 async def get_current_dlna_item(
     device_id: str,
     service: DlnaServiceDep,
@@ -163,7 +248,11 @@ async def get_current_dlna_item(
     }
 
 
-@router.post("/devices/{device_id}/pause")
+@router.post(
+    "/devices/{device_id}/pause",
+    response_model=DlnaStatusResponse,
+    responses=DLNA_ERRORS,
+)
 async def pause_dlna(
     request: Request,
     device_id: str,
@@ -182,7 +271,11 @@ async def pause_dlna(
     return {"device_id": device_id, "status": "paused"}
 
 
-@router.post("/devices/{device_id}/resume")
+@router.post(
+    "/devices/{device_id}/resume",
+    response_model=DlnaStatusResponse,
+    responses=DLNA_ERRORS,
+)
 async def resume_dlna(
     request: Request,
     device_id: str,
@@ -201,7 +294,9 @@ async def resume_dlna(
     return {"device_id": device_id, "status": "playing"}
 
 
-@router.post("/devices/{device_id}/next")
+@router.post(
+    "/devices/{device_id}/next", response_model=DlnaItemResult, responses=DLNA_ERRORS
+)
 async def next_dlna(
     request: Request,
     device_id: str,
@@ -223,7 +318,11 @@ async def next_dlna(
     }
 
 
-@router.post("/devices/{device_id}/previous")
+@router.post(
+    "/devices/{device_id}/previous",
+    response_model=DlnaItemResult,
+    responses=DLNA_ERRORS,
+)
 async def previous_dlna(
     request: Request,
     device_id: str,
