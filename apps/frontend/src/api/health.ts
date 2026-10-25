@@ -8,7 +8,7 @@ export interface HealthResponse {
   version: string;
   /** "official" for signed CI builds, "community" for self-built/local-dev. */
   build: "official" | "community";
-  /** Seconds since start; optional, the current /health payload does not send it. */
+  /** Seconds since the backend process started. Optional for older backends. */
   uptime?: number;
 }
 

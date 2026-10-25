@@ -4,6 +4,7 @@ Iteration 0: Basic setup with /health endpoint
 """
 
 import logging
+import time
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -439,6 +440,10 @@ app.include_router(event_router)  # SSE device event stream
 
 
 # Health endpoint
+# Monotonic reference taken at import time (= process start) for /health uptime.
+_PROCESS_START = time.monotonic()
+
+
 @app.get("/health", tags=["System"])
 async def health_check(request: Request):
     """Health check endpoint for Docker and monitoring.
@@ -454,6 +459,7 @@ async def health_check(request: Request):
             "service": "opencloudtouch",
             "version": __version__,
             "build": "official" if is_official_build() else "community",
+            "uptime": max(0, int(time.monotonic() - _PROCESS_START)),
             "config": {
                 "discovery_enabled": cfg.discovery_enabled,
             },

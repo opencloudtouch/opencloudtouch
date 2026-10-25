@@ -22,12 +22,15 @@ vi.mock("framer-motion", () => ({
 vi.mock("../../src/hooks/useHealth");
 
 const CSV_HEADER = "name,type,amount,monthlyAmount,firstSupportDate\n";
-const CSV_DATA =
-  CSV_HEADER + "Alice,monthly,100,20,2024-01-01\nBob,one-time,50,0,2024-02-01\n";
+const CSV_DATA = CSV_HEADER + "Alice,monthly,100,20,2024-01-01\nBob,one-time,50,0,2024-02-01\n";
 
-function setupHealthMock(version = "1.5.0", build: "official" | "community" = "official") {
+function setupHealthMock(
+  version = "1.5.0",
+  build: "official" | "community" = "official",
+  uptime?: number
+) {
   vi.mocked(useHealth).mockReturnValue({
-    data: { version, build },
+    data: { version, build, uptime },
     isLoading: false,
   } as ReturnType<typeof useHealth>);
 }
@@ -61,10 +64,43 @@ describe("About page", () => {
         <QueryWrapper>
           <About />
         </QueryWrapper>
-      </MemoryRouter>,
+      </MemoryRouter>
     );
 
     expect(screen.getByText("OpenCloudTouch")).toBeTruthy();
+  });
+
+  it("shows the start time derived from the health uptime", () => {
+    setupHealthMock("1.5.0", "community", 3600);
+    mockFetchWith({ ok: false });
+    const now = new Date("2026-06-01T12:00:00Z").getTime();
+    vi.spyOn(Date, "now").mockReturnValue(now);
+
+    render(
+      <MemoryRouter>
+        <QueryWrapper>
+          <About />
+        </QueryWrapper>
+      </MemoryRouter>
+    );
+
+    const expected = new Date(now - 3600 * 1000).toLocaleString();
+    expect(document.querySelector(".about-build-time")?.textContent).toContain(expected);
+  });
+
+  it("hides the build time when the backend sends no uptime", () => {
+    setupHealthMock("1.5.0", "community");
+    mockFetchWith({ ok: false });
+
+    render(
+      <MemoryRouter>
+        <QueryWrapper>
+          <About />
+        </QueryWrapper>
+      </MemoryRouter>
+    );
+
+    expect(document.querySelector(".about-build-time")).toBeNull();
   });
 
   it("renders version badge when health data available", () => {
@@ -76,7 +112,7 @@ describe("About page", () => {
         <QueryWrapper>
           <About />
         </QueryWrapper>
-      </MemoryRouter>,
+      </MemoryRouter>
     );
 
     expect(screen.getByText("v1.5.0")).toBeTruthy();
@@ -87,9 +123,12 @@ describe("About page", () => {
     mockFetchWith({ ok: true, text: () => Promise.resolve(CSV_DATA) });
 
     render(
-      <MemoryRouter>`n          <QueryWrapper>`n            <About />
+      <MemoryRouter>
+        `n{" "}
+        <QueryWrapper>
+          `n <About />
         </QueryWrapper>
-      </MemoryRouter>,
+      </MemoryRouter>
     );
 
     await waitFor(() => {
@@ -103,9 +142,12 @@ describe("About page", () => {
     mockFetchWith({ ok: true, text: () => Promise.resolve(CSV_HEADER) });
 
     const { container } = render(
-      <MemoryRouter>`n          <QueryWrapper>`n            <About />
+      <MemoryRouter>
+        `n{" "}
+        <QueryWrapper>
+          `n <About />
         </QueryWrapper>
-      </MemoryRouter>,
+      </MemoryRouter>
     );
 
     await waitFor(() => {
@@ -126,9 +168,12 @@ describe("About page", () => {
     });
 
     render(
-      <MemoryRouter>`n          <QueryWrapper>`n            <About />
+      <MemoryRouter>
+        `n{" "}
+        <QueryWrapper>
+          `n <About />
         </QueryWrapper>
-      </MemoryRouter>,
+      </MemoryRouter>
     );
 
     await waitFor(() => {
@@ -157,7 +202,7 @@ describe("About page", () => {
         <QueryWrapper>
           <About />
         </QueryWrapper>
-      </MemoryRouter>,
+      </MemoryRouter>
     );
 
     await vi.advanceTimersByTimeAsync(3100);
@@ -174,9 +219,12 @@ describe("About page", () => {
     mockFetchWith({ ok: false });
 
     render(
-      <MemoryRouter>`n          <QueryWrapper>`n            <About />
+      <MemoryRouter>
+        `n{" "}
+        <QueryWrapper>
+          `n <About />
         </QueryWrapper>
-      </MemoryRouter>,
+      </MemoryRouter>
     );
 
     const links = screen.getAllByRole("link");
@@ -191,9 +239,12 @@ describe("About page", () => {
     mockFetchWith({ ok: true, text: () => Promise.resolve(bomCsv) });
 
     render(
-      <MemoryRouter>`n          <QueryWrapper>`n            <About />
+      <MemoryRouter>
+        `n{" "}
+        <QueryWrapper>
+          `n <About />
         </QueryWrapper>
-      </MemoryRouter>,
+      </MemoryRouter>
     );
 
     await waitFor(() => {
@@ -206,9 +257,12 @@ describe("About page", () => {
     mockFetchWith({ ok: true, text: () => Promise.resolve(CSV_DATA) });
 
     const { container } = render(
-      <MemoryRouter>`n          <QueryWrapper>`n            <About />
+      <MemoryRouter>
+        `n{" "}
+        <QueryWrapper>
+          `n <About />
         </QueryWrapper>
-      </MemoryRouter>,
+      </MemoryRouter>
     );
 
     await waitFor(() => {
@@ -257,9 +311,12 @@ describe("About page", () => {
     mockFetchWith({ ok: true, text: () => Promise.resolve(realCsv) });
 
     const { container } = render(
-      <MemoryRouter>`n          <QueryWrapper>`n            <About />
+      <MemoryRouter>
+        `n{" "}
+        <QueryWrapper>
+          `n <About />
         </QueryWrapper>
-      </MemoryRouter>,
+      </MemoryRouter>
     );
 
     const expectedOrder = [

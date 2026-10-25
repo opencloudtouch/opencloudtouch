@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frontend: the wire-shape interface `ApiError` is now `ApiErrorBody`.
 - `ErrorDetail` and `ErrorItem` are part of the generated OpenAPI schema.
 
+### Fixed
+- `/health` now returns `uptime` (seconds since the backend process started); the "Built on" line on the About page expected it but never received it.
+
 ---
 
 ## [1.4.2] - 2026-05-29
