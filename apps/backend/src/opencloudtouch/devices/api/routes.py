@@ -296,7 +296,7 @@ def _power_saving_item(setting) -> PowerSavingItem | None:
     return None if setting is None else PowerSavingItem(enabled=setting.enabled)
 
 
-@router.get("/{device_id}/settings", response_model=DeviceSettingsResponse)
+@router.get("/{device_id}/settings")
 async def get_device_settings(
     device_id: str,
     device_service: Annotated[DeviceService, Depends(get_device_service)],
@@ -322,7 +322,7 @@ async def get_device_settings(
     )
 
 
-@router.put("/{device_id}/settings/language", response_model=LanguageWriteResponse)
+@router.put("/{device_id}/settings/language")
 async def set_device_language(
     device_id: str,
     body: Annotated[SetLanguageRequest, Body()],
@@ -341,7 +341,7 @@ async def set_device_language(
     )
 
 
-@router.put("/{device_id}/settings/clock", response_model=ClockWriteResponse)
+@router.put("/{device_id}/settings/clock")
 async def set_device_clock(
     device_id: str,
     body: Annotated[SetClockRequest, Body()],
@@ -360,9 +360,7 @@ async def set_device_clock(
     return ClockWriteResponse(applied=result.applied, value=_clock_item(result.value))
 
 
-@router.put(
-    "/{device_id}/settings/power-saving", response_model=PowerSavingWriteResponse
-)
+@router.put("/{device_id}/settings/power-saving")
 async def set_device_power_saving(
     device_id: str,
     body: Annotated[SetPowerSavingRequest, Body()],

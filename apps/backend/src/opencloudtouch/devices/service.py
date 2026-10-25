@@ -343,7 +343,7 @@ class DeviceService:
     # --- Device settings (language, clock, power saving) -------------------
 
     async def _read_setting(
-        self, device_id: str, name: str, getter: Callable[[], Awaitable[Any]]
+        self, name: str, getter: Callable[[], Awaitable[Any]]
     ) -> Any:
         """Read one setting; None if it is unavailable or unreadable.
 
@@ -359,12 +359,8 @@ class DeviceService:
         except (
             Exception
         ) as e:  # noqa: BLE001 - one broken setting must not fail the rest
-            logger.warning(
-                "Setting %s unreadable on device %s (%s)",
-                name,
-                device_id,
-                type(e).__name__,
-            )
+            # The device id comes from the request path: keep it out of the log line
+            logger.warning("Setting %s unreadable (%s)", name, type(e).__name__)
             return None
 
     async def get_device_settings(self, device_id: str) -> DeviceSettings:
@@ -375,9 +371,9 @@ class DeviceService:
         """
         async with self._device_client(device_id) as client:
             results = await asyncio.gather(
-                self._read_setting(device_id, "language", client.get_language),
-                self._read_setting(device_id, "clock", client.get_clock),
-                self._read_setting(device_id, "power_saving", client.get_power_saving),
+                self._read_setting("language", client.get_language),
+                self._read_setting("clock", client.get_clock),
+                self._read_setting("power_saving", client.get_power_saving),
                 return_exceptions=True,
             )
         failures = [r for r in results if isinstance(r, DeviceConnectionError)]
@@ -399,7 +395,7 @@ class DeviceService:
         lock = self._setting_locks.setdefault(device_id, asyncio.Lock())
         async with lock, self._device_client(device_id) as client:
             getter = getattr(client, f"get_{name}")
-            before = await self._read_setting(device_id, name, getter)
+            before = await self._read_setting(name, getter)
             if before is None:
                 raise_coded(
                     409,
@@ -408,7 +404,7 @@ class DeviceService:
                 )
             await write(client, before)
             try:
-                after = await self._read_setting(device_id, name, getter)
+                after = await self._read_setting(name, getter)
             except DeviceConnectionError:
                 after = None
             return SettingWriteResult(
