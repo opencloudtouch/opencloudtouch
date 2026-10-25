@@ -43,6 +43,10 @@ class DlnaService:
         servers = await self.discovery.discover()
         now = self._clock()
         self._last_discovery_empty = not servers
+        # Expired unknown IDs must not accumulate across refreshes.
+        for server_id, expires_at in list(self._missing_ids.items()):
+            if now >= expires_at:
+                del self._missing_ids[server_id]
         for server in servers:
             self._servers[server.id] = server
             self._last_seen[server.id] = now
@@ -74,7 +78,7 @@ class DlnaService:
                 and self._clock() >= missing_until
             ):
                 await self._discover_servers()
-                # Only negative-cache a miss after a nonempty discovery.
+                # Briefly cache misses after a refresh, including empty scans.
                 if (
                     server_id not in self._servers
                     and self._cache_expires_at > self._clock()
