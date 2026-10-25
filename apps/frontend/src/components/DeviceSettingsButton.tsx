@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -32,6 +32,15 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
   const savingRef = useRef(false);
   const pendingRef = useRef<number | null>(null);
   const requestGenerationRef = useRef(0);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pointerActiveRef = useRef(false);
+
+  const clearSaveTimer = () => {
+    if (saveTimerRef.current !== null) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -46,9 +55,9 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
         const bass = flags.settings?.bass;
         if (!active) return;
         if (!flags.features?.bass_control || !bass?.available) return;
-        setCapabilities(bass);
         const state = await getBass(deviceId);
         if (!active) return;
+        setCapabilities(bass);
         valueRef.current = state.target;
         confirmedRef.current = state.target;
         setValue(state.target);
@@ -64,12 +73,18 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
 
     return () => {
       active = false;
+      clearSaveTimer();
+      pointerActiveRef.current = false;
       requestGenerationRef.current += 1;
       pendingRef.current = null;
+      savingRef.current = false;
+      setSaving(false);
     };
   }, [open, deviceId, t]);
 
   const close = () => {
+    clearSaveTimer();
+    pointerActiveRef.current = false;
     // Pending responses must not update a closed (or subsequently reopened) dialog.
     requestGenerationRef.current += 1;
     pendingRef.current = null;
@@ -120,7 +135,17 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
     }
   };
 
-  const onDialogKeyDown = (e: KeyboardEvent<HTMLElement>) => {
+  const scheduleSave = () => {
+    clearSaveTimer();
+    saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = null;
+      if (!pointerActiveRef.current) {
+        void save(valueRef.current);
+      }
+    }, 400);
+  };
+
+  const onDialogKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
@@ -139,8 +164,14 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
       !element.hasAttribute("disabled")
     );
     if (!focusable.length) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
+    const first = focusable.at(0);
+    const last = focusable.at(-1);
+    if (!first || !last) return;
+    if (!dialog.contains(document.activeElement)) {
+      e.preventDefault();
+      (e.shiftKey ? last : first).focus();
+      return;
+    }
     if (e.shiftKey && document.activeElement === first) {
       e.preventDefault();
       last.focus();
@@ -149,6 +180,17 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
       first.focus();
     }
   };
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      onDialogKeyDown(event);
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  });
 
   return (
     <>
@@ -190,7 +232,6 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
               role="dialog"
               aria-modal="true"
               aria-label={t("deviceSettings.title")}
-              onKeyDown={onDialogKeyDown}
               data-test="device-settings-dialog"
             >
               <header className="device-settings-header">
@@ -223,9 +264,22 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
                     step={1}
                     value={value}
                     aria-busy={saving}
-                    onChange={(e) => changeValue(Number(e.currentTarget.value))}
-                    onPointerUp={() => void save(valueRef.current)}
+                    onChange={(e) => {
+                      changeValue(Number(e.currentTarget.value));
+                      if (!pointerActiveRef.current) scheduleSave();
+                    }}
+                    onPointerDown={() => {
+                      pointerActiveRef.current = true;
+                      clearSaveTimer();
+                    }}
+                    onPointerUp={() => {
+                      pointerActiveRef.current = false;
+                      clearSaveTimer();
+                      void save(valueRef.current);
+                    }}
                     onPointerCancel={() => {
+                      pointerActiveRef.current = false;
+                      clearSaveTimer();
                       changeValue(confirmedRef.current);
                     }}
                     onKeyUp={(e) => {
@@ -241,8 +295,13 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
                           "PageDown",
                         ].includes(e.key)
                       ) {
+                        clearSaveTimer();
                         void save(Number(e.currentTarget.value));
                       }
+                    }}
+                    onBlur={() => {
+                      clearSaveTimer();
+                      if (!pointerActiveRef.current) void save(valueRef.current);
                     }}
                     data-test="bass-slider"
                   />
@@ -255,6 +314,7 @@ export default function DeviceSettingsButton({ deviceId, deviceName }: DeviceSet
                     className="device-settings-reset"
                     disabled={value === capabilities.default && confirmed === capabilities.default}
                     onClick={() => {
+                      clearSaveTimer();
                       changeValue(capabilities.default);
                       void save(capabilities.default);
                     }}

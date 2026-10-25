@@ -105,11 +105,43 @@ describe("DeviceSettingsButton", () => {
     await waitFor(() => expect(api.setBass).toHaveBeenNthCalledWith(2, "D1", -7));
   });
 
+  it("allows saving on a new device while the previous write is pending", async () => {
+    api.setBass.mockImplementationOnce(() => new Promise<void>(() => {}));
+
+    const { rerender } = render(
+      <DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "deviceSettings.open" }));
+
+    const firstSlider = await screen.findByRole("slider");
+    fireEvent.change(firstSlider, { target: { value: "-5" } });
+    fireEvent.pointerUp(firstSlider);
+
+    await waitFor(() =>
+      expect(api.setBass).toHaveBeenCalledExactlyOnceWith("D1", -5)
+    );
+
+    rerender(<DeviceSettingsButton deviceId="D2" deviceName="Living Room" />);
+
+    const secondSlider = await screen.findByRole("slider");
+    await waitFor(() => expect(api.getBass).toHaveBeenCalledWith("D2"));
+
+    fireEvent.change(secondSlider, { target: { value: "-7" } });
+    fireEvent.pointerUp(secondSlider);
+
+    await waitFor(() =>
+      expect(api.setBass).toHaveBeenNthCalledWith(2, "D2", -7)
+    );
+  });
+
   it("shows a load error when reading bass fails", async () => {
     api.getBass.mockRejectedValue(new Error("read failed"));
     render(<DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />);
     fireEvent.click(screen.getByRole("button", { name: "deviceSettings.open" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("deviceSettings.loadFailed");
+    expect(screen.queryByRole("slider")).not.toBeInTheDocument();
+    expect(api.setBass).not.toHaveBeenCalled();
   });
 
   it("closes on Escape while a write remains pending", async () => {
@@ -144,35 +176,39 @@ describe("DeviceSettingsButton", () => {
     expect(reset).toHaveFocus();
   });
 
-  it("ignores a late save response after unmounting", async () => {
-    let rejectSave!: (error: Error) => void;
+  it("closes with Escape when focus is outside the dialog", async () => {
+    render(<DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />);
 
-    api.setBass.mockImplementationOnce(
-      () => new Promise<void>((_, reject) => {
-        rejectSave = reject;
-      })
-    );
-
-    const { unmount } = render(
-      <DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "deviceSettings.open" }));
-
-    const slider = await screen.findByRole("slider");
-    fireEvent.change(slider, { target: { value: "-5" } });
-    fireEvent.pointerUp(slider);
-
-    await waitFor(() => expect(api.setBass).toHaveBeenCalledTimes(1));
-
-    unmount();
-
-    await act(async () => {
-      rejectSave(new Error("late failure"));
+    const trigger = screen.getByRole("button", {
+      name: "deviceSettings.open",
     });
 
+    fireEvent.click(trigger);
+    await screen.findByRole("dialog");
+
+    trigger.focus();
+    fireEvent.keyDown(document, { key: "Escape" });
+
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("returns Tab focus to the dialog when focus is outside", async () => {
+    render(<DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />);
+
+    const trigger = screen.getByRole("button", {
+      name: "deviceSettings.open",
+    });
+
+    fireEvent.click(trigger);
+    await screen.findByRole("dialog");
+
+    trigger.focus();
+    fireEvent.keyDown(document, { key: "Tab" });
+
+    expect(
+      screen.getByRole("button", { name: "deviceSettings.close" })
+    ).toHaveFocus();
   });
 
   it("shows the offline message when bass loading fails for an offline device", async () => {
@@ -186,6 +222,60 @@ describe("DeviceSettingsButton", () => {
       "deviceSettings.offline"
     );
     expect(api.offline).toHaveBeenCalled();
+  });
+
+  it("saves changes without pointer or keyboard release", async () => {
+    render(<DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />);
+    fireEvent.click(screen.getByRole("button", { name: "deviceSettings.open" }));
+
+    const slider = await screen.findByRole("slider");
+
+    fireEvent.change(slider, { target: { value: "-6" } });
+
+    expect(slider).toHaveValue("-6");
+    expect(api.setBass).not.toHaveBeenCalled();
+
+    await waitFor(
+      () => expect(api.setBass).toHaveBeenCalledExactlyOnceWith("D1", -6),
+      { timeout: 1500 }
+    );
+  });
+
+  it("does not save a debounced change after closing", async () => {
+    render(<DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />);
+    fireEvent.click(screen.getByRole("button", { name: "deviceSettings.open" }));
+
+    const slider = await screen.findByRole("slider");
+    fireEvent.change(slider, { target: { value: "-6" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "deviceSettings.close" }));
+
+    await new Promise((resolve) => setTimeout(resolve, 550));
+
+    expect(api.setBass).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("saves pointer changes only on release without a duplicate write", async () => {
+    render(<DeviceSettingsButton deviceId="D1" deviceName="Kitchen" />);
+    fireEvent.click(screen.getByRole("button", { name: "deviceSettings.open" }));
+
+    const slider = await screen.findByRole("slider");
+
+    fireEvent.pointerDown(slider);
+    fireEvent.change(slider, { target: { value: "-6" } });
+
+    await new Promise((resolve) => setTimeout(resolve, 550));
+    expect(api.setBass).not.toHaveBeenCalled();
+
+    fireEvent.pointerUp(slider);
+
+    await waitFor(() =>
+      expect(api.setBass).toHaveBeenCalledExactlyOnceWith("D1", -6)
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 550));
+    expect(api.setBass).toHaveBeenCalledTimes(1);
   });
 
   it("cancels a pointer gesture without saving bass", async () => {
