@@ -1,8 +1,24 @@
-import pytest
-from fastapi import HTTPException
+from datetime import UTC, datetime
 
-from opencloudtouch.system import routes
-from opencloudtouch.system import update_service
+import pytest
+from fastapi import FastAPI, HTTPException
+from fastapi.testclient import TestClient
+
+from opencloudtouch.system import routes, update_service
+
+
+def update_request(version="1.5.9"):
+    return routes.UpdateRequest(target_version=version)
+
+
+def test_update_requires_json_confirmation_body():
+    app = FastAPI()
+    app.include_router(routes.router)
+    client = TestClient(app)
+
+    response = client.post("/api/system/update")
+
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio
@@ -107,7 +123,7 @@ async def test_update_uses_target_release(
         fake_status,
     )
 
-    result = await routes.update()
+    result = await routes.update(update_request())
 
     assert result == {
         "accepted": True,
@@ -126,11 +142,14 @@ async def test_update_returns_409_when_active(
     monkeypatch.setattr(
         routes,
         "get_update_status",
-        lambda: {"phase": "restarting"},
+        lambda: {
+            "phase": "restarting",
+            "updated_at": datetime.now(UTC).isoformat(),
+        },
     )
 
     with pytest.raises(HTTPException) as exc:
-        await routes.update()
+        await routes.update(update_request())
 
     assert exc.value.status_code == 409
 
@@ -160,7 +179,7 @@ async def test_update_returns_409_when_none_available(
     )
 
     with pytest.raises(HTTPException) as exc:
-        await routes.update()
+        await routes.update(update_request("1.5.8"))
 
     assert exc.value.status_code == 409
 
@@ -196,7 +215,7 @@ async def test_update_docker_failure_returns_503(monkeypatch):
     )
 
     with pytest.raises(HTTPException) as exc:
-        await routes.update()
+        await routes.update(update_request())
 
     assert exc.value.status_code == 503
     assert statuses[-1][0] == "failed"
@@ -239,6 +258,62 @@ async def test_update_returns_404_without_container(monkeypatch):
     monkeypatch.setattr(routes, "get_oct_container", no_container)
 
     with pytest.raises(HTTPException) as exc:
-        await routes.update()
+        await routes.update(update_request())
 
     assert exc.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_update_allows_stale_active_status(monkeypatch):
+    monkeypatch.setattr(
+        routes,
+        "get_update_status",
+        lambda: {"phase": "pulling", "updated_at": "2020-01-01T00:00:00Z"},
+    )
+
+    async def check():
+        return {
+            "current": "1.5.8",
+            "latest": "1.5.9",
+            "update_available": True,
+            "release_url": "https://example.test",
+        }
+
+    async def container():
+        return {"Id": "oct123"}
+
+    async def pull(image, callback):
+        return None
+
+    async def helper(container_id, image):
+        return "helper123"
+
+    monkeypatch.setattr(routes, "check_for_update", check)
+    monkeypatch.setattr(routes, "get_oct_container", container)
+    monkeypatch.setattr(routes, "pull_oct_image", pull)
+    monkeypatch.setattr(routes, "launch_update_helper", helper)
+    monkeypatch.setattr(routes, "set_update_status", lambda *args, **kwargs: None)
+
+    result = await routes.update(update_request())
+
+    assert result["accepted"] is True
+
+
+@pytest.mark.asyncio
+async def test_update_rejects_target_version_mismatch(monkeypatch):
+    monkeypatch.setattr(routes, "get_update_status", lambda: {"phase": "idle"})
+
+    async def check():
+        return {
+            "current": "1.5.8",
+            "latest": "1.5.9",
+            "update_available": True,
+            "release_url": "https://example.test",
+        }
+
+    monkeypatch.setattr(routes, "check_for_update", check)
+
+    with pytest.raises(HTTPException) as exc:
+        await routes.update(update_request("1.5.10"))
+
+    assert exc.value.status_code == 409

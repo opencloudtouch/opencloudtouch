@@ -1,14 +1,15 @@
 import asyncio
 import json
-import time
+import os
 import re
+import time
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import httpx
 
 from opencloudtouch import __version__, is_official_build
-
 
 DOCKER_SOCKET = "/var/run/docker.sock"
 DOCKER_BASE_URL = "http://docker"
@@ -44,6 +45,26 @@ def target_image_for_version(version: str) -> str:
     normalized = version.removeprefix("v")
     parse_version(normalized)
     return f"{OFFICIAL_IMAGE_REPOSITORY}:{normalized}"
+
+
+def get_self_update_capability() -> dict[str, Any]:
+    socket_path = Path(DOCKER_SOCKET)
+    if not socket_path.exists():
+        return {
+            "self_update_enabled": False,
+            "self_update_reason": "Docker socket is not mounted",
+        }
+
+    if not os.access(socket_path, os.R_OK | os.W_OK):
+        return {
+            "self_update_enabled": False,
+            "self_update_reason": "Docker socket is not accessible",
+        }
+
+    return {
+        "self_update_enabled": True,
+        "self_update_reason": None,
+    }
 
 
 async def get_latest_release() -> dict[str, str]:
@@ -122,6 +143,7 @@ async def check_for_update() -> dict[str, Any]:
         "latest": latest,
         "update_available": is_official_build() and newer,
         "release_url": release["release_url"],
+        **get_self_update_capability(),
     }
 
 
@@ -144,6 +166,13 @@ async def get_docker_client():
 
 async def get_oct_container():
     async with await get_docker_client() as client:
+        for container_id in _current_container_ids():
+            response = await client.get(f"/containers/{container_id}/json")
+            if response.status_code == 404:
+                continue
+            response.raise_for_status()
+            return response.json()
+
         response = await client.get("/containers/json")
         response.raise_for_status()
 
@@ -152,6 +181,24 @@ async def get_oct_container():
                 return container
 
     return None
+
+
+def _current_container_ids() -> list[str]:
+    candidates: list[str] = []
+    hostname = os.getenv("HOSTNAME", "").strip()
+    if re.fullmatch(r"[0-9a-f]{12,64}", hostname):
+        candidates.append(hostname)
+
+    for path in ("/proc/self/cgroup", "/proc/1/cpuset"):
+        try:
+            content = Path(path).read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for match in re.findall(r"[0-9a-f]{12,64}", content):
+            if match not in candidates:
+                candidates.append(match)
+
+    return candidates
 
 
 async def get_container_inspect(container_id: str):
@@ -184,7 +231,7 @@ async def pull_oct_image(
     last_progress = 0
     last_status = None
 
-    async with await get_docker_client() as client:
+    async with await get_docker_client() as client:  # noqa: SIM117
         async with client.stream(
             "POST",
             "/images/create",

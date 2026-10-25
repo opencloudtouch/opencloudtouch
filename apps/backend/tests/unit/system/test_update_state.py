@@ -1,4 +1,5 @@
 import json
+from datetime import UTC, datetime, timedelta
 
 from opencloudtouch.system import update_state
 
@@ -54,6 +55,7 @@ def test_set_and_get_update_status(tmp_path, monkeypatch):
         "target_version": "1.5.9",
         "current_version": "1.5.8",
         "container_id": "abc123",
+        "updated_at": json.loads(status_path.read_text())["updated_at"],
     }
 
 
@@ -114,3 +116,20 @@ def test_set_update_status_writes_valid_json(
     assert data["progress_pct"] == 25
     assert data["target_version"] == "1.5.9"
     assert data["current_version"] == "1.5.8"
+    assert data["updated_at"].endswith("Z")
+
+
+def test_active_status_freshness_uses_timestamp(monkeypatch):
+    now = datetime(2026, 10, 25, 12, 0, tzinfo=UTC)
+    fresh = {
+        "phase": "pulling",
+        "updated_at": (now - timedelta(minutes=5)).isoformat(),
+    }
+    stale = {
+        "phase": "pulling",
+        "updated_at": (now - timedelta(hours=1)).isoformat(),
+    }
+
+    assert update_state.is_active_status_fresh(fresh, now=now)
+    assert not update_state.is_active_status_fresh(stale, now=now)
+    assert not update_state.is_active_status_fresh({"phase": "pulling"}, now=now)

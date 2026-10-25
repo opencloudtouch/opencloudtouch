@@ -16,13 +16,16 @@
 | Problem | Solution |
 |---------|----------|
 | Docker socket or permission error | Verify that `/var/run/docker.sock` is mounted into the OpenCloudTouch container. |
-| Update returns `409` | An update is already running or no newer official release is available. Check `/api/system/update-status` and `/api/system/check-update`. |
+| Update returns `409` | An update is already running, no newer official release is available, or the submitted `target_version` does not exactly match the latest release. Check `/api/system/update-status` and `/api/system/check-update`. |
 | Status is `rolled_back` | The new image failed to start or become healthy. The previous immutable image was restored automatically. Check the OpenCloudTouch update status and host Docker logs for the recorded failure. |
 | Status is `failed` | The update or recovery process could not complete. Check the Docker and OpenCloudTouch logs before retrying. |
 | Community/self-built image is not updated automatically | Expected. Automatic replacement with an official image is disabled for community builds. |
 
 The existing `/data` mount is preserved during container replacement and
 rollback. Do not delete Docker volumes while diagnosing an update problem.
+Active states older than 30 minutes are treated as stale automatically. A
+running replacement without a Docker healthcheck is accepted after a short
+grace period; stopped or explicitly unhealthy containers still trigger rollback.
 
 
 ## Understanding `docker stats` memory numbers

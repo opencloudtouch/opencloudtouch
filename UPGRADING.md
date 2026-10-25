@@ -24,11 +24,17 @@ self-update.
 ### Backend endpoints
 
 - `GET /api/system/check-update`
-- `POST /api/system/update`
+- `POST /api/system/update` with JSON confirmation
 - `GET /api/system/update-status`
 
 The status endpoint reports the current phase, progress percentage, message,
 target version, and current version.
+
+`GET /api/system/check-update` also returns `self_update_enabled` and
+`self_update_reason`. A future frontend can use these typed fields to show or
+disable its update controls without probing Docker itself. Enabling or disabling
+self-update remains an explicit deployment choice: add or remove the socket
+mount, then recreate the OCT container.
 
 Possible phases include:
 
@@ -40,14 +46,22 @@ Possible phases include:
 - `rolled_back`
 - `failed`
 
-Only one update can run at a time.
+Only one update can run at a time. In-progress status records older than 30
+minutes are treated as stale so an interrupted pull or dead helper cannot block
+future updates indefinitely.
 
-Self-update is not triggered automatically. The backend provides the update
-mechanism; user-facing confirmation and the final protection of the update
-action remain part of the frontend/API integration.
+Self-update is not triggered automatically. The update request must confirm the
+exact version returned by `GET /api/system/check-update`:
 
-The current backend expects the OpenCloudTouch container to be named
-`opencloudtouch` and to use a persistent `/data` mount.
+```bash
+curl -X POST http://localhost:7777/api/system/update \
+  -H 'Content-Type: application/json' \
+  -d '{"target_version":"1.6.1"}'
+```
+
+The backend identifies its own container by container ID, with the conventional
+`opencloudtouch` name as a fallback. A persistent `/data` mount is mandatory;
+the helper validates and reconstructs mounts before stopping the old container.
 
 ### Docker socket requirement
 
@@ -59,8 +73,17 @@ volumes:
 ```
 
 > **Security:** Docker socket access provides extensive control over the
-> Docker host. Users who do not want to grant this access can omit the mount
-> and continue using the manual upgrade procedures below.
+> Docker host. It is commented out in the shipped Compose files and must be
+> enabled explicitly. The entrypoint grants UID 1000 access through a socket
+> ACL; that ACL remains on the socket inode after the container stops. Users who
+> do not want to grant this access should continue using the manual procedures.
+
+The replacement preserves `OCT_*`, `TZ`, and common proxy environment values,
+plus the existing network, restart, logging, port, shared-memory, label, and
+mount configuration. Other custom runtime settings should be reviewed after an
+update. A later `docker compose up` still applies the image tag in the Compose
+file; if that tag is pinned to an older release, Compose can downgrade the
+container again.
 
 ---
 

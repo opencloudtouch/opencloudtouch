@@ -110,8 +110,9 @@ Self-update requires access to the Docker daemon:
 /var/run/docker.sock:/var/run/docker.sock
 ```
 
-The provided Docker Compose and Raspberry Pi appliance configurations include
-this mount. For a manual `docker run` installation, add:
+The provided Docker Compose and Raspberry Pi appliance configurations keep this
+mount commented out by default. Opt in by uncommenting it. For a manual
+`docker run` installation, add:
 
 ```bash
 -v /var/run/docker.sock:/var/run/docker.sock
@@ -119,8 +120,15 @@ this mount. For a manual `docker run` installation, add:
 
 > **Security:** Access to the Docker socket gives the OpenCloudTouch process
 > extensive control over the Docker host. If you do not want OpenCloudTouch
-> to perform container updates itself, omit this mount and continue to use
-> the existing manual upgrade procedure.
+> to perform container updates itself, leave this mount disabled and continue
+> to use the existing manual upgrade procedure. The entrypoint grants UID 1000
+> access through a socket ACL; that inode ACL remains until the socket is
+> recreated or the ACL is removed on the host.
+
+To opt out later, remove/comment the mount and recreate the container. The
+update-check API reports whether self-update is enabled, so a future frontend
+can present the deployment choice without being able to grant itself host
+access.
 
 
 ### Docker Tags

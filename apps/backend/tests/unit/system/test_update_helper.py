@@ -49,12 +49,28 @@ def old_inspect():
         "State": {
             "Running": True,
         },
+        "Mounts": [
+            {
+                "Type": "volume",
+                "Name": "oct-data",
+                "Destination": "/data",
+                "RW": True,
+            },
+            {
+                "Type": "bind",
+                "Source": "/var/run/docker.sock",
+                "Destination": "/var/run/docker.sock",
+                "RW": True,
+            },
+        ],
         "Config": {
             "Image": ("ghcr.io/opencloudtouch/opencloudtouch:1.5.8"),
             "Env": [
                 "OCT_PORT=7777",
                 "OCT_VERSION=1.5.8",
                 "OCT_BUILD_SIGNATURE=test",
+                "TZ=Europe/Berlin",
+                "HTTP_PROXY=http://proxy.test:8080",
                 "PATH=/usr/local/bin",
             ],
             "Cmd": None,
@@ -102,6 +118,9 @@ def test_build_container_config_filters_metadata():
     assert not any(value.startswith("OCT_VERSION=") for value in config["Env"])
 
     assert not any(value.startswith("OCT_BUILD_SIGNATURE=") for value in config["Env"])
+    assert "TZ=Europe/Berlin" in config["Env"]
+    assert "HTTP_PROXY=http://proxy.test:8080" in config["Env"]
+    assert "PATH=/usr/local/bin" not in config["Env"]
 
     assert "Entrypoint" not in config
     assert "Cmd" not in config
@@ -110,6 +129,21 @@ def test_build_container_config_filters_metadata():
 
     assert config["HostConfig"]["PortBindings"] == {"7777/tcp": [{"HostPort": "7777"}]}
     assert config["HostConfig"]["PublishAllPorts"] is False
+    assert config["HostConfig"]["Mounts"] == [
+        {
+            "Type": "volume",
+            "Target": "/data",
+            "ReadOnly": False,
+            "Source": "oct-data",
+        },
+        {
+            "Type": "bind",
+            "Target": "/var/run/docker.sock",
+            "ReadOnly": False,
+            "Source": "/var/run/docker.sock",
+        },
+    ]
+    assert "Binds" not in config["HostConfig"]
 
     assert config["Labels"] == {
         "com.docker.compose.project": "oct",
@@ -361,6 +395,83 @@ async def test_wait_for_health_times_out(monkeypatch):
 
     with pytest.raises(RuntimeError, match="Timed out"):
         await update_helper.wait_for_health(client, "abc", attempts=1)
+
+
+@pytest.mark.asyncio
+async def test_wait_for_health_accepts_running_without_healthcheck(monkeypatch):
+    async def no_sleep(_):
+        pass
+
+    monkeypatch.setattr(update_helper.asyncio, "sleep", no_sleep)
+    client = HealthClient([{"Running": True}, {"Running": True}])
+
+    await update_helper.wait_for_health(
+        client,
+        "abc",
+        attempts=2,
+        no_healthcheck_grace_attempts=2,
+    )
+
+
+def test_build_container_config_uses_mounts_when_binds_are_none():
+    inspect = old_inspect()
+    inspect["HostConfig"]["Binds"] = None
+
+    config = update_helper.build_container_config(inspect)
+
+    assert config["HostConfig"]["Mounts"][0]["Target"] == "/data"
+
+
+def test_build_container_config_requires_data_mount_before_removal():
+    inspect = old_inspect()
+    inspect["HostConfig"]["Binds"] = None
+    inspect["Mounts"] = [
+        {
+            "Type": "bind",
+            "Source": "/var/run/docker.sock",
+            "Destination": "/var/run/docker.sock",
+            "RW": True,
+        }
+    ]
+
+    with pytest.raises(RuntimeError, match="no /data mount"):
+        update_helper.build_container_config(inspect)
+
+
+@pytest.mark.asyncio
+async def test_helper_aborts_before_removal_without_data_mount(tmp_path, monkeypatch):
+    inspect = old_inspect()
+    inspect["HostConfig"]["Binds"] = None
+    inspect["Mounts"] = []
+
+    client = FakeClient(inspect)
+    monkeypatch.setattr(
+        update_helper.httpx,
+        "AsyncClient",
+        lambda *args, **kwargs: client,
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["update_helper", "old123", "example:1.5.9"],
+    )
+    monkeypatch.setattr(
+        update_helper,
+        "STATUS_PATH",
+        tmp_path / "update-status.json",
+    )
+
+    removed = []
+
+    async def remove(*args, **kwargs):
+        removed.append((args, kwargs))
+
+    monkeypatch.setattr(update_helper, "remove_container", remove)
+
+    with pytest.raises(RuntimeError, match="no /data mount"):
+        await update_helper.main()
+
+    assert removed == []
 
 
 def test_helper_read_status_handles_invalid_json(tmp_path, monkeypatch):
@@ -688,20 +799,16 @@ def test_set_status_preserves_oct_ownership(tmp_path, monkeypatch):
 
     path = tmp_path / "update-status.json"
     monkeypatch.setattr(update_helper, "STATUS_PATH", path)
-    monkeypatch.setattr(update_helper.os, "geteuid", lambda: 0)
+    monkeypatch.setattr(update_helper, "_get_effective_uid", lambda: 0)
 
-    def fake_getpwnam(name):
-        assert name == "oct"
-        return type("User", (), {"pw_uid": 1000, "pw_gid": 1000})()
-
-    monkeypatch.setattr(update_helper.pwd, "getpwnam", fake_getpwnam)
+    monkeypatch.setattr(update_helper, "_oct_user_ids", lambda: (1000, 1000))
 
     chown_calls = []
 
     def fake_chown(file_path, uid, gid):
         chown_calls.append((file_path, uid, gid))
 
-    monkeypatch.setattr(update_helper.os, "chown", fake_chown)
+    monkeypatch.setattr(update_helper, "_chown", fake_chown)
 
     update_helper.set_status(
         "ready",

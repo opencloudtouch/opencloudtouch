@@ -2773,6 +2773,65 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/system/check-update:
+    get:
+      tags:
+      - System
+      summary: Check Update
+      operationId: check_update_api_system_check_update_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateCheckResponse'
+        '503':
+          description: Release check unavailable
+  /api/system/update-status:
+    get:
+      tags:
+      - System
+      summary: Update Status
+      operationId: update_status_api_system_update_status_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateStatusResponse'
+  /api/system/update:
+    post:
+      tags:
+      - System
+      summary: Update
+      operationId: update_api_system_update_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRequest'
+        required: true
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateAcceptedResponse'
+        '404':
+          description: OpenCloudTouch container not found
+        '409':
+          description: Update conflict or confirmation mismatch
+        '503':
+          description: Update service unavailable
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/zones:
     get:
       tags:
@@ -3252,42 +3311,6 @@ paths:
       summary: Websocket Health
       description: WebSocket connection health for all managed devices.
       operationId: websocket_health_api_health_websockets_get
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-  /api/system/check-update:
-    get:
-      tags:
-      - System
-      summary: Check Update
-      operationId: check_update_api_system_check_update_get
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-  /api/system/update:
-    post:
-      tags:
-      - System
-      summary: Update
-      operationId: update_api_system_update_post
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-  /api/system/update-status:
-    get:
-      tags:
-      - System
-      summary: Update Status
-      operationId: update_status_api_system_update_status_get
       responses:
         '200':
           description: Successful Response
@@ -4465,6 +4488,110 @@ components:
       - ips
       title: SetManualIPsRequest
       description: Request model for setting all manual IPs at once.
+    UpdateAcceptedResponse:
+      properties:
+        accepted:
+          type: boolean
+          title: Accepted
+        target_version:
+          type: string
+          title: Target Version
+      type: object
+      required:
+      - accepted
+      - target_version
+      title: UpdateAcceptedResponse
+    UpdateCheckResponse:
+      properties:
+        current:
+          type: string
+          title: Current
+        latest:
+          type: string
+          title: Latest
+        update_available:
+          type: boolean
+          title: Update Available
+        release_url:
+          type: string
+          title: Release Url
+        self_update_enabled:
+          type: boolean
+          title: Self Update Enabled
+        self_update_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Self Update Reason
+      type: object
+      required:
+      - current
+      - latest
+      - update_available
+      - release_url
+      - self_update_enabled
+      - self_update_reason
+      title: UpdateCheckResponse
+    UpdateRequest:
+      properties:
+        target_version:
+          type: string
+          title: Target Version
+      type: object
+      required:
+      - target_version
+      title: UpdateRequest
+    UpdateStatusResponse:
+      properties:
+        phase:
+          type: string
+          title: Phase
+        progress_pct:
+          type: integer
+          title: Progress Pct
+        message:
+          type: string
+          title: Message
+        target_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Version
+        current_version:
+          type: string
+          title: Current Version
+        updated_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated At
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+        rollback_error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Rollback Error
+        container_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Id
+        image:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Image
+      type: object
+      required:
+      - phase
+      - progress_pct
+      - message
+      - current_version
+      title: UpdateStatusResponse
     ValidateHostnameRequest:
       properties:
         hostname:

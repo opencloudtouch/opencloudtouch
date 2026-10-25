@@ -152,6 +152,13 @@ def test_target_image_uses_release_tag():
     )
 
 
+def test_current_container_ids_prefers_docker_hostname(monkeypatch):
+    monkeypatch.setenv("HOSTNAME", "abc123def456")
+    monkeypatch.setattr(update_service.Path, "read_text", lambda *args, **kwargs: "")
+
+    assert update_service._current_container_ids() == ["abc123def456"]
+
+
 def test_split_image_reference():
     assert update_service.split_image_reference(
         "ghcr.io/opencloudtouch/opencloudtouch:1.5.9"
@@ -187,6 +194,11 @@ async def test_check_for_update_official(
     )
     monkeypatch.setattr(
         update_service,
+        "get_self_update_capability",
+        lambda: {"self_update_enabled": True, "self_update_reason": None},
+    )
+    monkeypatch.setattr(
+        update_service,
         "__version__",
         "1.5.8",
     )
@@ -203,6 +215,45 @@ async def test_check_for_update_official(
         "latest": "1.5.9",
         "update_available": True,
         "release_url": ("https://example.test/v1.5.9"),
+        "self_update_enabled": True,
+        "self_update_reason": None,
+    }
+
+
+def test_self_update_capability_reports_missing_socket(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        update_service,
+        "DOCKER_SOCKET",
+        str(tmp_path / "missing-docker.sock"),
+    )
+
+    assert update_service.get_self_update_capability() == {
+        "self_update_enabled": False,
+        "self_update_reason": "Docker socket is not mounted",
+    }
+
+
+def test_self_update_capability_reports_accessible_socket(tmp_path, monkeypatch):
+    socket_path = tmp_path / "docker.sock"
+    socket_path.touch()
+    monkeypatch.setattr(update_service, "DOCKER_SOCKET", str(socket_path))
+    monkeypatch.setattr(update_service.os, "access", lambda *args: True)
+
+    assert update_service.get_self_update_capability() == {
+        "self_update_enabled": True,
+        "self_update_reason": None,
+    }
+
+
+def test_self_update_capability_reports_inaccessible_socket(tmp_path, monkeypatch):
+    socket_path = tmp_path / "docker.sock"
+    socket_path.touch()
+    monkeypatch.setattr(update_service, "DOCKER_SOCKET", str(socket_path))
+    monkeypatch.setattr(update_service.os, "access", lambda *args: False)
+
+    assert update_service.get_self_update_capability() == {
+        "self_update_enabled": False,
+        "self_update_reason": "Docker socket is not accessible",
     }
 
 
@@ -280,6 +331,7 @@ async def test_get_oct_container(monkeypatch):
         "get_docker_client",
         fake_get_docker_client,
     )
+    monkeypatch.setattr(update_service, "_current_container_ids", list)
 
     container = await update_service.get_oct_container()
 
@@ -461,8 +513,37 @@ async def test_get_oct_container_returns_none(monkeypatch):
         "get_docker_client",
         fake_client,
     )
+    monkeypatch.setattr(update_service, "_current_container_ids", list)
 
     assert await update_service.get_oct_container() is None
+
+
+@pytest.mark.asyncio
+async def test_get_oct_container_uses_own_container_id(monkeypatch):
+    expected = {"Id": "abc123def456", "Name": "/renamed-oct"}
+
+    class Client:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def get(self, path):
+            assert path == "/containers/abc123def456/json"
+            return FakeResponse(expected)
+
+    async def fake_client():
+        return Client()
+
+    monkeypatch.setattr(update_service, "get_docker_client", fake_client)
+    monkeypatch.setattr(
+        update_service,
+        "_current_container_ids",
+        lambda: ["abc123def456"],
+    )
+
+    assert await update_service.get_oct_container() == expected
 
 
 @pytest.mark.asyncio
