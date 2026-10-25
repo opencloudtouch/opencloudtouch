@@ -445,7 +445,7 @@ _PROCESS_START = time.monotonic()
 
 
 # Health endpoint
-@app.get("/health", tags=["System"], response_model=HealthResponse)
+@app.get("/health", tags=["System"])
 async def health_check() -> HealthResponse:
     """Health check endpoint for Docker and monitoring.
 
