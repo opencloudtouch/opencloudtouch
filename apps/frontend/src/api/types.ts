@@ -213,6 +213,48 @@ function toFieldErrors(errors: unknown): FieldError[] {
   return result;
 }
 
+/** Read the response body once as text; unreadable bodies count as empty. */
+async function readBodyText(response: Response): Promise<string> {
+  try {
+    return await response.text();
+  } catch {
+    return "";
+  }
+}
+
+function parseJson(text: string): { ok: true; value: unknown } | { ok: false } {
+  try {
+    return { ok: true, value: JSON.parse(text) };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/** `detail` when it is a non-empty string, else the title of a valid ApiErrorBody. */
+function messageFromBody(body: Record<string, unknown>): string | null {
+  if (typeof body.detail === "string" && body.detail) return body.detail;
+  if (isApiError(body) && typeof body.title === "string") return body.title;
+  return null;
+}
+
+function stringParams(value: unknown): Record<string, string> | undefined {
+  if (!isPlainObject(value)) return undefined;
+  return Object.values(value).every((v) => typeof v === "string")
+    ? (value as Record<string, string>)
+    : undefined;
+}
+
+function apiErrorInitFromBody(status: number, body: Record<string, unknown>): ApiErrorInit {
+  return {
+    status,
+    code: typeof body.code === "string" ? body.code : undefined,
+    params: stringParams(body.params),
+    extra: isPlainObject(body.extra) ? body.extra : undefined,
+    fieldErrors: toFieldErrors(body.errors),
+    body: isApiError(body) ? body : undefined,
+  };
+}
+
 /**
  * Throw an {@link ApiError} if the response is not OK.
  * Centralizes the `if (!response.ok)` pattern used across all API clients.
@@ -221,56 +263,20 @@ function toFieldErrors(errors: unknown): FieldError[] {
  */
 export async function throwIfNotOk(response: Response, context: string): Promise<void> {
   if (response.ok) return;
-  let text = "";
-  try {
-    text = await response.text();
-  } catch {
-    // body unreadable — fall back to context below
-  }
-  let parsed: unknown;
-  let isJson = false;
-  try {
-    parsed = JSON.parse(text);
-    isJson = true;
-  } catch {
-    // not JSON
-  }
+  const text = await readBodyText(response);
+  const parsed = parseJson(text);
+  const fallback = `${context}: ${response.statusText}`;
 
-  let message: string | null = null;
-  let body: ApiErrorBody | undefined;
-  let code: string | undefined;
-  let params: Record<string, string> | undefined;
-  let extra: Record<string, unknown> | undefined;
-  let fieldErrors: FieldError[] = [];
-
-  if (isJson) {
-    if (isPlainObject(parsed)) {
-      message =
-        (typeof parsed.detail === "string" && parsed.detail) ||
-        (isApiError(parsed) && typeof parsed.title === "string" ? parsed.title : null);
-      if (isApiError(parsed)) body = parsed;
-      if (typeof parsed.code === "string") code = parsed.code;
-      if (
-        isPlainObject(parsed.params) &&
-        Object.values(parsed.params).every((v) => typeof v === "string")
-      ) {
-        params = parsed.params as Record<string, string>;
-      }
-      if (isPlainObject(parsed.extra)) extra = parsed.extra;
-      fieldErrors = toFieldErrors(parsed.errors);
-    }
-  } else {
-    message = text || null;
+  if (!parsed.ok) {
+    throw new ApiError(text || fallback, { status: response.status });
   }
-
-  throw new ApiError(message || `${context}: ${response.statusText}`, {
-    status: response.status,
-    code,
-    params,
-    extra,
-    fieldErrors,
-    body,
-  });
+  if (!isPlainObject(parsed.value)) {
+    throw new ApiError(fallback, { status: response.status });
+  }
+  throw new ApiError(
+    messageFromBody(parsed.value) || fallback,
+    apiErrorInitFromBody(response.status, parsed.value)
+  );
 }
 
 /**
