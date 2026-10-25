@@ -375,9 +375,15 @@ async def test_concurrent_unknown_ids_share_empty_discovery_backoff():
 
 @pytest.mark.asyncio
 async def test_expired_missing_ids_are_pruned_on_refresh():
+    known = DlnaServer(
+        id="known",
+        name="NAS",
+        location="http://192.0.2.10/device.xml",
+        control_url="http://192.0.2.10/control",
+    )
     clock = [100.0]
     discovery = AsyncMock()
-    discovery.discover.return_value = []
+    discovery.discover.return_value = [known]
     service = DlnaService(
         discovery=discovery,
         client=AsyncMock(),
