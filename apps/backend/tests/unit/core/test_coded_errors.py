@@ -370,8 +370,10 @@ def test_every_handler_keeps_old_keys_and_adds_new(exc_cls):
     assert body["instance"] == "/api/x"
     assert {"title", "detail", "errors"} <= set(body)
     assert body["code"] == code
-    assert "params" in body and body["params"] is None
-    assert "extra" in body and body["extra"] is None
+    assert "params" in body
+    assert body["params"] is None
+    assert "extra" in body
+    assert body["extra"] is None
 
 
 def test_request_validation_handler_present_and_additive():

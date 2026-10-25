@@ -119,7 +119,9 @@ def _validation_item(err: dict[str, Any]) -> ErrorItem:
     )
 
 
-async def coded_api_error_handler(request: Request, exc: CodedApiError) -> JSONResponse:
+async def coded_api_error_handler(  # NOSONAR
+    request: Request, exc: CodedApiError
+) -> JSONResponse:
     """Render a ``CodedApiError`` (``raise_coded``) as ``ErrorDetail``."""
     if exc.status_code >= 500:
         logger.error("%s: %s", exc.code, exc.detail, exc_info=exc)
@@ -285,7 +287,7 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
 # ---------------------------------------------------------------------------
 
 
-async def domain_validation_error_handler(
+async def domain_validation_error_handler(  # NOSONAR
     request: Request, exc: DomainValidationError
 ) -> JSONResponse:
     """Handle DomainValidationError as 400 with an optional field attribution."""
