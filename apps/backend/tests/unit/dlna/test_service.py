@@ -371,3 +371,29 @@ async def test_concurrent_unknown_ids_share_empty_discovery_backoff():
     with pytest.raises(LookupError):
         await service.browse("unknown-d")
     assert discovery.discover.await_count == 3
+
+
+@pytest.mark.asyncio
+async def test_expired_missing_ids_are_pruned_on_refresh():
+    clock = [100.0]
+    discovery = AsyncMock()
+    discovery.discover.return_value = []
+    service = DlnaService(
+        discovery=discovery,
+        client=AsyncMock(),
+        clock=lambda: clock[0],
+        missing_ttl=3.0,
+    )
+
+    for server_id in ("unknown-a", "unknown-b"):
+        with pytest.raises(LookupError):
+            await service.browse(server_id)
+    assert set(service._missing_ids) == {"unknown-a", "unknown-b"}
+
+    clock[0] = 103.1
+    await service.get_servers()
+    assert service._missing_ids == {}
+
+    with pytest.raises(LookupError):
+        await service.browse("unknown-c")
+    assert set(service._missing_ids) == {"unknown-c"}
