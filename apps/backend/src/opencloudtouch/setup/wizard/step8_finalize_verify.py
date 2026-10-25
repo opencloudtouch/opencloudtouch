@@ -154,6 +154,10 @@ class Step8FinalizeVerifyMixin:
             return {"success": False, "error": _ERR_DEVICE_REPO_UNAVAILABLE}
 
         try:
+            # Do not write to the speaker if its discovered DB row was removed.
+            if await self._device_repo.get_by_device_id(device_id) is None:
+                raise ValueError(f"Device not found in database: {device_id}")
+
             # 1. UUID handling with collision detection
             uuid_result = await ensure_account_uuid_unique(
                 device_ip=device_ip,

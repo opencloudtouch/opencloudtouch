@@ -123,7 +123,9 @@ async def test_info_connection_failure_never_writes_uuid():
     ("incoming_id", "owner_id"),
     [("AABBCCDDEEFF", "BBBBCCDDEEFF"), ("BBBBCCDDEEFF", "AABBCCDDEEFF")],
 )
-async def test_existing_uuid_collision_changes_only_incoming_device(incoming_id, owner_id):
+async def test_existing_uuid_collision_changes_only_incoming_device(
+    incoming_id, owner_id
+):
     from unittest.mock import MagicMock
 
     owner = MagicMock()
@@ -157,3 +159,30 @@ async def test_existing_uuid_collision_changes_only_incoming_device(incoming_id,
     assert result.uuid_source == "collision_fallback"
     writer.assert_awaited_once()
     repo.update_marge_account_uuid.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("invalid_mac", ["", "AABBCC", "AABBCCDDEEFG", "not-a-mac"])
+async def test_invalid_mac_does_not_trigger_ssh_write(invalid_mac):
+    """Reject invalid device IDs instead of assigning a made-up UUID."""
+    repo = AsyncMock()
+    repo.get_by_account_uuid.return_value = None
+
+    with (
+        patch(
+            "opencloudtouch.setup.account_pairing_service.check_marge_account_uuid",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
+        patch(
+            "opencloudtouch.setup.account_pairing_service.set_account_uuid_via_ssh",
+            new_callable=AsyncMock,
+        ) as writer,
+    ):
+        result = await ensure_account_uuid_unique(
+            "192.168.1.100", invalid_mac, repo, ssh=AsyncMock()
+        )
+
+    assert result.success is False
+    assert "MAC address" in result.error
+    writer.assert_not_awaited()

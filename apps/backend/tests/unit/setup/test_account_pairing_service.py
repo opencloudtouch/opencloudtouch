@@ -289,7 +289,10 @@ class TestEnsureAccountUuid:
             "opencloudtouch.setup.account_pairing_service.set_account_uuid_via_ssh",
             new_callable=AsyncMock,
         ) as mock_set:
-            result = await ensure_account_uuid("192.168.1.100", device_id="AABBCCDDEEFF")
+            result = await ensure_account_uuid(
+                "192.168.1.100",
+                device_id="AABBCCDDEEFF",
+            )
 
             assert result.success is True
             assert result.had_uuid is True
@@ -316,7 +319,11 @@ class TestEnsureAccountUuid:
                 success=True, had_uuid=False, uuid="9876543", message="Set via SSH"
             )
 
-            result = await ensure_account_uuid("192.168.1.100", ssh=ssh, device_id="AABBCCDDEEFF")
+            result = await ensure_account_uuid(
+                "192.168.1.100",
+                ssh=ssh,
+                device_id="AABBCCDDEEFF",
+            )
 
             assert result.success is True
             assert result.uuid == "9876543"
@@ -347,7 +354,10 @@ class TestEnsureAccountUuid:
                 success=True, had_uuid=False, uuid="9876543", message="Set via SSH"
             )
 
-            result = await ensure_account_uuid("192.168.1.100", device_id="AABBCCDDEEFF")
+            result = await ensure_account_uuid(
+                "192.168.1.100",
+                device_id="AABBCCDDEEFF",
+            )
 
             assert result.success is True
             mock_set.assert_called_once()
@@ -372,7 +382,11 @@ class TestEnsureAccountUuid:
                 success=False, had_uuid=False, error="SSH write failed"
             )
 
-            result = await ensure_account_uuid("192.168.1.100", ssh=ssh, device_id="AABBCCDDEEFF")
+            result = await ensure_account_uuid(
+                "192.168.1.100",
+                ssh=ssh,
+                device_id="AABBCCDDEEFF",
+            )
 
             assert result.success is False
 
