@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings: a failed log download shows a translated reason instead of failing silently (#527)
 - Frontend: the wire-shape interface `ApiError` is now `ApiErrorBody`.
 - `ErrorDetail` and `ErrorItem` are part of the generated OpenAPI schema.
+- `/health` has a typed response model (`HealthResponse`) in the OpenAPI schema; the frontend type is generated from it.
+- The SoundTouch WebSocket client uses the `websockets.asyncio` API and ignores `HTTP(S)_PROXY`/`ALL_PROXY` for LAN devices; minimum `websockets` is now 15.0.
 
 ### Fixed
 - Layout overflow and overlap on the presets, local control, multi-room and settings pages, the swiper, the navigation and the empty state

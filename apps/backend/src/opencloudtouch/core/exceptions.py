@@ -26,9 +26,16 @@ from typing import Any, NoReturn
 
 from pydantic import BaseModel
 
+from opencloudtouch.core.error_codes import validate_code
+
+# Fixed text returned as ``detail`` for every 5xx error that must not expose internals.
+GENERIC_SERVER_ERROR_DETAIL = "An unexpected error occurred. Please try again later."
+
 
 class OpenCloudTouchError(Exception):
     """Base exception for all OpenCloudTouch errors."""
+
+    pass
 
 
 # ============================================================================
@@ -55,6 +62,8 @@ class DeviceConnectionError(OpenCloudTouchError):
 class DiscoveryError(OpenCloudTouchError):
     """Raised when device discovery fails."""
 
+    pass
+
 
 # ============================================================================
 # Domain Validation Exceptions (replaces bare ValueError in services)
@@ -69,7 +78,7 @@ class DomainValidationError(OpenCloudTouchError):
 
     def __init__(self, message: str, field: str | None = None, code: str | None = None):
         self.field = field
-        self.code = code
+        self.code = validate_code(code) if code is not None else None
         super().__init__(message)
 
 
@@ -94,7 +103,7 @@ class CodedApiError(OpenCloudTouchError):
         title: str | None = None,
     ):
         self.status_code = status_code
-        self.code = code
+        self.code = validate_code(code)
         self.detail = detail
         self.field = field
         self.params = params
@@ -127,13 +136,19 @@ def raise_coded(
 class RadioError(OpenCloudTouchError):
     """Base exception for radio provider errors (RadioBrowser, TuneIn)."""
 
+    pass
+
 
 class RadioTimeoutError(RadioError):
     """Raised when radio provider API times out. Maps to 504."""
 
+    pass
+
 
 class RadioConnectionError(RadioError):
     """Raised when connection to radio provider fails. Maps to 503."""
+
+    pass
 
 
 # ============================================================================
@@ -200,6 +215,8 @@ class BackupScanError(OpenCloudTouchError):
 class ExternalServiceError(OpenCloudTouchError):
     """Raised when an external service (GitHub, etc.) fails. Maps to 502."""
 
+    pass
+
 
 # ============================================================================
 # Standardized Error Response Models (RFC 7807-inspired)
@@ -242,8 +259,12 @@ class ErrorDetail(BaseModel):
             "type": "not_found",
             "title": "Device Not Found",
             "status": 404,
-            "detail": "Device with ID 'abc123' does not exist",
-            "instance": "/api/devices/abc123"
+            "detail": "Device not found: abc123",
+            "instance": "/api/devices/abc123",
+            "errors": null,
+            "code": "device_not_found",
+            "params": null,
+            "extra": null
         }
     """
 

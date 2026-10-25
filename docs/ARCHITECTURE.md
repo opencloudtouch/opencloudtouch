@@ -118,7 +118,11 @@ Browser ← event: completed ←────── FastAPI
 
 Every `/api/*` error is an `ErrorDetail` JSON object (`core/exceptions.py`). The keys
 `code`, `params` and `extra` are always present (`null` when unset); all other keys are
-unchanged from the original RFC 7807-inspired format.
+unchanged from the original RFC 7807-inspired format. Only a few errors carry a `code`
+today (`device_not_found`, `device_unreachable`, `not_found`, `validation_error`,
+`internal_error`); radio, SSH, external-service, restore and most route-level errors are
+already `ErrorDetail` but have `code: null` until their domain migration (see the
+error-code rollout specs).
 
 ```json
 {
@@ -152,7 +156,13 @@ unchanged from the original RFC 7807-inspired format.
   `config.url`). Clients map field errors with `path`.
 - Status conventions: `DomainValidationError` → 400, request-body validation → 422,
   unknown resource → 404, state conflict → 409, upstream failures → 502/503/504.
-  Codes for 5xx errors keep a generic `detail`.
+  `raise_coded` enforces this: for status ≥ 500 the given text is only logged and the
+  response carries the generic text ("An unexpected error occurred. Please try again
+  later."); clients show the translated `code` instead.
+
+**Code format.** `raise_coded` and `DomainValidationError(code=…)` reject codes that do not match
+`^[a-z][a-z0-9_]*$` with a `ValueError`. `extra` is passed through `jsonable_encoder`; a value
+that cannot be serialised is dropped (with a warning) instead of breaking the error response.
 
 **Raising coded errors.** Use `raise_coded(status, code, detail, *, field=None, params=None,
 extra=None, title=None)` from any route or service. Pydantic validators signal a code with
