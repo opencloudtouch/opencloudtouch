@@ -86,6 +86,7 @@ describe("Devices API Client", () => {
         ok: false,
         statusText: "Internal Server Error",
         json: () => Promise.resolve({ detail: "Database error" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "Database error" })),
       });
 
       // getErrorMessage returns fallback for non-ApiError objects
@@ -143,6 +144,7 @@ describe("Devices API Client", () => {
         ok: false,
         statusText: "Service Unavailable",
         json: () => Promise.resolve({ detail: "Discovery timeout" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "Discovery timeout" })),
       });
 
       // getErrorMessage returns fallback for non-ApiError objects
@@ -252,6 +254,7 @@ describe("Devices API Client", () => {
         ok: false,
         statusText: "Internal Server Error",
         json: () => Promise.resolve({ detail: "Device offline" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "Device offline" })),
       });
 
       // getErrorMessage returns fallback for non-ApiError objects

@@ -30,6 +30,7 @@ describe("Settings API Client", () => {
         ok: false,
         statusText: "Internal Server Error",
         json: () => Promise.resolve({ detail: "DB error" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "DB error" })),
       });
 
       await expect(getManualIPs()).rejects.toThrow("DB error");
@@ -70,6 +71,7 @@ describe("Settings API Client", () => {
         ok: false,
         statusText: "Not Found",
         json: () => Promise.resolve({ detail: "IP not found" }),
+        text: () => Promise.resolve(JSON.stringify({ detail: "IP not found" })),
       });
 
       await expect(deleteManualIP("192.168.1.99")).rejects.toThrow("IP not found");

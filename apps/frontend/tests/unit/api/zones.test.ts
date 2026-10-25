@@ -110,6 +110,7 @@ describe("Zones API Client", () => {
       ok: false,
       statusText: "Conflict",
       json: () => Promise.resolve({ detail: "Zone already exists" }),
+      text: () => Promise.resolve(JSON.stringify({ detail: "Zone already exists" })),
     });
 
     await expect(createZone("ST10-001", ["ST30-002"])).rejects.toThrow("Zone already exists");
