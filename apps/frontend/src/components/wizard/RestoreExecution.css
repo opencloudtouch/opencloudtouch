@@ -1,0 +1,123 @@
+/* RestoreExecution — step-by-step restore progress.
+   Status banners mirror Step3PowerCycle's .power-cycle-status boxes
+   (pending/checking/success/error); per-step rows mirror Step6's bordered
+   .hosts-domain-item cards, with a status-colored left accent reusing the
+   existing (previously unstyled) --completed/--failed/--skipped hooks. */
+
+.restore-execution__progress,
+.restore-execution__error {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+}
+
+.restore-execution__progress {
+  background: rgba(33, 150, 243, 0.1);
+  border: 2px solid #42a5f5;
+  color: var(--text-primary);
+}
+
+.restore-execution__error {
+  background: rgba(244, 67, 54, 0.1);
+  border: 2px solid #ef5350;
+  color: var(--text-primary);
+}
+
+.restore-execution__progress p,
+.restore-execution__error p {
+  margin: 0;
+}
+
+.restore-execution__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.restore-execution__step {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.restore-execution__step--completed {
+  border-left-color: var(--color-success, #66bb6a);
+}
+
+.restore-execution__step--failed {
+  border-left-color: #ef5350;
+  background: rgba(244, 67, 54, 0.05);
+}
+
+.restore-execution__step--skipped {
+  opacity: 0.7;
+}
+
+.restore-execution__step--pending,
+.restore-execution__step--in_progress {
+  border-left-color: #42a5f5;
+}
+
+.restore-execution__icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.restore-execution__label {
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 0 0 auto;
+  min-width: 140px;
+}
+
+.restore-execution__message {
+  flex: 1;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.restore-execution__error-detail {
+  flex-basis: 100%;
+  color: #ef5350;
+  font-size: 0.85rem;
+  padding-left: 2rem;
+}
+
+.restore-execution__duration {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.restore-execution__success {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  background: rgba(76, 175, 80, 0.1);
+  border: 2px solid #66bb6a;
+  border-radius: 6px;
+  color: var(--text-primary);
+}
+
+.restore-execution__success p {
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .restore-execution__label {
+    min-width: 0;
+    flex-basis: 100%;
+  }
+}

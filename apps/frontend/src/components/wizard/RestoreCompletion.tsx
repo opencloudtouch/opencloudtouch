@@ -3,6 +3,7 @@
  */
 import { useTranslation } from "react-i18next";
 import WizardStep from "./WizardStep";
+import "./RestoreCompletion.css";
 import type { RestoreStepResponse } from "../../api/restore";
 
 interface RestoreCompletionProps {

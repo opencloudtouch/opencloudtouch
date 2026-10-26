@@ -1,0 +1,67 @@
+/* RestoreCompletion — summary of restored items.
+   Mirrors Step9Completion's .summary-list (checkmark + text rows); the
+   failed section additionally gets the red accent used by .hosts-error. */
+
+.restore-completion {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.restore-completion > h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 1.5rem;
+  text-align: center;
+}
+
+.restore-completion__section {
+  margin-bottom: 1.5rem;
+}
+
+.restore-completion__section h5 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin: 0 0 0.5rem;
+}
+
+.restore-completion__section ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.restore-completion__section li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.restore-completion__section--failed li {
+  border-color: #ef5350;
+  background: rgba(244, 67, 54, 0.05);
+  color: var(--text-primary);
+}
+
+.restore-completion__error {
+  color: #ef5350;
+}
+
+.restore-completion__note {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-top: 1.5rem;
+}

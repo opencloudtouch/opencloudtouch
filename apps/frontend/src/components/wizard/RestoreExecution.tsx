@@ -3,6 +3,7 @@
  */
 import { useTranslation } from "react-i18next";
 import WizardStep from "./WizardStep";
+import "./RestoreExecution.css";
 import { useExecuteRestore } from "../../hooks/useRestore";
 import type {
   RestoreWizardRequest,
@@ -84,12 +85,14 @@ export default function RestoreExecution({
     >
       {isPending && (
         <div className="restore-execution__progress">
+          <span aria-hidden="true">🔄</span>
           <p>{t("restore.execution.running", "Restore in progress...")}</p>
         </div>
       )}
 
       {error && (
         <div className="restore-execution__error">
+          <span aria-hidden="true">❌</span>
           <p>
             {t("restore.execution.error", "Restore failed: {{message}}", {
               message: (error as Error).message,
@@ -120,6 +123,7 @@ export default function RestoreExecution({
           ))}
           {data.success && (
             <div className="restore-execution__success">
+              <span aria-hidden="true">✅</span>
               <p>
                 {t(
                   "restore.execution.success",
