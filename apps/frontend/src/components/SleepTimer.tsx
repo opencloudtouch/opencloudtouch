@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { EndAction } from "../api/sleepTimer";
 import {
   useCancelSleepTimer,
   useSleepTimerStatus,
   useStartSleepTimer,
 } from "../hooks/useSleepTimer";
+import { useSleepTimerCountdown } from "../hooks/useSleepTimerCountdown";
 import { getApiErrorMessage, getFieldErrors } from "../utils/apiErrors";
 import {
   DURATION_PRESETS,
@@ -14,11 +16,11 @@ import {
   MIN_DURATION,
   clampFade,
   derivePhase,
+  type Phase,
   formatCountdown,
   isFadeAllowed,
   loadDefaults,
   parseDuration,
-  remainingMs,
   saveDefaults,
 } from "../utils/sleepTimer";
 import { Skeleton } from "./LoadingSkeleton";
@@ -30,6 +32,14 @@ interface SleepTimerProps {
   deviceId: string;
   /** The speaker is offline: a new timer cannot be started, a running one stays */
   deviceOffline: boolean;
+}
+
+function phaseText(t: TFunction, phase: Phase, endAction: EndAction): string {
+  if (phase === "ending") return t("player.sleepTimer.ending");
+  const endsWith = t("player.sleepTimer.endsWith", {
+    action: t(`player.sleepTimer.endAction.${endAction}`),
+  });
+  return phase === "fading" ? `${t("player.sleepTimer.fading")} ${endsWith}` : endsWith;
 }
 
 export default function SleepTimer({ deviceId, deviceOffline }: Readonly<SleepTimerProps>) {
@@ -50,48 +60,11 @@ export default function SleepTimer({ deviceId, deviceOffline }: Readonly<SleepTi
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState("");
   const [announcement, setAnnouncement] = useState("");
-  const [ended, setEnded] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
 
   const status = data?.status;
   const offsetMs = data?.offsetMs ?? 0;
-  const active = Boolean(status?.active && status.ends_at);
-  const endsAt = status?.ends_at ?? null;
-
-  // One-second tick for the countdown, only while a timer runs
-  useEffect(() => {
-    if (!active) return;
-    setNow(Date.now());
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [active, endsAt]);
-
-  // "Timer is no longer active" once, but only when it ran down (not when cancelled)
-  const previousRef = useRef<{ endsAt: string; offsetMs: number } | null>(null);
-  useEffect(() => {
-    if (!data) return;
-    if (data.status.active && data.status.ends_at) {
-      previousRef.current = { endsAt: data.status.ends_at, offsetMs: data.offsetMs };
-      setEnded(false);
-      return;
-    }
-    const last = previousRef.current;
-    previousRef.current = null;
-    if (last && remainingMs(last.endsAt, last.offsetMs, Date.now()) <= 0) {
-      setEnded(true);
-      setAnnouncement(t("player.sleepTimer.noLongerActive"));
-    }
-  }, [data, t]);
-
-  // The countdown reached 0: look at the server right away (then every 3 s)
-  const refetchedForRef = useRef<string | null>(null);
-  const remaining = active && endsAt ? remainingMs(endsAt, offsetMs, now) : 0;
-  useEffect(() => {
-    if (active && endsAt && remaining <= 0 && refetchedForRef.current !== endsAt) {
-      refetchedForRef.current = endsAt;
-      void refetch();
-    }
-  }, [active, endsAt, remaining, refetch]);
+  const onEnded = useCallback(() => setAnnouncement(t("player.sleepTimer.noLongerActive")), [t]);
+  const { active, endsAt, now, remaining, ended } = useSleepTimerCountdown(data, refetch, onEnded);
 
   const phase =
     active && endsAt ? derivePhase(endsAt, status?.fade_seconds ?? 0, offsetMs, now) : "running";
@@ -122,7 +95,6 @@ export default function SleepTimer({ deviceId, deviceOffline }: Readonly<SleepTi
       { duration_minutes: durationMinutes, fade_seconds: fade, end_action: endAction },
       {
         onSuccess: () => {
-          setEnded(false);
           setAnnouncement(t("player.sleepTimer.started"));
         },
         onError: (error) => {
@@ -172,14 +144,7 @@ export default function SleepTimer({ deviceId, deviceOffline }: Readonly<SleepTi
           >
             {formatCountdown(remaining)}
           </span>
-          <p className="sleep-timer-phase">
-            {phase === "ending"
-              ? t("player.sleepTimer.ending")
-              : `${phase === "fading" ? `${t("player.sleepTimer.fading")} ` : ""}${t(
-                  "player.sleepTimer.endsWith",
-                  { action: t(`player.sleepTimer.endAction.${status.end_action ?? "stop"}`) }
-                )}`}
-          </p>
+          <p className="sleep-timer-phase">{phaseText(t, phase, status.end_action ?? "stop")}</p>
           {formError && (
             <div className="alert alert-error" role="alert">
               {formError}
