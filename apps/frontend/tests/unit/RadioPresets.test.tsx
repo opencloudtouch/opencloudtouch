@@ -36,7 +36,13 @@ vi.mock("../../src/api/devices", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../src/api/devices")>();
   return {
     ...actual,
-    playPreset: vi.fn().mockResolvedValue(undefined),
+    playPreset: vi.fn().mockResolvedValue({
+      message: "Playing preset 3: Test Station",
+      device_id: "AABBCC123456",
+      preset_number: 3,
+      station_name: "Test Station",
+      device_programmed: true,
+    }),
   };
 });
 
@@ -387,6 +393,37 @@ describe("RadioPresets Page", () => {
         expect(devicesApi.playPreset).toHaveBeenCalledWith("AABBCC123456", 3);
       });
       expect(screen.getByTestId("preset-3-play")).toBeInTheDocument();
+      expect(mockShowToast).not.toHaveBeenCalledWith(expect.any(String), "warning");
+    });
+
+    it("shows a warning toast when the device could not be programmed", async () => {
+      vi.mocked(devicesApi.playPreset).mockResolvedValueOnce({
+        message: "Playing preset 3: Test Station",
+        device_id: "AABBCC123456",
+        preset_number: 3,
+        station_name: "Test Station",
+        device_programmed: false,
+      });
+
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} />);
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("preset-3-assign"));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("select-station"));
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId("preset-3-play")).toBeInTheDocument();
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("preset-3-play"));
+      });
+
+      await waitFor(() => {
+        expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), "warning");
+      });
     });
   });
 
