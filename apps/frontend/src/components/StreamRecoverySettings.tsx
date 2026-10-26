@@ -27,7 +27,7 @@ import {
 import { Skeleton } from "./LoadingSkeleton";
 import "./StreamRecoverySettings.css";
 
-const OUTCOMES = ["resumed", "gave_up", "skipped_no_preset", "skipped_rate_limited"];
+const OUTCOMES = new Set(["resumed", "gave_up", "skipped_no_preset", "skipped_rate_limited"]);
 
 function reasonFor(t: TFunction, code: string): string {
   return i18next.exists(`errors.api.${code}`)
@@ -40,9 +40,12 @@ function formatPlayTime(t: TFunction, seconds: number | null | undefined): strin
   return t("settings.streamRecovery.playTime", splitPlayTime(seconds));
 }
 
-function EventRow({ event, deviceName }: { event: StreamRecoveryEvent; deviceName: string }) {
+function EventRow({
+  event,
+  deviceName,
+}: Readonly<{ event: StreamRecoveryEvent; deviceName: string }>) {
   const { t } = useTranslation();
-  const outcome = OUTCOMES.includes(event.outcome)
+  const outcome = OUTCOMES.has(event.outcome)
     ? t(`settings.streamRecovery.outcome.${event.outcome}`)
     : event.outcome;
   return (
@@ -63,7 +66,7 @@ function EventRow({ event, deviceName }: { event: StreamRecoveryEvent; deviceNam
   );
 }
 
-function ActivityLog({ expanded }: { expanded: boolean }) {
+function ActivityLog({ expanded }: Readonly<{ expanded: boolean }>) {
   const { t } = useTranslation();
   const { data: devices } = useDevices();
   const {
@@ -101,7 +104,7 @@ function ActivityLog({ expanded }: { expanded: boolean }) {
           </button>
         </div>
       )}
-      {events && events.length === 0 && (
+      {events?.length === 0 && (
         <p className="stream-recovery-hint">{t("settings.streamRecovery.activityEmpty")}</p>
       )}
       {events && events.length > 0 && (

@@ -250,7 +250,7 @@ describe("StreamRecoverySettings", () => {
       const before = calls.filter((c) => c.url.includes("/events")).length;
       fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
       await waitFor(() =>
-        expect(calls.filter((c) => c.url.includes("/events")).length).toBe(before + 1)
+        expect(calls.filter((c) => c.url.includes("/events"))).toHaveLength(before + 1)
       );
       expect(await screen.findByText("Activity refreshed")).toBeInTheDocument();
     });
