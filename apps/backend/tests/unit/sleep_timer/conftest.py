@@ -30,8 +30,6 @@ def repository() -> InMemorySleepTimerRepository:
 
 @pytest.fixture
 def make_service(devices, repository, vtime):
-    created: list[SleepTimerService] = []
-
     def factory() -> SleepTimerService:
         service = SleepTimerService(
             device_service=devices,
@@ -39,10 +37,9 @@ def make_service(devices, repository, vtime):
             clock=vtime.clock,
             sleep=vtime.sleep,
         )
-        created.append(service)
         return service
 
-    yield factory
+    return factory
 
 
 @pytest.fixture

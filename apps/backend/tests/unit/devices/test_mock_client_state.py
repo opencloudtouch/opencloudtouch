@@ -89,8 +89,9 @@ class TestKeys:
 
     @pytest.mark.asyncio
     async def test_unknown_key_is_still_rejected(self):
+        client = MockDeviceClient(PLAYING)
         with pytest.raises(ValueError, match="Invalid key"):
-            await MockDeviceClient(PLAYING).press_key("EXPLODE")
+            await client.press_key("EXPLODE")
 
     @pytest.mark.asyncio
     async def test_now_playing_is_a_copy(self):
