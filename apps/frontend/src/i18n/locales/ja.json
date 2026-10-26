@@ -42,7 +42,35 @@
     "manageZone": "ゾーンを管理",
     "multiRoom": "マルチルーム",
     "prevDevice": "前のデバイス",
-    "nextDevice": "次のデバイス"
+    "nextDevice": "次のデバイス",
+    "sleepTimer": {
+      "title": "スリープタイマー",
+      "durationLabel": "時間",
+      "minutes": "{{minutes}}分",
+      "custom": "カスタム…",
+      "customLabel": "分",
+      "customInvalid": "{{min}}～{{max}}の整数を入力してください。",
+      "fadeLabel": "フェードアウト",
+      "fadeOff": "オフ",
+      "fadeSeconds": "{{seconds}}秒",
+      "endLabel": "終了時の動作",
+      "endAction": {
+        "stop": "再生を停止",
+        "standby": "スタンバイにする"
+      },
+      "endsWith": "終了時：{{action}}",
+      "start": "タイマーを開始",
+      "starting": "開始中…",
+      "cancel": "タイマーをキャンセル",
+      "started": "スリープタイマーを開始しました",
+      "cancelled": "スリープタイマーをキャンセルしました",
+      "noLongerActive": "タイマーは終了しました",
+      "countdownLabel": "タイマー終了までの時間",
+      "fading": "フェードアウト中…",
+      "ending": "終了処理中…",
+      "offlineHint": "スピーカーがオフラインです。新しいタイマーは開始できません。",
+      "loadError": "スリープタイマーを読み込めませんでした。"
+    }
   },
   "presets": {
     "pageTitle": "ラジオプリセット",
@@ -675,7 +703,8 @@
       "internal_error": "内部エラーが発生しました。後でもう一度お試しください。",
       "stream_recovery_min_play_invalid": "最低再生時間が許容範囲外です。",
       "stream_recovery_attempts_invalid": "試行回数が許容範囲外です。",
-      "stream_recovery_failed": "ストリーム復旧でプリセットを押せませんでした。"
+      "stream_recovery_failed": "ストリーム復旧でプリセットを押せませんでした。",
+      "sleep_timer_fade_too_long": "フェードアウトの時間はタイマーより長くできません。"
     },
     "loadFailed": "読み込みに失敗しました。もう一度お試しください。",
     "unknown": "予期しないエラーが発生しました。もう一度お試しください。",

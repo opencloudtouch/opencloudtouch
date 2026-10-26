@@ -42,7 +42,35 @@
     "manageZone": "Zone beheren",
     "multiRoom": "Meerkamers",
     "prevDevice": "Vorig apparaat",
-    "nextDevice": "Volgend apparaat"
+    "nextDevice": "Volgend apparaat",
+    "sleepTimer": {
+      "title": "Slaaptimer",
+      "durationLabel": "Duur",
+      "minutes": "{{minutes}} min",
+      "custom": "Aangepast…",
+      "customLabel": "Minuten",
+      "customInvalid": "Voer een geheel getal van {{min}} tot {{max}} in.",
+      "fadeLabel": "Uitfaden",
+      "fadeOff": "Uit",
+      "fadeSeconds": "{{seconds}} s",
+      "endLabel": "Daarna",
+      "endAction": {
+        "stop": "Weergave stoppen",
+        "standby": "Naar stand-by"
+      },
+      "endsWith": "Daarna: {{action}}",
+      "start": "Timer starten",
+      "starting": "Starten…",
+      "cancel": "Timer annuleren",
+      "started": "Slaaptimer gestart",
+      "cancelled": "Slaaptimer geannuleerd",
+      "noLongerActive": "De timer is niet meer actief",
+      "countdownLabel": "Tijd tot het einde van de timer",
+      "fading": "Uitfaden…",
+      "ending": "Afronden…",
+      "offlineHint": "De speaker is offline. Er kan geen nieuwe timer worden gestart.",
+      "loadError": "De slaaptimer kon niet worden geladen."
+    }
   },
   "presets": {
     "pageTitle": "Radio Presets",
@@ -675,7 +703,8 @@
       "internal_error": "Er is een interne fout opgetreden. Probeer het later opnieuw.",
       "stream_recovery_min_play_invalid": "De minimale speeltijd valt buiten het toegestane bereik.",
       "stream_recovery_attempts_invalid": "Het aantal pogingen valt buiten het toegestane bereik.",
-      "stream_recovery_failed": "Streamherstel kon de preset niet indrukken."
+      "stream_recovery_failed": "Streamherstel kon de preset niet indrukken.",
+      "sleep_timer_fade_too_long": "Het uitfaden mag niet langer duren dan de timer."
     },
     "loadFailed": "Laden mislukt. Probeer het opnieuw.",
     "unknown": "Er is een onverwachte fout opgetreden. Probeer het opnieuw.",

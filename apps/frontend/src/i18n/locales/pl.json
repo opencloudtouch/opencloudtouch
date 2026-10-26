@@ -42,7 +42,35 @@
     "manageZone": "Zarządzaj strefą",
     "multiRoom": "Wiele pomieszczeń",
     "prevDevice": "Poprzednie urządzenie",
-    "nextDevice": "Następne urządzenie"
+    "nextDevice": "Następne urządzenie",
+    "sleepTimer": {
+      "title": "Wyłącznik czasowy",
+      "durationLabel": "Czas",
+      "minutes": "{{minutes}} min",
+      "custom": "Własny…",
+      "customLabel": "Minuty",
+      "customInvalid": "Wpisz liczbę całkowitą od {{min}} do {{max}}.",
+      "fadeLabel": "Wyciszanie",
+      "fadeOff": "Wył.",
+      "fadeSeconds": "{{seconds}} s",
+      "endLabel": "Po zakończeniu",
+      "endAction": {
+        "stop": "Zatrzymaj odtwarzanie",
+        "standby": "Przełącz w tryb czuwania"
+      },
+      "endsWith": "Po zakończeniu: {{action}}",
+      "start": "Uruchom timer",
+      "starting": "Uruchamianie…",
+      "cancel": "Anuluj timer",
+      "started": "Uruchomiono wyłącznik czasowy",
+      "cancelled": "Anulowano wyłącznik czasowy",
+      "noLongerActive": "Timer nie jest już aktywny",
+      "countdownLabel": "Czas do końca timera",
+      "fading": "Wyciszanie…",
+      "ending": "Kończenie…",
+      "offlineHint": "Głośnik jest offline. Nie można uruchomić nowego timera.",
+      "loadError": "Nie udało się wczytać wyłącznika czasowego."
+    }
   },
   "presets": {
     "pageTitle": "Presety radiowe",
@@ -675,7 +703,8 @@
       "internal_error": "Wystąpił błąd wewnętrzny. Spróbuj ponownie później.",
       "stream_recovery_min_play_invalid": "Minimalny czas odtwarzania jest poza dozwolonym zakresem.",
       "stream_recovery_attempts_invalid": "Liczba prób jest poza dozwolonym zakresem.",
-      "stream_recovery_failed": "Odzyskiwanie strumienia nie mogło nacisnąć presetu."
+      "stream_recovery_failed": "Odzyskiwanie strumienia nie mogło nacisnąć presetu.",
+      "sleep_timer_fade_too_long": "Wyciszanie nie może trwać dłużej niż timer."
     },
     "loadFailed": "Ładowanie nie powiodło się. Spróbuj ponownie.",
     "unknown": "Wystąpił nieoczekiwany błąd. Spróbuj ponownie.",

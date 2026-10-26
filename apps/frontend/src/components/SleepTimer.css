@@ -1,0 +1,67 @@
+/* Sleep timer on the Local Control page */
+
+.sleep-timer {
+  margin-top: var(--space-lg);
+  padding: var(--space-lg);
+  background-color: var(--color-bg-card);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.sleep-timer-title {
+  font-size: 18px;
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-md);
+}
+
+.sleep-timer-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.sleep-timer-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.sleep-timer-field select,
+.sleep-timer-field input {
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  font-size: 16px;
+  max-width: 220px;
+}
+
+.sleep-timer-field [aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+.sleep-timer-error {
+  color: var(--color-error);
+  font-size: 14px;
+}
+
+.sleep-timer-hint {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.sleep-timer-countdown {
+  display: block;
+  font-size: 36px;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-bold);
+}
+
+.sleep-timer-phase {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.sleep-timer-notice {
+  margin-bottom: var(--space-md);
+  color: var(--color-text-secondary);
+}

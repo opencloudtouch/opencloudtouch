@@ -42,7 +42,35 @@
     "manageZone": "Gérer la zone",
     "multiRoom": "Multi-pièces",
     "prevDevice": "Appareil précédent",
-    "nextDevice": "Appareil suivant"
+    "nextDevice": "Appareil suivant",
+    "sleepTimer": {
+      "title": "Minuterie de sommeil",
+      "durationLabel": "Durée",
+      "minutes": "{{minutes}} min",
+      "custom": "Personnalisée…",
+      "customLabel": "Minutes",
+      "customInvalid": "Saisissez un nombre entier de {{min}} à {{max}}.",
+      "fadeLabel": "Fondu sonore",
+      "fadeOff": "Désactivé",
+      "fadeSeconds": "{{seconds}} s",
+      "endLabel": "À la fin",
+      "endAction": {
+        "stop": "Arrêter la lecture",
+        "standby": "Passer en veille"
+      },
+      "endsWith": "À la fin : {{action}}",
+      "start": "Démarrer la minuterie",
+      "starting": "Démarrage…",
+      "cancel": "Annuler la minuterie",
+      "started": "Minuterie démarrée",
+      "cancelled": "Minuterie annulée",
+      "noLongerActive": "La minuterie n'est plus active",
+      "countdownLabel": "Temps restant avant la fin de la minuterie",
+      "fading": "Fondu en cours…",
+      "ending": "Fin en cours…",
+      "offlineHint": "L'enceinte est hors ligne. Impossible de démarrer une nouvelle minuterie.",
+      "loadError": "Impossible de charger la minuterie."
+    }
   },
   "presets": {
     "pageTitle": "Préréglages radio",
@@ -675,7 +703,8 @@
       "internal_error": "Une erreur interne s'est produite. Veuillez réessayer plus tard.",
       "stream_recovery_min_play_invalid": "La durée de lecture minimale est hors de la plage autorisée.",
       "stream_recovery_attempts_invalid": "Le nombre de tentatives est hors de la plage autorisée.",
-      "stream_recovery_failed": "La récupération du flux n'a pas pu appuyer sur le preset."
+      "stream_recovery_failed": "La récupération du flux n'a pas pu appuyer sur le preset.",
+      "sleep_timer_fade_too_long": "Le fondu ne peut pas être plus long que la minuterie."
     },
     "loadFailed": "Échec du chargement. Veuillez réessayer.",
     "unknown": "Une erreur inattendue s'est produite. Veuillez réessayer.",
