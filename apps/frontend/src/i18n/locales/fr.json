@@ -143,6 +143,41 @@
       "downloadDescription": "Téléchargez les 1000 dernières entrées du journal backend sous forme de fichier texte.",
       "levelChanged": "Niveau de journal défini sur {{level}}",
       "levelError": "Impossible de modifier le niveau de journal"
+    },
+    "streamRecovery": {
+      "sectionTitle": "Récupération du flux",
+      "enable": "Reprendre la radio lorsque la station coupe la connexion",
+      "explanation": "Ne fonctionne que pour les presets radio. L'enceinte appuie à nouveau sur son propre preset après la coupure de la station. Une enceinte que vous arrêtez vous-même n'est pas relancée.",
+      "minutesLabel": "Durée de lecture minimale avant la reprise (minutes)",
+      "attemptsLabel": "Nombre maximal de tentatives par heure",
+      "minutesInvalid": "Saisissez un nombre entier de {{min}} à {{max}}.",
+      "attemptsInvalid": "Saisissez un nombre entier de {{min}} à {{max}}.",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "saved": "Paramètres de récupération du flux enregistrés",
+      "saveFailed": "Impossible d'enregistrer les paramètres.",
+      "loadError": "Impossible de charger les paramètres de récupération du flux.",
+      "activityToggle": "Activité récente",
+      "refresh": "Actualiser",
+      "refreshed": "Activité actualisée",
+      "activityEmpty": "Aucune activité pour l'instant.",
+      "activityError": "Impossible de charger l'activité.",
+      "playTime": "{{hours}} h {{minutes}} min",
+      "col": {
+        "time": "Heure",
+        "device": "Appareil",
+        "station": "Station",
+        "preset": "Preset",
+        "outcome": "Résultat",
+        "playTime": "Durée",
+        "attempts": "Tentatives"
+      },
+      "outcome": {
+        "resumed": "Repris",
+        "gave_up": "Abandonné",
+        "skipped_no_preset": "Aucun preset correspondant",
+        "skipped_rate_limited": "Limité"
+      }
     }
   },
   "manualIpModal": {
@@ -637,7 +672,10 @@
       "device_unreachable": "L'appareil est injoignable. Vérifiez qu'il est allumé et connecté au réseau.",
       "not_found": "La ressource demandée est introuvable.",
       "validation_error": "La requête contient des données invalides. Veuillez vérifier vos saisies.",
-      "internal_error": "Une erreur interne s'est produite. Veuillez réessayer plus tard."
+      "internal_error": "Une erreur interne s'est produite. Veuillez réessayer plus tard.",
+      "stream_recovery_min_play_invalid": "La durée de lecture minimale est hors de la plage autorisée.",
+      "stream_recovery_attempts_invalid": "Le nombre de tentatives est hors de la plage autorisée.",
+      "stream_recovery_failed": "La récupération du flux n'a pas pu appuyer sur le preset."
     },
     "loadFailed": "Échec du chargement. Veuillez réessayer.",
     "unknown": "Une erreur inattendue s'est produite. Veuillez réessayer.",

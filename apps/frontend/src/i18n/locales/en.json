@@ -143,6 +143,41 @@
       "downloadDescription": "Download the last 1000 backend log entries as a text file.",
       "levelChanged": "Log level set to {{level}}",
       "levelError": "Could not change log level"
+    },
+    "streamRecovery": {
+      "sectionTitle": "Stream recovery",
+      "enable": "Resume radio playback when the station drops the connection",
+      "explanation": "Works only for radio presets. The speaker presses its own preset again after the station has cut the connection. A speaker you stop yourself is not restarted.",
+      "minutesLabel": "Minimum playing time before resuming (minutes)",
+      "attemptsLabel": "Maximum attempts per hour",
+      "minutesInvalid": "Enter a whole number from {{min}} to {{max}}.",
+      "attemptsInvalid": "Enter a whole number from {{min}} to {{max}}.",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Stream recovery settings saved",
+      "saveFailed": "Could not save the settings.",
+      "loadError": "Could not load the stream recovery settings.",
+      "activityToggle": "Recent activity",
+      "refresh": "Refresh",
+      "refreshed": "Activity refreshed",
+      "activityEmpty": "No activity yet.",
+      "activityError": "Could not load the activity.",
+      "playTime": "{{hours}} h {{minutes}} min",
+      "col": {
+        "time": "Time",
+        "device": "Device",
+        "station": "Station",
+        "preset": "Preset",
+        "outcome": "Result",
+        "playTime": "Played",
+        "attempts": "Attempts"
+      },
+      "outcome": {
+        "resumed": "Resumed",
+        "gave_up": "Gave up",
+        "skipped_no_preset": "No matching preset",
+        "skipped_rate_limited": "Rate limited"
+      }
     }
   },
   "manualIpModal": {
@@ -637,7 +672,10 @@
       "device_unreachable": "The device is not reachable. Check that it is switched on and connected to the network.",
       "not_found": "The requested resource was not found.",
       "validation_error": "The request contains invalid data. Please check your inputs.",
-      "internal_error": "An internal error occurred. Please try again later."
+      "internal_error": "An internal error occurred. Please try again later.",
+      "stream_recovery_min_play_invalid": "Stream recovery could not be configured: the minimum playing time is out of range.",
+      "stream_recovery_attempts_invalid": "Stream recovery could not be configured: the number of attempts is out of range.",
+      "stream_recovery_failed": "Stream recovery could not press the preset."
     },
     "loadFailed": "Failed to load. Please try again.",
     "unknown": "An unexpected error occurred. Please try again.",

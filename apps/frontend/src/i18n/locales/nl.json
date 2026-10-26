@@ -143,6 +143,41 @@
       "downloadDescription": "Download de laatste 1000 backend-logvermeldingen als tekstbestand.",
       "levelChanged": "Logniveau ingesteld op {{level}}",
       "levelError": "Logniveau kon niet worden gewijzigd"
+    },
+    "streamRecovery": {
+      "sectionTitle": "Streamherstel",
+      "enable": "Radio hervatten wanneer de zender de verbinding verbreekt",
+      "explanation": "Werkt alleen voor radiopresets. De speaker drukt zijn eigen preset opnieuw in nadat de zender de verbinding heeft verbroken. Een speaker die je zelf stopt, wordt niet opnieuw gestart.",
+      "minutesLabel": "Minimale speeltijd vóór hervatten (minuten)",
+      "attemptsLabel": "Maximaal aantal pogingen per uur",
+      "minutesInvalid": "Voer een geheel getal van {{min}} tot {{max}} in.",
+      "attemptsInvalid": "Voer een geheel getal van {{min}} tot {{max}} in.",
+      "save": "Opslaan",
+      "saving": "Opslaan…",
+      "saved": "Instellingen voor streamherstel opgeslagen",
+      "saveFailed": "De instellingen konden niet worden opgeslagen.",
+      "loadError": "De instellingen voor streamherstel konden niet worden geladen.",
+      "activityToggle": "Recente activiteit",
+      "refresh": "Vernieuwen",
+      "refreshed": "Activiteit vernieuwd",
+      "activityEmpty": "Nog geen activiteit.",
+      "activityError": "De activiteit kon niet worden geladen.",
+      "playTime": "{{hours}} u {{minutes}} min",
+      "col": {
+        "time": "Tijd",
+        "device": "Apparaat",
+        "station": "Zender",
+        "preset": "Preset",
+        "outcome": "Resultaat",
+        "playTime": "Gespeeld",
+        "attempts": "Pogingen"
+      },
+      "outcome": {
+        "resumed": "Hervat",
+        "gave_up": "Opgegeven",
+        "skipped_no_preset": "Geen passende preset",
+        "skipped_rate_limited": "Beperkt"
+      }
     }
   },
   "manualIpModal": {
@@ -637,7 +672,10 @@
       "device_unreachable": "Het apparaat is niet bereikbaar. Controleer of het is ingeschakeld en met het netwerk is verbonden.",
       "not_found": "De gevraagde bron is niet gevonden.",
       "validation_error": "De aanvraag bevat ongeldige gegevens. Controleer je invoer.",
-      "internal_error": "Er is een interne fout opgetreden. Probeer het later opnieuw."
+      "internal_error": "Er is een interne fout opgetreden. Probeer het later opnieuw.",
+      "stream_recovery_min_play_invalid": "De minimale speeltijd valt buiten het toegestane bereik.",
+      "stream_recovery_attempts_invalid": "Het aantal pogingen valt buiten het toegestane bereik.",
+      "stream_recovery_failed": "Streamherstel kon de preset niet indrukken."
     },
     "loadFailed": "Laden mislukt. Probeer het opnieuw.",
     "unknown": "Er is een onverwachte fout opgetreden. Probeer het opnieuw.",

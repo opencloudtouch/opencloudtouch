@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frontend: typed `ApiError` thrown by `throwIfNotOk` and translated messages via `getApiErrorMessage`/`getFieldErrors` (`errors.api.*` in all locales).
 - Device settings API: `GET /api/devices/{id}/settings` and `PUT …/settings/language|clock|power-saving` for display language, standby clock (format, IANA time zone) and power saving, with a verified write (`applied`) and per-setting availability; new error codes `setting_not_available`, `settings_*_invalid` and `device_rejected` (HTTP 502 when the speaker answers with an error); new dependency `tzdata`.
 - Stream recovery (opt-in): `GET`/`PUT /api/stream-recovery` and `GET /api/stream-recovery/events`. A watchdog presses the matching radio preset again when a speaker that played a station for a minimum time suddenly reports `INVALID_SOURCE`, with a rate limit and an activity log; new error codes `stream_recovery_min_play_invalid`, `stream_recovery_attempts_invalid`, `stream_recovery_failed`.
+- Settings page: "Stream recovery" section (switch, minimum playing time, attempts per hour, recent activity) in all 10 locales.
 
 ### Changed
 - The stream proxy logs `[STREAM END]` with `elapsed=` at INFO when a stream ends without OCT stopping it (it was DEBUG only).

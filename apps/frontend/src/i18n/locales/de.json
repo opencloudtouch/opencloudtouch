@@ -143,6 +143,41 @@
       "downloadDescription": "Laden Sie die letzten 1000 Backend-Logeinträge als Textdatei herunter.",
       "levelChanged": "Log-Level auf {{level}} gesetzt",
       "levelError": "Log-Level konnte nicht geändert werden"
+    },
+    "streamRecovery": {
+      "sectionTitle": "Stream-Wiederherstellung",
+      "enable": "Radiowiedergabe fortsetzen, wenn der Sender die Verbindung trennt",
+      "explanation": "Funktioniert nur für Radio-Presets. Der Lautsprecher drückt seine eigene Preset-Taste erneut, nachdem der Sender die Verbindung getrennt hat. Ein Lautsprecher, den du selbst stoppst, wird nicht neu gestartet.",
+      "minutesLabel": "Mindest-Spielzeit vor dem Fortsetzen (Minuten)",
+      "attemptsLabel": "Maximale Versuche pro Stunde",
+      "minutesInvalid": "Gib eine ganze Zahl von {{min}} bis {{max}} ein.",
+      "attemptsInvalid": "Gib eine ganze Zahl von {{min}} bis {{max}} ein.",
+      "save": "Speichern",
+      "saving": "Speichern…",
+      "saved": "Einstellungen zur Stream-Wiederherstellung gespeichert",
+      "saveFailed": "Die Einstellungen konnten nicht gespeichert werden.",
+      "loadError": "Die Einstellungen zur Stream-Wiederherstellung konnten nicht geladen werden.",
+      "activityToggle": "Letzte Aktivität",
+      "refresh": "Aktualisieren",
+      "refreshed": "Aktivität aktualisiert",
+      "activityEmpty": "Noch keine Aktivität.",
+      "activityError": "Die Aktivität konnte nicht geladen werden.",
+      "playTime": "{{hours}} Std. {{minutes}} Min.",
+      "col": {
+        "time": "Zeit",
+        "device": "Gerät",
+        "station": "Sender",
+        "preset": "Preset",
+        "outcome": "Ergebnis",
+        "playTime": "Spielzeit",
+        "attempts": "Versuche"
+      },
+      "outcome": {
+        "resumed": "Fortgesetzt",
+        "gave_up": "Aufgegeben",
+        "skipped_no_preset": "Kein passendes Preset",
+        "skipped_rate_limited": "Begrenzt"
+      }
     }
   },
   "manualIpModal": {
@@ -637,7 +672,10 @@
       "device_unreachable": "Das Gerät ist nicht erreichbar. Prüfe, ob es eingeschaltet und mit dem Netzwerk verbunden ist.",
       "not_found": "Die angeforderte Ressource wurde nicht gefunden.",
       "validation_error": "Die Anfrage enthält ungültige Daten. Bitte prüfe deine Eingaben.",
-      "internal_error": "Ein interner Fehler ist aufgetreten. Bitte versuche es später erneut."
+      "internal_error": "Ein interner Fehler ist aufgetreten. Bitte versuche es später erneut.",
+      "stream_recovery_min_play_invalid": "Die Mindest-Spielzeit liegt außerhalb des erlaubten Bereichs.",
+      "stream_recovery_attempts_invalid": "Die Anzahl der Versuche liegt außerhalb des erlaubten Bereichs.",
+      "stream_recovery_failed": "Die Stream-Wiederherstellung konnte das Preset nicht drücken."
     },
     "loadFailed": "Laden fehlgeschlagen. Bitte erneut versuchen.",
     "unknown": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",

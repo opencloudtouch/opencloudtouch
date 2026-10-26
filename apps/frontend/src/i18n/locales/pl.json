@@ -143,6 +143,41 @@
       "downloadDescription": "Pobierz ostatnie 1000 wpisów logu backendu jako plik tekstowy.",
       "levelChanged": "Poziom logowania ustawiony na {{level}}",
       "levelError": "Nie można zmienić poziomu logowania"
+    },
+    "streamRecovery": {
+      "sectionTitle": "Odzyskiwanie strumienia",
+      "enable": "Wznów radio, gdy stacja zerwie połączenie",
+      "explanation": "Działa tylko dla presetów radiowych. Głośnik ponownie naciska własny preset po zerwaniu połączenia przez stację. Głośnik zatrzymany przez Ciebie nie jest uruchamiany ponownie.",
+      "minutesLabel": "Minimalny czas odtwarzania przed wznowieniem (minuty)",
+      "attemptsLabel": "Maksymalna liczba prób na godzinę",
+      "minutesInvalid": "Wpisz liczbę całkowitą od {{min}} do {{max}}.",
+      "attemptsInvalid": "Wpisz liczbę całkowitą od {{min}} do {{max}}.",
+      "save": "Zapisz",
+      "saving": "Zapisywanie…",
+      "saved": "Zapisano ustawienia odzyskiwania strumienia",
+      "saveFailed": "Nie udało się zapisać ustawień.",
+      "loadError": "Nie udało się wczytać ustawień odzyskiwania strumienia.",
+      "activityToggle": "Ostatnia aktywność",
+      "refresh": "Odśwież",
+      "refreshed": "Odświeżono aktywność",
+      "activityEmpty": "Brak aktywności.",
+      "activityError": "Nie udało się wczytać aktywności.",
+      "playTime": "{{hours}} godz. {{minutes}} min",
+      "col": {
+        "time": "Czas",
+        "device": "Urządzenie",
+        "station": "Stacja",
+        "preset": "Preset",
+        "outcome": "Wynik",
+        "playTime": "Odtwarzano",
+        "attempts": "Próby"
+      },
+      "outcome": {
+        "resumed": "Wznowiono",
+        "gave_up": "Zrezygnowano",
+        "skipped_no_preset": "Brak pasującego presetu",
+        "skipped_rate_limited": "Ograniczono"
+      }
     }
   },
   "manualIpModal": {
@@ -637,7 +672,10 @@
       "device_unreachable": "Urządzenie jest nieosiągalne. Sprawdź, czy jest włączone i połączone z siecią.",
       "not_found": "Nie znaleziono żądanego zasobu.",
       "validation_error": "Żądanie zawiera nieprawidłowe dane. Sprawdź wprowadzone wartości.",
-      "internal_error": "Wystąpił błąd wewnętrzny. Spróbuj ponownie później."
+      "internal_error": "Wystąpił błąd wewnętrzny. Spróbuj ponownie później.",
+      "stream_recovery_min_play_invalid": "Minimalny czas odtwarzania jest poza dozwolonym zakresem.",
+      "stream_recovery_attempts_invalid": "Liczba prób jest poza dozwolonym zakresem.",
+      "stream_recovery_failed": "Odzyskiwanie strumienia nie mogło nacisnąć presetu."
     },
     "loadFailed": "Ładowanie nie powiodło się. Spróbuj ponownie.",
     "unknown": "Wystąpił nieoczekiwany błąd. Spróbuj ponownie.",

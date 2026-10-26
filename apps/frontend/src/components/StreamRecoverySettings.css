@@ -1,0 +1,77 @@
+/* Stream recovery settings section */
+
+.stream-recovery-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-lg);
+}
+
+.stream-recovery-field label {
+  font-weight: var(--font-weight-medium);
+}
+
+.stream-recovery-number {
+  max-width: 160px;
+  padding: var(--space-md);
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  font-size: 16px;
+}
+
+.stream-recovery-number[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+.stream-recovery-number:disabled {
+  opacity: 0.6;
+}
+
+.stream-recovery-switch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-sm);
+}
+
+.stream-recovery-hint {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-lg);
+  line-height: 1.5;
+}
+
+.stream-recovery-error {
+  color: var(--color-error);
+  font-size: 14px;
+}
+
+.stream-recovery-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.stream-recovery-activity-toggle {
+  margin-top: var(--space-lg);
+}
+
+.stream-recovery-table-wrap {
+  overflow-x: auto;
+  margin-top: var(--space-md);
+}
+
+.stream-recovery-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.stream-recovery-table th,
+.stream-recovery-table td {
+  text-align: left;
+  padding: var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
