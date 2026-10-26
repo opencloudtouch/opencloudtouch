@@ -25,7 +25,7 @@ class DlnaDiscovery:
     async def discover(self) -> list[DlnaServer]:
         """Discover UPnP MediaServers with the shared SSDP implementation."""
         try:
-            locations = await asyncio.to_thread(self.ssdp._ssdp_msearch)
+            locations = await self.ssdp.search_locations()
             return await self._fetch_server_descriptions(locations)
         except Exception:
             logger.exception("DLNA discovery failed")
