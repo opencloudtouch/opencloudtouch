@@ -20,6 +20,7 @@ from opencloudtouch.recents.repository import RecentsRepository
 from opencloudtouch.recents.service import RecentsService
 from opencloudtouch.settings.repository import SettingsRepository
 from opencloudtouch.settings.service import SettingsService
+from opencloudtouch.sleep_timer.service import SleepTimerService
 from opencloudtouch.streamrecovery.service import StreamRecoveryService
 from opencloudtouch.zones.service import ZoneService
 
@@ -86,6 +87,11 @@ def get_zone_service(request: Request) -> ZoneService:
     return request.app.state.zone_service
 
 
+def get_sleep_timer_service(request: Request) -> SleepTimerService:
+    """Get the sleep timer service from app.state (FastAPI dependency)."""
+    return request.app.state.sleep_timer_service
+
+
 def get_stream_recovery_service(request: Request) -> StreamRecoveryService:
     """Get the stream recovery service from app.state (FastAPI dependency)."""
     return request.app.state.stream_recovery_service
@@ -117,6 +123,7 @@ PresetServiceDep = Annotated[PresetService, Depends(get_preset_service)]
 MargeServiceDep = Annotated[MargeService, Depends(get_marge_service)]
 ZoneServiceDep = Annotated[ZoneService, Depends(get_zone_service)]
 DlnaServiceDep = Annotated[DlnaService, Depends(get_dlna_service)]
+SleepTimerServiceDep = Annotated[SleepTimerService, Depends(get_sleep_timer_service)]
 StreamRecoveryServiceDep = Annotated[
     StreamRecoveryService, Depends(get_stream_recovery_service)
 ]

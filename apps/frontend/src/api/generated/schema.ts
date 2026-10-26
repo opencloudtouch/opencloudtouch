@@ -2685,6 +2685,34 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/devices/{device_id}/sleep-timer": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Sleep Timer
+     * @description Current timer of the device (no device call).
+     */
+    get: operations["get_sleep_timer_api_devices__device_id__sleep_timer_get"];
+    /**
+     * Put Sleep Timer
+     * @description Start the timer; replaces a running one.
+     */
+    put: operations["put_sleep_timer_api_devices__device_id__sleep_timer_put"];
+    post?: never;
+    /**
+     * Delete Sleep Timer
+     * @description Cancel the timer (idempotent) and give a faded volume back.
+     */
+    delete: operations["delete_sleep_timer_api_devices__device_id__sleep_timer_delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/health": {
     parameters: {
       query?: never;
@@ -3784,6 +3812,41 @@ export interface components {
       clock: boolean;
       /** Power Saving */
       power_saving: boolean;
+    };
+    /** SleepTimerRequest */
+    SleepTimerRequest: {
+      /** Duration Minutes */
+      duration_minutes: number;
+      /**
+       * Fade Seconds
+       * @default 30
+       */
+      fade_seconds: number;
+      /**
+       * End Action
+       * @default stop
+       * @enum {string}
+       */
+      end_action: "stop" | "standby";
+    };
+    /** SleepTimerStatus */
+    SleepTimerStatus: {
+      /** Active */
+      active: boolean;
+      /** Server Time */
+      server_time: string;
+      /** Device Id */
+      device_id?: string | null;
+      /** Ends At */
+      ends_at?: string | null;
+      /** Duration Minutes */
+      duration_minutes?: number | null;
+      /** Fade Seconds */
+      fade_seconds?: number | null;
+      /** End Action */
+      end_action?: ("stop" | "standby") | null;
+      /** State */
+      state?: ("running" | "fading" | "ending") | null;
     };
     /**
      * StreamRecoveryConfigRequest
@@ -7839,6 +7902,101 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["StreamRecoveryEventsResponse"];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_sleep_timer_api_devices__device_id__sleep_timer_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SleepTimerStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  put_sleep_timer_api_devices__device_id__sleep_timer_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SleepTimerRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SleepTimerStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_sleep_timer_api_devices__device_id__sleep_timer_delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {

@@ -6,6 +6,7 @@ Provides deterministic responses that simulate device HTTP API.
 
 import copy
 import logging
+from dataclasses import dataclass
 from typing import Optional
 
 from opencloudtouch.devices.client import (
@@ -43,6 +44,39 @@ _mock_settings: dict[str, dict] = {}
 def reset_mock_device_settings() -> None:
     """Forget all mock device settings (test isolation)."""
     _mock_settings.clear()
+
+
+@dataclass
+class _MockState:
+    """Volume and playback state of one mock device (shared by all clients)."""
+
+    volume: int
+    muted: bool
+    source: str
+    state: str
+    base: NowPlayingInfo  # what the device plays when it is awake
+
+    def snapshot(self) -> NowPlayingInfo:
+        playing_content = self.source != "STANDBY"
+        return NowPlayingInfo(
+            source=self.source,
+            state=self.state,
+            station_name=self.base.station_name if playing_content else None,
+            artist=self.base.artist if playing_content else None,
+            track=self.base.track if playing_content else None,
+            album=self.base.album if playing_content else None,
+            artwork_url=self.base.artwork_url if playing_content else None,
+        )
+
+
+_AWAKE_SOURCE = "INTERNET_RADIO"
+_PLAYING_STATES = ("PLAY_STATE", "BUFFERING_STATE")
+_mock_states: dict[str, _MockState] = {}
+
+
+def reset_mock_state() -> None:
+    """Forget the volume and playback state of all mock devices (test isolation)."""
+    _mock_states.clear()
 
 
 def _settings_of(device_id: str) -> dict:
@@ -144,9 +178,7 @@ class MockDeviceClient(DeviceClient):
         """
         self.device_id = device_id
         self.ip_address = ip_address
-        self._volume = 45
         self._bass = 0
-        self._muted = False
         self._zone: ZoneStatus | None = None
 
         if device_id not in self.MOCK_DEVICES:
@@ -156,6 +188,21 @@ class MockDeviceClient(DeviceClient):
             )
 
         logger.info("[MOCK] Initialized mock client for device %s", device_id)
+
+    @property
+    def _state(self) -> _MockState:
+        """Lazily created from the fixture; copied, never the shared object."""
+        if self.device_id not in _mock_states:
+            base = self.MOCK_DEVICES[self.device_id]["now_playing"]
+            assert isinstance(base, NowPlayingInfo)
+            _mock_states[self.device_id] = _MockState(
+                volume=45,
+                muted=False,
+                source=base.source,
+                state=base.state,
+                base=copy.copy(base),
+            )
+        return _mock_states[self.device_id]
 
     async def get_info(self) -> DeviceInfo:
         """
@@ -177,9 +224,7 @@ class MockDeviceClient(DeviceClient):
             NowPlayingInfo object with predefined playback details
         """
         logger.debug("[MOCK] get_now_playing() for device %s", self.device_id)
-        now_playing = self.MOCK_DEVICES[self.device_id]["now_playing"]
-        assert isinstance(now_playing, NowPlayingInfo)
-        return now_playing
+        return self._state.snapshot()
 
     async def press_key(self, key: str, state: str = "both") -> None:
         """
@@ -198,6 +243,7 @@ class MockDeviceClient(DeviceClient):
             "PRESET_6",
             "PLAY",
             "PAUSE",
+            "STOP",
             "POWER",
         ]
         valid_states = ["press", "release", "both"]
@@ -217,21 +263,41 @@ class MockDeviceClient(DeviceClient):
             self.device_id,
             extra={"device_id": self.device_id, "key": key, "state": state},
         )
+        self._apply_key(key)
+
+    def _apply_key(self, key: str) -> None:
+        """Playback state machine of the mock device."""
+        mock = self._state
+        if key == "PLAY":
+            mock.state = "PLAY_STATE"
+        elif key == "PAUSE":
+            if mock.state in _PLAYING_STATES:
+                mock.state = "PAUSE_STATE"
+        elif key == "STOP":
+            mock.state = "STOP_STATE"
+        elif key == "POWER":
+            if mock.source == "STANDBY":
+                mock.source, mock.state = _AWAKE_SOURCE, "PLAY_STATE"
+            else:
+                mock.source, mock.state = "STANDBY", "STOP_STATE"
+        elif key.startswith("PRESET_"):
+            mock.source, mock.state = _AWAKE_SOURCE, "PLAY_STATE"
 
     async def get_volume(self) -> VolumeInfo:
         """Get mock volume state."""
         logger.debug("[MOCK] get_volume() for device %s", self.device_id)
-        return VolumeInfo(actual=self._volume, target=self._volume, muted=self._muted)
+        mock = self._state
+        return VolumeInfo(actual=mock.volume, target=mock.volume, muted=mock.muted)
 
     async def set_volume(self, level: int) -> None:
         """Mock set volume."""
         logger.info("[MOCK] set_volume(%s) for device %s", level, self.device_id)
-        self._volume = max(0, min(100, level))
+        self._state.volume = max(0, min(100, level))
 
     async def set_mute(self, muted: bool) -> None:
         """Mock set mute."""
         logger.info("[MOCK] set_mute(%s) for device %s", muted, self.device_id)
-        self._muted = muted
+        self._state.muted = muted
 
     async def get_bass(self) -> BassInfo:
         """Get mock bass state."""
