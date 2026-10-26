@@ -279,26 +279,9 @@ class StreamRecoveryService:
         now = self._clock()
 
         if info.source in ELIGIBLE_SOURCES and info.state == PLAY_STATE:
-            changed_station = bool(
-                key and track.station_key and key != track.station_key
-            )
-            if track.play_started is None or changed_station:
-                track.play_started = now
-                track.station_key = None
-                track.station_name = None
-            if key:
-                track.station_key = key
-                track.station_name = _display_name(info.station_name)
+            self._apply_play(track, info, key, now)
         elif info.source in ELIGIBLE_SOURCES and info.state == BUFFERING_STATE:
-            if track.play_started is not None:
-                if key and track.station_key and key != track.station_key:
-                    track.play_started = (
-                        None  # another station: a new run starts at PLAY
-                    )
-                    track.station_key = track.station_name = None
-                elif key and not track.station_key:
-                    track.station_key = key
-                    track.station_name = _display_name(info.station_name)
+            self._apply_buffering(track, info, key)
         else:
             track.play_started = None
             track.station_key = None
@@ -307,6 +290,31 @@ class StreamRecoveryService:
         track.source = info.source
         track.state = info.state
         return previous
+
+    @staticmethod
+    def _apply_play(
+        track: _Track, info: NowPlayingInfo, key: str | None, now: float
+    ) -> None:
+        changed_station = bool(key and track.station_key and key != track.station_key)
+        if track.play_started is None or changed_station:
+            track.play_started = now
+            track.station_key = None
+            track.station_name = None
+        if key:
+            track.station_key = key
+            track.station_name = _display_name(info.station_name)
+
+    @staticmethod
+    def _apply_buffering(track: _Track, info: NowPlayingInfo, key: str | None) -> None:
+        if track.play_started is None or not key:
+            return
+        if track.station_key and key != track.station_key:
+            # another station: a new run starts at PLAY
+            track.play_started = None
+            track.station_key = track.station_name = None
+        elif not track.station_key:
+            track.station_key = key
+            track.station_name = _display_name(info.station_name)
 
     async def _handle(self, event: DeviceEvent) -> None:
         if event.event_type != EventType.NOW_PLAYING or event.now_playing is None:
@@ -405,9 +413,14 @@ class StreamRecoveryService:
             return None
         except DeviceNotFoundError:
             return error_codes.DEVICE_NOT_FOUND
-        except (DeviceConnectionError, TimeoutError, httpx.TransportError, OSError):
+        except (
+            DeviceConnectionError,
+            httpx.TransportError,
+            OSError,
+        ):  # incl. TimeoutError
             return error_codes.DEVICE_UNREACHABLE
-        except Exception as e:  # noqa: BLE001 - mapped to a code, text is never stored
+        except Exception as e:  # noqa: BLE001
+            # mapped to a code; the exception text is never stored
             logger.warning("Stream recovery key press failed (%s)", type(e).__name__)
             return error_codes.STREAM_RECOVERY_FAILED
 

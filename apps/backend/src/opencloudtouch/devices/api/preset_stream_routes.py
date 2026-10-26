@@ -50,6 +50,28 @@ router = APIRouter(prefix="/device", tags=["device-presets"])
 descriptor_router = APIRouter(prefix="/descriptor/device", tags=["device-descriptors"])
 
 
+def _log_stream_end(
+    station_name: str,
+    chunks: int,
+    total_bytes: int,
+    opened_at: float,
+    deliberate_stop: bool,
+) -> None:
+    """Log the end of a proxied stream.
+
+    An end nobody asked for (upstream EOF/error, client disconnect) is the
+    diagnostic for dropped stations: INFO. A deliberate stop stays DEBUG.
+    """
+    logger.log(
+        logging.DEBUG if deliberate_stop else logging.INFO,
+        "[STREAM END] %s: %d chunks, %d bytes total, elapsed=%.1f",
+        station_name,
+        chunks,
+        total_bytes,
+        time.monotonic() - opened_at,
+    )
+
+
 @router.get("/{device_id}/preset/{preset_id}")
 async def stream_device_preset(
     state_manager: DeviceStateManagerDep,
@@ -239,15 +261,12 @@ async def stream_device_preset(
                     extra={"device_id": device_id, "preset_id": preset_id},
                 )
             finally:
-                # An end nobody asked for (upstream EOF/error, client disconnect) is
-                # the diagnostic for dropped stations: INFO. A deliberate stop stays DEBUG.
-                logger.log(
-                    logging.DEBUG if deliberate_stop else logging.INFO,
-                    "[STREAM END] %s: %d chunks, %d bytes total, elapsed=%.1f",
+                _log_stream_end(
                     preset.station_name,
                     chunks,
                     total_bytes,
-                    time.monotonic() - stream_opened_at,
+                    stream_opened_at,
+                    deliberate_stop,
                 )
                 await upstream_response.aclose()
                 await http_client.aclose()

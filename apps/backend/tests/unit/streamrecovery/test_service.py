@@ -136,7 +136,9 @@ class TestTriggerAndResume:
             await feed(now_playing_event(RADIO, "PLAY_STATE", STATION))
             await finish(service)
         text = caplog.text
-        assert DEVICE in text and "2" in text and STATION in text
+        assert DEVICE in text
+        assert "2" in text
+        assert STATION in text
         assert "http" not in text
 
     @pytest.mark.asyncio
@@ -323,7 +325,8 @@ class TestNoTrigger:
         await enabled(min_play_seconds=600)
         await play(feed, vtime, seconds=599)
         await drop(feed)
-        assert devices.presses == [] and await events_of(repository) == []
+        assert devices.presses == []
+        assert await events_of(repository) == []
 
     @pytest.mark.asyncio
     async def test_exactly_min_play_seconds_matches(
@@ -343,7 +346,8 @@ class TestNoTrigger:
         await play(feed, vtime)
         await feed(now_playing_event(RADIO, state, STATION))
         await feed(now_playing_event("INVALID_SOURCE", "PLAY_STATE"))
-        assert devices.presses == [] and await events_of(repository) == []
+        assert devices.presses == []
+        assert await events_of(repository) == []
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("source", ["TUNEIN", "BLUETOOTH", "AUX", "SPOTIFY"])
@@ -353,7 +357,8 @@ class TestNoTrigger:
         await enabled()
         await play(feed, vtime, source=source)
         await feed(now_playing_event("INVALID_SOURCE", "PLAY_STATE"))
-        assert devices.presses == [] and await events_of(repository) == []
+        assert devices.presses == []
+        assert await events_of(repository) == []
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("new_source", ["UNKNOWN", "TUNEIN", "STANDBY"])
@@ -363,7 +368,8 @@ class TestNoTrigger:
         await enabled()
         await play(feed, vtime)
         await feed(now_playing_event(new_source, "PLAY_STATE"))
-        assert devices.presses == [] and await events_of(repository) == []
+        assert devices.presses == []
+        assert await events_of(repository) == []
 
     @pytest.mark.asyncio
     async def test_disabled_service_never_presses(self, service, feed, vtime, devices):
@@ -392,7 +398,8 @@ class TestNoTrigger:
         await play(feed, vtime)
         devices.missing_devices.add(DEVICE)
         await drop(feed)
-        assert devices.presses == [] and await events_of(repository) == []
+        assert devices.presses == []
+        assert await events_of(repository) == []
 
     @pytest.mark.asyncio
     async def test_throttle_coalescing_hides_the_drop_but_spaced_events_show_it(
@@ -470,7 +477,8 @@ class TestPressErrors:
 
         (event,) = await events_of(repository)
         assert (event.outcome, event.error_code, event.attempts) == ("gave_up", code, 1)
-        assert "boom" not in repr(event) and "1.2.3.4" not in repr(event)
+        assert "boom" not in repr(event)
+        assert "1.2.3.4" not in repr(event)
 
     @pytest.mark.asyncio
     async def test_the_last_press_decides_and_the_consumer_survives(
@@ -534,7 +542,8 @@ class TestSeedingAndLifecycle:
 
         await feed(now_playing_event("INVALID_SOURCE", "PLAY_STATE"))
         await feed(now_playing_event("INVALID_SOURCE", "PLAY_STATE", device_id="OTHER"))
-        assert devices.presses == [] and await events_of(repository) == []
+        assert devices.presses == []
+        assert await events_of(repository) == []
 
     @pytest.mark.asyncio
     async def test_reconfigure_cancels_pending_sequences_without_events(

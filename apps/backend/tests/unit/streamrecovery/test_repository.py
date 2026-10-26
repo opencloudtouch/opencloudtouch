@@ -150,6 +150,7 @@ class TestEvents:
 
     @pytest.mark.asyncio
     async def test_unknown_outcome_is_rejected_by_the_schema(self, repo):
+        bad = _event(1, outcome="exploded")
         with pytest.raises(aiosqlite.IntegrityError):
-            await repo.add_event(_event(1, outcome="exploded"))
+            await repo.add_event(bad)
         assert await repo.list_events(limit=20) == []
