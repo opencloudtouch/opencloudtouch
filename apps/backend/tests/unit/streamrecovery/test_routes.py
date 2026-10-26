@@ -1,7 +1,9 @@
 """Stream recovery endpoints: config, validation, events and mock-mode lifespan."""
 
 import pytest
+import pytest_asyncio
 from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
 
 from opencloudtouch.core.dependencies import get_stream_recovery_service
 from opencloudtouch.main import app
@@ -9,17 +11,20 @@ from opencloudtouch.streamrecovery.models import OUTCOME_RESUMED, StreamRecovery
 from tests.unit.streamrecovery.conftest import DEVICE
 
 
-@pytest.fixture
-def client(service):
+@pytest_asyncio.fixture
+async def client(service):
+    """Async client: the service's SQLite worker and the requests share one loop."""
     app.dependency_overrides[get_stream_recovery_service] = lambda: service
-    yield TestClient(app, raise_server_exceptions=False)
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with AsyncClient(transport=transport, base_url="http://test") as c:
+        yield c
     app.dependency_overrides.clear()
 
 
 class TestConfig:
     @pytest.mark.asyncio
     async def test_get_returns_defaults(self, client):
-        response = client.get("/api/stream-recovery")
+        response = await client.get("/api/stream-recovery")
         assert response.status_code == 200
         assert response.json() == {
             "enabled": False,
@@ -31,18 +36,18 @@ class TestConfig:
     @pytest.mark.asyncio
     async def test_put_is_returned_by_the_next_get(self, client):
         body = {"enabled": True, "min_play_seconds": 300, "max_attempts_per_hour": 2}
-        put = client.put("/api/stream-recovery", json=body)
+        put = await client.put("/api/stream-recovery", json=body)
         assert put.status_code == 200
         assert put.json()["updated_at"].endswith("Z")
 
-        got = client.get("/api/stream-recovery").json()
+        got = (await client.get("/api/stream-recovery")).json()
         assert {k: got[k] for k in body} == body
         assert got["updated_at"] == put.json()["updated_at"]
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("value", [59, 86401, "x", 600.5, True])
     async def test_invalid_min_play_is_a_coded_422(self, client, value):
-        response = client.put(
+        response = await client.put(
             "/api/stream-recovery",
             json={
                 "enabled": True,
@@ -54,12 +59,12 @@ class TestConfig:
         body = response.json()
         assert body["code"] == "stream_recovery_min_play_invalid"
         assert body["errors"][0]["path"] == "min_play_seconds"
-        assert client.get("/api/stream-recovery").json()["updated_at"] is None
+        assert (await client.get("/api/stream-recovery")).json()["updated_at"] is None
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("value", [0, 11, "x"])
     async def test_invalid_attempts_is_a_coded_422(self, client, value):
-        response = client.put(
+        response = await client.put(
             "/api/stream-recovery",
             json={
                 "enabled": True,
@@ -73,7 +78,7 @@ class TestConfig:
 
     @pytest.mark.asyncio
     async def test_first_violation_wins(self, client):
-        response = client.put(
+        response = await client.put(
             "/api/stream-recovery",
             json={"enabled": True, "min_play_seconds": 1, "max_attempts_per_hour": 99},
         )
@@ -92,7 +97,7 @@ class TestConfig:
     async def test_wrong_types_and_missing_fields_are_validation_errors(
         self, client, body
     ):
-        response = client.put("/api/stream-recovery", json=body)
+        response = await client.put("/api/stream-recovery", json=body)
         assert response.status_code == 422
         assert response.json()["code"] == "validation_error"
 
@@ -112,7 +117,9 @@ class TestEvents:
                     attempts=1,
                 )
             )
-        events = client.get("/api/stream-recovery/events?limit=2").json()["events"]
+        events = (await client.get("/api/stream-recovery/events?limit=2")).json()[
+            "events"
+        ]
         assert [e["preset_number"] for e in events] == [3, 2]
         assert set(events[0]) == {
             "id",
@@ -128,12 +135,14 @@ class TestEvents:
 
     @pytest.mark.asyncio
     async def test_empty_log(self, client):
-        assert client.get("/api/stream-recovery/events").json() == {"events": []}
+        assert (await client.get("/api/stream-recovery/events")).json() == {
+            "events": []
+        }
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("limit", [0, 101, "x"])
     async def test_limit_is_bounded(self, client, limit):
-        response = client.get(f"/api/stream-recovery/events?limit={limit}")
+        response = await client.get(f"/api/stream-recovery/events?limit={limit}")
         assert response.status_code == 422
         assert response.json()["code"] == "validation_error"
 
