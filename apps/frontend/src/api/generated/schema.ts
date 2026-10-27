@@ -297,6 +297,30 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/devices/{device_id}/settings/bass": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Device Bass
+     * @description Get the current bass state reported by a SoundTouch device.
+     */
+    get: operations["get_device_bass_api_devices__device_id__settings_bass_get"];
+    /**
+     * Set Device Bass
+     * @description Set the bass level supported by the selected SoundTouch device.
+     */
+    put: operations["set_device_bass_api_devices__device_id__settings_bass_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/devices/{device_id}/key": {
     parameters: {
       query?: never;
@@ -2947,6 +2971,50 @@ export interface components {
       message: string;
     };
     /**
+     * DeviceListResponse
+     * @description Response containing all stored devices.
+     */
+    DeviceListResponse: {
+      /** Count */
+      count: number;
+      /** Devices */
+      devices: components["schemas"]["DeviceResponse"][];
+    };
+    /**
+     * DeviceResponse
+     * @description Stored device information, including UUID provenance.
+     */
+    DeviceResponse: {
+      /** Id */
+      id: number | null;
+      /** Device Id */
+      device_id: string;
+      /** Ip */
+      ip: string;
+      /** Name */
+      name: string;
+      /** Model */
+      model: string;
+      /** Mac Address */
+      mac_address: string;
+      /** Firmware Version */
+      firmware_version: string;
+      /** Schema Version */
+      schema_version: string;
+      /** Last Seen */
+      last_seen: string | null;
+      /** Setup Status */
+      setup_status: string;
+      /** Ssh Permanent */
+      ssh_permanent: boolean;
+      /** Setup Completed At */
+      setup_completed_at: string | null;
+      /** Marge Account Uuid */
+      marge_account_uuid: string | null;
+      /** Uuid Source */
+      uuid_source: string;
+    };
+    /**
      * DiagnosticsRequest
      * @description Request body for diagnostics download (no GitHub token needed).
      */
@@ -3509,6 +3577,14 @@ export interface components {
      */
     SearchType: "name" | "country" | "tag";
     /**
+     * SetBassRequest
+     * @description Request body for setting a device's bass level.
+     */
+    SetBassRequest: {
+      /** Level */
+      level: number;
+    };
+    /**
      * SetManualIPsRequest
      * @description Request model for setting all manual IPs at once.
      */
@@ -3954,7 +4030,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["DeviceListResponse"];
         };
       };
     };
@@ -3996,7 +4072,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["DeviceResponse"];
         };
       };
       /** @description Validation Error */
@@ -4069,6 +4145,70 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
         };
+      };
+    };
+  };
+  get_device_bass_api_devices__device_id__settings_bass_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  set_device_bass_api_devices__device_id__settings_bass_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SetBassRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Invalid bass level */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -6698,6 +6838,13 @@ export interface operations {
         content: {
           "application/json": unknown;
         };
+      };
+      /** @description Zone was dissolved during member addition */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {

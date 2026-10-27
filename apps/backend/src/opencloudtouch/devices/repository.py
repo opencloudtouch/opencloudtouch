@@ -183,7 +183,6 @@ class DeviceRepository(BaseRepository):
         # Discovery may observe an externally changed account UUID. Never
         # silently map it to a second MAC in the same OCT database.
         incoming_uuid = device.marge_account_uuid
-        uuid_collision = False
         if incoming_uuid:
             owner = await self.get_by_account_uuid(incoming_uuid)
             if owner is not None and owner.device_id != device.device_id:
@@ -193,7 +192,6 @@ class DeviceRepository(BaseRepository):
                     device.device_id,
                     owner.device_id,
                 )
-                uuid_collision = True
                 incoming_uuid = None
 
         cursor = await db.execute(
@@ -220,21 +218,28 @@ class DeviceRepository(BaseRepository):
                 schema_version = excluded.schema_version,
                 last_seen = excluded.last_seen,
                 marge_account_uuid = CASE
-                    WHEN ? OR (? IS NOT NULL AND excluded.marge_account_uuid IS NULL)
-                        THEN NULL
-                    ELSE COALESCE(excluded.marge_account_uuid, devices.marge_account_uuid)
+                    WHEN excluded.marge_account_uuid IS NULL
+                        THEN devices.marge_account_uuid
+                    WHEN devices.marge_account_uuid IS NOT NULL
+                      AND devices.uuid_source IN ('derived', 'collision_fallback')
+                      AND excluded.marge_account_uuid != devices.marge_account_uuid
+                        THEN devices.marge_account_uuid
+                    ELSE excluded.marge_account_uuid
                 END,
                 uuid_source = CASE
-                    WHEN ? OR (? IS NOT NULL AND excluded.marge_account_uuid IS NULL)
-                        THEN 'unknown'
-                    WHEN excluded.marge_account_uuid IS NOT NULL
+                    WHEN excluded.marge_account_uuid IS NULL
+                        THEN devices.uuid_source
+                    WHEN devices.marge_account_uuid IS NOT NULL
+                      AND devices.uuid_source IN ('derived', 'collision_fallback')
                       AND excluded.marge_account_uuid != devices.marge_account_uuid
+                        THEN devices.uuid_source
+                    WHEN excluded.marge_account_uuid != devices.marge_account_uuid
                         THEN 'unknown'
                     ELSE devices.uuid_source
                 END,
                 capabilities_json = COALESCE(excluded.capabilities_json, devices.capabilities_json),
                 updated_at = CURRENT_TIMESTAMP
-            RETURNING id
+            RETURNING id, marge_account_uuid
         """,
             (
                 device.device_id,
@@ -254,15 +259,24 @@ class DeviceRepository(BaseRepository):
                     if device.capabilities is not None
                     else None
                 ),
-                uuid_collision,
-                incoming_uuid,
-                uuid_collision,
-                incoming_uuid,
             ),
         )
 
         row = await cursor.fetchone()
         device.id = row[0] if row else None
+
+        if (
+            row
+            and row[1]
+            and device.marge_account_uuid
+            and row[1] != device.marge_account_uuid
+        ):
+            logger.warning(
+                "Preserving stored UUID %s for %s; discovery reported %s",
+                row[1],
+                device.device_id,
+                device.marge_account_uuid,
+            )
 
         await db.commit()
         logger.debug("Upserted device: %s (%s)", device.name, device.device_id)
