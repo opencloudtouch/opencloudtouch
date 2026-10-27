@@ -317,3 +317,58 @@ async def test_update_rejects_target_version_mismatch(monkeypatch):
         await routes.update(update_request("1.5.10"))
 
     assert exc.value.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_update_disabled_returns_503_without_docker_calls(monkeypatch):
+    monkeypatch.setattr(routes, "get_update_status", lambda: {"phase": "idle"})
+
+    async def check():
+        return {
+            "current": "1.5.8",
+            "latest": "1.5.9",
+            "update_available": True,
+            "self_update_enabled": False,
+            "self_update_reason": "Docker socket is not mounted",
+        }
+
+    async def unexpected_container():
+        pytest.fail("Docker must not be contacted when self-update is disabled")
+
+    monkeypatch.setattr(routes, "check_for_update", check)
+    monkeypatch.setattr(routes, "get_oct_container", unexpected_container)
+
+    with pytest.raises(HTTPException) as exc:
+        await routes.update(update_request())
+
+    assert exc.value.status_code == 503
+    assert exc.value.detail == "Docker socket is not mounted"
+
+
+@pytest.mark.asyncio
+async def test_update_status_write_failure_keeps_original_503(monkeypatch):
+    monkeypatch.setattr(routes, "get_update_status", lambda: {"phase": "idle"})
+
+    async def check():
+        return {
+            "current": "1.5.8",
+            "latest": "1.5.9",
+            "update_available": True,
+            "self_update_enabled": True,
+        }
+
+    async def fail():
+        raise RuntimeError("Docker unavailable")
+
+    def fail_status(*args, **kwargs):
+        raise OSError("status file is read-only")
+
+    monkeypatch.setattr(routes, "check_for_update", check)
+    monkeypatch.setattr(routes, "get_oct_container", fail)
+    monkeypatch.setattr(routes, "set_update_status", fail_status)
+
+    with pytest.raises(HTTPException) as exc:
+        await routes.update(update_request())
+
+    assert exc.value.status_code == 503
+    assert exc.value.detail == "Docker unavailable"

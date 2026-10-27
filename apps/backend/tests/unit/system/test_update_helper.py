@@ -819,3 +819,65 @@ def test_set_status_preserves_oct_ownership(tmp_path, monkeypatch):
     assert path.exists()
     assert chown_calls
     assert chown_calls == [(path.with_suffix(".tmp"), 1000, 1000)]
+
+
+@pytest.mark.asyncio
+async def test_wait_for_health_rejects_restarted_container_without_healthcheck(
+    monkeypatch,
+):
+    async def no_sleep(_):
+        pass
+
+    monkeypatch.setattr(update_helper.asyncio, "sleep", no_sleep)
+    client = HealthClient([{"Running": True}])
+
+    async def get_with_restart(path):
+        return FakeResponse({"State": {"Running": True}, "RestartCount": 1})
+
+    client.get = get_with_restart
+
+    with pytest.raises(RuntimeError, match="restarted"):
+        await update_helper.wait_for_health(
+            client,
+            "abc",
+            attempts=1,
+            no_healthcheck_grace_attempts=1,
+        )
+
+
+@pytest.mark.asyncio
+async def test_wait_for_health_rejects_restarting_container_without_healthcheck(
+    monkeypatch,
+):
+    async def no_sleep(_):
+        pass
+
+    monkeypatch.setattr(update_helper.asyncio, "sleep", no_sleep)
+    client = HealthClient([{"Running": True, "Restarting": True}])
+
+    with pytest.raises(RuntimeError, match="restarted"):
+        await update_helper.wait_for_health(
+            client,
+            "abc",
+            attempts=1,
+            no_healthcheck_grace_attempts=1,
+        )
+
+
+@pytest.mark.asyncio
+async def test_wait_for_health_accepts_stable_container_after_grace_period(
+    monkeypatch,
+):
+    async def no_sleep(_):
+        pass
+
+    monkeypatch.setattr(update_helper.asyncio, "sleep", no_sleep)
+
+    client = HealthClient([{"Running": True, "Restarting": False} for _ in range(5)])
+
+    await update_helper.wait_for_health(
+        client,
+        "abc",
+        attempts=5,
+        no_healthcheck_grace_attempts=5,
+    )

@@ -75,7 +75,7 @@ async def wait_for_health(
     client: httpx.AsyncClient,
     container_id: str,
     attempts: int = 45,
-    no_healthcheck_grace_attempts: int = 3,
+    no_healthcheck_grace_attempts: int = 5,
 ) -> None:
     for attempt in range(attempts):
         await asyncio.sleep(2)
@@ -90,6 +90,13 @@ async def wait_for_health(
             raise RuntimeError("Updated container stopped unexpectedly")
 
         health = state.get("Health", {}).get("Status")
+
+        if health is None and (
+            state.get("Restarting") or inspect.get("RestartCount", 0) > 0
+        ):
+            raise RuntimeError(
+                "Updated container restarted during healthcheck grace period"
+            )
 
         if health is None and attempt + 1 >= no_healthcheck_grace_attempts:
             logger.warning(

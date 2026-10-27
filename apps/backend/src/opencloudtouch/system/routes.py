@@ -110,6 +110,13 @@ async def update(request: UpdateRequest):
         try:
             update_info = await check_for_update()
 
+            if not update_info.get("self_update_enabled", True):
+                raise HTTPException(
+                    status_code=503,
+                    detail=update_info.get("self_update_reason")
+                    or "Self-update is disabled",
+                )
+
             if not update_info["update_available"]:
                 raise HTTPException(
                     status_code=409,
@@ -182,12 +189,15 @@ async def update(request: UpdateRequest):
 
         except Exception as exc:
             logger.exception("Self-update failed before helper handoff")
-            set_update_status(
-                "failed",
-                progress_pct=0,
-                message="Update failed",
-                error=str(exc),
-            )
+            try:
+                set_update_status(
+                    "failed",
+                    progress_pct=0,
+                    message="Update failed",
+                    error=str(exc),
+                )
+            except Exception:
+                logger.exception("Failed to persist self-update failure status")
 
             raise HTTPException(
                 status_code=503,
