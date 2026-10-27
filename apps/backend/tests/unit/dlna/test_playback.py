@@ -804,3 +804,32 @@ async def test_events_after_shutdown_do_not_restart_queue():
     await service.handle_transport_state("device-1", "STOPPED")
     assert renderer.play_uri.await_count == 0
     assert service._advance_tasks == {}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "url", ["file:///tmp/track.mp3", "ftp://server/track.mp3", "javascript:alert(1)"]
+)
+async def test_play_rejects_unsupported_resource_schemes(url):
+    renderer = make_renderer()
+    service = DlnaPlaybackService(renderer=renderer)
+    item = make_track("track-1", url)
+
+    with pytest.raises(DlnaPlaybackError, match="Unsupported DLNA resource URL"):
+        await service.play("device-1", "192.0.2.10", "server-1", [item], item.id)
+
+    renderer.play_uri.assert_not_awaited()
+    assert service.current("device-1") is None
+
+
+@pytest.mark.asyncio
+async def test_unknown_device_event_does_not_create_lock():
+    renderer = make_renderer()
+    service = DlnaPlaybackService(renderer=renderer)
+
+    assert await service.handle_transport_state("unknown-device", "PLAYING") is None
+    assert await service.handle_transport_state("unknown-device", "STOPPED") is None
+    assert "unknown-device" not in service._device_locks
+    assert "unknown-device" not in service._states
+    assert service._advance_tasks == {}
+    renderer.play_uri.assert_not_awaited()

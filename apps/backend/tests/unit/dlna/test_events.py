@@ -234,3 +234,32 @@ async def test_exhausted_recovery_removes_only_own_subscription(monkeypatch):
 
     assert renderer.subscribe.await_count == 4
     assert "device-1" not in subscriptions._subscriptions
+
+
+@pytest.mark.asyncio
+async def test_zero_timeout_subscription_renewal_waits_at_least_five_seconds(
+    monkeypatch,
+):
+    renderer = AsyncMock()
+    renderer.subscribe.return_value = ("uuid:short", 0)
+    subscriptions = DlnaEventSubscriptions(renderer)
+    entered = asyncio.Event()
+    never_release = asyncio.Event()
+    recorded_delays = []
+
+    async def controlled_sleep(delay):
+        recorded_delays.append(delay)
+        entered.set()
+        await never_release.wait()
+
+    monkeypatch.setattr(asyncio, "sleep", controlled_sleep)
+    await subscriptions.ensure(
+        "device-1", "192.0.2.10", "http://192.0.2.20:7777/callback"
+    )
+
+    try:
+        await asyncio.wait_for(entered.wait(), timeout=2)
+        assert recorded_delays == [5]
+        renderer.renew_subscription.assert_not_awaited()
+    finally:
+        await subscriptions.close()
