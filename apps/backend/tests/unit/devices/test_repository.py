@@ -1073,7 +1073,7 @@ async def test_discovery_preserves_wizard_uuid_for_free_mismatch(repo, source, c
     )
     device.marge_account_uuid = "1234567"
     device.name = "Speaker A updated"
-    with caplog.at_level("WARNING"):
+    with caplog.at_level("INFO"):
         await repo.upsert(device)
 
     stored = await repo.get_by_device_id(device.device_id)
@@ -1138,7 +1138,7 @@ async def test_wizard_uuid_survives_conflicting_stale_info(repo, source, caplog)
     # Before reboot, /info reports a UUID owned by speaker A.
     speaker_b.marge_account_uuid = "1234567"
 
-    with caplog.at_level("WARNING"):
+    with caplog.at_level("INFO"):
         await repo.upsert(speaker_b)
 
     stored_a = await repo.get_by_device_id(speaker_a.device_id)
