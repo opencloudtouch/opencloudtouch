@@ -228,6 +228,123 @@ function SearchChips({
   );
 }
 
+interface SearchResultsProps {
+  readonly error: string | null;
+  readonly loading: boolean;
+  readonly results: RadioStation[];
+  readonly query: string;
+  readonly hasMore: boolean;
+  readonly loadingMore: boolean;
+  readonly onOpenDetail: (stationUuid: string) => void;
+  readonly onLoadMore: () => void;
+}
+
+/** Scrollable result list with loading, error and empty states. */
+function SearchResults({
+  error,
+  loading,
+  results,
+  query,
+  hasMore,
+  loadingMore,
+  onOpenDetail,
+  onLoadMore,
+}: SearchResultsProps) {
+  const { t } = useTranslation();
+
+  return (
+    <section
+      className="rs-results rs-scroll"
+      tabIndex={0} // NOSONAR(S6845): scrollable region must be keyboard-focusable (WCAG 2.1.1)
+      aria-label={t("presets.searchResults")}
+    >
+      {error && (
+        <div className="wz-status wz-status--error" role="alert">
+          <span className="wz-icon" aria-hidden="true">
+            {Icon.CircleX(20)}
+          </span>
+          <div className="wz-status-body">
+            <p className="search-error">{error}</p>
+          </div>
+        </div>
+      )}
+      {loading && (
+        <output className="rs-note">
+          <span className="spinner-small rs-spinner" aria-hidden="true" />
+          {t("presets.searchLoading")}
+        </output>
+      )}
+      {!loading && !error && results.length === 0 && !query.trim() && (
+        <div className="rs-note rs-note--hint">
+          {Icon.Search(20)}
+          <span>{t("presets.searchHint")}</span>
+        </div>
+      )}
+      {!loading && !error && results.length === 0 && query && (
+        <output className="rs-note">{t("presets.searchEmpty")}</output>
+      )}
+      {results.map((station) => (
+        <button
+          key={station.stationuuid}
+          className="rs-item"
+          onClick={() => onOpenDetail(station.stationuuid)}
+        >
+          <div className="rs-logo">
+            {station.favicon ? (
+              <img
+                src={station.favicon}
+                alt=""
+                className="rs-favicon"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                  const parent = (e.target as HTMLImageElement).parentElement;
+                  if (parent) {
+                    const fb = parent.querySelector(".rs-avatar") as HTMLElement;
+                    if (fb) fb.style.display = "flex";
+                  }
+                }}
+              />
+            ) : null}
+            <span
+              className="rs-avatar"
+              style={{
+                backgroundColor: getAvatarColor(station.name),
+                display: station.favicon ? "none" : "flex",
+              }}
+            >
+              {getStationInitials(station.name)}
+            </span>
+          </div>
+          <div className="rs-info">
+            <div className="rs-name">{station.name}</div>
+            <div className="rs-country">{station.country}</div>
+          </div>
+          <span className="rs-chevron" aria-hidden="true">
+            {Icon.ChevronRight(20)}
+          </span>
+        </button>
+      ))}
+      {hasMore && results.length < MAX_RESULTS && (
+        <button
+          className="btn btn-secondary rs-more"
+          onClick={onLoadMore}
+          disabled={loadingMore}
+          aria-busy={loadingMore}
+        >
+          {loadingMore && <span className="spinner-small" aria-hidden="true" />}
+          {loadingMore ? t("presets.loadingMore") : t("presets.loadMore")}
+        </button>
+      )}
+      {results.length >= MAX_RESULTS && (
+        <div className="rs-note rs-note--max" title={t("presets.maxReachedTooltip")}>
+          {Icon.Info(18)}
+          <span>{t("presets.maxReached", { count: MAX_RESULTS })}</span>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function RadioSearch({
   onStationSelect,
   isOpen,
@@ -571,95 +688,16 @@ export default function RadioSearch({
           )}
 
           {searchMode === "provider" && (
-            <section
-              className="rs-results rs-scroll"
-              tabIndex={0} // NOSONAR(S6845): scrollable region must be keyboard-focusable (WCAG 2.1.1)
-              aria-label={t("presets.searchResults")}
-            >
-              {error && (
-                <div className="wz-status wz-status--error" role="alert">
-                  <span className="wz-icon" aria-hidden="true">
-                    {Icon.CircleX(20)}
-                  </span>
-                  <div className="wz-status-body">
-                    <p className="search-error">{error}</p>
-                  </div>
-                </div>
-              )}
-              {loading && (
-                <output className="rs-note">
-                  <span className="spinner-small rs-spinner" aria-hidden="true" />
-                  {t("presets.searchLoading")}
-                </output>
-              )}
-              {!loading && !error && results.length === 0 && !query.trim() && (
-                <div className="rs-note rs-note--hint">
-                  {Icon.Search(20)}
-                  <span>{t("presets.searchHint")}</span>
-                </div>
-              )}
-              {!loading && !error && results.length === 0 && query && (
-                <output className="rs-note">{t("presets.searchEmpty")}</output>
-              )}
-              {results.map((station) => (
-                <button
-                  key={station.stationuuid}
-                  className="rs-item"
-                  onClick={() => setDetailUuid(station.stationuuid)}
-                >
-                  <div className="rs-logo">
-                    {station.favicon ? (
-                      <img
-                        src={station.favicon}
-                        alt=""
-                        className="rs-favicon"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = "none";
-                          const parent = (e.target as HTMLImageElement).parentElement;
-                          if (parent) {
-                            const fb = parent.querySelector(".rs-avatar") as HTMLElement;
-                            if (fb) fb.style.display = "flex";
-                          }
-                        }}
-                      />
-                    ) : null}
-                    <span
-                      className="rs-avatar"
-                      style={{
-                        backgroundColor: getAvatarColor(station.name),
-                        display: station.favicon ? "none" : "flex",
-                      }}
-                    >
-                      {getStationInitials(station.name)}
-                    </span>
-                  </div>
-                  <div className="rs-info">
-                    <div className="rs-name">{station.name}</div>
-                    <div className="rs-country">{station.country}</div>
-                  </div>
-                  <span className="rs-chevron" aria-hidden="true">
-                    {Icon.ChevronRight(20)}
-                  </span>
-                </button>
-              ))}
-              {hasMore && results.length < MAX_RESULTS && (
-                <button
-                  className="btn btn-secondary rs-more"
-                  onClick={handleLoadMore}
-                  disabled={loadingMore}
-                  aria-busy={loadingMore}
-                >
-                  {loadingMore && <span className="spinner-small" aria-hidden="true" />}
-                  {loadingMore ? t("presets.loadingMore") : t("presets.loadMore")}
-                </button>
-              )}
-              {results.length >= MAX_RESULTS && (
-                <div className="rs-note rs-note--max" title={t("presets.maxReachedTooltip")}>
-                  {Icon.Info(18)}
-                  <span>{t("presets.maxReached", { count: MAX_RESULTS })}</span>
-                </div>
-              )}
-            </section>
+            <SearchResults
+              error={error}
+              loading={loading}
+              results={results}
+              query={query}
+              hasMore={hasMore}
+              loadingMore={loadingMore}
+              onOpenDetail={setDetailUuid}
+              onLoadMore={handleLoadMore}
+            />
           )}
 
           {hasExistingPreset && onDelete && (
