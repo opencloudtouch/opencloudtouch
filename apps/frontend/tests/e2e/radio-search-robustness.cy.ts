@@ -17,6 +17,10 @@ describe("Radio Search Robustness", () => {
     // Clear devices
     cy.request("DELETE", `${apiUrl}/devices`);
 
+    // The mock device is not reachable, so the automatic preset sync would only fail after a connection timeout and the
+    // preset slots (which are hidden while loading) would not show up in time: answer it right away.
+    cy.intercept("POST", "/api/presets/*/sync", { statusCode: 200, body: { message: "Synced 0 presets" } });
+
     // Discover devices — force German locale for text assertions
     cy.visit("/welcome", {
       onBeforeLoad(win) {
