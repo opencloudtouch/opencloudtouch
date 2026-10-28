@@ -113,6 +113,16 @@ function cancelPendingSearch(
   abortRef.current?.abort();
 }
 
+/** Returns the editable fields of a manually entered preset, or null for provider stations. */
+function getManualPresetFields(preset: RadioSearchProps["existingPreset"]) {
+  if (!preset?.station_uuid?.startsWith("manual-")) return null;
+  return {
+    url: preset.station_url ?? "",
+    name: preset.station_name,
+    favicon: preset.station_favicon ?? "",
+  };
+}
+
 export default function RadioSearch({
   onStationSelect,
   isOpen,
@@ -146,7 +156,7 @@ export default function RadioSearch({
   useEffect(() => {
     if (!isOpen) return;
 
-    const isManualPreset = existingPreset?.station_uuid?.startsWith("manual-") ?? false;
+    const manualFields = getManualPresetFields(existingPreset);
 
     setQuery("");
     setResults([]);
@@ -156,17 +166,10 @@ export default function RadioSearch({
     setOffset(0);
     setHasMore(false);
 
-    if (isManualPreset && existingPreset) {
-      setSearchMode("manual");
-      setManualUrl(existingPreset.station_url ?? "");
-      setManualName(existingPreset.station_name);
-      setManualFavicon(existingPreset.station_favicon ?? "");
-    } else {
-      setSearchMode("provider");
-      setManualUrl("");
-      setManualName("");
-      setManualFavicon("");
-    }
+    setSearchMode(manualFields ? "manual" : "provider");
+    setManualUrl(manualFields?.url ?? "");
+    setManualName(manualFields?.name ?? "");
+    setManualFavicon(manualFields?.favicon ?? "");
   }, [isOpen, existingPreset]);
 
   const handleSearch = async (

@@ -143,6 +143,9 @@ export default function Step3PowerCycle({
   if (riskLevel === "gering") riskIcon = Icon.ShieldCheck();
   else if (riskLevel === "mittel") riskIcon = Icon.Alert();
 
+  const checkButtonLabelKey =
+    checkAttempts === 0 ? "setup.wizard.step3.btnCheckNow" : "setup.wizard.step3.btnCheckAgain";
+
   return (
     <WizardStep
       stepNumber={2}
@@ -238,11 +241,7 @@ export default function Step3PowerCycle({
                 {t("setup.wizard.step3.btnChecking")}
               </>
             ) : (
-              t(
-                checkAttempts === 0
-                  ? "setup.wizard.step3.btnCheckNow"
-                  : "setup.wizard.step3.btnCheckAgain"
-              )
+              t(checkButtonLabelKey)
             )}
           </button>
 
