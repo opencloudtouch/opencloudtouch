@@ -550,7 +550,9 @@ def test_http_play_callback_address_failure_returns_502(monkeypatch, socket_erro
         def connect(self, _address):
             raise socket_error
 
-    monkeypatch.setattr(routes.socket, "socket", lambda *_args: FailingSocket())
+    mock_socket_module = MagicMock()
+    mock_socket_module.socket.side_effect = lambda *_args: FailingSocket()
+    monkeypatch.setattr(routes, "socket", mock_socket_module)
 
     with TestClient(app) as client:
         response = client.post(
