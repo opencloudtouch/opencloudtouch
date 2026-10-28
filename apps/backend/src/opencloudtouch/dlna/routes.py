@@ -98,9 +98,15 @@ def _get_callback_base_url(request: Request, device_ip: str) -> str:
     mode, the detected container address and port may not be reachable from
     the LAN. IPv6 callback address selection is not supported here.
     """
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-        sock.connect((device_ip, 8091))
-        callback_host = sock.getsockname()[0]
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.connect((device_ip, 8091))
+            callback_host = sock.getsockname()[0]
+    except OSError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="Cannot determine DLNA callback address",
+        ) from exc
 
     server = request.scope.get("server")
     callback_port = server[1] if server else request.url.port

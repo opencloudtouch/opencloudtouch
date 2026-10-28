@@ -525,3 +525,43 @@ def test_http_notify_dispatch_and_xml_hardening():
     service.playback.handle_transport_state.assert_awaited_once_with(
         "device-1", "PLAYING"
     )
+
+
+@pytest.mark.parametrize(
+    "socket_error", [OSError("Network unreachable"), OSError("Name not known")]
+)
+def test_http_play_callback_address_failure_returns_502(monkeypatch, socket_error):
+    app = FastAPI()
+    app.include_router(routes.router)
+    service = AsyncMock()
+    app.state.device_service = MagicMock()
+    app.state.device_service.get_device_by_id = AsyncMock(
+        return_value=MagicMock(ip="192.0.2.10")
+    )
+    app.dependency_overrides[get_dlna_service] = lambda: service
+
+    class FailingSocket:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+        def connect(self, _address):
+            raise socket_error
+
+    monkeypatch.setattr(routes.socket, "socket", lambda *_args: FailingSocket())
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/dlna/devices/device-1/play",
+            json={
+                "server_id": "server-1",
+                "object_id": "folder/track$1",
+                "parent_id": "folder",
+            },
+        )
+
+    assert response.status_code == 502
+    assert response.json()["detail"] == "Cannot determine DLNA callback address"
+    service.play.assert_not_awaited()
