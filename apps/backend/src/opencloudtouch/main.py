@@ -65,6 +65,9 @@ from opencloudtouch.settings.service import SettingsService
 from opencloudtouch.setup.routes import router as setup_router
 from opencloudtouch.setup.service import SetupService
 from opencloudtouch.setup.wizard import WizardService, wizard_router
+from opencloudtouch.sleep_timer.api.routes import router as sleep_timer_router
+from opencloudtouch.sleep_timer.repository import SleepTimerRepository
+from opencloudtouch.sleep_timer.service import SleepTimerService
 from opencloudtouch.streamrecovery.api.routes import router as stream_recovery_router
 from opencloudtouch.streamrecovery.repository import StreamRecoveryRepository
 from opencloudtouch.streamrecovery.service import StreamRecoveryService
@@ -143,6 +146,7 @@ async def _init_repositories(app: FastAPI, cfg, logger: logging.Logger) -> dict:
         ("wizard_audit_repo", WizardAuditRepository, cfg.effective_db_path),
         ("zone_repo", ZoneRepository, cfg.effective_db_path),
         ("stream_recovery_repo", StreamRecoveryRepository, cfg.effective_db_path),
+        ("sleep_timer_repo", SleepTimerRepository, cfg.effective_db_path),
     ]
 
     repos = {}
@@ -192,6 +196,13 @@ async def _init_services(
     )
     app.state.device_service = device_service
     logger.info("DeviceService initialized")
+
+    # Sleep timer (exists in every mode; timers stored before a restart continue)
+    app.state.sleep_timer_service = SleepTimerService(
+        device_service=device_service, repository=repos["sleep_timer_repo"]
+    )
+    await app.state.sleep_timer_service.recover()
+    logger.info("SleepTimerService initialized")
 
     app.state.dlna_service = DlnaService()
     logger.info("DlnaService initialized")
@@ -352,6 +363,11 @@ async def _init_websocket_pipeline(
 
 async def _shutdown(app: FastAPI, repos: dict, logger: logging.Logger) -> None:
     """Graceful shutdown: stop background tasks, close repositories."""
+    # Cancel sleep timers (restores faded volumes) while the devices are reachable
+    if hasattr(app.state, "sleep_timer_service"):
+        await app.state.sleep_timer_service.shutdown()
+        logger.info("Sleep timers stopped")
+
     # Stop the stream recovery watchdog before the event source goes away
     if hasattr(app.state, "stream_recovery_service"):
         await app.state.stream_recovery_service.stop()
@@ -457,6 +473,7 @@ app.include_router(diagnostics_router)  # Diagnostics page data
 app.include_router(wizard_audit_router)  # Wizard audit trail
 app.include_router(event_router)  # SSE device event stream
 app.include_router(stream_recovery_router)  # Stream recovery watchdog settings
+app.include_router(sleep_timer_router)  # Sleep timer per device
 
 
 # Monotonic reference taken at import time (= process start) for /health uptime.

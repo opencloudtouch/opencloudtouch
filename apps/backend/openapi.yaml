@@ -3433,6 +3433,87 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/devices/{device_id}/sleep-timer:
+    get:
+      tags:
+      - Sleep timer
+      summary: Get Sleep Timer
+      description: Current timer of the device (no device call).
+      operationId: get_sleep_timer_api_devices__device_id__sleep_timer_get
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SleepTimerStatus'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - Sleep timer
+      summary: Put Sleep Timer
+      description: Start the timer; replaces a running one.
+      operationId: put_sleep_timer_api_devices__device_id__sleep_timer_put
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SleepTimerRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SleepTimerStatus'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - Sleep timer
+      summary: Delete Sleep Timer
+      description: Cancel the timer (idempotent) and give a faded volume back.
+      operationId: delete_sleep_timer_api_devices__device_id__sleep_timer_delete
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /health:
     get:
       tags:
@@ -4823,6 +4904,80 @@ components:
       - clock
       - power_saving
       title: SettingsAvailability
+    SleepTimerRequest:
+      properties:
+        duration_minutes:
+          type: integer
+          maximum: 720.0
+          minimum: 1.0
+          title: Duration Minutes
+        fade_seconds:
+          type: integer
+          maximum: 300.0
+          minimum: 0.0
+          title: Fade Seconds
+          default: 30
+        end_action:
+          type: string
+          enum:
+          - stop
+          - standby
+          title: End Action
+          default: stop
+      type: object
+      required:
+      - duration_minutes
+      title: SleepTimerRequest
+    SleepTimerStatus:
+      properties:
+        active:
+          type: boolean
+          title: Active
+        server_time:
+          type: string
+          title: Server Time
+        device_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Device Id
+        ends_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ends At
+        duration_minutes:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Duration Minutes
+        fade_seconds:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Fade Seconds
+        end_action:
+          anyOf:
+          - type: string
+            enum:
+            - stop
+            - standby
+          - type: 'null'
+          title: End Action
+        state:
+          anyOf:
+          - type: string
+            enum:
+            - running
+            - fading
+            - ending
+          - type: 'null'
+          title: State
+      type: object
+      required:
+      - active
+      - server_time
+      title: SleepTimerStatus
     StreamRecoveryConfigRequest:
       properties:
         enabled:
