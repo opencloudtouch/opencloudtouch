@@ -34,8 +34,8 @@ describe("ManualIPModal", () => {
 
   it("calls onClose when the dimmed overlay is clicked", () => {
     render(<ManualIPModal isOpen={true} onClose={mockOnClose} />);
-    const overlay = document.querySelector('[data-test="modal-overlay"]')!;
-    fireEvent.click(overlay);
+    const backdrop = document.querySelector(".dlg-backdrop")!;
+    fireEvent.click(backdrop);
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 

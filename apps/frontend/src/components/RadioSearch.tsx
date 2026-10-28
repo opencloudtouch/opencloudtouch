@@ -155,6 +155,79 @@ function getManualPresetFields(preset: RadioSearchProps["existingPreset"]) {
   };
 }
 
+interface SearchChipsProps {
+  readonly query: string;
+  readonly searchType: SearchType;
+  readonly searchMode: SearchMode;
+  readonly radioProvider: RadioProviderType;
+  readonly onSearch: (query: string, provider: RadioProviderType, type: SearchType) => void;
+  readonly onSearchTypeChange: (type: SearchType) => void;
+  readonly onModeChange: (mode: SearchMode) => void;
+  readonly onProviderChange: (provider: RadioProviderType) => void;
+  readonly onManualMode: () => void;
+}
+
+/** Search-type and provider chips above the result list. */
+function SearchChips({
+  query,
+  searchType,
+  searchMode,
+  radioProvider,
+  onSearch,
+  onSearchTypeChange,
+  onModeChange,
+  onProviderChange,
+  onManualMode,
+}: SearchChipsProps) {
+  const { t } = useTranslation();
+  const canSearch = query.trim().length >= 2;
+
+  return (
+    <div className="rs-chips">
+      <fieldset className="ui-chips" aria-label={t("presets.searchTypeGroup")}>
+        {SEARCH_TYPES.map((st) => (
+          <button
+            key={st.value}
+            className="ui-chip"
+            aria-pressed={searchType === st.value}
+            disabled={searchMode === "manual"}
+            onClick={() => {
+              onSearchTypeChange(st.value);
+              if (canSearch) onSearch(query, radioProvider, st.value);
+            }}
+          >
+            {t(`presets.searchTypeLabel.${st.value}`)}
+          </button>
+        ))}
+      </fieldset>
+      <fieldset className="ui-chips" aria-label={t("presets.providerGroup")}>
+        {PROVIDERS.map((p) => (
+          <button
+            key={p.value}
+            className="ui-chip"
+            aria-pressed={searchMode === "provider" && radioProvider === p.value}
+            onClick={() => {
+              onModeChange("provider");
+              onProviderChange(p.value);
+              if (canSearch) onSearch(query, p.value, searchType);
+            }}
+          >
+            {p.label}
+          </button>
+        ))}
+        <button
+          data-test="manual-stream-mode"
+          className="ui-chip"
+          aria-pressed={searchMode === "manual"}
+          onClick={onManualMode}
+        >
+          {t("presets.manualStreamMode")}
+        </button>
+      </fieldset>
+    </div>
+  );
+}
+
 export default function RadioSearch({
   onStationSelect,
   isOpen,
@@ -366,57 +439,22 @@ export default function RadioSearch({
             </button>
           </div>
 
-          <div className="rs-chips">
-            <fieldset className="ui-chips" aria-label={t("presets.searchTypeGroup")}>
-              {SEARCH_TYPES.map((st) => (
-                <button
-                  key={st.value}
-                  className="ui-chip"
-                  aria-pressed={searchType === st.value}
-                  disabled={searchMode === "manual"}
-                  onClick={() => {
-                    setSearchType(st.value);
-                    if (query.trim().length >= 2) {
-                      handleSearch(query, radioProvider, st.value);
-                    }
-                  }}
-                >
-                  {t(`presets.searchTypeLabel.${st.value}`)}
-                </button>
-              ))}
-            </fieldset>
-            <fieldset className="ui-chips" aria-label={t("presets.providerGroup")}>
-              {PROVIDERS.map((p) => (
-                <button
-                  key={p.value}
-                  className="ui-chip"
-                  aria-pressed={searchMode === "provider" && radioProvider === p.value}
-                  onClick={() => {
-                    setSearchMode("provider");
-                    setRadioProvider(p.value);
-                    if (query.trim().length >= 2) {
-                      handleSearch(query, p.value, searchType);
-                    }
-                  }}
-                >
-                  {p.label}
-                </button>
-              ))}
-              <button
-                data-test="manual-stream-mode"
-                className="ui-chip"
-                aria-pressed={searchMode === "manual"}
-                onClick={() => {
-                  // Keep the query and its results: switching back to a provider shows them again
-                  setSearchMode("manual");
-                  setError(null);
-                  setDetailUuid(null);
-                }}
-              >
-                {t("presets.manualStreamMode")}
-              </button>
-            </fieldset>
-          </div>
+          <SearchChips
+            query={query}
+            searchType={searchType}
+            searchMode={searchMode}
+            radioProvider={radioProvider}
+            onSearch={handleSearch}
+            onSearchTypeChange={setSearchType}
+            onModeChange={setSearchMode}
+            onProviderChange={setRadioProvider}
+            onManualMode={() => {
+              // Keep the query and its results: switching back to a provider shows them again
+              setSearchMode("manual");
+              setError(null);
+              setDetailUuid(null);
+            }}
+          />
 
           <div className="rs-field">
             {searchMode === "manual" ? (

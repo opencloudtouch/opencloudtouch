@@ -108,7 +108,7 @@ describe("Preset Search Modal — layout", () => {
   it("modal closes on overlay click", () => {
     cy.get(".pb-empty").first().click();
     cy.get("dialog.dlg").should("exist");
-    cy.get(".dlg-overlay").click("topLeft");
+    cy.get(".dlg-backdrop").click("topLeft");
     cy.get("dialog.dlg").should("not.exist");
   });
 

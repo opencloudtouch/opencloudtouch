@@ -81,22 +81,22 @@ export default function Modal({
       aria-modal="true"
       aria-labelledby={labelledBy}
       aria-describedby={describedBy}
-      onClick={(e) => {
-        // a click on the backdrop lands on the overlay that fills the dialog, not on the panel
-        if (
-          closeOnBackdrop &&
-          e.target instanceof Element &&
-          e.target.classList.contains("dlg-overlay")
-        ) {
-          onClose();
-        }
-      }}
       onCancel={(e) => {
         e.preventDefault(); // React state stays the single source of truth
         if (closeOnEscape) onClose();
       }}
     >
       <div className="dlg-overlay" {...overlayData}>
+        {/* click target behind the panel: dismisses on backdrop click; keyboard users close with Escape */}
+        <button
+          type="button"
+          className="dlg-backdrop"
+          tabIndex={-1}
+          aria-hidden="true"
+          onClick={() => {
+            if (closeOnBackdrop) onClose();
+          }}
+        />
         <div className="dlg-panel" {...panelData}>
           {children}
         </div>

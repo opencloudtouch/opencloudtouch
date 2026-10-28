@@ -166,8 +166,8 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const overlay = document.querySelector(".dlg-overlay")!;
-    fireEvent.click(overlay);
+    const backdrop = document.querySelector(".dlg-backdrop")!;
+    fireEvent.click(backdrop);
 
     expect(mockOnClose).toHaveBeenCalled();
   });

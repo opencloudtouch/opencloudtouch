@@ -194,9 +194,7 @@ export function collectLayoutIssues(win: Window): LayoutIssue[] {
   }
 
   // Overlap: only compare elements that are not nested in each other.
-  const leaves = visible.filter(
-    ({ el }) => !visible.some((o) => o.el !== el && el.contains(o.el)),
-  );
+  const leaves = visible.filter(({ el }) => !visible.some((o) => o.el !== el && el.contains(o.el)));
   for (let i = 0; i < leaves.length; i++) {
     for (let j = i + 1; j < leaves.length; j++) {
       const a = leaves[i];
@@ -208,9 +206,14 @@ export function collectLayoutIssues(win: Window): LayoutIssue[] {
       const tags = [a.el.tagName.toLowerCase(), b.el.tagName.toLowerCase()].sort();
       if (tags[0] === "img" && tags[1] === "svg") continue;
       // A decorative icon (aria-hidden) drawn inside a form field, e.g. the chevron of a custom select, is intentional.
-      const field = /^(input|select|textarea)$/.test(a.el.tagName.toLowerCase()) ? a.el : /^(input|select|textarea)$/.test(b.el.tagName.toLowerCase()) ? b.el : null;
+      const field = /^(input|select|textarea)$/.test(a.el.tagName.toLowerCase())
+        ? a.el
+        : /^(input|select|textarea)$/.test(b.el.tagName.toLowerCase())
+          ? b.el
+          : null;
       const icon = field === a.el ? b.el : a.el;
-      if (field && icon.tagName.toLowerCase() === "svg" && icon.closest('[aria-hidden="true"]')) continue;
+      if (field && icon.tagName.toLowerCase() === "svg" && icon.closest('[aria-hidden="true"]'))
+        continue;
       // Parts hidden by a scrolling/clipping ancestor (e.g. content scrolled under the nav) do not count.
       if (!a.box || !b.box) continue;
       const w = Math.min(a.box.right, b.box.right) - Math.max(a.box.left, b.box.left);
@@ -230,16 +233,18 @@ export function collectLayoutIssues(win: Window): LayoutIssue[] {
 }
 
 /**
- * Retries until no finite CSS/JS animation has been running for a quiet period, so axe measures
+ * Retries until no finite CSS/JS animation has been running and no font has been loading for a quiet period, so axe measures
  * contrast on settled colours. The quiet period covers animations that start right after render.
  */
-export function waitForSettledAnimations(quietMs = 300) {
+export function waitForSettledAnimations(quietMs = 500) {
   let lastBusy = Date.now();
   cy.window().should((win) => {
     const busy = win.document
       .getAnimations()
-      .some((a) => a.playState !== "finished" && a.effect?.getComputedTiming().iterations !== Infinity);
-    if (busy) lastBusy = Date.now();
+      .some(
+        (a) => a.playState !== "finished" && a.effect?.getComputedTiming().iterations !== Infinity
+      );
+    if (busy || win.document.fonts?.status === "loading") lastBusy = Date.now();
     expect(Date.now() - lastBusy, "ms since the last running animation").to.be.at.least(quietMs);
   });
 }
