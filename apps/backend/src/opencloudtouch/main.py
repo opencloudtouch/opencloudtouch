@@ -461,7 +461,7 @@ class HealthResponse(BaseModel):
 
 
 # Health endpoint
-@app.get("/health", tags=["System"], response_model=HealthResponse)
+@app.get("/health", tags=["System"])
 async def health_check(request: Request) -> HealthResponse:
     """Health check endpoint for Docker and monitoring.
 

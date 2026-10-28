@@ -49,7 +49,7 @@ export function isDeviceDataFresh(deviceId: string): boolean {
 /** Drops the entries of devices that are no longer in the device list. */
 export function pruneDeviceDataCache(deviceIds: readonly string[]): void {
   const keep = new Set(deviceIds);
-  for (const id of [...cache.keys()]) {
+  for (const id of cache.keys()) {
     if (!keep.has(id)) {
       cache.delete(id);
       fetchedAt.delete(id);
