@@ -54,13 +54,13 @@ describe("Preset Management Advanced", () => {
   };
 
   beforeEach(() => {
-    apiUrl = (Cypress.expose("apiUrl") as string) ?? "http://localhost:7778/api";
+    apiUrl = (Cypress.expose('apiUrl') as string) ?? 'http://localhost:7778/api';
 
     // Mock preset sync-from-device to prevent 10-second HTTP timeout
     // (sync endpoint tries real HTTP to 192.168.1.x which is unreachable in test env)
-    cy.intercept("POST", "/api/presets/*/sync", {
+    cy.intercept('POST', '/api/presets/*/sync', {
       statusCode: 200,
-      body: { message: "Synced 0 presets from device" },
+      body: { message: 'Synced 0 presets from device' },
     });
 
     // Clear devices
@@ -138,14 +138,12 @@ describe("Preset Management Advanced", () => {
       // Reload to see preset
       cy.reload();
       waitForPresetsReady();
-      cy.contains(".rp-grid [data-testid^='preset-play-']", stationA.name, {
-        timeout: 10000,
-      }).should("exist");
+      cy.contains(".rp-grid [data-testid^='preset-play-']", stationA.name, { timeout: 10000 }).should("exist");
       cy.get(".rp-grid [data-testid^='preset-play-']").eq(0).should("contain", stationA.name);
 
       // Clear preset: click filled preset to open modal, then click delete
       cy.get('[data-testid="preset-play-2"]').click({ force: true });
-      cy.get(".rs-delete-btn", { timeout: 10000 }).should("be.visible").click();
+      cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible').click();
 
       // Confirm deletion via ConfirmDialog
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
@@ -170,7 +168,7 @@ describe("Preset Management Advanced", () => {
 
       // Clear preset 3: click filled preset to open modal, then click delete
       cy.get('[data-testid="preset-play-3"]').click({ force: true });
-      cy.get(".rs-delete-btn", { timeout: 10000 }).should("be.visible").click();
+      cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible').click();
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
 
       // Now assign new station to cleared preset
@@ -211,7 +209,7 @@ describe("Preset Management Advanced", () => {
 
       // Clear preset first: click filled preset to open modal, then click delete
       cy.get('[data-testid="preset-play-4"]').click({ force: true });
-      cy.get(".rs-delete-btn", { timeout: 10000 }).should("be.visible").click();
+      cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible').click();
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
       waitForPresetsReady();
 
@@ -238,7 +236,7 @@ describe("Preset Management Advanced", () => {
         if (index > 0) {
           // Clear previous preset: click filled preset to open modal, then click delete
           cy.get(`[data-testid="preset-play-${presetNumber}"]`).click({ force: true });
-          cy.get(".rs-delete-btn", { timeout: 10000 }).should("be.visible").click();
+          cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible').click();
           cy.get('[data-testid="confirm-dialog-confirm"]').click();
           waitForPresetsReady();
         }
@@ -279,7 +277,7 @@ describe("Preset Management Advanced", () => {
 
       // Attempt to overwrite by clearing first: click filled preset to open modal, then click delete
       cy.get('[data-testid="preset-play-6"]').click({ force: true });
-      cy.get(".rs-delete-btn", { timeout: 10000 }).should("be.visible").click();
+      cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible').click();
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
 
       waitForPresetsReady();
@@ -335,13 +333,13 @@ describe("Preset Management Advanced", () => {
 
       // Should have delete option accessible via modal
       cy.get('[data-testid="preset-play-3"]').click({ force: true });
-      cy.get("dialog.dlg", { timeout: 10000 }).should("be.visible");
-      cy.get(".rs-delete-btn", { timeout: 10000 }).should("be.visible");
+      cy.get('dialog.dlg', { timeout: 10000 }).should('be.visible');
+      cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible');
       // Close modal without deleting (Escape): Chrome ignores synthetic keys on a native <dialog>, so fire its cancel event
-      cy.get("dialog.dlg").then(($dialog) => {
-        $dialog[0].dispatchEvent(new Event("cancel", { cancelable: true }));
+      cy.get('dialog.dlg').then(($dialog) => {
+        $dialog[0].dispatchEvent(new Event('cancel', { cancelable: true }));
       });
-      cy.get("dialog.dlg", { timeout: 10000 }).should("not.exist");
+      cy.get('dialog.dlg', { timeout: 10000 }).should('not.exist');
 
       // Should have play button
       cy.get('[data-testid="preset-play-3"]').should("exist");
@@ -455,14 +453,8 @@ describe("Preset Management Advanced", () => {
       // Intercept BEFORE reload so first polls on fresh page hit these, not the real backend.
       // offlineDeviceStore is in-memory: cy.reload() clears it, preventing stale offline state
       // from previous tests from hiding the error-message div ({error && !deviceOffline && ...}).
-      cy.intercept("GET", "/api/devices/*/now-playing", {
-        statusCode: 200,
-        body: { source: "STANDBY" },
-      });
-      cy.intercept("GET", "/api/devices/*/volume", {
-        statusCode: 200,
-        body: { actual_volume: 20, muted: false },
-      });
+      cy.intercept("GET", "/api/devices/*/now-playing", { statusCode: 200, body: { source: "STANDBY" } });
+      cy.intercept("GET", "/api/devices/*/volume", { statusCode: 200, body: { actual_volume: 20, muted: false } });
       cy.reload();
       waitForPresetsReady();
     });
@@ -509,14 +501,12 @@ describe("Preset Management Advanced", () => {
       }).as("clearPresetFail");
 
       cy.get('[data-testid="preset-play-2"]').click({ force: true });
-      cy.get(".rs-delete-btn", { timeout: 10000 }).should("be.visible").click();
+      cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible').click();
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
       cy.wait("@clearPresetFail");
 
       // Should show error (scroll into view to ensure visibility)
-      cy.get('[data-testid="error-message"]', { timeout: 10000 })
-        .scrollIntoView()
-        .should("be.visible");
+      cy.get('[data-testid="error-message"]', { timeout: 10000 }).scrollIntoView().should("be.visible");
 
       // Preset should still be visible (not optimistically removed)
       cy.get('[data-testid="preset-play-2"]').should("contain", stationA.name);
@@ -537,9 +527,7 @@ describe("Preset Management Advanced", () => {
 
       // Modal closes, error message appears in page
       cy.get("dialog.dlg", { timeout: 10000 }).should("not.exist");
-      cy.get('[data-testid="error-message"]', { timeout: 10000 })
-        .scrollIntoView()
-        .should("be.visible");
+      cy.get('[data-testid="error-message"]', { timeout: 10000 }).scrollIntoView().should("be.visible");
 
       // Dismiss error
       cy.get('[data-testid="error-message"] button').click();
