@@ -26,6 +26,7 @@ Keep your SoundTouch® speakers (e.g. SoundTouch® 10/30/300) running — withou
 - Preset programming with local descriptor and playlist endpoints
 - Setup wizard for manual device configuration (SSH/USB)
 - Multi-room zone management
+- Sleep timer per speaker: fades the volume out, then stops playback or switches to standby
 - Optional stream recovery: resumes a radio preset when the station drops the connection (off by default)
 - BMX-compatible endpoints for SoundTouch® (including TuneIn stream resolver)
 - Docker deployment on three architectures (amd64, arm64, arm/v7)

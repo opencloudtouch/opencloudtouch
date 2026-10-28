@@ -42,7 +42,35 @@
     "manageZone": "Manage zone",
     "multiRoom": "Multi-room",
     "prevDevice": "Previous device",
-    "nextDevice": "Next device"
+    "nextDevice": "Next device",
+    "sleepTimer": {
+      "title": "Sleep timer",
+      "durationLabel": "Duration",
+      "minutes": "{{minutes}} min",
+      "custom": "Custom…",
+      "customLabel": "Minutes",
+      "customInvalid": "Enter a whole number from {{min}} to {{max}}.",
+      "fadeLabel": "Fade out",
+      "fadeOff": "Off",
+      "fadeSeconds": "{{seconds}} s",
+      "endLabel": "When finished",
+      "endAction": {
+        "stop": "Stop playback",
+        "standby": "Switch to standby"
+      },
+      "endsWith": "When finished: {{action}}",
+      "start": "Start timer",
+      "starting": "Starting…",
+      "cancel": "Cancel timer",
+      "started": "Sleep timer started",
+      "cancelled": "Sleep timer cancelled",
+      "noLongerActive": "Timer is no longer active",
+      "countdownLabel": "Time until the timer ends",
+      "fading": "Fading out…",
+      "ending": "Ending…",
+      "offlineHint": "The speaker is offline. A new timer cannot be started.",
+      "loadError": "Could not load the sleep timer."
+    }
   },
   "presets": {
     "pageTitle": "Radio Presets",
@@ -675,7 +703,8 @@
       "internal_error": "An internal error occurred. Please try again later.",
       "stream_recovery_min_play_invalid": "Stream recovery could not be configured: the minimum playing time is out of range.",
       "stream_recovery_attempts_invalid": "Stream recovery could not be configured: the number of attempts is out of range.",
-      "stream_recovery_failed": "Stream recovery could not press the preset."
+      "stream_recovery_failed": "Stream recovery could not press the preset.",
+      "sleep_timer_fade_too_long": "The fade-out must not be longer than the timer."
     },
     "loadFailed": "Failed to load. Please try again.",
     "unknown": "An unexpected error occurred. Please try again.",

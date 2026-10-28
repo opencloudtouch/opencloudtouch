@@ -42,7 +42,35 @@
     "manageZone": "Gestisci zona",
     "multiRoom": "Multi-stanza",
     "prevDevice": "Dispositivo precedente",
-    "nextDevice": "Dispositivo successivo"
+    "nextDevice": "Dispositivo successivo",
+    "sleepTimer": {
+      "title": "Timer di spegnimento",
+      "durationLabel": "Durata",
+      "minutes": "{{minutes}} min",
+      "custom": "Personalizzata…",
+      "customLabel": "Minuti",
+      "customInvalid": "Inserisci un numero intero da {{min}} a {{max}}.",
+      "fadeLabel": "Dissolvenza",
+      "fadeOff": "Disattivata",
+      "fadeSeconds": "{{seconds}} s",
+      "endLabel": "Alla fine",
+      "endAction": {
+        "stop": "Ferma la riproduzione",
+        "standby": "Passa in standby"
+      },
+      "endsWith": "Alla fine: {{action}}",
+      "start": "Avvia timer",
+      "starting": "Avvio…",
+      "cancel": "Annulla timer",
+      "started": "Timer avviato",
+      "cancelled": "Timer annullato",
+      "noLongerActive": "Il timer non è più attivo",
+      "countdownLabel": "Tempo rimanente alla fine del timer",
+      "fading": "Dissolvenza in corso…",
+      "ending": "Conclusione…",
+      "offlineHint": "L'altoparlante è offline. Non è possibile avviare un nuovo timer.",
+      "loadError": "Impossibile caricare il timer."
+    }
   },
   "presets": {
     "pageTitle": "Preset radio",
@@ -675,7 +703,8 @@
       "internal_error": "Si è verificato un errore interno. Riprova più tardi.",
       "stream_recovery_min_play_invalid": "Il tempo minimo di riproduzione è fuori dall'intervallo consentito.",
       "stream_recovery_attempts_invalid": "Il numero di tentativi è fuori dall'intervallo consentito.",
-      "stream_recovery_failed": "Il ripristino dello stream non è riuscito a premere il preset."
+      "stream_recovery_failed": "Il ripristino dello stream non è riuscito a premere il preset.",
+      "sleep_timer_fade_too_long": "La dissolvenza non può essere più lunga del timer."
     },
     "loadFailed": "Caricamento fallito. Riprovare.",
     "unknown": "Si è verificato un errore imprevisto. Riprovare.",

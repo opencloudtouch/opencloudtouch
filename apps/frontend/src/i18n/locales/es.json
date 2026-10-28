@@ -42,7 +42,35 @@
     "manageZone": "Gestionar zona",
     "multiRoom": "Multisala",
     "prevDevice": "Dispositivo anterior",
-    "nextDevice": "Dispositivo siguiente"
+    "nextDevice": "Dispositivo siguiente",
+    "sleepTimer": {
+      "title": "Temporizador de apagado",
+      "durationLabel": "Duración",
+      "minutes": "{{minutes}} min",
+      "custom": "Personalizado…",
+      "customLabel": "Minutos",
+      "customInvalid": "Introduce un número entero de {{min}} a {{max}}.",
+      "fadeLabel": "Desvanecer",
+      "fadeOff": "Desactivado",
+      "fadeSeconds": "{{seconds}} s",
+      "endLabel": "Al terminar",
+      "endAction": {
+        "stop": "Detener la reproducción",
+        "standby": "Pasar a modo de espera"
+      },
+      "endsWith": "Al terminar: {{action}}",
+      "start": "Iniciar temporizador",
+      "starting": "Iniciando…",
+      "cancel": "Cancelar temporizador",
+      "started": "Temporizador iniciado",
+      "cancelled": "Temporizador cancelado",
+      "noLongerActive": "El temporizador ya no está activo",
+      "countdownLabel": "Tiempo hasta que termine el temporizador",
+      "fading": "Desvaneciendo…",
+      "ending": "Finalizando…",
+      "offlineHint": "El altavoz está sin conexión. No se puede iniciar un temporizador nuevo.",
+      "loadError": "No se pudo cargar el temporizador."
+    }
   },
   "presets": {
     "pageTitle": "Presets de radio",
@@ -675,7 +703,8 @@
       "internal_error": "Se produjo un error interno. Inténtalo de nuevo más tarde.",
       "stream_recovery_min_play_invalid": "El tiempo mínimo de reproducción está fuera del intervalo permitido.",
       "stream_recovery_attempts_invalid": "El número de intentos está fuera del intervalo permitido.",
-      "stream_recovery_failed": "La recuperación de stream no pudo pulsar el preset."
+      "stream_recovery_failed": "La recuperación de stream no pudo pulsar el preset.",
+      "sleep_timer_fade_too_long": "El desvanecimiento no puede ser más largo que el temporizador."
     },
     "loadFailed": "Error al cargar. Inténtelo de nuevo.",
     "unknown": "Se produjo un error inesperado. Inténtelo de nuevo.",

@@ -42,7 +42,35 @@
     "manageZone": "Hantera zon",
     "multiRoom": "Flera rum",
     "prevDevice": "Föregående enhet",
-    "nextDevice": "Nästa enhet"
+    "nextDevice": "Nästa enhet",
+    "sleepTimer": {
+      "title": "Insomningstimer",
+      "durationLabel": "Längd",
+      "minutes": "{{minutes}} min",
+      "custom": "Egen…",
+      "customLabel": "Minuter",
+      "customInvalid": "Ange ett heltal från {{min}} till {{max}}.",
+      "fadeLabel": "Tona ned",
+      "fadeOff": "Av",
+      "fadeSeconds": "{{seconds}} s",
+      "endLabel": "När den är klar",
+      "endAction": {
+        "stop": "Stoppa uppspelningen",
+        "standby": "Växla till standby"
+      },
+      "endsWith": "När den är klar: {{action}}",
+      "start": "Starta timer",
+      "starting": "Startar…",
+      "cancel": "Avbryt timer",
+      "started": "Insomningstimern startad",
+      "cancelled": "Insomningstimern avbruten",
+      "noLongerActive": "Timern är inte längre aktiv",
+      "countdownLabel": "Tid kvar tills timern slutar",
+      "fading": "Tonar ned…",
+      "ending": "Avslutar…",
+      "offlineHint": "Högtalaren är offline. Det går inte att starta en ny timer.",
+      "loadError": "Det gick inte att läsa in insomningstimern."
+    }
   },
   "presets": {
     "pageTitle": "Radioförinställningar",
@@ -675,7 +703,8 @@
       "internal_error": "Ett internt fel inträffade. Försök igen senare.",
       "stream_recovery_min_play_invalid": "Den minsta speltiden ligger utanför tillåtet intervall.",
       "stream_recovery_attempts_invalid": "Antalet försök ligger utanför tillåtet intervall.",
-      "stream_recovery_failed": "Strömåterställningen kunde inte trycka på förvalet."
+      "stream_recovery_failed": "Strömåterställningen kunde inte trycka på förvalet.",
+      "sleep_timer_fade_too_long": "Nedtoningen får inte vara längre än timern."
     },
     "loadFailed": "Inläsning misslyckades. Försök igen.",
     "unknown": "Ett oväntat fel uppstod. Försök igen.",

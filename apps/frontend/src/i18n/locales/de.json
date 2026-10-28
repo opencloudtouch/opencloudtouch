@@ -42,7 +42,35 @@
     "manageZone": "Zone verwalten",
     "multiRoom": "Multi-Room",
     "prevDevice": "Vorheriges Gerät",
-    "nextDevice": "Nächstes Gerät"
+    "nextDevice": "Nächstes Gerät",
+    "sleepTimer": {
+      "title": "Einschlaftimer",
+      "durationLabel": "Dauer",
+      "minutes": "{{minutes}} Min.",
+      "custom": "Eigene…",
+      "customLabel": "Minuten",
+      "customInvalid": "Gib eine ganze Zahl von {{min}} bis {{max}} ein.",
+      "fadeLabel": "Ausblenden",
+      "fadeOff": "Aus",
+      "fadeSeconds": "{{seconds}} s",
+      "endLabel": "Danach",
+      "endAction": {
+        "stop": "Wiedergabe stoppen",
+        "standby": "In Standby schalten"
+      },
+      "endsWith": "Danach: {{action}}",
+      "start": "Timer starten",
+      "starting": "Wird gestartet…",
+      "cancel": "Timer abbrechen",
+      "started": "Einschlaftimer gestartet",
+      "cancelled": "Einschlaftimer abgebrochen",
+      "noLongerActive": "Der Timer ist nicht mehr aktiv",
+      "countdownLabel": "Zeit bis zum Ende des Timers",
+      "fading": "Wird ausgeblendet…",
+      "ending": "Wird beendet…",
+      "offlineHint": "Der Lautsprecher ist offline. Ein neuer Timer kann nicht gestartet werden.",
+      "loadError": "Der Einschlaftimer konnte nicht geladen werden."
+    }
   },
   "presets": {
     "pageTitle": "Radio Presets",
@@ -675,7 +703,8 @@
       "internal_error": "Ein interner Fehler ist aufgetreten. Bitte versuche es später erneut.",
       "stream_recovery_min_play_invalid": "Die Mindest-Spielzeit liegt außerhalb des erlaubten Bereichs.",
       "stream_recovery_attempts_invalid": "Die Anzahl der Versuche liegt außerhalb des erlaubten Bereichs.",
-      "stream_recovery_failed": "Die Stream-Wiederherstellung konnte das Preset nicht drücken."
+      "stream_recovery_failed": "Die Stream-Wiederherstellung konnte das Preset nicht drücken.",
+      "sleep_timer_fade_too_long": "Das Ausblenden darf nicht länger als der Timer dauern."
     },
     "loadFailed": "Laden fehlgeschlagen. Bitte erneut versuchen.",
     "unknown": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",

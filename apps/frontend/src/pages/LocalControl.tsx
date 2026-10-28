@@ -8,6 +8,7 @@ import VolumeSlider from "../components/VolumeSlider";
 import SetupBadge from "../components/SetupBadge";
 import DeviceOfflineBanner from "../components/DeviceOfflineBanner";
 import DeviceNameEditor from "../components/DeviceNameEditor";
+import SleepTimer from "../components/SleepTimer";
 import { useNowPlaying } from "../hooks/useNowPlaying";
 import { useVolume } from "../hooks/useVolume";
 import { useZones } from "../hooks/useZones";
@@ -219,6 +220,11 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
                 onMuteToggle={toggleMute}
               />
             </motion.div>
+          )}
+
+          {/* Sleep timer: a running timer stays visible and cancellable when offline */}
+          {deviceId && (
+            <SleepTimer key={deviceId} deviceId={deviceId} deviceOffline={deviceOffline} />
           )}
 
           {/* Source Selection */}

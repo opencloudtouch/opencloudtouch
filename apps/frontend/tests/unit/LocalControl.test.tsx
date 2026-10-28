@@ -81,6 +81,11 @@ vi.mock("../../src/api/devices", () => ({
   power: (...args: unknown[]) => mockPower(...args),
 }));
 
+// The sleep timer has its own tests and its own fetches
+vi.mock("../../src/components/SleepTimer", () => ({
+  default: () => null,
+}));
+
 // Mock useZones (STORY-1013)
 vi.mock("../../src/hooks/useZones", () => ({
   useZones: () => ({
@@ -109,7 +114,9 @@ vi.mock("../../src/components/SetupBadge", () => ({
 
 vi.mock("../../src/components/DeviceNameEditor", () => ({
   default: ({ name }: { name: string }) => (
-    <h2 className="device-name" data-test="device-name">{name}</h2>
+    <h2 className="device-name" data-test="device-name">
+      {name}
+    </h2>
   ),
 }));
 
@@ -185,7 +192,9 @@ describe("LocalControl - Core Playback Functionality", () => {
     render(<LocalControl devices={mockDevices} />);
 
     // Use the playback controls button (not the NowPlaying overlay)
-    const playPauseButton = document.querySelector(".playback-button.play-pause") as HTMLButtonElement;
+    const playPauseButton = document.querySelector(
+      ".playback-button.play-pause"
+    ) as HTMLButtonElement;
     await user.click(playPauseButton);
 
     expect(mockTogglePlayPause).toHaveBeenCalledWith("ST10-001");
@@ -341,9 +350,7 @@ describe("LocalControl - Edge Cases", () => {
   });
 
   test("should display Unknown Model when device model is missing", async () => {
-    const deviceWithoutModel = [
-      { device_id: "1", name: "Test Device", ip: "192.168.1.10" },
-    ];
+    const deviceWithoutModel = [{ device_id: "1", name: "Test Device", ip: "192.168.1.10" }];
 
     await act(async () => {
       render(<LocalControl devices={deviceWithoutModel} />);

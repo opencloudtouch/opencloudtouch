@@ -42,7 +42,35 @@
     "manageZone": "Gerenciar zona",
     "multiRoom": "Multissala",
     "prevDevice": "Dispositivo anterior",
-    "nextDevice": "Próximo dispositivo"
+    "nextDevice": "Próximo dispositivo",
+    "sleepTimer": {
+      "title": "Temporizador de desligamento",
+      "durationLabel": "Duração",
+      "minutes": "{{minutes}} min",
+      "custom": "Personalizado…",
+      "customLabel": "Minutos",
+      "customInvalid": "Digite um número inteiro de {{min}} a {{max}}.",
+      "fadeLabel": "Redução gradual",
+      "fadeOff": "Desligada",
+      "fadeSeconds": "{{seconds}} s",
+      "endLabel": "Ao terminar",
+      "endAction": {
+        "stop": "Parar a reprodução",
+        "standby": "Colocar em espera"
+      },
+      "endsWith": "Ao terminar: {{action}}",
+      "start": "Iniciar temporizador",
+      "starting": "Iniciando…",
+      "cancel": "Cancelar temporizador",
+      "started": "Temporizador iniciado",
+      "cancelled": "Temporizador cancelado",
+      "noLongerActive": "O temporizador não está mais ativo",
+      "countdownLabel": "Tempo até o fim do temporizador",
+      "fading": "Reduzindo o volume…",
+      "ending": "Encerrando…",
+      "offlineHint": "O alto-falante está offline. Não é possível iniciar um novo temporizador.",
+      "loadError": "Não foi possível carregar o temporizador."
+    }
   },
   "presets": {
     "pageTitle": "Presets de rádio",
@@ -675,7 +703,8 @@
       "internal_error": "Ocorreu um erro interno. Tente novamente mais tarde.",
       "stream_recovery_min_play_invalid": "O tempo mínimo de reprodução está fora do intervalo permitido.",
       "stream_recovery_attempts_invalid": "O número de tentativas está fora do intervalo permitido.",
-      "stream_recovery_failed": "A recuperação de stream não conseguiu pressionar o preset."
+      "stream_recovery_failed": "A recuperação de stream não conseguiu pressionar o preset.",
+      "sleep_timer_fade_too_long": "A redução gradual não pode ser mais longa que o temporizador."
     },
     "loadFailed": "Carregamento falhou. Tente novamente.",
     "unknown": "Ocorreu um erro inesperado. Tente novamente.",
