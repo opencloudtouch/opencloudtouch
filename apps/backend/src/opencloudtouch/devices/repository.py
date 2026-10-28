@@ -271,7 +271,7 @@ class DeviceRepository(BaseRepository):
             and device.marge_account_uuid
             and row[1] != device.marge_account_uuid
         ):
-            logger.warning(
+            logger.info(
                 "Preserving stored UUID %s for %s; discovery reported %s",
                 row[1],
                 device.device_id,
