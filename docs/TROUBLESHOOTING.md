@@ -24,8 +24,10 @@
 The existing `/data` mount is preserved during container replacement and
 rollback. Do not delete Docker volumes while diagnosing an update problem.
 Active states older than 30 minutes are treated as stale automatically. A
-running replacement without a Docker healthcheck is accepted after a short
-grace period; stopped or explicitly unhealthy containers still trigger rollback.
+running replacement without a Docker healthcheck is checked for stability only
+during a fixed grace period of approximately 10 seconds. `RestartCount` detects
+restarts handled by Docker's restart policy, but stability beyond this window
+is not guaranteed. Stopped or explicitly unhealthy containers still trigger rollback.
 
 
 ## Understanding `docker stats` memory numbers
