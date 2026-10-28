@@ -1,51 +1,33 @@
 #!/usr/bin/env bash
 # Scratch script for the `experiment` suite of claude-sandbox.yml.
-# Smoke test of the published armv7 experiment image under QEMU (#529).
+# Builds the syscall probe image (#529) for armv7 under QEMU, runs it, and
+# shows the same probe natively under the real Docker 19.03.8 seccomp profile.
 set -euo pipefail
-
-IMG="${OCT_IMAGE:-ghcr.io/opencloudtouch/opencloudtouch:exp-529-bullseye-1}"
-PLATFORM="linux/arm/v7"
 
 echo "== Environment =="
 uname -a
-getconf PAGE_SIZE
 docker version --format '{{.Server.Version}}'
 
-echo "== Pull $IMG ($PLATFORM) =="
-docker pull --platform "$PLATFORM" "$IMG"
+echo "== Build probe image (linux/arm/v7, QEMU) =="
+docker buildx build --platform linux/arm/v7 -f deployment/Dockerfile \
+  --load -t oct-probe:armv7 .
 
-echo "== libc, Python and native imports =="
-docker run --rm --platform "$PLATFORM" --entrypoint sh "$IMG" -c '
-  ldd --version | head -1
-  python --version
-  python -c "import zlib, ssl, sqlite3, ctypes, bz2, readline, pydantic_core, uvloop, httptools, psutil, yaml, cryptography; print(\"imports ok\")"
-'
+echo "== Run probe (armv7 under QEMU, default seccomp of this runner) =="
+docker run --rm --platform linux/arm/v7 oct-probe:armv7
 
-echo "== Start container in mock mode =="
-docker run -d --name oct-smoke --platform "$PLATFORM" -p 7777:7777 \
-  -e OCT_MOCK_MODE=true -e OCT_DISCOVERY_ENABLED=false -e OCT_LOG_LEVEL=DEBUG \
-  "$IMG"
-
-healthy=false
-for _ in $(seq 1 90); do
-  if curl -fsS http://localhost:7777/health; then
-    echo
-    healthy=true
-    break
-  fi
-  sleep 2
+echo "== Probe under the real Docker 19.03.8 default seccomp profile (x86_64) =="
+WORK=$(mktemp -d)
+sed -n "/^COPY <<'PROBE_C' \/probe.c\$/,/^PROBE_C\$/p" deployment/Dockerfile | sed '1d;$d' > "$WORK/probe.c"
+gcc -O1 -Wall -static -o "$WORK/probe" "$WORK/probe.c"
+curl -fsSL -o "$WORK/moby-19.03.8.json" \
+  https://raw.githubusercontent.com/moby/moby/v19.03.8/profiles/seccomp/default.json
+python3 -c "
+import json,sys
+p=json.load(open('$WORK/moby-19.03.8.json'))
+print('profile: defaultAction =', p['defaultAction'], '| defaultErrnoRet =', p.get('defaultErrnoRet'))
+"
+for opt in "seccomp=$WORK/moby-19.03.8.json" "seccomp=unconfined"; do
+  echo
+  echo "---------- --security-opt ${opt##*/} ----------"
+  docker run --rm -v "$WORK/probe:/probe:ro" --security-opt "$opt" debian:bullseye-slim /probe
 done
-
-echo "== Container logs =="
-LOGS=$(docker logs oct-smoke 2>&1)
-printf '%s\n' "$LOGS" | sed -n '1,80p'
-
-if [ "$healthy" != "true" ]; then
-  echo "Container did not become healthy"
-  exit 1
-fi
-if printf '%s\n' "$LOGS" | grep -q "Python self-test failed"; then
-  echo "Entrypoint self-test reported a problem"
-  exit 1
-fi
-echo "Smoke test passed"
