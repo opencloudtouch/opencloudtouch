@@ -198,7 +198,7 @@ body:
     id: definition_of_done
     attributes:
       label: Definition of Done
-      description: "What must be true before this feature can be marked complete?"
+      description: "What must be true before this work can be marked complete? Start from docs/DEFINITION_OF_DONE.md and make every item that applies verifiable here (test levels, docs, OpenAPI, i18n, migrations, hardware verification). Mark items that cannot apply as n/a with a reason."
       placeholder: |
         - [ ] All tasks completed
         - [ ] All acceptance criteria met
@@ -220,8 +220,34 @@ body:
         - [ ] User-facing documentation updated
         - [ ] Code reviewed and approved
         - [ ] No regressions in existing tests
+        - [ ] Everything in docs/DEFINITION_OF_DONE.md that applies is covered by a criterion above
     validations:
       required: true
+
+  - type: checkboxes
+    id: definition_of_ready
+    attributes:
+      label: Definition of Ready
+      description: "Confirm that this spec can be implemented without questions. Full criteria: docs/DEFINITION_OF_READY.md. A second reviewer re-checks these before implementation starts; a pull request re-verifies them for its linked spec. Issues created without this form must contain the same checklist as a '## Definition of Ready' section."
+      options:
+        - label: "Problem, user story and originating issue/discussion are described; scope and out of scope are explicit"
+          required: true
+        - label: "Affected modules are named and the work is split into reviewable PRs where needed; the label `spec` is set"
+          required: true
+        - label: "Acceptance criteria are testable (Given/When/Then), cover error paths and edge cases, and backend and frontend have separate, matching criteria"
+          required: true
+        - label: "API contract, data model, configuration, mock-mode behaviour and claims about existing code are specified and verified"
+          required: true
+        - label: "Frontend part states functional requirements only (loading/empty/error/offline states, i18n, accessibility); visual design is not blocking"
+          required: true
+        - label: "Test strategy is defined; hardware-dependent items are listed as assumptions with a named verifier"
+          required: true
+        - label: "Security, privacy and risks are considered (trusted-LAN model, no secrets in logs)"
+          required: true
+        - label: "Dependencies and ordering are stated; no open questions or TBD remain; documentation impact is identified"
+          required: true
+        - label: "The spec was reviewed by someone other than the author (or independent reviewers) and the findings are incorporated"
+          required: true
 
   - type: textarea
     id: dependencies
