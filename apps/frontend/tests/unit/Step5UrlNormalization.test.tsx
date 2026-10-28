@@ -5,7 +5,7 @@
  * regression tests for old_url and new_url values.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, act, waitFor, cleanup } from "@testing-library/react";
+import { render, act, waitFor, cleanup } from "@testing-library/react";
 import React from "react";
 
 // Mock the wizard API

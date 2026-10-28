@@ -5,7 +5,7 @@
  * error handling, hostname extraction logic, and all branches.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, act, waitFor, cleanup } from "@testing-library/react";
+import { render, act, waitFor, cleanup } from "@testing-library/react";
 import React from "react";
 
 // Mock the wizard API

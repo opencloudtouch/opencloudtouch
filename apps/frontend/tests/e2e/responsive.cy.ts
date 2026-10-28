@@ -11,19 +11,16 @@
  */
 import { collectLayoutIssues, waitForStableLayout, LayoutIssue } from "./support/layoutAudit";
 import {
-  DEVICES,
   DEVICE,
   SCAN_RESULT,
   RESTORE_RESULT,
   HOSTS_OK,
-  FINALIZE_OK,
   VERIFY_ALL_PASSED,
   VERIFY_SOME_FAILED,
   mockApi,
   mockSetupWizardApi,
   visitDe,
 } from "./support/wizardMocks";
-
 
 const PAGE_WIDTHS = [320, 375, 768, 1280];
 const WIZARD_WIDTHS = [320, 414, 768, 1280];
@@ -89,7 +86,6 @@ function assertWizardFrame(label: string) {
     }
   });
 }
-
 
 const DYNAMIC_WIDTHS = [320, 414, 1280];
 
