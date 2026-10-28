@@ -63,6 +63,10 @@ These are **build-time** (`docker build --build-arg ...`), not runtime environme
 
 See [`deployment/README.md`](../deployment/README.md#build-arguments) for build examples.
 
+## DLNA Playback and Automatic Track Advancement
+
+DLNA playback uses AVTransport event callbacks from the SoundTouch device to advance to the next track. The device must be able to reach OCT's callback address. This currently assumes Docker host networking and IPv4; Docker bridge networking, NAT, or a reverse proxy may prevent callbacks from reaching OCT or cause the source-IP check to reject them. Playback can still start without a working event subscription, but automatic track advancement will not work.
+
 ## Also See
 
 - [Troubleshooting](TROUBLESHOOTING.md)

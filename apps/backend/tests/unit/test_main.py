@@ -1,4 +1,4 @@
-﻿"""Tests for main application module (startup, lifecycle)."""
+"""Tests for main application module (startup, lifecycle)."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -12,26 +12,18 @@ async def test_lifespan_initialization():
     from opencloudtouch.core.config import AppConfig
     from opencloudtouch.main import app, lifespan
 
-    with patch("opencloudtouch.main.init_config") as mock_init_config, patch(
-        "opencloudtouch.main.setup_logging"
-    ) as mock_setup_logging, patch(
-        "opencloudtouch.main.get_config"
-    ) as mock_get_config, patch(
-        "opencloudtouch.main.DeviceRepository"
-    ) as mock_device_class, patch(
-        "opencloudtouch.main.SettingsRepository"
-    ) as mock_settings_class, patch(
-        "opencloudtouch.main.PresetRepository"
-    ) as mock_preset_class, patch(
-        "opencloudtouch.main.RecentsRepository"
-    ) as mock_recents_class, patch(
-        "opencloudtouch.main.WizardAuditRepository"
-    ) as mock_wizard_class, patch(
-        "opencloudtouch.main.ZoneRepository"
-    ) as mock_zone_class, patch(
-        "opencloudtouch.main._init_services", new_callable=AsyncMock
+    with (
+        patch("opencloudtouch.main.init_config") as mock_init_config,
+        patch("opencloudtouch.main.setup_logging") as mock_setup_logging,
+        patch("opencloudtouch.main.get_config") as mock_get_config,
+        patch("opencloudtouch.main.DeviceRepository") as mock_device_class,
+        patch("opencloudtouch.main.SettingsRepository") as mock_settings_class,
+        patch("opencloudtouch.main.PresetRepository") as mock_preset_class,
+        patch("opencloudtouch.main.RecentsRepository") as mock_recents_class,
+        patch("opencloudtouch.main.WizardAuditRepository") as mock_wizard_class,
+        patch("opencloudtouch.main.ZoneRepository") as mock_zone_class,
+        patch("opencloudtouch.main._init_services", new_callable=AsyncMock),
     ):
-
         # Mock config
         mock_config = MagicMock(spec=AppConfig)
         mock_config.host = "0.0.0.0"
@@ -64,9 +56,11 @@ async def test_lifespan_initialization():
         mock_health_check.stop = AsyncMock()
 
         # Run lifespan
+        mock_dlna = AsyncMock()
         async with lifespan(app):
-            # Mock app.state.health_check for shutdown
+            # _init_services is mocked, so install its shutdown dependencies.
             app.state.health_check = mock_health_check
+            app.state.dlna_service = mock_dlna
 
             # Verify startup
             mock_init_config.assert_called_once()
@@ -75,6 +69,7 @@ async def test_lifespan_initialization():
                 repo.initialize.assert_called_once()
 
         # Verify shutdown — all repos closed
+        mock_dlna.close.assert_awaited_once()
         for name, repo in mock_repos.items():
             repo.close.assert_called_once()
 
@@ -217,9 +212,10 @@ def test_main_module_uses_config_port():
     mock_config.host = "0.0.0.0"
     mock_config.port = 9999
 
-    with patch(
-        "opencloudtouch.core.config.get_config", return_value=mock_config
-    ), patch("uvicorn.run") as mock_run:
+    with (
+        patch("opencloudtouch.core.config.get_config", return_value=mock_config),
+        patch("uvicorn.run") as mock_run,
+    ):
         runpy.run_path(
             str(
                 Path(__file__).resolve().parents[2]
@@ -540,12 +536,12 @@ async def test_lifespan_error_handling():
     """Test lifespan handles errors gracefully."""
     from opencloudtouch.main import app, lifespan
 
-    with patch("opencloudtouch.main.init_config"), patch(
-        "opencloudtouch.main.setup_logging"
-    ), patch("opencloudtouch.main.get_config") as mock_get_config, patch(
-        "opencloudtouch.main.DeviceRepository"
-    ) as mock_repo_class:
-
+    with (
+        patch("opencloudtouch.main.init_config"),
+        patch("opencloudtouch.main.setup_logging"),
+        patch("opencloudtouch.main.get_config") as mock_get_config,
+        patch("opencloudtouch.main.DeviceRepository") as mock_repo_class,
+    ):
         mock_config = MagicMock()
         mock_config.host = "0.0.0.0"
         mock_config.port = 7777
