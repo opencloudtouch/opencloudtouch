@@ -44,7 +44,7 @@ describe("Radio Search Robustness", () => {
     cy.contains("Radio Presets").click();
 
     // Open search modal by clicking preset 1 (empty)
-    cy.get(".pb-empty", { timeout: 10000 }).first().scrollIntoView().click({ force: true });
+    cy.get(".pb-empty", { timeout: 10000 }).first().scrollIntoView().should("be.visible").click();
     cy.get("dialog.dlg", { timeout: 10000 }).should("be.visible");
   });
 
