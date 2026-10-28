@@ -48,12 +48,15 @@ export default function Toast({ message, type = "info", duration = 5000, onClose
     info: Icon.Info(22),
   };
 
+  // Announced to screen readers: errors/warnings interrupt (alert), success/info wait (<output> = status)
+  const isAlert = type === "error" || type === "warning";
+  const Container = isAlert ? "div" : "output";
+
   return (
-    <div
+    <Container
       className={`toast toast-${type} ${isVisible ? "toast-visible" : "toast-hidden"}`}
       data-test="toast-notification"
-      // Announced to screen readers: errors/warnings interrupt (alert), success/info wait (status)
-      role={type === "error" || type === "warning" ? "alert" : "status"}
+      role={isAlert ? "alert" : undefined}
     >
       <div className="toast-icon" aria-hidden="true">
         {icons[type]}
@@ -74,6 +77,6 @@ export default function Toast({ message, type = "info", duration = 5000, onClose
       >
         {Icon.X(18)}
       </button>
-    </div>
+    </Container>
   );
 }

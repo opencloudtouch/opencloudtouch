@@ -51,7 +51,7 @@ function getDeviceStatus(lastSeen: string | null): Presence {
   return "red";
 }
 
-const SETUP_STATUSES: readonly string[] = [
+const SETUP_STATUSES: ReadonlySet<string> = new Set([
   "unconfigured",
   "pending",
   "configured",
@@ -59,11 +59,11 @@ const SETUP_STATUSES: readonly string[] = [
   "outdated",
   "offline",
   "unknown",
-];
+]);
 
 /** The API sends a raw string; values outside the enum are shown as "unknown" instead of crashing StatusBadge. */
 function toSetupStatus(value: string): SetupStatus {
-  return (SETUP_STATUSES.includes(value) ? value : "unknown") as SetupStatus;
+  return (SETUP_STATUSES.has(value) ? value : "unknown") as SetupStatus;
 }
 
 function Row({

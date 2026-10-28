@@ -461,6 +461,13 @@
   gap: 8px;
   min-width: 0;
 }
+fieldset.ui-chips {
+  /* <fieldset> reset: semantic group only, no visible box */
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
 .ui-chip {
   box-sizing: border-box;
   min-height: var(--touch-target-min);

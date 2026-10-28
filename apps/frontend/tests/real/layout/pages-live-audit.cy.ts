@@ -6,7 +6,7 @@
  * Run: npx cypress run --spec tests/real/layout/pages-live-audit.cy.ts \
  *        --config baseUrl=http://hera:7778
  */
-import { collectLayoutIssues, LayoutIssue } from "../../e2e/support/layoutAudit";
+import { collectLayoutIssues, waitForStableLayout, LayoutIssue } from "../../e2e/support/layoutAudit";
 
 const VIEWPORTS = [320, 375, 768, 1280];
 const DEVICE = "68C90B32AF6E";
@@ -34,7 +34,7 @@ describe("Responsive audit", () => {
         cy.viewport(width, 800);
         cy.visit(page.path);
         cy.get("body").should("be.visible");
-        cy.wait(1500);
+        cy.window().then((win) => waitForStableLayout(win));
         cy.window().then((win) => {
           results[`${page.name}@${width}`] = collectLayoutIssues(win);
         });

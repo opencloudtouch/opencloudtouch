@@ -5,7 +5,7 @@
  * Run: ELECTRON_RUN_AS_NODE unset; npx cypress run --spec tests/real/layout/wizard-live-audit.cy.ts \
  *        --config baseUrl=http://hera:7778
  */
-import { collectLayoutIssues, LayoutIssue } from "../../e2e/support/layoutAudit";
+import { collectLayoutIssues, waitForStableLayout, LayoutIssue } from "../../e2e/support/layoutAudit";
 
 const DEVICE = "68C90B32AF6E";
 const WIDTH = Number(Cypress.expose("auditWidth") ?? 320);
@@ -14,8 +14,13 @@ const RESTART_WAIT_MS = 35000; // user requirement: wait >= 30 s after restarts
 
 const results: Record<string, LayoutIssue[]> = {};
 
+/** Fixed pause that is required by the device (restart time), not a synchronisation point. */
+function waitForDeviceRestart() {
+  cy.then({ timeout: RESTART_WAIT_MS + 10000 }, () => new Cypress.Promise((resolve) => setTimeout(resolve, RESTART_WAIT_MS)));
+}
+
 function snap(name: string) {
-  cy.wait(800);
+  cy.window().then((win) => waitForStableLayout(win));
   cy.window().then((win) => {
     results[`${name}@${WIDTH}`] = collectLayoutIssues(win);
   });
@@ -37,7 +42,7 @@ describe("Setup wizard live audit", () => {
     // Step 2: USB preparation
     cy.get(".usb-platform-select", LONG).should("be.visible");
     snap("02-usb");
-    cy.get('input[type="checkbox"]').last().check({ force: true });
+    cy.get('input[type="checkbox"]').last().scrollIntoView().should("be.visible").check();
     cy.get(".wizard-btn-next").click();
 
     // Step 3: power cycle / ports / SSH decision
@@ -92,10 +97,10 @@ describe("Setup wizard live audit", () => {
     cy.get(".reboot-btn", LONG).should("be.visible");
     snap("08-verify-reboot");
     cy.get(".reboot-btn").click();
-    cy.wait(RESTART_WAIT_MS);
+    waitForDeviceRestart();
     snap("08-verify-rebooting");
     cy.get(".verification-test-btn", { timeout: 240000 }).should("be.visible");
-    cy.wait(RESTART_WAIT_MS);
+    waitForDeviceRestart();
     cy.get(".verification-test-btn").click();
     cy.get(".wizard-btn-next:not([disabled])", { timeout: 240000 }).should("exist");
     snap("08-verify-after");

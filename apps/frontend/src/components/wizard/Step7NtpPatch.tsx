@@ -52,12 +52,12 @@ export default function Step7NtpPatch({ deviceIp, onNext, onPrevious }: Step7Pro
       nextDisabledReason={t("setup.wizard.step7.nextDisabled")}
     >
       <div className="ntp-patch">
-        <div className="ntp-optional-notice wz-status" role="status">
+        <output className="ntp-optional-notice wz-status">
           <span className="ntp-optional-icon wz-icon" aria-hidden="true">
             {Icon.Info(20)}
           </span>
           <span className="ntp-optional-text">{t("setup.wizard.step7.optionalNotice")}</span>
-        </div>
+        </output>
 
         {!result?.success && (
           <div className="ntp-input-group wz-field">

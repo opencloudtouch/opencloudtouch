@@ -322,7 +322,7 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
                 <h3 id="lc-source-title" className="ui-h3">
                   {t("player.sourceTitle")}
                 </h3>
-                <div className="ui-chips lc-sources" role="group" aria-labelledby="lc-source-title">
+                <fieldset className="ui-chips lc-sources" aria-labelledby="lc-source-title">
                   {supportedSources.map((source) => (
                     <button
                       key={source.id}
@@ -337,7 +337,7 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
                       <span>{t(source.labelKey)}</span>
                     </button>
                   ))}
-                </div>
+                </fieldset>
               </motion.section>
             )}
 

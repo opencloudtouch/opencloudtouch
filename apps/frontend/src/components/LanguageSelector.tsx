@@ -67,12 +67,13 @@ export default function LanguageSelector() {
       wrapperRef.current?.querySelectorAll<HTMLElement>('[role="option"]') ?? []
     );
     const idx = options.indexOf(e.currentTarget);
-    const next =
-      e.key === "Home"
-        ? 0
-        : e.key === "End"
-          ? options.length - 1
-          : (idx + (e.key === "ArrowDown" ? 1 : -1) + options.length) % options.length;
+    let next: number;
+    if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = options.length - 1;
+    else {
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      next = (idx + step + options.length) % options.length;
+    }
     options[next]?.focus();
   };
 

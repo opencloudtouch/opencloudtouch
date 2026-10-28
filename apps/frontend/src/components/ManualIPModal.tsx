@@ -172,14 +172,14 @@ export default function ManualIPModal({ isOpen, onClose }: ManualIPModalProps) {
         )}
 
         {success && (
-          <div className="wz-status wz-status--success" role="status">
+          <output className="wz-status wz-status--success">
             <span className="wz-icon" aria-hidden="true">
               {Icon.CircleCheck(20)}
             </span>
             <div className="wz-status-body">
               <p>{t("manualIpModal.saved")}</p>
             </div>
-          </div>
+          </output>
         )}
       </div>
 

@@ -365,7 +365,10 @@ export default function Step5ConfigModification({
                 <div className="error-icon">{Icon.Alert()}</div>
                 <div className="error-content">
                   <strong>{t("setup.wizard.step5.validationErrorTitle")}</strong>
-                  <pre className="error-details" tabIndex={0}>
+                  <pre
+                    className="error-details"
+                    tabIndex={0} // NOSONAR(S6845): keyboard-focusable so scrollable content can be scrolled
+                  >
                     {validationError}
                   </pre>
                 </div>
@@ -484,7 +487,11 @@ export default function Step5ConfigModification({
               {modifyData.backup_path && (
                 <div className="config-detail-item">
                   <strong>{t("setup.wizard.step5.backupLabel")}</strong>
-                  <code tabIndex={0}>{modifyData.backup_path}</code>
+                  <code
+                    tabIndex={0} // NOSONAR(S6845): keyboard-focusable so scrollable content can be scrolled
+                  >
+                    {modifyData.backup_path}
+                  </code>
                 </div>
               )}
             </div>
@@ -504,7 +511,11 @@ export default function Step5ConfigModification({
                 </button>
 
                 {showDiff && (
-                  <pre className="config-diff" id="config-diff-content" tabIndex={0}>
+                  <pre
+                    className="config-diff"
+                    id="config-diff-content"
+                    tabIndex={0} // NOSONAR(S6845): keyboard-focusable so scrollable content can be scrolled
+                  >
                     <code>{modifyData.diff}</code>
                   </pre>
                 )}

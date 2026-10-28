@@ -120,12 +120,12 @@ export default function RestoreVerification({
       )}
 
       {deviceOnline && (
-        <div className="restore-verification__online wz-status wz-status--success" role="status">
+        <output className="restore-verification__online wz-status wz-status--success">
           <span className="wz-icon" aria-hidden="true">
             {Icon.CircleCheck()}
           </span>
           <p>{t("restore.verification.online", "Device is back online!")}</p>
-        </div>
+        </output>
       )}
     </WizardStep>
   );

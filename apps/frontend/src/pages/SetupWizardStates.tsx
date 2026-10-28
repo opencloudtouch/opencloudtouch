@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Icon } from "../components/wizard/Icon";
 import "../components/wizard/wizard-base.css"; // replaces the wizard parts of SetupWizard.css
 
-export default function SetupWizardNoDevices({ isLoading }: { isLoading: boolean }) {
+export default function SetupWizardNoDevices({ isLoading }: Readonly<{ isLoading: boolean }>) {
   const navigate = useNavigate();
   const { t } = useTranslation();
 

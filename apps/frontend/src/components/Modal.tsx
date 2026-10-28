@@ -88,7 +88,7 @@ export default function Modal({
     >
       <div
         className="dlg-overlay"
-        role="presentation"
+        role="presentation" // NOSONAR(S6819): backdrop is click-only; the dialog itself has the semantics
         onClick={(e) => {
           if (closeOnBackdrop && e.target === e.currentTarget) onClose();
         }}

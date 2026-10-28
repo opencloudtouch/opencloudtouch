@@ -38,9 +38,19 @@ function formatViolations(violations: AxeViolation[]): string {
     .join("\n");
 }
 
+/** Waits until all finite CSS/JS animations have finished (looping ones such as spinners are ignored). */
+function waitForAnimationsToFinish() {
+  cy.window().should((win) => {
+    const running = win.document
+      .getAnimations()
+      .filter((a) => a.playState === "running" && a.effect?.getComputedTiming().iterations !== Infinity);
+    expect(running, "running finite animations").to.have.lengthOf(0);
+  });
+}
+
 /** Runs axe on the current page; fails with a readable list of violations. */
 function assertNoAxeViolations(label: string) {
-  cy.wait(900); // let slide/fade animations finish so contrast is measured on settled colours
+  waitForAnimationsToFinish(); // slide/fade animations must finish so contrast is measured on settled colours
   cy.injectAxe();
   let found: AxeViolation[] = [];
   // skipFailures: collect first, then fail with a readable message (the default message omits the details)
@@ -53,7 +63,7 @@ function assertNoAxeViolations(label: string) {
     true,
   );
   cy.then(() => {
-    expect(found.length, `axe violations on ${label}\n${formatViolations(found)}`).to.equal(0);
+    expect(found, `axe violations on ${label}\n${formatViolations(found)}`).to.have.lengthOf(0);
   });
 }
 

@@ -31,6 +31,35 @@ function handleFaviconError(e: React.SyntheticEvent<HTMLImageElement>) {
   }
 }
 
+function PlayToggle({
+  number,
+  stationName,
+  isPlaying,
+  onPlay,
+  onPause,
+}: Readonly<{
+  number: number;
+  stationName: string;
+  isPlaying: boolean;
+  onPlay: () => void;
+  onPause?: () => void;
+}>) {
+  const { t } = useTranslation();
+  const label = isPlaying ? t("player.pause") : t("presets.playPreset", { name: stationName });
+  return (
+    <button
+      type="button"
+      className={`pb-play${isPlaying ? " playing" : ""}`}
+      onClick={() => (isPlaying ? onPause?.() : onPlay())}
+      aria-label={label}
+      data-testid={`preset-action-${number}`}
+      title={isPlaying ? t("player.pause") : t("player.play")}
+    >
+      {isPlaying ? Icon.Pause(22) : Icon.Play(22)}
+    </button>
+  );
+}
+
 export default function PresetButton({
   number,
   preset,
@@ -90,26 +119,13 @@ export default function PresetButton({
             </div>
             <span className="pb-name">{preset.station_name}</span>
           </button>
-          <button
-            type="button"
-            className={`pb-play${isCurrentlyPlaying ? " playing" : ""}`}
-            onClick={() => {
-              if (isCurrentlyPlaying) {
-                onPause?.();
-              } else {
-                onPlay();
-              }
-            }}
-            aria-label={
-              isCurrentlyPlaying
-                ? t("player.pause")
-                : t("presets.playPreset", { name: preset.station_name })
-            }
-            data-testid={`preset-action-${number}`}
-            title={isCurrentlyPlaying ? t("player.pause") : t("player.play")}
-          >
-            {isCurrentlyPlaying ? Icon.Pause(22) : Icon.Play(22)}
-          </button>
+          <PlayToggle
+            number={number}
+            stationName={preset.station_name}
+            isPlaying={Boolean(isCurrentlyPlaying)}
+            onPlay={onPlay}
+            onPause={onPause}
+          />
         </>
       ) : (
         <button className="pb-empty" onClick={onAssign} data-testid={`preset-empty-${number}`}>

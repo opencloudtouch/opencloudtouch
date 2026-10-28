@@ -79,28 +79,14 @@ describe("DeviceNowPlaying", () => {
 
   // ---- Source icon fallbacks (no artwork) ----
 
-  it("shows a radio icon for TUNEIN source without artwork", () => {
+  it.each([
+    ["a radio icon", "TUNEIN"],
+    ["a bluetooth icon", "BLUETOOTH"],
+    ["a headphones icon", "AUX"],
+  ])("shows %s for %s source without artwork", (_icon, source) => {
     render(
       <DeviceNowPlaying
-        nowPlaying={makePlaying({ source: "TUNEIN", artwork_url: undefined })}
-      />,
-    );
-    expect(document.querySelector(".dnp-icon svg")).not.toBeNull();
-  });
-
-  it("shows a bluetooth icon for BLUETOOTH source without artwork", () => {
-    render(
-      <DeviceNowPlaying
-        nowPlaying={makePlaying({ source: "BLUETOOTH", artwork_url: undefined })}
-      />,
-    );
-    expect(document.querySelector(".dnp-icon svg")).not.toBeNull();
-  });
-
-  it("shows a headphones icon for AUX source without artwork", () => {
-    render(
-      <DeviceNowPlaying
-        nowPlaying={makePlaying({ source: "AUX", artwork_url: undefined })}
+        nowPlaying={makePlaying({ source, artwork_url: undefined })}
       />,
     );
     expect(document.querySelector(".dnp-icon svg")).not.toBeNull();

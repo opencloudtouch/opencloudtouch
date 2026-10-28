@@ -84,10 +84,10 @@ export default function StationDetail({
   if (loading) {
     return (
       <div className="sd">
-        <div className="sd-loading" role="status">
+        <output className="sd-loading">
           <span className="spinner" aria-hidden="true" />
           {t("common.loading")}
-        </div>
+        </output>
       </div>
     );
   }
@@ -116,7 +116,11 @@ export default function StationDetail({
 
   return (
     <div className="sd">
-      <div className="sd-body" tabIndex={0} role="region" aria-label={station.name}>
+      <section
+        className="sd-body"
+        tabIndex={0} // NOSONAR(S6845): scrollable region must be keyboard-focusable (WCAG 2.1.1)
+        aria-label={station.name}
+      >
         <div className="sd-header">
           {station.favicon && (
             <img
@@ -174,7 +178,7 @@ export default function StationDetail({
             ))}
           </ul>
         )}
-      </div>
+      </section>
 
       <div className="sd-actions">
         <button className="btn btn-secondary" onClick={onBack}>

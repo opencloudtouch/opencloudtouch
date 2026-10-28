@@ -354,7 +354,7 @@ describe("Preset Management Advanced", () => {
       }).as("slowSetPreset");
 
       // Start preset assignment
-      cy.get(".pb-empty").first().scrollIntoView().click({ force: true });
+      cy.get(".pb-empty").first().scrollIntoView().should("be.visible").click();
       cy.get("dialog.dlg", { timeout: 10000 }).should("be.visible");
       cy.get(".rs-search").type("BBC");
       cy.get(".rs-results", { timeout: 10000 }).should("be.visible");
@@ -437,7 +437,7 @@ describe("Preset Management Advanced", () => {
           .and("contain", stationA.name);
 
         // Switch to device 2 (via swiper or device selector)
-        cy.get(".ds-arrow--next").click({ force: true });
+        cy.get(".ds-arrow--next").should("be.visible").and("not.be.disabled").click();
         waitForPresetsReady();
 
         // Should show device 2 preset
@@ -465,7 +465,7 @@ describe("Preset Management Advanced", () => {
         body: { detail: "Database error" },
       }).as("setPresetFail");
 
-      cy.get(".pb-empty").first().scrollIntoView().click({ force: true });
+      cy.get(".pb-empty").first().scrollIntoView().should("be.visible").click();
       cy.get("dialog.dlg", { timeout: 10000 }).should("be.visible");
       cy.get(".rs-search").type("BBC");
       cy.get(".rs-results", { timeout: 10000 }).should("be.visible");
@@ -519,7 +519,7 @@ describe("Preset Management Advanced", () => {
         body: { detail: "Invalid data" },
       }).as("setPresetFail");
 
-      cy.get(".pb-empty").first().scrollIntoView().click({ force: true });
+      cy.get(".pb-empty").first().scrollIntoView().should("be.visible").click();
       cy.get("dialog.dlg", { timeout: 10000 }).should("be.visible");
       cy.get(".rs-search").type("BBC");
       cy.get(".rs-results", { timeout: 10000 }).should("be.visible");

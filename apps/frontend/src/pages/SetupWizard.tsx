@@ -143,11 +143,11 @@ export default function SetupWizard({ devices, isLoading = false }: SetupWizardP
     return keys.map((key, index) => {
       const id = index + 1;
       const skipped = id === 2 && restoreType === "clean" && restoreStep > 1;
-      return {
-        id,
-        label: t(`restore.steps.${key}`),
-        status: skipped ? "skipped" : id < restoreStep ? "completed" : "pending",
-      };
+      const done = id < restoreStep;
+      let status: WizardStep["status"] = "pending";
+      if (skipped) status = "skipped";
+      else if (done) status = "completed";
+      return { id, label: t(`restore.steps.${key}`), status };
     });
   }, [t, restoreStep, restoreType]);
   const [backupPath, setBackupPath] = useState<string>("");

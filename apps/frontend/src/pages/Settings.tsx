@@ -241,9 +241,9 @@ export default function Settings() {
                 </>
               )}
             </button>
-            <span className="visually-hidden" role="status">
+            <output className="visually-hidden">
               {isDiscovering ? t("settings.deviceDiscovery.scanningStatus") : ""}
-            </span>
+            </output>
           </div>
 
           {/* Secondary: Manual IPs */}
@@ -346,9 +346,9 @@ export default function Settings() {
                 )}
               </span>
             </div>
-            <span className="visually-hidden" role="status">
+            <output className="visually-hidden">
               {setLogLevel.isPending ? t("settings.logging.levelSaving") : ""}
-            </span>
+            </output>
           </div>
 
           {/* Download Logs */}

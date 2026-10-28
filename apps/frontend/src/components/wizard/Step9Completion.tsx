@@ -87,7 +87,10 @@ export default function Step9Completion({
             {backupPath ? (
               <>
                 <strong>{t("setup.wizard.step9.backupTitle")}</strong>
-                <code className="backup-info-path" tabIndex={0}>
+                <code
+                  className="backup-info-path"
+                  tabIndex={0} // NOSONAR(S6845): keyboard-focusable so scrollable content can be scrolled
+                >
                   {backupPath}
                 </code>
                 <p className="backup-info-note">{t("setup.wizard.step9.backupNote")}</p>

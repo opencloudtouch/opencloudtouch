@@ -40,16 +40,26 @@ function formatIssues(issues: LayoutIssue[]): string {
     .join("\n");
 }
 
+/** Waits until all finite CSS/JS animations have finished (looping ones such as spinners are ignored). */
+function waitForAnimationsToFinish() {
+  cy.window().should((win) => {
+    const running = win.document
+      .getAnimations()
+      .filter((a) => a.playState === "running" && a.effect?.getComputedTiming().iterations !== Infinity);
+    expect(running, "running finite animations").to.have.lengthOf(0);
+  });
+}
+
 function assertNoLayoutIssues(label: string) {
   cy.window().then((win) => waitForStableLayout(win));
   cy.window().then((win) => {
     const issues = collectLayoutIssues(win);
-    expect(issues.length, `${label}: layout issues\n${formatIssues(issues)}`).to.equal(0);
+    expect(issues, `${label}: layout issues\n${formatIssues(issues)}`).to.have.lengthOf(0);
   });
 }
 
 function assertNoAxeViolations(label: string) {
-  cy.wait(900); // let enter animations finish so contrast is measured on settled colours
+  waitForAnimationsToFinish(); // enter animations must finish so contrast is measured on settled colours
   cy.injectAxe();
   let found: AxeViolation[] = [];
   cy.checkA11y(
@@ -64,7 +74,7 @@ function assertNoAxeViolations(label: string) {
     const text = found
       .map((v) => `[${v.impact}] ${v.id}: ${v.help} (${v.nodes.length}x) -> ${v.nodes.slice(0, 3).map((n) => JSON.stringify(n.target)).join(", ")}`)
       .join("\n");
-    expect(found.length, `axe violations on ${label}\n${text}`).to.equal(0);
+    expect(found, `axe violations on ${label}\n${text}`).to.have.lengthOf(0);
   });
 }
 
@@ -90,8 +100,8 @@ describe("Zones, Local control and Firmware states", { retries: 0 }, () => {
         visitDe("/multiroom");
         cy.get(".zn").should("have.length", 1);
         // two devices that are not in the zone -> the selection bar appears
-        cy.get(".mr-dev-check:not(:disabled)").eq(0).check({ force: true });
-        cy.get(".mr-dev-check:not(:disabled)").eq(1).check({ force: true });
+        cy.get(".mr-dev-check:not(:disabled)").eq(0).scrollIntoView().should("be.visible").check();
+        cy.get(".mr-dev-check:not(:disabled)").eq(1).scrollIntoView().should("be.visible").check();
         cy.get(".mr-bar").should("exist");
         assertNoLayoutIssues(`multiroom selection @${width}`);
         assertNoAxeViolations(`multiroom selection @${width}`);
@@ -99,8 +109,8 @@ describe("Zones, Local control and Firmware states", { retries: 0 }, () => {
 
       it("zones: the 'make master' star is a separate button and does not toggle the checkbox", () => {
         visitDe("/multiroom");
-        cy.get(".mr-dev-check:not(:disabled)").eq(0).check({ force: true });
-        cy.get(".mr-dev-check:not(:disabled)").eq(1).check({ force: true });
+        cy.get(".mr-dev-check:not(:disabled)").eq(0).scrollIntoView().should("be.visible").check();
+        cy.get(".mr-dev-check:not(:disabled)").eq(1).scrollIntoView().should("be.visible").check();
         cy.get(".mr-star").first().scrollIntoView().click();
         cy.get(".mr-dev-check:checked").should("have.length", 2);
       });

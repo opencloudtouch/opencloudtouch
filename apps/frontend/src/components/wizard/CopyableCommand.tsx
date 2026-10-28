@@ -43,7 +43,10 @@ export default function CopyableCommand({ command }: CopyableCommandProps) {
 
   return (
     <div className="ssh-command-wrapper">
-      <pre className="ssh-hint-command" tabIndex={0}>
+      <pre
+        className="ssh-hint-command"
+        tabIndex={0} // NOSONAR(S6845): keyboard-focusable so scrollable content can be scrolled
+      >
         {command}
       </pre>
       <button

@@ -67,6 +67,14 @@ const SWIPE_FLICK_MIN = 24; // px and
 const SWIPE_FLICK_V = 0.4; // px/ms: a flick switches
 const EDGE_MAX = 32; // px, rubber band at the first / last device
 const EDGE_K = 120;
+/** Axis the gesture locks to once it moved far enough; "" while still undecided. */
+function detectLock(dx: number, dy: number): "" | "x" | "y" {
+  if (Math.abs(dx) < SWIPE_LOCK && Math.abs(dy) < SWIPE_LOCK) return "";
+  return Math.abs(dx) >= Math.abs(dy) * 1.2 ? "x" : "y";
+}
+/** Resisted offset when dragging past the first / last device. */
+const rubberBand = (dx: number) =>
+  Math.sign(dx) * EDGE_MAX * (1 - Math.exp(-Math.abs(dx) / EDGE_K));
 /* a gesture that starts on one of these is not a swipe (volume slider, name editor, marquee title) */
 const NO_SWIPE = '.vs-track,[role="slider"],input,textarea,select,.dne,.dne-btn,.np-marquee';
 
@@ -93,7 +101,7 @@ export default function DeviceSwiper({
 }: DeviceSwiperProps) {
   const { t } = useTranslation();
   const [dragDirection, setDragDirection] = useState(0);
-  const dotsRef = useRef<HTMLDivElement>(null);
+  const dotsRef = useRef<HTMLFieldSetElement>(null);
   const [dotsWidth, setDotsWidth] = useState(0);
 
   useLayoutEffect(() => {
@@ -145,8 +153,7 @@ export default function DeviceSwiper({
     if (!s.ok || !s.card) return;
     const { x: dx, y: dy } = info.offset;
     if (!s.lock) {
-      if (Math.abs(dx) < SWIPE_LOCK && Math.abs(dy) < SWIPE_LOCK) return;
-      s.lock = Math.abs(dx) >= Math.abs(dy) * 1.2 ? "x" : "y";
+      s.lock = detectLock(dx, dy);
       if (s.lock === "x") s.card.dataset.dragging = "";
     }
     if (s.lock !== "x") return;
@@ -154,8 +161,7 @@ export default function DeviceSwiper({
     s.moved = true;
     const edge = (dx > 0 && currentIndex === 0) || (dx < 0 && currentIndex === count - 1);
     if (!reduce) {
-      const x = edge ? Math.sign(dx) * EDGE_MAX * (1 - Math.exp(-Math.abs(dx) / EDGE_K)) : dx;
-      s.card.style.setProperty("--ds-x", `${x}px`);
+      s.card.style.setProperty("--ds-x", `${edge ? rubberBand(dx) : dx}px`);
     }
     cue(dx, !edge && Math.abs(dx) >= threshold());
   };
@@ -163,7 +169,7 @@ export default function DeviceSwiper({
     const s = swipeRef.current;
     const card = s.card;
     if (!card || s.lock !== "x") return;
-    card.removeAttribute("data-dragging");
+    delete card.dataset.dragging;
     cue(0, false);
     const dx = info.offset.x;
     const v = info.velocity.x / 1000; // px/ms
@@ -179,7 +185,9 @@ export default function DeviceSwiper({
     } else if (!reduce) {
       card.dataset.settle = "";
       card.style.setProperty("--ds-x", "0px");
-      window.setTimeout(() => card.removeAttribute("data-settle"), 260);
+      window.setTimeout(() => {
+        delete card.dataset.settle;
+      }, 260);
     }
     window.setTimeout(() => {
       s.moved = false;
@@ -273,10 +281,9 @@ export default function DeviceSwiper({
         </button>
 
         {/* Device picker: group of buttons, current one has aria-current (no tab pattern: there is no tab panel) */}
-        <div
+        <fieldset
           ref={dotsRef}
           className={`ds-dots ds-dots--${density}`}
-          role="group"
           aria-label={t("a11y.deviceSelection")}
           style={{ "--ds-pitch": `${pitch}px` } as CSSProperties}
         >
@@ -300,11 +307,11 @@ export default function DeviceSwiper({
             );
           })}
           {density === "window" && (
-            <span className="visually-hidden" role="status">
+            <output className="visually-hidden">
               {t("a11y.deviceCounter", { current: currentIndex + 1, total: count })}
-            </span>
+            </output>
           )}
-        </div>
+        </fieldset>
         <span className="ds-bar-name" aria-hidden="true">
           {devices[currentIndex]?.name} · {currentIndex + 1}/{count}
         </span>

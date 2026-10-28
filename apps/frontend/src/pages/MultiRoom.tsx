@@ -303,10 +303,10 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
     return (
       <div className="mr">
         <h1 className="ui-h1">{t("multiroom.pageTitle")}</h1>
-        <div className="ui-card mr-loading" role="status">
+        <output className="ui-card mr-loading">
           <span className="wz-spinner" aria-hidden="true" />
           <span>{t("multiroom.loadingZones")}</span>
-        </div>
+        </output>
         <div className="ui-card zn zn--skeleton" aria-hidden="true">
           <div className="zn-head">
             <span className="ui-skeleton zn-sk-icon" />
@@ -462,7 +462,7 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
             : t("multiroom.newTitle")}
         </h2>
 
-        <div className="mr-grid" role="group" aria-labelledby="mr-select-title">
+        <fieldset className="mr-grid" aria-labelledby="mr-select-title">
           {devices.map((device, index) => {
             const inZone = isDeviceInZone(device.device_id);
             const isSelected = selectedDevices.includes(device.device_id);
@@ -486,15 +486,15 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
               />
             );
           })}
-        </div>
+        </fieldset>
 
         {selectedDevices.length > 0 && (
           <motion.div className="mr-bar" initial={{ y: 10 }} animate={{ y: 0 }}>
-            <p className="mr-bar-count" role="status">
+            <output className="mr-bar-count">
               {selectedDevices.length < 2
                 ? t("multiroom.selectedCountMin", { count: selectedDevices.length })
                 : t("multiroom.selectedCount", { count: selectedDevices.length })}
-            </p>
+            </output>
             <div className="mr-bar-actions">
               <button
                 type="button"

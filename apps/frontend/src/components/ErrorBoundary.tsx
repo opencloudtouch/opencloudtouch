@@ -65,9 +65,16 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                   {Icon.ChevronDown(18)}
                 </span>
               </summary>
-              <pre tabIndex={0}>{this.state.error.toString()}</pre>
+              <pre
+                tabIndex={0} // NOSONAR(S6845): scrollable region must be keyboard-focusable (WCAG 2.1.1)
+              >
+                {this.state.error.toString()}
+              </pre>
               {this.state.error.stack && (
-                <pre className="eb-stack" tabIndex={0}>
+                <pre
+                  className="eb-stack"
+                  tabIndex={0} // NOSONAR(S6845): scrollable region must be keyboard-focusable (WCAG 2.1.1)
+                >
                   {this.state.error.stack}
                 </pre>
               )}

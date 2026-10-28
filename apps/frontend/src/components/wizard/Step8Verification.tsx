@@ -294,7 +294,8 @@ export default function Step8Verification({
     verifyChecks.find((c) => c.name === "sources_complete")?.passed ?? false;
 
   // Phase indicator (display only)
-  const currentPhase = !finalizeResult?.success ? 1 : rebootState === "done" ? 3 : 2;
+  let currentPhase = 1;
+  if (finalizeResult?.success) currentPhase = rebootState === "done" ? 3 : 2;
   const phaseState = (n: number): "done" | "active" | "pending" => {
     if (n < currentPhase || (n === 3 && allTestsPassed)) return "done";
     return n === currentPhase ? "active" : "pending";
@@ -408,14 +409,14 @@ export default function Step8Verification({
             )}
 
             {rebootState === "rebooting" && (
-              <div className="reboot-status reboot-status--progress" role="status">
+              <output className="reboot-status reboot-status--progress">
                 <span className="spinner-small" />
                 {t("setup.wizard.step8.rebootRebooting")}
-              </div>
+              </output>
             )}
 
             {rebootState === "waiting" && (
-              <div className="reboot-status reboot-status--waiting" role="status">
+              <output className="reboot-status reboot-status--waiting">
                 <span className="reboot-countdown" aria-hidden="true">
                   {rebootCountdown}s
                 </span>
@@ -426,14 +427,14 @@ export default function Step8Verification({
                     style={{ width: `${100 - rebootCountdown}%` }}
                   />
                 </span>
-              </div>
+              </output>
             )}
 
             {rebootState === "done" && (
-              <div className="reboot-status reboot-status--done" role="status">
+              <output className="reboot-status reboot-status--done">
                 <span className="wz-icon">{Icon.CircleCheck()}</span>
                 <span className="reboot-status-text">{t("setup.wizard.step8.rebootDone")}</span>
-              </div>
+              </output>
             )}
 
             {rebootState === "error" && (
@@ -585,11 +586,11 @@ export default function Step8Verification({
 
             {/* Overall Result */}
             {allTestsPassed ? (
-              <div className="verification-success wz-result" role="status">
+              <output className="verification-success wz-result">
                 <div className="success-icon">{Icon.PartyPopper(28)}</div>
                 <h3 className="success-title">{t("setup.wizard.step8.allPassedTitle")}</h3>
                 <p className="success-message">{t("setup.wizard.step8.allPassedMessage")}</p>
-              </div>
+              </output>
             ) : (
               <div className="verification-failed wz-result wz-result--warning" role="alert">
                 <div className="failed-icon">{Icon.Alert(28)}</div>

@@ -90,6 +90,29 @@ const PROVIDERS = HAS_TUNEIN_SUPPORT
   ? ALL_PROVIDERS
   : ALL_PROVIDERS.filter((p) => p.value !== "tunein");
 
+function normalizeStations(data: { stations?: unknown } | null | undefined): RadioStation[] {
+  const stations: RawStationData[] = Array.isArray(data?.stations) ? data.stations : [];
+  return stations.map((station) => ({
+    stationuuid: station.uuid,
+    name: station.name,
+    country: station.country,
+    url: station.url,
+    homepage: station.homepage,
+    favicon: station.favicon,
+  }));
+}
+
+/** Drops the pending debounce timer and aborts the in-flight search request. */
+function cancelPendingSearch(
+  debounceRef: { current: number | null },
+  abortRef: { current: AbortController | null }
+) {
+  if (debounceRef.current !== null) {
+    window.clearTimeout(debounceRef.current);
+  }
+  abortRef.current?.abort();
+}
+
 export default function RadioSearch({
   onStationSelect,
   isOpen,
@@ -158,34 +181,19 @@ export default function RadioSearch({
     if (!searchQuery.trim()) {
       setResults([]);
       setLoading(false);
-      if (debounceRef.current !== null) {
-        window.clearTimeout(debounceRef.current);
-      }
-      if (abortRef.current) {
-        abortRef.current.abort();
-      }
+      cancelPendingSearch(debounceRef, abortRef);
       return;
     }
 
     if (searchQuery.trim().length < 2) {
       setResults([]);
       setLoading(false);
-      if (debounceRef.current !== null) {
-        window.clearTimeout(debounceRef.current);
-      }
-      if (abortRef.current) {
-        abortRef.current.abort();
-      }
+      cancelPendingSearch(debounceRef, abortRef);
       return;
     }
 
     setLoading(true);
-    if (debounceRef.current !== null) {
-      window.clearTimeout(debounceRef.current);
-    }
-    if (abortRef.current) {
-      abortRef.current.abort();
-    }
+    cancelPendingSearch(debounceRef, abortRef);
 
     debounceRef.current = window.setTimeout(async () => {
       const controller = new AbortController();
@@ -204,26 +212,14 @@ export default function RadioSearch({
           console.error("Radio search failed:", apiError || response);
 
           // Use user-friendly error message from getErrorMessage
-          if (apiError) {
-            setError(getErrorMessage(apiError));
-          } else {
-            setError(t("presets.searchFailed"));
-          }
+          setError(apiError ? getErrorMessage(apiError) : t("presets.searchFailed"));
           setResults([]);
           setHasMore(false);
           return;
         }
 
         const data = await response.json();
-        const stations = Array.isArray(data?.stations) ? data.stations : [];
-        const normalized: RadioStation[] = stations.map((station: RawStationData) => ({
-          stationuuid: station.uuid,
-          name: station.name,
-          country: station.country,
-          url: station.url,
-          homepage: station.homepage,
-          favicon: station.favicon,
-        }));
+        const normalized = normalizeStations(data);
 
         setResults(normalized);
         setHasMore(data?.has_more === true);
@@ -257,24 +253,12 @@ export default function RadioSearch({
 
       if (!response.ok) {
         const apiError = await parseApiError(response);
-        if (apiError) {
-          setError(getErrorMessage(apiError));
-        } else {
-          setError(t("presets.searchFailed"));
-        }
+        setError(apiError ? getErrorMessage(apiError) : t("presets.searchFailed"));
         return;
       }
 
       const data = await response.json();
-      const stations = Array.isArray(data?.stations) ? data.stations : [];
-      const normalized: RadioStation[] = stations.map((station: RawStationData) => ({
-        stationuuid: station.uuid,
-        name: station.name,
-        country: station.country,
-        url: station.url,
-        homepage: station.homepage,
-        favicon: station.favicon,
-      }));
+      const normalized = normalizeStations(data);
 
       setResults((prev) => [...prev, ...normalized]);
       setOffset(newOffset);
@@ -375,7 +359,7 @@ export default function RadioSearch({
           </div>
 
           <div className="rs-chips">
-            <div className="ui-chips" role="group" aria-label={t("presets.searchTypeGroup")}>
+            <fieldset className="ui-chips" aria-label={t("presets.searchTypeGroup")}>
               {SEARCH_TYPES.map((st) => (
                 <button
                   key={st.value}
@@ -392,8 +376,8 @@ export default function RadioSearch({
                   {t(`presets.searchTypeLabel.${st.value}`)}
                 </button>
               ))}
-            </div>
-            <div className="ui-chips" role="group" aria-label={t("presets.providerGroup")}>
+            </fieldset>
+            <fieldset className="ui-chips" aria-label={t("presets.providerGroup")}>
               {PROVIDERS.map((p) => (
                 <button
                   key={p.value}
@@ -423,7 +407,7 @@ export default function RadioSearch({
               >
                 {t("presets.manualStreamMode")}
               </button>
-            </div>
+            </fieldset>
           </div>
 
           <div className="rs-field">
@@ -469,10 +453,9 @@ export default function RadioSearch({
           </div>
 
           {searchMode === "manual" && (
-            <div
+            <section
               className="rs-manual rs-scroll"
-              tabIndex={0}
-              role="region"
+              tabIndex={0} // NOSONAR(S6845): scrollable region must be keyboard-focusable (WCAG 2.1.1)
               aria-label={t("presets.manualStreamMode")}
             >
               <div className="ui-field">
@@ -538,14 +521,13 @@ export default function RadioSearch({
               >
                 {t("presets.manualUseStation")}
               </button>
-            </div>
+            </section>
           )}
 
           {searchMode === "provider" && (
-            <div
+            <section
               className="rs-results rs-scroll"
-              tabIndex={0}
-              role="region"
+              tabIndex={0} // NOSONAR(S6845): scrollable region must be keyboard-focusable (WCAG 2.1.1)
               aria-label={t("presets.searchResults")}
             >
               {error && (
@@ -559,10 +541,10 @@ export default function RadioSearch({
                 </div>
               )}
               {loading && (
-                <div className="rs-note" role="status">
+                <output className="rs-note">
                   <span className="spinner-small rs-spinner" aria-hidden="true" />
                   {t("presets.searchLoading")}
-                </div>
+                </output>
               )}
               {!loading && !error && results.length === 0 && !query.trim() && (
                 <div className="rs-note rs-note--hint">
@@ -571,9 +553,7 @@ export default function RadioSearch({
                 </div>
               )}
               {!loading && !error && results.length === 0 && query && (
-                <div className="rs-note" role="status">
-                  {t("presets.searchEmpty")}
-                </div>
+                <output className="rs-note">{t("presets.searchEmpty")}</output>
               )}
               {results.map((station) => (
                 <button
@@ -633,7 +613,7 @@ export default function RadioSearch({
                   <span>{t("presets.maxReached", { count: MAX_RESULTS })}</span>
                 </div>
               )}
-            </div>
+            </section>
           )}
 
           {hasExistingPreset && onDelete && (

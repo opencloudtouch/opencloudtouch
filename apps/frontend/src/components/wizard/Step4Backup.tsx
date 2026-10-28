@@ -163,7 +163,10 @@ export default function Step4Backup({
                         {formatDuration(vol.duration_seconds, t)}
                       </small>
                     </div>
-                    <code className="backup-file-path" tabIndex={0}>
+                    <code
+                      className="backup-file-path"
+                      tabIndex={0} // NOSONAR(S6845): keyboard-focusable so scrollable content can be scrolled
+                    >
                       {vol.path}
                     </code>
                   </div>

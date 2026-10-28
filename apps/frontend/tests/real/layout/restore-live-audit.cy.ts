@@ -3,7 +3,7 @@
  * Runs the "clean restore" path with REAL API calls; the backup-restore path is only
  * opened up to the backup scan screen.
  */
-import { collectLayoutIssues, LayoutIssue } from "../../e2e/support/layoutAudit";
+import { collectLayoutIssues, waitForStableLayout, LayoutIssue } from "../../e2e/support/layoutAudit";
 
 const DEVICE = "68C90B32AF6E";
 const WIDTH = Number(Cypress.expose("auditWidth") ?? 320);
@@ -12,8 +12,13 @@ const RESTART_WAIT_MS = 35000; // user requirement: wait >= 30 s after restarts
 
 const results: Record<string, LayoutIssue[]> = {};
 
+/** Fixed pause that is required by the device (restart time), not a synchronisation point. */
+function waitForDeviceRestart() {
+  cy.then({ timeout: RESTART_WAIT_MS + 10000 }, () => new Cypress.Promise((resolve) => setTimeout(resolve, RESTART_WAIT_MS)));
+}
+
 function snap(name: string) {
-  cy.wait(800);
+  cy.window().then((win) => waitForStableLayout(win));
   cy.window().then((win) => {
     results[`${name}@${WIDTH}`] = collectLayoutIssues(win);
   });
@@ -33,7 +38,7 @@ describe("Restore wizard live audit", () => {
 
     // Backup path: only up to the scan screen, then back
     cy.get(".wizard-choice__card").eq(1).click();
-    cy.wait(4000);
+    cy.get(".backup-scan__result", LONG).should("exist");
     snap("11-backup-scan");
     cy.get(".wizard-btn-previous").first().click();
 
@@ -43,7 +48,7 @@ describe("Restore wizard live audit", () => {
     snap("12-execution-running");
     cy.get(".wizard-btn-next:not([disabled])", { timeout: 600000 }).should("exist");
     snap("13-execution-done");
-    cy.wait(RESTART_WAIT_MS);
+    waitForDeviceRestart();
     cy.get(".wizard-btn-next").click();
 
     // Verification (device reboots; allow time to come back)
@@ -52,7 +57,7 @@ describe("Restore wizard live audit", () => {
     snap("14-verification-waiting");
     cy.get(".wizard-btn-next:not([disabled])", { timeout: 600000 }).should("exist");
     snap("15-verification-online");
-    cy.wait(RESTART_WAIT_MS);
+    waitForDeviceRestart();
     cy.get(".wizard-btn-next").click();
 
     // Completion

@@ -139,12 +139,9 @@ export default function Step3PowerCycle({
     },
   ];
 
-  const riskIcon =
-    riskLevel === "gering"
-      ? Icon.ShieldCheck()
-      : riskLevel === "mittel"
-        ? Icon.Alert()
-        : Icon.ShieldAlert();
+  let riskIcon = Icon.ShieldAlert();
+  if (riskLevel === "gering") riskIcon = Icon.ShieldCheck();
+  else if (riskLevel === "mittel") riskIcon = Icon.Alert();
 
   return (
     <WizardStep
@@ -177,7 +174,7 @@ export default function Step3PowerCycle({
           <h3 className="power-cycle-title">{t("setup.wizard.step3.sectionStatus")}</h3>
 
           {!checking && !portsAvailable && checkAttempts === 0 && (
-            <div className="power-cycle-status pending wz-status wz-status--warning" role="status">
+            <output className="power-cycle-status pending wz-status wz-status--warning">
               <div className="status-icon" aria-hidden="true">
                 {Icon.Hourglass()}
               </div>
@@ -185,11 +182,11 @@ export default function Step3PowerCycle({
                 <p>{t("setup.wizard.step3.statusWaiting")}</p>
                 <small>{t("setup.wizard.step3.statusWaitingHint")}</small>
               </div>
-            </div>
+            </output>
           )}
 
           {checking && (
-            <div className="power-cycle-status checking wz-status" role="status">
+            <output className="power-cycle-status checking wz-status">
               <div className="status-icon">
                 <div className="spinner" />
               </div>
@@ -199,11 +196,11 @@ export default function Step3PowerCycle({
                   {t("setup.wizard.step3.statusCheckingDevice")} {deviceName}
                 </small>
               </div>
-            </div>
+            </output>
           )}
 
           {!checking && portsAvailable && (
-            <div className="power-cycle-status success wz-status wz-status--success" role="status">
+            <output className="power-cycle-status success wz-status wz-status--success">
               <div className="status-icon" aria-hidden="true">
                 {Icon.CircleCheck()}
               </div>
@@ -213,11 +210,11 @@ export default function Step3PowerCycle({
                 </p>
                 <small>{t("setup.wizard.step3.statusAvailableHint")}</small>
               </div>
-            </div>
+            </output>
           )}
 
           {!checking && !portsAvailable && checkAttempts > 0 && errorMessage && (
-            <div className="power-cycle-status error wz-status wz-status--error" role="status">
+            <output className="power-cycle-status error wz-status wz-status--error">
               <div className="status-icon" aria-hidden="true">
                 {Icon.CircleX()}
               </div>
@@ -227,7 +224,7 @@ export default function Step3PowerCycle({
                 </p>
                 <small>{errorMessage}</small>
               </div>
-            </div>
+            </output>
           )}
 
           <button
@@ -240,10 +237,12 @@ export default function Step3PowerCycle({
                 <span className="spinner-small" />
                 {t("setup.wizard.step3.btnChecking")}
               </>
-            ) : checkAttempts === 0 ? (
-              t("setup.wizard.step3.btnCheckNow")
             ) : (
-              t("setup.wizard.step3.btnCheckAgain")
+              t(
+                checkAttempts === 0
+                  ? "setup.wizard.step3.btnCheckNow"
+                  : "setup.wizard.step3.btnCheckAgain"
+              )
             )}
           </button>
 
@@ -277,7 +276,7 @@ export default function Step3PowerCycle({
 
               {/* Risk level badge */}
               {allAnswered && riskLevel && (
-                <div className={`risk-level risk-level--${riskLevel}`} role="status">
+                <output className={`risk-level risk-level--${riskLevel}`}>
                   <span className="risk-level-icon">{riskIcon}</span>
                   <div>
                     <strong>
@@ -294,7 +293,7 @@ export default function Step3PowerCycle({
                       {riskLevel === "hoch" && t("setup.wizard.step3.riskHintHigh")}
                     </p>
                   </div>
-                </div>
+                </output>
               )}
 
               {/* Decision cards */}

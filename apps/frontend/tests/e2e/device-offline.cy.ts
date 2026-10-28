@@ -187,7 +187,7 @@ describe("Device Offline Display", () => {
       cy.get(".rp-remove", { timeout: 10000 }).scrollIntoView().click();
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
 
-      cy.wait("@deleteDevice");
+      cy.wait("@deleteDevice").its("response.statusCode").should("eq", 200);
     });
   });
 

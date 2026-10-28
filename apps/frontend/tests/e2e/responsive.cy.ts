@@ -48,7 +48,6 @@ const WIZARD_SCREENS = [
 /** Lets route transitions and data-driven re-renders settle (see waitForStableLayout). */
 function settle() {
   cy.get("body").should("be.visible");
-  cy.wait(300); // let the first data responses arrive before measuring stability
   cy.window().then((win) => waitForStableLayout(win));
 }
 
@@ -61,7 +60,7 @@ function formatIssues(issues: LayoutIssue[]): string {
 function assertNoLayoutIssues(label: string) {
   cy.window().then((win) => {
     const issues = collectLayoutIssues(win);
-    expect(issues.length, `${label}: layout issues\n${formatIssues(issues)}`).to.equal(0);
+    expect(issues, `${label}: layout issues\n${formatIssues(issues)}`).to.have.lengthOf(0);
   });
 }
 

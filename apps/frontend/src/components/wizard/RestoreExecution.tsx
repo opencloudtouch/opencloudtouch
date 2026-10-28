@@ -154,7 +154,7 @@ export default function RestoreExecution({
             </div>
           ))}
           {data.success ? (
-            <div className="restore-execution__success wz-status wz-status--success" role="status">
+            <output className="restore-execution__success wz-status wz-status--success">
               <span className="wz-icon" aria-hidden="true">
                 {Icon.CircleCheck(24)}
               </span>
@@ -167,7 +167,7 @@ export default function RestoreExecution({
                   }
                 )}
               </p>
-            </div>
+            </output>
           ) : (
             <div className="restore-execution__failed wz-status wz-status--error" role="alert">
               <span className="wz-icon" aria-hidden="true">

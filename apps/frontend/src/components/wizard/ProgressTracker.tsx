@@ -1,6 +1,7 @@
 /** Progress Tracker: logic unchanged, markup restyled. File: components/wizard/ProgressTracker.tsx
  *  New i18n key: setup.stepAriaSkipped = "Schritt {{id}}: {{label}} — {{description}} – übersprungen"
  *  Additive: status "skipped" (clean restore skips the backup scan). Dash icon, dashed green ring, green connector after it. */
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "./Icon";
 import "./wizard-base.css"; // replaces ProgressTracker.css
@@ -17,21 +18,40 @@ interface ProgressTrackerProps {
   currentStep: number;
 }
 
+const ARIA_KEY_BY_STATUS: Partial<Record<WizardStep["status"], string>> = {
+  completed: "setup.stepAriaCompleted",
+  skipped: "setup.stepAriaSkipped",
+  error: "setup.stepAriaError",
+  "in-progress": "setup.stepAriaInProgress",
+};
+
+const renderStepIndicator = (step: WizardStep) => {
+  const iconByStatus: Partial<Record<WizardStep["status"], () => ReactNode>> = {
+    completed: Icon.Check,
+    skipped: Icon.Minus,
+    error: Icon.X,
+  };
+  const renderIcon = iconByStatus[step.status];
+  if (renderIcon) {
+    return (
+      <span className="step-icon" aria-hidden="true">
+        {renderIcon()}
+      </span>
+    );
+  }
+  return (
+    <span className="step-number" aria-hidden="true">
+      {step.id}
+    </span>
+  );
+};
+
 export default function ProgressTracker({ steps, currentStep }: ProgressTrackerProps) {
   const { t } = useTranslation();
   const current = steps.find((s) => s.id === currentStep);
 
   const ariaLabelFor = (step: WizardStep) => {
-    const key =
-      step.status === "completed"
-        ? "setup.stepAriaCompleted"
-        : step.status === "skipped"
-          ? "setup.stepAriaSkipped"
-          : step.status === "error"
-            ? "setup.stepAriaError"
-            : step.status === "in-progress"
-              ? "setup.stepAriaInProgress"
-              : "setup.stepAriaPending";
+    const key = ARIA_KEY_BY_STATUS[step.status] ?? "setup.stepAriaPending";
     return t(key, { id: step.id, label: step.label, description: step.description || "" });
   };
 
@@ -59,23 +79,7 @@ export default function ProgressTracker({ steps, currentStep }: ProgressTrackerP
                 title={step.description ?? step.label}
                 aria-label={ariaLabelFor(step)}
               >
-                {step.status === "completed" ? (
-                  <span className="step-icon" aria-hidden="true">
-                    {Icon.Check()}
-                  </span>
-                ) : step.status === "skipped" ? (
-                  <span className="step-icon" aria-hidden="true">
-                    {Icon.Minus()}
-                  </span>
-                ) : step.status === "error" ? (
-                  <span className="step-icon" aria-hidden="true">
-                    {Icon.X()}
-                  </span>
-                ) : (
-                  <span className="step-number" aria-hidden="true">
-                    {step.id}
-                  </span>
-                )}
+                {renderStepIndicator(step)}
               </div>
             </div>
             <div className="step-label">{step.label}</div>

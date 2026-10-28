@@ -126,7 +126,11 @@ export default function Firmware({ devices = [] }: FirmwareProps) {
           {t("firmware.allDevices")}
         </h2>
         {/* Focusable so keyboard users can scroll the page: this page has no other interactive element */}
-        <ul className="fw-list" tabIndex={0} aria-label={t("firmware.allDevices")}>
+        <ul
+          className="fw-list"
+          tabIndex={0} // NOSONAR(S6845): keyboard users need focus here to scroll the page
+          aria-label={t("firmware.allDevices")}
+        >
           {devices.map((device, index) => {
             const status = getFirmwareStatus(device.firmware);
             const modelIcon = device.model?.includes("ST300")

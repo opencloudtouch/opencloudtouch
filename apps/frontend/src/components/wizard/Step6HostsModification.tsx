@@ -213,7 +213,11 @@ export default function Step6HostsModification({
               {modifyData.backup_path && (
                 <div className="hosts-detail-item">
                   <strong>{t("setup.wizard.step6.backupLabel")}</strong>
-                  <code tabIndex={0}>{modifyData.backup_path}</code>
+                  <code
+                    tabIndex={0} // NOSONAR(S6845): keyboard-focusable so scrollable content can be scrolled
+                  >
+                    {modifyData.backup_path}
+                  </code>
                 </div>
               )}
             </div>
@@ -233,7 +237,11 @@ export default function Step6HostsModification({
                 </button>
 
                 {showDiff && (
-                  <pre className="hosts-diff wz-diff" id="hosts-diff-content" tabIndex={0}>
+                  <pre
+                    className="hosts-diff wz-diff"
+                    id="hosts-diff-content"
+                    tabIndex={0} // NOSONAR(S6845): keyboard-focusable so scrollable content can be scrolled
+                  >
                     <code>{modifyData.diff}</code>
                   </pre>
                 )}

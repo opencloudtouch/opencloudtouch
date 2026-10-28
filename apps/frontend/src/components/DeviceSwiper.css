@@ -95,6 +95,11 @@
   flex-wrap: nowrap;
   justify-content: center;
   min-width: 0;
+  /* <fieldset> reset: it is only the semantic group, not a visible box */
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 .ds-dot {
   position: relative;
