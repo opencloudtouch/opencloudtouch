@@ -26,14 +26,22 @@ const SCREENS = [
   { name: "restore-choice", path: `/setup-wizard?deviceId=${DEVICE.device_id}&mode=restore` },
 ];
 
-type AxeViolation = { id: string; impact?: string | null; help: string; nodes: { target: unknown }[] };
+type AxeViolation = {
+  id: string;
+  impact?: string | null;
+  help: string;
+  nodes: { target: unknown }[];
+};
 
 function formatViolations(violations: AxeViolation[]): string {
   return violations
     .map(
       (v) =>
         `[${v.impact}] ${v.id}: ${v.help} (${v.nodes.length}x) -> ` +
-        v.nodes.slice(0, 3).map((n) => JSON.stringify(n.target)).join(", "),
+        v.nodes
+          .slice(0, 3)
+          .map((n) => JSON.stringify(n.target))
+          .join(", ")
     )
     .join("\n");
 }
@@ -43,7 +51,9 @@ function waitForAnimationsToFinish() {
   cy.window().should((win) => {
     const running = win.document
       .getAnimations()
-      .filter((a) => a.playState === "running" && a.effect?.getComputedTiming().iterations !== Infinity);
+      .filter(
+        (a) => a.playState === "running" && a.effect?.getComputedTiming().iterations !== Infinity
+      );
     expect(running, "running finite animations").to.have.lengthOf(0);
   });
 }
@@ -60,7 +70,7 @@ function assertNoAxeViolations(label: string) {
     (violations) => {
       found = violations as unknown as AxeViolation[];
     },
-    true,
+    true
   );
   cy.then(() => {
     expect(found, `axe violations on ${label}\n${formatViolations(found)}`).to.have.lengthOf(0);
@@ -90,8 +100,14 @@ describe("Accessibility: wizard dynamic states", { retries: 0 }, () => {
   for (const width of [375, 1280]) {
     it(`restore flow (backup path: scan, execution, verification, completion) @ ${width}px`, () => {
       mockApi();
-      cy.intercept("POST", "/api/setup/wizard/scan-backups", { statusCode: 200, body: SCAN_RESULT });
-      cy.intercept("POST", "/api/setup/wizard/restore-wizard", { statusCode: 200, body: RESTORE_RESULT });
+      cy.intercept("POST", "/api/setup/wizard/scan-backups", {
+        statusCode: 200,
+        body: SCAN_RESULT,
+      });
+      cy.intercept("POST", "/api/setup/wizard/restore-wizard", {
+        statusCode: 200,
+        body: RESTORE_RESULT,
+      });
       cy.viewport(width, 800);
       visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}&mode=restore`);
 
@@ -114,7 +130,11 @@ describe("Accessibility: wizard dynamic states", { retries: 0 }, () => {
 
     it(`restore running and partial failure @ ${width}px`, () => {
       mockApi();
-      cy.intercept("POST", "/api/setup/wizard/restore-wizard", { statusCode: 200, body: PARTIAL, delay: 2500 });
+      cy.intercept("POST", "/api/setup/wizard/restore-wizard", {
+        statusCode: 200,
+        body: PARTIAL,
+        delay: 2500,
+      });
       cy.viewport(width, 800);
       visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}&mode=restore`);
       cy.get(".wizard-choice__card").eq(0).click();
@@ -149,7 +169,10 @@ describe("Accessibility: wizard dynamic states", { retries: 0 }, () => {
 
     it(`hosts and NTP step: errors and success @ ${width}px`, () => {
       mockSetupWizardApi();
-      cy.intercept("POST", "/api/setup/wizard/modify-hosts", { statusCode: 200, body: { success: false, message: "Could not write /etc/hosts" } });
+      cy.intercept("POST", "/api/setup/wizard/modify-hosts", {
+        statusCode: 200,
+        body: { success: false, message: "Could not write /etc/hosts" },
+      });
       cy.viewport(width, 800);
       visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}&step=6`);
       cy.get("button.hosts-modify-btn").click();
@@ -161,12 +184,18 @@ describe("Accessibility: wizard dynamic states", { retries: 0 }, () => {
       cy.get("button.hosts-diff-toggle").click();
       assertNoAxeViolations(`hosts-success-with-diff@${width}`);
 
-      cy.intercept("POST", "/api/setup/wizard/patch-ntp", { statusCode: 200, body: { success: false, message: "Permission denied" } });
+      cy.intercept("POST", "/api/setup/wizard/patch-ntp", {
+        statusCode: 200,
+        body: { success: false, message: "Permission denied" },
+      });
       visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}&step=7`);
       cy.get("button.ntp-patch-btn").click();
       cy.get(".ntp-error").should("be.visible");
       assertNoAxeViolations(`ntp-error@${width}`);
-      cy.intercept("POST", "/api/setup/wizard/patch-ntp", { statusCode: 200, body: { success: true, message: "NTP server set" } });
+      cy.intercept("POST", "/api/setup/wizard/patch-ntp", {
+        statusCode: 200,
+        body: { success: true, message: "NTP server set" },
+      });
       cy.get("button.ntp-patch-btn").click();
       cy.get(".ntp-success").should("be.visible");
       assertNoAxeViolations(`ntp-success@${width}`);
@@ -178,7 +207,10 @@ describe("Accessibility: wizard dynamic states", { retries: 0 }, () => {
     ] as const) {
       it(`verification step (${label}) @ ${width}px`, () => {
         mockSetupWizardApi();
-        cy.intercept("POST", "/api/setup/wizard/verify-setup", { statusCode: 200, body: verifyBody });
+        cy.intercept("POST", "/api/setup/wizard/verify-setup", {
+          statusCode: 200,
+          body: verifyBody,
+        });
         cy.clock(Date.now(), ["setInterval", "clearInterval"]);
         cy.viewport(width, 800);
         visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}&step=8`);
@@ -190,7 +222,9 @@ describe("Accessibility: wizard dynamic states", { retries: 0 }, () => {
         assertNoAxeViolations(`verify-countdown@${width}`);
         cy.tick(101000);
         cy.get(".verification-test-btn").click();
-        cy.get(passed ? ".verification-success" : ".verification-failed").scrollIntoView().should("be.visible");
+        cy.get(passed ? ".verification-success" : ".verification-failed")
+          .scrollIntoView()
+          .should("be.visible");
         assertNoAxeViolations(`verify-results-${label}@${width}`);
       });
     }

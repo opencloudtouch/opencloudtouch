@@ -74,7 +74,7 @@ function assertWizardFrame(label: string) {
     const activeNumber = $body.find(".progress-step.active .step-number")[0];
     if (activeNumber) {
       expect(getComputedStyle(activeNumber).color, `${label}: active step number colour`).to.equal(
-        "rgb(255, 255, 255)",
+        "rgb(255, 255, 255)"
       );
     }
     for (const selector of [".progress-tracker", ".wizard-step"]) {
@@ -127,15 +127,24 @@ describe("Responsive layout", { retries: 0 }, () => {
 
       it(`restore flow (backup path) @ ${width}px has no layout defects`, () => {
         mockApi();
-        cy.intercept("POST", "/api/setup/wizard/scan-backups", { statusCode: 200, body: SCAN_RESULT });
-        cy.intercept("POST", "/api/setup/wizard/restore-wizard", { statusCode: 200, body: RESTORE_RESULT });
+        cy.intercept("POST", "/api/setup/wizard/scan-backups", {
+          statusCode: 200,
+          body: SCAN_RESULT,
+        });
+        cy.intercept("POST", "/api/setup/wizard/restore-wizard", {
+          statusCode: 200,
+          body: RESTORE_RESULT,
+        });
         cy.viewport(width, 800);
         visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}&mode=restore`);
 
         // Step 1 -> backup scan
         cy.get(".wizard-choice__card").eq(1).click();
         cy.get(".backup-scan__result").should("be.visible");
-        cy.contains(".backup-scan__mismatch", "Erwartete Pfade mit opt/Bose/ wurden im Archiv nicht gefunden").should("exist");
+        cy.contains(
+          ".backup-scan__mismatch",
+          "Erwartete Pfade mit opt/Bose/ wurden im Archiv nicht gefunden"
+        ).should("exist");
         settle();
         assertNoLayoutIssues(`restore-scan@${width}`);
         assertWizardFrame(`restore-scan@${width}`);
@@ -144,10 +153,21 @@ describe("Responsive layout", { retries: 0 }, () => {
         cy.get(".wizard-btn-next:not([disabled])").click();
         cy.get(".restore-execution__steps").should("be.visible");
         // Labels and messages are translated from the backend codes (the UI language is German here).
-        cy.contains(".restore-execution__label", "Snapshot vor der Wiederherstellung").should("exist");
-        cy.contains(".restore-execution__message", "Konfigurationsdateien wiederhergestellt").should("exist");
-        cy.contains(".restore-execution__message", "Presets wiederhergestellt unter /mnt/nv/BoseApp-Persistence/1/Presets.xml").should("exist");
-        cy.contains(".restore-execution__message", "Wiederherstellung der NTP-Server fehlgeschlagen: Permission denied").should("exist");
+        cy.contains(".restore-execution__label", "Snapshot vor der Wiederherstellung").should(
+          "exist"
+        );
+        cy.contains(
+          ".restore-execution__message",
+          "Konfigurationsdateien wiederhergestellt"
+        ).should("exist");
+        cy.contains(
+          ".restore-execution__message",
+          "Presets wiederhergestellt unter /mnt/nv/BoseApp-Persistence/1/Presets.xml"
+        ).should("exist");
+        cy.contains(
+          ".restore-execution__message",
+          "Wiederherstellung der NTP-Server fehlgeschlagen: Permission denied"
+        ).should("exist");
         cy.get(".wizard-btn-next:not([disabled])").should("exist");
         settle();
         assertNoLayoutIssues(`restore-execution@${width}`);
@@ -171,7 +191,9 @@ describe("Responsive layout", { retries: 0 }, () => {
         if (width > 400) {
           cy.get(".progress-step .step-connector").should("have.length", 4);
           cy.get(".progress-step .step-connector").each(($c) => {
-            expect(getComputedStyle($c[0]).backgroundColor, "connector colour").to.equal("rgb(76, 175, 80)");
+            expect(getComputedStyle($c[0]).backgroundColor, "connector colour").to.equal(
+              "rgb(76, 175, 80)"
+            );
           });
         }
       });
@@ -186,15 +208,25 @@ describe("Responsive layout", { retries: 0 }, () => {
       success: false,
       steps: RESTORE_RESULT.steps.map((step) =>
         step.name === "hosts"
-          ? { ...step, status: "failed", message: "Hosts restore failed: Read-only file system", message_code: "hosts_restore_failed", message_params: { error: "Read-only file system" }, error: "Read-only file system" }
-          : step,
+          ? {
+              ...step,
+              status: "failed",
+              message: "Hosts restore failed: Read-only file system",
+              message_code: "hosts_restore_failed",
+              message_params: { error: "Read-only file system" },
+              error: "Read-only file system",
+            }
+          : step
       ),
     };
 
     for (const width of DYNAMIC_WIDTHS) {
       it(`clean path shows the skipped backup step, then completes @ ${width}px`, () => {
         mockApi();
-        cy.intercept("POST", "/api/setup/wizard/restore-wizard", { statusCode: 200, body: RESTORE_CLEAN_OK });
+        cy.intercept("POST", "/api/setup/wizard/restore-wizard", {
+          statusCode: 200,
+          body: RESTORE_CLEAN_OK,
+        });
         cy.viewport(width, 800);
         visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}&mode=restore`);
         cy.get(".wizard-choice__card").eq(0).click();
@@ -214,14 +246,20 @@ describe("Responsive layout", { retries: 0 }, () => {
           // skipped step 2 and completed steps: every connector is green
           cy.get(".progress-step .step-connector").should("have.length", 4);
           cy.get(".progress-step .step-connector").each(($c) => {
-            expect(getComputedStyle($c[0]).backgroundColor, "connector colour").to.equal("rgb(76, 175, 80)");
+            expect(getComputedStyle($c[0]).backgroundColor, "connector colour").to.equal(
+              "rgb(76, 175, 80)"
+            );
           });
         }
       });
 
       it(`restore running state (long-running) @ ${width}px`, () => {
         mockApi();
-        cy.intercept("POST", "/api/setup/wizard/restore-wizard", { statusCode: 200, body: RESTORE_CLEAN_OK, delay: 3000 });
+        cy.intercept("POST", "/api/setup/wizard/restore-wizard", {
+          statusCode: 200,
+          body: RESTORE_CLEAN_OK,
+          delay: 3000,
+        });
         cy.viewport(width, 800);
         visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}&mode=restore`);
         cy.get(".wizard-choice__card").eq(0).click();
@@ -237,17 +275,26 @@ describe("Responsive layout", { retries: 0 }, () => {
 
       it(`restore partial failure @ ${width}px`, () => {
         mockApi();
-        cy.intercept("POST", "/api/setup/wizard/restore-wizard", { statusCode: 200, body: RESTORE_PARTIAL });
+        cy.intercept("POST", "/api/setup/wizard/restore-wizard", {
+          statusCode: 200,
+          body: RESTORE_PARTIAL,
+        });
         cy.viewport(width, 800);
         visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}&mode=restore`);
         cy.get(".wizard-choice__card").eq(0).click();
         cy.get(".restore-execution__failed").should("be.visible");
-        cy.contains(".restore-execution__message", "Wiederherstellung von /etc/hosts fehlgeschlagen: Read-only file system").should("exist");
+        cy.contains(
+          ".restore-execution__message",
+          "Wiederherstellung von /etc/hosts fehlgeschlagen: Read-only file system"
+        ).should("exist");
         cy.get(".restore-execution__success").should("not.exist");
         if (width >= 414) {
           // A long German label must stay on one line (it once broke mid-word because the duration shared its row).
           cy.contains(".restore-execution__label", "Konfigurationsdateien").then(($label) => {
-            expect($label[0].getBoundingClientRect().height, "label height (one line)").to.be.lessThan(30);
+            expect(
+              $label[0].getBoundingClientRect().height,
+              "label height (one line)"
+            ).to.be.lessThan(30);
           });
         }
         // There is no Next button after a failed restore (onNext is only set on success); Back is available to try again
@@ -260,7 +307,10 @@ describe("Responsive layout", { retries: 0 }, () => {
 
       it(`restore verification timeout @ ${width}px`, () => {
         mockApi();
-        cy.intercept("POST", "/api/setup/wizard/restore-wizard", { statusCode: 200, body: RESTORE_CLEAN_OK });
+        cy.intercept("POST", "/api/setup/wizard/restore-wizard", {
+          statusCode: 200,
+          body: RESTORE_CLEAN_OK,
+        });
         // The 120 s countdown ticks every 5 s: fake only the interval timers and tick instead of waiting.
         cy.clock(Date.now(), ["setInterval", "clearInterval"]);
         cy.viewport(width, 800);
@@ -291,7 +341,10 @@ describe("Responsive layout", { retries: 0 }, () => {
     for (const width of DYNAMIC_WIDTHS) {
       it(`hosts step: error, retry and success with diff @ ${width}px`, () => {
         mockSetupWizardApi();
-        cy.intercept("POST", "/api/setup/wizard/modify-hosts", { statusCode: 200, body: { success: false, message: "Could not write /etc/hosts" } }).as("hostsFail");
+        cy.intercept("POST", "/api/setup/wizard/modify-hosts", {
+          statusCode: 200,
+          body: { success: false, message: "Could not write /etc/hosts" },
+        }).as("hostsFail");
         cy.viewport(width, 800);
         visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}&step=6`);
         settle();
@@ -318,7 +371,10 @@ describe("Responsive layout", { retries: 0 }, () => {
 
       it(`ntp step: error and success @ ${width}px`, () => {
         mockSetupWizardApi();
-        cy.intercept("POST", "/api/setup/wizard/patch-ntp", { statusCode: 200, body: { success: false, message: "Permission denied while writing /etc/ntpservers.txt" } });
+        cy.intercept("POST", "/api/setup/wizard/patch-ntp", {
+          statusCode: 200,
+          body: { success: false, message: "Permission denied while writing /etc/ntpservers.txt" },
+        });
         cy.viewport(width, 800);
         visitDe(`/setup-wizard?deviceId=${DEVICE.device_id}&step=7`);
         settle();
@@ -329,7 +385,10 @@ describe("Responsive layout", { retries: 0 }, () => {
         settle();
         assertNoLayoutIssues(`ntp-error@${width}`);
 
-        cy.intercept("POST", "/api/setup/wizard/patch-ntp", { statusCode: 200, body: { success: true, message: "NTP server set to pool.ntp.org" } });
+        cy.intercept("POST", "/api/setup/wizard/patch-ntp", {
+          statusCode: 200,
+          body: { success: true, message: "NTP server set to pool.ntp.org" },
+        });
         cy.get("button.ntp-patch-btn").click();
         cy.get(".ntp-success").should("be.visible");
         settle();
@@ -342,7 +401,10 @@ describe("Responsive layout", { retries: 0 }, () => {
       ] as const) {
         it(`verification step: finalize, reboot countdown, results (${label}) @ ${width}px`, () => {
           mockSetupWizardApi();
-          cy.intercept("POST", "/api/setup/wizard/verify-setup", { statusCode: 200, body: verifyBody });
+          cy.intercept("POST", "/api/setup/wizard/verify-setup", {
+            statusCode: 200,
+            body: verifyBody,
+          });
           // The reboot countdown runs 100 s via setInterval. Fake only the interval timers (not Date or
           // requestAnimationFrame, which waitForStableLayout and framer-motion need) and tick instead of waiting.
           cy.clock(Date.now(), ["setInterval", "clearInterval"]);
@@ -367,7 +429,9 @@ describe("Responsive layout", { retries: 0 }, () => {
           assertNoLayoutIssues(`verify-start@${width}`);
 
           cy.get(".verification-test-btn").click();
-          cy.get(allPassed ? ".verification-success" : ".verification-failed").scrollIntoView().should("be.visible");
+          cy.get(allPassed ? ".verification-success" : ".verification-failed")
+            .scrollIntoView()
+            .should("be.visible");
           settle();
           assertNoLayoutIssues(`verify-results@${width}`);
           assertWizardFrame(`verify@${width}`);

@@ -15,9 +15,24 @@ const ZONE = {
   master_ip: DEVICES[0]!.ip,
   is_master: true,
   members: [
-    { device_id: DEVICES[0]!.device_id, ip_address: DEVICES[0]!.ip, role: "master", name: DEVICES[0]!.name },
-    { device_id: DEVICES[1]!.device_id, ip_address: DEVICES[1]!.ip, role: "slave", name: DEVICES[1]!.name },
-    { device_id: DEVICES[2]!.device_id, ip_address: DEVICES[2]!.ip, role: "slave", name: DEVICES[2]!.name },
+    {
+      device_id: DEVICES[0]!.device_id,
+      ip_address: DEVICES[0]!.ip,
+      role: "master",
+      name: DEVICES[0]!.name,
+    },
+    {
+      device_id: DEVICES[1]!.device_id,
+      ip_address: DEVICES[1]!.ip,
+      role: "slave",
+      name: DEVICES[1]!.name,
+    },
+    {
+      device_id: DEVICES[2]!.device_id,
+      ip_address: DEVICES[2]!.ip,
+      role: "slave",
+      name: DEVICES[2]!.name,
+    },
   ],
 };
 
@@ -32,7 +47,12 @@ const PLAYING = {
 };
 const STANDBY = { source: "STANDBY", state: "STOP_STATE", online: true };
 
-type AxeViolation = { id: string; impact?: string | null; help: string; nodes: { target: unknown }[] };
+type AxeViolation = {
+  id: string;
+  impact?: string | null;
+  help: string;
+  nodes: { target: unknown }[];
+};
 
 function formatIssues(issues: LayoutIssue[]): string {
   return issues
@@ -45,7 +65,9 @@ function waitForAnimationsToFinish() {
   cy.window().should((win) => {
     const running = win.document
       .getAnimations()
-      .filter((a) => a.playState === "running" && a.effect?.getComputedTiming().iterations !== Infinity);
+      .filter(
+        (a) => a.playState === "running" && a.effect?.getComputedTiming().iterations !== Infinity
+      );
     expect(running, "running finite animations").to.have.lengthOf(0);
   });
 }
@@ -68,11 +90,17 @@ function assertNoAxeViolations(label: string) {
     (violations) => {
       found = violations as unknown as AxeViolation[];
     },
-    true,
+    true
   );
   cy.then(() => {
     const text = found
-      .map((v) => `[${v.impact}] ${v.id}: ${v.help} (${v.nodes.length}x) -> ${v.nodes.slice(0, 3).map((n) => JSON.stringify(n.target)).join(", ")}`)
+      .map(
+        (v) =>
+          `[${v.impact}] ${v.id}: ${v.help} (${v.nodes.length}x) -> ${v.nodes
+            .slice(0, 3)
+            .map((n) => JSON.stringify(n.target))
+            .join(", ")}`
+      )
       .join("\n");
     expect(found, `axe violations on ${label}\n${text}`).to.have.lengthOf(0);
   });
@@ -80,7 +108,10 @@ function assertNoAxeViolations(label: string) {
 
 function mockPlayer(nowPlaying: Record<string, unknown>) {
   cy.intercept("GET", "/api/devices/*/now-playing", { statusCode: 200, body: nowPlaying });
-  cy.intercept("GET", "/api/devices/*/volume", { statusCode: 200, body: { actual: 40, target: 40, muted: false } });
+  cy.intercept("GET", "/api/devices/*/volume", {
+    statusCode: 200,
+    body: { actual: 40, target: 40, muted: false },
+  });
 }
 
 describe("Zones, Local control and Firmware states", { retries: 0 }, () => {
