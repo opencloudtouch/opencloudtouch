@@ -2641,6 +2641,50 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/stream-recovery": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Stream Recovery
+     * @description Current configuration (defaults while nothing was stored).
+     */
+    get: operations["get_stream_recovery_api_stream_recovery_get"];
+    /**
+     * Put Stream Recovery
+     * @description Store the configuration and apply it immediately.
+     */
+    put: operations["put_stream_recovery_api_stream_recovery_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/stream-recovery/events": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Stream Recovery Events
+     * @description Recent activity, newest first.
+     */
+    get: operations["list_stream_recovery_events_api_stream_recovery_events_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/health": {
     parameters: {
       query?: never;
@@ -3740,6 +3784,55 @@ export interface components {
       clock: boolean;
       /** Power Saving */
       power_saving: boolean;
+    };
+    /**
+     * StreamRecoveryConfigRequest
+     * @description Full replacement. Ranges are validated by the service (coded errors).
+     */
+    StreamRecoveryConfigRequest: {
+      /** Enabled */
+      enabled: boolean;
+      /** Min Play Seconds */
+      min_play_seconds: unknown;
+      /** Max Attempts Per Hour */
+      max_attempts_per_hour: unknown;
+    };
+    /** StreamRecoveryConfigResponse */
+    StreamRecoveryConfigResponse: {
+      /** Enabled */
+      enabled: boolean;
+      /** Min Play Seconds */
+      min_play_seconds: number;
+      /** Max Attempts Per Hour */
+      max_attempts_per_hour: number;
+      /** Updated At */
+      updated_at?: string | null;
+    };
+    /** StreamRecoveryEventItem */
+    StreamRecoveryEventItem: {
+      /** Id */
+      id: number;
+      /** Occurred At */
+      occurred_at: string;
+      /** Device Id */
+      device_id: string;
+      /** Preset Number */
+      preset_number?: number | null;
+      /** Station Name */
+      station_name?: string | null;
+      /** Play Seconds */
+      play_seconds?: number | null;
+      /** Outcome */
+      outcome: string;
+      /** Attempts */
+      attempts: number;
+      /** Error Code */
+      error_code?: string | null;
+    };
+    /** StreamRecoveryEventsResponse */
+    StreamRecoveryEventsResponse: {
+      /** Events */
+      events: components["schemas"]["StreamRecoveryEventItem"][];
     };
     /**
      * ValidateHostnameRequest
@@ -7670,6 +7763,90 @@ export interface operations {
         };
         content: {
           "application/json": unknown;
+        };
+      };
+    };
+  };
+  get_stream_recovery_api_stream_recovery_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["StreamRecoveryConfigResponse"];
+        };
+      };
+    };
+  };
+  put_stream_recovery_api_stream_recovery_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["StreamRecoveryConfigRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["StreamRecoveryConfigResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_stream_recovery_events_api_stream_recovery_events_get: {
+    parameters: {
+      query?: {
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["StreamRecoveryEventsResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

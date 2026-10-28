@@ -62,6 +62,27 @@ Three per-device settings can be read and written through the API (no `OCT_*` va
 - **Mock mode** (`OCT_MOCK_MODE=true`) keeps the three settings in memory per mock device.
 - **Hardware note:** the endpoints (`/language`, `/clockDisplay`, `/systemtimeout`) and their XML come from a community patch for SoundTouch 10/20/30 and are **not verified against Bose documentation or other models**.
 
+## Stream recovery
+
+Internet-radio stations sometimes close the connection after a maximum listener time (often exactly 6 hours); the speaker then reports the source `INVALID_SOURCE` and goes idle. The opt-in **stream recovery** watchdog presses the matching preset key again. It is **off by default** because it makes a speaker play at an unexpected time (for example at night). No `OCT_*` variable; the settings are stored in the database.
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/stream-recovery` | `{"enabled": false, "min_play_seconds": 600, "max_attempts_per_hour": 3, "updated_at": null}` |
+| `PUT /api/stream-recovery` | Full replacement of the three fields; applied immediately |
+| `GET /api/stream-recovery/events?limit=20` | Activity log, newest first (at most 100 are kept) |
+
+- **Trigger (all must hold):** a speaker that played an internet-radio source (`LOCAL_INTERNET_RADIO` or `INTERNET_RADIO`) in `PLAY_STATE` or `BUFFERING_STATE` for at least `min_play_seconds` (60–86400, default 600) suddenly reports `INVALID_SOURCE`. A stop, pause or power-off never matches; a station that fails right away (shorter than `min_play_seconds`) never matches. TuneIn, Bluetooth, AUX, Spotify and DLNA are not handled.
+- **Which preset:** the preset of that speaker whose station name equals the station that was playing (case and surrounding or repeated whitespace are ignored). If none matches, OCT logs `skipped_no_preset` and does nothing.
+- **Limits:** a press is verified for 45 s (a `PLAY_STATE` on a radio source counts, `BUFFERING_STATE` does not). After a failed verification the next attempt starts after 60 s, as long as fewer than `max_attempts_per_hour` (1–10, default 3) presses were made in the last 60 minutes; then OCT records `gave_up`. A drop while the limit is used up records `skipped_rate_limited` without a press. The counters live in memory and reset on restart.
+- **Stopping yourself wins:** if you stop, power off or start something else while a recovery is pending, the sequence ends silently.
+- **Activity log:** outcomes `resumed`, `gave_up`, `skipped_no_preset`, `skipped_rate_limited`. `error_code` of a `gave_up` row is `device_unreachable`, `device_not_found` or `stream_recovery_failed` when the last key press failed; it holds no exception text, IP address or URL. `resumed` and `gave_up` are also logged at INFO.
+- **Limitations:** the state manager merges `NOW_PLAYING` events within 500 ms (last wins), so an `INVALID_SOURCE` that is replaced inside that window is not seen. After more than 20 event subscribers the manager drops all subscriptions; the watchdog checks every 30 s, subscribes again and logs a WARNING, and events published in the gap are lost. A full event queue (200) also drops events.
+- **Mock mode** has no WebSocket events, so nothing is ever pressed; the endpoints work.
+- **What it does not do:** it does not reconnect inside the audio stream (for Orion presets the speaker opens the station itself), does not handle zones, and does not notify you.
+- **Hardware assumptions (unverified):** a station-side close shows up as `INVALID_SOURCE`, and the event sequence before it is `PLAY_STATE` or `BUFFERING_STATE`; re-sending `PRESET_n` starts the preset on SoundTouch 10/20/30 (the Wave SoundTouch IV is reported not to); the speaker's station name equals the stored preset name.
+- **Diagnostics:** the stream proxy now logs `[STREAM END] … elapsed=<seconds>` at INFO when a stream ends without OCT stopping it (upstream end or error, client disconnect).
+
 ## Bug Reports & Production Safety
 
 | Variable | Default | Description |

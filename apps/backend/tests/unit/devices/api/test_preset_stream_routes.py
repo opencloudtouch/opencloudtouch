@@ -156,6 +156,98 @@ class TestStreamDevicePreset:
         mock_response.aclose.assert_awaited_once()
         mock_http_client.aclose.assert_awaited_once()
 
+    def _stream_with(self, client, mock_preset_service, sample_preset, chunks):
+        """Run one proxy stream whose upstream yields *chunks* (exceptions are raised)."""
+        mock_preset_service.get_preset = AsyncMock(return_value=sample_preset)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {"content-type": "audio/mpeg"}
+        mock_response.aclose = AsyncMock()
+
+        async def mock_aiter_bytes(chunk_size=8192):
+            for chunk in chunks:
+                if isinstance(chunk, Exception):
+                    raise chunk
+                yield chunk
+
+        mock_response.aiter_bytes = mock_aiter_bytes
+        mock_http_client = MagicMock()
+        mock_http_client.send = AsyncMock(return_value=mock_response)
+        mock_http_client.aclose = AsyncMock()
+
+        with (
+            patch(
+                "opencloudtouch.devices.api.preset_stream_routes.httpx.AsyncClient",
+                return_value=mock_http_client,
+            ),
+            patch.object(
+                mock_preset_service, "_validate_stream_url", new_callable=AsyncMock
+            ),
+        ):
+            with client.stream(
+                "GET", f"/device/{sample_preset.device_id}/preset/1"
+            ) as response:
+                return b"".join(response.iter_bytes())
+
+    @staticmethod
+    def _stream_end_records(caplog, level):
+        return [
+            r
+            for r in caplog.records
+            if "[STREAM END]" in r.getMessage() and r.levelno == level
+        ]
+
+    def test_upstream_eof_logs_stream_end_at_info_with_elapsed(
+        self, client, mock_preset_service, sample_preset, caplog
+    ):
+        """An upstream EOF is the diagnostic for dropped stations: INFO + elapsed."""
+        import logging
+        import re
+
+        with caplog.at_level(logging.DEBUG):
+            self._stream_with(client, mock_preset_service, sample_preset, [b"a", b"b"])
+
+        records = self._stream_end_records(caplog, logging.INFO)
+        assert len(records) == 1
+        assert re.search(r"elapsed=\d+\.\d(?!\d)", records[0].getMessage())
+        assert float(records[0].getMessage().split("elapsed=")[1].split()[0]) >= 0
+
+    def test_upstream_error_logs_stream_end_at_info_with_elapsed(
+        self, client, mock_preset_service, sample_preset, caplog
+    ):
+        import logging
+
+        with caplog.at_level(logging.DEBUG):
+            self._stream_with(
+                client,
+                mock_preset_service,
+                sample_preset,
+                [b"a", RuntimeError("upstream reset")],
+            )
+
+        records = self._stream_end_records(caplog, logging.INFO)
+        assert len(records) == 1
+        assert "elapsed=" in records[0].getMessage()
+
+    def test_deliberate_stop_keeps_stream_end_at_debug(
+        self, client, mock_preset_service, sample_preset, state_manager, caplog
+    ):
+        import logging
+
+        mock_preset_service.get_preset = AsyncMock(return_value=sample_preset)
+        state_manager.update_now_playing(
+            sample_preset.device_id,
+            NowPlayingInfo(source="STANDBY", state="STOP_STATE"),
+        )
+
+        with caplog.at_level(logging.DEBUG):
+            self._stream_with(
+                client, mock_preset_service, sample_preset, [b"never forwarded"]
+            )
+
+        assert self._stream_end_records(caplog, logging.INFO) == []
+        assert len(self._stream_end_records(caplog, logging.DEBUG)) == 1
+
     def test_upstream_non_200_raises_502(
         self, client, mock_preset_service, sample_preset
     ):

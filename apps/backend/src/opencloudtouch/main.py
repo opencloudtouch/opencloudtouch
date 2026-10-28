@@ -65,6 +65,9 @@ from opencloudtouch.settings.service import SettingsService
 from opencloudtouch.setup.routes import router as setup_router
 from opencloudtouch.setup.service import SetupService
 from opencloudtouch.setup.wizard import WizardService, wizard_router
+from opencloudtouch.streamrecovery.api.routes import router as stream_recovery_router
+from opencloudtouch.streamrecovery.repository import StreamRecoveryRepository
+from opencloudtouch.streamrecovery.service import StreamRecoveryService
 from opencloudtouch.swupdate.routes import router as swupdate_router
 from opencloudtouch.wizard_audit.repository import WizardAuditRepository
 from opencloudtouch.wizard_audit.routes import audit_router as wizard_audit_router
@@ -139,6 +142,7 @@ async def _init_repositories(app: FastAPI, cfg, logger: logging.Logger) -> dict:
         ("recents_repo", RecentsRepository, cfg.effective_db_path),
         ("wizard_audit_repo", WizardAuditRepository, cfg.effective_db_path),
         ("zone_repo", ZoneRepository, cfg.effective_db_path),
+        ("stream_recovery_repo", StreamRecoveryRepository, cfg.effective_db_path),
     ]
 
     repos = {}
@@ -297,6 +301,15 @@ async def _init_websocket_pipeline(
     # Device state manager (WebSocket push → state cache → SSE relay)
     app.state.device_state_manager = DeviceStateManager()
 
+    # Stream recovery watchdog (opt-in; exists in every mode, idle while disabled)
+    app.state.stream_recovery_service = StreamRecoveryService(
+        state_manager=app.state.device_state_manager,
+        device_service=app.state.device_service,
+        preset_service=app.state.preset_service,
+        repository=app.state.stream_recovery_repo,
+    )
+    await app.state.stream_recovery_service.start()
+
     # ICY metadata worker — enriches radio now-playing events with artwork
     from opencloudtouch.devices.websocket.icy_worker import IcyWorker
 
@@ -339,7 +352,12 @@ async def _init_websocket_pipeline(
 
 async def _shutdown(app: FastAPI, repos: dict, logger: logging.Logger) -> None:
     """Graceful shutdown: stop background tasks, close repositories."""
-    # Stop WebSocket manager first (stops pushing events)
+    # Stop the stream recovery watchdog before the event source goes away
+    if hasattr(app.state, "stream_recovery_service"):
+        await app.state.stream_recovery_service.stop()
+        logger.info("Stream recovery stopped")
+
+    # Stop WebSocket manager (stops pushing events)
     if hasattr(app.state, "ws_manager"):
         await app.state.ws_manager.stop()
         logger.info("WebSocketManager stopped")
@@ -438,6 +456,7 @@ app.include_router(bug_report_router)  # Bug report submission
 app.include_router(diagnostics_router)  # Diagnostics page data
 app.include_router(wizard_audit_router)  # Wizard audit trail
 app.include_router(event_router)  # SSE device event stream
+app.include_router(stream_recovery_router)  # Stream recovery watchdog settings
 
 
 # Monotonic reference taken at import time (= process start) for /health uptime.
