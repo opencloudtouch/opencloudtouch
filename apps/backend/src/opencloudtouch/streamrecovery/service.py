@@ -162,17 +162,21 @@ class StreamRecoveryService:
                 bool(enabled), min_play_seconds, max_attempts_per_hour
             )
             self._config = stored
-            if not stored.enabled:
-                # stop the event source first, then nothing can start a new sequence
-                await self._unsubscribe_and_stop()
-                await self._cancel_sequences()
-                return stored
-            await self._cancel_sequences()
-            if self._consumer is None:
-                self._subscribe_and_run()
-            else:
-                self._seed()
+            await self._apply_config(stored)
             return stored
+
+    async def _apply_config(self, stored: StreamRecoveryConfig) -> None:
+        """Subscribe, re-seed or unsubscribe according to the stored configuration."""
+        if not stored.enabled:
+            # stop the event source first, then nothing can start a new sequence
+            await self._unsubscribe_and_stop()
+            await self._cancel_sequences()
+            return
+        await self._cancel_sequences()
+        if self._consumer is None:
+            self._subscribe_and_run()
+        else:
+            self._seed()
 
     async def start(self) -> None:
         """Load the stored configuration; subscribe if the watchdog is enabled."""
@@ -488,6 +492,50 @@ class StreamRecoveryService:
                 attempts,
             )
 
+    async def _press_until_resumed(
+        self,
+        sequence: _Sequence,
+        device_id: str,
+        number: int,
+        cap: int,
+        details: dict[str, Any],
+    ) -> None:
+        """Press, verify, back off; ends with one event or silently (user took over)."""
+        attempts = 0
+        while True:
+            if not self._still_invalid(device_id):
+                return  # the user stopped, powered off or started something else
+            sequence.resumed.clear()
+            sequence.aborted.clear()
+            attempts += 1
+            self._presses.setdefault(device_id, []).append(self._clock())
+            error_code = await self._press(device_id, number)
+
+            outcome = await self._wait_outcome(sequence, VERIFY_SECONDS)
+            if outcome == "aborted":
+                return
+            if outcome == "resumed":
+                await self._record(
+                    device_id, OUTCOME_RESUMED, attempts=attempts, **details
+                )
+                return
+            if self._presses_in_window(device_id) >= cap:
+                await self._record(
+                    device_id,
+                    OUTCOME_GAVE_UP,
+                    attempts=attempts,
+                    error_code=error_code,
+                    **details,
+                )
+                return
+            await self._sleep(BACKOFF_SECONDS)
+            if sequence.resumed.is_set() and not sequence.aborted.is_set():
+                # the press worked, only slower than the verification window
+                await self._record(
+                    device_id, OUTCOME_RESUMED, attempts=attempts, **details
+                )
+                return
+
     async def _run_sequence(
         self,
         sequence: _Sequence,
@@ -518,40 +566,7 @@ class StreamRecoveryService:
                 await self._record(device_id, OUTCOME_SKIPPED_RATE_LIMITED, **details)
                 return
 
-            attempts = 0
-            while True:
-                if not self._still_invalid(device_id):
-                    return  # the user stopped, powered off or started something else
-                sequence.resumed.clear()
-                sequence.aborted.clear()
-                attempts += 1
-                self._presses.setdefault(device_id, []).append(self._clock())
-                error_code = await self._press(device_id, number)
-
-                outcome = await self._wait_outcome(sequence, VERIFY_SECONDS)
-                if outcome == "resumed":
-                    await self._record(
-                        device_id, OUTCOME_RESUMED, attempts=attempts, **details
-                    )
-                    return
-                if outcome == "aborted":
-                    return
-                if self._presses_in_window(device_id) >= cap:
-                    await self._record(
-                        device_id,
-                        OUTCOME_GAVE_UP,
-                        attempts=attempts,
-                        error_code=error_code,
-                        **details,
-                    )
-                    return
-                await self._sleep(BACKOFF_SECONDS)
-                if sequence.resumed.is_set() and not sequence.aborted.is_set():
-                    # the press worked, only slower than the verification window
-                    await self._record(
-                        device_id, OUTCOME_RESUMED, attempts=attempts, **details
-                    )
-                    return
+            await self._press_until_resumed(sequence, device_id, number, cap, details)
         except asyncio.CancelledError:
             raise
         except Exception:  # noqa: BLE001 - nothing may propagate out of the task
