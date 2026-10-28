@@ -1,23 +1,23 @@
 import { useEffect } from "react";
-import { prefetchDevice } from "../utils/deviceDataCache";
+import { prefetchDevice, pruneDeviceDataCache } from "../utils/deviceDataCache";
 
 const STAGGER_MS = 120;
 
 /**
- * Warms the cache for the devices around the current one (neighbours first, then the rest, staggered), so that the next
- * card is complete the moment it slides in. Offline devices are skipped by `prefetchDevice`.
+ * Warms the cache for the two neighbours of the current device (+1, then -1, staggered), so that the next card is
+ * complete the moment it slides in. Offline devices and devices with fresh data are skipped by `prefetchDevice`;
+ * cache entries of devices that left the list are evicted.
  */
 export function usePrefetchDevices(deviceIds: string[], currentIndex: number): void {
   const key = deviceIds.join("|");
 
   useEffect(() => {
+    pruneDeviceDataCache(deviceIds);
     if (deviceIds.length < 2) return;
-    // nearest first: +1, -1, +2, -2, ...
-    const order = deviceIds
-      .map((id, index) => ({ id, distance: Math.abs(index - currentIndex), index }))
-      .filter((d) => d.index !== currentIndex)
-      .sort((a, b) => a.distance - b.distance || a.index - b.index)
-      .map((d) => d.id);
+    const order = [currentIndex + 1, currentIndex - 1]
+      .filter((index) => index >= 0 && index < deviceIds.length && index !== currentIndex)
+      .map((index) => deviceIds[index])
+      .filter((id): id is string => id !== undefined);
 
     const timers: ReturnType<typeof setTimeout>[] = [];
     order.forEach((id, i) => {

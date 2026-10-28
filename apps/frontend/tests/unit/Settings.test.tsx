@@ -391,8 +391,28 @@ describe("Settings Page", () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
     fireEvent.click(screen.getByRole("button", { name: /download logs/i }));
 
-    const alert = await screen.findByText(/Logs could not be downloaded: HTTP 500/);
+    const alert = await screen.findByText("Logs could not be downloaded: the server responded with status 500.");
     expect(alert.closest('[role="alert"]')).toBeInTheDocument();
+    expect(alert).not.toHaveTextContent("HTTP 500");
+    expect(consoleSpy).toHaveBeenCalledWith("Log download failed:", expect.any(Error));
+    consoleSpy.mockRestore();
+  });
+
+  it("shows a translated network reason when the log download request rejects", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
+    renderWithProviders(<Settings />);
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("192.168.1.10")).toBeInTheDocument();
+    });
+
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockFetch.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    fireEvent.click(screen.getByRole("button", { name: /download logs/i }));
+
+    const alert = await screen.findByText(/the server could not be reached/);
+    expect(alert.closest('[role="alert"]')).toBeInTheDocument();
+    expect(alert).not.toHaveTextContent("Failed to fetch");
+    expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
 

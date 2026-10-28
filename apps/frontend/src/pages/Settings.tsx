@@ -11,6 +11,22 @@ import type { Device } from "../api/devices";
 import { Icon } from "../components/Icon";
 import "./Settings.css";
 
+/** Why the log download failed; only the kind and a numeric status reach the UI, never the raw error text. */
+type DownloadFailure = { kind: "network" } | { kind: "http"; status: number } | { kind: "unknown" };
+
+class HttpStatusError extends Error {
+  constructor(readonly status: number) {
+    super(`HTTP ${status}`);
+  }
+}
+
+function toDownloadFailure(err: unknown): DownloadFailure {
+  if (err instanceof HttpStatusError) return { kind: "http", status: err.status };
+  // fetch() rejects with a TypeError ("Failed to fetch") when the server cannot be reached
+  if (err instanceof TypeError) return { kind: "network" };
+  return { kind: "unknown" };
+}
+
 export default function Settings() {
   const { t } = useTranslation();
   const [newIP, setNewIP] = useState("");
@@ -20,7 +36,7 @@ export default function Settings() {
   const ipErrorId = `${ipId}-error`;
   // state of the log download (a failed download used to be silent)
   const [downloadState, setDownloadState] = useState<"idle" | "busy" | "error">("idle");
-  const [downloadError, setDownloadError] = useState("");
+  const [downloadError, setDownloadError] = useState<DownloadFailure | null>(null);
 
   // React Query hooks
   const { isLoading: loading, error: queryError, refetch } = useManualIPs();
@@ -136,7 +152,7 @@ export default function Settings() {
 
   const handleDownloadLogs = async () => {
     setDownloadState("busy");
-    setDownloadError("");
+    setDownloadError(null);
     try {
       const resp = await fetch("/api/logs/backend", {
         method: "POST",
@@ -146,7 +162,7 @@ export default function Settings() {
           frontend_log_buffers: getLogBuffers(),
         }),
       });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      if (!resp.ok) throw new HttpStatusError(resp.status);
       const blob = await resp.blob();
       const disposition = resp.headers.get("Content-Disposition") || "";
       const execResult = /filename="(.+?)"/.exec(disposition);
@@ -162,7 +178,7 @@ export default function Settings() {
       setDownloadState("idle");
     } catch (err) {
       console.error("Log download failed:", err);
-      setDownloadError(err instanceof Error ? err.message : t("errors.unknown"));
+      setDownloadError(toDownloadFailure(err));
       setDownloadState("error");
     }
   };
@@ -203,6 +219,14 @@ export default function Settings() {
   }
 
   const downloading = downloadState === "busy";
+  let downloadErrorText = "";
+  if (downloadError?.kind === "http") {
+    downloadErrorText = t("settings.logging.downloadFailedHttp", { status: downloadError.status });
+  } else if (downloadError?.kind === "network") {
+    downloadErrorText = t("settings.logging.downloadFailedNetwork");
+  } else if (downloadError) {
+    downloadErrorText = t("settings.logging.downloadFailedUnknown");
+  }
 
   return (
     <div className="st">
@@ -379,7 +403,7 @@ export default function Settings() {
                   {Icon.CircleX(20)}
                 </span>
                 <div className="wz-status-body">
-                  <p>{t("settings.logging.downloadFailed", { error: downloadError })}</p>
+                  <p>{downloadErrorText}</p>
                 </div>
               </div>
             )}

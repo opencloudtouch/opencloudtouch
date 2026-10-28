@@ -176,7 +176,9 @@
       "levelError": "Log-Level konnte nicht geändert werden",
       "levelSaving": "Log-Level wird gespeichert",
       "downloading": "Wird erstellt...",
-      "downloadFailed": "Logs konnten nicht heruntergeladen werden: {{error}}"
+      "downloadFailedNetwork": "Logs konnten nicht heruntergeladen werden: Der Server ist nicht erreichbar. Prüfe die Verbindung und versuche es erneut.",
+      "downloadFailedHttp": "Logs konnten nicht heruntergeladen werden: Der Server hat mit Status {{status}} geantwortet.",
+      "downloadFailedUnknown": "Logs konnten nicht heruntergeladen werden: Es ist ein unerwarteter Fehler aufgetreten."
     }
   },
   "manualIpModal": {

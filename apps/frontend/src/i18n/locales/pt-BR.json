@@ -176,7 +176,9 @@
       "levelError": "Não foi possível alterar o nível de log",
       "levelSaving": "Salvando o nível de log",
       "downloading": "Preparando...",
-      "downloadFailed": "Não foi possível baixar os logs: {{error}}"
+      "downloadFailedNetwork": "Não foi possível baixar os logs: o servidor não pôde ser alcançado. Verifique a conexão e tente novamente.",
+      "downloadFailedHttp": "Não foi possível baixar os logs: o servidor respondeu com o status {{status}}.",
+      "downloadFailedUnknown": "Não foi possível baixar os logs: ocorreu um erro inesperado."
     }
   },
   "manualIpModal": {

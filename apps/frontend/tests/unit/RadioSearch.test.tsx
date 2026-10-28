@@ -417,8 +417,10 @@ describe("RadioSearch Component", () => {
     // Shared Modal: native <dialog> (focus trap, inert background, Esc), reset by Modal.css
     const modal = document.querySelector("dialog.dlg")!;
     expect(modal).toBeInTheDocument();
-    expect(modal).toHaveAttribute("role", "dialog");
-    expect(modal).toHaveAttribute("aria-modal", "true");
+    // native semantics of a modal <dialog>: no redundant role / aria-modal
+    expect(modal).not.toHaveAttribute("role");
+    expect(modal).not.toHaveAttribute("aria-modal");
+    expect(modal).toHaveAttribute("open");
     expect(modal).toHaveAttribute("aria-labelledby", "rs-title");
     expect(document.getElementById("rs-title")).toBeInTheDocument();
   });

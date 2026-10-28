@@ -121,7 +121,9 @@ describe("ConfirmDialog", () => {
     it("has correct ARIA attributes", () => {
       render(<ConfirmDialog {...defaultProps} />);
       const dialog = screen.getByRole("alertdialog");
-      expect(dialog).toHaveAttribute("aria-modal", "true");
+      expect(dialog.tagName).toBe("DIALOG");
+      expect(dialog).toHaveAttribute("open");
+      expect(dialog).not.toHaveAttribute("aria-modal");
       expect(dialog).toHaveAttribute("aria-labelledby", "confirm-dialog-title");
       expect(dialog).toHaveAttribute(
         "aria-describedby",

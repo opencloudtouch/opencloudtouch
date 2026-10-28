@@ -176,7 +176,9 @@
       "levelError": "Logniveau kon niet worden gewijzigd",
       "levelSaving": "Logniveau wordt opgeslagen",
       "downloading": "Wordt voorbereid...",
-      "downloadFailed": "Logs konden niet worden gedownload: {{error}}"
+      "downloadFailedNetwork": "Logs konden niet worden gedownload: de server is niet bereikbaar. Controleer de verbinding en probeer het opnieuw.",
+      "downloadFailedHttp": "Logs konden niet worden gedownload: de server antwoordde met status {{status}}.",
+      "downloadFailedUnknown": "Logs konden niet worden gedownload: er is een onverwachte fout opgetreden."
     }
   },
   "manualIpModal": {

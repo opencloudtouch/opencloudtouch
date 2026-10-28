@@ -176,7 +176,9 @@
       "levelError": "ログレベルを変更できませんでした",
       "levelSaving": "ログレベルを保存中",
       "downloading": "準備中...",
-      "downloadFailed": "ログをダウンロードできませんでした: {{error}}"
+      "downloadFailedNetwork": "ログをダウンロードできませんでした: サーバーに接続できません。接続を確認して、もう一度お試しください。",
+      "downloadFailedHttp": "ログをダウンロードできませんでした: サーバーがステータス {{status}} を返しました。",
+      "downloadFailedUnknown": "ログをダウンロードできませんでした: 予期しないエラーが発生しました。"
     }
   },
   "manualIpModal": {

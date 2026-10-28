@@ -18,7 +18,12 @@ interface DeviceData {
   presets?: Record<number, Preset>;
 }
 
+/** An entry that was written within this window (and is complete) is not prefetched again. */
+export const DEVICE_DATA_FRESH_MS = 30_000;
+
 const cache = new Map<string, DeviceData>();
+/** Time of the last write per device (kept apart from the entry so the hooks only see the card data). */
+const fetchedAt = new Map<string, number>();
 const inflight = new Map<string, Promise<void>>();
 
 export function getCachedDeviceData(deviceId: string | undefined): DeviceData | undefined {
@@ -28,11 +33,34 @@ export function getCachedDeviceData(deviceId: string | undefined): DeviceData | 
 export function setCachedDeviceData(deviceId: string | undefined, patch: DeviceData): void {
   if (!deviceId) return;
   cache.set(deviceId, { ...cache.get(deviceId), ...patch });
+  fetchedAt.set(deviceId, Date.now());
+}
+
+/** True when the cache holds complete data for the device that was written within `DEVICE_DATA_FRESH_MS`. */
+export function isDeviceDataFresh(deviceId: string): boolean {
+  const data = cache.get(deviceId);
+  const at = fetchedAt.get(deviceId);
+  if (!data || at === undefined) return false;
+  const complete =
+    data.nowPlaying !== undefined && data.volume !== undefined && data.presets !== undefined;
+  return complete && Date.now() - at < DEVICE_DATA_FRESH_MS;
+}
+
+/** Drops the entries of devices that are no longer in the device list. */
+export function pruneDeviceDataCache(deviceIds: readonly string[]): void {
+  const keep = new Set(deviceIds);
+  for (const id of [...cache.keys()]) {
+    if (!keep.has(id)) {
+      cache.delete(id);
+      fetchedAt.delete(id);
+    }
+  }
 }
 
 /** Test helper. */
 export function clearDeviceDataCache(): void {
   cache.clear();
+  fetchedAt.clear();
   inflight.clear();
 }
 
@@ -44,7 +72,7 @@ function preloadImage(url: string | undefined): void {
 
 /** Loads now playing, volume and presets of one device into the cache (errors are ignored: it is only a warm-up). */
 export function prefetchDevice(deviceId: string): Promise<void> {
-  if (isDeviceOffline(deviceId)) return Promise.resolve();
+  if (isDeviceOffline(deviceId) || isDeviceDataFresh(deviceId)) return Promise.resolve();
   const running = inflight.get(deviceId);
   if (running) return running;
 

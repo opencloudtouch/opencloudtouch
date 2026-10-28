@@ -1,7 +1,8 @@
 /**
  * Step 4: Backup Creation (tracker step 3)
- * Logic, props, API call and t() keys unchanged (Next stays `isNextDisabled={creating}`).
- * Added: a warning hint above the action bar while `error` is set (new key setup.wizard.step4.nextWarning).
+ * Creates the backup via the API (Next stays `isNextDisabled={creating}`). The action button stays visible until a
+ * backup succeeded: after a failure it turns into a "Retry" button, so the attempt can be repeated without leaving the step.
+ * While `error` is set a warning hint is shown above the action bar (key setup.wizard.step4.nextWarning).
  * The failed state also recolours Next via `.wizard-step:has(.backup-error)` in Step4Backup.css.
  */
 import { useState } from "react";

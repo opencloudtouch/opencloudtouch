@@ -9,7 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No changes yet._
+### Added
+- Redesigned setup and restore wizards with a shared design, progress tracker, focus management and full keyboard and screen-reader support
+- Redesigned app shell, presets page, local control, zones, firmware, settings, diagnostics, about and licenses pages with swipe navigation between devices, a sticky device switch bar and a native `<dialog>` based modal
+- Confirmation dialog before removing an offline device from the presets page (#520)
+- `/health` reports the server `uptime`; the About page shows "running since" (#521)
+- Link to the licenses page on the About page, keeping the selected device (#528)
+- Toast after every network scan that names the newly discovered devices
+- Translated restore step and validation messages via stable `message_code` / `message_params` (all 10 locales, English fallback)
+- Cypress suites for responsive layout (overlap, overflow and clipping audit) and for axe accessibility of every wizard state
+
+### Changed
+- Restore: backup timeout raised to 10 minutes; archive validation searches the whole archive
+- Device cards load from a small in-memory cache that is warmed for the neighbouring devices only
+- Settings: a failed log download shows a translated reason instead of failing silently (#527)
+
+### Fixed
+- Layout overflow and overlap on the presets, local control, multi-room and settings pages, the swiper, the navigation and the empty state
+- False "unexpected content" warnings when validating a restore archive
+- Accessibility: skip link and `main` landmark, heading order, contrast tokens, translated `aria-label`s, `html lang` sync, toast roles and reduced-motion support
 
 ---
 

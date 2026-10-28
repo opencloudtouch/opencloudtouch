@@ -176,7 +176,9 @@
       "levelError": "Could not change log level",
       "levelSaving": "Saving log level",
       "downloading": "Preparing...",
-      "downloadFailed": "Logs could not be downloaded: {{error}}"
+      "downloadFailedNetwork": "Logs could not be downloaded: the server could not be reached. Check your connection and try again.",
+      "downloadFailedHttp": "Logs could not be downloaded: the server responded with status {{status}}.",
+      "downloadFailedUnknown": "Logs could not be downloaded: an unexpected error occurred."
     }
   },
   "manualIpModal": {

@@ -176,7 +176,9 @@
       "levelError": "Nie można zmienić poziomu logowania",
       "levelSaving": "Zapisywanie poziomu logów",
       "downloading": "Przygotowywanie...",
-      "downloadFailed": "Nie udało się pobrać logów: {{error}}"
+      "downloadFailedNetwork": "Nie udało się pobrać logów: serwer jest nieosiągalny. Sprawdź połączenie i spróbuj ponownie.",
+      "downloadFailedHttp": "Nie udało się pobrać logów: serwer odpowiedział statusem {{status}}.",
+      "downloadFailedUnknown": "Nie udało się pobrać logów: wystąpił nieoczekiwany błąd."
     }
   },
   "manualIpModal": {

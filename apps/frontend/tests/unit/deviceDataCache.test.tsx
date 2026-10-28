@@ -6,10 +6,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { useNowPlaying } from "../../src/hooks/useNowPlaying";
 import { useVolume } from "../../src/hooks/useVolume";
+import { usePrefetchDevices } from "../../src/hooks/usePrefetchDevices";
 import {
+  DEVICE_DATA_FRESH_MS,
   clearDeviceDataCache,
   getCachedDeviceData,
   prefetchDevice,
+  pruneDeviceDataCache,
   setCachedDeviceData,
 } from "../../src/utils/deviceDataCache";
 import { _resetOfflineStore } from "../../src/api/offlineDeviceStore";
@@ -97,5 +100,56 @@ describe("per-device card data", () => {
     expect(data?.nowPlaying?.station_name).toBe("Station C");
     expect(data?.volume?.actual).toBe(12);
     expect(data?.presets?.[1]?.station_name).toBe("Eins");
+  });
+});
+
+describe("prefetch freshness, eviction and neighbours", () => {
+  const full = {
+    nowPlaying: { source: "STANDBY", state: "STOP_STATE" } as never,
+    volume: { actual: 1, target: 1, muted: false },
+    presets: {},
+  };
+  beforeEach(() => {
+    clearDeviceDataCache();
+    _resetOfflineStore();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("skips prefetch for fresh entries and refetches after the freshness window", async () => {
+    vi.useFakeTimers();
+    const fetchMock = respond({ "/now-playing": playing("X"), "/volume": { actual: 2, target: 2, muted: false }, "/api/presets/": [] });
+    vi.stubGlobal("fetch", fetchMock);
+    setCachedDeviceData("F", full);
+    await prefetchDevice("F");
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(DEVICE_DATA_FRESH_MS + 1);
+    await prefetchDevice("F");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("pruneDeviceDataCache evicts devices that are no longer listed", () => {
+    setCachedDeviceData("keep", full);
+    setCachedDeviceData("gone", full);
+    pruneDeviceDataCache(["keep"]);
+    expect(getCachedDeviceData("keep")).toBeDefined();
+    expect(getCachedDeviceData("gone")).toBeUndefined();
+  });
+
+  it("usePrefetchDevices prefetches only the +/-1 neighbours and prunes removed devices", async () => {
+    vi.useFakeTimers();
+    const fetchMock = respond({ "/now-playing": playing("X"), "/volume": { actual: 2, target: 2, muted: false }, "/api/presets/": [] });
+    vi.stubGlobal("fetch", fetchMock);
+    setCachedDeviceData("removed", full);
+    renderHook(() => usePrefetchDevices(["a", "b", "c", "d", "e"], 2));
+    await vi.advanceTimersByTimeAsync(2000);
+
+    const urls = fetchMock.mock.calls.map((c) => String(c[0]));
+    for (const id of ["b", "d"]) expect(urls.some((u) => u.includes(`/${id}/`))).toBe(true);
+    for (const id of ["a", "c", "e"]) expect(urls.some((u) => u.includes(`/${id}/`))).toBe(false);
+    expect(getCachedDeviceData("removed")).toBeUndefined();
   });
 });

@@ -73,7 +73,8 @@ describe("ManualIPModal", () => {
     const dialog = document.querySelector("dialog")!;
     expect(dialog).toBeInTheDocument();
     expect(dialog).toHaveAttribute("open");
-    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog).not.toHaveAttribute("role");
+    expect(dialog).not.toHaveAttribute("aria-modal");
     expect(dialog).toHaveAttribute("aria-labelledby", "manual-ip-title");
     expect(document.getElementById("manual-ip-title")).toHaveTextContent("Manual IP Configuration");
   });

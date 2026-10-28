@@ -1,6 +1,6 @@
 import { useTranslation, Trans } from "react-i18next";
 import { useState, useEffect, useMemo, type CSSProperties } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { useHealth } from "../hooks/useHealth";
 import { Skeleton } from "../components/LoadingSkeleton";
 import { Icon } from "../components/Icon";
@@ -35,9 +35,19 @@ function NewTabHint() {
 export default function About() {
   const { t, i18n } = useTranslation();
   const { data: health, isLoading: healthLoading } = useHealth();
+  const [searchParams] = useSearchParams();
+  const deviceParam = searchParams.get("device");
+  const licensesPath = deviceParam
+    ? `/licenses?device=${encodeURIComponent(deviceParam)}`
+    : "/licenses";
+  // 0 is a valid uptime (server just started): only a missing or non-numeric value hides the line
+  const uptime =
+    typeof health?.uptime === "number" && Number.isFinite(health.uptime)
+      ? health.uptime
+      : undefined;
   const startTime = useMemo(
-    () => (health?.uptime ? new Date(Date.now() - health.uptime * 1000).toLocaleString() : ""),
-    [health?.uptime]
+    () => (uptime === undefined ? "" : new Date(Date.now() - uptime * 1000).toLocaleString()),
+    [uptime]
   );
 
   const [supporters, setSupporters] = useState<Supporter[]>([]);
@@ -179,7 +189,7 @@ export default function About() {
           )}
         </div>
         {/* /health sends the seconds since server start; older servers do not, then nothing is rendered */}
-        {!healthLoading && health?.uptime && (
+        {!healthLoading && uptime !== undefined && (
           <p className="ui-small ab-build-time">{t("about.runningSince", { time: startTime })}</p>
         )}
       </header>
@@ -325,7 +335,7 @@ export default function About() {
           </li>
           {/* the Licenses page was only reachable by URL */}
           <li>
-            <Link to="/licenses" className="ab-link">
+            <Link to={licensesPath} className="ab-link">
               <span className="ab-link-icon" aria-hidden="true">
                 {Icon.FileText(22)}
               </span>

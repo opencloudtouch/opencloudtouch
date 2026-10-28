@@ -79,7 +79,7 @@ describe("Preset Search Modal — layout", () => {
   it("modal is rendered as a native modal dialog with an accessible name", () => {
     // Click an empty preset slot to open the search modal
     cy.get(".pb-empty").first().click();
-    cy.get("dialog.dlg[role='dialog'][aria-modal='true']").should("have.attr", "open");
+    cy.get("dialog.dlg[open]").should("have.attr", "open");
     cy.get("dialog.dlg").should("have.attr", "aria-labelledby", "rs-title");
     cy.get("#rs-title").should("be.visible");
   });

@@ -176,7 +176,9 @@
       "levelError": "No se pudo cambiar el nivel de registro",
       "levelSaving": "Guardando el nivel de registro",
       "downloading": "Preparando...",
-      "downloadFailed": "No se pudieron descargar los registros: {{error}}"
+      "downloadFailedNetwork": "No se pudieron descargar los registros: no se pudo conectar con el servidor. Comprueba la conexión e inténtalo de nuevo.",
+      "downloadFailedHttp": "No se pudieron descargar los registros: el servidor respondió con el estado {{status}}.",
+      "downloadFailedUnknown": "No se pudieron descargar los registros: se produjo un error inesperado."
     }
   },
   "manualIpModal": {

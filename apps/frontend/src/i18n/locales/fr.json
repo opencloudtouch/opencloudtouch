@@ -176,7 +176,9 @@
       "levelError": "Impossible de modifier le niveau de journal",
       "levelSaving": "Enregistrement du niveau de journal",
       "downloading": "Préparation...",
-      "downloadFailed": "Impossible de télécharger les journaux : {{error}}"
+      "downloadFailedNetwork": "Impossible de télécharger les journaux : le serveur est injoignable. Vérifiez la connexion et réessayez.",
+      "downloadFailedHttp": "Impossible de télécharger les journaux : le serveur a répondu avec le statut {{status}}.",
+      "downloadFailedUnknown": "Impossible de télécharger les journaux : une erreur inattendue s'est produite."
     }
   },
   "manualIpModal": {

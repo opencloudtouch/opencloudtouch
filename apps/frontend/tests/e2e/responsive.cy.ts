@@ -22,8 +22,8 @@ import {
   visitDe,
 } from "./support/wizardMocks";
 
-const PAGE_WIDTHS = [320, 375, 768, 1280];
-const WIZARD_WIDTHS = [320, 414, 768, 1280];
+const PAGE_WIDTHS = [320, 375, 414, 768, 1280];
+const WIZARD_WIDTHS = [320, 375, 414, 768, 1280];
 
 const PAGES = [
   { name: "presets", path: `/?device=${DEVICE.device_id}` },

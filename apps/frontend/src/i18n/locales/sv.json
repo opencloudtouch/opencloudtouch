@@ -176,7 +176,9 @@
       "levelError": "Det gick inte att ändra loggnivån",
       "levelSaving": "Sparar loggnivån",
       "downloading": "Förbereder...",
-      "downloadFailed": "Loggarna kunde inte laddas ned: {{error}}"
+      "downloadFailedNetwork": "Loggarna kunde inte laddas ned: servern kunde inte nås. Kontrollera anslutningen och försök igen.",
+      "downloadFailedHttp": "Loggarna kunde inte laddas ned: servern svarade med status {{status}}.",
+      "downloadFailedUnknown": "Loggarna kunde inte laddas ned: ett oväntat fel inträffade."
     }
   },
   "manualIpModal": {

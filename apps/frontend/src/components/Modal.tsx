@@ -15,7 +15,8 @@ export interface ModalProps {
   labelledBy: string;
   describedBy?: string;
   size?: "sm" | "md" | "lg";
-  role?: "dialog" | "alertdialog";
+  /** only pass "alertdialog" for confirmations: a modal <dialog> already exposes the dialog role and modal semantics */
+  role?: "alertdialog";
   /** click on the dimmed area closes (default true) */
   closeOnBackdrop?: boolean;
   /** native Esc calls onClose (default true); set false when the caller handles Esc itself */
@@ -40,7 +41,7 @@ export default function Modal({
   labelledBy,
   describedBy,
   size = "md",
-  role = "dialog",
+  role,
   closeOnBackdrop = true,
   closeOnEscape = true,
   overlayData,
@@ -78,7 +79,6 @@ export default function Modal({
       ref={dialogRef}
       className={`dlg dlg--${size}`}
       role={role}
-      aria-modal="true"
       aria-labelledby={labelledBy}
       aria-describedby={describedBy}
       onCancel={(e) => {
