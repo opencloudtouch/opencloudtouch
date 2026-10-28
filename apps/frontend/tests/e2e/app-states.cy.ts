@@ -40,13 +40,16 @@ function formatIssues(issues: LayoutIssue[]): string {
     .join("\n");
 }
 
-/** Waits until all finite CSS/JS animations have finished (looping ones such as spinners are ignored). */
-function waitForAnimationsToFinish() {
-  cy.window().should((win) => {
-    const running = win.document
-      .getAnimations()
-      .filter((a) => a.playState === "running" && a.effect?.getComputedTiming().iterations !== Infinity);
-    expect(running, "running finite animations").to.have.lengthOf(0);
+/**
+ * Freezes enter animations and transitions so axe measures contrast on the settled colours
+ * instead of on a mid-animation frame.
+ */
+function settleAnimations() {
+  cy.document().then((doc) => {
+    const style = doc.createElement("style");
+    style.textContent =
+      "*, *::before, *::after { animation: none !important; transition: none !important; }";
+    doc.head.appendChild(style);
   });
 }
 
@@ -59,7 +62,7 @@ function assertNoLayoutIssues(label: string) {
 }
 
 function assertNoAxeViolations(label: string) {
-  waitForAnimationsToFinish(); // enter animations must finish so contrast is measured on settled colours
+  settleAnimations();
   cy.injectAxe();
   let found: AxeViolation[] = [];
   cy.checkA11y(
