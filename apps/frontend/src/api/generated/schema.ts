@@ -297,6 +297,30 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/devices/{device_id}/settings/bass": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Device Bass
+     * @description Get the current bass state reported by a SoundTouch device.
+     */
+    get: operations["get_device_bass_api_devices__device_id__settings_bass_get"];
+    /**
+     * Set Device Bass
+     * @description Set the bass level supported by the selected SoundTouch device.
+     */
+    put: operations["set_device_bass_api_devices__device_id__settings_bass_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/devices/{device_id}/key": {
     parameters: {
       query?: never;
@@ -2213,6 +2237,57 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/system/check-update": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Check Update */
+    get: operations["check_update_api_system_check_update_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/system/update-status": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Update Status */
+    get: operations["update_status_api_system_update_status_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/system/update": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Update */
+    post: operations["update_api_system_update_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/zones": {
     parameters: {
       query?: never;
@@ -3509,6 +3584,14 @@ export interface components {
      */
     SearchType: "name" | "country" | "tag";
     /**
+     * SetBassRequest
+     * @description Request body for setting a device's bass level.
+     */
+    SetBassRequest: {
+      /** Level */
+      level: number;
+    };
+    /**
      * SetManualIPsRequest
      * @description Request model for setting all manual IPs at once.
      */
@@ -3518,6 +3601,56 @@ export interface components {
        * @description List of IP addresses to set
        */
       ips: string[];
+    };
+    /** UpdateAcceptedResponse */
+    UpdateAcceptedResponse: {
+      /** Accepted */
+      accepted: boolean;
+      /** Target Version */
+      target_version: string;
+    };
+    /** UpdateCheckResponse */
+    UpdateCheckResponse: {
+      /** Current */
+      current: string;
+      /** Latest */
+      latest: string;
+      /** Update Available */
+      update_available: boolean;
+      /** Release Url */
+      release_url: string;
+      /** Self Update Enabled */
+      self_update_enabled: boolean;
+      /** Self Update Reason */
+      self_update_reason: string | null;
+    };
+    /** UpdateRequest */
+    UpdateRequest: {
+      /** Target Version */
+      target_version: string;
+    };
+    /** UpdateStatusResponse */
+    UpdateStatusResponse: {
+      /** Phase */
+      phase: string;
+      /** Progress Pct */
+      progress_pct: number;
+      /** Message */
+      message: string;
+      /** Target Version */
+      target_version?: string | null;
+      /** Current Version */
+      current_version: string;
+      /** Updated At */
+      updated_at?: string | null;
+      /** Error */
+      error?: string | null;
+      /** Rollback Error */
+      rollback_error?: string | null;
+      /** Container Id */
+      container_id?: string | null;
+      /** Image */
+      image?: string | null;
     };
     /**
      * ValidateHostnameRequest
@@ -4069,6 +4202,70 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
         };
+      };
+    };
+  };
+  get_device_bass_api_devices__device_id__settings_bass_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  set_device_bass_api_devices__device_id__settings_bass_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SetBassRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Invalid bass level */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -6586,6 +6783,107 @@ export interface operations {
       };
     };
   };
+  check_update_api_system_check_update_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["UpdateCheckResponse"];
+        };
+      };
+      /** @description Release check unavailable */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  update_status_api_system_update_status_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["UpdateStatusResponse"];
+        };
+      };
+    };
+  };
+  update_api_system_update_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["UpdateAcceptedResponse"];
+        };
+      };
+      /** @description OpenCloudTouch container not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Update conflict or confirmation mismatch */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description Update service unavailable */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   get_all_zones_api_zones_get: {
     parameters: {
       query?: never;
@@ -6698,6 +6996,13 @@ export interface operations {
         content: {
           "application/json": unknown;
         };
+      };
+      /** @description Zone was dissolved during member addition */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {

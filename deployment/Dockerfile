@@ -128,7 +128,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update && \
     apt-get upgrade -y --no-install-recommends && \
-    apt-get install -y --no-install-recommends gosu curl
+    apt-get install -y --no-install-recommends gosu curl acl
 
 # Copy Python dependencies from build stage
 COPY --from=python-deps /install /usr/local

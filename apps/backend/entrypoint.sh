@@ -143,6 +143,14 @@ main() {
     # Drop to non-root user if running as root
     if [ "$(id -u)" = "0" ]; then
         log_info "Dropping privileges to oct user"
+
+        # Grant access to oct only, never to the socket's owning group.
+        if [ -S /var/run/docker.sock ]; then
+            if ! setfacl -m u:oct:rw /var/run/docker.sock; then
+                log_warn "Could not grant Docker socket access; self-update unavailable."
+            fi
+        fi
+
         exec gosu oct "$0" "$@"
     fi
 
