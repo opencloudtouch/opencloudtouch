@@ -3116,6 +3116,34 @@ export interface components {
       detail?: components["schemas"]["ValidationError"][];
     };
     /**
+     * HealthConfig
+     * @description Non-sensitive configuration flags exposed by /health.
+     */
+    HealthConfig: {
+      /** Discovery Enabled */
+      discovery_enabled: boolean;
+    };
+    /**
+     * HealthResponse
+     * @description Response of GET /health (documented contract used by the frontend).
+     */
+    HealthResponse: {
+      /** Status */
+      status: string;
+      /** Service */
+      service: string;
+      /** Version */
+      version: string;
+      /**
+       * Build
+       * @enum {string}
+       */
+      build: "official" | "community";
+      /** Uptime */
+      uptime: number;
+      config: components["schemas"]["HealthConfig"];
+    };
+    /**
      * HostsModifyRequest
      * @description Request to modify hosts file.
      */
@@ -7277,7 +7305,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["HealthResponse"];
         };
       };
     };

@@ -8,10 +8,12 @@ import time
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Literal
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from opencloudtouch import __version__, is_official_build
 from opencloudtouch.api import devices_router
@@ -441,27 +443,39 @@ app.include_router(event_router)  # SSE device event stream
 _STARTED_AT = time.monotonic()
 
 
+class HealthConfig(BaseModel):
+    """Non-sensitive configuration flags exposed by /health."""
+
+    discovery_enabled: bool
+
+
+class HealthResponse(BaseModel):
+    """Response of GET /health (documented contract used by the frontend)."""
+
+    status: str
+    service: str
+    version: str
+    build: Literal["official", "community"]
+    uptime: int
+    config: HealthConfig
+
+
 # Health endpoint
-@app.get("/health", tags=["System"])
-async def health_check(request: Request):
+@app.get("/health", tags=["System"], response_model=HealthResponse)
+async def health_check(request: Request) -> HealthResponse:
     """Health check endpoint for Docker and monitoring.
 
     Minimal response — detailed memory stats available at /api/diagnostics/memory.
     """
     cfg = get_config()
 
-    return JSONResponse(
-        status_code=200,
-        content={
-            "status": "healthy",
-            "service": "opencloudtouch",
-            "version": __version__,
-            "build": "official" if is_official_build() else "community",
-            "uptime": int(time.monotonic() - _STARTED_AT),
-            "config": {
-                "discovery_enabled": cfg.discovery_enabled,
-            },
-        },
+    return HealthResponse(
+        status="healthy",
+        service="opencloudtouch",
+        version=__version__,
+        build="official" if is_official_build() else "community",
+        uptime=int(time.monotonic() - _STARTED_AT),
+        config=HealthConfig(discovery_enabled=cfg.discovery_enabled),
     )
 
 

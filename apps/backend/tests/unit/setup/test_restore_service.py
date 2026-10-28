@@ -1,5 +1,8 @@
 """Unit tests for RestoreService."""
 
+import shutil
+import subprocess
+from collections.abc import Sequence
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -13,7 +16,11 @@ from opencloudtouch.setup.restore_models import (
     StepStatus,
     ValidationStatus,
 )
-from opencloudtouch.setup.restore_service import RestoreService
+from opencloudtouch.setup.restore_service import (
+    _ARCHIVE_PREFIX_SEARCH_AWK,
+    _EXPECTED_ARCHIVE_PREFIXES,
+    RestoreService,
+)
 
 
 class TestRestoreModels:
@@ -523,6 +530,69 @@ class TestValidateArchive:
         assert "could not be verified" in info.validation_message
         assert "not found" not in info.validation_message
         assert info.validation_code == "archive_unverified"
+
+
+@pytest.mark.skipif(shutil.which("awk") is None, reason="awk is not installed")
+class TestArchivePrefixSearchAwk:
+    """Runs the real awk program the service sends over SSH against realistic `tar tzf` listings."""
+
+    @staticmethod
+    def _scan(prefix: str, entries: Sequence[str]) -> str:
+        proc = subprocess.run(
+            _ARCHIVE_PREFIX_SEARCH_AWK % prefix,
+            shell=True,
+            input="".join(f"{e}\n" for e in entries),
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=True,
+        )
+        return proc.stdout.strip()
+
+    ROOTFS = (
+        "bin/",
+        "bin/busybox",
+        "etc/",
+        "etc/passwd",
+        "opt/",
+        "opt/Bose/",
+        "opt/Bose/etc/Sources.xml",
+    )
+
+    def test_expected_prefix_present_is_found(self):
+        assert self._scan("opt/Bose/", self.ROOTFS) == "1"
+
+    def test_prefix_found_late_in_listing(self):
+        entries = [f"usr/lib/file{i}" for i in range(5000)] + ["opt/Bose/x"]
+        assert self._scan("opt/Bose/", entries) == "1"
+
+    def test_leading_dot_slash_is_ignored(self):
+        assert (
+            self._scan("mnt/nv/", ["./", "./mnt/", "./mnt/nv/BoseApp-Persistence/1"])
+            == "1"
+        )
+
+    def test_unexpected_content_is_flagged(self):
+        assert (
+            self._scan("opt/Bose/", ["bin/", "etc/passwd", "var/log/messages"]) == "0"
+        )
+
+    def test_prefix_must_be_at_start_of_entry(self):
+        assert self._scan("mnt/nv/", ["backup/mnt/nv/file", "xmnt/nv/file"]) == "0"
+
+    def test_empty_listing_is_flagged(self):
+        assert self._scan("mnt/update/", []) == "0"
+
+    @pytest.mark.parametrize("volume", sorted(_EXPECTED_ARCHIVE_PREFIXES))
+    def test_each_volume_prefix_matches_only_its_own_archive(self, volume):
+        listings = {
+            "rootfs": ["bin/", "opt/Bose/app"],
+            "persistent": ["mnt/nv/", "mnt/nv/data"],
+            "update": ["mnt/update/", "mnt/update/fw.bin"],
+        }
+        for name, entries in listings.items():
+            expected = "1" if name == volume else "0"
+            assert self._scan(_EXPECTED_ARCHIVE_PREFIXES[volume], entries) == expected
 
 
 class TestPreRestoreSnapshot:
