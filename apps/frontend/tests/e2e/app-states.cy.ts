@@ -5,7 +5,12 @@
  * The device list, zones, now-playing and volume are mocked with cy.intercept, so the result does not depend on
  * the database or on real devices. Static page layout is covered by responsive.cy.ts.
  */
-import { collectLayoutIssues, waitForStableLayout, LayoutIssue } from "./support/layoutAudit";
+import {
+  collectLayoutIssues,
+  waitForStableLayout,
+  waitForSettledAnimations,
+  LayoutIssue,
+} from "./support/layoutAudit";
 import { DEVICES, mockApi, visitDe } from "./support/wizardMocks";
 
 const WIDTHS = [320, 375, 768, 1280];
@@ -40,19 +45,6 @@ function formatIssues(issues: LayoutIssue[]): string {
     .join("\n");
 }
 
-/**
- * Freezes enter animations and transitions so axe measures contrast on the settled colours
- * instead of on a mid-animation frame.
- */
-function settleAnimations() {
-  cy.document().then((doc) => {
-    const style = doc.createElement("style");
-    style.textContent =
-      "*, *::before, *::after { animation: none !important; transition: none !important; }";
-    doc.head.appendChild(style);
-  });
-}
-
 function assertNoLayoutIssues(label: string) {
   cy.window().then((win) => waitForStableLayout(win));
   cy.window().then((win) => {
@@ -62,7 +54,7 @@ function assertNoLayoutIssues(label: string) {
 }
 
 function assertNoAxeViolations(label: string) {
-  settleAnimations();
+  waitForSettledAnimations();
   cy.injectAxe();
   let found: AxeViolation[] = [];
   cy.checkA11y(

@@ -5,6 +5,7 @@
  * The device list and the wizard endpoints are mocked (support/wizardMocks.ts), everything else goes to
  * the mock backend like the other E2E specs.
  */
+import { waitForSettledAnimations } from "./support/layoutAudit";
 import {
   DEVICE,
   RESTORE_RESULT,
@@ -38,22 +39,9 @@ function formatViolations(violations: AxeViolation[]): string {
     .join("\n");
 }
 
-/**
- * Freezes slide/fade animations and transitions so axe measures contrast on the settled colours
- * instead of on a mid-animation frame.
- */
-function settleAnimations() {
-  cy.document().then((doc) => {
-    const style = doc.createElement("style");
-    style.textContent =
-      "*, *::before, *::after { animation: none !important; transition: none !important; }";
-    doc.head.appendChild(style);
-  });
-}
-
 /** Runs axe on the current page; fails with a readable list of violations. */
 function assertNoAxeViolations(label: string) {
-  settleAnimations();
+  waitForSettledAnimations();
   cy.injectAxe();
   let found: AxeViolation[] = [];
   // skipFailures: collect first, then fail with a readable message (the default message omits the details)

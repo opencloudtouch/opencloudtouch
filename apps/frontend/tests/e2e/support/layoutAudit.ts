@@ -228,3 +228,18 @@ export function collectLayoutIssues(win: Window): LayoutIssue[] {
 
   return issues;
 }
+
+/**
+ * Retries until no finite CSS/JS animation has been running for a quiet period, so axe measures
+ * contrast on settled colours. The quiet period covers animations that start right after render.
+ */
+export function waitForSettledAnimations(quietMs = 300) {
+  let lastBusy = Date.now();
+  cy.window().should((win) => {
+    const busy = win.document
+      .getAnimations()
+      .some((a) => a.playState !== "finished" && a.effect?.getComputedTiming().iterations !== Infinity);
+    if (busy) lastBusy = Date.now();
+    expect(Date.now() - lastBusy, "ms since the last running animation").to.be.at.least(quietMs);
+  });
+}
