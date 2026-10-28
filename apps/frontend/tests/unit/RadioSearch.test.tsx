@@ -166,8 +166,8 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const backdrop = document.querySelector(".dlg-backdrop")!;
-    fireEvent.click(backdrop);
+    const overlay = document.querySelector(".dlg-overlay")!;
+    fireEvent.click(overlay);
 
     expect(mockOnClose).toHaveBeenCalled();
   });
@@ -400,13 +400,13 @@ describe("RadioSearch Component", () => {
     expect(mockOnClose).not.toHaveBeenCalled();
   });
 
-  it("overlay is a plain wrapper without an ARIA role", () => {
+  it("overlay is presentational for a11y", () => {
     render(
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />,
     );
 
     const overlay = document.querySelector(".dlg-overlay")!;
-    expect(overlay).not.toHaveAttribute("role");
+    expect(overlay).toHaveAttribute("role", "presentation");
   });
 
   it("modal uses the native dialog element labelled by its title", () => {

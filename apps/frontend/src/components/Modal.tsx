@@ -86,17 +86,14 @@ export default function Modal({
         if (closeOnEscape) onClose();
       }}
     >
-      <div className="dlg-overlay" {...overlayData}>
-        {/* click target behind the panel: dismisses on backdrop click; keyboard users close with Escape */}
-        <button
-          type="button"
-          className="dlg-backdrop"
-          tabIndex={-1}
-          aria-hidden="true"
-          onClick={() => {
-            if (closeOnBackdrop) onClose();
-          }}
-        />
+      <div
+        className="dlg-overlay"
+        role="presentation" // NOSONAR(S6819): backdrop is click-only; the dialog itself has the semantics
+        onClick={(e) => {
+          if (closeOnBackdrop && e.target === e.currentTarget) onClose();
+        }}
+        {...overlayData}
+      >
         <div className="dlg-panel" {...panelData}>
           {children}
         </div>

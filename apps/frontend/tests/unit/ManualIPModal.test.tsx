@@ -34,8 +34,8 @@ describe("ManualIPModal", () => {
 
   it("calls onClose when the dimmed overlay is clicked", () => {
     render(<ManualIPModal isOpen={true} onClose={mockOnClose} />);
-    const backdrop = document.querySelector(".dlg-backdrop")!;
-    fireEvent.click(backdrop);
+    const overlay = document.querySelector('[data-test="modal-overlay"]')!;
+    fireEvent.click(overlay);
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
@@ -62,10 +62,10 @@ describe("ManualIPModal", () => {
     expect(mockOnClose).not.toHaveBeenCalled();
   });
 
-  it("overlay is a plain wrapper without an ARIA role", () => {
+  it("overlay is presentational for a11y", () => {
     render(<ManualIPModal isOpen={true} onClose={mockOnClose} />);
     const overlay = document.querySelector('[data-test="modal-overlay"]')!;
-    expect(overlay).not.toHaveAttribute("role");
+    expect(overlay).toHaveAttribute("role", "presentation");
   });
 
   it("uses a native modal dialog element labelled by its title", () => {

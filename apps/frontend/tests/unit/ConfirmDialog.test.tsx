@@ -70,7 +70,7 @@ describe("ConfirmDialog", () => {
 
     it("calls onCancel when overlay is clicked", () => {
       render(<ConfirmDialog {...defaultProps} />);
-      fireEvent.click(document.querySelector(".dlg-backdrop")!);
+      fireEvent.click(screen.getByTestId("confirm-dialog-overlay"));
       expect(defaultProps.onCancel).toHaveBeenCalledTimes(1);
     });
 
