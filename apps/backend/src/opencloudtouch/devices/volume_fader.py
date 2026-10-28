@@ -52,12 +52,12 @@ class VolumeFader:
         seconds: float,
         *,
         skip_if_muted: bool = True,
-        on_set: Callable[[int], None] | None = None,
+        on_set: Callable[[int], Awaitable[None]] | None = None,
     ) -> FadeResult:
         """Move the volume from *from_v* to *to_v* within *seconds*.
 
-        *on_set* receives every value this fade writes (the caller can tell later
-        whether a volume it finds is still its own).
+        *on_set* is awaited with every value this fade writes (the caller can tell
+        later, even after a restart, whether a volume it finds is still its own).
         """
         if seconds <= 0 or from_v == to_v:
             return FadeResult.COMPLETED
@@ -81,7 +81,7 @@ class VolumeFader:
         from_v: int,
         to_v: int,
         seconds: float,
-        on_set: Callable[[int], None] | None,
+        on_set: Callable[[int], Awaitable[None]] | None,
     ) -> FadeResult:
         steps = min(MAX_STEPS, max(1, math.ceil(seconds / SECONDS_PER_STEP)))
         start = self._clock()
@@ -111,6 +111,6 @@ class VolumeFader:
                 )
                 last_set = target
                 if on_set is not None:
-                    on_set(target)
+                    await on_set(target)
             step += 1
         return FadeResult.COMPLETED

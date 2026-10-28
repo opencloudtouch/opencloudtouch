@@ -25,5 +25,9 @@ class InMemorySleepTimerRepository:
         if device_id in self.rows:
             self.rows[device_id].original_volume = volume
 
+    async def set_last_set_volume(self, device_id: str, volume: int | None) -> None:
+        if device_id in self.rows:
+            self.rows[device_id].last_set_volume = volume
+
     async def delete(self, device_id: str) -> None:
         self.rows.pop(device_id, None)

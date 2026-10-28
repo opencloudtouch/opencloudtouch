@@ -66,6 +66,15 @@ async def test_set_original_volume_and_clear_it(repo):
 
 
 @pytest.mark.asyncio
+async def test_set_last_set_volume(repo):
+    await repo.upsert(_timer(original_volume=40))
+    await repo.set_last_set_volume(DEVICE, 12)
+    assert (await repo.get(DEVICE)).last_set_volume == 12
+    await repo.upsert(_timer(original_volume=40, last_set_volume=7))
+    assert (await repo.get(DEVICE)).last_set_volume == 7
+
+
+@pytest.mark.asyncio
 async def test_delete_is_idempotent(repo):
     await repo.upsert(_timer())
     await repo.delete(DEVICE)
