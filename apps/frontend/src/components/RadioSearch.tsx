@@ -145,6 +145,16 @@ async function fetchStationPage(
   return { ok: true, stations: normalizeStations(data), hasMore: data?.has_more === true };
 }
 
+/** True for a non-empty value that is not a valid http(s) URL. */
+function isInvalidUrlInput(value: string): boolean {
+  return value.trim() !== "" && !isValidHttpUrl(value);
+}
+
+/** Keeps the id of an existing manual preset so editing it replaces the entry instead of adding one. */
+function getManualStationUuid(preset: RadioSearchProps["existingPreset"]): string {
+  return preset?.station_uuid?.startsWith("manual-") ? preset.station_uuid : `manual-${Date.now()}`;
+}
+
 /** Returns the editable fields of a manually entered preset, or null for provider stations. */
 function getManualPresetFields(preset: RadioSearchProps["existingPreset"]) {
   if (!preset?.station_uuid?.startsWith("manual-")) return null;
@@ -494,8 +504,9 @@ export default function RadioSearch({
     }
   };
 
-  const urlInvalid = manualUrl.trim() !== "" && !isValidHttpUrl(manualUrl);
-  const faviconInvalid = manualFavicon.trim() !== "" && !isValidHttpUrl(manualFavicon);
+  const urlInvalid = isInvalidUrlInput(manualUrl);
+  const faviconInvalid = isInvalidUrlInput(manualFavicon);
+  const manualFormIncomplete = !manualName.trim() || !isValidHttpUrl(manualUrl) || faviconInvalid;
 
   return (
     <Modal open={isOpen} onClose={() => onClose?.()} size="lg" labelledBy="rs-title">
@@ -665,16 +676,10 @@ export default function RadioSearch({
               </div>
               <button
                 className="btn btn-primary btn-block-phone rs-submit"
-                disabled={
-                  !manualName.trim() ||
-                  !isValidHttpUrl(manualUrl) ||
-                  (manualFavicon.trim() !== "" && !isValidHttpUrl(manualFavicon))
-                }
+                disabled={manualFormIncomplete}
                 onClick={() =>
                   handleSelect({
-                    stationuuid: existingPreset?.station_uuid?.startsWith("manual-")
-                      ? existingPreset.station_uuid
-                      : `manual-${Date.now()}`,
+                    stationuuid: getManualStationUuid(existingPreset),
                     name: manualName.trim(),
                     country: "",
                     url: manualUrl.trim(),
