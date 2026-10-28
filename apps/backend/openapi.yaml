@@ -160,7 +160,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/DeviceListResponse'
     delete:
       tags:
       - Devices
@@ -224,7 +225,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/DeviceResponse'
         '422':
           description: Validation Error
           content:
@@ -3717,6 +3719,92 @@ components:
       - message
       title: DetectStrategyResponse
       description: Response with detected setup strategy.
+    DeviceListResponse:
+      properties:
+        count:
+          type: integer
+          title: Count
+        devices:
+          items:
+            $ref: '#/components/schemas/DeviceResponse'
+          type: array
+          title: Devices
+      type: object
+      required:
+      - count
+      - devices
+      title: DeviceListResponse
+      description: Response containing all stored devices.
+    DeviceResponse:
+      properties:
+        id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Id
+        device_id:
+          type: string
+          title: Device Id
+        ip:
+          type: string
+          title: Ip
+        name:
+          type: string
+          title: Name
+        model:
+          type: string
+          title: Model
+        mac_address:
+          type: string
+          title: Mac Address
+        firmware_version:
+          type: string
+          title: Firmware Version
+        schema_version:
+          type: string
+          title: Schema Version
+        last_seen:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Last Seen
+        setup_status:
+          type: string
+          title: Setup Status
+        ssh_permanent:
+          type: boolean
+          title: Ssh Permanent
+        setup_completed_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Setup Completed At
+        marge_account_uuid:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Marge Account Uuid
+        uuid_source:
+          type: string
+          title: Uuid Source
+      type: object
+      required:
+      - id
+      - device_id
+      - ip
+      - name
+      - model
+      - mac_address
+      - firmware_version
+      - schema_version
+      - last_seen
+      - setup_status
+      - ssh_permanent
+      - setup_completed_at
+      - marge_account_uuid
+      - uuid_source
+      title: DeviceResponse
+      description: Stored device information, including UUID provenance.
     DiagnosticsRequest:
       properties:
         frontend_logs:

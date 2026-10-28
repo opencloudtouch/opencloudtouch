@@ -72,7 +72,33 @@ async def _device_op(
         ) from e
 
 
-@router.get("")
+class DeviceResponse(BaseModel):
+    """Stored device information, including UUID provenance."""
+
+    id: int | None
+    device_id: str
+    ip: str
+    name: str
+    model: str
+    mac_address: str
+    firmware_version: str
+    schema_version: str
+    last_seen: str | None
+    setup_status: str
+    ssh_permanent: bool
+    setup_completed_at: str | None
+    marge_account_uuid: str | None
+    uuid_source: str
+
+
+class DeviceListResponse(BaseModel):
+    """Response containing all stored devices."""
+
+    count: int
+    devices: list[DeviceResponse]
+
+
+@router.get("", response_model=DeviceListResponse)
 async def get_devices(device_service: DeviceService = Depends(get_device_service)):
     """
     Get all devices from database.
@@ -134,7 +160,7 @@ async def delete_by_device_id(
     return {"message": "Device successfully deleted"}
 
 
-@router.get("/{device_id}")
+@router.get("/{device_id}", response_model=DeviceResponse)
 async def get_device(
     device_id: str, device_service: DeviceService = Depends(get_device_service)
 ):
