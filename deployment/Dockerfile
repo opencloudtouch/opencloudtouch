@@ -260,7 +260,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends gcc libc6-dev && \
     rm -rf /var/lib/apt/lists/*
 COPY --from=probe-src /probe.c /src/probe.c
-RUN gcc -O1 -Wall -static -o /probe /src/probe.c
+RUN gcc -O1 -Wall -static -pthread -o /probe /src/probe.c
 
 FROM python:3.11-slim-bullseye@sha256:9e25f400253a5fa3191813d6a67eb801ca1e6f012b3bd2588fa6920b59e3eba6 AS build-glibc231
 RUN printf '%s\n' \
@@ -272,7 +272,7 @@ RUN printf '%s\n' \
     apt-get install -y --no-install-recommends gcc libc6-dev && \
     rm -rf /var/lib/apt/lists/*
 COPY --from=probe-src /probe.c /src/probe.c
-RUN gcc -O1 -Wall -static -o /probe /src/probe.c
+RUN gcc -O1 -Wall -static -pthread -o /probe /src/probe.c
 
 FROM python:3.11-slim-bullseye@sha256:9e25f400253a5fa3191813d6a67eb801ca1e6f012b3bd2588fa6920b59e3eba6 AS probe
 COPY --from=build-glibc241 /probe /opt/probe/probe-glibc241

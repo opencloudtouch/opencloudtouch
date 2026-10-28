@@ -18,7 +18,7 @@ docker run --rm --platform linux/arm/v7 oct-probe:armv7
 echo "== Probe under the real Docker 19.03.8 default seccomp profile (x86_64) =="
 WORK=$(mktemp -d)
 sed -n "/^COPY <<'PROBE_C' \/probe.c\$/,/^PROBE_C\$/p" deployment/Dockerfile | sed '1d;$d' > "$WORK/probe.c"
-gcc -O1 -Wall -static -o "$WORK/probe" "$WORK/probe.c"
+gcc -O1 -Wall -static -pthread -o "$WORK/probe" "$WORK/probe.c"
 curl -fsSL -o "$WORK/moby-19.03.8.json" \
   https://raw.githubusercontent.com/moby/moby/v19.03.8/profiles/seccomp/default.json
 python3 -c "
