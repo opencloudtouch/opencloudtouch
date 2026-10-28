@@ -162,13 +162,16 @@ class StreamRecoveryService:
                 bool(enabled), min_play_seconds, max_attempts_per_hour
             )
             self._config = stored
-            await self._cancel_sequences()
-            if stored.enabled and self._consumer is None:
-                self._subscribe_and_run()
-            elif stored.enabled:
-                self._seed()
-            elif self._consumer is not None:
+            if not stored.enabled:
+                # stop the event source first, then nothing can start a new sequence
                 await self._unsubscribe_and_stop()
+                await self._cancel_sequences()
+                return stored
+            await self._cancel_sequences()
+            if self._consumer is None:
+                self._subscribe_and_run()
+            else:
+                self._seed()
             return stored
 
     async def start(self) -> None:
@@ -181,8 +184,8 @@ class StreamRecoveryService:
     async def stop(self) -> None:
         """Cancel the consumer, the subscription watchdog and every sequence."""
         async with self._lock:
-            await self._cancel_sequences()
             await self._unsubscribe_and_stop()
+            await self._cancel_sequences()
 
     # ---------------------------------------------------------- lifecycle
 
@@ -318,6 +321,10 @@ class StreamRecoveryService:
 
     async def _handle(self, event: DeviceEvent) -> None:
         if event.event_type != EventType.NOW_PLAYING or event.now_playing is None:
+            return
+        if self._lock.locked():
+            # A stop, disable or re-seed is in progress: it cancels the sequences and
+            # re-reads the states, so an event now must not start a new sequence.
             return
         device_id = event.device_id
         info = event.now_playing
@@ -539,6 +546,12 @@ class StreamRecoveryService:
                     )
                     return
                 await self._sleep(BACKOFF_SECONDS)
+                if sequence.resumed.is_set() and not sequence.aborted.is_set():
+                    # the press worked, only slower than the verification window
+                    await self._record(
+                        device_id, OUTCOME_RESUMED, attempts=attempts, **details
+                    )
+                    return
         except asyncio.CancelledError:
             raise
         except Exception:  # noqa: BLE001 - nothing may propagate out of the task

@@ -645,3 +645,62 @@ class TestSeedingAndLifecycle:
             assert len(state_manager._subscribers) == 1
         finally:
             await svc.stop()
+
+
+class TestReviewFindings:
+    @pytest.mark.asyncio
+    async def test_a_resume_during_the_backoff_is_recorded(
+        self, service, enabled, feed, vtime, devices, repository
+    ):
+        await enabled(max_attempts=3)
+        await play(feed, vtime)
+        await drop(feed)
+        await vtime.advance(45)  # verification over: the 60 s backoff begins
+        await vtime.advance(10)
+        await feed(now_playing_event(RADIO, "PLAY_STATE", STATION))  # slow resume
+        await vtime.advance(60)
+        await finish(service)
+
+        assert len(devices.presses) == 1
+        (event,) = await events_of(repository)
+        assert (event.outcome, event.attempts) == ("resumed", 1)
+
+    @pytest.mark.asyncio
+    async def test_events_are_ignored_while_the_service_is_reconfigured(
+        self, service, enabled, feed, vtime, devices
+    ):
+        await enabled()
+        await play(feed, vtime)
+        async with service._lock:  # a disable/stop/re-seed is in progress
+            await drop(feed)
+            assert service._sequences == {}
+        await finish(service)
+        assert devices.presses == []
+
+    @pytest.mark.asyncio
+    async def test_disabling_leaves_no_sequence_behind(
+        self, service, enabled, feed, vtime, devices
+    ):
+        await enabled()
+        await play(feed, vtime)
+        await drop(feed)
+        await vtime.advance(10)  # a sequence is waiting for its verification
+        assert service._sequences
+
+        await service.set_config(False, 600, 3)
+
+        assert service._sequences == {}
+        await vtime.advance(200)
+        assert len(devices.presses) == 1  # no second press after disabling
+
+    @pytest.mark.asyncio
+    async def test_stop_leaves_no_sequence_behind(
+        self, service, enabled, feed, vtime, devices
+    ):
+        await enabled()
+        await play(feed, vtime)
+        await drop(feed)
+        await vtime.advance(10)
+        await service.stop()
+        assert service._sequences == {}
+        assert service._consumer is None
