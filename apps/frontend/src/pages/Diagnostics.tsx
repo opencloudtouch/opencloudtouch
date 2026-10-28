@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { getDiagnostics, DiagnosticsResponse } from "../api/diagnostics";
 import { downloadDiagnostics } from "../api/bugReport";
@@ -26,22 +26,47 @@ export default function Diagnostics() {
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    getDiagnostics()
-      .then((result) => {
-        if (!cancelled) setData(result);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+  // Ignore responses from obsolete requests (including after unmount).
+  const requestIdRef = useRef(0);
+  const retryRequestedRef = useRef(false);
+  const retryButtonRef = useRef<HTMLButtonElement>(null);
+  const contentHeadingRef = useRef<HTMLHeadingElement>(null);
+  const loadDiagnostics = useCallback(async () => {
+    const currentRequest = ++requestIdRef.current;
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await getDiagnostics();
+      if (currentRequest === requestIdRef.current) setData(result);
+    } catch (err) {
+      if (currentRequest === requestIdRef.current) {
+        const message = err instanceof Error ? err.message : String(err);
+        setError(message);
+      }
+    } finally {
+      if (currentRequest === requestIdRef.current) setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadDiagnostics();
+    return () => {
+      requestIdRef.current += 1;
+    };
+  }, [loadDiagnostics]);
+
+  // Return keyboard focus to the retry button after another failure, or to
+  // the loaded content after success, rather than leaving it on the page body.
+  useEffect(() => {
+    if (!loading && retryRequestedRef.current) {
+      if (error !== null) {
+        retryButtonRef.current?.focus();
+      } else if (data) {
+        contentHeadingRef.current?.focus();
+      }
+      retryRequestedRef.current = false;
+    }
+  }, [loading, error, data]);
 
   const handleDownload = async () => {
     setDownloading(true);
@@ -66,23 +91,40 @@ export default function Diagnostics() {
     return (
       <div className="page diagnostics-page">
         <h1>{t("diagnostics.title")}</h1>
-        <div className="diagnostics-loading">{t("common.loading")}</div>
+        <div className="diagnostics-state diagnostics-loading" role="status">
+          {t("common.loading")}
+        </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error !== null) {
     return (
       <div className="page diagnostics-page">
         <h1>{t("diagnostics.title")}</h1>
-        <div className="diagnostics-error">{error}</div>
+        <div className="diagnostics-state diagnostics-error">
+          <p role="alert">{error || t("common.error")}</p>
+          <button
+            ref={retryButtonRef}
+            type="button"
+            className="retry-button"
+            onClick={() => {
+              retryRequestedRef.current = true;
+              void loadDiagnostics();
+            }}
+          >
+            {t("common.retry")}
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="page diagnostics-page" data-test="diagnostics-page">
-      <h1>{t("diagnostics.title")}</h1>
+      <h1 ref={contentHeadingRef} tabIndex={-1}>
+        {t("diagnostics.title")}
+      </h1>
 
       {/* Server Info */}
       <section className="diagnostics-section" data-test="diagnostics-server">

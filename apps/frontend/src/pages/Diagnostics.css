@@ -2,15 +2,34 @@
   margin-bottom: 1.5rem;
 }
 
-.diagnostics-loading,
-.diagnostics-error {
-  text-align: center;
+/* Keep the same space and alignment during error -> loading -> error. */
+.diagnostics-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md, 16px);
+  min-height: 11rem;
   padding: 2rem;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.diagnostics-loading {
   color: var(--text-secondary, #8e8e93);
 }
 
 .diagnostics-error {
   color: var(--color-error, #ff453a);
+}
+
+.diagnostics-error p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.diagnostics-error .retry-button {
+  margin-top: 0;
 }
 
 .diagnostics-section {
