@@ -1,12 +1,13 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import "./ConfirmDialog.css";
+import Modal from "./Modal";
 
 /**
  * ConfirmDialog — accessible modal replacement for window.confirm().
  *
  * REFACT-107: Native browser dialogs block the main thread and cannot
- * be styled. This component renders an ARIA-compliant dialog instead.
+ * be styled. This component renders an alertdialog on the shared Modal
+ * (native <dialog>: focus trap, inert background, focus return).
  *
  * Usage:
  *   <ConfirmDialog
@@ -25,14 +26,16 @@ interface ConfirmDialogProps {
   title?: string;
   /** Body text shown to the user */
   message: string;
-  /** Label for the confirm button (default: "Bestätigen") */
+  /** Label for the confirm button (default: t("common.confirm")) */
   confirmLabel?: string;
-  /** Label for the cancel button (default: "Abbrechen") */
+  /** Label for the cancel button (default: t("common.cancel")) */
   cancelLabel?: string;
   /** Called when the user confirms */
   onConfirm: () => void;
   /** Hide Cancel for informational dialogs that only need an OK action. */
   showCancelButton?: boolean;
+  /** Stage 5 (optional, additive): red confirm button for destructive actions */
+  destructive?: boolean;
   /** Called when the user cancels (Escape, overlay click, cancel button) */
   onCancel: () => void;
 }
@@ -46,6 +49,7 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
   showCancelButton = true,
+  destructive = false,
 }: ConfirmDialogProps) {
   const { t } = useTranslation();
   const resolvedTitle = title ?? t("common.confirm");
@@ -75,56 +79,47 @@ export default function ConfirmDialog({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open, onCancel]);
 
-  if (!open) return null;
-
   return (
-    <div
-      className="confirm-dialog-overlay"
-      onClick={onCancel}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") {
-          e.stopPropagation();
-          onCancel();
-        }
-      }}
-      role="presentation"
-      data-testid="confirm-dialog-overlay"
+    <Modal
+      open={open}
+      onClose={onCancel}
+      size="sm"
+      role="alertdialog"
+      labelledBy="confirm-dialog-title"
+      describedBy="confirm-dialog-message"
+      closeOnEscape={false}
+      overlayData={{ "data-testid": "confirm-dialog-overlay" }}
     >
-      <div
-        className="confirm-dialog"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
-        aria-describedby="confirm-dialog-message"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 id="confirm-dialog-title" className="confirm-dialog-title">
+      <div className="dlg-head">
+        <h2 id="confirm-dialog-title" className="dlg-title">
           {resolvedTitle}
         </h2>
-        <p id="confirm-dialog-message" className="confirm-dialog-message">
+      </div>
+      <div className="dlg-body">
+        <p id="confirm-dialog-message" className="dlg-text">
           {message}
         </p>
-        <div className="confirm-dialog-actions">
-          {showCancelButton && (
-            <button
-              ref={cancelRef}
-              className="confirm-dialog-btn confirm-dialog-btn--cancel"
-              onClick={onCancel}
-              data-testid="confirm-dialog-cancel"
-            >
-              {resolvedCancelLabel}
-            </button>
-          )}
-          <button
-            ref={confirmRef}
-            className="confirm-dialog-btn confirm-dialog-btn--confirm"
-            onClick={onConfirm}
-            data-testid="confirm-dialog-confirm"
-          >
-            {resolvedConfirmLabel}
-          </button>
-        </div>
       </div>
-    </div>
+      <div className="dlg-actions">
+        {showCancelButton && (
+          <button
+            ref={cancelRef}
+            className="btn btn-secondary"
+            onClick={onCancel}
+            data-testid="confirm-dialog-cancel"
+          >
+            {resolvedCancelLabel}
+          </button>
+        )}
+        <button
+          ref={confirmRef}
+          className={`btn ${destructive ? "btn-danger" : "btn-primary"}`}
+          onClick={onConfirm}
+          data-testid="confirm-dialog-confirm"
+        >
+          {resolvedConfirmLabel}
+        </button>
+      </div>
+    </Modal>
   );
 }

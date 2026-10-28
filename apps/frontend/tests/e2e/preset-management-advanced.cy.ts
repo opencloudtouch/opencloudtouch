@@ -47,10 +47,10 @@ describe("Preset Management Advanced", () => {
 
   /** Click search result → StationDetail → "Als Preset speichern" */
   const selectFirstSearchResult = () => {
-    cy.get(".search-result-item", { timeout: 10000 }).should("have.length.at.least", 1);
-    cy.get(".search-result-item").first().click();
+    cy.get(".rs-item", { timeout: 10000 }).should("have.length.at.least", 1);
+    cy.get(".rs-item").first().click();
     // StationDetail opens — click the select button
-    cy.get(".sd-select", { timeout: 10000 }).should("be.visible").click();
+    cy.get(".sd-actions .btn-primary", { timeout: 10000 }).should("be.visible").click();
   };
 
   beforeEach(() => {
@@ -97,23 +97,23 @@ describe("Preset Management Advanced", () => {
       waitForPresetsReady();
 
       // Get the first empty preset slot's number for later verification
-      cy.get(".preset-empty")
+      cy.get(".pb-empty")
         .first()
         .invoke("attr", "data-testid")
         .then((testId) => {
           const slotNumber = testId?.split("-")[2] || "1";
 
           // Click the first empty slot
-          cy.get(".preset-empty").first().scrollIntoView().click({ force: true });
-          cy.get(".radio-search-modal", { timeout: 10000 }).should("be.visible");
+          cy.get(".pb-empty").first().scrollIntoView().click({ force: true });
+          cy.get("dialog.dlg", { timeout: 10000 }).should("be.visible");
 
           // Search and select
-          cy.get(".search-input").type("BBC");
-          cy.get(".search-results", { timeout: 10000 }).should("be.visible");
+          cy.get(".rs-search").type("BBC");
+          cy.get(".rs-results", { timeout: 10000 }).should("be.visible");
           selectFirstSearchResult();
 
           // Wait for API call to complete and modal to close
-          cy.get(".radio-search-modal", { timeout: 10000 }).should("not.exist");
+          cy.get("dialog.dlg", { timeout: 10000 }).should("not.exist");
 
           // Wait for preset to be saved (loading indicator may not appear with fast mock API)
           cy.wait(500); // Give API call time to complete
@@ -138,12 +138,12 @@ describe("Preset Management Advanced", () => {
       // Reload to see preset
       cy.reload();
       waitForPresetsReady();
-      cy.contains(".presets-grid [data-testid^='preset-play-']", stationA.name, { timeout: 10000 }).should("exist");
-      cy.get(".presets-grid [data-testid^='preset-play-']").eq(0).should("contain", stationA.name);
+      cy.contains(".rp-grid [data-testid^='preset-play-']", stationA.name, { timeout: 10000 }).should("exist");
+      cy.get(".rp-grid [data-testid^='preset-play-']").eq(0).should("contain", stationA.name);
 
       // Clear preset: click filled preset to open modal, then click delete
       cy.get('[data-testid="preset-play-2"]').click({ force: true });
-      cy.get('.search-delete-btn', { timeout: 10000 }).should('be.visible').click();
+      cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible').click();
 
       // Confirm deletion via ConfirmDialog
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
@@ -168,19 +168,19 @@ describe("Preset Management Advanced", () => {
 
       // Clear preset 3: click filled preset to open modal, then click delete
       cy.get('[data-testid="preset-play-3"]').click({ force: true });
-      cy.get('.search-delete-btn', { timeout: 10000 }).should('be.visible').click();
+      cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible').click();
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
 
       // Now assign new station to cleared preset
       waitForPresetsReady();
       cy.get('[data-testid="preset-empty-3"]').scrollIntoView().click({ force: true });
-      cy.get(".radio-search-modal", { timeout: 10000 }).should("be.visible");
-      cy.get(".search-input").type("NPR");
-      cy.get(".search-results", { timeout: 10000 }).should("be.visible");
+      cy.get("dialog.dlg", { timeout: 10000 }).should("be.visible");
+      cy.get(".rs-search").type("NPR");
+      cy.get(".rs-results", { timeout: 10000 }).should("be.visible");
       selectFirstSearchResult();
 
       // Wait for API call to complete and modal to close
-      cy.get(".radio-search-modal", { timeout: 10000 }).should("not.exist");
+      cy.get("dialog.dlg", { timeout: 10000 }).should("not.exist");
       cy.get('[data-testid="loading-indicator"]', { timeout: 10000 }).should("not.exist");
 
       // Verify new preset
@@ -209,21 +209,21 @@ describe("Preset Management Advanced", () => {
 
       // Clear preset first: click filled preset to open modal, then click delete
       cy.get('[data-testid="preset-play-4"]').click({ force: true });
-      cy.get('.search-delete-btn', { timeout: 10000 }).should('be.visible').click();
+      cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible').click();
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
       waitForPresetsReady();
 
       // Click on empty preset 4 to reassign
       cy.get('[data-testid="preset-empty-4"]').scrollIntoView().click({ force: true });
-      cy.get(".radio-search-modal", { timeout: 10000 }).should("be.visible");
+      cy.get("dialog.dlg", { timeout: 10000 }).should("be.visible");
 
       // Select new station
-      cy.get(".search-input").type("NPR");
-      cy.get(".search-results", { timeout: 10000 }).should("be.visible");
+      cy.get(".rs-search").type("NPR");
+      cy.get(".rs-results", { timeout: 10000 }).should("be.visible");
       selectFirstSearchResult();
 
       // Verify preset overwritten
-      cy.get(".radio-search-modal", { timeout: 10000 }).should("not.exist");
+      cy.get("dialog.dlg", { timeout: 10000 }).should("not.exist");
       cy.get('[data-testid="loading-indicator"]', { timeout: 10000 }).should("not.exist");
       cy.get('[data-testid="preset-play-4"]').should("contain", stationB.name);
     });
@@ -236,7 +236,7 @@ describe("Preset Management Advanced", () => {
         if (index > 0) {
           // Clear previous preset: click filled preset to open modal, then click delete
           cy.get(`[data-testid="preset-play-${presetNumber}"]`).click({ force: true });
-          cy.get('.search-delete-btn', { timeout: 10000 }).should('be.visible').click();
+          cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible').click();
           cy.get('[data-testid="confirm-dialog-confirm"]').click();
           waitForPresetsReady();
         }
@@ -245,14 +245,14 @@ describe("Preset Management Advanced", () => {
         cy.get(`[data-testid="preset-empty-${presetNumber}"]`)
           .scrollIntoView()
           .click({ force: true });
-        cy.get(".radio-search-modal", { timeout: 10000 }).should("be.visible");
+        cy.get("dialog.dlg", { timeout: 10000 }).should("be.visible");
 
-        cy.get(".search-input").clear().type(station.name);
-        cy.get(".search-results", { timeout: 10000 }).should("be.visible");
+        cy.get(".rs-search").clear().type(station.name);
+        cy.get(".rs-results", { timeout: 10000 }).should("be.visible");
         selectFirstSearchResult();
 
         // Wait for API call to complete and modal to close
-        cy.get(".radio-search-modal", { timeout: 10000 }).should("not.exist");
+        cy.get("dialog.dlg", { timeout: 10000 }).should("not.exist");
         cy.get('[data-testid="loading-indicator"]', { timeout: 10000 }).should("not.exist");
 
         // Verify preset was set
@@ -277,21 +277,21 @@ describe("Preset Management Advanced", () => {
 
       // Attempt to overwrite by clearing first: click filled preset to open modal, then click delete
       cy.get('[data-testid="preset-play-6"]').click({ force: true });
-      cy.get('.search-delete-btn', { timeout: 10000 }).should('be.visible').click();
+      cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible').click();
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
 
       waitForPresetsReady();
 
       // Now reassign
-      cy.get(".preset-empty").eq(5).scrollIntoView().click({ force: true });
-      cy.get(".radio-search-modal").should("be.visible");
+      cy.get(".pb-empty").eq(5).scrollIntoView().click({ force: true });
+      cy.get("dialog.dlg").should("be.visible");
     });
   });
 
   describe("Preset Button States & UI", () => {
     it("should show different UI for empty vs filled preset", () => {
       // Empty preset (Preset 1)
-      cy.get(".preset-empty")
+      cy.get(".pb-empty")
         .first()
         .within(() => {
           // Should show "Zuweisen" or "+" or similar
@@ -333,11 +333,13 @@ describe("Preset Management Advanced", () => {
 
       // Should have delete option accessible via modal
       cy.get('[data-testid="preset-play-3"]').click({ force: true });
-      cy.get('.radio-search-modal', { timeout: 10000 }).should('be.visible');
-      cy.get('.search-delete-btn', { timeout: 10000 }).should('be.visible');
-      // Close modal without deleting (press Escape)
-      cy.get('body').type('{esc}');
-      cy.get('.radio-search-modal', { timeout: 10000 }).should('not.exist');
+      cy.get('dialog.dlg', { timeout: 10000 }).should('be.visible');
+      cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible');
+      // Close modal without deleting (Escape): Chrome ignores synthetic keys on a native <dialog>, so fire its cancel event
+      cy.get('dialog.dlg').then(($dialog) => {
+        $dialog[0].dispatchEvent(new Event('cancel', { cancelable: true }));
+      });
+      cy.get('dialog.dlg', { timeout: 10000 }).should('not.exist');
 
       // Should have play button
       cy.get('[data-testid="preset-play-3"]').should("exist");
@@ -352,10 +354,10 @@ describe("Preset Management Advanced", () => {
       }).as("slowSetPreset");
 
       // Start preset assignment
-      cy.get(".preset-empty").first().scrollIntoView().click({ force: true });
-      cy.get(".radio-search-modal", { timeout: 10000 }).should("be.visible");
-      cy.get(".search-input").type("BBC");
-      cy.get(".search-results", { timeout: 10000 }).should("be.visible");
+      cy.get(".pb-empty").first().scrollIntoView().should("be.visible").click();
+      cy.get("dialog.dlg", { timeout: 10000 }).should("be.visible");
+      cy.get(".rs-search").type("BBC");
+      cy.get(".rs-results", { timeout: 10000 }).should("be.visible");
       selectFirstSearchResult();
 
       // Loading indicator should exist in DOM during the API call
@@ -435,7 +437,7 @@ describe("Preset Management Advanced", () => {
           .and("contain", stationA.name);
 
         // Switch to device 2 (via swiper or device selector)
-        cy.get(".swipe-arrow-right").click({ force: true });
+        cy.get(".ds-arrow--next").should("be.visible").and("not.be.disabled").click();
         waitForPresetsReady();
 
         // Should show device 2 preset
@@ -463,14 +465,14 @@ describe("Preset Management Advanced", () => {
         body: { detail: "Database error" },
       }).as("setPresetFail");
 
-      cy.get(".preset-empty").first().scrollIntoView().click({ force: true });
-      cy.get(".radio-search-modal", { timeout: 10000 }).should("be.visible");
-      cy.get(".search-input").type("BBC");
-      cy.get(".search-results", { timeout: 10000 }).should("be.visible");
+      cy.get(".pb-empty").first().scrollIntoView().should("be.visible").click();
+      cy.get("dialog.dlg", { timeout: 10000 }).should("be.visible");
+      cy.get(".rs-search").type("BBC");
+      cy.get(".rs-results", { timeout: 10000 }).should("be.visible");
       selectFirstSearchResult();
 
       // Modal closes, error message appears in page
-      cy.get(".radio-search-modal", { timeout: 10000 }).should("not.exist");
+      cy.get("dialog.dlg", { timeout: 10000 }).should("not.exist");
       cy.get('[data-testid="error-message"]', { timeout: 10000 })
         .scrollIntoView()
         .should("be.visible");
@@ -499,7 +501,7 @@ describe("Preset Management Advanced", () => {
       }).as("clearPresetFail");
 
       cy.get('[data-testid="preset-play-2"]').click({ force: true });
-      cy.get('.search-delete-btn', { timeout: 10000 }).should('be.visible').click();
+      cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible').click();
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
       cy.wait("@clearPresetFail");
 
@@ -517,14 +519,14 @@ describe("Preset Management Advanced", () => {
         body: { detail: "Invalid data" },
       }).as("setPresetFail");
 
-      cy.get(".preset-empty").first().scrollIntoView().click({ force: true });
-      cy.get(".radio-search-modal", { timeout: 10000 }).should("be.visible");
-      cy.get(".search-input").type("BBC");
-      cy.get(".search-results", { timeout: 10000 }).should("be.visible");
+      cy.get(".pb-empty").first().scrollIntoView().should("be.visible").click();
+      cy.get("dialog.dlg", { timeout: 10000 }).should("be.visible");
+      cy.get(".rs-search").type("BBC");
+      cy.get(".rs-results", { timeout: 10000 }).should("be.visible");
       selectFirstSearchResult();
 
       // Modal closes, error message appears in page
-      cy.get(".radio-search-modal", { timeout: 10000 }).should("not.exist");
+      cy.get("dialog.dlg", { timeout: 10000 }).should("not.exist");
       cy.get('[data-testid="error-message"]', { timeout: 10000 }).scrollIntoView().should("be.visible");
 
       // Dismiss error

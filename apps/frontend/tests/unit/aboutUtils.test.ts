@@ -126,6 +126,13 @@ describe("getFontSize", () => {
 });
 
 describe("generateGradientColor", () => {
+  it("is light enough for 4.5:1 contrast on the dark card (lightness >= 74 %)", () => {
+    for (let i = 0; i < 200; i++) {
+      const lightness = Number(/(\d+)%\)$/.exec(generateGradientColor(i, 200))?.[1]);
+      expect(lightness).toBeGreaterThanOrEqual(74);
+    }
+  });
+
   it("returns an HSL color string", () => {
     const result = generateGradientColor(0, 10);
     expect(result).toMatch(/^hsl\(\d+, \d+%, \d+%\)$/);

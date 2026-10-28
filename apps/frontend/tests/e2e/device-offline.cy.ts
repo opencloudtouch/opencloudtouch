@@ -98,7 +98,7 @@ describe("Device Offline Display", () => {
       // Banner should include device name (from the device card header)
       cy.get('[data-testid="device-offline-banner"]', { timeout: 10000 })
         .should("be.visible")
-        .find(".offline-detail")
+        .find(".wz-status-text")
         .should("contain.text", "ist offline oder nicht im Netzwerk");
     });
 
@@ -126,8 +126,8 @@ describe("Device Offline Display", () => {
   });
 
   describe("Controls Hidden When Offline", () => {
-    // Tests in this block navigate to /local (LocalControl) because volume-section,
-    // source-section, and playback-section only exist there.
+    // Tests in this block navigate to /local (LocalControl) because lc-volume,
+    // lc-source, and lc-playback only exist there.
     // Intercepts are registered BEFORE cy.visit so the very first mount request hits them.
 
     it("should hide volume, source, and playback controls when device is offline", () => {
@@ -140,9 +140,9 @@ describe("Device Offline Display", () => {
       cy.get('[data-testid="device-offline-banner"]', { timeout: 10000 }).should("be.visible");
 
       // Controls should NOT be visible when device is offline
-      cy.get(".volume-section").should("not.exist");
-      cy.get(".source-section").should("not.exist");
-      cy.get(".playback-section").should("not.exist");
+      cy.get('[data-test="lc-volume"]').should("not.exist");
+      cy.get('[data-test="lc-source"]').should("not.exist");
+      cy.get('[data-test="lc-playback"]').should("not.exist");
     });
 
     it("should keep device header visible when offline", () => {
@@ -155,8 +155,39 @@ describe("Device Offline Display", () => {
       cy.get('[data-testid="device-offline-banner"]', { timeout: 10000 }).should("be.visible");
 
       // Device header (name, power button) must remain visible even when offline
-      cy.get(".control-card-header").should("be.visible");
-      cy.get(".device-name").should("be.visible");
+      cy.get(".lc-head").should("be.visible");
+      cy.get('[data-test="device-name"]').should("be.visible");
+    });
+  });
+
+  describe("Removing an offline device (#520)", () => {
+    beforeEach(() => {
+      cy.intercept("GET", "/api/devices/*/now-playing", { statusCode: 503 }).as("nowPlaying503");
+      cy.intercept("GET", "/api/devices/*/volume", { statusCode: 503 }).as("volume503");
+      cy.intercept("DELETE", "/api/devices/*", { statusCode: 200, body: {} }).as("deleteDevice");
+    });
+
+    it("asks for confirmation and keeps the device when cancelled", () => {
+      visitDe("/");
+      cy.wait("@nowPlaying503", { timeout: 10000 });
+
+      cy.get(".rp-remove", { timeout: 10000 }).scrollIntoView().click();
+      cy.get("dialog.dlg[role='alertdialog']").should("be.visible");
+      cy.get('[data-testid="confirm-dialog-cancel"]').click();
+
+      cy.get("dialog.dlg").should("not.exist");
+      cy.get("@deleteDevice.all").should("have.length", 0);
+      cy.get(".rp-remove").should("exist");
+    });
+
+    it("removes the device only after the user confirms", () => {
+      visitDe("/");
+      cy.wait("@nowPlaying503", { timeout: 10000 });
+
+      cy.get(".rp-remove", { timeout: 10000 }).scrollIntoView().click();
+      cy.get('[data-testid="confirm-dialog-confirm"]').click();
+
+      cy.wait("@deleteDevice").its("response.statusCode").should("eq", 200);
     });
   });
 
@@ -170,7 +201,7 @@ describe("Device Offline Display", () => {
       cy.wait("@nowPlaying503", { timeout: 10000 });
 
       cy.get('[data-testid="device-offline-banner"]', { timeout: 10000 }).should("be.visible");
-      cy.get(".volume-section").should("not.exist");
+      cy.get('[data-test="lc-volume"]').should("not.exist");
 
       // Phase 2: recovery — override intercepts to return 200 (device back online), then reload.
       // cy.reload() resets the JS module context, so offlineDeviceStore clears.
@@ -186,7 +217,7 @@ describe("Device Offline Display", () => {
       }).as("volumeOnline");
       cy.reload();
 
-      cy.get(".volume-section", { timeout: 15000 }).should("be.visible");
+      cy.get('[data-test="lc-volume"]', { timeout: 15000 }).should("be.visible");
       cy.get('[data-testid="device-offline-banner"]').should("not.exist");
     });
   });

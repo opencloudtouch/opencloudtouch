@@ -387,7 +387,8 @@ describe("Step6HostsModification — render", () => {
     );
 
     // Click the modify-hosts button
-    const modifyBtn = screen.getByRole("button", { name: /🌐/i });
+    const modifyBtn = document.querySelector<HTMLButtonElement>("button.hosts-modify-btn");
+    if (!modifyBtn) throw new Error("Modify hosts button not found");
     await act(async () => {
       modifyBtn.click();
     });

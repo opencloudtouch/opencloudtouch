@@ -1,10 +1,13 @@
 /**
- * Step 7: NTP Server Patch (optional, skippable)
+ * Step 7: NTP Server Patch (optional, skippable), tracker step 6 "NTP"
+ * Props, hooks, API call and t() keys unchanged. Markup/classNames/icons only.
  */
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { patchNtp, type PatchNtpResponse } from "../../api/wizard";
 import WizardStep from "./WizardStep";
+import { Icon } from "./Icon";
+import "./wizard-base.css";
 import "./Step7NtpPatch.css";
 
 interface Step7Props {
@@ -49,16 +52,16 @@ export default function Step7NtpPatch({ deviceIp, onNext, onPrevious }: Step7Pro
       nextDisabledReason={t("setup.wizard.step7.nextDisabled")}
     >
       <div className="ntp-patch">
-        <div className="ntp-optional-notice" role="status">
-          <span className="ntp-optional-icon" aria-hidden="true">
-            ℹ️
+        <output className="ntp-optional-notice wz-status">
+          <span className="ntp-optional-icon wz-icon" aria-hidden="true">
+            {Icon.Info(20)}
           </span>
           <span className="ntp-optional-text">{t("setup.wizard.step7.optionalNotice")}</span>
-        </div>
+        </output>
 
         {!result?.success && (
-          <div className="ntp-input-group">
-            <label htmlFor="ntp-server" className="ntp-label">
+          <div className="ntp-input-group wz-field">
+            <label htmlFor="ntp-server" className="ntp-label wz-label">
               {t("setup.wizard.step7.serverLabel")}
             </label>
             <input
@@ -68,8 +71,11 @@ export default function Step7NtpPatch({ deviceIp, onNext, onPrevious }: Step7Pro
               value={ntpServer}
               onChange={(e) => setNtpServer(e.target.value)}
               placeholder={DEFAULT_NTP_SERVER}
+              inputMode="url"
+              autoCapitalize="none"
+              spellCheck={false}
             />
-            <small className="ntp-hint">{t("setup.wizard.step7.serverHint")}</small>
+            <small className="ntp-hint wz-hint">{t("setup.wizard.step7.serverHint")}</small>
 
             <button
               className="btn btn-primary ntp-patch-btn"
@@ -82,15 +88,17 @@ export default function Step7NtpPatch({ deviceIp, onNext, onPrevious }: Step7Pro
                   {t("setup.wizard.step7.btnPatching")}
                 </>
               ) : (
-                <>🕐 {t("setup.wizard.step7.btnPatch")}</>
+                <>
+                  {Icon.Clock(20)} {t("setup.wizard.step7.btnPatch")}
+                </>
               )}
             </button>
           </div>
         )}
 
         {error && (
-          <div className="ntp-error">
-            <div className="error-icon">❌</div>
+          <div className="ntp-error wz-status wz-status--error" role="alert">
+            <div className="error-icon">{Icon.CircleX()}</div>
             <div className="error-content">
               <strong>{t("setup.wizard.step7.errorTitle")}</strong>
               <p>{error}</p>
@@ -99,8 +107,8 @@ export default function Step7NtpPatch({ deviceIp, onNext, onPrevious }: Step7Pro
         )}
 
         {result?.success && (
-          <div className="ntp-success">
-            <div className="success-icon">✅</div>
+          <div className="ntp-success wz-result">
+            <div className="success-icon">{Icon.CircleCheck(28)}</div>
             <h3 className="success-title">{t("setup.wizard.step7.successTitle")}</h3>
             <p className="success-message">{result.message}</p>
           </div>

@@ -3,9 +3,11 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ToastProvider } from "./contexts/ToastContext";
 import { DeviceEventProvider } from "./contexts/DeviceEventContext";
+import { MotionConfig } from "framer-motion";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Navigation from "./components/Navigation";
 import EmptyState from "./components/EmptyState";
+import { Icon } from "./components/Icon";
 import RadioPresets from "./pages/RadioPresets";
 import LocalControl from "./pages/LocalControl";
 import MultiRoom from "./pages/MultiRoom";
@@ -18,7 +20,8 @@ import SetupWizard from "./pages/SetupWizard";
 import NotFound from "./pages/NotFound";
 import { Device } from "./api/devices";
 import { useDevices } from "./hooks/useDevices";
-import "./App.css";
+import "./ui-base.css";
+import "./app-shell.css";
 
 /**
  * AppRouter - Handles routing logic with device-based guards
@@ -63,26 +66,28 @@ function AppRouter({ devices: initialDevices, isLoading, error, onRetry }: AppRo
           : t("common.loadingTimeout");
     return (
       <div className="app">
-        <div
-          className="loading-container"
-          role="status"
-          aria-live="polite"
-          aria-label={t("common.loading")}
-        >
-          <div className="spinner" aria-hidden="true" />
-          <p className="loading-message">{loadingMessage}</p>
-          {loadingSeconds >= 3 && loadingSeconds < 10 && (
-            <p className="loading-hint">{t("common.loadingHint")}</p>
-          )}
-          {loadingSeconds >= 8 && (
-            <>
-              <button className="btn btn-secondary loading-retry" onClick={onRetry}>
-                🔄 {t("common.retry")}
-              </button>
-              <p className="loading-hint">{t("common.retryHint")}</p>
-            </>
-          )}
-        </div>
+        <main id="main-content" tabIndex={-1} className="app-main app-main--center">
+          <div
+            className="app-state"
+            role="status"
+            aria-live="polite"
+            aria-label={t("common.loading")}
+          >
+            <div className="spinner" aria-hidden="true" />
+            <p className="app-state-message">{loadingMessage}</p>
+            {loadingSeconds >= 3 && loadingSeconds < 10 && (
+              <p className="app-state-hint">{t("common.loadingHint")}</p>
+            )}
+            {loadingSeconds >= 8 && (
+              <>
+                <button className="btn btn-secondary" onClick={onRetry}>
+                  {Icon.RefreshCw(18)} {t("common.retry")}
+                </button>
+                <p className="app-state-hint">{t("common.retryHint")}</p>
+              </>
+            )}
+          </div>
+        </main>
       </div>
     );
   }
@@ -90,14 +95,18 @@ function AppRouter({ devices: initialDevices, isLoading, error, onRetry }: AppRo
   if (error) {
     return (
       <div className="app">
-        <div className="error-container">
-          <div className="error-icon">⚠️</div>
-          <h2 className="error-title">{t("errors.devicesLoadTitle")}</h2>
-          <p className="error-message">{t("errors.devicesLoadMessage")}</p>
-          <button className="btn btn-primary" onClick={onRetry} aria-label={t("common.retry")}>
-            {t("common.retry")}
-          </button>
-        </div>
+        <main id="main-content" tabIndex={-1} className="app-main app-main--center">
+          <div className="app-state" role="alert">
+            <div className="app-state-icon" aria-hidden="true">
+              {Icon.Alert(32)}
+            </div>
+            <h1 className="app-state-title">{t("errors.devicesLoadTitle")}</h1>
+            <p className="app-state-message">{t("errors.devicesLoadMessage")}</p>
+            <button className="btn btn-primary" onClick={onRetry} aria-label={t("common.retry")}>
+              {Icon.RefreshCw(18)} {t("common.retry")}
+            </button>
+          </div>
+        </main>
       </div>
     );
   }
@@ -109,7 +118,9 @@ function AppRouter({ devices: initialDevices, isLoading, error, onRetry }: AppRo
         element={
           devices.length === 0 ? (
             <div className="app">
-              <EmptyState />
+              <main id="main-content" className="app-main" tabIndex={-1}>
+                <EmptyState />
+              </main>
             </div>
           ) : (
             <Navigate to="/" replace />
@@ -122,10 +133,13 @@ function AppRouter({ devices: initialDevices, isLoading, error, onRetry }: AppRo
         path="/*"
         element={
           <div className="app">
+            <a className="skip-link" href="#main-content">
+              {t("a11y.skipToContent")}
+            </a>
             <header className="app-header" data-test="app-header">
               <Navigation />
             </header>
-            <main className="app-main">
+            <main id="main-content" tabIndex={-1} className="app-main">
               <Routes>
                 {/* Setup Wizard — always available, manages its own loading/empty states */}
                 <Route
@@ -179,18 +193,21 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <BrowserRouter {...routerFutureFlagsAny}>
-        <ToastProvider>
-          <DeviceEventProvider>
-            <AppRouter
-              devices={devices}
-              isLoading={isLoading}
-              error={error}
-              onRetry={() => refetch()}
-            />
-          </DeviceEventProvider>
-        </ToastProvider>
-      </BrowserRouter>
+      {/* reducedMotion="user": framer-motion animations respect the OS "reduce motion" setting */}
+      <MotionConfig reducedMotion="user">
+        <BrowserRouter {...routerFutureFlagsAny}>
+          <ToastProvider>
+            <DeviceEventProvider>
+              <AppRouter
+                devices={devices}
+                isLoading={isLoading}
+                error={error}
+                onRetry={() => refetch()}
+              />
+            </DeviceEventProvider>
+          </ToastProvider>
+        </BrowserRouter>
+      </MotionConfig>
     </ErrorBoundary>
   );
 }

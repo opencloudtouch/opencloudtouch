@@ -5,7 +5,7 @@
  * sync from device, set and clear operations.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import i18next from "i18next";
 import { Preset } from "../components/PresetButton";
 import { RadioStation } from "../components/RadioSearch";
@@ -14,27 +14,16 @@ import {
   clearPreset as clearPresetAPI,
   getDevicePresets,
   syncPresetsFromDevice,
-  type PresetResponse,
 } from "../api/presets";
 import { isDeviceOffline } from "../api/offlineDeviceStore";
+import { getCachedDeviceData, setCachedDeviceData } from "../utils/deviceDataCache";
+import { buildPresetsMap } from "../utils/presetsMap";
 
 // --------------------------------------------------------------------------
 // Helpers
 // --------------------------------------------------------------------------
 
-function buildPresetsMap(devicePresets: PresetResponse[]): Record<number, Preset> {
-  const map: Record<number, Preset> = {};
-  devicePresets.forEach((p) => {
-    map[p.preset_number] = {
-      station_uuid: p.station_uuid,
-      station_name: p.station_name,
-      station_url: p.station_url,
-      station_favicon: p.station_favicon,
-      source: p.source,
-    };
-  });
-  return map;
-}
+const EMPTY_PRESETS: Record<number, Preset> = {};
 
 // --------------------------------------------------------------------------
 // Hook
@@ -52,8 +41,35 @@ export interface UsePresetsResult {
 }
 
 export function usePresets(deviceId: string | undefined): UsePresetsResult {
-  const [presets, setPresets] = useState<Record<number, Preset>>({});
-  const [loading, setLoading] = useState(false);
+  // Keyed by device: after a device switch the presets of the previous device must not stay on screen; cached presets of
+  // the new device (prefetch) are shown at once.
+  const cachedPresets = getCachedDeviceData(deviceId)?.presets;
+  const [store, setStore] = useState<{ id: string | undefined; map: Record<number, Preset> }>(
+    () => ({
+      id: deviceId,
+      map: cachedPresets ?? {},
+    })
+  );
+  const presets = store.id === deviceId ? store.map : (cachedPresets ?? EMPTY_PRESETS);
+  const setPresets = useCallback(
+    (
+      value: Record<number, Preset> | ((prev: Record<number, Preset>) => Record<number, Preset>)
+    ) => {
+      setStore((prev) => {
+        const cached = getCachedDeviceData(deviceId)?.presets;
+        const base = prev.id === deviceId ? prev.map : (cached ?? {});
+        return { id: deviceId, map: typeof value === "function" ? value(base) : value };
+      });
+    },
+    [deviceId]
+  );
+  useEffect(() => {
+    if (deviceId && store.id === deviceId) setCachedDeviceData(deviceId, { presets: store.map });
+  }, [deviceId, store]);
+  const [loadingFlag, setLoadingFlag] = useState(false);
+  // A device without cached presets shows the loading skeleton from the first frame instead of empty slots
+  const switchingUncached = !!deviceId && store.id !== deviceId && !cachedPresets;
+  const loading = loadingFlag || switchingUncached;
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,7 +83,7 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
     // Don't load presets for offline devices — no backend requests
     if (isDeviceOffline(deviceId)) {
       setPresets({});
-      setLoading(false);
+      setLoadingFlag(false);
       return;
     }
 
@@ -76,7 +92,7 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
 
     const timer = setTimeout(() => {
       const loadPresets = async () => {
-        setLoading(true);
+        setLoadingFlag(true);
         setError(null);
 
         try {
@@ -111,7 +127,7 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
           console.error("[usePresets] Failed to load presets:", err);
           setError(i18next.t("errors.presetsLoadFailed"));
         } finally {
-          setLoading(false);
+          setLoadingFlag(false);
         }
       };
 
@@ -119,7 +135,7 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
     }, SYNC_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [deviceId]);
+  }, [deviceId, setPresets]);
 
   // ------------------------------------------------------------------
   // Manual sync
@@ -155,7 +171,7 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
   // Assign a station to a preset slot
   // ------------------------------------------------------------------
   const assignStation = async (presetNumber: number, station: RadioStation, deviceId: string) => {
-    setLoading(true);
+    setLoadingFlag(true);
     setError(null);
 
     try {
@@ -184,7 +200,7 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
       setError(i18next.t("errors.presetSaveFailed"));
       throw err;
     } finally {
-      setLoading(false);
+      setLoadingFlag(false);
     }
   };
 
@@ -192,7 +208,7 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
   // Remove a preset slot
   // ------------------------------------------------------------------
   const removePreset = async (presetNumber: number, deviceId: string) => {
-    setLoading(true);
+    setLoadingFlag(true);
     setError(null);
 
     try {
@@ -207,7 +223,7 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
       console.error("[usePresets] Failed to clear preset:", err);
       setError(i18next.t("errors.presetClearFailed"));
     } finally {
-      setLoading(false);
+      setLoadingFlag(false);
     }
   };
 

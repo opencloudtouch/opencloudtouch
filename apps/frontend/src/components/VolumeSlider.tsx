@@ -1,4 +1,6 @@
 import { useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { Icon } from "./Icon";
 import "./VolumeSlider.css";
 
 interface VolumeSliderProps {
@@ -8,13 +10,8 @@ interface VolumeSliderProps {
   onMuteToggle: () => void;
 }
 
-const VOL_ICON =
-  "M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z";
-const MUTE_ICON =
-  "M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27l4.73 4.73H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z";
-
 const ACCENT_COLOR = "#5dade2";
-const MUTED_COLOR = "rgba(255, 255, 255, 0.35)";
+const MUTED_COLOR = "#8c8c8c"; // was rgba(255,255,255,.35): too faint against the track (UI contrast 3:1)
 
 function calcValueFromClientX(trackEl: HTMLDivElement, clientX: number): number {
   const { left, width } = trackEl.getBoundingClientRect();
@@ -27,6 +24,7 @@ export default function VolumeSlider({
   muted,
   onMuteToggle,
 }: Readonly<VolumeSliderProps>) {
+  const { t } = useTranslation();
   const trackRef = useRef<HTMLDivElement>(null);
   const fillRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
@@ -122,19 +120,18 @@ export default function VolumeSlider({
   };
 
   return (
-    <div className="volume-slider">
+    <div className="vs">
       <button
-        className={`volume-mute${muted ? " muted" : ""}`}
+        className={`vs-mute${muted ? " muted" : ""}`}
         onClick={onMuteToggle}
-        aria-label={muted ? "Unmute" : "Mute"}
+        aria-label={muted ? t("player.muteOn") : t("player.muteOff")}
+        aria-pressed={muted}
       >
-        <svg viewBox="0 0 24 24" width="22" height="22">
-          <path fill="currentColor" d={muted || volume === 0 ? MUTE_ICON : VOL_ICON} />
-        </svg>
+        {muted || volume === 0 ? Icon.VolumeX(24) : Icon.Volume2(24)}
       </button>
       <div
         ref={trackRef}
-        className={`volume-track${muted ? " muted" : ""}`}
+        className={`vs-track${muted ? " muted" : ""}`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -143,19 +140,35 @@ export default function VolumeSlider({
         aria-valuenow={volume}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label="Volume"
+        aria-label={t("a11y.volume")}
         tabIndex={0}
         onKeyDown={(e) => {
-          if (e.key === "ArrowLeft" || e.key === "ArrowDown")
+          if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+            e.preventDefault();
             onVolumeChange(Math.max(0, volume - 5));
-          if (e.key === "ArrowRight" || e.key === "ArrowUp")
+          }
+          if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+            e.preventDefault();
             onVolumeChange(Math.min(100, volume + 5));
+          }
+          // Stage 5 (additive): Home/End
+          if (e.key === "Home") {
+            e.preventDefault();
+            onVolumeChange(0);
+          }
+          if (e.key === "End") {
+            e.preventDefault();
+            onVolumeChange(100);
+          }
         }}
       >
-        <div className="volume-track-bg" />
-        <div ref={fillRef} className="volume-track-fill" />
-        <div ref={thumbRef} className="volume-thumb" />
+        <div className="vs-track-bg" />
+        <div ref={fillRef} className="vs-track-fill" />
+        <div ref={thumbRef} className="vs-thumb" />
       </div>
+      <span className="vs-value" aria-hidden="true">
+        {muted ? "–" : volume}
+      </span>
     </div>
   );
 }

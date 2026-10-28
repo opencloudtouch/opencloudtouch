@@ -3244,7 +3244,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
   /api/health/websockets:
     get:
       tags:
@@ -3382,6 +3383,16 @@ components:
           type: string
           title: Validation Message
           default: ''
+        validation_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Validation Code
+        validation_params:
+          additionalProperties:
+            type: string
+          type: object
+          title: Validation Params
       type: object
       required:
       - filename
@@ -3850,6 +3861,48 @@ components:
           title: Detail
       type: object
       title: HTTPValidationError
+    HealthConfig:
+      properties:
+        discovery_enabled:
+          type: boolean
+          title: Discovery Enabled
+      type: object
+      required:
+      - discovery_enabled
+      title: HealthConfig
+      description: Non-sensitive configuration flags exposed by /health.
+    HealthResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+        service:
+          type: string
+          title: Service
+        version:
+          type: string
+          title: Version
+        build:
+          type: string
+          enum:
+          - official
+          - community
+          title: Build
+        uptime:
+          type: integer
+          title: Uptime
+        config:
+          $ref: '#/components/schemas/HealthConfig'
+      type: object
+      required:
+      - status
+      - service
+      - version
+      - build
+      - uptime
+      - config
+      title: HealthResponse
+      description: Response of GET /health (documented contract used by the frontend).
     HostsModifyRequest:
       properties:
         device_ip:
@@ -4248,6 +4301,16 @@ components:
           type: number
           title: Duration Seconds
           default: 0.0
+        message_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Message Code
+        message_params:
+          additionalProperties:
+            type: string
+          type: object
+          title: Message Params
       type: object
       required:
       - name

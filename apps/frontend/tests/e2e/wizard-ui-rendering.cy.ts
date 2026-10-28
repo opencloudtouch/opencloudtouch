@@ -55,11 +55,12 @@ function setupWizardMocks() {
     statusCode: 200,
     body: { success: true, has_ssh: true, has_telnet: false, message: "SSH available" },
   }).as("checkPorts");
-  cy.intercept("GET", "/api/setup/server-info", {
+  cy.intercept("GET", "/api/setup/wizard/server-info", {
     statusCode: 200,
     body: { server_url: "http://192.168.1.100:7777" },
   }).as("serverInfo");
-  cy.intercept("POST", "/api/setup/wizard/detect-strategy", {
+  // The app calls GET /detect-strategy (a POST mock never matched, so the result depended on backend state)
+  cy.intercept("GET", "/api/setup/wizard/detect-strategy", {
     statusCode: 200,
     body: { proxy_available: false, strategy: "bmx_and_hosts", message: "No proxy" },
   }).as("detectStrategy");
@@ -75,17 +76,17 @@ describe("Preset Search Modal — layout", () => {
     cy.wait("@getPresets");
   });
 
-  it("modal is rendered as div[role=dialog], not as dialog element", () => {
-    // Click an empty preset slot (preset 2 or 3) to open search modal
-    cy.get("[data-preset='2'], .preset-empty").first().click();
-    cy.get("[role='dialog'].radio-search-modal").should("exist");
-    // Must NOT be a native dialog element
-    cy.get("dialog.radio-search-modal").should("not.exist");
+  it("modal is rendered as a native modal dialog with an accessible name", () => {
+    // Click an empty preset slot to open the search modal
+    cy.get(".pb-empty").first().click();
+    cy.get("dialog.dlg[open]").should("have.attr", "open");
+    cy.get("dialog.dlg").should("have.attr", "aria-labelledby", "rs-title");
+    cy.get("#rs-title").should("be.visible");
   });
 
   it("modal overlay has correct flexbox centering styles", () => {
-    cy.get("[data-preset='2'], .preset-empty").first().click();
-    cy.get(".radio-search-overlay").should("exist").then(($overlay) => {
+    cy.get(".pb-empty").first().click();
+    cy.get(".dlg-overlay").should("exist").then(($overlay) => {
       const styles = window.getComputedStyle($overlay[0]);
       expect(styles.display).to.equal("flex");
       expect(styles.alignItems).to.equal("center");
@@ -94,8 +95,8 @@ describe("Preset Search Modal — layout", () => {
   });
 
   it("modal is visually centered (left edge > 0)", () => {
-    cy.get("[data-preset='2'], .preset-empty").first().click();
-    cy.get(".radio-search-modal").should("exist").then(($modal) => {
+    cy.get(".pb-empty").first().click();
+    cy.get(".dlg-panel").should("exist").then(($modal) => {
       const rect = $modal[0].getBoundingClientRect();
       // Must not be at the very left edge
       expect(rect.left).to.be.greaterThan(10);
@@ -105,17 +106,20 @@ describe("Preset Search Modal — layout", () => {
   });
 
   it("modal closes on overlay click", () => {
-    cy.get("[data-preset='2'], .preset-empty").first().click();
-    cy.get(".radio-search-modal").should("exist");
-    cy.get(".radio-search-overlay").click("topLeft");
-    cy.get(".radio-search-modal").should("not.exist");
+    cy.get(".pb-empty").first().click();
+    cy.get("dialog.dlg").should("exist");
+    cy.get(".dlg-overlay").click("topLeft");
+    cy.get("dialog.dlg").should("not.exist");
   });
 
   it("modal closes on Escape key", () => {
-    cy.get("[data-preset='2'], .preset-empty").first().click();
-    cy.get(".radio-search-modal").should("exist");
-    cy.get(".radio-search-overlay").type("{esc}");
-    cy.get(".radio-search-modal").should("not.exist");
+    cy.get(".pb-empty").first().click();
+    cy.get("dialog.dlg").should("exist");
+    // Chrome ignores synthetic Esc key events on a native <dialog>, so fire the event it would dispatch itself
+    cy.get("dialog.dlg").then(($dialog) => {
+      $dialog[0].dispatchEvent(new Event("cancel", { cancelable: true }));
+    });
+    cy.get("dialog.dlg").should("not.exist");
   });
 });
 
@@ -159,10 +163,11 @@ describe("Wizard Step 2 — USB Preparation (emoji rendering)", () => {
     assertNoMojibake();
   });
 
-  it("USB plug icon renders correctly (🔌 not ðŸ\"Œ)", () => {
+  // Icons are inline SVG since the wizard redesign (no emoji, so no emoji encoding to break).
+  it("USB plug icon renders as an SVG icon without stray text", () => {
+    cy.get(".usb-icon svg").should("exist");
     cy.get(".usb-icon").invoke("text").then((text) => {
-      expect(text).to.include("🔌");
-      expect(text).not.to.include("ðŸ");
+      expect(text.trim()).to.equal("");
     });
   });
 
@@ -248,9 +253,10 @@ describe("Wizard Step 7 — NTP Patch (emoji rendering)", () => {
     assertNoMojibake();
   });
 
-  it("clock icon on the patch button renders correctly (🕐 not mojibake)", () => {
+  it("clock icon on the patch button renders as an SVG icon next to the label", () => {
+    cy.get(".ntp-patch-btn svg").should("exist");
     cy.get(".ntp-patch-btn").invoke("text").then((text) => {
-      expect(text).to.include("🕐");
+      expect(text.trim().length).to.be.greaterThan(0);
       expect(text).not.to.include("ðŸ");
     });
   });
@@ -294,12 +300,9 @@ describe("Wizard Step 8 — Verification (emoji rendering)", () => {
     });
   });
 
-  it("success icon renders correctly after finalize (✅ not âœ…)", () => {
-    // Finalize result shows ✅ in verify-checklist
-    cy.get(".verify-checklist .check-icon", { timeout: 5000 }).first().invoke("text").then((text) => {
-      expect(text).to.include("✅");
-      expect(text).not.to.include("âœ");
-    });
+  it("success icon renders as an SVG icon after finalize", () => {
+    // Finalize result shows a check icon in the verify-checklist
+    cy.get(".verify-checklist .check-icon svg", { timeout: 5000 }).should("exist");
   });
 });
 
@@ -314,18 +317,12 @@ describe("Wizard Step 9 — Completion (emoji rendering)", () => {
     assertNoMojibake();
   });
 
-  it("party popper icon renders correctly (🎉 not ðŸŽ‰)", () => {
-    cy.get(".completion-icon").invoke("text").then((text) => {
-      expect(text).to.include("🎉");
-      expect(text).not.to.include("ðŸŽ");
-    });
+  it("party popper icon renders as an SVG icon", () => {
+    cy.get(".completion-icon svg").should("exist");
   });
 
-  it("checkmarks in summary list render correctly (✅ not âœ…)", () => {
-    cy.get(".summary-icon").first().invoke("text").then((text) => {
-      expect(text).to.include("✅");
-      expect(text).not.to.include("âœ");
-    });
+  it("checkmarks in the summary list render as SVG icons", () => {
+    cy.get(".summary-icon svg").should("exist");
   });
 
   it("done button renders with correct text", () => {

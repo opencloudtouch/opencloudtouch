@@ -1,15 +1,19 @@
 /**
  * CopyableCommand – displays a shell command with a clipboard copy button.
- *
  * Supports both secure (navigator.clipboard) and non-secure (execCommand fallback) contexts.
+ * Markup change only: the copy button is always visible (no hover reveal, touch-safe) and uses Lucide icons.
  */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Icon } from "./Icon";
+import "./wizard-base.css";
 
 interface CopyableCommandProps {
   command: string;
 }
 
 export default function CopyableCommand({ command }: CopyableCommandProps) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -39,14 +43,19 @@ export default function CopyableCommand({ command }: CopyableCommandProps) {
 
   return (
     <div className="ssh-command-wrapper">
-      <pre className="ssh-hint-command">{command}</pre>
+      <pre
+        className="ssh-hint-command"
+        tabIndex={0} // NOSONAR(S6845): keyboard-focusable so scrollable content can be scrolled
+      >
+        {command}
+      </pre>
       <button
         className={`ssh-copy-btn ${copied ? "copied" : ""}`}
         onClick={handleCopy}
-        title="In Zwischenablage kopieren"
-        aria-label="Befehl kopieren"
+        title={t("a11y.copyToClipboard")}
+        aria-label={t("a11y.copyCommand")}
       >
-        {copied ? "✓" : "⎘"}
+        {copied ? Icon.Check(18) : Icon.Copy(18)}
       </button>
     </div>
   );

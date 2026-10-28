@@ -101,6 +101,8 @@ export function useDeviceEvents(): UseDeviceEventsReturn {
         }
       };
       handlers[type] = handler;
+      // Removed in the cleanup function below (iterates `handlers`).
+      // eslint-disable-next-line @eslint-react/web-api-no-leaked-event-listener
       eventSource.addEventListener(type, handler);
     }
 

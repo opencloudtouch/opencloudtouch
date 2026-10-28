@@ -23,7 +23,8 @@
     "presets": "Förinställningar",
     "zones": "Zoner",
     "settings": "Inställningar",
-    "about": "Om"
+    "about": "Om",
+    "ariaLabel": "Huvudnavigering"
   },
   "player": {
     "noPlayback": "Ingen uppspelning",
@@ -42,7 +43,23 @@
     "manageZone": "Hantera zon",
     "multiRoom": "Flera rum",
     "prevDevice": "Föregående enhet",
-    "nextDevice": "Nästa enhet"
+    "nextDevice": "Nästa enhet",
+    "source": {
+      "bluetooth": "Bluetooth",
+      "radio": "Radio",
+      "aux": "AUX",
+      "airplay": "AirPlay",
+      "dlna": "DLNA",
+      "tv": "TV / HDMI",
+      "spotify": "Spotify",
+      "deezer": "Deezer",
+      "pandora": "Pandora",
+      "amazon": "Amazon Music",
+      "storedMusic": "Mediebibliotek"
+    },
+    "unknownDevice": "Okänd enhet",
+    "zoneBadgeMember": "Zon",
+    "zoneTitle": "Zon: {{role}}"
   },
   "presets": {
     "pageTitle": "Radioförinställningar",
@@ -61,8 +78,8 @@
     "infoTitle": "Om förinställningar",
     "infoItem1": "Klicka på en tom förinställning för att tilldela en station",
     "infoItem2": "Klicka på en tilldelad station för att ändra eller ta bort den",
-    "infoItem3": "Den gröna ► knappen spelar stationen direkt",
-    "infoItem5": "⚙️ öppnar enhetens installationsguide",
+    "infoItem3": "Uppspelningsknappen till höger om en förinställning spelar stationen direkt",
+    "infoItem5": "Statusikonen uppe till höger på enhetskortet öppnar installationsguiden för enheten",
     "infoItem6": "\"Hämta från enhet\" synkroniserar förinställningar från SoundTouch",
     "changeStation": "Klicka för att byta station",
     "assignPreset": "Tilldela förinställning",
@@ -104,7 +121,18 @@
     "manualStreamErrorTitle": "Streamfel",
     "manualStreamUnreachable": "Stream-URL:en kan inte nås.",
     "manualStreamSaveFailed": "Stationen kunde inte sparas.",
-    "manualStreamErrorOk": "OK"
+    "manualStreamErrorOk": "OK",
+    "unknownDevice": "Okänd enhet",
+    "unknownModel": "Okänd modell",
+    "unknownIp": "Okänd IP-adress",
+    "searchHint": "Ange minst 2 tecken för att söka.",
+    "manualInvalidUrl": "Ange en giltig HTTP- eller HTTPS-adress.",
+    "searchTypeGroup": "Sök efter",
+    "providerGroup": "Källa",
+    "searchResults": "Sökresultat",
+    "confirmRemoveDeviceTitle": "Ta bort enheten?",
+    "confirmRemoveDeviceMessage": "{{name}} tas bort från OpenCloudTouch tillsammans med sparade förinställningar. Du kan lägga till den igen senare via enhetssökningen.",
+    "confirmRemoveDevice": "Ta bort enhet"
   },
   "settings": {
     "title": "Inställningar",
@@ -117,7 +145,9 @@
       "enterIp": "Ange en IP-adress",
       "probing": "Söker...",
       "deviceAdded": "{{name}} ({{ip}}) tillagd",
-      "probeError": "Ingen enhet hittades på {{ip}}"
+      "probeError": "Ingen enhet hittades på {{ip}}",
+      "label": "Enhetens IP-adress",
+      "hint": "Format: 192.168.1.10"
     },
     "discovery": {
       "devicesFound_one": "{{count}} ny enhet hittad",
@@ -130,7 +160,8 @@
       "scanButton": "Sök nu",
       "scanning": "Söker...",
       "manualTitle": "Manuell IP-adress",
-      "manualDescription": "Använd detta om automatisk sökning inte hittar något på grund av VLAN, Docker-nätverk eller brandvägg."
+      "manualDescription": "Använd detta om automatisk sökning inte hittar något på grund av VLAN, Docker-nätverk eller brandvägg.",
+      "scanningStatus": "Nätverkssökning pågår"
     },
     "logging": {
       "sectionTitle": "Loggning",
@@ -142,7 +173,12 @@
       "downloadLogs": "Ladda ned loggar",
       "downloadDescription": "Ladda ned de senaste 1000 backend-loggposterna som textfil.",
       "levelChanged": "Loggnivå inställd på {{level}}",
-      "levelError": "Det gick inte att ändra loggnivån"
+      "levelError": "Det gick inte att ändra loggnivån",
+      "levelSaving": "Sparar loggnivån",
+      "downloading": "Förbereder...",
+      "downloadFailedNetwork": "Loggarna kunde inte laddas ned: servern kunde inte nås. Kontrollera anslutningen och försök igen.",
+      "downloadFailedHttp": "Loggarna kunde inte laddas ned: servern svarade med status {{status}}.",
+      "downloadFailedUnknown": "Loggarna kunde inte laddas ned: ett oväntat fel inträffade."
     }
   },
   "manualIpModal": {
@@ -152,7 +188,9 @@
     "saveError": "Fel vid sparande av IP-adresser",
     "save": "Spara",
     "saving": "Sparar...",
-    "hint": "IP-adressen finns i den tillhörande appen under Inställningar → Om, eller i din router."
+    "hint": "IP-adressen finns i den tillhörande appen under Inställningar → Om, eller i din router.",
+    "placeholder": "Exempel:\n192.168.1.100\n192.168.1.101\n192.168.1.102",
+    "saved": "IP-adresserna sparades!"
   },
   "multiroom": {
     "pageTitle": "Flerrumszoner",
@@ -177,7 +215,6 @@
     "infoItem5": "Klicka på zonnamnet för att byta namn",
     "editZone": "Redigera",
     "dissolve": "Upplös",
-    "dissolveConfirm": "Verkligen upplösa?",
     "zoneUpdated": "Zon uppdaterad",
     "zoneCreated": "Zon skapad",
     "zoneCreateFailed": "Det gick inte att skapa zonen",
@@ -189,7 +226,12 @@
     "clickToEdit": "Klicka för att redigera",
     "cancel": "Avbryt",
     "masterBadge": "Master",
-    "slaveBadge": "Slav"
+    "slaveBadge": "Slav",
+    "unknownDevice": "Okänd enhet",
+    "defaultZoneName": "{{name}}-zon",
+    "staleBadge": "Inte sedd på länge",
+    "confirmDissolveTitle": "Lösa upp zonen?",
+    "confirmDissolveMessage": "”{{name}}” löses upp. Enheterna spelar sedan separat igen."
   },
   "firmware": {
     "title": "Firmwareuppdateringar",
@@ -381,7 +423,8 @@
         "troubleshootingItem3": "Vänta minst 100 sekunder efter omstart",
         "troubleshootingItem4": "Prova en ny strömcykel (steg 2-5)",
         "troubleshootingItem5": "Kontrollera att enheten är i samma nätverk",
-        "troubleshootingItem6": "Testa SSH-anslutning manuellt med kommandot ovan — om det fungerar är enheten redo."
+        "troubleshootingItem6": "Testa SSH-anslutning manuellt med kommandot ovan — om det fungerar är enheten redo.",
+        "nextDisabled": "Kontrollera SSH-åtkomsten och bestäm om SSH ska vara kvar aktiverat."
       },
       "step4": {
         "title": "Skapa säkerhetskopia",
@@ -392,14 +435,15 @@
         "btnCreate": "Skapa säkerhetskopia nu",
         "btnCreating": "Skapar säkerhetskopia...",
         "progressMessage": "Skapar säkerhetskopia för {{device}}",
-        "progressNote": "Det kan ta upp till 2 minuter...",
+        "progressNote": "Det kan ta upp till 10 minuter...",
         "errorTitle": "Säkerhetskopiering misslyckades",
         "successTitle": "Säkerhetskopia skapad!",
         "successHint": "Säkerhetskopiorna sparades på USB-enheten. Ta ut enheten efter guiden — den innehåller återställningsfiler.",
         "filesTitle": "Sparade filer (på USB-enheten):",
         "totalLabel": "Totalt:",
         "durationMinSec": "{{min}} min {{sec}} s",
-        "durationSec": "{{sec}} s"
+        "durationSec": "{{sec}} s",
+        "nextWarning": "Utan säkerhetskopia går det inte att återställa. Fortsätter du nu gör du det på egen risk."
       },
       "step5": {
         "titleProxy": "Omvänd proxy detekterad",
@@ -467,8 +511,7 @@
         "changedEntries": "Ändrade poster:",
         "backupLabel": "Säkerhetskopia:",
         "btnShowChanges": "▶ Visa ändringar",
-        "btnHideChanges": "▼ Dölj ändringar",
-        "hostsApplied": "Hosts-filen har ändrats."
+        "btnHideChanges": "▼ Dölj ändringar"
       },
       "step7": {
         "title": "Patcha NTP-server",
@@ -542,7 +585,11 @@
         "btnRetryFullVerify": "Kör verifiering igen",
         "checkNtpServer": "NTP-server inställd på: {{server}}",
         "checkNtpServerWrong": "NTP-servern är inställd på '{{found}}', förväntat '{{expected}}'",
-        "fullVerifyItem5": "NTP-server konfigurerad på enheten"
+        "fullVerifyItem5": "NTP-server konfigurerad på enheten",
+        "phaseFinalize": "Konfigurera",
+        "phaseReboot": "Omstart",
+        "phaseVerify": "Kontrollera",
+        "nextDisabled": "Slutför först alla kontroller."
       },
       "step9": {
         "title": "Installation klar!",
@@ -572,9 +619,18 @@
         "supportLink": "Kontakta support →",
         "summaryItem7": "NTP-server patchad ({{server}})"
       }
-    }
+    },
+    "trackerCompact": "Steg {{current}} av {{total}} – {{label}}",
+    "stepAriaSkipped": "Steg {{id}}: {{label}} — {{description}} – hoppades över"
   },
   "restore": {
+    "steps": {
+      "choice": "Val",
+      "backup": "Säkerhetskopia",
+      "restore": "Återställ",
+      "verify": "Kontrollera",
+      "done": "Klart"
+    },
     "choice": {
       "title": "Vad vill du göra?",
       "setup_title": "Installationsguide",
@@ -606,7 +662,10 @@
       "running": "Återställning pågår...",
       "error": "Restore failed: {{message}}",
       "success": "All steps completed successfully! Total: {{time}}s",
-      "continue": "Fortsätt"
+      "continue": "Fortsätt",
+      "running_hint": "Det kan ta flera minuter (oftast 8 till 9). Lämna den här sidan öppen och koppla inte bort enheten.",
+      "error_hint": "Gå tillbaka och försök igen.",
+      "failed_title": "Återställningen är ofullständig"
     },
     "verification": {
       "title": "Väntar på enhet",
@@ -627,6 +686,50 @@
       "failed": "Misslyckades",
       "note": "Enheten är nu i sitt ursprungliga tillstånd. Du kan säkert koppla bort den.",
       "done": "Done"
+    },
+    "step_labels": {
+      "pre_snapshot": "Ögonblicksbild före återställning",
+      "config": "Konfigurationsfiler",
+      "presets": "Förval",
+      "hosts": "/etc/hosts",
+      "ntp": "/etc/ntpservers.txt",
+      "remote_services": "SSH-beständighet",
+      "reboot": "Omstart"
+    },
+    "messages": {
+      "snapshot_saved": "Ögonblicksbild före återställning sparad",
+      "snapshot_unavailable": "Ingen guidetjänst tillgänglig",
+      "snapshot_failed": "Ögonblicksbilden misslyckades: {{error}}",
+      "config_restored": "Konfigurationsfiler återställda",
+      "config_restore_failed": "Återställning av konfigurationen misslyckades: {{error}}",
+      "presets_clean": "Ingen Presets.xml hittades på enheten (redan ren)",
+      "presets_restored": "Förval återställda i {{path}}",
+      "presets_restore_failed": "Återställning av förval misslyckades: {{error}}",
+      "hosts_read_failed": "Det gick inte att läsa /etc/hosts",
+      "hosts_clean": "Inget OCT-block hittades i /etc/hosts (redan rent)",
+      "hosts_restored": "OCT-blocket togs bort från /etc/hosts",
+      "hosts_restore_failed": "Återställning av /etc/hosts misslyckades: {{error}}",
+      "ntp_no_backup": "Ingen NTP-säkerhetskopia hittades (redan ren)",
+      "ntp_copy_failed": "Det gick inte att återställa /etc/ntpservers.txt från säkerhetskopian",
+      "ntp_restored": "NTP-servrar återställda från säkerhetskopian",
+      "ntp_restore_failed": "Återställning av NTP-servrar misslyckades: {{error}}",
+      "remote_services_deleted": "/mnt/nv/remote_services borttagen",
+      "remote_services_failed": "Det gick inte att ta bort remote_services: {{error}}",
+      "reboot_sent": "Omstartskommando skickat",
+      "reboot_failed": "Omstarten misslyckades: {{error}}"
+    },
+    "validation": {
+      "archive_corrupt": "Arkivet är skadat eller kan inte läsas",
+      "archive_empty": "Arkivet är tomt",
+      "archive_unverified": "Arkivets innehåll kunde inte verifieras (genomsökningen misslyckades eller tog för lång tid)",
+      "archive_path_missing": "Förväntade sökvägar som börjar med {{expected}} hittades inte i arkivet"
+    },
+    "status": {
+      "completed": "Klart",
+      "skipped": "Överhoppad",
+      "failed": "Misslyckades",
+      "in_progress": "Pågår",
+      "pending": "Väntar"
     }
   },
   "errors": {
@@ -678,27 +781,34 @@
     "licensesDescription": "OpenCloudTouch använder följande bibliotek med öppen källkod:",
     "licenseCompliance": "Licensöverensstämmelse",
     "licenseComplianceText": "OpenCloudTouch är programvara med öppen källkod under Apache 2.0-licensen. Alla använda bibliotek är kompatibla med denna licens.",
-    "devicesConnected_zero": "Inga enheter anslutna",
-    "devicesConnected_one": "{{count}} enhet ansluten",
-    "devicesConnected_other": "{{count}} enheter anslutna",
-    "github": "GitHub",
-    "reportIssue": "Rapportera problem",
     "support": "Stöd",
-    "versionUnavailable": "Version ej tillgänglig",
-    "hallOfFameTitle": "Hall of Fame",
-    "hallOfFameDescription": "Topp 3 bidragsgivare genom tiderna — erkända för exceptionell teknisk påverkan.",
-    "supportersTitle": "Supportrar",
     "reportBug": "Rapportera bugg",
     "diagnostics": "Diagnostik",
-    "supportersDescription": "Tack till alla som stödjer OpenCloudTouch ekonomiskt. Era bidrag hjälper till att hålla projektet vid liv!",
-    "supportersMonthly": "Månatliga Supportrar",
-    "supportersOneTime": "Engångssupportrar",
-    "buildTime": "Skapad {{time}}",
     "checkingUpdates": "Söker efter uppdateringar...",
     "updateAvailable": "Uppdatering tillgänglig: {{version}}",
     "viewRelease": "Visa version",
     "upToDate": "Du är uppdaterad!",
-    "devBuild": "Egenbyggd version — uppdateringskontroll inaktiverad"
+    "devBuild": "Egenbyggd version — uppdateringskontroll inaktiverad",
+    "github": "GitHub",
+    "externalLink": "(öppnas i en ny flik)",
+    "licenses": "Öppen källkod-licenser",
+    "linksLabel": "Mer information",
+    "supportersTitle": "Supp<0/>rters",
+    "supportersLabel": "Supportrar",
+    "monthlySupporter": "(månatlig supporter)",
+    "libraryWebsite": "{{name}} webbplats",
+    "licensesVersion": "Version",
+    "licensesGroup": {
+      "frontend": "Frontend",
+      "backend": "Backend",
+      "build": "Byggverktyg"
+    },
+    "licenseProject": "OpenCloudTouch-licens",
+    "licenseApache": "Apache License 2.0",
+    "trademarkTitle": "Varumärkesmeddelande",
+    "trademarkText1": "OpenCloudTouch är <0>inte knutet till Bose Corporation</0>. Bose® och SoundTouch® är registrerade varumärken som tillhör Bose Corporation.",
+    "trademarkText2": "Den här programvaran använder de offentligt dokumenterade lokala gränssnitten hos Bose SoundTouch®-enheter. Se <0>TRADEMARK.md</0> för detaljer.",
+    "runningSince": "Igång sedan {{time}}"
   },
   "discovery": {
     "alreadyRunning": "Enhetssökning pågår redan. Vänta...",
@@ -723,7 +833,8 @@
     "helpFirewall": "Brandväggsregler kan blockera enhetsidentifiering",
     "helpRestart": "Starta om enheter och OpenCloudTouch",
     "helpManualAdd": "Lägg till enhets-IP-adresser manuellt",
-    "helpSetupWizard": "Följ installationsguiden för steg-för-steg-instruktioner"
+    "helpSetupWizard": "Följ installationsguiden för steg-för-steg-instruktioner",
+    "deviceSaved": "Sparad"
   },
   "setupBadge": {
     "unknown": "Konfigurera enhet",
@@ -744,27 +855,7 @@
     "unknown": "Okänd"
   },
   "bugReport": {
-    "title": "Rapportera en bugg",
-    "description": "Buggbeskrivning",
-    "descriptionPlaceholder": "Vad gick fel?",
-    "steps": "Steg för att reproducera",
-    "stepsPlaceholder": "1. Gå till...\n2. Klicka på...\n3. Se felet...",
-    "expected": "Förväntat beteende",
-    "expectedPlaceholder": "Vad borde ha hänt?",
-    "installationType": "Installationstyp",
-    "whichInstallation": "Vilken installation?",
-    "hardware": "Hårdvara / Plattform",
-    "whichHardware": "Vilken hårdvara?",
-    "devices": "SoundTouch-enhet(er)",
-    "whichDevice": "Vilken enhet?",
-    "networkConfig": "Nätverkskonfiguration",
-    "additionalInfo": "Ytterligare information",
-    "submit": "Skicka buggrapport",
-    "submitting": "Skickar...",
-    "downloadLogs": "Ladda ner loggar",
     "downloading": "Laddar ner...",
-    "submitSuccess": "Buggrapport skapad! {{url}}",
-    "submitFailed": "Kunde inte skicka buggrapport: {{error}}",
     "diagnosticsSuccess": "Diagnostik nedladdad! Bifoga .log.gz-filen till ditt GitHub-ärende.",
     "diagnosticsFailed": "Kunde inte ladda ner diagnostik: {{error}}"
   },
@@ -785,7 +876,15 @@
     "firmware": "Firmware",
     "setupStatus": "Konfigurationsstatus",
     "lastSeen": "Senast sedd",
-    "downloadBundle": "Ladda ner supportpaket"
+    "downloadBundle": "Ladda ner supportpaket",
+    "ip": "IP-adress",
+    "ssh": "SSH",
+    "sshOn": "Permanent aktiverad",
+    "sshOff": "Inte aktiverad",
+    "statusOnline": "Online",
+    "statusStale": "Inte sedd på länge",
+    "statusOffline": "Offline",
+    "unknownValue": "okänd"
   },
   "deviceRename": {
     "clickToEdit": "Klicka för att byta namn",
@@ -796,6 +895,22 @@
   "deviceHeader": {
     "reboot": "Starta om enheten",
     "sent": "Omstartskommando skickat",
-    "confirmMessage": "Starta om {{name}}? Enheten kommer att vara otillgänglig i ungefär 100 sekunder."
+    "confirmMessage": "Starta om {{name}}? Enheten kommer att vara otillgänglig i ungefär 100 sekunder.",
+    "backToDevice": "Tillbaka till {{name}}"
+  },
+  "a11y": {
+    "skipToContent": "Hoppa till innehåll",
+    "selectLanguage": "Välj språk",
+    "deviceSelection": "Val av enhet",
+    "switchToDevice": "Byt till {{name}}",
+    "volume": "Volym",
+    "copyCommand": "Kopiera kommando",
+    "copyToClipboard": "Kopiera till urklipp",
+    "deviceCounter": "Enhet {{current}} av {{total}}"
+  },
+  "stationDetail": {
+    "codec": "Codec",
+    "bitrate": "Bitrate",
+    "homepage": "Hemsida"
   }
 }

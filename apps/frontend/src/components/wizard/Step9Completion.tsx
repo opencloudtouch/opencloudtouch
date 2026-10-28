@@ -1,9 +1,13 @@
 /**
- * Step 9: Completion
+ * Step 9: Completion (tracker step 8, "Fertig")
+ * Props, hooks, handlers and t() keys unchanged. Markup/classNames/icons only.
+ * The Done button stays inside the content (WizardStep gets no onNext/onPrevious, so its action bar is empty and hidden by CSS).
  */
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import WizardStep from "./WizardStep";
+import { Icon } from "./Icon";
+import "./wizard-base.css";
 import "./Step9Completion.css";
 
 interface Step9Props {
@@ -48,7 +52,9 @@ export default function Step9Completion({
     >
       <div className="completion">
         <div className="completion-hero">
-          <div className="completion-icon">🎉</div>
+          <div className="completion-icon" aria-hidden="true">
+            {Icon.PartyPopper(36)}
+          </div>
           <h2 className="completion-title">{t("setup.wizard.step9.heroTitle")}</h2>
           <p className="completion-message">
             {t("setup.wizard.step9.heroMessage", { device: deviceName })}
@@ -61,7 +67,9 @@ export default function Step9Completion({
           <ul className="summary-list">
             {summaryItems.map((item) => (
               <li key={item} className="summary-item">
-                <span className="summary-icon">✅</span>
+                <span className="summary-icon" aria-hidden="true">
+                  {Icon.Check(18)}
+                </span>
                 <span className="summary-text">{item}</span>
               </li>
             ))}
@@ -69,13 +77,22 @@ export default function Step9Completion({
         </div>
 
         {/* Backup Info */}
-        <div className="completion-backup-info">
-          <div className="backup-info-icon">{backupPath ? "💾" : "⚠️"}</div>
+        <div
+          className={`completion-backup-info ${backupPath ? "completion-backup-info--ok" : "completion-backup-info--missing"}`}
+        >
+          <div className="backup-info-icon" aria-hidden="true">
+            {backupPath ? Icon.HardDrive(24) : Icon.Alert(24)}
+          </div>
           <div className="backup-info-content">
             {backupPath ? (
               <>
                 <strong>{t("setup.wizard.step9.backupTitle")}</strong>
-                <code className="backup-info-path">{backupPath}</code>
+                <code
+                  className="backup-info-path"
+                  tabIndex={0} // NOSONAR(S6845): keyboard-focusable so scrollable content can be scrolled
+                >
+                  {backupPath}
+                </code>
                 <p className="backup-info-note">{t("setup.wizard.step9.backupNote")}</p>
               </>
             ) : (

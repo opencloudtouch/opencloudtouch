@@ -257,7 +257,7 @@ describe("EmptyState Component", () => {
 
       // Success message
       await waitFor(() => {
-        expect(screen.getByText("IP-Adressen gespeichert!")).toBeInTheDocument();
+        expect(screen.getByText("IP addresses saved!")).toBeInTheDocument();
       });
     });
 

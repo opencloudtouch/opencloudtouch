@@ -61,7 +61,7 @@ describe("DeviceNowPlaying", () => {
     );
     const img = screen.getByRole("presentation");
     expect(img).toHaveAttribute("src", "https://img.example.com/art.jpg");
-    expect(img).toHaveClass("device-now-playing-artwork");
+    expect(img).toHaveClass("dnp-art");
     expect(img).toHaveAttribute("loading", "lazy");
   });
 
@@ -74,36 +74,22 @@ describe("DeviceNowPlaying", () => {
         })}
       />,
     );
-    expect(container.querySelector(".device-now-playing-icon")).toBeNull();
+    expect(container.querySelector(".dnp-icon")).toBeNull();
   });
 
   // ---- Source icon fallbacks (no artwork) ----
 
-  it("shows 📻 icon for TUNEIN source without artwork", () => {
+  it.each([
+    ["a radio icon", "TUNEIN"],
+    ["a bluetooth icon", "BLUETOOTH"],
+    ["a headphones icon", "AUX"],
+  ])("shows %s for %s source without artwork", (_icon, source) => {
     render(
       <DeviceNowPlaying
-        nowPlaying={makePlaying({ source: "TUNEIN", artwork_url: undefined })}
+        nowPlaying={makePlaying({ source, artwork_url: undefined })}
       />,
     );
-    expect(screen.getByText("📻")).toBeInTheDocument();
-  });
-
-  it("shows 🔵 icon for BLUETOOTH source without artwork", () => {
-    render(
-      <DeviceNowPlaying
-        nowPlaying={makePlaying({ source: "BLUETOOTH", artwork_url: undefined })}
-      />,
-    );
-    expect(screen.getByText("🔵")).toBeInTheDocument();
-  });
-
-  it("shows 🎵 icon for AUX source without artwork", () => {
-    render(
-      <DeviceNowPlaying
-        nowPlaying={makePlaying({ source: "AUX", artwork_url: undefined })}
-      />,
-    );
-    expect(screen.getByText("🎵")).toBeInTheDocument();
+    expect(document.querySelector(".dnp-icon svg")).not.toBeNull();
   });
 
   it("shows no icon for unknown source without artwork", () => {
@@ -112,7 +98,7 @@ describe("DeviceNowPlaying", () => {
         nowPlaying={makePlaying({ source: "SPOTIFY", artwork_url: undefined })}
       />,
     );
-    expect(container.querySelector(".device-now-playing-icon")).toBeNull();
+    expect(container.querySelector(".dnp-icon")).toBeNull();
     expect(container.querySelector("img")).toBeNull();
   });
 
@@ -120,7 +106,7 @@ describe("DeviceNowPlaying", () => {
 
   it("displays track as title", () => {
     render(<DeviceNowPlaying nowPlaying={makePlaying({ track: "My Song" })} />);
-    expect(screen.getByText("My Song")).toHaveClass("device-now-playing-title");
+    expect(screen.getByText("My Song")).toHaveClass("dnp-title");
   });
 
   it("displays station_name as title when track is missing", () => {
@@ -129,7 +115,7 @@ describe("DeviceNowPlaying", () => {
         nowPlaying={makePlaying({ track: undefined, station_name: "Radio FM" })}
       />,
     );
-    expect(screen.getByText("Radio FM")).toHaveClass("device-now-playing-title");
+    expect(screen.getByText("Radio FM")).toHaveClass("dnp-title");
   });
 
   it("prefers track over station_name", () => {
@@ -146,14 +132,14 @@ describe("DeviceNowPlaying", () => {
     render(
       <DeviceNowPlaying nowPlaying={makePlaying({ artist: "Cool Band" })} />,
     );
-    expect(screen.getByText("Cool Band")).toHaveClass("device-now-playing-artist");
+    expect(screen.getByText("Cool Band")).toHaveClass("dnp-artist");
   });
 
   it("renders without artist when only title available", () => {
     const { container } = render(
       <DeviceNowPlaying nowPlaying={makePlaying({ artist: undefined })} />,
     );
-    expect(container.querySelector(".device-now-playing-artist")).toBeNull();
+    expect(container.querySelector(".dnp-artist")).toBeNull();
     expect(screen.getAllByText("Test Track").length).toBeGreaterThan(0);
   });
 

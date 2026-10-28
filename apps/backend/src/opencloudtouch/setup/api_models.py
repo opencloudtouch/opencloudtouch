@@ -384,6 +384,8 @@ class BackupFileInfoResponse(BaseModel):
     is_pre_restore: bool = False
     validation_status: str = "valid"
     validation_message: str = ""
+    validation_code: str | None = None
+    validation_params: dict[str, str] = Field(default_factory=dict)
 
 
 class BackupSetResponse(BaseModel):
@@ -442,6 +444,8 @@ class RestoreStepResponse(BaseModel):
     message: str = ""
     error: Optional[str] = None
     duration_seconds: float = 0.0
+    message_code: str | None = None
+    message_params: dict[str, str] = Field(default_factory=dict)
 
 
 class RestoreWizardResponse(BaseModel):

@@ -1,7 +1,15 @@
-import { useState, useRef, useEffect, useLayoutEffect, KeyboardEvent } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  KeyboardEvent,
+  type CSSProperties,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { renameDevice } from "../api/devices";
+import { Icon } from "./Icon";
 import "./DeviceNameEditor.css";
 
 interface DeviceNameEditorProps {
@@ -22,46 +30,26 @@ export default function DeviceNameEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const [fontSizePx, setFontSizePx] = useState(24);
+  const wrapRef = useRef<HTMLSpanElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const [overflowPx, setOverflowPx] = useState(0);
 
+  // The name is centred at a fixed size; only a name that does not fit scrolls (marquee as in NowPlaying), it is never shrunk or wrapped.
   useLayoutEffect(() => {
-    const el = buttonRef.current;
-    if (!el) return;
+    const wrap = wrapRef.current;
+    const text = textRef.current;
+    if (!wrap || !text) return;
 
-    const compute = () => {
-      const containerWidth = el.clientWidth;
-      if (!containerWidth) return;
-
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      const elStyle = getComputedStyle(el);
-      const fontWeight = elStyle.fontWeight || "600";
-      const fontFamily = elStyle.fontFamily || "system-ui, -apple-system, sans-serif";
-      const gapWidth = parseFloat(elStyle.gap) || 0;
-
-      for (let size = 24; size >= 17; size--) {
-        ctx.font = `${fontWeight} ${size}px ${fontFamily}`;
-        const textWidth = ctx.measureText(name).width;
-        // Measure the icon at its rendered size (0.65em) — emoji renders as square
-        ctx.font = `${size * 0.65}px ${fontFamily}`;
-        const iconWidth = ctx.measureText("✏️").width;
-        const safetyBuffer = 2; // 1px subpixel rounding tolerance
-        if (textWidth + iconWidth + gapWidth + safetyBuffer <= containerWidth) {
-          setFontSizePx(size);
-          return;
-        }
-      }
-      setFontSizePx(17);
+    const measure = () => {
+      const extra = text.scrollWidth - wrap.clientWidth;
+      setOverflowPx(extra > 1 ? Math.ceil(extra) : 0);
     };
 
-    compute();
-    const observer = new ResizeObserver(compute);
-    observer.observe(el);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(wrap);
     return () => observer.disconnect();
-  }, [name]);
+  }, [name, editing]);
 
   useEffect(() => {
     if (editing && inputRef.current) {
@@ -129,47 +117,82 @@ export default function DeviceNameEditor({
 
   if (editing) {
     return (
-      <div className="device-name-editor" data-test="device-name-editor">
-        <input
-          ref={inputRef}
-          className="device-name-input"
-          type="text"
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onBlur={handleBlur}
-          maxLength={30}
-          disabled={saving}
-          aria-label={t("deviceRename.inputLabel")}
-          data-test="device-name-input"
-        />
+      <div className="dne" data-test="device-name-editor">
+        <h2 className="dne-heading">
+          <span className="dne-field">
+            <input
+              ref={inputRef}
+              className="ui-input dne-input"
+              type="text"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={handleBlur}
+              maxLength={30}
+              disabled={saving}
+              aria-label={t("deviceRename.inputLabel")}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? "device-name-error" : undefined}
+              aria-busy={saving}
+              data-test="device-name-input"
+            />
+            {saving && (
+              <span className="dne-saving ui-spin" aria-hidden="true">
+                {Icon.Loader(18)}
+              </span>
+            )}
+          </span>
+        </h2>
         {error && (
-          <span className="device-name-error" data-test="device-name-error">
-            {error}
+          <span
+            id="device-name-error"
+            className="ui-field-error dne-error"
+            role="alert"
+            data-test="device-name-error"
+          >
+            {Icon.CircleX(16)}
+            <span>{error}</span>
           </span>
         )}
       </div>
     );
   }
 
+  const scrolling = overflowPx > 0;
+
   return (
-    <button
-      ref={buttonRef}
-      type="button"
-      className="device-name device-name-editable"
-      style={{ fontSize: `${fontSizePx}px` }}
-      onClick={startEditing}
-      title={t("deviceRename.clickToEdit")}
-      data-test="device-name"
-      aria-label={`${name} — ${t("deviceRename.clickToEdit")}`}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") startEditing();
-      }}
-    >
-      <span className="device-name-text">{name}</span>
-      <span className="device-name-edit-icon" aria-hidden="true">
-        ✏️
-      </span>
-    </button>
+    <h2 className="dne-heading">
+      <button
+        type="button"
+        className="dne-btn"
+        onClick={startEditing}
+        title={t("deviceRename.clickToEdit")}
+        data-test="device-name"
+        aria-label={`${name} — ${t("deviceRename.clickToEdit")}`}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") startEditing();
+        }}
+      >
+        <span ref={wrapRef} className="dne-text-wrap">
+          <span
+            ref={textRef}
+            className={`dne-text${scrolling ? " dne-text--scrolling" : ""}`}
+            style={
+              scrolling
+                ? ({
+                    "--marquee-distance": `-${overflowPx}px`,
+                    animationDuration: `${Math.max(6, overflowPx / 10)}s`,
+                  } as CSSProperties)
+                : undefined
+            }
+          >
+            {name}
+          </span>
+        </span>
+        <span className="dne-icon" aria-hidden="true">
+          {Icon.Pencil(16)}
+        </span>
+      </button>
+    </h2>
   );
 }

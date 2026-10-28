@@ -1,0 +1,407 @@
+/* Restore wizard (steps 1-5): step-specific rules. Replaces the old RestoreSteps.css (same file name, same imports).
+   Shared pieces (.wz-status, .wz-spinner, .wz-progress, .btn, .wizard-choice__*) live in wizard-base.css. */
+
+/* ── Step 2: backup scan ─────────────────────────────────────────────── */
+.backup-scan__loading,
+.backup-scan__error,
+.backup-scan__warning {
+  min-height: 64px;
+  box-sizing: border-box;
+  align-items: center;
+}
+.backup-scan__error,
+.backup-scan__warning {
+  align-items: flex-start;
+}
+.backup-scan__loading p {
+  margin: 0;
+  font-size: 15px;
+  color: var(--color-text-primary);
+}
+
+.backup-scan__result {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: var(--space-md);
+  background: rgba(76, 175, 80, 0.08);
+  border: 1px solid rgba(76, 175, 80, 0.5);
+  border-radius: var(--border-radius-md);
+}
+.backup-scan__result h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+.backup-scan__result h3 .wz-icon {
+  color: var(--color-success);
+}
+.backup-scan__result ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+.backup-scan__result li {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+}
+.backup-scan__result li:has(.backup-scan__mismatch) {
+  border-color: rgba(255, 193, 7, 0.6);
+}
+.backup-scan__result li strong {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(var(--primary-rgb), 0.18);
+  color: var(--primary-text);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.backup-scan__filename {
+  max-width: 100%;
+  font:
+    13px/1.5 ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.backup-scan__mismatch {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 100%;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #ffd54f;
+  overflow-wrap: anywhere;
+}
+.backup-scan__mismatch .wz-icon {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
+
+/* ── Step 3: execution ───────────────────────────────────────────────── */
+/* running: calm, clearly alive. Spinner + sliding bar, honest hint. */
+.restore-execution__progress {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: var(--space-md);
+}
+.restore-execution__progress-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.restore-execution__progress-head p {
+  margin: 0;
+  font-size: 17px;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+.restore-execution__hint {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}
+.restore-execution__error .restore-execution__hint {
+  margin-top: 6px;
+  color: var(--text-primary);
+}
+
+/* result list */
+.restore-execution__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+/* the summary box (success or failure) sits above the list so it is seen without scrolling */
+.restore-execution__steps > .restore-execution__success,
+.restore-execution__steps > .restore-execution__failed {
+  order: -1;
+  margin-bottom: 4px;
+}
+.restore-execution__success {
+  align-items: center;
+  min-height: 64px;
+  box-sizing: border-box;
+}
+.restore-execution__success p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.4;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+.restore-execution__failed {
+  align-items: flex-start;
+  padding: 16px var(--space-md);
+  border-width: 2px;
+  background: rgba(244, 67, 54, 0.16);
+}
+.restore-execution__failed .wz-status-title {
+  font-size: 17px;
+}
+
+.restore-execution__step {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  grid-template-areas: "icon label duration" ". message message" ". detail detail";
+  column-gap: 12px;
+  row-gap: 4px;
+  align-items: start;
+  min-width: 0;
+  padding: 12px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+}
+.restore-execution__icon {
+  grid-area: icon;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+}
+.restore-execution__label {
+  grid-area: label;
+  min-width: 0;
+  padding-top: 2px;
+  font-size: 15px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.4;
+  color: var(--color-text-primary);
+  overflow-wrap: break-word;
+}
+.restore-execution__duration {
+  grid-area: duration;
+  min-width: 6ch;
+  padding-top: 3px;
+  font:
+    13px/1.4 ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.restore-execution__message {
+  grid-area: message;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.restore-execution__error-detail {
+  grid-area: detail;
+  min-width: 0;
+  margin-top: 4px;
+  padding: 8px 10px;
+  background: var(--color-bg-darker);
+  border: 1px solid rgba(244, 67, 54, 0.5);
+  border-radius: 4px;
+  font:
+    13px/1.5 ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
+  color: #ff8a80;
+  overflow-wrap: anywhere;
+}
+/* Phones: label and duration in one row left only ~120px for the label ("Konfigurationsdateien" broke mid-word);
+   the duration moves to its own line below the label and words only break when longer than the full row. */
+@media (max-width: 480px) {
+  .restore-execution__step {
+    grid-template-columns: 24px minmax(0, 1fr);
+    grid-template-areas: "icon label" ". duration" ". message" ". detail";
+  }
+  .restore-execution__duration {
+    min-width: 0;
+    padding-top: 0;
+    text-align: left;
+  }
+}
+
+.restore-execution__step--completed .restore-execution__icon {
+  color: var(--color-success);
+}
+.restore-execution__step--skipped {
+  border-style: dashed;
+}
+.restore-execution__step--skipped .restore-execution__label,
+.restore-execution__step--skipped .restore-execution__message {
+  color: var(--color-text-secondary);
+}
+.restore-execution__step--failed {
+  background: rgba(244, 67, 54, 0.12);
+  border-color: #f44336;
+  border-width: 2px;
+  padding: 11px;
+}
+.restore-execution__step--failed .restore-execution__icon {
+  color: var(--color-danger);
+}
+.restore-execution__step--in_progress {
+  border-color: var(--primary-color);
+  background: rgba(var(--primary-rgb), 0.08);
+}
+.restore-execution__step--in_progress .restore-execution__icon {
+  color: var(--primary-text);
+}
+.restore-execution__step--in_progress .restore-execution__icon svg {
+  animation: spin 1.2s linear infinite;
+}
+.restore-execution__step--pending .restore-execution__label,
+.restore-execution__step--pending .restore-execution__message {
+  color: var(--color-text-secondary);
+}
+
+/* ── Step 4: verification ────────────────────────────────────────────── */
+.restore-verification__countdown,
+.restore-verification__online,
+.restore-verification__timeout {
+  min-height: 64px;
+  box-sizing: border-box;
+  align-items: center;
+}
+.restore-verification__countdown .wz-status-body {
+  flex: 1;
+  gap: 10px;
+}
+.restore-verification__countdown p {
+  font-variant-numeric: tabular-nums;
+}
+.restore-verification__timeout {
+  align-items: flex-start;
+}
+.restore-verification__online p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+/* ── Step 5: completion ──────────────────────────────────────────────── */
+.restore-completion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+.restore-completion h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+@media (min-width: 601px) {
+  .restore-completion h3 {
+    font-size: 20px;
+  }
+}
+.restore-completion__section {
+  min-width: 0;
+  padding: var(--space-md);
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+}
+.restore-completion__section h4 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  font-size: 16px;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+}
+.restore-completion__section ul {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+.restore-completion__section li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+.restore-completion__section li > .wz-icon {
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+}
+.restore-completion__section li > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.restore-completion__section--restored {
+  background: rgba(76, 175, 80, 0.08);
+  border-color: rgba(76, 175, 80, 0.5);
+}
+.restore-completion__section--restored h4 .wz-icon,
+.restore-completion__section--restored li > .wz-icon {
+  color: var(--color-success);
+}
+.restore-completion__section--skipped h4 .wz-icon,
+.restore-completion__section--skipped li > .wz-icon {
+  color: var(--color-text-secondary);
+}
+.restore-completion__section--failed {
+  background: rgba(244, 67, 54, 0.12);
+  border: 2px solid #f44336;
+  padding: 15px;
+}
+.restore-completion__section--failed h4 .wz-icon,
+.restore-completion__section--failed li > .wz-icon {
+  color: var(--color-danger);
+}
+.restore-completion__error {
+  color: #ff8a80;
+}
+.restore-completion__note {
+  margin: 0;
+  align-items: center;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.restore-completion__note > span:last-child {
+  min-width: 0;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}

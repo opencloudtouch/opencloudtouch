@@ -1,14 +1,22 @@
 /**
- * Compact Now-Playing display for device cards.
- * Shows logo/artwork, artist, and track title in a single line.
+ * Compact Now-Playing line for device cards (Stage 6).
+ * One row: artwork or a decorative source icon, title and artist, ellipsized.
  */
+import type { ReactElement } from "react";
 import type { NowPlayingState } from "../api/devices";
+import { Icon } from "./Icon";
 import "./DeviceNowPlaying.css";
 
 interface DeviceNowPlayingProps {
   readonly nowPlaying: NowPlayingState | null;
   readonly loading?: boolean;
 }
+
+const SOURCE_ICONS: Record<string, () => ReactElement> = {
+  TUNEIN: () => Icon.Radio(18),
+  BLUETOOTH: () => Icon.Bluetooth(18),
+  AUX: () => Icon.Headphones(18),
+};
 
 export function DeviceNowPlaying({ nowPlaying, loading }: DeviceNowPlayingProps) {
   if (loading || !nowPlaying) {
@@ -29,28 +37,19 @@ export function DeviceNowPlaying({ nowPlaying, loading }: DeviceNowPlayingProps)
     return null;
   }
 
+  const sourceIcon = !hasArtwork ? SOURCE_ICONS[nowPlaying.source ?? ""] : undefined;
+
   return (
-    <div className="device-now-playing">
-      {hasArtwork && (
-        <img
-          src={nowPlaying.artwork_url}
-          alt=""
-          className="device-now-playing-artwork"
-          loading="lazy"
-        />
+    <div className="dnp">
+      {hasArtwork && <img src={nowPlaying.artwork_url} alt="" className="dnp-art" loading="lazy" />}
+      {sourceIcon && (
+        <span className="ui-source dnp-icon" aria-hidden="true">
+          {sourceIcon()}
+        </span>
       )}
-      {!hasArtwork && nowPlaying.source === "TUNEIN" && (
-        <span className="device-now-playing-icon">📻</span>
-      )}
-      {!hasArtwork && nowPlaying.source === "BLUETOOTH" && (
-        <span className="device-now-playing-icon">🔵</span>
-      )}
-      {!hasArtwork && nowPlaying.source === "AUX" && (
-        <span className="device-now-playing-icon">🎵</span>
-      )}
-      <div className="device-now-playing-text">
-        {title && <span className="device-now-playing-title">{title}</span>}
-        {subtitle && <span className="device-now-playing-artist">{subtitle}</span>}
+      <div className="dnp-text">
+        {title && <span className="dnp-title">{title}</span>}
+        {subtitle && <span className="dnp-artist">{subtitle}</span>}
       </div>
     </div>
   );

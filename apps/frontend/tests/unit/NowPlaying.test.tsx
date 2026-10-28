@@ -22,8 +22,8 @@ describe("NowPlaying Component", () => {
 
       expect(screen.getByText("No playback")).toBeInTheDocument();
 
-      const nowPlayingDiv = container.querySelector(".now-playing");
-      expect(nowPlayingDiv).toHaveClass("empty");
+      const nowPlayingDiv = container.querySelector(".np");
+      expect(nowPlayingDiv).toHaveClass("np--empty");
     });
 
     it("should show empty state when nowPlaying is undefined", () => {
@@ -212,7 +212,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge.bluetooth")).toBeInTheDocument();
+      expect(container.querySelector(".np-source.bluetooth")).toBeInTheDocument();
     });
 
     it("should show Radio badge when source is INTERNET_RADIO", () => {
@@ -224,7 +224,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge.radio")).toBeInTheDocument();
+      expect(container.querySelector(".np-source.radio")).toBeInTheDocument();
     });
 
     it("should show Radio badge when source is TUNEIN", () => {
@@ -236,7 +236,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge.radio")).toBeInTheDocument();
+      expect(container.querySelector(".np-source.radio")).toBeInTheDocument();
     });
 
     it("should not show badge when no source provided", () => {
@@ -247,7 +247,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge")).not.toBeInTheDocument();
+      expect(container.querySelector(".np-source")).not.toBeInTheDocument();
     });
 
     it("should show AUX badge for AUX source", () => {
@@ -258,7 +258,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge.aux")).toBeInTheDocument();
+      expect(container.querySelector(".np-source.aux")).toBeInTheDocument();
     });
 
     it("should show AirPlay badge for AIRPLAY source", () => {
@@ -269,7 +269,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge.airplay")).toBeInTheDocument();
+      expect(container.querySelector(".np-source.airplay")).toBeInTheDocument();
     });
 
     it("should show TV badge for TV source", () => {
@@ -280,7 +280,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge.tv")).toBeInTheDocument();
+      expect(container.querySelector(".np-source.tv")).toBeInTheDocument();
     });
 
     it("should show streaming badge for SPOTIFY source", () => {
@@ -291,7 +291,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge.streaming")).toBeInTheDocument();
+      expect(container.querySelector(".np-source.streaming")).toBeInTheDocument();
     });
   });
 
@@ -389,7 +389,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlayingGated nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge")).not.toBeInTheDocument();
+      expect(container.querySelector(".np-source")).not.toBeInTheDocument();
 
       vi.doUnmock("../../src/config/capabilities");
     });
@@ -407,7 +407,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlayingGated nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge.radio")).toBeInTheDocument();
+      expect(container.querySelector(".np-source.radio")).toBeInTheDocument();
 
       vi.doUnmock("../../src/config/capabilities");
     });
