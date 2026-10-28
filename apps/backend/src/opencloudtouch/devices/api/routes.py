@@ -17,11 +17,27 @@ from opencloudtouch.core.dependencies import (
     get_preset_service,
 )
 from opencloudtouch.core.exceptions import (
+    CodedApiError,
     DeviceConnectionError,
     DeviceNotFoundError,
+    DeviceRejectedError,
     DomainValidationError,
 )
+from opencloudtouch.devices.api.settings_models import (
+    ClockItem,
+    ClockWriteResponse,
+    DeviceSettingsResponse,
+    LanguageItem,
+    LanguageWriteResponse,
+    PowerSavingItem,
+    PowerSavingWriteResponse,
+    SetClockRequest,
+    SetLanguageRequest,
+    SetPowerSavingRequest,
+    SettingsAvailability,
+)
 from opencloudtouch.devices.client import NowPlayingInfo
+from opencloudtouch.devices.device_settings import LANGUAGES
 from opencloudtouch.devices.rename_service import rename_device_via_ssh
 from opencloudtouch.devices.service import DeviceService
 from opencloudtouch.devices.state import DeviceStateManager
@@ -49,8 +65,8 @@ async def _device_op(
 ) -> T:
     """Execute a device service call with standardized error handling.
 
-    Domain exceptions (DeviceNotFoundError, DomainValidationError,
-    DeviceConnectionError) propagate to global handlers.
+    Domain exceptions (DeviceNotFoundError, DomainValidationError, CodedApiError,
+    DeviceConnectionError, DeviceRejectedError) propagate to global handlers.
     Only unexpected exceptions are wrapped in 500.
 
     When *state_manager* is provided and a DeviceConnectionError occurs,
@@ -59,11 +75,18 @@ async def _device_op(
     """
     try:
         return await coro
+    except DeviceRejectedError:
+        raise  # the device answered (HTTP >= 400): it is online, do not mark it offline
     except DeviceConnectionError:
         if state_manager:
             await state_manager.mark_device_offline(device_id)
         raise
-    except (DeviceNotFoundError, DomainValidationError, HTTPException):
+    except (
+        DeviceNotFoundError,
+        DomainValidationError,
+        CodedApiError,
+        HTTPException,
+    ):
         raise
     except Exception as e:
         logger.exception("Failed to %s for device %s", action, device_id)
@@ -253,6 +276,107 @@ async def set_device_bass(
         "device_id": device_id,
         "level": level,
     }
+
+
+def _language_item(setting) -> LanguageItem | None:
+    return None if setting is None else LanguageItem(id=setting.id, name=setting.name)
+
+
+def _clock_item(setting) -> ClockItem | None:
+    if setting is None:
+        return None
+    return ClockItem(
+        enabled=setting.enabled,
+        time_format=setting.time_format,
+        timezone=setting.timezone,
+    )
+
+
+def _power_saving_item(setting) -> PowerSavingItem | None:
+    return None if setting is None else PowerSavingItem(enabled=setting.enabled)
+
+
+@router.get("/{device_id}/settings")
+async def get_device_settings(
+    device_id: str,
+    device_service: Annotated[DeviceService, Depends(get_device_service)],
+    state_manager: Annotated[DeviceStateManager, Depends(get_device_state_manager)],
+) -> DeviceSettingsResponse:
+    """Read display language, standby clock and power saving of a device.
+
+    Each setting is read independently; a setting the speaker does not support is
+    null with ``available.<name> = false``.
+    """
+    settings = await _device_op(
+        device_id,
+        "get device settings",
+        device_service.get_device_settings(device_id),
+        state_manager,
+    )
+    return DeviceSettingsResponse(
+        language=_language_item(settings.language),
+        clock=_clock_item(settings.clock),
+        power_saving=_power_saving_item(settings.power_saving),
+        available=SettingsAvailability(**settings.available),
+        languages=[LanguageItem(id=i, name=n) for i, n in LANGUAGES.items()],
+    )
+
+
+@router.put("/{device_id}/settings/language")
+async def set_device_language(
+    device_id: str,
+    body: Annotated[SetLanguageRequest, Body()],
+    device_service: Annotated[DeviceService, Depends(get_device_service)],
+    state_manager: Annotated[DeviceStateManager, Depends(get_device_state_manager)],
+) -> LanguageWriteResponse:
+    """Set the display language; ``applied`` tells whether the speaker kept it."""
+    result = await _device_op(
+        device_id,
+        "set display language",
+        device_service.set_device_language(device_id, body.language_id),
+        state_manager,
+    )
+    return LanguageWriteResponse(
+        applied=result.applied, value=_language_item(result.value)
+    )
+
+
+@router.put("/{device_id}/settings/clock")
+async def set_device_clock(
+    device_id: str,
+    body: Annotated[SetClockRequest, Body()],
+    device_service: Annotated[DeviceService, Depends(get_device_service)],
+    state_manager: Annotated[DeviceStateManager, Depends(get_device_state_manager)],
+) -> ClockWriteResponse:
+    """Configure the standby clock; ``applied`` tells whether the speaker kept it."""
+    result = await _device_op(
+        device_id,
+        "set standby clock",
+        device_service.set_device_clock(
+            device_id, body.enabled, body.time_format, body.timezone
+        ),
+        state_manager,
+    )
+    return ClockWriteResponse(applied=result.applied, value=_clock_item(result.value))
+
+
+@router.put("/{device_id}/settings/power-saving")
+async def set_device_power_saving(
+    device_id: str,
+    body: Annotated[SetPowerSavingRequest, Body()],
+    device_service: Annotated[DeviceService, Depends(get_device_service)],
+    state_manager: Annotated[DeviceStateManager, Depends(get_device_state_manager)],
+) -> PowerSavingWriteResponse:
+    """Switch power saving on or off; ``applied`` tells whether the speaker kept it."""
+    result = await _device_op(
+        device_id,
+        "set power saving",
+        device_service.set_device_power_saving(device_id, body.enabled),
+        state_manager,
+    )
+    return PowerSavingWriteResponse(
+        applied=result.applied, value=_power_saving_item(result.value)
+    )
 
 
 @router.post("/{device_id}/key")

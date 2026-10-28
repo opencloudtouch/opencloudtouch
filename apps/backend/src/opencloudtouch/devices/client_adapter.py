@@ -17,14 +17,25 @@ from bosesoundtouchapi import SoundTouchClient as BoseClient
 from bosesoundtouchapi import SoundTouchDevice
 from defusedxml import ElementTree
 
-from opencloudtouch.core.exceptions import DeviceConnectionError
+from opencloudtouch.core.exceptions import DeviceConnectionError, DeviceRejectedError
 from opencloudtouch.devices.client import (
     BassCapabilities,
     BassInfo,
+    ClockSetting,
     DeviceClient,
     DeviceInfo,
+    LanguageSetting,
     NowPlayingInfo,
+    PowerSavingSetting,
     VolumeInfo,
+)
+from opencloudtouch.devices.device_settings import (
+    build_clock_xml,
+    build_language_xml,
+    build_power_saving_xml,
+    parse_clock,
+    parse_language,
+    parse_power_saving,
 )
 from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
 
@@ -455,6 +466,89 @@ class BoseDeviceClientAdapter(DeviceClient):
         except Exception as e:
             logger.exception("Failed to set bass on %s", self.base_url)
             raise DeviceConnectionError(self.ip, str(e)) from e
+
+    # --- Device settings (language, clock, power saving) -------------------
+    # Raw XML over the speaker's HTTP API; endpoint names come from a community
+    # patch and are hardware-unverified. Reads never raise for "setting missing"
+    # situations; only an unreachable device raises.
+
+    async def _get_xml(self, endpoint: str) -> str | None:
+        """GET *endpoint*; None when the setting is unavailable or unreadable."""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(f"{self.base_url}{endpoint}")
+                response.raise_for_status()
+                return response.text
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code != 404:
+                logger.warning(
+                    "Device setting %s unavailable (HTTP %s)",
+                    endpoint,
+                    e.response.status_code,
+                )
+            return None
+        except httpx.TimeoutException:
+            logger.warning("Device setting %s unavailable (timeout)", endpoint)
+            return None
+        except httpx.TransportError as e:
+            raise DeviceConnectionError(self.ip, type(e).__name__) from e
+        except (
+            Exception
+        ) as e:  # noqa: BLE001 - a broken setting must not fail the request
+            logger.warning(
+                "Device setting %s unavailable (%s)", endpoint, type(e).__name__
+            )
+            return None
+
+    async def _post_xml(self, endpoint: str, payload: str) -> None:
+        """POST *payload* to *endpoint*; HTTP >= 400 means the device rejected it."""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    f"{self.base_url}{endpoint}",
+                    content=payload,
+                    headers={"Content-Type": "application/xml"},
+                )
+                response.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            raise DeviceRejectedError(self.ip, e.response.status_code) from e
+        except Exception as e:
+            raise DeviceConnectionError(self.ip, type(e).__name__) from e
+
+    async def get_language(self) -> LanguageSetting | None:
+        """Get the display language (GET /language)."""
+        text = await self._get_xml("/language")
+        return None if text is None else parse_language(text)
+
+    async def set_language(self, language_id: int) -> None:
+        """Set the display language (POST /language)."""
+        await self._post_xml("/language", build_language_xml(language_id))
+
+    async def get_clock(self) -> ClockSetting | None:
+        """Get the standby clock configuration (GET /clockDisplay)."""
+        text = await self._get_xml("/clockDisplay")
+        return None if text is None else parse_clock(text)
+
+    async def set_clock(
+        self,
+        enabled: bool,
+        time_format: str | None,
+        timezone: str | None,
+        extra: dict[str, str],
+    ) -> None:
+        """Write the standby clock configuration (POST /clockDisplay)."""
+        await self._post_xml(
+            "/clockDisplay", build_clock_xml(enabled, time_format, timezone, extra)
+        )
+
+    async def get_power_saving(self) -> PowerSavingSetting | None:
+        """Get the power saving flag (GET /systemtimeout)."""
+        text = await self._get_xml("/systemtimeout")
+        return None if text is None else parse_power_saving(text)
+
+    async def set_power_saving(self, enabled: bool) -> None:
+        """Set the power saving flag (POST /systemtimeout)."""
+        await self._post_xml("/systemtimeout", build_power_saving_xml(enabled))
 
     async def set_name(self, name: str) -> None:
         """

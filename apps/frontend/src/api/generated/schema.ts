@@ -321,6 +321,89 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/devices/{device_id}/settings": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Device Settings
+     * @description Read display language, standby clock and power saving of a device.
+     *
+     *     Each setting is read independently; a setting the speaker does not support is
+     *     null with ``available.<name> = false``.
+     */
+    get: operations["get_device_settings_api_devices__device_id__settings_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/devices/{device_id}/settings/language": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Set Device Language
+     * @description Set the display language; ``applied`` tells whether the speaker kept it.
+     */
+    put: operations["set_device_language_api_devices__device_id__settings_language_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/devices/{device_id}/settings/clock": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Set Device Clock
+     * @description Configure the standby clock; ``applied`` tells whether the speaker kept it.
+     */
+    put: operations["set_device_clock_api_devices__device_id__settings_clock_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/devices/{device_id}/settings/power-saving": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Set Device Power Saving
+     * @description Switch power saving on or off; ``applied`` tells whether the speaker kept it.
+     */
+    put: operations["set_device_power_saving_api_devices__device_id__settings_power_saving_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/devices/{device_id}/key": {
     parameters: {
       query?: never;
@@ -2856,6 +2939,21 @@ export interface components {
       /** New Master Id */
       new_master_id: string;
     };
+    /** ClockItem */
+    ClockItem: {
+      /** Enabled */
+      enabled?: boolean | null;
+      /** Time Format */
+      time_format?: string | null;
+      /** Timezone */
+      timezone?: string | null;
+    };
+    /** ClockWriteResponse */
+    ClockWriteResponse: {
+      /** Applied */
+      applied: boolean;
+      value?: components["schemas"]["ClockItem"] | null;
+    };
     /**
      * ConfigModifyRequest
      * @description Request to modify config file.
@@ -2969,6 +3067,18 @@ export interface components {
       strategy: string;
       /** Message */
       message: string;
+    };
+    /**
+     * DeviceSettingsResponse
+     * @description All device settings; a missing setting is null with available=false.
+     */
+    DeviceSettingsResponse: {
+      language?: components["schemas"]["LanguageItem"] | null;
+      clock?: components["schemas"]["ClockItem"] | null;
+      power_saving?: components["schemas"]["PowerSavingItem"] | null;
+      available: components["schemas"]["SettingsAvailability"];
+      /** Languages */
+      languages: components["schemas"]["LanguageItem"][];
     };
     /**
      * DiagnosticsRequest
@@ -3175,6 +3285,19 @@ export interface components {
        */
       diff: string;
     };
+    /** LanguageItem */
+    LanguageItem: {
+      /** Id */
+      id: number;
+      /** Name */
+      name?: string | null;
+    };
+    /** LanguageWriteResponse */
+    LanguageWriteResponse: {
+      /** Applied */
+      applied: boolean;
+      value?: components["schemas"]["LanguageItem"] | null;
+    };
     /**
      * LogDownloadRequest
      * @description Optional body for POST /api/logs/backend with frontend logs.
@@ -3294,6 +3417,17 @@ export interface components {
        * @default false
        */
       has_ssh: boolean;
+    };
+    /** PowerSavingItem */
+    PowerSavingItem: {
+      /** Enabled */
+      enabled?: boolean | null;
+    };
+    /** PowerSavingWriteResponse */
+    PowerSavingWriteResponse: {
+      /** Applied */
+      applied: boolean;
+      value?: components["schemas"]["PowerSavingItem"] | null;
     };
     /**
      * PresetResponse
@@ -3568,6 +3702,20 @@ export interface components {
       /** Level */
       level: number;
     };
+    /** SetClockRequest */
+    SetClockRequest: {
+      /** Enabled */
+      enabled?: unknown;
+      /** Time Format */
+      time_format?: unknown;
+      /** Timezone */
+      timezone?: unknown;
+    };
+    /** SetLanguageRequest */
+    SetLanguageRequest: {
+      /** Language Id */
+      language_id?: unknown;
+    };
     /**
      * SetManualIPsRequest
      * @description Request model for setting all manual IPs at once.
@@ -3578,6 +3726,20 @@ export interface components {
        * @description List of IP addresses to set
        */
       ips: string[];
+    };
+    /** SetPowerSavingRequest */
+    SetPowerSavingRequest: {
+      /** Enabled */
+      enabled?: unknown;
+    };
+    /** SettingsAvailability */
+    SettingsAvailability: {
+      /** Language */
+      language: boolean;
+      /** Clock */
+      clock: boolean;
+      /** Power Saving */
+      power_saving: boolean;
     };
     /**
      * ValidateHostnameRequest
@@ -4291,6 +4453,142 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  get_device_settings_api_devices__device_id__settings_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DeviceSettingsResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  set_device_language_api_devices__device_id__settings_language_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SetLanguageRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LanguageWriteResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  set_device_clock_api_devices__device_id__settings_clock_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SetClockRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClockWriteResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  set_device_power_saving_api_devices__device_id__settings_power_saving_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SetPowerSavingRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PowerSavingWriteResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
       };
     };
   };

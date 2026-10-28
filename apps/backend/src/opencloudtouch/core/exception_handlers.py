@@ -22,6 +22,7 @@ from opencloudtouch.core.exceptions import (
     CodedApiError,
     DeviceConnectionError,
     DeviceNotFoundError,
+    DeviceRejectedError,
     DiscoveryError,
     DomainValidationError,
     ErrorDetail,
@@ -251,6 +252,15 @@ device_connection_error_handler = _make_domain_handler(
     code=error_codes.DEVICE_UNREACHABLE,
 )
 
+device_rejected_handler = _make_domain_handler(
+    status_code=502,
+    error_type="bad_gateway",
+    title="Device Rejected Request",
+    detail="The device rejected the request.",
+    log_level="warning",
+    code=error_codes.DEVICE_REJECTED,
+)
+
 discovery_error_handler = _make_domain_handler(
     status_code=500,
     error_type="server_error",
@@ -394,6 +404,8 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     # Domain exceptions (specific → general)
     app.add_exception_handler(DeviceNotFoundError, device_not_found_handler)  # type: ignore[arg-type]
+    # DeviceRejectedError is a DeviceConnectionError: register the subclass first
+    app.add_exception_handler(DeviceRejectedError, device_rejected_handler)
     app.add_exception_handler(DeviceConnectionError, device_connection_error_handler)
     app.add_exception_handler(DiscoveryError, discovery_error_handler)
     app.add_exception_handler(DomainValidationError, domain_validation_error_handler)  # type: ignore[arg-type]

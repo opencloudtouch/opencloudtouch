@@ -7,9 +7,15 @@ Separates HTTP layer (routes) from business logic from data layer (repository).
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import Any, AsyncIterator, Callable, List, Optional, Union
+from typing import Any, AsyncIterator, Awaitable, Callable, List, Optional, Union
 
-from opencloudtouch.core.exceptions import DeviceNotFoundError, DomainValidationError
+from opencloudtouch.core import error_codes
+from opencloudtouch.core.exceptions import (
+    DeviceConnectionError,
+    DeviceNotFoundError,
+    DomainValidationError,
+    raise_coded,
+)
 from opencloudtouch.db import Device
 from opencloudtouch.devices.adapter import get_device_client
 from opencloudtouch.devices.capabilities import (
@@ -22,6 +28,14 @@ from opencloudtouch.devices.client import (
     NowPlayingInfo,
     VolumeInfo,
 )
+from opencloudtouch.devices.device_settings import (
+    DeviceSettings,
+    SettingWriteResult,
+    validate_enabled,
+    validate_language_id,
+    validate_time_format,
+    validate_timezone,
+)
 from opencloudtouch.devices.events import DiscoveryEvent, DiscoveryEventType
 from opencloudtouch.devices.interfaces import (
     IDeviceRepository,
@@ -32,6 +46,9 @@ from opencloudtouch.devices.models import KEY_MAPPING, KeyType, SyncResult
 from opencloudtouch.discovery import SOUNDTOUCH_HTTP_PORT, DiscoveredDevice
 
 logger = logging.getLogger(__name__)
+
+# Seconds a single settings read may take before the setting counts as unavailable
+_SETTING_READ_TIMEOUT: float = 5.0
 
 # Type for post-sync callback: async (device_id, ip) → None
 OnDeviceSynced = Optional[Callable[[str, str], Any]]
@@ -67,6 +84,8 @@ class DeviceService:
             discovery_adapter: IDiscoveryAdapter for discovery
         """
         self.repository = repository
+        # Per-device write locks for device settings (created lazily, one per device)
+        self._setting_locks: dict[str, asyncio.Lock] = {}
         self.sync_service = sync_service
         self.discovery_adapter = discovery_adapter
         self._on_device_synced: OnDeviceSynced = None
@@ -320,6 +339,135 @@ class DeviceService:
 
         async with self._device_client(device_id) as client:
             await client.set_bass(level)
+
+    # --- Device settings (language, clock, power saving) -------------------
+
+    async def _read_setting(
+        self, name: str, getter: Callable[[], Awaitable[Any]]
+    ) -> Any:
+        """Read one setting; None if it is unavailable or unreadable.
+
+        Only an unreachable device (DeviceConnectionError) propagates.
+        """
+        try:
+            async with asyncio.timeout(_SETTING_READ_TIMEOUT):
+                return await getter()
+        except DeviceConnectionError:
+            raise
+        except NotImplementedError:
+            return None
+        except (
+            Exception
+        ) as e:  # noqa: BLE001 - one broken setting must not fail the rest
+            # The device id comes from the request path: keep it out of the log line
+            logger.warning("Setting %s unreadable (%s)", name, type(e).__name__)
+            return None
+
+    async def get_device_settings(self, device_id: str) -> DeviceSettings:
+        """Read language, clock and power saving independently of each other.
+
+        Raises:
+            DeviceConnectionError: if the device is unreachable for all three reads.
+        """
+        async with self._device_client(device_id) as client:
+            results = await asyncio.gather(
+                self._read_setting("language", client.get_language),
+                self._read_setting("clock", client.get_clock),
+                self._read_setting("power_saving", client.get_power_saving),
+                return_exceptions=True,
+            )
+        failures = [r for r in results if isinstance(r, DeviceConnectionError)]
+        if len(failures) == len(results):
+            raise failures[0]
+        language, clock, power_saving = (
+            None if isinstance(r, BaseException) else r for r in results
+        )
+        return DeviceSettings(language=language, clock=clock, power_saving=power_saving)
+
+    async def _write_setting(
+        self,
+        device_id: str,
+        name: str,
+        write: Callable[[Any, Any], Awaitable[None]],
+        is_applied: Callable[[Any], bool],
+    ) -> SettingWriteResult:
+        """Pre-read (409 if unavailable), POST, post-read (verifies what was kept)."""
+        # The device is resolved first: an unknown id must not leave a lock behind.
+        async with self._device_client(device_id) as client:
+            lock = self._setting_locks.setdefault(device_id, asyncio.Lock())
+            async with lock:
+                getter = getattr(client, f"get_{name}")
+                before = await self._read_setting(name, getter)
+                if before is None:
+                    raise_coded(
+                        409,
+                        error_codes.SETTING_NOT_AVAILABLE,
+                        f"Setting '{name}' is not available on this device",
+                    )
+                await write(client, before)
+                try:
+                    after = await self._read_setting(name, getter)
+                except DeviceConnectionError:
+                    after = None
+                return SettingWriteResult(
+                    applied=after is not None and is_applied(after), value=after
+                )
+
+    async def set_device_language(
+        self, device_id: str, language_id: Any
+    ) -> SettingWriteResult:
+        """Set the display language and report whether the speaker kept it."""
+        wanted = validate_language_id(language_id)
+
+        async def write(client: Any, _before: Any) -> None:
+            await client.set_language(wanted)
+
+        return await self._write_setting(
+            device_id, "language", write, lambda after: after.id == wanted
+        )
+
+    async def set_device_clock(
+        self, device_id: str, enabled: Any, time_format: Any, timezone: Any
+    ) -> SettingWriteResult:
+        """Set the standby clock (read-modify-write) and verify the result."""
+        is_on = validate_enabled(enabled)
+        if is_on:
+            wanted_format = validate_time_format(time_format)
+            wanted_zone = validate_timezone(timezone)
+
+        async def write(client: Any, before: Any) -> None:
+            if is_on:
+                await client.set_clock(
+                    True, wanted_format, wanted_zone, dict(before.extra)
+                )
+            else:  # only userEnable changes: re-send what was read
+                await client.set_clock(
+                    False, before.time_format, before.timezone, dict(before.extra)
+                )
+
+        def is_applied(after: Any) -> bool:
+            if not is_on:
+                return after.enabled is False
+            return (
+                after.enabled is True
+                and after.time_format == wanted_format
+                and after.timezone == wanted_zone
+            )
+
+        return await self._write_setting(device_id, "clock", write, is_applied)
+
+    async def set_device_power_saving(
+        self, device_id: str, enabled: Any
+    ) -> SettingWriteResult:
+        """Switch power saving on or off and verify the result."""
+        wanted = validate_enabled(enabled)
+
+        async def write(client: Any, _before: Any) -> None:
+            await client.set_power_saving(wanted)
+
+        return await self._write_setting(
+            device_id, "power_saving", write, lambda after: after.enabled is wanted
+        )
 
     async def press_key(self, device_id: str, key: str, state: str = "both") -> None:
         """

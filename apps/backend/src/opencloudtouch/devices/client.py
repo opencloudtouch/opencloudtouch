@@ -6,7 +6,7 @@ Abstract base for device communication
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
@@ -66,6 +66,36 @@ class BassCapabilities:
     minimum: int
     maximum: int
     default: int
+
+
+@dataclass
+class LanguageSetting:
+    """Display language reported by the device (id from the allow-list)."""
+
+    id: int
+    name: str | None
+
+
+@dataclass
+class ClockSetting:
+    """Standby clock configuration of the device.
+
+    ``enabled`` is None when the device reported a value that is not a boolean.
+    ``extra`` keeps every other attribute read (and unmapped values) so a write can
+    send them back unchanged.
+    """
+
+    enabled: bool | None
+    time_format: str | None
+    timezone: str | None
+    extra: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
+class PowerSavingSetting:
+    """Power saving flag of the device (None when not a boolean)."""
+
+    enabled: bool | None
 
 
 class DeviceClient(ABC):
@@ -221,3 +251,37 @@ class DeviceClient(ABC):
     async def reboot(self) -> None:
         """Reboot the device via TCP telnet interface (port 17000)."""
         pass
+
+    # --- Device settings (language, clock, power saving) -------------------
+    # Concrete on purpose: clients and test doubles that do not support these
+    # settings keep working; the service treats NotImplementedError as "not available".
+
+    async def get_language(self) -> LanguageSetting | None:
+        """Return the display language, or None if unavailable."""
+        raise NotImplementedError
+
+    async def set_language(self, language_id: int) -> None:
+        """Set the display language."""
+        raise NotImplementedError
+
+    async def get_clock(self) -> ClockSetting | None:
+        """Return the standby clock configuration, or None if unavailable."""
+        raise NotImplementedError
+
+    async def set_clock(
+        self,
+        enabled: bool,
+        time_format: str | None,
+        timezone: str | None,
+        extra: dict[str, str],
+    ) -> None:
+        """Write the standby clock configuration."""
+        raise NotImplementedError
+
+    async def get_power_saving(self) -> PowerSavingSetting | None:
+        """Return the power saving flag, or None if unavailable."""
+        raise NotImplementedError
+
+    async def set_power_saving(self, enabled: bool) -> None:
+        """Set the power saving flag."""
+        raise NotImplementedError
