@@ -81,19 +81,22 @@ export default function Modal({
       aria-modal="true"
       aria-labelledby={labelledBy}
       aria-describedby={describedBy}
+      onClick={(e) => {
+        // a click on the backdrop lands on the overlay that fills the dialog, not on the panel
+        if (
+          closeOnBackdrop &&
+          e.target instanceof Element &&
+          e.target.classList.contains("dlg-overlay")
+        ) {
+          onClose();
+        }
+      }}
       onCancel={(e) => {
         e.preventDefault(); // React state stays the single source of truth
         if (closeOnEscape) onClose();
       }}
     >
-      <div
-        className="dlg-overlay"
-        role="presentation" // NOSONAR(S6819): backdrop is click-only; the dialog itself has the semantics
-        onClick={(e) => {
-          if (closeOnBackdrop && e.target === e.currentTarget) onClose();
-        }}
-        {...overlayData}
-      >
+      <div className="dlg-overlay" {...overlayData}>
         <div className="dlg-panel" {...panelData}>
           {children}
         </div>

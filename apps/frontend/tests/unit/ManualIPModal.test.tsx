@@ -62,10 +62,10 @@ describe("ManualIPModal", () => {
     expect(mockOnClose).not.toHaveBeenCalled();
   });
 
-  it("overlay is presentational for a11y", () => {
+  it("overlay is a plain wrapper without an ARIA role", () => {
     render(<ManualIPModal isOpen={true} onClose={mockOnClose} />);
     const overlay = document.querySelector('[data-test="modal-overlay"]')!;
-    expect(overlay).toHaveAttribute("role", "presentation");
+    expect(overlay).not.toHaveAttribute("role");
   });
 
   it("uses a native modal dialog element labelled by its title", () => {

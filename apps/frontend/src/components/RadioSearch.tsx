@@ -113,6 +113,38 @@ function cancelPendingSearch(
   abortRef.current?.abort();
 }
 
+function isAbortError(err: unknown): boolean {
+  return err instanceof DOMException && err.name === "AbortError";
+}
+
+type StationPage =
+  | { ok: true; stations: RadioStation[]; hasMore: boolean }
+  | { ok: false; message: string | null };
+
+/** Fetches one page of search results; a failed response yields the user-facing API error message, if any. */
+async function fetchStationPage(
+  searchQuery: string,
+  type: SearchType,
+  provider: RadioProviderType,
+  offset: number,
+  signal: AbortSignal
+): Promise<StationPage> {
+  const response = await fetch(
+    `${getApiBaseUrl()}/api/radio/search?q=${encodeURIComponent(searchQuery)}&search_type=${type}&limit=${RESULTS_PER_PAGE}&offset=${offset}&provider=${provider}`,
+    { signal }
+  );
+
+  if (!response.ok) {
+    // Parse standardized error response (RFC 7807)
+    const apiError = await parseApiError(response);
+    console.error("Radio search failed:", apiError || response);
+    return { ok: false, message: apiError ? getErrorMessage(apiError) : null };
+  }
+
+  const data = await response.json();
+  return { ok: true, stations: normalizeStations(data), hasMore: data?.has_more === true };
+}
+
 /** Returns the editable fields of a manually entered preset, or null for provider stations. */
 function getManualPresetFields(preset: RadioSearchProps["existingPreset"]) {
   if (!preset?.station_uuid?.startsWith("manual-")) return null;
@@ -181,13 +213,6 @@ export default function RadioSearch({
     setError(null);
     setOffset(0);
     setHasMore(false);
-    if (!searchQuery.trim()) {
-      setResults([]);
-      setLoading(false);
-      cancelPendingSearch(debounceRef, abortRef);
-      return;
-    }
-
     if (searchQuery.trim().length < 2) {
       setResults([]);
       setLoading(false);
@@ -203,34 +228,19 @@ export default function RadioSearch({
       abortRef.current = controller;
 
       try {
-        const baseUrl = getApiBaseUrl();
-        const response = await fetch(
-          `${baseUrl}/api/radio/search?q=${encodeURIComponent(searchQuery)}&search_type=${type}&limit=${RESULTS_PER_PAGE}&offset=0&provider=${provider}`,
-          { signal: controller.signal }
-        );
-
-        if (!response.ok) {
-          // Parse standardized error response (RFC 7807)
-          const apiError = await parseApiError(response);
-          console.error("Radio search failed:", apiError || response);
-
-          // Use user-friendly error message from getErrorMessage
-          setError(apiError ? getErrorMessage(apiError) : t("presets.searchFailed"));
+        const page = await fetchStationPage(searchQuery, type, provider, 0, controller.signal);
+        if (!page.ok) {
+          setError(page.message ?? t("presets.searchFailed"));
           setResults([]);
           setHasMore(false);
           return;
         }
 
-        const data = await response.json();
-        const normalized = normalizeStations(data);
-
-        setResults(normalized);
-        setHasMore(data?.has_more === true);
+        setResults(page.stations);
+        setHasMore(page.hasMore);
         setError(null);
       } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") {
-          return;
-        }
+        if (isAbortError(err)) return;
         setResults([]);
         setHasMore(false);
         setError(getErrorMessage(err));
@@ -248,29 +258,24 @@ export default function RadioSearch({
     const controller = new AbortController();
 
     try {
-      const baseUrl = getApiBaseUrl();
-      const response = await fetch(
-        `${baseUrl}/api/radio/search?q=${encodeURIComponent(query)}&search_type=${searchType}&limit=${RESULTS_PER_PAGE}&offset=${newOffset}&provider=${radioProvider}`,
-        { signal: controller.signal }
+      const page = await fetchStationPage(
+        query,
+        searchType,
+        radioProvider,
+        newOffset,
+        controller.signal
       );
-
-      if (!response.ok) {
-        const apiError = await parseApiError(response);
-        setError(apiError ? getErrorMessage(apiError) : t("presets.searchFailed"));
+      if (!page.ok) {
+        setError(page.message ?? t("presets.searchFailed"));
         return;
       }
 
-      const data = await response.json();
-      const normalized = normalizeStations(data);
-
-      setResults((prev) => [...prev, ...normalized]);
+      setResults((prev) => [...prev, ...page.stations]);
       setOffset(newOffset);
-      setHasMore(data?.has_more === true);
+      setHasMore(page.hasMore);
       setError(null);
     } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
-        return;
-      }
+      if (isAbortError(err)) return;
       setError(getErrorMessage(err));
       console.error("Radio load more error:", err);
     } finally {
