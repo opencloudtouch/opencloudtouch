@@ -97,7 +97,9 @@ bugs/
 
 # === Local Tooling ===
 .worktrees/
-.claude/
+# .claude/ is tracked (shared settings and hooks); only personal and generated files stay local
+.claude/settings.local.json
+.claude/worktrees/
 .mcp.json
 .serena/
 
