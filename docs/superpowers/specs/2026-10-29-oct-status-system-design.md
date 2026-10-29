@@ -58,7 +58,7 @@ workflows.
 | E10 | `CLAUDE.md`, DoR and DoD exist for four days (#555). Almost every artifact, including ~35 open specs, is older. | Backfill derives phases from facts; escalation only applies to artifacts created after activation. |
 | E11 | Agent branches are named `claude/<random>`, contradicting the `type/description` rule in `CLAUDE.md`. Cloud sessions have REST access only (no GraphQL, no `gh`). | No state depends on branch names; hooks read through REST only. |
 | E12 | `CLAUDE.md` forbids references to AI tools in commits, PR titles and descriptions. | The marker an agent hook leaves behind is neutral (`oct-src`), never "agent". |
-| E13 | `.gitignore` ignores `docs/*` except an explicit whitelist, and also `.claude/`, `specs/`, `AGENTS.md` and `.github/agents/`. Specs live as GitHub issues (label `spec`), not as files. | `docs/WORKFLOW.md` and `docs/superpowers/` are whitelisted by the first change of this work (the `specs/` and `.specify/` rules had to move above the `docs/*` block so the whitelist can win). `.claude/settings.json` stays ignored; un-ignoring it (`!.claude/settings.json`) or delivering the hooks from a tracked path is a rollout prerequisite (step 3). |
+| E13 | `.gitignore` ignored `docs/*` except an explicit whitelist, and also `.claude/`, `specs/`, `AGENTS.md` and `.github/agents/`. Specs live as GitHub issues (label `spec`), not as files. | Done in the first changes of this work: `docs/WORKFLOW.md` and `docs/superpowers/` are whitelisted (the `specs/` and `.specify/` rules moved above the `docs/*` block so the whitelist can win) and `.claude/` is tracked, with only `.claude/settings.local.json` and `.claude/worktrees/` staying local. Gitar also reads `.claude/rules/*` and `.claude/skills/` once they are tracked. |
 | E14 | Commit identities leak the origin: commits on #560 / #570 are authored by `Claude` (login `claude`); commits on #555 by `Christian Scheil` resolve to the login `oct-support`. Gitar commits have not appeared yet and their message format is undocumented. | `oct-support` is also an identity behind human commits, so its allowlist entry applies to reviews, comments and labels only. The commit author may serve as a weak origin signal, never as a rule. Gitar commits must be checked against the "Validate Commit Messages" job before auto-apply is relied on. |
 
 ## 3. Decisions taken in review
@@ -444,8 +444,8 @@ renderer output, so the documentation cannot drift. `CONTRIBUTING.md`,
    the job summary; compared with reality for a week.
 2. Write mode for new events plus a rate-limited backfill. Phases are derived
    from facts; no strikes for existing artifacts.
-3. `.gitignore` whitelist for `.claude/settings.json` (or a tracked hook path), hooks,
-   `.claude/settings.json`, `docs/WORKFLOW.md`, `CLAUDE.md`.
+3. Hooks, `.claude/settings.json`, `docs/WORKFLOW.md`, `CLAUDE.md` (the
+   `.gitignore` changes are already in place).
 4. Enforcement: `oct-status` becomes a required check (maintainer action in the
    repository settings), strikes start.
 
@@ -467,8 +467,6 @@ stay inert.
   `enforce_admins` is off today, so an admin merge can still bypass it; decide
   whether to switch it on together with rollout step 4.
 - The undocumented label `review`.
-- Whether un-ignoring `.claude/settings.json` is acceptable, or the hooks are
-  delivered through a tracked path plus an install script like the git hooks.
 
 ## 16. Definition of Ready / Done mapping
 
