@@ -49,7 +49,7 @@ workflows.
 | E1 | Dependabot opens 44 of the last 100 closed PRs. No spec, no template, labels from `dependabot.yml` mostly do not exist (`npm`, `workspace`, `python`, `backend`, `frontend`, `ci`; only `github_actions` exists, the config says `github-actions`); Dependabot comments about the missing labels on every PR (seen on #498). `reviewers: "user"` is a placeholder. | Dependency PRs get a lightweight profile; label sync fixes the Dependabot config. |
 | E2 | Maintainer batch-merges Dependabot PRs (#457, #488) and the superseded PRs are closed unmerged. External PR #429 was closed in favour of the maintainer port #504 / #469. | New resolution `superseded` and edge `superseded-by`. |
 | E3 | `formatter-bot` (CI job `autoformat`, token `RELEASE_TOKEN`) pushes `style: auto-format code [formatter-bot]` onto PR branches and `main`. `ci.yml` claims such pushes do not trigger runs, but the job uses a PAT. | Pushes by automation actors are never "author activity" and never cause strikes. |
-| E4 | Sonar does not push. `sonarqubecloud[bot]` posts the check "SonarCloud Code Analysis" and a Quality Gate comment; the CI job "SonarCloud" only scans and is skipped for forks and Dependabot. Gitar (now part of Sonar) is installed as `gitar-bot[bot]`: it posts a check "Gitar", one dashboard comment that it edits in place (verdict, risk, options) and `COMMENTED` reviews (#576). Its dashboard on #560 reads "Auto-apply is off", so it has not pushed so far. Per its documentation it pushes new commits to the PR head branch when auto-apply is on or when asked (`gitar fix this`), signs them, never force-pushes, validates against CI first and stops after three consecutive Gitar commits. The open-source plan includes the Pro features: auto-approve (`APPROVE` review, label `gitar-approved`), merge blocking (`REQUEST_CHANGES` review), auto-merge and PR description rewriting ("Enhance summaries"). `github-code-quality[bot]` posts reviews. `codecov-commenter` appears in the spotlight exclusion list. | Gates are an explicit configured list; missing or `skipped` checks are neutral. Gitar is both a findings source and a pushing actor (section 7). |
+| E4 | Sonar does not push. `sonarqubecloud[bot]` posts the check "SonarCloud Code Analysis" and a Quality Gate comment; the CI job "SonarCloud" only scans and is skipped for forks and Dependabot. Gitar (now part of Sonar) is installed as `gitar-bot[bot]`: it posts a check "Gitar", one dashboard comment that it edits in place (verdict, risk, options) and `COMMENTED` reviews (#576). Its dashboard on #560 reads "Auto-apply is off"; letting Gitar push is planned. Documented behaviour: fix commits (GPG-signed; author and message format not documented) go to the PR head branch, are never force-pushed and are only pushed after a green CI check of the fix; it stops after three consecutive Gitar commits or when someone else pushes. Auto-apply criteria (`.gitar/config/apply.md`, natural language, read from the default branch) limit fixes for review findings only; CI fixes and `gitar fix` ignore them, and path exclusions such as `.github/workflows/**` are not a documented setting while the GitHub App has write access to workflows. Merge blocking is a `REQUEST_CHANGES` review, not a check run. The open-source plan includes the Pro features auto-approve (`APPROVE` review, label `gitar-approved`), auto-merge and PR summary rewriting ("Enhance summaries", documented as an in-place block that preserves the text around it). `github-code-quality[bot]` posts reviews. `codecov-commenter` appears in the spotlight exclusion list. | Gates are an explicit configured list; missing or `skipped` checks are neutral. Gitar is both a findings source and a pushing actor (section 7). |
 | E5 | About 30 check runs per PR. Branch protection requires only "Mojibake Check", no reviews, no conversation resolution, `enforce_admins` off. Squash only, branches deleted on merge, auto-merge allowed. The job "CI Summary" aggregates the core jobs. | `wait:ci` is derived from "CI Summary" plus the configured gate list, not from "all checks". Child PRs of a squash-merged parent are retargeted by GitHub, so only the current base counts. |
 | E6 | The maintainer authors PRs (also via agents) under one login (`scheilch`) and GitHub forbids self-approval. Own PRs are approved by `oct-support` after an AI review (`pr-review.yml`, phase 2 job "Approve Check"). `oct-support` is an account of type `User`, not a bot. | Actor classes use a login allowlist, never the account type. |
 | E7 | 32 labels with legacy vocabulary: `wip`, `blocked`, `accepted`, `needs-info`, `duplicate`, `wontfix`, `invalid`, `marked for closing`, `review` (no description), two priority schemes, two `community*` spellings. The issue handler adds `needs-triage`, which does not exist as a label. `spec` and `enhancement` are blue. | Rename in place (keeps assignments); recolor `spec` and `enhancement`. |
@@ -71,7 +71,7 @@ workflows.
 | Maintainer approval | An approval review by `oct-support` after its AI review counts as the maintainer approval for PRs authored by maintainers. `/oct approve` requests that AI review. PRs by other authors need an approval by a human with write access. Other bots (Gitar, code quality, Sonar) never approve. |
 | Label migration | Rename in place as specified in section 9. |
 | Blocker severity | Not graded. One orange for all `wait:*`. |
-| Gitar | Findings source and pushing actor. Its approval and labels never replace the `oct-support` approval. |
+| Gitar | Auto-apply globally on, auto-approve on (an extra signal with the label `gitar-approved`, never a replacement for `oct-support`), auto-merge off. Findings source and pushing actor, see section 7. |
 | Priority labels | Out of scope. |
 
 ## 4. Model
@@ -161,7 +161,7 @@ in the block. The parser never guesses.
 ```
 
 - Content: badges for phase / waiting / counters, a "root blocker" line, an
-  optional stack chain for PRs, and the relations table (relation, artifact,
+  optional stack chain for PRs, an automation row (Gitar verdict, risk and auto-apply state, Sonar gate, `oct-support` review state) and the relations table (relation, artifact,
   phase, waiting on). Counters: `Parts n/m` for specs with parts, `DoD n/m` for
   the pull request template checklist.
 - A "ball with" line names who has to act (maintainers, reporter, author,
@@ -231,6 +231,33 @@ shared with `monthly-community-spotlight.yml` (not from the account type, see E6
 
 Gitar executes commands from comments that start with `gitar` or `@gitar` or that mention `@gitar-bot`. Comments written by the status bot never start with those strings and never mention the bot.
 
+### Gitar as a pushing actor
+
+1. A push by `gitar-bot[bot]` invalidates an existing approval. `oct-support`
+   has to approve the new head, so `wait:maintainer` returns until it does.
+2. Gitar pushes never change `phase`, never count as author activity and never
+   cause strikes. They re-trigger `wait:ci` and `wait:findings` like any push.
+3. Protected paths: Gitar's CI fixes ignore the apply criteria, path exclusions
+   are not a documented Gitar setting and its GitHub App can write workflows. A
+   push by any automation actor that touches a path from `protected_paths` in
+   `config.yml` (initially `.github/workflows/**`, `scripts/oct_status/**`,
+   `.gitar/**`, `.claude/**`, `.gitignore`) sets `wait:findings` and posts a
+   comment naming the files. `oct-status` fails until a maintainer acknowledges
+   with `/oct accept-paths`.
+4. `.gitar/config/apply.md` (natural language, read from the default branch, so
+   a PR cannot loosen it) restricts auto-applied fixes for review findings to
+   low-risk categories and excludes security-relevant code. CI fixes are covered
+   by rule 3.
+5. Gitar never pushes to `main`. Pushes to fork PRs are not documented and are
+   treated as unavailable. Dependabot PRs stay skipped (Gitar default).
+6. If `formatter-bot` pushes after Gitar, Gitar stops (documented: it stops when
+   someone else pushes); the status system neither amplifies nor hides this, the
+   block just shows the current checks.
+7. Stack drift: a Gitar push to the head branch of a PR moves the base of every
+   PR stacked on it. The chain in the block marks such a child as "parent
+   moved" (a notice, no label); rebasing or merging the parent branch stays a
+   manual or agent step.
+
 ## 8. Enforcement for agents and subagents
 
 Layer 1 - tool level, committed `.claude/settings.json`:
@@ -254,7 +281,7 @@ Layer 1 - tool level, committed `.claude/settings.json`:
 Layer 2 - server level (covers hook-less runtimes and the web UI): heal, fact
 reversion, required check `oct-status`, escalation for humans.
 
-Layer 2b - Gitar. Gitar reads `CLAUDE.md`, `AGENTS.md` and `.gitar/` from the repository. A rule file `.gitar/rules/oct-status.md` tells it to leave the `oct-status` block and the `phase:` / `wait:` / `resolution:` labels alone and to write Conventional Commit messages. Recommended Gitar settings: "Enhance summaries" off (it rewrites PR descriptions), "Auto-merge" off, "Allowed bots" unchanged (Dependabot PRs stay skipped). If Gitar's description edits cannot be avoided, the block moves to the pinned comment for all PRs (a profile switch in `config.yml`).
+Layer 2b - Gitar. Gitar reads `CLAUDE.md`, `AGENTS.md` and `.gitar/` from the repository. A rule file `.gitar/rules/oct-status.md` tells it to leave the `oct-status` block and the `phase:` / `wait:` / `resolution:` labels alone and to write Conventional Commit messages; `.gitar/config/apply.md` limits auto-applied finding fixes (section 7). Decided settings: auto-apply on globally, auto-approve on as an additional signal, auto-merge off (it would bypass `wait:maintainer`). A Gitar `APPROVE` would also satisfy a future required-review branch rule, so such a rule must name `oct-support` or code owners explicitly. "Enhance summaries" stays off until shadow mode proves that Gitar's in-place summary block leaves the status block and its HTML comment markers intact.
 
 Layer 3 - `CLAUDE.md` gets a short section pointing to `docs/WORKFLOW.md`.
 
@@ -337,6 +364,7 @@ Maintainers are subject to the same ladder and may override on themselves.
 | `/oct no-spec <reason>` | PR author | exempts a PR from V01 |
 | `/oct supersede #n` | maintainer | edge + `resolution:superseded` |
 | `/oct override <reason>` | maintainer | clears a block, logged |
+| `/oct accept-paths` | maintainer | acknowledges a push by automation to protected paths, logged |
 
 Commands are accepted only from users with write access, answered with a
 reaction and, on error, a comment.
@@ -406,7 +434,7 @@ renderer output, so the documentation cannot drift. `CONTRIBUTING.md`,
 - Hook tests: PreToolUse JSON in, `updatedInput` or denial out; a test that
   proves hooks also fire for subagents (blocking for the claim in section 8).
 - Parser tests for prose edges; ledger / strike tests; `actionlint` for the workflow.
-- Actor-profile tests: a Gitar push invalidates an approval, a formatter-bot push does not; foreign labels stay untouched; no outgoing comment starts with a Gitar trigger.
+- Actor-profile tests: a Gitar push invalidates an approval, a formatter-bot push does not; foreign labels stay untouched; no outgoing comment starts with a Gitar trigger; the protected-path guard fires for automation pushes and not for human pushes.
 
 ### Rollout (one spec issue and PR per step)
 
@@ -429,7 +457,7 @@ stay inert.
 - Hooks apply to subagents and `updatedInput` is honoured (test first).
 - Bot identity: `issue-handler.yml` mentions `scheilch`, `rules.yml` mentions
   `oct-support`; confirm which account the `BOT_PAT` belongs to.
-- Gitar: confirm in its dashboard which of auto-apply, auto-approve, block merges, auto-merge and "Enhance summaries" are enabled. On a throwaway PR verify that a `gitar fix this` commit passes "Validate Commit Messages", that it does not loop with `formatter-bot`, and that `oct-support` re-reviews after it.
+- Gitar: auto-apply (global), auto-approve and auto-merge are decided; confirm "Enhance summaries" and "Skip drafts" in the dashboard. On a throwaway PR verify the author and message of a `gitar fix this` commit against "Validate Commit Messages", that the status block survives a summary update, that `oct-support` re-reviews after a Gitar push, and what happens when `formatter-bot` pushes afterwards (the documentation says both "stops when someone else pushes" and "one or two consecutive commits").
 - Merge-gate mode of `oct-status`: fail only on strikes and stale blocks (default), or also while any `wait:*` label is set on a ready PR. The second mode makes the check the single go / no-go and also holds back native auto-merge (GitHub's or Gitar's) until `wait:maintainer` is cleared. Decide with rollout step 4.
 - `oct-support` appears as the login behind human commits (#555); confirm what that account is.
 - Dependabot rewriting PR descriptions on rebase (assumed; shadow mode verifies).
