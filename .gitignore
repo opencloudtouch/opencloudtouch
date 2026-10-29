@@ -77,6 +77,8 @@ AGENTS.md
 .github/agents/
 .github/CHEATSHEET.md
 Debugging/
+.specify/
+specs/
 docs/*
 !docs/ARCHITECTURE.md
 !docs/adr/
@@ -86,8 +88,9 @@ docs/*
 !docs/GIT_HOOKS.md
 !docs/DEFINITION_OF_READY.md
 !docs/DEFINITION_OF_DONE.md
-.specify/
-specs/
+!docs/WORKFLOW.md
+!docs/superpowers/
+!docs/superpowers/specs/
 
 # === Case Management ===
 bugs/
