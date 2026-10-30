@@ -56,6 +56,15 @@ def test_gates_and_protected_paths():
     ]
 
 
+def test_legacy_wip_switch(tmp_path):
+    assert load_config(CONFIG_PATH).legacy_wip_trusted is True
+    path = tmp_path / "c.yml"
+    path.write_text("legacy_wip_trusted: false\n", encoding="utf-8")
+    assert load_config(path).legacy_wip_trusted is False
+    path.write_text("{}\n", encoding="utf-8")
+    assert load_config(path).legacy_wip_trusted is True
+
+
 def test_bot_logins():
     assert load_config(CONFIG_PATH).bot_logins == ("oct-support", "github-actions[bot]")
 

@@ -34,6 +34,9 @@ class Config:
     # the ledger issue are written with BOT_PAT only (a run without it is forced to a dry run), never
     # with a job token, so `github-actions[bot]` (any workflow) is not trusted here.
     ledger_writers: tuple[str, ...] = field(default=("oct-support",))
+    # Whether the legacy `wip` label (and, in the backfill, a hand-set `phase:in-progress` from its rename)
+    # still proves that work started. Task 20 sets it to false once the backfill (MA-6) re-asserted those.
+    legacy_wip_trusted: bool = True
 
     def pushes(self, login: str) -> bool:
         """Whether a commit by `login` is an automation push (an automation entry with ``pushes: true``)."""
@@ -70,4 +73,5 @@ def load_config(path: Path) -> Config:
         maintainer_permissions=tuple(raw.get("maintainer_permissions", ("maintain", "admin"))),
         bot_logins=tuple(raw.get("bot_logins", ("oct-support", "github-actions[bot]"))),
         ledger_writers=tuple(raw.get("ledger_writers", ("oct-support",))),
+        legacy_wip_trusted=bool(raw.get("legacy_wip_trusted", True)),
     )

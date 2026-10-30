@@ -55,5 +55,7 @@ fan_out_cap: 25
 strike_window_days: 60
 # Strikes stay off until a date is set here (YYYY-MM-DD).
 strikes_enabled_from: null
+# The legacy `wip` label still proves that work started. Task 20 sets this to false after the backfill (MA-6).
+legacy_wip_trusted: true
 # Number of the ledger issue once the label sync created it (skips the search by title).
 ledger_issue: null

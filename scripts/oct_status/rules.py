@@ -169,7 +169,12 @@ def _declared_phase(snap: Snapshot, kind: Kind) -> Phase:
     return _DEFAULT_PHASE.get(kind, Phase.NEW)
 
 
-def _declared_floor(snap: Snapshot, kind: Kind) -> Phase:
+def _wip(snap: Snapshot, cfg: Config) -> bool:
+    """The legacy `wip` label, as long as it is trusted (``cfg.legacy_wip_trusted``, retired after the backfill)."""
+    return cfg.legacy_wip_trusted and "wip" in snap.labels
+
+
+def _declared_floor(snap: Snapshot, kind: Kind, cfg: Config) -> Phase:
     """The declared phase, raised to the floor implied by work that has demonstrably started.
 
     A fact phase replaces the declaration label (`phase:ready` becomes `phase:in-review`); the floor
@@ -177,13 +182,13 @@ def _declared_floor(snap: Snapshot, kind: Kind) -> Phase:
     A fact label can also be set by hand (violation V02), so only labels our own accounts wrote
     (`Snapshot.bot_phase_labels`) count, and a spec additionally needs a complete Definition of
     Ready, or is a legacy spec without any DoR section. The legacy `wip` label (renamed by the
-    label sync) counts as before.
+    label sync) counts as before while ``cfg.legacy_wip_trusted`` is set.
     """
     declared = _declared_phase(snap, kind)
     floor = _STARTED_FLOOR.get(kind)
     if floor is None:
         return declared
-    started = "wip" in snap.labels
+    started = _wip(snap, cfg)
     written = {p for p in _labelled(snap, Phase) if p.label in snap.bot_phase_labels}
     if written & _STARTED and (kind != Kind.SPEC or dor_status(snap.body)[0] or legacy_spec(snap.body)):
         started = True
@@ -345,7 +350,7 @@ def _ci(snap: Snapshot, cfg: Config) -> bool:
     return any(_pending(c) or (_failed(c) and c.name not in _QUALITY_GATES) for c in gates)
 
 
-def _spec_ready(spec: Snapshot) -> bool:
+def _spec_ready(spec: Snapshot, cfg: Config) -> bool:
     """Declared `ready` (with a complete checklist), or a fact phase written after `ready`.
 
     Fact phases never advance a spec below `ready` (see `_work_phase`), so an open PR cannot make
@@ -354,12 +359,12 @@ def _spec_ready(spec: Snapshot) -> bool:
     """
     if spec.timeline_unknown:
         return True
-    return _declared_floor(spec, Kind.SPEC) in _READY_OR_LATER
+    return _declared_floor(spec, Kind.SPEC, cfg) in _READY_OR_LATER
 
 
-def spec_is_ready(spec: Snapshot) -> bool:
+def spec_is_ready(spec: Snapshot, cfg: Config) -> bool:
     """Public form of `_spec_ready` for the violation detectors."""
-    return _spec_ready(spec)
+    return _spec_ready(spec, cfg)
 
 
 def _prerequisite(snap: Snapshot, graph: Graph, cfg: Config) -> bool:
@@ -367,7 +372,7 @@ def _prerequisite(snap: Snapshot, graph: Graph, cfg: Config) -> bool:
     if any(_is_open(s) for s in blockers):
         return True
     targets = _neighbours(snap, graph, EdgeType.IMPLEMENTS) if snap.is_pr else []
-    return any(_is_open(t) and detect_kind(t, cfg) == Kind.SPEC and not _spec_ready(t) for t in targets)
+    return any(_is_open(t) and detect_kind(t, cfg) == Kind.SPEC and not _spec_ready(t, cfg) for t in targets)
 
 
 def _hardware(snap: Snapshot, graph: Graph) -> bool:
@@ -409,21 +414,21 @@ def _derive_pr(snap: Snapshot, graph: Graph, cfg: Config) -> Derived:
     return Derived(Phase.DRAFT if snap.draft else Phase.IN_REVIEW, frozenset(waits), None)
 
 
-def _work_phase(snap: Snapshot, kind: Kind, graph: Graph) -> Phase:
+def _work_phase(snap: Snapshot, kind: Kind, graph: Graph, cfg: Config) -> Phase:
     """Spec, bug and feature request: linked PRs are facts, otherwise the declared phase."""
     hardware = _hardware(snap, graph)
     if snap.state != "open":
         if _resolution(snap):
             return Phase.CLOSED
         return Phase.VERIFICATION if hardware else Phase.DONE
-    floor = _declared_floor(snap, kind)
+    floor = _declared_floor(snap, kind, cfg)
     if kind == Kind.SPEC and floor not in _READY_OR_LATER:
         return floor  # PRs for a spec that is not ready do not advance it (V06 reports them)
     parts = [p for p in _neighbours(snap, graph, EdgeType.IMPLEMENTED_BY) if p.is_pr]
     open_parts = [p for p in parts if _is_open(p)]
     if any(not p.draft for p in open_parts):
         return Phase.IN_REVIEW
-    if open_parts or "wip" in snap.labels:
+    if open_parts or _wip(snap, cfg):
         return Phase.IN_PROGRESS
     if any(p.merged for p in parts):
         # Ruling: an open issue whose known parts are all merged may still get more parts.
@@ -495,7 +500,7 @@ def _derive_known(snap: Snapshot, graph: Graph, cfg: Config, kind: Kind) -> Deri
     if mirrored is not None:
         phase, resolution = mirrored
     elif kind in (Kind.SPEC, Kind.BUG, Kind.FEATURE_REQUEST):
-        phase = _work_phase(snap, kind, graph)
+        phase = _work_phase(snap, kind, graph, cfg)
     else:
         phase = _simple_phase(snap, kind, graph)
     if phase == Phase.CLOSED:

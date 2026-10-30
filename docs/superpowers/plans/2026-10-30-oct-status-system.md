@@ -563,11 +563,11 @@ docs/WORKFLOW.md                     new
 ### Task 20: Activate strikes and the required check
 
 **Files:**
-- Modify: `scripts/oct_status/config.yml` (`strikes_enabled_from`), `docs/WORKFLOW.md`, spec section 15
+- Modify: `scripts/oct_status/config.yml` (`strikes_enabled_from`, `legacy_wip_trusted: false`), `docs/WORKFLOW.md`, spec section 15
 
 - [ ] **Step 1: Write the failing test** `test_config_activation_date_is_set` in `tests/test_config.py`: `load_config(...).strikes_enabled_from` is a `date` that is not in the future.
 - [ ] **Step 2: Run** `cd scripts/oct_status && python -m pytest tests/test_config.py -q` - Expected: FAIL (the key is unset since Task 1).
-- [ ] **Step 3: MAINTAINER ACTION MA-9** - decide and record: gate mode (strikes and stale blocks only, or also while any `wait:*` is set) and `enforce_admins`. Write both decisions into `docs/WORKFLOW.md`. Set `strikes_enabled_from` to the activation date.
+- [ ] **Step 3: MAINTAINER ACTION MA-9** - decide and record: gate mode (strikes and stale blocks only, or also while any `wait:*` is set) and `enforce_admins`. Write both decisions into `docs/WORKFLOW.md`. Set `strikes_enabled_from` to the activation date and `legacy_wip_trusted` to `false` (the backfill MA-6 re-asserted every legacy `wip`; the test `test_legacy_wip_switch` in `tests/test_config.py` then asserts `False` for the shipped config).
 - [ ] **Step 4: Apply as admin** (part of MA-9; UI path in the section "Maintainer actions", or this call):
   ```bash
   curl -X POST -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \

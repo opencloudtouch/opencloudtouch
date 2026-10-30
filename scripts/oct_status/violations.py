@@ -210,7 +210,7 @@ def _pull_request_rules(snap: Snapshot, graph: Graph, cfg: Config) -> list[tuple
             break
     for number in implements:
         spec = graph.snapshots.get(number)
-        if spec is not None and detect_kind(spec, cfg) == Kind.SPEC and not spec_is_ready(spec):
+        if spec is not None and detect_kind(spec, cfg) == Kind.SPEC and not spec_is_ready(spec, cfg):
             found.append(("V06", f"Spec #{number} is not ready yet."))
             break
     return found

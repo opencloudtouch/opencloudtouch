@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import replace
 from pathlib import Path
 
 import httpx
@@ -230,6 +231,17 @@ async def test_legacy_wip_is_reasserted_by_the_bot_and_trusted_afterwards(tmp_pa
     assert "phase:in-progress" in repo.label_names(5) and "phase:draft" not in repo.label_names(5)
     assert "wait:prerequisite" not in repo.label_names(11)
     assert repo.ledger() == []
+
+
+def test_legacy_view_ignores_wip_when_the_trust_is_switched_off():
+    from oct_status.backfill import legacy_view
+
+    from .conftest import make_snapshot
+
+    bug = make_snapshot(number=8, labels=frozenset({"bug", "phase:in-progress"}))
+    assert "phase:triaged" in legacy_view(bug, ACTIVE, {}).labels
+    off = replace(ACTIVE, legacy_wip_trusted=False)
+    assert legacy_view(bug, off, {}).labels == bug.labels
 
 
 async def test_legacy_spec_with_a_merged_part_is_declared_ready(tmp_path):

@@ -786,7 +786,9 @@ Labels: `phase:draft`, `wait:prerequisite`
 
 The backfill (maintainer action MA-6) declares a legacy spec that already has pull requests `phase:ready`,
 written by the bot. The spec then follows its parts (`in-progress`, the parts are drafts), and the V06 notice
-on #573 resolves on the next run:
+on #573 resolves on the next run. Until the backfill is done the legacy `wip` label still counts as started
+work; once it is done, `legacy_wip_trusted: false` in `config.yml` (enforcement step) retires that trust:
+only phase labels written by the automation count from then on.
 
 <!-- snippet:537-backfilled-block -->
 ```markdown

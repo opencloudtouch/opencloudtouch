@@ -83,9 +83,11 @@ def legacy_view(snap: Snapshot, cfg: Config, parts: dict[int, set[int]]) -> Snap
     if snap.is_pr or snap.state != "open" or snap.timeline_unknown:
         return snap
     labels, written = set(snap.labels), set(snap.bot_phase_labels)
-    started = "wip" in labels or ("phase:in-progress" in labels and "phase:in-progress" not in written)
+    started = cfg.legacy_wip_trusted and (
+        "wip" in labels or ("phase:in-progress" in labels and "phase:in-progress" not in written)
+    )
     kind = detect_kind(snap, cfg)
-    if kind == Kind.SPEC and not spec_is_ready(snap):
+    if kind == Kind.SPEC and not spec_is_ready(snap, cfg):
         if started or (legacy_spec(snap.body) and parts.get(snap.number)):
             labels.add("phase:ready")
             written.add("phase:ready")  # the bot writes the declaration

@@ -319,6 +319,29 @@ def test_closed_pr_part_is_ignored_and_wip_label_means_in_progress():
     assert run(bug).phase == Phase.IN_PROGRESS
 
 
+def test_legacy_wip_trust_can_be_switched_off():
+    """`legacy_wip_trusted` (Task 20 flips it to false after the backfill)."""
+    from dataclasses import replace as _replace
+
+    assert CFG.legacy_wip_trusted is True
+    off = _replace(CFG, legacy_wip_trusted=False)
+    implements = (edge(EdgeType.IMPLEMENTS, 10, 5),)
+    bug = make_snapshot(number=5, labels=frozenset({"bug", "wip"}))
+    legacy = spec(labels=frozenset({"spec", "wip"}), body="")
+
+    def derive_with(cfg, snap, *others, edges=()):
+        all_edges = [x for e in edges for x in (e, inverse(e))]
+        graph = Graph(all_edges, {s.number: s for s in (snap, *others)}, {})
+        return derive(snap, graph, cfg)
+
+    assert derive_with(CFG, bug).phase == Phase.IN_PROGRESS
+    assert derive_with(off, bug).phase == Phase.NEW
+    assert derive_with(CFG, legacy).phase == Phase.IN_PROGRESS
+    assert derive_with(off, legacy).phase == Phase.DRAFT
+    assert Wait.PREREQUISITE not in derive_with(CFG, pr(), legacy, edges=implements).waits
+    assert Wait.PREREQUISITE in derive_with(off, pr(), legacy, edges=implements).waits
+
+
 def test_fact_phase_label_keeps_readiness_when_pr_closes():
     implements = (edge(EdgeType.IMPLEMENTS, 10, 5),)
     bot = frozenset({"phase:in-review"})
