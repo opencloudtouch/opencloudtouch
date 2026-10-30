@@ -25,17 +25,20 @@ from .config import Config
 from .guide import RESOLVED, WORKFLOW, format_notice
 from .model import Derived, Graph, Phase, Snapshot
 from .render import block_intact, extract_block
-from .violations import KEY_CHARS, RULES, STATE_RULES, Notice, Violation, state_rules, template_keys
+from .violations import KEY_CHARS, LEVEL_BLOCK, RULES, STATE_RULES, Notice, Violation, state_rules, template_keys
 
 MAX_OPEN = 20
 MAX_RESOLVED = 10
 MAX_TEXT = 300
-MAX_DATA = 64_000  # characters of JSON; larger data is ignored as a whole
+MAX_DATA = 64_000  # characters of JSON; larger data is unknown as a whole
+DATA_BUDGET = 32_000  # characters of JSON the notices may take when written
 _DATA = re.compile(r"<!-- oct-next-data (.*?) -->", re.DOTALL)
 _LOGIN = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})(?:\[bot\])?")
 _SHA = re.compile(r"[0-9a-f]{40}")
 _UNSAFE = re.compile(r"[<>\x00-\x08\x0b-\x1f\x7f]")
 _BOT = re.compile(r"@?gitar-bot(\[bot\])?", re.IGNORECASE)
+# Mentions, images and links in stored text would notify people or load remote content when rendered.
+_MARKUP = str.maketrans({"@": "\uff20", "[": "(", "]": ")"})
 RESOLUTIONS = frozenset({"", "fixed", "restored", "accepted", "reopened", "verified", "overridden"})
 
 
@@ -62,11 +65,13 @@ class Acceptance:
 class GuideState:
     records: tuple[Record, ...] = ()
     accepted: Acceptance | None = None
+    pending: str = ""  # head SHA the protected-path notice listed the files for (what accept-paths covers)
 
 
 def scrub(text: str, limit: int = MAX_TEXT) -> str:
-    """Idempotent cleaning of stored text: no markup brackets, control characters or bot mentions."""
-    lines = [" ".join(_UNSAFE.sub(" ", _BOT.sub("the review bot", line)).split()) for line in text.split("\n")]
+    """Idempotent cleaning of stored text: no HTML brackets, control characters, mentions, links or images."""
+    cleaned = (_UNSAFE.sub(" ", _BOT.sub("the review bot", line)).translate(_MARKUP) for line in text.split("\n"))
+    lines = [" ".join(line.split()) for line in cleaned]
     return "\n".join(line for line in lines if line)[:limit]
 
 
@@ -109,41 +114,70 @@ def _acceptance(raw: object) -> Acceptance | None:
     return Acceptance(sha, by, ts) if ts is not None else None
 
 
-def parse_state(body: str) -> GuideState:
-    """The persisted state of a guide comment body; anything malformed is dropped (never trusted)."""
+def parse_state(body: str) -> GuideState | None:
+    """The persisted state of a guide comment body, or ``None`` when it cannot be trusted as a whole.
+
+    A missing, oversized or structurally invalid data block is unknown, not empty: the caller then
+    does not rewrite the guide (which would wipe the notices) and the check fails closed. Single
+    malformed records are dropped.
+    """
     match = _DATA.search(body or "")
     if match is None or len(match[1]) > MAX_DATA:
-        return GuideState()
+        return None
     try:
         data = json.loads(match[1])
     except ValueError:
-        return GuideState()
-    if not isinstance(data, dict):
-        return GuideState()
-    raw = data.get("notices")
-    records = [r for r in (_record(x) for x in (raw if isinstance(raw, list) else [])[: 4 * MAX_OPEN]) if r]
-    return GuideState(tuple(_cap(records)), _acceptance(data.get("paths_accepted")))
+        return None
+    if not isinstance(data, dict) or not isinstance(data.get("notices", []), list):
+        return None
+    records = [r for r in (_record(x) for x in data.get("notices", [])[: 4 * MAX_OPEN]) if r]
+    pending = data.get("paths_pending")
+    pending_sha = pending.get("sha") if isinstance(pending, dict) else None
+    return GuideState(
+        tuple(_cap(records)),
+        _acceptance(data.get("paths_accepted")),
+        pending_sha if isinstance(pending_sha, str) and _SHA.fullmatch(pending_sha) else "",
+    )
 
 
-def state_data(records: list[Record], accepted: Acceptance | None) -> dict:
+def _record_data(r: Record) -> dict:
+    return {
+        "rule": r.rule,
+        "user": r.user,
+        "artifact": r.artifact,
+        "ts": r.ts.isoformat(),
+        "level": r.level,
+        "hint": scrub(r.hint),
+        "key": scrub(r.key, 1000),
+        "resolved": r.resolved,
+    }
+
+
+def _size(items: list[dict]) -> int:
+    return len(json.dumps(items, ensure_ascii=False))
+
+
+def _within_budget(records: list[Record]) -> list[Record]:
+    """Drop resolved records first, then the oldest open ones below ladder level 3 (never level 3+)."""
+    kept = sorted(records, key=lambda r: r.ts)
+    for droppable in (lambda r: bool(r.resolved), lambda r: not r.resolved and r.level < LEVEL_BLOCK):
+        while _size([_record_data(r) for r in kept]) > DATA_BUDGET:
+            victim = next((r for r in kept if droppable(r)), None)
+            if victim is None:
+                break
+            kept.remove(victim)
+    return kept
+
+
+def state_data(records: list[Record], accepted: Acceptance | None, pending: str = "") -> dict:
     """The keys this module adds to the guide's data JSON (absent when there is nothing to keep)."""
     data: dict = {}
     if records:
-        data["notices"] = [
-            {
-                "rule": r.rule,
-                "user": r.user,
-                "artifact": r.artifact,
-                "ts": r.ts.isoformat(),
-                "level": r.level,
-                "hint": scrub(r.hint),
-                "key": scrub(r.key, 1000),
-                "resolved": r.resolved,
-            }
-            for r in records
-        ]
+        data["notices"] = [_record_data(r) for r in _within_budget(records)]
     if accepted is not None:
         data["paths_accepted"] = {"sha": accepted.sha, "by": accepted.by, "ts": accepted.ts.isoformat()}
+    if pending:
+        data["paths_pending"] = {"sha": pending}
     return data
 
 

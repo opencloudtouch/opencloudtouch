@@ -132,9 +132,10 @@ async def _pushes(api: GitHubApi, number: int, cfg: Config | None) -> tuple[Push
 
     GitHub's PR commits endpoint itself lists at most 250 commits. HTTP errors propagate.
 
-    Author is the commit author login, else the committer login, else the git author name.
-    File paths are fetched (``GET /commits/{sha}``) only for authors that are keys of
-    ``cfg.automation``; everybody else gets ``paths == ()``.
+    Author is the commit author login, else the committer login, else the git author name; the
+    committer login is kept as well. File paths are fetched (``GET /commits/{sha}``) when the author
+    or the committer is a key of ``cfg.automation`` (an automation can commit a human-authored
+    change); everybody else gets ``paths == ()``.
     """
     commits: list[dict[str, Any]] = []
     for page in range(1, _MAX_COMMIT_PAGES + 1):
@@ -152,10 +153,11 @@ async def _pushes(api: GitHubApi, number: int, cfg: Config | None) -> tuple[Push
             or ((commit.get("commit") or {}).get("author") or {}).get("name")
             or ""
         )
+        committer = (commit.get("committer") or {}).get("login") or ""
         paths: tuple[str, ...] = ()
-        if cfg is not None and login in cfg.automation:
+        if cfg is not None and (login in cfg.automation or committer in cfg.automation):
             paths = await _commit_paths(api, commit["sha"])
-        pushes.append(Push(commit["sha"], login, paths))
+        pushes.append(Push(commit["sha"], login, paths, committer))
     return tuple(pushes)
 
 

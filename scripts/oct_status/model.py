@@ -115,6 +115,7 @@ class Push:
     sha: str
     author: str
     paths: tuple[str, ...]
+    committer: str = ""  # committer login (GitHub API linked account), "" when unknown
 
 
 @dataclass(frozen=True)
@@ -158,6 +159,9 @@ class Snapshot:
     # Head SHA up to which a maintainer acknowledged automation pushes to protected paths (`/oct accept-paths`),
     # read from the guide comment's data; "" when nothing was acknowledged.
     paths_accepted: str = ""
+    # Head SHA for which the guide last listed unacknowledged protected-path changes; `/oct accept-paths`
+    # acknowledges up to this commit only (what the maintainer saw), "" when none was listed.
+    paths_pending: str = ""
 
 
 @dataclass(frozen=True)

@@ -223,11 +223,17 @@ class Workspace:
         guides = guides_in(comments, self.cfg.bot_logins)
         state = persisted.parse_state(guides[0].get("body") or "") if guides else GuideState()
         self.states[snap.number] = state
+        if state is None:
+            self.warnings.append(
+                f"WARNING: guide data of #{snap.number} is missing, oversized or invalid; the guide comment is "
+                "not rewritten (delete it to start over)"
+            )
         reason = await commands.find_no_spec(self.api, snap, comments) if snap.is_pr else None
         return replace(
             snap,
             no_spec_reason=reason or snap.no_spec_reason,
-            paths_accepted=state.accepted.sha if state.accepted else snap.paths_accepted,
+            paths_accepted=state.accepted.sha if state and state.accepted else snap.paths_accepted,
+            paths_pending=state.pending if state else "",
         )
 
     def patch(
@@ -304,6 +310,8 @@ class Outcome:
     block: str | None = None
     writes: list[str] = field(default_factory=list)
     unresolved: list[str] = field(default_factory=list)
+    gate_clear: bool = False  # an open PR the check `oct-status` passes for after this run's writes
+    head_sha: str = ""
 
 
 Notes = dict[int, tuple[list[str], list[str]]]  # artifact -> (notices, history), newest first; this run only
@@ -319,11 +327,16 @@ class RunContext:
     accepted: dict[int, set[str]] = field(default_factory=dict)
 
 
-def _guide(ws: Workspace, graph: Graph, snap: Snapshot, derived: Derived, ctx: RunContext) -> str | None:
-    """The guide with the persisted notices carried over and resolved; ``None`` when its state is unknown."""
+def _guide(
+    ws: Workspace, graph: Graph, snap: Snapshot, derived: Derived, ctx: RunContext
+) -> tuple[str | None, list[Record]]:
+    """The guide with the persisted notices carried over and resolved, and those notices.
+
+    ``(None, [])`` when the persisted state is unknown (the guide is then not rewritten).
+    """
     state = ws.states.get(snap.number, GuideState())
     if state is None:
-        return None
+        return None, []
     number = snap.number
     records = persisted.update(
         state.records, ctx.found.get(number, []), snap, derived, graph, ws.cfg, ctx.now, ctx.accepted.get(number)
@@ -331,9 +344,10 @@ def _guide(ws: Workspace, graph: Graph, snap: Snapshot, derived: Derived, ctx: R
     notices, history = ctx.notes.get(number, ([], []))
     changes = protected_changes(snap, ws.cfg)
     texts = [*notices, *([protected_notice(changes)] if changes else []), *persisted.render(records, snap.is_pr)]
-    data = persisted.state_data(records, ws.acceptances.get(number) or state.accepted)
+    pending = snap.head_sha if changes else ""  # the files listed now are what `/oct accept-paths` covers
+    data = persisted.state_data(records, ws.acceptances.get(number) or state.accepted, pending)
     steps = next_steps(snap, derived, ws.cfg, graph)
-    return render_guide(snap, derived, steps, texts, history, cfg=ws.cfg, data=data)
+    return render_guide(snap, derived, steps, texts, history, cfg=ws.cfg, data=data), records
 
 
 async def _converge(
@@ -351,11 +365,19 @@ async def _converge(
             outcomes.append(Outcome(number, None))
             continue
         block = render_block(snap, derived, graph, ws.cfg)
-        guide = _guide(ws, graph, snap, derived, ctx) if comments else None
+        guide, records = _guide(ws, graph, snap, derived, ctx) if comments else (None, [])
         with_comments = comments and guide is not None
         writes = await apply_state(ws.api, snap, derived, block, guide, ws.cfg, dry_run, comments=with_comments)
         unresolved = parse_prose_edges(number, snap.body)[1]
-        outcomes.append(Outcome(number, derived, block, writes, unresolved))
+        clear = (
+            snap.is_pr
+            and snap.state == "open"
+            and not snap.merged
+            and with_comments
+            and not protected_changes(snap, ws.cfg)
+            and not persisted.blocking(records, snap.is_pr)
+        )
+        outcomes.append(Outcome(number, derived, block, writes, unresolved, bool(clear), snap.head_sha))
     return outcomes
 
 
@@ -650,8 +672,13 @@ async def run_event(
     payload: dict[str, Any],
     dry_run: bool,
     clock: Callable[[], datetime] = _utcnow,
+    actions_api: GitHubApi | None = None,
 ) -> int:
-    """Process one webhook event: recompute the artifact and its connected component (capped)."""
+    """Process one webhook event: recompute the artifact and its connected component (capped).
+
+    In write mode a pull request whose gate this run cleared gets its last failed `oct-status` job
+    re-run (through `actions_api`, default `api`), so the required check turns green without a push.
+    """
     if is_own_event(event_name, payload, set(cfg.bot_logins)):
         print("ignored: event caused by our own write")
         return EXIT_OK
@@ -683,14 +710,67 @@ async def run_event(
         summary += [f"Reverted ({state}):", *[f"- {_inline(w)}" for w in reverted], ""]
     if report is not None:
         summary += _command_lines(report, dry_run)
+    reruns: list[str] = []
+    if not dry_run:
+        cleared = [o for o in outcomes if o.gate_clear and o.writes and o.head_sha]
+        reruns = await rerun_failed_checks(actions_api or api, cleared, ws.warnings)
     for outcome in outcomes:
         summary += _outcome_lines(outcome, dry_run, with_block=True)
         print(f"#{outcome.number}: {len(outcome.writes)} write(s) {'planned' if dry_run else 'performed'}")
+    if reruns:
+        summary += ["Re-run of the check `oct-status`:", *[f"- {_inline(r)}" for r in reruns], ""]
+    summary += [f"> {w}" for w in ws.warnings if w.startswith("WARNING: re-run")]
     if not outcomes:
         print(f"#{number}: not found, skipped")
         summary.append(f"#{number} was not found; nothing to do.")
     _summary(summary)
     return EXIT_OK
+
+
+WORKFLOW_FILE = "oct-status.yml"
+CHECK_JOB = "oct-status"
+
+
+async def _rerun_one(api: GitHubApi, outcome: Outcome) -> str | None:
+    """Re-run the newest completed, failed `oct-status` job of the PR head; ``None`` when there is none.
+
+    A newer run whose check has not finished yet evaluates the new state anyway: nothing to do then.
+    """
+    resp = await api.request(
+        "GET", f"/actions/workflows/{WORKFLOW_FILE}/runs", params={"head_sha": outcome.head_sha, "per_page": 10}
+    )
+    resp.raise_for_status()
+    for run in resp.json().get("workflow_runs") or []:
+        run_id = _number(run.get("id"))
+        if run_id is None:
+            continue
+        jobs = await api.request("GET", f"/actions/runs/{run_id}/jobs", params={"per_page": 100})
+        jobs.raise_for_status()
+        job = next((j for j in jobs.json().get("jobs") or [] if j.get("name") == CHECK_JOB), None)
+        if job is None:
+            continue
+        if job.get("status") != "completed" or job.get("conclusion") != "failure":
+            return None
+        (await api.request("POST", f"/actions/runs/{run_id}/rerun-failed-jobs")).raise_for_status()
+        return f"#{outcome.number}: re-ran the failed check of run {run_id}"
+    return None
+
+
+async def rerun_failed_checks(api: GitHubApi, outcomes: list[Outcome], warnings: list[str]) -> list[str]:
+    """Re-run the failed `oct-status` check of every PR whose gate this run cleared (never read-only).
+
+    Failures are not fatal: the check is re-evaluated at the next push at the latest.
+    """
+    if api.read_only:
+        return []
+    done: list[str] = []
+    for outcome in outcomes:
+        try:
+            if (line := await _rerun_one(api, outcome)) is not None:
+                done.append(line)
+        except (httpx.HTTPError, ValueError, AttributeError, TypeError) as exc:
+            warnings.append(f"WARNING: re-run of the check for #{outcome.number} failed ({type(exc).__name__})")
+    return done
 
 
 async def _block_is_current(api: GitHubApi, cfg: Config, snap: Snapshot, block: str) -> bool:
@@ -717,6 +797,11 @@ async def run_check(api: GitHubApi, cfg: Config, event_name: str, payload: dict[
     graph = ws.graph()
     snap, derived = graph.snapshots.get(number), graph.derived.get(number)
     block = render_block(snap, derived, graph, cfg) if snap is not None and derived is not None else None
+    heading = [f"## oct-status check: #{number}", ""]
+    if snap is not None and protected_changes(snap, cfg) and block is None:  # also without a block
+        print(f"failed: #{number}: automation pushed to protected paths without acknowledgement")
+        _summary([*heading, "- Automation pushed to protected paths without a maintainer's `/oct accept-paths`."])
+        return EXIT_STALE
     if snap is None or block is None:
         print(f"ok: #{number} carries no block")
         return EXIT_OK
@@ -732,7 +817,6 @@ async def run_check(api: GitHubApi, cfg: Config, event_name: str, payload: dict[
     elif blocks := persisted.blocking(state.records, snap.is_pr):
         rules = ", ".join(sorted({r.rule for r in blocks}))
         problems.append(f"Open violation(s) at ladder level 3 or higher: {rules}. Fix them or ask for `/oct override`.")
-    heading = [f"## oct-status check: #{number}", ""]
     if not problems:
         print(f"ok: #{number} is current and nothing blocks it")
         _summary([*heading, "The status block is current and nothing blocks the check."])
@@ -742,7 +826,13 @@ async def run_check(api: GitHubApi, cfg: Config, event_name: str, payload: dict[
     return EXIT_STALE
 
 
-async def run_audit(api: GitHubApi, cfg: Config, dry_run: bool, clock: Callable[[], datetime] = _utcnow) -> int:
+async def run_audit(
+    api: GitHubApi,
+    cfg: Config,
+    dry_run: bool,
+    clock: Callable[[], datetime] = _utcnow,
+    actions_api: GitHubApi | None = None,
+) -> int:
     """Recompute every open artifact and heal drift; returns how many artifacts needed a repair."""
     ws = Workspace(api, cfg)
     numbers = sorted({int(item["number"]) for item in await ws.open_items()})
@@ -753,6 +843,8 @@ async def run_audit(api: GitHubApi, cfg: Config, dry_run: bool, clock: Callable[
         await ws.neighbors(number)  # loads the artifact and its relations
     outcomes = await _converge(ws, numbers, dry_run, RunContext(clock()))
     repaired = [o for o in outcomes if o.writes]
+    if not dry_run:
+        await rerun_failed_checks(actions_api or api, [o for o in repaired if o.gate_clear and o.head_sha], ws.warnings)
     mode = "dry-run" if dry_run else "write"
     summary = [
         f"## OCT status audit ({mode})",
@@ -810,17 +902,25 @@ async def _dispatch(
         if mode == "labels":
             return EXIT_OK, await _run_labels(api, args.dry_run)
         cfg = load_config(CONFIG_PATH)
-        if mode == "audit":
-            await run_audit(api, cfg, args.dry_run)
-            return EXIT_OK, []
         if mode == "backfill":
             from oct_status.backfill import run_backfill  # imports this module
 
             state = Path(args.state or os.environ.get("OCT_BACKFILL_STATE") or DEFAULT_BACKFILL_STATE)
             return await run_backfill(api, cfg, state, args.limit, args.dry_run), []
-        if mode == "check":
-            return await run_check(api, cfg, args.event, payload), []
-        return await run_event(api, cfg, args.event, payload, args.dry_run), []
+        actions_api = None
+        if not api.read_only and os.environ.get("BOT_PAT") and os.environ.get("GITHUB_TOKEN"):
+            # Re-running the check uses the job token (`actions: write` in the write job only).
+            actions_api = GitHubApi(os.environ["GITHUB_TOKEN"], repo)
+        try:
+            if mode == "audit":
+                await run_audit(api, cfg, args.dry_run, actions_api=actions_api)
+                return EXIT_OK, []
+            if mode == "check":
+                return await run_check(api, cfg, args.event, payload), []
+            return await run_event(api, cfg, args.event, payload, args.dry_run, actions_api=actions_api), []
+        finally:
+            if actions_api is not None:
+                await actions_api.aclose()
     finally:
         await api.aclose()
 

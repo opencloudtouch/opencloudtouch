@@ -215,6 +215,6 @@ def render_guide(
         "next": [asdict(replace(s, text=_safe(s.text))) for s in steps[:MAX_STEPS]],
         **(data or {}),
     }
-    payload = json.dumps(data, sort_keys=True).replace("--", "\\u002d\\u002d")
+    payload = json.dumps(data, sort_keys=True, ensure_ascii=False).replace("--", "\\u002d\\u002d")
     out.append(f"<!-- oct-next-data {payload} -->")
     return "\n".join(out) + "\n"

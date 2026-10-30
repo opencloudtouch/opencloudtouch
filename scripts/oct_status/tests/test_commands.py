@@ -367,7 +367,11 @@ async def test_override_and_accept_paths_are_logged():
     out = await _run("accept-paths", "", snap, _derived(Phase.IN_REVIEW), actor="scheilch")
     assert not out.ok and "no unacknowledged" in out.message
     cfg = dataclasses.replace(CFG, protected_paths=[".github/workflows/**"])
-    pushed = make_snapshot(is_pr=True, head_sha="f" * 40, pushes=(Push("f" * 40, BOT, (".github/workflows/a.yml",)),))
+    pushes = (Push("f" * 40, BOT, (".github/workflows/a.yml",)),)
+    unlisted = make_snapshot(is_pr=True, head_sha="f" * 40, pushes=pushes)
+    out = await _run("accept-paths", "", unlisted, _derived(Phase.IN_REVIEW), actor="scheilch")
+    assert not out.ok  # no guide listed the files yet: nothing to acknowledge
+    pushed = dataclasses.replace(unlisted, paths_pending="f" * 40)
     api = api_for(CommandRepo())
     for dry_run, verb in ((False, "acknowledged 1"), (True, "would acknowledge 1")):
         out = await execute(

@@ -10,8 +10,9 @@ from datetime import timedelta
 import pytest
 
 from oct_status.apply import MARKER
+from oct_status.guide import WORKFLOW
 from oct_status.main import run_check, run_event
-from oct_status.notices import MAX_OPEN, Record, parse_state, state_data
+from oct_status.notices import DATA_BUDGET, MAX_OPEN, Record, parse_state, render, scrub, state_data
 
 from .test_commands import comment_event
 from .test_main_events import api_for
@@ -274,18 +275,60 @@ def test_malformed_records_are_dropped(bad):
 
 
 def test_data_is_validated_and_scrubbed():
-    assert parse_state("no guide").records == ()
-    assert parse_state(_body("{not json")).records == ()
-    assert parse_state(_body([1, 2])).records == ()
-    assert parse_state(_body({"notices": "x", "paths_accepted": {"sha": "nope"}})) == parse_state("")
-    huge = {"notices": [GOOD] * 5, "pad": "x" * 70_000}
-    assert parse_state(_body(huge)).records == ()  # oversized data is ignored
+    # A missing, oversized or structurally invalid data block is unknown (None), never empty.
+    assert parse_state("no guide") is None
+    assert parse_state(_body("{not json")) is None
+    assert parse_state(_body([1, 2])) is None
+    assert parse_state(_body({"notices": "x"})) is None
+    assert parse_state(_body({"notices": [GOOD] * 5, "pad": "x" * 70_000})) is None
+    empty = parse_state(_body({"paths_accepted": {"sha": "nope"}, "paths_pending": {"sha": "x"}}))
+    assert empty is not None and empty.accepted is None and empty.pending == "" and empty.records == ()
     hostile = {**GOOD, "hint": "<!-- --> @gitar-bot\x00 & go", "key": "<b>x</b>"}
     rec = parse_state(_body({"notices": [hostile]})).records[0]
     assert "<" not in rec.hint and ">" not in rec.hint and "\x00" not in rec.hint and "gitar-bot" not in rec.hint
     assert "<" not in rec.key
     many = {"notices": [{**GOOD, "artifact": n} for n in range(1, 200)]}
     assert len(parse_state(_body(many)).records) <= 2 * MAX_OPEN
+
+
+def test_forged_record_cannot_mention_link_or_embed():
+    forged = {**GOOD, "hint": "ping @alice ![x](https://evil.example/p.png) [click](https://evil.example)"}
+    rec = parse_state(_body({"notices": [forged]})).records[0]
+    text = "\n".join(render([rec], is_pr=False))
+    assert "@alice" not in text and "](" not in text.replace(f"]({WORKFLOW}", "") and "![" not in text
+    assert scrub(rec.hint) == rec.hint  # idempotent
+
+
+def test_written_data_keeps_a_size_budget_and_level3_notices(monkeypatch):
+    from oct_status import notices
+
+    monkeypatch.setattr(notices, "DATA_BUDGET", 6_000)
+    long = "x" * 290
+    old_open = [replace(_rec("V05", key=f"i:{n}{long}"), ts=NOW - timedelta(hours=n + 1)) for n in range(20)]
+    resolved = [
+        replace(_rec("V07", key="review", resolved="accepted"), ts=NOW - timedelta(minutes=n)) for n in range(10)
+    ]
+    blocking = replace(_rec("V02", key="wait:ci", level=4), ts=NOW - timedelta(days=30), hint="é" * 280)
+    budget_cut = state_data([*old_open, *resolved, blocking], None)
+    kept = budget_cut["notices"]
+    assert len(json.dumps(kept, ensure_ascii=False)) <= notices.DATA_BUDGET < DATA_BUDGET
+    assert not [n for n in kept if n["resolved"]]  # resolved ones go first
+    assert any(n["level"] == 4 for n in kept)  # level 3+ is never dropped
+    # The newest open notices survive; the oldest low-level ones were dropped.
+    assert len(kept) < 21 and kept[-1]["key"].startswith("i:0")
+    # Non-ASCII text is written as is (no \\u escapes inflating the comment).
+    assert "é" in render_guide_data(blocking)
+
+
+def render_guide_data(rec: Record) -> str:
+    from oct_status.guide import render_guide
+    from oct_status.model import Derived, Phase
+
+    from .conftest import make_snapshot
+
+    return render_guide(
+        make_snapshot(), Derived(Phase.NEW, frozenset(), None), [], [], [], data=state_data([rec], None)
+    )
 
 
 def test_state_data_round_trip_is_stable():
@@ -383,3 +426,17 @@ async def test_check_fails_closed_when_the_guide_is_unreadable():
 
     repo.handler = failing  # type: ignore[method-assign]
     assert await check(repo, 10) == 1
+
+
+async def test_invalid_guide_data_is_unknown_and_never_overwritten(monkeypatch, tmp_path):
+    summary = tmp_path / "s.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    repo = Repo()
+    repo.add(5, body=TEMPLATE, labels=("spec",))
+    await run(repo, "issues", other_event(5))
+    guide = next(c for c in repo.comments[5] if MARKER in c["body"])
+    guide["body"] = guide["body"].split("<!-- oct-next-data")[0] + "<!-- oct-next-data {broken -->\n"
+    before = guide["body"]
+    await run(repo, "issues", other_event(5))
+    assert guide["body"] == before
+    assert "guide data of #5 is missing, oversized or invalid" in summary.read_text(encoding="utf-8")

@@ -27,7 +27,11 @@ PATTERNS = load_config(Path(__file__).parent.parent / "config.yml").protected_pa
 GITAR = "gitar-bot[bot]"
 CFG = replace(
     ACTIVE,
-    automation={**ACTIVE.automation, GITAR: Actor(GITAR, "automation", pushes=True)},
+    automation={
+        **ACTIVE.automation,
+        GITAR: Actor(GITAR, "automation", pushes=True),
+        "github-actions[bot]": Actor("github-actions[bot]", "automation"),
+    },
     protected_paths=list(PATTERNS),
 )
 
@@ -110,8 +114,9 @@ class PathRepo(Repo):
         self.commits: dict[int, list[dict]] = {}
         self.files: dict[str, list[str]] = {}
 
-    def push(self, number: int, sha: str, author: str, files: list[str]) -> None:
-        self.commits.setdefault(number, []).append({"sha": sha, "author": {"login": author}, "commit": {}})
+    def push(self, number: int, sha: str, author: str, files: list[str], committer: str = "") -> None:
+        commit = {"sha": sha, "author": {"login": author}, "committer": {"login": committer} if committer else None}
+        self.commits.setdefault(number, []).append({**commit, "commit": {}})
         self.files[sha] = files
         self.prs[number]["head"]["sha"] = sha
 
@@ -224,3 +229,139 @@ async def test_check_fails_for_unaccepted_protected_paths():
     repo.comments[10].sort(key=lambda c: c["id"])
     assert await _check(repo, 10) == 1
     assert parse_state(repo.comments[10][0]["body"]).accepted is not None  # the data parses; the author decides
+
+
+async def test_accept_paths_covers_only_what_the_guide_listed():
+    """A push that lands between the notice and the maintainer's command stays unacknowledged."""
+    repo = PathRepo()
+    repo.add_pr(10, title="docs: x")
+    repo.push(10, SHA_A, GITAR, [".github/workflows/ci.yml"])
+    await _run(repo, "pull_request_target", pr_event(10, "synchronize"))
+    assert _data(repo, 10)["paths_pending"]["sha"] == SHA_A
+    repo.push(10, SHA_B, GITAR, [".gitar/config/apply.md"])  # no event processed yet
+    await _run(repo, "issue_comment", comment_event(10, "/oct accept-paths", login="carol"))
+    data = _data(repo, 10)
+    assert data["paths_accepted"]["sha"] == SHA_A and data["paths_pending"]["sha"] == SHA_B
+    assert "wait:findings" in repo.label_names(10) and ".gitar/config/apply.md" in repo.guide(10)
+    assert "later pushes" in repo.guide(10)
+    assert await _check(repo, 10) == 1
+
+
+async def test_human_author_with_automation_committer_counts_as_automation():
+    repo = PathRepo()
+    repo.add_pr(10, title="docs: x")
+    repo.push(10, SHA_A, "alice", [".github/workflows/ci.yml"], committer=GITAR)
+    await _run(repo, "pull_request_target", pr_event(10, "synchronize"))
+    assert "wait:findings" in repo.label_names(10) and ".github/workflows/ci.yml" in repo.guide(10)
+    assert await _check(repo, 10) == 1
+
+
+async def test_automation_authored_pr_with_a_protected_push_is_still_gated():
+    repo = PathRepo()
+    repo.add_pr(10, title="chore(release): 1.2.3", author="github-actions[bot]")
+    repo.push(10, SHA_A, "github-actions[bot]", ["CHANGELOG.md"])
+    await _run(repo, "pull_request_target", pr_event(10, "opened", sender="github-actions[bot]"))
+    assert repo.writes == [] and await _check(repo, 10) == 0  # a plain announcement: nothing written
+    repo.push(10, SHA_B, GITAR, [".github/workflows/release.yml"])
+    await _run(repo, "pull_request_target", pr_event(10, "synchronize", sender="github-actions[bot]"))
+    assert "wait:findings" in repo.label_names(10) and ".github/workflows/release.yml" in repo.guide(10)
+    assert await _check(repo, 10) == 1
+
+
+class ActionsRepo(PathRepo):
+    """PathRepo with workflow runs of oct-status.yml for the PR head and their jobs."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.runs: list[dict] = []  # newest first: {"id", "head_sha", "job": (status, conclusion) | None}
+        self.reruns: list[int] = []
+        self.actions_calls: list[str] = []
+        self.fail_rerun = False
+
+    def handler(self, request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        if "/actions/" in path:
+            self.actions_calls.append(f"{request.method} {path}")
+        if path == f"{ROOT}/actions/workflows/oct-status.yml/runs":
+            sha = request.url.params.get("head_sha")
+            return httpx.Response(200, json={"workflow_runs": [r for r in self.runs if r["head_sha"] == sha]})
+        if m := re.fullmatch(rf"{ROOT}/actions/runs/(\d+)/jobs", path):
+            run = next(r for r in self.runs if r["id"] == int(m[1]))
+            jobs = [{"name": "status", "status": "completed", "conclusion": "success"}]
+            if run["job"]:
+                jobs.append({"name": "oct-status", "status": run["job"][0], "conclusion": run["job"][1]})
+            return httpx.Response(200, json={"jobs": jobs})
+        if m := re.fullmatch(rf"{ROOT}/actions/runs/(\d+)/rerun-failed-jobs", path):
+            if self.fail_rerun:
+                return httpx.Response(403, json={"message": "Resource not accessible"})
+            self.reruns.append(int(m[1]))
+            return httpx.Response(201, json={})
+        return super().handler(request)
+
+
+async def _pending_repo() -> ActionsRepo:
+    repo = ActionsRepo()
+    repo.add_pr(10, title="docs: x")
+    repo.push(10, SHA_B, GITAR, [".github/workflows/ci.yml"])
+    await _run(repo, "pull_request_target", pr_event(10, "synchronize"))
+    assert await _check(repo, 10) == 1
+    return repo
+
+
+async def test_accepted_command_reruns_the_failed_check():
+    repo = await _pending_repo()
+    repo.runs = [
+        {"id": 7, "head_sha": SHA_B, "job": None},  # a run without the check job (e.g. a comment event)
+        {"id": 6, "head_sha": SHA_B, "job": ("completed", "failure")},
+        {"id": 5, "head_sha": SHA_B, "job": ("completed", "failure")},
+    ]
+    await _run(repo, "issue_comment", comment_event(10, "/oct accept-paths", login="carol"))
+    assert repo.reruns == [6]  # only the newest failed check
+    assert await _check(repo, 10) == 0
+
+
+async def test_no_rerun_when_the_newest_check_is_pending_or_green_or_in_dry_run():
+    for job in (("in_progress", None), ("completed", "success")):
+        repo = await _pending_repo()
+        repo.runs = [
+            {"id": 6, "head_sha": SHA_B, "job": job},
+            {"id": 5, "head_sha": SHA_B, "job": ("completed", "failure")},
+        ]
+        await _run(repo, "issue_comment", comment_event(10, "/oct accept-paths", login="carol"))
+        assert repo.reruns == []
+    repo = await _pending_repo()
+    repo.runs = [{"id": 6, "head_sha": SHA_B, "job": ("completed", "failure")}]
+    from oct_status.api import GitHubApi
+
+    from .test_main_events import _nosleep
+
+    read_only = GitHubApi("t", "o/r", transport=httpx.MockTransport(repo.handler), sleep=_nosleep, read_only=True)
+    payload = comment_event(10, "/oct accept-paths", login="carol")
+    assert await run_event(read_only, CFG, "issue_comment", payload, dry_run=True, clock=clock) == 0
+    await read_only.aclose()
+    assert repo.actions_calls == [] and repo.reruns == []
+
+
+async def test_failed_rerun_is_only_a_warning(monkeypatch, tmp_path):
+    summary = tmp_path / "s.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    repo = await _pending_repo()
+    repo.runs = [{"id": 6, "head_sha": SHA_B, "job": ("completed", "failure")}]
+    repo.fail_rerun = True
+    await _run(repo, "issue_comment", comment_event(10, "/oct accept-paths", login="carol"))
+    assert "wait:findings" not in repo.label_names(10)
+    assert "re-run of the check for #10 failed" in summary.read_text(encoding="utf-8")
+
+
+async def test_audit_reruns_checks_of_healed_pull_requests():
+    from oct_status.main import run_audit
+
+    repo = ActionsRepo()
+    repo.add_pr(10, body="Part of #5")
+    repo.add(5, labels=("bug",))
+    repo.prs[10]["head"]["sha"] = SHA_A
+    repo.runs = [{"id": 3, "head_sha": SHA_A, "job": ("completed", "failure")}]
+    api = api_for(repo)
+    await run_audit(api, CFG, dry_run=False, clock=clock)
+    await api.aclose()
+    assert repo.reruns == [3]

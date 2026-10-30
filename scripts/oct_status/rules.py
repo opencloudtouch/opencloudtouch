@@ -300,7 +300,8 @@ def protected_changes(snap: Snapshot, cfg: Config) -> list[tuple[str, str]]:
     """(automation login, path) of pushes to protected paths that no maintainer acknowledged yet.
 
     Design section 7, rule 3: a push by any automation actor counts, also on docs / no-spec PRs; a
-    human's push never does (its paths are not even fetched). `/oct accept-paths` acknowledges
+    human's push never does (its paths are not even fetched). A push counts as automation when its
+    author or its committer login is an automation actor. `/oct accept-paths` acknowledges
     everything up to the head it was given on; when that commit is no longer on the branch the
     acknowledgement covers nothing (fail closed).
     """
@@ -310,12 +311,12 @@ def protected_changes(snap: Snapshot, cfg: Config) -> list[tuple[str, str]]:
     shas = [p.sha for p in pushes]
     if snap.paths_accepted and snap.paths_accepted in shas:
         pushes = pushes[shas.index(snap.paths_accepted) + 1 :]
-    found = {
-        (push.author, path)
-        for push in pushes
-        if push.author in cfg.automation
-        for path in touches_protected(push.paths, cfg.protected_paths)
-    }
+    found: set[tuple[str, str]] = set()
+    for push in pushes:
+        # An automation that commits a change somebody else authored pushes it all the same.
+        actor = push.author if push.author in cfg.automation else push.committer
+        if actor in cfg.automation:
+            found |= {(actor, path) for path in touches_protected(push.paths, cfg.protected_paths)}
     return sorted(found)
 
 
@@ -452,6 +453,9 @@ def derive(snap: Snapshot, graph: Graph, cfg: Config, kind: Kind | None = None) 
     """
     kind = kind or detect_kind(snap, cfg)
     if kind == Kind.ANNOUNCEMENT:
+        if snap.is_pr and protected_changes(snap, cfg):
+            # An automation-authored PR is still a gate when automation pushed to protected paths.
+            return _derive_known(snap, graph, cfg, Kind.PULL_REQUEST)
         return None
     return _derive_known(snap, graph, cfg, kind)
 

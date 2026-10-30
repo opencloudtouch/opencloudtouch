@@ -585,3 +585,24 @@ async def test_fan_out_follows_propagating_edges_only():
     # Up from a child to its tracking issue, never back down to the sibling.
     assert await walk_component(51, ws.fan_out, 25) == {50, 51}
     await api.aclose()
+
+
+def test_cli_write_mode_uses_the_job_token_for_actions(monkeypatch, cli_repo, tmp_path):
+    seen: list[tuple[str, bool]] = []
+    orig = main.GitHubApi
+
+    def spy(token, name, **kw):
+        api = orig(token, name, **kw)
+        seen.append((token, api.read_only))
+        return api
+
+    cli_repo.add(1)
+    monkeypatch.setattr(main, "GitHubApi", spy)
+    monkeypatch.setenv("BOT_PAT", "pat-value")
+    args = ["--event", "issues", "--payload", payload_file(tmp_path, issue_event(1))]
+    assert main.cli(args) == 0
+    assert main.cli(["--audit"]) == 0
+    assert seen == [("pat-value", False), ("secret-token-value", False)] * 2
+    seen.clear()
+    assert main.cli([*args, "--dry-run"]) == 0
+    assert seen == [("pat-value", True)]  # a dry run never gets a second, writing client

@@ -9,7 +9,7 @@ or unknown permission means "not authorized".
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from urllib.parse import quote
 
 import httpx
@@ -250,23 +250,30 @@ async def execute(
 
 
 def _accept_paths(snap: Snapshot, actor: str, cfg: Config, dry_run: bool, detail: str) -> Outcome:
-    """Acknowledge automation pushes to protected paths up to the current head (design section 7, rule 3).
+    """Acknowledge automation pushes to protected paths (design section 7, rule 3).
 
-    The acknowledgement is stored in the guide comment's data by the caller; a later automation push
-    to a protected path needs a new one.
+    Only up to the head the guide listed the files for (`Snapshot.paths_pending`): a push that arrived
+    after the maintainer read the notice stays unacknowledged. The acknowledgement is stored in the
+    guide comment's data by the caller.
     """
     if not snap.is_pr or snap.state != "open" or snap.merged:
         return _reject("/oct accept-paths only applies to an open pull request")
-    changes = protected_changes(snap, cfg)
+    shas = [p.sha for p in snap.pushes]
+    pending = snap.paths_pending
+    if not pending or pending not in shas:
+        return _reject("there is no unacknowledged automation push to a protected path listed in this guide")
+    seen = replace(snap, pushes=snap.pushes[: shas.index(pending) + 1])
+    changes = protected_changes(seen, cfg)
     if not changes:
-        return _reject("there is no unacknowledged automation push to a protected path")
+        return _reject("there is no unacknowledged automation push to a protected path listed in this guide")
     count = len({path for _, path in changes})
-    head = snap.head_sha[:7]
+    later = protected_changes(replace(snap, paths_accepted=pending), cfg)
+    tail = "; later pushes to protected paths still need a review" if later else ""
     if dry_run:
-        message = f"would acknowledge {count} protected path change(s) up to {head} (dry-run: not stored)"
+        message = f"would acknowledge {count} protected path change(s) up to {pending[:7]} (dry-run: not stored){tail}"
     else:
-        message = f"acknowledged {count} protected path change(s) by automation up to {head}"
-    return Outcome(True, message, log=f"accept-paths by {actor} at {head}{detail}", accept_paths=snap.head_sha)
+        message = f"acknowledged {count} protected path change(s) by automation up to {pending[:7]}{tail}"
+    return Outcome(True, message, log=f"accept-paths by {actor} at {pending[:7]}{detail}", accept_paths=pending)
 
 
 async def apply_declaration(api: GitHubApi, number: int, declare: dict[str, list[str]], *, dry_run: bool) -> list[str]:
