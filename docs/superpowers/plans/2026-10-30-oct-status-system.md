@@ -283,6 +283,27 @@ docs/WORKFLOW.md                     new
 - [ ] **Step 4: Run** - Expected: PASS.
 - [ ] **Step 5: Commit** `feat(oct-status): fetch artifact snapshots and detect kinds`.
 
+### Task 7b: Pushes, sub-issues and dependencies in snapshots
+
+**Why (gap found while executing Task 7):** `fetch_snapshot` leaves `pushes`, `sub_issues` and `blocked_by` empty, but the rules of Task 8 (approval invalidation by `gitar-bot[bot]` pushes, protected paths in Task 14, tracking and prerequisite waits) need them from real data.
+
+**Files:**
+- Modify: `scripts/oct_status/facts.py`, `scripts/oct_status/tests/test_facts.py`, `scripts/oct_status/tests/conftest.py` (synthetic extra routes), `scripts/oct_status/tools/capture_fixture.py` only if a recorded route is possible
+
+**Interfaces:**
+- Consumes: `fetch_snapshot`, `Config.automation` (Tasks 1, 7).
+- Produces: `fetch_snapshot` now also fills `pushes: tuple[Push, ...]` (one `Push(sha, author, paths)` per commit of `GET /pulls/{n}/commits`, author = commit author login, falling back to the committer login), `sub_issues` (`GET /issues/{n}/sub_issues`) and `blocked_by` (`GET /issues/{n}/dependencies/blocked_by`, issue numbers only).
+
+- [ ] **Step 1: Write the failing tests** (collaborator-style synthetic routes through `FixtureTransport(extra=...)`)
+  - `test_pushes_from_pr_commits`: three commits (human, `formatter-bot`, `gitar-bot[bot]`) give three `Push` entries in commit order with the right authors.
+  - `test_paths_only_fetched_for_automation_authors`: `GET /commits/{sha}` (file paths) is requested only for commits whose author is in `cfg.automation`; human pushes have `paths == ()`; the transport records exactly those requests.
+  - `test_sub_issues_and_blocked_by`: the two routes fill the tuples with issue numbers; a 404 or an empty list yields `()`.
+  - `test_pushes_empty_for_issues`: for a plain issue none of the commit routes is called.
+- [ ] **Step 2: Run** `cd scripts/oct_status && python -m pytest tests/test_facts.py -q` - Expected: FAIL.
+- [ ] **Step 3: Implement** the three fills in `fetch_snapshot`; commits are paged with `per_page=100`; at most 100 commits are looked at (the newest 100 when more exist) and a note in the docstring says so.
+- [ ] **Step 4: Run** the same command plus the whole package suite with `--cov=.`, `ruff check .`, `mypy .` - Expected: PASS.
+- [ ] **Step 5: Commit** `feat(oct-status): add pushes, sub-issues and dependencies to snapshots`.
+
 ### Task 8: The rules engine
 
 **Files:**
