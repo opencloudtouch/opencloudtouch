@@ -1206,29 +1206,40 @@ files.
 
 - **Description writes** (`issue_write` and `update_pull_request` of the GitHub MCP server): the guard reads the
   artifact through the REST API (token from `GITHUB_TOKEN`, `GH_TOKEN`, `BOT_PAT` or `gh auth token`, else
-  anonymous; 5 seconds per request) and splices its current status block into the new description. If the
-  block cannot be read, the write is denied (fail closed): post a comment instead.
+  anonymous; at most 5 seconds per request and 40 seconds per tool call, no redirects) and splices its current
+  status block into the new description, an empty one included. If the block cannot be read, the write is denied
+  (fail closed): post a comment instead. A description with a broken `oct-status` marker or more than 65,000
+  characters is denied.
 - **Source marker**: descriptions, comments and reviews written through the GitHub MCP tools end with
-  `<!-- oct-src:1 -->`. Text that carries the guide comment's markers is denied, and the guide comment itself is
-  never edited.
-- **Status labels**: adding or removing a `phase:`, `wait:` or `resolution:` label is denied with the matching
-  `/oct` command (for fact labels: the note that the automation derives them).
+  `<!-- oct-src:1 -->`. `oct-status` and `oct-next` markers quoted in a comment are neutralised (a zero-width
+  space after `<!--`), so they never count as real ones; the guide comment itself is never edited.
+- **Status labels**: adding or removing a `phase:`, `wait:` or `resolution:` label (in any letter case) is denied
+  with the matching `/oct` command (for fact labels: the note that the automation derives them).
 - **Pull request creation** (`create_pull_request`) is denied without `Part of #n` or `Closes #n` (outside HTML
   comments), a docs/ci/chore/style/test title or `/oct no-spec REASON` in the description (post that command as a
   comment as well: the automation reads it from comments); when a heading or item of
-  `.github/pull_request_template.md` is missing; and when a referenced spec is below `phase:ready`, or waits on a
-  prerequisite while the base branch is not the head of another open pull request (stacked-on). A spec without
-  any phase label (not backfilled yet) passes when its Definition of Ready checklist is complete or absent.
-- **Bash**: `gh pr create`, `gh issue|pr edit|create|comment` with a body flag or a status label, and direct
-  writes to issues and pull requests through `gh api`, `curl`, `wget` and similar clients (REST or GraphQL) are
-  denied with the allowed route (the MCP tools above, or a `/oct` command). Every other command passes untouched.
+  `.github/pull_request_template.md` is missing; with more than five references; and when a referenced spec is
+  below `phase:ready`, or waits on a prerequisite while the base branch is not the head of another open pull
+  request (stacked-on). A referenced spec is checked even with `/oct no-spec`. A spec without any phase label (not
+  backfilled yet) passes when its Definition of Ready checklist is complete or absent.
+- **Bash**: `gh pr create`, `gh issue|pr edit|create|comment` with a body flag or a status label, `gh pr review`
+  and `gh issue|pr close` with a body, and direct writes to issues and pull requests through `gh api`, `curl`,
+  `wget` and similar clients (REST or GraphQL) are denied with the allowed route (the MCP tools above, or a `/oct`
+  command), also inside `if`/`for`/`while` blocks, `xargs`, `npx`, `bash -c` and command substitutions.
+  Here-document bodies and the arguments of `git`, `echo`, `grep` and similar text tools are text, not commands.
+  A command longer than 32,000 characters that mentions GitHub is denied unchecked. Every other command passes
+  untouched.
 - **Denials** quote the next steps from the guide comment's data block when it can be read. A rewritten call is
-  shown for confirmation in the default and plan permission modes and approved in the other modes.
-- **Session start**: the hook injects these rules and, when the artifact is clear (a branch `type/<n>-...`, or
-  the open pull request of the current branch), its status block and guide data. It never fails the session.
+  approved directly only in the `bypassPermissions` mode; in every other mode it is shown for confirmation.
+- **Session start**: the hook injects these rules and, when the artifact is clear (a branch `type/<n>-...` with up
+  to six digits that are not the start of a date, or the open pull request of the current branch), its status
+  block and guide data, fenced and marked as untrusted data. It never fails the session.
 - **Failures**: an internal error of the guard blocks GitHub writes (exit code 2) and leaves other Bash commands
   alone. If `python` is not found, Claude Code reports a hook error and the call proceeds unguarded; the workflow
   (heal, revert, the commit status `oct-status`) still applies, as it does for the web UI and hook-less tools.
+  Check with `python --version` (3.11 or later). Where only `python3` exists, install the alias (Debian and
+  Ubuntu: `sudo apt install python-is-python3`; elsewhere a `python` symlink to `python3` on the `PATH`); a shell
+  alias is not enough, because hooks do not run in an interactive shell.
 
 ## Troubleshooting
 

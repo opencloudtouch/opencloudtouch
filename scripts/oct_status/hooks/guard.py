@@ -1,25 +1,27 @@
 """PreToolUse guard for agents and subagents (design section 8, layer 1).
 
 ``decide`` is a pure function of the tool call and the current state of the artifact. The wrapper
-(``main``) reads the hook event from stdin, fetches that state through REST (5 s timeout per request)
-and answers in the hook JSON format on stdout.
+(``main``) reads the hook event from stdin, fetches that state through REST (at most 5 s per request
+within an overall budget of 40 s) and answers in the hook JSON format on stdout.
 
 - Body writes (issue and pull request descriptions) get the current status block spliced in through
   ``updatedInput``; if the block cannot be read, the write is denied (fail closed) and the agent is
   pointed to a comment instead.
 - Changes to ``phase:``, ``wait:`` and ``resolution:`` labels are denied with the ``/oct`` alternative.
 - Pull request creation is gated: spec reference, complete template, spec at ``ready`` or later.
-- ``gh issue|pr edit|create|comment`` with body or label flags and direct REST/GraphQL writes to
-  issues and pull requests through Bash are denied with the equivalent allowed route. Other commands
-  are never touched.
-- Body and comment writes carry the marker ``<!-- oct-src:1 -->``.
+- ``gh issue|pr edit|create|comment`` with body or label flags, ``gh pr review`` and ``gh issue|pr close``
+  with a body, and direct REST/GraphQL writes to issues and pull requests through Bash are denied with
+  the equivalent allowed route. Other commands are never touched.
+- Body and comment writes carry the marker ``<!-- oct-src:1 -->``; status-system markers quoted in a
+  comment are neutralised so they cannot be mistaken for real ones.
 - Denials quote the next steps of the guide comment's data block when it can be read.
 
 A hook that crashes is only a non-blocking error for Claude Code (the tool call proceeds), so ``main``
 catches everything and exits with code 2 for write-class calls (fail closed).
 
 Only the standard library and stdlib-only modules of this package may be imported here: the hook runs
-on contributor machines without the automation's dependencies.
+on contributor machines without the automation's dependencies. Several patterns are copies of the
+automation's; ``tests/test_hooks.py`` keeps them equal.
 """
 
 from __future__ import annotations
@@ -29,8 +31,9 @@ import os
 import re
 import shlex
 import sys
+import time
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Literal
 
@@ -49,30 +52,35 @@ SRC_MARKER = "<!-- oct-src:1 -->"
 GUIDE_MARKER = "<!-- oct-next:v1 -->"
 WORKFLOW_ANCHOR = "docs/WORKFLOW.md#agents-and-subagents"
 PROJECT_REPO = "opencloudtouch"  # the guard applies to this repository and its forks
+BUDGET_SECONDS = 40.0  # overall REST budget of one run; the hook's timeout in settings.json is 60 s
+MAX_COMMAND = 32_000  # longer GitHub-related Bash commands are denied instead of parsed
+MAX_BODY = 65_000  # characters; GitHub rejects longer bodies (65,536)
+MAX_SPEC_REFS = 5
 STATUS_PREFIXES = ("phase:", "wait:", "resolution:")
-# Labels the automation derives from facts; mirrors violations.FACT_LABELS (a test keeps them equal).
+# Labels the automation derives from facts; mirrors violations.FACT_LABELS.
 FACT_LABELS = frozenset(
     {f"phase:{p}" for p in ("new", "draft", "in-progress", "in-review", "merged", "done", "closed", "verification")}
     | {f"wait:{w}" for w in ("maintainer", "findings", "ci", "prerequisite", "hardware-test")}
 )
-READY_OR_LATER = frozenset({"ready", "in-progress", "in-review", "verification", "done"})
-CHORE_TYPES = frozenset({"docs", "ci", "chore", "style", "test"})
+READY_OR_LATER = frozenset({"ready", "in-progress", "in-review", "verification", "done"})  # rules._READY_OR_LATER
+CHORE_TYPES = frozenset({"docs", "ci", "chore", "style", "test"})  # rules._CHORE_TYPES
 
-_BLOCK = re.compile(r"<!-- oct-status:v1 hash=[0-9a-f]{12} -->.*?<!-- /oct-status -->", re.DOTALL)
+_BLOCK = re.compile(r"<!-- oct-status:v1 hash=[0-9a-f]{12} -->.*?<!-- /oct-status -->", re.DOTALL)  # render
 _ANY_BLOCK_MARKER = re.compile(r"<!--\s*/?oct-status", re.IGNORECASE)
-_GUIDE_MARKERS = re.compile(r"<!--\s*oct-next", re.IGNORECASE)
+_STATUS_MARKER = re.compile(r"<!--(?=\s*/?oct-(?:status|next))", re.IGNORECASE)
 _DATA = re.compile(r"<!-- oct-next-data (.*?) -->", re.DOTALL)
 _SRC = re.compile(r"\s*<!-- oct-src:1 -->\s*")
 _COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
-_HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
-_ITEM = re.compile(r"^\s*[-*+]\s+\[([ xX])\]\s*(.*?)\s*$")
-_NOT_APPLICABLE = re.compile(r"\bn/a\b", re.IGNORECASE)
+_HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*$")  # rules._HEADING, render._HEADING
+_ITEM = re.compile(r"^\s*[-*+]\s+\[([ xX])\]\s*(.*?)\s*$")  # rules._ITEM, render._ITEM
+_NOT_APPLICABLE = re.compile(r"\bn/a\b", re.IGNORECASE)  # rules._NOT_APPLICABLE
+_CONVENTIONAL = re.compile(r"^(\w+)(?:\([^)]*\))?!?:")  # rules._CONVENTIONAL
 _SPEC_REF = re.compile(r"\b(?:closes|part of)\s+#(\d+)", re.IGNORECASE)
 _NO_SPEC = re.compile(r"^ {0,3}/oct[ \t]+no-spec[ \t]+\S", re.IGNORECASE | re.MULTILINE)
-_CONVENTIONAL = re.compile(r"^(\w+)(?:\([^)]*\))?!?:")
 _BOT = re.compile(r"@?gitar-bot(\[bot\])?", re.IGNORECASE)
 _LEADING = re.compile(r"^\s*@?gitar", re.IGNORECASE)
 _UNSAFE = re.compile(r"[<>\x00-\x08\x0b-\x1f\x7f]")
+_NEUTRAL = "<!--​"  # a zero-width space keeps a quoted marker from matching the real one
 
 # Tool names (the part after the MCP server prefix) and their aliases in older GitHub MCP servers.
 _ALIASES = {"create_issue": "issue_write", "update_issue": "issue_write", "create_issue_comment": "add_issue_comment"}
@@ -89,7 +97,7 @@ COMMENT_TOOLS = frozenset(
 GUARDED_TOOLS = BODY_TOOLS | COMMENT_TOOLS
 
 # The `/oct` route for each status label (design sections 4.3 and 11).
-_LABEL_ROUTES = {
+LABEL_ROUTES = {
     "phase:spec-review": "`/oct review`",
     "phase:spec-rework": "`/oct rework REASON`",
     "phase:ready": "`/oct ready --reviewer LOGIN` (or `--reviewer independent-review`)",
@@ -101,6 +109,11 @@ _LABEL_ROUTES = {
     "wait:designer": "`/oct designer REASON`",
     "wait:spec-fix": "`/oct rework REASON`",
     "resolution:superseded": "`/oct supersede #N`",
+    # Discussion phases (discussions are not handled by the automation yet; no `/oct` command exists).
+    "phase:open": "none: discussion phases are left to the maintainers",
+    "phase:needs-spec": "none: discussion phases are left to the maintainers",
+    "phase:specified": "none: discussion phases are left to the maintainers",
+    "phase:answered": "none: discussion phases are left to the maintainers",
 }
 _FACT_ROUTE = "none: the automation derives it from GitHub state (pull requests, reviews, checks, open or closed)"
 _RESOLUTION_ROUTE = "ask a maintainer to close the artifact with that resolution"
@@ -164,7 +177,6 @@ class Needs:
     template: bool = False  # read the pull request template
     guide: int | None = None  # artifact whose guide data a denial would quote
     bash: bool = False
-    extra: dict[str, Any] = field(default_factory=dict)
 
 
 # --- Text helpers -----------------------------------------------------------------------------------
@@ -180,23 +192,38 @@ def _plain(text: object, limit: int = 300) -> str:
     return " ".join(_UNSAFE.sub(" ", str(text)).split())[:limit]
 
 
+def norm_label(label: object) -> str:
+    """Label names compare case-insensitively and without surrounding blanks, as on GitHub."""
+    return str(label).strip().casefold()
+
+
 def extract_block(body: str) -> str | None:
-    """Same as ``render.extract_block`` (stdlib-only copy; a test keeps them equal)."""
+    """Same as ``render.extract_block``."""
     match = _BLOCK.search((body or "").replace("\r\n", "\n"))
     return match.group(0) if match else None
 
 
 def splice(body: str, block: str) -> str:
-    """Put `block` at the top of `body`, dropping every block the body carries (no table shrinking)."""
+    """Put `block` at the top of `body`.
+
+    Unlike ``render.splice_block`` (which replaces one block, ``count=1``, and shortens the relations
+    table to a size limit), this drops every block an agent's text carries: an agent may have pasted
+    several old ones. Oversized results are denied instead of shortened (`MAX_BODY`).
+    """
     eol = "\r\n" if "\r\n" in body else "\n"
-    rest = _BLOCK.sub("", body.replace("\r\n", "\n")).lstrip("\n")
+    rest_ = _BLOCK.sub("", body.replace("\r\n", "\n")).lstrip("\n")
     block = block.replace("\r\n", "\n")
-    return (block + ("\n\n" + rest if rest else "")).replace("\n", eol)
+    return (block + ("\n\n" + rest_ if rest_ else "")).replace("\n", eol)
 
 
 def strip_blocks(body: str) -> str:
     eol = "\r\n" if "\r\n" in body else "\n"
     return _BLOCK.sub("", body.replace("\r\n", "\n")).lstrip("\n").replace("\n", eol)
+
+
+def neutralise(text: str) -> str:
+    """Quoted ``oct-status`` / ``oct-next`` markers in agent text can no longer match the real ones."""
+    return _STATUS_MARKER.sub(_NEUTRAL, text)
 
 
 def with_marker(body: str) -> str:
@@ -271,7 +298,7 @@ def next_steps(data: dict | None, number: int | None = None) -> str:
         lines.append(text)
     where = f" of #{number}" if number else ""
     head = f"Next steps from the guide comment{where} (phase {_plain(data.get('phase', '?'), 40)}"
-    head += f", waiting on {', '.join(_plain(w, 40) for w in waits) or 'nothing'}):"
+    head += f", waiting on {', '.join(_plain(w, 40) for w in waits[:10]) or 'nothing'}):"
     return safe(" ".join([head, *lines]) if lines else f"{head} none listed.")
 
 
@@ -294,7 +321,15 @@ def tool_key(tool_name: str) -> str:
 
 def _in_scope(tool_input: Mapping[str, Any]) -> bool:
     repo = tool_input.get("repo")
-    return not isinstance(repo, str) or not repo or repo.lower() == PROJECT_REPO
+    return not isinstance(repo, str) or not repo or repo.strip().lower() == PROJECT_REPO
+
+
+def _valid_names(tool_input: Mapping[str, Any]) -> bool:
+    """Owner and repo, when given, are plain GitHub names (they end up in REST paths)."""
+    return all(
+        tool_input.get(key) in (None, "") or (isinstance(tool_input[key], str) and rest.NAME.match(tool_input[key]))
+        for key in ("owner", "repo")
+    )
 
 
 def _int(value: object) -> int | None:
@@ -327,9 +362,10 @@ def needs_for(tool_name: str, tool_input: Mapping[str, Any]) -> Needs:
     """The reads `decide` depends on for this call."""
     if tool_name == "Bash":
         cmd = tool_input.get("command")
-        return Needs(bash=True, guide=bash_artifact(cmd) if isinstance(cmd, str) else None)
+        ok = isinstance(cmd, str) and len(cmd) <= MAX_COMMAND
+        return Needs(bash=True, guide=bash_artifact(cmd) if ok and isinstance(cmd, str) else None)
     name = tool_key(tool_name)
-    if name not in GUARDED_TOOLS or not _in_scope(tool_input):
+    if name not in GUARDED_TOOLS or not _in_scope(tool_input) or not _valid_names(tool_input):
         return Needs()
     owner, repo = str(tool_input.get("owner") or ""), str(tool_input.get("repo") or "")
     if name == "issue_write":
@@ -341,12 +377,12 @@ def needs_for(tool_name: str, tool_input: Mapping[str, Any]) -> Needs:
         number = _int(tool_input.get("pullNumber"))
         return Needs(owner, repo, artifact=number if "body" in tool_input else None, guide=number)
     if name == "create_pull_request":
-        refs = tuple(spec_refs(str(tool_input.get("body") or "")))
+        refs = spec_refs(str(tool_input.get("body") or ""))
         base = tool_input.get("base")
         return Needs(
             owner,
             repo,
-            specs=refs,
+            specs=tuple(refs) if len(refs) <= MAX_SPEC_REFS else (),
             base=base if isinstance(base, str) else None,
             template=True,
             guide=refs[0] if refs else None,
@@ -357,17 +393,9 @@ def needs_for(tool_name: str, tool_input: Mapping[str, Any]) -> Needs:
     return Needs(owner, repo, guide=number)
 
 
-def _forged(text: str, allow_block: bool) -> str | None:
-    if _GUIDE_MARKERS.search(text):
-        return "the text contains the guide comment marker (`oct-next`), which only the automation writes."
-    if not allow_block and _ANY_BLOCK_MARKER.search(text):
-        return "the text contains the oct-status block markers, which belong only at the top of a description."
-    return None
-
-
 def _label_route(label: str) -> str:
-    if label in _LABEL_ROUTES:
-        return _LABEL_ROUTES[label]
+    if label in LABEL_ROUTES:
+        return LABEL_ROUTES[label]
     if label in FACT_LABELS:
         return _FACT_ROUTE
     if label.startswith("resolution:"):
@@ -385,7 +413,9 @@ def _label_denial(changed: list[str], ctx: HookContext) -> Decision:
 
 
 def _status_labels(labels: object) -> set[str]:
-    return {str(x) for x in labels if str(x).startswith(STATUS_PREFIXES)} if isinstance(labels, list) else set()
+    if not isinstance(labels, list):
+        return set()
+    return {n for n in (norm_label(x) for x in labels) if n.startswith(STATUS_PREFIXES)}
 
 
 def _check_labels(tool_input: Mapping[str, Any], update: bool, ctx: HookContext) -> Decision | None:
@@ -400,14 +430,24 @@ def _check_labels(tool_input: Mapping[str, Any], update: bool, ctx: HookContext)
             "leave out `labels`, or retry when GitHub is reachable; status labels change only through /oct commands.",
             ctx,
         )
-    current = {label for label in ctx.labels if label.startswith(STATUS_PREFIXES)}
+    current = _status_labels(list(ctx.labels))
     changed = sorted(wanted ^ current)
     return _label_denial(changed, ctx) if changed else None
 
 
-def _body_update(body: str, ctx: HookContext, number: int | None) -> Decision | str:
-    """New body with the current block spliced in, or a denial when the block cannot be read."""
-    if ctx.block is None:
+def _too_long(body: str, ctx: HookContext) -> Decision | None:
+    if len(body) <= MAX_BODY:
+        return None
+    return _deny(
+        f"the text would have {len(body)} characters, more than GitHub accepts ({MAX_BODY}).",
+        "shorten the text, or move details into a comment or a linked document.",
+        ctx,
+    )
+
+
+def _description(body: str, ctx: HookContext, number: int | None, existing: bool) -> Decision | str:
+    """A description with the current block spliced in (or without any block), or a denial."""
+    if existing and ctx.block is None:
         what = f"#{number}" if number else "the artifact"
         return _deny(
             f"the current status block of {what} could not be read (offline, no token or rate limit), "
@@ -415,7 +455,21 @@ def _body_update(body: str, ctx: HookContext, number: int | None) -> Decision | 
             "write your text as a comment instead (add_issue_comment); the description stays as it is.",
             ctx,
         )
-    return with_marker(splice(body, ctx.block) if ctx.block else strip_blocks(body))
+    block = ctx.block if existing else ""
+    text = neutralise_guide(body)
+    if _ANY_BLOCK_MARKER.search(strip_blocks(text)):  # what is left besides valid (replaced) blocks
+        return _deny(
+            "the description carries an oct-status block marker that is not a valid block (violation V03).",
+            "remove every `oct-status` marker from your text; the automation keeps the block at the top.",
+            ctx,
+        )
+    final = with_marker(splice(text, block) if block else strip_blocks(text))
+    return _too_long(final, ctx) or final
+
+
+def neutralise_guide(text: str) -> str:
+    """Neutralise only the guide comment markers (descriptions keep valid blocks for the splice)."""
+    return re.sub(r"<!--(?=\s*oct-next)", _NEUTRAL, text, flags=re.IGNORECASE)
 
 
 def _pr_gate(tool_input: Mapping[str, Any], ctx: HookContext) -> Decision | None:
@@ -434,6 +488,14 @@ def _pr_gate(tool_input: Mapping[str, Any], ctx: HookContext) -> Decision | None
             "`/oct no-spec REASON` in the description and post the same command as a comment after creation.",
             ctx,
         )
+    if len(refs) > MAX_SPEC_REFS:
+        return _deny(
+            f"the description references {len(refs)} issues with `Closes`/`Part of`; at most {MAX_SPEC_REFS} "
+            "are checked.",
+            "split the references: name the spec(s) this pull request implements and link the rest without "
+            "`Closes`/`Part of`.",
+            ctx,
+        )
     if not ctx.has_template:
         return _deny(
             "the pull request template .github/pull_request_template.md could not be read (fail closed).",
@@ -450,10 +512,10 @@ def _pr_gate(tool_input: Mapping[str, Any], ctx: HookContext) -> Decision | None
             "not apply as `n/a` with a reason.",
             ctx,
         )
-    if no_spec or (chore and not refs):
+    if not refs:  # exempt (no-spec or chore title) and nothing referenced
         return None
     known = {s.number: s for s in ctx.specs}
-    for number in refs:
+    for number in refs:  # a referenced spec is gated even with `/oct no-spec`
         spec = known.get(number)
         if spec is None or not spec.readable:
             return _deny(
@@ -477,7 +539,7 @@ def _pr_gate(tool_input: Mapping[str, Any], ctx: HookContext) -> Decision | None
                 f"implementation starts after the spec is ready; follow the next steps on #{number}.",
                 ctx,
             )
-        if "wait:prerequisite" in spec.waits and not ctx.stacked:
+        if "wait:prerequisite" in {norm_label(w) for w in spec.waits} and not ctx.stacked:
             return _deny(
                 f"spec #{number} waits on a prerequisite that is not merged (violation V04).",
                 "create the pull request with `base` set to the head branch of the prerequisite's pull request "
@@ -488,35 +550,35 @@ def _pr_gate(tool_input: Mapping[str, Any], ctx: HookContext) -> Decision | None
 
 
 def _decide_tool(name: str, tool_name: str, tool_input: dict, ctx: HookContext) -> Decision:
+    if not _valid_names(tool_input):
+        return _deny("`owner` or `repo` is not a valid GitHub name (fail closed).", "pass plain names.", ctx)
     updated = dict(tool_input)
     raw = tool_input.get("body")
+    has_body = isinstance(raw, str)  # an empty description is a write as well
     body = raw if isinstance(raw, str) else ""
-    has_body = body != ""
-    if has_body and (problem := _forged(body, allow_block=name in BODY_TOOLS)):
-        route = "write plain text; the automation adds the block and the guide comment itself."
-        return _deny(problem, route, ctx)
+    result: Decision | str
     if name == "issue_write":
         update = _method(name, tool_input, tool_name) == "update"
         if denial := _check_labels(tool_input, update, ctx):
             return denial
         if has_body:
-            if not update:
-                updated["body"] = with_marker(strip_blocks(body))
-            else:
-                result = _body_update(body, ctx, _int(tool_input.get("issue_number")))
-                if isinstance(result, Decision):
-                    return result
-                updated["body"] = result
+            result = _description(body, ctx, _int(tool_input.get("issue_number")), existing=update)
+            if isinstance(result, Decision):
+                return result
+            updated["body"] = result
     elif name == "update_pull_request":
         if has_body:
-            result = _body_update(body, ctx, _int(tool_input.get("pullNumber")))
+            result = _description(body, ctx, _int(tool_input.get("pullNumber")), existing=True)
             if isinstance(result, Decision):
                 return result
             updated["body"] = result
     elif name == "create_pull_request":
         if denial := _pr_gate(tool_input, ctx):
             return denial
-        updated["body"] = with_marker(strip_blocks(body))
+        result = _description(body, ctx, None, existing=False)
+        if isinstance(result, Decision):
+            return result
+        updated["body"] = result
     else:
         if name == "update_issue_comment":
             if ctx.comment_body is None:
@@ -532,8 +594,11 @@ def _decide_tool(name: str, tool_name: str, tool_input: dict, ctx: HookContext) 
                     "post a new comment, with an `/oct` command if you want to change the state.",
                     ctx,
                 )
-        if has_body:
-            updated["body"] = with_marker(body)
+        if body:
+            final = with_marker(neutralise(body))
+            if denial := _too_long(final, ctx):
+                return denial
+            updated["body"] = final
     if updated == tool_input:
         return Decision("allow")
     return Decision("allow", "oct-status guard: status block and source marker applied.", updated)
@@ -542,50 +607,105 @@ def _decide_tool(name: str, tool_name: str, tool_input: dict, ctx: HookContext) 
 # --- Bash -----------------------------------------------------------------------------------------------
 
 _SEPARATORS = set(";&|()<>\n")
-_PREFIX_WORDS = {"command", "sudo", "env", "time", "exec", "nohup", "xargs", "builtin", "noglob"}
+_PREFIX_WORDS = {
+    "command",
+    "sudo",
+    "env",
+    "time",
+    "exec",
+    "nohup",
+    "builtin",
+    "noglob",
+    "then",
+    "do",
+    "else",
+    "elif",
+    "if",
+    "while",
+    "until",
+    "{",
+    "}",
+    "!",
+    "$",
+}
+# Wrappers that run their arguments as a command, and their options that take a value.
+_WRAPPERS = {
+    "xargs": {"-I", "-i", "-L", "-l", "-n", "-P", "-d", "-E", "-e", "-s", "-a", "--delimiter", "--arg-file"},
+    "npx": {"-p", "--package", "-c", "--call"},
+}
 _SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "pwsh", "powershell", "cmd"}
+_QUIET = {"git", "echo", "printf", "grep", "egrep", "fgrep", "rg", "cat", "less", "head", "tail", "sed", "awk"}
 _GH_BODY_FLAGS = {"-b", "--body", "-F", "--body-file", "-e", "--editor", "--edit-last", "-T", "--template"}
 _GH_LABEL_FLAGS = {"--add-label", "--remove-label", "-l", "--label"}
-_DATA_FLAGS = {"-d", "--data", "--data-raw", "--data-binary", "--data-urlencode", "--json", "-F", "--form", "-T"}
+_GH_FIELD_FLAGS = {"-f", "-F", "--field", "--raw-field", "--input"}
+_CURL_DATA = {
+    "-d",
+    "--data",
+    "--data-raw",
+    "--data-binary",
+    "--data-urlencode",
+    "--data-ascii",
+    "--json",
+    "-F",
+    "--form",
+    "--form-string",
+    "-T",
+    "--upload-file",
+    "--post-data",
+    "--post-file",
+    "--body-data",
+    "--body-file",
+    "-Body",
+    "-InFile",
+}
+_CURL_DATA_SHORT = set("dFT")  # short options in a cluster such as -sSd
 _REPOS_ISSUES = re.compile(r"(?:^|/)repos/[^/\s]+/[^/\s]+/(?:issues|pulls)(?:[/?\s]|$)")
 _API_ISSUES = re.compile(r"api\.github\.com/repos/[^/\s]+/[^/\s]+/(?:issues|pulls)(?:[/?\s'\"]|$)")
 _MUTATION = re.compile(r"\bmutation\b")
 _MUTATED = re.compile(r"(Issue|PullRequest|Comment|Label|Labelable|Review)\b")
 _WRITE_METHOD = re.compile(r"\b(PATCH|POST|PUT|DELETE)\b")
 _URL_NUMBER = re.compile(r"/(?:issues|pull|pulls)/(\d+)")
-_LOOSE_GH = re.compile(r"(?:^|[\s;&|(`$])gh\s+(?:issue|pr)\s+(?:edit|create|comment)\b")
+# A gh write at a command position (start, after a separator, a substitution or a keyword).
+_LOOSE_GH = re.compile(
+    r"(?:^|[;&|(\n`]|\$\(|\b(?:then|do|else|xargs|sudo|env|command|exec|eval)\s)\s*gh\s+(?:issue|pr)\s+"
+    r"(?:edit|create|comment|review|close)\b"
+)
 _LOOSE_API = re.compile(r"api\.github\.com/(?:repos/\S+/(?:issues|pulls)|graphql)")
-
-
 _HEREDOC = re.compile(r"<<(-?)[ \t]*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\2")
+_GH_WRITE_HINT = re.compile(r"\bgh\b|api\.github\.com")
 
 
 def _drop_heredoc_bodies(command: str) -> str:
     """The command without here-document bodies (text, not commands; they may hold unbalanced quotes).
 
-    A body is dropped only when its terminating delimiter line exists.
+    Linear in the length of the command. A body is dropped only when its terminating delimiter line
+    follows; otherwise the text stays and is judged as commands (nothing can be hidden behind an
+    unterminated ``<<``).
     """
-    out, pos = [], 0
-    for match in _HEREDOC.finditer(command):
-        if match.start() < pos:
-            continue
-        start = command.find("\n", match.end())
-        if start < 0:
-            break
-        strip = "\t" if match[1] else ""
-        end = start + 1
-        while end <= len(command):
-            stop = command.find("\n", end)
-            line = command[end : stop if stop >= 0 else len(command)]
-            if line.lstrip(strip) == match[3]:
-                out.append(command[pos : start + 1])
-                pos = end  # keep the delimiter line
-                break
-            if stop < 0:
-                break
-            end = stop + 1
-    out.append(command[pos:])
-    return "".join(out)
+    lines = command.split("\n")
+    last: dict[str, int] = {}  # last line index of each exact line
+    last_tabs: dict[str, int] = {}  # the same with leading tabs removed (`<<-`)
+    for index, line in enumerate(lines):
+        last[line] = index
+        last_tabs[line.lstrip("\t")] = index
+    out: list[str] = []
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        out.append(line)
+        index += 1
+        pending = [
+            (m[3], bool(m[1])) for m in _HEREDOC.finditer(line) if (last_tabs if m[1] else last).get(m[3], -1) >= index
+        ]
+        for delimiter, tabs in pending:  # bodies follow one after the other
+            end = index
+            while end < len(lines) and (lines[end].lstrip("\t") if tabs else lines[end]) != delimiter:
+                end += 1
+            if end >= len(lines):
+                break  # not terminated after the previous body: keep the rest as commands
+            out.append(lines[end])  # keep the delimiter line
+            index = end + 1
+    return "\n".join(out)
 
 
 def _tokens(command: str) -> list[str]:
@@ -593,29 +713,6 @@ def _tokens(command: str) -> list[str]:
     lexer.whitespace = " \t\r"
     lexer.whitespace_split = True
     return list(lexer)
-
-
-def _without_heredocs(tokens: list[str]) -> list[str]:
-    """Drop here-document bodies (text, not commands) from a token list."""
-    out: list[str] = []
-    pending: list[str] = []  # delimiters whose bodies start after the next newline
-    index = 0
-    while index < len(tokens):
-        token = tokens[index]
-        if token in ("<<", "<<-") and index + 1 < len(tokens):
-            pending.append(tokens[index + 1])
-            out += [token, tokens[index + 1]]
-            index += 2
-            continue
-        out.append(token)
-        index += 1
-        if token == "\n" and pending:
-            for delimiter in pending:
-                while index < len(tokens) and not (tokens[index] == delimiter and tokens[index - 1] == "\n"):
-                    index += 1
-                index += 1
-            pending = []
-    return out
 
 
 def _substitutions(token: str) -> list[str]:
@@ -630,7 +727,7 @@ def _substitutions(token: str) -> list[str]:
 
 def _segments(tokens: list[str]) -> list[list[str]]:
     segments: list[list[str]] = [[]]
-    for token in _without_heredocs(tokens):
+    for token in tokens:
         if token and set(token) <= _SEPARATORS:
             segments.append([])
         elif token.startswith("`") and len(token) > 1:  # unquoted command substitution
@@ -642,12 +739,19 @@ def _segments(tokens: list[str]) -> list[list[str]]:
 
 def _strip_prefix(seg: list[str]) -> list[str]:
     index = 0
-    while index < len(seg) and (
-        re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*=.*", seg[index], re.DOTALL)
-        or seg[index] in _PREFIX_WORDS
-        or seg[index] == "$"
-    ):
-        index += 1
+    while index < len(seg):
+        token = seg[index]
+        program = _program(token)
+        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*=.*", token, re.DOTALL) or token in _PREFIX_WORDS:
+            index += 1
+        elif program in _WRAPPERS:
+            valued = _WRAPPERS[program]
+            index += 1
+            while index < len(seg) and seg[index].startswith("-"):
+                flag = seg[index].split("=", 1)[0]
+                index += 2 if flag in valued and "=" not in seg[index] and len(seg[index]) == len(flag) else 1
+        else:
+            break
     return seg[index:]
 
 
@@ -668,7 +772,7 @@ def _gh_repo_out_of_scope(args: list[str]) -> bool:
         elif token.startswith("--repo="):
             value = token.split("=", 1)[1]
         if value is not None:
-            return value.rstrip("/").rsplit("/", 1)[-1].lower() != PROJECT_REPO
+            return value.rstrip("/").rsplit("/", 1)[-1].strip().lower() != PROJECT_REPO
     return False
 
 
@@ -681,25 +785,51 @@ def _label_values(args: list[str]) -> list[str]:
         value = token.split("=", 1)[1] if "=" in token and token.startswith("--") else None
         if value is None and i + 1 < len(args):
             value = args[i + 1]
-        values += [v.strip() for v in (value or "").split(",")]
+        values += [norm_label(v) for v in (value or "").split(",")]
     return values
 
 
+def _gh_global(args: list[str]) -> list[str]:
+    """Drop gh's global `-R/--repo` option in front of the command group."""
+    while args and args[0] in ("-R", "--repo"):
+        args = args[2:]
+    while args and args[0].startswith("--repo="):
+        args = args[1:]
+    return args
+
+
 def _gh(args: list[str], ctx: HookContext) -> Decision | None:
-    if len(args) < 2 or _gh_repo_out_of_scope(args):
+    if _gh_repo_out_of_scope(args):
+        return None
+    args = _gh_global(args)
+    if len(args) < 2:
         return None
     group, verb = args[0], args[1]
     if group == "api":
         return _gh_api(args[1:], ctx)
-    if group not in ("issue", "pr") or verb not in ("edit", "create", "comment"):
+    if group not in ("issue", "pr"):
         return None
-    if group == "pr" and verb == "create":
+    flags = {_flag(t) for t in args[2:]}
+    if verb == "create" and group == "pr":
         return _deny(
             "`gh pr create` bypasses the pull request creation gate (spec reference, template, spec readiness).",
             "create the pull request with the GitHub MCP tool `create_pull_request`, which is checked by this guard.",
             ctx,
         )
-    flags = {_flag(t) for t in args[2:]}
+    if verb == "review" and group == "pr" and flags & {"-b", "--body", "-F", "--body-file"}:
+        return _deny(
+            "`gh pr review` with a body writes past the guard.",
+            "submit the review with the GitHub MCP tool `pull_request_review_write`, which adds the source marker.",
+            ctx,
+        )
+    if verb == "close" and flags & {"-c", "--comment"}:
+        return _deny(
+            f"`gh {group} close` with a comment writes past the guard.",
+            "post the comment with the GitHub MCP tool `add_issue_comment`, then close without `--comment`.",
+            ctx,
+        )
+    if verb not in ("edit", "create", "comment"):
+        return None
     statuses = [v for v in _label_values(args[2:]) if v.startswith(STATUS_PREFIXES) or "$" in v or "`" in v]
     if statuses:
         return _label_denial(statuses, ctx)
@@ -724,8 +854,12 @@ def _api_route() -> str:
     )
 
 
+def _graphql_denial(ctx: HookContext, what: str) -> Decision:
+    return _deny(f"{what} bypasses the guard.", _api_route(), ctx)
+
+
 def _gh_api(args: list[str], ctx: HookContext) -> Decision | None:
-    endpoint, method, has_fields = "", "GET", False
+    endpoint, method, has_fields, file_query = "", "GET", False, False
     i = 0
     while i < len(args):
         token, flag = args[i], _flag(args[i])
@@ -734,22 +868,26 @@ def _gh_api(args: list[str], ctx: HookContext) -> Decision | None:
             if value is None and i + 1 < len(args):
                 value, i = args[i + 1], i + 1
             method = (value or "GET").upper()
-        elif flag in ("-f", "-F", "--field", "--raw-field", "--input"):
+        elif flag in _GH_FIELD_FLAGS:
             has_fields = True
-            i += 1
+            value = token.split("=", 1)[1] if "=" in token and token.startswith("--") else None
+            if value is None and i + 1 < len(args):
+                value, i = args[i + 1], i + 1
+            if flag == "--input" or (value or "").split("=", 1)[-1].startswith("@"):
+                file_query = True
         elif token.startswith("-X") and len(token) > 2:
             method = token[2:].upper()
         elif not token.startswith("-") and not endpoint:
             endpoint = token
         i += 1
-    if method == "GET" and has_fields and endpoint != "graphql":
-        method = "POST"
-    if endpoint == "graphql":
+    if endpoint.strip("/") == "graphql":
         if any(_MUTATION.search(a) and _MUTATED.search(a) for a in args):
-            return _deny(
-                "a GraphQL mutation of issues, pull requests, comments or labels bypasses the guard.", _api_route(), ctx
-            )
+            return _graphql_denial(ctx, "a GraphQL mutation of issues, pull requests, comments or labels")
+        if file_query:
+            return _graphql_denial(ctx, "a GraphQL query read from a file (it cannot be checked)")
         return None
+    if method == "GET" and has_fields:
+        method = "POST"
     if method != "GET" and _REPOS_ISSUES.search(endpoint.lstrip("/")):
         return _deny(f"`gh api` {method} on issues or pull requests bypasses the guard.", _api_route(), ctx)
     return None
@@ -764,18 +902,17 @@ def _http_client(program: str, args: list[str], ctx: HookContext) -> Decision | 
         flag = _flag(token)
         if flag in ("-X", "--request", "--method", "-Method") and i + 1 < len(args):
             method = args[i + 1].upper()
-        elif token.startswith("--request=") or token.startswith("--method="):
+        elif token.startswith(("--request=", "--method=")):
             method = token.split("=", 1)[1].upper()
-        elif token.startswith("-X") and len(token) > 2:
-            method = token[2:].upper()
-        elif (flag in _DATA_FLAGS or flag in ("--post-data", "--post-file", "-Body")) and method == "GET":
-            method = "POST"
+        elif re.fullmatch(r"-[A-Za-z]+", token) and "X" in token[1:]:
+            rest_ = token[token.index("X", 1) + 1 :]
+            method = (rest_ or (args[i + 1] if i + 1 < len(args) else "GET")).upper()
+        elif flag in _CURL_DATA or (re.fullmatch(r"-[A-Za-z]{2,}", token) and set(token[1:]) & _CURL_DATA_SHORT):
+            method = "POST" if method == "GET" else method
     if program in ("http", "https", "xh") and args and args[0].upper() in ("PATCH", "POST", "PUT", "DELETE"):
         method = args[0].upper()
     if "api.github.com/graphql" in joined and _MUTATION.search(joined) and _MUTATED.search(joined):
-        return _deny(
-            "a GraphQL mutation of issues, pull requests, comments or labels bypasses the guard.", _api_route(), ctx
-        )
+        return _graphql_denial(ctx, "a GraphQL mutation of issues, pull requests, comments or labels")
     if method != "GET" and _API_ISSUES.search(joined):
         return _deny(
             f"a direct {method} to the GitHub API on issues or pull requests bypasses the guard.", _api_route(), ctx
@@ -792,12 +929,14 @@ def _segment(seg: list[str], ctx: HookContext, depth: int) -> Decision | None:
         return _gh(args, ctx)
     if program in ("curl", "wget", "http", "https", "xh", "invoke-restmethod", "invoke-webrequest", "irm", "iwr"):
         return _http_client(program, args, ctx)
-    if program in ("eval",) and depth < 3:
+    if program == "eval" and depth < 3:
         return _decide_bash(" ".join(args), ctx, depth + 1)
     if program in _SHELLS and depth < 3:
         for i, token in enumerate(args[:-1]):
             if token.lower() in ("-c", "-lc", "/c", "-command"):
                 return _decide_bash(args[i + 1], ctx, depth + 1)
+        return None
+    if program in _QUIET:  # text tools and git: their arguments are text, not requests
         return None
     raw = " ".join(seg)
     if "api.github.com" in raw and _WRITE_METHOD.search(raw) and _LOOSE_API.search(raw):
@@ -812,7 +951,8 @@ def _decide_bash(command: str, ctx: HookContext, depth: int = 0) -> Decision:
         segments = _segments(_tokens(command))
     except ValueError:  # unbalanced quotes: judge the raw text conservatively
         text = _drop_heredoc_bodies(command)
-        if _LOOSE_GH.search(text) or (_LOOSE_API.search(text) and _WRITE_METHOD.search(text)):
+        loose_api = _LOOSE_API.search(text) and _WRITE_METHOD.search(text)
+        if _LOOSE_GH.search(text) or (loose_api and not text.lstrip().startswith(tuple(f"{p} " for p in _QUIET))):
             return _deny(
                 "the command could not be parsed and looks like a GitHub issue or pull request write.",
                 _api_route(),
@@ -837,12 +977,14 @@ def bash_artifact(command: str) -> int | None:
         return None
     for seg in segments:
         seg = _strip_prefix(seg)
-        if len(seg) >= 4 and _program(seg[0]) == "gh" and seg[1] in ("issue", "pr"):
-            for token in seg[3:]:
-                if token.isdigit():
-                    return int(token)
-                if match := _URL_NUMBER.search(token):
-                    return int(match[1])
+        if seg and _program(seg[0]) == "gh":
+            args = _gh_global(seg[1:])
+            if len(args) >= 3 and args[0] in ("issue", "pr"):
+                for token in args[2:]:
+                    if token.isdigit():
+                        return int(token)
+                    if match := _URL_NUMBER.search(token):
+                        return int(match[1])
     return None
 
 
@@ -853,7 +995,17 @@ def decide(tool_name: str, tool_input: dict, current: HookContext) -> Decision:
     """Allow (possibly with a rewritten input) or deny one tool call; pure."""
     if tool_name == "Bash":
         command = tool_input.get("command")
-        return _decide_bash(command, current) if isinstance(command, str) else Decision("allow")
+        if not isinstance(command, str):
+            return Decision("allow")
+        if len(command) > MAX_COMMAND:
+            if not _GH_WRITE_HINT.search(command):
+                return Decision("allow")
+            return _deny(
+                f"the command is longer than {MAX_COMMAND} characters and mentions GitHub, so it is not checked.",
+                "split it into shorter commands, or write long texts to a file first.",
+                current,
+            )
+        return _decide_bash(command, current)
     name = tool_key(tool_name)
     if name not in GUARDED_TOOLS or not _in_scope(tool_input):
         return Decision("allow")
@@ -864,7 +1016,7 @@ def write_class(tool_name: str, tool_input: Mapping[str, Any]) -> bool:
     """Calls for which an internal error must block (fail closed)."""
     if tool_name == "Bash":
         command = tool_input.get("command")
-        return isinstance(command, str) and bool(re.search(r"\bgh\b|api\.github\.com", command))
+        return isinstance(command, str) and bool(_GH_WRITE_HINT.search(command))
     return tool_key(tool_name) in GUARDED_TOOLS
 
 
@@ -879,7 +1031,7 @@ def _phase(labels: set[str]) -> Phase | None:
 
 
 def _labels(issue: Mapping[str, Any]) -> set[str]:
-    return {str((x or {}).get("name")) for x in issue.get("labels") or [] if isinstance(x, dict)}
+    return {norm_label((x or {}).get("name")) for x in issue.get("labels") or [] if isinstance(x, dict)}
 
 
 def _guide(api: rest.Rest, number: int) -> dict | None:
@@ -938,6 +1090,8 @@ def fetch_context(needs: Needs, api: rest.Rest | None, project: Path) -> HookCon
                 stacked = api.open_pull_for_head(needs.base) is not None
             except rest.RestError:
                 stacked = False
+    else:
+        specs = [SpecInfo(number, readable=False) for number in needs.specs]
     return HookContext(
         block=block,
         spec_phase=specs[0].phase if specs else None,
@@ -958,18 +1112,12 @@ def _wants_reads(needs: Needs) -> bool:
 ApiFactory = Callable[[str, str], "rest.Rest | None"]
 
 
-def default_api(env: Mapping[str, str]) -> ApiFactory:
-    def make(owner: str, repo: str) -> rest.Rest | None:  # pragma: no cover - real network
-        return rest.Rest(owner, repo, rest.find_token(env)) if owner and repo else None
-
-    return make
-
-
 def output(decision: Decision, permission_mode: object) -> dict | None:
     """The hook's JSON answer, or ``None`` for "no opinion" (the normal permission flow continues).
 
-    A rewritten input needs a decision: ``allow`` would also skip the permission prompt, so in the
-    default and plan modes the rewritten call is shown to the user (``ask``) instead.
+    A rewritten input needs a decision. ``allow`` would also skip the permission prompt, so it is used
+    only where the session skips prompts anyway (``bypassPermissions``); every other mode, including
+    unknown ones, gets ``ask`` and the user sees the rewritten call.
     """
     if decision.action == "deny":
         return {
@@ -981,11 +1129,10 @@ def output(decision: Decision, permission_mode: object) -> dict | None:
         }
     if decision.updated_input is None:
         return None
-    mode = permission_mode if isinstance(permission_mode, str) else "default"
     return {
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",
-            "permissionDecision": "ask" if mode in ("default", "plan") else "allow",
+            "permissionDecision": "allow" if permission_mode == "bypassPermissions" else "ask",
             "permissionDecisionReason": decision.reason,
             "updatedInput": decision.updated_input,
         }
@@ -1021,14 +1168,18 @@ def main(
     env: Mapping[str, str] | None = None,
     api_for: ApiFactory | None = None,
 ) -> int:
+    deadline = time.monotonic() + BUDGET_SECONDS
     stdin, stdout, stderr = stdin or sys.stdin, stdout or sys.stdout, stderr or sys.stderr
     env = os.environ if env is None else env
     event: Any = {}
     try:
+        for stream in (stdin, stdout, stderr):
+            if hasattr(stream, "reconfigure"):
+                stream.reconfigure(encoding="utf-8")
         event = json.loads(stdin.read() or "{}")
         if IMPORT_ERROR is not None:  # pragma: no cover
             raise IMPORT_ERROR
-        answer = run(event, env, api_for or default_api(env))
+        answer = run(event, env, api_for or rest.factory(env, deadline))
         if answer is not None:
             stdout.write(json.dumps(answer, ensure_ascii=False))
         return 0
@@ -1045,7 +1196,4 @@ def main(
 
 
 if __name__ == "__main__":  # pragma: no cover
-    for stream in (sys.stdin, sys.stdout, sys.stderr):
-        if hasattr(stream, "reconfigure"):
-            stream.reconfigure(encoding="utf-8")
     raise SystemExit(main())

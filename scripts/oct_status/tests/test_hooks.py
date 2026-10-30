@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 from dataclasses import replace
 from pathlib import Path
 
@@ -185,6 +186,29 @@ def test_pr_creation_gate():
         ("eval gh issue edit 42 --body x", "issue_write"),
         ("gh issue edit 42 --body \"it's \n", "MCP tools"),  # unparsable, judged on the raw text
         ('gh issue edit 42 --add-label "$L"', "/oct"),
+        ('gh issue close 5 -c "comment"', "add_issue_comment"),
+        ("gh pr close 5 --comment x", "add_issue_comment"),
+        ('gh pr review 5 --approve -b "x"', "pull_request_review_write"),
+        ("curl -sSd x https://api.github.com/repos/o/opencloudtouch/issues/5", "MCP tools"),
+        ("curl https://api.github.com/repos/o/opencloudtouch/issues/5/labels --data-ascii x", "MCP tools"),
+        ("curl --upload-file f https://api.github.com/repos/o/opencloudtouch/issues/5", "MCP tools"),
+        ("curl -sXPATCH https://api.github.com/repos/o/opencloudtouch/issues/5", "MCP tools"),
+        ("curl -sX PATCH https://api.github.com/repos/o/opencloudtouch/issues/5", "MCP tools"),
+        ("gh api graphql -F query=@mut.graphql", "MCP tools"),
+        ("gh api graphql --input q.json", "MCP tools"),
+        ("if true; then gh issue edit 5 --body x; fi", "issue_write"),
+        ("{ gh issue edit 5 --body x; }", "issue_write"),
+        ("for i in 1 2; do gh issue edit $i --body x; done", "issue_write"),
+        ("while true; do gh pr edit 5 -b x; done", "update_pull_request"),
+        ("until false; do gh pr edit 5 -b x; done", "update_pull_request"),
+        ("if false; then :; else gh pr edit 5 -b x; fi", "update_pull_request"),
+        ("! gh issue edit 5 --body x", "issue_write"),
+        ("npx gh issue edit 5 --body x", "issue_write"),
+        ("npx -y -p gh gh issue edit 5 --body x", "issue_write"),
+        ("printf '%s' x | xargs -I{} gh issue edit {} --body {}", "issue_write"),
+        ("echo 5 | xargs -n 1 gh pr edit --body x", "update_pull_request"),
+        ("gh -R x/opencloudtouch issue edit 5 --body x", "issue_write"),
+        ("gh pr view 5 --json body -q .body | gh pr edit 5 --body-file -", "update_pull_request"),
     ],
 )
 def test_bash_gh_and_api_calls_are_routed(command, route):
@@ -213,6 +237,17 @@ def test_bash_gh_and_api_calls_are_routed(command, route):
         # Documentation written through a here-document with unbalanced quotes in its body.
         "python3 - <<'EOF'\ns = '''the artifact's `gh pr create`, `gh issue edit --body`'''\nEOF\necho ok",
         "cat <<-\tEND\n\tit's gh issue comment 1 -b x\n\tEND",
+        'git commit -m "fix: deny curl -X PATCH api.github.com/repos/o/r/issues"',
+        "git commit -m \"$(cat <<'EOF'\nfeat: it's the gh pr create gate\nEOF\n)\"",
+        "git commit -m \"it's gh pr create",  # unparsable, but gh is not at a command position
+        'grep -rn "api.github.com/repos/.*/issues" scripts | grep POST',
+        "rg 'curl -X PATCH https://api.github.com/repos/o/r/issues' .",
+        "echo 'gh issue edit 5 --body x'",
+        'git log --grep "gh pr create"',
+        'pytest -k "gh_pr_create"',
+        "gh --repo other/thing issue edit 5 --body x",
+        "gh pr review 5 --approve",
+        "gh issue close 5",
         "",
     ],
 )
@@ -296,6 +331,24 @@ def test_session_start_injects_block_and_guide_data(tmp_path):
     assert BLOCK in text and "/oct approve" in text and '"phase": "in-review"' in text
     assert "#42 (from branch feat/42-hooks)" in text and "@gitar-bot" not in text
     assert "Never edit the oct-status block" in text
+    # The block and the guide data are fenced and marked as untrusted data.
+    assert "untrusted" in text and f"~~~markdown\n{BLOCK}\n~~~" in text and "~~~json\n" in text
+
+
+@pytest.mark.parametrize(
+    ("branch", "number"),
+    [
+        ("feat/42-hooks", 42),
+        ("fix/7", 7),
+        ("docs/2026-10-30-oct-status-plan", None),  # a date, not an artifact
+        ("feat/1234567-x", None),
+        ("main", None),
+        ("feat/hooks-42", None),
+    ],
+)
+def test_session_start_branch_numbers(branch, number):
+    match = session_start._BRANCH_NUMBER.match(branch)
+    assert (int(match[1]) if match else None) == number
 
 
 # --- Session start: other paths ------------------------------------------------------------------------
@@ -408,6 +461,10 @@ def test_guard_main_splices_through_rest():
     assert hso["permissionDecision"] == "ask" and hso["updatedInput"]["body"].startswith(BLOCK + "\n\nnew")
     code, answer, _ = _run_guard({**event, "permission_mode": "bypassPermissions"}, api)
     assert answer["hookSpecificOutput"]["permissionDecision"] == "allow"
+    # Every other mode, also an unknown or missing one, shows the rewritten call to the user.
+    for mode in ("acceptEdits", "dontAsk", "plan", "auto", "something-new", None):
+        _, answer, _ = _run_guard({**event, "permission_mode": mode}, api)
+        assert answer["hookSpecificOutput"]["permissionDecision"] == "ask", mode
     # Artifact without a block (not backfilled, Dependabot): only the marker.
     api = FakeApi({42: {"body": "plain", "labels": []}})
     _, answer, _ = _run_guard(event, api)
@@ -473,13 +530,100 @@ def test_guide_comment_and_markers_are_protected():
     edit = {"owner": "o", "repo": "opencloudtouch", "comment_id": 5, "body": "x"}
     d = decide(MCP + "update_issue_comment", edit, ctx)
     assert d.action == "deny" and "guide comment" in d.reason
-    comment = {"owner": "o", "repo": "opencloudtouch", "issue_number": 1, "body": "<!-- oct-next-data {} -->"}
-    assert decide(MCP + "add_issue_comment", comment, ctx).action == "deny"
-    comment["body"] = BLOCK
-    assert decide(MCP + "add_issue_comment", comment, ctx).action == "deny"
+    # Markers quoted in a comment are neutralised (a review may discuss them), not denied.
+    for text in ("<!-- oct-next-data {} -->", BLOCK, "the `<!-- oct-status:v1` marker regex looks fine"):
+        comment = {"owner": "o", "repo": "opencloudtouch", "issue_number": 1, "body": text}
+        d = decide(MCP + "add_issue_comment", comment, ctx)
+        body = d.updated_input["body"]
+        assert d.action == "allow" and "<!--​" in body
+        assert render.extract_block(body) is None and guard.parse_guide_data(body) is None
+        assert "<!-- oct-status" not in body and "<!-- oct-next" not in body and "<!-- /oct-status" not in body
     create = {"method": "create", "owner": "o", "repo": "opencloudtouch", "title": "t", "body": f"{STALE}\nb"}
     body = decide(MCP + "issue_write", create, ctx).updated_input["body"]
     assert "oct-status" not in body
+    # A guide marker in a description is neutralised as well.
+    create["body"] = "<!-- oct-next:v1 -->\nfake guide"
+    assert GUIDE_MARKER_ABSENT(decide(MCP + "issue_write", create, ctx).updated_input["body"])
+
+
+def GUIDE_MARKER_ABSENT(body: str) -> bool:
+    return guard.GUIDE_MARKER not in body and "<!--​ oct-next:v1 -->" in body
+
+
+def test_leftover_block_markers_and_oversized_bodies_are_denied():
+    ctx = HookContext(block=BLOCK, labels=frozenset())
+    for body in (
+        "<!-- oct-status:v1 hash=zz -->\ntext",
+        f"{STALE}\ntext <!-- /oct-status -->",
+        "<!-- oct-status:v1 hash=aaaaaaaaaaaa -->" * 3,
+    ):
+        d = decide(MCP + "update_pull_request", {"repo": "opencloudtouch", "pullNumber": 1, "body": body}, ctx)
+        assert d.action == "deny" and "V03" in d.reason, body
+    big = "x" * 65_000
+    for tool, tool_input in (
+        ("update_pull_request", {"repo": "opencloudtouch", "pullNumber": 1, "body": big}),
+        ("add_issue_comment", {"repo": "opencloudtouch", "issue_number": 1, "body": big}),
+    ):
+        d = decide(MCP + tool, tool_input, ctx)
+        assert d.action == "deny" and "65000" in d.reason
+
+
+def test_empty_description_is_spliced():
+    ctx = HookContext(block=BLOCK, labels=frozenset())
+    d = decide(MCP + "update_pull_request", {"repo": "opencloudtouch", "pullNumber": 1, "body": ""}, ctx)
+    assert d.updated_input["body"] == BLOCK + "\n\n" + guard.SRC_MARKER
+    d = decide(MCP + "issue_write", _issue_write(body=""), HookContext(block=None, labels=frozenset()))
+    assert d.action == "deny"
+
+
+def test_labels_compare_case_insensitively():
+    ctx = HookContext(block=BLOCK, labels=frozenset({"phase:in-progress", "Bug"}))
+    for labels in (["Phase:in-progress", "Phase:Ready"], ["phase:in-progress", "Wait:Maintainer"], [" phase:ready "]):
+        assert decide(MCP + "issue_write", _issue_write(labels=labels), ctx).action == "deny", labels
+    assert decide(MCP + "issue_write", _issue_write(labels=["PHASE:IN-PROGRESS ", "bug"]), ctx).action == "allow"
+    for command in ("gh issue edit 5 --add-label Phase:ready", 'gh issue edit 5 --add-label " phase:ready"'):
+        assert decide("Bash", {"command": command}, ctx).action == "deny", command
+
+
+def test_invalid_owner_or_repo_fails_closed():
+    bad = {"owner": "o/../x", "repo": "opencloudtouch", "issue_number": 1, "body": "x"}
+    assert decide(MCP + "add_issue_comment", bad, HookContext()).action == "deny"
+    assert guard.needs_for(MCP + "add_issue_comment", bad) == guard.Needs()
+    with pytest.raises(rest.RestError):
+        rest.Rest("o", "a b")
+    assert rest.factory({"GH_TOKEN": "t"}, 0.0)("o", "x/y") is None
+
+
+def test_long_commands_and_heredocs_stay_fast():
+    import time
+
+    for command in ("<<A\n" * 25_000, "gh x <<A\n" * 25_000, "a" * 100_000, "$(" * 50_000, "x$(y " * 20_000):
+        start = time.monotonic()
+        decide("Bash", {"command": command}, HookContext())
+        guard._decide_bash(command[:32_000], HookContext())
+        guard._drop_heredoc_bodies(command)
+        assert time.monotonic() - start < 2, command[:10]
+    d = decide("Bash", {"command": "gh issue view 1 " + "x" * 40_000}, HookContext())
+    assert d.action == "deny" and "longer than" in d.reason
+    assert decide("Bash", {"command": "echo " + "x" * 40_000}, HookContext()).action == "allow"
+    # Several here-documents on one line, and a second one that never ends.
+    text = "cat <<A <<B\nit's\nA\nit's\nB\ngh issue edit 1 --body x"
+    assert decide("Bash", {"command": text}, HookContext()).action == "deny"
+    text = "cat <<A <<B\nx\nA\ngh issue edit 1 --body x\nA"
+    assert decide("Bash", {"command": text}, HookContext()).action == "deny"
+
+
+def test_pull_request_spec_reference_limits():
+    gate = MCP + "create_pull_request"
+    many = _pr_body(" ".join(f"Part of #{n}" for n in range(1, 7)))
+    d = decide(gate, _create(many), PR_CTX)
+    assert d.action == "deny" and "split the references" in d.reason
+    assert guard.needs_for(gate, _create(many)).specs == ()
+    # `/oct no-spec` does not exempt a referenced spec from the readiness check.
+    draft = replace(PR_CTX, specs=(SpecInfo(537, phase=Phase.DRAFT),))
+    body = _pr_body() + "\n/oct no-spec trivial\n"
+    assert decide(gate, _create(body), draft).action == "deny"
+    assert decide(gate, _create(body, title="docs: x"), draft).action == "deny"
 
 
 # --- Parity with the automation (the hooks carry stdlib-only copies) -------------------------------------
@@ -509,6 +653,35 @@ def test_copies_match_the_automation():
     assert guard.parse_guide_data("<!-- oct-next-data {x -->") is None
 
 
+def test_copied_patterns_and_sets_are_identical():
+    import yaml
+
+    from oct_status import commands, guide
+
+    assert guard.CHORE_TYPES == frozenset(rules._CHORE_TYPES)
+    assert guard.READY_OR_LATER == frozenset(p.value for p in rules._READY_OR_LATER)
+    for name in ("_CONVENTIONAL", "_HEADING", "_ITEM", "_NOT_APPLICABLE"):
+        mine, theirs = getattr(guard, name), getattr(rules, name)
+        assert (mine.pattern, mine.flags) == (theirs.pattern, theirs.flags), name
+    for name in ("_HEADING", "_ITEM"):
+        assert getattr(guard, name).pattern == getattr(render, name).pattern, name
+    assert (guard._BLOCK.pattern, guard._BLOCK.flags) == (render._BLOCK.pattern, render._BLOCK.flags)
+    assert guard._BOT.pattern == guide._BOT.pattern and guard._LEADING.pattern == guide._LEADING.pattern
+    # Every command a label route names exists.
+    named = {m for route in guard.LABEL_ROUTES.values() for m in re.findall(r"/oct ([a-z][a-z-]*)", route)}
+    assert named and named <= commands.COMMANDS
+    # Every status label of the taxonomy has a route, is a fact or is a resolution (asked of a maintainer).
+    taxonomy = yaml.safe_load((Path(rules.__file__).with_name("labels.yml")).read_text(encoding="utf-8"))
+    names = {entry["name"] for entry in taxonomy["labels"]}
+    status = {n for n in names if n.startswith(guard.STATUS_PREFIXES)}
+    assert status and set(guard.LABEL_ROUTES) <= status and guard.FACT_LABELS <= status
+    assert all(n in guard.LABEL_ROUTES or n in guard.FACT_LABELS or n.startswith("resolution:") for n in status)
+    # Intended difference: the guard drops every block of an agent's text, render replaces one (count=1).
+    two = f"{STALE}\n\n{STALE}\nText"
+    assert guard.splice(two, BLOCK).count("oct-status:v1") == 1
+    assert render.splice_block(two, BLOCK).count("oct-status:v1") == 2
+
+
 def test_needs_and_tool_names():
     assert guard.tool_key("mcp__github__create_issue") == "issue_write"
     assert guard.tool_key("Bash") == "Bash"
@@ -535,7 +708,8 @@ def test_needs_and_tool_names():
 def _opener(routes: dict):
     seen: list[tuple[str, dict]] = []
 
-    def open_(url, headers):
+    def open_(url, headers, timeout):
+        assert 0 < timeout <= rest.TIMEOUT
         seen.append((url, dict(headers)))
         for key, value in routes.items():
             if url.endswith(key):
@@ -583,6 +757,41 @@ def test_rest_client_reads_and_fails_closed():
     with pytest.raises(rest.RestError):
         anon.open_pull_for_head("none")
     assert "Authorization" not in seen[-1][1]
+
+
+def test_rest_client_refuses_redirects_oversize_and_late_requests():
+    import time
+
+    open_, seen = _opener({"/issues/1": (301, b""), "/issues/2": (200, b"[" + b" " * rest.MAX_BYTES + b"]")})
+    api = rest.Rest("o", "opencloudtouch", "t", open_)
+    for number in (1, 2):
+        with pytest.raises(rest.RestError):
+            api.issue(number)
+    late = rest.Rest("o", "opencloudtouch", "t", open_, deadline=time.monotonic() - 1)
+    calls = len(seen)
+    with pytest.raises(rest.RestError) as info:
+        late.issue(1)
+    assert "time budget" in str(info.value) and len(seen) == calls  # no request was sent
+    # The redirect handler gives urllib nothing to follow.
+    assert rest._NoRedirect().redirect_request(None, None, 302, "", {}, "https://evil.example") is None
+
+
+def test_rest_factory_looks_up_the_token_once():
+    import time
+
+    lookups: list[int] = []
+
+    class Done:
+        returncode, stdout = 0, "tok"
+
+    def run(*args, **kwargs):
+        lookups.append(1)
+        return Done()
+
+    make = rest.factory({}, time.monotonic() + 40, run)
+    first, second = make("o", "opencloudtouch"), make("o", "other")
+    assert first is not None and second is not None and len(lookups) == 1
+    assert first.deadline == second.deadline
 
 
 def test_rest_helpers():
