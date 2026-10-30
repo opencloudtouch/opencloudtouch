@@ -12,7 +12,7 @@ from dataclasses import asdict, dataclass, replace
 
 from .config import Config
 from .model import Derived, EdgeType, Graph, Snapshot, Wait
-from .render import neutralise
+from .render import FULLWIDTH_AT, REVIEW_BOT, neutralise
 from .rules import detect_kind, dor_status, legal_transitions, oct_support_approval_counts, protected_changes
 from .violations import RULES, Notice
 
@@ -20,7 +20,7 @@ MAX_STEPS = 5
 WORKFLOW = "https://github.com/opencloudtouch/opencloudtouch/blob/main/docs/WORKFLOW.md"
 RESOLVED = "[resolved] "
 _WAIT_ORDER = list(Wait)
-_BOT = re.compile(r"@?gitar-bot(\[bot\])?", re.IGNORECASE)
+_BOT = REVIEW_BOT
 _LEADING = re.compile(r"^\s*@?gitar", re.IGNORECASE)
 
 
@@ -32,7 +32,8 @@ class Step:
 
 
 def _safe(text: str) -> str:
-    text = neutralise(_BOT.sub("the review bot", text))
+    # No mentions (a notice must not ping anyone); links stay: notices link to the handbook on purpose.
+    text = neutralise(_BOT.sub("the review bot", text)).replace("@", FULLWIDTH_AT)
     return f"Review by {text.lstrip()}" if _LEADING.match(text) else text
 
 

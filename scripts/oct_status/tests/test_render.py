@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import os
 import re
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -256,3 +257,49 @@ def test_root_blocker_in_a_diamond():
     graph = build_graph(snaps)
     block = render_block(snaps[1], Derived(Phase.IN_REVIEW, frozenset(), None), graph, CFG)
     assert "**Root blocker:** #4" in block
+
+
+HOSTILE = "Fix @gitar-bot[bot] for @alice ![pixel](https://evil.example/p.png) [click](https://evil.example)"
+
+
+def _no_markup(text: str) -> None:
+    assert "@" not in text and "gitar-bot" not in text.lower()
+    assert not re.search(r"(?<!\\)[\[\]]", text)  # every bracket escaped: no link, no image
+
+
+def test_neighbour_titles_cannot_mention_or_embed():
+    """A hostile PR title shown in a relations row or as root blocker pings nobody and loads nothing."""
+    snaps = {
+        1: make_snapshot(number=1, is_pr=True, body="Depends on #2\nPart of #3"),
+        2: make_snapshot(number=2, title=HOSTILE),
+        3: make_snapshot(number=3, title=f"spec by @bob {HOSTILE}"),
+    }
+    graph = build_graph(snaps)
+    block = render_block(snaps[1], Derived(Phase.IN_REVIEW, frozenset(), None), graph, CFG)
+    content = block.split("\n", 1)[1]  # the badges carry fixed markdown images of their own
+    rows = [line for line in content.splitlines() if "#2" in line or "#3" in line]
+    assert rows and all(HOSTILE not in r for r in rows)
+    for row in rows:
+        _no_markup(row)
+    assert "＠alice" in block and "the review bot" in block
+    assert extract_block(block) == block
+
+
+async def test_dependency_pinned_comment_carries_no_user_text():
+    """The pinned comment of a Dependabot PR (marker, light block, guide) shows no hostile title."""
+    from oct_status.apply import guide_content
+    from oct_status.config import Actor
+    from oct_status.guide import next_steps, render_guide
+
+    dependabot = Actor("dependabot[bot]", "automation", block_location="comment")
+    cfg = replace(CFG, automation={**CFG.automation, "dependabot[bot]": dependabot})
+    snaps = {
+        1: make_snapshot(number=1, is_pr=True, author="dependabot[bot]", title=HOSTILE, body="Depends on #2"),
+        2: make_snapshot(number=2, title=HOSTILE),
+    }
+    graph = build_graph(snaps)
+    derived = Derived(Phase.IN_REVIEW, frozenset({Wait.PREREQUISITE}), None)
+    block = render_block(snaps[1], derived, graph, cfg)
+    guide = render_guide(snaps[1], derived, next_steps(snaps[1], derived, cfg, graph), [HOSTILE], [HOSTILE], cfg=cfg)
+    text = guide_content(snaps[1], block, guide, cfg)
+    assert text is not None and "@" not in text and "gitar-bot" not in text.lower()  # guide texts: mentions only

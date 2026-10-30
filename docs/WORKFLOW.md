@@ -689,7 +689,7 @@ active):
 
 <!-- snippet:573-block -->
 ```markdown
-<!-- oct-status:v1 hash=ada87093266c -->
+<!-- oct-status:v1 hash=7512c4c00e06 -->
 ![phase: draft](https://img.shields.io/badge/phase-draft-cfe0fa) ![wait: prerequisite](https://img.shields.io/badge/wait-prerequisite-f2a33a)
 
 **Root blocker:** #560 feat(api): add machine-readable code to API error responses and typed ApiError in the frontend
@@ -702,7 +702,7 @@ active):
 
 | Relation | Artifact | Phase | Waiting on |
 |---|---|---|---|
-| implements | #537 [Spec]: Sleep timer — fade out and stop a SoundTouch device after a countdown | draft | - |
+| implements | #537 \[Spec\]: Sleep timer — fade out and stop a SoundTouch device after a countdown | draft | - |
 | stacked-on | #572 feat(frontend): add stream recovery section to the settings page | draft | prerequisite |
 | stacked-by | #574 feat(frontend): add sleep timer to the local control page | draft | prerequisite |
 <!-- /oct-status -->
@@ -755,7 +755,7 @@ the same picture one step further down the stack:
 
 <!-- snippet:574-block -->
 ```markdown
-<!-- oct-status:v1 hash=8e3b17e8d07e -->
+<!-- oct-status:v1 hash=6823cd6877e4 -->
 ![phase: draft](https://img.shields.io/badge/phase-draft-cfe0fa) ![wait: prerequisite](https://img.shields.io/badge/wait-prerequisite-f2a33a)
 
 **Root blocker:** #560 feat(api): add machine-readable code to API error responses and typed ApiError in the frontend
@@ -768,7 +768,7 @@ the same picture one step further down the stack:
 
 | Relation | Artifact | Phase | Waiting on |
 |---|---|---|---|
-| implements | #537 [Spec]: Sleep timer — fade out and stop a SoundTouch device after a countdown | draft | - |
+| implements | #537 \[Spec\]: Sleep timer — fade out and stop a SoundTouch device after a countdown | draft | - |
 | stacked-on | #573 feat(sleep-timer): add per-device sleep timer with fade out | draft | prerequisite |
 <!-- /oct-status -->
 ```
@@ -996,7 +996,7 @@ blocker of #573 moves to #570:
 
 <!-- snippet:573-after-560-merged-block -->
 ```markdown
-<!-- oct-status:v1 hash=b50fa2022275 -->
+<!-- oct-status:v1 hash=cb5e1cc3c618 -->
 ![phase: draft](https://img.shields.io/badge/phase-draft-cfe0fa) ![wait: prerequisite](https://img.shields.io/badge/wait-prerequisite-f2a33a)
 
 **Root blocker:** #570 feat(devices): add device settings API for language, clock and power saving
@@ -1009,7 +1009,7 @@ blocker of #573 moves to #570:
 
 | Relation | Artifact | Phase | Waiting on |
 |---|---|---|---|
-| implements | #537 [Spec]: Sleep timer — fade out and stop a SoundTouch device after a countdown | draft | - |
+| implements | #537 \[Spec\]: Sleep timer — fade out and stop a SoundTouch device after a countdown | draft | - |
 | stacked-on | #572 feat(frontend): add stream recovery section to the settings page | draft | prerequisite |
 | stacked-by | #574 feat(frontend): add sleep timer to the local control page | draft | prerequisite |
 <!-- /oct-status -->

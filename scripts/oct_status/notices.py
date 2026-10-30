@@ -24,7 +24,7 @@ from .apply import desired_labels
 from .config import Config
 from .guide import RESOLVED, WORKFLOW, format_notice
 from .model import Derived, Graph, Phase, Snapshot, Wait
-from .render import block_intact, extract_block
+from .render import FULLWIDTH_AT, REVIEW_BOT, block_intact, extract_block
 from .violations import KEY_CHARS, LEVEL_BLOCK, RULES, STATE_RULES, Notice, Violation, state_rules, template_keys
 
 MAX_OPEN = 20
@@ -36,9 +36,9 @@ _DATA = re.compile(r"<!-- oct-next-data (.*?) -->", re.DOTALL)
 _LOGIN = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})(?:\[bot\])?")
 _SHA = re.compile(r"[0-9a-f]{40}")
 _UNSAFE = re.compile(r"[<>\x00-\x08\x0b-\x1f\x7f]")
-_BOT = re.compile(r"@?gitar-bot(\[bot\])?", re.IGNORECASE)
+_BOT = REVIEW_BOT
 # Mentions, images and links in stored text would notify people or load remote content when rendered.
-_MARKUP = str.maketrans({"@": "\uff20", "[": "(", "]": ")"})
+_MARKUP = str.maketrans({"@": FULLWIDTH_AT, "[": "(", "]": ")"})
 RESOLUTIONS = frozenset({"", "fixed", "restored", "accepted", "reopened", "verified", "overridden"})
 
 

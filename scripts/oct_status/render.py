@@ -68,8 +68,16 @@ def neutralise(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
+# Mentions in user text would notify people; the review bot is never named (it reacts to mentions).
+REVIEW_BOT = re.compile(r"@?gitar-bot(\[bot\])?", re.IGNORECASE)
+FULLWIDTH_AT = "\uff20"  # looks like "@" but mentions nobody
+_CELL_MARKUP = str.maketrans({"@": FULLWIDTH_AT, "[": "\\[", "]": "\\]"})  # escaped brackets: no link, no image
+
+
 def _cell(text: str) -> str:
-    return neutralise(" ".join(text.split())).replace("|", "\\|")
+    """User text (a title, a reference) in the block: one line, no HTML, mention, link, image or `|`."""
+    text = REVIEW_BOT.sub("the review bot", " ".join(text.split())).translate(_CELL_MARKUP)
+    return neutralise(text).replace("|", "\\|")
 
 
 def _is_open(graph: Graph, number: int) -> bool:
