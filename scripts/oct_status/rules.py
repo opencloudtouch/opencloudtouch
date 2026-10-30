@@ -73,8 +73,8 @@ _READY_OR_LATER = {Phase.READY, Phase.IN_PROGRESS, Phase.IN_REVIEW, Phase.VERIFI
 _DECLARED_WAITS = {Wait.SPEC_FIX, Wait.REPORTER, Wait.DESIGNER}
 _PHASE_ORDER = list(Phase)
 # Fact phases the bot writes on an issue only once its work has started, which for a spec requires
-# `ready` and for a bug or feature request `triaged`. The legacy `wip` label (renamed to
-# `phase:in-progress` by the label sync) counts the same.
+# `ready`. They can be set by hand (V02), see `_declared_floor` for where they are trusted. The
+# legacy `wip` label (renamed to `phase:in-progress` by the label sync) counts the same.
 _STARTED = {Phase.IN_PROGRESS, Phase.IN_REVIEW, Phase.VERIFICATION, Phase.DONE, Phase.MERGED}
 _STARTED_FLOOR = {Kind.SPEC: Phase.READY, Kind.BUG: Phase.TRIAGED, Kind.FEATURE_REQUEST: Phase.TRIAGED}
 
@@ -145,16 +145,22 @@ def _declared_phase(snap: Snapshot, kind: Kind) -> Phase:
 
 
 def _declared_floor(snap: Snapshot, kind: Kind) -> Phase:
-    """The declared phase, raised to the floor implied by a fact phase the bot already wrote.
+    """The declared phase, raised to the floor implied by work that has demonstrably started.
 
     A fact phase replaces the declaration label (`phase:ready` becomes `phase:in-review`); the floor
     keeps the declaration when the facts go away again, for example when the only PR is closed.
+    A fact label can also be set by hand (violation V02), so it is trusted only where something else
+    backs it up: a spec needs a complete Definition of Ready, and a bug or feature request gets no
+    floor from a label at all. The legacy `wip` label (renamed by the label sync) counts as before.
     """
     declared = _declared_phase(snap, kind)
     floor = _STARTED_FLOOR.get(kind)
-    if floor is not None and ("wip" in snap.labels or set(_labelled(snap, Phase)) & _STARTED):
-        return max(declared, floor, key=_PHASE_ORDER.index)
-    return declared
+    if floor is None:
+        return declared
+    started = "wip" in snap.labels
+    if kind == Kind.SPEC and set(_labelled(snap, Phase)) & _STARTED and dor_status(snap.body)[0]:
+        started = True
+    return max(declared, floor, key=_PHASE_ORDER.index) if started else declared
 
 
 def _resolution(snap: Snapshot) -> Resolution | None:

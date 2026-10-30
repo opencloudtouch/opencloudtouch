@@ -94,8 +94,8 @@ def test_declared_phase_is_kept_and_illegal_one_rejected():
         ({"enhancement", "phase:triaged"}, Phase.TRIAGED),
         ({"enhancement", "phase:confirmed"}, Phase.NEW),  # feature requests have no `confirmed`
         ({"bug", "phase:spec-review"}, Phase.NEW),  # foreign phase for the kind
-        ({"bug", "phase:in-review"}, Phase.TRIAGED),  # a written fact phase implies at least triaged
-        ({"spec", "phase:in-progress"}, Phase.READY),  # ... and for a spec `ready`
+        ({"bug", "phase:in-review"}, Phase.NEW),  # a fact phase set by hand is not trusted (V02)
+        ({"spec", "phase:in-progress"}, Phase.READY),  # a spec with a complete checklist keeps `ready`
         ({"bug", "phase:bogus"}, Phase.NEW),
         ({"spec", "phase:triaged"}, Phase.DRAFT),
     ],

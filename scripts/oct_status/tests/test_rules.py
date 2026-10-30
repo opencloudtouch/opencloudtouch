@@ -321,17 +321,25 @@ def test_closed_pr_part_is_ignored_and_wip_label_means_in_progress():
 
 def test_fact_phase_label_keeps_readiness_when_pr_closes():
     implements = (edge(EdgeType.IMPLEMENTS, 10, 5),)
-    in_review = spec(labels=frozenset({"spec", "phase:in-review"}), body="")
+    in_review = spec(labels=frozenset({"spec", "phase:in-review"}), body=DOR_DONE)
     assert run(in_review, pr(state="closed"), edges=implements).phase == Phase.READY
     legacy = spec(labels=frozenset({"spec", "wip"}), body="")
     assert run(legacy).phase == Phase.IN_PROGRESS
     assert Wait.PREREQUISITE not in run(pr(), legacy, edges=implements).waits
-    bug = make_snapshot(number=5, labels=frozenset({"bug", "phase:in-progress"}))
-    assert run(bug, pr(state="closed"), edges=implements).phase == Phase.TRIAGED
     confirmed = make_snapshot(number=5, labels=frozenset({"bug", "phase:in-review", "phase:confirmed"}))
     assert run(confirmed).phase == Phase.CONFIRMED
+
+
+def test_hand_set_fact_phase_is_not_trusted():
+    """V02 guard: a fact label written by hand grants no readiness floor."""
     request = make_snapshot(number=5, labels=frozenset({"enhancement", "phase:done"}))
-    assert run(request).phase == Phase.TRIAGED
+    assert run(request).phase == Phase.NEW
+    bug = make_snapshot(number=5, labels=frozenset({"bug", "phase:in-progress"}))
+    assert run(bug).phase == Phase.NEW
+    draft = spec(labels=frozenset({"spec", "phase:in-review"}), body="## Definition of Ready\n- [ ] Tests named\n")
+    assert run(draft).phase == Phase.DRAFT
+    implements = (edge(EdgeType.IMPLEMENTS, 10, 5),)
+    assert Wait.PREREQUISITE in run(pr(), draft, edges=implements).waits
 
 
 def test_draft_spec_ignores_pr_facts():
