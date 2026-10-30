@@ -8,7 +8,7 @@ from urllib.parse import unquote
 import httpx
 
 from oct_status.api import GitHubApi
-from oct_status.apply import MARKER, apply_state, is_own_event, upsert_guide
+from oct_status.apply import MARKER, apply_state, guides_in, is_own_event, upsert_guide
 from oct_status.config import Actor, Config
 from oct_status.model import Derived, Graph, Phase, Resolution, Wait
 from oct_status.render import render_block
@@ -158,6 +158,34 @@ async def test_guide_ignores_marker_from_foreign_author():
     assert await upsert_guide(api, 1, GUIDE, CFG.bot_logins) == "created"
     assert len(fake.comments) == 2
     await api.aclose()
+
+
+async def test_guide_found_on_second_page():
+    fake = FakeGitHub()
+    for n in range(100):
+        fake.add_comment(f"chatter {n}", login="human")
+    fake.add_comment(GUIDE)
+    orig = fake.handler
+
+    def paged(request: httpx.Request) -> httpx.Response:
+        if request.method == "GET" and request.url.path.endswith("/comments"):
+            page, size = int(request.url.params["page"]), int(request.url.params["per_page"])
+            return httpx.Response(200, json=fake.comments[(page - 1) * size : page * size])
+        return orig(request)
+
+    api = GitHubApi("t", REPO, transport=httpx.MockTransport(paged), sleep=_nosleep)
+    assert await upsert_guide(api, 1, GUIDE, CFG.bot_logins) == "unchanged"
+    assert fake.writes == []
+    await api.aclose()
+
+
+def test_guides_in_ignores_marker_from_non_bot_author():
+    comments = [
+        {"id": 1, "body": GUIDE, "user": {"login": "mallory"}},
+        {"id": 2, "body": GUIDE, "user": None},
+        {"id": 3, "body": GUIDE, "user": {"login": BOT}},
+    ]
+    assert [c["id"] for c in guides_in(comments, CFG.bot_logins)] == [3]
 
 
 async def test_duplicate_guides_keep_oldest():
