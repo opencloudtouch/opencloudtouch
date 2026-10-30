@@ -147,6 +147,7 @@ class Snapshot:
     blocked_by: tuple[int, ...]
     pushes: tuple[Push, ...]
     stack_drift: int | None
+    head_is_fork: bool = False
 
 
 @dataclass(frozen=True)

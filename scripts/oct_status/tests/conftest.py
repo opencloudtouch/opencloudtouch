@@ -31,6 +31,7 @@ def make_snapshot(**overrides: Any) -> Snapshot:
         "blocked_by": (),
         "pushes": (),
         "stack_drift": None,
+        "head_is_fork": False,
     }
     values.update(overrides)
     return Snapshot(**values)

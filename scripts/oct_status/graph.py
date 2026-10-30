@@ -92,7 +92,7 @@ def _native_edges(snapshots: dict[int, Snapshot]) -> list[Edge]:
         edges += [Edge(EdgeType.DEPENDS_ON, number, t, "native") for t in snap.blocked_by]
     heads: dict[str, list[int]] = {}
     for number, snap in snapshots.items():
-        if snap.is_pr and snap.head_ref:
+        if snap.is_pr and snap.head_ref and snap.state == "open" and not snap.head_is_fork:
             heads.setdefault(snap.head_ref, []).append(number)
     for number, snap in snapshots.items():
         if snap.is_pr and snap.base_ref:

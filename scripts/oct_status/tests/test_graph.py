@@ -73,23 +73,42 @@ def test_build_graph_emits_inverse_edges():
 
 def test_stack_edges_from_base_and_head_branches():
     p574, p573, p560 = _pull(574), _pull(573), _pull(560)
+    # #570-#572 are taken from the GitHub API (not recorded as fixtures).
     chain = [
         (574, p574["base"]["ref"], p574["head"]["ref"]),
         (573, p573["base"]["ref"], p573["head"]["ref"]),
         (572, "feat/stream-recovery-backend", "feat/stream-recovery-frontend"),
-        (571, "feat/stream-recovery-core", "feat/stream-recovery-backend"),
-        (570, p560["head"]["ref"], "feat/stream-recovery-core"),
+        (571, "feat/device-settings-backend", "feat/stream-recovery-backend"),
+        (570, "claude/gifted-bohr-b225kf", "feat/device-settings-backend"),
         (560, p560["base"]["ref"], p560["head"]["ref"]),
     ]
-    assert p574["base"]["ref"] == "feat/sleep-timer-backend" and p560["base"]["ref"] == "main"
+    assert chain[0][1:] == ("feat/sleep-timer-backend", "feat/sleep-timer-frontend")
+    assert chain[1][1:] == ("feat/stream-recovery-frontend", "feat/sleep-timer-backend")
+    assert chain[5][1:] == ("main", "claude/gifted-bohr-b225kf")
     snaps = {n: make_snapshot(number=n, is_pr=True, base_ref=b, head_ref=h) for n, b, h in chain}
     graph = build_graph(snaps)
-    assert [e.target for e in graph.edges_of(574, EdgeType.STACKED_ON)] == [573]
-    assert [e.target for e in graph.edges_of(573, EdgeType.STACKED_ON)] == [572]
-    assert [e.target for e in graph.edges_of(570, EdgeType.STACKED_ON)] == [560]
+    for upper, lower in [(574, 573), (573, 572), (572, 571), (571, 570), (570, 560)]:
+        assert [e.target for e in graph.edges_of(upper, EdgeType.STACKED_ON)] == [lower]
+        assert [e.target for e in graph.edges_of(lower, EdgeType.STACKED_BY)] == [upper]
     assert graph.edges_of(560, EdgeType.STACKED_ON) == []
-    assert [e.target for e in graph.edges_of(573, EdgeType.STACKED_BY)] == [574]
-    assert [e.target for e in graph.edges_of(560, EdgeType.STACKED_BY)] == [570]
+
+
+def test_closed_pr_is_not_a_stack_parent():
+    snaps = {
+        1: make_snapshot(number=1, is_pr=True, state="closed", base_ref="main", head_ref="feat/x"),
+        2: make_snapshot(number=2, is_pr=True, base_ref="feat/x", head_ref="feat/y"),
+    }
+    assert build_graph(snaps).edges_of(2, EdgeType.STACKED_ON) == []
+
+
+def test_fork_pr_is_not_a_stack_parent():
+    snaps = {
+        1: make_snapshot(number=1, is_pr=True, base_ref="main", head_ref="main", head_is_fork=True),
+        2: make_snapshot(number=2, is_pr=True, base_ref="main", head_ref="feat/y"),
+    }
+    graph = build_graph(snaps)
+    assert graph.edges_of(2, EdgeType.STACKED_ON) == []
+    assert graph.edges_of(1, EdgeType.STACKED_BY) == []
 
 
 def test_native_edge_wins_over_prose():
