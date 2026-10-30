@@ -19,9 +19,18 @@ OWNED_PREFIXES = ("phase:", "wait:", "resolution:")
 PER_PAGE = 100
 
 
-def is_own_event(payload: dict[str, Any], bot_logins: set[str]) -> bool:
-    """Loop guard: True when the event was caused by one of our own accounts."""
-    return ((payload.get("sender") or {}).get("login")) in bot_logins
+_OWN_ACTIONS = {"issues": {"edited", "labeled", "unlabeled"}}
+_OWN_ACTIONS["pull_request"] = _OWN_ACTIONS["pull_request_target"] = _OWN_ACTIONS["issues"]
+
+
+def is_own_event(event_name: str, payload: dict[str, Any], bot_logins: set[str]) -> bool:
+    """Loop guard: True only for events our own writes cause (never reviews, checks or answers)."""
+    if ((payload.get("sender") or {}).get("login")) not in bot_logins:
+        return False
+    action = payload.get("action")
+    if event_name == "issue_comment":
+        return action in {"created", "edited"} and MARKER in ((payload.get("comment") or {}).get("body") or "")
+    return action in _OWN_ACTIONS.get(event_name, set())
 
 
 def desired_labels(derived: Derived) -> set[str]:
@@ -50,18 +59,20 @@ async def _comments(api: GitHubApi, number: int) -> list[dict[str, Any]]:
         page += 1
 
 
-async def _find_guides(api: GitHubApi, number: int, cfg: Config) -> list[dict[str, Any]]:
+async def _find_guides(api: GitHubApi, number: int, bot_logins: tuple[str, ...]) -> list[dict[str, Any]]:
     found = [
         c
         for c in await _comments(api, number)
-        if MARKER in (c.get("body") or "") and (c.get("user") or {}).get("login") in cfg.automation
+        if MARKER in (c.get("body") or "") and (c.get("user") or {}).get("login") in bot_logins
     ]
     return sorted(found, key=lambda c: c["id"])  # oldest first
 
 
-async def upsert_guide(api: GitHubApi, number: int, content: str, cfg: Config, *, dry_run: bool = False) -> str:
+async def upsert_guide(
+    api: GitHubApi, number: int, content: str, bot_logins: tuple[str, ...], *, dry_run: bool = False
+) -> str:
     """Create, update or deduplicate the single guide comment; returns what was (or would be) done."""
-    guides = await _find_guides(api, number, cfg)
+    guides = await _find_guides(api, number, bot_logins)
     if not guides:
         if not dry_run:
             await _check(await api.request("POST", f"/issues/{number}/comments", json={"body": content}))
@@ -118,9 +129,9 @@ async def apply_state(
             done.append("update status block in body")
     content = guide
     if block is not None and in_comment:
-        content = block if guide is None else f"{block}\n\n{guide}"
+        content = f"{MARKER}\n{block}" if guide is None else f"{block}\n\n{guide}"
     if content is not None:
-        result = await upsert_guide(api, snap.number, content, cfg, dry_run=dry_run)
+        result = await upsert_guide(api, snap.number, content, cfg.bot_logins, dry_run=dry_run)
         if result != "unchanged":
             done.append(f"guide comment {result}")
     return done

@@ -35,3 +35,7 @@ def test_gates_and_protected_paths():
     assert "Gitar" in cfg.gate_checks
     for pattern in (".github/workflows/**", "scripts/oct_status/**", ".gitar/**", ".claude/**", ".gitignore"):
         assert pattern in cfg.protected_paths
+
+
+def test_bot_logins():
+    assert load_config(CONFIG_PATH).bot_logins == ("oct-support", "github-actions[bot]")

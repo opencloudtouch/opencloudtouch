@@ -1,6 +1,11 @@
 # Actor allowlist and policy values for the OCT status system.
 # Shared source of truth for logins treated as automation.
 
+# Accounts whose guide/pinned comment the bot may rewrite (BOT_PAT account and GITHUB_TOKEN account).
+bot_logins:
+  - oct-support
+  - github-actions[bot]
+
 automation:
   dependabot[bot]:
     block_location: comment

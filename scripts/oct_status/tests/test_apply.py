@@ -25,6 +25,7 @@ CFG = Config(
     },
     gate_checks=[],
     protected_paths=[],
+    bot_logins=(BOT, "github-actions[bot]"),
 )
 GUIDE = f"{MARKER}\n\nguide v1\n"
 
@@ -141,11 +142,11 @@ async def test_dependency_pr_uses_pinned_comment():
 async def test_guide_upsert_updates_in_place():
     fake = FakeGitHub()
     api = make(fake)
-    assert await upsert_guide(api, 1, GUIDE, CFG) == "created"
+    assert await upsert_guide(api, 1, GUIDE, CFG.bot_logins) == "created"
     assert [m for m, _ in fake.writes] == ["POST"]
-    assert await upsert_guide(api, 1, GUIDE, CFG) == "unchanged"
+    assert await upsert_guide(api, 1, GUIDE, CFG.bot_logins) == "unchanged"
     assert len(fake.writes) == 1
-    assert await upsert_guide(api, 1, GUIDE + "more", CFG) == "updated"
+    assert await upsert_guide(api, 1, GUIDE + "more", CFG.bot_logins) == "updated"
     assert fake.writes[-1][0] == "PATCH" and len(fake.comments) == 1
     await api.aclose()
 
@@ -154,7 +155,7 @@ async def test_guide_ignores_marker_from_foreign_author():
     fake = FakeGitHub()
     fake.add_comment(GUIDE, login="mallory")
     api = make(fake)
-    assert await upsert_guide(api, 1, GUIDE, CFG) == "created"
+    assert await upsert_guide(api, 1, GUIDE, CFG.bot_logins) == "created"
     assert len(fake.comments) == 2
     await api.aclose()
 
@@ -165,7 +166,7 @@ async def test_duplicate_guides_keep_oldest():
     fake.add_comment(GUIDE)
     fake.add_comment(GUIDE)
     api = make(fake)
-    assert await upsert_guide(api, 1, GUIDE + "new", CFG) == "deduplicated"
+    assert await upsert_guide(api, 1, GUIDE + "new", CFG.bot_logins) == "deduplicated"
     assert [c["id"] for c in fake.comments] == [oldest]
     assert fake.comments[0]["body"] == GUIDE + "new"
     assert [m for m, _ in fake.writes] == ["DELETE", "DELETE", "PATCH"]
@@ -175,9 +176,9 @@ async def test_duplicate_guides_keep_oldest():
 async def test_deleted_guide_is_recreated():
     fake = FakeGitHub()
     api = make(fake)
-    await upsert_guide(api, 1, GUIDE, CFG)
+    await upsert_guide(api, 1, GUIDE, CFG.bot_logins)
     fake.comments.clear()
-    assert await upsert_guide(api, 1, GUIDE, CFG) == "created"
+    assert await upsert_guide(api, 1, GUIDE, CFG.bot_logins) == "created"
     assert len(fake.comments) == 1
     await api.aclose()
 
@@ -219,25 +220,56 @@ async def test_truncated_body_is_not_rewritten_every_run(monkeypatch):
 
 def test_bot_edit_event_is_ignored():
     payload = {"action": "edited", "sender": {"login": BOT}}
-    assert is_own_event(payload, {BOT})
-    assert not is_own_event({"action": "edited", "sender": {"login": "human"}}, {BOT})
-    assert not is_own_event({"action": "edited"}, {BOT})
+    assert is_own_event("issues", payload, {BOT})
+    assert is_own_event("pull_request", {"action": "edited", "sender": {"login": BOT}}, {BOT})
+    assert not is_own_event("issues", {"action": "edited", "sender": {"login": "human"}}, {BOT})
+    assert not is_own_event("issues", {"action": "edited"}, {BOT})
 
 
-async def test_guide_found_on_second_page():
+def test_own_event_matrix():
+    bot = {"login": BOT}
+    assert not is_own_event("pull_request_review", {"action": "submitted", "sender": bot}, {BOT})
+    assert not is_own_event("pull_request_review_comment", {"action": "created", "sender": bot}, {BOT})
+    assert not is_own_event("check_suite", {"action": "completed", "sender": bot}, {BOT})
+    assert is_own_event("pull_request_target", {"action": "labeled", "sender": bot}, {BOT})
+    assert is_own_event("issues", {"action": "unlabeled", "sender": bot}, {BOT})
+    assert not is_own_event("issues", {"action": "labeled", "sender": {"login": "human"}}, {BOT})
+    assert not is_own_event("issues", {"action": "opened", "sender": bot}, {BOT})
+    guide = {"action": "created", "sender": bot, "comment": {"body": GUIDE}}
+    assert is_own_event("issue_comment", guide, {BOT})
+    answer = {"action": "created", "sender": bot, "comment": {"body": "Thanks, see docs"}}
+    assert not is_own_event("issue_comment", answer, {BOT})
+    human = {"action": "created", "sender": {"login": "h"}, "comment": {"body": GUIDE}}
+    assert not is_own_event("issue_comment", human, {BOT})
+
+
+async def test_dependency_pr_without_guide_is_stable():
+    fake = FakeGitHub(body="dependabot body")
+    assert await converge(fake, author="dependabot[bot]", guide=None)
+    assert len(fake.comments) == 1 and fake.comments[0]["body"].startswith(MARKER)
+    writes = len(fake.writes)
+    assert await converge(fake, author="dependabot[bot]", guide=None) == []
+    assert len(fake.writes) == writes and len(fake.comments) == 1
+
+
+async def test_dependency_pr_with_guide_is_stable_and_marker_once():
     fake = FakeGitHub()
-    for n in range(100):
-        fake.add_comment(f"chatter {n}", login="human")
-    fake.add_comment(GUIDE)
+    await converge(fake, author="dependabot[bot]")
+    assert fake.comments[0]["body"].count(MARKER) == 1
+    assert await converge(fake, author="dependabot[bot]") == []
+    assert len(fake.comments) == 1
+
+
+async def test_guide_author_must_be_our_bot():
+    fake = FakeGitHub()
+    gitar = fake.add_comment(GUIDE, login="gitar-bot[bot]")
+    human = fake.add_comment(GUIDE, login="human")
     api = make(fake)
-    orig = fake.handler
-
-    def paged(request: httpx.Request) -> httpx.Response:
-        if request.method == "GET" and request.url.path.endswith("/comments"):
-            page, size = int(request.url.params["page"]), int(request.url.params["per_page"])
-            return httpx.Response(200, json=fake.comments[(page - 1) * size : page * size])
-        return orig(request)
-
-    api = GitHubApi("t", REPO, transport=httpx.MockTransport(paged), sleep=_nosleep)
-    assert await upsert_guide(api, 1, GUIDE, CFG) == "unchanged"
+    assert await upsert_guide(api, 1, GUIDE + "x", CFG.bot_logins) == "created"
+    assert {c["id"] for c in fake.comments if c["id"] in (gitar, human)} == {gitar, human}
+    assert all(c["body"] == GUIDE for c in fake.comments if c["id"] in (gitar, human))
+    assert [m for m, _ in fake.writes] == ["POST"]
+    fake.comments.pop()
+    fake.add_comment(GUIDE, login="github-actions[bot]")
+    assert await upsert_guide(api, 1, GUIDE + "x", CFG.bot_logins) == "updated"
     await api.aclose()

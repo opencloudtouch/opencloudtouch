@@ -28,6 +28,7 @@ class Config:
     strike_window_days: int = 60
     strikes_enabled_from: date | None = None
     maintainer_permissions: tuple[str, ...] = field(default=("maintain", "admin"))
+    bot_logins: tuple[str, ...] = field(default=("oct-support", "github-actions[bot]"))
 
 
 def load_config(path: Path) -> Config:
@@ -53,4 +54,5 @@ def load_config(path: Path) -> Config:
         strike_window_days=int(raw.get("strike_window_days", 60)),
         strikes_enabled_from=since,
         maintainer_permissions=tuple(raw.get("maintainer_permissions", ("maintain", "admin"))),
+        bot_logins=tuple(raw.get("bot_logins", ("oct-support", "github-actions[bot]"))),
     )
