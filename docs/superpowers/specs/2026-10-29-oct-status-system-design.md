@@ -180,7 +180,8 @@ in the block. The parser never guesses.
   skipped when the hash is unchanged.
 - Placement: top of the body. For artifacts authored by an automation actor
   whose body is regenerated (Dependabot) the block lives in one pinned comment
-  marked `<!-- oct-status:comment -->`.
+  marked `<!-- oct-next:v1 -->` (the single guide comment marker; the earlier
+  `<!-- oct-status:comment -->` is superseded).
 - Size: the relations table is capped at 25 rows; the rest is summarized as
   "and n more".
 
@@ -305,7 +306,10 @@ Gitar executes commands from comments that start with `gitar` or `@gitar` or tha
    `config.yml` (initially `.github/workflows/**`, `scripts/oct_status/**`,
    `.gitar/**`, `.claude/**`, `.gitignore`) sets `wait:findings` and posts a
    comment naming the files. `oct-status` fails until a maintainer acknowledges
-   with `/oct accept-paths`.
+   with `/oct accept-paths`. The acknowledgement covers only the head recorded when
+   the notice listed the files. The rule applies to any automation actor,
+   Dependabot and `formatter-bot` included, so their pushes to workflow files
+   also need the acknowledgement.
 4. `.gitar/config/apply.md` (natural language, read from the default branch, so
    a PR cannot loosen it) restricts auto-applied fixes for review findings to
    low-risk categories and excludes security-relevant code. CI fixes are covered
@@ -406,8 +410,8 @@ Ladder, counted per user over 60 days, de-duplicated per (artifact, rule):
    be blocked; the bot reverts the offending change and says so.
 
 Rules for fairness: automation actors and first-time fork contributors are
-exempt from strikes; an overridden violation is not counted; strikes expire
-after 60 days without violation. Every violation and override is appended to a
+exempt from strikes; an overridden violation is not counted; each strike
+expires 60 days after it was recorded (rolling window per strike). Every violation and override is appended to a
 locked ledger issue ("oct-status ledger", created by the label sync) so the
 counter is auditable and does not rely on search.
 
@@ -427,7 +431,7 @@ Maintainers are subject to the same ladder and may override on themselves.
 | `/oct no-spec <reason>` | PR author | exempts a PR from V01 |
 | `/oct supersede #n` | maintainer | edge + `resolution:superseded` |
 | `/oct override <reason>` | maintainer | clears a block, logged |
-| `/oct accept-paths` | maintainer | acknowledges a push by automation to protected paths, logged |
+| `/oct accept-paths` | maintainer | acknowledges a push by automation to protected paths, logged in the guide data and the run summary |
 
 Commands are accepted only from users with write access, answered with a
 reaction and, on error, an entry in the guide comment (section 5a).
@@ -519,6 +523,15 @@ Rollback: disable the workflow and remove the required check; labels and blocks
 stay inert.
 
 ## 15. Open points and assumptions to verify in the plan
+
+Rulings made during implementation (deviations from the text above):
+
+- Write mode is gated by the repository variable `OCT_STATUS_WRITE` (maintainer go/no-go after the shadow week); strikes stay inactive until `strikes_enabled_from` is set, and that must not happen before the backfill.
+- The merge gate is the commit status context `oct-status` on the PR head (posted only in write mode), not a check run: checks of `pull_request_target` runs attach to the base commit.
+- V05 is not reverted automatically (the notice persists until the template is restored); V08 is reverted by reopening the issue at level 3 (to be built before strikes are activated).
+- An open spec whose parts are all merged stays in progress; the automation row has no Gitar risk or auto-apply state until dashboard parsing exists.
+- `/oct supersede` is accepted only on closed artifacts; the `superseded-by` edge is not written yet.
+- GitHub keeps one pending run per concurrency group, so a queued command comment can be dropped: repeat a command that shows no reaction.
 
 - Hooks apply to subagents and `updatedInput` is honoured (test first).
 - Bot identity: `issue-handler.yml` mentions `scheilch`, `rules.yml` mentions
