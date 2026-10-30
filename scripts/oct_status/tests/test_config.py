@@ -18,6 +18,19 @@ def test_actor_profiles():
     assert cfg.automation["gitar-bot[bot]"].invalidates_approval is True
     assert cfg.automation["gitar-bot[bot]"].pushes is True
     assert cfg.automation["dependabot[bot]"].block_location == "comment"
+    # MA-8: Gitar commits under the User login `gitar-bot`, reviews and comments come from `gitar-bot[bot]`.
+    assert cfg.automation["gitar-bot"].pushes is True
+    assert cfg.automation["gitar-bot"].invalidates_approval is True
+
+
+def test_only_pushing_automation_counts_as_a_pusher():
+    cfg = load_config(CONFIG_PATH)
+    for login in ("gitar-bot", "gitar-bot[bot]", "formatter-bot", "dependabot[bot]", "github-actions[bot]"):
+        assert cfg.pushes(login), login
+    # The maintainer's own local commits carry the login oct-support (MA-8): human work, not automation.
+    assert cfg.automation["oct-support"].pushes is False
+    for login in ("oct-support", "sonarqubecloud[bot]", "codecov-commenter", "alice", ""):
+        assert not cfg.pushes(login), login
     for login in (
         "oct-support",
         "github-actions[bot]",

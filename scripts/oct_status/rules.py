@@ -320,7 +320,8 @@ def protected_changes(snap: Snapshot, cfg: Config) -> list[tuple[str, str]]:
 
     Design section 7, rule 3: a push by any automation actor counts, also on docs / no-spec PRs; a
     human's push never does (its paths are not even fetched). A push counts as automation when its
-    author or its committer login is an automation actor. `/oct accept-paths` acknowledges
+    author or its committer login is an automation actor with ``pushes: true``; ``oct-support`` is not
+    one, because the maintainer's own local commits carry that login (MA-8). `/oct accept-paths` acknowledges
     everything up to the head it was given on; when that commit is no longer on the branch the
     acknowledgement covers nothing (fail closed).
     """
@@ -333,8 +334,8 @@ def protected_changes(snap: Snapshot, cfg: Config) -> list[tuple[str, str]]:
     found: set[tuple[str, str]] = set()
     for push in pushes:
         # An automation that commits a change somebody else authored pushes it all the same.
-        actor = push.author if push.author in cfg.automation else push.committer
-        if actor in cfg.automation:
+        actor = push.author if cfg.pushes(push.author) else push.committer
+        if cfg.pushes(actor):
             found |= {(actor, path) for path in touches_protected(push.paths, cfg.protected_paths)}
     return sorted(found)
 

@@ -297,9 +297,11 @@ Zero or more `wait:*` labels, all orange. "No orange" means nothing blocks.
 
 The protected paths are listed in `scripts/oct_status/config.yml` (`protected_paths`): `.github/workflows/**`,
 `scripts/oct_status/**`, `.gitar/**`, `.claude/**` and `.gitignore`. A push counts as automation when its
-commit author or committer is in the `automation` list, so pushes by Dependabot, `formatter-bot` and Gitar to
-these paths all need a maintainer's `/oct accept-paths`, also on docs / no-spec pull requests. Human pushes
-never do. A commit with more files than GitHub lists counts as touching a protected path.
+commit author or committer is an `automation` entry with `pushes: true` (Dependabot, `formatter-bot`,
+`github-actions[bot]` and Gitar, whose commits carry the login `gitar-bot`), so their pushes to these paths
+all need a maintainer's `/oct accept-paths`, also on docs / no-spec pull requests. Human pushes never do;
+`oct-support` is not a pushing actor, because the maintainer's own local commits carry that login. A commit
+with more files than GitHub lists counts as touching a protected path.
 
 ### Resolutions
 

@@ -180,8 +180,8 @@ async def _pushes(api: GitHubApi, number: int, cfg: Config | None) -> tuple[Push
 
     Author is the commit author login, else the committer login, else the git author name; the
     committer login is kept as well. File paths are fetched (``GET /commits/{sha}``) when the author
-    or the committer is a key of ``cfg.automation`` (an automation can commit a human-authored
-    change); everybody else gets ``paths == ()``.
+    or the committer is a pushing automation actor (``cfg.pushes``; an automation can commit a
+    human-authored change); everybody else gets ``paths == ()``.
     """
     commits: list[dict[str, Any]] = []
     for page in range(1, _MAX_COMMIT_PAGES + 1):
@@ -201,7 +201,7 @@ async def _pushes(api: GitHubApi, number: int, cfg: Config | None) -> tuple[Push
         )
         committer = (commit.get("committer") or {}).get("login") or ""
         paths: tuple[str, ...] = ()
-        if cfg is not None and (login in cfg.automation or committer in cfg.automation):
+        if cfg is not None and (cfg.pushes(login) or cfg.pushes(committer)):
             paths = await _commit_paths(api, commit["sha"])
         pushes.append(Push(commit["sha"], login, paths, committer))
     return tuple(pushes)

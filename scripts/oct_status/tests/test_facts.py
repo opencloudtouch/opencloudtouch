@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import httpx
@@ -227,6 +228,68 @@ async def test_commit_detail_error_propagates():
     extra = {f"GET {BASE}/pulls/574/commits": [_commit("c3", "gitar-bot[bot]")]}  # no /commits/c3 route -> 404
     with pytest.raises(httpx.HTTPStatusError):
         await fetch_snapshot(_api(FixtureTransport([574], extra=extra)), 574, use_graphql=False, cfg=_cfg())
+
+
+# Real response shapes of `GET /pulls/{n}/commits` recorded in the MA-8 experiment (PR #586).
+def _gitar_commit(sha):
+    return {
+        "sha": sha,
+        "author": {"login": "gitar-bot", "type": "User"},
+        "committer": {"login": "gitar-bot", "type": "User"},
+        "commit": {
+            "author": {"name": "Gitar", "email": "noreply@gitar.ai"},
+            "committer": {"name": "Gitar", "email": "noreply@gitar.ai"},
+            "message": "fix(ci): pin action\n\nCo-authored-by: Someone <someone@example.org>",
+        },
+    }
+
+
+def _formatter_commit(sha):
+    return {
+        "sha": sha,
+        "author": None,
+        "committer": None,
+        "commit": {
+            "author": {"name": "formatter-bot", "email": "noreply@opencloudtouch.org"},
+            "committer": {"name": "formatter-bot", "email": "noreply@opencloudtouch.org"},
+            "message": "style: format",
+        },
+    }
+
+
+def _maintainer_commit(sha):
+    return {
+        "sha": sha,
+        "author": {"login": "oct-support", "type": "User"},
+        "committer": {"login": "oct-support", "type": "User"},
+        "commit": {"author": {"name": "Maintainer", "email": "m@example.org"}, "message": "feat: x"},
+    }
+
+
+async def test_real_commit_shapes_from_the_gitar_experiment():
+    from oct_status.rules import protected_changes
+
+    extra = {
+        f"GET {BASE}/pulls/574/commits": [_maintainer_commit("a1"), _gitar_commit("b2"), _formatter_commit("c3")],
+        f"GET {BASE}/commits/a1": {"files": [{"filename": "must-not-be-read"}]},
+        f"GET {BASE}/commits/b2": {"files": [{"filename": ".github/workflows/ci.yml"}]},
+        f"GET {BASE}/commits/c3": {"files": [{"filename": "scripts/oct_status/rules.py"}]},
+    }
+    transport = FixtureTransport([574], extra=extra)
+    cfg = _cfg()
+    snap = await fetch_snapshot(_api(transport), 574, use_graphql=False, cfg=cfg)
+    assert [(p.sha, p.author, p.committer) for p in snap.pushes] == [
+        ("a1", "oct-support", "oct-support"),
+        ("b2", "gitar-bot", "gitar-bot"),
+        ("c3", "formatter-bot", ""),  # no login at all: the git author name is the fallback
+    ]
+    assert snap.pushes[0].paths == ()  # the maintainer's own commit: paths are not even read
+    assert f"GET {BASE}/commits/a1" not in transport.requests
+    open_pr = replace(snap, state="open", merged=False, head_sha="c3")
+    assert protected_changes(open_pr, cfg) == [
+        ("formatter-bot", "scripts/oct_status/rules.py"),
+        ("gitar-bot", ".github/workflows/ci.yml"),
+    ]
 
 
 def _files_route(total):

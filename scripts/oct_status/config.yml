@@ -6,15 +6,24 @@ bot_logins:
   - oct-support
   - github-actions[bot]
 
+# `pushes: true` marks the actors whose commits count as automation pushes (protected paths, design
+# section 7 rule 3); every other entry is automation for comments, reviews and labels only.
 automation:
   dependabot[bot]:
     block_location: comment
+    pushes: true
   formatter-bot:
     pushes: true
     invalidates_approval: false
-  github-actions[bot]: {}
-  oct-support: {}
+  github-actions[bot]:
+    pushes: true
+  # Also the login of the maintainer's own local commits (MA-8): never a pushing automation.
+  oct-support:
+    pushes: false
+  # Reviews and comments come from the app `gitar-bot[bot]`, commits from the User login `gitar-bot`.
   gitar-bot[bot]:
+    pushes: true
+  gitar-bot:
     pushes: true
   sonarqubecloud[bot]: {}
   github-code-quality[bot]: {}

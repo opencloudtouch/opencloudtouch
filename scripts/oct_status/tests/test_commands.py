@@ -15,6 +15,7 @@ from oct_status import commands
 from oct_status.api import GitHubApi
 from oct_status.apply import MARKER
 from oct_status.commands import Command, Outcome, authorize, execute, parse_command
+from oct_status.config import Actor
 from oct_status.main import Workspace, run_event
 from oct_status.model import Derived, Phase, Push, Review, Wait
 
@@ -366,8 +367,11 @@ async def test_override_and_accept_paths_are_logged():
     # accept-paths needs a pending automation push to a protected path (see test_protected_paths.py).
     out = await _run("accept-paths", "", snap, _derived(Phase.IN_REVIEW), actor="scheilch")
     assert not out.ok and "no unacknowledged" in out.message
-    cfg = dataclasses.replace(CFG, protected_paths=[".github/workflows/**"])
-    pushes = (Push("f" * 40, BOT, (".github/workflows/a.yml",)),)
+    gitar = Actor("gitar-bot", "automation", pushes=True)
+    cfg = dataclasses.replace(
+        CFG, protected_paths=[".github/workflows/**"], automation={**CFG.automation, "gitar-bot": gitar}
+    )
+    pushes = (Push("f" * 40, "gitar-bot", (".github/workflows/a.yml",)),)
     unlisted = make_snapshot(is_pr=True, head_sha="f" * 40, pushes=pushes)
     out = await _run("accept-paths", "", unlisted, _derived(Phase.IN_REVIEW), actor="scheilch")
     assert not out.ok  # no guide listed the files yet: nothing to acknowledge

@@ -31,6 +31,11 @@ class Config:
     maintainer_permissions: tuple[str, ...] = field(default=("maintain", "admin"))
     bot_logins: tuple[str, ...] = field(default=("oct-support", "github-actions[bot]"))
 
+    def pushes(self, login: str) -> bool:
+        """Whether a commit by `login` is an automation push (an automation entry with ``pushes: true``)."""
+        actor = self.automation.get(login)
+        return actor is not None and actor.pushes
+
 
 def load_config(path: Path) -> Config:
     raw: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8")) or {}

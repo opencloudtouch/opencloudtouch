@@ -77,7 +77,10 @@ def test_protected_changes_only_for_automation_after_the_accepted_head():
     )
     snap = pr(pushes=pushes, head_sha="c3")
     assert protected_changes(snap, CFG) == [(GITAR, ".github/workflows/ci.yml")]  # formatter-bot is not in CFG
-    cfg = replace(CFG, automation={**CFG.automation, "formatter-bot": Actor("formatter-bot", "automation")})
+    quiet = replace(CFG, automation={**CFG.automation, "formatter-bot": Actor("formatter-bot", "automation")})
+    assert protected_changes(snap, quiet) == [(GITAR, ".github/workflows/ci.yml")]  # automation without pushes
+    pusher = Actor("formatter-bot", "automation", pushes=True)
+    cfg = replace(CFG, automation={**CFG.automation, "formatter-bot": pusher})
     assert len(protected_changes(snap, cfg)) == 2
     assert protected_changes(replace(snap, paths_accepted="c2"), cfg) == [
         ("formatter-bot", "scripts/oct_status/rules.py")
@@ -95,6 +98,18 @@ def test_protected_path_push_sets_findings_for_every_pr_kind():
         graph_derived = derive(snap, _graph(snap), CFG)
         assert graph_derived is not None and Wait.FINDINGS in graph_derived.waits
     assert Wait.FINDINGS not in run(pr()).waits
+
+
+def test_push_by_oct_support_is_the_maintainers_own_work():
+    """MA-8: the maintainer's local commits carry the login oct-support (author and committer)."""
+    cfg = load_config(Path(__file__).parent.parent / "config.yml")
+    own = (Push("c1", "oct-support", (".github/workflows/ci.yml",), "oct-support"),)
+    assert protected_changes(pr(pushes=own, head_sha="c1"), cfg) == []
+    gitar = (Push("c2", "gitar-bot", (".github/workflows/ci.yml",), "gitar-bot"),)
+    assert protected_changes(pr(pushes=gitar, head_sha="c2"), cfg) == [("gitar-bot", ".github/workflows/ci.yml")]
+    # A pushing automation that commits the maintainer's change still counts (committer side).
+    mixed = (Push("c3", "oct-support", (".gitignore",), "formatter-bot"),)
+    assert protected_changes(pr(pushes=mixed, head_sha="c3"), cfg) == [("formatter-bot", ".gitignore")]
 
 
 def _graph(snap):

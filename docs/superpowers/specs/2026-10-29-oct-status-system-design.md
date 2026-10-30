@@ -284,11 +284,11 @@ shared with `monthly-community-spotlight.yml` (not from the account type, see E6
 |---|---|---|
 | maintainer(s), contributors | human | full escalation (section 10) |
 | first-time fork contributors | human | hints only, never blocked, tone as the existing "Welcome & Guide" |
-| `dependabot[bot]` | automation | dependency PR profile, block as pinned comment, label config repaired |
+| `dependabot[bot]` | automation, pushes | dependency PR profile, block as pinned comment, label config repaired |
 | `formatter-bot` | automation, pushes | pushes ignored for activity and strikes; they do not invalidate approvals |
-| `github-actions[bot]` | automation | releases, version bumps, announcements: profile `announcement` |
-| `oct-support` | automation (type User) | AI reviewer / issue handler; its approval is the maintainer approval for maintainer-authored PRs |
-| `gitar-bot[bot]` | automation, pushes | review findings, dashboard comment and optional fix commits on the PR head branch (these invalidate approvals); foreign labels `gitar-*` are left alone; its approval is never the maintainer approval |
+| `github-actions[bot]` | automation, pushes | releases, version bumps, announcements: profile `announcement` |
+| `oct-support` | automation (type User), no pushes | AI reviewer / issue handler; its approval is the maintainer approval for maintainer-authored PRs; its commits are the maintainer's own local work (MA-8), so they never count as automation pushes |
+| `gitar-bot[bot]` (commits: `gitar-bot`) | automation, pushes | review findings, dashboard comment and optional fix commits on the PR head branch (these invalidate approvals); foreign labels `gitar-*` are left alone; its approval is never the maintainer approval |
 | `sonarqubecloud[bot]`, `github-code-quality[bot]`, `codecov-commenter` | automation | feed `findings` / `ci`, never approve, never counted as activity |
 | coding agents | human login + marker | covered by hooks; the marker `<!-- oct-src:1 -->` lets the server tell the origin apart for messages, not for security |
 
