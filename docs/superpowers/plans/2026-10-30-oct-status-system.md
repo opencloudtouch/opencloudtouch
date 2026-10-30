@@ -595,7 +595,7 @@ The executing agent stops at each marked step, tells the maintainer in German wh
 
 **MA-6 - Run the backfill.** When: after the Task 14 PR is merged, after MA-5 and after `OCT_STATUS_WRITE` is set to `true` (the backfill refuses `dry_run=false` before that; a dry run of the backfill is always allowed). Why: it sets labels and blocks on the existing artifacts (no comments, no strikes); GitHub rate limits force batches. Do: Actions -> "OCT Status" -> Run workflow, `mode` = `backfill`, `limit` = 25; repeat until the summary prints `remaining: 0`. After the first batch spot-check five artifacts: label set equals the block, no new comment appeared. If a run reports a rate limit, wait the printed time and run again (it resumes). Report: the counts and the spot-check result.
 
-**MA-7 - Hook probe.** When: Task 15. Why: decides whether hooks can splice the block into a body (`updatedInput`) and whether they also fire for subagents; both are claims of spec section 8. Do on a machine with Claude Code, after `git pull` of the branch with the probe:
+**MA-7 - Hook probe (done; the probe was removed in Task 16, results in spec section 15).** When: Task 15. Why: decides whether hooks can splice the block into a body (`updatedInput`) and whether they also fire for subagents; both are claims of spec section 8. Do on a machine with Claude Code, after `git pull` of the branch with the probe:
 ```bash
 rm -rf /tmp/hook-probe && mkdir -p /tmp/hook-probe/.claude && cd /tmp/hook-probe && git init -q
 cp <repo>/scripts/oct_status/tools/hook_probe/settings.json .claude/settings.json
