@@ -71,6 +71,7 @@ _SHA = re.compile(r"[0-9a-f]{40}")
 _ISSUE_EVENTS = {"issues", "issue_comment"}
 _PR_EVENTS = {"pull_request", "pull_request_target", "pull_request_review", "pull_request_review_comment"}
 _DISCUSSION_EVENTS = {"discussion", "discussion_comment"}
+_LOCKED = (403, 423)  # a comment write refused because the conversation is locked
 
 
 class ConfigError(Exception):
@@ -401,7 +402,9 @@ async def _write_guide(
     """Write the guide comment unless an overlapping run changed it since it was read.
 
     On such a conflict the newer guide is read once more and this run's changes are applied on top of
-    it; a second conflict skips the guide write with a warning. Returns (writes, notices, written).
+    it; a second conflict skips the guide write with a warning. A write refused with 403 or 423 (a
+    locked conversation) is a warning as well: the run goes on, and the gate fails closed because the
+    notices were not persisted. Returns (writes, notices, written).
     """
     number = snap.number
     state: GuideState | None = None
@@ -411,9 +414,18 @@ async def _write_guide(
         content = guide_content(snap, block, guide, ws.cfg)
         if guide is None or content is None:
             return [], [], False
-        result = await upsert_guide(
-            ws.api, number, content, ws.cfg.bot_logins, dry_run=dry_run, expected=ws.guide_bodies.get(number)
-        )
+        try:
+            result = await upsert_guide(
+                ws.api, number, content, ws.cfg.bot_logins, dry_run=dry_run, expected=ws.guide_bodies.get(number)
+            )
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code not in _LOCKED:
+                raise
+            code = exc.response.status_code
+            ws.warnings.append(
+                f"WARNING: guide comment of #{number} not written (HTTP {code}, the conversation is probably locked)"
+            )
+            return [], [], False
         if result != CONFLICT:
             return ([] if result == "unchanged" else [f"guide comment {result}"]), records, True
         guides = await _find_guides(ws.api, number, ws.cfg.bot_logins)

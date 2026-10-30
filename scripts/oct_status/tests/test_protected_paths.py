@@ -490,3 +490,27 @@ async def test_audit_pages_through_more_than_100_open_pull_requests():
     await run_audit(api, CFG, dry_run=False, clock=clock)
     await api.aclose()
     assert len(repo.statuses) == 105 and all(v[-1]["state"] == "success" for v in repo.statuses.values())
+
+
+@pytest.mark.parametrize("code", [403, 423])
+async def test_locked_conversation_skips_the_guide_but_the_run_continues(code, monkeypatch, tmp_path):
+    """A locked conversation refuses comments: the run warns, labels and block stay, the status is posted."""
+    summary = tmp_path / "summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    repo = PathRepo()
+    repo.add_pr(10, title="docs: x")
+    repo.push(10, SHA_A, "alice", ["docs/x.md"])
+    original = repo.handler
+
+    def locked(request):
+        if request.url.path.endswith("/issues/10/comments") and request.method == "POST":
+            return httpx.Response(code, json={"message": "Unable to create comment because issue is locked."})
+        return original(request)
+
+    repo.handler = locked  # type: ignore[method-assign]
+    await _run(repo, "pull_request_target", pr_event(10, "synchronize"))
+    assert repo.guide(10) == ""
+    assert repo.label_names(10) and "oct-status:v1" in repo.issues[10]["body"]
+    assert status(repo, SHA_A)["state"] == "failure"  # fail closed: the notices could not be persisted
+    text = summary.read_text(encoding="utf-8")
+    assert f"guide comment of #10 not written (HTTP {code}" in text and "locked" in text
