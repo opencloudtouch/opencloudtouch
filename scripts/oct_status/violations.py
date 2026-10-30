@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from .config import Config
 from .model import Derived, EdgeType, Graph, Kind, Phase, Snapshot
 from .render import block_intact, extract_block
-from .rules import detect_kind, spec_is_ready
+from .rules import detect_kind, label_declarations, spec_is_ready
 
 EXEMPT_CLASSES = frozenset({"automation", "first-timer"})
 FIRST_TIME_ASSOCIATIONS = frozenset({"FIRST_TIME_CONTRIBUTOR", "FIRST_TIMER"})
@@ -220,10 +220,11 @@ def state_rules(snap: Snapshot, graph: Graph, cfg: Config) -> set[str]:
     return {rule for rule, _ in _pull_request_rules(snap, graph, cfg)}
 
 
-def _event_rules(snap: Snapshot, derived: Derived, event: EventFacts) -> list[tuple[str, str, str]]:
+def _event_rules(snap: Snapshot, derived: Derived, event: EventFacts, cfg: Config) -> list[tuple[str, str, str]]:
     """(rule, hint, key) of V02, V03, V05, V07 and V08: the actor's own change in this event."""
     found: list[tuple[str, str, str]] = []
-    if event.action in ("labeled", "unlabeled") and event.label in FACT_LABELS:
+    declared = {p.label for p in label_declarations(detect_kind(snap, cfg))}
+    if event.action in ("labeled", "unlabeled") and event.label in FACT_LABELS - declared:
         verb = "added" if event.action == "labeled" else "removed"
         found.append(("V02", f"The label `{_plain(event.label)}` was {verb} by hand.", event.label))
     if event.action == "edited" and event.body_before is not None:
@@ -277,7 +278,7 @@ def detect(
         if not (event.actor == snap.author and author_exempt):
             out += [
                 Violation(rule, snap.number, event.actor, hint, key)
-                for rule, hint, key in _event_rules(snap, derived, event)
+                for rule, hint, key in _event_rules(snap, derived, event, cfg)
             ]
     return out
 

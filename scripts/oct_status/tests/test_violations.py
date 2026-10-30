@@ -106,6 +106,19 @@ def test_v02_fact_label_set_or_removed_by_hand():
     assert rules_of(issue, event=EventFacts("edited", "bob", "phase:done")) == []
 
 
+def test_v02_skips_the_label_declaration_of_a_test_plan():
+    """Design 4.1: a test plan goes new -> in-progress -> done and no fact derives `in-progress`, so the
+    label is its declaration (rules accept it); only other fact labels on a test plan are V02."""
+    plan = make_snapshot(title="[Test]: Manual test plan for PR #560")
+    for action in ("labeled", "unlabeled"):
+        assert rules_of(plan, event=EventFacts(action, "bob", "phase:in-progress")) == []
+    assert rules_of(plan, event=EventFacts("labeled", "bob", "phase:done")) == ["V02"]
+    # Other kinds: `phase:in-progress` stays a fact label.
+    assert rules_of(make_snapshot(), event=EventFacts("labeled", "bob", "phase:in-progress")) == ["V02"]
+    graph = graph_of(replace(plan, labels=frozenset({"phase:in-progress"})))
+    assert graph.derived[1].phase == Phase.IN_PROGRESS
+
+
 def test_v02_user_is_the_event_actor():
     snap = make_snapshot()
     graph = graph_of(snap)
