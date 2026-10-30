@@ -8,6 +8,11 @@ bot_logins:
 
 # `pushes: true` marks the actors whose commits count as automation pushes (protected paths, design
 # section 7 rule 3); every other entry is automation for comments, reviews and labels only.
+# Accounts trusted as authors of the ledger issue and its entries: exactly the BOT_PAT account that writes
+# them (status-write and the label sync never write the ledger with the job token).
+ledger_writers:
+  - oct-support
+
 automation:
   dependabot[bot]:
     block_location: comment

@@ -1029,7 +1029,9 @@ the state of an open pull request and are charged to its author; they are re-che
 pull request. V02, V03, V05, V07 and V08 describe one change and are charged to the person who made it.
 
 **Escalation ladder.** Counted per user over a rolling 60 days in the locked issue "oct-status ledger",
-de-duplicated per artifact and rule:
+de-duplicated per artifact and rule. Only the ledger issue and entries written by `oct-support` (the
+`BOT_PAT` account, `ledger_writers` in `config.yml`) count; comments by any other account, including
+`github-actions[bot]`, are ignored:
 
 1. First violation: a notice with what happened, what was expected and the next steps. The check stays
    green.

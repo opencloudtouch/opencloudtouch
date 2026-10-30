@@ -117,7 +117,9 @@ async def _run_labels(api: GitHubApi, dry_run: bool, cfg: Config | None = None) 
     cfg = cfg or load_config(CONFIG_PATH)
     ops = await sync_labels(api, LABELS_SPEC, dry_run=dry_run)
     try:
-        ledger = await ensure_ledger_issue(api, dry_run=dry_run, bot_logins=cfg.bot_logins, configured=cfg.ledger_issue)
+        ledger = await ensure_ledger_issue(
+            api, dry_run=dry_run, bot_logins=cfg.ledger_writers, configured=cfg.ledger_issue
+        )
     except LedgerIssueError as exc:
         raise ConfigError(str(exc)) from exc
     prefix = "[dry-run] " if dry_run else ""
@@ -608,7 +610,7 @@ async def _open_ledger(ws: Workspace, dry_run: bool, clock: Callable[[], datetim
     """The ledger on the locked ledger issue (created in write mode when missing)."""
     try:
         number = await ensure_ledger_issue(
-            ws.api, dry_run=dry_run, bot_logins=ws.cfg.bot_logins, configured=ws.cfg.ledger_issue
+            ws.api, dry_run=dry_run, bot_logins=ws.cfg.ledger_writers, configured=ws.cfg.ledger_issue
         )
     except LedgerIssueError as exc:
         raise LedgerError(str(exc)) from exc

@@ -116,7 +116,7 @@ class Ledger:
         self.issue_number = issue_number
         self._clock = clock
         self._cfg = cfg
-        self._trusted = trusted_authors if trusted_authors is not None else (cfg.bot_logins if cfg else None)
+        self._trusted = trusted_authors if trusted_authors is not None else (cfg.ledger_writers if cfg else None)
         self._window = timedelta(days=cfg.strike_window_days if cfg else DEFAULT_WINDOW_DAYS)
         self._entries: list[Entry] | None = None
 

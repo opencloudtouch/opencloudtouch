@@ -158,6 +158,27 @@ async def test_malformed_and_foreign_entries_are_ignored():
     assert await ledger.level_for("alice") == 1
 
 
+async def test_only_the_ledger_writer_is_a_trusted_author():
+    """Ledger entries are written with BOT_PAT (oct-support) only; any other workflow author is ignored."""
+    fake = FakeLedgerIssue()
+    good = {"v": 1, "kind": "violation", "user": "alice", "rule": "V01", "ts": NOW.isoformat()}
+    fake.add_raw(json.dumps({**good, "artifact": 5}))
+    fake.add_raw(json.dumps({**good, "artifact": 6}), login="github-actions[bot]")  # any workflow's job token
+    fake.add_raw(json.dumps({**good, "artifact": 7}), login="dependabot[bot]")
+    cfg = Config(automation={}, gate_checks=[], protected_paths=[], strikes_enabled_from=date(2026, 1, 1))
+    assert cfg.ledger_writers == ("oct-support",)
+    assert "github-actions[bot]" in cfg.bot_logins  # still ours for the guide comment, not for the ledger
+    assert await make(fake, cfg=cfg).level_for("alice") == 1
+
+
+def test_ledger_writers_come_from_the_config():
+    from pathlib import Path
+
+    from oct_status.config import load_config
+
+    assert load_config(Path(__file__).parent.parent / "config.yml").ledger_writers == ("oct-support",)
+
+
 async def test_second_page_is_read():
     fake = FakeLedgerIssue()
     for n in range(1, 131):

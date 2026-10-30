@@ -164,6 +164,28 @@ async def test_no_strikes_before_activation_date():
     assert "fails" not in repo.guide(10) and len(repo.ledger()) == 3
 
 
+async def test_ledger_issue_or_entries_by_another_workflow_author_are_not_trusted():
+    """Only the BOT_PAT account writes the ledger; github-actions[bot] (any workflow) is not trusted there."""
+    repo = Repo()
+    repo.add_pr(10)
+    for comment in seed_comments(repo, "alice", [(1, "V01"), (2, "V01")]):
+        comment["user"] = {"login": "github-actions[bot]"}
+    await run(repo, "pull_request_target", pr_event(10))
+    assert "fails" not in repo.guide(10)  # the planted strikes do not count: first strike, level 1
+    planted = Repo(ledger=False)
+    planted.add_pr(10)
+    planted.add(LEDGER)
+    planted.issues[LEDGER].update(title="oct-status ledger", locked=True, user={"login": "github-actions[bot]"})
+    seed(planted, "alice", [(1, "V01"), (2, "V01"), (3, "V01")])
+    await run(planted, "pull_request_target", pr_event(10))
+    assert "fails" not in planted.guide(10) and len(planted.ledger()) == 3  # look-alike ledger ignored
+
+
+def seed_comments(repo: Repo, user: str, pairs: list[tuple[int, str]]) -> list[dict]:
+    seed(repo, user, pairs)
+    return repo.comments[LEDGER][-len(pairs) :]
+
+
 async def test_dry_run_reports_but_writes_nothing():
     repo = Repo()
     repo.add_pr(10)

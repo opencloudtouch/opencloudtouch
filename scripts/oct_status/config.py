@@ -30,6 +30,10 @@ class Config:
     ledger_issue: int | None = None  # number of the ledger issue; skips the search by title when set
     maintainer_permissions: tuple[str, ...] = field(default=("maintain", "admin"))
     bot_logins: tuple[str, ...] = field(default=("oct-support", "github-actions[bot]"))
+    # Accounts whose ledger comments (and ledger issue) are trusted: exactly the writer. Ledger entries and
+    # the ledger issue are written with BOT_PAT only (a run without it is forced to a dry run), never
+    # with a job token, so `github-actions[bot]` (any workflow) is not trusted here.
+    ledger_writers: tuple[str, ...] = field(default=("oct-support",))
 
     def pushes(self, login: str) -> bool:
         """Whether a commit by `login` is an automation push (an automation entry with ``pushes: true``)."""
@@ -65,4 +69,5 @@ def load_config(path: Path) -> Config:
         ledger_issue=ledger,
         maintainer_permissions=tuple(raw.get("maintainer_permissions", ("maintain", "admin"))),
         bot_logins=tuple(raw.get("bot_logins", ("oct-support", "github-actions[bot]"))),
+        ledger_writers=tuple(raw.get("ledger_writers", ("oct-support",))),
     )
