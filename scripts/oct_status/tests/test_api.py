@@ -140,3 +140,31 @@ async def test_retry_after_within_the_cap_is_honoured():
     assert (await api.request("GET", "/x")).status_code == 200
     await api.aclose()
     assert waits == [120.0]
+
+
+async def test_rate_limit_reset_is_honoured_without_retry_after():
+    """M-5: x-ratelimit-remaining 0 and no retry-after: wait until x-ratelimit-reset (epoch seconds), capped."""
+    waits: list[float] = []
+    limited = {"x-ratelimit-remaining": "0", "x-ratelimit-reset": "1030"}
+    responses = [httpx.Response(403, headers=limited), httpx.Response(200, json={})]
+    api = _client(lambda request: responses.pop(0), waits, clock=lambda: 1000.0)
+    assert (await api.request("GET", "/x")).status_code == 200
+    await api.aclose()
+    assert waits == [31.0]  # until the reset, plus one second
+    calls: list[str] = []
+
+    def far(request: httpx.Request) -> httpx.Response:
+        calls.append(request.method)
+        return httpx.Response(403, headers={"x-ratelimit-remaining": "0", "x-ratelimit-reset": "999999"})
+
+    api = _client(far, waits, clock=lambda: 1000.0)
+    assert (await api.request("POST", "/x", json={})).status_code == 403
+    await api.aclose()
+    assert calls == ["POST"]  # beyond max_retry_wait: returned to the caller
+    passed = [httpx.Response(429, headers={"x-ratelimit-remaining": "0", "x-ratelimit-reset": "900"})]
+    passed.append(httpx.Response(200, json={}))
+    waits.clear()
+    api = _client(lambda request: passed.pop(0), waits, clock=lambda: 1000.0)
+    assert (await api.request("GET", "/x")).status_code == 200
+    await api.aclose()
+    assert waits == [1.0]  # a reset in the past: retry right away (one second)

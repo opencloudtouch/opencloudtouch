@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import random
 import re
+import time
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -37,7 +38,8 @@ class GitHubApi:
     ``retry-after``):
 
     - A rate limit (429, or 403 with ``retry-after`` or ``x-ratelimit-remaining: 0``) is retried for
-      every method: GitHub rejected the request before processing it.
+      every method: GitHub rejected the request before processing it. Without ``retry-after`` the wait
+      runs until ``x-ratelimit-reset`` when the remaining quota is 0 (still capped by ``max_retry_wait``).
     - A 5xx answer and a transport error (connect or read timeout, broken connection) are retried only
       for idempotent requests: GET, HEAD, OPTIONS, PUT, PATCH (we only ever PATCH to a target state),
       DELETE and GraphQL queries. A POST (comment, label add, commit status) or a GraphQL mutation is
@@ -61,6 +63,7 @@ class GitHubApi:
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
         read_only: bool = False,
         max_retry_wait: float | None = DEFAULT_MAX_RETRY_WAIT,
+        clock: Callable[[], float] = time.time,
     ) -> None:
         self.repo = repo
         self.read_only = read_only
@@ -68,6 +71,7 @@ class GitHubApi:
         # through (the backfill stops and resumes later); ``None`` waits as long as asked (tests only).
         self.max_retry_wait = max_retry_wait
         self._sleep = sleep
+        self._clock = clock
         self._client = httpx.AsyncClient(
             base_url=API_ROOT,
             transport=transport,
@@ -91,6 +95,13 @@ class GitHubApi:
         if resp.status_code == 403:
             return "retry-after" in resp.headers or resp.headers.get("x-ratelimit-remaining") == "0"
         return False
+
+    def _until_reset(self, resp: httpx.Response) -> str | None:
+        """Seconds until ``x-ratelimit-reset`` (plus one) when the primary limit is used up, as a string."""
+        reset = resp.headers.get("x-ratelimit-reset", "")
+        if resp.headers.get("x-ratelimit-remaining") != "0" or not reset.isdigit():
+            return None
+        return str(max(0, int(reset) - int(self._clock())) + 1)
 
     @staticmethod
     def _idempotent(method: str, url: str, kw: dict[str, Any]) -> bool:
@@ -124,7 +135,7 @@ class GitHubApi:
                 retryable = self._rate_limited(resp) or (idempotent and resp.status_code >= 500)
                 if not retryable or last:
                     return resp
-                retry_after = resp.headers.get("retry-after")
+                retry_after = resp.headers.get("retry-after") or self._until_reset(resp)
             wait = (
                 float(retry_after) if retry_after and retry_after.isdigit() else delay + random.uniform(0, MAX_JITTER)
             )
