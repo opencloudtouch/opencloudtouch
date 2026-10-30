@@ -46,7 +46,8 @@ class FakeLedgerIssue:
             if self.fail_write:
                 return httpx.Response(500, json={})
             self.posts += 1
-            self.add_raw(json.loads(request.content)["body"])
+            body = json.loads(request.content)["body"]
+            self.add_raw(body, updated=datetime.fromisoformat(json.loads(body)["ts"]))
             return httpx.Response(201, json={})
         if self.fail_read:
             return httpx.Response(500, json={})
@@ -190,3 +191,73 @@ async def test_unwritable_ledger_raises_ledger_error():
         await make(fake).record(violation())
     with pytest.raises(LedgerError):
         await make(fake).record_override("m", 5, "why")
+
+
+async def test_override_is_renewed_so_a_persisting_violation_is_not_charged_again():
+    fake = FakeLedgerIssue()
+    first = make(fake)
+    await first.record(violation())
+    await first.record_override("maintainer", 5, "known")
+    # Day 40: too early to renew.
+    assert await make(fake, Clock(NOW + timedelta(days=40))).renew_override(5) is False
+    # Day 55: the override is older than window - 7 days, so it is renewed.
+    day55 = make(fake, Clock(NOW + timedelta(days=55)))
+    assert await day55.renew_override(5) is True
+    assert await day55.renew_override(5) is False  # not twice
+    assert await make(fake, Clock(NOW + timedelta(days=55))).renew_override(5) is False
+    # Day 70: the original entries are gone, the renewal still covers the persisting violation.
+    day70 = make(fake, Clock(NOW + timedelta(days=70)))
+    assert await day70.is_overridden("alice", 5, "V01")
+    assert await day70.record(violation()) is False
+    assert await day70.level_for("alice") == 0
+    assert await day70.renew_override(99) is False  # no override on that artifact
+    # Without a renewal the same situation costs a strike.
+    other = FakeLedgerIssue()
+    await make(other).record(violation())
+    await make(other).record_override("maintainer", 5, "known")
+    day70 = make(other, Clock(NOW + timedelta(days=70)))
+    assert await day70.record(violation()) is True and await day70.level_for("alice") == 1
+
+
+async def test_ledger_bodies_never_contain_a_raw_at_sign_or_mention():
+    fake = FakeLedgerIssue()
+    ledger = make(fake)
+    await ledger.record(violation())
+    await ledger.record_override("maintainer", 5, "ping @gitar-bot and @someone")
+    assert all("@" not in c["body"] and "gitar-bot" not in c["body"].lower() for c in fake.comments)
+    assert all(isinstance(json.loads(c["body"]), dict) for c in fake.comments)
+    # An escaped "@" round-trips through the parser.
+    fake.add_raw(
+        json.dumps(
+            {"v": 1, "kind": "override", "user": "m", "artifact": 7, "ts": NOW.isoformat(), "reason": "a@b"}
+        ).replace("@", "\\u0040")
+    )
+    assert await make(fake).level_for("alice") == 0
+
+
+async def test_ordinal_ranks_strikes_by_position():
+    fake = FakeLedgerIssue()
+    clock = Clock()
+    ledger = make(fake, clock)
+    await ledger.record(violation("V01", 1))
+    clock.now += timedelta(hours=1)
+    await ledger.record(violation("V01", 2))
+    clock.now += timedelta(hours=1)
+    await ledger.record(violation("V01", 3))
+    assert [await ledger.ordinal("alice", n, "V01", []) for n in (1, 2, 3)] == [1, 2, 3]
+    assert await ledger.ordinal("alice", 4, "V01", [(4, "V01"), (5, "V01")]) == 4
+    assert await ledger.ordinal("alice", 5, "V01", [(4, "V01"), (5, "V01")]) == 5
+    assert await ledger.ordinal("alice", 9, "V01", []) == 0  # not a counted strike
+    await ledger.record_override("m", 2, "x")
+    assert await ledger.ordinal("alice", 3, "V01", []) == 2  # the overridden strike no longer ranks
+    cfg = Config(automation={}, gate_checks=[], protected_paths=[])
+    assert await make(fake, cfg=cfg).ordinal("alice", 1, "V01", []) == 0  # strikes inactive
+
+
+async def test_too_many_pages_fail_closed(monkeypatch):
+    monkeypatch.setattr("oct_status.ledger._MAX_PAGES", 2)
+    fake = FakeLedgerIssue()
+    for n in range(1, 251):
+        fake.add_raw("{}")
+    with pytest.raises(LedgerError):
+        await make(fake).level_for("alice")

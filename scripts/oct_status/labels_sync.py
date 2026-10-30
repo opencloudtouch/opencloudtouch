@@ -72,14 +72,30 @@ async def sync_labels(api: GitHubApi, spec_path: Path, dry_run: bool = False) ->
     return ops
 
 
-async def ensure_ledger_issue(api: GitHubApi, dry_run: bool = False) -> int:
-    """Return the number of the locked ledger issue, creating and locking it if missing."""
+async def ensure_ledger_issue(
+    api: GitHubApi,
+    dry_run: bool = False,
+    *,
+    bot_logins: tuple[str, ...] | None = None,
+    configured: int | None = None,
+) -> int:
+    """Return the number of the locked ledger issue, creating and locking it if missing.
+
+    `configured` (config.yml ``ledger_issue``) is used as is, without any search. Otherwise the
+    issue is found by title, and only an issue created by one of `bot_logins` counts: a stranger
+    cannot plant a look-alike ledger. Without `bot_logins` the creator is not checked.
+    """
+    if configured:
+        return configured
     for issue in await _paginate(api, "/issues", state="all"):
-        if issue.get("title") == LEDGER_TITLE and "pull_request" not in issue:
-            number = int(issue["number"])
-            if not issue.get("locked") and not dry_run:
-                await _write(api, "PUT", f"/issues/{number}/lock", json={"lock_reason": "resolved"})
-            return number
+        if issue.get("title") != LEDGER_TITLE or "pull_request" in issue:
+            continue
+        if bot_logins is not None and (issue.get("user") or {}).get("login") not in bot_logins:
+            continue
+        number = int(issue["number"])
+        if not issue.get("locked") and not dry_run:
+            await _write(api, "PUT", f"/issues/{number}/lock", json={"lock_reason": "resolved"})
+        return number
     if dry_run:
         return 0
     resp = await api.request("POST", "/issues", json={"title": LEDGER_TITLE, "body": LEDGER_BODY})

@@ -32,8 +32,8 @@ from oct_status.facts import fetch_snapshot
 from oct_status.graph import build_graph, parse_prose_edges, walk_component
 from oct_status.guide import format_notice, next_steps, render_guide
 from oct_status.labels_sync import ensure_ledger_issue, sync_labels
-from oct_status.ledger import Ledger, LedgerError
-from oct_status.model import Derived, Edge, Graph, Snapshot
+from oct_status.ledger import Ledger, LedgerError, strikes_active
+from oct_status.model import Derived, Edge, Graph, Phase, Snapshot
 from oct_status.render import extract_block, render_block, splice_block
 from oct_status.rules import derive
 from oct_status.violations import EventFacts, classify_actor, detect, escalate
@@ -89,9 +89,10 @@ def _emit(lines: list[str]) -> None:
             fh.write("".join(f"- {line}\n" for line in lines))
 
 
-async def _run_labels(api: GitHubApi, dry_run: bool) -> list[str]:
+async def _run_labels(api: GitHubApi, dry_run: bool, cfg: Config | None = None) -> list[str]:
+    cfg = cfg or load_config(CONFIG_PATH)
     ops = await sync_labels(api, LABELS_SPEC, dry_run=dry_run)
-    ledger = await ensure_ledger_issue(api, dry_run=dry_run)
+    ledger = await ensure_ledger_issue(api, dry_run=dry_run, bot_logins=cfg.bot_logins, configured=cfg.ledger_issue)
     prefix = "[dry-run] " if dry_run else ""
     return [*ops, f"{prefix}ledger issue: {'would be created' if ledger == 0 else f'#{ledger}'}"]
 
@@ -343,7 +344,9 @@ def _utcnow() -> datetime:
 async def _open_ledger(ws: Workspace, dry_run: bool, clock: Callable[[], datetime]) -> Ledger:
     """The ledger on the locked ledger issue (created in write mode when missing)."""
     try:
-        number = await ensure_ledger_issue(ws.api, dry_run=dry_run)
+        number = await ensure_ledger_issue(
+            ws.api, dry_run=dry_run, bot_logins=ws.cfg.bot_logins, configured=ws.cfg.ledger_issue
+        )
     except httpx.HTTPError as exc:
         raise LedgerError(f"ledger issue lookup failed ({type(exc).__name__})") from exc
     if number == 0:
@@ -375,7 +378,7 @@ async def _handle_command(
         derived = ws.graph().derived.get(number)
         try:
             result = await commands.execute(ws.api, cmd, snap, derived, actor, cfg=ws.cfg, dry_run=dry_run)
-            if not result.ok and cmd.name in commands.DECLARATION_COMMANDS:
+            if not result.ok and result.precondition and cmd.name in commands.DECLARATION_COMMANDS:
                 rejected = f"/oct {cmd.name} was rejected: {result.message}"
             if result.ok and cmd.name == "override":
                 result = await _record_override(ws, number, actor, cmd.args, result, dry_run, clock)
@@ -406,6 +409,10 @@ async def _record_override(
     clock: Callable[[], datetime],
 ) -> commands.Outcome:
     """Log `/oct override` in the ledger (never in dry-run); fails closed when the ledger is unwritable."""
+    if not strikes_active(ws.cfg, clock().date()):  # nothing to override yet: the ledger is not touched
+        return commands.Outcome(
+            True, f"override accepted and logged here only: strikes are not active yet ({reason})", log=result.log
+        )
     if dry_run:
         return commands.Outcome(True, f"would record the override in the ledger (dry-run): {reason}", log=result.log)
     try:
@@ -415,18 +422,39 @@ async def _record_override(
     return commands.Outcome(True, f"override recorded and effective: {reason}", log=result.log)
 
 
-def _event_facts(payload: dict[str, Any], report: CommandReport | None) -> EventFacts:
+async def _closed_by_change(api: GitHubApi, number: int) -> bool | None:
+    """Whether the latest `closed` event of an issue came from a merged change (it carries a commit).
+
+    ``None`` when the timeline cannot be read: the caller then does not charge anything.
+    """
+    try:
+        events = await _paged(api, f"/issues/{number}/events", {})
+    except (httpx.HTTPError, ValueError):
+        return None
+    closed = [e for e in events if isinstance(e, dict) and e.get("event") == "closed"]
+    return bool(closed[-1].get("commit_id")) if closed else None
+
+
+async def _event_facts(
+    ws: Workspace, snap: Snapshot, derived: Derived, payload: dict[str, Any], report: CommandReport | None
+) -> EventFacts:
     """The actor's own change in this event; every value comes from the untrusted payload and is validated."""
     sender = _nested(payload, "sender", "login")
     action = payload.get("action")
     label = _nested(payload, "label", "name")
     before = _nested(payload, "changes", "body", "from")
+    reason = _nested(payload, "issue", "state_reason")
+    closed_by: bool | None = None
+    if action == "closed" and not snap.is_pr and reason == "completed" and derived.phase == Phase.VERIFICATION:
+        closed_by = await _closed_by_change(ws.api, snap.number)
     return EventFacts(
         action=action if isinstance(action, str) else "",
         actor=sender if isinstance(sender, str) and (commands.valid_login(sender) or sender.endswith("[bot]")) else "",
         label=label if isinstance(label, str) else "",
         body_before=before if isinstance(before, str) else None,
         rejected=report.rejected if report is not None else None,
+        state_reason=reason if isinstance(reason, str) else None,
+        closed_by_change=closed_by,
     )
 
 
@@ -455,18 +483,14 @@ async def _violation_notes(
     snap, derived = graph.snapshots.get(number), graph.derived.get(number)
     if snap is None or derived is None:
         return {}, []
-    association = _nested(payload, "pull_request", "author_association") or _nested(
-        payload, "issue", "author_association"
-    )
-    actor_class = classify_actor(snap, association if isinstance(association, str) else None, ws.cfg)
-    found = detect(snap, derived, graph, ws.cfg, actor_class, _event_facts(payload, report))
+    actor_class = classify_actor(snap, ws.cfg)
+    found = detect(snap, derived, graph, ws.cfg, actor_class, await _event_facts(ws, snap, derived, payload, report))
     if not found:
         return {}, []
     ledger: Ledger | None = None
     lines = ["### Violations", ""]
     status = "strikes are not active: nothing is recorded"
-    start = ws.cfg.strikes_enabled_from
-    if start is not None and clock().date() >= start:
+    if strikes_active(ws.cfg, clock().date()):
         try:
             ledger = await _open_ledger(ws, dry_run, clock)
             await ledger.load()  # read the window once, so a failure shows here
@@ -479,12 +503,15 @@ async def _violation_notes(
     for v in found:
         level, overridden = 0, False
         if ledger is not None:
-            pairs = {(w.artifact, w.rule) for w in found if w.user == v.user}
-            level = await ledger.level_after(v.user, pairs)
+            pairs = [(w.artifact, w.rule) for w in found if w.user == v.user]
+            level = await ledger.ordinal(v.user, v.artifact, v.rule, pairs)
             overridden = await ledger.is_overridden(v.user, v.artifact, v.rule)
-            if not dry_run and not overridden:
+            if not dry_run:
                 try:
-                    await ledger.record(v)
+                    if overridden:
+                        await ledger.renew_override(v.artifact)  # the state violation persists
+                    else:
+                        await ledger.record(v)
                 except LedgerError as exc:
                     ws.warnings.append(f"WARNING: violation {v.rule} not recorded: {exc}")
         notice = escalate(v, level, overridden)

@@ -264,3 +264,23 @@ def test_labels_yml_matches_enums():
     names = {e["name"] for e in yaml.safe_load(SPEC.read_text(encoding="utf-8"))["labels"]}
     for prefix, enum in (("phase:", Phase), ("wait:", Wait), ("resolution:", Resolution)):
         assert {n for n in names if n.startswith(prefix)} == {m.label for m in enum}
+
+
+async def test_ledger_issue_by_a_stranger_is_ignored_and_configured_number_wins():
+    bots = ("oct-support", "github-actions[bot]")
+
+    def planted(login: str) -> tuple[FakeGitHub, GitHubApi]:
+        fake, api = make()
+        fake.issues.append({"number": 7, "title": "oct-status ledger", "locked": True, "user": {"login": login}})
+        return fake, api
+
+    _, api = planted("mallory")
+    assert await ensure_ledger_issue(api, dry_run=True, bot_logins=bots) == 0  # planted look-alike ignored
+    fake, api = planted("mallory")
+    assert await ensure_ledger_issue(api, bot_logins=bots) == 2  # a real one is created instead
+    _, api = planted("oct-support")
+    assert await ensure_ledger_issue(api, dry_run=True, bot_logins=bots) == 7
+    fake, api = planted("mallory")
+    fake.writes.clear()
+    assert await ensure_ledger_issue(api, bot_logins=bots, configured=42) == 42
+    assert fake.writes == []

@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 from .config import Config
 from .model import Derived, EdgeType, Graph, Kind, Phase, Snapshot
-from .render import extract_block
+from .render import block_intact, extract_block
 from .rules import detect_kind, spec_is_ready
 
 EXEMPT_CLASSES = frozenset({"automation", "first-timer"})
@@ -104,6 +104,8 @@ class EventFacts:
     label: str = ""
     body_before: str | None = None  # body before an `edited` event
     rejected: str | None = None  # a declaration command the actor sent and the automation rejected
+    state_reason: str | None = None  # of a `closed` event: "completed" or "not_planned"
+    closed_by_change: bool | None = None  # closed by a merged PR or a commit? ``None``: unknown
 
 
 @dataclass(frozen=True)
@@ -123,11 +125,14 @@ class Notice:
         return self.level >= LEVEL_BLOCK and not is_pr
 
 
-def classify_actor(snap: Snapshot, author_association: str | None, cfg: Config) -> str:
-    """ "automation", "first-timer" (first-time contributor on a fork pull request) or "human"."""
+def classify_actor(snap: Snapshot, cfg: Config) -> str:
+    """ "automation", "first-timer" (first-time contributor on a fork pull request) or "human".
+
+    The association is the one fetched with the snapshot, never one claimed by an event payload.
+    """
     if snap.author in cfg.automation:
         return "automation"
-    if snap.is_pr and snap.head_is_fork and author_association in FIRST_TIME_ASSOCIATIONS:
+    if snap.is_pr and snap.head_is_fork and snap.author_association in FIRST_TIME_ASSOCIATIONS:
         return "first-timer"
     return "human"
 
@@ -176,8 +181,9 @@ def _pull_request_rules(snap: Snapshot, graph: Graph, cfg: Config) -> list[tuple
     kind = detect_kind(snap, cfg)
     found: list[tuple[str, str]] = []
     implements = [e.target for e in graph.edges_of(snap.number, EdgeType.IMPLEMENTS)]
-    if kind in (Kind.PULL_REQUEST, Kind.DOCS_PR) and not implements and not snap.no_spec_reason:
-        found.append(("V01", "This pull request has no `Closes #n` / `Part of #n` reference to a spec."))
+    # Kind.DOCS_PR (docs, ci, chore ... titles and `/oct no-spec`) needs no spec edge (design section 4.1).
+    if kind == Kind.PULL_REQUEST and not implements and not snap.no_spec_reason:
+        found.append(("V01", "This pull request has no `Part of #SPEC` or `Closes #SPEC` reference to a spec."))
     if not snap.draft:
         for edge in graph.edges_of(snap.number, EdgeType.DEPENDS_ON):
             target = graph.snapshots.get(edge.target)
@@ -202,8 +208,12 @@ def _event_rules(snap: Snapshot, derived: Derived, event: EventFacts) -> list[tu
         verb = "added" if event.action == "labeled" else "removed"
         found.append(("V02", f"The label `{_plain(event.label)}` was {verb} by hand."))
     if event.action == "edited" and event.body_before is not None:
-        before = extract_block(event.body_before)
-        if before is not None and extract_block(snap.body) != before:
+        block = extract_block(snap.body)
+        # Judged on the body after the edit: the block must be present (it was before the edit) and
+        # its content must match the hash in its own marker.
+        if (block is None and extract_block(event.body_before) is not None) or (
+            block is not None and not block_intact(block)
+        ):
             found.append(("V03", "The oct-status block was changed or removed in the description."))
         if snap.is_pr or "spec" in snap.labels:
             gone = sorted(_template_keys(_without_block(event.body_before)) - _template_keys(_without_block(snap.body)))
@@ -212,7 +222,14 @@ def _event_rules(snap: Snapshot, derived: Derived, event: EventFacts) -> list[tu
                 found.append(("V05", f"Removed from the description: {names}."))
     if event.rejected:
         found.append(("V07", f"{_plain(event.rejected, 200)}."))
-    if event.action == "closed" and not snap.is_pr and snap.state == "closed" and derived.phase == Phase.VERIFICATION:
+    if (
+        event.action == "closed"
+        and not snap.is_pr
+        and snap.state == "closed"
+        and event.state_reason == "completed"
+        and event.closed_by_change is False  # unknown (None) fails closed: no strike
+        and derived.phase == Phase.VERIFICATION
+    ):
         found.append(("V08", "The artifact was closed while the hardware verification is still open."))
     return found
 

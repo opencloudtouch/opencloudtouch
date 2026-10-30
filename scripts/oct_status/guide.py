@@ -36,6 +36,11 @@ def _safe(text: str) -> str:
     return f"Review by {text.lstrip()}" if _LEADING.match(text) else text
 
 
+def safe_text(text: str) -> str:
+    """Public form of `_safe` for text stored elsewhere (ledger reasons)."""
+    return _safe(text)
+
+
 def _blockers(snap: Snapshot, graph: Graph | None) -> list[str]:
     if graph is not None:
         numbers = sorted(

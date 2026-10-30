@@ -58,6 +58,7 @@ class Outcome:
     effects: list[str] = field(default_factory=list)  # other writes performed (planned in dry-run)
     log: str | None = None  # entry for the ledger (override, accept-paths)
     no_spec_reason: str | None = None
+    precondition: bool = False  # rejected because a precondition of a declaration failed (violation V07)
 
 
 def _strip_noise(text: str) -> list[str]:
@@ -126,8 +127,8 @@ async def authorize(api: GitHubApi, login: str, cmd: Command, cfg: Config) -> bo
     return (await authorize_detailed(api, login, cmd, cfg))[0]
 
 
-def _reject(message: str) -> Outcome:
-    return Outcome(False, message)
+def _reject(message: str, precondition: bool = False) -> Outcome:
+    return Outcome(False, message, precondition=precondition)
 
 
 def _declare(snap: Snapshot, add: list[str], remove: list[str] | None = None, keep_phase: bool = False) -> dict:
@@ -151,7 +152,7 @@ def _transition(cmd: Command, snap: Snapshot, derived: Derived, cfg: Config, *, 
     if needs_dor:
         complete, open_items = dor_status(snap.body)
         if not complete:
-            return _reject(f"The Definition of Ready is incomplete. Open: {'; '.join(open_items)}")
+            return _reject(f"The Definition of Ready is incomplete. Open: {'; '.join(open_items)}", True)
     return None
 
 
@@ -174,9 +175,9 @@ def _ready(cmd: Command, snap: Snapshot, actor: str) -> Outcome | None:
     if not reviewer or not (reviewer == INDEPENDENT_REVIEW or valid_login(reviewer)):
         return _reject('/oct ready needs --reviewer <login or "independent-review">')
     if reviewer != INDEPENDENT_REVIEW and reviewer.lower() == snap.author.lower():
-        return _reject(f'The reviewer must differ from the author {snap.author}, or be "{INDEPENDENT_REVIEW}"')
+        return _reject(f'The reviewer must differ from the author {snap.author}, or be "{INDEPENDENT_REVIEW}"', True)
     if actor.lower() == snap.author.lower() and reviewer != INDEPENDENT_REVIEW:
-        return _reject(f"The author cannot declare the spec ready; use --reviewer {INDEPENDENT_REVIEW}")
+        return _reject(f"The author cannot declare the spec ready; use --reviewer {INDEPENDENT_REVIEW}", True)
     return None
 
 

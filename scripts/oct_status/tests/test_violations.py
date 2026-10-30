@@ -59,8 +59,8 @@ def test_v01_waived_by_no_spec_and_dependency_pr_and_closed_pr():
     assert rules_of(pr(state="closed")) == []
     assert rules_of(pr(merged=True, state="closed")) == []
     assert rules_of(make_snapshot(number=10)) == []  # an issue is not a pull request
-    # A docs-type title is not a waiver by itself.
-    assert rules_of(pr(title="docs: readme")) == ["V01"]
+    # A docs-type PR needs no spec edge (design section 4.1) ...
+    assert rules_of(pr(title="docs: readme")) == []
 
 
 def test_v01_user_is_the_author():
@@ -73,13 +73,13 @@ def test_automation_and_first_time_fork_authors_exempt():
     assert rules_of(pr(author="gitar-bot[bot]")) == []
     assert rules_of(pr(author="formatter-bot")) == []
     assert rules_of(pr(), actor_class="first-timer") == []
-    fork = pr(head_is_fork=True)
-    assert classify_actor(fork, "FIRST_TIME_CONTRIBUTOR", CFG) == "first-timer"
-    assert classify_actor(fork, "FIRST_TIMER", CFG) == "first-timer"
-    assert classify_actor(fork, "CONTRIBUTOR", CFG) == HUMAN
-    assert classify_actor(pr(), "FIRST_TIME_CONTRIBUTOR", CFG) == HUMAN  # not a fork
-    assert classify_actor(pr(author="gitar-bot[bot]"), None, CFG) == "automation"
-    assert classify_actor(pr(author="alice", author_permission="admin"), "OWNER", CFG) == HUMAN
+    fork = pr(head_is_fork=True, author_association="FIRST_TIME_CONTRIBUTOR")
+    assert classify_actor(fork, CFG) == "first-timer"
+    assert classify_actor(replace(fork, author_association="FIRST_TIMER"), CFG) == "first-timer"
+    assert classify_actor(replace(fork, author_association="CONTRIBUTOR"), CFG) == HUMAN
+    assert classify_actor(replace(fork, head_is_fork=False), CFG) == HUMAN  # not a fork
+    assert classify_actor(pr(author="gitar-bot[bot]"), CFG) == "automation"
+    assert classify_actor(pr(author="alice", author_permission="admin", author_association="OWNER"), CFG) == HUMAN
 
 
 def test_event_rules_skip_automation_and_bot_actors():
@@ -154,6 +154,9 @@ def test_v03_block_removed_or_edited_by_hand():
         removed, spec(), edges=IMPLEMENTS, event=EventFacts("edited", "oct-support", body_before=before)
     )
     assert "V03" not in rules_of(removed, spec(), edges=IMPLEMENTS, event=EventFacts("edited", "bob"))
+    # An intact block is fine whatever the body looked like before (the state may simply have changed).
+    other_before = EventFacts("edited", "bob", body_before=before.replace("Ball with", "Ball w1th", 1))
+    assert "V03" not in rules_of(snap, spec(), edges=IMPLEMENTS, event=other_before)
 
 
 TEMPLATE = "## Summary\n\ntext\n\n## Definition of Done\n- [ ] Tests added\n- [x] Deviations from the spec (and why): <!-- none -->\n"
@@ -234,14 +237,23 @@ def test_v08_closing_a_verification_artifact_without_verified():
     hw = spec(state="closed", labels=frozenset({"spec", "wait:hardware-test"}))
     graph = graph_of(hw)
     assert graph.derived[5].phase == Phase.VERIFICATION and Wait.HARDWARE_TEST in graph.derived[5].waits
-    closed = EventFacts("closed", "bob")
+    closed = EventFacts("closed", "bob", state_reason="completed", closed_by_change=False)
     assert rules_of(hw, event=closed) == ["V08"]
     verified = spec(state="closed", labels=frozenset({"spec"}))  # /oct verified removed the wait
     assert rules_of(verified, event=closed) == []
     assert rules_of(hw, event=EventFacts("edited", "bob")) == []
-    assert rules_of(hw, event=EventFacts("closed", "oct-support")) == []
+    assert rules_of(hw, event=replace(closed, actor="oct-support")) == []
     dropped = spec(state="closed", labels=frozenset({"spec", "wait:hardware-test", "resolution:wontfix"}))
     assert rules_of(dropped, event=closed) == []  # closed without a fix is not a verification
+
+
+def test_v08_not_charged_for_merge_closes_not_planned_or_unknown_closer():
+    hw = spec(state="closed", labels=frozenset({"spec", "wait:hardware-test"}))
+    base = EventFacts("closed", "bob", state_reason="completed", closed_by_change=False)
+    assert rules_of(hw, event=replace(base, closed_by_change=True)) == []  # closed by a merged PR
+    assert rules_of(hw, event=replace(base, closed_by_change=None)) == []  # unknown: fail closed
+    assert rules_of(hw, event=replace(base, state_reason="not_planned")) == []
+    assert rules_of(hw, event=replace(base, state_reason=None)) == []
 
 
 # --- ladder --------------------------------------------------------------------------------------

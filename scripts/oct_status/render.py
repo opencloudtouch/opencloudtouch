@@ -261,6 +261,12 @@ def extract_block(body: str) -> str | None:
     return match.group(0) if match else None
 
 
+def block_intact(block: str) -> bool:
+    """Whether the content of `block` still matches the hash in its own marker."""
+    match = _START.match(block)
+    return match is not None and match[1] == block_hash(block)
+
+
 def _shrink(block: str, limit_chars: int, eol: str) -> str:
     lines = block.split("\n")
     first = next((i for i, ln in enumerate(lines) if ln.startswith("|---")), None)

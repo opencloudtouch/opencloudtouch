@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import re
+from datetime import date
 from pathlib import Path
 
 import httpx
@@ -635,13 +637,26 @@ async def test_maintain_role_passes_triage_and_override_is_recorded_and_effectiv
     repo = CommandRepo()
     repo.add(6, labels=("bug",))
     repo.add(99)
-    repo.issues[99].update(title="oct-status ledger", locked=True)
+    repo.issues[99].update(title="oct-status ledger", locked=True, user={"login": BOT})
     api = api_for(repo)
+    active = dataclasses.replace(CFG, strikes_enabled_from=date(2026, 1, 1))
     assert (
         await run_event(api, CFG, "issue_comment", comment_event(6, "/oct triage", login="carol"), dry_run=False) == 0
     )
     assert "phase:triaged" in repo.label_names(6)
-    await run_event(api, CFG, "issue_comment", comment_event(6, "/oct override why", login="carol"), dry_run=False)
+    await run_event(api, active, "issue_comment", comment_event(6, "/oct override why", login="carol"), dry_run=False)
     assert "recorded and effective" in repo.guide(6)
     assert any('"kind": "override"' in c["body"] for c in repo.comments[99])
+    await api.aclose()
+
+
+async def test_override_before_strikes_are_active_is_logged_in_the_guide_only():
+    repo = CommandRepo()  # no ledger issue: it must not even be looked for
+    repo.add(6, labels=("bug",))
+    api = api_for(repo)
+    await run_event(api, CFG, "issue_comment", comment_event(6, "/oct override why", login="carol"), dry_run=False)
+    assert "strikes are not active yet" in repo.guide(6)
+    assert not [w for w in repo.writes if w[1].endswith("/issues")]  # no ledger issue was created
+    assert 99 not in repo.comments
+    assert (77, "+1") in repo.reactions
     await api.aclose()

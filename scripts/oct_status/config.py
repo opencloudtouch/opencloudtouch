@@ -27,6 +27,7 @@ class Config:
     fan_out_cap: int = 25
     strike_window_days: int = 60
     strikes_enabled_from: date | None = None
+    ledger_issue: int | None = None  # number of the ledger issue; skips the search by title when set
     maintainer_permissions: tuple[str, ...] = field(default=("maintain", "admin"))
     bot_logins: tuple[str, ...] = field(default=("oct-support", "github-actions[bot]"))
 
@@ -53,6 +54,7 @@ def load_config(path: Path) -> Config:
         fan_out_cap=int(raw.get("fan_out_cap", 25)),
         strike_window_days=int(raw.get("strike_window_days", 60)),
         strikes_enabled_from=since,
+        ledger_issue=int(raw["ledger_issue"]) if raw.get("ledger_issue") else None,
         maintainer_permissions=tuple(raw.get("maintainer_permissions", ("maintain", "admin"))),
         bot_logins=tuple(raw.get("bot_logins", ("oct-support", "github-actions[bot]"))),
     )
