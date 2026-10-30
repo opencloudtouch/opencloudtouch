@@ -615,3 +615,24 @@ async def test_fan_out_follows_propagating_edges_only():
     # Up from a child to its tracking issue, never back down to the sibling.
     assert await walk_component(51, ws.fan_out, 25) == {50, 51}
     await api.aclose()
+
+
+async def test_description_edited_during_the_run_keeps_the_edit(summary):
+    """Lost update (I2): an edit landing between the snapshot read and the block write survives."""
+    repo = FakeRepo()
+    repo.add(5, body="Original text", labels=("bug",))
+    original = repo.handler
+    edited = {"done": False}
+
+    def edit_midway(request: httpx.Request) -> httpx.Response:
+        if request.method == "GET" and request.url.path == f"{ROOT}/issues/5/comments" and not edited["done"]:
+            edited["done"] = True  # the snapshot is read; a human saves an edit now
+            repo.issues[5]["body"] = "Original text\n\nAdded by a human while the run was busy"
+        return original(request)
+
+    api = api_for(httpx.MockTransport(edit_midway))
+    assert await run_event(api, CFG, "issues", issue_event(5, "edited"), dry_run=False) == 0
+    await api.aclose()
+    body = repo.issues[5]["body"]
+    assert edited["done"] and body.startswith("<!-- oct-status:v1")
+    assert body.endswith("Original text\n\nAdded by a human while the run was busy")

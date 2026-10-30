@@ -514,3 +514,50 @@ async def test_locked_conversation_skips_the_guide_but_the_run_continues(code, m
     assert status(repo, SHA_A)["state"] == "failure"  # fail closed: the notices could not be persisted
     text = summary.read_text(encoding="utf-8")
     assert f"guide comment of #10 not written (HTTP {code}" in text and "locked" in text
+
+
+async def test_dependabot_pinned_comment_is_not_overwritten_by_an_older_state(monkeypatch, tmp_path):
+    """Lost update (I2) for a block that lives in the pinned comment: the guide conflict path protects it."""
+    summary = tmp_path / "summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    dependabot = Actor("dependabot[bot]", "automation", block_location="comment")
+    cfg = replace(CFG, automation={**CFG.automation, "dependabot[bot]": dependabot})
+    repo = PathRepo()
+    repo.add_pr(12, author="dependabot[bot]", title="chore(deps): bump x")
+    repo.push(12, SHA_A, "dependabot[bot]", ["package.json"])
+
+    async def run_once() -> None:
+        api = api_for(repo)
+        assert (
+            await run_event(
+                api,
+                cfg,
+                "pull_request_target",
+                pr_event(12, "synchronize", sender="dependabot[bot]"),
+                dry_run=False,
+                clock=clock,
+            )
+            == 0
+        )
+        await api.aclose()
+
+    await run_once()
+    pinned = repo.guide(12)
+    assert "<!-- oct-next:v1 -->" in pinned and "<!-- oct-status:v1" in pinned
+    original = repo.handler
+    reads = {"n": 0}
+
+    def overlapping(request):
+        if request.url.path.endswith("/issues/12/comments") and request.method == "GET":
+            reads["n"] += 1
+            if reads["n"] >= 2:  # another run rewrites the pinned comment after every read of ours
+                comment = next(c for c in repo.comments[12] if "<!-- oct-next:v1 -->" in c["body"])
+                comment["body"] += f"\nnewer state {reads['n']}"
+        return original(request)
+
+    repo.handler = overlapping  # type: ignore[method-assign]
+    repo.prs[12]["draft"] = True  # this run has something to change
+    await run_once()
+    assert "newer state" in repo.guide(12)  # the newer text was never overwritten
+    assert not any(m == "PATCH" and "/issues/comments/" in p for m, p in repo.writes[-5:])
+    assert "changed twice during this run" in summary.read_text(encoding="utf-8")

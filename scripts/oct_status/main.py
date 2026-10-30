@@ -464,6 +464,17 @@ def gate_problems(
     return problems
 
 
+def _rerender(ws: Workspace, graph: Graph, snap: Snapshot) -> Callable[[str], str | None]:
+    """The block for a description edited during the run (``None``: it no longer gets one)."""
+
+    def render(body: str) -> str | None:
+        fresh = replace(snap, body=body)
+        derived = derive(fresh, graph, ws.cfg)
+        return render_block(fresh, derived, graph, ws.cfg) if derived is not None else None
+
+    return render
+
+
 def _open_pr(snap: Snapshot) -> bool:
     return snap.is_pr and snap.state == "open" and not snap.merged
 
@@ -485,7 +496,18 @@ async def _converge(
             continue
         block = render_block(snap, derived, graph, ws.cfg)
         # Labels and the body block first; the guide (and a block that lives in it) with conflict check.
-        writes = await apply_state(ws.api, snap, derived, block, None, ws.cfg, dry_run, comments=False)
+        writes = await apply_state(
+            ws.api,
+            snap,
+            derived,
+            block,
+            None,
+            ws.cfg,
+            dry_run,
+            comments=False,
+            rerender=_rerender(ws, graph, snap),
+            warnings=ws.warnings,
+        )
         records: list[Record] = []
         with_comments = False
         if comments and ws.states.get(number, GuideState()) is not None:

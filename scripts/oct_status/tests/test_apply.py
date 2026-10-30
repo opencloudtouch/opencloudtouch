@@ -12,6 +12,7 @@ from oct_status.apply import MARKER, apply_state, guides_in, is_own_event, upser
 from oct_status.config import Actor, Config
 from oct_status.model import Derived, Graph, Phase, Resolution, Wait
 from oct_status.render import render_block
+from oct_status.render import splice_block as render_splice
 
 from .conftest import make_snapshot
 
@@ -37,6 +38,8 @@ class FakeGitHub:
         self.comments: list[dict] = []
         self.writes: list[tuple[str, str]] = []
         self._next = 100
+        self.reads = 0  # GET of the issue itself (the re-read before a description write)
+        self.on_read = None  # hook: simulate an edit that lands between our read and our write
 
     def add_comment(self, text: str, login: str = BOT) -> int:
         self._next += 1
@@ -71,6 +74,11 @@ class FakeGitHub:
         if path.startswith(f"{ROOT}/issues/1/labels/") and method == "DELETE":
             self.labels.discard(path[len(f"{ROOT}/issues/1/labels/") :])
             return httpx.Response(200, json=[])
+        if path == f"{ROOT}/issues/1" and method == "GET":
+            self.reads += 1
+            if self.on_read is not None:
+                self.on_read(self)
+            return httpx.Response(200, json={"number": 1, "body": self.body})
         if path == f"{ROOT}/issues/1" and method == "PATCH":
             self.body = body["body"]
             return httpx.Response(200, json={})
@@ -366,3 +374,70 @@ async def test_label_removal_answered_404_is_tolerated():
     await api.aclose()
     assert "remove label phase:ready" in out
     assert "update status block in body" in out and fake.comments  # later writes still happen
+
+
+async def test_human_edit_between_read_and_write_survives():
+    """Lost update: the description is re-read right before the PATCH and the block spliced into it."""
+    fake = FakeGitHub(body="Hello")
+    api = make(fake)
+    snap = snap_of(fake)  # what the run read
+    fake.body = "Hello, with an edit made while the run was computing"
+    rendered: list[str] = []
+
+    def rerender(body: str) -> str:
+        rendered.append(body)
+        return block_for(snap_of(fake))
+
+    warnings: list[str] = []
+    out = await apply_state(api, snap, DERIVED, block_for(snap), None, CFG, rerender=rerender, warnings=warnings)
+    await api.aclose()
+    assert "update status block in body" in out and warnings == []
+    assert fake.body.endswith("Hello, with an edit made while the run was computing")
+    assert fake.body.startswith("<!-- oct-status:v1")
+    assert rendered == ["Hello, with an edit made while the run was computing"]
+
+
+async def test_unchanged_description_is_re_read_once_and_written():
+    fake = FakeGitHub(body="Hello")
+    api = make(fake)
+    snap = snap_of(fake)
+    out = await apply_state(api, snap, DERIVED, block_for(snap), None, CFG)
+    await api.aclose()
+    assert "update status block in body" in out and fake.reads == 1 and fake.body.endswith("Hello")
+
+
+async def test_description_that_keeps_changing_is_skipped_with_a_warning():
+    fake = FakeGitHub(body="Hello")
+    api = make(fake)
+    snap = snap_of(fake)
+
+    def edit(f: FakeGitHub) -> None:
+        f.body += " more"  # every read sees another edit
+
+    fake.on_read = edit
+    warnings: list[str] = []
+    out = await apply_state(api, snap, DERIVED, block_for(snap), None, CFG, warnings=warnings)
+    await api.aclose()
+    assert "update status block in body" not in out
+    assert not any(m == "PATCH" for m, _ in fake.writes) and "oct-status:v1" not in fake.body
+    assert warnings == ["WARNING: description of #1 changed during this run; status block not rewritten"]
+
+
+async def test_fresh_description_that_already_carries_the_block_is_not_written():
+    fake = FakeGitHub(body="Hello")
+    api = make(fake)
+    snap = snap_of(fake)
+    block = block_for(snap)
+    fake.body = render_splice(fake.body, block)  # an overlapping run already wrote it
+    out = await apply_state(api, snap, DERIVED, block, None, CFG)
+    await api.aclose()
+    assert out == ["add labels phase:in-review, wait:ci"] and not any(m == "PATCH" for m, _ in fake.writes)
+
+
+async def test_dry_run_does_not_re_read_the_description():
+    fake = FakeGitHub(body="Hello")
+    api = make(fake)
+    snap = snap_of(fake)
+    out = await apply_state(api, snap, DERIVED, block_for(snap), None, CFG, dry_run=True)
+    await api.aclose()
+    assert "update status block in body" in out and fake.reads == 0

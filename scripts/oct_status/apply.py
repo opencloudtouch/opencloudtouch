@@ -6,6 +6,7 @@ only the ``phase:``, ``wait:`` and ``resolution:`` label namespaces.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 from urllib.parse import quote
 
@@ -147,6 +148,49 @@ def guide_content(snap: Snapshot, block: str | None, guide: str | None, cfg: Con
     return guide
 
 
+async def _fresh_body(api: GitHubApi, number: int) -> str:
+    resp = await _check(await api.request("GET", f"/issues/{number}"))
+    return str(resp.json().get("body") or "")
+
+
+async def _write_body(
+    api: GitHubApi,
+    snap: Snapshot,
+    block: str,
+    rerender: Callable[[str], str | None] | None,
+    warnings: list[str] | None,
+) -> bool:
+    """PATCH the description with `block` spliced in, without losing an edit made since `snap` was read.
+
+    GitHub has no conditional update for issues, so the body is read again right before the write: an
+    unchanged body gets the planned text; a changed one gets the block (re-rendered from the new body by
+    `rerender`, when given) spliced into it, after one more read confirms it is stable. A body that
+    changed again is not written (warning): the edit's own event recomputes the block. Returns whether
+    the description was written.
+    """
+    expected = snap.body
+    for attempt in range(2):
+        fresh = await _fresh_body(api, snap.number)
+        if fresh == expected:
+            new_body = splice_block(fresh, block)
+            if new_body == fresh:
+                return False
+            await _check(await api.request("PATCH", f"/issues/{snap.number}", json={"body": new_body}))
+            return True
+        if attempt == 0:
+            expected = fresh
+            if rerender is not None:
+                fresh_block = rerender(fresh)
+                if fresh_block is None:
+                    return False
+                block = fresh_block
+            if splice_block(fresh, block) == fresh:  # an overlapping run already wrote it
+                return False
+    if warnings is not None:
+        warnings.append(f"WARNING: description of #{snap.number} changed during this run; status block not rewritten")
+    return False
+
+
 async def apply_state(
     api: GitHubApi,
     snap: Snapshot,
@@ -158,12 +202,16 @@ async def apply_state(
     *,
     comments: bool = True,
     expected_guide: object = ANY,
+    rerender: Callable[[str], str | None] | None = None,
+    warnings: list[str] | None = None,
 ) -> list[str]:
     """Converge the artifact to the derived state; returns the writes performed (planned if `dry_run`).
 
     With ``comments=False`` no comment is created or edited (backfill: no notifications; and when the
     persisted guide state could not be read): a block that lives in the pinned comment is not written.
     A guide that changed since `expected_guide` was read is not written: "guide comment conflict".
+    The description is re-read before it is written (``_write_body``): `rerender` renders the block
+    for a description edited meanwhile, and `warnings` collects a skipped write.
     """
     if block is None and guide is None:  # announcements: nothing is ever written
         return []
@@ -173,9 +221,8 @@ async def apply_state(
     if block is not None and not in_comment:
         new_body = splice_block(snap.body, block)
         if new_body != snap.body:  # compare the spliced text: truncation changes the stored hash
-            if not dry_run:
-                await _check(await api.request("PATCH", f"/issues/{snap.number}", json={"body": new_body}))
-            done.append("update status block in body")
+            if dry_run or await _write_body(api, snap, block, rerender, warnings):
+                done.append("update status block in body")
     content = guide_content(snap, block, guide, cfg)
     if content is not None and comments:
         result = await upsert_guide(api, snap.number, content, cfg.bot_logins, dry_run=dry_run, expected=expected_guide)

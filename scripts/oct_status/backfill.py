@@ -167,7 +167,9 @@ async def _one(ws: LegacyWorkspace, number: int, dry_run: bool) -> list[str]:
         return []
     real = ws.real[number]
     block = render_block(snap, derived, graph, ws.cfg)
-    writes = await apply_state(ws.api, real, derived, block, None, ws.cfg, dry_run, comments=False)
+    writes = await apply_state(
+        ws.api, real, derived, block, None, ws.cfg, dry_run, comments=False, warnings=ws.warnings
+    )
     return writes + await _reassert(ws.api, real, derived.phase.label, dry_run)
 
 
