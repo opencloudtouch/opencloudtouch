@@ -627,8 +627,8 @@ async def test_label_write_failure_is_a_rejection_with_notice():
     failed: list[int] = []
 
     def failing(request: httpx.Request) -> httpx.Response:
-        if request.method == "POST" and request.url.path.endswith("/issues/5/labels") and len(failed) < 4:
-            failed.append(1)  # the declaration fails through all retries; later convergence works
+        if request.method == "POST" and request.url.path.endswith("/issues/5/labels") and not failed:
+            failed.append(1)  # the declaration fails (a POST is never retried on 5xx); convergence works
             return httpx.Response(500, json={})
         return original(request)
 
