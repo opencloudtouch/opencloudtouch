@@ -210,7 +210,7 @@ docs/WORKFLOW.md                     new
 **Interfaces:**
 - Consumes: label names from Task 3.
 
-- [ ] **MAINTAINER ACTION MA-2** (before Step 1): identify the `BOT_PAT` account and its scopes.
+- [x] **MA-2 resolved without the maintainer (2026-10-30):** the account behind `BOT_PAT` is `oct-support` (it posts the issue handler's comments on #575, #529 and #448, approved #555 and set labels and assignees); use `oct-support` for the guard in `issue-handler.yml`. The scopes are unknown to the maintainer and are checked empirically at MA-3 (label writes, ledger lock) and in Milestone 2 (review requests, discussion comments).
 - [ ] **Step 1: Write the failing tests**
   - `test_classification_labels_use_new_names`: `{"bug","enhancement","support","wait:reporter"} <= CLASSIFICATION_LABELS`.
   - `test_heuristic_adds_wait_reporter`: the `needs-info` case now calls `add_labels(n, ["wait:reporter"])`.
@@ -564,13 +564,7 @@ The executing agent stops at each marked step, tells the maintainer in German wh
 
 **MA-1 - Go for the five `[Spec]` issues.** When: before Task 1, and again per milestone. Why: `CLAUDE.md` forbids starting a spec whose Definition of Ready is not met, and the DoR needs a review by someone other than the author; publishing issues is visible to everyone. Do: (1) answer "Ja" to publishing the five issues (the agent creates them from the milestones with labels `spec` and `enhancement` and a `## Definition of Ready` section); (2) open each issue, read the checklist and confirm in a comment that the review is done (name the independent reviewer if it is not you). Report: the five issue numbers confirmed ready.
 
-**MA-2 - Identify the `BOT_PAT` account.** When: before Task 4. Why: the issue handler loop guard, the review requests of `/oct approve` and the ledger writes must use the right login; the repository names `scheilch` in `issue-handler.yml` and `oct-support` in `rules.yml`, and commits on #555 resolve to `oct-support` (spec section 15). Do, on your machine with the secret value in an environment variable (never paste the token anywhere):
-```bash
-export BOT_PAT=<value of the repository secret BOT_PAT>
-curl -sS -D - -o /dev/null -H "Authorization: Bearer $BOT_PAT" https://api.github.com/user | grep -i '^x-oauth-scopes'
-curl -sS -H "Authorization: Bearer $BOT_PAT" https://api.github.com/user | python3 -c "import json,sys; print(json.load(sys.stdin)['login'])"
-```
-Report: the login and the scopes line. Expected: `oct-support`, scopes include `repo` and `write:discussion`. For a fine-grained token the scopes line is empty; then report the permissions shown on the token's settings page (Issues, Pull requests: read/write; Contents: read; Discussions: read/write).
+**MA-2 - Identify the `BOT_PAT` account (resolved).** The maintainer does not know the token's scopes, so the account was determined from the repository history: `oct-support` writes the issue handler's comments, approves PRs and sets labels and assignees. Scopes are verified empirically instead: MA-3 shows whether label writes and the ledger lock work (a 403 or 404 names the missing right), Milestone 2 verifies review requests and discussion comments with a dry run first. If a right is missing, the maintainer is asked to extend the token of `oct-support` (classic: scope `repo`, plus `write:discussion`; fine-grained: Issues and Pull requests read/write, Discussions read/write, Contents read).
 
 **MA-3 - Run the label sync.** When: after the Milestone 0 PR is merged. Why: it renames the legacy labels (`wip`, `needs-info`, `blocked`, `accepted`, `duplicate`, `wontfix`, `invalid`), creates the new ones and recolors `spec` and `enhancement` for the whole repository, so a dry run comes first. Do: GitHub -> Actions -> "OCT Status" -> Run workflow, branch `main`, `mode` = `labels`, `dry_run` = true; open the run summary and check the operation list (7 renames, the created labels, 2 recolors, nothing on `prio:*`, `priority: *`, `review`, `community*`); then run it again with `dry_run` = false; then open Issues -> Labels and check that `phase:*`, `wait:*`, `resolution:*` exist and the legacy names are gone, and that the issue "oct-status ledger" exists and is locked. Report: ok, or the deviations. Undo: rename labels back in the UI.
 
