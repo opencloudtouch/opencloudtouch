@@ -436,7 +436,8 @@ def test_cli_event_dry_run(cli_repo, tmp_path, capsys):
     assert "secret-token-value" not in capsys.readouterr().out
 
 
-def test_cli_event_real_run_writes(cli_repo, tmp_path):
+def test_cli_event_real_run_writes(cli_repo, tmp_path, monkeypatch):
+    monkeypatch.setenv("BOT_PAT", "pat-value")
     cli_repo.add(1)
     assert main.cli(["--event", "issues", "--payload", payload_file(tmp_path, issue_event(1))]) == 0
     assert cli_repo.writes
@@ -449,7 +450,8 @@ def test_cli_stdout_never_echoes_artifact_text(cli_repo, tmp_path, capsys):
     assert "::" not in capsys.readouterr().out
 
 
-def test_cli_check_exit_codes(cli_repo, tmp_path):
+def test_cli_check_exit_codes(cli_repo, tmp_path, monkeypatch):
+    monkeypatch.setenv("BOT_PAT", "pat-value")
     cli_repo.add(1)
     args = ["--check", "--event", "issues", "--payload", payload_file(tmp_path, issue_event(1))]
     assert main.cli(args) == 1
@@ -560,6 +562,7 @@ def test_cli_dry_run_uses_read_only_api(monkeypatch, cli_repo, tmp_path):
 
     cli_repo.add(1)
     monkeypatch.setattr(main, "GitHubApi", spy)
+    monkeypatch.setenv("BOT_PAT", "pat-value")
     args = ["--event", "issues", "--payload", payload_file(tmp_path, issue_event(1))]
     assert main.cli([*args, "--dry-run"]) == 0
     assert main.cli(args) == 0
@@ -636,3 +639,30 @@ async def test_description_edited_during_the_run_keeps_the_edit(summary):
     body = repo.issues[5]["body"]
     assert edited["done"] and body.startswith("<!-- oct-status:v1")
     assert body.endswith("Original text\n\nAdded by a human while the run was busy")
+
+
+@pytest.mark.parametrize("argv", [["--audit"], ["--event", "pull_request_review"]])
+def test_write_mode_without_bot_pat_is_forced_to_a_dry_run(argv, cli_repo, tmp_path, monkeypatch, capsys):
+    """A fork's review event runs without secrets and with a read-only job token: never attempt writes."""
+    summary = tmp_path / "summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    made: list[tuple[str, bool]] = []
+    orig = main.GitHubApi
+
+    def spy(token, name, **kw):
+        api = orig(token, name, **kw)
+        made.append((token, api.read_only))
+        return api
+
+    monkeypatch.setattr(main, "GitHubApi", spy)
+    monkeypatch.setenv("BOT_PAT", "")  # an unavailable secret arrives as an empty string
+    cli_repo.add(1)
+    review = {"action": "submitted", "pull_request": {"number": 1}, "sender": {"login": "forker"}}
+    if argv[0] == "--event":
+        argv = [*argv, "--payload", payload_file(tmp_path, review)]
+    assert main.cli(argv) == 0
+    assert cli_repo.writes == [] and cli_repo.statuses == {}
+    assert made and all(read_only for _, read_only in made)  # the status client cannot post either
+    text = summary.read_text(encoding="utf-8")
+    assert "forced to a dry run" in text and "BOT_PAT" in text
+    assert "forced to a dry run" in capsys.readouterr().out

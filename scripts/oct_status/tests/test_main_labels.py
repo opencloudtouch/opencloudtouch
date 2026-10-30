@@ -39,7 +39,8 @@ def test_cli_labels_dry_run_exits_zero_and_prints_operations(fake, capsys):
     assert fake.writes == []
 
 
-def test_cli_labels_real_run_writes(fake, capsys):
+def test_cli_labels_real_run_writes(fake, capsys, monkeypatch):
+    monkeypatch.setenv("BOT_PAT", "pat")
     assert main.cli(["--labels"]) == 0
     assert fake.writes
     assert fake.issues
@@ -96,3 +97,8 @@ def test_dunder_main_wiring(fake, monkeypatch):
     with pytest.raises(SystemExit) as exc:
         runpy.run_module("oct_status", run_name="__main__")
     assert exc.value.code in (0, 2)
+
+
+def test_cli_labels_without_bot_pat_writes_nothing(fake, capsys):
+    assert main.cli(["--labels"]) == 0
+    assert fake.writes == [] and "forced to a dry run" in capsys.readouterr().out

@@ -287,6 +287,7 @@ def test_cli_backfill(monkeypatch, tmp_path, capsys):
     monkeypatch.setenv("OCT_BACKFILL_STATE", str(state))
     assert main.cli(["--backfill", "--limit", "1", "--dry-run"]) == 0
     assert repo.writes == [] and "remaining: 2" in capsys.readouterr().out
+    monkeypatch.setenv("BOT_PAT", "pat")
     assert main.cli(["--backfill", "--limit", "1"]) == 0
     assert "remaining: 1" in capsys.readouterr().out and _state(state)["done"] == [1]
     assert main.cli(["--backfill", "--limit", "5", "--state", str(tmp_path / "other.json")]) == 0

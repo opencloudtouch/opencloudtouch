@@ -1106,13 +1106,27 @@ def _status_client(api: GitHubApi, repo: str) -> GitHubApi:
     return GitHubApi(token, repo)
 
 
+FORCED_DRY_RUN = (
+    "write mode without BOT_PAT: forced to a dry run, nothing is written and no commit status is posted. "
+    "A run without the secret (for example a review event of a fork pull request, which gets no secrets and "
+    "a read-only job token) leaves the update to the next event or the daily audit."
+)
+
+
+def _force_dry_run(args: argparse.Namespace) -> None:
+    """Never attempt writes without BOT_PAT (fixed text only on stdout; the summary carries a notice)."""
+    args.dry_run = True
+    print(f"notice: {FORCED_DRY_RUN}")
+    _summary(["## OCT status: forced dry run", "", f"> NOTICE: {FORCED_DRY_RUN}", ""])
+
+
 async def _dispatch(
     args: argparse.Namespace, mode: str, payload: dict[str, Any], token: str, repo: str
 ) -> tuple[int, list[str]]:
     # Dry-run (shadow mode) and check can never write, enforced by the client itself.
+    if not args.dry_run and mode != "check" and not os.environ.get("BOT_PAT"):
+        _force_dry_run(args)
     api = GitHubApi(token, repo, read_only=args.dry_run or mode == "check")
-    if not api.read_only and not os.environ.get("BOT_PAT"):
-        print("warning: write mode without BOT_PAT; writes use GITHUB_TOKEN (github-actions[bot])", file=sys.stderr)
     try:
         if mode == "labels":
             return EXIT_OK, await _run_labels(api, args.dry_run)

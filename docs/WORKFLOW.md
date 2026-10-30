@@ -1204,6 +1204,12 @@ status context is the one to make required (planned for the enforcement step); t
 The status is written only in write mode, which is enabled by the repository variable `OCT_STATUS_WRITE`
 (`true`). In shadow mode the job summary shows the same result and no status is posted.
 
+Review events of a fork pull request (`pull_request_review`, `pull_request_review_comment`) run without
+repository secrets and with a read-only job token. A write-mode run without `BOT_PAT` is therefore forced to
+a dry run, with a notice in the job summary: nothing is written and no status is posted, and the next
+`pull_request_target` event or the daily audit catches up. A guide comment refused because the conversation
+is locked is a warning in the job summary; the status then fails, because the notices could not be stored.
+
 ## Agents and subagents
 
 The rules are the same for agents as for people: never write the status block or the `phase:`, `wait:` and
