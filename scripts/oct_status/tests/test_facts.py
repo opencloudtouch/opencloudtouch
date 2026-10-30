@@ -37,6 +37,17 @@ async def test_fetch_snapshot_issue():
     assert snap.checks == () and snap.reviews == ()
 
 
+async def test_review_author_association_filled():
+    # The recorded review fixtures carry no `author_association`; this route is synthetic.
+    reviews = f"GET {BASE}/pulls/574/reviews"
+    payload = [
+        {"user": {"login": "bob"}, "state": "APPROVED", "commit_id": "abc", "author_association": "COLLABORATOR"},
+        {"user": {"login": "eve"}, "state": "APPROVED", "commit_id": "abc"},
+    ]
+    snap = await fetch_snapshot(_api(FixtureTransport([574], extra={reviews: payload})), 574, use_graphql=False)
+    assert [(r.user, r.author_association) for r in snap.reviews] == [("bob", "COLLABORATOR"), ("eve", "")]
+
+
 async def test_fork_detected():
     transport = FixtureTransport([574])
     body = transport.routes[f"GET {BASE}/pulls/574"]

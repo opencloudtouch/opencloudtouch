@@ -10,7 +10,7 @@ import pytest
 from oct_status.config import load_config
 from oct_status.graph import inverse
 from oct_status.model import Check, Edge, EdgeType, Graph, Kind, Phase, Push, Resolution, Review, Snapshot, Wait
-from oct_status.rules import ANNOUNCEMENT_DERIVED, derive
+from oct_status.rules import derive
 
 from .conftest import make_snapshot
 
@@ -62,7 +62,7 @@ def run(snap: Snapshot, *others: Snapshot, edges: tuple[Edge, ...] = (), kind: K
     return derive(snap, graph, CFG, kind=kind) if kind else derive(snap, graph, CFG)
 
 
-APPROVED_BY_BOB = (Review("bob", "APPROVED", HEAD),)
+APPROVED_BY_BOB = (Review("bob", "APPROVED", HEAD, "COLLABORATOR"),)
 
 
 # --- wait:maintainer -------------------------------------------------------------------------
@@ -99,11 +99,11 @@ def test_foreign_pr_needs_human_write_approval():
     # oct-support is automation: its approval is the maintainer approval only for maintainer PRs.
     assert Wait.MAINTAINER in run(pr(reviews=(Review("oct-support", "APPROVED", HEAD),))).waits
     # The author never approves their own PR.
-    assert Wait.MAINTAINER in run(pr(reviews=(Review("alice", "APPROVED", HEAD),))).waits
+    assert Wait.MAINTAINER in run(pr(reviews=(Review("alice", "APPROVED", HEAD, "OWNER"),))).waits
     # A later change request by the same reviewer withdraws the approval; a comment does not.
-    withdrawn = (*APPROVED_BY_BOB, Review("bob", "CHANGES_REQUESTED", HEAD))
+    withdrawn = (*APPROVED_BY_BOB, Review("bob", "CHANGES_REQUESTED", HEAD, "COLLABORATOR"))
     assert Wait.MAINTAINER in run(pr(reviews=withdrawn)).waits
-    commented = (*APPROVED_BY_BOB, Review("bob", "COMMENTED", HEAD))
+    commented = (*APPROVED_BY_BOB, Review("bob", "COMMENTED", HEAD, "COLLABORATOR"))
     assert Wait.MAINTAINER not in run(pr(reviews=commented)).waits
 
 
@@ -120,7 +120,7 @@ def test_foreign_pr_needs_human_write_approval():
 )
 def test_formatter_bot_push_keeps_approval_gitar_push_invalidates(pusher, approved):
     pushes = (Push("c2", "alice", ()), Push(HEAD, "alice", ()), Push("c4", pusher, ()))
-    reviews = (Review("bob", "APPROVED", HEAD),)
+    reviews = APPROVED_BY_BOB
     snap = pr(head_sha="c4", pushes=pushes, reviews=reviews)
     assert (Wait.MAINTAINER not in run(snap).waits) is approved
     maintainer = pr(
@@ -132,10 +132,27 @@ def test_formatter_bot_push_keeps_approval_gitar_push_invalidates(pusher, approv
     assert (Wait.MAINTAINER not in run(maintainer).waits) is approved
 
 
+@pytest.mark.parametrize(
+    ("association", "approved"),
+    [("COLLABORATOR", True), ("MEMBER", True), ("OWNER", True), ("NONE", False), ("CONTRIBUTOR", False), ("", False)],
+)
+def test_foreign_pr_approval_needs_write_association(association, approved):
+    # On a public repository anyone can submit an APPROVED review; only write-access associations count.
+    reviews = (Review("randomuser", "APPROVED", HEAD, association),)
+    assert (Wait.MAINTAINER not in run(pr(author_permission="read", reviews=reviews)).waits) is approved
+
+
+@pytest.mark.parametrize(("fork", "approved"), [(True, False), (False, True)])
+def test_fork_pushes_never_exempt(fork, approved):
+    pushes = (Push(HEAD, "alice", ()), Push("c4", "formatter-bot", ()))
+    snap = pr(head_sha="c4", pushes=pushes, reviews=APPROVED_BY_BOB, head_is_fork=fork)
+    assert (Wait.MAINTAINER not in run(snap).waits) is approved
+
+
 def test_approval_on_unknown_commit_does_not_count():
     # The approved commit is not among the known pushes (force push or beyond the 100-commit window).
-    assert Wait.MAINTAINER in run(pr(reviews=(Review("bob", "APPROVED", "gone"),))).waits
-    assert Wait.MAINTAINER in run(pr(reviews=(Review("bob", "APPROVED", ""),), head_sha="")).waits
+    assert Wait.MAINTAINER in run(pr(reviews=(Review("bob", "APPROVED", "gone", "COLLABORATOR"),))).waits
+    assert Wait.MAINTAINER in run(pr(reviews=(Review("bob", "APPROVED", "", "COLLABORATOR"),), head_sha="")).waits
 
 
 # --- wait:findings and wait:ci ---------------------------------------------------------------
@@ -224,6 +241,14 @@ def test_prerequisite_implements_spec_not_ready():
     assert Wait.PREREQUISITE not in run(pr(), in_review, edges=implements).waits
     unticked = spec(labels=frozenset({"spec", "phase:ready"}), body="## Definition of Ready\n- [ ] Tests named\n")
     assert Wait.PREREQUISITE in run(pr(), unticked, edges=implements).waits
+    # Neither a ticked checklist nor an open PR makes a draft spec ready, even after the bot wrote
+    # the derived phase back to the spec (two sync cycles).
+    draft_ticked = spec(labels=frozenset({"spec", "phase:draft"}), body=DOR_DONE)
+    for _cycle in range(2):
+        assert Wait.PREREQUISITE in run(pr(), draft_ticked, edges=implements).waits
+        derived = run(draft_ticked, pr(), edges=implements)
+        assert derived.phase == Phase.DRAFT
+        draft_ticked = replace(draft_ticked, labels=frozenset({"spec", derived.phase.label}))
     # Bugs and feature requests have no `ready` phase: implementing them needs no prerequisite.
     bug = make_snapshot(number=5, labels=frozenset({"bug"}))
     assert Wait.PREREQUISITE not in run(pr(), bug, edges=implements).waits
@@ -294,6 +319,28 @@ def test_closed_pr_part_is_ignored_and_wip_label_means_in_progress():
     assert run(bug).phase == Phase.IN_PROGRESS
 
 
+def test_fact_phase_label_keeps_readiness_when_pr_closes():
+    implements = (edge(EdgeType.IMPLEMENTS, 10, 5),)
+    in_review = spec(labels=frozenset({"spec", "phase:in-review"}), body="")
+    assert run(in_review, pr(state="closed"), edges=implements).phase == Phase.READY
+    legacy = spec(labels=frozenset({"spec", "wip"}), body="")
+    assert run(legacy).phase == Phase.IN_PROGRESS
+    assert Wait.PREREQUISITE not in run(pr(), legacy, edges=implements).waits
+    bug = make_snapshot(number=5, labels=frozenset({"bug", "phase:in-progress"}))
+    assert run(bug, pr(state="closed"), edges=implements).phase == Phase.TRIAGED
+    confirmed = make_snapshot(number=5, labels=frozenset({"bug", "phase:in-review", "phase:confirmed"}))
+    assert run(confirmed).phase == Phase.CONFIRMED
+    request = make_snapshot(number=5, labels=frozenset({"enhancement", "phase:done"}))
+    assert run(request).phase == Phase.TRIAGED
+
+
+def test_draft_spec_ignores_pr_facts():
+    implements = (edge(EdgeType.IMPLEMENTS, 10, 5),)
+    reviewing = spec(labels=frozenset({"spec", "phase:spec-review"}))
+    assert run(reviewing, pr(), edges=implements).phase == Phase.SPEC_REVIEW
+    assert run(spec(labels=frozenset({"spec"})), pr(draft=True), edges=implements).phase == Phase.DRAFT
+
+
 def test_tracking_phase_from_children():
     tracking = make_snapshot(number=40, title="[Tracking] Sleep timer", sub_issues=(5, 6))
     tracks = (edge(EdgeType.TRACKS, 40, 5), edge(EdgeType.TRACKS, 40, 6))
@@ -355,11 +402,9 @@ def test_discussion_phases():
     assert run(make_snapshot(number=50, state="closed"), kind=Kind.DISCUSSION).phase == Phase.CLOSED
 
 
-def test_announcement_gets_neutral_derived():
+def test_announcement_has_no_status():
     release = make_snapshot(number=60, author="github-actions[bot]", labels=frozenset({"phase:new", "wait:ci"}))
-    assert run(release) == ANNOUNCEMENT_DERIVED
-    assert ANNOUNCEMENT_DERIVED.waits == frozenset()
-    assert ANNOUNCEMENT_DERIVED.resolution is None
+    assert run(release) is None
 
 
 def test_declared_waits_kept_while_open_and_fact_labels_ignored():

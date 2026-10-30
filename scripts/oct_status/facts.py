@@ -167,7 +167,12 @@ async def fetch_snapshot(
         base_repo = (base.get("repo") or {}).get("full_name")
         is_fork = head_repo is None or (base_repo is not None and head_repo != base_repo)
         reviews = tuple(
-            Review((r.get("user") or {}).get("login", ""), r["state"], r.get("commit_id") or "")
+            Review(
+                (r.get("user") or {}).get("login", ""),
+                r["state"],
+                r.get("commit_id") or "",
+                r.get("author_association") or "",
+            )
             for r in await _json(api, f"/pulls/{number}/reviews")
         )
         runs = (await _json(api, f"/commits/{head_sha}/check-runs"))["check_runs"]

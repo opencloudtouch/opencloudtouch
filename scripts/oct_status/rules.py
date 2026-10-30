@@ -46,9 +46,8 @@ def detect_kind(snap: Snapshot, cfg: Config) -> Kind:
 
 OCT_SUPPORT = "oct-support"
 GITAR = "gitar-bot[bot]"
-# Neutral result for artifacts by allowlisted automation: they carry no status. Callers write no
-# labels and no block for them (render_block returns None for announcements).
-ANNOUNCEMENT_DERIVED = Derived(phase=Phase.OPEN, waits=frozenset(), resolution=None)
+# Associations GitHub reports for users with write access to the repository.
+_WRITE_ASSOCIATIONS = {"OWNER", "MEMBER", "COLLABORATOR"}
 
 _TRANSITIONS: dict[Kind, dict[Phase, tuple[str, ...]]] = {
     Kind.SPEC: {
@@ -73,6 +72,11 @@ _DEFAULT_PHASE = {Kind.SPEC: Phase.DRAFT, Kind.DISCUSSION: Phase.OPEN}
 _READY_OR_LATER = {Phase.READY, Phase.IN_PROGRESS, Phase.IN_REVIEW, Phase.VERIFICATION, Phase.DONE}
 _DECLARED_WAITS = {Wait.SPEC_FIX, Wait.REPORTER, Wait.DESIGNER}
 _PHASE_ORDER = list(Phase)
+# Fact phases the bot writes on an issue only once its work has started, which for a spec requires
+# `ready` and for a bug or feature request `triaged`. The legacy `wip` label (renamed to
+# `phase:in-progress` by the label sync) counts the same.
+_STARTED = {Phase.IN_PROGRESS, Phase.IN_REVIEW, Phase.VERIFICATION, Phase.DONE, Phase.MERGED}
+_STARTED_FLOOR = {Kind.SPEC: Phase.READY, Kind.BUG: Phase.TRIAGED, Kind.FEATURE_REQUEST: Phase.TRIAGED}
 
 _HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 _ITEM = re.compile(r"^\s*[-*+]\s+\[([ xX])\]\s*(.*?)\s*$")
@@ -140,6 +144,19 @@ def _declared_phase(snap: Snapshot, kind: Kind) -> Phase:
     return _DEFAULT_PHASE.get(kind, Phase.NEW)
 
 
+def _declared_floor(snap: Snapshot, kind: Kind) -> Phase:
+    """The declared phase, raised to the floor implied by a fact phase the bot already wrote.
+
+    A fact phase replaces the declaration label (`phase:ready` becomes `phase:in-review`); the floor
+    keeps the declaration when the facts go away again, for example when the only PR is closed.
+    """
+    declared = _declared_phase(snap, kind)
+    floor = _STARTED_FLOOR.get(kind)
+    if floor is not None and ("wip" in snap.labels or set(_labelled(snap, Phase)) & _STARTED):
+        return max(declared, floor, key=_PHASE_ORDER.index)
+    return declared
+
+
 def _resolution(snap: Snapshot) -> Resolution | None:
     found = _labelled(snap, Resolution)
     return found[0] if found else None
@@ -177,6 +194,13 @@ def _approval_survives(snap: Snapshot, commit: str, cfg: Config) -> bool:
         return False
     if commit == snap.head_sha:
         return True
+    if snap.head_is_fork:
+        # Fork branches are writable by their owner, who can commit under any author name, and
+        # formatter-bot never pushes there: every push invalidates.
+        return False
+    # Known limitation: on same-repository branches a person with write access can still commit as
+    # `formatter-bot` (unlinked e-mail, name fallback) and keep an approval; accepted as trusted-LAN
+    # risk (SECURITY.md), because the real formatter-bot is identified by that name as well.
     shas = [push.sha for push in snap.pushes]
     if commit not in shas or shas[-1] != snap.head_sha:
         return False
@@ -191,9 +215,10 @@ def _approved(snap: Snapshot, cfg: Config) -> bool:
             continue
         if maintainer and user == OCT_SUPPORT:
             return True
-        # Ruling: the reviewer's permission is not in the snapshot; GitHub only lets users with
-        # write access submit an approval that counts, so any non-automation non-author approves.
-        if not maintainer and user and user != snap.author and user not in cfg.automation:
+        # Anyone can submit an APPROVED review on a public repository; only a reviewer whose
+        # association grants write access counts (unknown or empty association fails closed).
+        human = user and user != snap.author and user not in cfg.automation
+        if not maintainer and human and review.author_association in _WRITE_ASSOCIATIONS:
             return True
     return False
 
@@ -225,12 +250,12 @@ def _ci(snap: Snapshot, cfg: Config) -> bool:
 
 
 def _spec_ready(spec: Snapshot) -> bool:
-    """Ready or later by its persisted phase label and a complete checklist.
+    """Declared `ready` (with a complete checklist), or a fact phase written after `ready`.
 
-    The label is used, not a fresh derivation: a spec's phase advances to `in-review` as soon as a
-    PR implementing it opens, which would let any PR clear its own prerequisite.
+    Fact phases never advance a spec below `ready` (see `_work_phase`), so an open PR cannot make
+    its spec look ready and clear its own prerequisite.
     """
-    return bool(set(_labelled(spec, Phase)) & _READY_OR_LATER) and dor_status(spec.body)[0]
+    return _declared_floor(spec, Kind.SPEC) in _READY_OR_LATER
 
 
 def _prerequisite(snap: Snapshot, graph: Graph, cfg: Config) -> bool:
@@ -287,6 +312,9 @@ def _work_phase(snap: Snapshot, kind: Kind, graph: Graph) -> Phase:
         if _resolution(snap):
             return Phase.CLOSED
         return Phase.VERIFICATION if hardware else Phase.DONE
+    floor = _declared_floor(snap, kind)
+    if kind == Kind.SPEC and floor not in _READY_OR_LATER:
+        return floor  # PRs for a spec that is not ready do not advance it (V06 reports them)
     parts = [p for p in _neighbours(snap, graph, EdgeType.IMPLEMENTED_BY) if p.is_pr]
     open_parts = [p for p in parts if _is_open(p)]
     if any(not p.draft for p in open_parts):
@@ -296,7 +324,7 @@ def _work_phase(snap: Snapshot, kind: Kind, graph: Graph) -> Phase:
     if any(p.merged for p in parts):
         # Ruling: an open issue whose known parts are all merged may still get more parts.
         return Phase.VERIFICATION if hardware else Phase.IN_PROGRESS
-    return _declared_phase(snap, kind)
+    return floor
 
 
 def _mirrored(snap: Snapshot, graph: Graph, cfg: Config) -> tuple[Phase, Resolution | None] | None:
@@ -304,7 +332,7 @@ def _mirrored(snap: Snapshot, graph: Graph, cfg: Config) -> tuple[Phase, Resolut
     specs = [s for s in _neighbours(snap, graph, EdgeType.SPECIFIED_BY) if detect_kind(s, cfg) == Kind.SPEC]
     if not specs or (snap.state != "open" and _resolution(snap)):
         return None
-    phases = [(graph.derived.get(s.number) or derive(s, graph, cfg)).phase for s in specs]
+    phases = [(graph.derived.get(s.number) or _derive_known(s, graph, cfg, Kind.SPEC)).phase for s in specs]
     live = [p for p in phases if p != Phase.CLOSED]
     if not live:
         return Phase.CLOSED, Resolution.SUPERSEDED
@@ -331,15 +359,21 @@ def _simple_phase(snap: Snapshot, kind: Kind, graph: Graph) -> Phase:
     return _declared_phase(snap, kind)
 
 
-def derive(snap: Snapshot, graph: Graph, cfg: Config, kind: Kind | None = None) -> Derived:
+def derive(snap: Snapshot, graph: Graph, cfg: Config, kind: Kind | None = None) -> Derived | None:
     """Phase, waits and resolution of one artifact (design section 6); pure.
 
     `kind` is detected from the snapshot unless given (discussions are never detected).
     Fact-owned labels on the artifact are ignored and recomputed; declarations are validated.
+    Returns ``None`` for an announcement (content by allowlisted automation): it has no phase,
+    no waits and no block, and callers write nothing for it.
     """
     kind = kind or detect_kind(snap, cfg)
     if kind == Kind.ANNOUNCEMENT:
-        return ANNOUNCEMENT_DERIVED
+        return None
+    return _derive_known(snap, graph, cfg, kind)
+
+
+def _derive_known(snap: Snapshot, graph: Graph, cfg: Config, kind: Kind) -> Derived:
     if kind in (Kind.PULL_REQUEST, Kind.DEPENDENCY_PR, Kind.DOCS_PR):
         return _derive_pr(snap, graph, cfg)
     resolution: Resolution | None = None

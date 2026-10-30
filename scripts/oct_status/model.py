@@ -99,6 +99,7 @@ class Review:
     user: str
     state: str
     commit_id: str
+    author_association: str = ""
 
 
 @dataclass(frozen=True)
