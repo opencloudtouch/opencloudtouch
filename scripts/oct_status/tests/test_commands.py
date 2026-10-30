@@ -14,14 +14,24 @@ from oct_status.api import GitHubApi
 from oct_status.apply import MARKER
 from oct_status.commands import Command, Outcome, authorize, execute, parse_command
 from oct_status.main import Workspace, run_event
-from oct_status.model import Derived, Phase, Wait
+from oct_status.model import Derived, Phase, Review, Wait
 
 from .conftest import FixtureTransport, make_snapshot
 from .test_main_events import BOT, CFG, ROOT, FakeRepo, _nosleep, api_for
 
 DOR_DONE = "## Definition of Ready\n- [x] one\n- [ ] two n/a here\n"
 DOR_OPEN = "## Definition of Ready\n- [x] one\n- [ ] second item\n- [ ] third item\n"
-PERMS = {"alice": "write", "bob": "write", "scheilch": "admin", "carol": "maintain", "dave": "read"}
+# Real response shape: legacy `permission` plus the real role in `role_name` (maintain shows as write).
+PERMS = {
+    "alice": {"permission": "write", "role_name": "write"},
+    "bob": {"permission": "write", "role_name": "write"},
+    "scheilch": {"permission": "admin", "role_name": "admin"},
+    "carol": {"permission": "write", "role_name": "maintain"},
+    "dave": {"permission": "read", "role_name": "read"},
+    "tess": {"permission": "read", "role_name": "triage"},
+    "legacy": {"permission": "write"},
+    "legacy-admin": {"permission": "admin"},
+}
 
 
 class CommandRepo(FakeRepo):
@@ -40,7 +50,7 @@ class CommandRepo(FakeRepo):
                 return httpx.Response(500, json={})
             if m[1] not in PERMS:
                 return httpx.Response(404, json={})
-            return httpx.Response(200, json={"permission": PERMS[m[1]]})
+            return httpx.Response(200, json=PERMS[m[1]])
         if m := re.fullmatch(rf"{ROOT}/issues/comments/(\d+)/reactions", path):
             self.writes.append((request.method, path))
             self.reactions.append((int(m[1]), json.loads(request.content)["content"]))
@@ -144,6 +154,12 @@ def test_arguments_are_stripped_and_limited():
     [
         ("alice", "review", True),  # write
         ("dave", "review", False),  # read only
+        ("tess", "review", False),  # triage role: legacy permission read
+        ("tess", "triage", False),
+        ("carol", "review", True),  # maintain role: legacy permission write
+        ("legacy", "review", True),  # legacy shape without role_name
+        ("legacy", "triage", False),
+        ("legacy-admin", "triage", True),
         ("stranger", "review", False),  # not a collaborator
         ("alice", "triage", False),  # maintainer command needs maintain
         ("carol", "triage", True),
@@ -159,6 +175,41 @@ async def test_authorization(login, name, expected):
     repo = CommandRepo()
     api = api_for(repo)
     assert await authorize(api, login, Command(name, "x"), CFG) is expected
+    await api.aclose()
+
+
+async def test_author_permission_prefers_role_name():
+    from oct_status.facts import author_permission
+
+    repo = CommandRepo()
+    api = api_for(repo)
+    assert await author_permission(api, "carol") == "maintain"
+    assert await author_permission(api, "legacy") == "write"
+    assert await author_permission(api, "stranger") is None
+    await api.aclose()
+
+
+async def test_rejection_text_distinguishes_unverified_from_missing_access():
+    repo = CommandRepo()
+    repo.perm_errors.add("alice")
+    api = api_for(repo)
+    ok, reason = await commands.authorize_detailed(api, "alice", Command("review", ""), CFG)
+    assert not ok and "could not be verified" in reason
+    ok, reason = await commands.authorize_detailed(api, "dave", Command("review", ""), CFG)
+    assert not ok and "needs write access" in reason and "verified" not in reason
+    ok, reason = await commands.authorize_detailed(api, "alice", Command("triage", ""), CFG)
+    assert not ok and "needs maintain access" in reason
+    ok, reason = await commands.authorize_detailed(api, BOT, Command("review", ""), CFG)
+    assert not ok and "automation" in reason
+    await api.aclose()
+
+
+@pytest.mark.parametrize("body", [b"not json", b"[1]"])
+async def test_unparseable_permission_response_is_unverified(body):
+    transport = httpx.MockTransport(lambda r: httpx.Response(200, content=body))
+    api = GitHubApi("t", "o/r", transport=transport, sleep=_nosleep)
+    ok, reason = await commands.authorize_detailed(api, "alice", Command("review", ""), CFG)
+    assert not ok and "could not be verified" in reason
     await api.aclose()
 
 
@@ -308,9 +359,11 @@ async def test_override_and_accept_paths_are_logged():
     snap = make_snapshot(is_pr=True)
     out = await _run("override", "flaky", snap, _derived(Phase.IN_REVIEW), actor="scheilch")
     assert out.ok and out.log == "override by scheilch: flaky"
+    assert "guide only" in out.message and "no effect yet" in out.message
     assert not (await _run("override", "", snap, _derived(Phase.IN_REVIEW))).ok
     out = await _run("accept-paths", "", snap, _derived(Phase.IN_REVIEW), actor="scheilch")
     assert out.ok and out.log == "accept-paths by scheilch"
+    assert "guide only" in out.message and "no effect yet" in out.message
 
 
 async def test_approve_requests_oct_support_review():
@@ -320,8 +373,9 @@ async def test_approve_requests_oct_support_review():
     assert out.ok
     assert repo.review_requests == [{"reviewers": ["oct-support"]}]
     # an earlier review of an older head does not matter: the same call re-requests the review
-    old = make_snapshot(number=8, is_pr=True, author="alice", head_sha="new")
-    await _run("approve", "", old, _derived(Phase.IN_REVIEW), repo=repo)
+    reviews = (Review("oct-support", "APPROVED", "old-head"),)
+    old = make_snapshot(number=8, is_pr=True, author="alice", head_sha="new-head", reviews=reviews)
+    assert (await _run("approve", "", old, _derived(Phase.IN_REVIEW, Wait.MAINTAINER), repo=repo)).ok
     assert repo.review_requests == [{"reviewers": ["oct-support"]}] * 2
 
 
@@ -546,3 +600,45 @@ async def test_workspace_load_survives_unreadable_comments():
 def test_outcome_defaults():
     out = Outcome(True, "x")
     assert out.declare == {} and out.effects == [] and out.log is None
+
+
+async def test_label_write_failure_is_a_rejection_with_notice():
+    repo = spec_repo()
+    original = repo.handler
+    failed: list[int] = []
+
+    def failing(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST" and request.url.path.endswith("/issues/5/labels") and len(failed) < 4:
+            failed.append(1)  # the declaration fails through all retries; later convergence works
+            return httpx.Response(500, json={})
+        return original(request)
+
+    api = GitHubApi("t", "o/r", transport=httpx.MockTransport(failing), sleep=_nosleep)
+    assert await run_event(api, CFG, "issue_comment", comment_event(5, "/oct review"), dry_run=False) == 0
+    assert repo.reactions == [(77, "eyes"), (77, "-1")]
+    assert "was rejected" in repo.guide(5) and "HTTPStatusError" in repo.guide(5)
+    await api.aclose()
+
+
+async def test_unverifiable_permission_is_reported_in_the_guide():
+    repo = spec_repo()
+    repo.perm_errors.add("bob")
+    api = api_for(repo)
+    event = comment_event(5, "/oct review", login="bob")
+    assert await run_event(api, CFG, "issue_comment", event, dry_run=False) == 0
+    assert "could not be verified" in repo.guide(5)
+    assert "phase:spec-review" not in repo.label_names(5)
+    await api.aclose()
+
+
+async def test_maintain_role_passes_triage_and_override_is_labelled_not_effective():
+    repo = CommandRepo()
+    repo.add(6, labels=("bug",))
+    api = api_for(repo)
+    assert (
+        await run_event(api, CFG, "issue_comment", comment_event(6, "/oct triage", login="carol"), dry_run=False) == 0
+    )
+    assert "phase:triaged" in repo.label_names(6)
+    await run_event(api, CFG, "issue_comment", comment_event(6, "/oct override why", login="carol"), dry_run=False)
+    assert "no effect yet" in repo.guide(6)
+    await api.aclose()

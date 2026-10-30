@@ -32,6 +32,10 @@ COMMANDS = frozenset(MAINTAINER_COMMANDS | {"review", "rework", "ready", "approv
 # Commands whose argument is a mandatory free-text reason or note.
 _NEEDS_TEXT = frozenset({"rework", "verified", "designer", "no-spec", "override"})
 
+_NOT_EFFECTIVE = {
+    "override": "recorded in the guide only; it has no effect yet",
+    "accept-paths": "recorded in the guide only; it has no effect yet",
+}
 _LOGIN = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})")
 _FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 _COMMAND = re.compile(r"^ {0,3}/oct(?:[ \t]+([A-Za-z][A-Za-z-]*))?(?:[ \t]+(.*))?$", re.IGNORECASE)
@@ -94,25 +98,33 @@ def valid_login(login: str) -> bool:
     return bool(_LOGIN.fullmatch(login or ""))
 
 
-async def _permission(api: GitHubApi, login: str) -> str | None:
+async def _permission(api: GitHubApi, login: str) -> tuple[str | None, bool]:
+    """Role of `login` and whether it could be verified (False after an API or parsing error)."""
     if not valid_login(login):  # the login ends up in a URL path
-        return None
+        return None, True
     try:
-        return await author_permission(api, login)
-    except httpx.HTTPError:
-        return None
+        return await author_permission(api, login), True
+    except (httpx.HTTPError, ValueError, AttributeError):
+        return None, False
+
+
+async def authorize_detailed(api: GitHubApi, login: str, cmd: Command, cfg: Config) -> tuple[bool, str]:
+    """Whether `login` may run `cmd`, and the reason when not."""
+    needed = "maintain" if cmd.name in MAINTAINER_COMMANDS else "write"
+    if login in cfg.automation or login in cfg.bot_logins:
+        return False, f"/oct {cmd.name} cannot be run by automation accounts"
+    permission, verified = await _permission(api, login)
+    if not verified:
+        return False, f"your permission could not be verified, try again later (/oct {cmd.name} needs {needed} access)"
+    allowed = cfg.maintainer_permissions if needed == "maintain" else WRITE_PERMISSIONS
+    if permission in allowed:
+        return True, ""
+    return False, f"/oct {cmd.name} needs {needed} access"
 
 
 async def authorize(api: GitHubApi, login: str, cmd: Command, cfg: Config) -> bool:
     """Write access is required for every command, maintain or admin for the maintainer commands."""
-    if login in cfg.automation or login in cfg.bot_logins:
-        return False
-    permission = await _permission(api, login)
-    if permission is None:
-        return False
-    if cmd.name in MAINTAINER_COMMANDS:
-        return permission in cfg.maintainer_permissions
-    return permission in WRITE_PERMISSIONS
+    return (await authorize_detailed(api, login, cmd, cfg))[0]
 
 
 def _reject(message: str) -> Outcome:
@@ -147,7 +159,7 @@ def _transition(cmd: Command, snap: Snapshot, derived: Derived, cfg: Config, *, 
 async def _approve(api: GitHubApi, snap: Snapshot, actor: str, cfg: Config, dry_run: bool) -> Outcome:
     if not snap.is_pr or snap.state != "open" or snap.merged:
         return _reject("/oct approve only applies to an open pull request")
-    if actor != snap.author and await _permission(api, actor) not in cfg.maintainer_permissions:
+    if actor != snap.author and (await _permission(api, actor))[0] not in cfg.maintainer_permissions:
         return _reject("/oct approve may only be used by the PR author or a maintainer")
     if dry_run:
         return Outcome(True, f"would request the review by {OCT_SUPPORT}", effects=[f"request review {OCT_SUPPORT}"])
@@ -230,10 +242,9 @@ async def execute(
         if snap.state == "open":
             return _reject("Close the artifact first: a resolution applies to closed artifacts only")
         return Outcome(True, f"superseded by #{ref[1]}", _declare(snap, ["resolution:superseded"], keep_phase=True))
-    if name == "override":
-        return Outcome(True, f"override recorded: {cmd.args}", log=f"override by {actor}: {cmd.args}")
-    # accept-paths
-    return Outcome(True, "protected paths acknowledged", log=f"accept-paths by {actor}")
+    # override and accept-paths: logged only until the ledger (Task 13) and protected paths (Task 14) use them
+    detail = f": {cmd.args}" if cmd.args else ""
+    return Outcome(True, _NOT_EFFECTIVE[name], log=f"{name} by {actor}{detail}")
 
 
 async def apply_declaration(api: GitHubApi, number: int, declare: dict[str, list[str]], *, dry_run: bool) -> list[str]:

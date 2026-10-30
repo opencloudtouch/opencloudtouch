@@ -37,8 +37,11 @@ async def author_permission(api: GitHubApi, user: str) -> str | None:
     if resp.status_code == 404:
         return None
     resp.raise_for_status()
-    permission = resp.json().get("permission")
-    return str(permission) if permission is not None else None
+    data = resp.json()
+    # `permission` is the legacy four-value field (maintain shows as write, triage as read);
+    # `role_name` carries the real role. Fall back to the legacy value when it is absent.
+    role = data.get("role_name") or data.get("permission")
+    return str(role) if role is not None else None
 
 
 async def _stack_drift(api: GitHubApi, base: str, head: str, open_pr_heads: frozenset[str] | None) -> int | None:

@@ -342,21 +342,20 @@ async def _handle_command(ws: Workspace, number: int, payload: dict[str, Any], d
     comment_id = _number(comment.get("id"))
     if comment_id is not None:
         await commands.react(ws.api, comment_id, "eyes", dry_run=dry_run)
-    if await commands.authorize(ws.api, actor, cmd, ws.cfg):
+    allowed, reason = await commands.authorize_detailed(ws.api, actor, cmd, ws.cfg)
+    writes: list[str] = []
+    if allowed:
         derived = ws.graph().derived.get(number)
         try:
             result = await commands.execute(ws.api, cmd, snap, derived, actor, cfg=ws.cfg, dry_run=dry_run)
-        except httpx.HTTPError as exc:  # fail closed: nothing was declared
+            if result.ok:
+                writes = await commands.apply_declaration(ws.api, number, result.declare, dry_run=dry_run)
+                writes += result.effects
+                ws.patch(number, result.declare.get("add", []), result.declare.get("remove", []), result.no_spec_reason)
+        except httpx.HTTPError as exc:  # fail closed
             result = commands.Outcome(False, f"the command failed ({type(exc).__name__})")
     else:
-        result = commands.Outcome(
-            False, f"/oct {cmd.name} needs {'maintain' if cmd.name in commands.MAINTAINER_COMMANDS else 'write'} access"
-        )
-    writes: list[str] = []
-    if result.ok:
-        writes = await commands.apply_declaration(ws.api, number, result.declare, dry_run=dry_run)
-        writes += result.effects
-        ws.patch(number, result.declare.get("add", []), result.declare.get("remove", []), result.no_spec_reason)
+        result = commands.Outcome(False, reason)
     if comment_id is not None:
         await commands.react(ws.api, comment_id, "+1" if result.ok else "-1", dry_run=dry_run)
     if result.ok:
