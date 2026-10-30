@@ -535,7 +535,7 @@ stay inert.
 Rulings made during implementation (deviations from the text above):
 
 - Write mode is gated by the repository variable `OCT_STATUS_WRITE` (maintainer go/no-go after the shadow week); strikes stay inactive until `strikes_enabled_from` is set, and that must not happen before the backfill.
-- The merge gate is the commit status context `oct-status` on the PR head (posted only in write mode), not a check run: checks of `pull_request_target` runs attach to the base commit.
+- The merge gate is the commit status context `oct-status` on the PR head (posted only in write mode), not a check run: checks of `pull_request_target` runs attach to the base commit. The required check pins the status source to the GitHub Actions app (`app_id` 15368), and the existing required checks are kept when it is added.
 - V05 is not reverted automatically (the notice persists until the template is restored); V08 is reverted by reopening the issue at level 3 (built: `main._reopen`; the notice then resolves only on `/oct verified` or an override).
 - An open spec whose parts are all merged stays in progress; the automation row has no Gitar risk or auto-apply state until dashboard parsing exists.
 - `/oct supersede` is accepted only on closed artifacts; the `superseded-by` edge is not written yet.

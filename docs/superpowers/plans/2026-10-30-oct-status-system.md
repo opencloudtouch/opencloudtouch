@@ -568,13 +568,15 @@ docs/WORKFLOW.md                     new
 - [ ] **Step 1: Write the failing test** `test_config_activation_date_is_set` in `tests/test_config.py`: `load_config(...).strikes_enabled_from` is a `date` that is not in the future.
 - [ ] **Step 2: Run** `cd scripts/oct_status && python -m pytest tests/test_config.py -q` - Expected: FAIL (the key is unset since Task 1).
 - [ ] **Step 3: MAINTAINER ACTION MA-9** - decide and record: gate mode (strikes and stale blocks only, or also while any `wait:*` is set) and `enforce_admins`. Write both decisions into `docs/WORKFLOW.md`. Set `strikes_enabled_from` to the activation date and `legacy_wip_trusted` to `false` (the backfill MA-6 re-asserted every legacy `wip`; the test `test_legacy_wip_switch` in `tests/test_config.py` then asserts `False` for the shipped config).
-- [ ] **Step 4: Apply as admin** (part of MA-9; UI path in the section "Maintainer actions", or this call):
+- [ ] **Step 4: Apply as admin** (part of MA-9; UI path in the section "Maintainer actions", or these calls). The required check is the commit status context `oct-status` posted by `status-write` with the job token, pinned to the GitHub Actions app (`app_id` 15368) so that a status of the same name from any other token or app cannot satisfy it. `checks` replaces the whole list, so read the current required checks first and keep them:
   ```bash
-  curl -X POST -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
-    https://api.github.com/repos/opencloudtouch/opencloudtouch/branches/main/protection/required_status_checks/contexts \
-    -d '["oct-status"]'
+  gh api repos/opencloudtouch/opencloudtouch/branches/main/protection/required_status_checks \
+    --jq '{strict: .strict, checks: ([.checks[] | select(.context != "oct-status")] + [{context: "oct-status", app_id: 15368}])}' \
+    > required-checks.json
+  gh api -X PATCH repos/opencloudtouch/opencloudtouch/branches/main/protection/required_status_checks \
+    --input required-checks.json
   ```
-  Expected: the response lists `Mojibake Check` and `oct-status`. `oct-status` here is the commit status context posted by `status-write`; the workflow's report job is named `oct-status-report` (round C, M9), so no job run can satisfy the required check.
+  Expected: the response's `checks` lists every earlier entry (for example `Mojibake Check`) and `{"context": "oct-status", "app_id": 15368}`. `oct-status` here is the commit status context; the workflow's report job is named `oct-status-report` (round C, M9), so no job run can satisfy the required check.
 - [ ] **Step 5: Commit** `chore(oct-status): activate strikes and document the merge gate`.
 
 ---
@@ -615,7 +617,7 @@ git add -A && git commit -m "test: probe oct-status with a failing lint" && git 
 ```
 Open a ready (not draft) PR titled `test: probe oct-status`, request a review from `oct-support`, resolve its threads until "Approve Check" approves. Let Gitar fix the lint failure (auto-apply is on; if nothing happens within ten minutes comment `gitar fix this`). Then collect: `git log origin/test/oct-status-probe -4 --format='%an <%ae> | %cn | %s'`, whether "Validate Commit Messages" passed on Gitar's commit, whether `oct-support` approved again after Gitar's push and without a new review, whether `formatter-bot` pushed afterwards and what Gitar did, and whether the PR description was changed. Finish by closing the PR and deleting the branch. Report: those four answers.
 
-**MA-9 - Merge gate and required checks.** When: Task 20. Why: it defines what a red `oct-status` means and whether admins can bypass it. Decide: (a) gate mode - red only on strikes and stale blocks, or also while any `wait:*` label is set (the second mode makes `oct-status` the single go/no-go and also holds back native auto-merge); (b) `enforce_admins` on or off. Do: Repository -> Settings -> Branches -> rule for `main` -> Edit -> "Require status checks to pass before merging" -> add `oct-status` (and, if you want it, `Scripts Tests`) -> for (b) tick "Do not allow bypassing the above settings" -> Save. The API call in Task 20 Step 4 is the equivalent. Check: a PR shows `oct-status` as "Required". Report: both decisions and the confirmation. From then on strikes escalate.
+**MA-9 - Merge gate and required checks.** When: Task 20. Why: it defines what a red `oct-status` means and whether admins can bypass it. Decide: (a) gate mode - red only on strikes and stale blocks, or also while any `wait:*` label is set (the second mode makes `oct-status` the single go/no-go and also holds back native auto-merge); (b) `enforce_admins` on or off. Do: Repository -> Settings -> Branches -> rule for `main` -> Edit -> "Require status checks to pass before merging" -> add `oct-status` with the source "GitHub Actions" (app id 15368, not "any source"; keep every check that is already required) (and, if you want it, `Scripts Tests`) -> for (b) tick "Do not allow bypassing the above settings" -> Save. The API call in Task 20 Step 4 is the equivalent. Check: a PR shows `oct-status` as "Required". Report: both decisions and the confirmation. From then on strikes escalate.
 
 ## Spec coverage
 

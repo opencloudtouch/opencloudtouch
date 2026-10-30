@@ -172,7 +172,10 @@ stateDiagram-v2
 A Dependabot pull request still waits for an approval (`wait:maintainer`); because Dependabot is not a
 maintainer, only an approving review by a person with write access counts, never `oct-support`. If it changes a protected
 path (for example a GitHub Actions bump under `.github/workflows/`), it also needs `/oct accept-paths`, see
-[waits](#waits).
+[waits](#waits). The acknowledgement is tied to the commit it was given on: every rebase or update of a
+`github-actions` ecosystem pull request by Dependabot is a new push to `.github/`, so it needs a new
+`/oct accept-paths` each time. This is intended: every change to the workflows is a supply-chain change that
+a maintainer reviews before it is merged.
 
 ## Reference
 
@@ -1218,7 +1221,10 @@ refuses the reopening, the guide says so (reopen the issue by hand) and the run 
 In write mode the job `status-write` posts the commit status `oct-status` on the head commit of every open
 pull request a run touches; the daily audit (03:17 UTC) posts it for all open pull requests. This commit
 status context is the one to make required (planned for the enforcement step); the workflow job
-`oct-status-report` only reports (it is not named `oct-status`, so it can never satisfy that required check). The status fails, with the first reason as description, when:
+`oct-status-report` only reports (it is not named `oct-status`, so it can never satisfy that required check).
+The required check pins the source of the status to the GitHub Actions app (`app_id` 15368, "GitHub Actions" in
+the branch protection's source picker), so a status `oct-status` posted by any other token or app does not
+satisfy it. The status fails, with the first reason as description, when:
 
 - the status block is missing or out of date,
 - automation pushed to a protected path without a maintainer's `/oct accept-paths`,
