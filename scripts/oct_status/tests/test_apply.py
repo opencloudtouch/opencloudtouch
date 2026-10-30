@@ -1,0 +1,243 @@
+"""Tests for the idempotent applier against an in-memory fake GitHub."""
+
+from __future__ import annotations
+
+import json
+from urllib.parse import unquote
+
+import httpx
+
+from oct_status.api import GitHubApi
+from oct_status.apply import MARKER, apply_state, is_own_event, upsert_guide
+from oct_status.config import Actor, Config
+from oct_status.model import Derived, Graph, Phase, Resolution, Wait
+from oct_status.render import render_block
+
+from .conftest import make_snapshot
+
+REPO = "o/r"
+ROOT = f"/repos/{REPO}"
+BOT = "oct-support"
+CFG = Config(
+    automation={
+        BOT: Actor(BOT, "automation"),
+        "dependabot[bot]": Actor("dependabot[bot]", "automation", block_location="comment"),
+    },
+    gate_checks=[],
+    protected_paths=[],
+)
+GUIDE = f"{MARKER}\n\nguide v1\n"
+
+
+class FakeGitHub:
+    def __init__(self, labels: set[str] | None = None, body: str = "") -> None:
+        self.labels = set(labels or ())
+        self.body = body
+        self.comments: list[dict] = []
+        self.writes: list[tuple[str, str]] = []
+        self._next = 100
+
+    def add_comment(self, text: str, login: str = BOT) -> int:
+        self._next += 1
+        self.comments.append({"id": self._next, "body": text, "user": {"login": login}})
+        return self._next
+
+    def handler(self, request: httpx.Request) -> httpx.Response:
+        path = unquote(request.url.path)
+        method = request.method
+        body = json.loads(request.content) if request.content else {}
+        if method != "GET":
+            self.writes.append((method, path))
+        if path == f"{ROOT}/issues/1/comments" and method == "GET":
+            page = int(request.url.params.get("page", "1"))
+            return httpx.Response(200, json=self.comments if page == 1 else [])
+        if path == f"{ROOT}/issues/1/comments" and method == "POST":
+            return httpx.Response(201, json={"id": self.add_comment(body["body"])})
+        if path.startswith(f"{ROOT}/issues/comments/"):
+            cid = int(path.rsplit("/", 1)[1])
+            found = next((c for c in self.comments if c["id"] == cid), None)
+            if found is None:
+                return httpx.Response(404, json={})
+            if method == "PATCH":
+                found["body"] = body["body"]
+                return httpx.Response(200, json=found)
+            if method == "DELETE":
+                self.comments.remove(found)
+                return httpx.Response(204)
+        if path == f"{ROOT}/issues/1/labels" and method == "POST":
+            self.labels |= set(body["labels"])
+            return httpx.Response(200, json=[])
+        if path.startswith(f"{ROOT}/issues/1/labels/") and method == "DELETE":
+            self.labels.discard(path[len(f"{ROOT}/issues/1/labels/") :])
+            return httpx.Response(200, json=[])
+        if path == f"{ROOT}/issues/1" and method == "PATCH":
+            self.body = body["body"]
+            return httpx.Response(200, json={})
+        return httpx.Response(404, json={})
+
+
+def make(fake: FakeGitHub) -> GitHubApi:
+    return GitHubApi("t", REPO, transport=httpx.MockTransport(fake.handler), sleep=_nosleep)
+
+
+async def _nosleep(_: float) -> None:
+    return None
+
+
+DERIVED = Derived(Phase.IN_REVIEW, frozenset({Wait.CI}), None)
+
+
+def snap_of(fake: FakeGitHub, **kw):
+    return make_snapshot(labels=frozenset(fake.labels), body=fake.body, is_pr=True, **kw)
+
+
+def block_for(snap, derived=DERIVED):
+    return render_block(snap, derived, Graph([], {snap.number: snap}, {}), CFG)
+
+
+async def converge(fake, derived=DERIVED, guide=GUIDE, **kw):
+    api = make(fake)
+    snap = snap_of(fake, **kw)
+    out = await apply_state(api, snap, derived, block_for(snap, derived), guide, CFG)
+    await api.aclose()
+    return out
+
+
+async def test_second_run_makes_zero_writes():
+    fake = FakeGitHub(labels={"bug"}, body="Hello")
+    first = await converge(fake)
+    assert first
+    writes = len(fake.writes)
+    assert await converge(fake) == []
+    assert len(fake.writes) == writes
+
+
+async def test_only_owned_namespaces_change():
+    fake = FakeGitHub(labels={"bug", "phase:ready", "wait:maintainer", "resolution:wontfix", "type:x"})
+    await converge(fake)
+    assert fake.labels == {"bug", "type:x", "phase:in-review", "wait:ci"}
+
+
+async def test_resolution_label_added():
+    fake = FakeGitHub()
+    await converge(fake, derived=Derived(Phase.CLOSED, frozenset(), Resolution.DUPLICATE))
+    assert fake.labels == {"phase:closed", "resolution:duplicate"}
+
+
+async def test_dependency_pr_uses_pinned_comment():
+    fake = FakeGitHub(body="dependabot body")
+    out = await converge(fake, author="dependabot[bot]")
+    assert fake.body == "dependabot body"
+    assert not any(path.endswith("/issues/1") for _, path in fake.writes)
+    assert len(fake.comments) == 1
+    text = fake.comments[0]["body"]
+    assert text.startswith("<!-- oct-status:v1") and MARKER in text
+    assert out
+    fake.body = "regenerated by dependabot"  # dependabot rewrites its body
+    assert await converge(fake, author="dependabot[bot]") == []
+    assert fake.body == "regenerated by dependabot"
+
+
+async def test_guide_upsert_updates_in_place():
+    fake = FakeGitHub()
+    api = make(fake)
+    assert await upsert_guide(api, 1, GUIDE, CFG) == "created"
+    assert [m for m, _ in fake.writes] == ["POST"]
+    assert await upsert_guide(api, 1, GUIDE, CFG) == "unchanged"
+    assert len(fake.writes) == 1
+    assert await upsert_guide(api, 1, GUIDE + "more", CFG) == "updated"
+    assert fake.writes[-1][0] == "PATCH" and len(fake.comments) == 1
+    await api.aclose()
+
+
+async def test_guide_ignores_marker_from_foreign_author():
+    fake = FakeGitHub()
+    fake.add_comment(GUIDE, login="mallory")
+    api = make(fake)
+    assert await upsert_guide(api, 1, GUIDE, CFG) == "created"
+    assert len(fake.comments) == 2
+    await api.aclose()
+
+
+async def test_duplicate_guides_keep_oldest():
+    fake = FakeGitHub()
+    oldest = fake.add_comment(GUIDE)
+    fake.add_comment(GUIDE)
+    fake.add_comment(GUIDE)
+    api = make(fake)
+    assert await upsert_guide(api, 1, GUIDE + "new", CFG) == "deduplicated"
+    assert [c["id"] for c in fake.comments] == [oldest]
+    assert fake.comments[0]["body"] == GUIDE + "new"
+    assert [m for m, _ in fake.writes] == ["DELETE", "DELETE", "PATCH"]
+    await api.aclose()
+
+
+async def test_deleted_guide_is_recreated():
+    fake = FakeGitHub()
+    api = make(fake)
+    await upsert_guide(api, 1, GUIDE, CFG)
+    fake.comments.clear()
+    assert await upsert_guide(api, 1, GUIDE, CFG) == "created"
+    assert len(fake.comments) == 1
+    await api.aclose()
+
+
+async def test_dry_run_writes_nothing_and_reports_plan():
+    fake = FakeGitHub(labels={"phase:ready"}, body="Hello")
+    api = make(fake)
+    snap = snap_of(fake)
+    plan = await apply_state(api, snap, DERIVED, block_for(snap), GUIDE, CFG, dry_run=True)
+    await api.aclose()
+    assert fake.writes == []
+    assert any("phase:in-review" in p for p in plan) and any("body" in p for p in plan)
+    assert any("guide" in p for p in plan)
+
+
+async def test_announcement_gets_neither_block_nor_guide():
+    fake = FakeGitHub(labels={"phase:ready"})
+    api = make(fake)
+    out = await apply_state(api, snap_of(fake), DERIVED, None, None, CFG)
+    await api.aclose()
+    assert out == [] and fake.writes == []
+
+
+async def test_truncated_body_is_not_rewritten_every_run(monkeypatch):
+    rows = "\n".join(f"| #{n} | implements | open | x |" for n in range(2, 12))
+    block = f"<!-- oct-status:v1 hash=0123456789ab -->\nhead\n\n| a | b | c | d |\n|---|---|---|---|\n{rows}\n<!-- /oct-status -->"
+    import oct_status.apply as apply_mod
+
+    real = apply_mod.splice_block
+    monkeypatch.setattr(apply_mod, "splice_block", lambda body, blk: real(body, blk, limit=len(blk) - 100))
+    fake = FakeGitHub(body="text")
+    for expected in (1, 0):  # shortened block is written once, then stable
+        api = make(fake)
+        out = await apply_state(api, snap_of(fake), DERIVED, block, None, CFG)
+        await api.aclose()
+        assert sum("body" in o for o in out) == expected
+    assert fake.body != real("text", block) and "more" in fake.body
+
+
+def test_bot_edit_event_is_ignored():
+    payload = {"action": "edited", "sender": {"login": BOT}}
+    assert is_own_event(payload, {BOT})
+    assert not is_own_event({"action": "edited", "sender": {"login": "human"}}, {BOT})
+    assert not is_own_event({"action": "edited"}, {BOT})
+
+
+async def test_guide_found_on_second_page():
+    fake = FakeGitHub()
+    for n in range(100):
+        fake.add_comment(f"chatter {n}", login="human")
+    fake.add_comment(GUIDE)
+    api = make(fake)
+    orig = fake.handler
+
+    def paged(request: httpx.Request) -> httpx.Response:
+        if request.method == "GET" and request.url.path.endswith("/comments"):
+            page, size = int(request.url.params["page"]), int(request.url.params["per_page"])
+            return httpx.Response(200, json=fake.comments[(page - 1) * size : page * size])
+        return orig(request)
+
+    api = GitHubApi("t", REPO, transport=httpx.MockTransport(paged), sleep=_nosleep)
+    assert await upsert_guide(api, 1, GUIDE, CFG) == "unchanged"
+    await api.aclose()
