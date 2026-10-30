@@ -13,7 +13,7 @@ from dataclasses import asdict, dataclass, replace
 from .config import Config
 from .model import Derived, EdgeType, Graph, Snapshot, Wait
 from .render import neutralise
-from .rules import detect_kind, dor_status, legal_transitions, protected_changes
+from .rules import detect_kind, dor_status, legal_transitions, oct_support_approval_counts, protected_changes
 from .violations import RULES, Notice
 
 MAX_STEPS = 5
@@ -75,8 +75,17 @@ def protected_notice(changes: list[tuple[str, str]]) -> str:
     )
 
 
-def _wait_step(wait: Wait, snap: Snapshot, graph: Graph | None) -> Step:
+_HUMAN_APPROVAL = (
+    "A maintainer approves the current head: an approving review by a person other than the author with the "
+    "association OWNER, MEMBER or COLLABORATOR clears wait:maintainer; approvals by oct-support and other bots "
+    "do not count on this pull request"
+)
+
+
+def _wait_step(wait: Wait, snap: Snapshot, graph: Graph | None, cfg: Config) -> Step:
     if wait == Wait.MAINTAINER:
+        if not oct_support_approval_counts(snap, cfg):
+            return Step("maintainer", _HUMAN_APPROVAL)
         return Step("author", "Request the review by oct-support; its approval clears wait:maintainer", "/oct approve")
     if wait == Wait.FINDINGS:
         n = snap.unresolved_threads
@@ -112,7 +121,11 @@ _WAIT_COMMANDS = {Wait.MAINTAINER: "/oct approve", Wait.HARDWARE_TEST: "/oct ver
 def valid_commands(snap: Snapshot, derived: Derived, cfg: Config) -> list[str]:
     """Every command legal now: state-machine transitions plus those that clear a wait."""
     commands = [_COMMANDS[c] for c in legal_transitions(detect_kind(snap, cfg), derived.phase)]
-    commands += [_WAIT_COMMANDS[w] for w in sorted(derived.waits, key=_WAIT_ORDER.index) if w in _WAIT_COMMANDS]
+    for wait in sorted(derived.waits, key=_WAIT_ORDER.index):
+        if wait == Wait.MAINTAINER and not oct_support_approval_counts(snap, cfg):
+            continue  # the oct-support review /oct approve requests cannot clear it
+        if wait in _WAIT_COMMANDS:
+            commands.append(_WAIT_COMMANDS[wait])
     if Wait.FINDINGS in derived.waits and protected_changes(snap, cfg):
         commands.append("/oct accept-paths")
     return commands
@@ -134,7 +147,7 @@ def _transition_step(command: str, body: str) -> Step:
 
 def next_steps(snap: Snapshot, derived: Derived, cfg: Config, graph: Graph | None = None) -> list[Step]:
     """At most five steps: first what clears each wait, then the legal transitions."""
-    steps = [_wait_step(w, snap, graph) for w in sorted(derived.waits, key=_WAIT_ORDER.index)]
+    steps = [_wait_step(w, snap, graph, cfg) for w in sorted(derived.waits, key=_WAIT_ORDER.index)]
     if Wait.FINDINGS in derived.waits and (changes := protected_changes(snap, cfg)):
         text = f"Review the automation's changes to protected paths ({describe_paths(changes)}), then acknowledge them"
         steps.insert(0, Step("maintainer", text, "/oct accept-paths"))

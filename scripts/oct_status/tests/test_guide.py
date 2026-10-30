@@ -26,7 +26,7 @@ def _commands(steps):
 @pytest.mark.parametrize(
     ("snap_kwargs", "phase", "waits", "expect_cmd", "expect_text"),
     [
-        ({"is_pr": True}, Phase.IN_REVIEW, {Wait.MAINTAINER}, "/oct approve", None),
+        ({"is_pr": True, "author_permission": "admin"}, Phase.IN_REVIEW, {Wait.MAINTAINER}, "/oct approve", None),
         ({"is_pr": True, "unresolved_threads": 3}, Phase.IN_REVIEW, {Wait.FINDINGS}, None, "3 open review threads"),
         ({"is_pr": True}, Phase.MERGED, {Wait.HARDWARE_TEST}, "/oct verified <device or note>", None),
         (
@@ -60,6 +60,38 @@ def test_next_steps_per_state(snap_kwargs, phase, waits, expect_cmd, expect_text
         assert all(s.command is None for s in steps)
 
 
+@pytest.mark.parametrize(
+    "snap_kwargs",
+    [
+        {"author": "alice", "author_permission": "write"},  # contributor with write access
+        {"author": "stranger", "author_permission": None},  # no permission known (fails closed)
+        {"author": "dependabot[bot]", "author_permission": None},
+        {"author": "github-actions[bot]", "author_permission": None},
+    ],
+)
+def test_maintainer_wait_of_a_non_maintainer_pr_asks_for_a_human_approval(snap_kwargs):
+    """An oct-support approval only counts on PRs by maintainers, so /oct approve would never help here."""
+    snap = make_snapshot(is_pr=True, **snap_kwargs)
+    derived = Derived(Phase.IN_REVIEW, frozenset({Wait.MAINTAINER}), None)
+    steps = next_steps(snap, derived, CFG)
+    assert "/oct approve" not in _commands(steps)
+    step = steps[0]
+    assert step.actor == "maintainer" and step.command is None
+    assert "OWNER, MEMBER or COLLABORATOR" in step.text and "oct-support" in step.text
+    text = render_guide(snap, derived, steps, [], [], CFG)
+    assert "/oct approve" not in text
+
+
+def test_maintainer_wait_of_a_maintainer_pr_requests_the_oct_support_review():
+    snap = make_snapshot(is_pr=True, author="scheilch", author_permission="maintain")
+    derived = Derived(Phase.IN_REVIEW, frozenset({Wait.MAINTAINER}), None)
+    steps = next_steps(snap, derived, CFG)
+    assert steps[0] == Step(
+        "author", "Request the review by oct-support; its approval clears wait:maintainer", "/oct approve"
+    )
+    assert "- `/oct approve`" in render_guide(snap, derived, steps, [], [], CFG)
+
+
 def test_next_steps_never_more_than_five():
     snap = make_snapshot(is_pr=True)
     steps = next_steps(snap, Derived(Phase.IN_REVIEW, frozenset(Wait), None), CFG)
@@ -67,7 +99,7 @@ def test_next_steps_never_more_than_five():
 
 
 def _guide(**kw):
-    snap = make_snapshot(is_pr=True)
+    snap = make_snapshot(is_pr=True, author_permission="maintain")
     derived = Derived(Phase.IN_REVIEW, frozenset({Wait.MAINTAINER}), None)
     steps = next_steps(snap, derived, CFG)
     args = {
@@ -118,7 +150,7 @@ def test_guide_never_starts_with_gitar():
 
 
 def test_commands_listed_independently_of_the_step_cap():
-    snap = make_snapshot(is_pr=True)
+    snap = make_snapshot(is_pr=True, author_permission="admin")
     derived = Derived(Phase.IN_REVIEW, frozenset(Wait), None)
     steps = next_steps(snap, derived, CFG)
     text = render_guide(snap, derived, steps, [], [], CFG)

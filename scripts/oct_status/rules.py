@@ -93,6 +93,15 @@ def legal_transitions(kind: Kind, phase: Phase) -> list[str]:
     return list(_TRANSITIONS.get(kind, {}).get(phase, ()))
 
 
+def label_declarations(kind: Kind) -> set[Phase]:
+    """Phases a person declares for `kind` by setting the label (no command exists for them).
+
+    A test plan's `phase:in-progress` is one of them (design 4.1: `new` -> `in-progress` -> `done`, and no
+    fact derives it), so setting it by hand is not violation V02 on a test plan.
+    """
+    return set(_LABEL_DECLARATIONS.get(kind, set()))
+
+
 def _declarable(kind: Kind) -> set[Phase]:
     reachable = {_COMMAND_PHASE[c] for commands in _TRANSITIONS.get(kind, {}).values() for c in commands}
     return reachable | _LABEL_DECLARATIONS.get(kind, set())
@@ -232,8 +241,17 @@ def _approval_survives(snap: Snapshot, commit: str, cfg: Config) -> bool:
     return all(p.author in cfg.automation and not cfg.automation[p.author].invalidates_approval for p in later)
 
 
+def oct_support_approval_counts(snap: Snapshot, cfg: Config) -> bool:
+    """Whether an approval by oct-support clears `wait:maintainer`: only on PRs authored by a maintainer.
+
+    Everybody else (contributors, Dependabot and other automation, unknown permission) needs an
+    approval by a person with write access.
+    """
+    return snap.author_permission in cfg.maintainer_permissions
+
+
 def _approved(snap: Snapshot, cfg: Config) -> bool:
-    maintainer = snap.author_permission in cfg.maintainer_permissions
+    maintainer = oct_support_approval_counts(snap, cfg)
     for user, review in _latest_verdicts(snap.reviews).items():
         if review.state != "APPROVED" or not _approval_survives(snap, review.commit_id, cfg):
             continue
