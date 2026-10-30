@@ -17,7 +17,7 @@ import json
 import os
 import re
 import sys
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -155,7 +155,10 @@ def _first_number(pulls: Any) -> int | None:
     return None
 
 
-async def _pull_for_sha(api: GitHubApi, sha: Any) -> int | None:
+OpenPrs = Callable[[], Awaitable[list[dict[str, Any]]]]
+
+
+async def _pull_for_sha(api: GitHubApi, sha: Any, open_prs: OpenPrs | None = None) -> int | None:
     """The pull request whose head is `sha`: the commit's pull requests, else the open ones by head SHA.
 
     The second lookup finds fork pull requests, whose commits the first one may not list. `sha` is
@@ -167,17 +170,31 @@ async def _pull_for_sha(api: GitHubApi, sha: Any) -> int | None:
     resp.raise_for_status()
     if (number := _first_number(resp.json())) is not None:
         return number
-    for pull in await _paged(api, "/pulls", {"state": "open"}):
+    pulls = await open_prs() if open_prs is not None else await _paged(api, "/pulls", {"state": "open"})
+    for pull in pulls:
         if isinstance(pull, dict) and _nested(pull, "head", "sha") == sha:
             return _number(pull.get("number"))
     return None
 
 
-async def resolve_artifact(api: GitHubApi, event_name: str, payload: dict[str, Any]) -> int | None:
+def _same_repo_pulls(pulls: Any) -> list[dict[str, Any]]:
+    """Entries of `check_suite.pull_requests` whose head repository is their base repository."""
+    found = []
+    for pull in pulls if isinstance(pulls, list) else []:
+        head, base = _nested(pull, "head", "repo", "id"), _nested(pull, "base", "repo", "id")
+        if isinstance(head, int) and not isinstance(head, bool) and head == base:
+            found.append(pull)
+    return found
+
+
+async def resolve_artifact(
+    api: GitHubApi, event_name: str, payload: dict[str, Any], open_prs: OpenPrs | None = None
+) -> int | None:
     """Number of the issue, pull request or discussion an event is about (``None`` if none).
 
     A check suite or a CI `workflow_run` names its pull requests only for branches of this repository;
-    a run of a fork is resolved by its head SHA alone (its branch names are untrusted text).
+    a run of a fork is resolved by its head SHA alone (its branch names are untrusted text). `open_prs`
+    is the run's cached open-PR listing for that lookup.
     """
     if event_name in _ISSUE_EVENTS:
         return _number(_nested(payload, "issue", "number"))
@@ -186,13 +203,15 @@ async def resolve_artifact(api: GitHubApi, event_name: str, payload: dict[str, A
     if event_name in _DISCUSSION_EVENTS:
         return _number(_nested(payload, "discussion", "number"))
     if event_name == "check_suite":
-        number = _first_number(_nested(payload, "check_suite", "pull_requests"))
-        return number if number is not None else await _pull_for_sha(api, _nested(payload, "check_suite", "head_sha"))
+        number = _first_number(_same_repo_pulls(_nested(payload, "check_suite", "pull_requests")))
+        sha = _nested(payload, "check_suite", "head_sha")
+        return number if number is not None else await _pull_for_sha(api, sha, open_prs)
     if event_name == "workflow_run":
         own = _nested(payload, "repository", "full_name")
         same_repo = isinstance(own, str) and _nested(payload, "workflow_run", "head_repository", "full_name") == own
         number = _first_number(_nested(payload, "workflow_run", "pull_requests")) if same_repo else None
-        return number if number is not None else await _pull_for_sha(api, _nested(payload, "workflow_run", "head_sha"))
+        sha = _nested(payload, "workflow_run", "head_sha")
+        return number if number is not None else await _pull_for_sha(api, sha, open_prs)
     return None
 
 
@@ -1104,11 +1123,11 @@ async def run_event(
     if event_name in _DISCUSSION_EVENTS:
         print("ignored: discussions are not handled yet")
         return EXIT_OK
-    number = await resolve_artifact(api, event_name, payload)
+    ws = Workspace(api, cfg)
+    number = await resolve_artifact(api, event_name, payload, ws.open_prs)
     if number is None:
         print("ignored: the event does not name an artifact")
         return EXIT_OK
-    ws = Workspace(api, cfg)
     forged = forged_guide(event_name, payload, cfg)
     restored = await _restore_guide(ws, number, forged, dry_run) if forged is not None else []
     component = await walk_component(number, ws.fan_out, cfg.fan_out_cap)
@@ -1271,11 +1290,11 @@ async def run_check(api: GitHubApi, cfg: Config, event_name: str, payload: dict[
     maintainer's `/oct accept-paths`, or when an open violation notice at ladder level 3 or higher is
     persisted on the pull request (fix it or `/oct override`). Stdout carries fixed texts only.
     """
-    number = await resolve_artifact(api, event_name, payload)
+    ws = Workspace(api, cfg)
+    number = await resolve_artifact(api, event_name, payload, ws.open_prs)
     if number is None:
         print("ok: the event does not name an artifact")
         return EXIT_OK
-    ws = Workspace(api, cfg)
     await walk_component(number, ws.fan_out, cfg.fan_out_cap)
     graph = ws.graph()
     snap, derived = graph.snapshots.get(number), graph.derived.get(number)

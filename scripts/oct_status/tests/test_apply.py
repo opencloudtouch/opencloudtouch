@@ -276,6 +276,9 @@ def test_own_event_matrix():
     assert not is_own_event("pull_request", {"action": "reopened", "sender": bot}, {BOT})
     guide = {"action": "created", "sender": bot, "comment": {"body": GUIDE}}
     assert is_own_event("issue_comment", guide, {BOT})
+    # The automation deletes duplicate guide comments itself (M-3); a person's deletion is not ours.
+    assert is_own_event("issue_comment", {**guide, "action": "deleted"}, {BOT})
+    assert not is_own_event("issue_comment", {**guide, "action": "deleted", "sender": {"login": "human"}}, {BOT})
     answer = {"action": "created", "sender": bot, "comment": {"body": "Thanks, see docs"}}
     assert not is_own_event("issue_comment", answer, {BOT})
     human = {"action": "created", "sender": {"login": "h"}, "comment": {"body": GUIDE}}

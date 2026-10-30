@@ -104,7 +104,7 @@ def test_ci_completion_triggers_a_run():
     assert ci["name"] == "CI"  # workflow_run matches the workflow by its name
 
 
-def _group(event: dict, run_id: str = "777") -> str:
+def _group(event: dict, run_id: str = "777", repository: str = "o/r") -> str:
     """Evaluate the concurrency group for an event payload (the `||` / `&&` / format subset it uses)."""
     expr = re.fullmatch(r"oct-status-\$\{\{ (.*) \}\}", _raw()["concurrency"]["group"])
     assert expr, "the group is one expression after a fixed prefix"
@@ -112,6 +112,8 @@ def _group(event: dict, run_id: str = "777") -> str:
     def value(path: str) -> object:
         if path == "github.run_id":
             return run_id
+        if path == "github.repository":
+            return repository
         node: object = event
         for part in re.findall(r"[a-z_]+|\[\d+\]", path.removeprefix("github.event.")):
             if part.startswith("["):
@@ -121,9 +123,14 @@ def _group(event: dict, run_id: str = "777") -> str:
                 node = node.get(part) if isinstance(node, dict) else None
         return node
 
+    path = r"github\.[\w.\[\]]+"
     for operand in (o.strip() for o in expr[1].split("||")):
         guarded = re.fullmatch(r"\((github\.event\.[\w.]+) && format\('([\w-]*)\{0\}', \1\)\)", operand)
-        if guarded:
+        same = re.fullmatch(rf"\(({path}) == ({path}) && ({path})\)", operand)
+        if same:
+            left = value(same[1])
+            result = value(same[3]) if left is not None and left == value(same[2]) else None
+        elif guarded:
             result = value(guarded[1])
             result = f"{guarded[2]}{result}" if result else None
         else:
@@ -138,8 +145,17 @@ def test_concurrency_group_per_artifact_and_per_commit_for_forks():
     sha = "c" * 40
     assert _group({"issue": {"number": 5}}) == "oct-status-5"
     assert _group({"pull_request": {"number": 6}}) == "oct-status-6"
-    assert _group({"check_suite": {"pull_requests": [{"number": 7}], "head_sha": sha}}) == "oct-status-7"
-    assert _group({"workflow_run": {"pull_requests": [{"number": 8}], "head_sha": sha}}) == "oct-status-8"
+    own = {"id": 1}
+    pull = {"number": 7, "head": {"repo": own}, "base": {"repo": own}}
+    suite = {"check_suite": {"pull_requests": [pull], "head_sha": sha}, "repository": own}
+    assert _group(suite) == "oct-status-7"
+    same = {"pull_requests": [{"number": 8}], "head_sha": sha, "head_repository": {"full_name": "o/r"}}
+    assert _group({"workflow_run": same}) == "oct-status-8"
+    # M-2: a pull request number from another repository's run or suite never names the group.
+    fork = {**same, "head_repository": {"full_name": "mallory/r"}}
+    assert _group({"workflow_run": fork}) == f"oct-status-sha-{sha}"
+    foreign = {"number": 7, "head": {"repo": {"id": 2}}, "base": {"repo": own}}
+    assert _group({**suite, "check_suite": {"pull_requests": [foreign], "head_sha": sha}}) == f"oct-status-sha-{sha}"
     # M10: a fork's check suite or CI run names no pull request; it serialises per commit, not per run.
     assert _group({"check_suite": {"pull_requests": [], "head_sha": sha}}) == f"oct-status-sha-{sha}"
     assert _group({"workflow_run": {"pull_requests": [], "head_sha": sha}}) == f"oct-status-sha-{sha}"

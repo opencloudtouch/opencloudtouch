@@ -154,6 +154,11 @@ def stack(repo: FakeRepo, first: int, count: int) -> None:
 # --- artifact resolution ----------------------------------------------------------------------
 
 
+def _same_repo_pull(number: int, head_repo: int = 1, base_repo: int = 1) -> dict:
+    """An entry of `check_suite.pull_requests` (head and base repository ids, as GitHub sends them)."""
+    return {"number": number, "head": {"repo": {"id": head_repo}}, "base": {"repo": {"id": base_repo}}}
+
+
 @pytest.mark.parametrize(
     ("event", "payload", "expected"),
     [
@@ -164,7 +169,7 @@ def stack(repo: FakeRepo, first: int, count: int) -> None:
         ("pull_request_review_comment", {"pull_request": {"number": 11}}, 11),
         ("discussion", {"discussion": {"number": 12}}, 12),
         ("discussion_comment", {"discussion": {"number": 13}}, 13),
-        ("check_suite", {"check_suite": {"pull_requests": [{"number": 14}], "head_sha": "a" * 40}}, 14),
+        ("check_suite", {"check_suite": {"pull_requests": [_same_repo_pull(14)], "head_sha": "a" * 40}}, 14),
         ("schedule", {}, None),
         ("issues", {}, None),
         ("issues", {"issue": {"number": "not-a-number"}}, None),
@@ -249,6 +254,36 @@ async def test_check_suite_of_a_fork_commit_falls_back_to_the_open_pull_requests
     )
     api = api_for(transport)
     assert await resolve_artifact(api, "check_suite", {"check_suite": {"pull_requests": [], "head_sha": SHA}}) == 19
+    await api.aclose()
+
+
+async def test_check_suite_pull_requests_of_another_repository_are_not_trusted():
+    """M-2: a pull request entry whose head repository is not the base repository is resolved by SHA only."""
+    transport = FixtureTransport(
+        extra={f"GET {ROOT}/commits/{SHA}/pulls": [], f"GET {ROOT}/pulls": [{"number": 21, "head": {"sha": SHA}}]}
+    )
+    api = api_for(transport)
+    for pull in (_same_repo_pull(99, head_repo=2), {"number": 99}):
+        payload = {"check_suite": {"pull_requests": [pull], "head_sha": SHA}}
+        assert await resolve_artifact(api, "check_suite", payload) == 21
+    await api.aclose()
+
+
+async def test_sha_lookup_reuses_the_cached_open_pull_requests():
+    """M-3: the open-PR listing for a SHA lookup is the workspace's cached one (read once per run)."""
+    transport = FixtureTransport(
+        extra={f"GET {ROOT}/commits/{SHA}/pulls": [], f"GET {ROOT}/pulls": [{"number": 22, "head": {"sha": SHA}}]}
+    )
+    api = api_for(transport)
+    calls: list[int] = []
+
+    async def cached() -> list[dict]:
+        calls.append(1)
+        return [{"number": 22, "head": {"sha": SHA}}]
+
+    payload = {"check_suite": {"pull_requests": [], "head_sha": SHA}}
+    assert await resolve_artifact(api, "check_suite", payload, open_prs=cached) == 22
+    assert calls == [1] and f"GET {ROOT}/pulls" not in transport.requests
     await api.aclose()
 
 

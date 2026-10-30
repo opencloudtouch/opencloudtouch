@@ -69,11 +69,11 @@ on:
         default: 25
 
 concurrency:
-  # One group per artifact; a check suite or CI run joins the group of its pull request. A fork's check
-  # suite or CI run names no pull request: it gets a group per head commit (sha-<sha>), so runs of the
-  # same commit serialise. GitHub keeps at most one pending run per group (a newer one replaces it), see
+  # One group per artifact; a check suite or CI run joins the group of its pull request, but only when
+  # it comes from this repository (a pull request number in a fork's payload is never trusted). A fork's
+  # check suite or CI run gets a group per head commit (sha-<sha>), so runs of the same commit serialise. GitHub keeps at most one pending run per group (a newer one replaces it), see
   # the daily audit for what that can drop.
-  group: oct-status-${{ github.event.issue.number || github.event.pull_request.number || github.event.discussion.number || github.event.check_suite.pull_requests[0].number || github.event.workflow_run.pull_requests[0].number || (github.event.check_suite.head_sha && format('sha-{0}', github.event.check_suite.head_sha)) || (github.event.workflow_run.head_sha && format('sha-{0}', github.event.workflow_run.head_sha)) || github.run_id }}
+  group: oct-status-${{ github.event.issue.number || github.event.pull_request.number || github.event.discussion.number || (github.event.check_suite.pull_requests[0].head.repo.id == github.event.repository.id && github.event.check_suite.pull_requests[0].number) || (github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.pull_requests[0].number) || (github.event.check_suite.head_sha && format('sha-{0}', github.event.check_suite.head_sha)) || (github.event.workflow_run.head_sha && format('sha-{0}', github.event.workflow_run.head_sha)) || github.run_id }}
   cancel-in-progress: false
 
 # Least privilege: only the jobs that write (labels, status-write, backfill) get issues /

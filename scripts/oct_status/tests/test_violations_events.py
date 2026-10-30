@@ -355,7 +355,8 @@ async def test_first_time_fork_author_is_exempt_for_an_event_without_association
     repo = Repo()
     repo.add_pr(11, fork=True, author="newbie", association="FIRST_TIME_CONTRIBUTOR")
     sha = f"{11:040x}"
-    payload = {"action": "completed", "check_suite": {"pull_requests": [{"number": 11}], "head_sha": sha}}
+    ids = {"head": {"repo": {"id": 1}}, "base": {"repo": {"id": 1}}}  # resolved without a SHA lookup
+    payload = {"action": "completed", "check_suite": {"pull_requests": [{"number": 11, **ids}], "head_sha": sha}}
     await run(repo, "check_suite", payload)
     assert ANCHOR not in repo.guide(11) and repo.ledger() == []
     repo.add_pr(12, fork=True, author="regular", association="CONTRIBUTOR")
@@ -363,7 +364,7 @@ async def test_first_time_fork_author_is_exempt_for_an_event_without_association
     payload = {
         "action": "completed",
         "check_suite": {
-            "pull_requests": [{"number": 12, "author_association": "FIRST_TIMER"}],
+            "pull_requests": [{"number": 12, "author_association": "FIRST_TIMER", **ids}],
             "head_sha": f"{12:040x}",
         },
     }
