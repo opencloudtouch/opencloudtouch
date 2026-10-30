@@ -270,3 +270,13 @@ async def test_the_bots_own_edits_and_deletions_are_ignored():
     await run(repo, "issue_comment", comment_event("edited", comment, before=original, sender=BOT))
     await run(repo, "issue_comment", comment_event("deleted", comment, sender=BOT))
     assert len(repo.writes) == writes
+
+
+async def test_edit_history_without_the_senders_edit_or_editor_starts_empty():
+    """The newest edit is not the sender's (history lags or names nobody): not verifiable."""
+    repo, comment, original = await pr_with_notice()
+    comment["body"] = forged_from(original, by="carol")
+    event = edit(repo, comment, "x")
+    repo.edits[comment["id"]][-1] = ("", "User")  # a deleted account (ghost) or no editor information
+    await run(repo, "issue_comment", event)
+    assert not acknowledged(guide_comment(repo, 10)["body"])
