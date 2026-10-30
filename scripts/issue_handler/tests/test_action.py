@@ -78,7 +78,7 @@ class TestLabelMapping:
         gh.post_comment.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_unclear_label_needs_info(self) -> None:
+    async def test_unclear_label_wait_reporter(self) -> None:
         gh = AsyncMock()
         context = {
             "github_client": gh,
@@ -88,8 +88,23 @@ class TestLabelMapping:
         }
         event = _make_event()
         await action_stage(event, context)
-        gh.add_labels.assert_any_call(42, ["needs-info"])
+        gh.add_labels.assert_any_call(42, ["wait:reporter"])
         gh.post_comment.assert_called_once()
+
+
+class TestPhaseNewFallback:
+    @pytest.mark.asyncio
+    async def test_action_uses_phase_new_instead_of_needs_triage(self) -> None:
+        gh = AsyncMock()
+        gh.set_assignee = AsyncMock(side_effect=Exception("API down"))
+        context = {
+            "github_client": gh,
+            "classification": ClassificationResult(category="feature", confidence=0.5, reasoning="maybe"),
+            "bot_username": "oct-support",
+        }
+        await action_stage(_make_event(), context)
+        assert all("needs-triage" not in str(c) for c in gh.add_labels.call_args_list)
+        gh.add_labels.assert_any_call(42, ["phase:new"])
 
 
 class TestConfidenceThreshold:
@@ -104,9 +119,9 @@ class TestConfidenceThreshold:
         event = _make_event()
         await action_stage(event, context)
         gh.add_labels.assert_any_call(42, ["bug"])
-        # Should NOT have needs-triage
+        # Should NOT have phase:new
         for call_args in gh.add_labels.call_args_list:
-            assert call_args[0][1] != ["needs-triage"]
+            assert call_args[0][1] != ["phase:new"]
 
     @pytest.mark.asyncio
     async def test_low_confidence_adds_triage(self) -> None:
@@ -119,11 +134,11 @@ class TestConfidenceThreshold:
         event = _make_event()
         await action_stage(event, context)
         gh.add_labels.assert_any_call(42, ["enhancement"])
-        gh.add_labels.assert_any_call(42, ["needs-triage"])
+        gh.add_labels.assert_any_call(42, ["phase:new"])
 
     @pytest.mark.asyncio
     async def test_unclear_exempt_from_triage(self) -> None:
-        """FR-018: unclear category should NOT get needs-triage even with low confidence."""
+        """FR-018: unclear category should NOT get phase:new even with low confidence."""
         gh = AsyncMock()
         context = {
             "github_client": gh,
@@ -133,8 +148,8 @@ class TestConfidenceThreshold:
         }
         event = _make_event()
         await action_stage(event, context)
-        # Should get needs-info but NOT needs-triage for unclear category
-        gh.add_labels.assert_any_call(42, ["needs-info"])
+        # Should get needs-info but NOT phase:new for unclear category
+        gh.add_labels.assert_any_call(42, ["wait:reporter"])
 
 
 class TestBugDifferentiation:
@@ -414,7 +429,7 @@ class TestThreeSignalGuarantee:
 
 
 class TestRetryFallback:
-    """T012: Retry+fallback — needs-triage when any signal fails after 3 retries."""
+    """T012: Retry+fallback — phase:new when any signal fails after 3 retries."""
 
     @pytest.mark.asyncio
     async def test_total_failure_applies_needs_triage(self) -> None:
@@ -429,12 +444,12 @@ class TestRetryFallback:
         }
         event = _make_event()
         decision = await action_stage(event, context)
-        # Should have attempted and applied needs-triage as fallback
+        # Should have attempted and applied phase:new as fallback
         assert decision.decision == "act"
 
     @pytest.mark.asyncio
     async def test_partial_failure_assignee_fails(self) -> None:
-        """Labels succeed, assignee fails 3x → needs-triage applied alongside existing labels."""
+        """Labels succeed, assignee fails 3x → phase:new applied alongside existing labels."""
         gh = AsyncMock()
         gh.add_labels = AsyncMock(return_value=None)
         gh.set_assignee = AsyncMock(side_effect=Exception("assignee API down"))
@@ -447,9 +462,9 @@ class TestRetryFallback:
         event = _make_event()
         decision = await action_stage(event, context)
         assert decision.decision == "act"
-        # needs-triage should be applied as fallback for the failed signal
+        # phase:new should be applied as fallback for the failed signal
         label_calls = [str(c) for c in gh.add_labels.call_args_list]
-        assert any("needs-triage" in c for c in label_calls)
+        assert any("phase:new" in c for c in label_calls)
 
 
 class TestSupportKBMatch:
@@ -539,7 +554,7 @@ class TestUnclearFollowUp:
         }
         event = _make_event()
         await action_stage(event, context)
-        gh.add_labels.assert_any_call(42, ["needs-info"])
+        gh.add_labels.assert_any_call(42, ["wait:reporter"])
         gh.post_comment.assert_called_once()
         comment = gh.post_comment.call_args[0][1]
         assert "device" in comment.lower()
@@ -554,7 +569,7 @@ class TestUnclearFollowUp:
         }
         event = _make_event()
         await action_stage(event, context)
-        gh.add_labels.assert_any_call(42, ["needs-info"])
+        gh.add_labels.assert_any_call(42, ["wait:reporter"])
         gh.set_assignee.assert_called_once()
 
 
@@ -581,7 +596,7 @@ class TestOffTopicHandling:
 
     @pytest.mark.asyncio
     async def test_off_topic_low_confidence_needs_triage(self) -> None:
-        """T023: needs-triage label when is_on_topic=false and confidence<0.7."""
+        """T023: phase:new label when is_on_topic=false and confidence<0.7."""
         gh = AsyncMock()
         context = {
             "github_client": gh,
@@ -592,7 +607,7 @@ class TestOffTopicHandling:
         }
         event = _make_event()
         await action_stage(event, context)
-        gh.add_labels.assert_any_call(42, ["needs-triage"])
+        gh.add_labels.assert_any_call(42, ["phase:new"])
         gh.post_comment.assert_called_once()
 
 

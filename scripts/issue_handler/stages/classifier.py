@@ -184,14 +184,14 @@ async def classifier_stage(event: WebhookEvent, context: dict[str, Any]) -> Pipe
     # Fallback to OpenAI if GitHub Models failed
     if classification is None and openai_client:
         if cost_tracker and cost_tracker.is_budget_exceeded():
-            logger.warning("OpenAI budget exhausted, falling back to needs-triage")
+            logger.warning("OpenAI budget exhausted, falling back to phase:new")
             context["classification"] = ClassificationResult(
                 category="unclear", confidence=0.0, reasoning="budget exhausted"
             )
             return PipelineDecision(
                 stage="classifier",
                 decision="fallback",
-                reason="AI budget exhausted, applying needs-triage",
+                reason="AI budget exhausted, applying phase:new",
                 short_circuit=False,
             )
 
@@ -208,7 +208,7 @@ async def classifier_stage(event: WebhookEvent, context: dict[str, Any]) -> Pipe
         return PipelineDecision(
             stage="classifier",
             decision="fallback",
-            reason="AI unavailable, applying needs-triage",
+            reason="AI unavailable, applying phase:new",
             short_circuit=False,
         )
 

@@ -14,7 +14,7 @@ from models import PipelineDecision, WebhookEvent
 StageFunc = Callable[[WebhookEvent, dict[str, Any]], Awaitable[PipelineDecision]]
 
 # Classification labels that indicate maintainer triage
-CLASSIFICATION_LABELS = {"bug", "enhancement", "support", "needs-info"}
+CLASSIFICATION_LABELS = {"bug", "enhancement", "support", "wait:reporter"}
 
 
 def should_skip_edited_event(event: WebhookEvent) -> bool:

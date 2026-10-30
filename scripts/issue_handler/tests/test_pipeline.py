@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from models import PipelineDecision, WebhookEvent
-from pipeline import Pipeline
+from pipeline import CLASSIFICATION_LABELS, Pipeline
 
 
 def _make_event(**overrides) -> WebhookEvent:
@@ -232,3 +232,7 @@ class TestActionStageAfterShortCircuit:
 
         assert execution_order == ["stage_a", "action"]
         assert any(d.stage == "action" for d in decisions)
+
+
+def test_classification_labels_use_new_names() -> None:
+    assert {"bug", "enhancement", "support", "wait:reporter"} <= CLASSIFICATION_LABELS
