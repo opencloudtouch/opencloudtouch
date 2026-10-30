@@ -4,7 +4,8 @@ Every issue and pull request in this repository carries its workflow state in th
 
 - **Labels** for filtering: exactly one `phase:*`, zero or more `wait:*` (orange: something blocks), and a
   `resolution:*` on artifacts closed without a fix.
-- **The status block** at the top of the description, between `<!-- oct-status:v1 hash=... -->` and
+- **The status block** at the top of the description (for Dependabot pull requests: at the top of the guide
+  comment), between `<!-- oct-status:v1 hash=... -->` and
   `<!-- /oct-status -->`: badges, root blocker, stack chain, automation row, who has the ball and the
   relations table.
 - **The guide comment**, one bot comment per artifact marked `<!-- oct-next:v1 -->`, edited in place: last
@@ -39,8 +40,8 @@ status `oct-status` is not a required check yet. Discussions are not handled yet
 
 ## Lifecycles
 
-Labels in *italics* below are declarations (made with a command); everything else is a fact the automation
-derives from GitHub (linked pull requests, reviews, checks, open or closed).
+Transitions named with a `/oct` command (or a label) are declarations; all other transitions are facts the
+automation derives from GitHub (linked pull requests, reviews, checks, open or closed).
 
 **Spec** (label `spec`, wins over `bug` and `enhancement`). A pull request references its spec with
 `Part of #n` or `Closes #n`.
@@ -166,7 +167,8 @@ stateDiagram-v2
     closed --> [*]
 ```
 
-A Dependabot pull request still needs the maintainer approval (`wait:maintainer`). If it changes a protected
+A Dependabot pull request still waits for an approval (`wait:maintainer`); because Dependabot is not a
+maintainer, only an approving review by a person with write access counts, never `oct-support`. If it changes a protected
 path (for example a GitHub Actions bump under `.github/workflows/`), it also needs `/oct accept-paths`, see
 [waits](#waits).
 
@@ -202,7 +204,7 @@ Issue nobody has looked at yet. Fact. Next: a maintainer runs `/oct triage`.
 
 #### draft
 
-A spec being written by its author (declaration, default for specs) or a draft pull request (fact). Next for
+The starting phase of a spec (nothing declared yet) or a draft pull request. Fact: set by the automation only. Next for
 a spec: complete the `## Definition of Ready` checklist, then `/oct review`. For a pull request: mark it
 ready for review.
 
@@ -233,8 +235,9 @@ The spec passed its review (`/oct ready`). Declaration. Implementation may start
 
 #### in-progress
 
-An open linked pull request is a draft, or an open spec whose known parts are all merged. Fact. For a test
-plan the label is set by hand to mark the test as started.
+An open linked pull request is a draft, or an open spec, bug or feature request whose known parts are all
+merged (more parts may follow). Fact. Exception: on a `[Test]` plan the label is a declaration, set by hand to
+mark the test as started (design 4.1: `new` -> `in-progress` -> `done`); it is not V02 there.
 
 #### in-review
 
@@ -243,8 +246,8 @@ request here without any `wait:*` label is mergeable.
 
 #### verification
 
-All parts are merged but `wait:hardware-test` is set (an open `[Test]` plan or `/oct needs-hardware-test`).
-Fact. Next: a maintainer tests on a device and runs `/oct verified <device or note>`, then closes.
+All parts are merged (or the issue was closed as completed) but `wait:hardware-test` is set (an open `[Test]`
+plan or `/oct needs-hardware-test`). Fact. Next: a maintainer tests on a device and runs `/oct verified <device or note>`, then closes.
 
 #### done
 
@@ -281,7 +284,7 @@ Zero or more `wait:*` labels, all orange. "No orange" means nothing blocks.
 
 | Wait | Owner | Set when | How to resolve |
 |---|---|---|---|
-| `wait:maintainer` | fact | an open, non-draft pull request has no valid approval on its current head. For a pull request by a maintainer (role `maintain` or `admin`) only an approval by `oct-support` counts; for anybody else an approval by another person whose association is `OWNER`, `MEMBER` or `COLLABORATOR`. Approvals by Gitar, Sonar, code quality and other bots never count. | `/oct approve` requests the review by `oct-support`. Any later push invalidates the approval, except pushes by `formatter-bot` on a branch of this repository. |
+| `wait:maintainer` | fact | an open, non-draft pull request has no valid approval on its current head. For a pull request by a maintainer (role `maintain` or `admin`) only an approval by `oct-support` counts; for anybody else an approval by another person whose association is `OWNER`, `MEMBER` or `COLLABORATOR`. Approvals by Gitar, Sonar, code quality and other bots never count. | pull request by a maintainer: `/oct approve` requests the review by `oct-support`. Anybody else's pull request (including Dependabot): a maintainer approves the current head; the guide says so and offers no `/oct approve`. Any later push invalidates the approval, except pushes by `formatter-bot` on a branch of this repository. |
 | `wait:findings` | fact | unresolved review threads, a latest review `CHANGES_REQUESTED` by `gitar-bot[bot]`, a failed `SonarCloud Code Analysis` or `Gitar` check, or an automation push to a protected path that no maintainer acknowledged | resolve the threads, fix the findings; for protected paths a maintainer reviews the files and runs `/oct accept-paths` |
 | `wait:ci` | fact | a check in `gate_checks` (`CI Summary`, `SonarCloud Code Analysis`, `Gitar`) is pending, or `CI Summary` failed. Missing and `skipped` checks are neutral; a failed quality gate is a finding, not CI. | fix the failing check, or wait for pending ones |
 | `wait:prerequisite` | fact | a stacked-on parent pull request or a `Depends on #n` target is still open, or the pull request implements a spec that is not `ready` | wait for the parent to merge; get the spec declared ready |
@@ -320,13 +323,13 @@ renamed in place, so existing assignments are kept). The automation only ever to
 | Label | Color | Owner | Renamed from |
 |---|---|---|---|
 | `phase:new` | #cfe0fa | fact | |
-| `phase:draft` | #cfe0fa | fact (PR) / declaration (spec) | |
+| `phase:draft` | #cfe0fa | fact | |
 | `phase:triaged` | #a8c5f3 | declaration | `accepted` |
 | `phase:spec-review` | #a8c5f3 | declaration | |
 | `phase:spec-rework` | #a8c5f3 | declaration | |
 | `phase:confirmed` | #7ba3ec | declaration | |
 | `phase:ready` | #5b8ee6 | declaration | |
-| `phase:in-progress` | #3a73d8 | fact | `wip` |
+| `phase:in-progress` | #3a73d8 | fact (declaration on a test plan) | `wip` |
 | `phase:in-review` | #2a5cc0 | fact | |
 | `phase:verification` | #1e4590 | fact | |
 | `phase:done` | #1a7f37 | fact | |
@@ -374,7 +377,7 @@ In shadow mode no reactions and no guide comments are written.
 | `/oct ready --reviewer <login or "independent-review">` | write | spec in `spec-review` or `spec-rework`, Definition of Ready complete; the reviewer differs from the author; the author may only use `independent-review` | `phase:ready`, removes `wait:spec-fix` |
 | `/oct triage` | maintainer | bug or feature request in `new` | `phase:triaged` |
 | `/oct confirm` | maintainer | bug in `triaged` | `phase:confirmed` |
-| `/oct approve` | PR author or maintainer | open pull request | requests the review by `oct-support`; its approval clears `wait:maintainer` |
+| `/oct approve` | PR author or maintainer | open pull request | requests the review by `oct-support`; its approval clears `wait:maintainer` only when the pull request was authored by a maintainer, so the guide offers it only then |
 | `/oct verified <device or note>` | maintainer | any time | removes `wait:hardware-test` (an open linked test plan sets it again) |
 | `/oct needs-hardware-test [note]` | maintainer | any time | adds `wait:hardware-test` |
 | `/oct needs-info [note]` | maintainer | any time | adds `wait:reporter` |
@@ -428,7 +431,8 @@ Real artifacts, rendered from the frozen fixtures in `scripts/oct_status/tests/f
 `scripts/oct_status/tools/render_doc_snippets.py`; a test compares every snippet with the renderer, so this
 section cannot drift from the code. The fixtures were captured on 2026-10-29. Their descriptions were
 sanitized to the reference lines (`Part of #n`, `Depends on #n`, bare `#n`), so no checklists appear; #570 to
-#572 were not recorded, only their branches, titles and draft state are used. #535 and #261 are not part of
+#572 were not recorded, only their branches, titles and draft state are used. The collaborator permission
+was not recorded either; the maintainer's login is rendered with the role `admin`. #535 and #261 are not part of
 the fixtures, so the tables show `-` for them. The system was not live on these dates: each step shows what it
 computes for that state. Steps marked **projection** apply one stated change to the recorded state.
 
@@ -484,9 +488,58 @@ None.
 Labels: `dependencies`, `phase:merged`
 <!-- /snippet -->
 
-`dependencies` is a foreign label and stays. While open, a Dependabot pull request shows `phase:in-review`
-and `wait:maintainer` until a person with write access approves its head: Dependabot is not a maintainer, so an
-approval by `oct-support` does not count. Dependabot pull requests never get strikes and need no spec. A GitHub
+`dependencies` is a foreign label and stays. **Projection: #498 before its merge.** While open, a Dependabot
+pull request shows `phase:in-review` and `wait:maintainer` until a person with write access approves its head:
+Dependabot is not a maintainer, so an approval by `oct-support` does not count and the guide offers no
+`/oct approve`:
+
+<!-- snippet:498-open-pinned -->
+```markdown
+<!-- oct-status:v1 hash=f9a183a98441 -->
+![phase: in review](https://img.shields.io/badge/phase-in%20review-2a5cc0) ![wait: maintainer](https://img.shields.io/badge/wait-maintainer-f2a33a)
+
+**State:** open
+<!-- /oct-status -->
+
+<!-- oct-next:v1 -->
+
+### Last action
+
+-
+
+### You are here
+
+Phase **in-review**, waiting on: maintainer. [Workflow guide](https://github.com/opencloudtouch/opencloudtouch/blob/main/docs/WORKFLOW.md#in-review)
+
+### Next steps
+
+1. **maintainer**: A maintainer approves the current head: an approving review by a person other than the author with the association OWNER, MEMBER or COLLABORATOR clears wait:maintainer; approvals by oct-support and other bots do not count on this pull request
+
+### Commands valid now
+
+None.
+
+### Notices
+
+None.
+
+### History
+
+<details>
+<summary>Last five actions</summary>
+
+-
+
+</details>
+
+<!-- oct-next-data {"next": [{"actor": "maintainer", "command": null, "text": "A maintainer approves the current head: an approving review by a person other than the author with the association OWNER, MEMBER or COLLABORATOR clears wait:maintainer; approvals by oct-support and other bots do not count on this pull request"}], "phase": "in-review", "waits": ["maintainer"]} -->
+```
+<!-- /snippet -->
+
+<!-- snippet:498-open-labels -->
+Labels: `dependencies`, `phase:in-review`, `wait:maintainer`
+<!-- /snippet -->
+ Dependabot pull requests never get strikes and need no spec. A GitHub
 Actions bump (a change under `.github/workflows/`) additionally gets `wait:findings` until a maintainer runs
 `/oct accept-paths`.
 
@@ -1028,11 +1081,12 @@ you meant (for example `/oct triage`, `/oct needs-hardware-test`, `/oct verified
 
 **Wrong:** removing `wait:maintainer` from a pull request so it looks mergeable.
 
-**Right:** `/oct approve` on the pull request, then wait for the approval by `oct-support`.
+**Right:** on your own pull request as a maintainer `/oct approve`, then wait for the approval by
+`oct-support`; on anybody else's pull request a maintainer reviews and approves the current head.
 
 On a pull request at level 3 the label is healed in the same run, but the notice resolves only on the next
 event of that pull request: the commit status `oct-status` stays red until the next event or a maintainer's
-`/oct override`. Known gap: setting `phase:in-progress` on a `[Test]` plan by hand is also reported as V02.
+`/oct override`. Not a V02: `phase:in-progress` on a `[Test]` plan, which is that plan's declaration.
 
 ### V03: Status block edited by hand
 

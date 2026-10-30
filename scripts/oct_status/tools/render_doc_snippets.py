@@ -12,7 +12,8 @@ In the handbook each snippet sits between ``<!-- snippet:<name> -->`` and ``<!--
 Fixture bodies were sanitized at capture time: only their reference lines (``Part of #n``,
 ``Depends on #n``, bare ``#n``) are kept, so no Definition of Ready or Done checklist appears.
 #570-#572 were never recorded; their refs, titles and draft flag come from the GitHub API
-(read on 2026-10-30), everything else about them is empty. Steps marked as projections apply one
+(read on 2026-10-30), everything else about them is empty. The collaborator permission endpoint was not
+recorded either: the maintainer's login (design E6) is given the role ``admin``. Steps marked as projections apply one
 stated change to the recorded state; the actor of a projected command is the placeholder
 ``a-maintainer``.
 """
@@ -67,6 +68,8 @@ UNRECORDED = {
     ),
 }
 MAINTAINER = "a-maintainer"  # placeholder actor of projected commands
+# The maintainer's login (design E6); its role (`maintain` or `admin`) could not be recorded, `admin` is assumed.
+MAINTAINER_LOGIN = "scheilch"
 OWNED = ("phase:", "wait:", "resolution:")
 _SNIPPET = re.compile(r"<!-- snippet:([a-z0-9-]+) -->\n(.*?)<!-- /snippet -->", re.DOTALL)
 
@@ -103,6 +106,9 @@ async def recorded() -> Snaps:
     """The recorded state (captured 2026-10-29) plus the unrecorded stack PRs as drafts."""
     api = _api()
     snaps: Snaps = {n: await fetch_snapshot(api, n, use_graphql=False) for n in RECORDED}
+    for number, snap in snaps.items():
+        if snap.author == MAINTAINER_LOGIN:  # the permission endpoint was not recorded
+            snaps[number] = _with(snap, author_permission="admin")
     template = snaps[574]
     for number, (base, head, title) in UNRECORDED.items():
         snaps[number] = _with(
@@ -192,10 +198,15 @@ async def _command(snaps: Snaps, number: int, text: str, cfg: Config) -> tuple[S
 
 
 def _approved_560(snaps: Snaps) -> Snaps:
-    """Projection: oct-support approves the current head of #560 (author with maintain/admin role)."""
+    """Projection: oct-support approves the current head of #560 (its author is the maintainer)."""
     snap = snaps[560]
     review = Review("oct-support", "APPROVED", snap.head_sha, "NONE")
-    return {**snaps, 560: _with(snap, author_permission="admin", reviews=(*snap.reviews, review))}
+    return {**snaps, 560: _with(snap, reviews=(*snap.reviews, review))}
+
+
+def _open_498(snaps: Snaps) -> Snaps:
+    """Projection: #498 before its merge (open, no approval yet)."""
+    return {**snaps, 498: _with(snaps[498], state="open", merged=False)}
 
 
 def _backfilled_537(snaps: Snaps) -> Snaps:
@@ -234,9 +245,12 @@ async def render_all() -> dict[str, str]:
     approved = graph_of(_approved_560(base), cfg)
     merged = graph_of(_merged_560(base), cfg)
     backfilled = graph_of(_backfilled_537(base), cfg)
+    open_498 = graph_of(_open_498(base), cfg)
     out: dict[str, str] = {
         "498-labels": _labels(now, 498),
         "498-pinned": _guide(now, 498, cfg),
+        "498-open-labels": _labels(open_498, 498),
+        "498-open-pinned": _guide(open_498, 498, cfg),
         "537-block": _block(now, 537, cfg),
         "537-labels": _labels(now, 537),
         "537-guide": _guide(now, 537, cfg),
