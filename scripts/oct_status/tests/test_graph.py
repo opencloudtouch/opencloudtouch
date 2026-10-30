@@ -164,3 +164,15 @@ def test_capture_sanitizer_drops_free_text():
     assert checks["check_runs"] == [
         {"name": "x", "status": "completed", "conclusion": "success", "app": {"slug": "gha"}}
     ]
+
+
+def test_prose_in_html_comments_is_ignored():
+    """The PR template's hint comment names `Closes #123` and `Part of #123`; it is not a relation."""
+    template = (Path(__file__).resolve().parents[3] / ".github" / "pull_request_template.md").read_text(
+        encoding="utf-8"
+    )
+    assert "Closes #123" in template
+    edges, unresolved = parse_prose_edges(9, template.replace("## Summary", "Part of #537\n\n## Summary"))
+    assert [e.target for e in edges] == [537] and unresolved == []
+    edges, _ = parse_prose_edges(9, "<!-- Depends on #5 -->\nDepends on #6 <!-- Closes #7\n -->")
+    assert [e.target for e in edges] == [6]

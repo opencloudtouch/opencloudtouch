@@ -58,6 +58,7 @@ _PROSE_TYPES = {
 }
 _PROSE = re.compile(r"\b(closes|part of|depends on)\s+#(\w+)", re.IGNORECASE)
 _CONTINUATION = re.compile(r"\s*(?:,|and)\s*#(\d+)", re.IGNORECASE)
+_HTML_COMMENT = re.compile(r"<!--.*?(?:-->|\Z)", re.DOTALL)
 
 
 def inverse(edge: Edge) -> Edge:
@@ -66,10 +67,15 @@ def inverse(edge: Edge) -> Edge:
 
 
 def parse_prose_edges(number: int, body: str) -> tuple[list[Edge], list[str]]:
-    """Edges from ``Closes``/``Part of``/``Depends on`` phrases plus unresolved references."""
+    """Edges from ``Closes``/``Part of``/``Depends on`` phrases plus unresolved references.
+
+    Text inside HTML comments is not shown and not a relation (the pull request template's hint names
+    ``Closes #123`` as an example); an unterminated comment hides the rest of the body, as on GitHub.
+    """
     edges: list[Edge] = []
     unresolved: list[str] = []
-    for match in _PROSE.finditer(body or ""):
+    body = _HTML_COMMENT.sub(" ", body or "")
+    for match in _PROSE.finditer(body):
         keyword, ref = match.group(1), match.group(2)
         if not ref.isdigit():
             unresolved.append(f"{keyword} #{ref}")
