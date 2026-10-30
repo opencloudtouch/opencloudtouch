@@ -533,7 +533,7 @@ Rulings made during implementation (deviations from the text above):
 - `/oct supersede` is accepted only on closed artifacts; the `superseded-by` edge is not written yet.
 - GitHub keeps one pending run per concurrency group, so a queued command comment can be dropped: repeat a command that shows no reaction.
 
-- Hooks apply to subagents and `updatedInput` is honoured (test first).
+- Hooks apply to subagents and `updatedInput` is honoured: **verified** on 2026-10-30 (Windows, Claude Code latest). A PreToolUse hook on `Bash` rewrote `echo original` to `echo rewritten` (`updatedInput` honoured), and the hook fired for a subagent's Bash call (log entry carries an `agent_id`; the subagent's output was rewritten as well). Consequences: the guard may splice bodies through `updatedInput`, and hooks are a real prevention for subagents. A crashing hook is a non-blocking error (the tool call proceeds), so the guard must exit with code 2 on any internal error. Hooks must be portable to Windows (`python`, no `/tmp`).
 - Bot identity: `issue-handler.yml` mentions `scheilch`, `rules.yml` mentions
   `oct-support`; confirm which account the `BOT_PAT` belongs to.
 - Gitar: auto-apply (global), auto-approve and auto-merge are decided; confirm "Enhance summaries" and "Skip drafts" in the dashboard. On a throwaway PR verify the author and message of a `gitar fix this` commit against "Validate Commit Messages", that the status block survives a summary update, that `oct-support` re-reviews after a Gitar push, and what happens when `formatter-bot` pushes afterwards (the documentation says both "stops when someone else pushes" and "one or two consecutive commits").
