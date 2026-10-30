@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import random
+import re
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -14,6 +15,10 @@ MAX_RETRIES = 3
 BASE_DELAY = 1.0
 FACTOR = 2.0
 MAX_JITTER = 0.5
+
+
+class ReadOnlyError(RuntimeError):
+    """A write was attempted through a read-only API."""
 
 
 class GitHubApi:
@@ -31,8 +36,10 @@ class GitHubApi:
         transport: httpx.AsyncBaseTransport | None = None,
         *,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+        read_only: bool = False,
     ) -> None:
         self.repo = repo
+        self.read_only = read_only
         self._sleep = sleep
         self._client = httpx.AsyncClient(
             base_url=API_ROOT,
@@ -58,8 +65,20 @@ class GitHubApi:
             return "retry-after" in resp.headers or resp.headers.get("x-ratelimit-remaining") == "0"
         return False
 
+    def _guard(self, method: str, url: str, kw: dict[str, Any]) -> None:
+        """Read-only mode (shadow mode): only GET and GraphQL queries may leave the process."""
+        if method.upper() == "GET":
+            return
+        if url == "/graphql" and method.upper() == "POST":
+            query = (kw.get("json") or {}).get("query", "")
+            if isinstance(query, str) and not re.search(r"\bmutation\b", query, re.IGNORECASE):
+                return
+        raise ReadOnlyError(f"{method.upper()} {url} refused: API is read-only")
+
     async def request(self, method: str, path: str, **kw: Any) -> httpx.Response:
         url = self._url(path)
+        if self.read_only:
+            self._guard(method, url, kw)
         delay = BASE_DELAY
         for attempt in range(MAX_RETRIES + 1):
             resp = await self._client.request(method, url, **kw)

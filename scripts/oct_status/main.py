@@ -65,6 +65,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _credentials() -> tuple[str, str]:
+    # BOT_PAT is preferred when present (write mode, labels job); shadow-mode steps only get GITHUB_TOKEN.
     token = os.environ.get("BOT_PAT") or os.environ.get("GITHUB_TOKEN")
     if not token:
         raise ConfigError("missing credentials: set BOT_PAT (preferred) or GITHUB_TOKEN")
@@ -140,6 +141,7 @@ class Workspace:
         self.api = api
         self.cfg = cfg
         self._snaps: dict[int, Snapshot | None] = {}
+        self.warnings: list[str] = []
         self._open_prs: list[dict[str, Any]] | None = None
         self._open_items: list[dict[str, Any]] | None = None
         self._referrers: dict[int, set[int]] | None = None
@@ -147,7 +149,7 @@ class Workspace:
     async def open_items(self) -> list[dict[str, Any]]:
         """All open issues and pull requests, bodies included (one paged listing)."""
         if self._open_items is None:
-            self._open_items = await _paged(self.api, "/issues", {"state": "open"})
+            self._open_items = await _paged(self.api, "/issues", {"state": "open"}, self.warnings)
         return self._open_items
 
     async def referrers(self, number: int) -> set[int]:
@@ -166,7 +168,7 @@ class Workspace:
 
     async def open_prs(self) -> list[dict[str, Any]]:
         if self._open_prs is None:
-            self._open_prs = await _paged(self.api, "/pulls", {"state": "open"})
+            self._open_prs = await _paged(self.api, "/pulls", {"state": "open"}, self.warnings)
         return self._open_prs
 
     async def load(self, number: int) -> Snapshot | None:
@@ -205,7 +207,10 @@ class Workspace:
         return graph
 
 
-async def _paged(api: GitHubApi, path: str, params: dict[str, Any]) -> list[dict[str, Any]]:
+async def _paged(
+    api: GitHubApi, path: str, params: dict[str, Any], warnings: list[str] | None = None
+) -> list[dict[str, Any]]:
+    """All pages of a listing; when the page cap is hit the result is incomplete and `warnings` says so."""
     items: list[dict[str, Any]] = []
     for page in range(1, _MAX_PAGES + 1):
         resp = await api.request("GET", path, params={**params, "per_page": _PER_PAGE, "page": page})
@@ -214,6 +219,9 @@ async def _paged(api: GitHubApi, path: str, params: dict[str, Any]) -> list[dict
         items += batch
         if len(batch) < _PER_PAGE:
             break
+    else:
+        if warnings is not None:
+            warnings.append(f"WARNING: listing {path} was cut off after {_MAX_PAGES} pages; results are incomplete")
     return items
 
 
@@ -262,6 +270,10 @@ def _summary(lines: list[str]) -> None:
             fh.write("\n".join(lines) + "\n")
 
 
+def _warning_lines(ws: Workspace) -> list[str]:
+    return [f"> {w}" for w in ws.warnings]
+
+
 def _outcome_lines(outcome: Outcome, dry_run: bool, with_block: bool) -> list[str]:
     state = "dry-run, planned" if dry_run else "performed"
     lines = [f"### #{outcome.number}"]
@@ -295,7 +307,7 @@ async def run_event(api: GitHubApi, cfg: Config, event_name: str, payload: dict[
     targets = [number, *sorted(component - {number})]
     outcomes = await _converge(ws, targets, dry_run)
     mode = "dry-run" if dry_run else "write"
-    summary = [f"## OCT status ({mode}): event `{event_name}` on #{number}", ""]
+    summary = [f"## OCT status ({mode}): event `{event_name}` on #{number}", "", *_warning_lines(ws), ""]
     for outcome in outcomes:
         summary += _outcome_lines(outcome, dry_run, with_block=True)
         print(f"#{outcome.number}: {len(outcome.writes)} write(s) {'planned' if dry_run else 'performed'}")
@@ -341,6 +353,9 @@ async def run_audit(api: GitHubApi, cfg: Config, dry_run: bool) -> int:
     """Recompute every open artifact and heal drift; returns how many artifacts needed a repair."""
     ws = Workspace(api, cfg)
     numbers = sorted({int(item["number"]) for item in await ws.open_items()})
+    if ws.warnings and not dry_run:  # fail closed: never write on incomplete data
+        ws.warnings.append("WARNING: audit forced to dry-run because the listing of open artifacts is incomplete")
+        dry_run = True
     for number in numbers:
         await ws.neighbors(number)  # loads the artifact and its relations
     outcomes = await _converge(ws, numbers, dry_run)
@@ -349,12 +364,15 @@ async def run_audit(api: GitHubApi, cfg: Config, dry_run: bool) -> int:
     summary = [
         f"## OCT status audit ({mode})",
         "",
+        *_warning_lines(ws),
         f"{len(outcomes)} open artifacts checked, repaired {len(repaired)}.",
         "",
     ]
     for outcome in repaired:
         summary += _outcome_lines(outcome, dry_run, with_block=False)
     _summary(summary)
+    for warning in ws.warnings:
+        print(warning)
     print(f"audit: {len(outcomes)} open artifact(s) checked, repaired {len(repaired)}")
     return len(repaired)
 
@@ -387,7 +405,8 @@ def _load_payload(path: str) -> dict[str, Any]:
 async def _dispatch(
     args: argparse.Namespace, mode: str, payload: dict[str, Any], token: str, repo: str
 ) -> tuple[int, list[str]]:
-    api = GitHubApi(token, repo)
+    # Shadow mode: dry-run and check can never write, enforced by the client itself.
+    api = GitHubApi(token, repo, read_only=args.dry_run or mode == "check")
     try:
         if mode == "labels":
             return EXIT_OK, await _run_labels(api, args.dry_run)

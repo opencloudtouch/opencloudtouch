@@ -404,8 +404,8 @@ async def test_audit_dry_run_reports_without_writing(summary):
 def cli_repo(monkeypatch: pytest.MonkeyPatch) -> FakeRepo:
     repo = FakeRepo()
 
-    def factory(token: str, name: str) -> GitHubApi:
-        return GitHubApi(token, name, transport=httpx.MockTransport(repo.handler), sleep=_nosleep)
+    def factory(token: str, name: str, **kw: Any) -> GitHubApi:
+        return GitHubApi(token, name, transport=httpx.MockTransport(repo.handler), sleep=_nosleep, **kw)
 
     monkeypatch.setattr(main, "GitHubApi", factory)
     monkeypatch.setenv("GITHUB_TOKEN", "secret-token-value")
@@ -483,3 +483,77 @@ def test_cli_api_failure_exits_one(cli_repo, tmp_path, monkeypatch):
     cli_repo.handler = failing  # type: ignore[method-assign]
     cli_repo.add(1)
     assert main.cli(["--audit", "--dry-run"]) == 1
+
+
+# --- read-only API, truncation -----------------------------------------------------------------
+
+
+@pytest.mark.parametrize("method", ["PATCH", "POST", "DELETE", "PUT"])
+async def test_read_only_api_refuses_writes(method):
+    from oct_status.api import ReadOnlyError
+
+    repo = FakeRepo()
+    api = GitHubApi("t", REPO, transport=httpx.MockTransport(repo.handler), sleep=_nosleep, read_only=True)
+    with pytest.raises(ReadOnlyError):
+        await api.request(method, "/issues/1", json={"body": "x"})
+    with pytest.raises(ReadOnlyError):
+        await api.graphql("mutation { x }", {})
+    assert repo.writes == []
+    await api.aclose()
+
+
+async def test_read_only_api_allows_get_and_graphql_query():
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.method)
+        return httpx.Response(200, json={"data": {"ok": 1}})
+
+    api = GitHubApi("t", REPO, transport=httpx.MockTransport(handler), sleep=_nosleep, read_only=True)
+    assert (await api.request("GET", "/labels")).status_code == 200
+    assert await api.graphql("query { x }", {}) == {"ok": 1}
+    assert seen == ["GET", "POST"]
+    await api.aclose()
+
+
+async def test_event_and_audit_run_through_read_only_api(summary):
+    repo = FakeRepo()
+    stack(repo, 10, 3)
+    api = GitHubApi("t", REPO, transport=httpx.MockTransport(repo.handler), sleep=_nosleep, read_only=True)
+    assert await run_event(api, CFG, "issues", issue_event(10), dry_run=True) == 0
+    assert await run_audit(api, CFG, dry_run=True) == 3
+    assert await run_check(api, CFG, "issues", issue_event(10)) == 1
+    assert repo.writes == []
+    await api.aclose()
+
+
+async def test_truncated_listing_warns_and_audit_never_writes(summary, monkeypatch):
+    monkeypatch.setattr(main, "_MAX_PAGES", 1)
+    monkeypatch.setattr(main, "_PER_PAGE", 1)
+    repo = FakeRepo()
+    repo.add(1)
+    repo.add(2)
+    api = api_for(repo)
+    assert await run_audit(api, CFG, dry_run=False) == 2
+    assert repo.writes == []
+    text = summary.read_text()
+    assert "cut off" in text
+    assert "forced to dry-run" in text
+    await api.aclose()
+
+
+def test_cli_dry_run_uses_read_only_api(monkeypatch, cli_repo, tmp_path):
+    seen: list[bool] = []
+    orig = main.GitHubApi
+
+    def spy(token, name, **kw):
+        api = orig(token, name, **kw)
+        seen.append(api.read_only)
+        return api
+
+    cli_repo.add(1)
+    monkeypatch.setattr(main, "GitHubApi", spy)
+    args = ["--event", "issues", "--payload", payload_file(tmp_path, issue_event(1))]
+    assert main.cli([*args, "--dry-run"]) == 0
+    assert main.cli(args) == 0
+    assert seen == [True, False]

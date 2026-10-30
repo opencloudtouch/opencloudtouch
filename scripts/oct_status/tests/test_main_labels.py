@@ -20,8 +20,8 @@ def fake(monkeypatch: pytest.MonkeyPatch) -> FakeGitHub:
     async def no_sleep(_: float) -> None:
         return None
 
-    def factory(token: str, repo: str) -> GitHubApi:
-        return GitHubApi(token, repo, transport=httpx.MockTransport(fake.handler), sleep=no_sleep)
+    def factory(token: str, repo: str, **kw) -> GitHubApi:
+        return GitHubApi(token, repo, transport=httpx.MockTransport(fake.handler), sleep=no_sleep, **kw)
 
     monkeypatch.setattr(main, "GitHubApi", factory)
     monkeypatch.setenv("GITHUB_TOKEN", "secret-token-value")
@@ -62,9 +62,9 @@ def test_bot_pat_preferred(fake, monkeypatch):
     seen: list[str] = []
     orig = main.GitHubApi
 
-    def spy(token: str, repo: str) -> GitHubApi:
+    def spy(token: str, repo: str, **kw) -> GitHubApi:
         seen.append(token)
-        return orig(token, repo)
+        return orig(token, repo, **kw)
 
     monkeypatch.setattr(main, "GitHubApi", spy)
     monkeypatch.setenv("BOT_PAT", "pat")
