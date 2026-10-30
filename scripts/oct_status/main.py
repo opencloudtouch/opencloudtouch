@@ -31,7 +31,7 @@ from oct_status.config import Config, load_config
 from oct_status.facts import fetch_snapshot
 from oct_status.graph import build_graph, parse_prose_edges, walk_component
 from oct_status.guide import format_notice, next_steps, render_guide
-from oct_status.labels_sync import ensure_ledger_issue, sync_labels
+from oct_status.labels_sync import LedgerIssueError, ensure_ledger_issue, sync_labels
 from oct_status.ledger import Ledger, LedgerError, strikes_active
 from oct_status.model import Derived, Edge, Graph, Phase, Snapshot
 from oct_status.render import extract_block, render_block, splice_block
@@ -92,7 +92,10 @@ def _emit(lines: list[str]) -> None:
 async def _run_labels(api: GitHubApi, dry_run: bool, cfg: Config | None = None) -> list[str]:
     cfg = cfg or load_config(CONFIG_PATH)
     ops = await sync_labels(api, LABELS_SPEC, dry_run=dry_run)
-    ledger = await ensure_ledger_issue(api, dry_run=dry_run, bot_logins=cfg.bot_logins, configured=cfg.ledger_issue)
+    try:
+        ledger = await ensure_ledger_issue(api, dry_run=dry_run, bot_logins=cfg.bot_logins, configured=cfg.ledger_issue)
+    except LedgerIssueError as exc:
+        raise ConfigError(str(exc)) from exc
     prefix = "[dry-run] " if dry_run else ""
     return [*ops, f"{prefix}ledger issue: {'would be created' if ledger == 0 else f'#{ledger}'}"]
 
@@ -347,6 +350,8 @@ async def _open_ledger(ws: Workspace, dry_run: bool, clock: Callable[[], datetim
         number = await ensure_ledger_issue(
             ws.api, dry_run=dry_run, bot_logins=ws.cfg.bot_logins, configured=ws.cfg.ledger_issue
         )
+    except LedgerIssueError as exc:
+        raise LedgerError(str(exc)) from exc
     except httpx.HTTPError as exc:
         raise LedgerError(f"ledger issue lookup failed ({type(exc).__name__})") from exc
     if number == 0:

@@ -33,6 +33,7 @@ class Repo(CommandRepo):
         self.prs: dict[int, dict] = {}
         self.fail_ledger_read = False
         self.issue_events: dict[int, list[dict]] = {}
+        self.timeline_ok = True  # the label history query answers (with no label events)
         if ledger:
             self.add(LEDGER)
             self.issues[LEDGER].update(title="oct-status ledger", locked=True, user={"login": BOT})
@@ -84,6 +85,12 @@ class Repo(CommandRepo):
             return httpx.Response(404, json={})
         if path == f"{ROOT}/issues/{LEDGER}/comments" and request.method == "GET" and self.fail_ledger_read:
             return httpx.Response(500, json={})
+        if (path == "/repos/o/r/graphql" or path == "/graphql") and b"issueOrPullRequest" in request.content:
+            if not self.timeline_ok:
+                return httpx.Response(500, json={})
+            return httpx.Response(
+                200, json={"data": {"repository": {"issueOrPullRequest": {"timelineItems": {"nodes": []}}}}}
+            )
         if path == "/repos/o/r/graphql" or path == "/graphql":
             return httpx.Response(200, json={"data": {"repository": {"pullRequest": {"reviewThreads": {"nodes": []}}}}})
         return super().handler(request)
@@ -360,10 +367,30 @@ async def test_unreadable_label_history_is_reported(monkeypatch, tmp_path):
     summary = tmp_path / "s.md"
     monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
     repo = Repo()
+    repo.timeline_ok = False
     repo.add(7, labels=("enhancement", "phase:done"))
     await run(repo, "issues", {"action": "opened", "issue": {"number": 7}, "sender": {"login": "bob"}})
     assert "label history of #7 unreadable" in summary.read_text(encoding="utf-8")
-    assert "phase:done" not in repo.label_names(7)
+    assert "phase:done" in repo.label_names(7)  # fail closed: the phase label is not rewritten
+
+
+async def test_unreadable_timeline_keeps_phase_labels_and_ledger_for_a_spec_and_its_pr():
+    repo = Repo()
+    repo.timeline_ok = False
+    repo.add(5, labels=("spec", "phase:in-progress"), body=DOR_DONE)
+    repo.add_pr(10, body="Part of #5")
+    await run(repo, "pull_request_target", pr_event(10, "opened"))
+    assert "phase:in-progress" in repo.label_names(5) and "phase:draft" not in repo.label_names(5)
+    assert "wait:prerequisite" not in repo.label_names(10)
+    assert repo.ledger() == []  # no V06 from an untrusted floor
+
+
+async def test_unreadable_timeline_keeps_the_phase_of_a_bug():
+    repo = Repo()
+    repo.timeline_ok = False
+    repo.add(8, labels=("bug", "phase:in-progress"))
+    await run(repo, "issues", {"action": "edited", "issue": {"number": 8}, "sender": {"login": "bob"}})
+    assert "phase:in-progress" in repo.label_names(8) and "phase:new" not in repo.label_names(8)
 
 
 async def test_override_keeps_a_persisting_violation_resolved_after_renewal():
@@ -372,7 +399,7 @@ async def test_override_keeps_a_persisting_violation_resolved_after_renewal():
     await run(repo, "pull_request_target", pr_event(10))
     await run(repo, "issue_comment", comment_event(10, "/oct override known", login="carol"))
     entries = repo.ledger()
-    assert entries[1]["covers"] == ["V01"]
+    assert entries[1]["covers"] == [["alice", "V01"]]
     late = NOW + timedelta(days=55)
     api = api_for(repo)
     await run_event(api, ACTIVE, "pull_request_target", pr_event(10, "synchronize"), dry_run=False, clock=lambda: late)

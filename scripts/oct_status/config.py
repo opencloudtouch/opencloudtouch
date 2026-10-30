@@ -44,6 +44,9 @@ def load_config(path: Path) -> Config:
             invalidates_approval=bool(opts.get("invalidates_approval", True)),
             block_location=opts.get("block_location", "body"),
         )
+    ledger = raw.get("ledger_issue")
+    if ledger is not None and (isinstance(ledger, bool) or not isinstance(ledger, int) or ledger <= 0):
+        raise ValueError("config: ledger_issue must be a positive issue number or null")
     since = raw.get("strikes_enabled_from")
     if since is not None and not isinstance(since, date):
         since = date.fromisoformat(str(since))
@@ -54,7 +57,7 @@ def load_config(path: Path) -> Config:
         fan_out_cap=int(raw.get("fan_out_cap", 25)),
         strike_window_days=int(raw.get("strike_window_days", 60)),
         strikes_enabled_from=since,
-        ledger_issue=int(raw["ledger_issue"]) if raw.get("ledger_issue") else None,
+        ledger_issue=ledger,
         maintainer_permissions=tuple(raw.get("maintainer_permissions", ("maintain", "admin"))),
         bot_logins=tuple(raw.get("bot_logins", ("oct-support", "github-actions[bot]"))),
     )

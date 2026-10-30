@@ -35,6 +35,12 @@ async def _write(api: GitHubApi, method: str, path: str, **kw: Any) -> None:
     resp.raise_for_status()
 
 
+async def _fetch_issue(api: GitHubApi, number: int) -> dict[str, Any]:
+    resp = await api.request("GET", f"/issues/{number}")
+    resp.raise_for_status()
+    return dict(resp.json())
+
+
 async def sync_labels(api: GitHubApi, spec_path: Path, dry_run: bool = False) -> list[str]:
     """Bring the repository labels in line with the spec; return performed or planned operations."""
     entries = (yaml.safe_load(spec_path.read_text(encoding="utf-8")) or {}).get("labels", [])
@@ -72,6 +78,10 @@ async def sync_labels(api: GitHubApi, spec_path: Path, dry_run: bool = False) ->
     return ops
 
 
+class LedgerIssueError(Exception):
+    """The configured ledger issue is not a usable ledger (wrong creator, a pull request)."""
+
+
 async def ensure_ledger_issue(
     api: GitHubApi,
     dry_run: bool = False,
@@ -81,11 +91,19 @@ async def ensure_ledger_issue(
 ) -> int:
     """Return the number of the locked ledger issue, creating and locking it if missing.
 
-    `configured` (config.yml ``ledger_issue``) is used as is, without any search. Otherwise the
+    `configured` (config.yml ``ledger_issue``) is verified with one request (not a pull request,
+    created by one of `bot_logins`, locked) and used without any search. Otherwise the
     issue is found by title, and only an issue created by one of `bot_logins` counts: a stranger
     cannot plant a look-alike ledger. Without `bot_logins` the creator is not checked.
     """
     if configured:
+        issue = await _fetch_issue(api, configured)
+        if "pull_request" in issue or (
+            bot_logins is not None and (issue.get("user") or {}).get("login") not in bot_logins
+        ):
+            raise LedgerIssueError(f"configured ledger issue #{configured} is not a bot-created issue")
+        if not issue.get("locked") and not dry_run:
+            await _write(api, "PUT", f"/issues/{configured}/lock", json={"lock_reason": "resolved"})
         return configured
     for issue in await _paginate(api, "/issues", state="all"):
         if issue.get("title") != LEDGER_TITLE or "pull_request" in issue:

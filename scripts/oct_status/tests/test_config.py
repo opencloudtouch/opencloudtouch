@@ -39,3 +39,18 @@ def test_gates_and_protected_paths():
 
 def test_bot_logins():
     assert load_config(CONFIG_PATH).bot_logins == ("oct-support", "github-actions[bot]")
+
+
+def test_ledger_issue_is_validated(tmp_path):
+    import pytest
+
+    def load(value: str):
+        path = tmp_path / "c.yml"
+        path.write_text(f"ledger_issue: {value}\n", encoding="utf-8")
+        return load_config(path)
+
+    assert load("42").ledger_issue == 42
+    assert load("null").ledger_issue is None
+    for bad in ("0", "-3", "abc", "true", "1.5", "[1]"):
+        with pytest.raises(ValueError):
+            load(bad)

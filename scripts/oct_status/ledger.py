@@ -7,8 +7,9 @@ overrode. Strikes are inactive until ``cfg.strikes_enabled_from``.
 
 The window is rolling per strike: every strike expires 60 days after its own entry, not 60 days
 after the last violation (ruling M1). An override lists the rules it covers, so a state violation
-that outlives its entry is not charged again; ``renew_override`` re-dates the override shortly
-before it would expire while the violation persists.
+that outlives its entry is not charged again, and only for the (user, rule) pairs it lists, so a
+later strike of another rule or user on the same artifact still counts. ``renew_override`` re-dates
+the override shortly before it would expire while the violation persists.
 """
 
 from __future__ import annotations
@@ -59,7 +60,7 @@ class Entry:
     rule: str  # "" for an override, which covers every rule of the artifact
     ts: datetime
     reason: str = ""
-    covers: tuple[str, ...] = ()  # override only: the rules of the artifact it covers
+    covers: tuple[tuple[str, str], ...] = ()  # override only: the (user, rule) strikes of the artifact it covers
 
 
 def _parse(body: str) -> Entry | None:
@@ -86,7 +87,16 @@ def _parse(body: str) -> Entry | None:
     if when.tzinfo is None:
         return None
     raw = data.get("covers", [])
-    covers = tuple(r for r in raw if isinstance(r, str) and _RULE.fullmatch(r)) if isinstance(raw, list) else ()
+    # Entries without (user, rule) pairs, such as the older plain rule lists, cover nothing.
+    covers = tuple(
+        (c[0], c[1])
+        for c in (raw if isinstance(raw, list) else [])
+        if isinstance(c, list)
+        and len(c) == 2
+        and all(isinstance(x, str) for x in c)
+        and _LOGIN.fullmatch(c[0])
+        and _RULE.fullmatch(c[1])
+    )
     return Entry(kind, user, artifact, rule, when, reason[:MAX_REASON] if isinstance(reason, str) else "", covers)
 
 
@@ -147,27 +157,17 @@ class Ledger:
         return found
 
     @staticmethod
-    def _overrides(entries: list[Entry]) -> tuple[dict[int, datetime], set[tuple[int, str]]]:
-        """(latest override time per artifact, (artifact, rule) pairs the overrides declare covered)."""
-        latest: dict[int, datetime] = {}
-        covered: set[tuple[int, str]] = set()
-        for e in entries:
-            if e.kind == "override":
-                latest[e.artifact] = max(e.ts, latest.get(e.artifact, e.ts))
-                covered |= {(e.artifact, rule) for rule in e.covers}
-        return latest, covered
+    def _covered(entries: list[Entry]) -> set[tuple[int, str, str]]:
+        """(artifact, user, rule) strikes that overrides declare covered."""
+        return {(e.artifact, user, rule) for e in entries if e.kind == "override" for user, rule in e.covers}
 
     @classmethod
     def _pairs(cls, entries: list[Entry], user: str) -> tuple[list[tuple[int, str]], list[tuple[int, str]]]:
-        """(all pairs of `user`, those not overridden), each in order of their first entry."""
-        latest, _ = cls._overrides(entries)
+        """(all pairs of `user`, those not covered by an override), each in order of their first entry."""
+        covered = cls._covered(entries)
         mine = sorted((e for e in entries if e.kind == "violation" and e.user == user), key=lambda e: e.ts)
         everything = list(dict.fromkeys((e.artifact, e.rule) for e in mine))
-        counted = list(
-            dict.fromkeys(
-                (e.artifact, e.rule) for e in mine if not (e.artifact in latest and e.ts <= latest[e.artifact])
-            )
-        )
+        counted = [p for p in everything if (p[0], user, p[1]) not in covered]
         return everything, counted
 
     async def level_for(self, user: str) -> int:
@@ -175,15 +175,6 @@ class Ledger:
         if not self.active:
             return 0
         return len(self._pairs(await self.load(), user)[1])
-
-    async def level_after(self, user: str, pairs: set[tuple[int, str]]) -> int:
-        """The level `user` would have once `pairs` were recorded (for dry-run previews)."""
-        if not self.active:
-            return 0
-        entries = await self.load()
-        everything, counted = self._pairs(entries, user)
-        covered = self._overrides(entries)[1]
-        return len(set(counted) | (pairs - set(everything) - covered))
 
     async def ordinal(self, user: str, artifact: int, rule: str, new_pairs: list[tuple[int, str]]) -> int:
         """Rank of this strike among the user's counted strikes (1 = first), `new_pairs` being not yet recorded.
@@ -196,15 +187,13 @@ class Ledger:
             return 0
         entries = await self.load()
         everything, counted = self._pairs(entries, user)
-        covered = self._overrides(entries)[1]
-        ranked = counted + [p for p in new_pairs if p not in everything and p not in covered and p not in counted]
+        covered = self._covered(entries)
+        fresh = [p for p in new_pairs if p not in everything and (p[0], user, p[1]) not in covered]
+        ranked = counted + [p for p in fresh if p not in counted]
         return ranked.index((artifact, rule)) + 1 if (artifact, rule) in ranked else 0
 
     async def is_overridden(self, user: str, artifact: int, rule: str) -> bool:
-        entries = await self.load()
-        everything, counted = self._pairs(entries, user)
-        covered = self._overrides(entries)[1]
-        return (artifact, rule) in covered or ((artifact, rule) in everything and (artifact, rule) not in counted)
+        return (artifact, user, rule) in self._covered(await self.load())
 
     async def _append(self, entry: Entry, extra: dict[str, Any]) -> None:
         data = {"v": VERSION, "kind": entry.kind, "user": entry.user, "artifact": entry.artifact, **extra}
@@ -227,7 +216,7 @@ class Ledger:
             return False
         entries = await self.load()
         everything, _ = self._pairs(entries, v.user)
-        if (v.artifact, v.rule) in everything or (v.artifact, v.rule) in self._overrides(entries)[1]:
+        if (v.artifact, v.rule) in everything or (v.artifact, v.user, v.rule) in self._covered(entries):
             return False
         entry = Entry("violation", v.user, v.artifact, v.rule, self._clock())
         await self._append(entry, {"rule": v.rule})
@@ -236,12 +225,12 @@ class Ledger:
     async def record_override(self, user: str, artifact: int, reason: str) -> None:
         """Log an override by maintainer `user`; the strikes recorded so far on `artifact` stop counting."""
         entries = await self.load()
-        covers = sorted({e.rule for e in entries if e.kind == "violation" and e.artifact == artifact})
+        covers = sorted({(e.user, e.rule) for e in entries if e.kind == "violation" and e.artifact == artifact})
         await self._append_override(user, artifact, safe_text(reason)[:MAX_REASON], covers)
 
-    async def _append_override(self, user: str, artifact: int, reason: str, covers: list[str]) -> None:
+    async def _append_override(self, user: str, artifact: int, reason: str, covers: list[tuple[str, str]]) -> None:
         entry = Entry("override", user, artifact, "", self._clock(), reason, tuple(covers))
-        await self._append(entry, {"reason": reason, "covers": covers})
+        await self._append(entry, {"reason": reason, "covers": [list(c) for c in covers]})
 
     async def renew_override(self, artifact: int) -> bool:
         """Re-date the override of `artifact` when it is about to leave the window; returns whether it was.
@@ -256,6 +245,6 @@ class Ledger:
         newest = max(overrides, key=lambda e: e.ts)
         if self._clock() - newest.ts <= self._window - RENEW_MARGIN:
             return False
-        covers = sorted({rule for e in overrides for rule in e.covers})
+        covers = sorted({c for e in overrides for c in e.covers})
         await self._append_override(newest.user, artifact, "renewal", covers)
         return True

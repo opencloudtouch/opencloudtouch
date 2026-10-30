@@ -96,6 +96,10 @@ async def _sync_labels(api: GitHubApi, snap: Snapshot, derived: Derived, dry_run
     current = set(snap.labels)
     add = sorted(want - current)
     remove = sorted(label for label in current - want if label.startswith(OWNED_PREFIXES))
+    if snap.timeline_unknown:
+        # The phase was derived without trusting any fact label; never rewrite the phase from that.
+        add = [lb for lb in add if not lb.startswith("phase:")]
+        remove = [lb for lb in remove if not lb.startswith("phase:")]
     done: list[str] = []
     if add:
         if not dry_run:

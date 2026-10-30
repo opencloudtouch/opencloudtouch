@@ -34,7 +34,10 @@ def issue(labels: list[str]) -> dict:
 
 
 def events(*pairs: tuple[str, str]) -> dict:
-    nodes = [{"label": {"name": n}, "actor": {"login": a}} for n, a in pairs]
+    nodes = [
+        {"label": {"name": n}, "actor": {"__typename": "Bot" if a == "github-actions" else "User", "login": a}}
+        for n, a in pairs
+    ]
     return {"data": {"repository": {"issueOrPullRequest": {"timelineItems": {"nodes": nodes}}}}}
 
 
@@ -72,3 +75,23 @@ async def test_no_phase_label_means_no_request():
 
     s = await snap(["bug"], boom)
     assert api_calls == [] and not s.timeline_unknown
+
+
+async def test_user_named_like_an_app_is_not_trusted():
+    s = await snap(["phase:in-progress"], events(("phase:in-progress", "github-actions-user")))
+    assert s.bot_phase_labels == frozenset()
+    nodes = [{"label": {"name": "phase:in-progress"}, "actor": {"__typename": "User", "login": "github-actions"}}]
+    answer = {"data": {"repository": {"issueOrPullRequest": {"timelineItems": {"nodes": nodes}}}}}
+    assert (await snap(["phase:in-progress"], answer)).bot_phase_labels == frozenset()
+
+
+async def test_full_window_not_covering_every_phase_label_is_unknown():
+    noise = [("bug", "bob")] * 49
+    full = events(*noise, ("phase:in-progress", "oct-support"))
+    s = await snap(["phase:in-progress", "phase:done"], full)  # phase:done has no event in the window
+    assert s.timeline_unknown and s.bot_phase_labels == frozenset()
+    covered = await snap(["phase:in-progress"], full)
+    assert not covered.timeline_unknown and covered.bot_phase_labels == {"phase:in-progress"}
+    short = events(("phase:in-progress", "oct-support"))  # a short timeline without an event: just not ours
+    s = await snap(["phase:in-progress", "phase:done"], short)
+    assert not s.timeline_unknown and s.bot_phase_labels == {"phase:in-progress"}

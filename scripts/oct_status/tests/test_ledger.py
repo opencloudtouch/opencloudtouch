@@ -111,14 +111,6 @@ async def test_override_not_counted():
     assert await make(fake, clock).level_for("alice") == 2
 
 
-async def test_level_after_previews_without_writing():
-    fake = FakeLedgerIssue()
-    ledger = make(fake)
-    await ledger.record(violation())
-    assert await ledger.level_after("alice", {(5, "V01"), (7, "V02")}) == 2
-    assert fake.posts == 1
-
-
 async def test_no_strikes_before_activation_date():
     cfg = Config(automation={}, gate_checks=[], protected_paths=[], strikes_enabled_from=date(2026, 12, 1))
     fake = FakeLedgerIssue()
@@ -126,7 +118,7 @@ async def test_no_strikes_before_activation_date():
     assert not ledger.active
     assert await ledger.record(violation()) is False
     assert await ledger.level_for("alice") == 0
-    assert await ledger.level_after("alice", {(5, "V01")}) == 0
+    assert await ledger.ordinal("alice", 5, "V01", [(5, "V01")]) == 0
     assert fake.posts == 0
     active = make(fake, Clock(datetime(2026, 12, 1, tzinfo=UTC)), cfg=cfg)
     assert active.active and await active.record(violation()) is True
@@ -232,7 +224,8 @@ async def test_ledger_bodies_never_contain_a_raw_at_sign_or_mention():
             {"v": 1, "kind": "override", "user": "m", "artifact": 7, "ts": NOW.isoformat(), "reason": "a@b"}
         ).replace("@", "\\u0040")
     )
-    assert await make(fake).level_for("alice") == 0
+    entries = await make(fake).load()
+    assert [e.reason for e in entries if e.artifact == 7] == ["a@b"]
 
 
 async def test_ordinal_ranks_strikes_by_position():
@@ -261,3 +254,47 @@ async def test_too_many_pages_fail_closed(monkeypatch):
         fake.add_raw("{}")
     with pytest.raises(LedgerError):
         await make(fake).level_for("alice")
+
+
+async def test_override_covers_only_the_listed_strikes_not_later_ones():
+    fake, clock = FakeLedgerIssue(), Clock()
+    ledger = make(fake, clock)
+    await ledger.record(violation("V01"))
+    await ledger.record_override("maintainer", 5, "known")
+    clock.now = NOW + timedelta(days=10)
+    assert await ledger.record(violation("V04")) is True  # another rule on the same artifact counts
+    assert await ledger.level_for("alice") == 1
+    clock.now = NOW + timedelta(days=55)
+    assert await ledger.renew_override(5) is True
+    assert await ledger.level_for("alice") == 1  # the renewal does not swallow the V04 strike
+    assert await ledger.is_overridden("alice", 5, "V01") and not await ledger.is_overridden("alice", 5, "V04")
+
+
+async def test_override_is_scoped_to_the_users_it_listed():
+    fake = FakeLedgerIssue()
+    ledger = make(fake)
+    await ledger.record(violation("V01", 5, "alice"))
+    await ledger.record_override("maintainer", 5, "known")
+    assert await ledger.record(violation("V01", 5, "bob")) is True  # the same rule by another user counts
+    assert await ledger.level_for("bob") == 1 and await ledger.level_for("alice") == 0
+    assert not await ledger.is_overridden("bob", 5, "V01")
+
+
+async def test_covers_shape_is_validated_and_old_plain_lists_cover_nothing():
+    fake = FakeLedgerIssue()
+    base = {"v": 1, "user": "m", "artifact": 5, "ts": NOW.isoformat()}
+    fake.add_raw(json.dumps({**base, "kind": "violation", "user": "alice", "rule": "V01"}))
+    for covers in (
+        ["V01"],
+        [["alice"]],
+        [["alice", "V99"]],
+        [["a b", "V01"]],
+        [[1, 2]],
+        "V01",
+        [["alice", "V01", "x"]],
+    ):
+        fake.add_raw(json.dumps({**base, "kind": "override", "covers": covers}))
+    ledger = make(fake)
+    assert await ledger.level_for("alice") == 1
+    fake.add_raw(json.dumps({**base, "kind": "override", "covers": [["alice", "V01"]]}))
+    assert await make(fake).level_for("alice") == 0

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -10,7 +11,7 @@ import httpx
 import pytest
 
 from oct_status.api import GitHubApi
-from oct_status.labels_sync import ensure_ledger_issue, sync_labels
+from oct_status.labels_sync import LedgerIssueError, ensure_ledger_issue, sync_labels
 
 SPEC = Path(__file__).resolve().parent.parent / "labels.yml"
 REPO = "o/r"
@@ -59,6 +60,9 @@ class FakeGitHub:
             }
             self.issues.append(issue)
             return httpx.Response(201, json=issue)
+        if (m := re.fullmatch(rf"{ROOT}/issues/(\d+)", path)) and method == "GET":
+            found = [i for i in self.issues if i["number"] == int(m[1])]
+            return httpx.Response(200, json=found[0]) if found else httpx.Response(404, json={})
         if path.endswith("/lock") and method == "PUT":
             number = int(path.split("/")[-2])
             self.issues[number - 1]["locked"] = True
@@ -266,12 +270,14 @@ def test_labels_yml_matches_enums():
         assert {n for n in names if n.startswith(prefix)} == {m.label for m in enum}
 
 
-async def test_ledger_issue_by_a_stranger_is_ignored_and_configured_number_wins():
+async def test_ledger_issue_by_a_stranger_is_ignored_and_configured_number_is_verified():
     bots = ("oct-support", "github-actions[bot]")
 
-    def planted(login: str) -> tuple[FakeGitHub, GitHubApi]:
+    def planted(login: str, **extra) -> tuple[FakeGitHub, GitHubApi]:
         fake, api = make()
-        fake.issues.append({"number": 7, "title": "oct-status ledger", "locked": True, "user": {"login": login}})
+        fake.issues.append(
+            {"number": 1, "title": "oct-status ledger", "locked": True, "user": {"login": login}, **extra}
+        )
         return fake, api
 
     _, api = planted("mallory")
@@ -279,8 +285,17 @@ async def test_ledger_issue_by_a_stranger_is_ignored_and_configured_number_wins(
     fake, api = planted("mallory")
     assert await ensure_ledger_issue(api, bot_logins=bots) == 2  # a real one is created instead
     _, api = planted("oct-support")
-    assert await ensure_ledger_issue(api, dry_run=True, bot_logins=bots) == 7
-    fake, api = planted("mallory")
-    fake.writes.clear()
-    assert await ensure_ledger_issue(api, bot_logins=bots, configured=42) == 42
+    assert await ensure_ledger_issue(api, dry_run=True, bot_logins=bots) == 1
+    # A configured number is checked with one request and then used without a search.
+    fake, api = planted("oct-support")
+    assert await ensure_ledger_issue(api, bot_logins=bots, configured=1) == 1
     assert fake.writes == []
+    for bad in (planted("mallory"), planted("oct-support", pull_request={})):
+        with pytest.raises(LedgerIssueError):
+            await ensure_ledger_issue(bad[1], bot_logins=bots, configured=1)
+    fake, api = planted("oct-support", locked=False)
+    await ensure_ledger_issue(api, bot_logins=bots, configured=1)
+    assert fake.writes == [("PUT", f"{ROOT}/issues/1/lock")]
+    _, api = planted("oct-support")
+    with pytest.raises(httpx.HTTPStatusError):
+        await ensure_ledger_issue(api, bot_logins=bots, configured=42)  # does not exist

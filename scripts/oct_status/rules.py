@@ -260,8 +260,11 @@ def _spec_ready(spec: Snapshot) -> bool:
     """Declared `ready` (with a complete checklist), or a fact phase written after `ready`.
 
     Fact phases never advance a spec below `ready` (see `_work_phase`), so an open PR cannot make
-    its spec look ready and clear its own prerequisite.
+    its spec look ready and clear its own prerequisite. When the label history of the spec could not
+    be read, readiness cannot be judged and the spec is not held against anybody (fail closed).
     """
+    if spec.timeline_unknown:
+        return True
     return _declared_floor(spec, Kind.SPEC) in _READY_OR_LATER
 
 

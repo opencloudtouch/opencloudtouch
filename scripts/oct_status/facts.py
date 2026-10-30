@@ -26,7 +26,8 @@ query($owner: String!, $name: String!, $number: Int!) {
 """
 
 
-_LABEL_NODES = "timelineItems(last: 50, itemTypes: [LABELED_EVENT]) { nodes { ... on LabeledEvent { label { name } actor { login } } } }"
+_TIMELINE_WINDOW = 50
+_LABEL_NODES = "timelineItems(last: 50, itemTypes: [LABELED_EVENT]) { nodes { ... on LabeledEvent { label { name } actor { __typename login } } } }"
 _LABELS_QUERY = (
     "query($owner: String!, $name: String!, $number: Int!) { repository(owner: $owner, name: $name) {"
     " issueOrPullRequest(number: $number) { ... on Issue { %s } ... on PullRequest { %s } } } }"
@@ -34,19 +35,24 @@ _LABELS_QUERY = (
 )
 
 
-def _is_bot(login: str, cfg: Config) -> bool:
-    """GraphQL reports apps without the ``[bot]`` suffix that REST uses."""
-    return login in cfg.bot_logins or f"{login}[bot]" in cfg.bot_logins
+def _is_bot(login: str, typename: str, cfg: Config) -> bool:
+    """One of our own accounts: a configured login exactly, or an app whose REST login adds ``[bot]``.
+
+    GraphQL reports apps without the suffix; only an actor of type ``Bot`` gets that mapping, so a
+    user who happens to be called like an app is not trusted.
+    """
+    return login in cfg.bot_logins or (typename == "Bot" and f"{login}[bot]" in cfg.bot_logins)
 
 
 async def _bot_phase_labels(
     api: GitHubApi, number: int, labels: frozenset[str], cfg: Config
 ) -> tuple[frozenset[str], bool]:
-    """(current phase labels last written by our own accounts, whether the timeline was unreadable).
+    """(current phase labels last written by our own accounts, whether the timeline was not conclusive).
 
-    Only the newest 50 label events are read; a label whose event is older is not trusted. Labels
-    renamed by the label sync (`wip` -> `phase:in-progress`) have no event either; the backfill that
-    re-asserts labels (MA-6) gives them one.
+    Only the newest 50 label events are read. When that window is full and some current phase label
+    has no event in it, the history is incomplete and reported as unknown (nothing is trusted and
+    callers fail closed). A label without any event in a short timeline is simply not ours (for
+    example one renamed by the label sync; the backfill, MA-6, re-asserts those).
     """
     phases = {lb for lb in labels if lb.startswith("phase:")}
     if not phases:
@@ -58,14 +64,16 @@ async def _bot_phase_labels(
         nodes = (item.get("timelineItems") or {}).get("nodes")
         if nodes is None:
             return frozenset(), True
-        latest: dict[str, str] = {}
+        latest: dict[str, tuple[str, str]] = {}
         for node in nodes:
-            label, actor = (node or {}).get("label"), (node or {}).get("actor")
+            label, actor = (node or {}).get("label"), (node or {}).get("actor") or {}
             if label and label.get("name"):
-                latest[label["name"]] = (actor or {}).get("login") or ""
+                latest[label["name"]] = (actor.get("login") or "", actor.get("__typename") or "")
     except (httpx.HTTPError, RuntimeError, AttributeError, TypeError, KeyError):
         return frozenset(), True
-    return frozenset(lb for lb in phases if latest.get(lb) and _is_bot(latest[lb], cfg)), False
+    if len(nodes) >= _TIMELINE_WINDOW and not phases <= set(latest):
+        return frozenset(), True
+    return frozenset(lb for lb in phases if lb in latest and latest[lb][0] and _is_bot(*latest[lb], cfg)), False
 
 
 async def _json(api: GitHubApi, path: str) -> Any:
