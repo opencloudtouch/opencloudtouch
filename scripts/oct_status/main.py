@@ -144,8 +144,37 @@ def _nested(payload: dict[str, Any], *keys: str) -> Any:
     return node
 
 
+def _first_number(pulls: Any) -> int | None:
+    for pull in pulls if isinstance(pulls, list) else []:
+        if (number := _number(_nested(pull, "number") if isinstance(pull, dict) else None)) is not None:
+            return number
+    return None
+
+
+async def _pull_for_sha(api: GitHubApi, sha: Any) -> int | None:
+    """The pull request whose head is `sha`: the commit's pull requests, else the open ones by head SHA.
+
+    The second lookup finds fork pull requests, whose commits the first one may not list. `sha` is
+    untrusted: anything but 40 hex digits is never built into a path.
+    """
+    if not isinstance(sha, str) or not _SHA.fullmatch(sha):
+        return None
+    resp = await api.request("GET", f"/commits/{sha}/pulls")
+    resp.raise_for_status()
+    if (number := _first_number(resp.json())) is not None:
+        return number
+    for pull in await _paged(api, "/pulls", {"state": "open"}):
+        if isinstance(pull, dict) and _nested(pull, "head", "sha") == sha:
+            return _number(pull.get("number"))
+    return None
+
+
 async def resolve_artifact(api: GitHubApi, event_name: str, payload: dict[str, Any]) -> int | None:
-    """Number of the issue, pull request or discussion an event is about (``None`` if none)."""
+    """Number of the issue, pull request or discussion an event is about (``None`` if none).
+
+    A check suite or a CI `workflow_run` names its pull requests only for branches of this repository;
+    a run of a fork is resolved by its head SHA alone (its branch names are untrusted text).
+    """
     if event_name in _ISSUE_EVENTS:
         return _number(_nested(payload, "issue", "number"))
     if event_name in _PR_EVENTS:
@@ -153,17 +182,13 @@ async def resolve_artifact(api: GitHubApi, event_name: str, payload: dict[str, A
     if event_name in _DISCUSSION_EVENTS:
         return _number(_nested(payload, "discussion", "number"))
     if event_name == "check_suite":
-        for pull in _nested(payload, "check_suite", "pull_requests") or []:
-            if (number := _number(_nested(pull, "number") if isinstance(pull, dict) else None)) is not None:
-                return number
-        sha = _nested(payload, "check_suite", "head_sha")
-        if not isinstance(sha, str) or not _SHA.fullmatch(sha):  # untrusted: never build a path from it
-            return None
-        resp = await api.request("GET", f"/commits/{sha}/pulls")
-        resp.raise_for_status()
-        for pull in resp.json():
-            if (number := _number(pull.get("number"))) is not None:
-                return number
+        number = _first_number(_nested(payload, "check_suite", "pull_requests"))
+        return number if number is not None else await _pull_for_sha(api, _nested(payload, "check_suite", "head_sha"))
+    if event_name == "workflow_run":
+        own = _nested(payload, "repository", "full_name")
+        same_repo = isinstance(own, str) and _nested(payload, "workflow_run", "head_repository", "full_name") == own
+        number = _first_number(_nested(payload, "workflow_run", "pull_requests")) if same_repo else None
+        return number if number is not None else await _pull_for_sha(api, _nested(payload, "workflow_run", "head_sha"))
     return None
 
 

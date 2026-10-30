@@ -1276,6 +1276,10 @@ pull request or a maintainer's `/oct override`.
 command that arrived while another run waited can be dropped. Check also that it starts a line and is not
 inside a code block or quote.
 
+**`wait:findings` stays after I resolved the review threads.** Resolving a thread triggers no workflow run
+(GitHub Actions has no event for it). The next event of the pull request (a push, a review, a comment, a
+finished CI run) or the daily audit updates it.
+
 **My command got :-1:.** The reason is under "Notices" in the guide comment: missing access, not valid in
 this phase (the valid commands are listed), or a failed precondition.
 

@@ -460,7 +460,9 @@ layout as `scripts/issue_handler/`):
   `pull_request_review`, `pull_request_review_thread`, `check_suite` /
   `workflow_run` (CI done), `issue_comment` (commands), `discussion`,
   `discussion_comment`, a daily audit and `workflow_dispatch`. The audit is
-  scheduled off the full hour.
+  scheduled off the full hour. Implementation note: `pull_request_review_thread`
+  is a webhook-only event that GitHub Actions cannot trigger on, so a resolved
+  thread is picked up by the next event of the pull request or the audit.
 - One concurrency group per artifact. Fan-out after a change is limited to the
   connected component of `stacked-on` / `depends-on` edges, at most 25 nodes;
   hash equality ends cascades.

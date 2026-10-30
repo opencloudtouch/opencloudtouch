@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import yaml
@@ -74,3 +75,71 @@ def test_check_blocks_only_in_write_mode_and_backfill_defaults_to_dry_run():
     assert "!inputs.dry_run" in write["if"] and f"{GATE} == 'true'" in write["if"]
     assert "--dry-run" not in _runs(write) and "BOT_PAT" in str(write)
     assert "discussions" not in str(jobs)
+
+
+def _raw() -> dict:
+    return yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+
+
+def test_ci_completion_triggers_a_run():
+    on = _raw()[True]  # YAML 1.1 reads the key `on` as True
+    assert on["workflow_run"] == {"workflows": ["CI"], "types": ["completed"]}
+    # GitHub Actions has no pull_request_review_thread trigger (webhook only; actionlint rejects it).
+    assert "pull_request_review_thread" not in on
+    ci = yaml.safe_load((WORKFLOW.parent / "ci.yml").read_text(encoding="utf-8"))
+    assert ci["name"] == "CI"  # workflow_run matches the workflow by its name
+
+
+def _group(event: dict, run_id: str = "777") -> str:
+    """Evaluate the concurrency group for an event payload (the `||` / `&&` / format subset it uses)."""
+    expr = re.fullmatch(r"oct-status-\$\{\{ (.*) \}\}", _raw()["concurrency"]["group"])
+    assert expr, "the group is one expression after a fixed prefix"
+
+    def value(path: str) -> object:
+        if path == "github.run_id":
+            return run_id
+        node: object = event
+        for part in re.findall(r"[a-z_]+|\[\d+\]", path.removeprefix("github.event.")):
+            if part.startswith("["):
+                index = int(part[1:-1])
+                node = node[index] if isinstance(node, list) and len(node) > index else None
+            else:
+                node = node.get(part) if isinstance(node, dict) else None
+        return node
+
+    for operand in (o.strip() for o in expr[1].split("||")):
+        guarded = re.fullmatch(r"\((github\.event\.[\w.]+) && format\('([\w-]*)\{0\}', \1\)\)", operand)
+        if guarded:
+            result = value(guarded[1])
+            result = f"{guarded[2]}{result}" if result else None
+        else:
+            assert re.fullmatch(r"github\.[\w.\[\]]+", operand), operand
+            result = value(operand)
+        if result:
+            return f"oct-status-{result}"
+    raise AssertionError("github.run_id is always set")
+
+
+def test_concurrency_group_per_artifact_and_per_commit_for_forks():
+    sha = "c" * 40
+    assert _group({"issue": {"number": 5}}) == "oct-status-5"
+    assert _group({"pull_request": {"number": 6}}) == "oct-status-6"
+    assert _group({"check_suite": {"pull_requests": [{"number": 7}], "head_sha": sha}}) == "oct-status-7"
+    assert _group({"workflow_run": {"pull_requests": [{"number": 8}], "head_sha": sha}}) == "oct-status-8"
+    # M10: a fork's check suite or CI run names no pull request; it serialises per commit, not per run.
+    assert _group({"check_suite": {"pull_requests": [], "head_sha": sha}}) == f"oct-status-sha-{sha}"
+    assert _group({"workflow_run": {"pull_requests": [], "head_sha": sha}}) == f"oct-status-sha-{sha}"
+    assert _group({}) == "oct-status-777"  # schedule and manual runs
+
+
+def test_every_job_checks_out_the_default_branch_and_reads_the_payload_file():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    for name, job in _jobs().items():
+        for step in job["steps"]:
+            if "actions/checkout" in step.get("uses", ""):
+                assert step["with"] == {
+                    "ref": "${{ github.event.repository.default_branch }}",
+                    "persist-credentials": False,
+                }, name
+            assert "github.event." not in step.get("run", ""), name  # payload only via $GITHUB_EVENT_PATH
+    assert "workflow_run.head_branch" not in text and "head_commit" not in text

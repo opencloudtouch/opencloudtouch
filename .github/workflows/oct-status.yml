@@ -35,8 +35,16 @@ on:
       - review_requested
   pull_request_review:
   pull_request_review_comment:
+  # A resolved or unresolved review thread (wait:findings) has no Actions trigger
+  # (pull_request_review_thread is a webhook-only event): the next event of the PR or the daily audit
+  # picks it up.
   issue_comment:
   check_suite:
+    types: [completed]
+  # CI done (wait:ci). Runs in the base repository context even for fork pull requests: the run is
+  # resolved by its head SHA only, never by branch names or other text of the payload.
+  workflow_run:
+    workflows: [CI]
     types: [completed]
   discussion:
   discussion_comment:
@@ -59,9 +67,11 @@ on:
         default: 25
 
 concurrency:
-  # One group per artifact; a check suite joins the group of its pull request. GitHub keeps at most one
-  # pending run per group (a newer one replaces it), see the daily audit for what that can drop.
-  group: oct-status-${{ github.event.issue.number || github.event.pull_request.number || github.event.discussion.number || github.event.check_suite.pull_requests[0].number || github.run_id }}
+  # One group per artifact; a check suite or CI run joins the group of its pull request. A fork's check
+  # suite or CI run names no pull request: it gets a group per head commit (sha-<sha>), so runs of the
+  # same commit serialise. GitHub keeps at most one pending run per group (a newer one replaces it), see
+  # the daily audit for what that can drop.
+  group: oct-status-${{ github.event.issue.number || github.event.pull_request.number || github.event.discussion.number || github.event.check_suite.pull_requests[0].number || github.event.workflow_run.pull_requests[0].number || (github.event.check_suite.head_sha && format('sha-{0}', github.event.check_suite.head_sha)) || (github.event.workflow_run.head_sha && format('sha-{0}', github.event.workflow_run.head_sha)) || github.run_id }}
   cancel-in-progress: false
 
 # Least privilege: only the jobs that write (labels, status-write, backfill) get issues /

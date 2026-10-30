@@ -186,12 +186,69 @@ async def test_check_suite_maps_head_sha_to_pull_request():
 
 
 async def test_check_suite_without_pull_request_or_with_hostile_sha():
-    transport = FixtureTransport(extra={f"GET {ROOT}/commits/{'b' * 40}/pulls": []})
+    transport = FixtureTransport(extra={f"GET {ROOT}/commits/{'b' * 40}/pulls": [], f"GET {ROOT}/pulls": []})
     api = api_for(transport)
     assert await resolve_artifact(api, "check_suite", {"check_suite": {"head_sha": "b" * 40}}) is None
     before = len(transport.requests)
     assert await resolve_artifact(api, "check_suite", {"check_suite": {"head_sha": "../../x"}}) is None
     assert len(transport.requests) == before  # never interpolated into a path
+    await api.aclose()
+
+
+SHA = "c" * 40
+
+
+def workflow_run(pulls: list, head_repo: str = REPO, sha: str = SHA, **extra) -> dict:
+    run = {"head_sha": sha, "pull_requests": pulls, "head_repository": {"full_name": head_repo}, **extra}
+    return {"action": "completed", "workflow_run": run, "repository": {"full_name": REPO}}
+
+
+async def test_workflow_run_of_the_same_repository_uses_its_pull_request():
+    transport = FixtureTransport()
+    api = api_for(transport)
+    assert await resolve_artifact(api, "workflow_run", workflow_run([{"number": 16}])) == 16
+    assert transport.requests == []
+    await api.aclose()
+
+
+async def test_workflow_run_without_pull_request_maps_the_head_sha():
+    transport = FixtureTransport(extra={f"GET {ROOT}/commits/{SHA}/pulls": [{"number": 17}]})
+    api = api_for(transport)
+    assert await resolve_artifact(api, "workflow_run", workflow_run([])) == 17
+    await api.aclose()
+
+
+async def test_fork_workflow_run_never_trusts_payload_text():
+    """A fork run is resolved by its head SHA only; its pull request list and branch names are ignored."""
+    transport = FixtureTransport(
+        extra={
+            f"GET {ROOT}/commits/{SHA}/pulls": [],
+            f"GET {ROOT}/pulls": [{"number": 18, "head": {"sha": SHA, "ref": "x"}, "base": {"ref": "main"}}],
+        }
+    )
+    api = api_for(transport)
+    hostile = workflow_run([{"number": 99}], head_repo="mallory/r", head_branch="../../x")
+    assert await resolve_artifact(api, "workflow_run", hostile) == 18  # found among the open PRs by SHA
+    assert not any("99" in r or "mallory" in r or "../" in r for r in transport.requests)
+    before = len(transport.requests)
+    bad_sha = workflow_run([], head_repo="mallory/r", sha="../../x")
+    assert await resolve_artifact(api, "workflow_run", bad_sha) is None
+    assert len(transport.requests) == before
+    await api.aclose()
+
+
+async def test_check_suite_of_a_fork_commit_falls_back_to_the_open_pull_requests():
+    transport = FixtureTransport(
+        extra={
+            f"GET {ROOT}/commits/{SHA}/pulls": [],
+            f"GET {ROOT}/pulls": [
+                {"number": 3, "head": {"sha": "d" * 40}},
+                {"number": 19, "head": {"sha": SHA}},
+            ],
+        }
+    )
+    api = api_for(transport)
+    assert await resolve_artifact(api, "check_suite", {"check_suite": {"pull_requests": [], "head_sha": SHA}}) == 19
     await api.aclose()
 
 
