@@ -32,7 +32,7 @@ async def _json(api: GitHubApi, path: str) -> Any:
     return resp.json()
 
 
-async def _author_permission(api: GitHubApi, user: str) -> str | None:
+async def author_permission(api: GitHubApi, user: str) -> str | None:
     resp = await api.request("GET", f"/collaborators/{user}/permission")
     if resp.status_code == 404:
         return None
@@ -192,7 +192,7 @@ async def fetch_snapshot(
         merged=bool(data.get("merged", False)),
         draft=bool(data.get("draft", False)),
         author=author,
-        author_permission=await _author_permission(api, author) if author else None,
+        author_permission=await author_permission(api, author) if author else None,
         labels=frozenset(lb["name"] for lb in data.get("labels", [])),
         base_ref=base_ref,
         head_ref=head_ref,

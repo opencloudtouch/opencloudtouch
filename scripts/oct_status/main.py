@@ -16,12 +16,13 @@ import json
 import os
 import re
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
 import httpx
 
+from oct_status import commands
 from oct_status.api import GitHubApi
 from oct_status.apply import _find_guides, apply_state, is_own_event
 from oct_status.config import Config, load_config
@@ -175,12 +176,34 @@ class Workspace:
         if number not in self._snaps:
             heads = frozenset(p["head"]["ref"] for p in await self.open_prs())
             try:
-                self._snaps[number] = await fetch_snapshot(self.api, number, open_pr_heads=heads, cfg=self.cfg)
+                snap = await fetch_snapshot(self.api, number, open_pr_heads=heads, cfg=self.cfg)
             except httpx.HTTPStatusError as exc:
                 if exc.response.status_code != 404:
                     raise
                 self._snaps[number] = None  # dangling reference
+            else:
+                self._snaps[number] = await self._with_no_spec(snap)
         return self._snaps[number]
+
+    async def _with_no_spec(self, snap: Snapshot) -> Snapshot:
+        if not snap.is_pr:
+            return snap
+        try:
+            reason = await commands.find_no_spec(self.api, snap)
+        except httpx.HTTPError:
+            self.warnings.append(f"WARNING: comments of #{snap.number} unreadable; a /oct no-spec waiver is not seen")
+            return snap
+        return replace(snap, no_spec_reason=reason) if reason else snap
+
+    def patch(self, number: int, add: list[str], remove: list[str], no_spec_reason: str | None = None) -> None:
+        """Reflect a command's declaration in the loaded snapshot (the labels were written, or are planned)."""
+        snap = self._snaps.get(number)
+        if snap is None:
+            return
+        labels = (snap.labels - set(remove)) | set(add)
+        self._snaps[number] = replace(
+            snap, labels=frozenset(labels), no_spec_reason=no_spec_reason or snap.no_spec_reason
+        )
 
     async def neighbors(self, number: int) -> list[Edge]:
         """Edges of `number` whose other end exists; loads the neighbours (and stack partners)."""
@@ -234,7 +257,10 @@ class Outcome:
     unresolved: list[str] = field(default_factory=list)
 
 
-async def _converge(ws: Workspace, targets: list[int], dry_run: bool) -> list[Outcome]:
+Notes = dict[int, tuple[list[str], list[str]]]  # artifact -> (notices, history), newest first
+
+
+async def _converge(ws: Workspace, targets: list[int], dry_run: bool, notes: Notes | None = None) -> list[Outcome]:
     graph = ws.graph()
     outcomes: list[Outcome] = []
     for number in targets:
@@ -246,7 +272,8 @@ async def _converge(ws: Workspace, targets: list[int], dry_run: bool) -> list[Ou
             outcomes.append(Outcome(number, None))
             continue
         block = render_block(snap, derived, graph, ws.cfg)
-        guide = render_guide(snap, derived, next_steps(snap, derived, ws.cfg, graph), [], [], cfg=ws.cfg)
+        notices, history = (notes or {}).get(number, ([], []))
+        guide = render_guide(snap, derived, next_steps(snap, derived, ws.cfg, graph), notices, history, cfg=ws.cfg)
         writes = await apply_state(ws.api, snap, derived, block, guide, ws.cfg, dry_run)
         unresolved = parse_prose_edges(number, snap.body)[1]
         outcomes.append(Outcome(number, derived, block, writes, unresolved))
@@ -290,6 +317,65 @@ def _outcome_lines(outcome: Outcome, dry_run: bool, with_block: bool) -> list[st
     return [*lines, ""]
 
 
+@dataclass
+class CommandReport:
+    command: commands.Command
+    actor: str
+    ok: bool
+    message: str
+    writes: list[str]
+    notes: Notes
+
+
+async def _handle_command(ws: Workspace, number: int, payload: dict[str, Any], dry_run: bool) -> CommandReport | None:
+    """Parse, authorize and execute the `/oct` command of a new comment; ``None`` if there is none."""
+    comment = payload.get("comment")
+    if payload.get("action") != "created" or not isinstance(comment, dict) or not isinstance(comment.get("body"), str):
+        return None
+    cmd = commands.parse_command(comment["body"])
+    actor = _nested(payload, "comment", "user", "login")
+    if cmd is None or not isinstance(actor, str) or not commands.valid_login(actor):
+        return None
+    snap = ws.graph().snapshots.get(number)
+    if snap is None:
+        return None
+    comment_id = _number(comment.get("id"))
+    if comment_id is not None:
+        await commands.react(ws.api, comment_id, "eyes", dry_run=dry_run)
+    if await commands.authorize(ws.api, actor, cmd, ws.cfg):
+        derived = ws.graph().derived.get(number)
+        try:
+            result = await commands.execute(ws.api, cmd, snap, derived, actor, cfg=ws.cfg, dry_run=dry_run)
+        except httpx.HTTPError as exc:  # fail closed: nothing was declared
+            result = commands.Outcome(False, f"the command failed ({type(exc).__name__})")
+    else:
+        result = commands.Outcome(
+            False, f"/oct {cmd.name} needs {'maintain' if cmd.name in commands.MAINTAINER_COMMANDS else 'write'} access"
+        )
+    writes: list[str] = []
+    if result.ok:
+        writes = await commands.apply_declaration(ws.api, number, result.declare, dry_run=dry_run)
+        writes += result.effects
+        ws.patch(number, result.declare.get("add", []), result.declare.get("remove", []), result.no_spec_reason)
+    if comment_id is not None:
+        await commands.react(ws.api, comment_id, "+1" if result.ok else "-1", dry_run=dry_run)
+    if result.ok:
+        notes: Notes = {number: ([], [f"/oct {cmd.name} by {actor}: {result.message}"])}
+    else:
+        notes = {number: ([f"/oct {cmd.name} by {actor} was rejected: {result.message}"], [])}
+    return CommandReport(cmd, actor, result.ok, result.message, writes, notes)
+
+
+def _command_lines(report: CommandReport, dry_run: bool) -> list[str]:
+    state = "dry-run, planned" if dry_run else "performed"
+    verdict = "accepted" if report.ok else "rejected"
+    lines = [f"### Command {_inline('/oct ' + report.command.name)} by {_inline(report.actor)}: {verdict}", ""]
+    lines += [_inline(report.message), ""]
+    if report.writes:
+        lines += [f"Writes ({state}):", *[f"- {_inline(w)}" for w in report.writes], ""]
+    return lines
+
+
 async def run_event(api: GitHubApi, cfg: Config, event_name: str, payload: dict[str, Any], dry_run: bool) -> int:
     """Process one webhook event: recompute the artifact and its connected component (capped)."""
     if is_own_event(event_name, payload, set(cfg.bot_logins)):
@@ -305,9 +391,12 @@ async def run_event(api: GitHubApi, cfg: Config, event_name: str, payload: dict[
     ws = Workspace(api, cfg)
     component = await walk_component(number, ws.neighbors, cfg.fan_out_cap)
     targets = [number, *sorted(component - {number})]
-    outcomes = await _converge(ws, targets, dry_run)
+    report = await _handle_command(ws, number, payload, dry_run) if event_name == "issue_comment" else None
+    outcomes = await _converge(ws, targets, dry_run, report.notes if report else None)
     mode = "dry-run" if dry_run else "write"
     summary = [f"## OCT status ({mode}): event `{event_name}` on #{number}", "", *_warning_lines(ws), ""]
+    if report is not None:
+        summary += _command_lines(report, dry_run)
     for outcome in outcomes:
         summary += _outcome_lines(outcome, dry_run, with_block=True)
         print(f"#{outcome.number}: {len(outcome.writes)} write(s) {'planned' if dry_run else 'performed'}")

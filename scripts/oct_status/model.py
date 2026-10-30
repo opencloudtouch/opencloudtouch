@@ -149,6 +149,7 @@ class Snapshot:
     pushes: tuple[Push, ...]
     stack_drift: int | None
     head_is_fork: bool = False
+    no_spec_reason: str | None = None  # reason of a `/oct no-spec` by the PR author (design section 11)
 
 
 @dataclass(frozen=True)

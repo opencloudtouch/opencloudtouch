@@ -32,7 +32,7 @@ def detect_kind(snap: Snapshot, cfg: Config) -> Kind:
         return Kind.TEST_PLAN
     if snap.is_pr:
         match = _CONVENTIONAL.match(snap.title.strip())
-        if match and match.group(1).lower() in _CHORE_TYPES:
+        if snap.no_spec_reason or (match and match.group(1).lower() in _CHORE_TYPES):
             return Kind.DOCS_PR
         return Kind.PULL_REQUEST
     if "spec" in snap.labels:
