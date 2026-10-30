@@ -1194,9 +1194,41 @@ The status is written only in write mode, which is enabled by the repository var
 
 ## Agents and subagents
 
-Enforced by hooks once Task 16 lands. Until then the same rules apply by convention: never write the status
-block or fact labels, use `/oct` commands, start a pull request only for a `ready` spec with `Part of #n` or
+The rules are the same for agents as for people: never write the status block or the `phase:`, `wait:` and
+`resolution:` labels, use `/oct` commands, start a pull request only for a `ready` spec with `Part of #n` or
 `Closes #n` and the complete template, and read the guide comment's `oct-next-data` block for the next steps.
+Start every subagent prompt with the preamble from the "Status system" section of `CLAUDE.md`.
+
+For Claude Code the rules are enforced by hooks in the committed `.claude/settings.json` (code in
+`scripts/oct_status/hooks/`, Python 3.11 standard library only, started as `python`). The hooks also fire for
+the tool calls of subagents. Personal settings belong in `.claude/settings.local.json`; Claude Code merges both
+files.
+
+- **Description writes** (`issue_write` and `update_pull_request` of the GitHub MCP server): the guard reads the
+  artifact through the REST API (token from `GITHUB_TOKEN`, `GH_TOKEN`, `BOT_PAT` or `gh auth token`, else
+  anonymous; 5 seconds per request) and splices its current status block into the new description. If the
+  block cannot be read, the write is denied (fail closed): post a comment instead.
+- **Source marker**: descriptions, comments and reviews written through the GitHub MCP tools end with
+  `<!-- oct-src:1 -->`. Text that carries the guide comment's markers is denied, and the guide comment itself is
+  never edited.
+- **Status labels**: adding or removing a `phase:`, `wait:` or `resolution:` label is denied with the matching
+  `/oct` command (for fact labels: the note that the automation derives them).
+- **Pull request creation** (`create_pull_request`) is denied without `Part of #n` or `Closes #n` (outside HTML
+  comments), a docs/ci/chore/style/test title or `/oct no-spec REASON` in the description (post that command as a
+  comment as well: the automation reads it from comments); when a heading or item of
+  `.github/pull_request_template.md` is missing; and when a referenced spec is below `phase:ready`, or waits on a
+  prerequisite while the base branch is not the head of another open pull request (stacked-on). A spec without
+  any phase label (not backfilled yet) passes when its Definition of Ready checklist is complete or absent.
+- **Bash**: `gh pr create`, `gh issue|pr edit|create|comment` with a body flag or a status label, and direct
+  writes to issues and pull requests through `gh api`, `curl`, `wget` and similar clients (REST or GraphQL) are
+  denied with the allowed route (the MCP tools above, or a `/oct` command). Every other command passes untouched.
+- **Denials** quote the next steps from the guide comment's data block when it can be read. A rewritten call is
+  shown for confirmation in the default and plan permission modes and approved in the other modes.
+- **Session start**: the hook injects these rules and, when the artifact is clear (a branch `type/<n>-...`, or
+  the open pull request of the current branch), its status block and guide data. It never fails the session.
+- **Failures**: an internal error of the guard blocks GitHub writes (exit code 2) and leaves other Bash commands
+  alone. If `python` is not found, Claude Code reports a hook error and the call proceeds unguarded; the workflow
+  (heal, revert, the commit status `oct-status`) still applies, as it does for the web UI and hook-less tools.
 
 ## Troubleshooting
 
