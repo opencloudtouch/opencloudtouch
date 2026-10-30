@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import httpx
+
 from .api import GitHubApi
 from .graph import parse_prose_edges
 from .model import Check, EdgeType, Review, Snapshot
@@ -50,9 +52,17 @@ async def _stack_drift(api: GitHubApi, base: str, head: str, open_pr_heads: froz
 
 
 async def _unresolved_threads(api: GitHubApi, number: int) -> int:
+    """Unresolved review threads, or -1 (unknown) when GraphQL fails or answers unexpectedly."""
     owner, name = api.repo.split("/", 1)
-    data = await api.graphql(_THREADS_QUERY, {"owner": owner, "name": name, "number": number})
-    nodes = data["repository"]["pullRequest"]["reviewThreads"]["nodes"]
+    try:
+        data = await api.graphql(_THREADS_QUERY, {"owner": owner, "name": name, "number": number})
+    except (httpx.HTTPError, RuntimeError):  # transport/HTTP failure or an `errors` payload
+        return -1
+    repository = (data or {}).get("repository") or {}
+    pull = repository.get("pullRequest") or {}
+    nodes = (pull.get("reviewThreads") or {}).get("nodes")
+    if nodes is None:
+        return -1
     return sum(1 for node in nodes if not node["isResolved"])
 
 

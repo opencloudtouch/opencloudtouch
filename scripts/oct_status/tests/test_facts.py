@@ -84,3 +84,38 @@ async def test_threads_use_graphql():
     assert snap.unresolved_threads == 2
     off = await fetch_snapshot(_api(FixtureTransport([574])), 574, use_graphql=False)
     assert off.unresolved_threads == -1
+
+
+async def _no_sleep(_: float) -> None:
+    return None
+
+
+async def _assert_degraded(transport: httpx.AsyncBaseTransport) -> None:
+    api = GitHubApi("t", REPO, transport=transport, sleep=_no_sleep)
+    snap = await fetch_snapshot(api, 574)
+    assert snap.unresolved_threads == -1
+    assert snap.head_sha and snap.checks
+
+
+async def test_graphql_http_error_degrades_to_unknown():
+    await _assert_degraded(FixtureTransport([574], extra={"POST /graphql": (502, {"message": "bad gateway"})}))
+
+
+async def test_graphql_transport_error_degrades_to_unknown():
+    class Failing(FixtureTransport):
+        def _handle(self, request: httpx.Request) -> httpx.Response:
+            if request.url.path == "/graphql":
+                raise httpx.ConnectError("down", request=request)
+            return super()._handle(request)
+
+    await _assert_degraded(Failing([574]))
+
+
+async def test_graphql_errors_payload_degrades_to_unknown():
+    body = {"errors": [{"message": "boom"}], "data": None}
+    await _assert_degraded(FixtureTransport([574], extra={"POST /graphql": body}))
+
+
+async def test_graphql_null_pull_request_degrades_to_unknown():
+    body = {"data": {"repository": {"pullRequest": None}}}
+    await _assert_degraded(FixtureTransport([574], extra={"POST /graphql": body}))
