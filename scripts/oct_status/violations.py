@@ -2,7 +2,8 @@
 
 A violation is a breach of the workflow rules by a person. Automation actors and first-time fork
 contributors are exempt. The detectors only report; the ledger counts and the ladder decides what
-the notice says. Blocking a pull request or reverting an issue change is not done here (flags only).
+the notice says. Blocking a pull request (``main.run_check``) and reverting an issue change
+(``main._revert``) act on the flags of `Notice`.
 """
 
 from __future__ import annotations
@@ -25,6 +26,10 @@ FACT_WAITS = frozenset(f"wait:{w}" for w in ("maintainer", "findings", "ci", "pr
 FACT_LABELS = FACT_PHASES | FACT_WAITS
 LEVEL_OVERRIDE_HINT = 2
 LEVEL_BLOCK = 3
+# Rules whose offending change the automation undoes on an issue: fact labels (V02) and the block (V03).
+REVERTED_RULES = frozenset({"V02", "V03"})
+STATE_RULES = frozenset({"V01", "V04", "V06"})
+KEY_CHARS = 120  # a template key is stored (and compared) with at most this many characters
 
 
 @dataclass(frozen=True)
@@ -93,6 +98,9 @@ class Violation:
     artifact: int
     user: str
     hint: str
+    # What resolves an event violation later: the label (V02), the removed template keys (V05, one
+    # per line) or the declaration command (V07). Empty for the other rules.
+    key: str = ""
 
 
 @dataclass(frozen=True)
@@ -122,7 +130,8 @@ class Notice:
         return self.level >= LEVEL_BLOCK and is_pr
 
     def revert(self, is_pr: bool) -> bool:
-        return self.level >= LEVEL_BLOCK and not is_pr
+        """Issues cannot be blocked: at level 3 the change is undone where the automation can undo it."""
+        return self.level >= LEVEL_BLOCK and not is_pr and self.violation.rule in REVERTED_RULES
 
 
 def classify_actor(snap: Snapshot, cfg: Config) -> str:
@@ -151,6 +160,11 @@ def _plain(text: str, limit: int = 120) -> str:
 _HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*$")
 _ITEM = re.compile(r"^\s*[-*+]\s+\[[ xX]\]\s*(.*?)\s*$")
 _COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+
+
+def template_keys(body: str) -> set[str]:
+    """Template keys of a body outside the status block (public form for the notice resolution)."""
+    return _template_keys(_without_block(body))
 
 
 def _template_keys(body: str) -> set[str]:
@@ -201,12 +215,17 @@ def _pull_request_rules(snap: Snapshot, graph: Graph, cfg: Config) -> list[tuple
     return found
 
 
-def _event_rules(snap: Snapshot, derived: Derived, event: EventFacts) -> list[tuple[str, str]]:
-    """(rule, hint) of V02, V03, V05, V07 and V08: the actor's own change in this event."""
-    found: list[tuple[str, str]] = []
+def state_rules(snap: Snapshot, graph: Graph, cfg: Config) -> set[str]:
+    """Rules among V01, V04 and V06 that the pull request breaks right now."""
+    return {rule for rule, _ in _pull_request_rules(snap, graph, cfg)}
+
+
+def _event_rules(snap: Snapshot, derived: Derived, event: EventFacts) -> list[tuple[str, str, str]]:
+    """(rule, hint, key) of V02, V03, V05, V07 and V08: the actor's own change in this event."""
+    found: list[tuple[str, str, str]] = []
     if event.action in ("labeled", "unlabeled") and event.label in FACT_LABELS:
         verb = "added" if event.action == "labeled" else "removed"
-        found.append(("V02", f"The label `{_plain(event.label)}` was {verb} by hand."))
+        found.append(("V02", f"The label `{_plain(event.label)}` was {verb} by hand.", event.label))
     if event.action == "edited" and event.body_before is not None:
         block = extract_block(snap.body)
         # Judged on the body after the edit: the block must be present (it was before the edit) and
@@ -214,14 +233,17 @@ def _event_rules(snap: Snapshot, derived: Derived, event: EventFacts) -> list[tu
         if (block is None and extract_block(event.body_before) is not None) or (
             block is not None and not block_intact(block)
         ):
-            found.append(("V03", "The oct-status block was changed or removed in the description."))
+            found.append(("V03", "The oct-status block was changed or removed in the description.", ""))
         if snap.is_pr or "spec" in snap.labels:
             gone = sorted(_template_keys(_without_block(event.body_before)) - _template_keys(_without_block(snap.body)))
             if gone:
                 names = ", ".join(_plain(k[2:], 40) for k in gone[:3])
-                found.append(("V05", f"Removed from the description: {names}."))
+                found.append(
+                    ("V05", f"Removed from the description: {names}.", "\n".join(k[:KEY_CHARS] for k in gone[:5]))
+                )
     if event.rejected:
-        found.append(("V07", f"{_plain(event.rejected, 200)}."))
+        command = event.rejected.removeprefix("/oct ").split(" ", 1)[0]
+        found.append(("V07", f"{_plain(event.rejected, 200)}.", command))
     if (
         event.action == "closed"
         and not snap.is_pr
@@ -230,7 +252,7 @@ def _event_rules(snap: Snapshot, derived: Derived, event: EventFacts) -> list[tu
         and event.closed_by_change is False  # unknown (None) fails closed: no strike
         and derived.phase == Phase.VERIFICATION
     ):
-        found.append(("V08", "The artifact was closed while the hardware verification is still open."))
+        found.append(("V08", "The artifact was closed while the hardware verification is still open.", ""))
     return found
 
 
@@ -254,7 +276,8 @@ def detect(
     if event is not None and event.actor and event.actor not in cfg.automation and event.actor not in cfg.bot_logins:
         if not (event.actor == snap.author and author_exempt):
             out += [
-                Violation(rule, snap.number, event.actor, hint) for rule, hint in _event_rules(snap, derived, event)
+                Violation(rule, snap.number, event.actor, hint, key)
+                for rule, hint, key in _event_rules(snap, derived, event)
             ]
     return out
 

@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 
 from .config import Config
+from .facts import UNKNOWN_PATHS
 from .model import Check, Derived, EdgeType, Graph, Kind, Phase, Resolution, Review, Snapshot, Wait
 
 DEPENDABOT = "dependabot[bot]"
@@ -96,6 +97,9 @@ def _declarable(kind: Kind) -> set[Phase]:
     return reachable | _LABEL_DECLARATIONS.get(kind, set())
 
 
+DOR_MISSING = "Definition of Ready section missing"
+
+
 def dor_status(body: str) -> tuple[bool, list[str]]:
     """Whether the `## Definition of Ready` checklist is complete, and its open items.
 
@@ -110,7 +114,7 @@ def dor_status(body: str) -> tuple[bool, list[str]]:
             level, start = len(match[1]), index + 1
             break
     if not level:
-        return False, ["Definition of Ready section missing"]
+        return False, [DOR_MISSING]
     items = 0
     open_items: list[str] = []
     for line in lines[start:]:
@@ -127,6 +131,14 @@ def dor_status(body: str) -> tuple[bool, list[str]]:
     return not open_items, open_items
 
 
+def legacy_spec(body: str) -> bool:
+    """A spec written before the Definition of Ready existed: its body has no DoR section at all.
+
+    Specs created from the issue form always carry the section; deleting it is violation V05.
+    """
+    return dor_status(body)[1] == [DOR_MISSING]
+
+
 def _labelled(snap: Snapshot, enum: type[Phase] | type[Wait] | type[Resolution]) -> list:
     prefix = enum.__name__.lower() + ":"
     values = {lb[len(prefix) :] for lb in snap.labels if lb.startswith(prefix)}
@@ -139,7 +151,10 @@ def _declared_phase(snap: Snapshot, kind: Kind) -> Phase:
         if phase not in _declarable(kind):
             continue
         if kind == Kind.SPEC and phase in _DOR_GATED and not dor_status(snap.body)[0]:
-            continue
+            # A legacy spec (no DoR section) keeps a declaration only our own accounts wrote: the
+            # backfill (MA-6) declares legacy specs with pull requests ready.
+            if not (legacy_spec(snap.body) and phase.label in snap.bot_phase_labels):
+                continue
         return phase
     return _DEFAULT_PHASE.get(kind, Phase.NEW)
 
@@ -151,7 +166,8 @@ def _declared_floor(snap: Snapshot, kind: Kind) -> Phase:
     keeps the declaration when the facts go away again, for example when the only PR is closed.
     A fact label can also be set by hand (violation V02), so only labels our own accounts wrote
     (`Snapshot.bot_phase_labels`) count, and a spec additionally needs a complete Definition of
-    Ready. The legacy `wip` label (renamed by the label sync) counts as before.
+    Ready, or is a legacy spec without any DoR section. The legacy `wip` label (renamed by the
+    label sync) counts as before.
     """
     declared = _declared_phase(snap, kind)
     floor = _STARTED_FLOOR.get(kind)
@@ -159,7 +175,7 @@ def _declared_floor(snap: Snapshot, kind: Kind) -> Phase:
         return declared
     started = "wip" in snap.labels
     written = {p for p in _labelled(snap, Phase) if p.label in snap.bot_phase_labels}
-    if written & _STARTED and (kind != Kind.SPEC or dor_status(snap.body)[0]):
+    if written & _STARTED and (kind != Kind.SPEC or dor_status(snap.body)[0] or legacy_spec(snap.body)):
         started = True
     return max(declared, floor, key=_PHASE_ORDER.index) if started else declared
 
@@ -251,6 +267,58 @@ def _findings(snap: Snapshot) -> bool:
     return any(c.name in _QUALITY_GATES and _failed(c) for c in snap.checks)
 
 
+def _glob(pattern: str) -> re.Pattern[str]:
+    """`**` matches across directories, `*` and `?` within one path segment."""
+    out: list[str] = []
+    index = 0
+    while index < len(pattern):
+        if pattern.startswith("**", index):
+            out.append(".*")
+            index += 2
+            continue
+        char = pattern[index]
+        out.append("[^/]*" if char == "*" else "[^/]" if char == "?" else re.escape(char))
+        index += 1
+    return re.compile("".join(out))
+
+
+def touches_protected(paths: list[str] | tuple[str, ...], patterns: list[str]) -> list[str]:
+    """The paths that match a protected pattern, in their order.
+
+    ``facts.UNKNOWN_PATHS`` (a commit with more files than GitHub lists) counts as a touch: what is
+    not listed cannot be shown to be harmless (fail closed).
+    """
+    if not patterns:
+        return []
+    compiled = [_glob(p) for p in patterns]
+    return [
+        path for path in paths if path == UNKNOWN_PATHS or any(rx.fullmatch(path.removeprefix("./")) for rx in compiled)
+    ]
+
+
+def protected_changes(snap: Snapshot, cfg: Config) -> list[tuple[str, str]]:
+    """(automation login, path) of pushes to protected paths that no maintainer acknowledged yet.
+
+    Design section 7, rule 3: a push by any automation actor counts, also on docs / no-spec PRs; a
+    human's push never does (its paths are not even fetched). `/oct accept-paths` acknowledges
+    everything up to the head it was given on; when that commit is no longer on the branch the
+    acknowledgement covers nothing (fail closed).
+    """
+    if not snap.is_pr or not _is_open(snap):
+        return []
+    pushes = list(snap.pushes)
+    shas = [p.sha for p in pushes]
+    if snap.paths_accepted and snap.paths_accepted in shas:
+        pushes = pushes[shas.index(snap.paths_accepted) + 1 :]
+    found = {
+        (push.author, path)
+        for push in pushes
+        if push.author in cfg.automation
+        for path in touches_protected(push.paths, cfg.protected_paths)
+    }
+    return sorted(found)
+
+
 def _ci(snap: Snapshot, cfg: Config) -> bool:
     gates = [c for c in snap.checks if c.name in cfg.gate_checks]
     return any(_pending(c) or (_failed(c) and c.name not in _QUALITY_GATES) for c in gates)
@@ -313,7 +381,7 @@ def _derive_pr(snap: Snapshot, graph: Graph, cfg: Config) -> Derived:
     waits = _open_waits(snap, graph, cfg)
     if not snap.draft and not _approved(snap, cfg):
         waits.add(Wait.MAINTAINER)
-    if _findings(snap):
+    if _findings(snap) or protected_changes(snap, cfg):
         waits.add(Wait.FINDINGS)
     if _ci(snap, cfg):
         waits.add(Wait.CI)

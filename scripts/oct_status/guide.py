@@ -13,7 +13,7 @@ from dataclasses import asdict, dataclass, replace
 from .config import Config
 from .model import Derived, EdgeType, Graph, Snapshot, Wait
 from .render import neutralise
-from .rules import detect_kind, dor_status, legal_transitions
+from .rules import detect_kind, dor_status, legal_transitions, protected_changes
 from .violations import RULES, Notice
 
 MAX_STEPS = 5
@@ -58,6 +58,23 @@ def _blockers(snap: Snapshot, graph: Graph | None) -> list[str]:
     return names
 
 
+def describe_paths(changes: list[tuple[str, str]], limit: int = 5) -> str:
+    """Changed protected files as inline code, at most `limit` of them (file names are untrusted)."""
+    paths = sorted({path for _, path in changes})
+    names = ", ".join("`" + " ".join(p.replace("`", "'").split())[:120] + "`" for p in paths[:limit])
+    return names + (f" and {len(paths) - limit} more" if len(paths) > limit else "")
+
+
+def protected_notice(changes: list[tuple[str, str]]) -> str:
+    """Notice for automation pushes to protected paths that no maintainer acknowledged yet."""
+    actors = ", ".join(sorted({actor for actor, _ in changes}))
+    return (
+        f"Automation ({actors}) pushed changes to protected paths: {describe_paths(changes)}. "
+        "`wait:findings` stays and the check oct-status fails until a maintainer reviews them and "
+        "acknowledges with `/oct accept-paths`."
+    )
+
+
 def _wait_step(wait: Wait, snap: Snapshot, graph: Graph | None) -> Step:
     if wait == Wait.MAINTAINER:
         return Step("author", "Request the review by oct-support; its approval clears wait:maintainer", "/oct approve")
@@ -96,6 +113,8 @@ def valid_commands(snap: Snapshot, derived: Derived, cfg: Config) -> list[str]:
     """Every command legal now: state-machine transitions plus those that clear a wait."""
     commands = [_COMMANDS[c] for c in legal_transitions(detect_kind(snap, cfg), derived.phase)]
     commands += [_WAIT_COMMANDS[w] for w in sorted(derived.waits, key=_WAIT_ORDER.index) if w in _WAIT_COMMANDS]
+    if Wait.FINDINGS in derived.waits and protected_changes(snap, cfg):
+        commands.append("/oct accept-paths")
     return commands
 
 
@@ -116,6 +135,9 @@ def _transition_step(command: str, body: str) -> Step:
 def next_steps(snap: Snapshot, derived: Derived, cfg: Config, graph: Graph | None = None) -> list[Step]:
     """At most five steps: first what clears each wait, then the legal transitions."""
     steps = [_wait_step(w, snap, graph) for w in sorted(derived.waits, key=_WAIT_ORDER.index)]
+    if Wait.FINDINGS in derived.waits and (changes := protected_changes(snap, cfg)):
+        text = f"Review the automation's changes to protected paths ({describe_paths(changes)}), then acknowledge them"
+        steps.insert(0, Step("maintainer", text, "/oct accept-paths"))
     for command in legal_transitions(detect_kind(snap, cfg), derived.phase):
         steps.append(_transition_step(command, snap.body))
     return steps[:MAX_STEPS]
@@ -125,7 +147,7 @@ def format_notice(notice: Notice, is_pr: bool) -> str:
     """Guide text of a violation: what happened, what was expected, next steps, the rule anchor and the ladder step.
 
     Level 1 is advice only, level 2 adds the maintainer override, level 3 and up blocks a pull request
-    or reverts the change on an issue or discussion (the notice only states it; Task 20 enforces it).
+    or reverts the change on an issue (for the rules in ``violations.REVERTED_RULES``); `main` acts on both.
     """
     v, rule = notice.violation, RULES[notice.violation.rule]
     link = f"[{v.rule}]({WORKFLOW}#{rule.anchor})"
@@ -157,8 +179,12 @@ def render_guide(
     notices: list[str],
     history: list[str],
     cfg: Config | None = None,
+    data: dict | None = None,
 ) -> str:
-    """The guide comment; `history` and `notices` are newest first, resolved notices start with ``[resolved] ``."""
+    """The guide comment; `history` and `notices` are newest first, resolved notices start with ``[resolved] ``.
+
+    `data` adds keys to the machine-readable block (the persisted notices, see ``notices.state_data``).
+    """
     out = ["<!-- oct-next:v1 -->", ""]
     out += _section("Last action", [_safe(history[0]) if history else "-"])
     waits = ", ".join(w.value for w in sorted(derived.waits, key=_WAIT_ORDER.index)) or "nothing"
@@ -187,6 +213,7 @@ def render_guide(
         "phase": derived.phase.value,
         "waits": sorted(w.value for w in derived.waits),
         "next": [asdict(replace(s, text=_safe(s.text))) for s in steps[:MAX_STEPS]],
+        **(data or {}),
     }
     payload = json.dumps(data, sort_keys=True).replace("--", "\\u002d\\u002d")
     out.append(f"<!-- oct-next-data {payload} -->")

@@ -31,6 +31,26 @@ for _a, _b in _INVERSE_PAIRS:
 _INVERSE[EdgeType.RELATED] = EdgeType.RELATED
 _INVERSE[EdgeType.FOLLOW_UP] = EdgeType.FOLLOW_UP
 
+# Edge types along which the event fan-out propagates (ruling M4): the derived state at the other end
+# depends on this artifact. `tracked-by` goes up to a tracking issue, whose phase follows its children;
+# `tracks` is left out, so a walk never comes back down to the siblings. `verifies` carries a closed
+# test plan to its target. Display-only relations (origin, supersedes, related, follow-up) are healed
+# by the daily audit.
+PROPAGATING = frozenset(
+    {
+        EdgeType.IMPLEMENTS,
+        EdgeType.IMPLEMENTED_BY,
+        EdgeType.STACKED_ON,
+        EdgeType.STACKED_BY,
+        EdgeType.DEPENDS_ON,
+        EdgeType.BLOCKS,
+        EdgeType.SPECIFIED_BY,
+        EdgeType.SPECIFIES,
+        EdgeType.VERIFIES,
+        EdgeType.TRACKED_BY,
+    }
+)
+
 _PROSE_TYPES = {
     "closes": EdgeType.IMPLEMENTS,
     "part of": EdgeType.IMPLEMENTS,

@@ -59,13 +59,16 @@ async def _comments(api: GitHubApi, number: int) -> list[dict[str, Any]]:
         page += 1
 
 
-async def _find_guides(api: GitHubApi, number: int, bot_logins: tuple[str, ...]) -> list[dict[str, Any]]:
+def guides_in(comments: list[dict[str, Any]], bot_logins: tuple[str, ...]) -> list[dict[str, Any]]:
+    """Our guide comments among `comments` (marker and author), oldest first."""
     found = [
-        c
-        for c in await _comments(api, number)
-        if MARKER in (c.get("body") or "") and (c.get("user") or {}).get("login") in bot_logins
+        c for c in comments if MARKER in (c.get("body") or "") and (c.get("user") or {}).get("login") in bot_logins
     ]
-    return sorted(found, key=lambda c: c["id"])  # oldest first
+    return sorted(found, key=lambda c: c["id"])
+
+
+async def _find_guides(api: GitHubApi, number: int, bot_logins: tuple[str, ...]) -> list[dict[str, Any]]:
+    return guides_in(await _comments(api, number), bot_logins)
 
 
 async def upsert_guide(
@@ -120,8 +123,14 @@ async def apply_state(
     guide: str | None,
     cfg: Config,
     dry_run: bool = False,
+    *,
+    comments: bool = True,
 ) -> list[str]:
-    """Converge the artifact to the derived state; returns the writes performed (planned if `dry_run`)."""
+    """Converge the artifact to the derived state; returns the writes performed (planned if `dry_run`).
+
+    With ``comments=False`` no comment is created or edited (backfill: no notifications; and when the
+    persisted guide state could not be read): a block that lives in the pinned comment is not written.
+    """
     if block is None and guide is None:  # announcements: nothing is ever written
         return []
     done = await _sync_labels(api, snap, derived, dry_run)
@@ -136,7 +145,7 @@ async def apply_state(
     content = guide
     if block is not None and in_comment:
         content = f"{MARKER}\n{block}" if guide is None else f"{block}\n\n{guide}"
-    if content is not None:
+    if content is not None and comments:
         result = await upsert_guide(api, snap.number, content, cfg.bot_logins, dry_run=dry_run)
         if result != "unchanged":
             done.append(f"guide comment {result}")

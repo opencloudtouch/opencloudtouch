@@ -557,3 +557,31 @@ def test_cli_dry_run_uses_read_only_api(monkeypatch, cli_repo, tmp_path):
     assert main.cli([*args, "--dry-run"]) == 0
     assert main.cli(args) == 0
     assert seen == [True, False]
+
+
+class TrackingRepo(FakeRepo):
+    """FakeRepo whose issue 50 tracks 51 and 52 as native sub-issues."""
+
+    def handler(self, request: httpx.Request) -> httpx.Response:
+        if request.url.path == f"{ROOT}/issues/50/sub_issues":
+            return httpx.Response(200, json=[{"number": 51}, {"number": 52}])
+        return super().handler(request)
+
+
+async def test_fan_out_follows_propagating_edges_only():
+    from oct_status.graph import walk_component
+    from oct_status.main import Workspace
+
+    repo = TrackingRepo()
+    repo.add(50)
+    repo.issues[50]["title"] = "[Tracking] all of it"
+    repo.add(51)
+    repo.add(52)
+    api = api_for(repo)
+    await run_event(api, CFG, "issues", issue_event(50), dry_run=False)
+    assert repo.written_numbers("PATCH") == {50}  # children are read for the phase, not rewritten
+    ws = Workspace(api, CFG)
+    await ws.load(50)
+    # Up from a child to its tracking issue, never back down to the sibling.
+    assert await walk_component(51, ws.fan_out, 25) == {50, 51}
+    await api.aclose()

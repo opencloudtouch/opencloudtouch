@@ -272,8 +272,12 @@ def test_ladder_messages():
         three = format_notice(escalate(V, level), True)
         assert "/oct override" in three and "oct-status fails" in three
         assert escalate(V, level).blocks(True) is True and escalate(V, level).revert(True) is False
-        assert escalate(V, level).revert(False) is True and escalate(V, level).blocks(False) is False
-        assert "reverted" in format_notice(escalate(V, level), False)
+        # Only what the automation can undo is reverted on an issue: fact labels (V02) and the block (V03).
+        assert escalate(V, level).revert(False) is False and escalate(V, level).blocks(False) is False
+        assert "reverted" not in format_notice(escalate(V, level), False)
+        label = Violation("V02", 7, "bob", "The label was added by hand.", "phase:done")
+        assert escalate(label, level).revert(False) is True and escalate(label, level).revert(True) is False
+        assert "reverted" in format_notice(escalate(label, level), False)
     assert not escalate(V, 2).blocks(True) and not escalate(V, 2).revert(False)
     assert escalate(V, 0).level == 1  # inactive strikes and an unreadable ledger never escalate
 

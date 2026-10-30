@@ -1,7 +1,13 @@
 name: OCT Status
 
-# Milestone 1 (shadow mode): every event is computed and the result goes to the job summary only.
-# The event steps run with --dry-run; write mode is a later milestone.
+# Write mode is gated by the repository variable OCT_STATUS_WRITE (maintainer action MA-5, after
+# the shadow week). While it is not 'true' the workflow stays in shadow mode: the `status` job runs
+# every event and the daily audit with --dry-run (read-only API, job summary only) and the
+# `oct-status` check only reports (continue-on-error). With OCT_STATUS_WRITE == 'true' the
+# `status-write` job writes labels, blocks and guide comments with BOT_PAT and the check blocks.
+# The backfill (mode=backfill, MA-6) and the label sync are manual workflow_dispatch runs that stay
+# dry-run unless dry_run=false is chosen. Strikes stay off until strikes_enabled_from is set in
+# scripts/oct_status/config.yml.
 #
 # Security: pull_request_target runs with base repository secrets, so this workflow checks out the
 # default branch only and never the pull request head. Event payloads are untrusted data: they are
@@ -32,21 +38,25 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: Operation to run (labels, or a dry-run audit of all open artifacts)
+        description: Operation to run (labels, audit of all open artifacts, or one backfill batch)
         type: choice
-        options: [labels, audit]
+        options: [labels, audit, backfill]
         default: labels
       dry_run:
-        description: Plan only, perform no writes (applies to the labels mode)
+        description: Plan only, perform no writes (labels and backfill; audit writes only with OCT_STATUS_WRITE)
         type: boolean
         default: true
+      limit:
+        description: Artifacts per backfill run
+        type: number
+        default: 25
 
 concurrency:
   group: oct-status-${{ github.event.issue.number || github.event.pull_request.number || github.event.discussion.number || github.run_id }}
   cancel-in-progress: false
 
-# Shadow mode needs no write access. Milestone 2 (write mode) re-adds issues / pull-requests /
-# discussions write for the event job.
+# Least privilege: only the jobs that write (labels, status-write, backfill) get issues /
+# pull-requests write. Discussions are not handled yet, so no job gets discussions write.
 permissions:
   contents: read
 
@@ -83,8 +93,9 @@ jobs:
           python -m oct_status "${args[@]}"
 
   status:
+    # Shadow mode (OCT_STATUS_WRITE is not 'true'): compute everything, write nothing.
     name: status
-    if: github.event_name != 'workflow_dispatch' || inputs.mode == 'audit'
+    if: (github.event_name != 'workflow_dispatch' || inputs.mode == 'audit') && vars.OCT_STATUS_WRITE != 'true'
     runs-on: ubuntu-latest
     permissions:
       issues: read
@@ -119,9 +130,106 @@ jobs:
           PYTHONPATH: scripts
         run: python -m oct_status --audit --dry-run
 
+  status-write:
+    # Write mode (OCT_STATUS_WRITE == 'true', set by the maintainer at MA-5). Writes use BOT_PAT.
+    name: status
+    if: (github.event_name != 'workflow_dispatch' || inputs.mode == 'audit') && vars.OCT_STATUS_WRITE == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      checks: read
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Base repository only, never the pull request head (pull_request_target has secrets).
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: pip install -r scripts/oct_status/requirements.txt
+      - name: Process event
+        if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+        env:
+          BOT_PAT: ${{ secrets.BOT_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONPATH: scripts
+          EVENT_NAME: ${{ github.event_name }}
+        run: python -m oct_status --event "$EVENT_NAME" --payload "$GITHUB_EVENT_PATH"
+      - name: Audit open artifacts
+        # The scheduled audit heals drift; a manual audit stays dry-run unless dry_run=false.
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          BOT_PAT: ${{ secrets.BOT_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONPATH: scripts
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=(--audit)
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          python -m oct_status "${args[@]}"
+
+  backfill:
+    # One rate-limited batch (MA-6); repeat until the summary prints "remaining: 0". The state file
+    # (artifact numbers only) is carried between runs in the Actions cache.
+    name: backfill
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: oct-status-backfill
+      cancel-in-progress: false
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read
+    env:
+      OCT_BACKFILL_STATE: .oct-backfill/state.json
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: pip install -r scripts/oct_status/requirements.txt
+      - name: Restore backfill state
+        uses: actions/cache/restore@v6
+        with:
+          path: .oct-backfill
+          key: oct-backfill-state-${{ github.run_id }}
+          restore-keys: oct-backfill-state-
+      - name: Backfill one batch
+        # dry_run=false is a manual maintainer action (real label and block writes, no comments).
+        env:
+          BOT_PAT: ${{ secrets.BOT_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONPATH: scripts
+          DRY_RUN: ${{ inputs.dry_run }}
+          LIMIT: ${{ inputs.limit }}
+        run: |
+          mkdir -p .oct-backfill
+          args=(--backfill --limit "$LIMIT")
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          python -m oct_status "${args[@]}"
+      - name: Save backfill state
+        if: always() && inputs.dry_run == false && hashFiles('.oct-backfill/state.json') != ''
+        uses: actions/cache/save@v6
+        with:
+          path: .oct-backfill
+          key: oct-backfill-state-${{ github.run_id }}
+
   oct-status:
     name: oct-status
-    needs: status
+    needs: [status, status-write]
     if: ${{ !cancelled() && github.event_name == 'pull_request_target' }}
     runs-on: ubuntu-latest
     permissions:
@@ -140,8 +248,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r scripts/oct_status/requirements.txt
       - name: Check status block
-        # Shadow mode: report only. The step becomes blocking when write mode is enabled.
-        continue-on-error: true
+        # Reports only in shadow mode; blocking (exit 1 = red) once OCT_STATUS_WRITE is 'true'.
+        continue-on-error: ${{ vars.OCT_STATUS_WRITE != 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}

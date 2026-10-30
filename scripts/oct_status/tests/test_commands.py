@@ -16,7 +16,7 @@ from oct_status.api import GitHubApi
 from oct_status.apply import MARKER
 from oct_status.commands import Command, Outcome, authorize, execute, parse_command
 from oct_status.main import Workspace, run_event
-from oct_status.model import Derived, Phase, Review, Wait
+from oct_status.model import Derived, Phase, Push, Review, Wait
 
 from .conftest import FixtureTransport, make_snapshot
 from .test_main_events import BOT, CFG, ROOT, FakeRepo, _nosleep, api_for
@@ -363,9 +363,22 @@ async def test_override_and_accept_paths_are_logged():
     assert out.ok and out.log == "override by scheilch: flaky"
     assert "override accepted" in out.message
     assert not (await _run("override", "", snap, _derived(Phase.IN_REVIEW))).ok
+    # accept-paths needs a pending automation push to a protected path (see test_protected_paths.py).
     out = await _run("accept-paths", "", snap, _derived(Phase.IN_REVIEW), actor="scheilch")
-    assert out.ok and out.log == "accept-paths by scheilch"
-    assert "guide only" in out.message and "no effect yet" in out.message
+    assert not out.ok and "no unacknowledged" in out.message
+    cfg = dataclasses.replace(CFG, protected_paths=[".github/workflows/**"])
+    pushed = make_snapshot(is_pr=True, head_sha="f" * 40, pushes=(Push("f" * 40, BOT, (".github/workflows/a.yml",)),))
+    api = api_for(CommandRepo())
+    for dry_run, verb in ((False, "acknowledged 1"), (True, "would acknowledge 1")):
+        out = await execute(
+            api, Command("accept-paths", ""), pushed, _derived(Phase.IN_REVIEW), "scheilch", cfg=cfg, dry_run=dry_run
+        )
+        assert out.ok and out.log == "accept-paths by scheilch at fffffff" and out.accept_paths == "f" * 40
+        assert verb in out.message
+    closed = dataclasses.replace(pushed, state="closed")
+    out = await execute(api, Command("accept-paths", ""), closed, _derived(Phase.CLOSED), "scheilch", cfg=cfg)
+    assert not out.ok and "open pull request" in out.message
+    await api.aclose()
 
 
 async def test_approve_requests_oct_support_review():

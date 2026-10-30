@@ -19,7 +19,7 @@ from .apply import _comments
 from .config import Config
 from .facts import author_permission
 from .model import Derived, Kind, Phase, Snapshot, Wait
-from .rules import OCT_SUPPORT, detect_kind, dor_status, legal_transitions
+from .rules import OCT_SUPPORT, detect_kind, dor_status, legal_transitions, protected_changes
 
 MAX_ARGS = 300
 INDEPENDENT_REVIEW = "independent-review"
@@ -34,7 +34,6 @@ _NEEDS_TEXT = frozenset({"rework", "verified", "designer", "no-spec", "override"
 
 # Commands that declare a state; a rejected one is an invalid declaration (violation V07).
 DECLARATION_COMMANDS = frozenset({"review", "rework", "ready", "triage", "confirm"})
-_NOT_EFFECTIVE = {"accept-paths": "recorded in the guide only; it has no effect yet"}
 _LOGIN = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})")
 _FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 _COMMAND = re.compile(r"^ {0,3}/oct(?:[ \t]+([A-Za-z][A-Za-z-]*))?(?:[ \t]+(.*))?$", re.IGNORECASE)
@@ -58,6 +57,7 @@ class Outcome:
     effects: list[str] = field(default_factory=list)  # other writes performed (planned in dry-run)
     log: str | None = None  # entry for the ledger (override, accept-paths)
     no_spec_reason: str | None = None
+    accept_paths: str | None = None  # head SHA up to which protected-path pushes are acknowledged
     precondition: bool = False  # rejected because a precondition of a declaration failed (violation V07)
 
 
@@ -242,10 +242,31 @@ async def execute(
         if snap.state == "open":
             return _reject("Close the artifact first: a resolution applies to closed artifacts only")
         return Outcome(True, f"superseded by #{ref[1]}", _declare(snap, ["resolution:superseded"], keep_phase=True))
-    # override is written to the ledger by the caller; accept-paths is logged only until protected paths (Task 14)
     detail = f": {cmd.args}" if cmd.args else ""
-    message = f"override accepted: {cmd.args}" if name == "override" else _NOT_EFFECTIVE[name]
-    return Outcome(True, message, log=f"{name} by {actor}{detail}")
+    if name == "accept-paths":
+        return _accept_paths(snap, actor, cfg, dry_run, detail)
+    # override is written to the ledger by the caller
+    return Outcome(True, f"override accepted: {cmd.args}", log=f"{name} by {actor}{detail}")
+
+
+def _accept_paths(snap: Snapshot, actor: str, cfg: Config, dry_run: bool, detail: str) -> Outcome:
+    """Acknowledge automation pushes to protected paths up to the current head (design section 7, rule 3).
+
+    The acknowledgement is stored in the guide comment's data by the caller; a later automation push
+    to a protected path needs a new one.
+    """
+    if not snap.is_pr or snap.state != "open" or snap.merged:
+        return _reject("/oct accept-paths only applies to an open pull request")
+    changes = protected_changes(snap, cfg)
+    if not changes:
+        return _reject("there is no unacknowledged automation push to a protected path")
+    count = len({path for _, path in changes})
+    head = snap.head_sha[:7]
+    if dry_run:
+        message = f"would acknowledge {count} protected path change(s) up to {head} (dry-run: not stored)"
+    else:
+        message = f"acknowledged {count} protected path change(s) by automation up to {head}"
+    return Outcome(True, message, log=f"accept-paths by {actor} at {head}{detail}", accept_paths=snap.head_sha)
 
 
 async def apply_declaration(api: GitHubApi, number: int, declare: dict[str, list[str]], *, dry_run: bool) -> list[str]:
@@ -276,12 +297,15 @@ async def react(api: GitHubApi, comment_id: int, content: str, *, dry_run: bool)
     return resp.status_code < 300
 
 
-async def find_no_spec(api: GitHubApi, snap: Snapshot) -> str | None:
-    """Reason of the latest `/oct no-spec` written by the PR author (who needs write access)."""
+async def find_no_spec(api: GitHubApi, snap: Snapshot, comments: list[dict] | None = None) -> str | None:
+    """Reason of the latest `/oct no-spec` written by the PR author (who needs write access).
+
+    `comments` are the artifact's comments when the caller already read them.
+    """
     if not snap.is_pr or snap.author_permission not in WRITE_PERMISSIONS:
         return None
     reason: str | None = None
-    for comment in await _comments(api, snap.number):
+    for comment in comments if comments is not None else await _comments(api, snap.number):
         if (comment.get("user") or {}).get("login") != snap.author:
             continue
         cmd = parse_command(comment.get("body") or "")

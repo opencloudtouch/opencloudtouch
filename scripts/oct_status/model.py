@@ -155,6 +155,9 @@ class Snapshot:
     # labels are trusted (rules._declared_floor); a label set by hand is violation V02.
     bot_phase_labels: frozenset[str] = frozenset()
     timeline_unknown: bool = False  # the label timeline could not be read (nothing is trusted then)
+    # Head SHA up to which a maintainer acknowledged automation pushes to protected paths (`/oct accept-paths`),
+    # read from the guide comment's data; "" when nothing was acknowledged.
+    paths_accepted: str = ""
 
 
 @dataclass(frozen=True)

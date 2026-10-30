@@ -1,7 +1,8 @@
 """Command line entry point of the OCT status system.
 
 Modes: ``--labels`` (label sync), ``--event/--payload`` (one webhook event), ``--check`` (is the block of
-the event's artifact current?) and ``--audit`` (heal drift on every open artifact).
+the event's artifact current, and is nothing blocking it?), ``--audit`` (heal drift on every open
+artifact) and ``--backfill`` (rate-limited, resumable migration of the open artifacts, MA-6).
 
 Untrusted data rules: event payloads are only ever parsed as JSON and used as numbers or strictly
 validated tokens; text from artifacts is written to the job summary (Markdown) and never to stdout,
@@ -21,22 +22,25 @@ from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
 from oct_status import commands
+from oct_status import notices as persisted
 from oct_status.api import GitHubApi
-from oct_status.apply import _find_guides, apply_state, is_own_event
+from oct_status.apply import _comments, _find_guides, apply_state, desired_labels, guides_in, is_own_event
 from oct_status.config import Config, load_config
 from oct_status.facts import fetch_snapshot
-from oct_status.graph import build_graph, parse_prose_edges, walk_component
-from oct_status.guide import format_notice, next_steps, render_guide
+from oct_status.graph import PROPAGATING, build_graph, parse_prose_edges, walk_component
+from oct_status.guide import next_steps, protected_notice, render_guide
 from oct_status.labels_sync import LedgerIssueError, ensure_ledger_issue, sync_labels
 from oct_status.ledger import Ledger, LedgerError, strikes_active
 from oct_status.model import Derived, Edge, Graph, Phase, Snapshot
+from oct_status.notices import Acceptance, GuideState, Record
 from oct_status.render import extract_block, render_block, splice_block
-from oct_status.rules import derive
-from oct_status.violations import EventFacts, classify_actor, detect, escalate
+from oct_status.rules import derive, protected_changes
+from oct_status.violations import EventFacts, Violation, classify_actor, detect, escalate
 
 LABELS_SPEC = Path(__file__).resolve().parent / "labels.yml"
 CONFIG_PATH = Path(__file__).resolve().parent / "config.yml"
@@ -45,6 +49,7 @@ EXIT_OK = 0
 EXIT_API_ERROR = 1
 EXIT_CONFIG_ERROR = 2
 EXIT_STALE = 1
+DEFAULT_BACKFILL_STATE = "oct-backfill-state.json"
 
 _PER_PAGE = 100
 _MAX_PAGES = 50
@@ -65,12 +70,16 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--payload", help="path of the event payload JSON (untrusted data)")
     parser.add_argument("--check", action="store_true", help="exit 1 when the block of the event's artifact is stale")
     parser.add_argument("--audit", action="store_true", help="heal drift on all open artifacts")
+    parser.add_argument("--backfill", action="store_true", help="migrate the open artifacts in rate-limited batches")
+    parser.add_argument("--limit", type=int, default=25, help="artifacts per backfill run (default 25)")
+    parser.add_argument("--state", help="backfill state file (default: $OCT_BACKFILL_STATE or oct-backfill-state.json)")
     parser.add_argument("--dry-run", action="store_true", help="plan only, perform no writes")
     return parser
 
 
 def _credentials() -> tuple[str, str]:
-    # BOT_PAT is preferred when present (write mode, labels job); shadow-mode steps only get GITHUB_TOKEN.
+    # BOT_PAT is preferred when present: the writing jobs (status-write, labels, backfill) get it; the
+    # shadow-mode `status` job and the check get GITHUB_TOKEN only.
     token = os.environ.get("BOT_PAT") or os.environ.get("GITHUB_TOKEN")
     if not token:
         raise ConfigError("missing credentials: set BOT_PAT (preferred) or GITHUB_TOKEN")
@@ -154,6 +163,9 @@ class Workspace:
         self._open_prs: list[dict[str, Any]] | None = None
         self._open_items: list[dict[str, Any]] | None = None
         self._referrers: dict[int, set[int]] | None = None
+        # Persisted guide state per loaded artifact; ``None`` when its comments could not be read.
+        self.states: dict[int, GuideState | None] = {}
+        self.acceptances: dict[int, Acceptance] = {}  # `/oct accept-paths` accepted in this run
 
     async def open_items(self) -> list[dict[str, Any]]:
         """All open issues and pull requests, bodies included (one paged listing)."""
@@ -194,27 +206,48 @@ class Workspace:
                     self.warnings.append(
                         f"WARNING: label history of #{number} unreadable; fact labels are not trusted for its phase"
                     )
-                self._snaps[number] = await self._with_no_spec(snap)
+                self._snaps[number] = await self._with_comments(snap)
         return self._snaps[number]
 
-    async def _with_no_spec(self, snap: Snapshot) -> Snapshot:
-        if not snap.is_pr:
-            return snap
+    async def _with_comments(self, snap: Snapshot) -> Snapshot:
+        """Read the comments once: the persisted guide state and, for a PR, the author's `/oct no-spec`."""
         try:
-            reason = await commands.find_no_spec(self.api, snap)
+            comments = await _comments(self.api, snap.number)
         except httpx.HTTPError:
-            self.warnings.append(f"WARNING: comments of #{snap.number} unreadable; a /oct no-spec waiver is not seen")
+            self.states[snap.number] = None  # fail closed: the guide is not rewritten from nothing
+            self.warnings.append(
+                f"WARNING: comments of #{snap.number} unreadable; its guide comment is not rewritten "
+                "and a /oct no-spec waiver is not seen"
+            )
             return snap
-        return replace(snap, no_spec_reason=reason) if reason else snap
+        guides = guides_in(comments, self.cfg.bot_logins)
+        state = persisted.parse_state(guides[0].get("body") or "") if guides else GuideState()
+        self.states[snap.number] = state
+        reason = await commands.find_no_spec(self.api, snap, comments) if snap.is_pr else None
+        return replace(
+            snap,
+            no_spec_reason=reason or snap.no_spec_reason,
+            paths_accepted=state.accepted.sha if state.accepted else snap.paths_accepted,
+        )
 
-    def patch(self, number: int, add: list[str], remove: list[str], no_spec_reason: str | None = None) -> None:
-        """Reflect a command's declaration in the loaded snapshot (the labels were written, or are planned)."""
+    def patch(
+        self,
+        number: int,
+        add: list[str],
+        remove: list[str],
+        no_spec_reason: str | None = None,
+        paths_accepted: str | None = None,
+    ) -> None:
+        """Reflect a command's effect in the loaded snapshot (the labels were written, or are planned)."""
         snap = self._snaps.get(number)
         if snap is None:
             return
         labels = (snap.labels - set(remove)) | set(add)
         self._snaps[number] = replace(
-            snap, labels=frozenset(labels), no_spec_reason=no_spec_reason or snap.no_spec_reason
+            snap,
+            labels=frozenset(labels),
+            no_spec_reason=no_spec_reason or snap.no_spec_reason,
+            paths_accepted=paths_accepted or snap.paths_accepted,
         )
 
     async def neighbors(self, number: int) -> list[Edge]:
@@ -232,6 +265,10 @@ class Workspace:
             await self.load(source)
         edges = self.graph(derive_all=False).edges_of(number)
         return [e for e in edges if await self.load(e.target) is not None]
+
+    async def fan_out(self, number: int) -> list[Edge]:
+        """The neighbours a change of `number` propagates to (all neighbours are still loaded)."""
+        return [e for e in await self.neighbors(number) if e.type in PROPAGATING]
 
     def graph(self, derive_all: bool = True) -> Graph:
         graph = build_graph({n: s for n, s in self._snaps.items() if s is not None})
@@ -269,10 +306,40 @@ class Outcome:
     unresolved: list[str] = field(default_factory=list)
 
 
-Notes = dict[int, tuple[list[str], list[str]]]  # artifact -> (notices, history), newest first
+Notes = dict[int, tuple[list[str], list[str]]]  # artifact -> (notices, history), newest first; this run only
 
 
-async def _converge(ws: Workspace, targets: list[int], dry_run: bool, notes: Notes | None = None) -> list[Outcome]:
+@dataclass
+class RunContext:
+    """What one run adds to the guides: transient notes, new violation records, accepted commands."""
+
+    now: datetime
+    notes: Notes = field(default_factory=dict)
+    found: dict[int, list[Record]] = field(default_factory=dict)
+    accepted: dict[int, set[str]] = field(default_factory=dict)
+
+
+def _guide(ws: Workspace, graph: Graph, snap: Snapshot, derived: Derived, ctx: RunContext) -> str | None:
+    """The guide with the persisted notices carried over and resolved; ``None`` when its state is unknown."""
+    state = ws.states.get(snap.number, GuideState())
+    if state is None:
+        return None
+    number = snap.number
+    records = persisted.update(
+        state.records, ctx.found.get(number, []), snap, derived, graph, ws.cfg, ctx.now, ctx.accepted.get(number)
+    )
+    notices, history = ctx.notes.get(number, ([], []))
+    changes = protected_changes(snap, ws.cfg)
+    texts = [*notices, *([protected_notice(changes)] if changes else []), *persisted.render(records, snap.is_pr)]
+    data = persisted.state_data(records, ws.acceptances.get(number) or state.accepted)
+    steps = next_steps(snap, derived, ws.cfg, graph)
+    return render_guide(snap, derived, steps, texts, history, cfg=ws.cfg, data=data)
+
+
+async def _converge(
+    ws: Workspace, targets: list[int], dry_run: bool, ctx: RunContext | None = None, *, comments: bool = True
+) -> list[Outcome]:
+    ctx = ctx or RunContext(_utcnow())
     graph = ws.graph()
     outcomes: list[Outcome] = []
     for number in targets:
@@ -284,9 +351,9 @@ async def _converge(ws: Workspace, targets: list[int], dry_run: bool, notes: Not
             outcomes.append(Outcome(number, None))
             continue
         block = render_block(snap, derived, graph, ws.cfg)
-        notices, history = (notes or {}).get(number, ([], []))
-        guide = render_guide(snap, derived, next_steps(snap, derived, ws.cfg, graph), notices, history, cfg=ws.cfg)
-        writes = await apply_state(ws.api, snap, derived, block, guide, ws.cfg, dry_run)
+        guide = _guide(ws, graph, snap, derived, ctx) if comments else None
+        with_comments = comments and guide is not None
+        writes = await apply_state(ws.api, snap, derived, block, guide, ws.cfg, dry_run, comments=with_comments)
         unresolved = parse_prose_edges(number, snap.body)[1]
         outcomes.append(Outcome(number, derived, block, writes, unresolved))
     return outcomes
@@ -390,7 +457,11 @@ async def _handle_command(
             if result.ok:
                 writes = await commands.apply_declaration(ws.api, number, result.declare, dry_run=dry_run)
                 writes += result.effects
-                ws.patch(number, result.declare.get("add", []), result.declare.get("remove", []), result.no_spec_reason)
+                add, remove = result.declare.get("add", []), result.declare.get("remove", [])
+                ws.patch(number, add, remove, result.no_spec_reason, result.accept_paths)
+                if result.accept_paths:  # stored in the guide data, the log of the acknowledgement
+                    ws.acceptances[number] = Acceptance(result.accept_paths, actor, clock())
+                    writes.append(f"acknowledge protected paths up to {result.accept_paths[:7]} in the guide data")
         except httpx.HTTPError as exc:  # fail closed
             result = commands.Outcome(False, f"the command failed ({type(exc).__name__})")
     else:
@@ -463,12 +534,11 @@ async def _event_facts(
     )
 
 
-def _merge_notes(first: Notes | None, second: Notes) -> Notes:
-    merged: Notes = dict(first or {})
-    for number, (notices, history) in second.items():
-        old_notices, old_history = merged.get(number, ([], []))
-        merged[number] = ([*old_notices, *notices], [*old_history, *history])
-    return merged
+@dataclass
+class ViolationReport:
+    records: list[Record] = field(default_factory=list)  # for the guide data of the event's artifact
+    lines: list[str] = field(default_factory=list)  # job summary
+    reverts: list[Violation] = field(default_factory=list)  # level >= 3 on an issue: undo the change
 
 
 async def _violation_notes(
@@ -478,20 +548,21 @@ async def _violation_notes(
     report: CommandReport | None,
     dry_run: bool,
     clock: Callable[[], datetime],
-) -> tuple[Notes, list[str]]:
-    """Detect violations of the event's artifact, count them in the ledger and render the guide notices.
+) -> ViolationReport:
+    """Detect violations of the event's artifact and count them in the ledger.
 
     Fail closed: when the ledger cannot be read nothing is escalated beyond level 1 and nothing is
-    recorded. Before ``strikes_enabled_from`` the ledger is not touched at all.
+    recorded. Before ``strikes_enabled_from`` the ledger is not touched at all, so every notice stays at
+    level 1 (no block, no revert).
     """
     graph = ws.graph()
     snap, derived = graph.snapshots.get(number), graph.derived.get(number)
     if snap is None or derived is None:
-        return {}, []
+        return ViolationReport()
     actor_class = classify_actor(snap, ws.cfg)
     found = detect(snap, derived, graph, ws.cfg, actor_class, await _event_facts(ws, snap, derived, payload, report))
     if not found:
-        return {}, []
+        return ViolationReport()
     ledger: Ledger | None = None
     lines = ["### Violations", ""]
     status = "strikes are not active: nothing is recorded"
@@ -504,7 +575,7 @@ async def _violation_notes(
             ws.warnings.append(f"WARNING: {status}")
         else:
             status = "dry-run: nothing is recorded" if dry_run else "recorded"
-    notices: list[str] = []
+    out = ViolationReport()
     for v in found:
         level, overridden = 0, False
         if ledger is not None:
@@ -520,10 +591,46 @@ async def _violation_notes(
                 except LedgerError as exc:
                     ws.warnings.append(f"WARNING: violation {v.rule} not recorded: {exc}")
         notice = escalate(v, level, overridden)
-        notices.append(format_notice(notice, snap.is_pr))
+        out.records.append(persisted.record_for(v, notice.level, overridden, clock()))
+        if notice.revert(snap.is_pr) and not overridden:
+            out.reverts.append(v)
         flags = " blocks" if notice.blocks(snap.is_pr) else " revert" if notice.revert(snap.is_pr) else ""
         lines.append(f"- {_inline(v.rule)} by {_inline(v.user)}: level {notice.level}{flags}; {status}")
-    return {number: (notices, [])}, [*lines, ""]
+    out.lines = [*lines, ""]
+    return out
+
+
+async def _revert(ws: Workspace, number: int, reverts: list[Violation], dry_run: bool) -> list[str]:
+    """Undo a hand-edited fact label on an issue at ladder level 3 (design section 10).
+
+    Convergence would heal the label as well, except a phase label whose history is unreadable; the
+    event names the label, so it is undone here in every case. The block (V03) is restored by the
+    convergence that follows.
+    """
+    graph = ws.graph()
+    snap, derived = graph.snapshots.get(number), graph.derived.get(number)
+    if snap is None or derived is None:
+        return []
+    want = desired_labels(derived)
+    writes: list[str] = []
+    for v in reverts:
+        label = v.key
+        if v.rule != "V02" or not label:
+            continue
+        if label in snap.labels and label not in want:
+            if not dry_run:
+                resp = await ws.api.request("DELETE", f"/issues/{number}/labels/{quote(label, safe='')}")
+                if resp.status_code != 404:
+                    resp.raise_for_status()
+            ws.patch(number, [], [label])
+            writes.append(f"revert: remove label {label} (V02, level 3)")
+        elif label not in snap.labels and label in want:
+            if not dry_run:
+                resp = await ws.api.request("POST", f"/issues/{number}/labels", json={"labels": [label]})
+                resp.raise_for_status()
+            ws.patch(number, [label], [])
+            writes.append(f"revert: restore label {label} (V02, level 3)")
+    return writes
 
 
 def _command_lines(report: CommandReport, dry_run: bool) -> list[str]:
@@ -549,21 +656,31 @@ async def run_event(
         print("ignored: event caused by our own write")
         return EXIT_OK
     if event_name in _DISCUSSION_EVENTS:
-        print("ignored: discussions are not handled in this milestone")
+        print("ignored: discussions are not handled yet")
         return EXIT_OK
     number = await resolve_artifact(api, event_name, payload)
     if number is None:
         print("ignored: the event does not name an artifact")
         return EXIT_OK
     ws = Workspace(api, cfg)
-    component = await walk_component(number, ws.neighbors, cfg.fan_out_cap)
+    component = await walk_component(number, ws.fan_out, cfg.fan_out_cap)
     targets = [number, *sorted(component - {number})]
     report = await _handle_command(ws, number, payload, dry_run, clock) if event_name == "issue_comment" else None
-    violation_notes, violation_lines = await _violation_notes(ws, number, payload, report, dry_run, clock)
-    outcomes = await _converge(ws, targets, dry_run, _merge_notes(report.notes if report else None, violation_notes))
+    violations = await _violation_notes(ws, number, payload, report, dry_run, clock)
+    reverted = await _revert(ws, number, violations.reverts, dry_run)
+    ctx = RunContext(
+        clock(),
+        notes=report.notes if report else {},
+        found={number: violations.records},
+        accepted={number: {report.command.name}} if report and report.ok else {},
+    )
+    outcomes = await _converge(ws, targets, dry_run, ctx)
     mode = "dry-run" if dry_run else "write"
     summary = [f"## OCT status ({mode}): event `{event_name}` on #{number}", "", *_warning_lines(ws), ""]
-    summary += violation_lines
+    summary += violations.lines
+    if reverted:
+        state = "dry-run, planned" if dry_run else "performed"
+        summary += [f"Reverted ({state}):", *[f"- {_inline(w)}" for w in reverted], ""]
     if report is not None:
         summary += _command_lines(report, dry_run)
     for outcome in outcomes:
@@ -585,29 +702,47 @@ async def _block_is_current(api: GitHubApi, cfg: Config, snap: Snapshot, block: 
 
 
 async def run_check(api: GitHubApi, cfg: Config, event_name: str, payload: dict[str, Any]) -> int:
-    """Exit 1 when the artifact's block is missing or stale (the future required check)."""
+    """Exit 1 when the artifact is not mergeable from the status system's view (the required check).
+
+    Red when the block is missing or stale, when automation pushed to protected paths without a
+    maintainer's `/oct accept-paths`, or when an open violation notice at ladder level 3 or higher is
+    persisted on the pull request (fix it or `/oct override`). Stdout carries fixed texts only.
+    """
     number = await resolve_artifact(api, event_name, payload)
     if number is None:
         print("ok: the event does not name an artifact")
         return EXIT_OK
     ws = Workspace(api, cfg)
-    await walk_component(number, ws.neighbors, cfg.fan_out_cap)
+    await walk_component(number, ws.fan_out, cfg.fan_out_cap)
     graph = ws.graph()
     snap, derived = graph.snapshots.get(number), graph.derived.get(number)
     block = render_block(snap, derived, graph, cfg) if snap is not None and derived is not None else None
     if snap is None or block is None:
         print(f"ok: #{number} carries no block")
         return EXIT_OK
-    if await _block_is_current(api, cfg, snap, block):
-        print(f"ok: status block of #{number} is current")
-        _summary([f"## oct-status check: #{number}", "", "The status block is current."])
+    problems: list[str] = []
+    if not await _block_is_current(api, cfg, snap, block):
+        problems.append("The status block is missing or out of date.")
+    if changes := protected_changes(snap, cfg):
+        count = len({path for _, path in changes})
+        problems.append(f"Automation pushed to {count} protected path(s) without a maintainer's `/oct accept-paths`.")
+    state = ws.states.get(number, GuideState())
+    if state is None:
+        problems.append("The guide comment could not be read, so open violations cannot be ruled out.")
+    elif blocks := persisted.blocking(state.records, snap.is_pr):
+        rules = ", ".join(sorted({r.rule for r in blocks}))
+        problems.append(f"Open violation(s) at ladder level 3 or higher: {rules}. Fix them or ask for `/oct override`.")
+    heading = [f"## oct-status check: #{number}", ""]
+    if not problems:
+        print(f"ok: #{number} is current and nothing blocks it")
+        _summary([*heading, "The status block is current and nothing blocks the check."])
         return EXIT_OK
-    print(f"stale: status block of #{number} is missing or out of date")
-    _summary([f"## oct-status check: #{number}", "", "The status block is missing or out of date."])
+    print(f"failed: #{number}: {len(problems)} problem(s), see the job summary")
+    _summary([*heading, *[f"- {p}" for p in problems]])
     return EXIT_STALE
 
 
-async def run_audit(api: GitHubApi, cfg: Config, dry_run: bool) -> int:
+async def run_audit(api: GitHubApi, cfg: Config, dry_run: bool, clock: Callable[[], datetime] = _utcnow) -> int:
     """Recompute every open artifact and heal drift; returns how many artifacts needed a repair."""
     ws = Workspace(api, cfg)
     numbers = sorted({int(item["number"]) for item in await ws.open_items()})
@@ -616,7 +751,7 @@ async def run_audit(api: GitHubApi, cfg: Config, dry_run: bool) -> int:
         dry_run = True
     for number in numbers:
         await ws.neighbors(number)  # loads the artifact and its relations
-    outcomes = await _converge(ws, numbers, dry_run)
+    outcomes = await _converge(ws, numbers, dry_run, RunContext(clock()))
     repaired = [o for o in outcomes if o.writes]
     mode = "dry-run" if dry_run else "write"
     summary = [
@@ -643,11 +778,15 @@ def _mode(args: argparse.Namespace) -> str:
         return "labels"
     if args.audit:
         return "audit"
+    if args.backfill:
+        if args.limit < 1:
+            raise ConfigError("--limit must be a positive number of artifacts")
+        return "backfill"
     if args.event or args.payload or args.check:
         if not (args.event and args.payload):
             raise ConfigError("--event and --payload must be given together (also with --check)")
         return "check" if args.check else "event"
-    raise ConfigError("no mode selected (use --labels, --event/--payload, --check or --audit)")
+    raise ConfigError("no mode selected (use --labels, --event/--payload, --check, --audit or --backfill)")
 
 
 def _load_payload(path: str) -> dict[str, Any]:
@@ -663,8 +802,10 @@ def _load_payload(path: str) -> dict[str, Any]:
 async def _dispatch(
     args: argparse.Namespace, mode: str, payload: dict[str, Any], token: str, repo: str
 ) -> tuple[int, list[str]]:
-    # Shadow mode: dry-run and check can never write, enforced by the client itself.
+    # Dry-run (shadow mode) and check can never write, enforced by the client itself.
     api = GitHubApi(token, repo, read_only=args.dry_run or mode == "check")
+    if not api.read_only and not os.environ.get("BOT_PAT"):
+        print("warning: write mode without BOT_PAT; writes use GITHUB_TOKEN (github-actions[bot])", file=sys.stderr)
     try:
         if mode == "labels":
             return EXIT_OK, await _run_labels(api, args.dry_run)
@@ -672,6 +813,11 @@ async def _dispatch(
         if mode == "audit":
             await run_audit(api, cfg, args.dry_run)
             return EXIT_OK, []
+        if mode == "backfill":
+            from oct_status.backfill import run_backfill  # imports this module
+
+            state = Path(args.state or os.environ.get("OCT_BACKFILL_STATE") or DEFAULT_BACKFILL_STATE)
+            return await run_backfill(api, cfg, state, args.limit, args.dry_run), []
         if mode == "check":
             return await run_check(api, cfg, args.event, payload), []
         return await run_event(api, cfg, args.event, payload, args.dry_run), []
