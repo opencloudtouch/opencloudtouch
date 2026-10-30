@@ -37,6 +37,7 @@ from oct_status.apply import (
     desired_labels,
     guide_content,
     guides_in,
+    is_guide_body,
     is_own_event,
     upsert_guide,
 )
@@ -211,6 +212,11 @@ class Workspace:
         self.guide_bodies: dict[int, str | None] = {}  # guide body as read (None: no guide yet)
         self.corrupt: set[int] = set()  # guide data missing, oversized or invalid
         self.revert_failures: dict[int, list[str]] = {}  # level-3 reverts GitHub refused (guide notes)
+        # The guide's last own text when a person edited or deleted it in this event (I5): its state is
+        # read from here, never from the comment as it is now.
+        self.trusted_guide: dict[int, str] = {}
+        self.forged: dict[int, str] = {}  # "edited" or "deleted" by a person in this event (V03)
+        self.recovered: set[int] = set()  # a corrupt guide deleted by hand (recovery, no violation)
 
     async def open_items(self) -> list[dict[str, Any]]:
         """All open issues and pull requests, bodies included (one paged listing)."""
@@ -268,6 +274,11 @@ class Workspace:
         guides = guides_in(comments, self.cfg.bot_logins)
         self.guide_bodies[snap.number] = guides[0].get("body") or "" if guides else None
         state = persisted.parse_state(guides[0].get("body") or "") if guides else GuideState()
+        if (trusted := self.trusted_guide.get(snap.number)) is not None:
+            state = persisted.parse_state(trusted)
+            if state is None and self.forged.get(snap.number) == "deleted":
+                state = GuideState()  # a corrupt guide deleted by hand: the documented recovery starts over
+                self.recovered.add(snap.number)
         self.states[snap.number] = state
         if state is None:
             self.corrupt.add(snap.number)
@@ -693,6 +704,56 @@ async def _handle_command(
     return CommandReport(cmd, actor, result.ok, result.message, writes, notes, rejected)
 
 
+@dataclass(frozen=True)
+class ForgedGuide:
+    action: str  # "edited" or "deleted"
+    comment_id: int
+    trusted: str  # the guide's last own text: `changes.body.from` of an edit, the deleted comment's body
+    actor: str
+
+
+def forged_guide(event_name: str, payload: dict[str, Any], cfg: Config) -> ForgedGuide | None:
+    """A person edited or deleted our guide comment (I5); ``None`` for every other comment event.
+
+    The guide is ours when its author is one of `cfg.bot_logins` and its last own text starts with the
+    marker. Only that last own text is trusted; nothing of the edited comment is adopted. The comment
+    author and the sender come from the payload (untrusted, validated); our own writes never get here
+    (``apply.is_own_event``).
+    """
+    action, comment = payload.get("action"), payload.get("comment")
+    if event_name != "issue_comment" or action not in ("edited", "deleted") or not isinstance(comment, dict):
+        return None
+    sender, author = _nested(payload, "sender", "login"), _nested(comment, "user", "login")
+    comment_id = _number(comment.get("id"))
+    if author not in cfg.bot_logins or comment_id is None or not isinstance(sender, str) or sender in cfg.bot_logins:
+        return None
+    trusted = _nested(payload, "changes", "body", "from") if action == "edited" else comment.get("body")
+    if not isinstance(trusted, str) or not is_guide_body(trusted):
+        return None
+    actor = sender if commands.valid_login(sender) or sender.endswith("[bot]") else ""
+    return ForgedGuide(str(action), comment_id, trusted, actor)
+
+
+async def _restore_guide(ws: Workspace, number: int, forged: ForgedGuide, dry_run: bool) -> list[str]:
+    """Put the last own text back into an edited guide comment (write mode); a deleted one is posted again
+    by the convergence from its last own state. A refused restore is a warning: the convergence then
+    writes the guide from the trusted state anyway."""
+    ws.trusted_guide[number] = forged.trusted
+    ws.forged[number] = forged.action
+    who = _inline(forged.actor or "unknown")
+    ws.warnings.append(f"NOTICE: the guide comment of #{number} was {forged.action} by hand by {who}")
+    if forged.action != "edited":
+        return []
+    if not dry_run and not ws.api.read_only:
+        try:
+            resp = await ws.api.request("PATCH", f"/issues/comments/{forged.comment_id}", json={"body": forged.trusted})
+            resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            ws.warnings.append(f"WARNING: guide comment of #{number} not restored ({type(exc).__name__})")
+            return []
+    return ["restore the guide comment edited by hand"]
+
+
 _LABEL_EVENTS = {"issues", "pull_request_target", "pull_request"}
 # Declaration labels and the `/oct` command whose check a hand-set label has to pass (design section 11).
 _LABEL_COMMANDS = {
@@ -839,7 +900,8 @@ async def _event_facts(
     sender = _nested(payload, "sender", "login")
     action = payload.get("action")
     label = _nested(payload, "label", "name")
-    before = _nested(payload, "changes", "body", "from")
+    # On `issue_comment` the change is the comment's, not the description's.
+    before = _nested(payload, "changes", "body", "from") if "comment" not in payload else None
     reason = _nested(payload, "issue", "state_reason")
     closed_by: bool | None = None
     if action == "closed" and not snap.is_pr and reason == "completed" and derived.phase == Phase.VERIFICATION:
@@ -852,6 +914,7 @@ async def _event_facts(
         rejected=rejected,
         state_reason=reason if isinstance(reason, str) else None,
         closed_by_change=closed_by,
+        guide_forged=ws.forged.get(snap.number, "") if snap.number not in ws.recovered else "",
     )
 
 
@@ -1021,6 +1084,8 @@ async def run_event(
         print("ignored: the event does not name an artifact")
         return EXIT_OK
     ws = Workspace(api, cfg)
+    forged = forged_guide(event_name, payload, cfg)
+    restored = await _restore_guide(ws, number, forged, dry_run) if forged is not None else []
     component = await walk_component(number, ws.fan_out, cfg.fan_out_cap)
     targets = [number, *sorted(component - {number})]
     report = await _handle_command(ws, number, payload, dry_run, clock) if event_name == "issue_comment" else None
@@ -1046,6 +1111,7 @@ async def run_event(
     mode = "dry-run" if dry_run else "write"
     summary = [f"## OCT status ({mode}): event `{event_name}` on #{number}", "", *_warning_lines(ws), ""]
     summary += violations.lines
+    reverted = restored + reverted
     if reverted:
         state = "dry-run, planned" if dry_run else "performed"
         summary += [f"Reverted ({state}):", *[f"- {_inline(w)}" for w in reverted], ""]

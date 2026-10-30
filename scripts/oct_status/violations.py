@@ -30,6 +30,7 @@ LEVEL_BLOCK = 3
 # and a close without hardware verification (V08, by reopening the issue).
 REVERTED_RULES = frozenset({"V02", "V03", "V08"})
 STATE_RULES = frozenset({"V01", "V04", "V06"})
+GUIDE_KEY = "guide"  # key of a V03 for the guide comment (restored by the run that detects it)
 KEY_CHARS = 120  # a template key is stored (and compared) with at most this many characters
 
 
@@ -100,7 +101,7 @@ class Violation:
     user: str
     hint: str
     # What resolves an event violation later: the label (V02), the removed template keys (V05, one
-    # per line) or the declaration command (V07). Empty for the other rules.
+    # per line), the declaration command (V07) or GUIDE_KEY (V03 of the guide comment). Empty otherwise.
     key: str = ""
 
 
@@ -115,6 +116,7 @@ class EventFacts:
     rejected: str | None = None  # a declaration command the actor sent and the automation rejected
     state_reason: str | None = None  # of a `closed` event: "completed" or "not_planned"
     closed_by_change: bool | None = None  # closed by a merged PR or a commit? ``None``: unknown
+    guide_forged: str = ""  # "edited" or "deleted": the actor changed the guide comment by hand (V03)
 
 
 @dataclass(frozen=True)
@@ -243,6 +245,9 @@ def _event_rules(snap: Snapshot, derived: Derived, event: EventFacts, cfg: Confi
                 found.append(
                     ("V05", f"Removed from the description: {names}.", "\n".join(k[:KEY_CHARS] for k in gone[:5]))
                 )
+    if event.guide_forged:
+        hint = f"The guide comment was {event.guide_forged} by hand; the automation restored it."
+        found.append(("V03", hint, GUIDE_KEY))
     if event.rejected:
         command = event.rejected.removeprefix("/oct ").split(" ", 1)[0]
         found.append(("V07", f"{_plain(event.rejected, 200)}.", command))

@@ -25,7 +25,17 @@ from .config import Config
 from .guide import RESOLVED, WORKFLOW, format_notice
 from .model import Derived, Graph, Phase, Snapshot, Wait
 from .render import FULLWIDTH_AT, REVIEW_BOT, block_intact, extract_block
-from .violations import KEY_CHARS, LEVEL_BLOCK, RULES, STATE_RULES, Notice, Violation, state_rules, template_keys
+from .violations import (
+    GUIDE_KEY,
+    KEY_CHARS,
+    LEVEL_BLOCK,
+    RULES,
+    STATE_RULES,
+    Notice,
+    Violation,
+    state_rules,
+    template_keys,
+)
 
 MAX_OPEN = 20
 MAX_RESOLVED = 10
@@ -208,6 +218,8 @@ def _resolution(rec: Record, snap: Snapshot, derived: Derived, graph: Graph, cfg
         return "" if rec.rule in state_rules(snap, graph, cfg) else "fixed"
     if rec.rule == "V02":
         return "restored" if (rec.key in snap.labels) == (rec.key in desired_labels(derived)) else ""
+    if rec.rule == "V03" and rec.key == GUIDE_KEY:
+        return "restored"  # the run that detected the hand edit of the guide comment restored it
     if rec.rule == "V03":
         block = extract_block(snap.body)
         return "restored" if block is not None and block_intact(block) else ""

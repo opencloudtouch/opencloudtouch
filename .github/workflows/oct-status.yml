@@ -39,6 +39,7 @@ on:
   # A resolved or unresolved review thread (wait:findings) has no Actions trigger
   # (pull_request_review_thread is a webhook-only event): the next event of the PR or the daily audit
   # picks it up.
+  # All actions: /oct commands (created) and guide comments edited or deleted by hand (restored, V03).
   issue_comment:
   check_suite:
     types: [completed]

@@ -89,6 +89,12 @@ def _raw() -> dict:
     return yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
 
 
+def test_every_comment_action_triggers_a_run():
+    """Edited and deleted comments are needed to restore a guide comment changed by hand (I5)."""
+    on = _raw()[True]
+    assert on["issue_comment"] is None  # no `types` filter: created, edited and deleted
+
+
 def test_ci_completion_triggers_a_run():
     on = _raw()[True]  # YAML 1.1 reads the key `on` as True
     assert on["workflow_run"] == {"workflows": ["CI"], "types": ["completed"]}

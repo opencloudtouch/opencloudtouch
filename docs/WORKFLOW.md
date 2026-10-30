@@ -1102,7 +1102,12 @@ event of that pull request: the commit status `oct-status` stays red until the n
 ### V03: Status block edited by hand
 
 **What happened:** the description was edited and the status block was removed, or its content no longer
-matches the hash in its marker.
+matches the hash in its marker. Or the guide comment (`<!-- oct-next:v1 -->`) was edited or deleted by hand.
+The automation never takes over an edited guide: it puts the guide's last own text back (write mode) and
+reads the notices and the protected-path acknowledgement only from that text; a deleted guide is posted
+again with its last state. Known limitation: GitHub's comment API does not name the last editor, so when
+the `issue_comment` event of such an edit is lost (for example a dropped queued run), the next run reads the
+edited guide as it is.
 
 **Expected:** the block between `<!-- oct-status:v1 ... -->` and `<!-- /oct-status -->` is written by the
 automation only.
@@ -1111,7 +1116,8 @@ automation only.
 
 **Wrong:** editing the description in the web UI and deleting the block together with an old paragraph.
 
-**Right:** editing the text below `<!-- /oct-status -->` and leaving the block untouched.
+**Right:** editing the text below `<!-- /oct-status -->` and leaving the block untouched; never touching the
+guide comment (use `/oct` commands).
 
 ### V04: Ready pull request with an open prerequisite
 
@@ -1306,8 +1312,10 @@ this phase (the valid commands are listed), or a failed precondition.
 
 **The guide comment is corrupt** (the job summary warns that its data is missing, oversized or invalid, the
 backfill reports `skipped (corrupt guide)`, and `oct-status` fails closed). Delete the guide comment: it is
-rebuilt on the next run, but its persisted notices and the protected-path acknowledgements are lost, so a
-maintainer may have to repeat `/oct accept-paths`.
+rebuilt right away (from the deletion event) or on the next run, but its persisted notices and the
+protected-path acknowledgements are lost, so a maintainer may have to repeat `/oct accept-paths`. Deleting a
+corrupt guide is not a violation; deleting a guide whose data is valid is (V03), and the guide is posted
+again with its notices.
 
 **There are two guide comments.** The next run keeps the oldest and deletes the rest.
 
