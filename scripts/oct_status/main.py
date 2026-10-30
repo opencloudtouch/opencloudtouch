@@ -31,6 +31,7 @@ from oct_status import notices as persisted
 from oct_status.api import GitHubApi
 from oct_status.apply import (
     CONFLICT,
+    MARKER,
     _comments,
     _find_guides,
     apply_state,
@@ -42,7 +43,7 @@ from oct_status.apply import (
     upsert_guide,
 )
 from oct_status.config import Config, load_config
-from oct_status.facts import fetch_snapshot
+from oct_status.facts import fetch_snapshot, previous_version_is_ours
 from oct_status.graph import PROPAGATING, build_graph, parse_prose_edges, walk_component
 from oct_status.guide import next_steps, protected_notice, render_guide
 from oct_status.labels_sync import LedgerIssueError, ensure_ledger_issue, sync_labels
@@ -214,7 +215,7 @@ class Workspace:
         self.revert_failures: dict[int, list[str]] = {}  # level-3 reverts GitHub refused (guide notes)
         # The guide's last own text when a person edited or deleted it in this event (I5): its state is
         # read from here, never from the comment as it is now.
-        self.trusted_guide: dict[int, str] = {}
+        self.trusted_guide: dict[int, str | None] = {}
         self.forged: dict[int, str] = {}  # "edited" or "deleted" by a person in this event (V03)
         self.recovered: set[int] = set()  # a corrupt guide deleted by hand (recovery, no violation)
 
@@ -274,11 +275,10 @@ class Workspace:
         guides = guides_in(comments, self.cfg.bot_logins)
         self.guide_bodies[snap.number] = guides[0].get("body") or "" if guides else None
         state = persisted.parse_state(guides[0].get("body") or "") if guides else GuideState()
-        if (trusted := self.trusted_guide.get(snap.number)) is not None:
-            state = persisted.parse_state(trusted)
-            if state is None and self.forged.get(snap.number) == "deleted":
-                state = GuideState()  # a corrupt guide deleted by hand: the documented recovery starts over
-                self.recovered.add(snap.number)
+        if snap.number in self.forged:
+            # Changed by hand in this event: only a verified own version counts, else an empty state.
+            trusted = self.trusted_guide.get(snap.number)
+            state = (persisted.parse_state(trusted) if trusted is not None else None) or GuideState()
         self.states[snap.number] = state
         if state is None:
             self.corrupt.add(snap.number)
@@ -708,17 +708,20 @@ async def _handle_command(
 class ForgedGuide:
     action: str  # "edited" or "deleted"
     comment_id: int
-    trusted: str  # the guide's last own text: `changes.body.from` of an edit, the deleted comment's body
+    node_id: str  # GraphQL id, to read the edit history ("" when the payload has none)
+    previous: str | None  # `changes.body.from` of an edit (untrusted until verified)
+    edited: str  # the comment's text after the edit, or the deleted comment's text
     actor: str
+    recovery: bool = False  # a guide with corrupt data was deleted: the documented recovery, no violation
 
 
 def forged_guide(event_name: str, payload: dict[str, Any], cfg: Config) -> ForgedGuide | None:
     """A person edited or deleted our guide comment (I5); ``None`` for every other comment event.
 
-    The guide is ours when its author is one of `cfg.bot_logins` and its last own text starts with the
-    marker. Only that last own text is trusted; nothing of the edited comment is adopted. The comment
-    author and the sender come from the payload (untrusted, validated); our own writes never get here
-    (``apply.is_own_event``).
+    The comment is our guide when its author is one of `cfg.bot_logins` and its previous text (edit) or
+    its text (deletion) starts with the marker. Nothing in the payload is trusted as the guide's state:
+    ``_restore_guide`` verifies the replaced version through GitHub's edit history. Our own writes never
+    get here (``apply.is_own_event``).
     """
     action, comment = payload.get("action"), payload.get("comment")
     if event_name != "issue_comment" or action not in ("edited", "deleted") or not isinstance(comment, dict):
@@ -727,31 +730,52 @@ def forged_guide(event_name: str, payload: dict[str, Any], cfg: Config) -> Forge
     comment_id = _number(comment.get("id"))
     if author not in cfg.bot_logins or comment_id is None or not isinstance(sender, str) or sender in cfg.bot_logins:
         return None
-    trusted = _nested(payload, "changes", "body", "from") if action == "edited" else comment.get("body")
-    if not isinstance(trusted, str) or not is_guide_body(trusted):
+    previous = _nested(payload, "changes", "body", "from") if action == "edited" else None
+    raw_body, raw_id = comment.get("body"), comment.get("node_id")
+    body = raw_body if isinstance(raw_body, str) else ""
+    if not is_guide_body(previous if action == "edited" else body):
         return None
+    node_id = raw_id if isinstance(raw_id, str) else ""
     actor = sender if commands.valid_login(sender) or sender.endswith("[bot]") else ""
-    return ForgedGuide(str(action), comment_id, trusted, actor)
+    recovery = action == "deleted" and persisted.parse_state(body) is None
+    return ForgedGuide(str(action), comment_id, node_id, previous, body, actor, recovery)
 
 
 async def _restore_guide(ws: Workspace, number: int, forged: ForgedGuide, dry_run: bool) -> list[str]:
-    """Put the last own text back into an edited guide comment (write mode); a deleted one is posted again
-    by the convergence from its last own state. A refused restore is a warning: the convergence then
-    writes the guide from the trusted state anyway."""
-    ws.trusted_guide[number] = forged.trusted
+    """Undo a hand edit of the guide comment without ever adopting payload text alone (I5).
+
+    An edit whose replaced version GitHub's edit history shows as ours gets that version back (write
+    mode) and its state is kept. Everything else starts from an empty state (fail closed: no notices and
+    no protected-path acknowledgement are taken over; a maintainer repeats `/oct accept-paths`): an edit
+    that cannot be verified (double edit, later edit, GraphQL failure, no editor) and every deletion (a
+    deleted comment has no readable history). The convergence then writes the guide from that state.
+    A refused restore is a warning.
+    """
+    verified = (
+        forged.action == "edited"
+        and isinstance(forged.previous, str)
+        and bool(forged.node_id)
+        and bool(forged.actor)
+        and await previous_version_is_ours(ws.api, forged.node_id, forged.edited, forged.actor, ws.cfg)
+    )
+    ws.trusted_guide[number] = forged.previous if verified else None
     ws.forged[number] = forged.action
+    if forged.recovery:
+        ws.recovered.add(number)
     who = _inline(forged.actor or "unknown")
-    ws.warnings.append(f"NOTICE: the guide comment of #{number} was {forged.action} by hand by {who}")
+    how = "its last own version is restored" if verified else "it starts from an empty state (not verifiable)"
+    ws.warnings.append(f"NOTICE: the guide comment of #{number} was {forged.action} by hand by {who}; {how}")
     if forged.action != "edited":
         return []
+    restore = forged.previous if verified and forged.previous is not None else f"{MARKER}\n"
     if not dry_run and not ws.api.read_only:
         try:
-            resp = await ws.api.request("PATCH", f"/issues/comments/{forged.comment_id}", json={"body": forged.trusted})
+            resp = await ws.api.request("PATCH", f"/issues/comments/{forged.comment_id}", json={"body": restore})
             resp.raise_for_status()
         except httpx.HTTPError as exc:
             ws.warnings.append(f"WARNING: guide comment of #{number} not restored ({type(exc).__name__})")
             return []
-    return ["restore the guide comment edited by hand"]
+    return ["restore the guide comment edited by hand" if verified else "reset the guide comment edited by hand"]
 
 
 _LABEL_EVENTS = {"issues", "pull_request_target", "pull_request"}

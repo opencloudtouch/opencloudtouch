@@ -35,7 +35,8 @@ def is_own_event(event_name: str, payload: dict[str, Any], bot_logins: set[str])
         return False
     action = payload.get("action")
     if event_name == "issue_comment":
-        return action in {"created", "edited"} and is_guide_body((payload.get("comment") or {}).get("body"))
+        # `deleted`: the automation removes duplicate guide comments itself.
+        return action in {"created", "edited", "deleted"} and is_guide_body((payload.get("comment") or {}).get("body"))
     return action in _OWN_ACTIONS.get(event_name, set())
 
 

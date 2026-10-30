@@ -80,6 +80,36 @@ async def _bot_phase_labels(
     return ours, frozenset(known) - ours, False
 
 
+_EDITS_QUERY = (
+    "query($id: ID!) { node(id: $id) { ... on IssueComment { body author { __typename login }"
+    " userContentEdits(last: 2) { nodes { createdAt editor { __typename login } } } } } }"
+)
+
+
+async def previous_version_is_ours(api: GitHubApi, node_id: str, edited_body: str, sender: str, cfg: Config) -> bool:
+    """Whether the version a person's edit replaced was written by our own accounts (I5).
+
+    GitHub's edit history (`userContentEdits`, newest last) must show: the comment still holds the
+    edited text of the event (no later edit), the newest edit is the sender's, and the version before it
+    was written by one of our accounts (the previous edit's editor, or the author when there was none).
+    Anything else, including a GraphQL failure or a missing editor, is not verified (fail closed).
+    """
+    try:
+        data = await api.graphql(_EDITS_QUERY, {"id": node_id})
+        node = (data or {}).get("node") or {}
+        nodes = [n or {} for n in ((node.get("userContentEdits") or {}).get("nodes") or [])]
+        if not nodes or node.get("body") != edited_body:
+            return False
+        editors = [n.get("editor") or {} for n in nodes]
+        if editors[-1].get("login") != sender:
+            return False
+        before = editors[-2] if len(editors) >= 2 else node.get("author") or {}
+        login, typename = before.get("login") or "", before.get("__typename") or ""
+    except (httpx.HTTPError, RuntimeError, AttributeError, TypeError, KeyError, ValueError):
+        return False
+    return bool(login) and _is_bot(login, typename, cfg)
+
+
 async def _json(api: GitHubApi, path: str) -> Any:
     resp = await api.request("GET", path, params={"per_page": 100})
     resp.raise_for_status()
