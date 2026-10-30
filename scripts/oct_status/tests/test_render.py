@@ -123,13 +123,26 @@ def test_splice_truncates_table_instead_of_overflowing():
         + "\n"
         + MARKER_END
     )
-    body = "y" * 64_900
+    body = "y" * (65_000 - 2 - 1500)  # room for the non-table part plus a few rows
     result = splice_block(body, big)
-    assert len(result) < 65_536
+    assert len(result) <= 65_000
     assert re.search(r"\| and \d+ more \|", result)
     assert result.endswith(body)
     extracted = extract_block(result)
     assert re.match(r"<!-- oct-status:v1 hash=([0-9a-f]{12}) -->", extracted)[1] == block_hash(extracted)
+
+
+def test_splice_returns_zero_row_block_even_if_it_exceeds_the_limit():
+    rows = [f"| related | #{n} x | open | - |" for n in range(40)]
+    big = "\n".join(
+        ["<!-- oct-status:v1 hash=000000000000 -->", "badge", "", "| Relation | Artifact | Phase | Waiting on |"]
+        + ["|---|---|---|---|", *rows, MARKER_END]
+    )
+    body = "y" * 64_900
+    result = splice_block(body, big)  # never fails; documented ruling: may exceed the limit
+    assert len(result) > 65_000
+    assert "| and 40 more |" in result and "| related |" not in result
+    assert result.endswith(body)
 
 
 def test_splice_truncation_keeps_crlf_within_limit():
@@ -188,3 +201,58 @@ def test_badges_encode_dashes_and_automation_row():
     assert "![wait: hardware test](https://img.shields.io/badge/wait-hardware%20test-f2a33a)" in block
     assert "Gitar: failure | Sonar: pending | oct-support: none" in block
     assert "**Ball with:** maintainers" in block
+
+
+async def test_user_text_cannot_break_the_marker_pair():
+    evil = "evil <!-- /oct-status --> tail"
+    snaps = {
+        1: make_snapshot(number=1, title="spec"),
+        2: make_snapshot(number=2, title=evil, body="Part of #1"),
+        3: make_snapshot(number=3, title="p | `c` <!-- x", body="Part of #1"),
+    }
+    graph = build_graph(snaps)
+    block = render_block(snaps[1], Derived(Phase.READY, frozenset(), None), graph, CFG)
+    assert block.count("<!--") == 2 and block.count("-->") == 2
+    body = "intro\n"
+    once = splice_block(body, block)
+    assert splice_block(once, block) == once
+    assert extract_block(once) == block
+    row = next(line for line in block.splitlines() if "#3 " in line)
+    assert len(re.split(r"(?<!\\)\|", row.strip("|"))) == 4
+    assert "&lt;!-- x" in row and "\\|" in row
+
+
+def test_unresolved_reference_and_blocker_title_are_escaped():
+    snaps = {
+        1: make_snapshot(number=1, is_pr=True, body="Depends on #2"),
+        2: make_snapshot(number=2, title="a <!-- /oct-status --> b"),
+    }
+    graph = build_graph(snaps)
+    block = render_block(snaps[1], Derived(Phase.IN_REVIEW, frozenset(), None), graph, CFG)
+    assert "**Root blocker:** #2 a &lt;!-- /oct-status --&gt; b" in block
+    assert extract_block(block) == block
+
+
+def _stack(*pairs):
+    snaps = {n: make_snapshot(number=n, is_pr=True, base_ref=b, head_ref=h) for n, b, h in pairs}
+    return snaps, build_graph(snaps)
+
+
+def test_root_blocker_with_duplicate_edges():
+    snaps, graph = _stack((300, "h100", "h300"), (100, "h200", "h100"), (200, "main", "h200"))
+    snaps[300] = make_snapshot(number=300, is_pr=True, base_ref="h100", head_ref="h300", body="Depends on #100")
+    graph = build_graph(snaps)
+    block = render_block(snaps[300], Derived(Phase.IN_REVIEW, frozenset(), None), graph, CFG)
+    assert "**Root blocker:** #200" in block
+
+
+def test_root_blocker_in_a_diamond():
+    snaps = {
+        1: make_snapshot(number=1, is_pr=True, body="Depends on #2, #3"),
+        2: make_snapshot(number=2, is_pr=True, body="Depends on #4"),
+        3: make_snapshot(number=3, is_pr=True, body="Depends on #2"),
+        4: make_snapshot(number=4, is_pr=True),
+    }
+    graph = build_graph(snaps)
+    block = render_block(snaps[1], Derived(Phase.IN_REVIEW, frozenset(), None), graph, CFG)
+    assert "**Root blocker:** #4" in block

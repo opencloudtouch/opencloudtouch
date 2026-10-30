@@ -35,7 +35,7 @@ _ROLE = {  # wait -> who has to act
     Wait.FINDINGS: "author",
     Wait.CI: "author",
     Wait.SPEC_FIX: "author",
-    Wait.PREREQUISITE: "stack parent",
+    Wait.PREREQUISITE: "author",
     Wait.HARDWARE_TEST: "maintainers",
     Wait.DESIGNER: "designer",
 }
@@ -63,8 +63,13 @@ def block_hash(block: str) -> str:
     return hashlib.sha256(content.encode("utf-8")).hexdigest()[:12]
 
 
+def neutralise(text: str) -> str:
+    """Escape ``&``, ``<`` and ``>`` so user text can never open or close an HTML comment."""
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 def _cell(text: str) -> str:
-    return " ".join(text.split()).replace("|", "\\|")
+    return neutralise(" ".join(text.split())).replace("|", "\\|")
 
 
 def _is_open(graph: Graph, number: int) -> bool:
@@ -82,10 +87,12 @@ def _root_blocker(snap: Snapshot, graph: Graph) -> int | None:
             e.target
             for t in (EdgeType.STACKED_ON, EdgeType.DEPENDS_ON)
             for e in graph.edges_of(current, t)
-            if e.target not in seen and _is_open(graph, e.target)
+            if _is_open(graph, e.target)
         ]
-        seen.update(blockers)
-        stack.extend(blockers)
+        fresh = [b for b in blockers if b not in seen]
+        seen.update(fresh)
+        stack.extend(fresh)
+        # A leaf has no open blocker at all; `seen` only guards the traversal against cycles.
         if not blockers and current != snap.number:
             leaves.append(current)
     return min(leaves) if leaves else None
@@ -107,7 +114,7 @@ def _stack_chain(snap: Snapshot, graph: Graph) -> str | None:
     if not below and not above:
         return None
     root = graph.snapshots.get(below[-1]) if below else snap
-    parts = [f"`{(root.base_ref if root else '') or 'main'}`"] + [f"#{n}" for n in reversed(below)]
+    parts = [f"`{neutralise((root.base_ref if root else '') or 'main')}`"] + [f"#{n}" for n in reversed(below)]
     mark = "this PR, parent moved" if (snap.stack_drift or 0) > 0 else "this PR"
     parts.append(f"#{snap.number} ({mark})")
     parts += [f"#{n}" for n in above]
@@ -236,6 +243,8 @@ def render_block(snap: Snapshot, derived: Derived | None, graph: Graph, cfg: Con
     if chain:
         content += [f"**Stack:** {chain}", ""]
     if snap.is_pr:
+        # Known gap: Gitar's risk and auto-apply state live in its dashboard comment, which
+        # facts.py does not fetch yet; only check conclusions and the oct-support review show here.
         content += [f"**Automation:** {_automation(snap)}", ""]
     content += [f"**Ball with:** {_ball(snap, derived)}", ""]
     rows = _relation_rows(snap, graph)
@@ -276,7 +285,11 @@ def _shrink(block: str, limit_chars: int, eol: str) -> str:
 
 
 def splice_block(body: str, block: str, limit: int = 65_000) -> str:
-    """Put `block` at the top of `body`, replacing an existing one, within `limit` characters."""
+    """Put `block` at the top of `body`, replacing an existing one, within `limit` characters.
+
+    Only the relations table is shortened. If the block without any table row still does not fit,
+    it is returned anyway (never fails) and the result may exceed `limit`.
+    """
     eol = "\r\n" if "\r\n" in body else "\n"
     rest = _BLOCK.sub("", body.replace("\r\n", "\n"), count=1).lstrip("\n")
     block = block.replace("\r\n", "\n")
