@@ -7,6 +7,7 @@ import re
 from dataclasses import replace
 from datetime import timedelta
 
+import httpx
 import pytest
 
 from oct_status.apply import MARKER
@@ -15,7 +16,7 @@ from oct_status.main import run_check, run_event
 from oct_status.notices import DATA_BUDGET, MAX_OPEN, Record, parse_state, render, scrub, state_data
 
 from .test_commands import comment_event
-from .test_main_events import api_for
+from .test_main_events import _nosleep, api_for
 from .test_rules import DOR_DONE
 from .test_violations_events import ACTIVE, NOW, Repo, pr_event, run, seed
 
@@ -231,6 +232,146 @@ async def test_level3_removed_label_is_restored_on_an_issue():
     event = {"action": "unlabeled", "issue": {"number": 7}, "label": {"name": "phase:new"}, "sender": {"login": "bob"}}
     await run(repo, "issues", event)
     assert "phase:new" in repo.label_names(7) and "reverted" in repo.guide(7)
+
+
+# --- level 3: V08 reopens the issue ----------------------------------------------------------------
+
+REOPEN = {"state": "open", "state_reason": "reopened"}
+
+
+def closed_event(number: int = 5, sender: str = "bob") -> dict:
+    return {"action": "closed", "issue": {"number": number, "state_reason": "completed"}, "sender": {"login": sender}}
+
+
+def verification_issue(repo: Repo, number: int = 5) -> dict:
+    repo.add(number, labels=("spec", "wait:hardware-test"), state="closed", body=DOR_DONE)
+    repo.issue_events[number] = [{"event": "closed", "commit_id": None}]
+    return closed_event(number)
+
+
+def reopen_patches(repo: Repo) -> list[int]:
+    return [n for n, body in repo.patches if body == REOPEN]
+
+
+async def test_level3_v08_reopens_the_issue_and_records_the_revert():
+    repo = Repo()
+    seed(repo, "bob", [(1, "V08"), (2, "V08")])
+    event = verification_issue(repo)
+    await run(repo, "issues", event)
+    assert repo.issues[5]["state"] == "open" and reopen_patches(repo) == [5]
+    guide = repo.guide(5)
+    assert "Reverted: the issue was reopened because it was closed without hardware verification" in guide
+    assert "verify on a device or use `/oct verified`, then close again" in guide
+    assert open_rules(repo, 5) == ["V08"]  # the reopening does not resolve the notice
+    assert "wait:hardware-test" in repo.label_names(5)
+    await run(repo, "issues", other_event(5))  # a later unrelated event keeps it open
+    assert open_rules(repo, 5) == ["V08"] and repo.issues[5]["state"] == "open"
+
+
+async def test_v08_below_level3_does_not_reopen():
+    repo = Repo()
+    seed(repo, "bob", [(1, "V08")])  # this one is the second strike: level 2
+    await run(repo, "issues", verification_issue(repo))
+    assert repo.issues[5]["state"] == "closed" and reopen_patches(repo) == []
+    assert "Reverted" not in repo.guide(5) and open_rules(repo, 5) == ["V08"]
+
+
+async def test_v08_before_strikes_are_active_does_not_reopen():
+    repo = Repo()
+    inactive = replace(ACTIVE, strikes_enabled_from=None)
+    await run(repo, "issues", verification_issue(repo), cfg=inactive)
+    assert reopen_patches(repo) == [] and repo.issues[5]["state"] == "closed"
+
+
+async def test_own_reopen_is_ignored_and_a_second_close_counts_once():
+    repo = Repo()
+    seed(repo, "bob", [(1, "V08"), (2, "V08")])
+    event = verification_issue(repo)
+    await run(repo, "issues", event)
+    entries = len(repo.ledger())
+    patches = len(repo.patches)
+    # The reopening by the bot raises issues.reopened: ignored, nothing is written.
+    await run(repo, "issues", {"action": "reopened", "issue": {"number": 5}, "sender": {"login": "oct-support"}})
+    assert len(repo.patches) == patches and len(repo.ledger()) == entries
+    # A person closes it again: V08 again, the pair (artifact, rule) is not counted twice, reopened again.
+    repo.issues[5]["state"] = "closed"
+    await run(repo, "issues", event)
+    assert len(repo.ledger()) == entries and reopen_patches(repo) == [5, 5]
+    assert [n["rule"] for n in data(repo, 5)["notices"]] == ["V08"]
+    assert open_rules(repo, 5) == ["V08"]
+
+
+async def test_level3_v08_resolves_when_verified():
+    repo = Repo()
+    seed(repo, "bob", [(1, "V08"), (2, "V08")])
+    await run(repo, "issues", verification_issue(repo))
+    await run(repo, "issue_comment", comment_event(5, "/oct verified Bose ST10", login="carol"))
+    assert open_rules(repo, 5) == [] and data(repo, 5)["notices"][0]["resolved"] == "verified"
+
+
+async def test_level3_v08_resolves_when_overridden_and_is_not_reverted_again():
+    repo = Repo()
+    seed(repo, "bob", [(1, "V08"), (2, "V08")])
+    event = verification_issue(repo)
+    await run(repo, "issues", event)
+    await run(repo, "issue_comment", comment_event(5, "/oct override verified out of band", login="carol"))
+    assert open_rules(repo, 5) == [] and data(repo, 5)["notices"][0]["resolved"] == "overridden"
+    repo.issues[5]["state"] = "closed"
+    await run(repo, "issues", event)
+    assert reopen_patches(repo) == [5] and repo.issues[5]["state"] == "closed"
+
+
+async def test_level3_v08_dry_run_writes_nothing():
+    repo = Repo()
+    seed(repo, "bob", [(1, "V08"), (2, "V08")])
+    await run(repo, "issues", verification_issue(repo), dry_run=True)
+    assert repo.patches == [] and repo.issues[5]["state"] == "closed"
+
+
+async def test_level3_v08_read_only_api_never_reaches_the_patch():
+    from oct_status.api import GitHubApi
+
+    repo = Repo()
+    seed(repo, "bob", [(1, "V08"), (2, "V08")])
+    event = verification_issue(repo)
+    transport = httpx.MockTransport(repo.handler)
+    api = GitHubApi("t", "o/r", transport, sleep=_nosleep, read_only=True)
+    await run_event(api, ACTIVE, "issues", event, dry_run=True, clock=lambda: NOW)
+    await api.aclose()
+    assert repo.patches == [] and repo.issues[5]["state"] == "closed"
+
+
+async def test_level3_v08_with_an_unreadable_ledger_does_not_reopen():
+    repo = Repo()
+    seed(repo, "bob", [(1, "V08"), (2, "V08")])
+    repo.fail_ledger_read = True
+    await run(repo, "issues", verification_issue(repo))
+    assert reopen_patches(repo) == [] and repo.issues[5]["state"] == "closed"
+
+
+async def test_level3_v08_with_an_unreadable_guide_does_not_reopen():
+    repo = Repo()
+    seed(repo, "bob", [(1, "V08"), (2, "V08")])
+    event = verification_issue(repo)
+    original = repo.handler
+
+    def failing(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/issues/5/comments"):
+            return httpx.Response(500, json={})
+        return original(request)
+
+    repo.handler = failing  # type: ignore[method-assign]
+    await run(repo, "issues", event)
+    assert reopen_patches(repo) == [] and repo.issues[5]["state"] == "closed"
+
+
+async def test_level3_v08_with_a_corrupt_guide_does_not_reopen():
+    repo = Repo()
+    seed(repo, "bob", [(1, "V08"), (2, "V08")])
+    event = verification_issue(repo)
+    repo.comments[5] = [{"id": 9, "body": f"{MARKER}\nno data", "user": {"login": "oct-support"}}]
+    await run(repo, "issues", event)
+    assert reopen_patches(repo) == [] and repo.issues[5]["state"] == "closed"
 
 
 # --- data shape ---------------------------------------------------------------------------------

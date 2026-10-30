@@ -1032,8 +1032,9 @@ de-duplicated per artifact and rule:
 2. Second: the same, plus the hint that a maintainer can `/oct override REASON`.
 3. Third and later: on a pull request the commit status `oct-status` fails until the violation is fixed or
    overridden. On an issue the automation reverts a hand-set fact label (V02) and says so; a hand-edited
-   block (V03) is restored anyway. V05 and V08 on issues are not reverted: the notice stays until the
-   change is undone.
+   block (V03) is restored anyway. An issue closed without hardware verification (V08) is reopened (see
+   [V08](#v08-closed-without-hardware-verification)). V05 on issues is not reverted: the notice stays until
+   the change is undone.
 
 **Inactive until activation:** while `strikes_enabled_from` in `scripts/oct_status/config.yml` is unset (the
 case today), nothing is recorded and every notice stays at level 1. The ladder as rendered for #573:
@@ -1047,6 +1048,8 @@ Level 2: [V06](https://github.com/opencloudtouch/opencloudtouch/blob/main/docs/W
 Level 3: [V06](https://github.com/opencloudtouch/opencloudtouch/blob/main/docs/WORKFLOW.md#v06-pull-request-for-a-spec-that-is-not-ready) pull request for a spec that is not ready. Spec #537 is not ready yet. Expected: Implementation starts after the spec is ready. Next steps: Complete the Definition of Ready of the spec and have it reviewed. `/oct review` A maintainer can override this with `/oct override REASON`. The check oct-status fails on this pull request until this is fixed or overridden.
 
 Level 3 on an issue: [V02](https://github.com/opencloudtouch/opencloudtouch/blob/main/docs/WORKFLOW.md#v02-fact-label-changed-by-hand) fact label changed by hand. The label `phase:in-progress` was added by hand. Expected: Phase and wait labels that describe facts are written by the status automation only. Next steps: Leave the label to the automation; it restores the derived value. `/oct triage` A maintainer can override this with `/oct override REASON`. The offending change is reverted.
+
+Level 3 on an issue closed without hardware verification: [V08](https://github.com/opencloudtouch/opencloudtouch/blob/main/docs/WORKFLOW.md#v08-closed-without-hardware-verification) closed without hardware verification. The artifact was closed while the hardware verification is still open. Expected: An artifact in verification is closed after `/oct verified`. Next steps: Reopen the artifact, verify on a device, then record it. `/oct verified DEVICE` A maintainer can override this with `/oct override REASON`. Reverted: the issue was reopened because it was closed without hardware verification; verify on a device or use `/oct verified`, then close again.
 ```
 <!-- /snippet -->
 
@@ -1170,8 +1173,17 @@ hardware test is still open.
 
 **Expected:** an artifact in verification is closed after `/oct verified`.
 
-**Next steps:** reopen the issue, verify on a device, then `/oct verified <device or note>` and close it. The
-notice resolves when the issue is reopened or no longer in verification.
+**Next steps:** reopen the issue, verify on a device, then `/oct verified <device or note>` and close it. At
+ladder level 1 and 2 the notice resolves when the issue is reopened or no longer in verification.
+
+**Level 3 (revert):** from the third violation of a person within 60 days the automation reopens the issue
+itself (`PATCH /issues/{n}` with `state: open`, `state_reason: reopened`) and records in the guide notice that
+the issue was reopened because it was closed without hardware verification. The reopening raises an
+`issues.reopened` event by the bot, which is ignored, so there is no loop. The notice then resolves only when
+the hardware test is verified (`/oct verified`) or a maintainer overrides it with `/oct override REASON`.
+Closing the issue again re-triggers V08 and reopens it again, but the same artifact and rule count once in the
+ledger. Only issues are reverted, never pull requests. Nothing is reopened in a dry run, with a read-only
+token, before `strikes_enabled_from`, or when the ledger or the guide comment cannot be read.
 
 **Wrong:** closing a bug in `verification` with "should work now".
 

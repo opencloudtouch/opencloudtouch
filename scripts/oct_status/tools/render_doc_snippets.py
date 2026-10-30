@@ -231,6 +231,8 @@ def _ladder(graph: Graph, cfg: Config) -> str:
     lines = [f"Level {level}: {format_notice(Notice(v, level), True)}" for level in (1, 2, 3)]
     issue = Violation("V02", 575, "someone", "The label `phase:in-progress` was added by hand.", "phase:in-progress")
     lines.append(f"Level 3 on an issue: {format_notice(Notice(issue, 3), False)}")
+    closed = Violation("V08", 575, "someone", "The artifact was closed while the hardware verification is still open.")
+    lines.append(f"Level 3 on an issue closed without hardware verification: {format_notice(Notice(closed, 3), False)}")
     return fence("\n\n".join(lines))
 
 

@@ -235,6 +235,9 @@ def test_own_event_matrix():
     assert is_own_event("issues", {"action": "unlabeled", "sender": bot}, {BOT})
     assert not is_own_event("issues", {"action": "labeled", "sender": {"login": "human"}}, {BOT})
     assert not is_own_event("issues", {"action": "opened", "sender": bot}, {BOT})
+    assert is_own_event("issues", {"action": "reopened", "sender": bot}, {BOT})  # V08 revert reopens the issue
+    assert not is_own_event("issues", {"action": "reopened", "sender": {"login": "human"}}, {BOT})
+    assert not is_own_event("pull_request", {"action": "reopened", "sender": bot}, {BOT})
     guide = {"action": "created", "sender": bot, "comment": {"body": GUIDE}}
     assert is_own_event("issue_comment", guide, {BOT})
     answer = {"action": "created", "sender": bot, "comment": {"body": "Thanks, see docs"}}

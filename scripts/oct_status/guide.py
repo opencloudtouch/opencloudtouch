@@ -156,6 +156,12 @@ def next_steps(snap: Snapshot, derived: Derived, cfg: Config, graph: Graph | Non
     return steps[:MAX_STEPS]
 
 
+REVERT_V08 = (
+    " Reverted: the issue was reopened because it was closed without hardware verification;"
+    " verify on a device or use `/oct verified`, then close again."
+)
+
+
 def format_notice(notice: Notice, is_pr: bool) -> str:
     """Guide text of a violation: what happened, what was expected, next steps, the rule anchor and the ladder step.
 
@@ -173,7 +179,7 @@ def format_notice(notice: Notice, is_pr: bool) -> str:
     if notice.blocks(is_pr):
         text += " The check oct-status fails on this pull request until this is fixed or overridden."
     if notice.revert(is_pr):
-        text += " The offending change is reverted."
+        text += REVERT_V08 if v.rule == "V08" else " The offending change is reverted."
     return text
 
 

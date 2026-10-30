@@ -258,6 +258,7 @@ class Workspace:
         remove: list[str],
         no_spec_reason: str | None = None,
         paths_accepted: str | None = None,
+        state: str | None = None,
     ) -> None:
         """Reflect a command's effect in the loaded snapshot (the labels were written, or are planned)."""
         snap = self._snaps.get(number)
@@ -269,6 +270,7 @@ class Workspace:
             labels=frozenset(labels),
             no_spec_reason=no_spec_reason or snap.no_spec_reason,
             paths_accepted=paths_accepted or snap.paths_accepted,
+            state=state or snap.state,
         )
 
     async def neighbors(self, number: int) -> list[Edge]:
@@ -762,7 +764,29 @@ async def _revert(ws: Workspace, number: int, reverts: list[Violation], dry_run:
                 resp.raise_for_status()
             ws.patch(number, [label], [])
             writes.append(f"revert: restore label {label} (V02, level 3)")
+    if any(v.rule == "V08" for v in reverts):
+        writes += await _reopen(ws, number, dry_run)
     return writes
+
+
+async def _reopen(ws: Workspace, number: int, dry_run: bool) -> list[str]:
+    """Reopen an issue that was closed while its hardware verification is open (V08 at level 3).
+
+    The bot's own `reopened` event is ignored (``apply.is_own_event``), so this does not loop. Fail
+    closed: without a readable guide comment the revert could not be recorded, so nothing is reopened.
+    Only issues are reverted: a pull request cannot raise V08.
+    """
+    graph = ws.graph()
+    snap, derived = graph.snapshots.get(number), graph.derived.get(number)
+    if snap is None or derived is None or snap.is_pr or snap.state != "closed" or derived.phase != Phase.VERIFICATION:
+        return []
+    if ws.states.get(number) is None:
+        return []
+    if not dry_run and not ws.api.read_only:
+        resp = await ws.api.request("PATCH", f"/issues/{number}", json={"state": "open", "state_reason": "reopened"})
+        resp.raise_for_status()
+    ws.patch(number, [], [], state="open")
+    return ["revert: reopen the issue (V08, level 3)"]
 
 
 def _command_lines(report: CommandReport, dry_run: bool) -> list[str]:

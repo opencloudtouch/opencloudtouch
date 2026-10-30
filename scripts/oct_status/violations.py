@@ -26,8 +26,9 @@ FACT_WAITS = frozenset(f"wait:{w}" for w in ("maintainer", "findings", "ci", "pr
 FACT_LABELS = FACT_PHASES | FACT_WAITS
 LEVEL_OVERRIDE_HINT = 2
 LEVEL_BLOCK = 3
-# Rules whose offending change the automation undoes on an issue: fact labels (V02) and the block (V03).
-REVERTED_RULES = frozenset({"V02", "V03"})
+# Rules whose offending change the automation undoes on an issue: fact labels (V02), the block (V03)
+# and a close without hardware verification (V08, by reopening the issue).
+REVERTED_RULES = frozenset({"V02", "V03", "V08"})
 STATE_RULES = frozenset({"V01", "V04", "V06"})
 KEY_CHARS = 120  # a template key is stored (and compared) with at most this many characters
 

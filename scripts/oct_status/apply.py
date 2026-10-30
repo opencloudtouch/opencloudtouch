@@ -19,8 +19,8 @@ OWNED_PREFIXES = ("phase:", "wait:", "resolution:")
 PER_PAGE = 100
 
 
-_OWN_ACTIONS = {"issues": {"edited", "labeled", "unlabeled"}}
-_OWN_ACTIONS["pull_request"] = _OWN_ACTIONS["pull_request_target"] = _OWN_ACTIONS["issues"]
+_OWN_ACTIONS = {"issues": {"edited", "labeled", "unlabeled", "reopened"}}  # `reopened`: the V08 revert
+_OWN_ACTIONS["pull_request"] = _OWN_ACTIONS["pull_request_target"] = {"edited", "labeled", "unlabeled"}
 
 
 def is_own_event(event_name: str, payload: dict[str, Any], bot_logins: set[str]) -> bool:

@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 from .apply import desired_labels
 from .config import Config
 from .guide import RESOLVED, WORKFLOW, format_notice
-from .model import Derived, Graph, Phase, Snapshot
+from .model import Derived, Graph, Phase, Snapshot, Wait
 from .render import block_intact, extract_block
 from .violations import KEY_CHARS, LEVEL_BLOCK, RULES, STATE_RULES, Notice, Violation, state_rules, template_keys
 
@@ -216,7 +216,11 @@ def _resolution(rec: Record, snap: Snapshot, derived: Derived, graph: Graph, cfg
         return "restored" if all(k in current for k in rec.key.split("\n") if k) else ""
     if rec.rule == "V07":
         return "accepted" if rec.key in accepted else ""
-    if snap.state == "open":  # V08
+    # V08. From level 3 the automation reopens the issue itself, so only the verification resolves it
+    # (the phase of an open issue is not VERIFICATION until a part is merged; the hardware wait is).
+    if rec.level >= LEVEL_BLOCK:
+        return "" if Wait.HARDWARE_TEST in derived.waits else "verified"
+    if snap.state == "open":
         return "reopened"
     return "verified" if derived.phase != Phase.VERIFICATION else ""
 

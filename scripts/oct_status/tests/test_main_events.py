@@ -53,6 +53,7 @@ class FakeRepo:
         self.comments: dict[int, list[dict[str, Any]]] = {}
         self.writes: list[tuple[str, str]] = []
         self.statuses: dict[str, list[dict[str, Any]]] = {}  # head SHA -> posted commit statuses
+        self.patches: list[tuple[int, dict[str, Any]]] = []  # (issue number, JSON body) of every issue PATCH
         self._next = 1000
 
     def add(self, number: int, body: str = "", labels: tuple[str, ...] = (), state: str = "open") -> None:
@@ -98,7 +99,8 @@ class FakeRepo:
         if (m := re.fullmatch(r"/issues/(\d+)", rel)) and int(m[1]) in self.issues:
             issue = self.issues[int(m[1])]
             if method == "PATCH":
-                issue["body"] = body["body"]
+                self.patches.append((int(m[1]), body))
+                issue.update({k: v for k, v in body.items() if k in ("body", "state", "state_reason")})
             return httpx.Response(200, json=issue)
         if m := re.fullmatch(r"/issues/(\d+)/comments", rel):
             comments = self.comments.setdefault(int(m[1]), [])
