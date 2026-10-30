@@ -240,10 +240,12 @@ deletes the comment, the next action recreates it; deleting is not a violation.
 The comment stays well below the GitHub size limit; history and resolved
 notices are truncated first.
 
-Notifications: edits do not notify. The bot therefore mentions the person who
-has the ball (author, reporter or reviewer) only in the edit where the ball
-changes hands. Whether GitHub notifies on a newly added mention in an edited
-comment is verified in shadow mode.
+Notifications: edits do not notify, and this is accepted. There is never a second
+comment, also not when the ball changes hands. As a best effort the bot mentions
+the person who has the ball only in the edit where it changes; whether GitHub
+notifies on a newly added mention in an edited comment is observed in shadow
+mode and has no fallback. People find their work through the `wait:*` label
+filters, not through notifications.
 
 Reactions on the command comment (eyes, thumbs up, thumbs down) stay. The
 explanation of a rejection goes into section 1 of the guide comment, never into
