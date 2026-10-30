@@ -21,6 +21,8 @@
 - `pull_request_target` workflows never check out PR code. Writes use `BOT_PAT`, reads `GITHUB_TOKEN`. No tokens, full token-bearing URLs or personal data (IPs, e-mail addresses) in code, logs or fixtures.
 - Hooks read through REST only (no GraphQL, no `gh`) and fail closed on body writes.
 - No comment written by the bot starts with `gitar` or `@gitar` or mentions `@gitar-bot`.
+- Existing script suites (`scripts/issue_handler`, `scripts/pr_reviewer`, `scripts/test_e2e_shard_distribution.py`) run in the same CI job as the new package; they run on Python 3.13 (what the workflows use), `oct_status` additionally on 3.11 (hook floor).
+- **Maintainer actions:** whenever a step says MAINTAINER ACTION MA-n, stop, tell the maintainer in German exactly what to do and why (use the block of that id in the section "Maintainer actions"), wait for the reported result and record it in the PR description under "Open verifications and follow-ups".
 - Each milestone below is one spec issue (label `spec`, Definition of Ready met) and one PR with the filled `.github/pull_request_template.md`. Do not start a milestone whose spec issue is not ready or whose predecessor is not merged.
 
 ## Review Focus
@@ -61,14 +63,18 @@ scripts/oct_status/                  new package, run as `python -m oct_status` 
   tools/capture_fixture.py  tools/render_doc_snippets.py
   tests/  (fixtures/ = sanitized JSON of #537 #560 #573 #574 #575 #577 and a Dependabot PR)
 .github/workflows/oct-status.yml     new
-.github/workflows/ci.yml             modify: job `oct-status-tests`, added to `summary`
+.github/workflows/ci.yml             modify: job `scripts-tests` ("Scripts Tests"), added to `summary`
+scripts/pr_reviewer/pyproject.toml  requirements-dev.txt        new (Task 2c)
+scripts/issue_handler/tests/test_pattern_quality_scan.py        new (Task 2b)
 .claude/settings.json  .gitar/rules/oct-status.md  .gitar/config/apply.md
 docs/WORKFLOW.md                     new
 ```
 
 ---
 
-# Milestone 0 - Foundation and labels (spec issue 1)
+# Milestone 0 - Foundation, existing suites in CI, labels (spec issue 1)
+
+**Before Task 1:** MAINTAINER ACTION MA-1 (go for the five `[Spec]` issues).
 
 ### Task 1: Package skeleton, config and model types
 
@@ -96,19 +102,70 @@ docs/WORKFLOW.md                     new
 - [ ] **Step 4: Run** the same command - Expected: PASS.
 - [ ] **Step 5: Commit** `feat(oct-status): add package skeleton, config and model types`.
 
-### Task 2: CI job for the package
+### Task 2a: Fix the month-dependent budget test in issue_handler
 
 **Files:**
-- Modify: `.github/workflows/ci.yml` (new job after `frontend-tests`; add to `summary.needs` and to its fail condition)
+- Modify: `scripts/issue_handler/tests/test_cost_tracker.py:27-30` (test `test_budget_exceeded`)
+
+**Why (approved by the maintainer):** the test writes the fixed month `"2026-05"`. `CostTracker` resets a cost file from another month on purpose, so since June 2026 it sees a fresh tracker and fails. The code is right, the test is wrong.
+
+- [ ] **Step 1: Run** `cd scripts/issue_handler && python -m pytest tests/test_cost_tracker.py::TestCostTracker::test_budget_exceeded -q` - Expected: FAIL with `assert False is True`.
+- [ ] **Step 2: Change the test** so `month` and `last_updated` come from `datetime.now(timezone.utc)` (`%Y-%m` and `.isoformat()`); cost 0.95 and budget 0.90 stay.
+- [ ] **Step 3: Run** the same command, then `python -m pytest -q` - Expected: PASS, whole suite green.
+- [ ] **Step 4: Commit** `fix(issue-handler): use the current month in the budget test`.
+
+### Task 2b: Fix the never-matching how/why patterns in the pattern scan
+
+**Files:**
+- Modify: `scripts/issue_handler/knowledge_base/pattern_quality_scan.py:21-24` (`PATTERNS`)
+- Create: `scripts/issue_handler/tests/test_pattern_quality_scan.py`
 
 **Interfaces:**
-- Produces: required-able check named `OCT Status Tests`.
+- Consumes (existing): `async scan_open_issues(github_client: GitHubClient, kb: KnowledgeBase)`, constants `PATTERNS`, `POSITIVE_FEEDBACK`, `NEGATIVE_FEEDBACK`, `STALE_DAYS = 7`. The function lower-cases title and body, calls `github_client.get_open_issues_since(since)` and writes three YAML files below `.local/agent-work/knowledge-kai/scans/` relative to the working directory (`pattern_quality_threads.yaml`, `..._coverage.yaml`, `..._quality.yaml`).
 
-- [ ] **Step 1: Write the failing check** - open a PR-less dry run: `actionlint .github/workflows/ci.yml` must still pass and `grep -n "oct-status-tests" .github/workflows/ci.yml` must show the job id in `summary.needs`.
+**Why (approved by the maintainer):** `r"\\bhow\\b"` in a raw string is a literal backslash followed by `bhow`, so `re.search` never matches normal text and questions with how/why are missing from the weekly `kb-growth` report. The fix changes the output of that workflow.
+
+- [ ] **Step 1: Write the failing tests** (same mocking style as `tests/test_kb_growth.py`: `AsyncMock` client, `MagicMock(spec=KnowledgeBase)`; every test uses `monkeypatch.chdir(tmp_path)` and reads the YAML back)
+  - `test_patterns_match_how_and_why_questions`: `any(re.search(p, "how do i pair a speaker") for p in PATTERNS)` and the same for `"why is the volume low"`.
+  - `test_scan_records_patterns_for_how_question`: an open issue titled "How do I reset my speaker" yields a thread whose `patterns` list is non-empty.
+  - `test_stale_after_seven_days`: updated 8 days ago -> `stale is True`; 6 days ago -> `False` (timestamps computed relative to now).
+  - `test_feedback_counters`: body "solved" -> `quality.solved == 1`; body "still broken" -> `quality["didn’t_work"] == 1`; stale issue without feedback -> `quality.no_response == 1`.
+  - `test_coverage_map_marks_covered_topic`: a KB answer tagged `wizard` and an issue mentioning `wizard` -> `covered_by_kb is True`.
+  - `test_thanks_scoring_is_pinned_as_known_issue`: `@pytest.mark.xfail(strict=True, reason="'thanks?' is never in ['thanks','solved','fixed'], so thanks counts as helpful, not solved; follow-up issue")`, expects `quality.solved == 1` for the body "thanks".
+- [ ] **Step 2: Run** `cd scripts/issue_handler && python -m pytest tests/test_pattern_quality_scan.py -q` - Expected: the two pattern tests FAIL, the others PASS.
+- [ ] **Step 3: Fix** the two entries to `r"\bhow\b"` and `r"\bwhy\b"`. Leave the scoring untouched; the `thanks?` mismatch stays documented by the xfail test and goes to a follow-up issue named in the PR.
+- [ ] **Step 4: Run** the same command - Expected: PASS with one xfail.
+- [ ] **Step 5: Commit** `fix(issue-handler): match how and why in the KB pattern scan`.
+
+### Task 2c: Make the legacy suites CI-ready (dependencies, coverage gates)
+
+**Files:**
+- Modify: `scripts/issue_handler/requirements-dev.txt` (add `pytest-asyncio`), `scripts/issue_handler/pyproject.toml` (`asyncio_default_fixture_loop_scope = "function"`)
+- Create: `scripts/pr_reviewer/pyproject.toml`, `scripts/pr_reviewer/requirements-dev.txt` (`-r requirements.txt`, `pytest`, `pytest-asyncio`, `pytest-cov`)
+- Test additions only if the gate below fails: `scripts/issue_handler/tests/test_kb_growth.py` (for `run_kb_growth`, `main`)
+
+**Why (approved by the maintainer):** `issue_handler` declares `fail_under = 80` but measures 76.7 % because it never ran in CI; `pr_reviewer` has no gate and its 80 % total counts the test file itself (`main.py` alone is 59 %). The dev requirements lack `pytest-asyncio`, which `asyncio_mode = "auto"` needs.
+
+- [ ] **Step 1: Run** `cd scripts/issue_handler && python -m pytest -q --cov=. --cov-fail-under=80` after Task 2b - Expected: PASS at about 83 % (2b covers most of `pattern_quality_scan.py`). If it prints FAIL, add tests for `kb_growth.run_kb_growth` and `main.run` branches until it passes; no production code changes.
+- [ ] **Step 2: Create** the `pr_reviewer` files: pytest config (`testpaths = ["tests"]`, `asyncio_default_fixture_loop_scope = "function"`), `[tool.coverage.run] source = ["."]`, `omit = ["tests/*"]`, `[tool.coverage.report] fail_under = 57`, `show_missing = true`.
+- [ ] **Step 3: Run** `cd scripts/pr_reviewer && python -m pytest -q --cov=.` - Expected: PASS at about 59 % (gate 57 keeps it from sinking). Name a follow-up issue in the PR to raise the gate.
+- [ ] **Step 4: Run** `cd scripts && python -m pytest -q test_e2e_shard_distribution.py` - Expected: 105 passed.
+- [ ] **Step 5: Commit** `test(scripts): make the legacy suites CI-ready`.
+
+### Task 2d: CI job for all script suites
+
+**Files:**
+- Modify: `.github/workflows/ci.yml` (new job `scripts-tests`, name `Scripts Tests`, after `frontend-tests`; add it to `summary.needs` and to the fail condition of `summary`)
+
+**Interfaces:**
+- Consumes: the package from Task 1, the green legacy suites from Tasks 2a-2c.
+- Produces: required-able check named `Scripts Tests`.
+
+- [ ] **Step 1: Write the failing check**: `grep -n "scripts-tests" .github/workflows/ci.yml` must show the job id and its entry in `summary.needs`.
 - [ ] **Step 2: Run** the grep - Expected: no match.
-- [ ] **Step 3: Implement** job `oct-status-tests` (`runs-on: ubuntu-latest`, Python 3.11): install `requirements-dev.txt`, run `ruff check scripts/oct_status`, `mypy` (from the package dir), `python -m pytest -q --cov=. --cov-fail-under=80`, with `defaults.run.working-directory: scripts/oct_status`. Existing `scripts/*` suites stay out of CI (not in scope).
-- [ ] **Step 4: Run** `actionlint` and the grep - Expected: clean, one match in the job and one in `summary`.
-- [ ] **Step 5: Commit** `ci: run the oct-status package tests`.
+- [ ] **Step 3: Implement** the job (`ubuntu-latest`, `actions/setup-python@v7` with `3.13`): install the three `requirements-dev.txt` files in one `pip install`; then one named step per suite - issue_handler (`cd scripts/issue_handler && python -m pytest -q --cov=.`), pr_reviewer (`cd scripts/pr_reviewer && python -m pytest -q --cov=.`), shard distribution (`cd scripts && python -m pytest -q test_e2e_shard_distribution.py`), oct_status (`cd scripts/oct_status && ruff check . && mypy . && python -m pytest -q --cov=.`). The coverage gates come from each `pyproject.toml`. A second `setup-python` with `3.11` then reruns the `oct_status` tests. No legacy lint is added (8 existing ruff findings stay out of scope).
+- [ ] **Step 4: Run** `actionlint .github/workflows/ci.yml` and the grep - Expected: clean; one match in the job and one in `summary`.
+- [ ] **Step 5: Commit** `ci: run all script test suites`. Optional, see MA-9: add `Scripts Tests` to the required checks.
 
 ### Task 3: Label taxonomy and idempotent sync
 
@@ -140,6 +197,7 @@ docs/WORKFLOW.md                     new
 **Interfaces:**
 - Consumes: label names from Task 3.
 
+- [ ] **MAINTAINER ACTION MA-2** (before Step 1): identify the `BOT_PAT` account and its scopes.
 - [ ] **Step 1: Write the failing tests**
   - `test_classification_labels_use_new_names`: `{"bug","enhancement","support","wait:reporter"} <= CLASSIFICATION_LABELS`.
   - `test_heuristic_adds_wait_reporter`: the `needs-info` case now calls `add_labels(n, ["wait:reporter"])`.
@@ -157,15 +215,15 @@ docs/WORKFLOW.md                     new
 - Create: `scripts/oct_status/main.py` (labels part), `.github/workflows/oct-status.yml` (only `workflow_dispatch` with input `mode`), `scripts/oct_status/tests/test_main_labels.py`
 
 **Interfaces:**
-- Produces: `main.cli(argv: list[str]) -> int` with `--labels [--dry-run]`; workflow input `mode: labels|event|audit|backfill`.
+- Produces: `main.cli(argv: list[str]) -> int` with `--labels [--dry-run]`; workflow inputs `mode: labels|event|audit|backfill` and `dry_run: boolean` (default true).
 
 - [ ] **Step 1: Write the failing test** `test_cli_labels_dry_run_exits_zero_and_prints_operations` (mock transport, `capsys`).
 - [ ] **Step 2: Run** - Expected: FAIL.
 - [ ] **Step 3: Implement** `cli` reading `GITHUB_TOKEN`/`BOT_PAT` and `GITHUB_REPOSITORY`; workflow `oct-status.yml` with `permissions: {issues: write, pull-requests: write, contents: read}`; `actionlint` clean.
 - [ ] **Step 4: Run** the test and `actionlint` - Expected: PASS.
-- [ ] **Step 5: Commit** `feat(oct-status): add CLI entry point and label sync workflow`. Then, as a maintainer action recorded in the PR: run the workflow with `mode=labels` and `--dry-run`, review the operation list, run it for real.
+- [ ] **Step 5: Commit** `feat(oct-status): add CLI entry point and label sync workflow`. After the merge: **MAINTAINER ACTION MA-3** (run the label sync).
 
-**Milestone 0 acceptance:** labels renamed and created, `spec`/`enhancement` recolored, ledger issue exists, package tests run in CI, no behaviour change otherwise.
+**Milestone 0 acceptance:** labels renamed and created, `spec`/`enhancement` recolored, ledger issue exists, all script suites (legacy and new) run green in CI, the two legacy bugs are fixed, no other behaviour change.
 
 ---
 
@@ -308,8 +366,9 @@ docs/WORKFLOW.md                     new
 - [ ] **Step 3: Implement.** Workflow triggers: `issues`, `pull_request_target` (opened, edited, synchronize, ready_for_review, converted_to_draft, closed, labeled, unlabeled, review_requested), `pull_request_review`, `pull_request_review_comment`, `issue_comment`, `check_suite: completed`, `discussion`, `discussion_comment`, `schedule` (daily at 03:17 UTC), `workflow_dispatch`. Concurrency `group: oct-status-${{ number }}`, `cancel-in-progress: false`. Job names: `status` (event run) and `oct-status` (check). In this milestone the step runs with `--dry-run`. Checkout only the base ref.
 - [ ] **Step 4: Run** the tests and `actionlint` - Expected: PASS.
 - [ ] **Step 5: Commit** `feat(oct-status): add event pipeline and shadow-mode workflow`.
+- [ ] **MAINTAINER ACTION MA-4** (after the merge, before the shadow week counts): check the Gitar dashboard settings.
 
-**Milestone 1 acceptance:** the workflow runs on every event in shadow mode and its job summary can be compared with reality for one week. Recorded in the PR: a diff between computed and actual labels for all open artifacts.
+**Milestone 1 acceptance:** the workflow runs on every event in shadow mode and its job summary can be compared with reality for one week. Recorded in the PR: a diff between computed and actual labels for all open artifacts. Before Task 14 starts: **MAINTAINER ACTION MA-5** (go/no-go after the shadow week).
 
 ---
 
@@ -372,9 +431,9 @@ docs/WORKFLOW.md                     new
   - `test_level3_violation_reverts_issue_change_and_fails_pr_check`: a hand-set fact label on an issue at level 3 is removed again and noted in the guide comment; the same violation on a PR makes `--check` exit 1.
   - `test_backfill_sleeps_between_artifacts` (injected `sleep` called, fixed minimum delay).
 - [ ] **Step 2: Run** - Expected: FAIL.
-- [ ] **Step 3: Implement.** Switch the workflow's event run from `--dry-run` to write mode; add `mode=backfill` using `workflow_dispatch`. Backfill derives phases from facts only.
+- [ ] **Step 3: Implement.** Switch the workflow's event run from `--dry-run` to write mode; add `mode=backfill` using `workflow_dispatch` with an integer input `limit` (default 25 artifacts per run) and a printed `remaining:` count. Backfill derives phases from facts only.
 - [ ] **Step 4: Run** tests and `actionlint` - Expected: PASS.
-- [ ] **Step 5: Commit** `feat(oct-status): enable write mode, protected-path guard and backfill`. Then as a maintainer action: run `mode=backfill` in batches and record the counts in the PR.
+- [ ] **Step 5: Commit** `feat(oct-status): enable write mode, protected-path guard and backfill`. After the merge: **MAINTAINER ACTION MA-6** (run the backfill in batches).
 
 **Milestone 2 acceptance:** new events converge; open artifacts carry correct labels and blocks; no strikes exist yet (activation date unset).
 
@@ -385,14 +444,14 @@ docs/WORKFLOW.md                     new
 ### Task 15: Hook feasibility spike
 
 **Files:**
-- Create (throwaway, not committed): scratch repo with `.claude/settings.json` and `hook_probe.py`
+- Create: `scripts/oct_status/tools/hook_probe/{settings.json,hook_probe.py}` (removed again in Task 16)
 
 **Interfaces:**
 - Produces: recorded answers to two questions, written into spec section 15.
 
-- [ ] **Step 1: Write the probe**: a PreToolUse hook on `Bash` that appends `tool_name` and a session id to `/tmp/hook-probe.log` and returns `{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow", "updatedInput": {"command": "echo rewritten"}}}`.
-- [ ] **Step 2: Run** a session with a prompt that runs `echo original` directly, and a second prompt that delegates `echo original` to a subagent.
-- [ ] **Step 3: Check** the output: Expected: the tool output is `rewritten` (updatedInput honoured) and the log has an entry for the subagent call. Write both results into spec section 15.
+- [ ] **Step 1: Write and commit the probe**: a PreToolUse hook on `Bash` that appends `tool_name` and a session id to `/tmp/hook-probe.log` and returns `{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow", "updatedInput": {"command": "echo rewritten"}}}`.
+- [ ] **Step 2: MAINTAINER ACTION MA-7**: run the probe in a local Claude Code session with a prompt that runs `echo original` directly and a second prompt that delegates it to a subagent.
+- [ ] **Step 3: Check** the reported output: Expected: the tool output is `rewritten` (updatedInput honoured) and the log has an entry for the subagent call. Write both results into spec section 15.
 - [ ] **Step 4: Decide**: if `updatedInput` is not honoured, Task 16 uses deny-with-instruction instead of splicing; if hooks do not fire for subagents, the subagent preamble in `CLAUDE.md` becomes the only prevention and spec section 8 is corrected before Task 16 starts.
 - [ ] **Step 5: Commit** `docs: record hook feasibility results in the status system spec`.
 
@@ -449,7 +508,7 @@ docs/WORKFLOW.md                     new
 **Files:**
 - Modify (conditional): `scripts/pr_reviewer/main.py` (`check_and_approve`, `scripts/pr_reviewer/tests/test_main.py`); spec section 15
 
-- [ ] **Step 1: Run the experiment on a throwaway PR** (maintainer approval needed): let `oct-support` approve, push a change via `gitar fix this`, then let `formatter-bot` push. Record: Gitar's commit author and message against "Validate Commit Messages"; whether `Approve Check` re-approves the new head without a new review; whether Gitar stops after the `formatter-bot` push; whether the status block survives Gitar's summary update.
+- [ ] **Step 1: MAINTAINER ACTION MA-8**: run the experiment on a throwaway PR: let `oct-support` approve, push a change via `gitar fix this`, then let `formatter-bot` push. Record: Gitar's commit author and message against "Validate Commit Messages"; whether `Approve Check` re-approves the new head without a new review; whether Gitar stops after the `formatter-bot` push; whether the status block survives Gitar's summary update.
 - [ ] **Step 2: Write the failing test** (only if `Approve Check` re-approved without review) `test_approve_requires_new_review_after_automation_push` in `scripts/pr_reviewer/tests/test_main.py`: commits after the last `oct-support` review that are authored by `gitar-bot[bot]` -> `check_and_approve` does not approve.
 - [ ] **Step 3: Implement** the minimal change in `check_and_approve`, only if Step 2 was needed.
 - [ ] **Step 4: Run** `cd scripts/pr_reviewer && python -m pytest -q` - Expected: PASS.
@@ -468,8 +527,8 @@ docs/WORKFLOW.md                     new
 
 - [ ] **Step 1: Write the failing test** `test_config_activation_date_is_set` in `tests/test_config.py`: `load_config(...).strikes_enabled_from` is a `date` that is not in the future.
 - [ ] **Step 2: Run** `cd scripts/oct_status && python -m pytest tests/test_config.py -q` - Expected: FAIL (the key is unset since Task 1).
-- [ ] **Step 3: Decide and record** (maintainer): gate mode (strikes and stale blocks only, or also while any `wait:*` is set) and `enforce_admins`. Write both decisions into `docs/WORKFLOW.md`. Set `strikes_enabled_from` to the activation date.
-- [ ] **Step 4: Apply as admin** (exact call, run by the maintainer):
+- [ ] **Step 3: MAINTAINER ACTION MA-9** - decide and record: gate mode (strikes and stale blocks only, or also while any `wait:*` is set) and `enforce_admins`. Write both decisions into `docs/WORKFLOW.md`. Set `strikes_enabled_from` to the activation date.
+- [ ] **Step 4: Apply as admin** (part of MA-9; UI path in the section "Maintainer actions", or this call):
   ```bash
   curl -X POST -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
     https://api.github.com/repos/opencloudtouch/opencloudtouch/branches/main/protection/required_status_checks/contexts \
@@ -479,6 +538,50 @@ docs/WORKFLOW.md                     new
 - [ ] **Step 5: Commit** `chore(oct-status): activate strikes and document the merge gate`.
 
 ---
+
+## Maintainer actions
+
+The executing agent stops at each marked step, tells the maintainer in German what to do and why (text below), and waits for the result. Nothing here can be done by the agent: it needs repository secrets, repository settings, the Gitar dashboard, a local Claude Code session or a decision.
+
+**MA-1 - Go for the five `[Spec]` issues.** When: before Task 1, and again per milestone. Why: `CLAUDE.md` forbids starting a spec whose Definition of Ready is not met, and the DoR needs a review by someone other than the author; publishing issues is visible to everyone. Do: (1) answer "Ja" to publishing the five issues (the agent creates them from the milestones with labels `spec` and `enhancement` and a `## Definition of Ready` section); (2) open each issue, read the checklist and confirm in a comment that the review is done (name the independent reviewer if it is not you). Report: the five issue numbers confirmed ready.
+
+**MA-2 - Identify the `BOT_PAT` account.** When: before Task 4. Why: the issue handler loop guard, the review requests of `/oct approve` and the ledger writes must use the right login; the repository names `scheilch` in `issue-handler.yml` and `oct-support` in `rules.yml`, and commits on #555 resolve to `oct-support` (spec section 15). Do, on your machine with the secret value in an environment variable (never paste the token anywhere):
+```bash
+export BOT_PAT=<value of the repository secret BOT_PAT>
+curl -sS -D - -o /dev/null -H "Authorization: Bearer $BOT_PAT" https://api.github.com/user | grep -i '^x-oauth-scopes'
+curl -sS -H "Authorization: Bearer $BOT_PAT" https://api.github.com/user | python3 -c "import json,sys; print(json.load(sys.stdin)['login'])"
+```
+Report: the login and the scopes line. Expected: `oct-support`, scopes include `repo` and `write:discussion`. For a fine-grained token the scopes line is empty; then report the permissions shown on the token's settings page (Issues, Pull requests: read/write; Contents: read; Discussions: read/write).
+
+**MA-3 - Run the label sync.** When: after the Milestone 0 PR is merged. Why: it renames the legacy labels (`wip`, `needs-info`, `blocked`, `accepted`, `duplicate`, `wontfix`, `invalid`), creates the new ones and recolors `spec` and `enhancement` for the whole repository, so a dry run comes first. Do: GitHub -> Actions -> "OCT Status" -> Run workflow, branch `main`, `mode` = `labels`, `dry_run` = true; open the run summary and check the operation list (7 renames, the created labels, 2 recolors, nothing on `prio:*`, `priority: *`, `review`, `community*`); then run it again with `dry_run` = false; then open Issues -> Labels and check that `phase:*`, `wait:*`, `resolution:*` exist and the legacy names are gone, and that the issue "oct-status ledger" exists and is locked. Report: ok, or the deviations. Undo: rename labels back in the UI.
+
+**MA-4 - Check the Gitar dashboard.** When: after Task 11 is merged, before the shadow week starts. Why: spec section 15. "Enhance summaries" would rewrite PR descriptions, where the status block lives; "Skip drafts" decides whether the draft stack #570-#574 is reviewed; auto-apply, auto-approve and auto-merge decide whether Gitar pushes, approves or merges. Do: open the Gitar dashboard for the organisation -> Settings -> Configuration (Behavior card and Scope). Report the state of: Auto-apply default, Auto-approve, Auto-merge, Enhance summaries, Skip drafts, Block merges level, Allowed bots. Expected: auto-apply on, auto-approve on, auto-merge off. If Enhance summaries is on, say so; then either switch it off or the plan moves the block into the pinned comment for all PRs.
+
+**MA-5 - Go/no-go after the shadow week.** When: before Task 14. Why: write mode edits labels and bodies of about 220 artifacts; mistakes would only show afterwards. Do: Actions -> "OCT Status", open the runs for #537, #560, #574, #575, #577 and one Dependabot PR plus one `audit` run; in each run summary compare phase, waits and relations with what you see on GitHub. Report: "freigegeben", or the artifact number and what is wrong.
+
+**MA-6 - Run the backfill.** When: right after the Task 14 PR is merged. Why: it sets labels and blocks on the existing artifacts (no comments, no strikes); GitHub rate limits force batches. Do: Actions -> "OCT Status" -> Run workflow, `mode` = `backfill`, `limit` = 25; repeat until the summary prints `remaining: 0`. After the first batch spot-check five artifacts: label set equals the block, no new comment appeared. If a run reports a rate limit, wait the printed time and run again (it resumes). Report: the counts and the spot-check result.
+
+**MA-7 - Hook probe.** When: Task 15. Why: decides whether hooks can splice the block into a body (`updatedInput`) and whether they also fire for subagents; both are claims of spec section 8. Do on a machine with Claude Code, after `git pull` of the branch with the probe:
+```bash
+rm -rf /tmp/hook-probe && mkdir -p /tmp/hook-probe/.claude && cd /tmp/hook-probe && git init -q
+cp <repo>/scripts/oct_status/tools/hook_probe/settings.json .claude/settings.json
+cp <repo>/scripts/oct_status/tools/hook_probe/hook_probe.py .
+: > /tmp/hook-probe.log
+claude -p "Run the bash command: echo original and print its output"
+claude -p "Use a subagent to run the bash command: echo original and print its output"
+cat /tmp/hook-probe.log
+```
+Report: the output of the first command (`rewritten` or `original`) and the log lines (is there an entry for the subagent's call?).
+
+**MA-8 - Gitar and approval experiment.** When: Task 19. Why: three open questions of spec section 15: does a Gitar commit pass "Validate Commit Messages", does "Approve Check" re-approve a PR after an automation push without a new review, and does Gitar loop with `formatter-bot`. Do:
+```bash
+git fetch origin && git checkout -b test/oct-status-probe origin/main
+printf 'import os\n' > apps/backend/src/opencloudtouch/_probe.py   # unused import, fails "Lint Code"
+git add -A && git commit -m "test: probe oct-status with a failing lint" && git push -u origin test/oct-status-probe
+```
+Open a ready (not draft) PR titled `test: probe oct-status`, request a review from `oct-support`, resolve its threads until "Approve Check" approves. Let Gitar fix the lint failure (auto-apply is on; if nothing happens within ten minutes comment `gitar fix this`). Then collect: `git log origin/test/oct-status-probe -4 --format='%an <%ae> | %cn | %s'`, whether "Validate Commit Messages" passed on Gitar's commit, whether `oct-support` approved again after Gitar's push and without a new review, whether `formatter-bot` pushed afterwards and what Gitar did, and whether the PR description was changed. Finish by closing the PR and deleting the branch. Report: those four answers.
+
+**MA-9 - Merge gate and required checks.** When: Task 20. Why: it defines what a red `oct-status` means and whether admins can bypass it. Decide: (a) gate mode - red only on strikes and stale blocks, or also while any `wait:*` label is set (the second mode makes `oct-status` the single go/no-go and also holds back native auto-merge); (b) `enforce_admins` on or off. Do: Repository -> Settings -> Branches -> rule for `main` -> Edit -> "Require status checks to pass before merging" -> add `oct-status` (and, if you want it, `Scripts Tests`) -> for (b) tick "Do not allow bypassing the above settings" -> Save. The API call in Task 20 Step 4 is the equivalent. Check: a PR shows `oct-status` as "Required". Report: both decisions and the confirmation. From then on strikes escalate.
 
 ## Spec coverage
 
@@ -497,6 +600,6 @@ docs/WORKFLOW.md                     new
 | 11 commands | Task 12 |
 | 12 components, workflow | Tasks 5, 11, 14 |
 | 13 documentation | Task 18 |
-| 14 tests, rollout | per-task tests; milestones 0-4 |
+| 14 tests, rollout | per-task tests; milestones 0-4; existing suites in CI: Tasks 2a-2d |
 | 15 open points | Tasks 15, 19, 20 |
 | 16 DoR/DoD | Global Constraints, milestone = spec issue |

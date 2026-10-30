@@ -62,6 +62,7 @@ workflows.
 | E12 | `CLAUDE.md` forbids references to AI tools in commits, PR titles and descriptions. | The marker an agent hook leaves behind is neutral (`oct-src`), never "agent". |
 | E13 | `.gitignore` ignored `docs/*` except an explicit whitelist, and also `.claude/`, `specs/`, `AGENTS.md` and `.github/agents/`. Specs live as GitHub issues (label `spec`), not as files. | Done in the first changes of this work: `docs/WORKFLOW.md` and `docs/superpowers/` are whitelisted (the `specs/` and `.specify/` rules moved above the `docs/*` block so the whitelist can win) and `.claude/` is tracked, with only `.claude/settings.local.json` and `.claude/worktrees/` staying local. Gitar also reads `.claude/rules/*` and `.claude/skills/` once they are tracked. |
 | E14 | Commit identities leak the origin: commits on #560 / #570 are authored by `Claude` (login `claude`); commits on #555 by `Christian Scheil` resolve to the login `oct-support`. Gitar commits have not appeared yet and their message format is undocumented. | `oct-support` is also an identity behind human commits, so its allowlist entry applies to reviews, comments and labels only. The commit author may serve as a weak origin signal, never as a rule. Gitar commits must be checked against the "Validate Commit Messages" job before auto-apply is relied on. |
+| E15 | The test suites under `scripts/` (`issue_handler`, `pr_reviewer`, `test_e2e_shard_distribution.py`) run in no CI job. Running them showed a time-dependent test (`test_budget_exceeded` fixes the month 2026-05 and fails since June), a never-matching pattern (`r"\\bhow\\b"` in `pattern_quality_scan.py`, used by the weekly `kb-growth` workflow), `issue_handler` at 76.7 % against its own gate of 80 % and `pr_reviewer` at 59 % for `main.py` without a gate. | One CI job runs all script suites together with the new package; the two defects are fixed first and the coverage gates are set as decided (80 % for `issue_handler`, 57 % ratchet for `pr_reviewer`). |
 
 ## 3. Decisions taken in review
 
@@ -491,6 +492,7 @@ renderer output, so the documentation cannot drift. `CONTRIBUTING.md`,
 
 ### Tests (deterministic, no real GitHub, coverage >= 80 %)
 
+- The existing suites under `scripts/` run in the same CI job as the new package (E15).
 - Table-driven tests for `derive` and every illegal transition.
 - Golden tests for renderer and documentation snippets (#537, #560, #573, #574,
   #575, #577, a Dependabot PR).
