@@ -696,6 +696,27 @@ async def test_other_commands_from_an_agent_session_still_work():
     await api.aclose()
 
 
+async def test_links_and_images_in_command_arguments_are_neutralised_in_the_guide():
+    repo = CommandRepo()
+    repo.add(6, labels=("bug", "wait:hardware-test"))
+    repo.add(99)
+    repo.issues[99].update(title="oct-status ledger", locked=True, user={"login": BOT})
+    api = api_for(repo)
+    evil = "[click](https://evil) ![i](https://t/p.png)"
+    active = dataclasses.replace(CFG, strikes_enabled_from=date(2026, 1, 1))
+    await run_event(api, CFG, "issue_comment", comment_event(6, f"/oct verified {evil}", login="carol"), dry_run=False)
+    await run_event(api, CFG, "issue_comment", comment_event(6, f"/oct designer {evil}", login="dave"), dry_run=False)
+    await run_event(
+        api, active, "issue_comment", comment_event(6, f"/oct override {evil}", login="carol"), dry_run=False
+    )
+    guide = repo.guide(6)
+    assert "click" in guide and "](https://evil)" not in guide and "![" not in guide
+    assert "docs/WORKFLOW.md" in guide or "](" not in guide  # our own handbook links are not touched
+    ledger = " ".join(c["body"] for c in repo.comments[99])
+    assert "](https://evil)" not in ledger and "![" not in ledger
+    await api.aclose()
+
+
 async def test_override_before_strikes_are_active_is_logged_in_the_guide_only():
     repo = CommandRepo()  # no ledger issue: it must not even be looked for
     repo.add(6, labels=("bug",))

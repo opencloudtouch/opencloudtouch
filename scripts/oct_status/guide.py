@@ -37,6 +37,18 @@ def _safe(text: str) -> str:
     return f"Review by {text.lstrip()}" if _LEADING.match(text) else text
 
 
+_UNLINK = str.maketrans({"[": "(", "]": ")"})
+
+
+def unlink(text: str) -> str:
+    """User-supplied text without Markdown links or images (brackets become parentheses).
+
+    For text built from command arguments (history, transient notes, ledger reasons); the automation's
+    own handbook links are added elsewhere and stay intact.
+    """
+    return text.translate(_UNLINK)
+
+
 def safe_text(text: str) -> str:
     """Public form of `_safe` for text stored elsewhere (ledger reasons)."""
     return _safe(text)

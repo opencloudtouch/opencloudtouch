@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Any
 import httpx
 
 from .api import GitHubApi
-from .guide import safe_text
+from .guide import safe_text, unlink
 
 if TYPE_CHECKING:
     from .config import Config
@@ -241,7 +241,7 @@ class Ledger:
         """Log an override by maintainer `user`; the strikes recorded so far on `artifact` stop counting."""
         entries = await self.load()
         covers = sorted({(e.user, e.rule) for e in entries if e.kind == "violation" and e.artifact == artifact})
-        await self._append_override(user, artifact, safe_text(reason)[:MAX_REASON], covers)
+        await self._append_override(user, artifact, unlink(safe_text(reason))[:MAX_REASON], covers)
 
     async def _append_override(
         self, user: str, artifact: int, reason: str, covers: list[tuple[str, str]], force: bool = False
@@ -264,7 +264,7 @@ class Ledger:
             return False
         if sum(1 for e in entries if e.user == user and now - e.ts < timedelta(days=1)) >= WAIVERS_PER_USER_DAY:
             return False
-        text = safe_text(reason)[:MAX_REASON]
+        text = unlink(safe_text(reason))[:MAX_REASON]
         return await self._append(Entry("waiver", user, artifact, "", now, text), {"reason": text})
 
     async def renew_override(self, artifact: int) -> bool:

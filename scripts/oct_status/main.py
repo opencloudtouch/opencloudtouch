@@ -45,7 +45,7 @@ from oct_status.apply import (
 from oct_status.config import Config, load_config
 from oct_status.facts import fetch_snapshot, previous_version_is_ours
 from oct_status.graph import PROPAGATING, build_graph, parse_prose_edges, walk_component
-from oct_status.guide import next_steps, protected_notice, render_guide
+from oct_status.guide import next_steps, protected_notice, render_guide, unlink
 from oct_status.labels_sync import LedgerIssueError, ensure_ledger_issue, sync_labels
 from oct_status.ledger import Ledger, LedgerError, strikes_active
 from oct_status.model import Derived, Edge, Graph, Phase, Snapshot
@@ -697,10 +697,11 @@ async def _handle_command(
         result = commands.Outcome(False, reason)
     if comment_id is not None:
         await commands.react(ws.api, comment_id, "+1" if result.ok else "-1", dry_run=dry_run)
+    # The message carries the command's arguments: no links or images from them (M-1).
     if result.ok:
-        notes: Notes = {number: ([], [f"/oct {cmd.name} by {actor}: {result.message}"])}
+        notes: Notes = {number: ([], [unlink(f"/oct {cmd.name} by {actor}: {result.message}")])}
     else:
-        notes = {number: ([f"/oct {cmd.name} by {actor} was rejected: {result.message}"], [])}
+        notes = {number: ([unlink(f"/oct {cmd.name} by {actor} was rejected: {result.message}")], [])}
     return CommandReport(cmd, actor, result.ok, result.message, writes, notes, rejected)
 
 
