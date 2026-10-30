@@ -205,7 +205,7 @@ class TestActionStageAfterShortCircuit:
         pipeline.add_stage("action", action)
 
         event = _make_event()
-        decisions = await pipeline.run(event)
+        await pipeline.run(event)
 
         assert "hard_exit" in execution_order
         assert "action" not in execution_order

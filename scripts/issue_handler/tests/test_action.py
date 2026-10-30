@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from models import ClassificationResult, WebhookEvent
-from stages.action import action_stage, _find_missing_bug_fields, _build_bug_comment
+from stages.action import _build_bug_comment, _find_missing_bug_fields, action_stage
 
 _FILLED_BUG_BODY = (
     "### What happened?\n\nDocker build fails with COPY error.\n\n"

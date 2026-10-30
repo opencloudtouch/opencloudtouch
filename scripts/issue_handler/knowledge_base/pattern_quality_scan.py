@@ -10,11 +10,13 @@ Outputs YAML reports for coverage and quality.
 """
 
 import os
-import sys
 import re
-import yaml
-from datetime import datetime, timezone, timedelta
+import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+import yaml
+
 from github_client import GitHubClient
 from knowledge_base import KnowledgeBase
 

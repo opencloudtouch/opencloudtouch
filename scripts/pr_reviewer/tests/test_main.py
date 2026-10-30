@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import json
+
+# Add scripts/pr_reviewer to sys.path for imports
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
-# Add scripts/pr_reviewer to sys.path for imports
-import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -27,7 +27,6 @@ from main import (
     has_bot_reviewed_commit,
     wait_for_ci,
 )
-
 
 # =============================================================================
 # CostTracker Tests
