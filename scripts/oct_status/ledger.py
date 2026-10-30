@@ -54,7 +54,7 @@ class LedgerError(Exception):
 
 @dataclass(frozen=True)
 class Entry:
-    kind: str  # "violation" or "override"
+    kind: str  # "violation", "override" or "waiver" (an accepted `/oct no-spec`, audit only, never a strike)
     user: str  # offender (violation) or the maintainer who overrode (override)
     artifact: int
     rule: str  # "" for an override, which covers every rule of the artifact
@@ -72,7 +72,7 @@ def _parse(body: str) -> Entry | None:
     if not isinstance(data, dict) or data.get("v") != VERSION:
         return None
     kind, user, artifact, ts = data.get("kind"), data.get("user"), data.get("artifact"), data.get("ts")
-    if kind not in ("violation", "override") or not isinstance(user, str) or not _LOGIN.fullmatch(user):
+    if kind not in ("violation", "override", "waiver") or not isinstance(user, str) or not _LOGIN.fullmatch(user):
         return None
     if not isinstance(artifact, int) or isinstance(artifact, bool) or artifact <= 0 or not isinstance(ts, str):
         return None
@@ -231,6 +231,11 @@ class Ledger:
     async def _append_override(self, user: str, artifact: int, reason: str, covers: list[tuple[str, str]]) -> None:
         entry = Entry("override", user, artifact, "", self._clock(), reason, tuple(covers))
         await self._append(entry, {"reason": reason, "covers": [list(c) for c in covers]})
+
+    async def record_waiver(self, user: str, artifact: int, reason: str) -> None:
+        """Log an accepted waiver (`/oct no-spec`) so that it is auditable; it never counts as a strike."""
+        text = safe_text(reason)[:MAX_REASON]
+        await self._append(Entry("waiver", user, artifact, "", self._clock(), text), {"reason": text})
 
     async def renew_override(self, artifact: int) -> bool:
         """Re-date the override of `artifact` when it is about to leave the window; returns whether it was.

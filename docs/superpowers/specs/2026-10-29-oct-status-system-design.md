@@ -428,7 +428,7 @@ Maintainers are subject to the same ladder and may override on themselves.
 | `/oct approve` | author / maintainer | requests the AI review by `oct-support`; its approval clears `wait:maintainer` |
 | `/oct verified <device or note>` | maintainer | clears `wait:hardware-test` |
 | `/oct needs-hardware-test`, `/oct needs-info`, `/oct designer <reason>` | maintainer | sets the wait |
-| `/oct no-spec <reason>` | PR author | exempts a PR from V01 |
+| `/oct no-spec <reason>` | PR author | exempts a PR from V01; logged in the ledger as a waiver once strikes are active |
 | `/oct supersede #n` | maintainer | edge + `resolution:superseded` |
 | `/oct override <reason>` | maintainer | clears a block, logged |
 | `/oct accept-paths` | maintainer | acknowledges a push by automation to protected paths, logged in the guide data and the run summary |

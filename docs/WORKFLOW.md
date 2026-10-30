@@ -388,7 +388,7 @@ In shadow mode no reactions and no guide comments are written.
 | `/oct needs-hardware-test [note]` | maintainer | any time | adds `wait:hardware-test` |
 | `/oct needs-info [note]` | maintainer | any time | adds `wait:reporter` |
 | `/oct designer <reason>` | maintainer | any time | adds `wait:designer` |
-| `/oct no-spec <reason>` | PR author (write) | pull request | makes it a docs / chore pull request: no spec needed, V01 waived |
+| `/oct no-spec <reason>` | PR author (write) | pull request | makes it a docs / chore pull request: no spec needed, V01 waived; once strikes are active the waiver (author, pull request, reason) is also recorded in the ledger issue for the audit trail (never a strike) |
 | `/oct supersede #n` | maintainer | closed artifact, `#n` is another artifact | adds `resolution:superseded` (the `superseded-by` edge is not written yet) |
 | `/oct override <reason>` | maintainer | any time | resolves every open notice on the artifact (including blocking ones). Before strikes are active it is noted in the guide only; afterwards it is recorded in the ledger issue, and rejected if the ledger cannot be written. Maintainers may override their own violations. |
 | `/oct accept-paths` | maintainer | open pull request whose guide lists automation pushes to protected paths | acknowledges them up to the head commit the guide listed; stored with login and time in the guide's data. A later push to a protected path needs a new acknowledgement. |

@@ -179,6 +179,26 @@ def test_ledger_writers_come_from_the_config():
     assert load_config(Path(__file__).parent.parent / "config.yml").ledger_writers == ("oct-support",)
 
 
+async def test_waiver_round_trips_and_is_no_strike():
+    fake = FakeLedgerIssue()
+    cfg = Config(automation={}, gate_checks=[], protected_paths=[], strikes_enabled_from=date(2026, 1, 1))
+    ledger = make(fake, cfg=cfg)
+    await ledger.record_waiver("alice", 10, "no-spec: typo fix")
+    fresh = make(fake, cfg=cfg)
+    [entry] = await fresh.load()
+    assert (entry.kind, entry.user, entry.artifact, entry.rule, entry.reason) == (
+        "waiver",
+        "alice",
+        10,
+        "",
+        "no-spec: typo fix",
+    )
+    assert await fresh.level_for("alice") == 0
+    good = {"v": 1, "kind": "waiver", "user": "alice", "artifact": 5, "ts": NOW.isoformat()}
+    fake.add_raw(json.dumps({**good, "rule": "V01"}))  # a waiver carries no rule
+    assert len(await make(fake, cfg=cfg).load()) == 1
+
+
 async def test_second_page_is_read():
     fake = FakeLedgerIssue()
     for n in range(1, 131):

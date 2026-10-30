@@ -227,6 +227,50 @@ async def test_no_spec_waives_v01():
     assert ANCHOR not in repo.guide(10) and repo.ledger() == []
 
 
+async def test_accepted_no_spec_is_recorded_in_the_ledger_as_a_waiver():
+    repo = Repo()
+    repo.add_pr(10, author="alice")
+    await run(repo, "issue_comment", comment_event(10, "/oct no-spec typo fix @bob"), dry_run=True)
+    assert repo.ledger() == []  # dry run: nothing recorded
+    await run(
+        repo,
+        "issue_comment",
+        comment_event(10, "/oct no-spec typo fix @bob"),
+        cfg=replace(ACTIVE, strikes_enabled_from=None),
+    )
+    assert repo.ledger() == []  # strikes inactive: the ledger is not touched
+    await run(repo, "issue_comment", comment_event(10, "/oct no-spec typo fix @bob"))
+    [entry] = repo.ledger()
+    assert (entry["kind"], entry["user"], entry["artifact"]) == ("waiver", "alice", 10)
+    assert entry["reason"].startswith("no-spec: typo fix") and "@" not in entry["reason"]
+    assert ANCHOR not in repo.guide(10)
+    # A waiver is no strike: the next violation of alice is still her first.
+    from oct_status.ledger import Ledger
+
+    api = api_for(repo)
+    ledger = Ledger(api, LEDGER, clock, cfg=ACTIVE)
+    assert await ledger.level_for("alice") == 0
+    await api.aclose()
+
+
+async def test_no_spec_waiver_ledger_failure_is_a_warning_only(monkeypatch, tmp_path):
+    summary = tmp_path / "summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    repo = Repo()
+    repo.add_pr(10, author="alice")
+    real = repo.handler
+
+    def refuse(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST" and request.url.path.endswith(f"/issues/{LEDGER}/comments"):
+            return httpx.Response(500, json={})
+        return real(request)
+
+    repo.handler = refuse  # type: ignore[method-assign]
+    await run(repo, "issue_comment", comment_event(10, "/oct no-spec typo fix"))
+    assert ANCHOR not in repo.guide(10)  # the waiver itself holds (it is read from the comment)
+    assert "WARNING: /oct no-spec on #10 not recorded in the ledger" in summary.read_text(encoding="utf-8")
+
+
 async def test_hand_set_fact_label_is_a_violation_and_not_trusted():
     repo = Repo()
     repo.add(7, labels=("enhancement", "phase:done"))

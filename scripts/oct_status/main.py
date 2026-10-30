@@ -650,6 +650,8 @@ async def _handle_command(
                 rejected = f"/oct {cmd.name} was rejected: {result.message}"
             if result.ok and cmd.name == "override":
                 result = await _record_override(ws, number, actor, cmd.args, result, dry_run, clock)
+            if result.ok and cmd.name == "no-spec":
+                await _record_waiver(ws, number, actor, cmd.args, dry_run, clock)
             if result.ok:
                 writes = await commands.apply_declaration(ws.api, number, result.declare, dry_run=dry_run)
                 writes += result.effects
@@ -692,6 +694,20 @@ async def _record_override(
     except LedgerError as exc:
         return commands.Outcome(False, f"the override could not be recorded in the ledger: {exc}")
     return commands.Outcome(True, f"override recorded and effective: {reason}", log=result.log)
+
+
+async def _record_waiver(
+    ws: Workspace, number: int, actor: str, reason: str, dry_run: bool, clock: Callable[[], datetime]
+) -> None:
+    """Log an accepted `/oct no-spec` in the ledger for the audit trail (once strikes are active, never in
+    a dry run). The waiver itself is read from the PR comment on every run, so a ledger that cannot be
+    written is only a warning."""
+    if dry_run or not strikes_active(ws.cfg, clock().date()):
+        return
+    try:
+        await (await _open_ledger(ws, False, clock)).record_waiver(actor, number, f"no-spec: {reason}")
+    except LedgerError as exc:
+        ws.warnings.append(f"WARNING: /oct no-spec on #{number} not recorded in the ledger: {exc}")
 
 
 async def _closed_by_change(api: GitHubApi, number: int) -> bool | None:
