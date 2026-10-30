@@ -8,6 +8,7 @@ body:
       value: |
         **This template is for detailed technical planning (features, bugs, infrastructure) — typically created by maintainers after triage.**
         If you're a user wanting to report a bug or suggest a feature, please use the appropriate user-facing template instead.
+        Lifecycle, status labels and `/oct` commands of a spec: [docs/WORKFLOW.md](https://github.com/opencloudtouch/opencloudtouch/blob/main/docs/WORKFLOW.md).
 
   - type: dropdown
     id: work_type

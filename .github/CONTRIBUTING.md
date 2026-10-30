@@ -237,6 +237,7 @@ git push origin feat/my-new-feature
 - Erstelle PR von deinem Branch → `main`
 - Beschreibe Änderungen
 - Warte auf CI/CD Checks
+- Status labels, the status block and `/oct` commands: [docs/WORKFLOW.md](../docs/WORKFLOW.md)
 
 ### 7. **CI/CD Pipeline (automatisch)**
 GitHub Actions führt aus:
