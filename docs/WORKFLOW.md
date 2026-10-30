@@ -17,6 +17,8 @@ The design is `docs/superpowers/specs/2026-10-29-oct-status-system-design.md`; w
 code differ, the code wins and this handbook is the bug.
 
 **Rollout state.** The workflow runs in shadow mode: it computes everything and writes only the job summary.
+The issue handler is independent of this and writes with `BOT_PAT` (not `OCT_STATUS_WRITE`): it already
+assigns `phase:new` and `wait:reporter`, so the label sync (MA-3) must run right after the merge.
 Labels, blocks, guide comments and the commit status `oct-status` are written once a maintainer sets the
 repository variable `OCT_STATUS_WRITE` to `true`. Strikes are off until `strikes_enabled_from` is set in
 `scripts/oct_status/config.yml` (today it is `null`, so every notice stays at ladder level 1). The commit

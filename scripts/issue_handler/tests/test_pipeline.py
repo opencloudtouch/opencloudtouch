@@ -236,3 +236,7 @@ class TestActionStageAfterShortCircuit:
 
 def test_classification_labels_use_new_names() -> None:
     assert {"bug", "enhancement", "support", "wait:reporter"} <= CLASSIFICATION_LABELS
+
+
+def test_classification_labels_still_count_the_legacy_needs_info() -> None:
+    assert "needs-info" in CLASSIFICATION_LABELS

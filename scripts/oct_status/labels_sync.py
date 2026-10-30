@@ -35,6 +35,12 @@ async def _write(api: GitHubApi, method: str, path: str, **kw: Any) -> None:
     resp.raise_for_status()
 
 
+async def _carrying(api: GitHubApi, label: str) -> list[int]:
+    """Numbers of all issues and pull requests (any state) that carry `label`."""
+    items = await _paginate(api, "/issues", labels=label, state="all")
+    return [int(item["number"]) for item in items]
+
+
 async def _fetch_issue(api: GitHubApi, number: int) -> dict[str, Any]:
     resp = await api.request("GET", f"/issues/{number}")
     resp.raise_for_status()
@@ -51,6 +57,15 @@ async def sync_labels(api: GitHubApi, spec_path: Path, dry_run: bool = False) ->
         color: str = entry["color"].lower()
         description: str | None = entry.get("description")
         old = entry.get("rename_from")
+        if name in current and old and old in current:
+            ops.append(f"delete {old} after migrating its items to {name}")
+            for number in await _carrying(api, old):
+                ops.append(f"move {old} -> {name} on #{number}")
+                if not dry_run:
+                    await _write(api, "POST", f"/issues/{number}/labels", json={"labels": [name]})
+                    await _write(api, "DELETE", f"/issues/{number}/labels/{quote(old, safe='')}")
+            if not dry_run:
+                await _write(api, "DELETE", f"/labels/{quote(old, safe='')}")
         if name in current:
             existing = current[name]
             changes: dict[str, str] = {}

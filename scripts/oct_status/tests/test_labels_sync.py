@@ -50,7 +50,21 @@ class FakeGitHub:
             return httpx.Response(200, json=label)
         if path == f"{ROOT}/issues" and method == "GET":
             page = int(request.url.params.get("page", "1"))
-            return httpx.Response(200, json=self.issues if page == 1 else [])
+            wanted = request.url.params.get("labels")
+            items = [i for i in self.issues if not wanted or wanted in i.get("labels", [])]
+            return httpx.Response(200, json=items if page == 1 else [])
+        if (m := re.fullmatch(rf"{ROOT}/issues/(\d+)/labels", path)) and method == "POST":
+            issue = next(i for i in self.issues if i["number"] == int(m[1]))
+            issue.setdefault("labels", [])
+            issue["labels"] += [x for x in body["labels"] if x not in issue["labels"]]
+            return httpx.Response(200, json=[])
+        if (m := re.fullmatch(rf"{ROOT}/issues/(\d+)/labels/(.+)", path)) and method == "DELETE":
+            issue = next(i for i in self.issues if i["number"] == int(m[1]))
+            issue["labels"].remove(m[2])
+            return httpx.Response(200, json=[])
+        if path.startswith(f"{ROOT}/labels/") and method == "DELETE":
+            del self.labels[path[len(f"{ROOT}/labels/") :]]
+            return httpx.Response(204)
         if path == f"{ROOT}/issues" and method == "POST":
             issue = {
                 "number": len(self.issues) + 1,
@@ -310,3 +324,83 @@ async def test_phase_confirmed_is_described_as_the_bug_phase_and_updated_once():
     fake.writes.clear()
     assert await sync_labels(api, SPEC) == []
     assert fake.writes == []
+
+
+def labelled(fake: FakeGitHub, numbers: list[int], label: str) -> None:
+    fake.issues += [{"number": n, "title": f"t{n}", "labels": [label]} for n in numbers]
+
+
+async def test_migrates_items_when_legacy_and_new_label_both_exist():
+    fake, api = make({"needs-info": lab("needs-info"), "wait:reporter": lab("wait:reporter")})
+    labelled(fake, [5, 6, 7], "needs-info")
+    ops = await sync_labels(api, SPEC)
+    assert "needs-info" not in fake.labels and "wait:reporter" in fake.labels
+    assert all(i["labels"] == ["wait:reporter"] for i in fake.issues)
+    assert ("DELETE", f"{ROOT}/labels/needs-info") in fake.writes
+    assert sum(op.startswith("move needs-info") for op in ops) == 3
+    assert not any(m == "PATCH" and p.endswith("/labels/needs-info") for m, p in fake.writes)
+
+
+async def test_migration_is_idempotent_for_items_already_carrying_the_new_label():
+    fake, api = make({"needs-info": lab("needs-info"), "wait:reporter": lab("wait:reporter")})
+    fake.issues.append({"number": 1, "title": "t", "labels": ["needs-info", "wait:reporter"]})
+    await sync_labels(api, SPEC)
+    assert fake.issues[0]["labels"] == ["wait:reporter"]
+
+
+async def test_only_legacy_label_is_still_renamed_in_place():
+    fake, api = make({"needs-info": lab("needs-info")})
+    labelled(fake, [5], "needs-info")
+    await sync_labels(api, SPEC)
+    assert "wait:reporter" in fake.labels and "needs-info" not in fake.labels
+    assert ("PATCH", f"{ROOT}/labels/needs-info") in fake.writes
+    assert not any(m == "DELETE" for m, _ in fake.writes)
+    assert not any(p.endswith("/issues/5/labels") for _, p in fake.writes)
+
+
+async def test_only_new_label_needs_no_migration():
+    fake, api = make({"wait:reporter": lab("wait:reporter")})
+    ops = await sync_labels(api, SPEC)
+    assert not any("needs-info" in op for op in ops)
+    assert not any(m == "DELETE" for m, _ in fake.writes)
+
+
+async def test_dry_run_plans_migration_without_writing():
+    fake, api = make({"needs-info": lab("needs-info"), "wait:reporter": lab("wait:reporter")})
+    labelled(fake, [5, 6, 7], "needs-info")
+    ops = await sync_labels(api, SPEC, dry_run=True)
+    assert sum(op.startswith("move needs-info") for op in ops) == 3
+    assert any(op.startswith("delete needs-info") for op in ops)
+    assert fake.writes == []
+    assert all(i["labels"] == ["needs-info"] for i in fake.issues)
+
+
+async def test_second_run_after_migration_is_a_noop():
+    fake, api = make({"needs-info": lab("needs-info"), "wait:reporter": lab("wait:reporter")})
+    labelled(fake, [5, 6], "needs-info")
+    await sync_labels(api, SPEC)
+    fake.writes.clear()
+    ops = await sync_labels(api, SPEC)
+    assert not any("needs-info" in op for op in ops)
+    assert not any(m == "DELETE" for m, _ in fake.writes)
+
+
+async def test_migration_retries_on_rate_limit():
+    fake, api = make({"needs-info": lab("needs-info"), "wait:reporter": lab("wait:reporter")})
+    labelled(fake, [5], "needs-info")
+    orig = fake.handler
+    state = {"limited": False}
+
+    def limited(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST" and request.url.path.endswith("/issues/5/labels") and not state["limited"]:
+            state["limited"] = True
+            return httpx.Response(403, headers={"retry-after": "1", "x-ratelimit-remaining": "0"})
+        return orig(request)
+
+    async def no_sleep(_: float) -> None:
+        return None
+
+    api = GitHubApi("t", REPO, transport=httpx.MockTransport(limited), sleep=no_sleep)
+    await sync_labels(api, SPEC)
+    assert state["limited"] and fake.issues[0]["labels"] == ["wait:reporter"]
+    assert "needs-info" not in fake.labels
