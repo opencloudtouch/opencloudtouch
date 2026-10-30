@@ -1,6 +1,8 @@
-"""Entry point placeholder; wired to `main.cli` in a later task."""
+"""Run the status system: ``python -m oct_status``."""
 
 import sys
 
+from oct_status.main import cli
+
 if __name__ == "__main__":
-    sys.exit(0)
+    sys.exit(cli())

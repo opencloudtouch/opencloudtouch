@@ -1,0 +1,52 @@
+name: OCT Status
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Operation to run (only "labels" is implemented so far)
+        type: choice
+        options: [labels, event, audit, backfill]
+        default: labels
+      dry_run:
+        description: Plan only, perform no writes
+        type: boolean
+        default: true
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read
+    env:
+      BOT_PAT: ${{ secrets.BOT_PAT }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+      PYTHONPATH: scripts
+      MODE: ${{ inputs.mode }}
+      DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: pip install -r scripts/oct_status/requirements.txt
+      - name: Sync labels
+        if: inputs.mode == 'labels'
+        run: |
+          args=(--labels)
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          python -m oct_status "${args[@]}"
+      - name: Unsupported mode
+        if: inputs.mode != 'labels'
+        run: |
+          echo "::error::mode '$MODE' not implemented yet"
+          exit 1
