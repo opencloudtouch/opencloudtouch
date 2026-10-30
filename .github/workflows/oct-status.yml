@@ -1,52 +1,136 @@
 name: OCT Status
 
+# Milestone 1 (shadow mode): every event is computed and the result goes to the job summary only.
+# The event steps run with --dry-run; write mode is a later milestone.
+#
+# Security: pull_request_target runs with base repository secrets, so this workflow checks out the
+# default branch only and never the pull request head. Event payloads are untrusted data: they are
+# read from the runner's payload file ($GITHUB_EVENT_PATH) and never interpolated into a script.
+
 on:
+  issues:
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - ready_for_review
+      - converted_to_draft
+      - closed
+      - labeled
+      - unlabeled
+      - review_requested
+  pull_request_review:
+  pull_request_review_comment:
+  issue_comment:
+  check_suite:
+    types: [completed]
+  discussion:
+  discussion_comment:
+  schedule:
+    - cron: "17 3 * * *"
   workflow_dispatch:
     inputs:
       mode:
-        description: Operation to run (only "labels" is implemented so far)
+        description: Operation to run (labels, or a dry-run audit of all open artifacts)
         type: choice
-        options: [labels, event, audit, backfill]
+        options: [labels, audit]
         default: labels
       dry_run:
-        description: Plan only, perform no writes
+        description: Plan only, perform no writes (applies to the labels mode)
         type: boolean
         default: true
+
+concurrency:
+  group: oct-status-${{ github.event.issue.number || github.event.pull_request.number || github.event.discussion.number || github.run_id }}
+  cancel-in-progress: false
 
 permissions:
   issues: write
   pull-requests: write
   contents: read
+  discussions: write
+  checks: read
+  actions: read
 
 jobs:
   status:
+    name: status
     runs-on: ubuntu-latest
     permissions:
       issues: write
       pull-requests: write
       contents: read
-    env:
-      BOT_PAT: ${{ secrets.BOT_PAT }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GITHUB_REPOSITORY: ${{ github.repository }}
-      PYTHONPATH: scripts
-      MODE: ${{ inputs.mode }}
-      DRY_RUN: ${{ inputs.dry_run }}
+      discussions: write
+      checks: read
+      actions: read
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Base repository only, never the pull request head (pull_request_target has secrets).
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - name: Install dependencies
         run: pip install -r scripts/oct_status/requirements.txt
       - name: Sync labels
-        if: inputs.mode == 'labels'
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'labels'
+        env:
+          BOT_PAT: ${{ secrets.BOT_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONPATH: scripts
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
           args=(--labels)
           if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
           python -m oct_status "${args[@]}"
-      - name: Unsupported mode
-        if: inputs.mode != 'labels'
-        run: |
-          echo "::error::mode '$MODE' not implemented yet"
-          exit 1
+      - name: Process event (shadow mode)
+        if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+        env:
+          BOT_PAT: ${{ secrets.BOT_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONPATH: scripts
+          EVENT_NAME: ${{ github.event_name }}
+        run: python -m oct_status --event "$EVENT_NAME" --payload "$GITHUB_EVENT_PATH" --dry-run
+      - name: Audit open artifacts (shadow mode)
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'audit')
+        env:
+          BOT_PAT: ${{ secrets.BOT_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONPATH: scripts
+        run: python -m oct_status --audit --dry-run
+
+  oct-status:
+    name: oct-status
+    needs: status
+    if: ${{ !cancelled() && github.event_name == 'pull_request_target' }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+      pull-requests: read
+      contents: read
+      checks: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: pip install -r scripts/oct_status/requirements.txt
+      - name: Check status block
+        # Shadow mode: report only. The step becomes blocking when write mode is enabled.
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONPATH: scripts
+          EVENT_NAME: ${{ github.event_name }}
+        run: python -m oct_status --check --event "$EVENT_NAME" --payload "$GITHUB_EVENT_PATH"

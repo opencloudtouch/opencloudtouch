@@ -72,6 +72,8 @@ async def upsert_guide(
     api: GitHubApi, number: int, content: str, bot_logins: tuple[str, ...], *, dry_run: bool = False
 ) -> str:
     """Create, update or deduplicate the single guide comment; returns what was (or would be) done."""
+    if MARKER not in content:  # the marker is what finds the comment again: exactly one, always
+        content = f"{MARKER}\n{content}"
     guides = await _find_guides(api, number, bot_logins)
     if not guides:
         if not dry_run:

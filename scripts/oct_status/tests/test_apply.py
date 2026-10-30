@@ -273,3 +273,36 @@ async def test_guide_author_must_be_our_bot():
     fake.add_comment(GUIDE, login="github-actions[bot]")
     assert await upsert_guide(api, 1, GUIDE + "x", CFG.bot_logins) == "updated"
     await api.aclose()
+
+
+async def test_guide_found_on_second_comments_page():
+    fake = FakeGitHub()
+    filler = [{"id": i, "body": "chatter", "user": {"login": "human"}} for i in range(1, 101)]
+    guide = {"id": 500, "body": GUIDE, "user": {"login": "github-actions[bot]"}}
+    pages = {"1": filler, "2": [guide]}
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "GET" and request.url.path == f"{ROOT}/issues/1/comments":
+            page = request.url.params.get("page", "1")
+            seen.append(page)
+            return httpx.Response(200, json=pages.get(page, []))
+        fake.writes.append((request.method, request.url.path))
+        return httpx.Response(200, json={})
+
+    api = GitHubApi("t", REPO, transport=httpx.MockTransport(handler), sleep=_nosleep)
+    assert await upsert_guide(api, 1, GUIDE, CFG.bot_logins) == "unchanged"
+    assert await upsert_guide(api, 1, GUIDE + "x", CFG.bot_logins) == "updated"
+    await api.aclose()
+    assert seen[:2] == ["1", "2"]
+    assert fake.writes == [("PATCH", f"{ROOT}/issues/comments/500")]
+
+
+async def test_guide_without_marker_gets_exactly_one():
+    fake = FakeGitHub()
+    api = make(fake)
+    assert await upsert_guide(api, 1, "plain text", CFG.bot_logins) == "created"
+    assert fake.comments[0]["body"] == f"{MARKER}\nplain text"
+    assert await upsert_guide(api, 1, "plain text", CFG.bot_logins) == "unchanged"
+    assert fake.comments[0]["body"].count(MARKER) == 1
+    await api.aclose()

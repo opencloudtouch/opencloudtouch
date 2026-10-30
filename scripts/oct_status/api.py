@@ -66,7 +66,9 @@ class GitHubApi:
             if not self._retryable(resp) or attempt == MAX_RETRIES:
                 return resp
             retry_after = resp.headers.get("retry-after")
-            wait = float(retry_after) if retry_after and retry_after.isdigit() else delay + random.uniform(0, MAX_JITTER)
+            wait = (
+                float(retry_after) if retry_after and retry_after.isdigit() else delay + random.uniform(0, MAX_JITTER)
+            )
             await self._sleep(wait)
             delay *= FACTOR
         raise AssertionError("unreachable")  # pragma: no cover

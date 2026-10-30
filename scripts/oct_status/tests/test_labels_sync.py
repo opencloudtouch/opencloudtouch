@@ -34,7 +34,11 @@ class FakeGitHub:
             items = list(self.labels.values())
             return httpx.Response(200, json=items if page == 1 else [])
         if path == f"{ROOT}/labels" and method == "POST":
-            self.labels[body["name"]] = {"name": body["name"], "color": body["color"], "description": body.get("description", "")}
+            self.labels[body["name"]] = {
+                "name": body["name"],
+                "color": body["color"],
+                "description": body.get("description", ""),
+            }
             return httpx.Response(201, json=self.labels[body["name"]])
         if path.startswith(f"{ROOT}/labels/") and method == "PATCH":
             old = path[len(f"{ROOT}/labels/") :]
@@ -47,7 +51,12 @@ class FakeGitHub:
             page = int(request.url.params.get("page", "1"))
             return httpx.Response(200, json=self.issues if page == 1 else [])
         if path == f"{ROOT}/issues" and method == "POST":
-            issue = {"number": len(self.issues) + 1, "title": body["title"], "body": body.get("body", ""), "locked": False}
+            issue = {
+                "number": len(self.issues) + 1,
+                "title": body["title"],
+                "body": body.get("body", ""),
+                "locked": False,
+            }
             self.issues.append(issue)
             return httpx.Response(201, json=issue)
         if path.endswith("/lock") and method == "PUT":
