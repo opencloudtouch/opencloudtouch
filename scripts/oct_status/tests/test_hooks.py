@@ -725,6 +725,7 @@ def _opener(routes: dict):
 def test_rest_client_reads_and_fails_closed():
     comments = [
         {"user": {"login": "someone"}, "body": "<!-- oct-next:v1 --> fake"},
+        {"user": {"login": "oct-support"}, "body": "An answer quoting <!-- oct-next:v1 --> is no guide"},
         {"user": {"login": "oct-support"}, "body": _guide_body()},
     ]
     open_, seen = _opener(

@@ -24,13 +24,18 @@ _OWN_ACTIONS = {"issues": {"edited", "labeled", "unlabeled", "reopened"}}  # `re
 _OWN_ACTIONS["pull_request"] = _OWN_ACTIONS["pull_request_target"] = {"edited", "labeled", "unlabeled"}
 
 
+def is_guide_body(body: str | None) -> bool:
+    """A guide comment starts with `MARKER` (after an optional BOM or whitespace); quoting it is not enough."""
+    return (body or "").lstrip("\ufeff \t\r\n").startswith(MARKER)
+
+
 def is_own_event(event_name: str, payload: dict[str, Any], bot_logins: set[str]) -> bool:
     """Loop guard: True only for events our own writes cause (never reviews, checks or answers)."""
     if ((payload.get("sender") or {}).get("login")) not in bot_logins:
         return False
     action = payload.get("action")
     if event_name == "issue_comment":
-        return action in {"created", "edited"} and MARKER in ((payload.get("comment") or {}).get("body") or "")
+        return action in {"created", "edited"} and is_guide_body((payload.get("comment") or {}).get("body"))
     return action in _OWN_ACTIONS.get(event_name, set())
 
 
@@ -61,10 +66,9 @@ async def _comments(api: GitHubApi, number: int) -> list[dict[str, Any]]:
 
 
 def guides_in(comments: list[dict[str, Any]], bot_logins: tuple[str, ...]) -> list[dict[str, Any]]:
-    """Our guide comments among `comments` (marker and author), oldest first."""
-    found = [
-        c for c in comments if MARKER in (c.get("body") or "") and (c.get("user") or {}).get("login") in bot_logins
-    ]
+    """Our guide comments among `comments`, oldest first: written by one of `bot_logins` AND starting with
+    `MARKER`. Another bot text that only quotes the marker (an issue-handler answer) is never adopted."""
+    found = [c for c in comments if is_guide_body(c.get("body")) and (c.get("user") or {}).get("login") in bot_logins]
     return sorted(found, key=lambda c: c["id"])
 
 
@@ -91,7 +95,7 @@ async def upsert_guide(
     since (an overlapping run wrote newer notices), nothing is written and ``CONFLICT`` is returned, so
     an older state never overwrites a newer one.
     """
-    if MARKER not in content:  # the marker is what finds the comment again: exactly one, always
+    if not is_guide_body(content):  # the leading marker is what finds the comment again
         content = f"{MARKER}\n{content}"
     guides = await _find_guides(api, number, bot_logins)
     if expected is not ANY and (guides[0].get("body") if guides else None) != expected:
@@ -141,10 +145,11 @@ async def _sync_labels(api: GitHubApi, snap: Snapshot, derived: Derived, dry_run
 
 
 def guide_content(snap: Snapshot, block: str | None, guide: str | None, cfg: Config) -> str | None:
-    """The guide comment's text; for artifacts whose block lives in a comment the block comes first."""
+    """The guide comment's text; where the block lives in the comment it follows the leading marker."""
     actor = cfg.automation.get(snap.author)
     if block is not None and actor is not None and actor.block_location == "comment":
-        return f"{MARKER}\n{block}" if guide is None else f"{block}\n\n{guide}"
+        rest = guide.lstrip("\ufeff \t\r\n").removeprefix(MARKER).lstrip("\n") if guide is not None else ""
+        return f"{MARKER}\n{block}" + (f"\n\n{rest}" if rest else "")
     return guide
 
 

@@ -124,14 +124,15 @@ class Rest:
         return data
 
     def guide_comment(self, number: int) -> dict | None:
-        """The guide comment of an artifact (marker and bot author), or ``None`` when there is none."""
+        """The guide comment of an artifact (bot author, body starting with the marker), or ``None``."""
         for page in range(1, MAX_COMMENT_PAGES + 1):
             comments = self.get(f"/issues/{number}/comments?per_page=100&page={page}")
             if not isinstance(comments, list):
                 raise RestError(f"GET /issues/{number}/comments returned no list")
             for comment in comments:
                 login = ((comment or {}).get("user") or {}).get("login")
-                if login in BOT_LOGINS and GUIDE_MARKER in (comment.get("body") or ""):
+                body = (comment or {}).get("body") or ""
+                if login in BOT_LOGINS and body.lstrip("\ufeff \t\r\n").startswith(GUIDE_MARKER):  # apply.guides_in
                     return comment
             if len(comments) < 100:
                 return None

@@ -4,11 +4,11 @@ Every issue and pull request in this repository carries its workflow state in th
 
 - **Labels** for filtering: exactly one `phase:*`, zero or more `wait:*` (orange: something blocks), and a
   `resolution:*` on artifacts closed without a fix.
-- **The status block** at the top of the description (for Dependabot pull requests: at the top of the guide
-  comment), between `<!-- oct-status:v1 hash=... -->` and
+- **The status block** at the top of the description (for Dependabot pull requests: right after the marker
+  of the guide comment), between `<!-- oct-status:v1 hash=... -->` and
   `<!-- /oct-status -->`: badges, root blocker, stack chain, automation row, who has the ball and the
   relations table.
-- **The guide comment**, one bot comment per artifact marked `<!-- oct-next:v1 -->`, edited in place: last
+- **The guide comment**, one bot comment per artifact that starts with `<!-- oct-next:v1 -->`, edited in place: last
   action, where you are, the next steps with ready-to-run `/oct` commands, the commands valid now, notices
   and a machine-readable data block.
 
@@ -441,17 +441,16 @@ computes for that state. Steps marked **projection** apply one stated change to 
 ### 2026-10-12: Dependabot pull request #498
 
 `chore(deps-dev): bump joi from 18.2.8 to 18.2.9`, opened and merged the same day. Dependabot regenerates its
-description, so the light block is the first part of the bot's guide comment:
+description, so the light block opens the bot's guide comment, right after its marker:
 
 <!-- snippet:498-pinned -->
 ```markdown
+<!-- oct-next:v1 -->
 <!-- oct-status:v1 hash=b03777aabc80 -->
 ![phase: merged](https://img.shields.io/badge/phase-merged-1a7f37)
 
 **State:** merged
 <!-- /oct-status -->
-
-<!-- oct-next:v1 -->
 
 ### Last action
 
@@ -497,13 +496,12 @@ Dependabot is not a maintainer, so an approval by `oct-support` does not count a
 
 <!-- snippet:498-open-pinned -->
 ```markdown
+<!-- oct-next:v1 -->
 <!-- oct-status:v1 hash=f9a183a98441 -->
 ![phase: in review](https://img.shields.io/badge/phase-in%20review-2a5cc0) ![wait: maintainer](https://img.shields.io/badge/wait-maintainer-f2a33a)
 
 **State:** open
 <!-- /oct-status -->
-
-<!-- oct-next:v1 -->
 
 ### Last action
 

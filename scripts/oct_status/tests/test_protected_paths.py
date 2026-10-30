@@ -543,7 +543,7 @@ async def test_dependabot_pinned_comment_is_not_overwritten_by_an_older_state(mo
 
     await run_once()
     pinned = repo.guide(12)
-    assert "<!-- oct-next:v1 -->" in pinned and "<!-- oct-status:v1" in pinned
+    assert pinned.startswith("<!-- oct-next:v1 -->\n<!-- oct-status:v1")
     original = repo.handler
     reads = {"n": 0}
 
