@@ -2,9 +2,45 @@
 
 from __future__ import annotations
 
+import json
+from collections.abc import Iterable
+from pathlib import Path
 from typing import Any
 
+import httpx
+
 from oct_status.model import Snapshot
+
+FIXTURES = Path(__file__).parent / "fixtures"
+
+
+class FixtureTransport(httpx.MockTransport):
+    """Replays recorded responses keyed ``"METHOD /path"`` (query string ignored).
+
+    Unknown keys answer 404 with a JSON body, which makes "not found" paths testable.
+    The collaborator-permission and compare endpoints are blocked in the capture
+    environment and were never recorded; tests supply those as small synthetic
+    ``extra`` routes. An ``extra`` value is a body (status 200) or ``(status, body)``.
+    """
+
+    def __init__(self, numbers: Iterable[int] = (), extra: dict[str, Any] | None = None) -> None:
+        self.routes: dict[str, Any] = {}
+        for number in numbers:
+            self.routes.update(json.loads((FIXTURES / f"{number}.json").read_text(encoding="utf-8")))
+        self.routes.update(extra or {})
+        self.requests: list[str] = []
+        super().__init__(self._handle)
+
+    def _handle(self, request: httpx.Request) -> httpx.Response:
+        key = f"{request.method} {request.url.path}"
+        self.requests.append(key)
+        if key not in self.routes:
+            return httpx.Response(404, json={"message": "Not Found"})
+        value = self.routes[key]
+        if isinstance(value, tuple):
+            status, body = value
+            return httpx.Response(status, json=body)
+        return httpx.Response(200, json=value)
 
 
 def make_snapshot(**overrides: Any) -> Snapshot:

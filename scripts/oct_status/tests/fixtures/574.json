@@ -215,12 +215,18 @@
   "GET /repos/opencloudtouch/opencloudtouch/pulls/574": {
     "author_association": "MEMBER",
     "base": {
-      "ref": "feat/sleep-timer-backend"
+      "ref": "feat/sleep-timer-backend",
+      "repo": {
+        "full_name": "opencloudtouch/opencloudtouch"
+      }
     },
     "body": "See #573, #572, #571, #570, #560\nPart of #537\nSee #535, #560",
     "draft": true,
     "head": {
       "ref": "feat/sleep-timer-frontend",
+      "repo": {
+        "full_name": "opencloudtouch/opencloudtouch"
+      },
       "sha": "1779436506bdbff750232cffdc62cbad90f4e52e"
     },
     "labels": [],

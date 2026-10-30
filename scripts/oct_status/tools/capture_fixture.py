@@ -64,8 +64,12 @@ def sanitize_pull(d: dict[str, Any]) -> dict[str, Any]:
         {
             "draft": d.get("draft", False),
             "merged": d.get("merged", False),
-            "base": {"ref": d["base"]["ref"]},
-            "head": {"ref": d["head"]["ref"], "sha": d["head"]["sha"]},
+            "base": {"ref": d["base"]["ref"], "repo": {"full_name": ((d["base"].get("repo") or {}).get("full_name"))}},
+            "head": {
+                "ref": d["head"]["ref"],
+                "sha": d["head"]["sha"],
+                "repo": {"full_name": ((d["head"].get("repo") or {}).get("full_name"))},
+            },
         }
     )
     return out

@@ -223,12 +223,18 @@
   "GET /repos/opencloudtouch/opencloudtouch/pulls/498": {
     "author_association": "CONTRIBUTOR",
     "base": {
-      "ref": "main"
+      "ref": "main",
+      "repo": {
+        "full_name": "opencloudtouch/opencloudtouch"
+      }
     },
     "body": "See #3152\nSee #3151\nSee #3151",
     "draft": false,
     "head": {
       "ref": "dependabot/npm_and_yarn/joi-18.2.9",
+      "repo": {
+        "full_name": "opencloudtouch/opencloudtouch"
+      },
       "sha": "cdbb79a76a3eab7edfaed2aa51d759f3a8d96c8f"
     },
     "labels": [

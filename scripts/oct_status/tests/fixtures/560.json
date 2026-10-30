@@ -231,12 +231,18 @@
   "GET /repos/opencloudtouch/opencloudtouch/pulls/560": {
     "author_association": "MEMBER",
     "base": {
-      "ref": "main"
+      "ref": "main",
+      "repo": {
+        "full_name": "opencloudtouch/opencloudtouch"
+      }
     },
     "body": "Part of #535\nSee #535\nSee #568\nSee #561, #562, #567\nSee #568",
     "draft": false,
     "head": {
       "ref": "claude/gifted-bohr-b225kf",
+      "repo": {
+        "full_name": "opencloudtouch/opencloudtouch"
+      },
       "sha": "5f26740dc92e1be1664edc3970a7b20c6a5f7990"
     },
     "labels": [],
