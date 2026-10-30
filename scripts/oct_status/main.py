@@ -49,7 +49,7 @@ from oct_status.ledger import Ledger, LedgerError, strikes_active
 from oct_status.model import Derived, Edge, Graph, Phase, Snapshot
 from oct_status.notices import Acceptance, GuideState, Record
 from oct_status.render import extract_block, render_block, splice_block
-from oct_status.rules import derive, protected_changes
+from oct_status.rules import derive, detect_kind, label_declarations, legal_transitions, protected_changes
 from oct_status.violations import LEVEL_BLOCK, EventFacts, Violation, classify_actor, detect, escalate
 
 LABELS_SPEC = Path(__file__).resolve().parent / "labels.yml"
@@ -301,6 +301,16 @@ class Workspace:
             paths_accepted=paths_accepted or snap.paths_accepted,
             state=state or snap.state,
         )
+
+    def trust(self, number: int, label: str) -> None:
+        """`label` is written by the automation now (or is planned to be): later rules trust it."""
+        snap = self._snaps.get(number)
+        if snap is not None:
+            self._snaps[number] = replace(
+                snap,
+                human_phase_labels=snap.human_phase_labels - {label},
+                bot_phase_labels=snap.bot_phase_labels | {label},
+            )
 
     async def neighbors(self, number: int) -> list[Edge]:
         """Edges of `number` whose other end exists; loads the neighbours (and stack partners)."""
@@ -683,6 +693,95 @@ async def _handle_command(
     return CommandReport(cmd, actor, result.ok, result.message, writes, notes, rejected)
 
 
+_LABEL_EVENTS = {"issues", "pull_request_target", "pull_request"}
+# Declaration labels and the `/oct` command whose check a hand-set label has to pass (design section 11).
+_LABEL_COMMANDS = {
+    Phase.SPEC_REVIEW: "review",
+    Phase.SPEC_REWORK: "rework",
+    Phase.READY: "ready",
+    Phase.TRIAGED: "triage",
+    Phase.CONFIRMED: "confirm",
+}
+
+
+@dataclass
+class LabelReport:
+    label: str
+    command: str
+    actor: str
+    ok: bool
+    message: str
+    writes: list[str]
+    notes: Notes
+    rejected: str | None = None  # an invalid declaration (violation V07)
+
+
+def _label_args(command: str, actor: str) -> str:
+    """Arguments of the command a label stands for: the person who sets `phase:ready` is its reviewer."""
+    return {"ready": f"--reviewer {actor}", "rework": "label set by hand"}.get(command, "")
+
+
+async def _label_declaration(ws: Workspace, number: int, payload: dict[str, Any], dry_run: bool) -> LabelReport | None:
+    """Check a declaration label a person set by hand like the matching `/oct` command (M5).
+
+    Accepted: the automation writes the label again (removed and added with its own account), so its label
+    history names the automation and later runs trust it (``Snapshot.human_phase_labels``). Rejected: the
+    label is removed and the rejection is an invalid declaration (V07). The rules never honour a label
+    whose latest event is a person's, so nothing depends on it meanwhile. Label declarations without a
+    command (discussions, test plans) are not checked. Nothing is written in a dry run.
+    """
+    label, actor = _nested(payload, "label", "name"), _nested(payload, "sender", "login")
+    if payload.get("action") != "labeled" or not isinstance(label, str) or not label.startswith("phase:"):
+        return None
+    if not isinstance(actor, str) or not commands.valid_login(actor):
+        return None
+    snap = ws.graph().snapshots.get(number)
+    if snap is None or label not in snap.labels:
+        return None
+    kind = detect_kind(snap, ws.cfg)
+    phase = next((p for p in Phase if p.label == label), None)
+    if phase is None or phase not in _LABEL_COMMANDS or phase in label_declarations(kind):
+        return None
+    name = _LABEL_COMMANDS[phase]
+    if name not in {c for p in Phase for c in legal_transitions(kind, p)}:
+        return None  # not a declaration of this kind (a fact label; V02 covers it)
+    cmd = commands.Command(name, _label_args(name, actor))
+    without = replace(snap, labels=snap.labels - {label}, human_phase_labels=snap.human_phase_labels - {label})
+    graph = ws.graph()
+    derived = derive(without, graph, ws.cfg)
+    allowed, reason = await commands.authorize_detailed(ws.api, actor, cmd, ws.cfg)
+    result = commands.Outcome(False, reason)
+    if allowed:  # these declarations never call the API in `execute`
+        result = await commands.execute(ws.api, cmd, without, derived, actor, cfg=ws.cfg, dry_run=dry_run)
+    writes: list[str] = []
+    if not dry_run:
+        resp = await ws.api.request("DELETE", f"/issues/{number}/labels/{quote(label, safe='')}")
+        if resp.status_code != 404:
+            resp.raise_for_status()
+    if result.ok:
+        writes += [f"rewrite label {label} with the automation's account"]
+        writes += await commands.apply_declaration(ws.api, number, result.declare, dry_run=dry_run)
+        add, remove = result.declare.get("add", []), result.declare.get("remove", [])
+        ws.patch(number, add, [*remove, label] if label not in add else remove)
+        ws.trust(number, label)
+        notes: Notes = {number: ([], [f"label {label} set by {actor}: accepted as /oct {name}"])}
+        return LabelReport(label, name, actor, True, result.message, writes, notes)
+    ws.patch(number, [], [label])
+    writes.append(f"remove label {label} (set by hand, rejected)")
+    rejected = f"/oct {name} was rejected (label {label} set by hand by {actor}): {result.message}"
+    return LabelReport(label, name, actor, False, result.message, writes, {}, rejected)
+
+
+def _label_lines(report: LabelReport, dry_run: bool) -> list[str]:
+    state = "dry-run, planned" if dry_run else "performed"
+    verdict = "accepted" if report.ok else "rejected"
+    lines = [f"### Label {_inline(report.label)} set by {_inline(report.actor)}: {verdict}", ""]
+    lines += [_inline(report.message), ""]
+    if report.writes:
+        lines += [f"Writes ({state}):", *[f"- {_inline(w)}" for w in report.writes], ""]
+    return lines
+
+
 async def _record_override(
     ws: Workspace,
     number: int,
@@ -734,7 +833,7 @@ async def _closed_by_change(api: GitHubApi, number: int) -> bool | None:
 
 
 async def _event_facts(
-    ws: Workspace, snap: Snapshot, derived: Derived, payload: dict[str, Any], report: CommandReport | None
+    ws: Workspace, snap: Snapshot, derived: Derived, payload: dict[str, Any], rejected: str | None
 ) -> EventFacts:
     """The actor's own change in this event; every value comes from the untrusted payload and is validated."""
     sender = _nested(payload, "sender", "login")
@@ -750,7 +849,7 @@ async def _event_facts(
         actor=sender if isinstance(sender, str) and (commands.valid_login(sender) or sender.endswith("[bot]")) else "",
         label=label if isinstance(label, str) else "",
         body_before=before if isinstance(before, str) else None,
-        rejected=report.rejected if report is not None else None,
+        rejected=rejected,
         state_reason=reason if isinstance(reason, str) else None,
         closed_by_change=closed_by,
     )
@@ -767,7 +866,7 @@ async def _violation_notes(
     ws: Workspace,
     number: int,
     payload: dict[str, Any],
-    report: CommandReport | None,
+    rejected: str | None,
     dry_run: bool,
     clock: Callable[[], datetime],
 ) -> ViolationReport:
@@ -782,7 +881,7 @@ async def _violation_notes(
     if snap is None or derived is None:
         return ViolationReport()
     actor_class = classify_actor(snap, ws.cfg)
-    found = detect(snap, derived, graph, ws.cfg, actor_class, await _event_facts(ws, snap, derived, payload, report))
+    found = detect(snap, derived, graph, ws.cfg, actor_class, await _event_facts(ws, snap, derived, payload, rejected))
     if not found:
         return ViolationReport()
     ledger: Ledger | None = None
@@ -925,9 +1024,11 @@ async def run_event(
     component = await walk_component(number, ws.fan_out, cfg.fan_out_cap)
     targets = [number, *sorted(component - {number})]
     report = await _handle_command(ws, number, payload, dry_run, clock) if event_name == "issue_comment" else None
-    violations = await _violation_notes(ws, number, payload, report, dry_run, clock)
+    label = await _label_declaration(ws, number, payload, dry_run) if event_name in _LABEL_EVENTS else None
+    rejected = report.rejected if report is not None else label.rejected if label is not None else None
+    violations = await _violation_notes(ws, number, payload, rejected, dry_run, clock)
     reverted = await _revert(ws, number, violations.reverts, dry_run)
-    notes: Notes = dict(report.notes) if report else {}
+    notes: Notes = dict(report.notes) if report else dict(label.notes) if label else {}
     for failed, texts in ws.revert_failures.items():
         notices, history = notes.get(failed, ([], []))
         notes[failed] = ([*texts, *notices], history)
@@ -935,7 +1036,11 @@ async def run_event(
         clock(),
         notes=notes,
         found={number: violations.records},
-        accepted={number: {report.command.name}} if report and report.ok else {},
+        accepted={number: {report.command.name}}
+        if report and report.ok
+        else {number: {label.command}}
+        if label and label.ok
+        else {},
     )
     outcomes = await _converge(ws, targets, dry_run, ctx)
     mode = "dry-run" if dry_run else "write"
@@ -946,6 +1051,8 @@ async def run_event(
         summary += [f"Reverted ({state}):", *[f"- {_inline(w)}" for w in reverted], ""]
     if report is not None:
         summary += _command_lines(report, dry_run)
+    if label is not None:
+        summary += _label_lines(label, dry_run)
     statuses = await post_gate_statuses(api, outcomes, dry_run, ws.warnings, cfg, status_api)
     for outcome in outcomes:
         summary += _outcome_lines(outcome, dry_run, with_block=True)

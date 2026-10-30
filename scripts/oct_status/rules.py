@@ -155,10 +155,27 @@ def _labelled(snap: Snapshot, enum: type[Phase] | type[Wait] | type[Resolution])
     return [member for member in enum if member.value in values]
 
 
-def _declared_phase(snap: Snapshot, kind: Kind) -> Phase:
+# Renamed from the legacy `accepted` label by the label sync: its label events name the people who set it.
+_LEGACY_DECLARATIONS = {Phase.TRIAGED}
+
+
+def _hand_set(snap: Snapshot, kind: Kind, phase: Phase, cfg: Config) -> bool:
+    """A declaration label that a person set by hand, without the check of the matching `/oct` command.
+
+    The event that sets it is checked like the command (``main._label_declaration``): accepted, the
+    automation writes it again (then it is ours); rejected, it is removed (V07). Declarations without a
+    command (discussions, test plans) are set by hand by design. Legacy `phase:triaged` (renamed from
+    `accepted`) stays trusted while ``cfg.legacy_wip_trusted`` is set, so the backfill can re-assert it.
+    """
+    if phase.label not in snap.human_phase_labels or phase in _LABEL_DECLARATIONS.get(kind, set()):
+        return False
+    return not (cfg.legacy_wip_trusted and phase in _LEGACY_DECLARATIONS)
+
+
+def _declared_phase(snap: Snapshot, kind: Kind, cfg: Config) -> Phase:
     """The furthest legal declared phase, else the kind's start phase."""
     for phase in reversed(_labelled(snap, Phase)):
-        if phase not in _declarable(kind):
+        if phase not in _declarable(kind) or _hand_set(snap, kind, phase, cfg):
             continue
         if kind == Kind.SPEC and phase in _DOR_GATED and not dor_status(snap.body)[0]:
             # A legacy spec (no DoR section) keeps a declaration only our own accounts wrote: the
@@ -184,7 +201,7 @@ def _declared_floor(snap: Snapshot, kind: Kind, cfg: Config) -> Phase:
     Ready, or is a legacy spec without any DoR section. The legacy `wip` label (renamed by the
     label sync) counts as before while ``cfg.legacy_wip_trusted`` is set.
     """
-    declared = _declared_phase(snap, kind)
+    declared = _declared_phase(snap, kind, cfg)
     floor = _STARTED_FLOOR.get(kind)
     if floor is None:
         return declared
@@ -448,12 +465,12 @@ def _mirrored(snap: Snapshot, graph: Graph, cfg: Config) -> tuple[Phase, Resolut
     return min(live, key=_PHASE_ORDER.index), None
 
 
-def _simple_phase(snap: Snapshot, kind: Kind, graph: Graph) -> Phase:
+def _simple_phase(snap: Snapshot, kind: Kind, graph: Graph, cfg: Config) -> Phase:
     """Tracking issues, test plans and discussions."""
     if kind == Kind.DISCUSSION:
         if _neighbours(snap, graph, EdgeType.SPECIFIED_BY) or _neighbours(snap, graph, EdgeType.SPAWNED):
             return Phase.SPECIFIED
-        declared = _declared_phase(snap, kind)
+        declared = _declared_phase(snap, kind, cfg)
         if snap.state != "open":
             return Phase.ANSWERED if declared == Phase.ANSWERED else Phase.CLOSED
         return declared
@@ -465,7 +482,7 @@ def _simple_phase(snap: Snapshot, kind: Kind, graph: Graph) -> Phase:
             return Phase.NEW
         known = graph.snapshots
         return Phase.IN_PROGRESS if any(c not in known or _is_open(known[c]) for c in children) else Phase.DONE
-    return _declared_phase(snap, kind)
+    return _declared_phase(snap, kind, cfg)
 
 
 def derive(snap: Snapshot, graph: Graph, cfg: Config, kind: Kind | None = None) -> Derived | None:
@@ -502,7 +519,7 @@ def _derive_known(snap: Snapshot, graph: Graph, cfg: Config, kind: Kind) -> Deri
     elif kind in (Kind.SPEC, Kind.BUG, Kind.FEATURE_REQUEST):
         phase = _work_phase(snap, kind, graph, cfg)
     else:
-        phase = _simple_phase(snap, kind, graph)
+        phase = _simple_phase(snap, kind, graph, cfg)
     if phase == Phase.CLOSED:
         return Derived(phase, frozenset(), resolution or _resolution(snap))
     if snap.state != "open" or phase == Phase.DONE:

@@ -47,8 +47,9 @@ def _is_bot(login: str, typename: str, cfg: Config) -> bool:
 
 async def _bot_phase_labels(
     api: GitHubApi, number: int, labels: frozenset[str], cfg: Config
-) -> tuple[frozenset[str], bool]:
-    """(current phase labels last written by our own accounts, whether the timeline was not conclusive).
+) -> tuple[frozenset[str], frozenset[str], bool]:
+    """(current phase labels last written by our own accounts, those last written by a person, whether the
+    timeline was not conclusive).
 
     Only the newest 50 label events are read. When that window is full and some current phase label
     has no event in it, the history is incomplete and reported as unknown (nothing is trusted and
@@ -57,24 +58,26 @@ async def _bot_phase_labels(
     """
     phases = {lb for lb in labels if lb.startswith("phase:")}
     if not phases:
-        return frozenset(), False
+        return frozenset(), frozenset(), False
     owner, name = api.repo.split("/", 1)
     try:
         data = await api.graphql(_LABELS_QUERY, {"owner": owner, "name": name, "number": number})
         item = ((data or {}).get("repository") or {}).get("issueOrPullRequest") or {}
         nodes = (item.get("timelineItems") or {}).get("nodes")
         if nodes is None:
-            return frozenset(), True
+            return frozenset(), frozenset(), True
         latest: dict[str, tuple[str, str]] = {}
         for node in nodes:
             label, actor = (node or {}).get("label"), (node or {}).get("actor") or {}
             if label and label.get("name"):
                 latest[label["name"]] = (actor.get("login") or "", actor.get("__typename") or "")
     except (httpx.HTTPError, RuntimeError, AttributeError, TypeError, KeyError):
-        return frozenset(), True
+        return frozenset(), frozenset(), True
     if len(nodes) >= _TIMELINE_WINDOW and not phases <= set(latest):
-        return frozenset(), True
-    return frozenset(lb for lb in phases if lb in latest and latest[lb][0] and _is_bot(*latest[lb], cfg)), False
+        return frozenset(), frozenset(), True
+    known = [lb for lb in phases if lb in latest and latest[lb][0]]
+    ours = frozenset(lb for lb in known if _is_bot(*latest[lb], cfg))
+    return ours, frozenset(known) - ours, False
 
 
 async def _json(api: GitHubApi, path: str) -> Any:
@@ -291,10 +294,10 @@ async def fetch_snapshot(
         unresolved = await _unresolved_threads(api, number) if use_graphql else -1
 
     current_labels = frozenset(lb["name"] for lb in data.get("labels", []))
-    bot_labels, unknown = (
+    bot_labels, human_labels, unknown = (
         await _bot_phase_labels(api, number, current_labels, cfg)
         if cfg is not None and use_graphql
-        else (frozenset(), False)
+        else (frozenset(), frozenset(), False)
     )
     return Snapshot(
         number=number,
@@ -321,5 +324,6 @@ async def fetch_snapshot(
         head_is_fork=is_fork,
         author_association=str(data.get("author_association") or ""),
         bot_phase_labels=bot_labels,
+        human_phase_labels=human_labels,
         timeline_unknown=unknown,
     )

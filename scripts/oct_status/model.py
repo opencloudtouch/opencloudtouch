@@ -155,6 +155,10 @@ class Snapshot:
     # Current `phase:*` labels whose latest LabeledEvent was written by our own accounts. Only these fact
     # labels are trusted (rules._declared_floor); a label set by hand is violation V02.
     bot_phase_labels: frozenset[str] = frozenset()
+    # Current `phase:*` labels whose latest LabeledEvent was written by a person (not by our accounts). A
+    # declaration label set by hand counts only once the automation checked it like the matching command
+    # (rules._declared_phase, main._label_declaration).
+    human_phase_labels: frozenset[str] = frozenset()
     timeline_unknown: bool = False  # the label timeline could not be read (nothing is trusted then)
     # Head SHA up to which a maintainer acknowledged automation pushes to protected paths (`/oct accept-paths`),
     # read from the guide comment's data; "" when nothing was acknowledged.

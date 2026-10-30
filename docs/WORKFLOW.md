@@ -1160,7 +1160,14 @@ the Definition of Done of a pull request without a database change.
 ### V07: Invalid declaration
 
 **What happened:** a `/oct review` or `/oct ready` was rejected because a precondition failed: the Definition
-of Ready is incomplete, or the reviewer is the author.
+of Ready is incomplete, or the reviewer is the author. Or a declaration label (`phase:spec-review`,
+`phase:spec-rework`, `phase:ready`, `phase:triaged`, `phase:confirmed`) was set by hand and failed the check of
+the matching command: `phase:ready` counts as `/oct ready --reviewer <who set it>`, `phase:triaged` and
+`phase:confirmed` need the `maintain` role, and the transition must be legal now. A rejected label is removed
+again (in write mode); an accepted one is written again by the automation, so its label history names the
+automation. The status never relies on a declaration label a person set by hand (only on the automation's
+writes); the legacy `phase:triaged` renamed from `accepted` stays trusted until the legacy trust is retired
+after the backfill.
 
 **Expected:** a declaration is made when its preconditions hold.
 

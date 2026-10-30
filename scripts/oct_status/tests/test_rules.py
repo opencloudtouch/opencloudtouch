@@ -342,6 +342,32 @@ def test_legacy_wip_trust_can_be_switched_off():
     assert Wait.PREREQUISITE in derive_with(off, pr(), legacy, edges=implements).waits
 
 
+def test_hand_set_declaration_labels_are_not_honoured():
+    """M5: a declaration label whose latest label event is a person's counts only after the automation's check."""
+    from dataclasses import replace as _replace
+
+    def human(snap):
+        return _replace(snap, human_phase_labels=frozenset(lb for lb in snap.labels if lb.startswith("phase:")))
+
+    ready = spec(labels=frozenset({"spec", "phase:ready"}), body=DOR_DONE)
+    assert run(ready).phase == Phase.READY
+    assert run(human(ready)).phase == Phase.DRAFT
+    review = spec(labels=frozenset({"spec", "phase:spec-review"}), body=DOR_DONE)
+    assert run(human(review)).phase == Phase.DRAFT
+    confirmed = make_snapshot(number=5, labels=frozenset({"bug", "phase:confirmed"}))
+    assert run(confirmed).phase == Phase.CONFIRMED and run(human(confirmed)).phase == Phase.NEW
+    # Legacy `accepted` was renamed to phase:triaged: its old label events name people. Trusted until the
+    # legacy trust is retired (Task 20), when the backfill has re-asserted every legacy label.
+    triaged = make_snapshot(number=5, labels=frozenset({"bug", "phase:triaged"}))
+    assert run(human(triaged)).phase == Phase.TRIAGED
+    off = _replace(CFG, legacy_wip_trusted=False)
+    graph = Graph([], {5: human(triaged)}, {})
+    assert derive(human(triaged), graph, off).phase == Phase.NEW
+    # Declarations that have no command (test plans) are set by hand by design.
+    plan = make_snapshot(number=5, title="[Test] device", labels=frozenset({"phase:in-progress"}))
+    assert run(human(plan)).phase == Phase.IN_PROGRESS
+
+
 def test_fact_phase_label_keeps_readiness_when_pr_closes():
     implements = (edge(EdgeType.IMPLEMENTS, 10, 5),)
     bot = frozenset({"phase:in-review"})

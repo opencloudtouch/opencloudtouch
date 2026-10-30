@@ -60,6 +60,19 @@ async def test_only_labels_whose_latest_event_is_ours_are_trusted():
     assert not s.timeline_unknown and s.author_association == "CONTRIBUTOR"
 
 
+async def test_labels_whose_latest_event_is_a_person_are_known_as_hand_set():
+    timeline = events(
+        ("phase:ready", "bob"),
+        ("phase:triaged", "oct-support"),
+        ("phase:in-review", "oct-support"),
+        ("phase:in-review", "bob"),
+        ("phase:done", ""),  # deleted account (ghost): not known as a person
+    )
+    s = await snap(["spec", "phase:ready", "phase:triaged", "phase:in-review", "phase:done"], timeline)
+    assert s.human_phase_labels == {"phase:ready", "phase:in-review"}
+    assert s.bot_phase_labels == {"phase:triaged"}
+
+
 async def test_unreadable_timeline_trusts_nothing():
     for answer in ((500, {}), (200, {"errors": [{"message": "x"}]}), (200, {"data": {"repository": None}})):
         s = await snap(["phase:in-progress"], answer)
