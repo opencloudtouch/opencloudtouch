@@ -9,6 +9,11 @@ vi.mock("../../src/components/AboutSection", () => ({
   default: () => null,
 }));
 
+// The stream recovery section has its own tests and its own fetches
+vi.mock("../../src/components/StreamRecoverySettings", () => ({
+  default: () => null,
+}));
+
 // Create typed mock for fetch
 let mockFetch: Mock;
 

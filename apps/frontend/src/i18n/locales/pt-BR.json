@@ -143,6 +143,41 @@
       "downloadDescription": "Baixe as últimas 1000 entradas de log do backend como arquivo de texto.",
       "levelChanged": "Nível de log definido para {{level}}",
       "levelError": "Não foi possível alterar o nível de log"
+    },
+    "streamRecovery": {
+      "sectionTitle": "Recuperação de stream",
+      "enable": "Retomar a rádio quando a emissora cortar a conexão",
+      "explanation": "Funciona apenas com presets de rádio. O alto-falante pressiona o próprio preset novamente depois que a emissora corta a conexão. Um alto-falante que você parou não é reiniciado.",
+      "minutesLabel": "Tempo mínimo de reprodução antes de retomar (minutos)",
+      "attemptsLabel": "Máximo de tentativas por hora",
+      "minutesInvalid": "Digite um número inteiro de {{min}} a {{max}}.",
+      "attemptsInvalid": "Digite um número inteiro de {{min}} a {{max}}.",
+      "save": "Salvar",
+      "saving": "Salvando…",
+      "saved": "Configurações de recuperação de stream salvas",
+      "saveFailed": "Não foi possível salvar as configurações.",
+      "loadError": "Não foi possível carregar as configurações de recuperação de stream.",
+      "activityToggle": "Atividade recente",
+      "refresh": "Atualizar",
+      "refreshed": "Atividade atualizada",
+      "activityEmpty": "Ainda não há atividade.",
+      "activityError": "Não foi possível carregar a atividade.",
+      "playTime": "{{hours}} h {{minutes}} min",
+      "col": {
+        "time": "Hora",
+        "device": "Dispositivo",
+        "station": "Emissora",
+        "preset": "Preset",
+        "outcome": "Resultado",
+        "playTime": "Reproduzido",
+        "attempts": "Tentativas"
+      },
+      "outcome": {
+        "resumed": "Retomado",
+        "gave_up": "Desistiu",
+        "skipped_no_preset": "Nenhum preset correspondente",
+        "skipped_rate_limited": "Limitado"
+      }
     }
   },
   "manualIpModal": {
@@ -637,7 +672,10 @@
       "device_unreachable": "Não foi possível acessar o dispositivo. Verifique se ele está ligado e conectado à rede.",
       "not_found": "O recurso solicitado não foi encontrado.",
       "validation_error": "A solicitação contém dados inválidos. Verifique o que você digitou.",
-      "internal_error": "Ocorreu um erro interno. Tente novamente mais tarde."
+      "internal_error": "Ocorreu um erro interno. Tente novamente mais tarde.",
+      "stream_recovery_min_play_invalid": "O tempo mínimo de reprodução está fora do intervalo permitido.",
+      "stream_recovery_attempts_invalid": "O número de tentativas está fora do intervalo permitido.",
+      "stream_recovery_failed": "A recuperação de stream não conseguiu pressionar o preset."
     },
     "loadFailed": "Carregamento falhou. Tente novamente.",
     "unknown": "Ocorreu um erro inesperado. Tente novamente.",

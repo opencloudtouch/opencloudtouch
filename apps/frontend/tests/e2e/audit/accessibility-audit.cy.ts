@@ -126,11 +126,19 @@ const AXE_OPTIONS = {
 // HELPERS
 // =============================================================================
 
+const STREAM_RECOVERY_DEFAULTS = {
+  enabled: false,
+  min_play_seconds: 600,
+  max_attempts_per_hour: 3,
+  updated_at: null,
+};
+
 function setupMockApiWithDevices(): void {
   cy.intercept("GET", "/api/devices", { body: { devices: MOCK_DEVICES, count: MOCK_DEVICES.length } }).as("getDevices");
   cy.intercept("GET", `/api/presets/${DEVICE_ID_1}`, { body: MOCK_PRESETS }).as("getPresets1");
   cy.intercept("GET", `/api/presets/${DEVICE_ID_2}`, { body: [] }).as("getPresets2");
   cy.intercept("GET", "/api/settings/manual-ips", { body: MOCK_MANUAL_IPS }).as("getManualIPs");
+  cy.intercept("GET", "/api/stream-recovery", { body: STREAM_RECOVERY_DEFAULTS });
   cy.intercept("POST", "/api/settings/manual-ips", { statusCode: 200, body: {} });
   cy.intercept("DELETE", "/api/settings/manual-ips/*", { statusCode: 200, body: {} });
   cy.intercept("POST", "/api/devices/sync-stream*", { statusCode: 200, body: {} });
@@ -150,6 +158,7 @@ function setupMockApiWithDevices(): void {
 function setupMockApiEmpty(): void {
   cy.intercept("GET", "/api/devices", { body: [] }).as("getDevicesEmpty");
   cy.intercept("GET", "/api/settings/manual-ips", { body: [] }).as("getManualIPs");
+  cy.intercept("GET", "/api/stream-recovery", { body: STREAM_RECOVERY_DEFAULTS });
   cy.intercept("GET", "/api/devices/discover/stream*", {
     statusCode: 200,
     body: "data: done\n\n",

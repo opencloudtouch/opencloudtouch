@@ -143,6 +143,41 @@
       "downloadDescription": "バックエンドの最新1000件のログエントリをテキストファイルとしてダウンロードします。",
       "levelChanged": "ログレベルを{{level}}に設定しました",
       "levelError": "ログレベルを変更できませんでした"
+    },
+    "streamRecovery": {
+      "sectionTitle": "ストリーム復旧",
+      "enable": "放送局が接続を切断したときにラジオ再生を再開する",
+      "explanation": "ラジオのプリセットでのみ動作します。放送局が接続を切断した後、スピーカーが自分のプリセットをもう一度押します。自分で停止したスピーカーは再開されません。",
+      "minutesLabel": "再開までの最低再生時間（分）",
+      "attemptsLabel": "1時間あたりの最大試行回数",
+      "minutesInvalid": "{{min}}～{{max}}の整数を入力してください。",
+      "attemptsInvalid": "{{min}}～{{max}}の整数を入力してください。",
+      "save": "保存",
+      "saving": "保存中…",
+      "saved": "ストリーム復旧の設定を保存しました",
+      "saveFailed": "設定を保存できませんでした。",
+      "loadError": "ストリーム復旧の設定を読み込めませんでした。",
+      "activityToggle": "最近のアクティビティ",
+      "refresh": "更新",
+      "refreshed": "アクティビティを更新しました",
+      "activityEmpty": "まだアクティビティはありません。",
+      "activityError": "アクティビティを読み込めませんでした。",
+      "playTime": "{{hours}}時間{{minutes}}分",
+      "col": {
+        "time": "時刻",
+        "device": "デバイス",
+        "station": "放送局",
+        "preset": "プリセット",
+        "outcome": "結果",
+        "playTime": "再生時間",
+        "attempts": "試行回数"
+      },
+      "outcome": {
+        "resumed": "再開しました",
+        "gave_up": "断念しました",
+        "skipped_no_preset": "一致するプリセットなし",
+        "skipped_rate_limited": "回数制限"
+      }
     }
   },
   "manualIpModal": {
@@ -637,7 +672,10 @@
       "device_unreachable": "デバイスに接続できません。電源が入っていて、ネットワークに接続されているか確認してください。",
       "not_found": "要求されたリソースが見つかりません。",
       "validation_error": "リクエストに無効なデータが含まれています。入力内容を確認してください。",
-      "internal_error": "内部エラーが発生しました。後でもう一度お試しください。"
+      "internal_error": "内部エラーが発生しました。後でもう一度お試しください。",
+      "stream_recovery_min_play_invalid": "最低再生時間が許容範囲外です。",
+      "stream_recovery_attempts_invalid": "試行回数が許容範囲外です。",
+      "stream_recovery_failed": "ストリーム復旧でプリセットを押せませんでした。"
     },
     "loadFailed": "読み込みに失敗しました。もう一度お試しください。",
     "unknown": "予期しないエラーが発生しました。もう一度お試しください。",

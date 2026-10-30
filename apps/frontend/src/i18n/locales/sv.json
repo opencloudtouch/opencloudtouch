@@ -143,6 +143,41 @@
       "downloadDescription": "Ladda ned de senaste 1000 backend-loggposterna som textfil.",
       "levelChanged": "Loggnivå inställd på {{level}}",
       "levelError": "Det gick inte att ändra loggnivån"
+    },
+    "streamRecovery": {
+      "sectionTitle": "Strömåterställning",
+      "enable": "Återuppta radion när stationen bryter anslutningen",
+      "explanation": "Fungerar bara för radioförval. Högtalaren trycker på sitt eget förval igen när stationen har brutit anslutningen. En högtalare som du stoppar själv startas inte om.",
+      "minutesLabel": "Minsta speltid innan återupptagning (minuter)",
+      "attemptsLabel": "Högsta antal försök per timme",
+      "minutesInvalid": "Ange ett heltal från {{min}} till {{max}}.",
+      "attemptsInvalid": "Ange ett heltal från {{min}} till {{max}}.",
+      "save": "Spara",
+      "saving": "Sparar…",
+      "saved": "Inställningar för strömåterställning sparade",
+      "saveFailed": "Det gick inte att spara inställningarna.",
+      "loadError": "Det gick inte att läsa in inställningarna för strömåterställning.",
+      "activityToggle": "Senaste aktivitet",
+      "refresh": "Uppdatera",
+      "refreshed": "Aktiviteten uppdaterad",
+      "activityEmpty": "Ingen aktivitet än.",
+      "activityError": "Det gick inte att läsa in aktiviteten.",
+      "playTime": "{{hours}} tim {{minutes}} min",
+      "col": {
+        "time": "Tid",
+        "device": "Enhet",
+        "station": "Station",
+        "preset": "Förval",
+        "outcome": "Resultat",
+        "playTime": "Speltid",
+        "attempts": "Försök"
+      },
+      "outcome": {
+        "resumed": "Återupptagen",
+        "gave_up": "Gav upp",
+        "skipped_no_preset": "Inget matchande förval",
+        "skipped_rate_limited": "Begränsad"
+      }
     }
   },
   "manualIpModal": {
@@ -637,7 +672,10 @@
       "device_unreachable": "Enheten kan inte nås. Kontrollera att den är påslagen och ansluten till nätverket.",
       "not_found": "Den begärda resursen hittades inte.",
       "validation_error": "Begäran innehåller ogiltiga data. Kontrollera dina inmatningar.",
-      "internal_error": "Ett internt fel inträffade. Försök igen senare."
+      "internal_error": "Ett internt fel inträffade. Försök igen senare.",
+      "stream_recovery_min_play_invalid": "Den minsta speltiden ligger utanför tillåtet intervall.",
+      "stream_recovery_attempts_invalid": "Antalet försök ligger utanför tillåtet intervall.",
+      "stream_recovery_failed": "Strömåterställningen kunde inte trycka på förvalet."
     },
     "loadFailed": "Inläsning misslyckades. Försök igen.",
     "unknown": "Ett oväntat fel uppstod. Försök igen.",
