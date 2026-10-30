@@ -1199,8 +1199,8 @@ token, before `strikes_enabled_from`, or when the ledger or the guide comment ca
 
 In write mode the job `status-write` posts the commit status `oct-status` on the head commit of every open
 pull request a run touches; the daily audit (03:17 UTC) posts it for all open pull requests. This commit
-status context is the one to make required (planned for the enforcement step); the workflow job also named
-`oct-status` only reports. The status fails, with the first reason as description, when:
+status context is the one to make required (planned for the enforcement step); the workflow job
+`oct-status-report` only reports (it is not named `oct-status`, so it can never satisfy that required check). The status fails, with the first reason as description, when:
 
 - the status block is missing or out of date,
 - automation pushed to a protected path without a maintainer's `/oct accept-paths`,

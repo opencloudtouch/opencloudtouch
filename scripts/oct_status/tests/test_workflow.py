@@ -51,11 +51,19 @@ def test_write_job_is_gated_and_least_privileged():
     assert "--dry-run" not in event["run"] and "BOT_PAT" in event["env"]
 
 
+def test_no_job_can_satisfy_a_required_check_named_oct_status():
+    """Only the commit status context `oct-status` may satisfy the required check (Task 20)."""
+    jobs = _jobs()
+    assert "oct-status" not in jobs
+    assert all(j.get("name") != "oct-status" for j in jobs.values())
+    assert jobs["oct-status-report"]["name"] == "oct-status-report"
+
+
 def test_check_blocks_only_in_write_mode_and_backfill_defaults_to_dry_run():
     jobs = _jobs()
-    check = next(s for s in jobs["oct-status"]["steps"] if "--check" in s.get("run", ""))
+    check = next(s for s in jobs["oct-status-report"]["steps"] if "--check" in s.get("run", ""))
     assert check["continue-on-error"] == "${{ vars.OCT_STATUS_WRITE != 'true' }}"
-    assert set(jobs["oct-status"]["needs"]) == {"status", "status-write"}
+    assert set(jobs["oct-status-report"]["needs"]) == {"status", "status-write"}
     raw = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
     inputs = raw[True]["workflow_dispatch"]["inputs"]  # YAML 1.1 reads the key `on` as True
     assert inputs["dry_run"]["default"] is True and inputs["limit"] == {

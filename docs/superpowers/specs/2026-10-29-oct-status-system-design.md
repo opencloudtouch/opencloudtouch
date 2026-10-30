@@ -463,6 +463,9 @@ layout as `scripts/issue_handler/`):
   scheduled off the full hour. Implementation note: `pull_request_review_thread`
   is a webhook-only event that GitHub Actions cannot trigger on, so a resolved
   thread is picked up by the next event of the pull request or the audit.
+- Merge gate: the commit status context `oct-status` on the PR head (posted by
+  the write job). The report job is named `oct-status-report`, so no job run can
+  satisfy a required check named `oct-status`.
 - One concurrency group per artifact. Fan-out after a change is limited to the
   connected component of `stacked-on` / `depends-on` edges, at most 25 nodes;
   hash equality ends cascades.

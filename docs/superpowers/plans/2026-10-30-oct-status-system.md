@@ -574,7 +574,7 @@ docs/WORKFLOW.md                     new
     https://api.github.com/repos/opencloudtouch/opencloudtouch/branches/main/protection/required_status_checks/contexts \
     -d '["oct-status"]'
   ```
-  Expected: the response lists `Mojibake Check` and `oct-status`.
+  Expected: the response lists `Mojibake Check` and `oct-status`. `oct-status` here is the commit status context posted by `status-write`; the workflow's report job is named `oct-status-report` (round C, M9), so no job run can satisfy the required check.
 - [ ] **Step 5: Commit** `chore(oct-status): activate strikes and document the merge gate`.
 
 ---

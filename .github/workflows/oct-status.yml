@@ -7,9 +7,10 @@ name: OCT Status
 # BOT_PAT and publishes, with the job's GITHUB_TOKEN, the gate of every pull request it touches
 # (all open ones in the daily audit) as the commit status `oct-status` on the PR head SHA.
 #
-# Required check (Task 20): the commit STATUS context `oct-status`, not the `oct-status` job below.
+# Required check (Task 20): the commit STATUS context `oct-status`, not the `oct-status-report` job below.
 # A pull_request_target job attaches to the base commit, so it cannot gate the PR head; the job only
-# reports the same gate in its summary (continue-on-error unless write mode). A head without a status
+# reports the same gate in its summary (continue-on-error unless write mode). It is deliberately not
+# named `oct-status`, so a required check of that name can only be satisfied by the commit status. A head without a status
 # is pending until the synchronize event or the daily audit posts one.
 #
 # The label sync and the backfill (mode=backfill, MA-6) are manual workflow_dispatch runs that stay
@@ -293,9 +294,9 @@ jobs:
           path: .oct-backfill
           key: oct-backfill-state-${{ github.run_id }}
 
-  oct-status:
-    # Report job for the shadow week; NOT the required check (that is the commit status, see header).
-    name: oct-status
+  oct-status-report:
+    # Report job; NOT the required check (that is the commit status `oct-status`, see header).
+    name: oct-status-report
     needs: [status, status-write]
     if: ${{ !cancelled() && github.event_name == 'pull_request_target' }}
     runs-on: ubuntu-latest
