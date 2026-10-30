@@ -1,0 +1,33 @@
+# Actor allowlist and policy values for the OCT status system.
+# Shared source of truth for logins treated as automation.
+
+automation:
+  dependabot[bot]:
+    block_location: comment
+  formatter-bot:
+    pushes: true
+    invalidates_approval: false
+  github-actions[bot]: {}
+  oct-support: {}
+  gitar-bot[bot]:
+    pushes: true
+  sonarqubecloud[bot]: {}
+  github-code-quality[bot]: {}
+  codecov-commenter: {}
+
+gate_checks:
+  - CI Summary
+  - SonarCloud Code Analysis
+  - Gitar
+
+protected_paths:
+  - ".github/workflows/**"
+  - "scripts/oct_status/**"
+  - ".gitar/**"
+  - ".claude/**"
+  - ".gitignore"
+
+fan_out_cap: 25
+strike_window_days: 60
+# Strikes stay off until a date is set here (YYYY-MM-DD).
+strikes_enabled_from: null
