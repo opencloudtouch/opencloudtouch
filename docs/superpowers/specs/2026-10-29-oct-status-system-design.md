@@ -28,6 +28,8 @@ subagents, and for the bots that already act in this repository.
   Everything else is corrected server-side (heal + check).
 - A new maintainer can learn the workflow from `docs/WORKFLOW.md` alone, using
   the real artifacts #537 / #573 / #574 as the walkthrough.
+- After every action of the workflow, one recycled comment per artifact tells
+  humans and agents what happened and which next steps and commands make sense.
 
 ### Non-goals
 
@@ -72,6 +74,8 @@ workflows.
 | Label migration | Rename in place as specified in section 9. |
 | Blocker severity | Not graded. One orange for all `wait:*`. |
 | Gitar | Auto-apply globally on, auto-approve on (an extra signal with the label `gitar-approved`, never a replacement for `oct-support`), auto-merge off. Findings source and pushing actor, see section 7. |
+| Guide comment | One bot comment per artifact, edited in place after every workflow action, never a second one. It holds the last action, the next steps with ready-to-run commands, notices and escalation messages (section 5a). |
+| Feature request | Stays open after its spec exists, mirrors the spec phase and closes with the spec (`resolution:superseded` if the spec is dropped). A feature never needs a separate feature issue. |
 | Priority labels | Out of scope. |
 
 ## 4. Model
@@ -82,7 +86,7 @@ workflows.
 |---|---|---|---|
 | spec | label `spec` (wins over `bug` / `enhancement`) | spec lifecycle | full, in body |
 | bug / support | label `bug` or `support`, no `spec` | bug lifecycle | full, in body |
-| feature request | `enhancement`, no `spec` | bug lifecycle without `confirmed`; edge `specified-by` shown | full, in body |
+| feature request | `enhancement`, no `spec` | bug lifecycle without `confirmed`; once a spec exists (edge `specified-by`) it stays open, mirrors the spec phase in its block and closes with the spec (`resolution:superseded` if the spec is dropped) | full, in body |
 | tracking | title prefix `[Tracking]` | open until all children are closed; phase derived from children | full, in body |
 | test plan | title prefix `[Test]` | `new` -> `in-progress` -> `done`; closing it clears `wait:hardware-test` on the target (edge `verifies`) | full, in body |
 | pull request | PR | PR lifecycle | full, in body |
@@ -90,6 +94,9 @@ workflows.
 | docs / chore PR | PR with `/oct no-spec <reason>`, or a Conventional Commit type in `docs`, `ci`, `chore`, `style`, `test` | PR lifecycle | full, spec edge optional |
 | discussion | discussion | `open` -> `needs-spec` -> `specified` / `answered` / `closed` | full, in body |
 | announcement | discussion or content created by an automation actor in the allowlist | none | none |
+
+A spec issue is the work item of a feature from specification to completion. A
+feature request is an optional input and never a prerequisite.
 
 ### 4.2 Axes
 
@@ -191,6 +198,58 @@ costs display only.
 GitHub cannot forbid body edits server-side. Humans in the web UI are protected
 by 2-4 and see the block restored within seconds.
 
+## 5a. The guide comment
+
+Each artifact gets exactly one bot comment, marked `<!-- oct-next:v1 -->`. It is
+created on the first workflow action and edited in place after every later one;
+the bot never posts a second comment. For Dependabot PRs and other
+automation-authored artifacts this comment also carries the status block.
+
+Sections:
+
+1. Last action: what the workflow just did and why (for example "set
+   `wait:maintainer`: no approval on head 5f26740"), or the error of a rejected
+   command.
+2. You are here: phase and waits in one line, with the link to the matching
+   anchor in `docs/WORKFLOW.md`.
+3. Next steps: at most five entries, ordered by priority, each with the actor
+   (maintainer, author, reporter, reviewer, anyone) and a ready-to-run command in
+   a code block. Steps that wait on something else are listed as notes without
+   a command.
+4. Commands valid now: only the commands that are legal in the current state,
+   with their arguments. Invalid ones are omitted.
+5. Notices: violations and escalation messages (section 10) with the rule
+   anchor; resolved ones collapse into a `<details>` block.
+6. History: the last five actions in a `<details>` block.
+7. A machine-readable block `<!-- oct-next-data {...} -->` with phase, waits and
+   the next steps as JSON. Hooks and agents read it; the SessionStart hook
+   injects it into the session.
+
+Next steps come from the state machine in `rules.py`: the legal transitions from
+the current phase plus the action that clears each wait (`wait:maintainer`:
+`/oct approve`; `wait:findings`: the open threads with links;
+`wait:hardware-test`: `/oct verified <device>` or the open test plan;
+`wait:prerequisite`: the blocking artifacts). When a precondition is not met,
+the precondition is shown instead of the command, for example the unticked DoR
+items before `/oct ready`.
+
+Recycling: the bot finds the comment by marker and author, updates it with
+`PATCH` and writes only when the rendered content changed. Duplicates caused by
+races are resolved by keeping the oldest and deleting the rest. If someone
+deletes the comment, the next action recreates it; deleting is not a violation.
+The comment stays well below the GitHub size limit; history and resolved
+notices are truncated first.
+
+Notifications: edits do not notify. The bot therefore mentions the person who
+has the ball (author, reporter or reviewer) only in the edit where the ball
+changes hands. Whether GitHub notifies on a newly added mention in an edited
+comment is verified in shadow mode.
+
+Reactions on the command comment (eyes, thumbs up, thumbs down) stay. The
+explanation of a rejection goes into section 1 of the guide comment, never into
+a new comment. The comment never starts with `gitar` and never mentions
+`@gitar-bot`.
+
 ## 6. Derivation of facts
 
 The pure function `derive(facts, declarations) -> (phase, waits, resolution)`
@@ -273,9 +332,10 @@ Layer 1 - tool level, committed `.claude/settings.json`:
   `.github/pull_request_template.md` are present and no item was deleted, and the
   linked spec is at `phase:ready` or later with no open `wait:prerequisite`, unless
   the PR is declared `stacked-on` its prerequisite.
-- SessionStart context: the block of the artifact the session works on (from
+- SessionStart context: the block and the guide comment data of the artifact the session works on (from
   the task text or the branch's PR) and the key rules.
 - Body and comment writes by hooked sessions append the marker `<!-- oct-src:1 -->`.
+- Denial messages quote the valid next steps and commands from the guide comment data, so an agent can correct itself in one step.
 - All reads use REST only (E11).
 
 Layer 2 - server level (covers hook-less runtimes and the web UI): heal, fact
@@ -333,7 +393,7 @@ Catalogue (initial; each rule has an anchor in `docs/WORKFLOW.md`):
 
 Ladder, counted per user over 60 days, de-duplicated per (artifact, rule):
 
-1. **First violation:** one comment (updated in place later) containing what
+1. **First violation:** a notice in the guide comment (section 5a, never a new comment) containing what
    happened, what was expected, the next steps as ready-to-run `/oct` commands
    and the link to the anchor in `docs/WORKFLOW.md`. Check stays green.
 2. **Second violation:** the same, plus the hint that a maintainer can override
@@ -367,7 +427,7 @@ Maintainers are subject to the same ladder and may override on themselves.
 | `/oct accept-paths` | maintainer | acknowledges a push by automation to protected paths, logged |
 
 Commands are accepted only from users with write access, answered with a
-reaction and, on error, a comment.
+reaction and, on error, an entry in the guide comment (section 5a).
 
 ## 12. Components and workflows
 
@@ -380,8 +440,9 @@ layout as `scripts/issue_handler/`):
 | `graph.py` | edges and inverses, prose parser, unresolved list |
 | `rules.py` | `derive`, state machines per kind, validation of declarations |
 | `render.py` | block rendering and hashing |
-| `apply.py` | label diff, block splice or pinned comment, loop guards |
+| `apply.py` | label diff, block splice or pinned comment, guide comment upsert, loop guards |
 | `commands.py` | `/oct` parser and authorization |
+| `guide.py` | next-step selection and guide comment rendering (section 5a) |
 | `ledger.py` | strike counting and ledger writes |
 | `hooks/` | PreToolUse / SessionStart scripts for section 8 |
 | `main.py` | `--event`, `--check`, `--audit`, `--backfill`, `--dry-run` |
@@ -414,8 +475,8 @@ layout as `scripts/issue_handler/`):
 4. "You are up when..." with ready-made filter links and an onboarding checklist
    for new maintainers.
 5. A dated walkthrough of #537 -> #573 / #574 (stacked on #560 -> #570 -> #571
-   -> #572), the bug #575 and a Dependabot PR, with the block and label set at
-   each step.
+   -> #572), the bug #575 and a Dependabot PR, with the block, the guide
+   comment and the label set at each step.
 6. One anchor per rule V01-V08 with a wrong and a right example.
 7. Troubleshooting (block missing, label reset, `oct-status` red).
 
@@ -431,6 +492,7 @@ renderer output, so the documentation cannot drift. `CONTRIBUTING.md`,
 - Table-driven tests for `derive` and every illegal transition.
 - Golden tests for renderer and documentation snippets (#537, #560, #573, #574,
   #575, #577, a Dependabot PR).
+- Golden tests for the guide comment per state (state -> next steps and valid commands), recycling (create, update, duplicate cleanup, deleted comment) and the size cap.
 - Hook tests: PreToolUse JSON in, `updatedInput` or denial out; a test that
   proves hooks also fire for subagents (blocking for the claim in section 8).
 - Parser tests for prose edges; ledger / strike tests; `actionlint` for the workflow.
