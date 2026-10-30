@@ -253,6 +253,15 @@ async def test_accepted_no_spec_is_recorded_in_the_ledger_as_a_waiver():
     await api.aclose()
 
 
+async def test_repeated_no_spec_records_one_waiver():
+    repo = Repo()
+    repo.add_pr(10, author="alice")
+    for _ in range(200):
+        await run(repo, "issue_comment", comment_event(10, "/oct no-spec typo fix"))
+    assert [e["kind"] for e in repo.ledger()] == ["waiver"]
+    assert "no spec needed" in repo.guide(10)  # every command is still accepted
+
+
 async def test_no_spec_waiver_ledger_failure_is_a_warning_only(monkeypatch, tmp_path):
     summary = tmp_path / "summary.md"
     monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))

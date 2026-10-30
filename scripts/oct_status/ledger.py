@@ -38,7 +38,10 @@ _MAX_PAGES = 50
 _RULE = re.compile(r"V0[1-8]")
 _LOGIN = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})")
 _CLOCK_SKEW = timedelta(days=1)  # entries dated further in the future are forged or broken
-RENEW_MARGIN = timedelta(days=7)  # an override is renewed this long before it leaves the window
+RENEW_MARGIN = timedelta(days=7)
+# Waivers are audit entries anyone with write access can cause; caps keep a flood from filling the ledger.
+WAIVERS_PER_ARTIFACT = 3  # distinct users per artifact in the window
+WAIVERS_PER_USER_DAY = 20  # an override is renewed this long before it leaves the window
 
 
 def strikes_active(cfg: Config | None, today: date) -> bool:
@@ -195,7 +198,18 @@ class Ledger:
     async def is_overridden(self, user: str, artifact: int, rule: str) -> bool:
         return (artifact, user, rule) in self._covered(await self.load())
 
-    async def _append(self, entry: Entry, extra: dict[str, Any]) -> None:
+    @staticmethod
+    def _key(entry: Entry) -> tuple:
+        return (entry.kind, entry.user, entry.artifact, entry.rule, tuple(sorted(entry.covers)))
+
+    async def _append(self, entry: Entry, extra: dict[str, Any], force: bool = False) -> bool:
+        """Append `entry` unless an identical one (kind, user, artifact, rule, covers) is in the window.
+
+        `force` is only for the renewal of an override, which re-dates an identical entry on purpose.
+        Returns whether it was written.
+        """
+        if not force and any(self._key(e) == self._key(entry) for e in await self.load()):
+            return False
         data = {"v": VERSION, "kind": entry.kind, "user": entry.user, "artifact": entry.artifact, **extra}
         data["ts"] = entry.ts.isoformat()
         # "@" is escaped so that nothing in a ledger comment can mention an account; still valid JSON.
@@ -206,6 +220,7 @@ class Ledger:
         except httpx.HTTPError as exc:
             raise LedgerError(f"ledger issue #{self.issue_number} not writable ({type(exc).__name__})") from exc
         (await self.load()).append(entry)
+        return True
 
     async def record(self, v: Violation) -> bool:
         """Append a violation unless the (user, artifact, rule) pair is already in the window or covered.
@@ -228,14 +243,29 @@ class Ledger:
         covers = sorted({(e.user, e.rule) for e in entries if e.kind == "violation" and e.artifact == artifact})
         await self._append_override(user, artifact, safe_text(reason)[:MAX_REASON], covers)
 
-    async def _append_override(self, user: str, artifact: int, reason: str, covers: list[tuple[str, str]]) -> None:
+    async def _append_override(
+        self, user: str, artifact: int, reason: str, covers: list[tuple[str, str]], force: bool = False
+    ) -> None:
         entry = Entry("override", user, artifact, "", self._clock(), reason, tuple(covers))
-        await self._append(entry, {"reason": reason, "covers": [list(c) for c in covers]})
+        await self._append(entry, {"reason": reason, "covers": [list(c) for c in covers]}, force)
 
-    async def record_waiver(self, user: str, artifact: int, reason: str) -> None:
-        """Log an accepted waiver (`/oct no-spec`) so that it is auditable; it never counts as a strike."""
+    async def record_waiver(self, user: str, artifact: int, reason: str) -> bool:
+        """Log an accepted waiver (`/oct no-spec`) so that it is auditable; it never counts as a strike.
+
+        Once per (artifact, user) in the window, for at most `WAIVERS_PER_ARTIFACT` users per artifact and
+        `WAIVERS_PER_USER_DAY` waivers per user and day; beyond that nothing is appended (the command
+        itself is still accepted). Returns whether an entry was written.
+        """
+        entries = [e for e in await self.load() if e.kind == "waiver"]
+        now = self._clock()
+        if any(e.artifact == artifact and e.user == user for e in entries):
+            return False
+        if len({e.user for e in entries if e.artifact == artifact}) >= WAIVERS_PER_ARTIFACT:
+            return False
+        if sum(1 for e in entries if e.user == user and now - e.ts < timedelta(days=1)) >= WAIVERS_PER_USER_DAY:
+            return False
         text = safe_text(reason)[:MAX_REASON]
-        await self._append(Entry("waiver", user, artifact, "", self._clock(), text), {"reason": text})
+        return await self._append(Entry("waiver", user, artifact, "", now, text), {"reason": text})
 
     async def renew_override(self, artifact: int) -> bool:
         """Re-date the override of `artifact` when it is about to leave the window; returns whether it was.
@@ -251,5 +281,5 @@ class Ledger:
         if self._clock() - newest.ts <= self._window - RENEW_MARGIN:
             return False
         covers = sorted({c for e in overrides for c in e.covers})
-        await self._append_override(newest.user, artifact, "renewal", covers)
+        await self._append_override(newest.user, artifact, "renewal", covers, force=True)
         return True

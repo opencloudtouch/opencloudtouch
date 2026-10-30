@@ -10,7 +10,7 @@ import pytest
 
 from oct_status.api import GitHubApi
 from oct_status.config import Config
-from oct_status.ledger import Ledger, LedgerError
+from oct_status.ledger import WAIVERS_PER_ARTIFACT, WAIVERS_PER_USER_DAY, Ledger, LedgerError
 from oct_status.violations import Violation
 
 REPO = "o/r"
@@ -197,6 +197,39 @@ async def test_waiver_round_trips_and_is_no_strike():
     good = {"v": 1, "kind": "waiver", "user": "alice", "artifact": 5, "ts": NOW.isoformat()}
     fake.add_raw(json.dumps({**good, "rule": "V01"}))  # a waiver carries no rule
     assert len(await make(fake, cfg=cfg).load()) == 1
+
+
+async def test_waivers_are_recorded_once_per_artifact_and_user_and_capped():
+    fake = FakeLedgerIssue()
+    cfg = Config(automation={}, gate_checks=[], protected_paths=[], strikes_enabled_from=date(2026, 1, 1))
+    ledger = make(fake, cfg=cfg)
+    assert await ledger.record_waiver("alice", 10, "no-spec: a") is True
+    for _ in range(200):
+        assert await ledger.record_waiver("alice", 10, "no-spec: again") is False
+    assert fake.posts == 1
+    # At most WAIVERS_PER_ARTIFACT users per artifact ...
+    for user in ("bob", "carol", "dave", "erin"):
+        await ledger.record_waiver(user, 10, "no-spec: x")
+    assert fake.posts == WAIVERS_PER_ARTIFACT
+    # ... and at most WAIVERS_PER_USER_DAY artifacts per user and day.
+    for artifact in range(100, 140):
+        await ledger.record_waiver("frank", artifact, "no-spec: x")
+    assert fake.posts == WAIVERS_PER_ARTIFACT + WAIVERS_PER_USER_DAY
+    # A fresh instance reads the same entries back and still refuses duplicates.
+    assert await make(fake, cfg=cfg).record_waiver("alice", 10, "no-spec: a") is False
+
+
+async def test_identical_entries_are_never_appended_twice():
+    fake = FakeLedgerIssue()
+    cfg = Config(automation={}, gate_checks=[], protected_paths=[], strikes_enabled_from=date(2026, 1, 1))
+    ledger = make(fake, cfg=cfg)
+    await ledger.record(violation("V01", 5, "alice"))
+    for _ in range(50):
+        await ledger.record_override("carol", 5, "flaky")
+    assert fake.posts == 2  # one violation, one override covering it
+    await ledger.record(violation("V02", 5, "alice"))
+    await ledger.record_override("carol", 5, "flaky")  # covers a new strike: a new entry
+    assert fake.posts == 4
 
 
 async def test_second_page_is_read():
