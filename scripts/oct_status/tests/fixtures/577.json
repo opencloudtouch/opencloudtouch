@@ -1,0 +1,17 @@
+{
+  "GET /repos/opencloudtouch/opencloudtouch/issues/577": {
+    "author_association": "CONTRIBUTOR",
+    "body": "See #471, #471\nSee #471",
+    "labels": [
+      {
+        "name": "support"
+      }
+    ],
+    "number": 577,
+    "state": "open",
+    "title": "refactor(system): follow-up improvements for Docker self-update",
+    "user": {
+      "login": "songdenkbar"
+    }
+  }
+}

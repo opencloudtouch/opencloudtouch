@@ -1,0 +1,309 @@
+{
+  "GET /repos/opencloudtouch/opencloudtouch/commits/5f26740dc92e1be1664edc3970a7b20c6a5f7990/check-runs": {
+    "check_runs": [
+      {
+        "app": {
+          "slug": "gitar-bot"
+        },
+        "conclusion": "success",
+        "name": "Gitar",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "CI Summary",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Auto-format",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "sonarqubecloud"
+        },
+        "conclusion": "success",
+        "name": "SonarCloud Code Analysis",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "SonarCloud",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (5/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Lint Code",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (1/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (10/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (9/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (2/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (3/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (7/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (8/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (4/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (6/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Frontend Tests",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Backend Tests",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Security Scan",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Mojibake Check",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Validate Commit Messages",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Test page size detection",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "License Check",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "skipped",
+        "name": "PR Review",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "skipped",
+        "name": "Welcome & Guide",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Approve Check",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Analyze (javascript-typescript)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Analyze (python)",
+        "status": "completed"
+      }
+    ],
+    "total_count": 28
+  },
+  "GET /repos/opencloudtouch/opencloudtouch/pulls/560": {
+    "author_association": "MEMBER",
+    "base": {
+      "ref": "main"
+    },
+    "body": "Part of #535\nSee #535\nSee #568\nSee #561, #562, #567\nSee #568",
+    "draft": false,
+    "head": {
+      "ref": "claude/gifted-bohr-b225kf",
+      "sha": "5f26740dc92e1be1664edc3970a7b20c6a5f7990"
+    },
+    "labels": [],
+    "merged": false,
+    "number": 560,
+    "state": "open",
+    "title": "feat(api): add machine-readable code to API error responses and typed ApiError in the frontend",
+    "user": {
+      "login": "scheilch"
+    }
+  },
+  "GET /repos/opencloudtouch/opencloudtouch/pulls/560/reviews": [
+    {
+      "commit_id": "e54da658636531af777f5e5a2b1310b85bac8312",
+      "state": "COMMENTED",
+      "user": {
+        "login": "github-code-quality[bot]"
+      }
+    },
+    {
+      "commit_id": "f7930c8a3c389f2c1bfb0af1364ee5c3e4951b36",
+      "state": "COMMENTED",
+      "user": {
+        "login": "scheilch"
+      }
+    },
+    {
+      "commit_id": "1e0e6a8ca1fbaa23481404db8f11c90de0f0e2eb",
+      "state": "COMMENTED",
+      "user": {
+        "login": "scheilch"
+      }
+    },
+    {
+      "commit_id": "1e0e6a8ca1fbaa23481404db8f11c90de0f0e2eb",
+      "state": "COMMENTED",
+      "user": {
+        "login": "scheilch"
+      }
+    },
+    {
+      "commit_id": "1e0e6a8ca1fbaa23481404db8f11c90de0f0e2eb",
+      "state": "COMMENTED",
+      "user": {
+        "login": "scheilch"
+      }
+    },
+    {
+      "commit_id": "1e0e6a8ca1fbaa23481404db8f11c90de0f0e2eb",
+      "state": "COMMENTED",
+      "user": {
+        "login": "scheilch"
+      }
+    },
+    {
+      "commit_id": "1e0e6a8ca1fbaa23481404db8f11c90de0f0e2eb",
+      "state": "COMMENTED",
+      "user": {
+        "login": "scheilch"
+      }
+    },
+    {
+      "commit_id": "1e0e6a8ca1fbaa23481404db8f11c90de0f0e2eb",
+      "state": "COMMENTED",
+      "user": {
+        "login": "github-code-quality[bot]"
+      }
+    }
+  ]
+}

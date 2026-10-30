@@ -1,0 +1,236 @@
+{
+  "GET /repos/opencloudtouch/opencloudtouch/commits/1779436506bdbff750232cffdc62cbad90f4e52e/check-runs": {
+    "check_runs": [
+      {
+        "app": {
+          "slug": "gitar-bot"
+        },
+        "conclusion": "success",
+        "name": "Gitar",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "sonarqubecloud"
+        },
+        "conclusion": "success",
+        "name": "SonarCloud Code Analysis",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Auto-format",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "CI Summary",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "SonarCloud",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (8/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (1/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (2/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (6/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (9/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (3/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (5/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (7/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (4/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (10/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Frontend Tests",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Backend Tests",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Lint Code",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Security Scan",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Validate Commit Messages",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Mojibake Check",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "License Check",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Test page size detection",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "skipped",
+        "name": "PR Review",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "skipped",
+        "name": "Welcome & Guide",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Approve Check",
+        "status": "completed"
+      }
+    ],
+    "total_count": 26
+  },
+  "GET /repos/opencloudtouch/opencloudtouch/pulls/574": {
+    "author_association": "MEMBER",
+    "base": {
+      "ref": "feat/sleep-timer-backend"
+    },
+    "body": "See #573, #572, #571, #570, #560\nPart of #537\nSee #535, #560",
+    "draft": true,
+    "head": {
+      "ref": "feat/sleep-timer-frontend",
+      "sha": "1779436506bdbff750232cffdc62cbad90f4e52e"
+    },
+    "labels": [],
+    "merged": false,
+    "number": 574,
+    "state": "open",
+    "title": "feat(frontend): add sleep timer to the local control page",
+    "user": {
+      "login": "scheilch"
+    }
+  },
+  "GET /repos/opencloudtouch/opencloudtouch/pulls/574/reviews": []
+}
