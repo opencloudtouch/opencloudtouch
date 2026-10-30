@@ -5,9 +5,10 @@ name: OCT Status
 # every event and the daily audit with --dry-run (read-only API, job summary only) and the
 # `oct-status` check only reports (continue-on-error). With OCT_STATUS_WRITE == 'true' the
 # `status-write` job writes labels, blocks and guide comments with BOT_PAT and the check blocks.
-# The backfill (mode=backfill, MA-6) and the label sync are manual workflow_dispatch runs that stay
-# dry-run unless dry_run=false is chosen. Strikes stay off until strikes_enabled_from is set in
-# scripts/oct_status/config.yml.
+# The label sync and the backfill (mode=backfill, MA-6) are manual workflow_dispatch runs that stay
+# dry-run unless dry_run=false is chosen; a writing backfill is refused until OCT_STATUS_WRITE is
+# 'true'. A run that clears a PR's gate re-runs its failed `oct-status` check. Strikes stay off
+# until strikes_enabled_from is set in scripts/oct_status/config.yml.
 #
 # Security: pull_request_target runs with base repository secrets, so this workflow checks out the
 # default branch only and never the pull request head. Event payloads are untrusted data: they are
@@ -139,7 +140,8 @@ jobs:
       issues: write
       pull-requests: write
       checks: read
-      actions: read
+      # Re-runs the failed `oct-status` check once a run cleared the gate (job token only).
+      actions: write
       contents: read
     steps:
       - uses: actions/checkout@v7
@@ -176,10 +178,57 @@ jobs:
           python -m oct_status "${args[@]}"
 
   backfill:
-    # One rate-limited batch (MA-6); repeat until the summary prints "remaining: 0". The state file
+    # Dry-run batch (default): read-only, GITHUB_TOKEN only, the state is read but never saved.
+    name: backfill
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill' && inputs.dry_run
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+      pull-requests: read
+      contents: read
+    env:
+      OCT_BACKFILL_STATE: .oct-backfill/state.json
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: pip install -r scripts/oct_status/requirements.txt
+      - name: Restore backfill state
+        uses: actions/cache/restore@v6
+        with:
+          path: .oct-backfill
+          key: oct-backfill-state-${{ github.run_id }}
+          restore-keys: oct-backfill-state-
+      - name: Backfill one batch (dry-run)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONPATH: scripts
+          LIMIT: ${{ inputs.limit }}
+        run: python -m oct_status --backfill --limit "$LIMIT" --dry-run
+
+  backfill-refused:
+    # A writing backfill needs write mode to be switched on first (MA-5 before MA-6).
+    name: backfill
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill' && !inputs.dry_run && vars.OCT_STATUS_WRITE != 'true'
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Refuse
+        run: |
+          echo "::error::backfill with dry_run=false needs the repository variable OCT_STATUS_WRITE=true (MA-5)"
+          exit 1
+
+  backfill-write:
+    # One writing batch (MA-6); repeat until the summary prints "remaining: 0". The state file
     # (artifact numbers only) is carried between runs in the Actions cache.
     name: backfill
-    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill'
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill' && !inputs.dry_run && vars.OCT_STATUS_WRITE == 'true'
     runs-on: ubuntu-latest
     concurrency:
       group: oct-status-backfill
@@ -207,21 +256,18 @@ jobs:
           key: oct-backfill-state-${{ github.run_id }}
           restore-keys: oct-backfill-state-
       - name: Backfill one batch
-        # dry_run=false is a manual maintainer action (real label and block writes, no comments).
+        # Real label and block writes, no comments, no strikes.
         env:
           BOT_PAT: ${{ secrets.BOT_PAT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PYTHONPATH: scripts
-          DRY_RUN: ${{ inputs.dry_run }}
           LIMIT: ${{ inputs.limit }}
         run: |
           mkdir -p .oct-backfill
-          args=(--backfill --limit "$LIMIT")
-          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
-          python -m oct_status "${args[@]}"
+          python -m oct_status --backfill --limit "$LIMIT"
       - name: Save backfill state
-        if: always() && inputs.dry_run == false && hashFiles('.oct-backfill/state.json') != ''
+        if: always() && hashFiles('.oct-backfill/state.json') != ''
         uses: actions/cache/save@v6
         with:
           path: .oct-backfill

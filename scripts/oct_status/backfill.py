@@ -42,6 +42,7 @@ from .model import EdgeType, Kind, Snapshot
 from .render import render_block
 from .rules import detect_kind, legacy_spec, spec_is_ready
 
+MAX_RETRY_WAIT = 60.0  # a rate limit asking for longer stops the run (state saved) instead of waiting
 MIN_DELAY = 2.0  # seconds between two artifacts (GitHub asks for at least one second between writes)
 STATE_VERSION = 1
 _LEGACY_STARTED = ("wip", "phase:in-progress")
@@ -53,6 +54,8 @@ class BackfillReport:
     remaining: int = 0
     stopped: str | None = None  # why the run ended early
     retry_after: int | None = None  # seconds, after a rate limit
+    already_done: int = 0  # skipped because the state file lists them
+    unreadable: int = 0  # skipped, not done: label history or comments could not be read
     lines: list[str] = field(default_factory=list)
 
 
@@ -122,8 +125,11 @@ async def legacy_parts(api: GitHubApi, warnings: list[str]) -> dict[int, set[int
 
 
 async def _reassert(api: GitHubApi, real: Snapshot, label: str, dry_run: bool) -> list[str]:
-    """Write a correct phase label again as the bot when the label history does not name our accounts."""
-    if real.timeline_unknown or label not in real.labels or label in real.bot_phase_labels:
+    """Write a correct phase label again as the bot when the label history does not name our accounts.
+
+    Issues only: a pull request's phase is always a fact and never a trusted floor.
+    """
+    if real.is_pr or real.timeline_unknown or label not in real.labels or label in real.bot_phase_labels:
         return []
     if not dry_run:
         resp = await api.request("DELETE", f"/issues/{real.number}/labels/{quote(label, safe='')}")
@@ -133,10 +139,22 @@ async def _reassert(api: GitHubApi, real: Snapshot, label: str, dry_run: bool) -
     return [f"re-assert label {label} as the bot"]
 
 
+def _cap_retry(api: GitHubApi) -> None:
+    """Stop at a long rate limit (state saved, resumed later) instead of sleeping through it."""
+    if api.max_retry_wait is None or api.max_retry_wait > MAX_RETRY_WAIT:
+        api.max_retry_wait = MAX_RETRY_WAIT
+
+
+class Unreadable(Exception):
+    """The artifact's label history or comments could not be read: it is skipped and stays to do."""
+
+
 async def _one(ws: LegacyWorkspace, number: int, dry_run: bool) -> list[str]:
     """Labels and block of one artifact; nothing for a missing artifact or an announcement."""
     if await ws.load(number) is None:
         return []
+    if ws.real[number].timeline_unknown or ws.states.get(number) is None:
+        raise Unreadable(number)
     await ws.neighbors(number)
     graph = ws.graph()
     snap, derived = graph.snapshots[number], graph.derived.get(number)
@@ -173,9 +191,10 @@ async def _backfill(
     dry_run: bool = False,
     parts: dict[int, set[int]] | None = None,
 ) -> BackfillReport:
+    _cap_retry(api)
     done = load_state(state_path)
     todo = [n for n in numbers if n not in done]
-    report = BackfillReport()
+    report = BackfillReport(already_done=len(numbers) - len(todo))
     ws = LegacyWorkspace(api, cfg, parts or {})
     try:
         if parts is None:
@@ -183,7 +202,12 @@ async def _backfill(
         for index, number in enumerate(todo[:limit] if limit else todo):
             if index:
                 await sleep(MIN_DELAY)
-            writes = await _one(ws, number, dry_run)
+            try:
+                writes = await _one(ws, number, dry_run)
+            except Unreadable:
+                report.unreadable += 1
+                report.lines.append(f"- #{number}: skipped, label history or comments unreadable (retried next run)")
+                continue
             report.processed += 1
             report.lines += [f"- #{number}: " + (", ".join(_inline(w) for w in writes) or "no writes needed")]
             if not dry_run:  # a dry run never marks an artifact as done
@@ -237,6 +261,7 @@ async def run_backfill(
     1 after another API error. The state is saved in both cases.
     """
     warnings: list[str] = []
+    _cap_retry(api)
     try:
         items = await _paged(api, "/issues", {"state": "open"}, warnings)
     except httpx.HTTPStatusError as exc:
@@ -251,7 +276,11 @@ async def run_backfill(
         print(f"rate limited: retry after {report.retry_after} s (the next run resumes)")
     elif report.stopped:
         print(f"stopped: {report.stopped} (the next run resumes)")
-    summary.append(f"processed {report.processed}, remaining: {report.remaining}")
+    counts = (
+        f"processed {report.processed}, already done (state file): {report.already_done}, "
+        f"skipped (unreadable): {report.unreadable}, remaining: {report.remaining}"
+    )
+    summary.append(counts)
     _summary(summary)
-    print(f"backfill ({mode}): processed {report.processed}, remaining: {report.remaining}")
+    print(f"backfill ({mode}): {counts}")
     return EXIT_API_ERROR if report.stopped and report.stopped != "rate limit" else EXIT_OK

@@ -34,9 +34,11 @@ def test_write_job_is_gated_and_least_privileged():
         "issues": "write",
         "pull-requests": "write",
         "checks": "read",
-        "actions": "read",
+        "actions": "write",  # re-runs the failed check; no other job may write Actions
         "contents": "read",
     }
+    others = {name: j for name, j in _jobs().items() if name != "status-write"}
+    assert all((j.get("permissions") or {}).get("actions") != "write" for j in others.values())
     event = next(s for s in job["steps"] if s.get("name") == "Process event")
     assert "--dry-run" not in event["run"] and "BOT_PAT" in event["env"]
 
@@ -54,6 +56,14 @@ def test_check_blocks_only_in_write_mode_and_backfill_defaults_to_dry_run():
         "default": 25,
     }
     assert "backfill" in inputs["mode"]["options"]
-    backfill = jobs["backfill"]
-    assert "--dry-run" in _runs(backfill) and "--limit" in _runs(backfill)
+    dry = jobs["backfill"]
+    assert "inputs.dry_run" in dry["if"] and all(v == "read" for v in dry["permissions"].values())
+    assert "BOT_PAT" not in str(dry) and "--dry-run" in _runs(dry) and "--limit" in _runs(dry)
+    assert not [s for s in dry["steps"] if "cache/save" in s.get("uses", "")]
+    refused = jobs["backfill-refused"]
+    assert "!inputs.dry_run" in refused["if"] and f"{GATE} != 'true'" in refused["if"]
+    assert "exit 1" in _runs(refused)
+    write = jobs["backfill-write"]
+    assert "!inputs.dry_run" in write["if"] and f"{GATE} == 'true'" in write["if"]
+    assert "--dry-run" not in _runs(write) and "BOT_PAT" in str(write)
     assert "discussions" not in str(jobs)

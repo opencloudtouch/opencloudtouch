@@ -43,6 +43,16 @@ class Limited:
         return self.repo.handler(request)
 
 
+class GraphqlRepo(FakeRepo):
+    """FakeRepo whose label history query answers with no label events."""
+
+    def handler(self, request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/graphql"):
+            nodes: dict = {"timelineItems": {"nodes": []}}
+            return httpx.Response(200, json={"data": {"repository": {"issueOrPullRequest": nodes}}})
+        return super().handler(request)
+
+
 def _api(handler) -> GitHubApi:
     return GitHubApi("t", "o/r", transport=httpx.MockTransport(handler), sleep=_nosleep)
 
@@ -80,6 +90,7 @@ async def test_backfill_creates_no_guide_comments_and_no_strikes(tmp_path):
     assert await backfill(api, ACTIVE, [7, 10], tmp_path / "s.json", clock, Sleeps()) == 2
     await api.aclose()
     assert not [w for w in repo.writes if w[0] == "POST" and w[1].endswith("/comments")]
+    assert not [w for w in repo.writes if "/issues/comments" in w[1]]  # no comment edited or deleted either
     assert len(repo.ledger()) == 2  # only the seeded entries
     assert "<!-- oct-status:v1" in repo.issues[10]["body"] and "<!-- oct-status:v1" in repo.issues[7]["body"]
     assert "phase:new" in repo.label_names(7) and "phase:done" not in repo.label_names(7)
@@ -259,7 +270,7 @@ async def test_backfill_ledger_issue_is_never_touched(tmp_path):
 
 
 def test_cli_backfill(monkeypatch, tmp_path, capsys):
-    repo = FakeRepo()
+    repo = GraphqlRepo()
     repo.add(1)
     repo.add(2)
 
@@ -326,3 +337,60 @@ async def test_listing_rate_limit_and_transport_errors(tmp_path, capsys):
     assert await run_backfill(api, CFG, tmp_path / "s.json", limit=5, dry_run=False, clock=clock, sleep=Sleeps()) == 1
     await api.aclose()
     assert "ConnectError" in capsys.readouterr().out
+
+
+async def test_unreadable_artifacts_are_skipped_and_stay_to_do(tmp_path, capsys):
+    repo = Repo()
+    repo.add(5, labels=("bug", "phase:in-progress"))
+    repo.add(6, labels=("bug",))
+    original = repo.handler
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/graphql") and json.loads(request.content)["variables"]["number"] == 5:
+            return httpx.Response(200, json={"errors": [{"message": "boom"}]})
+        if request.url.path.endswith("/issues/6/comments") and request.method == "GET":
+            return httpx.Response(502, json={})
+        return original(request)
+
+    state = tmp_path / "s.json"
+    api = _api(handler)
+    assert await run_backfill(api, ACTIVE, state, limit=25, dry_run=False, clock=clock, sleep=Sleeps()) == 0
+    await api.aclose()
+    out = capsys.readouterr().out
+    assert "skipped (unreadable): 2" in out
+    assert not [w for w in repo.writes if re.search(r"/issues/(5|6)(/|$)", w[1])]  # nothing written
+    assert 5 not in _state(state)["done"] and 6 not in _state(state)["done"]
+    api = api_for(repo)  # readable again: the next run picks them up
+    assert await run_backfill(api, ACTIVE, state, limit=25, dry_run=False, clock=clock, sleep=Sleeps()) == 0
+    await api.aclose()
+    out = capsys.readouterr().out
+    assert "already done (state file): 1" in out and "remaining: 0" in out
+
+
+async def test_long_rate_limit_stops_instead_of_sleeping(tmp_path, capsys):
+    repo = FakeRepo()
+    repo.add(1)
+    repo.add(2)
+    api_sleeps = Sleeps()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/issues/2"):
+            return httpx.Response(403, headers={"retry-after": "3600"}, json={})
+        return repo.handler(request)
+
+    api = GitHubApi("t", "o/r", transport=httpx.MockTransport(handler), sleep=api_sleeps)
+    state = tmp_path / "s.json"
+    assert await run_backfill(api, CFG, state, limit=25, dry_run=False, clock=clock, sleep=Sleeps()) == 0
+    await api.aclose()
+    assert api_sleeps.calls == []  # never slept through the hour
+    assert "retry after 3600 s" in capsys.readouterr().out and _state(state)["done"] == [1]
+
+
+async def test_pull_request_phase_labels_are_never_reasserted(tmp_path):
+    repo = TimelineRepo()
+    repo.add_pr(11)
+    repo.issues[11]["labels"].append({"name": "phase:in-review"})  # right, but not written by the bot
+    api = api_for(repo)
+    assert await backfill(api, ACTIVE, [11], tmp_path / "s.json", clock, Sleeps()) == 1
+    await api.aclose()
+    assert not [w for w in repo.writes if w[0] == "DELETE" and "phase:in-review" in w[1]]

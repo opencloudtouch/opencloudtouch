@@ -37,9 +37,13 @@ class GitHubApi:
         *,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
         read_only: bool = False,
+        max_retry_wait: float | None = None,
     ) -> None:
         self.repo = repo
         self.read_only = read_only
+        # A rate limit asking for a longer wait than this is returned to the caller instead of slept
+        # through (the backfill stops and resumes later); ``None`` waits as long as asked.
+        self.max_retry_wait = max_retry_wait
         self._sleep = sleep
         self._client = httpx.AsyncClient(
             base_url=API_ROOT,
@@ -88,6 +92,8 @@ class GitHubApi:
             wait = (
                 float(retry_after) if retry_after and retry_after.isdigit() else delay + random.uniform(0, MAX_JITTER)
             )
+            if self.max_retry_wait is not None and wait > self.max_retry_wait:
+                return resp
             await self._sleep(wait)
             delay *= FACTOR
         raise AssertionError("unreachable")  # pragma: no cover
