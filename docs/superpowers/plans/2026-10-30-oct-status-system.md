@@ -123,7 +123,7 @@ docs/WORKFLOW.md                     new
 **Interfaces:**
 - Consumes (existing): `async scan_open_issues(github_client: GitHubClient, kb: KnowledgeBase)`, constants `PATTERNS`, `POSITIVE_FEEDBACK`, `NEGATIVE_FEEDBACK`, `STALE_DAYS = 7`. The function lower-cases title and body, calls `github_client.get_open_issues_since(since)` and writes three YAML files below `.local/agent-work/knowledge-kai/scans/` relative to the working directory (`pattern_quality_threads.yaml`, `..._coverage.yaml`, `..._quality.yaml`).
 
-**Why (approved by the maintainer):** `r"\\bhow\\b"` in a raw string is a literal backslash followed by `bhow`, so `re.search` never matches normal text and questions with how/why are missing from the weekly `kb-growth` report. The fix changes the output of that workflow.
+**Why (approved by the maintainer):** (1) `r"\\bhow\\b"` in a raw string is a literal backslash followed by `bhow`, so `re.search` never matches normal text and questions with how/why are missing from the weekly `kb-growth` report. (2) The scoring checks `pf in ["thanks", "solved", "fixed"]` while the pattern is `"thanks?"`, so a thank-you counts as helpful instead of solved. Both fixes change the output of that workflow.
 
 - [ ] **Step 1: Write the failing tests** (same mocking style as `tests/test_kb_growth.py`: `AsyncMock` client, `MagicMock(spec=KnowledgeBase)`; every test uses `monkeypatch.chdir(tmp_path)` and reads the YAML back)
   - `test_patterns_match_how_and_why_questions`: `any(re.search(p, "how do i pair a speaker") for p in PATTERNS)` and the same for `"why is the volume low"`.
@@ -131,39 +131,51 @@ docs/WORKFLOW.md                     new
   - `test_stale_after_seven_days`: updated 8 days ago -> `stale is True`; 6 days ago -> `False` (timestamps computed relative to now).
   - `test_feedback_counters`: body "solved" -> `quality.solved == 1`; body "still broken" -> `quality["didn’t_work"] == 1`; stale issue without feedback -> `quality.no_response == 1`.
   - `test_coverage_map_marks_covered_topic`: a KB answer tagged `wizard` and an issue mentioning `wizard` -> `covered_by_kb is True`.
-  - `test_thanks_scoring_is_pinned_as_known_issue`: `@pytest.mark.xfail(strict=True, reason="'thanks?' is never in ['thanks','solved','fixed'], so thanks counts as helpful, not solved; follow-up issue")`, expects `quality.solved == 1` for the body "thanks".
-- [ ] **Step 2: Run** `cd scripts/issue_handler && python -m pytest tests/test_pattern_quality_scan.py -q` - Expected: the two pattern tests FAIL, the others PASS.
-- [ ] **Step 3: Fix** the two entries to `r"\bhow\b"` and `r"\bwhy\b"`. Leave the scoring untouched; the `thanks?` mismatch stays documented by the xfail test and goes to a follow-up issue named in the PR.
-- [ ] **Step 4: Run** the same command - Expected: PASS with one xfail.
-- [ ] **Step 5: Commit** `fix(issue-handler): match how and why in the KB pattern scan`.
+  - `test_thanks_counts_as_solved`: body "thanks" -> `quality.solved == 1` and the thread's `bot_response.score == 2`.
+- [ ] **Step 2: Run** `cd scripts/issue_handler && python -m pytest tests/test_pattern_quality_scan.py -q` - Expected: the two pattern tests and `test_thanks_counts_as_solved` FAIL, the others PASS.
+- [ ] **Step 3: Fix** the two entries to `r"\bhow\b"` and `r"\bwhy\b"`, and make the scoring condition use `"thanks?"` (the list becomes `["thanks?", "solved", "fixed"]`).
+- [ ] **Step 4: Run** the same command - Expected: PASS.
+- [ ] **Step 5: Commit** `fix(issue-handler): match how/why and score thanks in the KB pattern scan`.
 
 ### Task 2c: Make the legacy suites CI-ready (dependencies, coverage gates)
 
 **Files:**
 - Modify: `scripts/issue_handler/requirements-dev.txt` (add `pytest-asyncio`), `scripts/issue_handler/pyproject.toml` (`asyncio_default_fixture_loop_scope = "function"`)
-- Create: `scripts/pr_reviewer/pyproject.toml`, `scripts/pr_reviewer/requirements-dev.txt` (`-r requirements.txt`, `pytest`, `pytest-asyncio`, `pytest-cov`)
+- Create: `scripts/pr_reviewer/pyproject.toml`, `scripts/pr_reviewer/requirements-dev.txt` (`-r requirements.txt`, `pytest`, `pytest-asyncio`, `pytest-cov`, `ruff`)
 - Test additions only if the gate below fails: `scripts/issue_handler/tests/test_kb_growth.py` (for `run_kb_growth`, `main`)
 
 **Why (approved by the maintainer):** `issue_handler` declares `fail_under = 80` but measures 76.7 % because it never ran in CI; `pr_reviewer` has no gate and its 80 % total counts the test file itself (`main.py` alone is 59 %). The dev requirements lack `pytest-asyncio`, which `asyncio_mode = "auto"` needs.
 
 - [ ] **Step 1: Run** `cd scripts/issue_handler && python -m pytest -q --cov=. --cov-fail-under=80` after Task 2b - Expected: PASS at about 83 % (2b covers most of `pattern_quality_scan.py`). If it prints FAIL, add tests for `kb_growth.run_kb_growth` and `main.run` branches until it passes; no production code changes.
-- [ ] **Step 2: Create** the `pr_reviewer` files: pytest config (`testpaths = ["tests"]`, `asyncio_default_fixture_loop_scope = "function"`), `[tool.coverage.run] source = ["."]`, `omit = ["tests/*"]`, `[tool.coverage.report] fail_under = 57`, `show_missing = true`.
+- [ ] **Step 2: Create** the `pr_reviewer` files: pytest config (`testpaths = ["tests"]`, `asyncio_default_fixture_loop_scope = "function"`), `[tool.coverage.run] source = ["."]`, `omit = ["tests/*"]`, `[tool.coverage.report] fail_under = 57`, `show_missing = true`; plus the same ruff settings as `scripts/issue_handler/pyproject.toml` (`target-version = "py311"`, `line-length = 120`, `select = ["E","F","I","W"]`, `ignore = ["E501"]`).
 - [ ] **Step 3: Run** `cd scripts/pr_reviewer && python -m pytest -q --cov=.` - Expected: PASS at about 59 % (gate 57 keeps it from sinking). Name a follow-up issue in the PR to raise the gate.
 - [ ] **Step 4: Run** `cd scripts && python -m pytest -q test_e2e_shard_distribution.py` - Expected: 105 passed.
 - [ ] **Step 5: Commit** `test(scripts): make the legacy suites CI-ready`.
 
-### Task 2d: CI job for all script suites
+### Task 2d: Fix the existing ruff findings in the legacy scripts
+
+**Files:**
+- Modify: `scripts/issue_handler/knowledge_base/generate_kb_article.py:11` (unused `sys`), `scripts/issue_handler/knowledge_base/kb_growth.py:21-22` (E402), `scripts/issue_handler/knowledge_base/pattern_quality_scan.py:12` (import order), `scripts/issue_handler/tests/test_action.py:3` (import order), `scripts/issue_handler/tests/test_pipeline.py:208` (unused `decisions`), `scripts/pr_reviewer/tests/test_main.py:3,17` (import order), `scripts/issue_handler/pyproject.toml` (per-file ignore)
+
+**Why (approved by the maintainer):** 8 findings (6 in `issue_handler`, 2 in `pr_reviewer`) stay unnoticed because nothing lints these directories; Task 2e adds ruff to the job, so they must be clean first.
+
+- [ ] **Step 1: Run** `cd scripts/issue_handler && ruff check .` and `cd scripts/pr_reviewer && ruff check .` - Expected: FAIL with 6 and 2 findings (F401, E402 x2, I001 x4, F841).
+- [ ] **Step 2: Fix.** `ruff check --fix .` handles F401 and I001. E402 in `kb_growth.py` is intentional (imports after the `sys.path.insert` bootstrap): add `[tool.ruff.lint.per-file-ignores]` with `"knowledge_base/kb_growth.py" = ["E402"]` and a comment naming the bootstrap. F841: drop the assignment so the line reads `await pipeline.run(event)`; the test asserts on `execution_order` only.
+- [ ] **Step 3: Run** both `ruff check .` commands and both suites (`python -m pytest -q`) - Expected: `All checks passed!` twice, suites green with unchanged counts (193 and 42 tests plus the new ones from 2b).
+- [ ] **Step 4: Commit** `style(scripts): fix existing ruff findings`.
+
+### Task 2e: CI job for all script suites
 
 **Files:**
 - Modify: `.github/workflows/ci.yml` (new job `scripts-tests`, name `Scripts Tests`, after `frontend-tests`; add it to `summary.needs` and to the fail condition of `summary`)
 
 **Interfaces:**
-- Consumes: the package from Task 1, the green legacy suites from Tasks 2a-2c.
+- Consumes: the package from Task 1, the green and lint-clean legacy suites from Tasks 2a-2d.
 - Produces: required-able check named `Scripts Tests`.
 
 - [ ] **Step 1: Write the failing check**: `grep -n "scripts-tests" .github/workflows/ci.yml` must show the job id and its entry in `summary.needs`.
 - [ ] **Step 2: Run** the grep - Expected: no match.
-- [ ] **Step 3: Implement** the job (`ubuntu-latest`, `actions/setup-python@v7` with `3.13`): install the three `requirements-dev.txt` files in one `pip install`; then one named step per suite - issue_handler (`cd scripts/issue_handler && python -m pytest -q --cov=.`), pr_reviewer (`cd scripts/pr_reviewer && python -m pytest -q --cov=.`), shard distribution (`cd scripts && python -m pytest -q test_e2e_shard_distribution.py`), oct_status (`cd scripts/oct_status && ruff check . && mypy . && python -m pytest -q --cov=.`). The coverage gates come from each `pyproject.toml`. A second `setup-python` with `3.11` then reruns the `oct_status` tests. No legacy lint is added (8 existing ruff findings stay out of scope).
+- [ ] **Step 3: Implement** the job (`ubuntu-latest`, `actions/setup-python@v7` with `3.13`): install the three `requirements-dev.txt` files in one `pip install`; then one named step per suite - issue_handler (`cd scripts/issue_handler && ruff check . && python -m pytest -q --cov=.`), pr_reviewer (`cd scripts/pr_reviewer && ruff check . && python -m pytest -q --cov=.`), shard distribution (`cd scripts && python -m pytest -q test_e2e_shard_distribution.py`), oct_status (`cd scripts/oct_status && ruff check . && mypy . && python -m pytest -q --cov=.`). The coverage gates come from each `pyproject.toml`. A second `setup-python` with `3.11` then reruns the `oct_status` tests.
 - [ ] **Step 4: Run** `actionlint .github/workflows/ci.yml` and the grep - Expected: clean; one match in the job and one in `summary`.
 - [ ] **Step 5: Commit** `ci: run all script test suites`. Optional, see MA-9: add `Scripts Tests` to the required checks.
 
@@ -600,6 +612,6 @@ Open a ready (not draft) PR titled `test: probe oct-status`, request a review fr
 | 11 commands | Task 12 |
 | 12 components, workflow | Tasks 5, 11, 14 |
 | 13 documentation | Task 18 |
-| 14 tests, rollout | per-task tests; milestones 0-4; existing suites in CI: Tasks 2a-2d |
+| 14 tests, rollout | per-task tests; milestones 0-4; existing suites in CI: Tasks 2a-2e |
 | 15 open points | Tasks 15, 19, 20 |
 | 16 DoR/DoD | Global Constraints, milestone = spec issue |
