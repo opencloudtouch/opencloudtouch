@@ -41,7 +41,11 @@ def test_write_job_is_gated_and_least_privileged():
     others = {name: j for name, j in _jobs().items() if name != "status-write"}
     assert all("statuses" not in (j.get("permissions") or {}) for j in others.values())
     assert "actions: write" not in WORKFLOW.read_text(encoding="utf-8")
-    assert "commit STATUS context `oct-status`" in WORKFLOW.read_text(encoding="utf-8")
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "commit STATUS context `oct-status`" in text
+    assert "github.event.check_suite.pull_requests[0].number" in text  # check suites join the PR's group
+    # The job token (with `statuses: write`) reaches the write job's steps; BOT_PAT gets no new scope.
+    assert all("GITHUB_TOKEN" in (s.get("env") or {}) for s in job["steps"] if "python -m" in s.get("run", ""))
     event = next(s for s in job["steps"] if s.get("name") == "Process event")
     assert "--dry-run" not in event["run"] and "BOT_PAT" in event["env"]
 

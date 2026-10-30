@@ -93,7 +93,8 @@ class FakeRepo:
             return httpx.Response(200, json=[])
         if rel == "/issues" and method == "GET":
             open_ = [i for i in self.issues.values() if i["state"] == "open"]
-            return httpx.Response(200, json=open_ if page == "1" else [])
+            size = int(request.url.params.get("per_page", "100"))
+            return httpx.Response(200, json=open_[(int(page) - 1) * size : int(page) * size])
         if (m := re.fullmatch(r"/issues/(\d+)", rel)) and int(m[1]) in self.issues:
             issue = self.issues[int(m[1])]
             if method == "PATCH":
@@ -538,7 +539,7 @@ async def test_truncated_listing_warns_and_audit_never_writes(summary, monkeypat
     repo.add(1)
     repo.add(2)
     api = api_for(repo)
-    assert await run_audit(api, CFG, dry_run=False) == 2
+    assert await run_audit(api, CFG, dry_run=False) == 1  # the listing stops after one page of one
     assert repo.writes == []
     text = summary.read_text()
     assert "cut off" in text
@@ -560,7 +561,30 @@ def test_cli_dry_run_uses_read_only_api(monkeypatch, cli_repo, tmp_path):
     args = ["--event", "issues", "--payload", payload_file(tmp_path, issue_event(1))]
     assert main.cli([*args, "--dry-run"]) == 0
     assert main.cli(args) == 0
-    assert seen == [True, False]
+    # Each run has a second client for the commit status: read-only in a dry run.
+    assert seen == [True, True, False, False]
+
+
+def test_cli_posts_the_status_with_the_job_token_only(monkeypatch, cli_repo, tmp_path, capsys):
+    made: list[tuple[str, bool]] = []
+    orig = main.GitHubApi
+
+    def spy(token, name, **kw):
+        api = orig(token, name, **kw)
+        made.append((token, api.read_only))
+        return api
+
+    cli_repo.add(1)
+    monkeypatch.setattr(main, "GitHubApi", spy)
+    monkeypatch.setenv("BOT_PAT", "pat-value")
+    args = ["--event", "issues", "--payload", payload_file(tmp_path, issue_event(1))]
+    assert main.cli(args) == 0 and main.cli(["--audit"]) == 0
+    assert made == [("pat-value", False), ("secret-token-value", False)] * 2  # never BOT_PAT for the status
+    made.clear()
+    monkeypatch.delenv("GITHUB_TOKEN")
+    assert main.cli(args) == 0
+    assert made == [("pat-value", False), ("none", True)]  # without a job token nothing is posted
+    assert "commit status oct-status is not posted" in capsys.readouterr().err
 
 
 class TrackingRepo(FakeRepo):

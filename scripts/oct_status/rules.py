@@ -6,6 +6,7 @@ Everything here is pure: no I/O, only the snapshot, its neighbours in the graph 
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 
 from .config import Config
 from .facts import UNKNOWN_PATHS
@@ -451,13 +452,20 @@ def derive(snap: Snapshot, graph: Graph, cfg: Config, kind: Kind | None = None) 
     Returns ``None`` for an announcement (content by allowlisted automation): it has no phase,
     no waits and no block, and callers write nothing for it.
     """
-    kind = kind or detect_kind(snap, cfg)
+    kind = kind or gated_kind(snap, cfg)
     if kind == Kind.ANNOUNCEMENT:
-        if snap.is_pr and protected_changes(snap, cfg):
-            # An automation-authored PR is still a gate when automation pushed to protected paths.
-            return _derive_known(snap, graph, cfg, Kind.PULL_REQUEST)
         return None
     return _derive_known(snap, graph, cfg, kind)
+
+
+def gated_kind(snap: Snapshot, cfg: Config) -> Kind:
+    """`detect_kind`, except that an automation-authored PR with any automation push to a protected
+    path is a pull request for good: labels, block, guide and the `/oct accept-paths` acknowledgement
+    stay converged and persisted also after the acknowledgement."""
+    kind = detect_kind(snap, cfg)
+    if kind == Kind.ANNOUNCEMENT and snap.is_pr and protected_changes(replace(snap, paths_accepted=""), cfg):
+        return Kind.PULL_REQUEST
+    return kind
 
 
 def _derive_known(snap: Snapshot, graph: Graph, cfg: Config, kind: Kind) -> Derived:

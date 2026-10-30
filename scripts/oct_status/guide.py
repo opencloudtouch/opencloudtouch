@@ -216,5 +216,6 @@ def render_guide(
         **(data or {}),
     }
     payload = json.dumps(data, sort_keys=True, ensure_ascii=False).replace("--", "\\u002d\\u002d")
+    # notices.encode is the same encoding; notices.parse_state rejects a payload over MAX_DATA.
     out.append(f"<!-- oct-next-data {payload} -->")
     return "\n".join(out) + "\n"

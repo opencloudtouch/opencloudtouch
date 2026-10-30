@@ -29,7 +29,17 @@ import httpx
 from oct_status import commands
 from oct_status import notices as persisted
 from oct_status.api import GitHubApi
-from oct_status.apply import _comments, _find_guides, apply_state, desired_labels, guides_in, is_own_event
+from oct_status.apply import (
+    CONFLICT,
+    _comments,
+    _find_guides,
+    apply_state,
+    desired_labels,
+    guide_content,
+    guides_in,
+    is_own_event,
+    upsert_guide,
+)
 from oct_status.config import Config, load_config
 from oct_status.facts import fetch_snapshot
 from oct_status.graph import PROPAGATING, build_graph, parse_prose_edges, walk_component
@@ -40,7 +50,7 @@ from oct_status.model import Derived, Edge, Graph, Phase, Snapshot
 from oct_status.notices import Acceptance, GuideState, Record
 from oct_status.render import extract_block, render_block, splice_block
 from oct_status.rules import derive, protected_changes
-from oct_status.violations import EventFacts, Violation, classify_actor, detect, escalate
+from oct_status.violations import LEVEL_BLOCK, EventFacts, Violation, classify_actor, detect, escalate
 
 LABELS_SPEC = Path(__file__).resolve().parent / "labels.yml"
 CONFIG_PATH = Path(__file__).resolve().parent / "config.yml"
@@ -50,6 +60,10 @@ EXIT_API_ERROR = 1
 EXIT_CONFIG_ERROR = 2
 EXIT_STALE = 1
 DEFAULT_BACKFILL_STATE = "oct-backfill-state.json"
+RECOVERY = (
+    "the guide comment is not rewritten; a maintainer can delete it to start over "
+    "(this wipes its persisted notices and the protected-path acknowledgement)"
+)
 
 _PER_PAGE = 100
 _MAX_PAGES = 50
@@ -166,6 +180,8 @@ class Workspace:
         # Persisted guide state per loaded artifact; ``None`` when its comments could not be read.
         self.states: dict[int, GuideState | None] = {}
         self.acceptances: dict[int, Acceptance] = {}  # `/oct accept-paths` accepted in this run
+        self.guide_bodies: dict[int, str | None] = {}  # guide body as read (None: no guide yet)
+        self.corrupt: set[int] = set()  # guide data missing, oversized or invalid
 
     async def open_items(self) -> list[dict[str, Any]]:
         """All open issues and pull requests, bodies included (one paged listing)."""
@@ -221,13 +237,12 @@ class Workspace:
             )
             return snap
         guides = guides_in(comments, self.cfg.bot_logins)
+        self.guide_bodies[snap.number] = guides[0].get("body") or "" if guides else None
         state = persisted.parse_state(guides[0].get("body") or "") if guides else GuideState()
         self.states[snap.number] = state
         if state is None:
-            self.warnings.append(
-                f"WARNING: guide data of #{snap.number} is missing, oversized or invalid; the guide comment is "
-                "not rewritten (delete it to start over)"
-            )
+            self.corrupt.add(snap.number)
+            self.warnings.append(f"WARNING: guide data of #{snap.number} is missing, oversized or invalid; {RECOVERY}")
         reason = await commands.find_no_spec(self.api, snap, comments) if snap.is_pr else None
         return replace(
             snap,
@@ -328,27 +343,88 @@ class RunContext:
     accepted: dict[int, set[str]] = field(default_factory=dict)
 
 
+def _fits(guide: str) -> bool:
+    """The rendered guide's data parses back (within `notices.MAX_DATA`, valid shape)."""
+    return persisted.parse_state(guide) is not None
+
+
 def _guide(
-    ws: Workspace, graph: Graph, snap: Snapshot, derived: Derived, ctx: RunContext
+    ws: Workspace,
+    graph: Graph,
+    snap: Snapshot,
+    derived: Derived,
+    ctx: RunContext,
+    state: GuideState | None = None,
+    resolve: bool = True,
 ) -> tuple[str | None, list[Record]]:
     """The guide with the persisted notices carried over and resolved, and those notices.
 
-    ``(None, [])`` when the persisted state is unknown (the guide is then not rewritten).
+    ``(None, [])`` when the persisted state is unknown (the guide is then not rewritten). The rendered
+    data must parse back (size within `notices.MAX_DATA`); otherwise only the open notices at ladder
+    level 3 or higher are kept, and failing that nothing is written.
     """
-    state = ws.states.get(snap.number, GuideState())
+    state = state if state is not None else ws.states.get(snap.number, GuideState())
     if state is None:
         return None, []
     number = snap.number
     records = persisted.update(
-        state.records, ctx.found.get(number, []), snap, derived, graph, ws.cfg, ctx.now, ctx.accepted.get(number)
+        state.records,
+        ctx.found.get(number, []),
+        snap,
+        derived,
+        graph,
+        ws.cfg,
+        ctx.now,
+        ctx.accepted.get(number),
+        resolve=resolve,
     )
     notices, history = ctx.notes.get(number, ([], []))
     changes = protected_changes(snap, ws.cfg)
-    texts = [*notices, *([protected_notice(changes)] if changes else []), *persisted.render(records, snap.is_pr)]
     pending = snap.head_sha if changes else ""  # the files listed now are what `/oct accept-paths` covers
-    data = persisted.state_data(records, ws.acceptances.get(number) or state.accepted, pending)
     steps = next_steps(snap, derived, ws.cfg, graph)
-    return render_guide(snap, derived, steps, texts, history, cfg=ws.cfg, data=data), records
+    severe = [r for r in records if not r.resolved and r.level >= LEVEL_BLOCK]  # block (PR) or revert (issue)
+    for keep in (records, severe):
+        texts = [*notices, *([protected_notice(changes)] if changes else []), *persisted.render(keep, snap.is_pr)]
+        data = persisted.state_data(keep, ws.acceptances.get(number) or state.accepted, pending)
+        guide = render_guide(snap, derived, steps, texts, history, cfg=ws.cfg, data=data)
+        if _fits(guide):
+            return guide, keep
+    ws.warnings.append(f"WARNING: guide data of #{number} would be too large; the guide comment is not rewritten")
+    return None, []
+
+
+async def _write_guide(
+    ws: Workspace, graph: Graph, snap: Snapshot, derived: Derived, ctx: RunContext, block: str | None, dry_run: bool
+) -> tuple[list[str], list[Record], bool]:
+    """Write the guide comment unless an overlapping run changed it since it was read.
+
+    On such a conflict the newer guide is read once more and this run's changes are applied on top of
+    it; a second conflict skips the guide write with a warning. Returns (writes, notices, written).
+    """
+    number = snap.number
+    state: GuideState | None = None
+    for attempt in range(2):
+        # A newer guide (attempt 2) is merged without resolving its notices on this run's older facts.
+        guide, records = _guide(ws, graph, snap, derived, ctx, state, resolve=attempt == 0)
+        content = guide_content(snap, block, guide, ws.cfg)
+        if guide is None or content is None:
+            return [], [], False
+        result = await upsert_guide(
+            ws.api, number, content, ws.cfg.bot_logins, dry_run=dry_run, expected=ws.guide_bodies.get(number)
+        )
+        if result != CONFLICT:
+            return ([] if result == "unchanged" else [f"guide comment {result}"]), records, True
+        guides = await _find_guides(ws.api, number, ws.cfg.bot_logins)
+        body = guides[0].get("body") or "" if guides else None
+        ws.guide_bodies[number] = body
+        state = persisted.parse_state(body) if body is not None else GuideState()
+        if state is None:
+            ws.corrupt.add(number)
+            ws.warnings.append(f"WARNING: guide data of #{number} is missing, oversized or invalid; {RECOVERY}")
+            return [], [], False
+        ws.states[number] = state
+    ws.warnings.append(f"WARNING: guide comment of #{number} changed twice during this run; not rewritten")
+    return [], [], False
 
 
 def gate_problems(
@@ -394,9 +470,13 @@ async def _converge(
             outcomes.append(Outcome(number, None, gate=gate, head_sha=snap.head_sha))
             continue
         block = render_block(snap, derived, graph, ws.cfg)
-        guide, records = _guide(ws, graph, snap, derived, ctx) if comments else (None, [])
-        with_comments = comments and guide is not None
-        writes = await apply_state(ws.api, snap, derived, block, guide, ws.cfg, dry_run, comments=with_comments)
+        # Labels and the body block first; the guide (and a block that lives in it) with conflict check.
+        writes = await apply_state(ws.api, snap, derived, block, None, ws.cfg, dry_run, comments=False)
+        records: list[Record] = []
+        with_comments = False
+        if comments and ws.states.get(number, GuideState()) is not None:
+            guide_writes, records, with_comments = await _write_guide(ws, graph, snap, derived, ctx, block, dry_run)
+            writes += guide_writes
         unresolved = parse_prose_edges(number, snap.body)[1]
         gate = None
         if _open_pr(snap):
@@ -702,6 +782,7 @@ async def run_event(
     payload: dict[str, Any],
     dry_run: bool,
     clock: Callable[[], datetime] = _utcnow,
+    status_api: GitHubApi | None = None,
 ) -> int:
     """Process one webhook event: recompute the artifact and its connected component (capped).
 
@@ -739,7 +820,7 @@ async def run_event(
         summary += [f"Reverted ({state}):", *[f"- {_inline(w)}" for w in reverted], ""]
     if report is not None:
         summary += _command_lines(report, dry_run)
-    statuses = await post_gate_statuses(api, outcomes, dry_run, ws.warnings)
+    statuses = await post_gate_statuses(api, outcomes, dry_run, ws.warnings, cfg, status_api)
     for outcome in outcomes:
         summary += _outcome_lines(outcome, dry_run, with_block=True)
         print(f"#{outcome.number}: {len(outcome.writes)} write(s) {'planned' if dry_run else 'performed'}")
@@ -762,33 +843,81 @@ def _run_url() -> str | None:
     return None
 
 
+async def _recheck(api: GitHubApi, cfg: Config, outcome: Outcome) -> tuple[bool, list[str]]:
+    """Re-read the PR and its guide right before the post: (head unchanged, problems found now).
+
+    An overlapping run may have pushed a new head (then this run's status would be stale: skipped) or
+    persisted a blocking notice after this run read the guide. Read errors are problems (fail closed).
+    """
+    try:
+        resp = await api.request("GET", f"/pulls/{outcome.number}")
+        resp.raise_for_status()
+        head = ((resp.json().get("head") or {}).get("sha")) or ""
+        if head != outcome.head_sha:
+            return False, []
+        if outcome.derived is None:  # an announcement has no guide
+            return True, []
+        guides = await _find_guides(api, outcome.number, cfg.bot_logins)
+    except (httpx.HTTPError, ValueError, AttributeError) as exc:
+        return True, [f"The pull request could not be re-checked ({type(exc).__name__})."]
+    state = persisted.parse_state(guides[0].get("body") or "") if guides else GuideState()
+    if state is None:
+        return True, ["The guide comment could not be read, so open violations cannot be ruled out."]
+    if blocks := persisted.blocking(state.records, True):
+        rules = ", ".join(sorted({r.rule for r in blocks}))
+        return True, [f"Open violation(s) at ladder level 3 or higher: {rules}. Fix them or ask for `/oct override`."]
+    return True, []
+
+
 async def post_gate_statuses(
-    api: GitHubApi, outcomes: list[Outcome], dry_run: bool, warnings: list[str]
+    api: GitHubApi,
+    outcomes: list[Outcome],
+    dry_run: bool,
+    warnings: list[str],
+    cfg: Config | None = None,
+    status_api: GitHubApi | None = None,
 ) -> list[tuple[int, str, str]]:
     """Publish the gate of every open PR as the commit status `oct-status` on its head SHA.
 
     This status (not the job of a `pull_request_target` run, which attaches to the base commit) is the
     required check. A new push changes the head, so a head without a status is pending until the
-    `synchronize` event or the daily audit posts one. Never written in a dry run or through a read-only
-    client (the summary shows what would be posted); a failed post is a warning.
+    `synchronize` event or the daily audit posts one. PRs sharing a head get one status: failure if
+    any of them fails. Before the post the PR and its guide are re-read (`_recheck`). Reads go through
+    `api`, the post through `status_api` (the job token; default `api`). Never written in a dry run
+    or through a read-only client (the summary shows what would be posted); a failed post is a warning.
     Returns (number, state, description).
     """
-    posted: list[tuple[int, str, str]] = []
+    poster = status_api or api
+    write = not dry_run and not poster.read_only
+    by_head: dict[str, list[tuple[int, list[str]]]] = {}
     for outcome in outcomes:
         if outcome.gate is None or not _SHA.fullmatch(outcome.head_sha):
             continue
-        state = "failure" if outcome.gate else "success"
-        description = (outcome.gate[0] if outcome.gate else "Status block current, nothing blocks")[:140]
-        posted.append((outcome.number, state, description))
-        if dry_run or api.read_only:
+        problems = list(outcome.gate)
+        if write and cfg is not None:
+            same_head, found = await _recheck(api, cfg, outcome)
+            if not same_head:
+                warnings.append(f"WARNING: commit status for #{outcome.number} skipped: its head moved during the run")
+                continue
+            problems += [p for p in found if p not in problems]
+        by_head.setdefault(outcome.head_sha, []).append((outcome.number, problems))
+    posted: list[tuple[int, str, str]] = []
+    for sha, prs in by_head.items():
+        failing = [(n, p) for n, p in prs if p]
+        state = "failure" if failing else "success"
+        description = f"#{failing[0][0]}: {failing[0][1][0]}" if failing else "Status block current, nothing blocks"
+        description = description[:140]
+        posted += [(n, state, description) for n, _ in prs]
+        if not write:
             continue
         body: dict[str, str] = {"state": state, "context": STATUS_CONTEXT, "description": description}
         if url := _run_url():
             body["target_url"] = url
         try:
-            (await api.request("POST", f"/statuses/{outcome.head_sha}", json=body)).raise_for_status()
+            (await poster.request("POST", f"/statuses/{sha}", json=body)).raise_for_status()
         except httpx.HTTPError as exc:
-            warnings.append(f"WARNING: commit status for #{outcome.number} not posted ({type(exc).__name__})")
+            numbers = ", ".join(f"#{n}" for n, _ in prs)
+            warnings.append(f"WARNING: commit status for {numbers} not posted ({type(exc).__name__})")
     return posted
 
 
@@ -847,6 +976,7 @@ async def run_audit(
     cfg: Config,
     dry_run: bool,
     clock: Callable[[], datetime] = _utcnow,
+    status_api: GitHubApi | None = None,
 ) -> int:
     """Recompute every open artifact and heal drift; returns how many artifacts needed a repair."""
     ws = Workspace(api, cfg)
@@ -859,7 +989,7 @@ async def run_audit(
     outcomes = await _converge(ws, numbers, dry_run, RunContext(clock()))
     repaired = [o for o in outcomes if o.writes]
     # Every open PR gets the status for its current head (heads pushed without an event in between).
-    statuses = await post_gate_statuses(api, outcomes, dry_run, ws.warnings)
+    statuses = await post_gate_statuses(api, outcomes, dry_run, ws.warnings, cfg, status_api)
     mode = "dry-run" if dry_run else "write"
     summary = [
         f"## OCT status audit ({mode})",
@@ -907,6 +1037,17 @@ def _load_payload(path: str) -> dict[str, Any]:
     return data
 
 
+def _status_client(api: GitHubApi, repo: str) -> GitHubApi:
+    """The client that posts the commit status: the job's GITHUB_TOKEN (`statuses: write` in the write
+    job), never BOT_PAT. Read-only in a dry run or without a job token (nothing is posted then)."""
+    token = os.environ.get("GITHUB_TOKEN")
+    if api.read_only or not token:
+        if not api.read_only:
+            print("warning: no GITHUB_TOKEN; the commit status oct-status is not posted", file=sys.stderr)
+        return GitHubApi(token or "none", repo, read_only=True)
+    return GitHubApi(token, repo)
+
+
 async def _dispatch(
     args: argparse.Namespace, mode: str, payload: dict[str, Any], token: str, repo: str
 ) -> tuple[int, list[str]]:
@@ -923,12 +1064,16 @@ async def _dispatch(
 
             state = Path(args.state or os.environ.get("OCT_BACKFILL_STATE") or DEFAULT_BACKFILL_STATE)
             return await run_backfill(api, cfg, state, args.limit, args.dry_run), []
-        if mode == "audit":
-            await run_audit(api, cfg, args.dry_run)
-            return EXIT_OK, []
         if mode == "check":
             return await run_check(api, cfg, args.event, payload), []
-        return await run_event(api, cfg, args.event, payload, args.dry_run), []
+        status_api = _status_client(api, repo)
+        try:
+            if mode == "audit":
+                await run_audit(api, cfg, args.dry_run, status_api=status_api)
+                return EXIT_OK, []
+            return await run_event(api, cfg, args.event, payload, args.dry_run, status_api=status_api), []
+        finally:
+            await status_api.aclose()
     finally:
         await api.aclose()
 

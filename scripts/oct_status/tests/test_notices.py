@@ -440,3 +440,81 @@ async def test_invalid_guide_data_is_unknown_and_never_overwritten(monkeypatch, 
     await run(repo, "issues", other_event(5))
     assert guide["body"] == before
     assert "guide data of #5 is missing, oversized or invalid" in summary.read_text(encoding="utf-8")
+
+
+def test_cap_never_drops_open_level3_notices():
+    from oct_status.notices import _cap
+
+    severe = [replace(_rec("V02", key=f"wait:{n}", level=3), ts=NOW - timedelta(days=50, minutes=n)) for n in range(25)]
+    light = [replace(_rec("V05", key=f"i:{n}"), ts=NOW - timedelta(minutes=n)) for n in range(10)]
+    kept = _cap([*light, *severe])
+    assert sum(r.level >= 3 for r in kept) == 25 and not [r for r in kept if r.level < 3]
+    assert len(_cap([*light, *severe[:5]])) == 15  # everything fits: nothing dropped
+
+
+def test_budget_is_measured_on_the_encoded_payload(monkeypatch):
+    from oct_status import notices
+
+    monkeypatch.setattr(notices, "DATA_BUDGET", 3_000)
+    dashes = [replace(_rec("V05", key=f"i:{n}"), hint="--" * 140, ts=NOW - timedelta(minutes=n)) for n in range(8)]
+    kept = state_data(dashes, None)["notices"]
+    # Raw JSON would fit more records; every "--" costs 12 characters once encoded.
+    assert len(notices.encode(kept)) <= 3_000 and len(kept) < len(dashes)
+    assert len(json.dumps([{**n} for n in state_data(dashes[:3], None)["notices"]])) < 3_000
+
+
+async def test_too_large_guide_data_keeps_only_blocking_notices(monkeypatch, tmp_path):
+    from oct_status import main as main_module
+
+    summary = tmp_path / "s.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    repo = Repo()
+    seed(repo, "bob", [(1, "V02"), (2, "V02")])
+    repo.add(5, body=TEMPLATE, labels=("spec",))
+    await run(repo, "issues", other_event(5))
+    body = repo.issues[5]["body"]
+    await run(repo, "issues", spec_edit(repo, 5, body.replace("- [ ] AC1: works\n", ""), sender="eve"))
+    repo.issues[5]["labels"].append({"name": "phase:done"})
+    label = {"action": "labeled", "issue": {"number": 5}, "label": {"name": "phase:done"}, "sender": {"login": "bob"}}
+    monkeypatch.setattr(main_module, "_fits", lambda text: '"V05"' not in text)  # the full data is "too large"
+    await run(repo, "issues", label)
+    assert open_rules(repo, 5) == ["V02"]  # the blocking notice survives, the light one was dropped
+    monkeypatch.setattr(main_module, "_fits", lambda text: False)
+    before = repo.guide(5)
+    await run(repo, "issues", other_event(5))
+    assert repo.guide(5) == before and "would be too large" in summary.read_text(encoding="utf-8")
+
+
+async def test_invalid_guide_warning_names_the_recovery_and_its_cost(monkeypatch, tmp_path):
+    summary = tmp_path / "s.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    repo = Repo()
+    repo.add(5, body=TEMPLATE, labels=("spec",))
+    await run(repo, "issues", other_event(5))
+    guide = next(c for c in repo.comments[5] if MARKER in c["body"])
+    guide["body"] = guide["body"].split("<!-- oct-next-data")[0]
+    await run(repo, "issues", other_event(5))
+    text = summary.read_text(encoding="utf-8")
+    assert "delete it to start over" in text and "wipes its persisted notices" in text
+
+
+async def test_guide_changed_twice_during_a_run_is_not_rewritten(monkeypatch, tmp_path):
+    summary = tmp_path / "s.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    repo = Repo()
+    repo.add(7, labels=("enhancement",))
+    await run(repo, "issues", other_event(7))
+    original = repo.handler
+    count = {"n": 0}
+
+    def churn(request):
+        if request.url.path.endswith("/issues/7/comments") and request.method == "GET":
+            count["n"] += 1
+            if count["n"] >= 2:  # every later read sees another overlapping write
+                guide = next(c for c in repo.comments[7] if MARKER in c["body"])
+                guide["body"] += " "
+        return original(request)
+
+    repo.handler = churn  # type: ignore[method-assign]
+    await run(repo, "issues", other_event(7))
+    assert "changed twice during this run" in summary.read_text(encoding="utf-8")

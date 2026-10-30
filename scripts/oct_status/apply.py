@@ -71,13 +71,30 @@ async def _find_guides(api: GitHubApi, number: int, bot_logins: tuple[str, ...])
     return guides_in(await _comments(api, number), bot_logins)
 
 
+ANY = object()  # `expected` of `upsert_guide`: write whatever the comment holds now
+CONFLICT = "conflict"
+
+
 async def upsert_guide(
-    api: GitHubApi, number: int, content: str, bot_logins: tuple[str, ...], *, dry_run: bool = False
+    api: GitHubApi,
+    number: int,
+    content: str,
+    bot_logins: tuple[str, ...],
+    *,
+    dry_run: bool = False,
+    expected: object = ANY,
 ) -> str:
-    """Create, update or deduplicate the single guide comment; returns what was (or would be) done."""
+    """Create, update or deduplicate the single guide comment; returns what was (or would be) done.
+
+    `expected` is the guide body this run read (``None``: there was no guide). When the comment changed
+    since (an overlapping run wrote newer notices), nothing is written and ``CONFLICT`` is returned, so
+    an older state never overwrites a newer one.
+    """
     if MARKER not in content:  # the marker is what finds the comment again: exactly one, always
         content = f"{MARKER}\n{content}"
     guides = await _find_guides(api, number, bot_logins)
+    if expected is not ANY and (guides[0].get("body") if guides else None) != expected:
+        return CONFLICT
     if not guides:
         if not dry_run:
             await _check(await api.request("POST", f"/issues/{number}/comments", json={"body": content}))
@@ -115,6 +132,14 @@ async def _sync_labels(api: GitHubApi, snap: Snapshot, derived: Derived, dry_run
     return done
 
 
+def guide_content(snap: Snapshot, block: str | None, guide: str | None, cfg: Config) -> str | None:
+    """The guide comment's text; for artifacts whose block lives in a comment the block comes first."""
+    actor = cfg.automation.get(snap.author)
+    if block is not None and actor is not None and actor.block_location == "comment":
+        return f"{MARKER}\n{block}" if guide is None else f"{block}\n\n{guide}"
+    return guide
+
+
 async def apply_state(
     api: GitHubApi,
     snap: Snapshot,
@@ -125,11 +150,13 @@ async def apply_state(
     dry_run: bool = False,
     *,
     comments: bool = True,
+    expected_guide: object = ANY,
 ) -> list[str]:
     """Converge the artifact to the derived state; returns the writes performed (planned if `dry_run`).
 
     With ``comments=False`` no comment is created or edited (backfill: no notifications; and when the
     persisted guide state could not be read): a block that lives in the pinned comment is not written.
+    A guide that changed since `expected_guide` was read is not written: "guide comment conflict".
     """
     if block is None and guide is None:  # announcements: nothing is ever written
         return []
@@ -142,11 +169,9 @@ async def apply_state(
             if not dry_run:
                 await _check(await api.request("PATCH", f"/issues/{snap.number}", json={"body": new_body}))
             done.append("update status block in body")
-    content = guide
-    if block is not None and in_comment:
-        content = f"{MARKER}\n{block}" if guide is None else f"{block}\n\n{guide}"
+    content = guide_content(snap, block, guide, cfg)
     if content is not None and comments:
-        result = await upsert_guide(api, snap.number, content, cfg.bot_logins, dry_run=dry_run)
+        result = await upsert_guide(api, snap.number, content, cfg.bot_logins, dry_run=dry_run, expected=expected_guide)
         if result != "unchanged":
             done.append(f"guide comment {result}")
     return done

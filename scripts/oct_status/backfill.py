@@ -37,7 +37,7 @@ from .api import GitHubApi
 from .apply import apply_state
 from .config import Config
 from .graph import parse_prose_edges
-from .main import EXIT_API_ERROR, EXIT_OK, Workspace, _inline, _paged, _summary
+from .main import EXIT_API_ERROR, EXIT_OK, RECOVERY, Workspace, _inline, _paged, _summary
 from .model import EdgeType, Kind, Snapshot
 from .render import render_block
 from .rules import detect_kind, legacy_spec, spec_is_ready
@@ -56,6 +56,7 @@ class BackfillReport:
     retry_after: int | None = None  # seconds, after a rate limit
     already_done: int = 0  # skipped because the state file lists them
     unreadable: int = 0  # skipped, not done: label history or comments could not be read
+    corrupt: list[int] = field(default_factory=list)  # skipped: guide data invalid (needs a maintainer)
     lines: list[str] = field(default_factory=list)
 
 
@@ -145,6 +146,10 @@ def _cap_retry(api: GitHubApi) -> None:
         api.max_retry_wait = MAX_RETRY_WAIT
 
 
+class Corrupt(Exception):
+    """The guide comment's data is missing, oversized or invalid: a maintainer has to delete the comment."""
+
+
 class Unreadable(Exception):
     """The artifact's label history or comments could not be read: it is skipped and stays to do."""
 
@@ -154,7 +159,7 @@ async def _one(ws: LegacyWorkspace, number: int, dry_run: bool) -> list[str]:
     if await ws.load(number) is None:
         return []
     if ws.real[number].timeline_unknown or ws.states.get(number) is None:
-        raise Unreadable(number)
+        raise Corrupt(number) if number in ws.corrupt else Unreadable(number)
     await ws.neighbors(number)
     graph = ws.graph()
     snap, derived = graph.snapshots[number], graph.derived.get(number)
@@ -204,6 +209,10 @@ async def _backfill(
                 await sleep(MIN_DELAY)
             try:
                 writes = await _one(ws, number, dry_run)
+            except Corrupt:
+                report.corrupt.append(number)
+                report.lines.append(f"- #{number}: skipped, guide data invalid; {RECOVERY}")
+                continue
             except Unreadable:
                 report.unreadable += 1
                 report.lines.append(f"- #{number}: skipped, label history or comments unreadable (retried next run)")
@@ -222,7 +231,8 @@ async def _backfill(
     except httpx.HTTPError as exc:
         report.stopped = f"API error ({type(exc).__name__})"
     report.lines += [f"> {w}" for w in ws.warnings]
-    report.remaining = len([n for n in numbers if n not in done])
+    # Corrupt guides need a maintainer first: they are reported apart and not counted as remaining.
+    report.remaining = len([n for n in numbers if n not in done and n not in report.corrupt])
     return report
 
 
@@ -278,9 +288,14 @@ async def run_backfill(
         print(f"stopped: {report.stopped} (the next run resumes)")
     counts = (
         f"processed {report.processed}, already done (state file): {report.already_done}, "
-        f"skipped (unreadable): {report.unreadable}, remaining: {report.remaining}"
+        f"skipped (unreadable): {report.unreadable}, skipped (corrupt guide): {len(report.corrupt)}, "
+        f"remaining: {report.remaining}"
     )
     summary.append(counts)
     _summary(summary)
     print(f"backfill ({mode}): {counts}")
+    if report.corrupt:  # numbers only, no artifact text on stdout
+        print(
+            f"corrupt guide data on {', '.join(f'#{n}' for n in report.corrupt)}: delete the guide comment to start over"
+        )
     return EXIT_API_ERROR if report.stopped and report.stopped != "rate limit" else EXIT_OK

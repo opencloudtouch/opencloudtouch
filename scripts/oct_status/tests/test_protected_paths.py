@@ -362,3 +362,131 @@ async def test_status_post_failure_is_a_warning(monkeypatch, tmp_path):
     repo.handler = refusing  # type: ignore[method-assign]
     await _run(repo, "pull_request_target", pr_event(10, "synchronize"))
     assert "commit status for #10 not posted" in summary.read_text(encoding="utf-8")
+
+
+# --- fix round 3: persistence, overlapping runs, shared heads, aborts ----------------------------
+
+
+async def test_accept_paths_on_an_automation_authored_pr_persists():
+    repo = PathRepo()
+    repo.add_pr(10, title="chore(release): 1.2.3", author="github-actions[bot]")
+    repo.push(10, SHA_A, GITAR, [".github/workflows/release.yml"])
+    await _run(repo, "pull_request_target", pr_event(10, "synchronize", sender="github-actions[bot]"))
+    assert status(repo, SHA_A)["state"] == "failure"
+    await _run(repo, "issue_comment", comment_event(10, "/oct accept-paths", login="carol"))
+    assert status(repo, SHA_A)["state"] == "success" and _data(repo, 10)["paths_accepted"]["sha"] == SHA_A
+    # A later event keeps the PR gated and converged: acknowledgement, labels and block stay.
+    await _run(repo, "pull_request_target", pr_event(10, "synchronize", sender="github-actions[bot]"))
+    assert status(repo, SHA_A)["state"] == "success" and _data(repo, 10)["paths_accepted"]["sha"] == SHA_A
+    assert "wait:findings" not in repo.label_names(10) and "phase:in-review" in repo.label_names(10)
+    assert "<!-- oct-status:v1" in repo.issues[10]["body"] and await _check(repo, 10) == 0
+
+
+async def test_overlapping_run_never_drops_a_newer_level3_notice():
+    """Run C read the guide before run V persisted a level-3 notice; C must not overwrite it."""
+    import copy
+
+    from .test_violations_events import seed
+
+    repo = PathRepo()
+    seed(repo, "bob", [(1, "V02"), (2, "V02")])
+    repo.add_pr(10, body="Part of #5")
+    repo.add(5, labels=("bug",))
+    repo.push(10, SHA_A, "alice", ["src/x.py"])
+    await _run(repo, "pull_request_target", pr_event(10, "opened"))
+    # Run V on a copy: bob hand-sets a fact label at his third strike.
+    newer = copy.deepcopy(repo)
+    newer.issues[10]["labels"].append({"name": "wait:ci"})
+    await _run(newer, "pull_request_target", pr_event(10, "labeled", sender="bob", label={"name": "wait:ci"}))
+    assert "oct-status fails" in newer.guide(10)
+    # Run C: its upsert sees the guide that run V wrote in the meantime.
+    reads = {"n": 0}
+    original = repo.handler
+
+    def overlapping(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/issues/10/comments") and request.method == "GET":
+            reads["n"] += 1
+            if reads["n"] == 2:
+                repo.comments[10] = copy.deepcopy(newer.comments[10])
+        return original(request)
+
+    repo.handler = overlapping  # type: ignore[method-assign]
+    await _run(repo, "pull_request_target", pr_event(10, "synchronize"))
+    assert "oct-status fails" in repo.guide(10) and "v02-" in repo.guide(10)
+    assert status(repo, SHA_A)["state"] == "failure"
+
+
+async def test_status_skipped_when_the_head_moved_and_failure_when_a_newer_guide_blocks():
+    import copy
+
+    from oct_status.main import Outcome, post_gate_statuses
+
+    repo = PathRepo()
+    repo.add_pr(10, title="docs: x")
+    repo.push(10, SHA_A, "alice", ["docs/x.md"])
+    await _run(repo, "pull_request_target", pr_event(10, "synchronize"))
+    api = api_for(repo)
+    warnings: list[str] = []
+    stale = Outcome(10, None, gate=[], head_sha=SHA_B)  # the PR head is SHA_A by now
+    assert await post_gate_statuses(api, [stale], False, warnings, CFG) == []
+    assert "head moved" in warnings[0] and SHA_B not in repo.statuses
+    # A blocking notice persisted by another run turns this run's success into a failure.
+    guide = next(c for c in repo.comments[10] if "oct-next-data" in c["body"])
+    record = {"rule": "V02", "user": "bob", "artifact": 10, "ts": "2026-11-01T12:00:00+00:00", "level": 3}
+    record |= {"hint": "h", "key": "wait:ci", "resolved": ""}
+    guide["body"] = guide["body"].replace('{"next"', '{"notices": ' + json.dumps([record]) + ', "next"')
+    from oct_status.model import Derived, Phase
+
+    clear = Outcome(10, Derived(Phase.IN_REVIEW, frozenset(), None), gate=[], head_sha=SHA_A)
+    assert (await post_gate_statuses(api, [copy.copy(clear)], False, [], CFG))[0][1] == "failure"
+    assert status(repo, SHA_A)["state"] == "failure"
+    await api.aclose()
+
+
+async def test_pull_requests_sharing_a_head_fail_together():
+    from oct_status.main import Outcome, post_gate_statuses
+
+    repo = PathRepo()
+    for number in (10, 11):
+        repo.add_pr(number, title="docs: x")
+        repo.prs[number]["head"]["sha"] = SHA_A
+    api = api_for(repo)
+    outcomes = [Outcome(10, None, gate=[], head_sha=SHA_A), Outcome(11, None, gate=["broken"], head_sha=SHA_A)]
+    posted = await post_gate_statuses(api, outcomes, False, [], CFG)
+    await api.aclose()
+    assert {state for _, state, _ in posted} == {"failure"}
+    assert [st["state"] for st in repo.statuses[SHA_A]] == ["failure"] and "#11" in repo.statuses[SHA_A][0][
+        "description"
+    ]
+
+
+async def test_aborted_run_posts_no_success():
+    repo = PathRepo()
+    repo.add_pr(10, title="docs: x")
+    repo.push(10, SHA_A, "alice", ["docs/x.md"])
+    original = repo.handler
+
+    def broken(request: httpx.Request) -> httpx.Response:
+        if request.method == "PATCH" and request.url.path.endswith("/issues/10"):
+            return httpx.Response(500, json={})
+        return original(request)
+
+    repo.handler = broken  # type: ignore[method-assign]
+    api = api_for(repo)
+    with pytest.raises(httpx.HTTPStatusError):
+        await run_event(api, CFG, "pull_request_target", pr_event(10, "synchronize"), dry_run=False, clock=clock)
+    await api.aclose()
+    assert repo.statuses == {}  # the head stays pending, never success
+
+
+async def test_audit_pages_through_more_than_100_open_pull_requests():
+    from oct_status.main import run_audit
+
+    repo = PathRepo()
+    for number in range(1, 106):
+        repo.add_pr(number, title="docs: x")
+        repo.prs[number]["head"]["sha"] = f"{number:040x}"
+    api = api_for(repo)
+    await run_audit(api, CFG, dry_run=False, clock=clock)
+    await api.aclose()
+    assert len(repo.statuses) == 105 and all(v[-1]["state"] == "success" for v in repo.statuses.values())

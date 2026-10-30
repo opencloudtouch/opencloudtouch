@@ -18,7 +18,7 @@ import yaml
 from .config import Config
 from .graph import parse_prose_edges
 from .model import Derived, Edge, EdgeType, Graph, Kind, Snapshot, Wait
-from .rules import OCT_SUPPORT, detect_kind
+from .rules import OCT_SUPPORT, gated_kind
 
 MARKER_END = "<!-- /oct-status -->"
 TABLE_CAP = 25
@@ -228,7 +228,7 @@ def _wrap(content: list[str]) -> str:
 
 def render_block(snap: Snapshot, derived: Derived | None, graph: Graph, cfg: Config) -> str | None:
     """Status block for one artifact, or ``None`` for announcements (no block is ever written)."""
-    kind = detect_kind(snap, cfg)
+    kind = gated_kind(snap, cfg)
     if derived is None or kind == Kind.ANNOUNCEMENT:
         return None
     if kind == Kind.DEPENDENCY_PR:

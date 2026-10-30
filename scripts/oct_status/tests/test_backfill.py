@@ -394,3 +394,20 @@ async def test_pull_request_phase_labels_are_never_reasserted(tmp_path):
     assert await backfill(api, ACTIVE, [11], tmp_path / "s.json", clock, Sleeps()) == 1
     await api.aclose()
     assert not [w for w in repo.writes if w[0] == "DELETE" and "phase:in-review" in w[1]]
+
+
+async def test_corrupt_guides_are_reported_apart_and_not_remaining(tmp_path, capsys):
+    from oct_status.apply import MARKER
+
+    repo = Repo()
+    repo.add(5, labels=("bug",))
+    repo.add(6, labels=("bug",))
+    repo.comments[6] = [{"id": 1, "user": {"login": BOT}, "body": f"{MARKER}\n<!-- oct-next-data {{broken -->"}]
+    state = tmp_path / "s.json"
+    api = api_for(repo)
+    assert await run_backfill(api, ACTIVE, state, limit=25, dry_run=False, clock=clock, sleep=Sleeps()) == 0
+    await api.aclose()
+    out = capsys.readouterr().out
+    assert "skipped (corrupt guide): 1" in out and "skipped (unreadable): 0" in out and "remaining: 0" in out
+    assert "#6" in out and "delete the guide comment" in out
+    assert 6 not in _state(state)["done"] and not [w for w in repo.writes if "/issues/6" in w[1]]

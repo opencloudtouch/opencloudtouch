@@ -4,8 +4,8 @@ name: OCT Status
 # the shadow week). While it is not 'true' the workflow stays in shadow mode: the `status` job runs
 # every event and the daily audit with --dry-run (read-only API, job summary only). With
 # OCT_STATUS_WRITE == 'true' the `status-write` job writes labels, blocks and guide comments with
-# BOT_PAT and publishes the gate of every pull request it touches (all open ones in the daily audit)
-# as the commit status `oct-status` on the PR head SHA.
+# BOT_PAT and publishes, with the job's GITHUB_TOKEN, the gate of every pull request it touches
+# (all open ones in the daily audit) as the commit status `oct-status` on the PR head SHA.
 #
 # Required check (Task 20): the commit STATUS context `oct-status`, not the `oct-status` job below.
 # A pull_request_target job attaches to the base commit, so it cannot gate the PR head; the job only
@@ -59,7 +59,9 @@ on:
         default: 25
 
 concurrency:
-  group: oct-status-${{ github.event.issue.number || github.event.pull_request.number || github.event.discussion.number || github.run_id }}
+  # One group per artifact; a check suite joins the group of its pull request. GitHub keeps at most one
+  # pending run per group (a newer one replaces it), see the daily audit for what that can drop.
+  group: oct-status-${{ github.event.issue.number || github.event.pull_request.number || github.event.discussion.number || github.event.check_suite.pull_requests[0].number || github.run_id }}
   cancel-in-progress: false
 
 # Least privilege: only the jobs that write (labels, status-write, backfill) get issues /
@@ -138,7 +140,8 @@ jobs:
         run: python -m oct_status --audit --dry-run
 
   status-write:
-    # Write mode (OCT_STATUS_WRITE == 'true', set by the maintainer at MA-5). Writes use BOT_PAT.
+    # Write mode (OCT_STATUS_WRITE == 'true', set by the maintainer at MA-5). Labels, blocks and guide
+    # comments are written with BOT_PAT; the commit status `oct-status` with the job's GITHUB_TOKEN.
     name: status
     if: (github.event_name != 'workflow_dispatch' || inputs.mode == 'audit') && vars.OCT_STATUS_WRITE == 'true'
     runs-on: ubuntu-latest
@@ -147,7 +150,7 @@ jobs:
       pull-requests: write
       checks: read
       actions: read
-      # Publishes the gate as the commit status `oct-status` on the PR head (job token).
+      # The job token posts the commit status `oct-status` on the PR head (BOT_PAT gets no new scope).
       statuses: write
       contents: read
     steps:

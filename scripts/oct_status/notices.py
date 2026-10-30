@@ -153,8 +153,13 @@ def _record_data(r: Record) -> dict:
     }
 
 
+def encode(data: object) -> str:
+    """The data JSON exactly as the guide writes it: no ASCII escaping, `--` escaped (HTML comment)."""
+    return json.dumps(data, sort_keys=True, ensure_ascii=False).replace("--", "\\u002d\\u002d")
+
+
 def _size(items: list[dict]) -> int:
-    return len(json.dumps(items, ensure_ascii=False))
+    return len(encode(items))
 
 
 def _within_budget(records: list[Record]) -> list[Record]:
@@ -189,7 +194,10 @@ def record_for(v: Violation, level: int, overridden: bool, now: datetime) -> Rec
 def _cap(records: list[Record]) -> list[Record]:
     """Keep the newest open and resolved records (oldest first, as stored)."""
     records = sorted(records, key=lambda r: r.ts)
-    open_ = [r for r in records if not r.resolved][-MAX_OPEN:]
+    # Open notices at ladder level 3 or higher are never dropped: they block or revert.
+    severe = [r for r in records if not r.resolved and r.level >= LEVEL_BLOCK]
+    others = [r for r in records if not r.resolved and r.level < LEVEL_BLOCK]
+    open_ = severe + others[-max(MAX_OPEN - len(severe), 0) :] if MAX_OPEN > len(severe) else severe
     done = [r for r in records if r.resolved][-MAX_RESOLVED:]
     return sorted(open_ + done, key=lambda r: r.ts)
 
@@ -222,11 +230,14 @@ def update(
     cfg: Config,
     now: datetime,
     accepted: set[str] | None = None,
+    resolve: bool = True,
 ) -> list[Record]:
     """The records after this run: drop aged-out ones, merge `found`, resolve what no longer holds.
 
     `found` are the violations detected in this run (only for the event's artifact); `accepted` the
     names of commands accepted on the artifact in this run (`override` resolves every open notice).
+    ``resolve=False`` keeps open records open: used for a guide a newer run wrote while this run's
+    snapshot is older (judging them on stale facts could resolve them wrongly).
     """
     accepted = accepted or set()
     window = timedelta(days=cfg.strike_window_days)
@@ -246,7 +257,7 @@ def update(
         elif rec.resolved:
             out.append(rec)
         else:
-            reason = _resolution(rec, snap, derived, graph, cfg, accepted)
+            reason = _resolution(rec, snap, derived, graph, cfg, accepted) if resolve else ""
             out.append(replace(rec, resolved=reason) if reason else rec)
     out += fresh.values()
     if "override" in accepted:
