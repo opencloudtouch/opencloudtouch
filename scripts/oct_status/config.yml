@@ -34,12 +34,17 @@ gate_checks:
   - SonarCloud Code Analysis
   - Gitar
 
+# Automation pushes to these paths need a maintainer's `/oct accept-paths` (design section 7, rule 3).
+# Keep `.gitar/rules/oct-status.md` and `.gitar/config/apply.md` in step (tests/test_repo_files.py):
+# `.github/` holds the workflows, the PR and issue templates (DoR / DoD checklists the guard and the rules
+# read) and dependabot.yml; `.claude/` registers the agent hooks; CLAUDE.md carries the agent rules.
 protected_paths:
-  - ".github/workflows/**"
-  - "scripts/oct_status/**"
-  - ".gitar/**"
+  - ".github/**"
   - ".claude/**"
+  - ".gitar/**"
+  - "scripts/oct_status/**"
   - ".gitignore"
+  - "CLAUDE.md"
 
 fan_out_cap: 25
 strike_window_days: 60

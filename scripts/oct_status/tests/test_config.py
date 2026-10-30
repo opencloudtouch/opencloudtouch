@@ -46,8 +46,14 @@ def test_gates_and_protected_paths():
     assert "CI Summary" in cfg.gate_checks
     assert "SonarCloud Code Analysis" in cfg.gate_checks
     assert "Gitar" in cfg.gate_checks
-    for pattern in (".github/workflows/**", "scripts/oct_status/**", ".gitar/**", ".claude/**", ".gitignore"):
-        assert pattern in cfg.protected_paths
+    assert cfg.protected_paths == [
+        ".github/**",
+        ".claude/**",
+        ".gitar/**",
+        "scripts/oct_status/**",
+        ".gitignore",
+        "CLAUDE.md",
+    ]
 
 
 def test_bot_logins():

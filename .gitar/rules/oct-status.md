@@ -23,4 +23,4 @@ This repository runs an automated status system (`oct-status`). It owns the stat
 
 ## Protected paths
 
-- Pushes to `.github/`, `.claude/`, `.gitar/` and `scripts/oct_status/` are held by `oct-status` until a maintainer acknowledges them with `/oct accept-paths`. Avoid touching these paths; if a fix needs them, describe it in a review comment instead of pushing.
+- Pushes to `.github/`, `.claude/`, `.gitar/`, `scripts/oct_status/`, `.gitignore` and `CLAUDE.md` are held by `oct-status` until a maintainer acknowledges them with `/oct accept-paths`. Avoid touching these paths (moving or renaming a file out of them counts as well); if a fix needs them, describe it in a review comment instead of pushing.

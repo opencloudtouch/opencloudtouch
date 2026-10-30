@@ -295,8 +295,10 @@ Zero or more `wait:*` labels, all orange. "No orange" means nothing blocks.
 | `wait:reporter` | declaration | `/oct needs-info`, or the issue handler asks the reporter | remove the label once the reporter answered |
 | `wait:designer` | declaration | `/oct designer <reason>` | remove the label once the design is there |
 
-The protected paths are listed in `scripts/oct_status/config.yml` (`protected_paths`): `.github/workflows/**`,
-`scripts/oct_status/**`, `.gitar/**`, `.claude/**` and `.gitignore`. A push counts as automation when its
+The protected paths are listed in `scripts/oct_status/config.yml` (`protected_paths`): `.github/**`
+(workflows, the PR and issue templates with the Definition of Ready / Done checklists, `dependabot.yml`),
+`.claude/**` (agent hooks), `.gitar/**`, `scripts/oct_status/**`, `.gitignore` and `CLAUDE.md`. A renamed file
+touches both its old and its new path. A push counts as automation when its
 commit author or committer is an `automation` entry with `pushes: true` (Dependabot, `formatter-bot`,
 `github-actions[bot]` and Gitar, whose commits carry the login `gitar-bot`), so their pushes to these paths
 all need a maintainer's `/oct accept-paths`, also on docs / no-spec pull requests. Human pushes never do;

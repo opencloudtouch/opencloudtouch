@@ -19,3 +19,5 @@ Never auto-apply changes to:
 - `.claude/`
 - `.gitar/`
 - `scripts/oct_status/`
+- `.gitignore`
+- `CLAUDE.md`

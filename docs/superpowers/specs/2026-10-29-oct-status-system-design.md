@@ -303,8 +303,8 @@ Gitar executes commands from comments that start with `gitar` or `@gitar` or tha
 3. Protected paths: Gitar's CI fixes ignore the apply criteria, path exclusions
    are not a documented Gitar setting and its GitHub App can write workflows. A
    push by any automation actor that touches a path from `protected_paths` in
-   `config.yml` (initially `.github/workflows/**`, `scripts/oct_status/**`,
-   `.gitar/**`, `.claude/**`, `.gitignore`) sets `wait:findings` and posts a
+   `config.yml` (`.github/**`, `.claude/**`, `.gitar/**`, `scripts/oct_status/**`,
+   `.gitignore`, `CLAUDE.md`; a rename touches its old path too) sets `wait:findings` and posts a
    comment naming the files. `oct-status` fails until a maintainer acknowledges
    with `/oct accept-paths`. The acknowledgement covers only the head recorded when
    the notice listed the files. The rule applies to any automation actor,

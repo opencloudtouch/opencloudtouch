@@ -50,7 +50,10 @@ CFG = replace(
         (".claude/settings.json", True),
         (".gitignore", True),
         (UNKNOWN_PATHS, True),  # more files than GitHub lists: fail closed
-        (".github/dependabot.yml", False),
+        (".github/dependabot.yml", True),
+        (".github/pull_request_template.md", True),
+        ("CLAUDE.md", True),
+        ("apps/CLAUDE.md", False),
         ("apps/.gitignore", False),
         ("scripts/oct_status_extra/x.py", False),
         ("docs/.claude/x", False),

@@ -48,6 +48,40 @@ def test_gitar_apply_criteria_skip_sensitive_areas():
         assert needle in text, needle
 
 
+def _protected_prefixes() -> list[str]:
+    from oct_status.config import load_config
+
+    patterns = load_config(ROOT / "scripts/oct_status/config.yml").protected_paths
+    return [p.removesuffix("**") for p in patterns]
+
+
+def test_protected_paths_cover_the_files_the_status_system_depends_on():
+    from oct_status.config import load_config
+    from oct_status.rules import touches_protected
+
+    patterns = load_config(ROOT / "scripts/oct_status/config.yml").protected_paths
+    for path in (
+        ".github/workflows/oct-status.yml",
+        ".github/pull_request_template.md",  # the guard and the DoD checklist depend on it
+        ".github/ISSUE_TEMPLATE/task_specification.yml",  # the Definition of Ready checklist
+        ".github/dependabot.yml",
+        ".claude/settings.json",  # registers the hooks
+        ".gitar/rules/oct-status.md",
+        "scripts/oct_status/config.yml",
+        ".gitignore",
+        "CLAUDE.md",
+    ):
+        assert touches_protected([path], patterns) == [path], path
+
+
+def test_gitar_texts_name_every_protected_path():
+    """The Gitar rules and apply criteria list exactly what config.yml protects (one consistent list)."""
+    rules, apply = _read(".gitar/rules/oct-status.md"), _read(".gitar/config/apply.md")
+    for prefix in _protected_prefixes():
+        assert f"`{prefix}`" in rules, prefix
+        assert f"`{prefix}`" in apply, prefix
+
+
 def test_claude_md_status_section():
     text = _read("CLAUDE.md")
     assert "## Status system" in text
