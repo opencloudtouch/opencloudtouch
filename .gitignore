@@ -97,6 +97,7 @@ bugs/
 .claude/
 .mcp.json
 .serena/
+AGENT_HANDOVER.md
 
 # === SECRET Files ===
 doc
