@@ -150,6 +150,11 @@ class Snapshot:
     stack_drift: int | None
     head_is_fork: bool = False
     no_spec_reason: str | None = None  # reason of a `/oct no-spec` by the PR author (design section 11)
+    author_association: str = ""  # GitHub's association of the author (OWNER, CONTRIBUTOR, FIRST_TIME_CONTRIBUTOR, ...)
+    # Current `phase:*` labels whose latest LabeledEvent was written by our own accounts. Only these fact
+    # labels are trusted (rules._declared_floor); a label set by hand is violation V02.
+    bot_phase_labels: frozenset[str] = frozenset()
+    timeline_unknown: bool = False  # the label timeline could not be read (nothing is trusted then)
 
 
 @dataclass(frozen=True)

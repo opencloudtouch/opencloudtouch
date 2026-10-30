@@ -26,6 +26,48 @@ query($owner: String!, $name: String!, $number: Int!) {
 """
 
 
+_LABEL_NODES = "timelineItems(last: 50, itemTypes: [LABELED_EVENT]) { nodes { ... on LabeledEvent { label { name } actor { login } } } }"
+_LABELS_QUERY = (
+    "query($owner: String!, $name: String!, $number: Int!) { repository(owner: $owner, name: $name) {"
+    " issueOrPullRequest(number: $number) { ... on Issue { %s } ... on PullRequest { %s } } } }"
+    % (_LABEL_NODES, _LABEL_NODES)
+)
+
+
+def _is_bot(login: str, cfg: Config) -> bool:
+    """GraphQL reports apps without the ``[bot]`` suffix that REST uses."""
+    return login in cfg.bot_logins or f"{login}[bot]" in cfg.bot_logins
+
+
+async def _bot_phase_labels(
+    api: GitHubApi, number: int, labels: frozenset[str], cfg: Config
+) -> tuple[frozenset[str], bool]:
+    """(current phase labels last written by our own accounts, whether the timeline was unreadable).
+
+    Only the newest 50 label events are read; a label whose event is older is not trusted. Labels
+    renamed by the label sync (`wip` -> `phase:in-progress`) have no event either; the backfill that
+    re-asserts labels (MA-6) gives them one.
+    """
+    phases = {lb for lb in labels if lb.startswith("phase:")}
+    if not phases:
+        return frozenset(), False
+    owner, name = api.repo.split("/", 1)
+    try:
+        data = await api.graphql(_LABELS_QUERY, {"owner": owner, "name": name, "number": number})
+        item = ((data or {}).get("repository") or {}).get("issueOrPullRequest") or {}
+        nodes = (item.get("timelineItems") or {}).get("nodes")
+        if nodes is None:
+            return frozenset(), True
+        latest: dict[str, str] = {}
+        for node in nodes:
+            label, actor = (node or {}).get("label"), (node or {}).get("actor")
+            if label and label.get("name"):
+                latest[label["name"]] = (actor or {}).get("login") or ""
+    except (httpx.HTTPError, RuntimeError, AttributeError, TypeError, KeyError):
+        return frozenset(), True
+    return frozenset(lb for lb in phases if latest.get(lb) and _is_bot(latest[lb], cfg)), False
+
+
 async def _json(api: GitHubApi, path: str) -> Any:
     resp = await api.request("GET", path, params={"per_page": 100})
     resp.raise_for_status()
@@ -186,6 +228,12 @@ async def fetch_snapshot(
         pushes = await _pushes(api, number, cfg)
         unresolved = await _unresolved_threads(api, number) if use_graphql else -1
 
+    current_labels = frozenset(lb["name"] for lb in data.get("labels", []))
+    bot_labels, unknown = (
+        await _bot_phase_labels(api, number, current_labels, cfg)
+        if cfg is not None and use_graphql
+        else (frozenset(), False)
+    )
     return Snapshot(
         number=number,
         is_pr=is_pr,
@@ -196,7 +244,7 @@ async def fetch_snapshot(
         draft=bool(data.get("draft", False)),
         author=author,
         author_permission=await author_permission(api, author) if author else None,
-        labels=frozenset(lb["name"] for lb in data.get("labels", [])),
+        labels=current_labels,
         base_ref=base_ref,
         head_ref=head_ref,
         head_sha=head_sha,
@@ -209,4 +257,7 @@ async def fetch_snapshot(
         pushes=pushes,
         stack_drift=drift,
         head_is_fork=is_fork,
+        author_association=str(data.get("author_association") or ""),
+        bot_phase_labels=bot_labels,
+        timeline_unknown=unknown,
     )

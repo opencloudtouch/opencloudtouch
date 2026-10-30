@@ -94,11 +94,13 @@ def test_declared_phase_is_kept_and_illegal_one_rejected():
         ({"enhancement", "phase:triaged"}, Phase.TRIAGED),
         ({"enhancement", "phase:confirmed"}, Phase.NEW),  # feature requests have no `confirmed`
         ({"bug", "phase:spec-review"}, Phase.NEW),  # foreign phase for the kind
-        ({"bug", "phase:in-review"}, Phase.NEW),  # a fact phase set by hand is not trusted (V02)
-        ({"spec", "phase:in-progress"}, Phase.READY),  # a spec with a complete checklist keeps `ready`
+        ({"bug", "phase:in-review"}, Phase.TRIAGED),  # a fact phase the bot wrote implies at least triaged
+        ({"spec", "phase:in-progress"}, Phase.READY),  # ... and for a spec with a complete checklist `ready`
         ({"bug", "phase:bogus"}, Phase.NEW),
         ({"spec", "phase:triaged"}, Phase.DRAFT),
     ],
 )
 def test_declared_phase_validation_per_kind(labels, phase):
-    assert derive_alone(labels=frozenset(labels), body=TICKED).phase == phase
+    # The bot wrote every label here; a hand-set fact label is covered in test_rules.
+    snap = make_snapshot(labels=frozenset(labels), body=TICKED, bot_phase_labels=frozenset(labels))
+    assert derive(snap, Graph([], {snap.number: snap}, {}), CFG).phase == phase

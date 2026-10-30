@@ -186,6 +186,10 @@ class Workspace:
                     raise
                 self._snaps[number] = None  # dangling reference
             else:
+                if snap.timeline_unknown:
+                    self.warnings.append(
+                        f"WARNING: label history of #{number} unreadable; fact labels are not trusted for its phase"
+                    )
                 self._snaps[number] = await self._with_no_spec(snap)
         return self._snaps[number]
 

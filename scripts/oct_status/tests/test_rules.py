@@ -237,7 +237,7 @@ def test_prerequisite_implements_spec_not_ready():
     assert Wait.PREREQUISITE in run(pr(), draft_spec, edges=implements).waits
     ready_spec = spec(labels=frozenset({"spec", "phase:ready"}))
     assert Wait.PREREQUISITE not in run(pr(), ready_spec, edges=implements).waits
-    in_review = spec(labels=frozenset({"spec", "phase:in-review"}))
+    in_review = spec(labels=frozenset({"spec", "phase:in-review"}), bot_phase_labels=frozenset({"phase:in-review"}))
     assert Wait.PREREQUISITE not in run(pr(), in_review, edges=implements).waits
     unticked = spec(labels=frozenset({"spec", "phase:ready"}), body="## Definition of Ready\n- [ ] Tests named\n")
     assert Wait.PREREQUISITE in run(pr(), unticked, edges=implements).waits
@@ -321,25 +321,46 @@ def test_closed_pr_part_is_ignored_and_wip_label_means_in_progress():
 
 def test_fact_phase_label_keeps_readiness_when_pr_closes():
     implements = (edge(EdgeType.IMPLEMENTS, 10, 5),)
-    in_review = spec(labels=frozenset({"spec", "phase:in-review"}), body=DOR_DONE)
+    bot = frozenset({"phase:in-review"})
+    in_review = spec(labels=frozenset({"spec", "phase:in-review"}), body=DOR_DONE, bot_phase_labels=bot)
     assert run(in_review, pr(state="closed"), edges=implements).phase == Phase.READY
     legacy = spec(labels=frozenset({"spec", "wip"}), body="")
     assert run(legacy).phase == Phase.IN_PROGRESS
     assert Wait.PREREQUISITE not in run(pr(), legacy, edges=implements).waits
+    bug = make_snapshot(
+        number=5, labels=frozenset({"bug", "phase:in-progress"}), bot_phase_labels=frozenset({"phase:in-progress"})
+    )
+    assert run(bug, pr(state="closed"), edges=implements).phase == Phase.TRIAGED
     confirmed = make_snapshot(number=5, labels=frozenset({"bug", "phase:in-review", "phase:confirmed"}))
     assert run(confirmed).phase == Phase.CONFIRMED
 
 
 def test_hand_set_fact_phase_is_not_trusted():
-    """V02 guard: a fact label written by hand grants no readiness floor."""
+    """V02 guard: only fact labels our own accounts wrote grant a floor."""
     request = make_snapshot(number=5, labels=frozenset({"enhancement", "phase:done"}))
     assert run(request).phase == Phase.NEW
     bug = make_snapshot(number=5, labels=frozenset({"bug", "phase:in-progress"}))
     assert run(bug).phase == Phase.NEW
+    # A label the bot wrote earlier but somebody else touched since is not in bot_phase_labels.
+    other = make_snapshot(
+        number=5, labels=frozenset({"bug", "phase:done"}), bot_phase_labels=frozenset({"phase:in-progress"})
+    )
+    assert run(other).phase == Phase.NEW
     draft = spec(labels=frozenset({"spec", "phase:in-review"}), body="## Definition of Ready\n- [ ] Tests named\n")
     assert run(draft).phase == Phase.DRAFT
     implements = (edge(EdgeType.IMPLEMENTS, 10, 5),)
     assert Wait.PREREQUISITE in run(pr(), draft, edges=implements).waits
+
+
+def test_bot_written_fact_label_of_a_spec_needs_a_complete_checklist():
+    """A DoR item added after the bot wrote the label removes the floor (the spec is a draft again)."""
+    bot = frozenset({"phase:in-progress"})
+    later = spec(
+        labels=frozenset({"spec", "phase:in-progress"}),
+        body="## Definition of Ready\n- [x] Problem described\n- [ ] Added later\n",
+        bot_phase_labels=bot,
+    )
+    assert run(later).phase == Phase.DRAFT
 
 
 def test_draft_spec_ignores_pr_facts():

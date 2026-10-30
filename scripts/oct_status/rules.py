@@ -149,16 +149,17 @@ def _declared_floor(snap: Snapshot, kind: Kind) -> Phase:
 
     A fact phase replaces the declaration label (`phase:ready` becomes `phase:in-review`); the floor
     keeps the declaration when the facts go away again, for example when the only PR is closed.
-    A fact label can also be set by hand (violation V02), so it is trusted only where something else
-    backs it up: a spec needs a complete Definition of Ready, and a bug or feature request gets no
-    floor from a label at all. The legacy `wip` label (renamed by the label sync) counts as before.
+    A fact label can also be set by hand (violation V02), so only labels our own accounts wrote
+    (`Snapshot.bot_phase_labels`) count, and a spec additionally needs a complete Definition of
+    Ready. The legacy `wip` label (renamed by the label sync) counts as before.
     """
     declared = _declared_phase(snap, kind)
     floor = _STARTED_FLOOR.get(kind)
     if floor is None:
         return declared
     started = "wip" in snap.labels
-    if kind == Kind.SPEC and set(_labelled(snap, Phase)) & _STARTED and dor_status(snap.body)[0]:
+    written = {p for p in _labelled(snap, Phase) if p.label in snap.bot_phase_labels}
+    if written & _STARTED and (kind != Kind.SPEC or dor_status(snap.body)[0]):
         started = True
     return max(declared, floor, key=_PHASE_ORDER.index) if started else declared
 

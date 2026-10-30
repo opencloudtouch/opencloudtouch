@@ -79,7 +79,7 @@ class FakeRepo:
         path = unquote(request.url.path)
         method = request.method
         body = json.loads(request.content) if request.content else {}
-        if method != "GET":
+        if method != "GET" and not path.endswith("/graphql"):  # GraphQL queries are reads
             self.writes.append((method, path))
         if not path.startswith(ROOT):
             return httpx.Response(404, json={})
