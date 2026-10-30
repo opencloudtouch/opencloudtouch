@@ -91,3 +91,15 @@ def test_claude_md_status_section():
     for needle in ("/oct", "oct-status", "phase", "wait", "resolution", "guide comment", "subagent"):
         assert needle in section, needle
     assert "Never bypass hooks" in text
+
+
+def test_every_gitar_rule_has_the_frontmatter_gitar_expects():
+    """Gitar reads `.gitar/rules/*.md` as rules: YAML frontmatter with title, type, when and actions."""
+    rules = sorted((ROOT / ".gitar" / "rules").glob("*.md"))
+    assert rules
+    for path in rules:
+        text = path.read_text(encoding="utf-8")
+        assert text.startswith("---\n"), path.name
+        header = text.split("\n---\n", 1)[0]
+        for key in ("title:", "type:", "when:", "actions:"):
+            assert key in header, f"{path.name} lacks {key}"
