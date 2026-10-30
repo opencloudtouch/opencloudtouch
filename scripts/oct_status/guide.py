@@ -14,6 +14,7 @@ from .config import Config
 from .model import Derived, EdgeType, Graph, Snapshot, Wait
 from .render import neutralise
 from .rules import detect_kind, dor_status, legal_transitions
+from .violations import RULES, Notice
 
 MAX_STEPS = 5
 WORKFLOW = "https://github.com/opencloudtouch/opencloudtouch/blob/main/docs/WORKFLOW.md"
@@ -113,6 +114,27 @@ def next_steps(snap: Snapshot, derived: Derived, cfg: Config, graph: Graph | Non
     for command in legal_transitions(detect_kind(snap, cfg), derived.phase):
         steps.append(_transition_step(command, snap.body))
     return steps[:MAX_STEPS]
+
+
+def format_notice(notice: Notice, is_pr: bool) -> str:
+    """Guide text of a violation: what happened, what was expected, next steps, the rule anchor and the ladder step.
+
+    Level 1 is advice only, level 2 adds the maintainer override, level 3 and up blocks a pull request
+    or reverts the change on an issue or discussion (the notice only states it; Task 20 enforces it).
+    """
+    v, rule = notice.violation, RULES[notice.violation.rule]
+    link = f"[{v.rule}]({WORKFLOW}#{rule.anchor})"
+    if notice.overridden:
+        return f"{RESOLVED}{link} {rule.title}: overridden by a maintainer and not counted."
+    steps = " ".join(f"`{s}`" if s.startswith("/oct") else s for s in rule.steps)
+    text = f"{link} {rule.title}. {v.hint} Expected: {rule.expected} Next steps: {steps}"
+    if notice.override_hint:
+        text += " A maintainer can override this with `/oct override REASON`."
+    if notice.blocks(is_pr):
+        text += " The check oct-status fails on this pull request until this is fixed or overridden."
+    if notice.revert(is_pr):
+        text += " The offending change is reverted."
+    return text
 
 
 def _section(title: str, lines: list[str]) -> list[str]:

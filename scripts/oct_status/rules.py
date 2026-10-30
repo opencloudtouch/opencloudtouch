@@ -264,6 +264,11 @@ def _spec_ready(spec: Snapshot) -> bool:
     return _declared_floor(spec, Kind.SPEC) in _READY_OR_LATER
 
 
+def spec_is_ready(spec: Snapshot) -> bool:
+    """Public form of `_spec_ready` for the violation detectors."""
+    return _spec_ready(spec)
+
+
 def _prerequisite(snap: Snapshot, graph: Graph, cfg: Config) -> bool:
     blockers = _neighbours(snap, graph, EdgeType.STACKED_ON) + _neighbours(snap, graph, EdgeType.DEPENDS_ON)
     if any(_is_open(s) for s in blockers):

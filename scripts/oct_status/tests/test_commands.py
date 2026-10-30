@@ -359,7 +359,7 @@ async def test_override_and_accept_paths_are_logged():
     snap = make_snapshot(is_pr=True)
     out = await _run("override", "flaky", snap, _derived(Phase.IN_REVIEW), actor="scheilch")
     assert out.ok and out.log == "override by scheilch: flaky"
-    assert "guide only" in out.message and "no effect yet" in out.message
+    assert "override accepted" in out.message
     assert not (await _run("override", "", snap, _derived(Phase.IN_REVIEW))).ok
     out = await _run("accept-paths", "", snap, _derived(Phase.IN_REVIEW), actor="scheilch")
     assert out.ok and out.log == "accept-paths by scheilch"
@@ -631,14 +631,17 @@ async def test_unverifiable_permission_is_reported_in_the_guide():
     await api.aclose()
 
 
-async def test_maintain_role_passes_triage_and_override_is_labelled_not_effective():
+async def test_maintain_role_passes_triage_and_override_is_recorded_and_effective():
     repo = CommandRepo()
     repo.add(6, labels=("bug",))
+    repo.add(99)
+    repo.issues[99].update(title="oct-status ledger", locked=True)
     api = api_for(repo)
     assert (
         await run_event(api, CFG, "issue_comment", comment_event(6, "/oct triage", login="carol"), dry_run=False) == 0
     )
     assert "phase:triaged" in repo.label_names(6)
     await run_event(api, CFG, "issue_comment", comment_event(6, "/oct override why", login="carol"), dry_run=False)
-    assert "no effect yet" in repo.guide(6)
+    assert "recorded and effective" in repo.guide(6)
+    assert any('"kind": "override"' in c["body"] for c in repo.comments[99])
     await api.aclose()

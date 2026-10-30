@@ -16,7 +16,9 @@ import json
 import os
 import re
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -28,11 +30,13 @@ from oct_status.apply import _find_guides, apply_state, is_own_event
 from oct_status.config import Config, load_config
 from oct_status.facts import fetch_snapshot
 from oct_status.graph import build_graph, parse_prose_edges, walk_component
-from oct_status.guide import next_steps, render_guide
+from oct_status.guide import format_notice, next_steps, render_guide
 from oct_status.labels_sync import ensure_ledger_issue, sync_labels
+from oct_status.ledger import Ledger, LedgerError
 from oct_status.model import Derived, Edge, Graph, Snapshot
 from oct_status.render import extract_block, render_block, splice_block
 from oct_status.rules import derive
+from oct_status.violations import EventFacts, classify_actor, detect, escalate
 
 LABELS_SPEC = Path(__file__).resolve().parent / "labels.yml"
 CONFIG_PATH = Path(__file__).resolve().parent / "config.yml"
@@ -325,9 +329,27 @@ class CommandReport:
     message: str
     writes: list[str]
     notes: Notes
+    rejected: str | None = None  # an invalid declaration (violation V07): `/oct <name> was rejected: <why>`
 
 
-async def _handle_command(ws: Workspace, number: int, payload: dict[str, Any], dry_run: bool) -> CommandReport | None:
+def _utcnow() -> datetime:
+    return datetime.now(UTC)
+
+
+async def _open_ledger(ws: Workspace, dry_run: bool, clock: Callable[[], datetime]) -> Ledger:
+    """The ledger on the locked ledger issue (created in write mode when missing)."""
+    try:
+        number = await ensure_ledger_issue(ws.api, dry_run=dry_run)
+    except httpx.HTTPError as exc:
+        raise LedgerError(f"ledger issue lookup failed ({type(exc).__name__})") from exc
+    if number == 0:
+        raise LedgerError("the ledger issue does not exist yet (run the label sync)")
+    return Ledger(ws.api, number, clock, cfg=ws.cfg)
+
+
+async def _handle_command(
+    ws: Workspace, number: int, payload: dict[str, Any], dry_run: bool, clock: Callable[[], datetime] = _utcnow
+) -> CommandReport | None:
     """Parse, authorize and execute the `/oct` command of a new comment; ``None`` if there is none."""
     comment = payload.get("comment")
     if payload.get("action") != "created" or not isinstance(comment, dict) or not isinstance(comment.get("body"), str):
@@ -344,10 +366,15 @@ async def _handle_command(ws: Workspace, number: int, payload: dict[str, Any], d
         await commands.react(ws.api, comment_id, "eyes", dry_run=dry_run)
     allowed, reason = await commands.authorize_detailed(ws.api, actor, cmd, ws.cfg)
     writes: list[str] = []
+    rejected: str | None = None
     if allowed:
         derived = ws.graph().derived.get(number)
         try:
             result = await commands.execute(ws.api, cmd, snap, derived, actor, cfg=ws.cfg, dry_run=dry_run)
+            if not result.ok and cmd.name in commands.DECLARATION_COMMANDS:
+                rejected = f"/oct {cmd.name} was rejected: {result.message}"
+            if result.ok and cmd.name == "override":
+                result = await _record_override(ws, number, actor, cmd.args, result, dry_run, clock)
             if result.ok:
                 writes = await commands.apply_declaration(ws.api, number, result.declare, dry_run=dry_run)
                 writes += result.effects
@@ -362,7 +389,105 @@ async def _handle_command(ws: Workspace, number: int, payload: dict[str, Any], d
         notes: Notes = {number: ([], [f"/oct {cmd.name} by {actor}: {result.message}"])}
     else:
         notes = {number: ([f"/oct {cmd.name} by {actor} was rejected: {result.message}"], [])}
-    return CommandReport(cmd, actor, result.ok, result.message, writes, notes)
+    return CommandReport(cmd, actor, result.ok, result.message, writes, notes, rejected)
+
+
+async def _record_override(
+    ws: Workspace,
+    number: int,
+    actor: str,
+    reason: str,
+    result: commands.Outcome,
+    dry_run: bool,
+    clock: Callable[[], datetime],
+) -> commands.Outcome:
+    """Log `/oct override` in the ledger (never in dry-run); fails closed when the ledger is unwritable."""
+    if dry_run:
+        return commands.Outcome(True, f"would record the override in the ledger (dry-run): {reason}", log=result.log)
+    try:
+        await (await _open_ledger(ws, False, clock)).record_override(actor, number, reason)
+    except LedgerError as exc:
+        return commands.Outcome(False, f"the override could not be recorded in the ledger: {exc}")
+    return commands.Outcome(True, f"override recorded and effective: {reason}", log=result.log)
+
+
+def _event_facts(payload: dict[str, Any], report: CommandReport | None) -> EventFacts:
+    """The actor's own change in this event; every value comes from the untrusted payload and is validated."""
+    sender = _nested(payload, "sender", "login")
+    action = payload.get("action")
+    label = _nested(payload, "label", "name")
+    before = _nested(payload, "changes", "body", "from")
+    return EventFacts(
+        action=action if isinstance(action, str) else "",
+        actor=sender if isinstance(sender, str) and (commands.valid_login(sender) or sender.endswith("[bot]")) else "",
+        label=label if isinstance(label, str) else "",
+        body_before=before if isinstance(before, str) else None,
+        rejected=report.rejected if report is not None else None,
+    )
+
+
+def _merge_notes(first: Notes | None, second: Notes) -> Notes:
+    merged: Notes = dict(first or {})
+    for number, (notices, history) in second.items():
+        old_notices, old_history = merged.get(number, ([], []))
+        merged[number] = ([*old_notices, *notices], [*old_history, *history])
+    return merged
+
+
+async def _violation_notes(
+    ws: Workspace,
+    number: int,
+    payload: dict[str, Any],
+    report: CommandReport | None,
+    dry_run: bool,
+    clock: Callable[[], datetime],
+) -> tuple[Notes, list[str]]:
+    """Detect violations of the event's artifact, count them in the ledger and render the guide notices.
+
+    Fail closed: when the ledger cannot be read nothing is escalated beyond level 1 and nothing is
+    recorded. Before ``strikes_enabled_from`` the ledger is not touched at all.
+    """
+    graph = ws.graph()
+    snap, derived = graph.snapshots.get(number), graph.derived.get(number)
+    if snap is None or derived is None:
+        return {}, []
+    association = _nested(payload, "pull_request", "author_association") or _nested(
+        payload, "issue", "author_association"
+    )
+    actor_class = classify_actor(snap, association if isinstance(association, str) else None, ws.cfg)
+    found = detect(snap, derived, graph, ws.cfg, actor_class, _event_facts(payload, report))
+    if not found:
+        return {}, []
+    ledger: Ledger | None = None
+    lines = ["### Violations", ""]
+    status = "strikes are not active: nothing is recorded"
+    start = ws.cfg.strikes_enabled_from
+    if start is not None and clock().date() >= start:
+        try:
+            ledger = await _open_ledger(ws, dry_run, clock)
+            await ledger.load()  # read the window once, so a failure shows here
+        except LedgerError as exc:
+            ledger, status = None, f"ledger unavailable ({exc}): no escalation beyond level 1, nothing recorded"
+            ws.warnings.append(f"WARNING: {status}")
+        else:
+            status = "dry-run: nothing is recorded" if dry_run else "recorded"
+    notices: list[str] = []
+    for v in found:
+        level, overridden = 0, False
+        if ledger is not None:
+            pairs = {(w.artifact, w.rule) for w in found if w.user == v.user}
+            level = await ledger.level_after(v.user, pairs)
+            overridden = await ledger.is_overridden(v.user, v.artifact, v.rule)
+            if not dry_run and not overridden:
+                try:
+                    await ledger.record(v)
+                except LedgerError as exc:
+                    ws.warnings.append(f"WARNING: violation {v.rule} not recorded: {exc}")
+        notice = escalate(v, level, overridden)
+        notices.append(format_notice(notice, snap.is_pr))
+        flags = " blocks" if notice.blocks(snap.is_pr) else " revert" if notice.revert(snap.is_pr) else ""
+        lines.append(f"- {_inline(v.rule)} by {_inline(v.user)}: level {notice.level}{flags}; {status}")
+    return {number: (notices, [])}, [*lines, ""]
 
 
 def _command_lines(report: CommandReport, dry_run: bool) -> list[str]:
@@ -375,7 +500,14 @@ def _command_lines(report: CommandReport, dry_run: bool) -> list[str]:
     return lines
 
 
-async def run_event(api: GitHubApi, cfg: Config, event_name: str, payload: dict[str, Any], dry_run: bool) -> int:
+async def run_event(
+    api: GitHubApi,
+    cfg: Config,
+    event_name: str,
+    payload: dict[str, Any],
+    dry_run: bool,
+    clock: Callable[[], datetime] = _utcnow,
+) -> int:
     """Process one webhook event: recompute the artifact and its connected component (capped)."""
     if is_own_event(event_name, payload, set(cfg.bot_logins)):
         print("ignored: event caused by our own write")
@@ -390,10 +522,12 @@ async def run_event(api: GitHubApi, cfg: Config, event_name: str, payload: dict[
     ws = Workspace(api, cfg)
     component = await walk_component(number, ws.neighbors, cfg.fan_out_cap)
     targets = [number, *sorted(component - {number})]
-    report = await _handle_command(ws, number, payload, dry_run) if event_name == "issue_comment" else None
-    outcomes = await _converge(ws, targets, dry_run, report.notes if report else None)
+    report = await _handle_command(ws, number, payload, dry_run, clock) if event_name == "issue_comment" else None
+    violation_notes, violation_lines = await _violation_notes(ws, number, payload, report, dry_run, clock)
+    outcomes = await _converge(ws, targets, dry_run, _merge_notes(report.notes if report else None, violation_notes))
     mode = "dry-run" if dry_run else "write"
     summary = [f"## OCT status ({mode}): event `{event_name}` on #{number}", "", *_warning_lines(ws), ""]
+    summary += violation_lines
     if report is not None:
         summary += _command_lines(report, dry_run)
     for outcome in outcomes:

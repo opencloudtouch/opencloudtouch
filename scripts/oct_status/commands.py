@@ -32,10 +32,9 @@ COMMANDS = frozenset(MAINTAINER_COMMANDS | {"review", "rework", "ready", "approv
 # Commands whose argument is a mandatory free-text reason or note.
 _NEEDS_TEXT = frozenset({"rework", "verified", "designer", "no-spec", "override"})
 
-_NOT_EFFECTIVE = {
-    "override": "recorded in the guide only; it has no effect yet",
-    "accept-paths": "recorded in the guide only; it has no effect yet",
-}
+# Commands that declare a state; a rejected one is an invalid declaration (violation V07).
+DECLARATION_COMMANDS = frozenset({"review", "rework", "ready", "triage", "confirm"})
+_NOT_EFFECTIVE = {"accept-paths": "recorded in the guide only; it has no effect yet"}
 _LOGIN = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})")
 _FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 _COMMAND = re.compile(r"^ {0,3}/oct(?:[ \t]+([A-Za-z][A-Za-z-]*))?(?:[ \t]+(.*))?$", re.IGNORECASE)
@@ -242,9 +241,10 @@ async def execute(
         if snap.state == "open":
             return _reject("Close the artifact first: a resolution applies to closed artifacts only")
         return Outcome(True, f"superseded by #{ref[1]}", _declare(snap, ["resolution:superseded"], keep_phase=True))
-    # override and accept-paths: logged only until the ledger (Task 13) and protected paths (Task 14) use them
+    # override is written to the ledger by the caller; accept-paths is logged only until protected paths (Task 14)
     detail = f": {cmd.args}" if cmd.args else ""
-    return Outcome(True, _NOT_EFFECTIVE[name], log=f"{name} by {actor}{detail}")
+    message = f"override accepted: {cmd.args}" if name == "override" else _NOT_EFFECTIVE[name]
+    return Outcome(True, message, log=f"{name} by {actor}{detail}")
 
 
 async def apply_declaration(api: GitHubApi, number: int, declare: dict[str, list[str]], *, dry_run: bool) -> list[str]:
