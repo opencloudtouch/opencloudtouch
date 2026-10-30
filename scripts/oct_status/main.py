@@ -210,6 +210,7 @@ class Workspace:
         self.acceptances: dict[int, Acceptance] = {}  # `/oct accept-paths` accepted in this run
         self.guide_bodies: dict[int, str | None] = {}  # guide body as read (None: no guide yet)
         self.corrupt: set[int] = set()  # guide data missing, oversized or invalid
+        self.revert_failures: dict[int, list[str]] = {}  # level-3 reverts GitHub refused (guide notes)
 
     async def open_items(self) -> list[dict[str, Any]]:
         """All open issues and pull requests, bodies included (one paged listing)."""
@@ -844,8 +845,18 @@ async def _reopen(ws: Workspace, number: int, dry_run: bool) -> list[str]:
     if ws.states.get(number) is None:
         return []
     if not dry_run and not ws.api.read_only:
-        resp = await ws.api.request("PATCH", f"/issues/{number}", json={"state": "open", "state_reason": "reopened"})
-        resp.raise_for_status()
+        try:
+            resp = await ws.api.request(
+                "PATCH", f"/issues/{number}", json={"state": "open", "state_reason": "reopened"}
+            )
+            resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            code = exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) else type(exc).__name__
+            ws.warnings.append(f"WARNING: issue #{number} was not reopened (HTTP {code}); the V08 revert failed")
+            ws.revert_failures.setdefault(number, []).append(
+                f"The automation could not reopen the issue (HTTP {code}); reopen it by hand."
+            )
+            return []
     ws.patch(number, [], [], state="open")
     return ["revert: reopen the issue (V08, level 3)"]
 
@@ -890,9 +901,13 @@ async def run_event(
     report = await _handle_command(ws, number, payload, dry_run, clock) if event_name == "issue_comment" else None
     violations = await _violation_notes(ws, number, payload, report, dry_run, clock)
     reverted = await _revert(ws, number, violations.reverts, dry_run)
+    notes: Notes = dict(report.notes) if report else {}
+    for failed, texts in ws.revert_failures.items():
+        notices, history = notes.get(failed, ([], []))
+        notes[failed] = ([*texts, *notices], history)
     ctx = RunContext(
         clock(),
-        notes=report.notes if report else {},
+        notes=notes,
         found={number: violations.records},
         accepted={number: {report.command.name}} if report and report.ok else {},
     )

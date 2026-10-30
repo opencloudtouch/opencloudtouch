@@ -321,6 +321,43 @@ async def test_level3_v08_resolves_when_overridden_and_is_not_reverted_again():
     assert reopen_patches(repo) == [5] and repo.issues[5]["state"] == "closed"
 
 
+async def test_level3_v08_reopen_refused_is_a_warning_and_the_run_goes_on(monkeypatch, tmp_path):
+    summary = tmp_path / "summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    repo = Repo()
+    seed(repo, "bob", [(1, "V08"), (2, "V08")])
+    event = verification_issue(repo)
+    real = repo.handler
+
+    def refuse_reopen(request: httpx.Request) -> httpx.Response:
+        if request.method == "PATCH" and request.url.path.endswith("/issues/5") and b'"state"' in request.content:
+            return httpx.Response(403, json={"message": "Resource not accessible"})
+        return real(request)
+
+    repo.handler = refuse_reopen  # type: ignore[method-assign]
+    await run(repo, "issues", event)  # does not raise
+    assert repo.issues[5]["state"] == "closed"
+    assert "could not reopen the issue (HTTP 403)" in repo.guide(5)
+    assert open_rules(repo, 5) == ["V08"]
+    assert "WARNING: issue #5 was not reopened (HTTP 403)" in summary.read_text(encoding="utf-8")
+
+
+async def test_level3_v08_is_not_reopened_when_the_guide_is_unreadable():
+    repo = Repo()
+    seed(repo, "bob", [(1, "V08"), (2, "V08")])
+    event = verification_issue(repo)
+    real = repo.handler
+
+    def no_comments(request: httpx.Request) -> httpx.Response:
+        if request.method == "GET" and request.url.path.endswith("/issues/5/comments"):
+            return httpx.Response(500, json={})
+        return real(request)
+
+    repo.handler = no_comments  # type: ignore[method-assign]
+    await run(repo, "issues", event)
+    assert reopen_patches(repo) == [] and repo.issues[5]["state"] == "closed"
+
+
 async def test_level3_v08_dry_run_writes_nothing():
     repo = Repo()
     seed(repo, "bob", [(1, "V08"), (2, "V08")])

@@ -1189,7 +1189,8 @@ the issue was reopened because it was closed without hardware verification. The 
 the hardware test is verified (`/oct verified`) or a maintainer overrides it with `/oct override REASON`.
 Closing the issue again re-triggers V08 and reopens it again, but the same artifact and rule count once in the
 ledger. Only issues are reverted, never pull requests. Nothing is reopened in a dry run, with a read-only
-token, before `strikes_enabled_from`, or when the ledger or the guide comment cannot be read.
+token, before `strikes_enabled_from`, or when the ledger or the guide comment cannot be read. If GitHub
+refuses the reopening, the guide says so (reopen the issue by hand) and the run goes on.
 
 **Wrong:** closing a bug in `verification` with "should work now".
 
