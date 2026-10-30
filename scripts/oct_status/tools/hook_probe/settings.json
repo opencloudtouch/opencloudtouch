@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/oct_status/tools/hook_probe/hook_probe.py\""
+            "command": "python \"$CLAUDE_PROJECT_DIR/scripts/oct_status/tools/hook_probe/hook_probe.py\""
           }
         ]
       }

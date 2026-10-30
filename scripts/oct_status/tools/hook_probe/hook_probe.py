@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import json
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-LOG = Path("/tmp/hook-probe.log")
+LOG = Path(tempfile.gettempdir()) / "hook-probe.log"  # portable: /tmp does not exist on Windows
 
 
 def main() -> int:
@@ -26,6 +27,7 @@ def main() -> int:
     }
     with LOG.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(line) + "\n")
+    print(f"hook-probe log: {LOG}", file=sys.stderr)
     print(
         json.dumps(
             {
