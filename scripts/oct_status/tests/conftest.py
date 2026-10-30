@@ -46,6 +46,8 @@ class FixtureTransport(httpx.MockTransport):
         value = self.routes[key]
         if callable(value):  # synthetic route that looks at the request (e.g. paging)
             value = value(request)
+        if isinstance(value, httpx.Response):  # synthetic route that needs headers (e.g. a Link header)
+            return value
         if isinstance(value, tuple):
             status, body = value
             return httpx.Response(status, json=body)

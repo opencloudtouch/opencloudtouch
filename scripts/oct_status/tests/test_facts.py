@@ -260,3 +260,73 @@ async def test_commit_files_limit_adds_unknown_sentinel():
     assert len(paths) == 3001
     assert paths[:3000] == tuple(f"f{i}.py" for i in range(3000))
     assert paths[-1] == UNKNOWN_PATHS
+
+
+def _review(n: int, user: str, state: str = "COMMENTED") -> dict:
+    return {"id": n, "user": {"login": user}, "state": state, "commit_id": "abc", "author_association": "MEMBER"}
+
+
+def _paged_route(items: list[dict], key: str | None = None, link: bool = True):
+    """A listing served 100 per page, with GitHub's Link header (rel="last") unless `link` is off."""
+    seen: list[int] = []
+
+    def route(request: httpx.Request) -> httpx.Response:
+        page, size = int(request.url.params.get("page", "1")), int(request.url.params.get("per_page", "30"))
+        seen.append(page)
+        chunk = items[(page - 1) * size : page * size]
+        last = max(1, -(-len(items) // size))
+        headers = {"link": f'<https://api.github.com{request.url.path}?per_page={size}&page={last}>; rel="last"'}
+        body = {"total_count": len(items), key: chunk} if key else chunk
+        return httpx.Response(200, json=body, headers=headers if link and last > 1 else {})
+
+    return route, seen
+
+
+async def test_more_than_100_reviews_are_all_read_and_the_latest_verdict_counts():
+    reviews = [_review(n, "bob") for n in range(150)] + [_review(150, "bob", "APPROVED")]
+    route, seen = _paged_route(reviews)
+    extra = {f"GET {BASE}/pulls/574/reviews": route}
+    warnings: list[str] = []
+    snap = await fetch_snapshot(_api(FixtureTransport([574], extra=extra)), 574, use_graphql=False, warnings=warnings)
+    assert len(snap.reviews) == 151 and snap.reviews[-1].state == "APPROVED"
+    assert sorted(seen) == [1, 2] and warnings == []
+
+
+async def test_review_pages_beyond_the_cap_keep_the_newest_and_warn():
+    from oct_status import facts
+
+    reviews = [_review(n, f"u{n % 7}") for n in range(facts.MAX_LIST_PAGES * 100 + 250)]
+    reviews[-1] = _review(len(reviews), "carol", "APPROVED")  # the newest review is on the last page
+    route, seen = _paged_route(reviews)
+    warnings: list[str] = []
+    snap = await fetch_snapshot(
+        _api(FixtureTransport([574], extra={f"GET {BASE}/pulls/574/reviews": route})),
+        574,
+        use_graphql=False,
+        warnings=warnings,
+    )
+    assert len(seen) == facts.MAX_LIST_PAGES and max(seen) == facts.MAX_LIST_PAGES + 3
+    assert snap.reviews[-1].user == "carol" and snap.reviews[-1].state == "APPROVED"
+    assert warnings == [f"WARNING: reviews of #574 exceed {facts.MAX_LIST_PAGES} pages; only the newest are read"]
+
+
+async def test_pages_without_link_header_are_followed_until_a_short_page():
+    reviews = [_review(n, "bob") for n in range(230)]
+    route, seen = _paged_route(reviews, link=False)
+    snap = await fetch_snapshot(
+        _api(FixtureTransport([574], extra={f"GET {BASE}/pulls/574/reviews": route})), 574, use_graphql=False
+    )
+    assert len(snap.reviews) == 230 and seen == [1, 2, 3]
+
+
+async def test_more_than_100_check_runs_are_all_read():
+    transport = FixtureTransport([574])
+    sha = transport.routes[f"GET {BASE}/pulls/574"]["head"]["sha"]
+    runs = [
+        {"name": f"job {n}", "status": "completed", "conclusion": "success", "app": {"slug": "x"}} for n in range(140)
+    ]
+    runs.append({"name": "Gitar", "status": "completed", "conclusion": "failure", "app": {"slug": "gitar"}})
+    route, seen = _paged_route(runs, key="check_runs")
+    transport.routes[f"GET {BASE}/commits/{sha}/check-runs"] = route
+    snap = await fetch_snapshot(_api(transport), 574, use_graphql=False)
+    assert len(snap.checks) == 141 and snap.checks[-1].name == "Gitar" and sorted(seen) == [1, 2]

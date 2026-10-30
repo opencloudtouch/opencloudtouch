@@ -213,7 +213,7 @@ class Workspace:
         if number not in self._snaps:
             heads = frozenset(p["head"]["ref"] for p in await self.open_prs())
             try:
-                snap = await fetch_snapshot(self.api, number, open_pr_heads=heads, cfg=self.cfg)
+                snap = await fetch_snapshot(self.api, number, open_pr_heads=heads, cfg=self.cfg, warnings=self.warnings)
             except httpx.HTTPStatusError as exc:
                 if exc.response.status_code != 404:
                     raise

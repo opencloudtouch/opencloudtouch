@@ -6,6 +6,7 @@ Also fills pushes (PR commits), native sub-issues and blocked-by relations.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import httpx
@@ -80,6 +81,51 @@ async def _json(api: GitHubApi, path: str) -> Any:
     resp = await api.request("GET", path, params={"per_page": 100})
     resp.raise_for_status()
     return resp.json()
+
+
+MAX_LIST_PAGES = 10  # pages of 100 per listing (reviews, check runs); beyond that only the newest are read
+_LAST = re.compile(r'[?&]page=(\d+)[^>]*>;\s*rel="last"')
+
+
+def _items(resp: httpx.Response, key: str | None) -> list[Any]:
+    resp.raise_for_status()
+    data = resp.json()
+    return list((data or {}).get(key) or []) if key else list(data or [])
+
+
+async def _listing(
+    api: GitHubApi, path: str, what: str, key: str | None = None, warnings: list[str] | None = None
+) -> list[Any]:
+    """Every page of a chronological listing (100 per page), oldest first.
+
+    GitHub names the last page in the ``Link`` header; when there are more than ``MAX_LIST_PAGES``
+    pages, page 1 and the newest pages are read (the latest review of every user and the newest check
+    runs are what the rules need) and `warnings` says so. Without a ``Link`` header pages are followed
+    until a short one, up to the same cap.
+    """
+
+    async def page(n: int) -> httpx.Response:
+        return await api.request("GET", path, params={"per_page": 100, "page": n})
+
+    first = await page(1)
+    items = _items(first, key)
+    match = _LAST.search(first.headers.get("link", ""))
+    if match:
+        last = int(match[1])
+        start = max(2, last - MAX_LIST_PAGES + 2)
+        if start > 2 and warnings is not None:
+            warnings.append(f"WARNING: {what} exceed {MAX_LIST_PAGES} pages; only the newest are read")
+        for n in range(start, last + 1):
+            items += _items(await page(n), key)
+        return items
+    batch, n = items, 1
+    while len(batch) >= 100 and n < MAX_LIST_PAGES:
+        n += 1
+        batch = _items(await page(n), key)
+        items += batch
+    if len(batch) >= 100 and warnings is not None:
+        warnings.append(f"WARNING: {what} exceed {MAX_LIST_PAGES} pages; later ones are not read")
+    return items
 
 
 async def author_permission(api: GitHubApi, user: str) -> str | None:
@@ -197,7 +243,9 @@ async def fetch_snapshot(
     use_graphql: bool = True,
     open_pr_heads: frozenset[str] | None = None,
     cfg: Config | None = None,
+    warnings: list[str] | None = None,
 ) -> Snapshot:
+    """Facts of `number`; incomplete listings (more pages than the cap) are reported in `warnings`."""
     resp = await api.request("GET", f"/pulls/{number}")
     is_pr = resp.status_code != 404
     if is_pr:
@@ -228,9 +276,10 @@ async def fetch_snapshot(
                 r.get("commit_id") or "",
                 r.get("author_association") or "",
             )
-            for r in await _json(api, f"/pulls/{number}/reviews")
+            for r in await _listing(api, f"/pulls/{number}/reviews", f"reviews of #{number}", warnings=warnings)
         )
-        runs = (await _json(api, f"/commits/{head_sha}/check-runs"))["check_runs"]
+        what = f"check runs of #{number}"
+        runs = await _listing(api, f"/commits/{head_sha}/check-runs", what, "check_runs", warnings)
         checks = tuple(
             Check(c["name"], c["status"], c.get("conclusion"), (c.get("app") or {}).get("slug", "")) for c in runs
         )
