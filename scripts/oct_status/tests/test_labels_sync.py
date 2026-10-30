@@ -9,6 +9,7 @@ from urllib.parse import unquote
 
 import httpx
 import pytest
+import yaml
 
 from oct_status.api import GitHubApi
 from oct_status.labels_sync import LedgerIssueError, ensure_ledger_issue, sync_labels
@@ -404,3 +405,42 @@ async def test_migration_retries_on_rate_limit():
     await sync_labels(api, SPEC)
     assert state["limited"] and fake.issues[0]["labels"] == ["wait:reporter"]
     assert "needs-info" not in fake.labels
+
+
+async def test_migration_tolerates_labels_already_gone():
+    """A label removed (or deleted) by someone else between the listing and the write is not an error."""
+    fake, api = make({"needs-info": lab("needs-info"), "wait:reporter": lab("wait:reporter")})
+    labelled(fake, [5, 6], "needs-info")
+    orig = fake.handler
+
+    def gone(request: httpx.Request) -> httpx.Response:
+        path = unquote(request.url.path)
+        if request.method == "DELETE" and path in (f"{ROOT}/issues/5/labels/needs-info", f"{ROOT}/labels/needs-info"):
+            fake.writes.append(("DELETE", path))
+            return httpx.Response(404, json={"message": "Label does not exist"})
+        return orig(request)
+
+    async def no_sleep(_: float) -> None:
+        return None
+
+    api = GitHubApi("t", REPO, transport=httpx.MockTransport(gone), sleep=no_sleep)
+    ops = await sync_labels(api, SPEC)
+    assert sum(op.startswith("move needs-info") for op in ops) == 2
+    assert fake.issues[1]["labels"] == ["wait:reporter"]
+    assert ("DELETE", f"{ROOT}/labels/needs-info") in fake.writes
+
+
+async def test_label_names_are_compared_case_insensitively():
+    color = next(e["color"] for e in yaml.safe_load(SPEC.read_text(encoding="utf-8"))["labels"] if e["name"] == "spec")
+    fake, api = make(
+        {"SPEC": lab("SPEC", "000000", "Spec"), "Needs-Info": lab("Needs-Info"), "Wait:Reporter": lab("Wait:Reporter")}
+    )
+    labelled(fake, [5], "Needs-Info")
+    ops = await sync_labels(api, SPEC)
+    assert "spec" not in fake.labels and fake.labels["SPEC"]["color"] == str(color).lower()
+    assert ("PATCH", f"{ROOT}/labels/SPEC") in fake.writes
+    assert "wait:reporter" not in fake.labels and "Needs-Info" not in fake.labels  # migrated, not duplicated
+    assert fake.issues[0]["labels"] == ["Wait:Reporter"]
+    assert not any(op == "create spec" or op == "create wait:reporter" for op in ops)
+    fake.writes.clear()
+    assert [op for op in await sync_labels(api, SPEC) if "spec" in op.lower() or "reporter" in op] == []

@@ -337,3 +337,32 @@ async def test_guide_without_marker_gets_exactly_one():
     assert await upsert_guide(api, 1, "plain text", CFG.bot_logins) == "unchanged"
     assert fake.comments[0]["body"].count(MARKER) == 1
     await api.aclose()
+
+
+async def test_label_names_are_compared_case_insensitively():
+    """GitHub treats label names case-insensitively: a differently spelled label is not churned."""
+    fake = FakeGitHub(labels={"Phase:In-Review", "WAIT:CI", "Wait:Maintainer"})
+    out = await converge(fake)
+    assert not any("add labels" in o for o in out)
+    assert [o for o in out if "remove label" in o] == ["remove label Wait:Maintainer"]
+    assert fake.labels == {"Phase:In-Review", "WAIT:CI"}
+    assert not any(m == "POST" and p.endswith("/labels") for m, p in fake.writes)
+
+
+async def test_label_removal_answered_404_is_tolerated():
+    """The label was removed by someone else meanwhile: the goal is reached, the run continues."""
+    fake = FakeGitHub(labels={"phase:ready"}, body="Hello")
+    orig = fake.handler
+
+    def gone(request: httpx.Request) -> httpx.Response:
+        if request.method == "DELETE" and "/labels/" in request.url.path:
+            fake.writes.append(("DELETE", request.url.path))
+            return httpx.Response(404, json={"message": "Label does not exist"})
+        return orig(request)
+
+    api = GitHubApi("t", REPO, transport=httpx.MockTransport(gone), sleep=_nosleep)
+    snap = snap_of(fake)
+    out = await apply_state(api, snap, DERIVED, block_for(snap), GUIDE, CFG)
+    await api.aclose()
+    assert "remove label phase:ready" in out
+    assert "update status block in body" in out and fake.comments  # later writes still happen

@@ -112,14 +112,19 @@ async def upsert_guide(
 
 
 async def _sync_labels(api: GitHubApi, snap: Snapshot, derived: Derived, dry_run: bool) -> list[str]:
-    want = desired_labels(derived)
-    current = set(snap.labels)
-    add = sorted(want - current)
-    remove = sorted(label for label in current - want if label.startswith(OWNED_PREFIXES))
+    """Add the missing owned labels and remove the stale ones.
+
+    Names are compared case-insensitively, as GitHub does, so ``Phase:Ready`` is ``phase:ready`` and
+    never churned. Removing a label that is already gone (404) counts as done.
+    """
+    want = {label.casefold(): label for label in desired_labels(derived)}
+    current = {label.casefold(): label for label in snap.labels}
+    add = sorted(label for key, label in want.items() if key not in current)
+    remove = sorted(label for key, label in current.items() if key not in want and key.startswith(OWNED_PREFIXES))
     if snap.timeline_unknown:
         # The phase was derived without trusting any fact label; never rewrite the phase from that.
-        add = [lb for lb in add if not lb.startswith("phase:")]
-        remove = [lb for lb in remove if not lb.startswith("phase:")]
+        add = [lb for lb in add if not lb.casefold().startswith("phase:")]
+        remove = [lb for lb in remove if not lb.casefold().startswith("phase:")]
     done: list[str] = []
     if add:
         if not dry_run:
@@ -127,7 +132,9 @@ async def _sync_labels(api: GitHubApi, snap: Snapshot, derived: Derived, dry_run
         done.append(f"add labels {', '.join(add)}")
     for name in remove:
         if not dry_run:
-            await _check(await api.request("DELETE", f"/issues/{snap.number}/labels/{quote(name, safe='')}"))
+            resp = await api.request("DELETE", f"/issues/{snap.number}/labels/{quote(name, safe='')}")
+            if resp.status_code != 404:
+                await _check(resp)
         done.append(f"remove label {name}")
     return done
 

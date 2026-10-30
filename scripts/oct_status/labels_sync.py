@@ -32,6 +32,8 @@ async def _paginate(api: GitHubApi, path: str, **params: Any) -> list[dict[str, 
 
 async def _write(api: GitHubApi, method: str, path: str, **kw: Any) -> None:
     resp = await api.request(method, path, **kw)
+    if method == "DELETE" and resp.status_code == 404:
+        return  # already gone (removed by someone else meanwhile): the goal is reached
     resp.raise_for_status()
 
 
@@ -48,26 +50,34 @@ async def _fetch_issue(api: GitHubApi, number: int) -> dict[str, Any]:
 
 
 async def sync_labels(api: GitHubApi, spec_path: Path, dry_run: bool = False) -> list[str]:
-    """Bring the repository labels in line with the spec; return performed or planned operations."""
+    """Bring the repository labels in line with the spec; return performed or planned operations.
+
+    Label names are compared case-insensitively, as GitHub does: an existing ``SPEC`` is the spec's
+    ``spec`` (recoloured if needed, never created twice) and keeps its spelling.
+    """
     entries = (yaml.safe_load(spec_path.read_text(encoding="utf-8")) or {}).get("labels", [])
-    current = {label["name"]: label for label in await _paginate(api, "/labels")}
+    current = {label["name"].casefold(): label for label in await _paginate(api, "/labels")}
     ops: list[str] = []
     for entry in entries:
         name: str = entry["name"]
         color: str = entry["color"].lower()
         description: str | None = entry.get("description")
-        old = entry.get("rename_from")
-        if name in current and old and old in current:
-            ops.append(f"delete {old} after migrating its items to {name}")
+        old_entry = current.get(entry["rename_from"].casefold()) if entry.get("rename_from") else None
+        old = old_entry["name"] if old_entry else None
+        key = name.casefold()
+        if key in current and old:
+            target = current[key]["name"]
+            ops.append(f"delete {old} after migrating its items to {target}")
             for number in await _carrying(api, old):
-                ops.append(f"move {old} -> {name} on #{number}")
+                ops.append(f"move {old} -> {target} on #{number}")
                 if not dry_run:
-                    await _write(api, "POST", f"/issues/{number}/labels", json={"labels": [name]})
+                    await _write(api, "POST", f"/issues/{number}/labels", json={"labels": [target]})
                     await _write(api, "DELETE", f"/issues/{number}/labels/{quote(old, safe='')}")
             if not dry_run:
                 await _write(api, "DELETE", f"/labels/{quote(old, safe='')}")
-        if name in current:
-            existing = current[name]
+        if key in current:
+            existing = current[key]
+            name = existing["name"]
             changes: dict[str, str] = {}
             if (existing.get("color") or "").lower() != color:
                 changes["color"] = color
@@ -78,7 +88,7 @@ async def sync_labels(api: GitHubApi, spec_path: Path, dry_run: bool = False) ->
                 if not dry_run:
                     await _write(api, "PATCH", f"/labels/{quote(name, safe='')}", json=changes)
             continue
-        if old and old in current:
+        if old:
             payload: dict[str, str] = {"new_name": name, "color": color}
             if description is not None:
                 payload["description"] = description
