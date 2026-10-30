@@ -299,3 +299,14 @@ async def test_ledger_issue_by_a_stranger_is_ignored_and_configured_number_is_ve
     _, api = planted("oct-support")
     with pytest.raises(httpx.HTTPStatusError):
         await ensure_ledger_issue(api, bot_logins=bots, configured=42)  # does not exist
+
+
+async def test_phase_confirmed_is_described_as_the_bug_phase_and_updated_once():
+    """`confirmed` is the bug phase (`/oct confirm`); an outdated description is updated, then nothing."""
+    fake, api = make({"phase:confirmed": lab("phase:confirmed", "7ba3ec", "Specification confirmed")})
+    await sync_labels(api, SPEC)
+    assert fake.labels["phase:confirmed"]["description"] == "Bug reproduced and confirmed by a maintainer"
+    assert ("PATCH", f"{ROOT}/labels/phase:confirmed") in fake.writes
+    fake.writes.clear()
+    assert await sync_labels(api, SPEC) == []
+    assert fake.writes == []

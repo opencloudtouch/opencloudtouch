@@ -19,7 +19,7 @@ labels:
     description: "Specification needs rework after review"
   - name: "phase:confirmed"
     color: "7ba3ec"
-    description: "Specification confirmed"
+    description: "Bug reproduced and confirmed by a maintainer"
   - name: "phase:ready"
     color: "5b8ee6"
     description: "Ready for implementation"
