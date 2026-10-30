@@ -292,6 +292,20 @@ async def test_real_commit_shapes_from_the_gitar_experiment():
     ]
 
 
+async def test_renamed_files_list_the_previous_path_too():
+    """Moving a file OUT of a protected path touches that path."""
+    files = [
+        {"filename": "docs/ci.yml", "previous_filename": ".github/workflows/ci.yml", "status": "renamed"},
+        {"filename": "a.py", "status": "modified"},
+    ]
+    extra = {
+        f"GET {BASE}/pulls/574/commits": [_gitar_commit("b2")],
+        f"GET {BASE}/commits/b2": {"files": files},
+    }
+    snap = await fetch_snapshot(_api(FixtureTransport([574], extra=extra)), 574, use_graphql=False, cfg=_cfg())
+    assert snap.pushes[0].paths == ("docs/ci.yml", ".github/workflows/ci.yml", "a.py")
+
+
 def _files_route(total):
     names = [f"f{i}.py" for i in range(total)]
 

@@ -157,7 +157,7 @@ UNKNOWN_PATHS = "<more-files-not-listed>"
 
 
 async def _commit_paths(api: GitHubApi, sha: str) -> tuple[str, ...]:
-    """Changed file paths of a commit, paged; HTTP errors propagate (fail closed).
+    """Changed file paths of a commit (a renamed file with its previous path), paged; HTTP errors propagate.
 
     When 30 full pages were read, ``UNKNOWN_PATHS`` is appended as the last item: later rules
     must treat it as touching a protected path.
@@ -167,7 +167,10 @@ async def _commit_paths(api: GitHubApi, sha: str) -> tuple[str, ...]:
         resp = await api.request("GET", f"/commits/{sha}", params={"per_page": 100, "page": page})
         resp.raise_for_status()
         files = resp.json().get("files") or []
-        paths.extend(f["filename"] for f in files)
+        for item in files:
+            paths.append(item["filename"])
+            if item.get("previous_filename"):  # a rename also touches the path it moved away from
+                paths.append(item["previous_filename"])
         if len(files) < 100:
             return tuple(paths)
     return (*paths, UNKNOWN_PATHS)
