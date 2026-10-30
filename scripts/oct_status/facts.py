@@ -53,10 +53,31 @@ async def _stack_drift(api: GitHubApi, base: str, head: str, open_pr_heads: froz
 
 
 _MAX_COMMIT_PAGES = 30  # safety bound against a server that ignores `page`
+_MAX_FILE_PAGES = 30  # GitHub lists at most 3000 files per commit
+UNKNOWN_PATHS = "<more-files-not-listed>"
+
+
+async def _commit_paths(api: GitHubApi, sha: str) -> tuple[str, ...]:
+    """Changed file paths of a commit, paged; HTTP errors propagate (fail closed).
+
+    When 30 full pages were read, ``UNKNOWN_PATHS`` is appended as the last item: later rules
+    must treat it as touching a protected path.
+    """
+    paths: list[str] = []
+    for page in range(1, _MAX_FILE_PAGES + 1):
+        resp = await api.request("GET", f"/commits/{sha}", params={"per_page": 100, "page": page})
+        resp.raise_for_status()
+        files = resp.json().get("files") or []
+        paths.extend(f["filename"] for f in files)
+        if len(files) < 100:
+            return tuple(paths)
+    return (*paths, UNKNOWN_PATHS)
 
 
 async def _pushes(api: GitHubApi, number: int, cfg: Config | None) -> tuple[Push, ...]:
     """One Push per commit of the PR, oldest first; at most the newest 100 commits.
+
+    GitHub's PR commits endpoint itself lists at most 250 commits. HTTP errors propagate.
 
     Author is the commit author login, else the committer login, else the git author name.
     File paths are fetched (``GET /commits/{sha}``) only for authors that are keys of
@@ -65,8 +86,6 @@ async def _pushes(api: GitHubApi, number: int, cfg: Config | None) -> tuple[Push
     commits: list[dict[str, Any]] = []
     for page in range(1, _MAX_COMMIT_PAGES + 1):
         resp = await api.request("GET", f"/pulls/{number}/commits", params={"per_page": 100, "page": page})
-        if resp.status_code == 404:  # route not recorded/available: no push information
-            break
         resp.raise_for_status()
         batch = resp.json()
         commits.extend(batch)
@@ -82,10 +101,7 @@ async def _pushes(api: GitHubApi, number: int, cfg: Config | None) -> tuple[Push
         )
         paths: tuple[str, ...] = ()
         if cfg is not None and login in cfg.automation:
-            detail = await api.request("GET", f"/commits/{commit['sha']}")
-            if detail.status_code != 404:
-                detail.raise_for_status()
-                paths = tuple(f["filename"] for f in detail.json().get("files", []))
+            paths = await _commit_paths(api, commit["sha"])
         pushes.append(Push(commit["sha"], login, paths))
     return tuple(pushes)
 

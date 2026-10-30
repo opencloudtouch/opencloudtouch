@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -28,6 +29,12 @@ class FixtureTransport(httpx.MockTransport):
         for number in numbers:
             self.routes.update(json.loads((FIXTURES / f"{number}.json").read_text(encoding="utf-8")))
         self.routes.update(extra or {})
+        # `GET /pulls/{n}/commits` was never recorded: synthesize an empty list for every recorded PR
+        # unless a test supplies its own route.
+        for key in list(self.routes):
+            match = re.fullmatch(r"GET (.*)/pulls/(\d+)", key)
+            if match:
+                self.routes.setdefault(f"GET {match[1]}/pulls/{match[2]}/commits", [])
         self.requests: list[str] = []
         super().__init__(self._handle)
 
@@ -37,6 +44,8 @@ class FixtureTransport(httpx.MockTransport):
         if key not in self.routes:
             return httpx.Response(404, json={"message": "Not Found"})
         value = self.routes[key]
+        if callable(value):  # synthetic route that looks at the request (e.g. paging)
+            value = value(request)
         if isinstance(value, tuple):
             status, body = value
             return httpx.Response(status, json=body)

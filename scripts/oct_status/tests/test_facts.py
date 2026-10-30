@@ -3,9 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 
 import httpx
+import pytest
 
 from oct_status.api import GitHubApi
-from oct_status.facts import fetch_snapshot
+from oct_status.facts import UNKNOWN_PATHS, fetch_snapshot
 
 from .conftest import FixtureTransport
 
@@ -151,7 +152,9 @@ async def test_pushes_from_pr_commits():
             _commit("c3", "gitar-bot[bot]"),
             _commit("d4", None, "committer-user"),
             _commit("e5", None, None, "Plain Name"),
-        ]
+        ],
+        f"GET {BASE}/commits/b2": {"files": []},
+        f"GET {BASE}/commits/c3": {"files": []},
     }
     snap = await fetch_snapshot(_api(FixtureTransport([574], extra=extra)), 574, use_graphql=False, cfg=_cfg())
     assert [(p.sha, p.author) for p in snap.pushes] == [
@@ -201,3 +204,48 @@ async def test_pushes_empty_for_issues():
     snap = await fetch_snapshot(_api(transport), 537, use_graphql=False, cfg=_cfg())
     assert snap.pushes == ()
     assert not any("/commits" in r for r in transport.requests)
+
+
+async def test_commits_list_error_propagates():
+    extra = {f"GET {BASE}/pulls/574/commits": (404, {"message": "Not Found"})}
+    with pytest.raises(httpx.HTTPStatusError):
+        await fetch_snapshot(_api(FixtureTransport([574], extra=extra)), 574, use_graphql=False, cfg=_cfg())
+
+
+async def test_commit_detail_error_propagates():
+    extra = {f"GET {BASE}/pulls/574/commits": [_commit("c3", "gitar-bot[bot]")]}  # no /commits/c3 route -> 404
+    with pytest.raises(httpx.HTTPStatusError):
+        await fetch_snapshot(_api(FixtureTransport([574], extra=extra)), 574, use_graphql=False, cfg=_cfg())
+
+
+def _files_route(total):
+    names = [f"f{i}.py" for i in range(total)]
+
+    def route(request):
+        page = int(request.url.params.get("page", "1"))
+        return {"files": [{"filename": n} for n in names[(page - 1) * 100 : page * 100]]}
+
+    return route
+
+
+async def test_commit_files_are_paged():
+    extra = {
+        f"GET {BASE}/pulls/574/commits": [_commit("c3", "gitar-bot[bot]")],
+        f"GET {BASE}/commits/c3": _files_route(140),
+    }
+    transport = FixtureTransport([574], extra=extra)
+    snap = await fetch_snapshot(_api(transport), 574, use_graphql=False, cfg=_cfg())
+    assert snap.pushes[0].paths == tuple(f"f{i}.py" for i in range(140))
+    assert transport.requests.count(f"GET {BASE}/commits/c3") == 2
+
+
+async def test_commit_files_limit_adds_unknown_sentinel():
+    extra = {
+        f"GET {BASE}/pulls/574/commits": [_commit("c3", "gitar-bot[bot]")],
+        f"GET {BASE}/commits/c3": _files_route(3000),
+    }
+    snap = await fetch_snapshot(_api(FixtureTransport([574], extra=extra)), 574, use_graphql=False, cfg=_cfg())
+    paths = snap.pushes[0].paths
+    assert len(paths) == 3001
+    assert paths[:3000] == tuple(f"f{i}.py" for i in range(3000))
+    assert paths[-1] == UNKNOWN_PATHS
