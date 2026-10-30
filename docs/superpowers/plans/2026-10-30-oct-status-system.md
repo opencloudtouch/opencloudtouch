@@ -23,6 +23,7 @@
 - No comment written by the bot starts with `gitar` or `@gitar` or mentions `@gitar-bot`.
 - Existing script suites (`scripts/issue_handler`, `scripts/pr_reviewer`, `scripts/test_e2e_shard_distribution.py`) run in the same CI job as the new package; they run on Python 3.13 (what the workflows use), `oct_status` additionally on 3.11 (hook floor).
 - **Maintainer actions:** whenever a step says MAINTAINER ACTION MA-n, stop, tell the maintainer in German exactly what to do and why (use the block of that id in the section "Maintainer actions"), wait for the reported result and record it in the PR description under "Open verifications and follow-ups".
+- Spec issues: Milestone 0 = #578, Milestone 1 = #579, Milestone 2 = #580, Milestone 3 = #581, Milestone 4 = #582 (all published with Definition of Ready met and the maintainer review confirmed on 2026-10-30).
 - Each milestone below is one spec issue (label `spec`, Definition of Ready met) and one PR with the filled `.github/pull_request_template.md`. Do not start a milestone whose spec issue is not ready or whose predecessor is not merged.
 
 ## Review Focus
