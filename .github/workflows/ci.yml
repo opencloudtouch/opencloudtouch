@@ -478,7 +478,7 @@ jobs:
 
       - name: Test oct_status on Python 3.11
         run: |
-          pip install -r scripts/oct_status/requirements-dev.txt
+          pip install -r requirements-dev.txt
           python -m pytest -q
         working-directory: scripts/oct_status
 
