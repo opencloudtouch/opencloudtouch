@@ -1,3 +1,11 @@
+---
+title: "Status system block intact"
+description: "Check that the oct-status block in a PR description is still well-formed and at the top"
+type: check
+when: "A PR description contains an oct-status block"
+actions: "Report a failed check when the block does not start with the oct-status:v1 opening marker, does not end with the closing marker, or is no longer at the top of the description; otherwise pass without comment"
+---
+
 # OpenCloudTouch status system rules for Gitar
 
 This repository runs an automated status system (`oct-status`). It owns the status block, a set of labels and one guide comment on every issue and pull request. Follow these rules whenever you comment, edit, summarise or push.
