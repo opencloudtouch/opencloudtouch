@@ -34,11 +34,14 @@ def test_write_job_is_gated_and_least_privileged():
         "issues": "write",
         "pull-requests": "write",
         "checks": "read",
-        "actions": "write",  # re-runs the failed check; no other job may write Actions
+        "actions": "read",
+        "statuses": "write",  # the commit status `oct-status` is the required check
         "contents": "read",
     }
     others = {name: j for name, j in _jobs().items() if name != "status-write"}
-    assert all((j.get("permissions") or {}).get("actions") != "write" for j in others.values())
+    assert all("statuses" not in (j.get("permissions") or {}) for j in others.values())
+    assert "actions: write" not in WORKFLOW.read_text(encoding="utf-8")
+    assert "commit STATUS context `oct-status`" in WORKFLOW.read_text(encoding="utf-8")
     event = next(s for s in job["steps"] if s.get("name") == "Process event")
     assert "--dry-run" not in event["run"] and "BOT_PAT" in event["env"]
 

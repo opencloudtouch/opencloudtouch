@@ -2,13 +2,19 @@ name: OCT Status
 
 # Write mode is gated by the repository variable OCT_STATUS_WRITE (maintainer action MA-5, after
 # the shadow week). While it is not 'true' the workflow stays in shadow mode: the `status` job runs
-# every event and the daily audit with --dry-run (read-only API, job summary only) and the
-# `oct-status` check only reports (continue-on-error). With OCT_STATUS_WRITE == 'true' the
-# `status-write` job writes labels, blocks and guide comments with BOT_PAT and the check blocks.
+# every event and the daily audit with --dry-run (read-only API, job summary only). With
+# OCT_STATUS_WRITE == 'true' the `status-write` job writes labels, blocks and guide comments with
+# BOT_PAT and publishes the gate of every pull request it touches (all open ones in the daily audit)
+# as the commit status `oct-status` on the PR head SHA.
+#
+# Required check (Task 20): the commit STATUS context `oct-status`, not the `oct-status` job below.
+# A pull_request_target job attaches to the base commit, so it cannot gate the PR head; the job only
+# reports the same gate in its summary (continue-on-error unless write mode). A head without a status
+# is pending until the synchronize event or the daily audit posts one.
+#
 # The label sync and the backfill (mode=backfill, MA-6) are manual workflow_dispatch runs that stay
 # dry-run unless dry_run=false is chosen; a writing backfill is refused until OCT_STATUS_WRITE is
-# 'true'. A run that clears a PR's gate re-runs its failed `oct-status` check. Strikes stay off
-# until strikes_enabled_from is set in scripts/oct_status/config.yml.
+# 'true'. Strikes stay off until strikes_enabled_from is set in scripts/oct_status/config.yml.
 #
 # Security: pull_request_target runs with base repository secrets, so this workflow checks out the
 # default branch only and never the pull request head. Event payloads are untrusted data: they are
@@ -140,8 +146,9 @@ jobs:
       issues: write
       pull-requests: write
       checks: read
-      # Re-runs the failed `oct-status` check once a run cleared the gate (job token only).
-      actions: write
+      actions: read
+      # Publishes the gate as the commit status `oct-status` on the PR head (job token).
+      statuses: write
       contents: read
     steps:
       - uses: actions/checkout@v7
@@ -274,6 +281,7 @@ jobs:
           key: oct-backfill-state-${{ github.run_id }}
 
   oct-status:
+    # Report job for the shadow week; NOT the required check (that is the commit status, see header).
     name: oct-status
     needs: [status, status-write]
     if: ${{ !cancelled() && github.event_name == 'pull_request_target' }}
@@ -294,7 +302,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r scripts/oct_status/requirements.txt
       - name: Check status block
-        # Reports only in shadow mode; blocking (exit 1 = red) once OCT_STATUS_WRITE is 'true'.
+        # Reports only in shadow mode; red (exit 1) once OCT_STATUS_WRITE is 'true'.
         continue-on-error: ${{ vars.OCT_STATUS_WRITE != 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -261,107 +261,104 @@ async def test_automation_authored_pr_with_a_protected_push_is_still_gated():
     repo.add_pr(10, title="chore(release): 1.2.3", author="github-actions[bot]")
     repo.push(10, SHA_A, "github-actions[bot]", ["CHANGELOG.md"])
     await _run(repo, "pull_request_target", pr_event(10, "opened", sender="github-actions[bot]"))
-    assert repo.writes == [] and await _check(repo, 10) == 0  # a plain announcement: nothing written
+    # A plain announcement: nothing written but the passing gate as commit status.
+    assert [w for w in repo.writes if "/statuses/" not in w[1]] == [] and status(repo, SHA_A)["state"] == "success"
+    assert await _check(repo, 10) == 0
     repo.push(10, SHA_B, GITAR, [".github/workflows/release.yml"])
     await _run(repo, "pull_request_target", pr_event(10, "synchronize", sender="github-actions[bot]"))
     assert "wait:findings" in repo.label_names(10) and ".github/workflows/release.yml" in repo.guide(10)
-    assert await _check(repo, 10) == 1
+    assert await _check(repo, 10) == 1 and status(repo, SHA_B)["state"] == "failure"
 
 
-class ActionsRepo(PathRepo):
-    """PathRepo with workflow runs of oct-status.yml for the PR head and their jobs."""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.runs: list[dict] = []  # newest first: {"id", "head_sha", "job": (status, conclusion) | None}
-        self.reruns: list[int] = []
-        self.actions_calls: list[str] = []
-        self.fail_rerun = False
-
-    def handler(self, request: httpx.Request) -> httpx.Response:
-        path = request.url.path
-        if "/actions/" in path:
-            self.actions_calls.append(f"{request.method} {path}")
-        if path == f"{ROOT}/actions/workflows/oct-status.yml/runs":
-            sha = request.url.params.get("head_sha")
-            return httpx.Response(200, json={"workflow_runs": [r for r in self.runs if r["head_sha"] == sha]})
-        if m := re.fullmatch(rf"{ROOT}/actions/runs/(\d+)/jobs", path):
-            run = next(r for r in self.runs if r["id"] == int(m[1]))
-            jobs = [{"name": "status", "status": "completed", "conclusion": "success"}]
-            if run["job"]:
-                jobs.append({"name": "oct-status", "status": run["job"][0], "conclusion": run["job"][1]})
-            return httpx.Response(200, json={"jobs": jobs})
-        if m := re.fullmatch(rf"{ROOT}/actions/runs/(\d+)/rerun-failed-jobs", path):
-            if self.fail_rerun:
-                return httpx.Response(403, json={"message": "Resource not accessible"})
-            self.reruns.append(int(m[1]))
-            return httpx.Response(201, json={})
-        return super().handler(request)
+def status(repo: Repo, sha: str) -> dict | None:
+    """The newest commit status `oct-status` posted for `sha`."""
+    found = [st for st in repo.statuses.get(sha, []) if st["context"] == "oct-status"]
+    return found[-1] if found else None
 
 
-async def _pending_repo() -> ActionsRepo:
-    repo = ActionsRepo()
+async def test_gate_is_posted_as_commit_status_on_the_pr_head(monkeypatch):
+    monkeypatch.setenv("GITHUB_SERVER_URL", "https://github.com")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "o/r")
+    monkeypatch.setenv("GITHUB_RUN_ID", "42")
+    repo = PathRepo()
     repo.add_pr(10, title="docs: x")
     repo.push(10, SHA_B, GITAR, [".github/workflows/ci.yml"])
     await _run(repo, "pull_request_target", pr_event(10, "synchronize"))
-    assert await _check(repo, 10) == 1
-    return repo
-
-
-async def test_accepted_command_reruns_the_failed_check():
-    repo = await _pending_repo()
-    repo.runs = [
-        {"id": 7, "head_sha": SHA_B, "job": None},  # a run without the check job (e.g. a comment event)
-        {"id": 6, "head_sha": SHA_B, "job": ("completed", "failure")},
-        {"id": 5, "head_sha": SHA_B, "job": ("completed", "failure")},
-    ]
+    failed = status(repo, SHA_B)
+    assert failed["state"] == "failure" and "protected path" in failed["description"]
+    assert failed["target_url"] == "https://github.com/o/r/actions/runs/42" and len(failed["description"]) <= 140
+    # The comment event resolves the PR and posts the new state for the same head.
     await _run(repo, "issue_comment", comment_event(10, "/oct accept-paths", login="carol"))
-    assert repo.reruns == [6]  # only the newest failed check
-    assert await _check(repo, 10) == 0
+    assert status(repo, SHA_B)["state"] == "success"
+    # A new push: the new head gets its own status from the synchronize event.
+    repo.push(10, SHA_C, "alice", ["docs/x.md"])
+    await _run(repo, "pull_request_target", pr_event(10, "synchronize"))
+    assert status(repo, SHA_C)["state"] == "success"
 
 
-async def test_no_rerun_when_the_newest_check_is_pending_or_green_or_in_dry_run():
-    for job in (("in_progress", None), ("completed", "success")):
-        repo = await _pending_repo()
-        repo.runs = [
-            {"id": 6, "head_sha": SHA_B, "job": job},
-            {"id": 5, "head_sha": SHA_B, "job": ("completed", "failure")},
-        ]
-        await _run(repo, "issue_comment", comment_event(10, "/oct accept-paths", login="carol"))
-        assert repo.reruns == []
-    repo = await _pending_repo()
-    repo.runs = [{"id": 6, "head_sha": SHA_B, "job": ("completed", "failure")}]
-    from oct_status.api import GitHubApi
+async def test_override_clearing_a_block_posts_success():
+    from .test_violations_events import seed
 
-    from .test_main_events import _nosleep
-
-    read_only = GitHubApi("t", "o/r", transport=httpx.MockTransport(repo.handler), sleep=_nosleep, read_only=True)
-    payload = comment_event(10, "/oct accept-paths", login="carol")
-    assert await run_event(read_only, CFG, "issue_comment", payload, dry_run=True, clock=clock) == 0
-    await read_only.aclose()
-    assert repo.actions_calls == [] and repo.reruns == []
-
-
-async def test_failed_rerun_is_only_a_warning(monkeypatch, tmp_path):
-    summary = tmp_path / "s.md"
-    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
-    repo = await _pending_repo()
-    repo.runs = [{"id": 6, "head_sha": SHA_B, "job": ("completed", "failure")}]
-    repo.fail_rerun = True
-    await _run(repo, "issue_comment", comment_event(10, "/oct accept-paths", login="carol"))
-    assert "wait:findings" not in repo.label_names(10)
-    assert "re-run of the check for #10 failed" in summary.read_text(encoding="utf-8")
-
-
-async def test_audit_reruns_checks_of_healed_pull_requests():
-    from oct_status.main import run_audit
-
-    repo = ActionsRepo()
+    repo = PathRepo()
+    seed(repo, "bob", [(1, "V02"), (2, "V02")])
     repo.add_pr(10, body="Part of #5")
     repo.add(5, labels=("bug",))
-    repo.prs[10]["head"]["sha"] = SHA_A
-    repo.runs = [{"id": 3, "head_sha": SHA_A, "job": ("completed", "failure")}]
+    repo.push(10, SHA_A, "alice", ["src/x.py"])
+    repo.issues[10]["labels"].append({"name": "wait:ci"})
+    await _run(repo, "pull_request_target", pr_event(10, "labeled", sender="bob", label={"name": "wait:ci"}))
+    assert status(repo, SHA_A)["state"] == "failure" and "V02" in status(repo, SHA_A)["description"]
+    await _run(repo, "issue_comment", comment_event(10, "/oct override label fixed", login="carol"))
+    assert status(repo, SHA_A)["state"] == "success"
+
+
+async def test_no_status_in_dry_run_and_failure_when_comments_unreadable():
+    repo = PathRepo()
+    repo.add_pr(10, title="docs: x")
+    repo.push(10, SHA_A, "alice", ["docs/x.md"])
+    await _run(repo, "pull_request_target", pr_event(10, "synchronize"), dry_run=True)
+    assert repo.statuses == {}
+    original = repo.handler
+
+    def failing(request):
+        if request.url.path.endswith("/issues/10/comments") and request.method == "GET":
+            return httpx.Response(500, json={})
+        return original(request)
+
+    repo.handler = failing  # type: ignore[method-assign]
+    await _run(repo, "pull_request_target", pr_event(10, "synchronize"))
+    assert status(repo, SHA_A)["state"] == "failure"  # fail closed: never success on unknown notices
+
+
+async def test_audit_posts_the_status_of_every_open_pr_head():
+    from oct_status.main import run_audit
+
+    repo = PathRepo()
+    repo.add_pr(10, body="Part of #5")
+    repo.add(5, labels=("bug",))
+    repo.push(10, SHA_A, "alice", ["src/x.py"])
     api = api_for(repo)
     await run_audit(api, CFG, dry_run=False, clock=clock)
+    assert status(repo, SHA_A)["state"] == "success"
+    repo.push(10, SHA_B, GITAR, [".claude/settings.json"])  # pushed without an event in between
+    await run_audit(api, CFG, dry_run=False, clock=clock)
     await api.aclose()
-    assert repo.reruns == [3]
+    assert status(repo, SHA_B)["state"] == "failure"
+
+
+async def test_status_post_failure_is_a_warning(monkeypatch, tmp_path):
+    summary = tmp_path / "s.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    monkeypatch.delenv("GITHUB_RUN_ID", raising=False)
+    repo = PathRepo()
+    repo.add_pr(10, title="docs: x")
+    repo.push(10, SHA_A, "alice", ["docs/x.md"])
+    original = repo.handler
+
+    def refusing(request):
+        if "/statuses/" in request.url.path:
+            return httpx.Response(403, json={"message": "Resource not accessible"})
+        return original(request)
+
+    repo.handler = refusing  # type: ignore[method-assign]
+    await _run(repo, "pull_request_target", pr_event(10, "synchronize"))
+    assert "commit status for #10 not posted" in summary.read_text(encoding="utf-8")

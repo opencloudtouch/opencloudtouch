@@ -52,6 +52,7 @@ class FakeRepo:
         self.issues: dict[int, dict[str, Any]] = {}
         self.comments: dict[int, list[dict[str, Any]]] = {}
         self.writes: list[tuple[str, str]] = []
+        self.statuses: dict[str, list[dict[str, Any]]] = {}  # head SHA -> posted commit statuses
         self._next = 1000
 
     def add(self, number: int, body: str = "", labels: tuple[str, ...] = (), state: str = "open") -> None:
@@ -85,6 +86,9 @@ class FakeRepo:
             return httpx.Response(404, json={})
         rel = path[len(ROOT) :]
         page = request.url.params.get("page", "1")
+        if (m := re.fullmatch(r"/statuses/([0-9a-f]{40})", rel)) and method == "POST":
+            self.statuses.setdefault(m[1], []).append(body)
+            return httpx.Response(201, json={})
         if rel == "/pulls" and method == "GET":
             return httpx.Response(200, json=[])
         if rel == "/issues" and method == "GET":
@@ -585,24 +589,3 @@ async def test_fan_out_follows_propagating_edges_only():
     # Up from a child to its tracking issue, never back down to the sibling.
     assert await walk_component(51, ws.fan_out, 25) == {50, 51}
     await api.aclose()
-
-
-def test_cli_write_mode_uses_the_job_token_for_actions(monkeypatch, cli_repo, tmp_path):
-    seen: list[tuple[str, bool]] = []
-    orig = main.GitHubApi
-
-    def spy(token, name, **kw):
-        api = orig(token, name, **kw)
-        seen.append((token, api.read_only))
-        return api
-
-    cli_repo.add(1)
-    monkeypatch.setattr(main, "GitHubApi", spy)
-    monkeypatch.setenv("BOT_PAT", "pat-value")
-    args = ["--event", "issues", "--payload", payload_file(tmp_path, issue_event(1))]
-    assert main.cli(args) == 0
-    assert main.cli(["--audit"]) == 0
-    assert seen == [("pat-value", False), ("secret-token-value", False)] * 2
-    seen.clear()
-    assert main.cli([*args, "--dry-run"]) == 0
-    assert seen == [("pat-value", True)]  # a dry run never gets a second, writing client
