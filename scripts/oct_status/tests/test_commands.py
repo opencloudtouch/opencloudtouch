@@ -671,6 +671,31 @@ async def test_maintain_role_passes_triage_and_override_is_recorded_and_effectiv
     await api.aclose()
 
 
+@pytest.mark.parametrize("name", sorted(commands.MAINTAINER_COMMANDS))
+async def test_maintainer_commands_from_an_agent_session_are_rejected(name):
+    """I6: a comment written through the hooks carries the source marker; maintainer commands need a human."""
+    repo = CommandRepo()
+    repo.add(6, labels=("bug",))
+    api = api_for(repo)
+    body = f"/oct {name} some reason\n\n{commands.AGENT_MARKER}"
+    assert await run_event(api, CFG, "issue_comment", comment_event(6, body, login="carol"), dry_run=False) == 0
+    guide = repo.guide(6)
+    assert "was rejected" in guide and "a maintainer must post" in guide
+    assert repo.label_names(6) & {"phase:triaged", "wait:reporter", "wait:hardware-test"} == set()
+    assert (77, "-1") in repo.reactions
+    assert not any(path.endswith("/permission") for _, path in repo.writes)
+    await api.aclose()
+
+
+async def test_other_commands_from_an_agent_session_still_work():
+    repo = spec_repo()
+    api = api_for(repo)
+    event = comment_event(5, f"/oct review\n{commands.AGENT_MARKER}")
+    assert await run_event(api, CFG, "issue_comment", event, dry_run=False) == 0
+    assert "phase:spec-review" in repo.label_names(5)
+    await api.aclose()
+
+
 async def test_override_before_strikes_are_active_is_logged_in_the_guide_only():
     repo = CommandRepo()  # no ledger issue: it must not even be looked for
     repo.add(6, labels=("bug",))

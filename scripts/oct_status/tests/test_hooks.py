@@ -317,6 +317,51 @@ def test_writes_carry_src_marker():
     assert guard.with_marker("") == marker
 
 
+@pytest.mark.parametrize("tool", ["add_issue_comment", "update_issue_comment", "add_reply_to_pull_request_comment"])
+@pytest.mark.parametrize(
+    "command", ["/oct override flaky", "Done.\n  /OCT Accept-Paths", "/oct triage", "/oct verified ST10"]
+)
+def test_maintainer_commands_in_agent_comments_are_denied(tool, command):
+    ctx = HookContext(block=BLOCK, labels=frozenset(), comment_body="a normal comment")
+    tool_input = {"owner": "o", "repo": "opencloudtouch", "issue_number": 1, "comment_id": 5, "body": command}
+    d = decide(MCP + tool, tool_input, ctx)
+    assert d.action == "deny" and "maintainer" in d.reason and "ask the maintainer" in d.reason.lower()
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "/oct approve",
+        "/oct review",
+        "```\n/oct override inside a fence\n```",
+        "<!-- /oct override hidden -->",
+        "> /oct triage quoted",
+        "see `/oct override REASON` in the docs",
+        "/octopus triage",
+    ],
+)
+def test_other_comment_texts_with_oct_pass(body):
+    ctx = HookContext(block=BLOCK, labels=frozenset(), comment_body="a normal comment")
+    d = decide(
+        MCP + "add_issue_comment", {"owner": "o", "repo": "opencloudtouch", "issue_number": 1, "body": body}, ctx
+    )
+    assert d.action == "allow"
+
+
+def test_maintainer_command_detection_matches_the_automation():
+    from oct_status import commands
+
+    assert guard.MAINTAINER_COMMANDS == commands.MAINTAINER_COMMANDS
+    assert guard.SRC_MARKER == commands.AGENT_MARKER
+    for name in ("_COMMAND", "_FENCE", "_HTML_COMMENT"):
+        mine, theirs = getattr(guard, name), getattr(commands, name)
+        assert (mine.pattern, mine.flags) == (theirs.pattern, theirs.flags), name
+    for text in ("/oct override x", "```\n/oct override x\n```\n/oct triage", "<!--\n/oct confirm\n-->", "x"):
+        parsed = commands.parse_command(text)
+        expected = parsed.name if parsed and parsed.name in commands.MAINTAINER_COMMANDS else None
+        assert guard.maintainer_command(text) == expected, text
+
+
 def test_session_start_injects_block_and_guide_data(tmp_path):
     api = FakeApi(
         {42: {"title": "feat: hooks @gitar-bot", "body": f"{BLOCK}\n\nText", "labels": []}}, {42: _guide_body()}

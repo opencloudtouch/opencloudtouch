@@ -80,6 +80,15 @@ _NO_SPEC = re.compile(r"^ {0,3}/oct[ \t]+no-spec[ \t]+\S", re.IGNORECASE | re.MU
 _BOT = re.compile(r"@?gitar-bot(\[bot\])?", re.IGNORECASE)
 _LEADING = re.compile(r"^\s*@?gitar", re.IGNORECASE)
 _UNSAFE = re.compile(r"[<>\x00-\x08\x0b-\x1f\x7f]")
+# Maintainer commands (commands.MAINTAINER_COMMANDS) and the command parser's patterns (commands._COMMAND,
+# _FENCE, _HTML_COMMENT): an agent session may not post them, the automation rejects them as well (I6).
+MAINTAINER_COMMANDS = frozenset(
+    {"triage", "confirm", "verified", "needs-hardware-test", "needs-info", "designer", "supersede", "override"}
+    | {"accept-paths"}
+)
+_COMMAND = re.compile(r"^ {0,3}/oct(?:[ \t]+([A-Za-z][A-Za-z-]*))?(?:[ \t]+(.*))?$", re.IGNORECASE)
+_FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
+_HTML_COMMENT = re.compile(r"<!--.*?(?:-->|\Z)", re.DOTALL)
 _NEUTRAL = "<!--​"  # a zero-width space keeps a quoted marker from matching the real one
 
 # Tool names (the part after the MCP server prefix) and their aliases in older GitHub MCP servers.
@@ -300,6 +309,25 @@ def next_steps(data: dict | None, number: int | None = None) -> str:
     head = f"Next steps from the guide comment{where} (phase {_plain(data.get('phase', '?'), 40)}"
     head += f", waiting on {', '.join(_plain(w, 40) for w in waits[:10]) or 'nothing'}):"
     return safe(" ".join([head, *lines]) if lines else f"{head} none listed.")
+
+
+def maintainer_command(text: str) -> str | None:
+    """The first maintainer command at the start of a line outside code fences and HTML comments (as the
+    automation parses commands), or ``None``. Unlike the automation, every line is looked at, not only the
+    first command."""
+    fence: str | None = None
+    for line in _HTML_COMMENT.sub("", text.replace("\r\n", "\n").replace("\r", "\n")).split("\n"):
+        match = _FENCE.match(line)
+        if fence is None:
+            if match:
+                fence = match[1]
+                continue
+            command = _COMMAND.match(line)
+            if command and command[1] and command[1].lower() in MAINTAINER_COMMANDS:
+                return command[1].lower()
+        elif match and match[1][0] == fence[0] and len(match[1]) >= len(fence) and not line.strip(" `~"):
+            fence = None
+    return None
 
 
 def _deny(problem: str, route: str, ctx: HookContext | None) -> Decision:
@@ -594,6 +622,13 @@ def _decide_tool(name: str, tool_name: str, tool_input: dict, ctx: HookContext) 
                     "post a new comment, with an `/oct` command if you want to change the state.",
                     ctx,
                 )
+        if body and (command := maintainer_command(body)):
+            return _deny(
+                f"`/oct {command}` is a maintainer command; the automation rejects it from an agent session "
+                "(comments carry the source marker), so a maintainer must post it by hand.",
+                f"ask the maintainer to post `/oct {command}` themselves; describe in your comment why it is needed.",
+                ctx,
+            )
         if body:
             final = with_marker(neutralise(body))
             if denial := _too_long(final, ctx):

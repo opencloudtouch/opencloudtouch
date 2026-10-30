@@ -639,7 +639,17 @@ async def _handle_command(
     comment_id = _number(comment.get("id"))
     if comment_id is not None:
         await commands.react(ws.api, comment_id, "eyes", dry_run=dry_run)
-    allowed, reason = await commands.authorize_detailed(ws.api, actor, cmd, ws.cfg)
+    if cmd.name in commands.MAINTAINER_COMMANDS and commands.AGENT_MARKER in comment["body"]:
+        # Written by an agent session (I6): maintainer decisions are never taken over from an agent.
+        allowed, reason = (
+            False,
+            (
+                f"/oct {cmd.name} came from an agent session (source marker); a maintainer must post maintainer "
+                "commands by hand"
+            ),
+        )
+    else:
+        allowed, reason = await commands.authorize_detailed(ws.api, actor, cmd, ws.cfg)
     writes: list[str] = []
     rejected: str | None = None
     if allowed:

@@ -434,7 +434,10 @@ Maintainers are subject to the same ladder and may override on themselves.
 | `/oct accept-paths` | maintainer | acknowledges a push by automation to protected paths, logged in the guide data and the run summary |
 
 Commands are accepted only from users with write access, answered with a
-reaction and, on error, an entry in the guide comment (section 5a).
+reaction and, on error, an entry in the guide comment (section 5a). Maintainer
+commands are rejected from comments that carry the agent source marker
+`<!-- oct-src:1 -->`, and the agent hooks deny posting them: a maintainer posts
+them by hand.
 
 ## 12. Components and workflows
 

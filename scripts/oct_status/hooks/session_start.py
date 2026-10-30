@@ -49,7 +49,9 @@ prerequisite's branch.
 GitHub MCP tools get the current status block spliced in, body and comment writes get the marker \
 <!-- oct-src:1 -->, status label changes are denied, pull request creation is gated, and \
 gh issue/pr edit|create|comment with a body or status labels and direct API writes to issues or pull \
-requests are denied with the allowed route. A denial quotes the next steps; follow them.
+requests are denied with the allowed route. Maintainer commands (/oct triage, confirm, verified, \
+override, accept-paths, ...) are never posted by an agent: ask the maintainer. A denial quotes the next \
+steps; follow them.
 - Start every subagent prompt with: "Follow the Status system section of CLAUDE.md: do not edit the \
 oct-status block or phase/wait/resolution labels; use /oct commands."
 """

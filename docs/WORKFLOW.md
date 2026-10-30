@@ -1242,6 +1242,11 @@ files.
   space after `<!--`), so they never count as real ones; the guide comment itself is never edited.
 - **Status labels**: adding or removing a `phase:`, `wait:` or `resolution:` label (in any letter case) is denied
   with the matching `/oct` command (for fact labels: the note that the automation derives them).
+- **Maintainer commands**: a comment written through the GitHub MCP tools that contains a maintainer command
+  (`/oct triage`, `confirm`, `verified`, `needs-hardware-test`, `needs-info`, `designer`, `supersede`, `override`,
+  `accept-paths`) at the start of a line is denied: ask the maintainer to post it by hand. The automation also
+  rejects these commands from any comment that carries the source marker `<!-- oct-src:1 -->`, with a note in
+  the guide comment.
 - **Pull request creation** (`create_pull_request`) is denied without `Part of #n` or `Closes #n` (outside HTML
   comments), a docs/ci/chore/style/test title or `/oct no-spec REASON` in the description (post that command as a
   comment as well: the automation reads it from comments); when a heading or item of

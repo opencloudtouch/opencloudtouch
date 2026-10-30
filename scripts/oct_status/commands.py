@@ -28,6 +28,8 @@ MAINTAINER_COMMANDS = frozenset(
     {"triage", "confirm", "verified", "needs-hardware-test", "needs-info", "designer", "supersede", "override"}
     | {"accept-paths"}
 )
+# Source marker of texts written by a hooked agent session (hooks/guard.py SRC_MARKER, design section 7).
+AGENT_MARKER = "<!-- oct-src:1 -->"
 COMMANDS = frozenset(MAINTAINER_COMMANDS | {"review", "rework", "ready", "approve", "no-spec"})
 # Commands whose argument is a mandatory free-text reason or note.
 _NEEDS_TEXT = frozenset({"rework", "verified", "designer", "no-spec", "override"})
