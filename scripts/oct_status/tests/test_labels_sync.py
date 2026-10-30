@@ -233,3 +233,25 @@ async def test_graphql_errors_raise():
     api = GitHubApi("t", REPO, transport=httpx.MockTransport(handler))
     with pytest.raises(RuntimeError):
         await api.graphql("query { x }", {})
+
+
+async def test_existing_unlocked_ledger_issue_gets_locked():
+    fake, api = make()
+    fake.issues.append({"number": 1, "title": "oct-status ledger", "body": "x", "locked": False})
+    assert await ensure_ledger_issue(api, dry_run=True) == 1
+    assert fake.writes == []
+    assert await ensure_ledger_issue(api) == 1
+    assert fake.issues[0]["locked"] is True
+    fake.writes.clear()
+    assert await ensure_ledger_issue(api) == 1
+    assert fake.writes == []
+
+
+def test_labels_yml_matches_enums():
+    import yaml
+
+    from oct_status.model import Phase, Resolution, Wait
+
+    names = {e["name"] for e in yaml.safe_load(SPEC.read_text(encoding="utf-8"))["labels"]}
+    for prefix, enum in (("phase:", Phase), ("wait:", Wait), ("resolution:", Resolution)):
+        assert {n for n in names if n.startswith(prefix)} == {m.label for m in enum}

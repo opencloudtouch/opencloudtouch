@@ -76,7 +76,10 @@ async def ensure_ledger_issue(api: GitHubApi, dry_run: bool = False) -> int:
     """Return the number of the locked ledger issue, creating and locking it if missing."""
     for issue in await _paginate(api, "/issues", state="all"):
         if issue.get("title") == LEDGER_TITLE and "pull_request" not in issue:
-            return int(issue["number"])
+            number = int(issue["number"])
+            if not issue.get("locked") and not dry_run:
+                await _write(api, "PUT", f"/issues/{number}/lock", json={"lock_reason": "resolved"})
+            return number
     if dry_run:
         return 0
     resp = await api.request("POST", "/issues", json={"title": LEDGER_TITLE, "body": LEDGER_BODY})
