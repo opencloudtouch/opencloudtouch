@@ -700,11 +700,15 @@ jobs:
     steps:
       - name: Determine branch ref
         id: ref
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "branch=${{ github.event.pull_request.head.ref }}" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            echo "branch=$HEAD_REF" >> "$GITHUB_OUTPUT"
           else
-            echo "branch=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "branch=$REF_NAME" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout code
@@ -757,6 +761,8 @@ jobs:
             -exec bash -c 'for f; do [ -s "$f" ] && [ "$(tail -c1 "$f")" != "" ] && echo >> "$f"; done' _ {} + || true
 
       - name: Commit and push if changed
+        env:
+          BRANCH: ${{ steps.ref.outputs.branch }}
         run: |
           git config user.name "formatter-bot"
           git config user.email "noreply@opencloudtouch.org"
@@ -767,5 +773,5 @@ jobs:
             echo "📝 Formatting changes detected — committing"
             git diff --cached --stat
             git commit -m "style: auto-format code [formatter-bot]"
-            git push origin ${{ steps.ref.outputs.branch }}
+            git push origin "$BRANCH"
           fi
