@@ -85,7 +85,7 @@ docs/WORKFLOW.md                     new
 - Produces: `Phase`, `Wait`, `Resolution`, `Kind`, `EdgeType` (`StrEnum`); `Phase.label -> str` such as `"phase:in-progress"`; `Actor`, `Config`; `load_config(path: Path) -> Config`; and the plain data types every later task uses, all frozen dataclasses in `model.py`:
   - `Review(user: str, state: str, commit_id: str)`, `Check(name: str, status: str, conclusion: str | None, app: str)`, `Push(sha: str, author: str, paths: tuple[str, ...])`
   - `Edge(type: EdgeType, source: int, target: int, origin: Literal["native","prose"])`
-  - `Snapshot(number, is_pr, title, body, state, merged, draft, author, labels: frozenset[str], base_ref, head_ref, head_sha, reviews: tuple[Review, ...], unresolved_threads: int, checks: tuple[Check, ...], closing_refs: tuple[int, ...], sub_issues: tuple[int, ...], blocked_by: tuple[int, ...], pushes: tuple[Push, ...], stack_drift: int | None)`
+  - `Snapshot(number, is_pr, title, body, state, merged, draft, author, author_permission: str | None, labels: frozenset[str], base_ref, head_ref, head_sha, reviews: tuple[Review, ...], unresolved_threads: int, checks: tuple[Check, ...], closing_refs: tuple[int, ...], sub_issues: tuple[int, ...], blocked_by: tuple[int, ...], pushes: tuple[Push, ...], stack_drift: int | None)`
   - `Derived(phase: Phase, waits: frozenset[Wait], resolution: Resolution | None)`
   - `Graph(edges: list[Edge], snapshots: dict[int, Snapshot], derived: dict[int, Derived])` with `edges_of(number: int, type: EdgeType | None = None) -> list[Edge]`
   - `Actor(login: str, klass: Literal["automation","human"], pushes: bool = False, invalidates_approval: bool = True, block_location: Literal["body","comment"] = "body")`
@@ -98,7 +98,7 @@ docs/WORKFLOW.md                     new
   - `test_snapshot_is_frozen_and_graph_edges_of_filters`: assigning to a `Snapshot` field raises; `edges_of(537, EdgeType.IMPLEMENTED_BY)` returns only that type.
   - `test_enum_labels`: `Phase.IN_PROGRESS.label == "phase:in-progress"`, `Wait.HARDWARE_TEST.label == "wait:hardware-test"`, `Resolution.NOT_REPRODUCIBLE.label == "resolution:not-reproducible"`.
 - [ ] **Step 2: Run** `cd scripts/oct_status && python -m pytest -q` - Expected: FAIL (modules missing).
-- [ ] **Step 3: Implement** the files above. `pyproject.toml` copies `scripts/issue_handler/pyproject.toml` and adds `pythonpath = [".."]` under `[tool.pytest.ini_options]`. Enum members: phases new, draft, triaged, spec-review, spec-rework, confirmed, ready, in-progress, in-review, verification, done, merged, closed, open, needs-spec, specified, answered; waits and resolutions exactly as in spec section 4.2.
+- [ ] **Step 3: Implement** the files above. `pyproject.toml` copies `scripts/issue_handler/pyproject.toml` and adds `pythonpath = [".."]` under `[tool.pytest.ini_options]` and sets `mypy_path = ".."` with `explicit_package_bases = true` under `[tool.mypy]`, because modules import as `oct_status.<module>`. Enum members: phases new, draft, triaged, spec-review, spec-rework, confirmed, ready, in-progress, in-review, verification, done, merged, closed, open, needs-spec, specified, answered; waits and resolutions exactly as in spec section 4.2.
 - [ ] **Step 4: Run** the same command - Expected: PASS.
 - [ ] **Step 5: Commit** `feat(oct-status): add package skeleton, config and model types`.
 
@@ -244,11 +244,11 @@ docs/WORKFLOW.md                     new
 ### Task 6: Sanitized fixtures and graph edges
 
 **Files:**
-- Create: `scripts/oct_status/tools/capture_fixture.py`, `scripts/oct_status/graph.py`, `scripts/oct_status/tests/fixtures/*.json`, `scripts/oct_status/tests/test_graph.py`
+- Create: `scripts/oct_status/tools/capture_fixture.py`, `scripts/oct_status/graph.py`, `scripts/oct_status/tests/conftest.py`, `scripts/oct_status/tests/fixtures/*.json`, `scripts/oct_status/tests/test_graph.py`
 
 **Interfaces:**
 - Consumes: `Edge`, `EdgeType`, `Graph` (Task 1).
-- Produces: `parse_prose_edges(number: int, body: str) -> tuple[list[Edge], list[str]]` (second item = unresolved references); `inverse(edge: Edge) -> Edge`; `walk_component(start: int, neighbors: Callable[[int], Awaitable[list[Edge]]], cap: int) -> set[int]`; `build_graph(snapshots: dict[int, Snapshot]) -> Graph` (native edges from `closing_refs`, `sub_issues`, `blocked_by`, base/head branches; prose edges as fallback).
+- Produces: `make_snapshot(**overrides) -> Snapshot` in `tests/conftest.py` (test factory with neutral defaults, reused by later tasks); `parse_prose_edges(number: int, body: str) -> tuple[list[Edge], list[str]]` (second item = unresolved references); `inverse(edge: Edge) -> Edge`; `walk_component(start: int, neighbors: Callable[[int], Awaitable[list[Edge]]], cap: int) -> set[int]`; `build_graph(snapshots: dict[int, Snapshot]) -> Graph` (native edges from `closing_refs`, `sub_issues`, `blocked_by`, base/head branches; prose edges as fallback).
 
 - [ ] **Step 1: Write the failing tests** (use fixture bodies)
   - `test_part_of_and_closes`: `"Part of #537"` -> `IMPLEMENTS(source=n, target=537)`; `"Closes #531"` the same type.
@@ -257,14 +257,14 @@ docs/WORKFLOW.md                     new
   - `test_walk_component_respects_cap`: a chain of 40 nodes returns exactly 25.
   - `test_fixtures_are_sanitized`: no fixture contains an IPv4 address, an e-mail address or a token-like string.
 - [ ] **Step 2: Run** - Expected: FAIL.
-- [ ] **Step 3: Implement.** `capture_fixture.py` fetches one artifact via REST and writes only titles, labels, states, refs, SHAs, review states, check names and body lines that contain `#<n>` references (no free text). Capture #537, #560, #573, #574, #575, #577 and one Dependabot PR; commit the JSON.
+- [ ] **Step 3: Implement.** `capture_fixture.py` records the sanitized REST responses of one artifact as JSON keyed by `"GET /repos/o/r/pulls/574"` and keeps only titles, labels, states, refs, SHAs, review states, check names and body lines that contain `#<n>` references (no free text); `FixtureTransport` (Task 7) replays them. Capture #537, #560, #573, #574, #575, #577 and one Dependabot PR; commit the JSON.
 - [ ] **Step 4: Run** - Expected: PASS.
 - [ ] **Step 5: Commit** `feat(oct-status): add relation graph and sanitized fixtures`.
 
 ### Task 7: Facts and kind detection
 
 **Files:**
-- Create: `scripts/oct_status/facts.py`, `scripts/oct_status/tests/test_facts.py`; extend `model.py`, `rules.py` (kind part), `tests/test_kinds.py`
+- Create: `scripts/oct_status/facts.py`, `scripts/oct_status/tests/test_facts.py`; extend `model.py`, `rules.py` (kind part), `tests/conftest.py` (add `FixtureTransport(httpx.MockTransport)` replaying the recorded responses), `tests/test_kinds.py`
 
 **Interfaces:**
 - Consumes: `GitHubApi`, `Config`.
@@ -273,6 +273,7 @@ docs/WORKFLOW.md                     new
 
 - [ ] **Step 1: Write the failing tests**
   - `test_fetch_snapshot_pr`: from the #574 fixture: `is_pr`, `draft`, `base_ref == "feat/sleep-timer-backend"`, closing/linked refs contain 537.
+  - `test_author_permission_fetched`: `author_permission` comes from `GET /repos/{repo}/collaborators/{user}/permission`; a 404 yields `None`.
   - `test_stack_drift_from_compare`: a PR whose base branch is another PR's head gets `stack_drift == behind_by` from `GET /compare/{base}...{head}`; a PR on `main` gets `None`.
   - `test_threads_use_graphql`: unresolved count comes from the GraphQL response; `use_graphql=False` returns `unresolved_threads == -1` (unknown).
   - `test_detect_kind` parametrized: #537 -> `SPEC`; #575 -> `BUG`; #577 -> `BUG` (support); a title starting `[Tracking]` -> `TRACKING`; `[Test]` -> `TEST_PLAN`; Dependabot PR -> `DEPENDENCY_PR`; PR with title `docs: ...` -> `CHORE_PR`; PR `feat(...)` -> `PULL_REQUEST`; bug issue with `spec` -> `SPEC`; `enhancement` without `spec` -> `FEATURE`.
@@ -288,7 +289,7 @@ docs/WORKFLOW.md                     new
 
 **Interfaces:**
 - Consumes: `Snapshot`, `Graph` (neighbor snapshots and declared labels), `Config`.
-- Produces: `derive(snap: Snapshot, graph: Graph, cfg: Config) -> Derived`; `legal_transitions(kind: Kind, phase: Phase) -> list[str]` (command names such as `"review"`, `"ready"`).
+- Produces: `derive(snap: Snapshot, graph: Graph, cfg: Config) -> Derived` (a maintainer author means `snap.author_permission in cfg.maintainer_permissions`); `dor_status(body: str) -> tuple[bool, list[str]]` (True when every item of the `## Definition of Ready` section is ticked or marked `n/a`, the list holds the open items); `legal_transitions(kind: Kind, phase: Phase) -> list[str]` (command names such as `"review"`, `"ready"`).
 
 - [ ] **Step 1: Write the failing tests** (table-driven; the spec section 6 table is the oracle)
   - `test_wait_maintainer_for_maintainer_pr`: ready PR by a maintainer, no `oct-support` APPROVED review on head -> `MAINTAINER in waits`; with the approval on head -> not; with the approval on an older sha -> in waits again.
@@ -301,6 +302,7 @@ docs/WORKFLOW.md                     new
   - `test_hardware_test_from_open_test_plan`.
   - `test_phase_for_pr_and_spec`: draft PR -> `DRAFT`; ready PR -> `IN_REVIEW`; spec with open ready PR -> `IN_REVIEW`; all parts merged and hardware wait -> `VERIFICATION`; merged and no wait -> `DONE`.
   - `test_declared_phase_is_kept_and_illegal_one_rejected`: label `phase:ready` with an unticked DoR checklist -> `legal_transitions` excludes it.
+  - `test_dor_status`: all items ticked -> `(True, [])`; one unticked item -> `(False, [<that item>])`; an item marked `n/a` counts as done; no section -> `(False, ["Definition of Ready section missing"])`.
   - `test_tracking_phase_from_children`: a `[Tracking]` issue with open sub-issues is `IN_PROGRESS`, with all closed `DONE`.
   - `test_test_plan_closed_clears_target_hardware_wait`: closing the `[Test]` issue removes `HARDWARE_TEST` from the PR/spec it verifies.
   - `test_feature_request_mirrors_spec_and_closes_with_it`: with an open spec the request stays open and shows the spec phase; spec `DONE` -> request `DONE`; spec dropped -> `resolution == SUPERSEDED`.
@@ -317,7 +319,7 @@ docs/WORKFLOW.md                     new
 - Create: `scripts/oct_status/render.py`, `scripts/oct_status/guide.py`, `tests/test_render.py`, `tests/test_guide.py`, golden files under `tests/fixtures/golden/`
 
 **Interfaces:**
-- Consumes: `Snapshot`, `Derived`, `Graph` (with `derived` filled by the caller), `Config`.
+- Consumes: `Snapshot`, `Derived`, `Graph` (with `derived` filled by the caller), `Config`, `dor_status` (Task 8).
 - Produces: `render_block(snap: Snapshot, derived: Derived, graph: Graph, cfg: Config) -> str | None` (`None` for announcements); `extract_block(body: str) -> str | None`; `splice_block(body: str, block: str, limit: int = 65_000) -> str`; `block_hash(block: str) -> str` (12 hex); `Step(actor: str, text: str, command: str | None)`; `next_steps(snap, derived, cfg) -> list[Step]` (max 5); `render_guide(snap, derived, steps, notices: list[str], history: list[str]) -> str`.
 
 - [ ] **Step 1: Write the failing tests**
@@ -375,7 +377,7 @@ docs/WORKFLOW.md                     new
   - `test_check_mode_exit_codes`: stale block -> 1; healthy -> 0.
   - `test_audit_heals_drift_on_all_open_artifacts`: three open artifacts, one with a missing block and one with a wrong fact label; `--audit` repairs exactly those two and reports a count of 2.
 - [ ] **Step 2: Run** - Expected: FAIL.
-- [ ] **Step 3: Implement.** Workflow triggers: `issues`, `pull_request_target` (opened, edited, synchronize, ready_for_review, converted_to_draft, closed, labeled, unlabeled, review_requested), `pull_request_review`, `pull_request_review_comment`, `issue_comment`, `check_suite: completed`, `discussion`, `discussion_comment`, `schedule` (daily at 03:17 UTC), `workflow_dispatch`. Concurrency `group: oct-status-${{ number }}`, `cancel-in-progress: false`. Job names: `status` (event run) and `oct-status` (check). In this milestone the step runs with `--dry-run`. Checkout only the base ref.
+- [ ] **Step 3: Implement.** Workflow triggers: `issues`, `pull_request_target` (opened, edited, synchronize, ready_for_review, converted_to_draft, closed, labeled, unlabeled, review_requested), `pull_request_review`, `pull_request_review_comment`, `issue_comment`, `check_suite: completed`, `discussion`, `discussion_comment`, `schedule` (daily at 03:17 UTC), `workflow_dispatch`. Concurrency `group: oct-status-${{ github.event.issue.number || github.event.pull_request.number || github.event.discussion.number || github.run_id }}`, `cancel-in-progress: false`; permissions extended to `discussions: write`, `checks: read`, `actions: read`. Job names: `status` (event run) and `oct-status` (check). In this milestone the step runs with `--dry-run`. Checkout only the base ref.
 - [ ] **Step 4: Run** the tests and `actionlint` - Expected: PASS.
 - [ ] **Step 5: Commit** `feat(oct-status): add event pipeline and shadow-mode workflow`.
 - [ ] **MAINTAINER ACTION MA-4** (after the merge, before the shadow week counts): check the Gitar dashboard settings.
@@ -390,6 +392,7 @@ docs/WORKFLOW.md                     new
 
 **Files:**
 - Create: `scripts/oct_status/commands.py`, `tests/test_commands.py`
+- Modify: `scripts/oct_status/main.py` (`run_event` handles `issue_comment` events by parse, authorize, execute)
 
 **Interfaces:**
 - Consumes: `legal_transitions`, `GitHubApi`.
@@ -402,6 +405,7 @@ docs/WORKFLOW.md                     new
   - `test_override_needs_maintain_permission_and_is_logged`.
   - `test_unauthorized_command_rejected` (write access missing).
   - `test_no_spec_requires_reason`.
+  - `test_issue_comment_event_executes_command_and_updates_guide`: an `issue_comment` payload with `/oct review` runs through `run_event`, applies the declaration and writes the outcome into the guide comment.
 - [ ] **Step 2: Run** - Expected: FAIL.
 - [ ] **Step 3: Implement.** Commands act through labels (declarations) and one REST call each; rejection text goes to the guide comment (Task 9/10), reactions on the command comment (`eyes`, `+1`, `-1`).
 - [ ] **Step 4: Run** - Expected: PASS.
@@ -411,6 +415,7 @@ docs/WORKFLOW.md                     new
 
 **Files:**
 - Create: `scripts/oct_status/ledger.py`, `scripts/oct_status/violations.py`, `tests/test_ledger.py`, `tests/test_violations.py`
+- Modify: `scripts/oct_status/main.py`, `scripts/oct_status/guide.py` (violations flow into the guide comment's notices section)
 
 **Interfaces:**
 - Produces: `Violation(rule: str, artifact: int, user: str, hint: str)`; `detect(snap, derived, graph, cfg, actor_class: str) -> list[Violation]` (rules `V01`..`V08` of spec section 10); `Ledger(api, issue_number: int, clock: Callable[[], datetime])` with `async record(v: Violation) -> None`, `async level_for(user: str) -> int`, `async record_override(user, artifact, reason) -> None`.
@@ -421,6 +426,7 @@ docs/WORKFLOW.md                     new
   - `test_automation_and_first_time_fork_authors_exempt`.
   - `test_detectors`: one test per rule V01..V08 with a minimal snapshot that triggers it and a variant that does not.
   - `test_ladder_messages`: level 1 -> notice without override hint; level 2 -> includes `/oct override`; level >= 3 -> `blocks is True` for PRs and `revert is True` for issues/discussions.
+  - `test_event_with_violation_writes_notice_to_guide`: a PR event without spec edge adds one V01 notice with the rule anchor to the guide comment and records one ledger entry; a repeated event adds nothing.
   - `test_no_strikes_before_activation_date`: `cfg.strikes_enabled_from` in the future -> `level_for` is 0 and notices are not escalated.
 - [ ] **Step 2: Run** - Expected: FAIL.
 - [ ] **Step 3: Implement.** The ledger stores one JSON comment per event on the ledger issue; reading lists comments with `since` for the window. Notices are rendered into the guide comment's section 5, with the rule anchor `docs/WORKFLOW.md#v01-...`.
