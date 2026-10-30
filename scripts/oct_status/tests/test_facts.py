@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import httpx
 
 from oct_status.api import GitHubApi
@@ -119,3 +121,83 @@ async def test_graphql_errors_payload_degrades_to_unknown():
 async def test_graphql_null_pull_request_degrades_to_unknown():
     body = {"data": {"repository": {"pullRequest": None}}}
     await _assert_degraded(FixtureTransport([574], extra={"POST /graphql": body}))
+
+
+# The endpoints below were never recorded; these tests use small synthetic `extra` routes.
+def _commit(sha, login=None, committer=None, name="Some One"):
+    return {
+        "sha": sha,
+        "author": {"login": login} if login else None,
+        "committer": {"login": committer} if committer else None,
+        "commit": {"author": {"name": name}},
+    }
+
+
+def _issue_objs(*numbers):
+    return [{"number": n, "title": f"issue {n}"} for n in numbers]
+
+
+def _cfg():
+    from oct_status.config import load_config
+
+    return load_config(Path(__file__).parent.parent / "config.yml")
+
+
+async def test_pushes_from_pr_commits():
+    extra = {
+        f"GET {BASE}/pulls/574/commits": [
+            _commit("a1", "scheilch"),
+            _commit("b2", "formatter-bot"),
+            _commit("c3", "gitar-bot[bot]"),
+            _commit("d4", None, "committer-user"),
+            _commit("e5", None, None, "Plain Name"),
+        ]
+    }
+    snap = await fetch_snapshot(_api(FixtureTransport([574], extra=extra)), 574, use_graphql=False, cfg=_cfg())
+    assert [(p.sha, p.author) for p in snap.pushes] == [
+        ("a1", "scheilch"),
+        ("b2", "formatter-bot"),
+        ("c3", "gitar-bot[bot]"),
+        ("d4", "committer-user"),
+        ("e5", "Plain Name"),
+    ]
+
+
+async def test_paths_only_fetched_for_automation_authors():
+    extra = {
+        f"GET {BASE}/pulls/574/commits": [_commit("a1", "scheilch"), _commit("c3", "gitar-bot[bot]")],
+        f"GET {BASE}/commits/c3": {"files": [{"filename": "a/b.py"}, {"filename": "c.md"}]},
+        f"GET {BASE}/commits/a1": {"files": [{"filename": "must-not-be-read"}]},
+    }
+    transport = FixtureTransport([574], extra=extra)
+    snap = await fetch_snapshot(_api(transport), 574, use_graphql=False, cfg=_cfg())
+    assert snap.pushes[0].paths == ()
+    assert snap.pushes[1].paths == ("a/b.py", "c.md")
+    commit_requests = [r for r in transport.requests if r.startswith(f"GET {BASE}/commits/") and "check-runs" not in r]
+    assert commit_requests == [f"GET {BASE}/commits/c3"]
+    # without a config nobody counts as automation
+    transport = FixtureTransport([574], extra=extra)
+    bare = await fetch_snapshot(_api(transport), 574, use_graphql=False)
+    assert all(p.paths == () for p in bare.pushes)
+    assert f"GET {BASE}/commits/c3" not in transport.requests
+
+
+async def test_sub_issues_and_blocked_by():
+    extra = {
+        f"GET {BASE}/issues/537/sub_issues": _issue_objs(540, 541),
+        f"GET {BASE}/issues/537/dependencies/blocked_by": [],
+    }
+    snap = await fetch_snapshot(_api(FixtureTransport([537], extra=extra)), 537, use_graphql=False)
+    assert snap.sub_issues == (540, 541)
+    assert snap.blocked_by == ()
+    extra = {f"GET {BASE}/issues/537/dependencies/blocked_by": _issue_objs(12)}
+    snap = await fetch_snapshot(_api(FixtureTransport([537], extra=extra)), 537, use_graphql=False)
+    assert snap.sub_issues == ()  # 404
+    assert snap.blocked_by == (12,)
+
+
+async def test_pushes_empty_for_issues():
+    transport = FixtureTransport([537])
+    snap = await fetch_snapshot(_api(transport), 537, use_graphql=False, cfg=_cfg())
+    assert snap.pushes == ()
+    assert not any("/commits" in r for r in transport.requests)

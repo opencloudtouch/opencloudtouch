@@ -1,7 +1,7 @@
 """Fetch the facts of one issue or pull request into a Snapshot (read-only).
 
 REST for everything; one GraphQL query for review threads, which REST cannot count.
-Native sub-issues and blocked-by relations are not fetched here (empty tuples).
+Also fills pushes (PR commits), native sub-issues and blocked-by relations.
 """
 
 from __future__ import annotations
@@ -11,8 +11,9 @@ from typing import Any
 import httpx
 
 from .api import GitHubApi
+from .config import Config
 from .graph import parse_prose_edges
-from .model import Check, EdgeType, Review, Snapshot
+from .model import Check, EdgeType, Push, Review, Snapshot
 
 _THREADS_QUERY = """
 query($owner: String!, $name: String!, $number: Int!) {
@@ -51,6 +52,53 @@ async def _stack_drift(api: GitHubApi, base: str, head: str, open_pr_heads: froz
     return int(resp.json().get("behind_by", 0))
 
 
+_MAX_COMMIT_PAGES = 30  # safety bound against a server that ignores `page`
+
+
+async def _pushes(api: GitHubApi, number: int, cfg: Config | None) -> tuple[Push, ...]:
+    """One Push per commit of the PR, oldest first; at most the newest 100 commits.
+
+    Author is the commit author login, else the committer login, else the git author name.
+    File paths are fetched (``GET /commits/{sha}``) only for authors that are keys of
+    ``cfg.automation``; everybody else gets ``paths == ()``.
+    """
+    commits: list[dict[str, Any]] = []
+    for page in range(1, _MAX_COMMIT_PAGES + 1):
+        resp = await api.request("GET", f"/pulls/{number}/commits", params={"per_page": 100, "page": page})
+        if resp.status_code == 404:  # route not recorded/available: no push information
+            break
+        resp.raise_for_status()
+        batch = resp.json()
+        commits.extend(batch)
+        if len(batch) < 100:
+            break
+    pushes: list[Push] = []
+    for commit in commits[-100:]:
+        login = (
+            (commit.get("author") or {}).get("login")
+            or (commit.get("committer") or {}).get("login")
+            or ((commit.get("commit") or {}).get("author") or {}).get("name")
+            or ""
+        )
+        paths: tuple[str, ...] = ()
+        if cfg is not None and login in cfg.automation:
+            detail = await api.request("GET", f"/commits/{commit['sha']}")
+            if detail.status_code != 404:
+                detail.raise_for_status()
+                paths = tuple(f["filename"] for f in detail.json().get("files", []))
+        pushes.append(Push(commit["sha"], login, paths))
+    return tuple(pushes)
+
+
+async def _issue_numbers(api: GitHubApi, path: str) -> tuple[int, ...]:
+    """Numbers of the issues a relation endpoint lists; 404 or empty gives ``()``."""
+    resp = await api.request("GET", path, params={"per_page": 100})
+    if resp.status_code == 404:
+        return ()
+    resp.raise_for_status()
+    return tuple(int(item["number"]) for item in resp.json())
+
+
 async def _unresolved_threads(api: GitHubApi, number: int) -> int:
     """Unresolved review threads, or -1 (unknown) when GraphQL fails or answers unexpectedly."""
     owner, name = api.repo.split("/", 1)
@@ -77,6 +125,7 @@ async def fetch_snapshot(
     number: int,
     use_graphql: bool = True,
     open_pr_heads: frozenset[str] | None = None,
+    cfg: Config | None = None,
 ) -> Snapshot:
     resp = await api.request("GET", f"/pulls/{number}")
     is_pr = resp.status_code != 404
@@ -93,6 +142,7 @@ async def fetch_snapshot(
     checks: tuple[Check, ...] = ()
     unresolved = 0
     drift: int | None = None
+    pushes: tuple[Push, ...] = ()
     is_fork = False
     if is_pr:
         base, head = data["base"], data["head"]
@@ -109,6 +159,7 @@ async def fetch_snapshot(
             Check(c["name"], c["status"], c.get("conclusion"), (c.get("app") or {}).get("slug", "")) for c in runs
         )
         drift = await _stack_drift(api, base_ref, head_ref, open_pr_heads)
+        pushes = await _pushes(api, number, cfg)
         unresolved = await _unresolved_threads(api, number) if use_graphql else -1
 
     return Snapshot(
@@ -129,9 +180,9 @@ async def fetch_snapshot(
         unresolved_threads=unresolved,
         checks=checks,
         closing_refs=_linked_refs(number, body) if is_pr else (),
-        sub_issues=(),
-        blocked_by=(),
-        pushes=(),
+        sub_issues=await _issue_numbers(api, f"/issues/{number}/sub_issues"),
+        blocked_by=await _issue_numbers(api, f"/issues/{number}/dependencies/blocked_by"),
+        pushes=pushes,
         stack_drift=drift,
         head_is_fork=is_fork,
     )
