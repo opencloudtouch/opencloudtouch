@@ -1,0 +1,327 @@
+name: OCT Status
+
+# Write mode is gated by the repository variable OCT_STATUS_WRITE (maintainer action MA-5, after
+# the shadow week). While it is not 'true' the workflow stays in shadow mode: the `status` job runs
+# every event and the daily audit with --dry-run (read-only API, job summary only). With
+# OCT_STATUS_WRITE == 'true' the `status-write` job writes labels, blocks and guide comments with
+# BOT_PAT and publishes, with the job's GITHUB_TOKEN, the gate of every pull request it touches
+# (all open ones in the daily audit) as the commit status `oct-status` on the PR head SHA.
+#
+# Required check (Task 20): the commit STATUS context `oct-status`, not the `oct-status-report` job below.
+# A pull_request_target job attaches to the base commit, so it cannot gate the PR head; the job only
+# reports the same gate in its summary (continue-on-error unless write mode). It is deliberately not
+# named `oct-status`, so a required check of that name can only be satisfied by the commit status. A head without a status
+# is pending until the synchronize event or the daily audit posts one.
+#
+# The label sync and the backfill (mode=backfill, MA-6) are manual workflow_dispatch runs that stay
+# dry-run unless dry_run=false is chosen; a writing backfill is refused until OCT_STATUS_WRITE is
+# 'true'. Strikes stay off until strikes_enabled_from is set in scripts/oct_status/config.yml.
+#
+# Security: pull_request_target runs with base repository secrets, so this workflow checks out the
+# default branch only and never the pull request head. Event payloads are untrusted data: they are
+# read from the runner's payload file ($GITHUB_EVENT_PATH) and never interpolated into a script.
+
+on:
+  issues:
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - ready_for_review
+      - converted_to_draft
+      - closed
+      - labeled
+      - unlabeled
+      - review_requested
+  pull_request_review:
+  pull_request_review_comment:
+  # A resolved or unresolved review thread (wait:findings) has no Actions trigger
+  # (pull_request_review_thread is a webhook-only event): the next event of the PR or the daily audit
+  # picks it up.
+  # All actions: /oct commands (created) and guide comments edited or deleted by hand (restored, V03).
+  issue_comment:
+  check_suite:
+    types: [completed]
+  # CI done (wait:ci). Runs in the base repository context even for fork pull requests: the run is
+  # resolved by its head SHA only, never by branch names or other text of the payload.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  discussion:
+  discussion_comment:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Operation to run (labels, audit of all open artifacts, or one backfill batch)
+        type: choice
+        options: [labels, audit, backfill]
+        default: labels
+      dry_run:
+        description: Plan only, perform no writes (labels and backfill; audit writes only with OCT_STATUS_WRITE)
+        type: boolean
+        default: true
+      limit:
+        description: Artifacts per backfill run
+        type: number
+        default: 25
+
+concurrency:
+  # One group per artifact; a check suite or CI run joins the group of its pull request, but only when
+  # it comes from this repository (a pull request number in a fork's payload is never trusted). A fork's
+  # check suite or CI run gets a group per head commit (sha-<sha>), so runs of the same commit serialise. GitHub keeps at most one pending run per group (a newer one replaces it), see
+  # the daily audit for what that can drop.
+  group: oct-status-${{ github.event.issue.number || github.event.pull_request.number || github.event.discussion.number || (github.event.check_suite.pull_requests[0].head.repo.id == github.event.repository.id && github.event.check_suite.pull_requests[0].number) || (github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.pull_requests[0].number) || (github.event.check_suite.head_sha && format('sha-{0}', github.event.check_suite.head_sha)) || (github.event.workflow_run.head_sha && format('sha-{0}', github.event.workflow_run.head_sha)) || github.run_id }}
+  cancel-in-progress: false
+
+# Least privilege: only the jobs that write (labels, status-write, backfill) get issues /
+# pull-requests write. Discussions are not handled yet, so no job gets discussions write.
+permissions:
+  contents: read
+
+jobs:
+  labels:
+    name: labels
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'labels'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: pip install -r scripts/oct_status/requirements.txt
+      - name: Sync labels
+        # dry_run=false is a manual maintainer action (real label and ledger writes).
+        env:
+          BOT_PAT: ${{ secrets.BOT_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONPATH: scripts
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=(--labels)
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          python -m oct_status "${args[@]}"
+
+  status:
+    # Shadow mode (OCT_STATUS_WRITE is not 'true'): compute everything, write nothing.
+    name: status
+    if: (github.event_name != 'workflow_dispatch' || inputs.mode == 'audit') && vars.OCT_STATUS_WRITE != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+      pull-requests: read
+      checks: read
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Base repository only, never the pull request head (pull_request_target has secrets).
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: pip install -r scripts/oct_status/requirements.txt
+      - name: Process event (shadow mode)
+        if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONPATH: scripts
+          EVENT_NAME: ${{ github.event_name }}
+        run: python -m oct_status --event "$EVENT_NAME" --payload "$GITHUB_EVENT_PATH" --dry-run
+      - name: Audit open artifacts (shadow mode)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONPATH: scripts
+        run: python -m oct_status --audit --dry-run
+
+  status-write:
+    # Write mode (OCT_STATUS_WRITE == 'true', set by the maintainer at MA-5). Labels, blocks and guide
+    # comments are written with BOT_PAT; the commit status `oct-status` with the job's GITHUB_TOKEN.
+    name: status
+    if: (github.event_name != 'workflow_dispatch' || inputs.mode == 'audit') && vars.OCT_STATUS_WRITE == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      checks: read
+      actions: read
+      # The job token posts the commit status `oct-status` on the PR head (BOT_PAT gets no new scope).
+      statuses: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Base repository only, never the pull request head (pull_request_target has secrets).
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: pip install -r scripts/oct_status/requirements.txt
+      - name: Process event
+        if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+        env:
+          BOT_PAT: ${{ secrets.BOT_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONPATH: scripts
+          EVENT_NAME: ${{ github.event_name }}
+        run: python -m oct_status --event "$EVENT_NAME" --payload "$GITHUB_EVENT_PATH"
+      - name: Audit open artifacts
+        # The scheduled audit heals drift; a manual audit stays dry-run unless dry_run=false.
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          BOT_PAT: ${{ secrets.BOT_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONPATH: scripts
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=(--audit)
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          python -m oct_status "${args[@]}"
+
+  backfill:
+    # Dry-run batch (default): read-only, GITHUB_TOKEN only, the state is read but never saved.
+    name: backfill
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill' && inputs.dry_run
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+      pull-requests: read
+      contents: read
+    env:
+      OCT_BACKFILL_STATE: .oct-backfill/state.json
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: pip install -r scripts/oct_status/requirements.txt
+      - name: Restore backfill state
+        uses: actions/cache/restore@v6
+        with:
+          path: .oct-backfill
+          key: oct-backfill-state-${{ github.run_id }}
+          restore-keys: oct-backfill-state-
+      - name: Backfill one batch (dry-run)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONPATH: scripts
+          LIMIT: ${{ inputs.limit }}
+        run: python -m oct_status --backfill --limit "$LIMIT" --dry-run
+
+  backfill-refused:
+    # A writing backfill needs write mode to be switched on first (MA-5 before MA-6).
+    name: backfill
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill' && !inputs.dry_run && vars.OCT_STATUS_WRITE != 'true'
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Refuse
+        run: |
+          echo "::error::backfill with dry_run=false needs the repository variable OCT_STATUS_WRITE=true (MA-5)"
+          exit 1
+
+  backfill-write:
+    # One writing batch (MA-6); repeat until the summary prints "remaining: 0". The state file
+    # (artifact numbers only) is carried between runs in the Actions cache.
+    name: backfill
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill' && !inputs.dry_run && vars.OCT_STATUS_WRITE == 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: oct-status-backfill
+      cancel-in-progress: false
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read
+    env:
+      OCT_BACKFILL_STATE: .oct-backfill/state.json
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: pip install -r scripts/oct_status/requirements.txt
+      - name: Restore backfill state
+        uses: actions/cache/restore@v6
+        with:
+          path: .oct-backfill
+          key: oct-backfill-state-${{ github.run_id }}
+          restore-keys: oct-backfill-state-
+      - name: Backfill one batch
+        # Real label and block writes, no comments, no strikes.
+        env:
+          BOT_PAT: ${{ secrets.BOT_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONPATH: scripts
+          LIMIT: ${{ inputs.limit }}
+        run: |
+          mkdir -p .oct-backfill
+          python -m oct_status --backfill --limit "$LIMIT"
+      - name: Save backfill state
+        if: always() && hashFiles('.oct-backfill/state.json') != ''
+        uses: actions/cache/save@v6
+        with:
+          path: .oct-backfill
+          key: oct-backfill-state-${{ github.run_id }}
+
+  oct-status-report:
+    # Report job; NOT the required check (that is the commit status `oct-status`, see header).
+    name: oct-status-report
+    needs: [status, status-write]
+    if: ${{ !cancelled() && github.event_name == 'pull_request_target' }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+      pull-requests: read
+      contents: read
+      checks: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: pip install -r scripts/oct_status/requirements.txt
+      - name: Check status block
+        # Reports only in shadow mode; red (exit 1) once OCT_STATUS_WRITE is 'true'.
+        continue-on-error: ${{ vars.OCT_STATUS_WRITE != 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONPATH: scripts
+          EVENT_NAME: ${{ github.event_name }}
+        run: python -m oct_status --check --event "$EVENT_NAME" --payload "$GITHUB_EVENT_PATH"

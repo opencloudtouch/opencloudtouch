@@ -10,16 +10,18 @@ Outputs YAML reports for coverage and quality.
 """
 
 import os
-import sys
 import re
-import yaml
-from datetime import datetime, timezone, timedelta
+import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+import yaml
+
 from github_client import GitHubClient
 from knowledge_base import KnowledgeBase
 
 PATTERNS = [
-    r"\\bhow\\b", r"\\bwhy\\b", r"doesn['’]t work", r"problem", r"workaround", r"fixed", r"solved", r"thanks?",
+    r"\bhow\b", r"\bwhy\b", r"doesn['’]t work", r"problem", r"workaround", r"fixed", r"solved", r"thanks?",
     r"great", r"perfect", r"confirmed", r"appreciate"
 ]
 POSITIVE_FEEDBACK = [r"thanks?", r"works", r"solved", r"fixed", r"perfect", r"that did it", r"confirmed", r"great"]
@@ -53,7 +55,7 @@ async def scan_open_issues(github_client: GitHubClient, kb: KnowledgeBase):
         for pf in POSITIVE_FEEDBACK:
             if re.search(pf, text):
                 feedback = pf
-                score = 2 if pf in ["thanks", "solved", "fixed"] else 1
+                score = 2 if pf in ["thanks?", "solved", "fixed"] else 1
                 quality["solved" if score == 2 else "helpful"] += 1
                 break
         for nf in NEGATIVE_FEEDBACK:

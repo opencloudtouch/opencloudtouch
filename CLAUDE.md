@@ -40,3 +40,10 @@ Two quality gates apply to every contributor. The full criteria live in [docs/DE
 ## Git workflow
 
 - Branches are named `type/description` (`feat/…`, `fix/…`, `docs/…`); check `git status` before switching branches so uncommitted work is not lost.
+
+## Status system
+
+- Issues and PRs are tracked by the `oct-status` system; see [docs/WORKFLOW.md](docs/WORKFLOW.md).
+- Never edit the `oct-status` block (`<!-- oct-status:v1 -->` … `<!-- /oct-status -->`) or the `phase:`, `wait:` and `resolution:` labels by hand; use `/oct` commands in a comment instead.
+- Each artifact has one guide comment (`<!-- oct-next:v1 -->`). It shows the next steps and valid commands; never reply to it or edit it.
+- Subagents follow the same rules. Start every subagent prompt with: "Follow the Status system section of CLAUDE.md: do not edit the oct-status block or phase/wait/resolution labels; use /oct commands."

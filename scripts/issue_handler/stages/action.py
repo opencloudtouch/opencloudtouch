@@ -17,7 +17,7 @@ LABEL_MAP = {
     "bug": "bug",
     "feature": "enhancement",
     "support": "support",
-    "unclear": "needs-info",
+    "unclear": "wait:reporter",
     "off-topic": "off-topic",
     "spam": "spam",
 }
@@ -178,28 +178,28 @@ async def _handle_classification(
     any_failed = False
 
     # --- Signal 1: Labels ---
-    label = LABEL_MAP.get(classification.category, "needs-triage")
+    label = LABEL_MAP.get(classification.category, "phase:new")
 
     if not is_discussion:
-        # Off-topic with low confidence → needs-triage instead
+        # Off-topic with low confidence → phase:new instead
         if classification.category == "off-topic" and not classification.is_on_topic and classification.confidence < CONFIDENCE_THRESHOLD:
-            label = "needs-triage"
+            label = "phase:new"
 
         if not await _safe_call(github_client.add_labels, issue_number, [label]):
             any_failed = True
 
-        # Low confidence → add needs-triage (except for 'unclear' and 'off-topic' per FR-018)
+        # Low confidence → add phase:new (except for 'unclear' and 'off-topic' per FR-018)
         if (
             classification.confidence < CONFIDENCE_THRESHOLD
             and classification.category not in ("unclear", "off-topic", "spam")
         ):
-            await _safe_call(github_client.add_labels, issue_number, ["needs-triage"])
+            await _safe_call(github_client.add_labels, issue_number, ["phase:new"])
 
     # --- Signal 2: Assignee ---
     if not is_discussion:
         if not await _safe_call(github_client.set_assignee, issue_number, bot_username):
             any_failed = True
-            await _safe_call(github_client.add_labels, issue_number, ["needs-triage"])
+            await _safe_call(github_client.add_labels, issue_number, ["phase:new"])
 
     # --- Signal 3: Comment ---
     comment = _select_comment(classification, context, event)
@@ -207,9 +207,9 @@ async def _handle_classification(
         if not await _safe_call(github_client.post_comment, issue_number, comment):
             any_failed = True
 
-    # Fallback: if any signal completely failed, ensure needs-triage is set
+    # Fallback: if any signal completely failed, ensure phase:new is set
     if any_failed and not is_discussion:
-        await _safe_call(github_client.add_labels, issue_number, ["needs-triage"])
+        await _safe_call(github_client.add_labels, issue_number, ["phase:new"])
 
     return PipelineDecision(
         stage="action",

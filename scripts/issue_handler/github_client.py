@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+import re
 from typing import Any
 
 import httpx
@@ -22,6 +23,17 @@ BACKOFF_FACTOR = 2.0
 JITTER_MS = 500
 
 API_BASE = "https://api.github.com"
+# oct-status markers (guide comment, status block): the same bot account writes those.
+_OCT_MARKER = re.compile(r"<!--(?=\s*/?oct-)", re.IGNORECASE)
+_GUIDE_MARKER = "<!-- oct-next:v1 -->"
+
+
+def _is_answer(comment: dict[str, Any], login: str) -> bool:
+    """A comment of `login` that is not the oct-status guide comment (the same account writes both)."""
+    body = comment.get("body") or ""
+    return (comment.get("user") or {}).get("login") == login and not body.lstrip("\ufeff \t\r\n").startswith(
+        _GUIDE_MARKER
+    )
 
 
 class GitHubClient:
@@ -86,6 +98,8 @@ class GitHubClient:
         response.raise_for_status()
 
     async def post_comment(self, issue_number: int, body: str) -> None:
+        # This account also writes the oct-status guide comment: an answer must never carry its markers.
+        body = _OCT_MARKER.sub("&lt;!--", body)
         # Safety net: check if bot already commented (prevent duplicate spam)
         bot_login = await self._get_bot_login()
         if bot_login:
@@ -97,7 +111,7 @@ class GitHubClient:
             )
             if existing.status_code == 200:
                 comments = existing.json()
-                if any(c.get("user", {}).get("login") == bot_login for c in comments):
+                if any(_is_answer(c, bot_login) for c in comments):
                     logger.warning(
                         "Duplicate comment blocked: bot '%s' already commented on #%d",
                         bot_login, issue_number,
@@ -203,9 +217,7 @@ class GitHubClient:
             return False
         response.raise_for_status()
         comments = response.json()
-        return any(
-            c.get("user", {}).get("login") == bot_username for c in comments
-        )
+        return any(_is_answer(c, bot_username) for c in comments)
 
     async def get_issue_state(self, issue_number: int) -> str:
         """Get current issue state. Returns 'deleted' if 404/410."""

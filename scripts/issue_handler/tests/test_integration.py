@@ -294,4 +294,4 @@ class TestEdgeCaseIntegration:
         decision = await action_stage(event, context)
         assert decision.decision == "act"
         label_calls = [str(c) for c in gh.add_labels.call_args_list]
-        assert any("needs-triage" in c for c in label_calls)
+        assert any("phase:new" in c for c in label_calls)
