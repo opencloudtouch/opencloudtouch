@@ -142,7 +142,9 @@
       "downloadLogs": "Logs downloaden",
       "downloadDescription": "Download de laatste 1000 backend-logvermeldingen als tekstbestand.",
       "levelChanged": "Logniveau ingesteld op {{level}}",
-      "levelError": "Logniveau kon niet worden gewijzigd"
+      "levelError": "Logniveau kon niet worden gewijzigd",
+      "downloading": "Downloaden...",
+      "downloadError": "Kan logbestanden niet downloaden"
     }
   },
   "manualIpModal": {

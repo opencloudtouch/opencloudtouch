@@ -142,7 +142,9 @@
       "downloadLogs": "ログをダウンロード",
       "downloadDescription": "バックエンドの最新1000件のログエントリをテキストファイルとしてダウンロードします。",
       "levelChanged": "ログレベルを{{level}}に設定しました",
-      "levelError": "ログレベルを変更できませんでした"
+      "levelError": "ログレベルを変更できませんでした",
+      "downloading": "ダウンロード中...",
+      "downloadError": "ログをダウンロードできませんでした"
     }
   },
   "manualIpModal": {

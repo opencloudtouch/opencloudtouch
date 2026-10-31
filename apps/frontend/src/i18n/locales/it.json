@@ -142,7 +142,9 @@
       "downloadLogs": "Scarica log",
       "downloadDescription": "Scarica le ultime 1000 voci del log backend come file di testo.",
       "levelChanged": "Livello di log impostato su {{level}}",
-      "levelError": "Impossibile modificare il livello di log"
+      "levelError": "Impossibile modificare il livello di log",
+      "downloading": "Download in corso...",
+      "downloadError": "Impossibile scaricare i registri"
     }
   },
   "manualIpModal": {

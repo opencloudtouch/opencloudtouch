@@ -15,6 +15,7 @@ export default function Settings() {
   const { t } = useTranslation();
   const [newIP, setNewIP] = useState("");
   const [error, setError] = useState("");
+  const [isDownloadingLogs, setIsDownloadingLogs] = useState(false);
 
   // React Query hooks
   const { isLoading: loading, error: queryError, refetch } = useManualIPs();
@@ -253,7 +254,13 @@ export default function Settings() {
             <button
               type="button"
               className="btn btn-primary"
+              disabled={isDownloadingLogs}
+              aria-busy={isDownloadingLogs}
               onClick={async () => {
+                if (isDownloadingLogs) return;
+
+                setIsDownloadingLogs(true);
+
                 try {
                   const resp = await fetch("/api/logs/backend", {
                     method: "POST",
@@ -263,25 +270,36 @@ export default function Settings() {
                       frontend_log_buffers: getLogBuffers(),
                     }),
                   });
+
                   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
                   const blob = await resp.blob();
                   const disposition = resp.headers.get("Content-Disposition") || "";
                   const execResult = /filename="(.+?)"/.exec(disposition);
                   const filename = execResult?.[1] || "oct-backend.log";
+
                   const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = filename;
-                  document.body.appendChild(a);
-                  a.click();
-                  a.remove();
-                  URL.revokeObjectURL(url);
+                  try {
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                  } finally {
+                    URL.revokeObjectURL(url);
+                  }
                 } catch (err) {
                   console.error("Log download failed:", err);
+                  show(t("settings.logging.downloadError"), "error");
+                } finally {
+                  setIsDownloadingLogs(false);
                 }
               }}
             >
-              {t("settings.logging.downloadLogs")}
+              {isDownloadingLogs
+                ? t("settings.logging.downloading")
+                : t("settings.logging.downloadLogs")}
             </button>
           </div>
         </div>

@@ -142,7 +142,9 @@
       "downloadLogs": "Logs herunterladen",
       "downloadDescription": "Laden Sie die letzten 1000 Backend-Logeinträge als Textdatei herunter.",
       "levelChanged": "Log-Level auf {{level}} gesetzt",
-      "levelError": "Log-Level konnte nicht geändert werden"
+      "levelError": "Log-Level konnte nicht geändert werden",
+      "downloading": "Wird heruntergeladen...",
+      "downloadError": "Protokolle konnten nicht heruntergeladen werden"
     }
   },
   "manualIpModal": {

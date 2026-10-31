@@ -13,7 +13,11 @@ vi.mock("../../src/components/AboutSection", () => ({
 let mockFetch: Mock;
 
 const renderWithProviders = (component: React.ReactElement) => {
-  return render(<QueryWrapper><ToastProvider>{component}</ToastProvider></QueryWrapper>);
+  return render(
+    <QueryWrapper>
+      <ToastProvider>{component}</ToastProvider>
+    </QueryWrapper>
+  );
 };
 
 describe("Settings Page", () => {
@@ -172,7 +176,12 @@ describe("Settings Page", () => {
     // Mock probe response
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ device_id: "ABC", ip: "192.168.1.10", name: "Living Room", model: "ST20" }),
+      json: async () => ({
+        device_id: "ABC",
+        ip: "192.168.1.10",
+        name: "Living Room",
+        model: "ST20",
+      }),
     });
     // Re-fetch manual-ips after probe invalidation
     mockFetch.mockResolvedValueOnce({
@@ -183,7 +192,9 @@ describe("Settings Page", () => {
     fireEvent.click(addButton);
 
     await waitFor(() => {
-      const probeCall = mockFetch.mock.calls.find((call: unknown[]) => call[0] === "/api/devices/probe");
+      const probeCall = mockFetch.mock.calls.find(
+        (call: unknown[]) => call[0] === "/api/devices/probe"
+      );
       expect(probeCall).toBeDefined();
       const body = JSON.parse((probeCall![1] as RequestInit).body as string);
       expect(body).toEqual({ ip: "192.168.1.10" });
@@ -347,7 +358,9 @@ describe("Settings Page", () => {
 
     // Find the Download Logs button in the Logging section
     const allButtons = screen.getAllByRole("button");
-    const downloadButton = allButtons.find(btn => btn.textContent?.includes("Download") || btn.textContent?.includes("downloadLogs"));
+    const downloadButton = allButtons.find(
+      (btn) => btn.textContent?.includes("Download") || btn.textContent?.includes("downloadLogs")
+    );
     expect(downloadButton).toBeDefined();
 
     // Mock the POST response for log download
@@ -377,8 +390,89 @@ describe("Settings Page", () => {
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
         "/api/logs/backend",
-        expect.objectContaining({ method: "POST" }),
+        expect.objectContaining({ method: "POST" })
       );
+      expect(mockAnchor.click).toHaveBeenCalledTimes(1);
+      expect(mockAnchor.download).toBe("oct-backend-20250101.log");
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith(mockUrl);
+    });
+    expect(downloadButton).not.toBeDisabled();
+  });
+
+  describe("Log download feedback (#527)", () => {
+    const loadSettings = async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ips: [] }),
+      });
+
+      renderWithProviders(<Settings />);
+
+      return screen.findByRole("button", { name: "Download Logs" });
+    };
+
+    it.each([500, 413])(
+      "shows an error toast when log download returns HTTP %i",
+      async (status) => {
+        const button = await loadSettings();
+
+        mockFetch.mockResolvedValueOnce({
+          ok: false,
+          status,
+        });
+
+        fireEvent.click(button);
+
+        expect(await screen.findByText("Could not download logs")).toBeInTheDocument();
+      }
+    );
+
+    it("shows an error toast when the network request fails", async () => {
+      const button = await loadSettings();
+
+      mockFetch.mockRejectedValueOnce(new Error("Network error"));
+
+      fireEvent.click(button);
+
+      expect(await screen.findByText("Could not download logs")).toBeInTheDocument();
+    });
+
+    it("disables the button while downloading and prevents duplicate requests", async () => {
+      const button = await loadSettings();
+
+      let finishDownload!: (response: Response) => void;
+      const pendingDownload = new Promise<Response>((resolve) => {
+        finishDownload = resolve;
+      });
+
+      mockFetch.mockReturnValueOnce(pendingDownload);
+
+      fireEvent.click(button);
+
+      await waitFor(() => {
+        expect(button).toBeDisabled();
+        expect(button).toHaveTextContent("Downloading...");
+        expect(button).toHaveAttribute("aria-busy", "true");
+      });
+
+      fireEvent.click(button);
+
+      const downloadCalls = mockFetch.mock.calls.filter(
+        (call: unknown[]) => call[0] === "/api/logs/backend"
+      );
+
+      expect(downloadCalls).toHaveLength(1);
+
+      finishDownload({
+        ok: false,
+        status: 500,
+      } as Response);
+
+      await waitFor(() => {
+        expect(button).not.toBeDisabled();
+        expect(button).toHaveTextContent("Download Logs");
+        expect(button).toHaveAttribute("aria-busy", "false");
+      });
     });
   });
 

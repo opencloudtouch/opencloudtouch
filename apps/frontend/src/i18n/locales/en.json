@@ -142,7 +142,9 @@
       "downloadLogs": "Download Logs",
       "downloadDescription": "Download the last 1000 backend log entries as a text file.",
       "levelChanged": "Log level set to {{level}}",
-      "levelError": "Could not change log level"
+      "levelError": "Could not change log level",
+      "downloading": "Downloading...",
+      "downloadError": "Could not download logs"
     }
   },
   "manualIpModal": {

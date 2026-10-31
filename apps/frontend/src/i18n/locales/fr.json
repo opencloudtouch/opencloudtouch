@@ -142,7 +142,9 @@
       "downloadLogs": "Télécharger les journaux",
       "downloadDescription": "Téléchargez les 1000 dernières entrées du journal backend sous forme de fichier texte.",
       "levelChanged": "Niveau de journal défini sur {{level}}",
-      "levelError": "Impossible de modifier le niveau de journal"
+      "levelError": "Impossible de modifier le niveau de journal",
+      "downloading": "Téléchargement en cours...",
+      "downloadError": "Impossible de télécharger les journaux"
     }
   },
   "manualIpModal": {
