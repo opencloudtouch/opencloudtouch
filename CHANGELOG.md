@@ -9,7 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No changes yet._
+### Added
+- oct-status: status system for issues and pull requests. Three label axes (`phase:*`, `wait:*`, `resolution:*`), a bot-managed status block, one recycled guide comment per artifact, `/oct` commands, a strike ledger with violations V01 to V08, a protected-path guard, a resumable backfill and agent hooks. It runs in read-only shadow mode until the repository variable `OCT_STATUS_WRITE` is set; strikes stay off until `strikes_enabled_from` is set. See `docs/WORKFLOW.md`.
+- gitar: repository rules for the status system and a rule that adds the `gitar-managed` label to every opened pull request.
+- ci: job "Scripts Tests" runs all test suites under `scripts/` (issue handler, PR reviewer, shard distribution and oct-status).
+
+### Changed
+- issue-handler: assigns `phase:new` and `wait:reporter` instead of `needs-triage` and `needs-info`, keeps status-system markers out of its answers and ignores the guide comment when it looks for earlier answers.
+- dependabot: removed labels that do not exist and the placeholder reviewer and assignee.
+
+### Fixed
+- scripts: month-dependent budget test, never-matching how/why regex, thanks scoring and eight ruff findings in the legacy suites.
 
 ---
 
