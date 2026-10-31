@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No changes yet._
+### Fixed
+- **Settings log download (#527)** — Show an error notification when downloading logs fails and prevent duplicate download requests while a download is in progress.
 
 ---
 

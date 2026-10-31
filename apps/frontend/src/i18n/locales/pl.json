@@ -142,7 +142,9 @@
       "downloadLogs": "Pobierz logi",
       "downloadDescription": "Pobierz ostatnie 1000 wpisów logu backendu jako plik tekstowy.",
       "levelChanged": "Poziom logowania ustawiony na {{level}}",
-      "levelError": "Nie można zmienić poziomu logowania"
+      "levelError": "Nie można zmienić poziomu logowania",
+      "downloading": "Pobieranie...",
+      "downloadError": "Nie udało się pobrać dzienników"
     }
   },
   "manualIpModal": {

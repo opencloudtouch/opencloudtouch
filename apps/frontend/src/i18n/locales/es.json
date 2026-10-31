@@ -142,7 +142,9 @@
       "downloadLogs": "Descargar registros",
       "downloadDescription": "Descargue las últimas 1000 entradas del registro del backend como archivo de texto.",
       "levelChanged": "Nivel de registro cambiado a {{level}}",
-      "levelError": "No se pudo cambiar el nivel de registro"
+      "levelError": "No se pudo cambiar el nivel de registro",
+      "downloading": "Descargando...",
+      "downloadError": "No se pudieron descargar los registros"
     }
   },
   "manualIpModal": {

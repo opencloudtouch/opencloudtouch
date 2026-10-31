@@ -142,7 +142,9 @@
       "downloadLogs": "Ladda ned loggar",
       "downloadDescription": "Ladda ned de senaste 1000 backend-loggposterna som textfil.",
       "levelChanged": "Loggnivå inställd på {{level}}",
-      "levelError": "Det gick inte att ändra loggnivån"
+      "levelError": "Det gick inte att ändra loggnivån",
+      "downloading": "Laddar ner...",
+      "downloadError": "Kunde inte ladda ner loggarna"
     }
   },
   "manualIpModal": {

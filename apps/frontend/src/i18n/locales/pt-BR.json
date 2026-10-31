@@ -142,7 +142,9 @@
       "downloadLogs": "Baixar logs",
       "downloadDescription": "Baixe as últimas 1000 entradas de log do backend como arquivo de texto.",
       "levelChanged": "Nível de log definido para {{level}}",
-      "levelError": "Não foi possível alterar o nível de log"
+      "levelError": "Não foi possível alterar o nível de log",
+      "downloading": "Baixando...",
+      "downloadError": "Não foi possível baixar os logs"
     }
   },
   "manualIpModal": {
