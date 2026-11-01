@@ -182,7 +182,7 @@ def test_event_jobs_skip_instead_of_failing_when_the_package_is_not_on_the_defau
         install = next(s for s in steps if s.get("name") == "Install dependencies")
         assert install["id"] == "deps"
         assert "requirements.txt ]" in install["run"] and "exit 0" in install["run"]
-        guarded = [s for s in steps if "oct_status" in s.get("run", "")]
+        guarded = [s for s in steps if "python -m oct_status" in s.get("run", "")]
         assert guarded
         for step in guarded:
             assert "steps.deps.outputs.ready == 'true'" in step["if"], (job, step["name"])
