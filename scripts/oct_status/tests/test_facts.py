@@ -6,6 +6,7 @@ from pathlib import Path
 import httpx
 import pytest
 
+from oct_status import facts
 from oct_status.api import GitHubApi
 from oct_status.facts import UNKNOWN_PATHS, fetch_snapshot
 
@@ -407,3 +408,23 @@ async def test_more_than_100_check_runs_are_all_read():
     transport.routes[f"GET {BASE}/commits/{sha}/check-runs"] = route
     snap = await fetch_snapshot(_api(transport), 574, use_graphql=False)
     assert len(snap.checks) == 141 and snap.checks[-1].name == "Gitar" and sorted(seen) == [1, 2]
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        ({"permission": "write", "role_name": "maintain"}, "maintain"),
+        ({"permission": "write", "role_name": "write"}, "write"),
+        ({"permission": "read", "role_name": "triage"}, "triage"),
+        ({"permission": "write", "role_name": "release-manager"}, "write"),  # custom role: base permission
+        ({"permission": "admin", "role_name": "Release Admins"}, "admin"),
+        ({"permission": "write"}, "write"),
+    ],
+)
+async def test_author_permission_uses_built_in_roles_and_falls_back_for_custom_ones(data, expected):
+    transport = FixtureTransport(extra={"GET /repos/o/r/collaborators/x/permission": data})
+    api = GitHubApi("t", "o/r", transport=transport)
+    try:
+        assert await facts.author_permission(api, "x") == expected
+    finally:
+        await api.aclose()

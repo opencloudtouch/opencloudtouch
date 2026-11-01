@@ -161,6 +161,9 @@ async def _listing(
     return items
 
 
+_BUILT_IN_ROLES = frozenset({"admin", "maintain", "write", "triage", "read"})
+
+
 async def author_permission(api: GitHubApi, user: str) -> str | None:
     resp = await api.request("GET", f"/collaborators/{user}/permission")
     if resp.status_code == 404:
@@ -168,8 +171,12 @@ async def author_permission(api: GitHubApi, user: str) -> str | None:
     resp.raise_for_status()
     data = resp.json()
     # `permission` is the legacy four-value field (maintain shows as write, triage as read);
-    # `role_name` carries the real role. Fall back to the legacy value when it is absent.
-    role = data.get("role_name") or data.get("permission")
+    # `role_name` carries the real role. A custom repository role puts its own name there, which no rule
+    # knows, so only a built-in role name is used; anything else falls back to the legacy value, which
+    # is the base permission the custom role inherits.
+    role = data.get("role_name")
+    if role not in _BUILT_IN_ROLES:
+        role = data.get("permission")
     return str(role) if role is not None else None
 
 

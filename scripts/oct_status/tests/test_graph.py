@@ -176,3 +176,22 @@ def test_prose_in_html_comments_is_ignored():
     assert [e.target for e in edges] == [537] and unresolved == []
     edges, _ = parse_prose_edges(9, "<!-- Depends on #5 -->\nDepends on #6 <!-- Closes #7\n -->")
     assert [e.target for e in edges] == [6]
+
+
+def test_prose_in_the_bots_own_status_block_is_ignored():
+    """The block copies neighbour titles ("Part of #50: ..."); they are not relations of this artifact."""
+    body = (
+        "<!-- oct-status:v1 hash=0123456789ab -->\n"
+        "| #7 | Part of #50: rework | depends on #12 |\n"
+        "<!-- /oct-status -->\n"
+        "Closes #3"
+    )
+    edges, unresolved = parse_prose_edges(9, body)
+    assert [(e.type.value, e.target) for e in edges] == [("implements", 3)]
+    assert unresolved == []
+
+
+def test_graph_block_pattern_matches_the_renderer():
+    from oct_status import graph, render
+
+    assert graph._STATUS_BLOCK.pattern == render._BLOCK.pattern

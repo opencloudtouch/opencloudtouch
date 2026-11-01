@@ -59,6 +59,9 @@ _PROSE_TYPES = {
 _PROSE = re.compile(r"\b(closes|part of|depends on)\s+#(\w+)", re.IGNORECASE)
 _CONTINUATION = re.compile(r"\s*(?:,|and)\s*#(\d+)", re.IGNORECASE)
 _HTML_COMMENT = re.compile(r"<!--.*?(?:-->|\Z)", re.DOTALL)
+# The bot's own status block (same pattern as `render._BLOCK`, kept equal by a test): it copies titles of
+# other artifacts, so a title like "Part of #50: ..." must not become a relation of this artifact.
+_STATUS_BLOCK = re.compile(r"<!-- oct-status:v1 hash=[0-9a-f]{12} -->.*?<!-- /oct-status -->", re.DOTALL)
 
 
 def inverse(edge: Edge) -> Edge:
@@ -71,10 +74,11 @@ def parse_prose_edges(number: int, body: str) -> tuple[list[Edge], list[str]]:
 
     Text inside HTML comments is not shown and not a relation (the pull request template's hint names
     ``Closes #123`` as an example); an unterminated comment hides the rest of the body, as on GitHub.
+    The bot's own status block is skipped as well: it only repeats what the graph already shows.
     """
     edges: list[Edge] = []
     unresolved: list[str] = []
-    body = _HTML_COMMENT.sub(" ", body or "")
+    body = _HTML_COMMENT.sub(" ", _STATUS_BLOCK.sub(" ", body or ""))
     for match in _PROSE.finditer(body):
         keyword, ref = match.group(1), match.group(2)
         if not ref.isdigit():
