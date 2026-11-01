@@ -247,7 +247,7 @@ body:
           required: true
         - label: "Dependencies and ordering are stated; no open questions or TBD remain; documentation impact is identified"
           required: true
-        - label: "The spec was reviewed by someone other than the author (or independent reviewers) and the findings are incorporated"
+        - label: "The spec was reviewed by someone other than the author (a person, independent reviewers, or an AI reviewer in a fresh session) and the findings are incorporated"
           required: true
 
   - type: textarea

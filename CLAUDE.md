@@ -25,7 +25,7 @@ Two quality gates apply to every contributor. The full criteria live in [docs/DE
 - A spec MUST meet the **Definition of Ready** before implementation starts. The issue form `task_specification.yml` contains the checklist; when creating a spec without the form (for example with `gh issue create`), put the same checklist into the body as a `## Definition of Ready` section and tick only what is true.
 - The spec's acceptance criteria and its "Definition of Done" field MUST make the **Definition of Done** verifiable (test levels, OpenAPI, i18n, migrations, docs, hardware verification); items that cannot apply are marked `n/a` with a reason.
 - Backend and frontend parts have separate descriptions and separate, matching acceptance criteria. Frontend parts state functional requirements; visual design comes from the designer.
-- A spec is reviewed by someone other than its author (or by independent reviewers) and the findings are incorporated before it counts as ready.
+- A spec is reviewed by someone other than its author (or by independent reviewers) and the findings are incorporated before it counts as ready. The third party may be a person or an AI reviewer. An AI review counts only when it runs in a fresh session or agent that did not write the spec, and its findings are recorded in the issue.
 - Do not start implementing a spec whose Definition of Ready is not met or whose prerequisites are not merged: stop and comment on the issue instead of guessing or re-implementing a prerequisite.
 
 ### Pull requests

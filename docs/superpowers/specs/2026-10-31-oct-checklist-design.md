@@ -175,7 +175,7 @@ person with OWNER, MEMBER or COLLABORATOR association.
 
 ### 2.7 The independent review of a spec
 
-`CLAUDE.md` requires a spec to be reviewed by someone other than its author or by independent reviewers.
+`CLAUDE.md` requires a spec to be reviewed by someone other than its author or by independent reviewers; the third party may be a person or an AI reviewer running in a fresh session that did not write the spec, with its findings recorded in the issue.
 The checklist does not check the author against the reviewer any more (a tick is valid from any person with
 write access). The line "Reviewed, ready to implement" carries the hint "review by a third party or an
 independent reviewer, else skip with a reason", and the name of whoever ticked is written to the history.
