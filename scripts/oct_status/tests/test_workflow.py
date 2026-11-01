@@ -173,3 +173,16 @@ def test_every_job_checks_out_the_default_branch_and_reads_the_payload_file():
                 }, name
             assert "github.event." not in step.get("run", ""), name  # payload only via $GITHUB_EVENT_PATH
     assert "workflow_run.head_branch" not in text and "head_commit" not in text
+
+
+def test_event_jobs_skip_instead_of_failing_when_the_package_is_not_on_the_default_branch():
+    """Events (for example review events of the pull request that adds the package) may run before it exists."""
+    for job in ("status", "status-write", "oct-status-report"):
+        steps = _jobs()[job]["steps"]
+        install = next(s for s in steps if s.get("name") == "Install dependencies")
+        assert install["id"] == "deps"
+        assert "requirements.txt ]" in install["run"] and "exit 0" in install["run"]
+        guarded = [s for s in steps if "oct_status" in s.get("run", "")]
+        assert guarded
+        for step in guarded:
+            assert "steps.deps.outputs.ready == 'true'" in step["if"], (job, step["name"])

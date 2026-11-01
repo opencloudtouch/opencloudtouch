@@ -134,9 +134,19 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install dependencies
-        run: pip install -r scripts/oct_status/requirements.txt
+        id: deps
+        # Events can run before the package is on the default branch (for example review events of the
+        # pull request that adds it): that is not a failure, there is simply nothing to run yet.
+        run: |
+          if [ ! -f scripts/oct_status/requirements.txt ]; then
+            echo "::notice::oct-status is not on the default branch yet; nothing to do"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          pip install -r scripts/oct_status/requirements.txt
+          echo "ready=true" >> "$GITHUB_OUTPUT"
       - name: Process event (shadow mode)
-        if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+        if: steps.deps.outputs.ready == 'true' && (github.event_name != 'schedule' && github.event_name != 'workflow_dispatch')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
@@ -144,7 +154,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
         run: python -m oct_status --event "$EVENT_NAME" --payload "$GITHUB_EVENT_PATH" --dry-run
       - name: Audit open artifacts (shadow mode)
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        if: steps.deps.outputs.ready == 'true' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
@@ -175,9 +185,19 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install dependencies
-        run: pip install -r scripts/oct_status/requirements.txt
+        id: deps
+        # Events can run before the package is on the default branch (for example review events of the
+        # pull request that adds it): that is not a failure, there is simply nothing to run yet.
+        run: |
+          if [ ! -f scripts/oct_status/requirements.txt ]; then
+            echo "::notice::oct-status is not on the default branch yet; nothing to do"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          pip install -r scripts/oct_status/requirements.txt
+          echo "ready=true" >> "$GITHUB_OUTPUT"
       - name: Process event
-        if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+        if: steps.deps.outputs.ready == 'true' && (github.event_name != 'schedule' && github.event_name != 'workflow_dispatch')
         env:
           BOT_PAT: ${{ secrets.BOT_PAT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -187,7 +207,7 @@ jobs:
         run: python -m oct_status --event "$EVENT_NAME" --payload "$GITHUB_EVENT_PATH"
       - name: Audit open artifacts
         # The scheduled audit heals drift; a manual audit stays dry-run unless dry_run=false.
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        if: steps.deps.outputs.ready == 'true' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
         env:
           BOT_PAT: ${{ secrets.BOT_PAT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -315,9 +335,20 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install dependencies
-        run: pip install -r scripts/oct_status/requirements.txt
+        id: deps
+        # Events can run before the package is on the default branch (for example review events of the
+        # pull request that adds it): that is not a failure, there is simply nothing to run yet.
+        run: |
+          if [ ! -f scripts/oct_status/requirements.txt ]; then
+            echo "::notice::oct-status is not on the default branch yet; nothing to do"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          pip install -r scripts/oct_status/requirements.txt
+          echo "ready=true" >> "$GITHUB_OUTPUT"
       - name: Check status block
         # Reports only in shadow mode; red (exit 1) once OCT_STATUS_WRITE is 'true'.
+        if: steps.deps.outputs.ready == 'true'
         continue-on-error: ${{ vars.OCT_STATUS_WRITE != 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
