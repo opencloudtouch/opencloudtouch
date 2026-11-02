@@ -131,8 +131,8 @@
     "searchResults": "Search results",
     "removeDevice": "Remove device",
     "removeDeviceTitle": "Remove device?",
-    "removeDeviceOnline": "\"{{name}}\" is reachable. Removing it deletes its saved presets in OpenCloudTouch. The device itself is not changed and can be added again by the next scan.",
-    "removeDeviceOffline": "\"{{name}}\" is offline. It is removed from OpenCloudTouch together with its saved presets. Once it is back on the network, the next scan can add it again.",
+    "removeDeviceOnline": "\"{{name}}\" is reachable. It is removed from OpenCloudTouch, its saved presets are kept. The device itself is not changed and can be added again by the next scan.",
+    "removeDeviceOffline": "\"{{name}}\" is offline. It is removed from OpenCloudTouch, its saved presets are kept. Once it is back on the network, the next scan can add it again.",
     "removeDeviceConfirm": "Remove",
     "deviceRemoved": "\"{{name}}\" was removed."
   },

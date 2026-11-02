@@ -131,8 +131,8 @@
     "searchResults": "Sökresultat",
     "removeDevice": "Ta bort enhet",
     "removeDeviceTitle": "Ta bort enheten?",
-    "removeDeviceOnline": "\"{{name}}\" är nåbar. När den tas bort raderas dess sparade förval i OpenCloudTouch. Själva enheten ändras inte och kan läggas till igen vid nästa sökning.",
-    "removeDeviceOffline": "\"{{name}}\" är offline. Den tas bort från OpenCloudTouch tillsammans med sina sparade förval. När den är tillbaka på nätverket kan nästa sökning lägga till den igen.",
+    "removeDeviceOnline": "\"{{name}}\" är nåbar. Den tas bort från OpenCloudTouch, de sparade förvalen behålls. Själva enheten ändras inte och kan läggas till igen vid nästa sökning.",
+    "removeDeviceOffline": "\"{{name}}\" är offline. Den tas bort från OpenCloudTouch, de sparade förvalen behålls. När den är tillbaka på nätverket kan nästa sökning lägga till den igen.",
     "removeDeviceConfirm": "Ta bort",
     "deviceRemoved": "\"{{name}}\" har tagits bort."
   },

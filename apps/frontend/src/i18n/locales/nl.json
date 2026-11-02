@@ -131,8 +131,8 @@
     "searchResults": "Zoekresultaten",
     "removeDevice": "Apparaat verwijderen",
     "removeDeviceTitle": "Apparaat verwijderen?",
-    "removeDeviceOnline": "\"{{name}}\" is bereikbaar. Bij het verwijderen worden de opgeslagen presets in OpenCloudTouch gewist. Het apparaat zelf wordt niet gewijzigd en kan bij de volgende zoekopdracht opnieuw worden toegevoegd.",
-    "removeDeviceOffline": "\"{{name}}\" is offline. Het wordt met de opgeslagen presets uit OpenCloudTouch verwijderd. Zodra het weer in het netwerk zit, kan de volgende zoekopdracht het opnieuw toevoegen.",
+    "removeDeviceOnline": "\"{{name}}\" is bereikbaar. Het wordt uit OpenCloudTouch verwijderd, de opgeslagen presets blijven behouden. Het apparaat zelf wordt niet gewijzigd en kan bij de volgende zoekopdracht opnieuw worden toegevoegd.",
+    "removeDeviceOffline": "\"{{name}}\" is offline. Het wordt uit OpenCloudTouch verwijderd, de opgeslagen presets blijven behouden. Zodra het weer in het netwerk zit, kan de volgende zoekopdracht het opnieuw toevoegen.",
     "removeDeviceConfirm": "Verwijderen",
     "deviceRemoved": "\"{{name}}\" is verwijderd."
   },

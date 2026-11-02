@@ -131,8 +131,8 @@
     "searchResults": "Resultados de la búsqueda",
     "removeDevice": "Quitar dispositivo",
     "removeDeviceTitle": "¿Quitar el dispositivo?",
-    "removeDeviceOnline": "«{{name}}» está accesible. Al quitarlo se borran sus presets guardados en OpenCloudTouch. El dispositivo en sí no se modifica y se puede volver a añadir en la próxima búsqueda.",
-    "removeDeviceOffline": "«{{name}}» está sin conexión. Se quita de OpenCloudTouch junto con sus presets guardados. Cuando vuelva a estar en la red, la próxima búsqueda podrá añadirlo de nuevo.",
+    "removeDeviceOnline": "«{{name}}» está accesible. Se quita de OpenCloudTouch y sus presets guardados se conservan. El dispositivo en sí no se modifica y se puede volver a añadir en la próxima búsqueda.",
+    "removeDeviceOffline": "«{{name}}» está sin conexión. Se quita de OpenCloudTouch y sus presets guardados se conservan. Cuando vuelva a estar en la red, la próxima búsqueda podrá añadirlo de nuevo.",
     "removeDeviceConfirm": "Quitar",
     "deviceRemoved": "«{{name}}» se ha quitado."
   },

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { ToastProvider } from "./contexts/ToastContext";
 import { DeviceEventProvider } from "./contexts/DeviceEventContext";
 import { MotionConfig } from "framer-motion";
@@ -35,13 +36,15 @@ interface AppRouterProps {
 
 function AppRouter({ devices: initialDevices, isLoading, error, onRetry }: AppRouterProps) {
   const { t } = useTranslation();
-  const [removedIds, setRemovedIds] = useState<Set<string>>(() => new Set());
+  const queryClient = useQueryClient();
+  const devices = initialDevices;
 
-  // Derive visible devices: parent data minus locally removed ones
-  const devices = initialDevices.filter((d) => !removedIds.has(d.device_id));
-
+  // The device was deleted in the backend: drop it from the cached list at once. (It used to be hidden by a local
+  // "removed" set that was never cleared, so a device found again by a later scan stayed invisible until a reload.)
   const handleRemoveDevice = (deviceId: string) => {
-    setRemovedIds((prev) => new Set(prev).add(deviceId));
+    queryClient.setQueryData<Device[]>(["devices"], (old) =>
+      (old ?? []).filter((d) => d.device_id !== deviceId)
+    );
   };
 
   // REFACT-137: Show hint after 3s loading, retry hint after 8s

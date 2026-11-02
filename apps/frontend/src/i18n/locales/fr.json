@@ -131,8 +131,8 @@
     "searchResults": "Résultats de la recherche",
     "removeDevice": "Supprimer l'appareil",
     "removeDeviceTitle": "Supprimer l'appareil ?",
-    "removeDeviceOnline": "« {{name}} » est joignable. La suppression efface ses préréglages enregistrés dans OpenCloudTouch. L'appareil lui-même n'est pas modifié et peut être ajouté de nouveau lors de la prochaine recherche.",
-    "removeDeviceOffline": "« {{name}} » est hors ligne. Il est retiré d'OpenCloudTouch avec ses préréglages enregistrés. Dès qu'il est de nouveau sur le réseau, la prochaine recherche pourra l'ajouter.",
+    "removeDeviceOnline": "« {{name}} » est joignable. Il est retiré d'OpenCloudTouch, ses préréglages enregistrés sont conservés. L'appareil lui-même n'est pas modifié et peut être ajouté de nouveau lors de la prochaine recherche.",
+    "removeDeviceOffline": "« {{name}} » est hors ligne. Il est retiré d'OpenCloudTouch, ses préréglages enregistrés sont conservés. Dès qu'il est de nouveau sur le réseau, la prochaine recherche pourra l'ajouter.",
     "removeDeviceConfirm": "Supprimer",
     "deviceRemoved": "« {{name}} » a été supprimé."
   },

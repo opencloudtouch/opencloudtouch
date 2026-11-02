@@ -131,8 +131,8 @@
     "searchResults": "Wyniki wyszukiwania",
     "removeDevice": "Usuń urządzenie",
     "removeDeviceTitle": "Usunąć urządzenie?",
-    "removeDeviceOnline": "„{{name}}” jest osiągalne. Usunięcie kasuje jego zapisane presety w OpenCloudTouch. Samo urządzenie nie jest zmieniane i można je ponownie dodać przy następnym wyszukiwaniu.",
-    "removeDeviceOffline": "„{{name}}” jest offline. Zostanie usunięte z OpenCloudTouch razem z zapisanymi presetami. Gdy wróci do sieci, następne wyszukiwanie może je dodać ponownie.",
+    "removeDeviceOnline": "„{{name}}” jest osiągalne. Zostanie usunięte z OpenCloudTouch, zapisane presety zostają zachowane. Samo urządzenie nie jest zmieniane i można je ponownie dodać przy następnym wyszukiwaniu.",
+    "removeDeviceOffline": "„{{name}}” jest offline. Zostanie usunięte z OpenCloudTouch, zapisane presety zostają zachowane. Gdy wróci do sieci, następne wyszukiwanie może je dodać ponownie.",
     "removeDeviceConfirm": "Usuń",
     "deviceRemoved": "Usunięto „{{name}}”."
   },

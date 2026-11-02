@@ -131,8 +131,8 @@
     "searchResults": "Suchergebnisse",
     "removeDevice": "Gerät entfernen",
     "removeDeviceTitle": "Gerät entfernen?",
-    "removeDeviceOnline": "„{{name}}“ ist erreichbar. Beim Entfernen werden die gespeicherten Presets in OpenCloudTouch gelöscht. Das Gerät selbst wird nicht verändert und kann bei der nächsten Suche erneut hinzugefügt werden.",
-    "removeDeviceOffline": "„{{name}}“ ist offline. Es wird mit seinen gespeicherten Presets aus OpenCloudTouch entfernt. Sobald es wieder im Netzwerk ist, kann es bei der nächsten Suche erneut hinzugefügt werden.",
+    "removeDeviceOnline": "„{{name}}“ ist erreichbar. Es wird aus OpenCloudTouch entfernt, die gespeicherten Presets bleiben erhalten. Das Gerät selbst wird nicht verändert und kann bei der nächsten Suche erneut hinzugefügt werden.",
+    "removeDeviceOffline": "„{{name}}“ ist offline. Es wird aus OpenCloudTouch entfernt, die gespeicherten Presets bleiben erhalten. Sobald es wieder im Netzwerk ist, kann es bei der nächsten Suche erneut hinzugefügt werden.",
     "removeDeviceConfirm": "Entfernen",
     "deviceRemoved": "„{{name}}“ wurde entfernt."
   },

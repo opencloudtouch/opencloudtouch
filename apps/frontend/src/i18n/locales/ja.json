@@ -131,8 +131,8 @@
     "searchResults": "検索結果",
     "removeDevice": "デバイスを削除",
     "removeDeviceTitle": "デバイスを削除しますか?",
-    "removeDeviceOnline": "「{{name}}」は接続可能です。削除すると、OpenCloudTouch に保存されたプリセットも削除されます。デバイス本体は変更されず、次回の検索で再び追加できます。",
-    "removeDeviceOffline": "「{{name}}」はオフラインです。保存されたプリセットとともに OpenCloudTouch から削除されます。ネットワークに戻れば、次回の検索で再び追加できます。",
+    "removeDeviceOnline": "「{{name}}」は接続可能です。OpenCloudTouch から削除されますが、保存されたプリセットは残ります。デバイス本体は変更されず、次回の検索で再び追加できます。",
+    "removeDeviceOffline": "「{{name}}」はオフラインです。OpenCloudTouch から削除されますが、保存されたプリセットは残ります。ネットワークに戻れば、次回の検索で再び追加できます。",
     "removeDeviceConfirm": "削除",
     "deviceRemoved": "「{{name}}」を削除しました。"
   },
