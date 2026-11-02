@@ -1,0 +1,66 @@
+# ==============================================================================
+# IDEENSCHMIEDE — seed idea discussions and keep the sticky overview issue fresh
+#
+#   seed    creates one discussion per file in docs/ideenschmiede/ideas/ that has
+#           none yet (idempotent via a hidden marker in the discussion body)
+#   sticky  rewrites the "Ideenschmiede" overview issue (votes, comments, status)
+#
+# The discussion category "ideenschmiede" must exist (GitHub has no API to create
+# it). See docs/ideenschmiede/README.md.
+# ==============================================================================
+
+name: Ideenschmiede
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "What to do"
+        type: choice
+        options: [both, seed, sticky]
+        default: both
+      dry_run:
+        description: "Print instead of writing"
+        type: boolean
+        default: false
+  discussion:
+    types: [created, edited, deleted, category_changed, labeled, unlabeled]
+  discussion_comment:
+    types: [created, deleted]
+  schedule:
+    - cron: "17 5 * * *"
+
+permissions:
+  contents: read
+  issues: write
+  discussions: write
+
+# One run at a time; a newer event supersedes a queued one.
+concurrency:
+  group: ideenschmiede
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Update Ideenschmiede
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Discussion events run on the default branch. Ignore other categories.
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || github.event_name == 'schedule'
+      || github.event.discussion.category.slug == 'ideenschmiede'
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          ACTION: ${{ github.event.inputs.action || 'sticky' }}
+          DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
+        run: python scripts/ideenschmiede/main.py "$ACTION" $DRY_RUN
