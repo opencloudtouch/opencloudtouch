@@ -102,8 +102,14 @@ export default function Settings() {
           !known.has(d.device_id) &&
           devicesFound.findIndex((o) => o.device_id === d.device_id) === index
       );
+      const [single] = newDevices;
+      if (newDevices.length === 1 && single) {
+        // exactly the toast of the manual search by IP
+        show(t("settings.manualIps.deviceAdded", { name: single.name, ip: single.ip }), "success");
+        return;
+      }
       const summary = t("settings.discovery.devicesFound", { count: newDevices.length });
-      const names = newDevices.map((d) => `${d.name} (${d.ip})`).join(", "); // same form as "{{name}} ({{ip}}) added"
+      const names = newDevices.map((d) => `${d.name} (${d.ip})`).join(", ");
       show(newDevices.length > 0 ? `${summary}: ${names}` : summary, "success");
     }
   }, [completed, devicesFound, show, t]);

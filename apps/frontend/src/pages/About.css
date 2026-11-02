@@ -100,19 +100,41 @@
   animation: ab-in 0.3s ease-out both;
   animation-delay: calc(var(--i, 0) * 10ms);
 }
+/* monthly supporters: gold with a white sheen sweeping through the letters, plus a soft glow. Gold stays >= 9:1 on the card at every point of the sweep. */
 .ab-name--monthly {
-  color: var(--color-text-primary);
   font-weight: var(--font-weight-bold);
-  border-bottom: 2px solid var(--primary-color);
-} /* a shape cue as well, not only the colour */
+  color: #f5c542;
+  background: linear-gradient(105deg, #e8a92b 0%, #f5c542 35%, #fff 50%, #f5c542 65%, #e8a92b 100%)
+    100% 0 / 250% 100% no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 6px rgba(245, 197, 66, 0.55));
+  animation:
+    ab-in 0.3s ease-out both,
+    ab-sheen 3.4s ease-in-out calc(var(--i, 0) * 10ms + 0.4s) infinite;
+}
+@keyframes ab-sheen {
+  0% {
+    background-position: 100% 0;
+  }
+  55%,
+  100% {
+    background-position: 0% 0;
+  }
+}
 @keyframes ab-in {
   from {
     transform: scale(0.85);
   }
 } /* scale only: text that fades in fails contrast checks that run during the animation */
 @media (prefers-reduced-motion: reduce) {
-  .ab-name {
+  .ab-name,
+  .ab-name--monthly {
     animation: none;
+  }
+  .ab-name--monthly {
+    background-position: 50% 0;
   }
 }
 
@@ -173,9 +195,14 @@
   }
 }
 @media (forced-colors: active) {
-  .ab-link,
-  .ab-name--monthly {
+  .ab-link {
     border-color: CanvasText;
+  }
+  .ab-name--monthly {
+    -webkit-text-fill-color: CanvasText;
+    background: none;
+    filter: none;
+    text-decoration: underline;
   }
   .ab-link-icon,
   .ab-ext,

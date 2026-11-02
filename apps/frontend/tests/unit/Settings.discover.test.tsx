@@ -272,7 +272,7 @@ describe("Settings — Discover Button completion toast", () => {
     });
   });
 
-  it("shows singular '1 new device found' for exactly 1 new device", async () => {
+  it("names the device like the manual search ('Neu (192.168.1.20) added') for exactly 1 new device", async () => {
     const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
     (useDiscoveryStream as Mock).mockReturnValue({
       ...makeDiscoveryState({
@@ -293,11 +293,11 @@ describe("Settings — Discover Button completion toast", () => {
     renderSettings([{ device_id: "KNOWN1", ip: "192.168.1.10" }]);
 
     await waitFor(() => {
-      expect(screen.getByText(/1 new device found/i)).toBeInTheDocument();
+      expect(screen.getByText("Neu (192.168.1.20) added")).toBeInTheDocument();
     });
   });
 
-  it("names the new devices in the toast, like the manual search by IP", async () => {
+  it("shows exactly the toast of the manual search by IP for a single new device", async () => {
     const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
     (useDiscoveryStream as Mock).mockReturnValue({
       ...makeDiscoveryState({
@@ -314,7 +314,30 @@ describe("Settings — Discover Button completion toast", () => {
     renderSettings([{ device_id: "KNOWN1", ip: "192.168.1.10" }]);
 
     await waitFor(() => {
-      expect(screen.getByText("1 new device found: Küche (192.168.1.20)")).toBeInTheDocument();
+      expect(screen.getByText("Küche (192.168.1.20) added")).toBeInTheDocument();
+    });
+  });
+
+  it("lists the names of several new devices in the summary toast", async () => {
+    const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
+    (useDiscoveryStream as Mock).mockReturnValue({
+      ...makeDiscoveryState({
+        completed: true,
+        devicesFound: [
+          { device_id: "N1", ip: "192.168.1.11", name: "Küche", model: "ST10", firmware: "1.0" },
+          { device_id: "N2", ip: "192.168.1.12", name: "Bad", model: "ST10", firmware: "1.0" },
+        ],
+      }),
+      startDiscovery: mockStartDiscovery,
+    });
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ips: [] }) });
+
+    renderSettings([]);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("2 new devices found: Küche (192.168.1.11), Bad (192.168.1.12)")
+      ).toBeInTheDocument();
     });
   });
 
@@ -350,7 +373,7 @@ describe("Settings — Discover Button completion toast", () => {
     rerender(<Wrapper qc={qc}><Settings /></Wrapper>);
 
     await waitFor(() => {
-      expect(screen.getByText("1 new device found: Bad (192.168.1.20)")).toBeInTheDocument();
+      expect(screen.getByText("Bad (192.168.1.20) added")).toBeInTheDocument();
     });
   });
 
