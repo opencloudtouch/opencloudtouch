@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No changes yet._
+### Fixed
+- ci(pr-review): welcome comment no longer repeats for returning contributors; merged PRs are now counted per author, returning contributors get a shorter message and the label `contributor:trusted`
 
 ---
 
