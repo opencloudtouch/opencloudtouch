@@ -793,6 +793,18 @@
     "tooLong": "Naam mag maximaal 30 tekens bevatten",
     "failed": "Hernoemen mislukt"
   },
+  "deviceSettings": {
+    "open": "Instellingen voor {{name}} openen",
+    "title": "Apparaatinstellingen",
+    "close": "Sluiten",
+    "loading": "Apparaatinstellingen laden…",
+    "bass": "Bas",
+    "reset": "Standaardwaarde herstellen",
+    "noOptions": "Er zijn momenteel geen aanvullende instellingen beschikbaar voor dit apparaat.",
+    "loadFailed": "Apparaatinstellingen konden niet worden geladen.",
+    "offline": "Dit apparaat is offline.",
+    "saveFailed": "De bas kon niet worden aangepast."
+  },
   "deviceHeader": {
     "reboot": "Apparaat herstarten",
     "sent": "Herstartopdracht verzonden",

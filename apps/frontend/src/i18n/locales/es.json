@@ -793,6 +793,18 @@
     "tooLong": "El nombre debe tener 30 caracteres o menos",
     "failed": "Error al renombrar el dispositivo"
   },
+  "deviceSettings": {
+    "open": "Abrir los ajustes de {{name}}",
+    "title": "Ajustes del dispositivo",
+    "close": "Cerrar",
+    "loading": "Cargando ajustes del dispositivo…",
+    "bass": "Graves",
+    "reset": "Restablecer valor predeterminado",
+    "noOptions": "Actualmente no hay ajustes adicionales disponibles para este dispositivo.",
+    "loadFailed": "No se pudieron cargar los ajustes del dispositivo.",
+    "offline": "Este dispositivo está desconectado.",
+    "saveFailed": "No se pudieron cambiar los graves."
+  },
   "deviceHeader": {
     "reboot": "Reiniciar dispositivo",
     "sent": "Comando de reinicio enviado",

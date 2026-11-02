@@ -8,6 +8,7 @@ import PresetButton from "../components/PresetButton";
 import SetupBadge from "../components/SetupBadge";
 import DeviceOfflineBanner from "../components/DeviceOfflineBanner";
 import DeviceNameEditor from "../components/DeviceNameEditor";
+import DeviceSettingsButton from "../components/DeviceSettingsButton";
 import RadioSearch, { RadioStation } from "../components/RadioSearch";
 import VolumeSlider from "../components/VolumeSlider";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -227,7 +228,10 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
             </div>
             <div className="device-info">
               {currentDevice ? (
-                <DeviceNameEditor deviceId={currentDevice.device_id} name={currentDevice.name} />
+                <div className="device-name-actions">
+                  <DeviceNameEditor deviceId={currentDevice.device_id} name={currentDevice.name} />
+                  <DeviceSettingsButton deviceId={currentDevice.device_id} deviceName={currentDevice.name} />
+                </div>
               ) : (
                 <h2 className="device-name" data-test="device-name">
                   Unknown Device
