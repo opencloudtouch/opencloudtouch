@@ -132,9 +132,6 @@
   justify-content: flex-end;
   grid-area: setup;
 }
-.rp-remove {
-  align-self: stretch;
-}
 
 .rp-power {
   box-sizing: border-box;

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import Modal from "./Modal";
 
@@ -38,6 +38,8 @@ interface ConfirmDialogProps {
   destructive?: boolean;
   /** Called when the user cancels (Escape, overlay click, cancel button) */
   onCancel: () => void;
+  /** Optional content above the message (e.g. who is affected) */
+  children?: ReactNode;
 }
 
 export default function ConfirmDialog({
@@ -50,6 +52,7 @@ export default function ConfirmDialog({
   onCancel,
   showCancelButton = true,
   destructive = false,
+  children,
 }: ConfirmDialogProps) {
   const { t } = useTranslation();
   const resolvedTitle = title ?? t("common.confirm");
@@ -96,6 +99,7 @@ export default function ConfirmDialog({
         </h2>
       </div>
       <div className="dlg-body">
+        {children}
         <p id="confirm-dialog-message" className="dlg-text">
           {message}
         </p>

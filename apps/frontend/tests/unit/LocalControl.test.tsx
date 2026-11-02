@@ -83,7 +83,14 @@ const mockNextTrack = vi.fn().mockResolvedValue(undefined);
 const mockPrevTrack = vi.fn().mockResolvedValue(undefined);
 const mockPower = vi.fn().mockResolvedValue(undefined);
 
+const mockDeleteDeviceById = vi.fn().mockResolvedValue(undefined);
+const mockShowToast = vi.fn();
+vi.mock("../../src/contexts/ToastContext", () => ({
+  useToast: () => ({ show: mockShowToast }),
+}));
+
 vi.mock("../../src/api/devices", () => ({
+  deleteDeviceById: (...args: unknown[]) => mockDeleteDeviceById(...args),
   togglePlayPause: (...args: unknown[]) => mockTogglePlayPause(...args),
   nextTrack: (...args: unknown[]) => mockNextTrack(...args),
   prevTrack: (...args: unknown[]) => mockPrevTrack(...args),
@@ -424,5 +431,50 @@ describe("LocalControl - Standby and key loading", () => {
     expect(screen.getByRole("button", { name: /Previous Track/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Next Track/i })).toBeDisabled();
     expect(document.querySelector(".lc-key--primary")).toHaveAttribute("aria-busy", "true");
+  });
+});
+
+describe("LocalControl - Remove device (online and offline)", () => {
+  beforeEach(() => {
+    mockDeleteDeviceById.mockClear();
+    mockShowToast.mockClear();
+  });
+
+  test("offers the remove button for an online device and asks before removing it", async () => {
+    const onRemoveDevice = vi.fn();
+    await act(async () => {
+      render(<LocalControl devices={mockDevices} onRemoveDevice={onRemoveDevice} />);
+    });
+
+    const button = document.querySelector<HTMLButtonElement>('[data-test="device-remove"]');
+    expect(button).not.toBeNull();
+    expect(button).toHaveClass("btn-ghost"); // online: the quiet variant
+    await userEvent.click(button!);
+
+    const dialog = await screen.findByRole("alertdialog");
+    expect(dialog).toHaveTextContent("Living Room");
+    expect(dialog).toHaveTextContent("192.168.1.100");
+    expect(dialog).toHaveTextContent(/is reachable/i);
+    expect(mockDeleteDeviceById).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByTestId("confirm-dialog-confirm"));
+    await vi.waitFor(() => {
+      expect(mockDeleteDeviceById).toHaveBeenCalledWith("ST10-001");
+      expect(onRemoveDevice).toHaveBeenCalledWith("ST10-001");
+      expect(mockShowToast).toHaveBeenCalledWith('"Living Room" was removed.', "success", 6000);
+    });
+  });
+
+  test("keeps the device when the user cancels", async () => {
+    const onRemoveDevice = vi.fn();
+    await act(async () => {
+      render(<LocalControl devices={mockDevices} onRemoveDevice={onRemoveDevice} />);
+    });
+
+    await userEvent.click(document.querySelector<HTMLButtonElement>('[data-test="device-remove"]')!);
+    await userEvent.click(await screen.findByTestId("confirm-dialog-cancel"));
+
+    expect(mockDeleteDeviceById).not.toHaveBeenCalled();
+    expect(onRemoveDevice).not.toHaveBeenCalled();
   });
 });

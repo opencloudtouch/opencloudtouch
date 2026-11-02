@@ -94,7 +94,6 @@
     "confirmDeleteTitle": "Eliminare il preset",
     "confirmDeleteMessage": "Vuoi davvero eliminare il preset {{preset}}?",
     "confirmDelete": "Elimina",
-    "deleteDevice": "Elimina dispositivo",
     "searchTypeLabel": {
       "name": "Nome",
       "country": "Paese",
@@ -130,9 +129,12 @@
     "searchTypeGroup": "Cerca per",
     "providerGroup": "Sorgente",
     "searchResults": "Risultati della ricerca",
-    "confirmRemoveDeviceTitle": "Rimuovere il dispositivo?",
-    "confirmRemoveDeviceMessage": "{{name}} verrà rimosso da OpenCloudTouch insieme ai preset salvati. Potrai aggiungerlo di nuovo più tardi con la ricerca dei dispositivi.",
-    "confirmRemoveDevice": "Rimuovi dispositivo"
+    "removeDevice": "Rimuovi dispositivo",
+    "removeDeviceTitle": "Rimuovere il dispositivo?",
+    "removeDeviceOnline": "«{{name}}» è raggiungibile. La rimozione elimina i suoi preset salvati in OpenCloudTouch. Il dispositivo stesso non viene modificato e può essere aggiunto di nuovo con la prossima ricerca.",
+    "removeDeviceOffline": "«{{name}}» è offline. Viene rimosso da OpenCloudTouch insieme ai suoi preset salvati. Quando sarà di nuovo in rete, la prossima ricerca potrà aggiungerlo di nuovo.",
+    "removeDeviceConfirm": "Rimuovi",
+    "deviceRemoved": "«{{name}}» è stato rimosso."
   },
   "settings": {
     "title": "Impostazioni",

@@ -94,7 +94,6 @@
     "confirmDeleteTitle": "プリセットを削除",
     "confirmDeleteMessage": "プリセット {{preset}} を本当に削除しますか？",
     "confirmDelete": "削除",
-    "deleteDevice": "デバイスを削除",
     "searchTypeLabel": {
       "name": "名前",
       "country": "国",
@@ -130,9 +129,12 @@
     "searchTypeGroup": "検索対象",
     "providerGroup": "ソース",
     "searchResults": "検索結果",
-    "confirmRemoveDeviceTitle": "デバイスを削除しますか?",
-    "confirmRemoveDeviceMessage": "{{name}} は保存済みのプリセットとともに OpenCloudTouch から削除されます。後でデバイス検索から再度追加できます。",
-    "confirmRemoveDevice": "デバイスを削除"
+    "removeDevice": "デバイスを削除",
+    "removeDeviceTitle": "デバイスを削除しますか?",
+    "removeDeviceOnline": "「{{name}}」は接続可能です。削除すると、OpenCloudTouch に保存されたプリセットも削除されます。デバイス本体は変更されず、次回の検索で再び追加できます。",
+    "removeDeviceOffline": "「{{name}}」はオフラインです。保存されたプリセットとともに OpenCloudTouch から削除されます。ネットワークに戻れば、次回の検索で再び追加できます。",
+    "removeDeviceConfirm": "削除",
+    "deviceRemoved": "「{{name}}」を削除しました。"
   },
   "settings": {
     "title": "設定",

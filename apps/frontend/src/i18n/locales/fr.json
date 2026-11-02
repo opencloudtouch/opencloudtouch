@@ -94,7 +94,6 @@
     "confirmDeleteTitle": "Supprimer le préréglage",
     "confirmDeleteMessage": "Voulez-vous vraiment supprimer le préréglage {{preset}} ?",
     "confirmDelete": "Supprimer",
-    "deleteDevice": "Supprimer l'appareil",
     "searchTypeLabel": {
       "name": "Nom",
       "country": "Pays",
@@ -130,9 +129,12 @@
     "searchTypeGroup": "Rechercher par",
     "providerGroup": "Source",
     "searchResults": "Résultats de la recherche",
-    "confirmRemoveDeviceTitle": "Supprimer l'appareil ?",
-    "confirmRemoveDeviceMessage": "{{name}} sera supprimé d'OpenCloudTouch avec ses presets enregistrés. Vous pourrez l'ajouter de nouveau plus tard via la recherche d'appareils.",
-    "confirmRemoveDevice": "Supprimer l'appareil"
+    "removeDevice": "Supprimer l'appareil",
+    "removeDeviceTitle": "Supprimer l'appareil ?",
+    "removeDeviceOnline": "« {{name}} » est joignable. La suppression efface ses préréglages enregistrés dans OpenCloudTouch. L'appareil lui-même n'est pas modifié et peut être ajouté de nouveau lors de la prochaine recherche.",
+    "removeDeviceOffline": "« {{name}} » est hors ligne. Il est retiré d'OpenCloudTouch avec ses préréglages enregistrés. Dès qu'il est de nouveau sur le réseau, la prochaine recherche pourra l'ajouter.",
+    "removeDeviceConfirm": "Supprimer",
+    "deviceRemoved": "« {{name}} » a été supprimé."
   },
   "settings": {
     "title": "Paramètres",

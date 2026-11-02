@@ -914,6 +914,29 @@ describe("RadioPresets Page", () => {
       });
     });
   });
+  describe("Remove online device", () => {
+    it("offers the quiet remove button and the dialog says the device is reachable", async () => {
+      const onRemoveDevice = vi.fn();
+      await act(async () => {
+        render(<RadioPresets devices={mockDevices} onRemoveDevice={onRemoveDevice} />);
+      });
+
+      const button = screen.getByRole("button", { name: /remove device/i });
+      expect(button).toHaveClass("btn-ghost");
+      fireEvent.click(button);
+
+      const dialog = await screen.findByRole("alertdialog");
+      expect(dialog).toHaveTextContent("Living Room");
+      expect(dialog).toHaveTextContent(/is reachable/i);
+
+      fireEvent.click(await screen.findByTestId("confirm-dialog-confirm"));
+      await waitFor(() => {
+        expect(deleteDeviceById).toHaveBeenCalledWith(mockDevices[0]!.device_id);
+        expect(onRemoveDevice).toHaveBeenCalledWith(mockDevices[0]!.device_id);
+      });
+    });
+  });
+
   describe("Remove offline device", () => {
     afterEach(() => {
       _resetOfflineStore();

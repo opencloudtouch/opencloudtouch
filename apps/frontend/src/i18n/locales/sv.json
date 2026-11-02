@@ -94,7 +94,6 @@
     "confirmDeleteTitle": "Ta bort förinställning",
     "confirmDeleteMessage": "Vill du verkligen ta bort förinställning {{preset}}?",
     "confirmDelete": "Ta bort",
-    "deleteDevice": "Eliminar dispositivo",
     "searchTypeLabel": {
       "name": "Namn",
       "country": "Land",
@@ -130,9 +129,12 @@
     "searchTypeGroup": "Sök efter",
     "providerGroup": "Källa",
     "searchResults": "Sökresultat",
-    "confirmRemoveDeviceTitle": "Ta bort enheten?",
-    "confirmRemoveDeviceMessage": "{{name}} tas bort från OpenCloudTouch tillsammans med sparade förinställningar. Du kan lägga till den igen senare via enhetssökningen.",
-    "confirmRemoveDevice": "Ta bort enhet"
+    "removeDevice": "Ta bort enhet",
+    "removeDeviceTitle": "Ta bort enheten?",
+    "removeDeviceOnline": "\"{{name}}\" är nåbar. När den tas bort raderas dess sparade förval i OpenCloudTouch. Själva enheten ändras inte och kan läggas till igen vid nästa sökning.",
+    "removeDeviceOffline": "\"{{name}}\" är offline. Den tas bort från OpenCloudTouch tillsammans med sina sparade förval. När den är tillbaka på nätverket kan nästa sökning lägga till den igen.",
+    "removeDeviceConfirm": "Ta bort",
+    "deviceRemoved": "\"{{name}}\" har tagits bort."
   },
   "settings": {
     "title": "Inställningar",

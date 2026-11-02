@@ -171,20 +171,20 @@ describe("Device Offline Display", () => {
       visitDe("/");
       cy.wait("@nowPlaying503", { timeout: 10000 });
 
-      cy.get(".rp-remove", { timeout: 10000 }).scrollIntoView().click();
+      cy.get('[data-test="device-remove"]', { timeout: 10000 }).scrollIntoView().click();
       cy.get("dialog.dlg[role='alertdialog']").should("be.visible");
       cy.get('[data-testid="confirm-dialog-cancel"]').click();
 
       cy.get("dialog.dlg").should("not.exist");
       cy.get("@deleteDevice.all").should("have.length", 0);
-      cy.get(".rp-remove").should("exist");
+      cy.get('[data-test="device-remove"]').should("exist");
     });
 
     it("removes the device only after the user confirms", () => {
       visitDe("/");
       cy.wait("@nowPlaying503", { timeout: 10000 });
 
-      cy.get(".rp-remove", { timeout: 10000 }).scrollIntoView().click();
+      cy.get('[data-test="device-remove"]', { timeout: 10000 }).scrollIntoView().click();
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
 
       cy.wait("@deleteDevice").its("response.statusCode").should("eq", 200);

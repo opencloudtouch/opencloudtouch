@@ -159,7 +159,12 @@ function AppRouter({ devices: initialDevices, isLoading, error, onRetry }: AppRo
                             <RadioPresets devices={devices} onRemoveDevice={handleRemoveDevice} />
                           }
                         />
-                        <Route path="/local" element={<LocalControl devices={devices} />} />
+                        <Route
+                          path="/local"
+                          element={
+                            <LocalControl devices={devices} onRemoveDevice={handleRemoveDevice} />
+                          }
+                        />
                         <Route path="/multiroom" element={<MultiRoom devices={devices} />} />
                         <Route path="/firmware" element={<Firmware devices={devices} />} />
                         <Route path="/settings" element={<Settings />} />

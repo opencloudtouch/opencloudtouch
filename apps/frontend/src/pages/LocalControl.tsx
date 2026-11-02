@@ -7,6 +7,7 @@ import NowPlaying from "../components/NowPlaying";
 import VolumeSlider from "../components/VolumeSlider";
 import SetupBadge from "../components/SetupBadge";
 import DeviceOfflineBanner from "../components/DeviceOfflineBanner";
+import RemoveDevice from "../components/RemoveDevice";
 import DeviceNameEditor from "../components/DeviceNameEditor";
 import { Icon } from "../components/Icon";
 import { useNowPlaying } from "../hooks/useNowPlaying";
@@ -50,6 +51,8 @@ const SOURCES: Source[] = [
 
 interface LocalControlProps {
   devices?: Device[];
+  /** Called after a device was removed (the app drops it from its list). */
+  onRemoveDevice?: (deviceId: string) => void;
 }
 
 /** Same silhouette as <NowPlaying>: no layout jump when data arrives. */
@@ -90,7 +93,7 @@ function NowPlayingPlaceholder({ loading }: Readonly<{ loading: boolean }>) {
   );
 }
 
-export default function LocalControl({ devices = [] }: LocalControlProps) {
+export default function LocalControl({ devices = [], onRemoveDevice }: LocalControlProps) {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
@@ -121,6 +124,14 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
       if (idx !== -1) setCurrentDeviceIndex(idx);
     }
   }, [searchParams, devices]);
+
+  // After the backend removed the current device: the swiper moves to the previous neighbour if it was the last one
+  const handleDeviceRemoved = (removedId: string) => {
+    if (currentDeviceIndex >= devices.length - 1 && currentDeviceIndex > 0) {
+      setCurrentDeviceIndex(currentDeviceIndex - 1);
+    }
+    onRemoveDevice?.(removedId);
+  };
 
   const handleDeviceChange = useCallback(
     (index: number) => {
@@ -415,6 +426,16 @@ export default function LocalControl({ devices = [] }: LocalControlProps) {
                 <span>{deviceZone ? t("player.manageZone") : t("player.multiRoom")}</span>
               </button>
             </motion.div>
+
+            {currentDevice && (
+              <RemoveDevice
+                deviceId={currentDevice.device_id}
+                name={currentDevice.name ?? ""}
+                ip={currentDevice.ip ?? ""}
+                offline={deviceOffline}
+                onRemoved={handleDeviceRemoved}
+              />
+            )}
           </div>
         </DeviceSwiper>
       </div>

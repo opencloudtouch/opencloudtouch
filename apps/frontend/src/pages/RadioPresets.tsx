@@ -11,14 +11,10 @@ import DeviceNameEditor from "../components/DeviceNameEditor";
 import RadioSearch, { RadioStation } from "../components/RadioSearch";
 import VolumeSlider from "../components/VolumeSlider";
 import ConfirmDialog from "../components/ConfirmDialog";
+import RemoveDevice from "../components/RemoveDevice";
 import { PresetSkeleton } from "../components/LoadingSkeleton";
 import { Icon } from "../components/Icon";
-import {
-  playPreset as playPresetAPI,
-  togglePlayPause,
-  power,
-  deleteDeviceById,
-} from "../api/devices";
+import { playPreset as playPresetAPI, togglePlayPause, power } from "../api/devices";
 import { isDeviceOffline } from "../api/offlineDeviceStore";
 import { usePresets } from "../hooks/usePresets";
 import { useVolume } from "../hooks/useVolume";
@@ -58,7 +54,6 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
   const [powerLoading, setPowerLoading] = useState(false);
   const [pendingStation, setPendingStation] = useState<RadioStation | null>(null);
   const [clearingPreset, setClearingPreset] = useState<number | null>(null);
-  const [removingDevice, setRemovingDevice] = useState(false);
 
   const isStandby = npState?.source === "STANDBY";
 
@@ -174,18 +169,12 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
     }
   };
 
-  const deleteCurrentDevice = async () => {
-    if (!currentDevice?.device_id) return;
-    try {
-      await deleteDeviceById(currentDevice.device_id);
-      if (currentDeviceIndex >= devices.length - 1 && currentDeviceIndex > 0) {
-        setCurrentDeviceIndex(currentDeviceIndex - 1);
-      }
-
-      onRemoveDevice?.(currentDevice.device_id);
-    } catch (err) {
-      console.error("Failed to remove device:", err);
+  // After the backend removed the current device: the swiper moves to the previous neighbour if it was the last one
+  const handleDeviceRemoved = (deviceId: string) => {
+    if (currentDeviceIndex >= devices.length - 1 && currentDeviceIndex > 0) {
+      setCurrentDeviceIndex(currentDeviceIndex - 1);
     }
+    onRemoveDevice?.(deviceId);
   };
 
   if (devices.length === 0) {
@@ -267,17 +256,9 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
 
             {/* Device Offline Banner */}
             {deviceOffline && (
-              <>
-                <motion.div initial={{ y: -10 }} animate={{ y: 0 }} transition={{ duration: 0.3 }}>
-                  <DeviceOfflineBanner deviceName={currentDevice?.name} />
-                </motion.div>
-                <button
-                  className="btn btn-secondary rp-remove"
-                  onClick={() => setRemovingDevice(true)}
-                >
-                  {Icon.Trash(18)} {t("presets.deleteDevice")}
-                </button>
-              </>
+              <motion.div initial={{ y: -10 }} animate={{ y: 0 }} transition={{ duration: 0.3 }}>
+                <DeviceOfflineBanner deviceName={currentDevice?.name} />
+              </motion.div>
             )}
 
             {!deviceOffline && (
@@ -304,6 +285,16 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
                 onVolumeChange={setDeviceVolume}
                 muted={muted}
                 onMuteToggle={toggleMute}
+              />
+            )}
+
+            {currentDevice && (
+              <RemoveDevice
+                deviceId={currentDevice.device_id}
+                name={currentDevice.name ?? ""}
+                ip={currentDevice.ip ?? ""}
+                offline={deviceOffline}
+                onRemoved={handleDeviceRemoved}
               />
             )}
           </div>
@@ -454,21 +445,6 @@ export default function RadioPresets({ devices = [], onRemoveDevice }: RadioPres
         cancelLabel={t("common.cancel")}
         onConfirm={handleConfirmOverwrite}
         onCancel={() => setPendingStation(null)}
-      />
-
-      {/* Confirm Remove Device Dialog */}
-      <ConfirmDialog
-        open={removingDevice}
-        title={t("presets.confirmRemoveDeviceTitle")}
-        message={t("presets.confirmRemoveDeviceMessage", { name: currentDevice?.name })}
-        confirmLabel={t("presets.confirmRemoveDevice")}
-        cancelLabel={t("common.cancel")}
-        destructive
-        onConfirm={() => {
-          setRemovingDevice(false);
-          void deleteCurrentDevice();
-        }}
-        onCancel={() => setRemovingDevice(false)}
       />
 
       {/* Confirm Clear Dialog */}
