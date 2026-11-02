@@ -1,6 +1,7 @@
 import { useId } from "react";
 import { useTranslation, Trans } from "react-i18next";
 import { Icon } from "../components/Icon";
+import BackToAbout from "../components/BackToAbout";
 import "./Licenses.css";
 
 /**
@@ -113,6 +114,7 @@ export default function Licenses() {
 
   return (
     <div className="lic">
+      <BackToAbout />
       <header className="lic-header">
         <h1 className="ui-h1">{t("about.licensesTitle")}</h1>
         <p className="lic-text">{t("about.licensesDescription")}</p>

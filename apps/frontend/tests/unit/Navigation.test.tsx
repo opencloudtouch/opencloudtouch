@@ -40,6 +40,26 @@ describe("Navigation Component", () => {
     });
   });
   it.each([
+    ["/about", true],
+    ["/diagnostics", true],
+    ["/licenses", true],
+    ["/settings", false],
+    ["/", false],
+  ])("marks the About entry as current on %s: %s", (url, current) => {
+    render(
+      <MemoryRouter initialEntries={[url]}>
+        <Navigation />
+      </MemoryRouter>,
+    );
+    const about = screen.getByText("About").closest("a");
+    if (current) {
+      expect(about).toHaveAttribute("aria-current", "page");
+    } else {
+      expect(about).not.toHaveAttribute("aria-current");
+    }
+  });
+
+  it.each([
     ["/?device=AABB", "/?device=AABB"],
     ["/setup-wizard?deviceId=AABB", "/?device=AABB"], // the wizard uses ?deviceId=
     ["/setup-wizard", "/"],

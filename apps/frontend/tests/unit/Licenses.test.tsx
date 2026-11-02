@@ -30,6 +30,8 @@ describe("Licenses Page", () => {
 
     // Legal compliance sections
     expect(screen.getByText(/License Compliance/i)).toBeInTheDocument();
-    expect(screen.getByText(/About/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /About/i })).toBeInTheDocument();
+    // the back link to the About page
+    expect(screen.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
   });
 });

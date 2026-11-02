@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
+import { MemoryRouter } from "react-router";
 import Diagnostics from "./Diagnostics";
 import type { DiagnosticsDevice, DiagnosticsResponse } from "../api/diagnostics";
 
@@ -66,13 +67,21 @@ describe("Diagnostics Page", () => {
 
   it("renders loading state", () => {
     mockedGetDiagnostics.mockReturnValue(new Promise(() => {})); // never resolves
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     expect(screen.getByText("Loading...")).toBeInTheDocument();
   });
 
   it("renders error state", async () => {
     mockedGetDiagnostics.mockRejectedValue(new Error("Network failure"));
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("Network failure")).toBeInTheDocument();
     });
@@ -80,7 +89,11 @@ describe("Diagnostics Page", () => {
 
   it("renders server info after loading", async () => {
     mockedGetDiagnostics.mockResolvedValue(MOCK_RESPONSE);
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("1.2.3")).toBeInTheDocument();
     });
@@ -91,7 +104,11 @@ describe("Diagnostics Page", () => {
 
   it("renders device cards", async () => {
     mockedGetDiagnostics.mockResolvedValue(MOCK_RESPONSE);
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("Living Room")).toBeInTheDocument();
     });
@@ -102,7 +119,11 @@ describe("Diagnostics Page", () => {
 
   it("renders db stats", async () => {
     mockedGetDiagnostics.mockResolvedValue(MOCK_RESPONSE);
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("1")).toBeInTheDocument(); // devices count
     });
@@ -115,7 +136,11 @@ describe("Diagnostics Page", () => {
       devices: [],
       db_stats: { devices: 0, presets: 0 },
     });
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("No devices found")).toBeInTheDocument();
     });
@@ -123,7 +148,11 @@ describe("Diagnostics Page", () => {
 
   it("shows the Online presence badge (icon + text) for a recently seen device", async () => {
     mockedGetDiagnostics.mockResolvedValue(MOCK_RESPONSE);
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("Living Room")).toBeInTheDocument();
     });
@@ -136,7 +165,11 @@ describe("Diagnostics Page", () => {
       ...MOCK_RESPONSE,
       devices: [{ ...MOCK_DEVICE, last_seen: null }],
     });
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("Living Room")).toBeInTheDocument();
     });
@@ -153,7 +186,11 @@ describe("Diagnostics Page", () => {
         },
       ],
     });
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("Living Room")).toBeInTheDocument();
     });
@@ -162,12 +199,29 @@ describe("Diagnostics Page", () => {
     );
   });
 
+  it("links back to the About page", async () => {
+    mockedGetDiagnostics.mockResolvedValue(MOCK_RESPONSE);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
+    await waitFor(() => {
+      expect(screen.getByText("Living Room")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
+  });
+
   it("calls downloadDiagnostics when download button is clicked", async () => {
     mockedGetDiagnostics.mockResolvedValue(MOCK_RESPONSE);
     mockedDownloadDiagnostics.mockResolvedValue(undefined);
     const user = userEvent.setup();
 
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("Download Support Bundle")).toBeInTheDocument();
     });
@@ -189,7 +243,11 @@ describe("Diagnostics Page", () => {
     mockedDownloadDiagnostics.mockRejectedValue(new Error("Download failed"));
     const user = userEvent.setup();
 
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("Download Support Bundle")).toBeInTheDocument();
     });
@@ -216,7 +274,11 @@ describe("Diagnostics Page", () => {
           },
         ],
       });
-      render(<Diagnostics />);
+      render(
+        <MemoryRouter>
+          <Diagnostics />
+        </MemoryRouter>
+      );
       await waitFor(() => {
         expect(screen.getByText("Living Room")).toBeInTheDocument();
       });
@@ -237,7 +299,11 @@ describe("Diagnostics Page", () => {
         })
       );
 
-      const { unmount } = render(<Diagnostics />);
+      const { unmount } = render(
+        <MemoryRouter>
+          <Diagnostics />
+        </MemoryRouter>
+      );
       unmount();
       resolvePromise!(MOCK_RESPONSE);
       await new Promise((r) => setTimeout(r, 0));
@@ -260,7 +326,11 @@ describe("Diagnostics Page", () => {
         })
       );
 
-      const { unmount } = render(<Diagnostics />);
+      const { unmount } = render(
+        <MemoryRouter>
+          <Diagnostics />
+        </MemoryRouter>
+      );
       unmount();
       rejectPromise!(new Error("too late"));
       await new Promise((r) => setTimeout(r, 0));
@@ -271,7 +341,11 @@ describe("Diagnostics Page", () => {
 
     it("shows the raw stringified value when the fetch rejects with a non-Error", async () => {
       mockedGetDiagnostics.mockRejectedValue("boom-string");
-      render(<Diagnostics />);
+      render(
+        <MemoryRouter>
+          <Diagnostics />
+        </MemoryRouter>
+      );
       await waitFor(() => {
         expect(screen.getByText("boom-string")).toBeInTheDocument();
       });
@@ -282,7 +356,11 @@ describe("Diagnostics Page", () => {
       mockedDownloadDiagnostics.mockRejectedValue("network-blip");
       const user = userEvent.setup();
 
-      render(<Diagnostics />);
+      render(
+        <MemoryRouter>
+          <Diagnostics />
+        </MemoryRouter>
+      );
       await waitFor(() => {
         expect(screen.getByText("Download Support Bundle")).toBeInTheDocument();
       });
@@ -303,7 +381,11 @@ describe("Diagnostics Page", () => {
         ...MOCK_RESPONSE,
         server: { ...MOCK_RESPONSE.server, discovery_enabled: false },
       });
-      render(<Diagnostics />);
+      render(
+        <MemoryRouter>
+          <Diagnostics />
+        </MemoryRouter>
+      );
       await waitFor(() => {
         expect(screen.getByText("Disabled")).toBeInTheDocument();
       });
@@ -317,7 +399,11 @@ describe("Diagnostics Page", () => {
         ...MOCK_RESPONSE,
         devices: [{ ...MOCK_DEVICE, ssh_permanent: false }],
       });
-      render(<Diagnostics />);
+      render(
+        <MemoryRouter>
+          <Diagnostics />
+        </MemoryRouter>
+      );
       await waitFor(() => {
         expect(screen.getByText("Living Room")).toBeInTheDocument();
       });

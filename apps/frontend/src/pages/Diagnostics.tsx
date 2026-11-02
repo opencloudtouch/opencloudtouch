@@ -7,6 +7,7 @@ import { useToast } from "../contexts/ToastContext";
 import StatusBadge from "../components/StatusBadge";
 import type { SetupStatus } from "../api/setup";
 import { Icon } from "../components/Icon";
+import BackToAbout from "../components/BackToAbout";
 import "./Diagnostics.css";
 
 type Presence = "green" | "yellow" | "red";
@@ -127,6 +128,7 @@ export default function Diagnostics() {
   if (loading) {
     return (
       <div className="dg">
+        <BackToAbout />
         <h1 className="ui-h1">{t("diagnostics.title")}</h1>
         <div className="ui-state" role="status" aria-live="polite">
           <div className="spinner" aria-hidden="true" />
@@ -139,6 +141,7 @@ export default function Diagnostics() {
   if (error) {
     return (
       <div className="dg">
+        <BackToAbout />
         <h1 className="ui-h1">{t("diagnostics.title")}</h1>
         <div className="ui-state ui-state--error" role="alert">
           <div className="ui-state-icon" aria-hidden="true">
@@ -154,6 +157,7 @@ export default function Diagnostics() {
 
   return (
     <div className="dg" data-test="diagnostics-page">
+      <BackToAbout />
       {/* the download sits next to the title (first focusable element, reachable without scrolling a long list) */}
       <div className="dg-head">
         <h1 className="ui-h1">{t("diagnostics.title")}</h1>
