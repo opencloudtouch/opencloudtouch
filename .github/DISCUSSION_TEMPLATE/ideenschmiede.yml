@@ -1,0 +1,46 @@
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Ideenschmiede
+
+        Pitch an idea for OpenCloudTouch and let the community debate and vote on it. This is **not a spec**: a rough idea is fine. If the maintainers decide to pursue it, a spec follows.
+
+        Looking for something else?
+        - 🐛 Bug → [Bug Report](https://github.com/opencloudtouch/opencloudtouch/issues/new?template=bug_report.yml)
+        - 💡 Concrete, well-defined feature → [Feature Request](https://github.com/opencloudtouch/opencloudtouch/issues/new?template=feature_request.yml)
+
+        Read the open ideas first: [Ideenschmiede overview](https://github.com/opencloudtouch/opencloudtouch/blob/main/docs/ideenschmiede/README.md).
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is hard, broken or missing today? Who is affected?
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: Idea
+      description: What would you change? Describe the outcome rather than the implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefit
+    attributes:
+      label: Benefit and cost
+      description: What improves, for whom, and what could go wrong or get more complicated?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and open questions
+      description: Other ways to solve it, including doing nothing. What do you not know yet?
+    validations:
+      required: false

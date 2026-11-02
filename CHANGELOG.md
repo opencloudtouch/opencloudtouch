@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- docs(ideenschmiede): idea forge with six seeded ideas, a research note comparing BASSWIESN, a discussion form, and a workflow that seeds discussions and keeps a sticky overview issue up to date
+
 ### Fixed
 - ci(pr-review): welcome comment no longer repeats for returning contributors; merged PRs are now counted per author, returning contributors get a shorter message and the label `contributor:trusted`
 
