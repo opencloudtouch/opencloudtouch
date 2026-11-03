@@ -297,6 +297,30 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/devices/{device_id}/settings/bass": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Device Bass
+     * @description Get the current bass state reported by a SoundTouch device.
+     */
+    get: operations["get_device_bass_api_devices__device_id__settings_bass_get"];
+    /**
+     * Set Device Bass
+     * @description Set the bass level supported by the selected SoundTouch device.
+     */
+    put: operations["set_device_bass_api_devices__device_id__settings_bass_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/devices/{device_id}/key": {
     parameters: {
       query?: never;
@@ -427,6 +451,26 @@ export interface paths {
      * @description Set mute state.
      */
     put: operations["set_mute_api_devices__device_id__mute_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/devices/{device_id}/source": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Select Source
+     * @description Switch the device to an input source (Bluetooth, AUX or AirPlay).
+     */
+    put: operations["select_source_api_devices__device_id__source_put"];
     post?: never;
     delete?: never;
     options?: never;
@@ -2679,6 +2723,12 @@ export interface components {
        * @default
        */
       validation_message: string;
+      /** Validation Code */
+      validation_code?: string | null;
+      /** Validation Params */
+      validation_params?: {
+        [key: string]: string;
+      };
     };
     /**
      * BackupRequest
@@ -2738,6 +2788,14 @@ export interface components {
        * @default false
        */
       is_match: boolean;
+    };
+    /** Body_select_source_api_devices__device_id__source_put */
+    Body_select_source_api_devices__device_id__source_put: {
+      /**
+       * Source
+       * @enum {string}
+       */
+      source: "BLUETOOTH" | "AUX" | "AIRPLAY";
     };
     /** Body_set_mute_api_devices__device_id__mute_put */
     Body_set_mute_api_devices__device_id__mute_put: {
@@ -3086,6 +3144,34 @@ export interface components {
       detail?: components["schemas"]["ValidationError"][];
     };
     /**
+     * HealthConfig
+     * @description Non-sensitive configuration flags exposed by /health.
+     */
+    HealthConfig: {
+      /** Discovery Enabled */
+      discovery_enabled: boolean;
+    };
+    /**
+     * HealthResponse
+     * @description Response of GET /health (documented contract used by the frontend).
+     */
+    HealthResponse: {
+      /** Status */
+      status: string;
+      /** Service */
+      service: string;
+      /** Version */
+      version: string;
+      /**
+       * Build
+       * @enum {string}
+       */
+      build: "official" | "community";
+      /** Uptime */
+      uptime: number;
+      config: components["schemas"]["HealthConfig"];
+    };
+    /**
      * HostsModifyRequest
      * @description Request to modify hosts file.
      */
@@ -3392,6 +3478,12 @@ export interface components {
        * @default 0
        */
       duration_seconds: number;
+      /** Message Code */
+      message_code?: string | null;
+      /** Message Params */
+      message_params?: {
+        [key: string]: string;
+      };
     };
     /**
      * RestoreWizardBackupSet
@@ -3508,6 +3600,14 @@ export interface components {
      * @enum {string}
      */
     SearchType: "name" | "country" | "tag";
+    /**
+     * SetBassRequest
+     * @description Request body for setting a device's bass level.
+     */
+    SetBassRequest: {
+      /** Level */
+      level: number;
+    };
     /**
      * SetManualIPsRequest
      * @description Request model for setting all manual IPs at once.
@@ -4072,6 +4172,70 @@ export interface operations {
       };
     };
   };
+  get_device_bass_api_devices__device_id__settings_bass_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  set_device_bass_api_devices__device_id__settings_bass_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SetBassRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Invalid bass level */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   press_key_api_devices__device_id__key_post: {
     parameters: {
       query: {
@@ -4279,6 +4443,55 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
         };
+      };
+    };
+  };
+  select_source_api_devices__device_id__source_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["Body_select_source_api_devices__device_id__source_put"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Device not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description Device unreachable */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -6699,6 +6912,13 @@ export interface operations {
           "application/json": unknown;
         };
       };
+      /** @description Zone was dissolved during member addition */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
       /** @description Validation Error */
       422: {
         headers: {
@@ -7162,7 +7382,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["HealthResponse"];
         };
       };
     };

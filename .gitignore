@@ -91,6 +91,7 @@ docs/*
 !docs/WORKFLOW.md
 !docs/superpowers/
 !docs/superpowers/specs/
+!docs/UI_QUALITY_CHECKLIST.md
 
 # === Case Management ===
 bugs/

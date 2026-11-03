@@ -1247,3 +1247,36 @@ class TestRenameDeviceEndpoint:
         data = response.json()
         assert data["name"] == "Trimmed"
         mock_client.set_name.assert_awaited_once_with("Trimmed")
+
+
+class TestSelectSourceEndpoint:
+    """Tests for PUT /api/devices/{id}/source."""
+
+    def test_select_source_success(self, client, mock_device_service):
+        mock_device_service.select_source = AsyncMock(return_value=None)
+        response = client.put(
+            "/api/devices/AABBCC112233/source", json={"source": "BLUETOOTH"}
+        )
+        assert response.status_code == 200
+        assert response.json() == {"source": "BLUETOOTH", "device_id": "AABBCC112233"}
+        mock_device_service.select_source.assert_called_once_with(
+            "AABBCC112233", "BLUETOOTH"
+        )
+
+    @pytest.mark.parametrize("source", ["SPOTIFY", "bluetooth", ""])
+    def test_unknown_source_is_a_validation_error(
+        self, client, mock_device_service, source
+    ):
+        mock_device_service.select_source = AsyncMock(return_value=None)
+        response = client.put(
+            "/api/devices/AABBCC112233/source", json={"source": source}
+        )
+        assert response.status_code == 422
+        mock_device_service.select_source.assert_not_called()
+
+    def test_unknown_device_is_404(self, client, mock_device_service):
+        mock_device_service.select_source = AsyncMock(
+            side_effect=DeviceNotFoundError("X")
+        )
+        response = client.put("/api/devices/X/source", json={"source": "AUX"})
+        assert response.status_code == 404

@@ -18,6 +18,13 @@ vi.mock("framer-motion", () => ({
   },
 }));
 
+// the global setup stubs useSearchParams with an empty query; this file needs a controllable one
+const routeQuery = vi.hoisted(() => ({ search: "" }));
+vi.mock("react-router", async () => {
+  const actual = await vi.importActual<typeof import("react-router")>("react-router");
+  return { ...actual, useSearchParams: () => [new URLSearchParams(routeQuery.search), vi.fn()] };
+});
+
 // Mock useHealth
 vi.mock("../../src/hooks/useHealth");
 
@@ -25,9 +32,13 @@ const CSV_HEADER = "name,type,amount,monthlyAmount,firstSupportDate\n";
 const CSV_DATA =
   CSV_HEADER + "Alice,monthly,100,20,2024-01-01\nBob,one-time,50,0,2024-02-01\n";
 
-function setupHealthMock(version = "1.5.0", build: "official" | "community" = "official") {
+function setupHealthMock(
+  version = "1.5.0",
+  build: "official" | "community" = "official",
+  uptime?: number | null,
+) {
   vi.mocked(useHealth).mockReturnValue({
-    data: { version, build },
+    data: { version, build, ...(uptime === undefined ? {} : { uptime }) },
     isLoading: false,
   } as ReturnType<typeof useHealth>);
 }
@@ -46,6 +57,7 @@ function mockFetchWith(csvResponse: { ok: boolean; text?: () => Promise<string> 
 describe("About page", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    routeQuery.search = "";
   });
 
   afterEach(() => {
@@ -109,7 +121,7 @@ describe("About page", () => {
     );
 
     await waitFor(() => {
-      expect(container.querySelectorAll(".supporter-name-wimmelbild")).toHaveLength(0);
+      expect(container.querySelectorAll(".ab-name")).toHaveLength(0);
     });
   });
 
@@ -185,6 +197,70 @@ describe("About page", () => {
     expect(hrefs.some((h) => h?.includes("buymeacoffee.com"))).toBe(true);
   });
 
+  it("links to the Licenses page and the diagnostics page (internal links)", () => {
+    setupHealthMock();
+    mockFetchWith({ ok: false });
+
+    render(
+      <MemoryRouter>
+        <QueryWrapper>
+          <About />
+        </QueryWrapper>
+      </MemoryRouter>,
+    );
+
+    const hrefs = screen.getAllByRole("link").map((l) => l.getAttribute("href"));
+    expect(hrefs).toContain("/licenses");
+    expect(hrefs).toContain("/diagnostics");
+  });
+
+  it("carries the current device to the Licenses link", () => {
+    routeQuery.search = "?device=abc123";
+    setupHealthMock();
+    mockFetchWith({ ok: false });
+
+    render(
+      <MemoryRouter>
+        <QueryWrapper>
+          <About />
+        </QueryWrapper>
+      </MemoryRouter>,
+    );
+
+    const hrefs = screen.getAllByRole("link").map((l) => l.getAttribute("href"));
+    expect(hrefs).toContain("/licenses?device=abc123");
+  });
+
+  it("shows the running-since line when the uptime is 0", () => {
+    setupHealthMock("1.5.0", "official", 0);
+    mockFetchWith({ ok: false });
+
+    render(
+      <MemoryRouter>
+        <QueryWrapper>
+          <About />
+        </QueryWrapper>
+      </MemoryRouter>,
+    );
+
+    expect(document.querySelector(".ab-build-time")).toBeInTheDocument();
+  });
+
+  it("hides the running-since line when the uptime is missing", () => {
+    setupHealthMock("1.5.0", "official");
+    mockFetchWith({ ok: false });
+
+    render(
+      <MemoryRouter>
+        <QueryWrapper>
+          <About />
+        </QueryWrapper>
+      </MemoryRouter>,
+    );
+
+    expect(document.querySelector(".ab-build-time")).not.toBeInTheDocument();
+  });
+
   it("strips BOM from CSV", async () => {
     setupHealthMock();
     const bomCsv = "\uFEFF" + CSV_DATA;
@@ -212,7 +288,7 @@ describe("About page", () => {
     );
 
     await waitFor(() => {
-      const monthlyNames = container.querySelectorAll(".supporter-name-wimmelbild.monthly");
+      const monthlyNames = container.querySelectorAll(".ab-name--monthly");
       expect(monthlyNames.length).toBeGreaterThan(0);
     });
   });
@@ -297,9 +373,9 @@ describe("About page", () => {
     ];
 
     await waitFor(() => {
-      const names = container.querySelectorAll(".supporter-name-wimmelbild");
+      const names = container.querySelectorAll(".ab-name");
       expect(names.length).toBe(expectedOrder.length);
-      const actualOrder = Array.from(names).map((el) => el.textContent);
+      const actualOrder = Array.from(names).map((el) => el.firstChild?.textContent) // without the hidden "monthly supporter" text;
       expect(actualOrder).toEqual(expectedOrder);
     });
   });

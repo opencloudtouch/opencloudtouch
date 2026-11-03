@@ -5,7 +5,7 @@ CRUD endpoints for device management. Discovery endpoints extracted to discovery
 
 import logging
 from collections.abc import Awaitable
-from typing import Annotated, TypeVar
+from typing import Annotated, Literal, TypeVar
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from pydantic import BaseModel, StrictInt
@@ -660,6 +660,27 @@ async def set_mute(
         device_service.set_mute(device_id, muted),
     )
     return {"actual": vol.actual, "target": vol.target, "muted": vol.muted}
+
+
+@router.put(
+    "/{device_id}/source",
+    responses={
+        404: {"description": "Device not found"},
+        503: {"description": "Device unreachable"},
+    },
+)
+async def select_source(
+    device_id: str,
+    source: Annotated[Literal["BLUETOOTH", "AUX", "AIRPLAY"], Body(embed=True)],
+    device_service: Annotated[DeviceService, Depends(get_device_service)],
+):
+    """Switch the device to an input source (Bluetooth, AUX or AirPlay)."""
+    await _device_op(
+        device_id,
+        "select source",
+        device_service.select_source(device_id, source),
+    )
+    return {"source": source, "device_id": device_id}
 
 
 @router.post(

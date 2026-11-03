@@ -1,290 +1,234 @@
-/* Radio Search Modal */
-.radio-search-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.8);
-  z-index: 1000;
-  display: flex;
+/* rs-: station search dialog content (frame comes from Modal.css, chips/inputs/buttons from ui-base.css). Replaces RadioSearch.css. */
+.rs-head {
+  flex: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--touch-target-min);
+  grid-template-areas: "title close";
   align-items: center;
-  justify-content: center;
-  padding: var(--space-lg);
+  gap: 8px 12px;
+  padding: var(--space-md) var(--space-md) 12px 20px;
+}
+.rs-head .dlg-title {
+  grid-area: title;
+}
+.rs-head > .rs-close {
+  grid-area: close;
+  margin: 0;
 }
 
-.radio-search-modal {
-  position: relative;
-  background-color: var(--color-bg-card);
-  border-radius: var(--border-radius-xl);
-  width: 100%;
-  max-width: 500px;
-  max-height: 80vh;
+.rs-head--detail {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 0;
+}
+.rs-search {
+  padding-left: 12px;
+}
+.rs-chips {
+  flex: none;
   display: flex;
   flex-direction: column;
-  box-shadow: var(--shadow-lg);
+  gap: 8px;
+  padding: 0 var(--space-md) 12px 20px;
+}
+/* The chips never change their width when the selection changes: no check mark here, the selection shows as the blue fill
+   (a check mark made the chips jump when switching between providers and the stream URL). */
+.rs-chips .ui-chip[aria-pressed="true"]::before {
+  content: none;
+}
+/* second cue besides the blue fill that does not change the chip width: 2 px frame (1 px border + 1 px inset, same box size) */
+.rs-chips .ui-chip[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+/* delete-preset row: footer of the dialog (destructive, rarely used, away from the controls at the top and from the close button) */
+.rs-foot {
+  flex: none;
+  padding: 12px var(--space-md) var(--space-md) 20px;
+  border-top: 1px solid var(--border-color);
+}
+.rs-delete-btn {
+  width: 100%;
+}
+@media (min-width: 601px) {
+  .rs-delete-btn {
+    width: auto;
+  }
 }
 
-.search-header {
-  display: flex;
-  gap: var(--space-md);
-  padding: var(--space-lg);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.search-input {
+.rs-scroll {
   flex: 1;
-  background-color: var(--color-bg-darker);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-md);
-  padding: var(--space-md);
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 var(--space-md) var(--space-md) 20px;
+  border-top: 1px solid var(--border-color);
+}
+.rs-scroll:focus-visible {
+  outline-offset: -2px;
+}
+.rs-results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 12px;
+}
+.rs-manual {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding-top: var(--space-md);
+}
+.rs-manual {
+  flex: 0 1 auto;
+} /* content height; shrinks (and scrolls) only on short screens so the chips below stay visible */
+.rs-submit {
+  align-self: flex-start;
+}
+
+.rs-item {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 8px;
+  border-radius: var(--border-radius-sm);
+  text-align: left;
   color: var(--color-text-primary);
-  font-size: 16px;
+  transition: background var(--motion-base);
 }
-
-.search-input:focus {
-  outline: none;
-  border-color: var(--color-accent);
+.rs-item:hover {
+  background: var(--bg-tertiary);
 }
-
-.search-input:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
-.search-close {
+.rs-logo {
+  flex: none;
   width: 44px;
   height: 44px;
-  border-radius: var(--border-radius-md);
-  background-color: var(--color-bg-darker);
-  color: var(--color-text-secondary);
-  font-size: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.search-close:hover {
-  background-color: var(--color-border);
-  color: var(--color-text-primary);
-}
-
-.search-type-row {
-  display: flex;
-  gap: var(--space-sm);
-  padding: 0 var(--space-lg) var(--space-md);
-}
-
-.search-type-chip {
-  padding: var(--space-xs) var(--space-md);
-  border-radius: 999px;
-  font-size: 13px;
-  background-color: var(--color-bg-darker);
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-border);
-  min-height: 32px;
-  cursor: pointer;
-  transition:
-    background-color 0.15s,
-    color 0.15s;
-}
-
-.search-type-chip:hover {
-  background-color: var(--color-border);
-  color: var(--color-text-primary);
-}
-
-.search-type-chip.active {
-  background-color: var(--color-accent);
-  color: #fff;
-  border-color: var(--color-accent);
-}
-
-.search-results {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--space-md);
-  max-height: 480px;
-}
-
-.search-loading,
-.search-empty {
-  text-align: center;
-  padding: var(--space-xl);
-  color: var(--color-text-secondary);
-}
-
-.search-error {
-  text-align: center;
-  padding: var(--space-md);
-  margin-bottom: var(--space-md);
-  color: var(--color-text-primary);
-  background-color: var(--color-bg-darker);
-  border-radius: var(--border-radius-md);
-}
-
-.search-result-item {
-  width: 100%;
-  padding: var(--space-md);
-  text-align: left;
-  background-color: transparent;
-  border-radius: var(--border-radius-md);
-  margin-bottom: var(--space-sm);
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-}
-
-.search-result-item:hover {
-  background-color: var(--color-bg-darker);
-}
-
-/* Station icon in search results */
-.result-station-logo {
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
   border-radius: var(--border-radius-sm);
   overflow: hidden;
-  position: relative;
+  background: var(--bg-tertiary);
 }
-
-.result-favicon {
+.rs-favicon {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  display: block;
+  object-fit: contain;
 }
-
-.result-avatar-fallback {
+.rs-avatar {
   width: 100%;
   height: 100%;
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 12px;
+  font-size: 15px;
   font-weight: var(--font-weight-bold);
-  letter-spacing: 0.5px;
-  border-radius: var(--border-radius-sm);
 }
-
-.result-info {
+.rs-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
-
-.result-name {
+.rs-name {
+  font-size: 15px;
   font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
-  margin-bottom: var(--space-xs);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
-
-.result-country {
-  font-size: 14px;
+.rs-country {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rs-chevron {
+  flex: none;
+  display: flex;
   color: var(--color-text-secondary);
 }
 
-/* Delete preset button row - below search type chips */
-.search-delete-row {
-  padding: 0 var(--space-lg) var(--space-md);
-}
-
-.search-delete-btn {
-  width: 100%;
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--border-radius-md);
-  background-color: transparent;
-  color: #e74856;
-  font-size: 14px;
-  font-weight: var(--font-weight-medium);
+.rs-note {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(231, 72, 86, 0.3);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  min-height: 36px;
-}
-
-.search-delete-btn:hover {
-  background-color: rgba(231, 72, 86, 0.12);
-  border-color: #e74856;
-}
-
-.load-more-btn {
-  width: 100%;
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--border-radius-md);
-  background-color: var(--color-bg-darker);
-  color: var(--color-text-secondary);
-  font-size: 14px;
-  font-weight: var(--font-weight-medium);
-  border: 1px solid var(--color-border);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  min-height: 44px;
-  margin-top: var(--space-sm);
-}
-
-.load-more-btn:hover:not(:disabled) {
-  background-color: var(--color-border);
-  color: var(--color-text-primary);
-}
-
-.load-more-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.max-reached {
+  gap: 8px;
+  padding: var(--space-lg) var(--space-md);
   text-align: center;
-  padding: var(--space-md);
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  cursor: help;
-  margin-top: var(--space-sm);
-}
-
-.manual-stream-fields {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  padding: 0 var(--space-lg);
-  margin-bottom: var(--space-md);
-}
-
-.manual-stream-submit {
-  width: 100%;
-  padding: var(--space-md);
-  border-radius: var(--border-radius-md);
-  background-color: var(--color-accent);
-  color: var(--color-text-primary);
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.manual-stream-submit:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.manual-stream-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.manual-stream-fields .search-input,
-.search-header .search-input[type="url"] {
-  padding: 10px 12px;
   font-size: 15px;
-  background-color: var(--color-bg);
-}
-
-.manual-stream-help {
-  font-size: 12px;
-  line-height: 1.4;
+  line-height: 1.5;
   color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+.rs-note--hint svg,
+.rs-note--max svg {
+  flex: none;
+}
+.rs-note--max {
+  padding: var(--space-md);
+  font-size: 14px;
+}
+.rs-spinner {
+  border-color: rgba(var(--primary-rgb), 0.3);
+  border-top-color: var(--primary-color);
+}
+.rs-more {
+  align-self: center;
+  margin-top: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rs-item {
+    transition: none;
+  }
 }
 
-.search-header .manual-stream-field {
-  flex: 1;
+/* chips first, then ONE input row (search or stream URL): the controls stay where they are for every provider */
+.rs-field {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 var(--space-md) 12px 20px;
+}
+.rs-url-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ---- phones: the chips take up to three rows, so claw back vertical space ---- */
+@media (max-width: 600px) {
+  .rs-head {
+    padding-bottom: 4px;
+  }
+  .rs-chips {
+    gap: 4px;
+    padding-bottom: 8px;
+  }
+  .rs-chips .ui-chip {
+    padding-inline: 12px;
+  }
+  .rs-field {
+    padding-bottom: 8px;
+  }
+}
+/* ---- short screens (phone in landscape, keyboard open): the whole dialog scrolls as one sheet instead of leaving 100px for the results ---- */
+@media (max-height: 520px) {
+  .dlg.dlg--lg .dlg-panel {
+    height: auto;
+    max-height: none;
+  }
+  .dlg.dlg--lg .dlg-overlay {
+    align-items: flex-start;
+  }
+  .dlg.dlg--lg .rs-scroll {
+    overflow: visible;
+    flex: none;
+  }
 }

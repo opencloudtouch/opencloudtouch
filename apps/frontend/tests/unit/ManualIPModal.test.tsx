@@ -1,7 +1,7 @@
-﻿/**
- * Tests for ManualIPModal — Escape key dismissal and a11y attributes.
+/**
+ * Tests for ManualIPModal — dismissal (Escape, backdrop) and a11y attributes of the shared Modal.
  *
- * Covers: overlay onKeyDown handler, role attributes, keyboard dismissal.
+ * Covers: native dialog cancel event, overlay click, role/aria attributes.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
@@ -32,45 +32,51 @@ describe("ManualIPModal", () => {
     expect(screen.getByText("Manual IP Configuration")).toBeInTheDocument();
   });
 
-  it("calls onClose when overlay is clicked", () => {
+  it("calls onClose when the dimmed overlay is clicked", () => {
     render(<ManualIPModal isOpen={true} onClose={mockOnClose} />);
-    const overlay = document.querySelector(".modal-overlay")!;
+    const overlay = document.querySelector('[data-test="modal-overlay"]')!;
     fireEvent.click(overlay);
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
   it("does not close when modal content is clicked", () => {
     render(<ManualIPModal isOpen={true} onClose={mockOnClose} />);
-    const content = document.querySelector(".modal-content")!;
+    const content = document.querySelector('[data-test="modal-content"]')!;
     fireEvent.click(content);
     expect(mockOnClose).not.toHaveBeenCalled();
   });
 
-  it("calls onClose when Escape key is pressed on overlay", () => {
+  it("calls onClose when the native dialog is cancelled (Escape)", () => {
     render(<ManualIPModal isOpen={true} onClose={mockOnClose} />);
-    const overlay = document.querySelector(".modal-overlay")!;
-    fireEvent.keyDown(overlay, { key: "Escape" });
+    const dialog = document.querySelector("dialog")!;
+    const cancel = new Event("cancel", { cancelable: true });
+    dialog.dispatchEvent(cancel);
+    expect(cancel.defaultPrevented).toBe(true); // React state stays the single source of truth
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
-  it("does not close on non-Escape key on overlay", () => {
+  it("does not close on an Enter key press on the overlay", () => {
     render(<ManualIPModal isOpen={true} onClose={mockOnClose} />);
-    const overlay = document.querySelector(".modal-overlay")!;
+    const overlay = document.querySelector('[data-test="modal-overlay"]')!;
     fireEvent.keyDown(overlay, { key: "Enter" });
     expect(mockOnClose).not.toHaveBeenCalled();
   });
 
-  it("overlay has role=none for a11y", () => {
+  it("overlay is presentational for a11y", () => {
     render(<ManualIPModal isOpen={true} onClose={mockOnClose} />);
-    const overlay = document.querySelector(".modal-overlay")!;
-    expect(overlay).toHaveAttribute("role", "none");
+    const overlay = document.querySelector('[data-test="modal-overlay"]')!;
+    expect(overlay).toHaveAttribute("role", "presentation");
   });
 
-  it("modal content uses native dialog element", () => {
+  it("uses a native modal dialog element labelled by its title", () => {
     render(<ManualIPModal isOpen={true} onClose={mockOnClose} />);
-    const dialog = document.querySelector("dialog.modal-content")!;
+    const dialog = document.querySelector("dialog")!;
     expect(dialog).toBeInTheDocument();
     expect(dialog).toHaveAttribute("open");
+    expect(dialog).not.toHaveAttribute("role");
+    expect(dialog).not.toHaveAttribute("aria-modal");
+    expect(dialog).toHaveAttribute("aria-labelledby", "manual-ip-title");
+    expect(document.getElementById("manual-ip-title")).toHaveTextContent("Manual IP Configuration");
   });
 
   it("pre-fills with existing IPs on open", () => {

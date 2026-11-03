@@ -39,6 +39,10 @@ class KeyType(str, Enum):
     MUTE = "MUTE"
 
 
+# Input sources that can be switched to without choosing content (streaming accounts and
+# media servers need a ContentItem and are started from the respective app).
+SELECTABLE_SOURCES = ("BLUETOOTH", "AUX", "AIRPLAY")
+
 KEY_MAPPING: dict[KeyType, SoundTouchKeys] = {
     KeyType.PLAY: SoundTouchKeys.PLAY,
     KeyType.PAUSE: SoundTouchKeys.PAUSE,

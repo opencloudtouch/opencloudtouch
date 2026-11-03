@@ -22,8 +22,8 @@ describe("NowPlaying Component", () => {
 
       expect(screen.getByText("No playback")).toBeInTheDocument();
 
-      const nowPlayingDiv = container.querySelector(".now-playing");
-      expect(nowPlayingDiv).toHaveClass("empty");
+      const nowPlayingDiv = container.querySelector(".np");
+      expect(nowPlayingDiv).toHaveClass("np--empty");
     });
 
     it("should show empty state when nowPlaying is undefined", () => {
@@ -97,58 +97,67 @@ describe("NowPlaying Component", () => {
     });
   });
 
-  describe("Play/Pause Overlay", () => {
-    it("should show Pause button overlay when playing and onPlayPause provided", () => {
-      const nowPlaying = {
-        station: "Test Station",
-        track: "Test Track",
-        play_status: "PLAY_STATE",
-      };
+  describe("Header with the source switch", () => {
+    const action = <div data-testid="switch">switch</div>;
 
-      const { container } = render(
-        <NowPlaying nowPlaying={nowPlaying} onPlayPause={vi.fn()} />
+    it("shows the switch in the header and no play overlay on the cover", () => {
+      const nowPlaying = { station: "SWR3", track: "Track", play_status: "PLAY_STATE", source: "INTERNET_RADIO" };
+
+      const { container } = render(<NowPlaying nowPlaying={nowPlaying} headerAction={action} />);
+
+      expect(screen.getByTestId("switch")).toBeInTheDocument();
+      expect(container.querySelector(".np-header")).toHaveClass("si-head");
+      expect(screen.queryByRole("button", { name: "Pause" })).not.toBeInTheDocument();
+    });
+
+    it("hides the source badge for sources the switch shows as pressed", () => {
+      const nowPlaying = { station: "SWR3", play_status: "PLAY_STATE", source: "INTERNET_RADIO" };
+
+      const { container } = render(<NowPlaying nowPlaying={nowPlaying} headerAction={action} />);
+
+      expect(container.querySelector(".np-source")).not.toBeInTheDocument();
+    });
+
+    it("keeps the source badge for sources that cannot be chosen (Spotify)", () => {
+      const nowPlaying = { track: "Track", play_status: "PLAY_STATE", source: "SPOTIFY" };
+
+      const { container } = render(<NowPlaying nowPlaying={nowPlaying} headerAction={action} />);
+
+      expect(container.querySelector(".np-source")).toBeInTheDocument();
+    });
+
+    it("replaces the header text while a switch is running", () => {
+      const nowPlaying = { station: "SWR3", play_status: "PLAY_STATE", source: "INTERNET_RADIO" };
+
+      render(<NowPlaying nowPlaying={nowPlaying} headerLabel="Switching to AUX…" headerAction={action} />);
+
+      expect(screen.getByText("Switching to AUX…")).toBeInTheDocument();
+      expect(screen.queryByText("SWR3")).not.toBeInTheDocument();
+    });
+
+    it("shows the switch even without playback data", () => {
+      render(<NowPlaying nowPlaying={null} headerAction={action} />);
+
+      expect(screen.getByTestId("switch")).toBeInTheDocument();
+    });
+
+    it("shows an icon tile instead of a stock picture for AUX and Bluetooth without cover", () => {
+      const { container, rerender } = render(
+        <NowPlaying nowPlaying={{ play_status: "PLAY_STATE", source: "AUX" }} />
       );
+      expect(container.querySelector(".np-art--none")).toBeInTheDocument();
+      expect(container.querySelector("img")).not.toBeInTheDocument();
 
-      expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
-      expect(container.querySelector(".np-play-overlay")).toBeInTheDocument();
-    });
+      rerender(<NowPlaying nowPlaying={{ track: "T", play_status: "PLAY_STATE", source: "BLUETOOTH" }} />);
+      expect(container.querySelector(".np-art--none")).toBeInTheDocument();
 
-    it("should show Play button overlay when paused and onPlayPause provided", () => {
-      const nowPlaying = {
-        station: "Test Station",
-        track: "Test Track",
-        play_status: "PAUSE_STATE",
-      };
-
-      render(<NowPlaying nowPlaying={nowPlaying} onPlayPause={vi.fn()} />);
-
-      expect(screen.getByRole("button", { name: "Play" })).toBeInTheDocument();
-    });
-
-    it("should call onPlayPause when overlay clicked", () => {
-      const mockPlayPause = vi.fn();
-      const nowPlaying = {
-        station: "Test Station",
-        track: "Test Track",
-        play_status: "PLAY_STATE",
-      };
-
-      render(<NowPlaying nowPlaying={nowPlaying} onPlayPause={mockPlayPause} />);
-
-      fireEvent.click(screen.getByRole("button", { name: "Pause" }));
-      expect(mockPlayPause).toHaveBeenCalledTimes(1);
-    });
-
-    it("should not show overlay when onPlayPause not provided", () => {
-      const nowPlaying = {
-        station: "Test Station",
-        track: "Test Track",
-        play_status: "PLAY_STATE",
-      };
-
-      const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
-
-      expect(container.querySelector(".np-play-overlay")).not.toBeInTheDocument();
+      rerender(
+        <NowPlaying
+          nowPlaying={{ track: "T", art_url: "http://x/y.jpg", play_status: "PLAY_STATE", source: "BLUETOOTH" }}
+        />
+      );
+      expect(container.querySelector(".np-art--none")).not.toBeInTheDocument();
+      expect(container.querySelector("img")).toBeInTheDocument();
     });
   });
 
@@ -212,7 +221,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge.bluetooth")).toBeInTheDocument();
+      expect(container.querySelector(".np-source.bluetooth")).toBeInTheDocument();
     });
 
     it("should show Radio badge when source is INTERNET_RADIO", () => {
@@ -224,7 +233,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge.radio")).toBeInTheDocument();
+      expect(container.querySelector(".np-source.radio")).toBeInTheDocument();
     });
 
     it("should show Radio badge when source is TUNEIN", () => {
@@ -236,7 +245,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge.radio")).toBeInTheDocument();
+      expect(container.querySelector(".np-source.radio")).toBeInTheDocument();
     });
 
     it("should not show badge when no source provided", () => {
@@ -247,7 +256,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge")).not.toBeInTheDocument();
+      expect(container.querySelector(".np-source")).not.toBeInTheDocument();
     });
 
     it("should show AUX badge for AUX source", () => {
@@ -258,7 +267,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge.aux")).toBeInTheDocument();
+      expect(container.querySelector(".np-source.aux")).toBeInTheDocument();
     });
 
     it("should show AirPlay badge for AIRPLAY source", () => {
@@ -269,7 +278,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge.airplay")).toBeInTheDocument();
+      expect(container.querySelector(".np-source.airplay")).toBeInTheDocument();
     });
 
     it("should show TV badge for TV source", () => {
@@ -280,7 +289,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge.tv")).toBeInTheDocument();
+      expect(container.querySelector(".np-source.tv")).toBeInTheDocument();
     });
 
     it("should show streaming badge for SPOTIFY source", () => {
@@ -291,7 +300,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlaying nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge.streaming")).toBeInTheDocument();
+      expect(container.querySelector(".np-source.streaming")).toBeInTheDocument();
     });
   });
 
@@ -389,7 +398,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlayingGated nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge")).not.toBeInTheDocument();
+      expect(container.querySelector(".np-source")).not.toBeInTheDocument();
 
       vi.doUnmock("../../src/config/capabilities");
     });
@@ -407,7 +416,7 @@ describe("NowPlaying Component", () => {
 
       const { container } = render(<NowPlayingGated nowPlaying={nowPlaying} />);
 
-      expect(container.querySelector(".np-source-badge.radio")).toBeInTheDocument();
+      expect(container.querySelector(".np-source.radio")).toBeInTheDocument();
 
       vi.doUnmock("../../src/config/capabilities");
     });

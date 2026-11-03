@@ -12,6 +12,7 @@ import {
   togglePlayPause,
   nextTrack,
   prevTrack,
+  selectSource,
 } from "../../../src/api/devices";
 
 describe("Devices API Client", () => {
@@ -88,9 +89,7 @@ describe("Devices API Client", () => {
       });
 
       // getErrorMessage returns fallback for non-ApiError objects
-      await expect(getDevices()).rejects.toThrow(
-        "Database error"
-      );
+      await expect(getDevices()).rejects.toThrow("Database error");
     });
 
     it("handles JSON parse failure in error response", async () => {
@@ -101,9 +100,7 @@ describe("Devices API Client", () => {
       });
 
       // getErrorMessage(null) returns fallback
-      await expect(getDevices()).rejects.toThrow(
-        "Failed to fetch devices: Bad Gateway"
-      );
+      await expect(getDevices()).rejects.toThrow("Failed to fetch devices: Bad Gateway");
     });
 
     it("wraps fetch error with cause", async () => {
@@ -195,9 +192,7 @@ describe("Devices API Client", () => {
 
       const result = await getDeviceCapabilities("device123");
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        "/api/devices/device123/capabilities"
-      );
+      expect(mockFetch).toHaveBeenCalledWith("/api/devices/device123/capabilities");
       expect(result).toEqual(mockCapabilities);
     });
 
@@ -222,10 +217,9 @@ describe("Devices API Client", () => {
 
       await expect(playPreset("device123", 1)).resolves.toBeUndefined();
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        "/api/devices/device123/key?key=PRESET_1&state=both",
-        { method: "POST" }
-      );
+      expect(mockFetch).toHaveBeenCalledWith("/api/devices/device123/key?key=PRESET_1&state=both", {
+        method: "POST",
+      });
     });
 
     it("plays preset 6 successfully", async () => {
@@ -236,10 +230,9 @@ describe("Devices API Client", () => {
 
       await playPreset("device123", 6);
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        "/api/devices/device123/key?key=PRESET_6&state=both",
-        { method: "POST" }
-      );
+      expect(mockFetch).toHaveBeenCalledWith("/api/devices/device123/key?key=PRESET_6&state=both", {
+        method: "POST",
+      });
     });
 
     it("throws error for preset < 1", async () => {
@@ -262,9 +255,7 @@ describe("Devices API Client", () => {
       });
 
       // getErrorMessage returns fallback for non-ApiError objects
-      await expect(playPreset("device123", 1)).rejects.toThrow(
-        "Device offline"
-      );
+      await expect(playPreset("device123", 1)).rejects.toThrow("Device offline");
     });
 
     it("handles JSON parse failure in error response", async () => {
@@ -406,6 +397,28 @@ describe("Devices API Client", () => {
 
       await expect(prevTrack("device123")).rejects.toThrow(
         "Failed to send key PREV_TRACK: Service Unavailable"
+      );
+    });
+  });
+
+  describe("selectSource", () => {
+    it("sends PUT with the source in the JSON body", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true });
+
+      await expect(selectSource("device123", "BLUETOOTH")).resolves.toBeUndefined();
+
+      expect(mockFetch).toHaveBeenCalledWith("/api/devices/device123/source", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "BLUETOOTH" }),
+      });
+    });
+
+    it("throws error on failed request", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: false, statusText: "Service Unavailable" });
+
+      await expect(selectSource("device123", "AUX")).rejects.toThrow(
+        "Failed to select source AUX: Service Unavailable"
       );
     });
   });

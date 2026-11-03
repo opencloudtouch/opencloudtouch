@@ -1,0 +1,1207 @@
+/* OpenCloudTouch wizard: shared building blocks (Stage 1).
+   Replaces: SetupWizard.css (page/empty/loading), WizardStep.css, ProgressTracker.css,
+   DeviceInfoHeader.css, WizardChoice.css and the .btn block that lives in WizardStep.css.
+   Mobile-first; breakpoints 400 / 600 / 768. Tokens from index.css only.
+   No --primary-blue, --success-green, --color-bg-primary, --color-error, --font-mono, --font-weight-semibold. No !important. */
+
+.setup-wizard-page {
+  min-height: 100vh;
+  background: var(--color-bg-dark);
+  padding: var(--space-md) 0 var(--space-2xl);
+}
+.wizard-content-v2 {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+.setup-wizard-page > .device-info-header {
+  max-width: calc(720px - 2 * var(--space-md));
+  margin: 0 var(--space-md) var(--space-lg);
+}
+.wizard-content-v2 > * {
+  min-width: 0;
+}
+.mono,
+.device-ip,
+.wz-mono {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+@media (min-width: 769px) {
+  .setup-wizard-page {
+    padding-top: var(--space-xl);
+  }
+  .wizard-content-v2 {
+    padding-inline: var(--space-lg);
+  }
+  .setup-wizard-page > .device-info-header {
+    margin-inline: auto;
+  }
+}
+
+/* ---------- Buttons (existing .btn API, now with 44px floor and overflow-safe) ---------- */
+.btn {
+  box-sizing: border-box;
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 0 20px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid transparent;
+  font-size: 16px;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+.btn-primary {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+.btn-secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--color-disabled);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+}
+.btn-outline {
+  background: transparent;
+  color: var(--primary-text);
+  border-color: var(--primary-color);
+}
+.btn-outline:hover:not(:disabled) {
+  background: rgba(var(--primary-rgb), 0.12);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+.btn-ghost:hover:not(:disabled) {
+  color: var(--color-text-primary);
+  background: var(--surface-color);
+}
+.btn svg,
+.wz-icon svg {
+  flex: none;
+}
+.spinner-small,
+.spinner {
+  display: block;
+  flex: none;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+}
+.spinner {
+  width: 40px;
+  height: 40px;
+  border-width: 4px;
+  border-color: var(--border-color);
+  border-top-color: var(--primary-color);
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- 4.2 Device header ---------- */
+.device-info-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  padding: var(--space-md);
+}
+.device-info-main {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.device-icon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--border-radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--primary-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.device-details {
+  flex: 1;
+  min-width: 0;
+}
+.device-name {
+  margin: 0 0 2px;
+  font-size: 17px;
+  line-height: 1.25;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+.device-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-sm);
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+.device-model {
+  font-weight: var(--font-weight-medium);
+}
+.device-separator {
+  opacity: 0.5;
+}
+.device-ip {
+  overflow-wrap: anywhere;
+}
+.device-reboot-btn {
+  flex: 1 1 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 0 var(--space-md);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--color-disabled);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: var(--font-weight-medium);
+  text-align: center;
+}
+.device-reboot-btn:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+}
+.device-reboot-btn--sent {
+  border-color: #4caf50;
+  background: rgba(76, 175, 80, 0.12);
+  color: var(--color-success);
+  cursor: default;
+}
+.device-reboot-btn--error {
+  border-color: #f44336;
+  background: rgba(244, 67, 54, 0.12);
+  color: var(--color-danger);
+}
+@media (min-width: 601px) {
+  .device-reboot-btn {
+    flex: 0 0 auto;
+  }
+  .device-name {
+    font-size: 20px;
+  }
+}
+
+/* ---------- 4.3 Progress tracker ---------- */
+.progress-tracker {
+  --step-size: 28px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  padding: var(--space-md) var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.progress-tracker-compact {
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  padding-inline: var(--space-sm);
+}
+.progress-steps {
+  display: flex;
+  align-items: flex-start;
+}
+.progress-step {
+  flex: 1 1 0;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.step-indicator {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.step-circle {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  box-sizing: border-box;
+  width: var(--step-size);
+  height: var(--step-size);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  background: var(--color-bg-dark);
+  color: var(--color-text-secondary);
+  border: 2px solid var(--color-disabled);
+}
+.step-icon,
+.step-number {
+  font-size: inherit;
+  line-height: 1;
+}
+/* connector: drawn between this circle and the previous one, never takes layout space */
+.step-connector {
+  display: none;
+}
+.step-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.progress-step.active .step-circle {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--primary-color);
+  transform: scale(1.1);
+}
+.progress-step.in-progress .step-circle {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.35);
+}
+.progress-step.completed .step-circle {
+  background: #4caf50;
+  color: var(--color-bg-darker);
+  border-color: #4caf50;
+}
+.progress-step.error .step-circle {
+  background: #f44336;
+  color: var(--color-bg-darker);
+  border-color: #f44336;
+}
+@media (max-width: 360px) {
+  /* 8 circles of 28px (+ the active one scaled) do not fit into ~223px of a 320px screen */
+  .progress-tracker {
+    --step-size: 26px;
+    padding-inline: 6px;
+  }
+}
+@media (min-width: 401px) {
+  .progress-tracker {
+    --step-size: 32px;
+  }
+  .step-connector {
+    display: block;
+    position: absolute;
+    z-index: 0;
+    height: 2px;
+    background: var(--color-border);
+    top: calc(var(--step-size) / 2 - 1px);
+    left: calc(-50% + var(--step-size) / 2 + 4px);
+    width: calc(100% - var(--step-size) - 8px);
+  }
+  /* the markup puts the connector inside step N+1 (before its circle) and omits it for the first step,
+     so every rendered connector is wanted, including the one before the last step */
+  /* a connector is done (green) once the step before it is completed */
+  .progress-step.completed + .progress-step .step-connector {
+    background: #4caf50;
+  }
+}
+@media (min-width: 601px) {
+  .progress-tracker {
+    --step-size: 40px;
+    padding-inline: var(--space-md);
+  }
+  .progress-tracker-compact {
+    display: none;
+  }
+  .step-circle {
+    font-size: 15px;
+  }
+  .step-label {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+    font-size: 12px;
+    line-height: 1.3;
+    text-align: center;
+    overflow-wrap: anywhere;
+    padding-inline: 2px;
+    color: var(--color-text-secondary);
+  }
+  .progress-step.active .step-label {
+    color: var(--color-text-primary);
+    font-weight: var(--font-weight-bold);
+  }
+  .progress-step.completed .step-label {
+    color: var(--color-success);
+  }
+}
+
+/* ---------- 4.4 Step frame ---------- */
+.wizard-step {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  padding: 20px var(--space-md);
+  max-width: none;
+  margin: 0;
+}
+.wizard-step-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  margin: 0;
+  text-align: left;
+}
+.wizard-step-number {
+  display: inline-block;
+  margin: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  color: var(--primary-text);
+  background: rgba(var(--primary-rgb), 0.15);
+}
+.wizard-step-title:focus {
+  outline: none;
+} /* programmatic focus only (tabIndex -1) */
+.wizard-step-title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.25;
+  color: var(--color-text-primary);
+}
+.wizard-step-description {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}
+.wizard-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0;
+  padding: 12px var(--space-md);
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.45);
+  border-radius: var(--border-radius-sm);
+}
+.wizard-warning-icon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffc107;
+  font-size: 1rem;
+}
+.wizard-warning-text {
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.wizard-step-content {
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+/* A flex item with `margin: 0 auto` (used by the not yet redesigned step wrappers) shrinks to its content
+   width and overflows narrow screens; full width + the wrapper's own max-width keeps it centred and inside. */
+.wizard-step-content > * {
+  width: 100%;
+  min-width: 0;
+}
+
+/* action bar. DOM: Back, then .wizard-actions-right (Skip, hint, Next). Phone: Next on top, Back below. */
+.wizard-step-actions {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 12px;
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-color);
+}
+.wizard-actions-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+}
+.wizard-actions-right .wizard-next-hint {
+  order: -1;
+}
+.wizard-actions-right .wizard-btn-skip {
+  order: 1;
+}
+.wizard-btn-previous,
+.wizard-btn-next,
+.wizard-btn-skip {
+  width: 100%;
+  padding-inline: 20px;
+}
+.wizard-btn-next {
+  min-width: 140px;
+}
+.wizard-next-hint {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  font-size: 13px;
+  line-height: 1.5;
+  font-style: normal;
+  color: var(--color-text-secondary);
+}
+.wizard-next-hint svg {
+  flex: none;
+  margin-top: 2px;
+}
+@media (min-width: 601px) {
+  .wizard-step {
+    padding: 28px;
+  }
+  .wizard-step-title {
+    font-size: 24px;
+  }
+  .wizard-step-actions {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .wizard-actions-right {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    margin-left: auto;
+  }
+  .wizard-actions-right .wizard-next-hint,
+  .wizard-actions-right .wizard-btn-skip {
+    order: 0;
+  }
+  .wizard-next-hint {
+    max-width: 260px;
+    text-align: right;
+  }
+  .wizard-btn-previous,
+  .wizard-btn-next,
+  .wizard-btn-skip {
+    width: auto;
+  }
+}
+
+/* ---------- 4.5 Cards, status boxes ---------- */
+.wz-card {
+  min-width: 0;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  padding: var(--space-md);
+}
+@media (min-width: 601px) {
+  .wz-card {
+    padding: 20px;
+  }
+}
+.wz-status {
+  --c: var(--primary-color);
+  --bg: rgba(var(--primary-rgb), 0.08);
+  --bd: rgba(var(--primary-rgb), 0.45);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px var(--space-md);
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  border-radius: var(--border-radius-md);
+  color: var(--c);
+}
+.wz-status--success {
+  --c: var(--color-success);
+  --bg: rgba(76, 175, 80, 0.1);
+  --bd: rgba(76, 175, 80, 0.5);
+}
+.wz-status--warning {
+  --c: #ffc107;
+  --bg: rgba(255, 193, 7, 0.1);
+  --bd: rgba(255, 193, 7, 0.5);
+}
+.wz-status--error {
+  --c: var(--color-danger);
+  --bg: rgba(244, 67, 54, 0.1);
+  --bd: rgba(244, 67, 54, 0.55);
+}
+.wz-icon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wz-status-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.wz-status-title {
+  font-size: 15px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+.wz-status-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.wz-numlist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.wz-numlist > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+.wz-num {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-weight: var(--font-weight-bold);
+  background: rgba(var(--primary-rgb), 0.15);
+  color: var(--primary-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wz-numlist-title {
+  font-size: 15px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+.wz-numlist-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.verify-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.verify-check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.verify-check-item .wz-icon {
+  color: var(--color-success);
+}
+.verify-check-item.failed .wz-icon {
+  color: var(--color-danger);
+}
+.verify-group-title {
+  margin-top: 6px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+.verify-group .verify-check-item {
+  padding-left: 20px;
+}
+
+/* code, diff, chips: scroll inside the block only */
+.ssh-command-wrapper,
+.wz-code {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  background: var(--color-bg-darker);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+}
+.ssh-hint-command,
+.wz-code pre,
+.wz-diff {
+  margin: 0;
+  min-width: 0;
+  overflow-x: auto;
+  font:
+    14px/1.5 ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
+  color: var(--text-primary);
+}
+.ssh-hint-command,
+.wz-code pre {
+  flex: 1 1 0;
+  padding: 12px var(--space-md);
+}
+.ssh-copy-btn {
+  flex: none;
+  width: var(--touch-target-min);
+  border-left: 1px solid var(--border-color);
+  border-radius: 0;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ssh-copy-btn:hover,
+.ssh-copy-btn.copied {
+  color: var(--color-text-primary);
+  background: var(--color-bg-dark);
+}
+.wz-diff {
+  padding: 12px var(--space-md);
+  background: var(--color-bg-darker);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.wz-diff .del {
+  color: var(--color-danger);
+}
+.wz-diff .add {
+  color: var(--color-success);
+}
+.wz-chip {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 6px 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font:
+    13px/1.5 ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
+  color: var(--text-primary);
+}
+
+/* choice cards (also used for .risk-card and RestoreChoice) */
+.wizard-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 20px;
+  padding: 0;
+}
+.wizard-choice__title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+.wizard-choice__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: var(--space-md);
+}
+.wizard-choice__card,
+.risk-card {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: none;
+  text-align: left;
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: var(--space-lg);
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.wizard-choice__card:hover {
+  border-color: var(--primary-color);
+}
+.wizard-choice__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--border-radius-md);
+  background: rgba(var(--primary-rgb), 0.15);
+  color: var(--primary-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+.wizard-choice__card h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+.wizard-choice__card p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+.risk-card {
+  padding: var(--space-md);
+  gap: var(--space-sm);
+  border-width: 2px;
+  border-radius: var(--border-radius-md);
+  background: var(--surface-color);
+}
+.risk-card.selected {
+  border-color: var(--primary-color);
+  background: rgba(var(--primary-rgb), 0.1);
+}
+.risk-card.selected.danger {
+  border-color: #f44336;
+  background: rgba(244, 67, 54, 0.08);
+}
+@media (min-width: 601px) {
+  .wizard-choice__title {
+    font-size: 30px;
+  }
+}
+
+/* form fields */
+.wz-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.wz-label {
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+.config-input,
+.hosts-input,
+.ntp-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--touch-target-min);
+  padding: 0 12px;
+  background: var(--color-bg-dark);
+  color: var(--text-primary);
+  border: 1px solid var(--color-disabled);
+  border-radius: var(--border-radius-sm);
+  font:
+    16px ui-monospace,
+    Menlo,
+    Consolas,
+    monospace; /* >=16px: no iOS zoom; long values scroll inside */
+}
+.config-input[aria-invalid="true"],
+.hosts-input[aria-invalid="true"],
+.ntp-input[aria-invalid="true"] {
+  border-color: #f44336;
+}
+.wz-hint {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-tertiary);
+  white-space: pre-line;
+}
+
+/* ---------- Page states ---------- */
+.wizard-loading,
+.wizard-empty-state {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 600px;
+  min-height: 0;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  text-align: center;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  padding: 40px var(--space-lg);
+}
+.setup-wizard-page > .wizard-loading,
+.setup-wizard-page > .wizard-empty-state {
+  width: calc(100% - 2 * var(--space-md));
+}
+.loading-message {
+  margin: 0;
+  font-size: 17px;
+  color: var(--text-primary);
+}
+.wizard-empty-state .empty-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0;
+  opacity: 1;
+  border-radius: var(--border-radius-lg);
+  background: var(--bg-tertiary);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+.wizard-empty-state h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+.wizard-empty-state p {
+  margin: 0;
+  max-width: 44ch;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}
+.wizard-empty-hint {
+  margin: 0;
+}
+.inline-link-button {
+  min-height: var(--touch-target-min);
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--primary-text);
+  font: inherit;
+  text-decoration: underline;
+  text-align: center;
+  cursor: pointer;
+}
+.inline-link-button:hover {
+  opacity: 0.8;
+}
+.wizard-empty-state .btn-primary {
+  width: 100%;
+  max-width: 320px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wizard-choice__card,
+  .btn {
+    transition: none;
+  }
+}
+
+/* ===================================================================
+   Stage 2 additions: shared status/result idioms (moved out of the step CSS files).
+   Replaces the duplicated .error-icon, .error-content, .success-icon, .success-title,
+   .success-message, .spinner(-large) and .btn-* rules in Step2-Step5 CSS.
+   =================================================================== */
+.error-icon,
+.warning-icon,
+.success-icon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: inherit;
+  line-height: 1;
+}
+.error-icon {
+  color: var(--color-danger);
+}
+.warning-icon {
+  color: #ffc107;
+}
+.success-icon {
+  color: var(--color-success);
+}
+.error-content,
+.warning-content {
+  flex: 1;
+  min-width: 0;
+}
+.error-content strong,
+.warning-content strong {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+.error-content p,
+.warning-content p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.success-title {
+  margin: 0;
+  align-self: center;
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-success);
+}
+.success-message {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+/* result card: icon + title on one row, all other children full width */
+.wz-result {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  padding: var(--space-md);
+  border-radius: var(--border-radius-md);
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.5);
+}
+.wz-result > * {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.wz-result > .success-icon {
+  grid-column: 1;
+  width: 32px;
+  height: 32px;
+}
+.wz-result > .success-title {
+  grid-column: 2;
+}
+@media (min-width: 601px) {
+  .wz-result {
+    padding: 20px;
+  }
+}
+
+/* ===================================================================
+   Stage 3 additions
+   =================================================================== */
+/* WizardStep always renders the action bar; without any button (completion step) it must not leave a divider and padding behind. */
+.wizard-step-actions:not(:has(button)) {
+  display: none;
+}
+
+/* warning variant of the shared result card (verification failed) and its icon/title/message */
+.failed-icon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffc107;
+  line-height: 1;
+}
+.failed-title {
+  margin: 0;
+  align-self: center;
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: var(--font-weight-bold);
+  color: #ffc107;
+}
+.failed-message {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+.wz-result--warning {
+  background: rgba(255, 193, 7, 0.1);
+  border-color: rgba(255, 193, 7, 0.5);
+}
+.wz-result > .failed-icon {
+  grid-column: 1;
+  width: 32px;
+  height: 32px;
+}
+.wz-result > .failed-title {
+  grid-column: 2;
+}
+
+/* ===================================================================
+   Stage 4 additions (restore wizard)
+   =================================================================== */
+/* tracker: "skipped" step (clean restore skips the backup scan): dashed green ring with a dash, connector after it is green */
+.progress-step.skipped .step-circle {
+  background: transparent;
+  color: var(--color-success);
+  border: 2px dashed #4caf50;
+}
+@media (min-width: 401px) {
+  .progress-step.skipped + .progress-step .step-connector {
+    background: #4caf50;
+  }
+}
+@media (min-width: 601px) {
+  .progress-step.skipped .step-label {
+    color: var(--color-success);
+  }
+}
+
+/* spinner for status boxes (primary colour, 24px) */
+.wz-spinner {
+  flex: none;
+  display: block;
+  width: 24px;
+  height: 24px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 3px solid rgba(var(--primary-rgb), 0.3);
+  border-top-color: var(--primary-color);
+  animation: spin 0.8s linear infinite;
+}
+
+/* progress bar: determinate (inline width) or indeterminate (sliding block, for runs of unknown progress) */
+.wz-progress {
+  display: block;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border-color);
+  overflow: hidden;
+}
+.wz-progress-bar {
+  display: block;
+  height: 100%;
+  background: var(--primary-color);
+  transition: width 1s linear;
+}
+.wz-progress--indeterminate .wz-progress-bar {
+  width: 35%;
+  transition: none;
+  animation: wz-indeterminate 1.8s ease-in-out infinite;
+}
+@keyframes wz-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(286%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wz-progress--indeterminate .wz-progress-bar {
+    animation: none;
+    width: 100%;
+    opacity: 0.5;
+  }
+  .wz-progress-bar {
+    transition: none;
+  }
+}
+
+/* text and action rows inside a status box */
+.wz-status-body > p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.wz-status-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+.wz-status-actions .btn,
+.wz-status-body > .btn {
+  width: 100%;
+}
+@media (min-width: 601px) {
+  .wz-status-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .wz-status-actions .btn,
+  .wz-status-body > .btn {
+    width: auto;
+  }
+}
+.wz-status-body > .btn {
+  margin-top: 12px;
+}
+
+a.device-icon {
+  text-decoration: none;
+  transition: background var(--motion-base);
+}
+a.device-icon:hover {
+  background: var(--border-color);
+}

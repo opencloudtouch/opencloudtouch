@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
+import { MemoryRouter } from "react-router";
 import Diagnostics from "./Diagnostics";
-import type { DiagnosticsResponse } from "../api/diagnostics";
+import type { DiagnosticsDevice, DiagnosticsResponse } from "../api/diagnostics";
 
 // Mock getDiagnostics
 vi.mock("../api/diagnostics", () => ({
@@ -32,6 +33,18 @@ import { downloadDiagnostics } from "../api/bugReport";
 const mockedGetDiagnostics = vi.mocked(getDiagnostics);
 const mockedDownloadDiagnostics = vi.mocked(downloadDiagnostics);
 
+const MOCK_DEVICE: DiagnosticsDevice = {
+  device_id: "AABBCCDDEEFF",
+  name: "Living Room",
+  model: "SoundTouch 30",
+  ip: "192.168.1.100",
+  firmware_version: "24.0.5",
+  setup_status: "complete",
+  last_seen: new Date(Date.now() - 60_000).toISOString(), // 1 min ago → green
+  setup_completed_at: "2026-01-01T00:00:00+00:00",
+  ssh_permanent: true,
+};
+
 const MOCK_RESPONSE: DiagnosticsResponse = {
   server: {
     version: "1.2.3",
@@ -43,19 +56,7 @@ const MOCK_RESPONSE: DiagnosticsResponse = {
     manual_device_ips: 2,
     timestamp: "2026-06-01T12:00:00+00:00",
   },
-  devices: [
-    {
-      device_id: "AABBCCDDEEFF",
-      name: "Living Room",
-      model: "SoundTouch 30",
-      ip: "192.168.1.100",
-      firmware_version: "24.0.5",
-      setup_status: "complete",
-      last_seen: new Date(Date.now() - 60_000).toISOString(), // 1 min ago → green
-      setup_completed_at: "2026-01-01T00:00:00+00:00",
-      ssh_permanent: true,
-    },
-  ],
+  devices: [MOCK_DEVICE],
   db_stats: { devices: 1, presets: 6 },
 };
 
@@ -66,13 +67,21 @@ describe("Diagnostics Page", () => {
 
   it("renders loading state", () => {
     mockedGetDiagnostics.mockReturnValue(new Promise(() => {})); // never resolves
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     expect(screen.getByText("Loading...")).toBeInTheDocument();
   });
 
   it("renders error state", async () => {
     mockedGetDiagnostics.mockRejectedValue(new Error("Network failure"));
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("Network failure")).toBeInTheDocument();
     });
@@ -80,7 +89,11 @@ describe("Diagnostics Page", () => {
 
   it("renders server info after loading", async () => {
     mockedGetDiagnostics.mockResolvedValue(MOCK_RESPONSE);
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("1.2.3")).toBeInTheDocument();
     });
@@ -91,7 +104,11 @@ describe("Diagnostics Page", () => {
 
   it("renders device cards", async () => {
     mockedGetDiagnostics.mockResolvedValue(MOCK_RESPONSE);
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("Living Room")).toBeInTheDocument();
     });
@@ -102,7 +119,11 @@ describe("Diagnostics Page", () => {
 
   it("renders db stats", async () => {
     mockedGetDiagnostics.mockResolvedValue(MOCK_RESPONSE);
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("1")).toBeInTheDocument(); // devices count
     });
@@ -115,55 +136,80 @@ describe("Diagnostics Page", () => {
       devices: [],
       db_stats: { devices: 0, presets: 0 },
     });
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("No devices found")).toBeInTheDocument();
     });
   });
 
-  it("renders StatusDot with green status for recently seen device", async () => {
+  it("shows the Online presence badge (icon + text) for a recently seen device", async () => {
     mockedGetDiagnostics.mockResolvedValue(MOCK_RESPONSE);
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("Living Room")).toBeInTheDocument();
     });
-    // StatusDot renders <span aria-label="green"> — multiple may exist (server + device)
-    const greenDots = screen.getAllByLabelText("green");
-    expect(greenDots.length).toBeGreaterThan(0);
-    expect(greenDots[0]).toHaveClass("status-dot", "status-green");
+    const badge = screen.getByText("Online").closest(".ui-badge");
+    expect(badge).toHaveClass("ui-badge--success");
   });
 
-  it("renders StatusDot with red status for device with null last_seen", async () => {
+  it("shows the Offline presence badge for a device with null last_seen", async () => {
     mockedGetDiagnostics.mockResolvedValue({
       ...MOCK_RESPONSE,
-      devices: [{ ...MOCK_RESPONSE.devices[0], last_seen: null }],
+      devices: [{ ...MOCK_DEVICE, last_seen: null }],
     });
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("Living Room")).toBeInTheDocument();
     });
-    // Device status dot should be red (null last_seen)
-    const dots = screen.getAllByLabelText("red");
-    expect(dots.length).toBeGreaterThan(0);
-    expect(dots[0]).toHaveClass("status-dot", "status-red");
+    expect(screen.getByText("Offline").closest(".ui-badge")).toHaveClass("ui-badge--danger");
   });
 
-  it("renders StatusDot with yellow for device seen 10 min ago", async () => {
+  it("shows the Not seen recently badge for a device seen 10 min ago", async () => {
     mockedGetDiagnostics.mockResolvedValue({
       ...MOCK_RESPONSE,
       devices: [
         {
-          ...MOCK_RESPONSE.devices[0],
+          ...MOCK_DEVICE,
           last_seen: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
         },
       ],
     });
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("Living Room")).toBeInTheDocument();
     });
-    const yellowDot = screen.getByLabelText("yellow");
-    expect(yellowDot).toHaveClass("status-dot", "status-yellow");
+    expect(screen.getByText("Not seen recently").closest(".ui-badge")).toHaveClass(
+      "ui-badge--warning"
+    );
+  });
+
+  it("links back to the About page", async () => {
+    mockedGetDiagnostics.mockResolvedValue(MOCK_RESPONSE);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
+    await waitFor(() => {
+      expect(screen.getByText("Living Room")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
   });
 
   it("calls downloadDiagnostics when download button is clicked", async () => {
@@ -171,7 +217,11 @@ describe("Diagnostics Page", () => {
     mockedDownloadDiagnostics.mockResolvedValue(undefined);
     const user = userEvent.setup();
 
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("Download Support Bundle")).toBeInTheDocument();
     });
@@ -193,7 +243,11 @@ describe("Diagnostics Page", () => {
     mockedDownloadDiagnostics.mockRejectedValue(new Error("Download failed"));
     const user = userEvent.setup();
 
-    render(<Diagnostics />);
+    render(
+      <MemoryRouter>
+        <Diagnostics />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText("Download Support Bundle")).toBeInTheDocument();
     });
@@ -210,23 +264,25 @@ describe("Diagnostics Page", () => {
   });
 
   describe("Additional branch coverage", () => {
-    it("shows red status for a device last seen 30+ minutes ago (not null)", async () => {
+    it("shows the Offline badge for a device last seen 30+ minutes ago (not null)", async () => {
       mockedGetDiagnostics.mockResolvedValue({
         ...MOCK_RESPONSE,
         devices: [
           {
-            ...MOCK_RESPONSE.devices[0],
+            ...MOCK_DEVICE,
             last_seen: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
           },
         ],
       });
-      render(<Diagnostics />);
+      render(
+        <MemoryRouter>
+          <Diagnostics />
+        </MemoryRouter>
+      );
       await waitFor(() => {
         expect(screen.getByText("Living Room")).toBeInTheDocument();
       });
-      const redDots = screen.getAllByLabelText("red");
-      expect(redDots.length).toBeGreaterThan(0);
-      expect(redDots[0]).toHaveClass("status-dot", "status-red");
+      expect(screen.getByText("Offline").closest(".ui-badge")).toHaveClass("ui-badge--danger");
     });
 
     it("executes the cancelled-guard arm when unmounted before the fetch resolves (coverage-only, see comment)", async () => {
@@ -243,7 +299,11 @@ describe("Diagnostics Page", () => {
         })
       );
 
-      const { unmount } = render(<Diagnostics />);
+      const { unmount } = render(
+        <MemoryRouter>
+          <Diagnostics />
+        </MemoryRouter>
+      );
       unmount();
       resolvePromise!(MOCK_RESPONSE);
       await new Promise((r) => setTimeout(r, 0));
@@ -266,7 +326,11 @@ describe("Diagnostics Page", () => {
         })
       );
 
-      const { unmount } = render(<Diagnostics />);
+      const { unmount } = render(
+        <MemoryRouter>
+          <Diagnostics />
+        </MemoryRouter>
+      );
       unmount();
       rejectPromise!(new Error("too late"));
       await new Promise((r) => setTimeout(r, 0));
@@ -277,7 +341,11 @@ describe("Diagnostics Page", () => {
 
     it("shows the raw stringified value when the fetch rejects with a non-Error", async () => {
       mockedGetDiagnostics.mockRejectedValue("boom-string");
-      render(<Diagnostics />);
+      render(
+        <MemoryRouter>
+          <Diagnostics />
+        </MemoryRouter>
+      );
       await waitFor(() => {
         expect(screen.getByText("boom-string")).toBeInTheDocument();
       });
@@ -288,7 +356,11 @@ describe("Diagnostics Page", () => {
       mockedDownloadDiagnostics.mockRejectedValue("network-blip");
       const user = userEvent.setup();
 
-      render(<Diagnostics />);
+      render(
+        <MemoryRouter>
+          <Diagnostics />
+        </MemoryRouter>
+      );
       await waitFor(() => {
         expect(screen.getByText("Download Support Bundle")).toBeInTheDocument();
       });
@@ -304,29 +376,38 @@ describe("Diagnostics Page", () => {
       });
     });
 
-    it("shows yellow/disabled discovery status when discovery is disabled", async () => {
+    it("shows the neutral Disabled badge when discovery is disabled", async () => {
       mockedGetDiagnostics.mockResolvedValue({
         ...MOCK_RESPONSE,
         server: { ...MOCK_RESPONSE.server, discovery_enabled: false },
       });
-      render(<Diagnostics />);
+      render(
+        <MemoryRouter>
+          <Diagnostics />
+        </MemoryRouter>
+      );
       await waitFor(() => {
         expect(screen.getByText("Disabled")).toBeInTheDocument();
       });
-      const discoveryDot = screen.getByLabelText("yellow");
-      expect(discoveryDot).toHaveClass("status-dot", "status-yellow");
+      expect(screen.getByText("Disabled").closest(".ui-badge")).not.toHaveClass(
+        "ui-badge--success"
+      );
     });
 
-    it("shows the cross icon when ssh_permanent is false", async () => {
+    it("shows the Not enabled badge when ssh_permanent is false", async () => {
       mockedGetDiagnostics.mockResolvedValue({
         ...MOCK_RESPONSE,
-        devices: [{ ...MOCK_RESPONSE.devices[0], ssh_permanent: false }],
+        devices: [{ ...MOCK_DEVICE, ssh_permanent: false }],
       });
-      render(<Diagnostics />);
+      render(
+        <MemoryRouter>
+          <Diagnostics />
+        </MemoryRouter>
+      );
       await waitFor(() => {
         expect(screen.getByText("Living Room")).toBeInTheDocument();
       });
-      expect(screen.getByText("❌")).toBeInTheDocument();
+      expect(screen.getByText("Not enabled")).toBeInTheDocument();
     });
   });
 });

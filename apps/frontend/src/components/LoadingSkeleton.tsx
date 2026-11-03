@@ -22,7 +22,7 @@ export function Skeleton({
 }: SkeletonProps) {
   return (
     <div
-      className={`skeleton ${className}`}
+      className={`ui-skeleton ${className}`}
       style={{
         width,
         height,
@@ -38,9 +38,9 @@ export function Skeleton({
  */
 export function DeviceCardSkeleton() {
   return (
-    <div className="device-card-skeleton">
+    <div className="sk-device">
       <Skeleton width="60px" height="60px" borderRadius="50%" />
-      <div className="device-card-skeleton-content">
+      <div className="sk-content">
         <Skeleton width="70%" height="24px" />
         <Skeleton width="40%" height="16px" />
       </div>
@@ -53,11 +53,11 @@ export function DeviceCardSkeleton() {
  */
 export function PresetSkeleton() {
   return (
-    <div className="preset-skeleton">
-      <Skeleton width="48px" height="48px" borderRadius="8px" />
-      <div className="preset-skeleton-content">
+    <div className="sk-preset">
+      <Skeleton width="28px" height="28px" borderRadius="50%" />
+      <Skeleton width="40px" height="40px" borderRadius="8px" />
+      <div className="sk-content">
         <Skeleton width="80%" height="18px" />
-        <Skeleton width="60%" height="14px" />
       </div>
     </div>
   );
@@ -68,11 +68,11 @@ export function PresetSkeleton() {
  */
 export function StationCardSkeleton() {
   return (
-    <div className="station-card-skeleton">
-      <Skeleton width="100%" height="120px" borderRadius="8px" />
-      <div className="station-card-skeleton-content">
-        <Skeleton width="90%" height="20px" />
-        <Skeleton width="70%" height="16px" />
+    <div className="sk-station">
+      <Skeleton width="40px" height="40px" borderRadius="8px" />
+      <div className="sk-content">
+        <Skeleton width="70%" height="18px" />
+        <Skeleton width="40%" height="14px" />
       </div>
     </div>
   );
