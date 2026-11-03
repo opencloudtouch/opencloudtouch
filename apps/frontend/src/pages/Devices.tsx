@@ -61,7 +61,11 @@ function toDeviceSource(source?: string): DeviceSource | null {
 export default function Devices({ devices = [], onRemoveDevice }: Readonly<DevicesProps>) {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
+  // Start on the device of the URL: choosing it in an effect would show the first device and then slide to the right one
+  const [currentDeviceIndex, setCurrentDeviceIndex] = useState(() => {
+    const index = devices.findIndex((d) => d.device_id === searchParams.get("device"));
+    return Math.max(index, 0);
+  });
   const [searchOpen, setSearchOpen] = useState(false);
   const [assigningPreset, setAssigningPreset] = useState<number | null>(null);
 
