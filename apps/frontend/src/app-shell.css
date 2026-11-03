@@ -20,6 +20,7 @@
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-gutter: stable; /* the scrollbar appearing when a page grows must not shift the content sideways */
 }
 .app-main:focus {
   outline: none;

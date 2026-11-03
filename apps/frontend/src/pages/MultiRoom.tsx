@@ -100,7 +100,7 @@ function DeviceCard({
   return (
     <motion.div
       className={`mr-dev${isSelected ? " mr-dev--selected" : ""}${inOtherZone ? " mr-dev--zone" : ""}${stale ? " mr-dev--stale" : ""}`}
-      initial={{ y: 12 }}
+      initial={false}
       animate={{ y: 0 }}
       transition={{ delay: Math.min(index, 6) * 0.05 }}
     >
@@ -345,7 +345,7 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
         <motion.section
           className="mr-section"
           aria-labelledby="mr-zones-title"
-          initial={{ y: 12 }}
+          initial={false}
           animate={{ y: 0 }}
         >
           <h2 id="mr-zones-title" className="ui-h2">
@@ -359,7 +359,7 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
                 <motion.div
                   key={zone.master_id}
                   className="ui-card zn"
-                  initial={{ scale: 0.97 }}
+                  initial={false}
                   animate={{ scale: 1 }}
                   transition={{ duration: 0.2 }}
                 >
@@ -435,7 +435,7 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
 
       {/* Empty State */}
       {zones.length === 0 && (
-        <motion.div className="wz-status mr-info" initial={{ y: 8 }} animate={{ y: 0 }}>
+        <motion.div className="wz-status mr-info" initial={false} animate={{ y: 0 }}>
           <span className="wz-icon" aria-hidden="true">
             {Icon.Info(24)}
           </span>
@@ -450,7 +450,7 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
       <motion.section
         className="mr-section"
         aria-labelledby="mr-select-title"
-        initial={{ y: 12 }}
+        initial={false}
         animate={{ y: 0 }}
         transition={{ delay: 0.2 }}
       >
@@ -489,7 +489,7 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
         </fieldset>
 
         {selectedDevices.length > 0 && (
-          <motion.div className="mr-bar" initial={{ y: 10 }} animate={{ y: 0 }}>
+          <motion.div className="mr-bar" initial={false} animate={{ y: 0 }}>
             <output className="mr-bar-count">
               {selectedDevices.length < 2
                 ? t("multiroom.selectedCountMin", { count: selectedDevices.length })
@@ -529,7 +529,7 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
       {/* Info Box */}
       <motion.div
         className="wz-status mr-info"
-        initial={{ y: 8 }}
+        initial={false}
         animate={{ y: 0 }}
         transition={{ delay: 0.4 }}
       >
