@@ -109,8 +109,9 @@ export default function Settings() {
         return;
       }
       const summary = t("settings.discovery.devicesFound", { count: newDevices.length });
-      const names = newDevices.map((d) => `${d.name} (${d.ip})`).join(", ");
-      show(newDevices.length > 0 ? `${summary}: ${names}` : summary, "success");
+      // one device per line so long names do not wrap into each other on small screens
+      const names = newDevices.map((d) => `${d.name} (${d.ip})`).join("\n");
+      show(newDevices.length > 0 ? `${summary}:\n${names}` : summary, "success");
     }
   }, [completed, devicesFound, show, t]);
 

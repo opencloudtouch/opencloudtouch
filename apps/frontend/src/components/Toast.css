@@ -50,6 +50,7 @@
   line-height: 1.5;
   color: var(--color-text-primary);
   overflow-wrap: anywhere;
+  white-space: pre-line;
 }
 .toast-close {
   flex: none;

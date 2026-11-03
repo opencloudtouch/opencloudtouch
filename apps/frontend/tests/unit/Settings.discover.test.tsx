@@ -270,6 +270,10 @@ describe("Settings — Discover Button completion toast", () => {
     await waitFor(() => {
       expect(screen.getByText(/2 new devices found/i)).toBeInTheDocument();
     });
+    // one device per line (rendered with white-space: pre-line)
+    expect(screen.getByText(/2 new devices found/i).textContent).toBe(
+      "2 new devices found:\nNeu1 (192.168.1.20)\nNeu2 (192.168.1.30)"
+    );
   });
 
   it("names the device like the manual search ('Neu (192.168.1.20) added') for exactly 1 new device", async () => {
@@ -336,7 +340,11 @@ describe("Settings — Discover Button completion toast", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("2 new devices found: Küche (192.168.1.11), Bad (192.168.1.12)")
+        screen.getByText(
+          (_, el) =>
+            el?.textContent === "2 new devices found:\nKüche (192.168.1.11)\nBad (192.168.1.12)" &&
+            el.children.length === 0
+        )
       ).toBeInTheDocument();
     });
   });
