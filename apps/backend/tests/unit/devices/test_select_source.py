@@ -1,6 +1,6 @@
 """Tests for switching the input source of a device (Bluetooth, AUX, AirPlay)."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
