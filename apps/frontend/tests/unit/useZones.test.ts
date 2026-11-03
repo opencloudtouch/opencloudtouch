@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
-import { useZones } from "../../src/hooks/useZones";
+import { useZones, _resetZonesCache } from "../../src/hooks/useZones";
 
 // Track subscribe calls and the unsubscribe functions they return
 let mockUnsubFns: ReturnType<typeof vi.fn>[] = [];
@@ -52,6 +52,7 @@ const MOCK_ZONE = {
 
 describe("useZones – SSE push events", () => {
   beforeEach(() => {
+    _resetZonesCache();
     vi.clearAllMocks();
     mockSubscribe.mockClear();
     mockUnsubFns = [];
@@ -142,6 +143,7 @@ describe("useZones – SSE push events", () => {
 
 describe("useZones – mutation operations", () => {
   beforeEach(() => {
+    _resetZonesCache();
     vi.useFakeTimers();
     vi.clearAllMocks();
     mockSubscribe.mockClear();
@@ -370,5 +372,19 @@ describe("useZones – mutation operations", () => {
     });
 
     expect(result.current.error).toBe("Failed to change master");
+  });
+});
+
+describe("useZones – zones kept across page visits", () => {
+  it("starts with the zones of the last visit and without a loading state", async () => {
+    _resetZonesCache();
+    mockGetZones.mockResolvedValueOnce([{ master_id: "M", master_ip: "1.1.1.1", is_master: true, members: [] }]);
+    const first = renderHook(() => useZones());
+    await waitFor(() => expect(first.result.current.zones).toHaveLength(1));
+    first.unmount();
+
+    const second = renderHook(() => useZones());
+    expect(second.result.current.zones).toHaveLength(1);
+    expect(second.result.current.isLoading).toBe(false);
   });
 });
