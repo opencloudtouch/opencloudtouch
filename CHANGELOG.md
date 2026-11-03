@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Redesigned setup and restore wizards with a shared design, progress tracker, focus management and full keyboard and screen-reader support
 - Redesigned app shell, presets page, local control, zones, firmware, settings, diagnostics, about and licenses pages with swipe navigation between devices, a sticky device switch bar and a native `<dialog>` based modal
-- Confirmation dialog before removing an offline device from the presets page (#520)
+- Remove button with a confirmation dialog for online and offline devices in presets and local control; saved presets are kept (#520)
 - `/health` reports the server `uptime`; the About page shows "running since" (#521)
 - Link to the licenses page on the About page, keeping the selected device (#528)
 - Toast after every network scan that names the newly discovered devices
@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Layout overflow and overlap on the presets, local control, multi-room and settings pages, the swiper, the navigation and the empty state
 - False "unexpected content" warnings when validating a restore archive
 - Accessibility: skip link and `main` landmark, heading order, contrast tokens, translated `aria-label`s, `html lang` sync, toast roles and reduced-motion support
+- ci(pr-review): welcome comment no longer repeats for returning contributors; merged PRs are now counted per author, returning contributors get a shorter message and the label `contributor:trusted`
 
 ---
 
