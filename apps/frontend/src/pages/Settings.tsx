@@ -27,6 +27,8 @@ function toDownloadFailure(err: unknown): DownloadFailure {
   return { kind: "unknown" };
 }
 
+const MAX_TOAST_DEVICES = 4;
+
 export default function Settings() {
   const { t } = useTranslation();
   const [newIP, setNewIP] = useState("");
@@ -110,8 +112,14 @@ export default function Settings() {
       }
       const summary = t("settings.discovery.devicesFound", { count: newDevices.length });
       // one device per line so long names do not wrap into each other on small screens
-      const names = newDevices.map((d) => `${d.name} (${d.ip})`).join("\n");
-      show(newDevices.length > 0 ? `${summary}:\n${names}` : summary, "success");
+      const shown = newDevices.slice(0, MAX_TOAST_DEVICES).map((d) => `${d.name} (${d.ip})`);
+      const hidden = newDevices.length - shown.length;
+      if (hidden > 0) shown.push(t("settings.discovery.moreDevices", { count: hidden }));
+      show(
+        newDevices.length > 0 ? `${summary}:\n${shown.join("\n")}` : summary,
+        "success",
+        5000 + 1500 * shown.length
+      );
     }
   }, [completed, devicesFound, show, t]);
 

@@ -141,6 +141,11 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
     // would override the user's manual selection back to the URL device.
   }, [searchParams, devices]);
 
+  // The alert sits in the inert area: when the device goes to standby it could no longer be closed or retried
+  useEffect(() => {
+    if (isStandby) setSwitchFailed(null);
+  }, [isStandby]);
+
   // The state of a card never leaks into the next device
   useEffect(() => {
     setStartingPreset(null);
@@ -455,6 +460,11 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
                       : t("multiroom.slaveBadge")}
                   </span>
                 </span>
+                {isZoneMember && (
+                  <p id="dv-slave-hint" className="dv-zone-hint">
+                    {t("device.slaveHint", { master: masterName })}
+                  </p>
+                )}
               </div>
             )}
 
@@ -503,12 +513,6 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
                       />
                     )}
                   </div>
-                  {isZoneMember && (
-                    <span id="dv-slave-hint" className="visually-hidden">
-                      {t("device.slaveHint", { master: masterName })}
-                    </span>
-                  )}
-
                   <TransportKeys
                     playing={isPlaying}
                     showSkip={!!source && !isRadio && !isStandby && source !== "AUX"}

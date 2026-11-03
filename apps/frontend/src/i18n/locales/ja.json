@@ -139,7 +139,8 @@
     },
     "discovery": {
       "devicesFound_one": "新しいデバイスが{{count}}台見つかりました",
-      "devicesFound_other": "新しいデバイスが{{count}}台見つかりました"
+      "devicesFound_other": "新しいデバイスが{{count}}台見つかりました",
+      "moreDevices": "他 {{count}} 台"
     },
     "deviceDiscovery": {
       "sectionTitle": "デバイスを探す",

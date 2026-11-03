@@ -257,7 +257,17 @@ export default function About() {
       </div>
 
       {/* Supporters Wimmelbild: the space is reserved while the list loads, the page must not grow afterwards */}
-      {supportersLoading && <div className="ab-supporters-ph" aria-hidden="true" />}
+      {supportersLoading && (
+        <div className="ab-supporters-ph" aria-hidden="true">
+          <span className="ui-skeleton ab-sk-title" />
+          <div className="ui-card ab-sk-card">
+            <span className="ui-skeleton ab-sk-line" style={{ width: "70%" }} />
+            <span className="ui-skeleton ab-sk-line" style={{ width: "90%" }} />
+            <span className="ui-skeleton ab-sk-line" style={{ width: "55%" }} />
+            <span className="ui-skeleton ab-sk-line" style={{ width: "80%" }} />
+          </div>
+        </div>
+      )}
       {!supportersLoading && supporters.length > 0 && (
         <section className="ab-supporters" aria-labelledby="ab-supporters-title">
           <h2 id="ab-supporters-title" className="ui-h2" aria-label={t("about.supportersLabel")}>
