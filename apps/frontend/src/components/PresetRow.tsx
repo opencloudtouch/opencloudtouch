@@ -84,10 +84,7 @@ export default function PresetRow({
     .join(" ");
 
   return (
-    <div
-      className={rowClass}
-      data-testid={`preset-${number}`}
-    >
+    <div className={rowClass} data-testid={`preset-${number}`}>
       <button
         type="button"
         className="pr-main"

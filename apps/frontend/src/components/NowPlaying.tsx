@@ -160,11 +160,7 @@ function getSourceLabel(t: (key: string) => string, source?: string): string | n
   return key ? t(key) : null;
 }
 
-function getHeaderDisplay(
-  t: (key: string) => string,
-  station?: string,
-  source?: string
-): string {
+function getHeaderDisplay(t: (key: string) => string, station?: string, source?: string): string {
   // For non-radio sources, show source label (e.g. "Bluetooth", "AUX")
   const sourceLabel = getSourceLabel(t, source);
   if (sourceLabel) {
