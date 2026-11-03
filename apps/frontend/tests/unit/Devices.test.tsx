@@ -1275,6 +1275,27 @@ describe("Devices Page", () => {
       expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
     });
 
+    it("drops the result of a switch that finishes after the user moved to another device", async () => {
+      mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
+      let fail: (err: Error) => void = () => {};
+      vi.mocked(devicesApi.selectSource).mockImplementationOnce(
+        () => new Promise<void>((_, reject) => { fail = reject; })
+      );
+      await renderDevices();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "AUX" }));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByText("Device 2"));
+      });
+      await act(async () => {
+        fail(new Error("late failure"));
+      });
+
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
     it("shows no player, presets or volume for an offline device", async () => {
       markDeviceOffline("AABBCC123456");
       await renderDevices();

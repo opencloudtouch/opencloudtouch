@@ -79,10 +79,13 @@ export default function PresetRow({
       ? t("device.presetPause", { n: number, name })
       : t("device.presetPlay", { n: number, name });
   const changeLabel = t("device.presetChange", { n: number });
+  const rowClass = ["pr", state !== "idle" && `pr--${state}`, disabled && "pr--dis"]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div
-      className={`pr${state === "idle" ? "" : ` pr--${state}`}${disabled ? " pr--dis" : ""}`}
+      className={rowClass}
       data-testid={`preset-${number}`}
     >
       <button

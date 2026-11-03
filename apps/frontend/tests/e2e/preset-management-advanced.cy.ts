@@ -500,7 +500,7 @@ describe("Preset Management Advanced", () => {
         body: { detail: "Delete failed" },
       }).as("clearPresetFail");
 
-      cy.get('[data-testid="preset-change-2"]').click({ force: true });
+      cy.get('[data-testid="preset-change-2"]').scrollIntoView().click();
       cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible').click();
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
       cy.wait("@clearPresetFail");

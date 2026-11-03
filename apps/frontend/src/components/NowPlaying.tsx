@@ -160,6 +160,21 @@ function getSourceLabel(t: (key: string) => string, source?: string): string | n
   return key ? t(key) : null;
 }
 
+function getHeaderDisplay(
+  t: (key: string) => string,
+  station?: string,
+  source?: string
+): string {
+  // For non-radio sources, show source label (e.g. "Bluetooth", "AUX")
+  const sourceLabel = getSourceLabel(t, source);
+  if (sourceLabel) {
+    // If station is set (e.g. BT device name), show "Bluetooth · My Phone"
+    return station ? `${sourceLabel} · ${station}` : sourceLabel;
+  }
+  // Radio sources: show station name
+  return station || t("player.noStation");
+}
+
 function MarqueeText({
   text,
   className,
@@ -234,18 +249,6 @@ export default function NowPlaying({ nowPlaying, headerLabel, headerAction }: No
 
   const bothOverflow = trackOverflows && artistOverflows;
 
-  function getHeaderDisplay(station?: string, source?: string): string {
-    // For non-radio sources, show source label (e.g. "Bluetooth", "AUX")
-    const sourceLabel = getSourceLabel(t, source);
-    if (sourceLabel) {
-      // If station is set (e.g. BT device name), show "Bluetooth · My Phone"
-      return station ? `${sourceLabel} · ${station}` : sourceLabel;
-    }
-    // Radio sources: show station name
-    if (station) return station;
-    return t("player.noStation");
-  }
-
   if (!nowPlaying) {
     return (
       <div className="np np--empty">
@@ -271,7 +274,7 @@ export default function NowPlaying({ nowPlaying, headerLabel, headerAction }: No
     headerAction && SWITCH_SOURCES.has(nowPlaying.source ?? "")
       ? null
       : getSourceBadge(t, nowPlaying.source);
-  const label = headerLabel ?? getHeaderDisplay(nowPlaying.station, nowPlaying.source);
+  const label = headerLabel ?? getHeaderDisplay(t, nowPlaying.station, nowPlaying.source);
   // AUX has no cover; Bluetooth often has none: a quiet icon tile instead of a stock picture
   const tile =
     !nowPlaying.art_url && (nowPlaying.source === "AUX" || nowPlaying.source === "BLUETOOTH");

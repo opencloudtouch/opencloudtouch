@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -8,6 +8,7 @@ import PresetRow, { type PresetRowState } from "../components/PresetRow";
 import SourceSwitch, { type DeviceSource } from "../components/SourceSwitch";
 import TransportKeys, { type TransportKey } from "../components/TransportKeys";
 import SetupBadge from "../components/SetupBadge";
+import SwitchFailedAlert from "../components/SwitchFailedAlert";
 import DeviceOfflineBanner from "../components/DeviceOfflineBanner";
 import DeviceNameEditor from "../components/DeviceNameEditor";
 import RadioSearch, { RadioStation } from "../components/RadioSearch";
@@ -42,6 +43,11 @@ interface DevicesProps {
 
 const RADIO_SOURCES = new Set(["INTERNET_RADIO", "LOCAL_INTERNET_RADIO", "TUNEIN"]);
 const PRESET_NUMBERS = [1, 2, 3, 4, 5, 6];
+const SOURCE_LABEL_KEYS: Record<DeviceSource, string> = {
+  presets: "device.src.presets",
+  bluetooth: "player.source.bluetooth",
+  aux: "player.source.aux",
+};
 
 /** Maps the source the device reports to the button the source switch shows as pressed (null: not choosable here). */
 function toDeviceSource(source?: string): DeviceSource | null {
@@ -52,7 +58,7 @@ function toDeviceSource(source?: string): DeviceSource | null {
   return null;
 }
 
-export default function Devices({ devices = [], onRemoveDevice }: DevicesProps) {
+export default function Devices({ devices = [], onRemoveDevice }: Readonly<DevicesProps>) {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
@@ -61,6 +67,9 @@ export default function Devices({ devices = [], onRemoveDevice }: DevicesProps) 
 
   const currentDevice = devices[currentDeviceIndex];
   const deviceId = currentDevice?.device_id;
+  const deviceIdRef = useRef(deviceId);
+  deviceIdRef.current = deviceId;
+  const isCurrent = (id: string) => deviceIdRef.current === id;
   // Warm the data of the other devices so the next card is complete when it slides in
   usePrefetchDevices(
     devices.map((d) => d.device_id),
@@ -102,10 +111,7 @@ export default function Devices({ devices = [], onRemoveDevice }: DevicesProps) 
   // The source and the presets cannot be changed in standby, as a zone member, or while a switch runs
   const controlsLocked = isStandby || isZoneMember;
 
-  const sourceName = (id: DeviceSource) =>
-    id === "presets"
-      ? t("device.src.presets")
-      : t(id === "bluetooth" ? "player.source.bluetooth" : "player.source.aux");
+  const sourceName = (id: DeviceSource) => t(SOURCE_LABEL_KEYS[id]);
 
   const nowPlaying = npState
     ? {
@@ -239,17 +245,20 @@ export default function Devices({ devices = [], onRemoveDevice }: DevicesProps) 
     setStartingPreset(num);
     try {
       await playPresetAPI(deviceId, num);
+      if (!isCurrent(deviceId)) return true;
       setLastPreset(num);
       setAnnouncement(t("device.presetStarted", { n: num, name }));
       await refreshNowPlaying();
       return true;
     } catch (err) {
       console.error("Failed to play preset:", err);
-      setFailedPreset(num);
-      setAnnouncement("");
+      if (isCurrent(deviceId)) {
+        setFailedPreset(num);
+        setAnnouncement("");
+      }
       return false;
     } finally {
-      setStartingPreset(null);
+      if (isCurrent(deviceId)) setStartingPreset(null);
     }
   };
 
@@ -261,6 +270,7 @@ export default function Devices({ devices = [], onRemoveDevice }: DevicesProps) 
     if (state === "playing" || state === "paused") {
       try {
         await togglePlayPause(deviceId);
+        if (!isCurrent(deviceId)) return;
         setAnnouncement(
           state === "playing"
             ? t("device.presetPausedAnn", { name })
@@ -290,6 +300,7 @@ export default function Devices({ devices = [], onRemoveDevice }: DevicesProps) 
       }
       setSwitching(target);
       const ok = await startPreset(num);
+      if (!isCurrent(deviceId)) return;
       setSwitching(null);
       if (ok) {
         setAnnouncement(
@@ -305,13 +316,14 @@ export default function Devices({ devices = [], onRemoveDevice }: DevicesProps) 
     setSwitching(target);
     try {
       await selectSource(deviceId, target === "bluetooth" ? "BLUETOOTH" : "AUX");
+      if (!isCurrent(deviceId)) return;
       await refreshNowPlaying();
       setAnnouncement(t("device.sourceSwitched", { source: sourceName(target) }));
     } catch (err) {
       console.error("Failed to select source:", err);
-      setSwitchFailed(target);
+      if (isCurrent(deviceId)) setSwitchFailed(target);
     } finally {
-      setSwitching(null);
+      if (isCurrent(deviceId)) setSwitching(null);
     }
   };
 
@@ -480,30 +492,11 @@ export default function Devices({ devices = [], onRemoveDevice }: DevicesProps) 
                       />
                     )}
                     {switchFailed && !switching && (
-                      <div className="si-fail wz-status wz-status--error" role="alert">
-                        <span className="wz-icon" aria-hidden="true">
-                          {Icon.CircleX(22)}
-                        </span>
-                        <div className="wz-status-body">
-                          <p>{t("device.sourceFailed", { source: sourceName(switchFailed) })}</p>
-                          <div className="si-fail-actions">
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              onClick={() => handleSelectSource(switchFailed)}
-                            >
-                              {t("device.sourceRetry")}
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-ghost btn-sm"
-                              onClick={() => setSwitchFailed(null)}
-                            >
-                              {t("common.close")}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                      <SwitchFailedAlert
+                        sourceLabel={sourceName(switchFailed)}
+                        onRetry={() => handleSelectSource(switchFailed)}
+                        onClose={() => setSwitchFailed(null)}
+                      />
                     )}
                   </div>
                   {isZoneMember && (

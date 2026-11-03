@@ -15,8 +15,9 @@ class TestMockSelectSource:
 
     @pytest.mark.parametrize("source", ["SPOTIFY", "INTERNET_RADIO", "bluetooth", ""])
     async def test_other_sources_are_rejected(self, source):
+        client = MockDeviceClient(device_id="AABBCC112233")
         with pytest.raises(ValueError):
-            await MockDeviceClient(device_id="AABBCC112233").select_source(source)
+            await client.select_source(source)
 
 
 @pytest.mark.asyncio

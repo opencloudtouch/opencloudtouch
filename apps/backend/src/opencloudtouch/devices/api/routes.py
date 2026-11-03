@@ -671,8 +671,8 @@ async def set_mute(
 )
 async def select_source(
     device_id: str,
-    source: Literal["BLUETOOTH", "AUX", "AIRPLAY"] = Body(..., embed=True),
-    device_service: DeviceService = Depends(get_device_service),
+    source: Annotated[Literal["BLUETOOTH", "AUX", "AIRPLAY"], Body(embed=True)],
+    device_service: Annotated[DeviceService, Depends(get_device_service)],
 ):
     """Switch the device to an input source (Bluetooth, AUX or AirPlay)."""
     await _device_op(
