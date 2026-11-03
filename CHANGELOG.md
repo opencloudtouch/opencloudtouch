@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PUT /api/devices/{id}/source` switches a device to Bluetooth, AUX or AirPlay
 - Translated restore step and validation messages via stable `message_code` / `message_params` (all 10 locales, English fallback)
 - Cypress suites for responsive layout (overlap, overflow and clipping audit) and for axe accessibility of every wizard state
+- oct-status: status system for issues and pull requests. Three label axes (`phase:*`, `wait:*`, `resolution:*`), a bot-managed status block, one recycled guide comment per artifact, `/oct` commands, a strike ledger with violations V01 to V08, a protected-path guard, a resumable backfill and agent hooks. It runs in read-only shadow mode until the repository variable `OCT_STATUS_WRITE` is set; strikes stay off until `strikes_enabled_from` is set. See `docs/WORKFLOW.md`.
+- gitar: repository rules for the status system and a rule that adds the `gitar-managed` label to every opened pull request.
+- ci: job "Scripts Tests" runs all test suites under `scripts/` (issue handler, PR reviewer, shard distribution and oct-status).
 
 ### Changed
 - The navigation entry "Presets" is now "Devices" (all 10 locales). The device card is the single place for a device: now playing with a source switch (Presets, Bluetooth, AUX), previous/next/play keys for sources with tracks, volume, presets and remove
@@ -27,12 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Restore: backup timeout raised to 10 minutes; archive validation searches the whole archive
 - Device cards load from a small in-memory cache that is warmed for the neighbouring devices only
 - Settings: a failed log download shows a translated reason instead of failing silently (#527)
+- issue-handler: assigns `phase:new` and `wait:reporter` instead of `needs-triage` and `needs-info`, keeps status-system markers out of its answers and ignores the guide comment when it looks for earlier answers.
+- dependabot: removed labels that do not exist and the placeholder reviewer and assignee.
 
 ### Fixed
 - Layout overflow and overlap on the presets, local control, multi-room and settings pages, the swiper, the navigation and the empty state
 - False "unexpected content" warnings when validating a restore archive
 - Accessibility: skip link and `main` landmark, heading order, contrast tokens, translated `aria-label`s, `html lang` sync, toast roles and reduced-motion support
 - ci(pr-review): welcome comment no longer repeats for returning contributors; merged PRs are now counted per author, returning contributors get a shorter message and the label `contributor:trusted`
+- scripts: month-dependent budget test, never-matching how/why regex, thanks scoring and eight ruff findings in the legacy suites.
 
 ---
 

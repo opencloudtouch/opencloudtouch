@@ -137,7 +137,7 @@ class TestAIClassification:
         event = _make_event()
         decision = await classifier_stage(event, context)
         assert decision.decision == "fallback"
-        assert "needs-triage" in decision.reason
+        assert "phase:new" in decision.reason
 
     @pytest.mark.asyncio
     async def test_budget_exhausted_needs_triage(self) -> None:
@@ -157,7 +157,7 @@ class TestAIClassification:
         }
         event = _make_event()
         decision = await classifier_stage(event, context)
-        assert "needs-triage" in decision.reason
+        assert "phase:new" in decision.reason
 
     @pytest.mark.asyncio
     async def test_clear_bug_detection(self) -> None:

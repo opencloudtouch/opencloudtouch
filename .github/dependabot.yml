@@ -13,16 +13,10 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
-      - "python"
-      - "backend"
     commit-message:
       prefix: "chore"
       prefix-development: "chore"
       include: "scope"
-    reviewers:
-      - "user"
-    assignees:
-      - "user"
     groups:
       # minor+patch: 1 PR per quarter
       python-minor-patch:
@@ -48,16 +42,10 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
-      - "npm"
-      - "frontend"
     commit-message:
       prefix: "chore"
       prefix-development: "chore"
       include: "scope"
-    reviewers:
-      - "user"
-    assignees:
-      - "user"
     # Ignore major versions for stable dependencies
     ignore:
       # React stays at current major for stability
@@ -90,8 +78,6 @@ updates:
     open-pull-requests-limit: 3
     labels:
       - "dependencies"
-      - "npm"
-      - "workspace"
     commit-message:
       prefix: "chore"
       prefix-development: "chore"
@@ -107,8 +93,7 @@ updates:
     open-pull-requests-limit: 3
     labels:
       - "dependencies"
-      - "github-actions"
-      - "ci"
+      - "github_actions"
     commit-message:
       prefix: "chore"
       prefix-development: "chore"

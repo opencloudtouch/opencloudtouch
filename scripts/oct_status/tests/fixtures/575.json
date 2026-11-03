@@ -1,0 +1,17 @@
+{
+  "GET /repos/opencloudtouch/opencloudtouch/issues/575": {
+    "author_association": "NONE",
+    "body": "",
+    "labels": [
+      {
+        "name": "bug"
+      }
+    ],
+    "number": 575,
+    "state": "open",
+    "title": "[Bug]: SoundTouch 30 \u2013 SSH access fails after USB remote_services method",
+    "user": {
+      "login": "ricardoschrader0-coder"
+    }
+  }
+}

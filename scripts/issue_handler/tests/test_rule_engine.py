@@ -116,4 +116,4 @@ class TestRuleEngineMissingAnswer:
         context: dict[str, Any] = {"rules": rules, "kb_dir": str(kb_dir)}
         decision = await rule_engine_stage(event, context)
         assert decision.short_circuit is True
-        assert "needs-triage" in decision.reason
+        assert "phase:new" in decision.reason

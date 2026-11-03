@@ -46,13 +46,13 @@ async def rule_engine_stage(event: WebhookEvent, context: dict[str, Any]) -> Pip
                 logger.warning("Rule '%s' references missing answer file: %s", name, answer_file)
                 context["rule_match"] = {
                     "answer": "",
-                    "labels": ["needs-triage"],
+                    "labels": ["phase:new"],
                     "close": False,
                 }
                 return PipelineDecision(
                     stage="rule_engine",
                     decision="match",
-                    reason=f"rule '{name}' matched but answer file '{answer_file}' missing, needs-triage",
+                    reason=f"rule '{name}' matched but answer file '{answer_file}' missing, phase:new",
                     short_circuit=True,
                 )
 

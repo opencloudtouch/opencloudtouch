@@ -1,0 +1,254 @@
+{
+  "GET /repos/opencloudtouch/opencloudtouch/commits/cdbb79a76a3eab7edfaed2aa51d759f3a8d96c8f/check-runs": {
+    "check_runs": [
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "skipped",
+        "name": "Approve Check",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "skipped",
+        "name": "Welcome & Guide",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "PR Review",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "skipped",
+        "name": "Auto-format",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "CI Summary",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "skipped",
+        "name": "SonarCloud",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (10/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (1/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (4/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (2/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (3/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (6/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (9/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (8/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (7/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "E2E Tests (5/10)",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Lint Code",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Frontend Tests",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Backend Tests",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "skipped",
+        "name": "Approve Check",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Security Scan",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Mojibake Check",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Validate Commit Messages",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "License Check",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "success",
+        "name": "Test page size detection",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "skipped",
+        "name": "PR Review",
+        "status": "completed"
+      },
+      {
+        "app": {
+          "slug": "github-actions"
+        },
+        "conclusion": "skipped",
+        "name": "Welcome & Guide",
+        "status": "completed"
+      }
+    ],
+    "total_count": 27
+  },
+  "GET /repos/opencloudtouch/opencloudtouch/pulls/498": {
+    "author_association": "CONTRIBUTOR",
+    "base": {
+      "ref": "main",
+      "repo": {
+        "full_name": "opencloudtouch/opencloudtouch"
+      }
+    },
+    "body": "See #3152\nSee #3151\nSee #3151",
+    "draft": false,
+    "head": {
+      "ref": "dependabot/npm_and_yarn/joi-18.2.9",
+      "repo": {
+        "full_name": "opencloudtouch/opencloudtouch"
+      },
+      "sha": "cdbb79a76a3eab7edfaed2aa51d759f3a8d96c8f"
+    },
+    "labels": [
+      {
+        "name": "dependencies"
+      }
+    ],
+    "merged": true,
+    "number": 498,
+    "state": "closed",
+    "title": "chore(deps-dev): bump joi from 18.2.8 to 18.2.9",
+    "user": {
+      "login": "dependabot[bot]"
+    }
+  },
+  "GET /repos/opencloudtouch/opencloudtouch/pulls/498/reviews": []
+}

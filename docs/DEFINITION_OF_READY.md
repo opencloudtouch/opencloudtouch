@@ -8,7 +8,7 @@ A work item is **ready** when a developer (or an autonomous agent) can implement
 
 | Where | Who | How |
 |---|---|---|
-| **Spec issue** (before implementation) | Author ticks the checklist in the issue form; a **second reviewer** (maintainer or an independent review) confirms | Every item below is ticked or marked `n/a` with a reason. Open points are resolved, not deferred. |
+| **Spec issue** (before implementation) | Author ticks the checklist in the issue form; a **second reviewer** (maintainer, an independent review, or an AI reviewer that did not write the spec) confirms | Every item below is ticked or marked `n/a` with a reason. Open points are resolved, not deferred. |
 | **Pull request** (at PR open and at review) | PR author and reviewer | The PR template asks: "Linked spec met the DoR?". If the spec was changed after approval or items were missed, say so in the PR and fix the spec first. |
 
 Issues created without the form (for example with `gh issue create`) must contain the same checklist as a `## Definition of Ready` section in the body.
@@ -55,7 +55,7 @@ Issues created without the form (for example with `gh issue create`) must contai
 - [ ] Prerequisites and blockers are listed; ordering is stated ("do not start until X is merged").
 - [ ] Open questions are resolved. No `TBD`, `TODO` or "decide later" remains.
 - [ ] Documentation impact is identified (`docs/`, README, CHANGELOG, OpenAPI).
-- [ ] A review of the spec (maintainer or independent reviewers) is done and its findings are incorporated.
+- [ ] A review of the spec (maintainer, independent reviewers, or an AI reviewer running in a fresh session that did not write the spec) is done and its findings are recorded and incorporated.
 
 ## Exceptions
 

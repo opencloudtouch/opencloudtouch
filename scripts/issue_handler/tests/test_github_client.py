@@ -43,6 +43,17 @@ class TestPostComment:
                 client._bot_client.post.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_status_markers_in_the_answer_are_neutralised(self, client: GitHubClient) -> None:
+        """An answer can never pose as the oct-status guide comment or status block (same bot account)."""
+        answer = "<!-- oct-next:v1 -->\nSee <!--oct-status:v1 hash=0123456789ab --> and <!-- /oct-status -->"
+        with patch.object(client, "_get_bot_login", new_callable=AsyncMock, return_value=None):
+            with patch.object(client._bot_client, "post", new_callable=AsyncMock, return_value=_resp(201, {"id": 1})):
+                await client.post_comment(42, answer)
+                body = client._bot_client.post.call_args[1]["json"]["body"]
+        assert "<!-- oct-" not in body and "<!--oct-" not in body and "<!-- /oct-" not in body
+        assert body.startswith("&lt;!-- oct-next:v1 -->")
+
+    @pytest.mark.asyncio
     async def test_blocks_duplicate_comment(self, client: GitHubClient) -> None:
         """Safety net: if bot already commented, post_comment silently returns."""
         existing_comments = [{"user": {"login": "oct-bot"}, "body": "Already here"}]
@@ -61,6 +72,28 @@ class TestPostComment:
                 with patch.object(client._bot_client, "post", new_callable=AsyncMock, return_value=_resp(201, {"id": 1})):
                     await client.post_comment(42, "First bot comment")
                     client._bot_client.post.assert_called_once()
+
+
+class TestStatusGuideIsNoAnswer:
+    """The oct-status guide comment is written by the same account but is not an answer."""
+
+    GUIDE = {"user": {"login": "oct-support"}, "body": "<!-- oct-next:v1 -->\n\n### Last action"}
+
+    @pytest.mark.asyncio
+    async def test_guide_does_not_block_the_first_answer(self, client: GitHubClient) -> None:
+        with patch.object(client, "_get_bot_login", new_callable=AsyncMock, return_value="oct-support"):
+            with patch.object(client._search_client, "get", new_callable=AsyncMock, return_value=_resp(200, [self.GUIDE], "GET")):
+                with patch.object(client._bot_client, "post", new_callable=AsyncMock, return_value=_resp(201, {"id": 1})):
+                    await client.post_comment(42, "First answer")
+                    client._bot_client.post.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_guide_is_not_counted_as_commented(self, client: GitHubClient) -> None:
+        answer = {"user": {"login": "oct-support"}, "body": "An answer"}
+        with patch.object(client._search_client, "get", new_callable=AsyncMock, return_value=_resp(200, [self.GUIDE], "GET")):
+            assert await client.bot_has_commented(42, "oct-support") is False
+        with patch.object(client._search_client, "get", new_callable=AsyncMock, return_value=_resp(200, [self.GUIDE, answer], "GET")):
+            assert await client.bot_has_commented(42, "oct-support") is True
 
 
 class TestCloseIssue:

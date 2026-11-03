@@ -1,0 +1,61 @@
+# Actor allowlist and policy values for the OCT status system.
+# Shared source of truth for logins treated as automation.
+
+# Accounts whose guide/pinned comment the bot may rewrite (BOT_PAT account and GITHUB_TOKEN account).
+bot_logins:
+  - oct-support
+  - github-actions[bot]
+
+# `pushes: true` marks the actors whose commits count as automation pushes (protected paths, design
+# section 7 rule 3); every other entry is automation for comments, reviews and labels only.
+# Accounts trusted as authors of the ledger issue and its entries: exactly the BOT_PAT account that writes
+# them (status-write and the label sync never write the ledger with the job token).
+ledger_writers:
+  - oct-support
+
+automation:
+  dependabot[bot]:
+    block_location: comment
+    pushes: true
+  formatter-bot:
+    pushes: true
+    invalidates_approval: false
+  github-actions[bot]:
+    pushes: true
+  # Also the login of the maintainer's own local commits (MA-8): never a pushing automation.
+  oct-support:
+    pushes: false
+  # Reviews and comments come from the app `gitar-bot[bot]`, commits from the User login `gitar-bot`.
+  gitar-bot[bot]:
+    pushes: true
+  gitar-bot:
+    pushes: true
+  sonarqubecloud[bot]: {}
+  github-code-quality[bot]: {}
+  codecov-commenter: {}
+
+gate_checks:
+  - CI Summary
+  - SonarCloud Code Analysis
+  - Gitar
+
+# Automation pushes to these paths need a maintainer's `/oct accept-paths` (design section 7, rule 3).
+# Keep `.gitar/rules/oct-status.md` and `.gitar/config/apply.md` in step (tests/test_repo_files.py):
+# `.github/` holds the workflows, the PR and issue templates (DoR / DoD checklists the guard and the rules
+# read) and dependabot.yml; `.claude/` registers the agent hooks; CLAUDE.md carries the agent rules.
+protected_paths:
+  - ".github/**"
+  - ".claude/**"
+  - ".gitar/**"
+  - "scripts/oct_status/**"
+  - ".gitignore"
+  - "CLAUDE.md"
+
+fan_out_cap: 25
+strike_window_days: 60
+# Strikes stay off until a date is set here (YYYY-MM-DD).
+strikes_enabled_from: null
+# The legacy `wip` label still proves that work started. Task 20 sets this to false after the backfill (MA-6).
+legacy_wip_trusted: true
+# Number of the ledger issue once the label sync created it (skips the search by title).
+ledger_issue: null

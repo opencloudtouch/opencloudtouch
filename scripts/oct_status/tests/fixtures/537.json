@@ -1,0 +1,20 @@
+{
+  "GET /repos/opencloudtouch/opencloudtouch/issues/537": {
+    "author_association": "MEMBER",
+    "body": "See #261\nDepends on #535\nSee #261\nSee #535\nSee #535",
+    "labels": [
+      {
+        "name": "enhancement"
+      },
+      {
+        "name": "spec"
+      }
+    ],
+    "number": 537,
+    "state": "open",
+    "title": "[Spec]: Sleep timer \u2014 fade out and stop a SoundTouch device after a countdown",
+    "user": {
+      "login": "scheilch"
+    }
+  }
+}

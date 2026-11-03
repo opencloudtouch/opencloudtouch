@@ -31,15 +31,15 @@ def _make_event(**overrides) -> WebhookEvent:
 
 class TestHeuristicStage:
     @pytest.mark.asyncio
-    async def test_below_threshold_needs_info(self) -> None:
+    async def test_heuristic_adds_wait_reporter(self) -> None:
         gh = AsyncMock()
         gh.add_labels = AsyncMock()
         event = _make_event(title="Bug", body="short")
         decision = await heuristic_stage(event, {"min_text_length": 50, "github_client": gh})
         assert decision.short_circuit is True
         assert decision.decision == "block"
-        assert "needs-info" in decision.reason
-        gh.add_labels.assert_awaited_once_with(42, ["needs-info"])
+        assert "wait:reporter" in decision.reason
+        gh.add_labels.assert_awaited_once_with(42, ["wait:reporter"])
 
     @pytest.mark.asyncio
     async def test_at_threshold_passes(self) -> None:
@@ -70,7 +70,7 @@ class TestHeuristicStage:
 
     @pytest.mark.asyncio
     async def test_discussion_skips_label(self) -> None:
-        """Discussions have no label API, so needs-info should NOT be applied."""
+        """Discussions have no label API, so wait:reporter should NOT be applied."""
         gh = AsyncMock()
         gh.add_labels = AsyncMock()
         event = _make_event(title="Bug", body="short", is_discussion=True)

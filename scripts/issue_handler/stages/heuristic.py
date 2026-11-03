@@ -18,15 +18,15 @@ async def heuristic_stage(event: WebhookEvent, context: dict[str, Any]) -> Pipel
     text_length = len(event.title + event.body)
 
     if text_length < min_length:
-        # Apply needs-info label directly (action stage won't run due to short-circuit)
+        # Apply wait:reporter label directly (action stage won't run due to short-circuit)
         github_client = context.get("github_client")
         if github_client and event.issue_number is not None and not event.is_discussion:
-            await github_client.add_labels(event.issue_number, ["needs-info"])
+            await github_client.add_labels(event.issue_number, ["wait:reporter"])
 
         return PipelineDecision(
             stage="heuristic",
             decision="block",
-            reason=f"text length {text_length} < {min_length}, applying needs-info",
+            reason=f"text length {text_length} < {min_length}, applying wait:reporter",
             short_circuit=True,
         )
 

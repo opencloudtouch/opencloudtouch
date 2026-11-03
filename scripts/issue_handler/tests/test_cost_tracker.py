@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 from cost_tracker import CostTracker
@@ -22,12 +23,14 @@ class TestCostTracker:
 
     def test_budget_exceeded(self, tmp_path: Path) -> None:
         cost_file = tmp_path / "cost.json"
-        # Pre-populate with high cost
+        # Pre-populate with high cost for the current month (a file from another
+        # month is reset on purpose, so a fixed month would make this test rot).
+        now = datetime.now(timezone.utc)
         cost_file.write_text(json.dumps({
-            "month": "2026-05",
+            "month": now.strftime("%Y-%m"),
             "total_cost_usd": 0.95,
             "call_count": 100,
-            "last_updated": "2026-05-06T00:00:00",
+            "last_updated": now.isoformat(),
         }))
         tracker = CostTracker(cost_file, budget_usd=0.90)
         assert tracker.is_budget_exceeded() is True
