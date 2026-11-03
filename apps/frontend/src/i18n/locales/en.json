@@ -20,7 +20,7 @@
     "disabled": "Disabled"
   },
   "nav": {
-    "presets": "Presets",
+    "devices": "Devices",
     "zones": "Zones",
     "settings": "Settings",
     "about": "About",

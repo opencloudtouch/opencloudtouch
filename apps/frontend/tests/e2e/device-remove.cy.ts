@@ -33,7 +33,7 @@ describe("Remove an online device", () => {
     cy.contains("a.nav-link", /Einstellungen|Settings/).click();
     cy.get(".st-scan").click();
     cy.get(".st-scan", { timeout: 20000 }).should("not.have.attr", "aria-busy", "true");
-    cy.contains("a.nav-link", /Presets/).click();
+    cy.contains("a.nav-link", /Devices|Geräte/).click();
     cy.get(".ds-dot", { timeout: 10000 }).should("have.length", 3);
   });
 });

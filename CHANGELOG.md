@@ -16,10 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `/health` reports the server `uptime`; the About page shows "running since" (#521)
 - Link to the licenses page on the About page, keeping the selected device (#528)
 - Toast after every network scan that names the newly discovered devices
+- `PUT /api/devices/{id}/source` switches a device to Bluetooth, AUX or AirPlay
 - Translated restore step and validation messages via stable `message_code` / `message_params` (all 10 locales, English fallback)
 - Cypress suites for responsive layout (overlap, overflow and clipping audit) and for axe accessibility of every wizard state
 
 ### Changed
+- The navigation entry "Presets" is now "Devices" (all 10 locales); the device card is becoming the single place for playback, sources and presets
 - Restore: backup timeout raised to 10 minutes; archive validation searches the whole archive
 - Device cards load from a small in-memory cache that is warmed for the neighbouring devices only
 - Settings: a failed log download shows a translated reason instead of failing silently (#527)

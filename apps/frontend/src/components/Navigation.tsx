@@ -29,7 +29,7 @@ export default function Navigation() {
             <span className="nav-icon" aria-hidden="true">
               {Icon.Radio(22)}
             </span>
-            <span className="nav-label">{t("nav.presets")}</span>
+            <span className="nav-label">{t("nav.devices")}</span>
           </NavLink>
           <NavLink to={withDevice("/multiroom")} className="nav-link">
             <span className="nav-icon" aria-hidden="true">

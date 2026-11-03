@@ -27,7 +27,7 @@ describe("Navigation Component", () => {
 
     // Presets, Zones, Settings, and About are visible in Navigation
     const expectedLinks = [
-      { text: "Presets", path: "/" },
+      { text: "Devices", path: "/" },
       { text: "Zones", path: "/multiroom" },
       { text: "Settings", path: "/settings" },
       { text: "About", path: "/about" },
@@ -69,6 +69,6 @@ describe("Navigation Component", () => {
         <Navigation />
       </MemoryRouter>,
     );
-    expect(screen.getByText("Presets").closest("a")).toHaveAttribute("href", expectedHref);
+    expect(screen.getByText("Devices").closest("a")).toHaveAttribute("href", expectedHref);
   });
 });

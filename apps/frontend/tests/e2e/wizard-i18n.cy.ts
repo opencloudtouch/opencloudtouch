@@ -188,7 +188,7 @@ describe("Wizard i18n — English (default)", () => {
   it("navigation bar renders English labels", () => {
     cy.visit(FRONTEND_BASE);
     cy.wait("@getDevices");
-    cy.get("nav").contains("Presets").should("exist");
+    cy.get("nav").contains("Devices").should("exist");
     cy.get("nav").contains("Zones").should("exist");
     cy.get("nav").contains("Settings").should("exist");
   });
@@ -204,7 +204,9 @@ describe("Wizard i18n — German (language switch)", () => {
   it("navigation bar switches to German", () => {
     visitDe(FRONTEND_BASE);
     cy.wait("@getDevices");
-    // "Presets" is the same in both EN and DE, so check other nav labels
+    // check the nav labels that differ between EN and DE
+    cy.get("nav").contains("Devices").should("not.exist");
+    cy.get("nav").contains("Geräte").should("exist");
     cy.get("nav").contains("Zones").should("not.exist");
     cy.get("nav").contains("Zonen").should("exist");
     cy.get("nav").contains("Settings").should("not.exist");
