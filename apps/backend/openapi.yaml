@@ -522,6 +522,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/devices/{device_id}/source:
+    put:
+      tags:
+      - Devices
+      summary: Select Source
+      description: Switch the device to an input source (Bluetooth, AUX or AirPlay).
+      operationId: select_source_api_devices__device_id__source_put
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Body_select_source_api_devices__device_id__source_put'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '404':
+          description: Device not found
+        '503':
+          description: Device unreachable
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/devices/{device_id}/reboot:
     post:
       tags:
@@ -3472,6 +3508,19 @@ components:
       type: object
       title: BackupSetResponse
       description: Backup set in scan response.
+    Body_select_source_api_devices__device_id__source_put:
+      properties:
+        source:
+          type: string
+          enum:
+          - BLUETOOTH
+          - AUX
+          - AIRPLAY
+          title: Source
+      type: object
+      required:
+      - source
+      title: Body_select_source_api_devices__device_id__source_put
     Body_set_mute_api_devices__device_id__mute_put:
       properties:
         muted:

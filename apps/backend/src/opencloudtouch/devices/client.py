@@ -115,6 +115,17 @@ class DeviceClient(ABC):
         pass
 
     @abstractmethod
+    async def select_source(self, source: str) -> None:
+        """
+        Switch the device to an input source (BLUETOOTH, AUX, AIRPLAY).
+
+        Raises:
+            ConnectionError: If device is unreachable
+            ValueError: If the source is not selectable
+        """
+        pass
+
+    @abstractmethod
     async def get_volume(self) -> "VolumeInfo":
         """Get current volume state."""
         pass
