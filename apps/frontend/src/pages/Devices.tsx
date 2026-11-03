@@ -352,7 +352,9 @@ export default function Devices({ devices = [], onRemoveDevice }: DevicesProps) 
   }
 
   const switchDisabled = controlsLocked || switching !== null;
-  const headerLabel = switching ? t("device.sourceSwitching", { source: sourceName(switching) }) : undefined;
+  const headerLabel = switching
+    ? t("device.sourceSwitching", { source: sourceName(switching) })
+    : undefined;
 
   const sourceSwitch = (
     <SourceSwitch
@@ -432,7 +434,9 @@ export default function Devices({ devices = [], onRemoveDevice }: DevicesProps) 
                 <span className="lc-zone" data-test="device-zone">
                   {Icon.Link(16)}
                   <span>
-                    {deviceRole === "master" ? t("multiroom.masterBadge") : t("multiroom.slaveBadge")}
+                    {deviceRole === "master"
+                      ? t("multiroom.masterBadge")
+                      : t("multiroom.slaveBadge")}
                   </span>
                 </span>
               </div>
@@ -448,7 +452,10 @@ export default function Devices({ devices = [], onRemoveDevice }: DevicesProps) 
             {!deviceOffline && (
               <div className="dv-body">
                 <div className="dv-main">
-                  <div className={`lc-np si-np-wrap${isStandby ? " dv-inert" : ""}`} inert={isStandby}>
+                  <div
+                    className={`lc-np si-np-wrap${isStandby ? " dv-inert" : ""}`}
+                    inert={isStandby}
+                  >
                     {isStandby ? (
                       <div className="np np--empty-card">
                         <div className="np-header si-head">
@@ -545,9 +552,13 @@ export default function Devices({ devices = [], onRemoveDevice }: DevicesProps) 
                         aria-busy={syncing}
                         title={t("presets.syncFromDeviceTitle")}
                       >
-                        <span className={syncing ? "ui-spin" : undefined}>{Icon.RefreshCw(18)}</span>
+                        <span className={syncing ? "ui-spin" : undefined}>
+                          {Icon.RefreshCw(18)}
+                        </span>
                         <span>
-                          {syncing ? t("presets.syncFromDeviceSyncing") : t("presets.syncFromDevice")}
+                          {syncing
+                            ? t("presets.syncFromDeviceSyncing")
+                            : t("presets.syncFromDevice")}
                         </span>
                       </button>
                     </div>

@@ -157,7 +157,9 @@ function AppRouter({ devices: initialDevices, isLoading, error, onRetry }: AppRo
                       <Routes>
                         <Route
                           path="/"
-                          element={<Devices devices={devices} onRemoveDevice={handleRemoveDevice} />}
+                          element={
+                            <Devices devices={devices} onRemoveDevice={handleRemoveDevice} />
+                          }
                         />
                         <Route path="/multiroom" element={<MultiRoom devices={devices} />} />
                         <Route path="/firmware" element={<Firmware devices={devices} />} />

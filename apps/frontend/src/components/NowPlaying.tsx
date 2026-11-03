@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { HAS_TUNEIN_SUPPORT } from "../config/capabilities";
 import { Icon } from "./Icon";
@@ -125,7 +133,13 @@ function ArtworkImage({ artUrl }: Readonly<{ artUrl?: string }>) {
 }
 
 // Sources the source switch can show as pressed
-const SWITCH_SOURCES = new Set(["INTERNET_RADIO", "LOCAL_INTERNET_RADIO", "TUNEIN", "BLUETOOTH", "AUX"]);
+const SWITCH_SOURCES = new Set([
+  "INTERNET_RADIO",
+  "LOCAL_INTERNET_RADIO",
+  "TUNEIN",
+  "BLUETOOTH",
+  "AUX",
+]);
 
 const SOURCE_LABEL_KEYS: Record<string, string> = {
   BLUETOOTH: "player.source.bluetooth",
@@ -235,7 +249,10 @@ export default function NowPlaying({ nowPlaying, headerLabel, headerAction }: No
   if (!nowPlaying) {
     return (
       <div className="np np--empty">
-        <div className="np-header si-head">{headerAction ? <div className="si-b-left" /> : null}{headerAction}</div>
+        <div className="np-header si-head">
+          {headerAction ? <div className="si-b-left" /> : null}
+          {headerAction}
+        </div>
         <div className="np-art">
           <div className="np-empty-inner">
             <span className="np-empty-icon" aria-hidden="true">
