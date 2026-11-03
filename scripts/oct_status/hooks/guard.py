@@ -1090,6 +1090,7 @@ def fetch_context(needs: Needs, api: rest.Rest | None, project: Path) -> HookCon
         try:
             template, has_template = path.read_text(encoding="utf-8"), True
         except OSError:
+            # No readable template: `has_template` stays False and the gate denies with that reason.
             pass
     if api is not None:
         if needs.artifact is not None:
@@ -1098,11 +1099,13 @@ def fetch_context(needs: Needs, api: rest.Rest | None, project: Path) -> HookCon
                 block = extract_block(issue.get("body") or "") or ""
                 labels = frozenset(_labels(issue))
             except rest.RestError:
+                # Unreadable artifact: block and labels stay unknown, and the callers fail closed on that.
                 pass
         if needs.comment_id is not None:
             try:
                 comment_body = str(api.comment(needs.comment_id).get("body") or "")
             except rest.RestError:
+                # Unreadable comment: its body stays empty and the write is judged without it (fail closed).
                 pass
         for number in needs.specs:
             try:

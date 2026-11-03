@@ -45,7 +45,6 @@ from .rules import detect_kind, legacy_spec, spec_is_ready
 MAX_RETRY_WAIT = 60.0  # a rate limit asking for longer stops the run (state saved) instead of waiting
 MIN_DELAY = 2.0  # seconds between two artifacts (GitHub asks for at least one second between writes)
 STATE_VERSION = 1
-_LEGACY_STARTED = ("wip", "phase:in-progress")
 
 
 @dataclass

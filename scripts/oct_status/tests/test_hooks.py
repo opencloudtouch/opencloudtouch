@@ -867,7 +867,6 @@ def test_settings_register_the_hooks():
     settings = json.loads((ROOT / ".claude" / "settings.json").read_text(encoding="utf-8"))
     assert set(settings) == {"hooks"}
     pre = settings["hooks"]["PreToolUse"]
-    import re
 
     matchers = [entry["matcher"] for entry in pre]
     assert "Bash" in matchers

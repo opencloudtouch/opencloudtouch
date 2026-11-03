@@ -7,6 +7,7 @@ from urllib.parse import unquote
 
 import httpx
 
+from oct_status import apply as apply_mod
 from oct_status.api import GitHubApi
 from oct_status.apply import MARKER, apply_state, guides_in, is_own_event, upsert_guide
 from oct_status.config import Actor, Config
@@ -241,8 +242,6 @@ async def test_announcement_gets_neither_block_nor_guide():
 async def test_truncated_body_is_not_rewritten_every_run(monkeypatch):
     rows = "\n".join(f"| #{n} | implements | open | x |" for n in range(2, 12))
     block = f"<!-- oct-status:v1 hash=0123456789ab -->\nhead\n\n| a | b | c | d |\n|---|---|---|---|\n{rows}\n<!-- /oct-status -->"
-    import oct_status.apply as apply_mod
-
     real = apply_mod.splice_block
     monkeypatch.setattr(apply_mod, "splice_block", lambda body, blk: real(body, blk, limit=len(blk) - 100))
     fake = FakeGitHub(body="text")
