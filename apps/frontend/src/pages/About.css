@@ -64,6 +64,9 @@
 }
 
 /* supporters: a list of names, size by amount, colour from generateGradientColor (>= 5.2:1 on the card) */
+.ab-supporters-ph {
+  min-height: 220px;
+}
 .ab-supporters {
   display: flex;
   flex-direction: column;

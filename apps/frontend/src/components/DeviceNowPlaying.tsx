@@ -18,14 +18,13 @@ const SOURCE_ICONS: Record<string, () => ReactElement> = {
   AUX: () => Icon.Headphones(18),
 };
 
-export function DeviceNowPlaying({ nowPlaying, loading }: DeviceNowPlayingProps) {
-  if (loading || !nowPlaying) {
-    return null;
-  }
+/** The row keeps its height when nothing plays: the card must not grow when the data arrives. */
+const PLACEHOLDER = <div className="dnp dnp--empty" aria-hidden="true" />;
 
+export function DeviceNowPlaying({ nowPlaying, loading }: DeviceNowPlayingProps) {
   // Only show if actually playing
-  if (nowPlaying.state !== "PLAY_STATE") {
-    return null;
+  if (loading || nowPlaying?.state !== "PLAY_STATE") {
+    return PLACEHOLDER;
   }
 
   const hasArtwork = nowPlaying.artwork_url;
@@ -34,7 +33,7 @@ export function DeviceNowPlaying({ nowPlaying, loading }: DeviceNowPlayingProps)
 
   // No info available
   if (!title && !subtitle) {
-    return null;
+    return PLACEHOLDER;
   }
 
   const sourceIcon = !hasArtwork ? SOURCE_ICONS[nowPlaying.source ?? ""] : undefined;

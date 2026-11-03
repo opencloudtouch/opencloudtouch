@@ -32,6 +32,14 @@ function NewTabHint() {
   );
 }
 
+// The list of the last visit: the Supporters block must not pop in (and push the page down) on every visit
+let supportersCache: Supporter[] | null = null;
+
+/** Test helper: forget the supporters kept across page visits. */
+export function _resetSupportersCache() {
+  supportersCache = null;
+}
+
 export default function About() {
   const { t, i18n } = useTranslation();
   const { data: health, isLoading: healthLoading } = useHealth();
@@ -50,8 +58,8 @@ export default function About() {
     [uptime]
   );
 
-  const [supporters, setSupporters] = useState<Supporter[]>([]);
-  const [supportersLoading, setSupportersLoading] = useState(true);
+  const [supporters, setSupporters] = useState<Supporter[]>(() => supportersCache ?? []);
+  const [supportersLoading, setSupportersLoading] = useState(supportersCache === null);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo>({ available: false });
   const [updateLoading, setUpdateLoading] = useState(true);
   // one thank-you sentence per visit instead of a tooltip on every name
@@ -111,6 +119,7 @@ export default function About() {
           return a.firstSupportDate.localeCompare(b.firstSupportDate);
         });
 
+        supportersCache = parsed;
         setSupporters(parsed);
         setSupportersLoading(false);
       } catch (error) {
@@ -247,7 +256,8 @@ export default function About() {
         )}
       </div>
 
-      {/* Supporters Wimmelbild */}
+      {/* Supporters Wimmelbild: the space is reserved while the list loads, the page must not grow afterwards */}
+      {supportersLoading && <div className="ab-supporters-ph" aria-hidden="true" />}
       {!supportersLoading && supporters.length > 0 && (
         <section className="ab-supporters" aria-labelledby="ab-supporters-title">
           <h2 id="ab-supporters-title" className="ui-h2" aria-label={t("about.supportersLabel")}>

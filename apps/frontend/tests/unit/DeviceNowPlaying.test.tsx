@@ -19,26 +19,29 @@ function makePlaying(overrides: Partial<NowPlayingState> = {}): NowPlayingState 
 describe("DeviceNowPlaying", () => {
   // ---- Null / early-return paths ----
 
-  it("renders nothing when nowPlaying is null", () => {
+  it("keeps an empty reserved row when nowPlaying is null", () => {
     const { container } = render(<DeviceNowPlaying nowPlaying={null} />);
-    expect(container.firstChild).toBeNull();
+    expect(container.querySelector(".dnp--empty")).toBeInTheDocument();
+    expect(container.querySelector(".dnp-text")).not.toBeInTheDocument();
   });
 
-  it("renders nothing when loading is true", () => {
+  it("keeps an empty reserved row when loading is true", () => {
     const { container } = render(
       <DeviceNowPlaying nowPlaying={makePlaying()} loading={true} />,
     );
-    expect(container.firstChild).toBeNull();
+    expect(container.querySelector(".dnp--empty")).toBeInTheDocument();
+    expect(container.querySelector(".dnp-text")).not.toBeInTheDocument();
   });
 
-  it("renders nothing when state is not PLAY_STATE", () => {
+  it("keeps an empty reserved row when state is not PLAY_STATE", () => {
     const { container } = render(
       <DeviceNowPlaying nowPlaying={makePlaying({ state: "STOP_STATE" })} />,
     );
-    expect(container.firstChild).toBeNull();
+    expect(container.querySelector(".dnp--empty")).toBeInTheDocument();
+    expect(container.querySelector(".dnp-text")).not.toBeInTheDocument();
   });
 
-  it("renders nothing when neither title nor subtitle available", () => {
+  it("keeps an empty reserved row when neither title nor subtitle available", () => {
     const { container } = render(
       <DeviceNowPlaying
         nowPlaying={makePlaying({
@@ -48,7 +51,8 @@ describe("DeviceNowPlaying", () => {
         })}
       />,
     );
-    expect(container.firstChild).toBeNull();
+    expect(container.querySelector(".dnp--empty")).toBeInTheDocument();
+    expect(container.querySelector(".dnp-text")).not.toBeInTheDocument();
   });
 
   // ---- Artwork display ----
