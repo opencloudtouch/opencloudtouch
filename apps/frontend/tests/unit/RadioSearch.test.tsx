@@ -88,7 +88,33 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
     expect(screen.getByPlaceholderText("e.g. SWR3, BBC Radio\u2026")).toBeInTheDocument();
-    expect(screen.getByText("\u2715")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close search" })).toBeInTheDocument();
+  });
+
+  it("keeps the search text when switching to the stream URL and back to a provider", () => {
+    render(
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
+
+    const searchInput = screen.getByPlaceholderText("e.g. SWR3, BBC Radio…");
+    fireEvent.change(searchInput, { target: { value: "rock" } });
+
+    fireEvent.click(document.querySelector('[data-test="manual-stream-mode"]')!);
+    expect(screen.getByPlaceholderText("Enter stream URL...")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("RadioBrowser"));
+    expect(screen.getByPlaceholderText("e.g. SWR3, BBC Radio…")).toHaveValue("rock");
+  });
+
+  it("shows the provider/type chips above the single input row in every mode", () => {
+    const { container } = render(
+      <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
+    );
+    const order = (el: Element | null) => Array.from(container.querySelectorAll(".rs-chips, .rs-field")).indexOf(el!);
+
+    expect(order(container.querySelector(".rs-chips"))).toBeLessThan(order(container.querySelector(".rs-field")));
+    fireEvent.click(container.querySelector('[data-test="manual-stream-mode"]')!);
+    expect(order(container.querySelector(".rs-chips"))).toBeLessThan(order(container.querySelector(".rs-field")));
   });
 
   it("renders search type chips", () => {
@@ -129,7 +155,7 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const closeButton = screen.getByText("✕");
+    const closeButton = screen.getByRole("button", { name: "Close search" });
     fireEvent.click(closeButton);
 
     expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -140,7 +166,7 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const overlay = screen.getByRole("button", { name: "Close search" }).closest(".radio-search-overlay")!;
+    const overlay = document.querySelector(".dlg-overlay")!;
     fireEvent.click(overlay);
 
     expect(mockOnClose).toHaveBeenCalled();
@@ -151,7 +177,7 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
     );
 
-    const modal = document.querySelector(".radio-search-modal")!;
+    const modal = document.querySelector(".dlg-panel")!;
     fireEvent.click(modal);
 
     expect(mockOnClose).not.toHaveBeenCalled();
@@ -350,14 +376,16 @@ describe("RadioSearch Component", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it("calls onClose when Escape key is pressed on overlay", () => {
+  it("calls onClose when the native dialog is cancelled (Escape)", () => {
     render(
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />,
     );
 
-    const overlay = document.querySelector(".radio-search-overlay")!;
-    fireEvent.keyDown(overlay, { key: "Escape" });
+    const dialog = document.querySelector("dialog")!;
+    const cancel = new Event("cancel", { cancelable: true });
+    dialog.dispatchEvent(cancel);
 
+    expect(cancel.defaultPrevented).toBe(true);
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
@@ -366,35 +394,35 @@ describe("RadioSearch Component", () => {
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />,
     );
 
-    const overlay = document.querySelector(".radio-search-overlay")!;
+    const overlay = document.querySelector(".dlg-overlay")!;
     fireEvent.keyDown(overlay, { key: "Tab" });
 
     expect(mockOnClose).not.toHaveBeenCalled();
   });
 
-  it("overlay has role=none for a11y", () => {
+  it("overlay is presentational for a11y", () => {
     render(
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />,
     );
 
-    const overlay = document.querySelector(".radio-search-overlay")!;
-    expect(overlay).toHaveAttribute("role", "none");
+    const overlay = document.querySelector(".dlg-overlay")!;
+    expect(overlay).toHaveAttribute("role", "presentation");
   });
 
-  it("modal uses div[role=dialog] element (not native dialog) for correct centering", () => {
+  it("modal uses the native dialog element labelled by its title", () => {
     render(
       <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />,
     );
 
-    // Must be a div with role="dialog", NOT a native <dialog> element
-    // (native <dialog open> has browser-default styles that prevent flex centering)
-    const modal = document.querySelector("div.radio-search-modal")!;
+    // Shared Modal: native <dialog> (focus trap, inert background, Esc), reset by Modal.css
+    const modal = document.querySelector("dialog.dlg")!;
     expect(modal).toBeInTheDocument();
-    expect(modal).toHaveAttribute("role", "dialog");
-    expect(modal).toHaveAttribute("aria-modal", "true");
-
-    const nativeDialog = document.querySelector("dialog.radio-search-modal");
-    expect(nativeDialog).not.toBeInTheDocument();
+    // native semantics of a modal <dialog>: no redundant role / aria-modal
+    expect(modal).not.toHaveAttribute("role");
+    expect(modal).not.toHaveAttribute("aria-modal");
+    expect(modal).toHaveAttribute("open");
+    expect(modal).toHaveAttribute("aria-labelledby", "rs-title");
+    expect(document.getElementById("rs-title")).toBeInTheDocument();
   });
 
   it("uses the newly selected provider immediately when switching providers", async () => {
@@ -679,7 +707,7 @@ describe("RadioSearch Component", () => {
       );
 
       // The provider row must still offer the manual mode with a single provider.
-      const chipRows = container.querySelectorAll(".search-type-row");
+      const chipRows = container.querySelectorAll(".ui-chips");
       expect(chipRows.length).toBe(2);
       expect(container.textContent).toContain("RadioBrowser");
       expect(container.textContent).not.toContain("TuneIn");
@@ -697,7 +725,7 @@ describe("RadioSearch Component", () => {
         <RadioSearch isOpen={true} onStationSelect={mockOnStationSelect} onClose={mockOnClose} />
       );
 
-      const chipRows = container.querySelectorAll(".search-type-row");
+      const chipRows = container.querySelectorAll(".ui-chips");
       expect(chipRows.length).toBe(2);
 
       expect(container.textContent).toContain("TuneIn");
@@ -742,7 +770,7 @@ describe("RadioSearch Component", () => {
 
       await searchAndWait("test");
 
-      const loadMoreBtn = document.querySelector(".load-more-btn");
+      const loadMoreBtn = document.querySelector(".rs-more");
       expect(loadMoreBtn).toBeInTheDocument();
       expect(loadMoreBtn).toHaveTextContent("Load more");
     });
@@ -774,7 +802,7 @@ describe("RadioSearch Component", () => {
 
       await searchAndWait("test");
 
-      const loadMoreBtn = document.querySelector(".load-more-btn")!;
+      const loadMoreBtn = document.querySelector(".rs-more")!;
       fireEvent.click(loadMoreBtn);
 
       await waitFor(() => {
@@ -793,7 +821,7 @@ describe("RadioSearch Component", () => {
       expect(screen.getByText("Station 19")).toBeInTheDocument();
 
       // Load More hidden after has_more=false
-      expect(document.querySelector(".load-more-btn")).not.toBeInTheDocument();
+      expect(document.querySelector(".rs-more")).not.toBeInTheDocument();
     });
 
     it("hides Load More button when has_more is false", async () => {
@@ -820,7 +848,7 @@ describe("RadioSearch Component", () => {
         { timeout: 700 }
       );
 
-      expect(document.querySelector(".load-more-btn")).not.toBeInTheDocument();
+      expect(document.querySelector(".rs-more")).not.toBeInTheDocument();
     });
 
     it("shows max reached message when results >= 200", async () => {
@@ -847,10 +875,10 @@ describe("RadioSearch Component", () => {
         { timeout: 700 }
       );
 
-      const maxReached = document.querySelector(".max-reached");
+      const maxReached = document.querySelector(".rs-note--max");
       expect(maxReached).toBeInTheDocument();
       // Load More should NOT appear even though has_more=true (MAX_RESULTS reached)
-      expect(document.querySelector(".load-more-btn")).not.toBeInTheDocument();
+      expect(document.querySelector(".rs-more")).not.toBeInTheDocument();
     });
 
     it("handles load more API error", async () => {
@@ -880,7 +908,7 @@ describe("RadioSearch Component", () => {
 
       await searchAndWait("test");
 
-      const loadMoreBtn = document.querySelector(".load-more-btn")!;
+      const loadMoreBtn = document.querySelector(".rs-more")!;
       fireEvent.click(loadMoreBtn);
 
       await waitFor(() => {

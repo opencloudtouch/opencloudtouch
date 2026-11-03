@@ -56,9 +56,9 @@ describe("Firmware Page", () => {
       render(<Firmware devices={mockDevices} />);
 
       // Current device has firmware 1.0.12 → up-to-date
-      const statusBadge = screen.getByText(/✓ Up to date/);
+      const statusBadge = screen.getByText("Up to date").closest(".ui-badge")!;
       expect(statusBadge).toBeInTheDocument();
-      expect(statusBadge).toHaveClass("up-to-date");
+      expect(statusBadge).toHaveClass("ui-badge--success");
     });
 
     it("should show all devices in overview list", () => {
@@ -82,7 +82,7 @@ describe("Firmware Page", () => {
 
       // Küche has firmware 1.0.8 → update-available (< 1.0.12)
       // Find all status icons
-      const warningIcons = screen.getAllByText("⚠️");
+      const warningIcons = screen.getAllByRole("img", { name: "Update available" });
       expect(warningIcons.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -90,7 +90,7 @@ describe("Firmware Page", () => {
       render(<Firmware devices={mockDevices} />);
 
       // Living Room (1.0.12) and Bad (1.0.15) should be up-to-date
-      const checkIcons = screen.getAllByText("✓");
+      const checkIcons = screen.getAllByRole("img", { name: "Up to date" });
       expect(checkIcons.length).toBeGreaterThanOrEqual(2);
     });
   });

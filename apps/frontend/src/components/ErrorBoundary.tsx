@@ -1,5 +1,6 @@
 import { Component, ReactNode } from "react";
 import { i18next } from "../i18n";
+import { Icon } from "./Icon";
 import "./ErrorBoundary.css";
 
 interface ErrorBoundaryProps {
@@ -47,40 +48,56 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         return this.props.fallback(this.state.error, this.handleReset);
       }
 
-      // Default fallback UI
+      // Default fallback UI (replaces the whole app, so it brings its own <main> and h1)
       return (
-        <div className="error-boundary">
-          <div className="error-boundary-content">
-            <div className="error-boundary-icon">⚠️</div>
-            <h2 className="error-boundary-title">{i18next.t("errors.errorBoundaryTitle")}</h2>
-            <p className="error-boundary-message">{i18next.t("errors.errorBoundaryMessage")}</p>
+        <main className="eb" id="main-content">
+          <div className="eb-card" role="alert">
+            <div className="eb-icon" aria-hidden="true">
+              {Icon.Alert(32)}
+            </div>
+            <h1 className="eb-title">{i18next.t("errors.errorBoundaryTitle")}</h1>
+            <p className="eb-message">{i18next.t("errors.errorBoundaryMessage")}</p>
 
-            <details className="error-boundary-details">
-              <summary>{i18next.t("errors.errorDetails")}</summary>
-              <pre>{this.state.error.toString()}</pre>
+            <details className="eb-details">
+              <summary>
+                <span>{i18next.t("errors.errorDetails")}</span>
+                <span className="eb-chevron" aria-hidden="true">
+                  {Icon.ChevronDown(18)}
+                </span>
+              </summary>
+              <pre
+                tabIndex={0} // NOSONAR(S6845): scrollable region must be keyboard-focusable (WCAG 2.1.1)
+              >
+                {this.state.error.toString()}
+              </pre>
               {this.state.error.stack && (
-                <pre className="error-boundary-stack">{this.state.error.stack}</pre>
+                <pre
+                  className="eb-stack"
+                  tabIndex={0} // NOSONAR(S6845): scrollable region must be keyboard-focusable (WCAG 2.1.1)
+                >
+                  {this.state.error.stack}
+                </pre>
               )}
             </details>
 
-            <div className="error-boundary-actions">
+            <div className="eb-actions">
               <button
                 className="btn btn-primary"
                 onClick={() => window.location.reload()}
                 aria-label={i18next.t("common.reloadPage")}
               >
-                {i18next.t("common.reloadPage")}
+                {Icon.RefreshCw(18)} {i18next.t("common.reloadPage")}
               </button>
               <button
                 className="btn btn-secondary"
                 onClick={this.handleReset}
                 aria-label={i18next.t("common.retry")}
               >
-                {i18next.t("common.retry")}
+                {Icon.Rotate(18)} {i18next.t("common.retry")}
               </button>
             </div>
           </div>
-        </div>
+        </main>
       );
     }
 

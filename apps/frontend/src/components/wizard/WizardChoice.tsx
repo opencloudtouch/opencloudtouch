@@ -1,9 +1,8 @@
-/**
- * WizardChoice - Entry screen: Setup Wizard or Restore Wizard
- */
+/** WizardChoice: logic unchanged, markup restyled. File: components/wizard/WizardChoice.tsx */
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import "./WizardChoice.css";
+import { Icon } from "./Icon";
+import "./wizard-base.css"; // replaces WizardChoice.css
 
 interface WizardChoiceProps {
   readonly onSelectSetup: () => void;
@@ -25,7 +24,7 @@ export default function WizardChoice({ onSelectSetup, onSelectRestore }: WizardC
           whileTap={{ scale: 0.98 }}
           onClick={onSelectSetup}
         >
-          <span className="wizard-choice__icon">⚙️</span>
+          <span className="wizard-choice__icon">{Icon.Settings()}</span>
           <h3>{t("restore.choice.setup_title", "Setup Wizard")}</h3>
           <p>{t("restore.choice.setup_desc", "Configure device for OpenCloudTouch")}</p>
         </motion.button>
@@ -36,7 +35,7 @@ export default function WizardChoice({ onSelectSetup, onSelectRestore }: WizardC
           whileTap={{ scale: 0.98 }}
           onClick={onSelectRestore}
         >
-          <span className="wizard-choice__icon">🔄</span>
+          <span className="wizard-choice__icon">{Icon.Rotate(26)}</span>
           <h3>{t("restore.choice.restore_title", "Restore Wizard")}</h3>
           <p>
             {t("restore.choice.restore_desc", "Undo all OCT changes and restore factory state")}
