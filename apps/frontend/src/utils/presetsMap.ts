@@ -1,4 +1,4 @@
-import type { Preset } from "../components/PresetButton";
+import type { Preset } from "../components/PresetRow";
 import type { PresetResponse } from "../api/presets";
 
 /** Turns the API list into the slot map the Presets page works with (preset number -> preset). */

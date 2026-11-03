@@ -8,7 +8,7 @@
  */
 import { getNowPlaying, getVolume, type NowPlayingState, type VolumeState } from "../api/devices";
 import { getDevicePresets } from "../api/presets";
-import type { Preset } from "../components/PresetButton";
+import type { Preset } from "../components/PresetRow";
 import { buildPresetsMap } from "./presetsMap";
 import { isDeviceOffline } from "../api/offlineDeviceStore";
 

@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import i18next from "i18next";
-import { Preset } from "../components/PresetButton";
+import { Preset } from "../components/PresetRow";
 import { RadioStation } from "../components/RadioSearch";
 import {
   setPreset as setPresetAPI,

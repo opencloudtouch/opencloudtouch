@@ -9,8 +9,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import Navigation from "./components/Navigation";
 import EmptyState from "./components/EmptyState";
 import { Icon } from "./components/Icon";
-import RadioPresets from "./pages/RadioPresets";
-import LocalControl from "./pages/LocalControl";
+import Devices from "./pages/Devices";
 import MultiRoom from "./pages/MultiRoom";
 import Firmware from "./pages/Firmware";
 import Settings from "./pages/Settings";
@@ -158,15 +157,7 @@ function AppRouter({ devices: initialDevices, isLoading, error, onRetry }: AppRo
                       <Routes>
                         <Route
                           path="/"
-                          element={
-                            <RadioPresets devices={devices} onRemoveDevice={handleRemoveDevice} />
-                          }
-                        />
-                        <Route
-                          path="/local"
-                          element={
-                            <LocalControl devices={devices} onRemoveDevice={handleRemoveDevice} />
-                          }
+                          element={<Devices devices={devices} onRemoveDevice={handleRemoveDevice} />}
                         />
                         <Route path="/multiroom" element={<MultiRoom devices={devices} />} />
                         <Route path="/firmware" element={<Firmware devices={devices} />} />

@@ -31,17 +31,12 @@
     "play": "Reproduzir",
     "pause": "Pausar",
     "noStation": "Sem estação",
-    "noDevices": "Nenhum dispositivo encontrado",
     "powerButton": "Ligar/desligar",
-    "localControl": "Controle local",
-    "sourceTitle": "Fonte",
     "playbackTitle": "Reprodução",
     "prevTrack": "Faixa anterior",
     "nextTrack": "Próxima faixa",
     "muteOn": "Ativar som",
     "muteOff": "Silenciar",
-    "manageZone": "Gerenciar zona",
-    "multiRoom": "Multissala",
     "prevDevice": "Dispositivo anterior",
     "nextDevice": "Próximo dispositivo",
     "source": {
@@ -56,24 +51,16 @@
       "pandora": "Pandora",
       "amazon": "Amazon Music",
       "storedMusic": "Biblioteca de mídia"
-    },
-    "unknownDevice": "Dispositivo desconhecido",
-    "zoneBadgeMember": "Zona",
-    "zoneTitle": "Zona: {{role}}"
+    }
   },
   "presets": {
-    "pageTitle": "Presets de rádio",
-    "empty": "Nenhum preset configurado",
-    "playPreset": "Reproduzir preset {{name}}",
     "presetSaved": "Preset {{number}} salvo.",
     "presetDeleted": "Preset {{number}} excluído.",
-    "playFailed": "Não foi possível reproduzir o preset. Tente novamente.",
     "noDevices": "Nenhum dispositivo encontrado",
     "syncedFromDevice": "Presets carregados com sucesso do dispositivo.",
     "savedStations": "Estações salvas",
     "syncFromDevice": "Carregar do dispositivo",
     "syncFromDeviceSyncing": "Sincronizando...",
-    "deviceOffline": "Dispositivo offline",
     "syncFromDeviceTitle": "Sincronizar presets do dispositivo",
     "infoTitle": "Notas sobre presets",
     "infoItem1": "Clique em um preset vazio para atribuir uma estação",
@@ -81,7 +68,6 @@
     "infoItem3": "O botão de reprodução à direita do preset toca a estação diretamente",
     "infoItem5": "O ícone de status no canto superior direito do cartão do dispositivo abre o assistente de configuração do dispositivo",
     "infoItem6": "\"Carregar do dispositivo\" sincroniza os presets do SoundTouch",
-    "changeStation": "Clique para mudar a estação",
     "assignPreset": "Atribuir preset",
     "searchClose": "Fechar pesquisa",
     "searchLoading": "Pesquisando...",
@@ -914,5 +900,30 @@
     "codec": "Codec",
     "bitrate": "Taxa de bits",
     "homepage": "Site"
+  },
+  "device": {
+    "sourceChoose": "Escolher fonte",
+    "sourceSwitching": "Mudando para {{source}}…",
+    "sourceSwitched": "Fonte alterada: {{source}}",
+    "sourceFailed": "Não foi possível mudar para {{source}}. O dispositivo não responde.",
+    "sourceRetry": "Tentar novamente",
+    "slaveHint": "A fonte é definida pelo mestre {{master}}.",
+    "standbyTitle": "Em espera",
+    "standbyHint": "Dispositivo em espera. Ligue-o para ouvir.",
+    "noControl": "A reprodução é controlada no dispositivo conectado.",
+    "presetPlay": "Reproduzir o preset {{n}}: {{name}}",
+    "presetPause": "Pausar o preset {{n}}: {{name}}",
+    "presetChange": "Alterar a estação do preset {{n}}",
+    "prRunning": "Reproduzindo",
+    "prPaused": "Pausado",
+    "prStarting": "Iniciando…",
+    "prFailed": "Não foi possível iniciar",
+    "presetStarted": "{{name}} está tocando (preset {{n}})",
+    "presetPausedAnn": "{{name}} pausado",
+    "presetFailedAnn": "Não foi possível iniciar o preset {{n}} ({{name}}). Toque novamente para tentar de novo.",
+    "noPresetToStart": "Nenhum preset salvo ainda. Atribua primeiro uma estação a um preset.",
+    "src": {
+      "presets": "Presets"
+    }
   }
 }

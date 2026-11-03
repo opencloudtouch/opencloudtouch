@@ -31,17 +31,12 @@
     "play": "Reproducir",
     "pause": "Pausar",
     "noStation": "Sin emisora",
-    "noDevices": "No se encontraron dispositivos",
     "powerButton": "Encender/apagar",
-    "localControl": "Control local",
-    "sourceTitle": "Fuente",
     "playbackTitle": "Reproducción",
     "prevTrack": "Pista anterior",
     "nextTrack": "Pista siguiente",
     "muteOn": "Activar sonido",
     "muteOff": "Silenciar",
-    "manageZone": "Gestionar zona",
-    "multiRoom": "Multisala",
     "prevDevice": "Dispositivo anterior",
     "nextDevice": "Dispositivo siguiente",
     "source": {
@@ -56,24 +51,16 @@
       "pandora": "Pandora",
       "amazon": "Amazon Music",
       "storedMusic": "Biblioteca multimedia"
-    },
-    "unknownDevice": "Dispositivo desconocido",
-    "zoneBadgeMember": "Zona",
-    "zoneTitle": "Zona: {{role}}"
+    }
   },
   "presets": {
-    "pageTitle": "Presets de radio",
-    "empty": "Sin presets configurados",
-    "playPreset": "Reproducir preset {{name}}",
     "presetSaved": "Preset {{number}} guardado.",
     "presetDeleted": "Preset {{number}} eliminado.",
-    "playFailed": "No se pudo reproducir el preset. Inténtelo de nuevo.",
     "noDevices": "No se encontraron dispositivos",
     "syncedFromDevice": "Presets cargados desde el dispositivo correctamente.",
     "savedStations": "Emisoras guardadas",
     "syncFromDevice": "Cargar desde dispositivo",
     "syncFromDeviceSyncing": "Sincronizando...",
-    "deviceOffline": "Dispositivo sin conexión",
     "syncFromDeviceTitle": "Sincronizar presets desde el dispositivo",
     "infoTitle": "Notas sobre presets",
     "infoItem1": "Haga clic en un preset vacío para asignar una emisora",
@@ -81,7 +68,6 @@
     "infoItem3": "El botón de reproducir a la derecha del preset reproduce la emisora directamente",
     "infoItem5": "El icono de estado en la esquina superior derecha de la tarjeta del dispositivo abre el asistente de configuración del dispositivo",
     "infoItem6": "\"Cargar desde dispositivo\" sincroniza los presets del SoundTouch",
-    "changeStation": "Haga clic para cambiar la emisora",
     "assignPreset": "Asignar preset",
     "searchClose": "Cerrar búsqueda",
     "searchLoading": "Buscando...",
@@ -914,5 +900,30 @@
     "codec": "Códec",
     "bitrate": "Tasa de bits",
     "homepage": "Página web"
+  },
+  "device": {
+    "sourceChoose": "Elegir fuente",
+    "sourceSwitching": "Cambiando a {{source}}…",
+    "sourceSwitched": "Fuente cambiada: {{source}}",
+    "sourceFailed": "No se pudo cambiar a {{source}}. El dispositivo no responde.",
+    "sourceRetry": "Reintentar",
+    "slaveHint": "La fuente la define el maestro {{master}}.",
+    "standbyTitle": "En espera",
+    "standbyHint": "Dispositivo en espera. Enciéndelo para escuchar.",
+    "noControl": "La reproducción se controla en el dispositivo conectado.",
+    "presetPlay": "Reproducir el preset {{n}}: {{name}}",
+    "presetPause": "Pausar el preset {{n}}: {{name}}",
+    "presetChange": "Cambiar la emisora del preset {{n}}",
+    "prRunning": "Reproduciendo",
+    "prPaused": "En pausa",
+    "prStarting": "Iniciando…",
+    "prFailed": "No se pudo iniciar",
+    "presetStarted": "{{name}} se está reproduciendo (preset {{n}})",
+    "presetPausedAnn": "{{name}} en pausa",
+    "presetFailedAnn": "No se pudo iniciar el preset {{n}} ({{name}}). Tócalo de nuevo para reintentar.",
+    "noPresetToStart": "Aún no hay ningún preset guardado. Asigna primero una emisora a un preset.",
+    "src": {
+      "presets": "Presets"
+    }
   }
 }

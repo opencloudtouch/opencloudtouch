@@ -27,7 +27,6 @@ const WIZARD_WIDTHS = [320, 375, 414, 768, 1280];
 
 const PAGES = [
   { name: "presets", path: `/?device=${DEVICE.device_id}` },
-  { name: "local", path: `/local?device=${DEVICE.device_id}` },
   { name: "multiroom", path: "/multiroom" },
   { name: "firmware", path: "/firmware" },
   { name: "settings", path: "/settings" },

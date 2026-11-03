@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { HAS_TUNEIN_SUPPORT } from "../config/capabilities";
 import { Icon } from "./Icon";
@@ -21,7 +21,10 @@ export interface NowPlayingData {
 
 interface NowPlayingProps {
   readonly nowPlaying?: NowPlayingData | null;
-  readonly onPlayPause?: () => void;
+  /** Replaces the header text (e.g. "Switching to AUX..."). */
+  readonly headerLabel?: string;
+  /** Right side of the header row: the source switch. */
+  readonly headerAction?: ReactNode;
 }
 
 interface SourceBadgeConfig {
@@ -121,6 +124,9 @@ function ArtworkImage({ artUrl }: Readonly<{ artUrl?: string }>) {
   return <img src={src} alt="" onError={handleError} />;
 }
 
+// Sources the source switch can show as pressed
+const SWITCH_SOURCES = new Set(["INTERNET_RADIO", "LOCAL_INTERNET_RADIO", "TUNEIN", "BLUETOOTH", "AUX"]);
+
 const SOURCE_LABEL_KEYS: Record<string, string> = {
   BLUETOOTH: "player.source.bluetooth",
   AUX: "player.source.aux",
@@ -201,7 +207,7 @@ function MarqueeText({
   );
 }
 
-export default function NowPlaying({ nowPlaying, onPlayPause }: NowPlayingProps) {
+export default function NowPlaying({ nowPlaying, headerLabel, headerAction }: NowPlayingProps) {
   const { t } = useTranslation();
   const [trackOverflows, setTrackOverflows] = useState(false);
   const [artistOverflows, setArtistOverflows] = useState(false);
@@ -229,7 +235,7 @@ export default function NowPlaying({ nowPlaying, onPlayPause }: NowPlayingProps)
   if (!nowPlaying) {
     return (
       <div className="np np--empty">
-        <div className="np-header" />
+        <div className="np-header si-head">{headerAction ? <div className="si-b-left" /> : null}{headerAction}</div>
         <div className="np-art">
           <div className="np-empty-inner">
             <span className="np-empty-icon" aria-hidden="true">
@@ -243,28 +249,45 @@ export default function NowPlaying({ nowPlaying, onPlayPause }: NowPlayingProps)
     );
   }
 
-  const isPlaying = nowPlaying.play_status === "PLAY_STATE";
+  // With the source switch the three choosable sources are shown by its pressed button: no extra badge for them.
+  const badge =
+    headerAction && SWITCH_SOURCES.has(nowPlaying.source ?? "")
+      ? null
+      : getSourceBadge(t, nowPlaying.source);
+  const label = headerLabel ?? getHeaderDisplay(nowPlaying.station, nowPlaying.source);
+  // AUX has no cover; Bluetooth often has none: a quiet icon tile instead of a stock picture
+  const tile =
+    !nowPlaying.art_url && (nowPlaying.source === "AUX" || nowPlaying.source === "BLUETOOTH");
 
   return (
     <div className="np">
-      <div className="np-header">
-        {getSourceBadge(t, nowPlaying.source)}
-        <div className="np-station" title={nowPlaying.station ?? undefined}>
-          {getHeaderDisplay(nowPlaying.station, nowPlaying.source)}
-        </div>
-      </div>
-      <div className="np-art">
-        <ArtworkImage artUrl={nowPlaying.art_url} />
-        {onPlayPause && (
-          <button
-            className="np-play-overlay"
-            onClick={onPlayPause}
-            aria-label={isPlaying ? t("player.pause") : t("player.play")}
-          >
-            {isPlaying ? Icon.Pause(28) : Icon.Play(28)}
-          </button>
+      <div className={`np-header${headerAction ? " si-head" : ""}`}>
+        {headerAction ? (
+          <div className="si-b-left">
+            {badge}
+            <div className="np-station si-label" title={label}>
+              {label}
+            </div>
+          </div>
+        ) : (
+          <>
+            {badge}
+            <div className="np-station" title={label}>
+              {label}
+            </div>
+          </>
         )}
+        {headerAction}
       </div>
+      {tile ? (
+        <div className="np-art np-art--none" aria-hidden="true">
+          {nowPlaying.source === "AUX" ? Icon.Headphones(56) : Icon.Bluetooth(56)}
+        </div>
+      ) : (
+        <div className="np-art">
+          <ArtworkImage artUrl={nowPlaying.art_url} />
+        </div>
+      )}
       <div className="np-info">
         {nowPlaying.track && (
           <MarqueeText

@@ -31,17 +31,12 @@
     "play": "再生",
     "pause": "一時停止",
     "noStation": "ステーションなし",
-    "noDevices": "デバイスが見つかりません",
     "powerButton": "電源オン/オフ",
-    "localControl": "ローカルコントロール",
-    "sourceTitle": "ソース",
     "playbackTitle": "再生",
     "prevTrack": "前のトラック",
     "nextTrack": "次のトラック",
     "muteOn": "ミュート解除",
     "muteOff": "ミュート",
-    "manageZone": "ゾーンを管理",
-    "multiRoom": "マルチルーム",
     "prevDevice": "前のデバイス",
     "nextDevice": "次のデバイス",
     "source": {
@@ -56,24 +51,16 @@
       "pandora": "Pandora",
       "amazon": "Amazon Music",
       "storedMusic": "メディアライブラリ"
-    },
-    "unknownDevice": "不明なデバイス",
-    "zoneBadgeMember": "ゾーン",
-    "zoneTitle": "ゾーン: {{role}}"
+    }
   },
   "presets": {
-    "pageTitle": "ラジオプリセット",
-    "empty": "プリセットが設定されていません",
-    "playPreset": "プリセット{{name}}を再生",
     "presetSaved": "プリセット{{number}}を保存しました。",
     "presetDeleted": "プリセット{{number}}を削除しました。",
-    "playFailed": "プリセットを再生できませんでした。もう一度お試しください。",
     "noDevices": "デバイスが見つかりません",
     "syncedFromDevice": "デバイスからプリセットを正常に読み込みました。",
     "savedStations": "保存済みステーション",
     "syncFromDevice": "デバイスから読み込む",
     "syncFromDeviceSyncing": "同期中...",
-    "deviceOffline": "デバイスオフライン",
     "syncFromDeviceTitle": "デバイスからプリセットを同期",
     "infoTitle": "プリセットについて",
     "infoItem1": "空のプリセットをクリックしてステーションを割り当てる",
@@ -81,7 +68,6 @@
     "infoItem3": "プリセット右側の再生ボタンで放送局を直接再生します",
     "infoItem5": "デバイスカード右上のステータスアイコンで、そのデバイスのセットアップウィザードを開きます",
     "infoItem6": "「デバイスから読み込む」でSoundTouchからプリセットを同期",
-    "changeStation": "クリックしてステーションを変更",
     "assignPreset": "プリセットを割り当て",
     "searchClose": "検索を閉じる",
     "searchLoading": "検索中...",
@@ -914,5 +900,30 @@
     "codec": "コーデック",
     "bitrate": "ビットレート",
     "homepage": "ホームページ"
+  },
+  "device": {
+    "sourceChoose": "ソースを選択",
+    "sourceSwitching": "{{source}} に切り替え中…",
+    "sourceSwitched": "ソースを切り替えました: {{source}}",
+    "sourceFailed": "{{source}} への切り替えに失敗しました。デバイスが応答しません。",
+    "sourceRetry": "再試行",
+    "slaveHint": "ソースはマスター {{master}} が設定します。",
+    "standbyTitle": "スタンバイ",
+    "standbyHint": "デバイスはスタンバイ中です。電源を入れて聴きましょう。",
+    "noControl": "再生は接続したデバイスで操作します。",
+    "presetPlay": "プリセット {{n}} を再生: {{name}}",
+    "presetPause": "プリセット {{n}} を一時停止: {{name}}",
+    "presetChange": "プリセット {{n}} のステーションを変更",
+    "prRunning": "再生中",
+    "prPaused": "一時停止中",
+    "prStarting": "開始中…",
+    "prFailed": "開始できませんでした",
+    "presetStarted": "{{name}} を再生中（プリセット {{n}}）",
+    "presetPausedAnn": "{{name}} を一時停止しました",
+    "presetFailedAnn": "プリセット {{n}}（{{name}}）を開始できませんでした。もう一度タップしてください。",
+    "noPresetToStart": "保存されたプリセットがまだありません。先にプリセットへステーションを割り当ててください。",
+    "src": {
+      "presets": "プリセット"
+    }
   }
 }

@@ -31,17 +31,12 @@
     "play": "Abspielen",
     "pause": "Pause",
     "noStation": "Kein Sender",
-    "noDevices": "Keine Geräte gefunden",
     "powerButton": "Ein/Ausschalten",
-    "localControl": "Lokale Steuerung",
-    "sourceTitle": "Quelle",
     "playbackTitle": "Wiedergabe",
     "prevTrack": "Vorheriger Track",
     "nextTrack": "Nächster Track",
     "muteOn": "Ton an",
     "muteOff": "Stumm",
-    "manageZone": "Zone verwalten",
-    "multiRoom": "Multi-Room",
     "prevDevice": "Vorheriges Gerät",
     "nextDevice": "Nächstes Gerät",
     "source": {
@@ -56,24 +51,16 @@
       "pandora": "Pandora",
       "amazon": "Amazon Music",
       "storedMusic": "Mediathek"
-    },
-    "unknownDevice": "Unbekanntes Gerät",
-    "zoneBadgeMember": "Zone",
-    "zoneTitle": "Zone: {{role}}"
+    }
   },
   "presets": {
-    "pageTitle": "Radio Presets",
-    "empty": "Keine Presets konfiguriert",
-    "playPreset": "Preset {{name}} abspielen",
     "presetSaved": "Preset {{number}} gespeichert.",
     "presetDeleted": "Preset {{number}} gelöscht.",
-    "playFailed": "Preset konnte nicht abgespielt werden. Bitte versuchen Sie es erneut.",
     "noDevices": "Keine Geräte gefunden",
     "syncedFromDevice": "Presets erfolgreich vom Gerät geladen.",
     "savedStations": "Gespeicherte Sender",
     "syncFromDevice": "Vom Gerät laden",
     "syncFromDeviceSyncing": "Sync...",
-    "deviceOffline": "Gerät offline",
     "syncFromDeviceTitle": "Presets vom Gerät synchronisieren",
     "infoTitle": "Preset Hinweise",
     "infoItem1": "Klicke auf ein leeres Preset um einen Sender zuzuweisen",
@@ -81,7 +68,6 @@
     "infoItem3": "Der Play-Button rechts im Preset spielt den Sender direkt ab",
     "infoItem5": "Das Status-Symbol oben rechts an der Gerätekarte öffnet den Setup-Wizard für das Gerät",
     "infoItem6": "\"Vom Gerät laden\" synchronisiert die Presets vom SoundTouch",
-    "changeStation": "Klicken um Sender zu ändern",
     "assignPreset": "Preset zuweisen",
     "searchClose": "Suche schließen",
     "searchLoading": "Suche...",
@@ -914,5 +900,30 @@
     "codec": "Codec",
     "bitrate": "Bitrate",
     "homepage": "Homepage"
+  },
+  "device": {
+    "sourceChoose": "Quelle wählen",
+    "sourceSwitching": "Wechsle zu {{source}}…",
+    "sourceSwitched": "Quelle gewechselt: {{source}}",
+    "sourceFailed": "Umschalten auf {{source}} fehlgeschlagen. Das Gerät antwortet nicht.",
+    "sourceRetry": "Erneut versuchen",
+    "slaveHint": "Die Quelle bestimmt der Master {{master}}.",
+    "standbyTitle": "Standby",
+    "standbyHint": "Gerät im Standby. Einschalten, um Musik zu hören.",
+    "noControl": "Die Wiedergabe wird am angeschlossenen Gerät gesteuert.",
+    "presetPlay": "Preset {{n}} abspielen: {{name}}",
+    "presetPause": "Preset {{n}} pausieren: {{name}}",
+    "presetChange": "Sender für Preset {{n}} ändern",
+    "prRunning": "Läuft",
+    "prPaused": "Pausiert",
+    "prStarting": "Startet…",
+    "prFailed": "Start fehlgeschlagen",
+    "presetStarted": "{{name}} spielt (Preset {{n}})",
+    "presetPausedAnn": "{{name}} pausiert",
+    "presetFailedAnn": "Preset {{n}} ({{name}}) konnte nicht gestartet werden. Tippe erneut, um es nochmal zu versuchen.",
+    "noPresetToStart": "Es ist noch kein Preset gespeichert. Weise zuerst einem Preset einen Sender zu.",
+    "src": {
+      "presets": "Presets"
+    }
   }
 }

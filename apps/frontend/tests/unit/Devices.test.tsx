@@ -1,5 +1,5 @@
 ﻿/**
- * Tests for RadioPresets.tsx
+ * Tests for Devices.tsx (the device card with now playing, source switch, keys, volume and presets)
  *
  * User Story: "Als User möchte ich Radiosender auf Preset-Tasten speichern"
  *
@@ -14,7 +14,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
-import RadioPresets from "../../src/pages/RadioPresets";
+import Devices from "../../src/pages/Devices";
 import { deleteDeviceById } from "../../src/api/devices";
 import { markDeviceOffline, _resetOfflineStore } from "../../src/api/offlineDeviceStore";
 
@@ -40,6 +40,10 @@ vi.mock("../../src/api/devices", async (importOriginal) => {
     ...actual,
     playPreset: vi.fn().mockResolvedValue(undefined),
     deleteDeviceById: vi.fn().mockResolvedValue(undefined),
+    selectSource: vi.fn().mockResolvedValue(undefined),
+    togglePlayPause: vi.fn().mockResolvedValue(undefined),
+    nextTrack: vi.fn().mockResolvedValue(undefined),
+    prevTrack: vi.fn().mockResolvedValue(undefined),
   };
 });
 
@@ -52,9 +56,10 @@ vi.mock("../../src/hooks/useVolume", () => ({
 }));
 
 const mockRefreshNowPlaying = vi.fn();
+let mockNowPlayingState: Record<string, unknown> | null = null;
 vi.mock("../../src/hooks/useNowPlaying", () => ({
   useNowPlaying: () => ({
-    nowPlaying: null,
+    nowPlaying: mockNowPlayingState,
     loading: false,
     error: null,
     refresh: mockRefreshNowPlaying,
@@ -78,8 +83,20 @@ vi.mock("../../src/components/DeviceSwiper", () => ({
 }));
 
 vi.mock("../../src/components/NowPlaying", () => ({
-  default: ({ nowPlaying }: { nowPlaying: { title: string } | null }) => (
-    <div data-testid="now-playing">{nowPlaying ? nowPlaying.title : "No playback"}</div>
+  default: ({
+    nowPlaying,
+    headerLabel,
+    headerAction,
+  }: {
+    nowPlaying: { title: string } | null;
+    headerLabel?: string;
+    headerAction?: ReactNode;
+  }) => (
+    <div data-testid="now-playing">
+      <span data-testid="np-label">{headerLabel}</span>
+      {headerAction}
+      {nowPlaying ? nowPlaying.title : "No playback"}
+    </div>
   ),
 }));
 
@@ -105,27 +122,32 @@ vi.mock("../../src/components/VolumeSlider", () => ({
   ),
 }));
 
-vi.mock("../../src/components/PresetButton", () => ({
-  default: ({ number, preset, onAssign, onPlay, isCurrentlyPlaying }: { number: number; preset: { station_name: string } | null; onAssign: () => void; onPlay: () => void; isCurrentlyPlaying?: boolean }) => (
+vi.mock("../../src/components/PresetRow", () => ({
+  default: ({ number, preset, state, onToggle, onChange }: { number: number; preset: { station_name: string } | null; state: string; onToggle: () => void; onChange: () => void }) => (
     <div data-testid={`preset-${number}`}>
       <span>Preset {number}</span>
       {preset ? (
         <>
           <span data-testid={`preset-${number}-name`}>{preset.station_name}</span>
-          <button onClick={onAssign} data-testid={`preset-${number}-change`}>
+          <button onClick={onChange} data-testid={`preset-${number}-change`}>
             Change
           </button>
-          <button onClick={onPlay} data-testid={`preset-${number}-play`} disabled={isCurrentlyPlaying}>
+          <button onClick={onToggle} data-testid={`preset-${number}-play`} data-state={state}>
             Play
           </button>
         </>
       ) : (
-        <button onClick={onAssign} data-testid={`preset-${number}-assign`}>
+        <button onClick={onChange} data-testid={`preset-${number}-assign`}>
           Assign
         </button>
       )}
     </div>
   ),
+}));
+
+let mockZones: unknown[] = [];
+vi.mock("../../src/hooks/useZones", () => ({
+  useZones: () => ({ zones: mockZones, isLoading: false, error: null }),
 }));
 
 vi.mock("../../src/components/RadioSearch", () => ({
@@ -169,7 +191,7 @@ vi.mock("../../src/components/SetupBadge", () => ({
   default: () => <span data-testid="setup-badge" />,
 }));
 
-describe("RadioPresets Page", () => {
+describe("Devices Page", () => {
   const mockDevices = [
     {
       device_id: "AABBCC123456",
@@ -187,6 +209,9 @@ describe("RadioPresets Page", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockNowPlayingState = null;
+    mockZones = [];
+    window.localStorage.clear();
 
     // Reset volume hook mock state
     mockVolumeState = { volume: 45, muted: false, loading: false, setDeviceVolume: mockSetDeviceVolume, toggleMute: mockToggleMute };
@@ -209,7 +234,7 @@ describe("RadioPresets Page", () => {
 
   // Helper function to render and wait for initial load to complete
   const renderAndWaitForLoad = async (devices = mockDevices) => {
-    const result = render(<RadioPresets devices={devices} />);
+    const result = render(<Devices devices={devices} />);
     // Wait for any pending state updates from useEffect
     await act(async () => {
       await vi
@@ -238,7 +263,7 @@ describe("RadioPresets Page", () => {
 
     it("should show all 6 preset buttons", async () => {
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       for (let i = 1; i <= 6; i++) {
@@ -248,7 +273,7 @@ describe("RadioPresets Page", () => {
 
     it("should show empty state when no devices available", async () => {
       await act(async () => {
-        render(<RadioPresets devices={[]} />);
+        render(<Devices devices={[]} />);
       });
 
       expect(screen.getByText("No devices found")).toBeInTheDocument();
@@ -259,7 +284,7 @@ describe("RadioPresets Page", () => {
   describe("Preset Assignment Flow", () => {
     it("should open radio search modal when clicking assign button", async () => {
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       const assignButton = screen.getByTestId("preset-1-assign");
@@ -270,7 +295,7 @@ describe("RadioPresets Page", () => {
 
     it("should assign station to preset when selected from search", async () => {
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       // Allow the initial empty-DB auto-sync to finish before assigning.
@@ -297,7 +322,7 @@ describe("RadioPresets Page", () => {
 
     it("should close search modal when clicking close button", async () => {
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       // Open search
@@ -311,7 +336,7 @@ describe("RadioPresets Page", () => {
 
     it("should allow assigning different stations to different presets", async () => {
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       // Allow the initial empty-DB auto-sync to finish before assigning.
@@ -345,7 +370,7 @@ describe("RadioPresets Page", () => {
   describe("Power Button", () => {
     it("refreshes now-playing state after toggling power (#416)", async () => {
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       await act(async () => {
@@ -366,7 +391,7 @@ describe("RadioPresets Page", () => {
   describe("Preset Playback", () => {
     it("should show play button for assigned preset", async () => {
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       // Assign preset first
@@ -409,7 +434,7 @@ describe("RadioPresets Page", () => {
       ]);
 
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       await waitFor(() => {
@@ -449,7 +474,7 @@ describe("RadioPresets Page", () => {
       ]);
 
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       await waitFor(() => {
@@ -478,7 +503,7 @@ describe("RadioPresets Page", () => {
       ]);
 
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       await waitFor(() => {
@@ -506,7 +531,7 @@ describe("RadioPresets Page", () => {
 
     it("should not show delete button for empty preset", async () => {
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       // Open search for empty preset
@@ -520,7 +545,7 @@ describe("RadioPresets Page", () => {
   describe("Device Switching", () => {
     it("should render DeviceSwiper component", async () => {
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       expect(screen.getByTestId("device-swiper")).toBeInTheDocument();
@@ -528,7 +553,7 @@ describe("RadioPresets Page", () => {
 
     it("should update displayed device when swiper index changes", async () => {
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       // Initially shows first device
@@ -548,7 +573,7 @@ describe("RadioPresets Page", () => {
   describe("Volume Control", () => {
     it("should render volume slider", async () => {
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       expect(screen.getByTestId("volume-slider")).toBeInTheDocument();
@@ -557,7 +582,7 @@ describe("RadioPresets Page", () => {
 
     it("should call setDeviceVolume when slider changes", async () => {
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       const volumeInput = screen.getByTestId("volume-input");
@@ -570,7 +595,7 @@ describe("RadioPresets Page", () => {
 
     it("should call toggleMute when mute button clicked", async () => {
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       const muteButton = screen.getByTestId("mute-button");
@@ -614,7 +639,7 @@ describe("RadioPresets Page", () => {
       vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(mockPresets);
 
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       // Should call API with device_id
@@ -631,7 +656,7 @@ describe("RadioPresets Page", () => {
 
     it("should call setPreset API when assigning station", async () => {
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       // Open search and select station
@@ -667,7 +692,7 @@ describe("RadioPresets Page", () => {
       ]);
 
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       await waitFor(() => {
@@ -721,7 +746,7 @@ describe("RadioPresets Page", () => {
         .mockResolvedValueOnce(device2Presets);
 
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       // Wait for device 1 presets to load
@@ -757,7 +782,7 @@ describe("RadioPresets Page", () => {
       vi.mocked(presetsApi.getDevicePresets).mockRejectedValue(new Error("Network error"));
 
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       // Should display error message
@@ -770,7 +795,7 @@ describe("RadioPresets Page", () => {
       vi.mocked(presetsApi.getDevicePresets).mockRejectedValue(new Error("Network error"));
 
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       await waitFor(() => {
@@ -791,7 +816,7 @@ describe("RadioPresets Page", () => {
       vi.mocked(presetsApi.setPreset).mockRejectedValue(new Error("Failed to save preset"));
 
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       // Try to assign preset
@@ -821,7 +846,7 @@ describe("RadioPresets Page", () => {
       vi.mocked(presetsApi.setPreset).mockRejectedValue(new Error("Failed to save preset"));
 
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} />);
+        render(<Devices devices={mockDevices} />);
       });
 
       await waitFor(() => {
@@ -850,7 +875,7 @@ describe("RadioPresets Page", () => {
 
       // Use fake timers to advance past the 500ms debounce
       vi.useFakeTimers();
-      render(<RadioPresets devices={mockDevices} />);
+      render(<Devices devices={mockDevices} />);
 
       // Advance past the 500ms debounce
       await act(async () => {
@@ -880,7 +905,7 @@ describe("RadioPresets Page", () => {
 
       vi.mocked(presetsApi.setPreset).mockReturnValue(setPresetPromise);
 
-      render(<RadioPresets devices={mockDevices} />);
+      render(<Devices devices={mockDevices} />);
 
       // Wait for initial load to complete
       await waitFor(() => {
@@ -918,7 +943,7 @@ describe("RadioPresets Page", () => {
     it("offers the quiet remove button and the dialog says the device is reachable", async () => {
       const onRemoveDevice = vi.fn();
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} onRemoveDevice={onRemoveDevice} />);
+        render(<Devices devices={mockDevices} onRemoveDevice={onRemoveDevice} />);
       });
 
       const button = screen.getByRole("button", { name: /remove device/i });
@@ -946,7 +971,7 @@ describe("RadioPresets Page", () => {
       markDeviceOffline(mockDevices[0]!.device_id);
       const onRemoveDevice = vi.fn();
       await act(async () => {
-        render(<RadioPresets devices={mockDevices} onRemoveDevice={onRemoveDevice} />);
+        render(<Devices devices={mockDevices} onRemoveDevice={onRemoveDevice} />);
       });
       fireEvent.click(screen.getByRole("button", { name: /remove device|delete device/i }));
       return onRemoveDevice;
@@ -979,6 +1004,284 @@ describe("RadioPresets Page", () => {
         expect(deleteDeviceById).toHaveBeenCalledWith(mockDevices[0]!.device_id);
         expect(onRemoveDevice).toHaveBeenCalledWith(mockDevices[0]!.device_id);
       });
+    });
+  });
+
+  describe("Source switch, keys and preset toggle", () => {
+    const presetRows = [
+      { id: 1, device_id: "AABBCC123456", preset_number: 1, station_uuid: "u1", station_name: "SWR3", station_url: "http://a", created_at: "2024-01-01T00:00:00Z", updated_at: "2024-01-01T00:00:00Z" },
+      { id: 2, device_id: "AABBCC123456", preset_number: 2, station_uuid: "u2", station_name: "NDR 2", station_url: "http://b", created_at: "2024-01-01T00:00:00Z", updated_at: "2024-01-01T00:00:00Z" },
+    ];
+    const playing = (source: string, extra: Record<string, unknown> = {}) => ({
+      source,
+      state: "PLAY_STATE",
+      ...extra,
+    });
+    const renderDevices = async () => {
+      await act(async () => {
+        render(<Devices devices={mockDevices} />);
+      });
+    };
+
+    it("shows three source buttons and presses the one the device plays", async () => {
+      mockNowPlayingState = playing("BLUETOOTH", { station_name: "iPhone" });
+      await renderDevices();
+
+      expect(screen.getByRole("button", { name: "Bluetooth" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("button", { name: "Presets" })).toHaveAttribute("aria-pressed", "false");
+    });
+
+    it("switches to AUX through the backend and refreshes now playing", async () => {
+      mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
+      await renderDevices();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "AUX" }));
+      });
+
+      await waitFor(() => {
+        expect(devicesApi.selectSource).toHaveBeenCalledWith("AABBCC123456", "AUX");
+      });
+      expect(mockRefreshNowPlaying).toHaveBeenCalled();
+    });
+
+    it("shows the header text Switching... while the switch runs", async () => {
+      mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
+      let finish: () => void = () => {};
+      vi.mocked(devicesApi.selectSource).mockImplementationOnce(
+        () => new Promise<void>((resolve) => { finish = resolve; })
+      );
+      await renderDevices();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Bluetooth" }));
+      });
+      expect(screen.getByTestId("np-label")).toHaveTextContent("Switching to Bluetooth…");
+      expect(screen.getByRole("button", { name: "Bluetooth" })).toHaveAttribute("aria-busy", "true");
+
+      await act(async () => {
+        finish();
+      });
+      expect(screen.getByTestId("np-label")).toHaveTextContent("");
+    });
+
+    it("shows an alert with retry when the switch fails and the old source stays", async () => {
+      mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
+      vi.mocked(devicesApi.selectSource).mockRejectedValueOnce(new Error("offline"));
+      await renderDevices();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "AUX" }));
+      });
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Switching to AUX failed. The device is not responding."
+      );
+      expect(screen.getByRole("button", { name: "Presets" })).toHaveAttribute("aria-pressed", "true");
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+      });
+      expect(devicesApi.selectSource).toHaveBeenCalledTimes(2);
+      await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+    });
+
+    it("Presets plays the preset this device played last", async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(presetRows);
+      window.localStorage.setItem("oct.lastPreset.AABBCC123456", "2");
+      mockNowPlayingState = playing("BLUETOOTH", { station_name: "iPhone" });
+      await renderDevices();
+      await waitFor(() => expect(screen.getByTestId("preset-2-name")).toBeInTheDocument());
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Presets" }));
+      });
+
+      await waitFor(() => {
+        expect(devicesApi.playPreset).toHaveBeenCalledWith("AABBCC123456", 2);
+      });
+    });
+
+    it("Presets falls back to the first saved preset when none was played yet", async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue([presetRows[1]!]);
+      mockNowPlayingState = playing("AUX");
+      await renderDevices();
+      await waitFor(() => expect(screen.getByTestId("preset-2-name")).toBeInTheDocument());
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Presets" }));
+      });
+
+      await waitFor(() => {
+        expect(devicesApi.playPreset).toHaveBeenCalledWith("AABBCC123456", 2);
+      });
+    });
+
+    it("Presets tells the user when no preset is saved and starts nothing", async () => {
+      mockNowPlayingState = playing("BLUETOOTH", { station_name: "iPhone" });
+      await renderDevices();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Presets" }));
+      });
+
+      expect(mockShowToast).toHaveBeenCalledWith(
+        "No preset is saved yet. Assign a station to a preset first.",
+        "warning"
+      );
+      expect(devicesApi.playPreset).not.toHaveBeenCalled();
+    });
+
+    it("remembers a preset that is playing as the last one", async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(presetRows);
+      mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "NDR 2" });
+      await renderDevices();
+
+      await waitFor(() => {
+        expect(window.localStorage.getItem("oct.lastPreset.AABBCC123456")).toBe("2");
+      });
+    });
+
+    it("a preset row toggles: start, pause, resume", async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(presetRows);
+      await renderDevices();
+      await waitFor(() => expect(screen.getByTestId("preset-1-play")).toBeInTheDocument());
+
+      // idle: starts the preset
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("preset-1-play"));
+      });
+      expect(devicesApi.playPreset).toHaveBeenCalledWith("AABBCC123456", 1);
+      expect(devicesApi.togglePlayPause).not.toHaveBeenCalled();
+    });
+
+    it("pauses a running preset with the play/pause key instead of restarting it", async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(presetRows);
+      mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
+      await renderDevices();
+      await waitFor(() => expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "playing"));
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("preset-1-play"));
+      });
+
+      expect(devicesApi.togglePlayPause).toHaveBeenCalledWith("AABBCC123456");
+      expect(devicesApi.playPreset).not.toHaveBeenCalled();
+    });
+
+    it("resumes a paused preset", async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(presetRows);
+      mockNowPlayingState = { source: "INTERNET_RADIO", state: "PAUSE_STATE", station_name: "SWR3" };
+      await renderDevices();
+      await waitFor(() => expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "paused"));
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("preset-1-play"));
+      });
+
+      expect(devicesApi.togglePlayPause).toHaveBeenCalledTimes(1);
+      expect(devicesApi.playPreset).not.toHaveBeenCalled();
+    });
+
+    it("marks a preset as failed when the start fails and announces it", async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(presetRows);
+      vi.mocked(devicesApi.playPreset).mockRejectedValueOnce(new Error("nope"));
+      await renderDevices();
+      await waitFor(() => expect(screen.getByTestId("preset-1-play")).toBeInTheDocument());
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("preset-1-play"));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("preset-1-play")).toHaveAttribute("data-state", "failed");
+      });
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Preset 1 (SWR3) could not be started. Tap it to try again."
+      );
+    });
+
+    it("shows previous and next for Bluetooth and sends the keys", async () => {
+      mockNowPlayingState = playing("BLUETOOTH", { station_name: "iPhone" });
+      await renderDevices();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Next track" }));
+      });
+      expect(devicesApi.nextTrack).toHaveBeenCalledWith("AABBCC123456");
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Previous track" }));
+      });
+      expect(devicesApi.prevTrack).toHaveBeenCalledWith("AABBCC123456");
+    });
+
+    it("shows no previous/next for radio, and a note instead of keys for AUX", async () => {
+      mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
+      const { unmount } = render(<Devices devices={mockDevices} />);
+      expect(screen.queryByRole("button", { name: "Next track" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
+      unmount();
+
+      mockNowPlayingState = playing("AUX");
+      render(<Devices devices={mockDevices} />);
+      expect(
+        screen.getByText("Playback is controlled on the connected device.")
+      ).toBeInTheDocument();
+    });
+
+    it("locks source and keys in standby", async () => {
+      mockNowPlayingState = { source: "STANDBY", state: "STOP_STATE" };
+      await renderDevices();
+
+      expect(screen.getByText("Device on standby. Switch it on to listen.")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Play" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "AUX" })).toHaveAttribute("aria-disabled", "true");
+      expect(document.querySelector("[inert]")).not.toBeNull();
+    });
+
+    it("keeps the presets editable in standby (assigning a station only touches the database)", async () => {
+      vi.mocked(presetsApi.getDevicePresets).mockResolvedValue(presetRows);
+      mockNowPlayingState = { source: "STANDBY", state: "STOP_STATE" };
+      await renderDevices();
+      await waitFor(() => expect(screen.getByTestId("preset-1-change")).toBeInTheDocument());
+
+      expect(screen.getByTestId("preset-1-change").closest("[inert]")).toBeNull();
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("preset-3-assign"));
+      });
+      expect(screen.getByTestId("radio-search-modal")).toBeInTheDocument();
+    });
+
+    it("a zone member cannot change the source and says why", async () => {
+      mockZones = [
+        {
+          master_id: "MASTER",
+          members: [
+            { device_id: "MASTER", role: "master", name: "Wohnzimmer" },
+            { device_id: "AABBCC123456", role: "slave" },
+          ],
+        },
+      ];
+      mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
+      await renderDevices();
+
+      const aux = screen.getByRole("button", { name: "AUX" });
+      expect(aux).toHaveAttribute("aria-disabled", "true");
+      expect(aux).toHaveAttribute("aria-describedby", "dv-slave-hint");
+      expect(document.getElementById("dv-slave-hint")).toHaveTextContent(
+        "The source is set by master Wohnzimmer."
+      );
+      expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
+    });
+
+    it("shows no player, presets or volume for an offline device", async () => {
+      markDeviceOffline("AABBCC123456");
+      await renderDevices();
+
+      expect(screen.queryByTestId("now-playing")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("preset-list")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("volume-slider")).not.toBeInTheDocument();
     });
   });
 });

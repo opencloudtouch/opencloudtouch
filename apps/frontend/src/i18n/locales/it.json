@@ -31,17 +31,12 @@
     "play": "Riproduci",
     "pause": "Pausa",
     "noStation": "Nessuna stazione",
-    "noDevices": "Nessun dispositivo trovato",
     "powerButton": "Accendi/Spegni",
-    "localControl": "Controllo locale",
-    "sourceTitle": "Fonte",
     "playbackTitle": "Riproduzione",
     "prevTrack": "Traccia precedente",
     "nextTrack": "Traccia successiva",
     "muteOn": "Riattiva audio",
     "muteOff": "Disattiva audio",
-    "manageZone": "Gestisci zona",
-    "multiRoom": "Multi-stanza",
     "prevDevice": "Dispositivo precedente",
     "nextDevice": "Dispositivo successivo",
     "source": {
@@ -56,24 +51,16 @@
       "pandora": "Pandora",
       "amazon": "Amazon Music",
       "storedMusic": "Libreria multimediale"
-    },
-    "unknownDevice": "Dispositivo sconosciuto",
-    "zoneBadgeMember": "Zona",
-    "zoneTitle": "Zona: {{role}}"
+    }
   },
   "presets": {
-    "pageTitle": "Preset radio",
-    "empty": "Nessun preset configurato",
-    "playPreset": "Riproduci preset {{name}}",
     "presetSaved": "Preset {{number}} salvato.",
     "presetDeleted": "Preset {{number}} eliminato.",
-    "playFailed": "Impossibile riprodurre il preset. Riprovare.",
     "noDevices": "Nessun dispositivo trovato",
     "syncedFromDevice": "Preset caricati con successo dal dispositivo.",
     "savedStations": "Stazioni salvate",
     "syncFromDevice": "Carica dal dispositivo",
     "syncFromDeviceSyncing": "Sync...",
-    "deviceOffline": "Dispositivo offline",
     "syncFromDeviceTitle": "Sincronizza preset dal dispositivo",
     "infoTitle": "Note sui preset",
     "infoItem1": "Clicca su un preset vuoto per assegnare una stazione",
@@ -81,7 +68,6 @@
     "infoItem3": "Il pulsante di riproduzione a destra del preset avvia direttamente la stazione",
     "infoItem5": "L'icona di stato in alto a destra nella scheda del dispositivo apre la procedura guidata di configurazione del dispositivo",
     "infoItem6": "\"Carica dal dispositivo\" sincronizza i preset da SoundTouch",
-    "changeStation": "Clicca per cambiare stazione",
     "assignPreset": "Assegna preset",
     "searchClose": "Chiudi ricerca",
     "searchLoading": "Ricerca...",
@@ -914,5 +900,30 @@
     "codec": "Codec",
     "bitrate": "Bitrate",
     "homepage": "Sito web"
+  },
+  "device": {
+    "sourceChoose": "Scegli la sorgente",
+    "sourceSwitching": "Passaggio a {{source}}…",
+    "sourceSwitched": "Sorgente cambiata: {{source}}",
+    "sourceFailed": "Il passaggio a {{source}} non è riuscito. Il dispositivo non risponde.",
+    "sourceRetry": "Riprova",
+    "slaveHint": "La sorgente è impostata dal master {{master}}.",
+    "standbyTitle": "Standby",
+    "standbyHint": "Dispositivo in standby. Accendilo per ascoltare.",
+    "noControl": "La riproduzione si controlla sul dispositivo collegato.",
+    "presetPlay": "Riproduci il preset {{n}}: {{name}}",
+    "presetPause": "Metti in pausa il preset {{n}}: {{name}}",
+    "presetChange": "Cambia la stazione del preset {{n}}",
+    "prRunning": "In riproduzione",
+    "prPaused": "In pausa",
+    "prStarting": "Avvio…",
+    "prFailed": "Avvio non riuscito",
+    "presetStarted": "{{name}} è in riproduzione (preset {{n}})",
+    "presetPausedAnn": "{{name}} in pausa",
+    "presetFailedAnn": "Impossibile avviare il preset {{n}} ({{name}}). Tocca di nuovo per riprovare.",
+    "noPresetToStart": "Nessun preset salvato. Assegna prima una stazione a un preset.",
+    "src": {
+      "presets": "Preset"
+    }
   }
 }

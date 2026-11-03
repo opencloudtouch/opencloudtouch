@@ -31,17 +31,12 @@
     "play": "Lecture",
     "pause": "Pause",
     "noStation": "Aucune station",
-    "noDevices": "Aucun appareil trouvé",
     "powerButton": "Marche/Arrêt",
-    "localControl": "Contrôle local",
-    "sourceTitle": "Source",
     "playbackTitle": "Lecture",
     "prevTrack": "Piste précédente",
     "nextTrack": "Piste suivante",
     "muteOn": "Réactiver le son",
     "muteOff": "Couper le son",
-    "manageZone": "Gérer la zone",
-    "multiRoom": "Multi-pièces",
     "prevDevice": "Appareil précédent",
     "nextDevice": "Appareil suivant",
     "source": {
@@ -56,24 +51,16 @@
       "pandora": "Pandora",
       "amazon": "Amazon Music",
       "storedMusic": "Médiathèque"
-    },
-    "unknownDevice": "Appareil inconnu",
-    "zoneBadgeMember": "Zone",
-    "zoneTitle": "Zone : {{role}}"
+    }
   },
   "presets": {
-    "pageTitle": "Préréglages radio",
-    "empty": "Aucun préréglage configuré",
-    "playPreset": "Lire le préréglage {{name}}",
     "presetSaved": "Préréglage {{number}} enregistré.",
     "presetDeleted": "Préréglage {{number}} supprimé.",
-    "playFailed": "Le préréglage n'a pas pu être lu. Veuillez réessayer.",
     "noDevices": "Aucun appareil trouvé",
     "syncedFromDevice": "Préréglages chargés avec succès depuis l'appareil.",
     "savedStations": "Stations enregistrées",
     "syncFromDevice": "Charger depuis l'appareil",
     "syncFromDeviceSyncing": "Sync...",
-    "deviceOffline": "Appareil hors ligne",
     "syncFromDeviceTitle": "Synchroniser les préréglages depuis l'appareil",
     "infoTitle": "Notes sur les préréglages",
     "infoItem1": "Cliquez sur un préréglage vide pour attribuer une station",
@@ -81,7 +68,6 @@
     "infoItem3": "Le bouton de lecture à droite du preset lance directement la station",
     "infoItem5": "L'icône d'état en haut à droite de la carte de l'appareil ouvre l'assistant de configuration de l'appareil",
     "infoItem6": "\"Charger depuis l'appareil\" synchronise les préréglages depuis SoundTouch",
-    "changeStation": "Cliquer pour changer de station",
     "assignPreset": "Attribuer un préréglage",
     "searchClose": "Fermer la recherche",
     "searchLoading": "Recherche...",
@@ -914,5 +900,30 @@
     "codec": "Codec",
     "bitrate": "Débit",
     "homepage": "Site web"
+  },
+  "device": {
+    "sourceChoose": "Choisir la source",
+    "sourceSwitching": "Passage à {{source}}…",
+    "sourceSwitched": "Source changée : {{source}}",
+    "sourceFailed": "Le passage à {{source}} a échoué. L'appareil ne répond pas.",
+    "sourceRetry": "Réessayer",
+    "slaveHint": "La source est définie par le maître {{master}}.",
+    "standbyTitle": "Veille",
+    "standbyHint": "Appareil en veille. Allumez-le pour écouter.",
+    "noControl": "La lecture se commande sur l'appareil connecté.",
+    "presetPlay": "Lire le préréglage {{n}} : {{name}}",
+    "presetPause": "Mettre en pause le préréglage {{n}} : {{name}}",
+    "presetChange": "Changer la station du préréglage {{n}}",
+    "prRunning": "En lecture",
+    "prPaused": "En pause",
+    "prStarting": "Démarrage…",
+    "prFailed": "Échec du démarrage",
+    "presetStarted": "{{name}} est en lecture (préréglage {{n}})",
+    "presetPausedAnn": "{{name}} en pause",
+    "presetFailedAnn": "Le préréglage {{n}} ({{name}}) n'a pas pu démarrer. Touchez-le pour réessayer.",
+    "noPresetToStart": "Aucun préréglage enregistré. Attribuez d'abord une station à un préréglage.",
+    "src": {
+      "presets": "Préréglages"
+    }
   }
 }

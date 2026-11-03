@@ -78,14 +78,14 @@ describe("Preset Search Modal — layout", () => {
 
   it("modal is rendered as a native modal dialog with an accessible name", () => {
     // Click an empty preset slot to open the search modal
-    cy.get(".pb-empty").first().click();
+    cy.get(".pr--empty .pr-main").first().click();
     cy.get("dialog.dlg[open]").should("have.attr", "open");
     cy.get("dialog.dlg").should("have.attr", "aria-labelledby", "rs-title");
     cy.get("#rs-title").should("be.visible");
   });
 
   it("modal overlay has correct flexbox centering styles", () => {
-    cy.get(".pb-empty").first().click();
+    cy.get(".pr--empty .pr-main").first().click();
     cy.get(".dlg-overlay").should("exist").then(($overlay) => {
       const styles = window.getComputedStyle($overlay[0]);
       expect(styles.display).to.equal("flex");
@@ -95,7 +95,7 @@ describe("Preset Search Modal — layout", () => {
   });
 
   it("modal is visually centered (left edge > 0)", () => {
-    cy.get(".pb-empty").first().click();
+    cy.get(".pr--empty .pr-main").first().click();
     cy.get(".dlg-panel").should("exist").then(($modal) => {
       const rect = $modal[0].getBoundingClientRect();
       // Must not be at the very left edge
@@ -106,14 +106,14 @@ describe("Preset Search Modal — layout", () => {
   });
 
   it("modal closes on overlay click", () => {
-    cy.get(".pb-empty").first().click();
+    cy.get(".pr--empty .pr-main").first().click();
     cy.get("dialog.dlg").should("exist");
     cy.get(".dlg-overlay").click("topLeft");
     cy.get("dialog.dlg").should("not.exist");
   });
 
   it("modal closes on Escape key", () => {
-    cy.get(".pb-empty").first().click();
+    cy.get(".pr--empty .pr-main").first().click();
     cy.get("dialog.dlg").should("exist");
     // Chrome ignores synthetic Esc key events on a native <dialog>, so fire the event it would dispatch itself
     cy.get("dialog.dlg").then(($dialog) => {

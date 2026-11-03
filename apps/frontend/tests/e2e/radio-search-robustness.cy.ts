@@ -40,11 +40,11 @@ describe("Radio Search Robustness", () => {
       cy.wrap(_deviceId).as("deviceId");
     });
 
-    // Navigate to Radio Presets page
-    cy.contains("Radio Presets").click();
+    // Navigate to the Devices page
+    cy.contains("a.nav-link", /Devices|Geräte/).click();
 
     // Open search modal by clicking preset 1 (empty)
-    cy.get(".pb-empty", { timeout: 10000 }).first().scrollIntoView().should("be.visible").click();
+    cy.get(".pr--empty .pr-main", { timeout: 10000 }).first().scrollIntoView().should("be.visible").click();
     cy.get("dialog.dlg", { timeout: 10000 }).should("be.visible");
   });
 

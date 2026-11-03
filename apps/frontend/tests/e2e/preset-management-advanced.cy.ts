@@ -86,8 +86,8 @@ describe("Preset Management Advanced", () => {
       });
     });
 
-    // Navigate to Radio Presets
-    cy.contains("Radio Presets").click();
+    // Navigate to the Devices page
+    cy.contains("a.nav-link", /Devices|Geräte/).click();
     waitForPresetsReady();
   });
 
@@ -97,14 +97,14 @@ describe("Preset Management Advanced", () => {
       waitForPresetsReady();
 
       // Get the first empty preset slot's number for later verification
-      cy.get(".pb-empty")
+      cy.get(".pr--empty .pr-main")
         .first()
         .invoke("attr", "data-testid")
         .then((testId) => {
           const slotNumber = testId?.split("-")[2] || "1";
 
           // Click the first empty slot
-          cy.get(".pb-empty").first().scrollIntoView().click({ force: true });
+          cy.get(".pr--empty .pr-main").first().scrollIntoView().click({ force: true });
           cy.get("dialog.dlg", { timeout: 10000 }).should("be.visible");
 
           // Search and select
@@ -138,11 +138,11 @@ describe("Preset Management Advanced", () => {
       // Reload to see preset
       cy.reload();
       waitForPresetsReady();
-      cy.contains(".rp-grid [data-testid^='preset-play-']", stationA.name, { timeout: 10000 }).should("exist");
-      cy.get(".rp-grid [data-testid^='preset-play-']").eq(0).should("contain", stationA.name);
+      cy.contains(".pr-list [data-testid^='preset-play-']", stationA.name, { timeout: 10000 }).should("exist");
+      cy.get(".pr-list [data-testid^='preset-play-']").eq(0).should("contain", stationA.name);
 
       // Clear preset: click filled preset to open modal, then click delete
-      cy.get('[data-testid="preset-play-2"]').click({ force: true });
+      cy.get('[data-testid="preset-change-2"]').click({ force: true });
       cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible').click();
 
       // Confirm deletion via ConfirmDialog
@@ -167,7 +167,7 @@ describe("Preset Management Advanced", () => {
       waitForPresetsReady();
 
       // Clear preset 3: click filled preset to open modal, then click delete
-      cy.get('[data-testid="preset-play-3"]').click({ force: true });
+      cy.get('[data-testid="preset-change-3"]').click({ force: true });
       cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible').click();
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
 
@@ -208,7 +208,7 @@ describe("Preset Management Advanced", () => {
         .and("contain", stationA.name);
 
       // Clear preset first: click filled preset to open modal, then click delete
-      cy.get('[data-testid="preset-play-4"]').click({ force: true });
+      cy.get('[data-testid="preset-change-4"]').click({ force: true });
       cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible').click();
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
       waitForPresetsReady();
@@ -235,7 +235,7 @@ describe("Preset Management Advanced", () => {
       stations.forEach((station, index) => {
         if (index > 0) {
           // Clear previous preset: click filled preset to open modal, then click delete
-          cy.get(`[data-testid="preset-play-${presetNumber}"]`).click({ force: true });
+          cy.get(`[data-testid="preset-change-${presetNumber}"]`).click({ force: true });
           cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible').click();
           cy.get('[data-testid="confirm-dialog-confirm"]').click();
           waitForPresetsReady();
@@ -276,14 +276,14 @@ describe("Preset Management Advanced", () => {
       cy.reload();
 
       // Attempt to overwrite by clearing first: click filled preset to open modal, then click delete
-      cy.get('[data-testid="preset-play-6"]').click({ force: true });
+      cy.get('[data-testid="preset-change-6"]').click({ force: true });
       cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible').click();
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
 
       waitForPresetsReady();
 
       // Now reassign
-      cy.get(".pb-empty").eq(5).scrollIntoView().click({ force: true });
+      cy.get(".pr--empty .pr-main").eq(5).scrollIntoView().click({ force: true });
       cy.get("dialog.dlg").should("be.visible");
     });
   });
@@ -291,7 +291,7 @@ describe("Preset Management Advanced", () => {
   describe("Preset Button States & UI", () => {
     it("should show different UI for empty vs filled preset", () => {
       // Empty preset (Preset 1)
-      cy.get(".pb-empty")
+      cy.get(".pr--empty .pr-main")
         .first()
         .within(() => {
           // Should show "Zuweisen" or "+" or similar
@@ -332,7 +332,7 @@ describe("Preset Management Advanced", () => {
         .and("contain", stationA.name);
 
       // Should have delete option accessible via modal
-      cy.get('[data-testid="preset-play-3"]').click({ force: true });
+      cy.get('[data-testid="preset-change-3"]').click({ force: true });
       cy.get('dialog.dlg', { timeout: 10000 }).should('be.visible');
       cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible');
       // Close modal without deleting (Escape): Chrome ignores synthetic keys on a native <dialog>, so fire its cancel event
@@ -354,7 +354,7 @@ describe("Preset Management Advanced", () => {
       }).as("slowSetPreset");
 
       // Start preset assignment
-      cy.get(".pb-empty").first().scrollIntoView().should("be.visible").click();
+      cy.get(".pr--empty .pr-main").first().scrollIntoView().should("be.visible").click();
       cy.get("dialog.dlg", { timeout: 10000 }).should("be.visible");
       cy.get(".rs-search").type("BBC");
       cy.get(".rs-results", { timeout: 10000 }).should("be.visible");
@@ -465,7 +465,7 @@ describe("Preset Management Advanced", () => {
         body: { detail: "Database error" },
       }).as("setPresetFail");
 
-      cy.get(".pb-empty").first().scrollIntoView().should("be.visible").click();
+      cy.get(".pr--empty .pr-main").first().scrollIntoView().should("be.visible").click();
       cy.get("dialog.dlg", { timeout: 10000 }).should("be.visible");
       cy.get(".rs-search").type("BBC");
       cy.get(".rs-results", { timeout: 10000 }).should("be.visible");
@@ -500,7 +500,7 @@ describe("Preset Management Advanced", () => {
         body: { detail: "Delete failed" },
       }).as("clearPresetFail");
 
-      cy.get('[data-testid="preset-play-2"]').click({ force: true });
+      cy.get('[data-testid="preset-change-2"]').click({ force: true });
       cy.get('.rs-delete-btn', { timeout: 10000 }).should('be.visible').click();
       cy.get('[data-testid="confirm-dialog-confirm"]').click();
       cy.wait("@clearPresetFail");
@@ -519,7 +519,7 @@ describe("Preset Management Advanced", () => {
         body: { detail: "Invalid data" },
       }).as("setPresetFail");
 
-      cy.get(".pb-empty").first().scrollIntoView().should("be.visible").click();
+      cy.get(".pr--empty .pr-main").first().scrollIntoView().should("be.visible").click();
       cy.get("dialog.dlg", { timeout: 10000 }).should("be.visible");
       cy.get(".rs-search").type("BBC");
       cy.get(".rs-results", { timeout: 10000 }).should("be.visible");

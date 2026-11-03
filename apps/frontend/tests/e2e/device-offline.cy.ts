@@ -126,36 +126,36 @@ describe("Device Offline Display", () => {
   });
 
   describe("Controls Hidden When Offline", () => {
-    // Tests in this block navigate to /local (LocalControl) because lc-volume,
-    // lc-source, and lc-playback only exist there.
+    // The device card on the Devices page hides volume, keys, source switch and presets for an offline device.
     // Intercepts are registered BEFORE cy.visit so the very first mount request hits them.
 
     it("should hide volume, source, and playback controls when device is offline", () => {
       cy.intercept("GET", "/api/devices/*/now-playing", { statusCode: 503 }).as("nowPlaying503");
       cy.intercept("GET", "/api/devices/*/volume", { statusCode: 503 }).as("volume503");
 
-      visitDe("/local");
+      visitDe("/");
       cy.wait("@nowPlaying503", { timeout: 10000 });
 
       cy.get('[data-testid="device-offline-banner"]', { timeout: 10000 }).should("be.visible");
 
       // Controls should NOT be visible when device is offline
-      cy.get('[data-test="lc-volume"]').should("not.exist");
-      cy.get('[data-test="lc-source"]').should("not.exist");
-      cy.get('[data-test="lc-playback"]').should("not.exist");
+      cy.get('[data-test="dv-volume"]').should("not.exist");
+      cy.get('[data-test="dv-keys"]').should("not.exist");
+      cy.get('[data-testid="source-presets"]').should("not.exist");
+      cy.get('[data-test="dv-presets"]').should("not.exist");
     });
 
     it("should keep device header visible when offline", () => {
       cy.intercept("GET", "/api/devices/*/now-playing", { statusCode: 503 }).as("nowPlaying503");
       cy.intercept("GET", "/api/devices/*/volume", { statusCode: 503 }).as("volume503");
 
-      visitDe("/local");
+      visitDe("/");
       cy.wait("@nowPlaying503", { timeout: 10000 });
 
       cy.get('[data-testid="device-offline-banner"]', { timeout: 10000 }).should("be.visible");
 
       // Device header (name, power button) must remain visible even when offline
-      cy.get(".lc-head").should("be.visible");
+      cy.get(".rp-card-head").should("be.visible");
       cy.get('[data-test="device-name"]').should("be.visible");
     });
   });
@@ -197,11 +197,11 @@ describe("Device Offline Display", () => {
       cy.intercept("GET", "/api/devices/*/now-playing", { statusCode: 503 }).as("nowPlaying503");
       cy.intercept("GET", "/api/devices/*/volume", { statusCode: 503 }).as("volume503");
 
-      visitDe("/local");
+      visitDe("/");
       cy.wait("@nowPlaying503", { timeout: 10000 });
 
       cy.get('[data-testid="device-offline-banner"]', { timeout: 10000 }).should("be.visible");
-      cy.get('[data-test="lc-volume"]').should("not.exist");
+      cy.get('[data-test="dv-volume"]').should("not.exist");
 
       // Phase 2: recovery — override intercepts to return 200 (device back online), then reload.
       // cy.reload() resets the JS module context, so offlineDeviceStore clears.
@@ -217,7 +217,7 @@ describe("Device Offline Display", () => {
       }).as("volumeOnline");
       cy.reload();
 
-      cy.get('[data-test="lc-volume"]', { timeout: 15000 }).should("be.visible");
+      cy.get('[data-test="dv-volume"]', { timeout: 15000 }).should("be.visible");
       cy.get('[data-testid="device-offline-banner"]').should("not.exist");
     });
   });

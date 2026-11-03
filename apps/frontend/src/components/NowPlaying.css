@@ -68,27 +68,6 @@
   height: 100%;
   object-fit: cover;
 }
-.np-play-overlay {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.72);
-  border: 2px solid #fff;
-  color: #fff;
-  transition: background var(--motion-base);
-}
-.np-play-overlay:hover {
-  background: var(--color-accent);
-}
-.np-play-overlay svg {
-  fill: currentColor;
-}
 .np-info {
   display: grid;
   grid-template-rows: var(--np-track-h) var(--np-artist-h); /* two fixed slots: nothing moves when track / artist arrive, and a late track does not shift an artist */
@@ -142,12 +121,19 @@
     text-overflow: ellipsis;
     animation: none;
   }
-  .np-play-overlay {
-    transition: none;
-  }
+}
+
+/* no cover (AUX, Bluetooth without art): same square, source icon in a quiet tile */
+.np-art--none {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  color: var(--color-text-secondary);
 }
 @media (forced-colors: active) {
-  .np-play-overlay {
-    border-color: ButtonText;
+  .np-art--none {
+    border-color: CanvasText;
   }
 }

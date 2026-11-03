@@ -31,17 +31,12 @@
     "play": "Afspelen",
     "pause": "Pauzeren",
     "noStation": "Geen station",
-    "noDevices": "Geen apparaten gevonden",
     "powerButton": "Aan/uit",
-    "localControl": "Lokale bediening",
-    "sourceTitle": "Bron",
     "playbackTitle": "Weergave",
     "prevTrack": "Vorig nummer",
     "nextTrack": "Volgend nummer",
     "muteOn": "Geluid aan",
     "muteOff": "Dempen",
-    "manageZone": "Zone beheren",
-    "multiRoom": "Meerkamers",
     "prevDevice": "Vorig apparaat",
     "nextDevice": "Volgend apparaat",
     "source": {
@@ -56,24 +51,16 @@
       "pandora": "Pandora",
       "amazon": "Amazon Music",
       "storedMusic": "Mediabibliotheek"
-    },
-    "unknownDevice": "Onbekend apparaat",
-    "zoneBadgeMember": "Zone",
-    "zoneTitle": "Zone: {{role}}"
+    }
   },
   "presets": {
-    "pageTitle": "Radio Presets",
-    "empty": "Geen presets geconfigureerd",
-    "playPreset": "Preset {{name}} afspelen",
     "presetSaved": "Preset {{number}} opgeslagen.",
     "presetDeleted": "Preset {{number}} verwijderd.",
-    "playFailed": "Preset kon niet worden afgespeeld. Probeer het opnieuw.",
     "noDevices": "Geen apparaten gevonden",
     "syncedFromDevice": "Presets succesvol geladen van apparaat.",
     "savedStations": "Opgeslagen stations",
     "syncFromDevice": "Laden van apparaat",
     "syncFromDeviceSyncing": "Synchroniseren...",
-    "deviceOffline": "Apparaat offline",
     "syncFromDeviceTitle": "Presets synchroniseren van apparaat",
     "infoTitle": "Preset notities",
     "infoItem1": "Klik op een lege preset om een station toe te wijzen",
@@ -81,7 +68,6 @@
     "infoItem3": "De afspeelknop rechts van een preset speelt de zender direct af",
     "infoItem5": "Het statuspictogram rechtsboven op de apparaatkaart opent de installatiewizard voor het apparaat",
     "infoItem6": "\"Laden van apparaat\" synchroniseert presets van SoundTouch",
-    "changeStation": "Klik om station te wijzigen",
     "assignPreset": "Preset toewijzen",
     "searchClose": "Zoeken sluiten",
     "searchLoading": "Zoeken...",
@@ -914,5 +900,30 @@
     "codec": "Codec",
     "bitrate": "Bitrate",
     "homepage": "Website"
+  },
+  "device": {
+    "sourceChoose": "Bron kiezen",
+    "sourceSwitching": "Overschakelen naar {{source}}…",
+    "sourceSwitched": "Bron gewijzigd: {{source}}",
+    "sourceFailed": "Overschakelen naar {{source}} is mislukt. Het apparaat reageert niet.",
+    "sourceRetry": "Opnieuw proberen",
+    "slaveHint": "De bron wordt bepaald door master {{master}}.",
+    "standbyTitle": "Stand-by",
+    "standbyHint": "Apparaat in stand-by. Zet het aan om te luisteren.",
+    "noControl": "Afspelen wordt bediend op het aangesloten apparaat.",
+    "presetPlay": "Preset {{n}} afspelen: {{name}}",
+    "presetPause": "Preset {{n}} pauzeren: {{name}}",
+    "presetChange": "Zender voor preset {{n}} wijzigen",
+    "prRunning": "Speelt",
+    "prPaused": "Gepauzeerd",
+    "prStarting": "Starten…",
+    "prFailed": "Starten mislukt",
+    "presetStarted": "{{name}} speelt (preset {{n}})",
+    "presetPausedAnn": "{{name}} gepauzeerd",
+    "presetFailedAnn": "Preset {{n}} ({{name}}) kon niet worden gestart. Tik opnieuw om het nog eens te proberen.",
+    "noPresetToStart": "Er is nog geen preset opgeslagen. Wijs eerst een zender toe aan een preset.",
+    "src": {
+      "presets": "Presets"
+    }
   }
 }

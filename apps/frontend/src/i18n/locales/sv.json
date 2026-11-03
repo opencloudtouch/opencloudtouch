@@ -31,17 +31,12 @@
     "play": "Spela",
     "pause": "Pausa",
     "noStation": "Ingen station",
-    "noDevices": "Inga enheter hittades",
     "powerButton": "Slå på/av",
-    "localControl": "Lokal kontroll",
-    "sourceTitle": "Källa",
     "playbackTitle": "Uppspelning",
     "prevTrack": "Föregående spår",
     "nextTrack": "Nästa spår",
     "muteOn": "Slå på ljud",
     "muteOff": "Tysta",
-    "manageZone": "Hantera zon",
-    "multiRoom": "Flera rum",
     "prevDevice": "Föregående enhet",
     "nextDevice": "Nästa enhet",
     "source": {
@@ -56,24 +51,16 @@
       "pandora": "Pandora",
       "amazon": "Amazon Music",
       "storedMusic": "Mediebibliotek"
-    },
-    "unknownDevice": "Okänd enhet",
-    "zoneBadgeMember": "Zon",
-    "zoneTitle": "Zon: {{role}}"
+    }
   },
   "presets": {
-    "pageTitle": "Radioförinställningar",
-    "empty": "Inga förinställningar konfigurerade",
-    "playPreset": "Spela förinställning {{name}}",
     "presetSaved": "Förinställning {{number}} sparad.",
     "presetDeleted": "Förinställning {{number}} borttagen.",
-    "playFailed": "Det gick inte att spela förinställningen. Försök igen.",
     "noDevices": "Inga enheter hittades",
     "syncedFromDevice": "Förinställningar hämtade från enheten.",
     "savedStations": "Sparade stationer",
     "syncFromDevice": "Hämta från enhet",
     "syncFromDeviceSyncing": "Synkroniserar...",
-    "deviceOffline": "Enhet offline",
     "syncFromDeviceTitle": "Synkronisera förinställningar från enhet",
     "infoTitle": "Om förinställningar",
     "infoItem1": "Klicka på en tom förinställning för att tilldela en station",
@@ -81,7 +68,6 @@
     "infoItem3": "Uppspelningsknappen till höger om en förinställning spelar stationen direkt",
     "infoItem5": "Statusikonen uppe till höger på enhetskortet öppnar installationsguiden för enheten",
     "infoItem6": "\"Hämta från enhet\" synkroniserar förinställningar från SoundTouch",
-    "changeStation": "Klicka för att byta station",
     "assignPreset": "Tilldela förinställning",
     "searchClose": "Stäng sökning",
     "searchLoading": "Söker...",
@@ -914,5 +900,30 @@
     "codec": "Codec",
     "bitrate": "Bitrate",
     "homepage": "Hemsida"
+  },
+  "device": {
+    "sourceChoose": "Välj källa",
+    "sourceSwitching": "Byter till {{source}}…",
+    "sourceSwitched": "Källa ändrad: {{source}}",
+    "sourceFailed": "Det gick inte att byta till {{source}}. Enheten svarar inte.",
+    "sourceRetry": "Försök igen",
+    "slaveHint": "Källan styrs av master {{master}}.",
+    "standbyTitle": "Standby",
+    "standbyHint": "Enheten är i standby. Slå på den för att lyssna.",
+    "noControl": "Uppspelningen styrs på den anslutna enheten.",
+    "presetPlay": "Spela förval {{n}}: {{name}}",
+    "presetPause": "Pausa förval {{n}}: {{name}}",
+    "presetChange": "Byt station för förval {{n}}",
+    "prRunning": "Spelar",
+    "prPaused": "Pausad",
+    "prStarting": "Startar…",
+    "prFailed": "Kunde inte starta",
+    "presetStarted": "{{name}} spelar (förval {{n}})",
+    "presetPausedAnn": "{{name}} pausad",
+    "presetFailedAnn": "Förval {{n}} ({{name}}) kunde inte startas. Tryck igen för att försöka på nytt.",
+    "noPresetToStart": "Inget förval är sparat ännu. Tilldela först en station till ett förval.",
+    "src": {
+      "presets": "Förval"
+    }
   }
 }

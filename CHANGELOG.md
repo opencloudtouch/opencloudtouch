@@ -21,7 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cypress suites for responsive layout (overlap, overflow and clipping audit) and for axe accessibility of every wizard state
 
 ### Changed
-- The navigation entry "Presets" is now "Devices" (all 10 locales); the device card is becoming the single place for playback, sources and presets
+- The navigation entry "Presets" is now "Devices" (all 10 locales). The device card is the single place for a device: now playing with a source switch (Presets, Bluetooth, AUX), previous/next/play keys for sources with tracks, volume, presets and remove
+- Preset rows are toggles: a tap starts, pauses or resumes the preset; a small button next to it changes the station (behaviour change: the tap on the name used to open the station search). "Presets" in the source switch plays the preset the device played last
+- The "Local control" page (`/local`) was removed; it was not linked anywhere and its source chips did not switch anything. Its functions live on the device card
 - Restore: backup timeout raised to 10 minutes; archive validation searches the whole archive
 - Device cards load from a small in-memory cache that is warmed for the neighbouring devices only
 - Settings: a failed log download shows a translated reason instead of failing silently (#527)

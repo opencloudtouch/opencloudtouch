@@ -31,17 +31,12 @@
     "play": "Play",
     "pause": "Pause",
     "noStation": "No station",
-    "noDevices": "No devices found",
     "powerButton": "Power on/off",
-    "localControl": "Local Control",
-    "sourceTitle": "Source",
     "playbackTitle": "Playback",
     "prevTrack": "Previous track",
     "nextTrack": "Next track",
     "muteOn": "Unmute",
     "muteOff": "Mute",
-    "manageZone": "Manage zone",
-    "multiRoom": "Multi-room",
     "prevDevice": "Previous device",
     "nextDevice": "Next device",
     "source": {
@@ -56,24 +51,16 @@
       "pandora": "Pandora",
       "amazon": "Amazon Music",
       "storedMusic": "Media library"
-    },
-    "unknownDevice": "Unknown device",
-    "zoneBadgeMember": "Zone",
-    "zoneTitle": "Zone: {{role}}"
+    }
   },
   "presets": {
-    "pageTitle": "Radio Presets",
-    "empty": "No presets configured",
-    "playPreset": "Play preset {{name}}",
     "presetSaved": "Preset {{number}} saved.",
     "presetDeleted": "Preset {{number}} deleted.",
-    "playFailed": "Preset could not be played. Please try again.",
     "noDevices": "No devices found",
     "syncedFromDevice": "Presets successfully loaded from device.",
     "savedStations": "Saved Stations",
     "syncFromDevice": "Load from device",
     "syncFromDeviceSyncing": "Sync...",
-    "deviceOffline": "Device offline",
     "syncFromDeviceTitle": "Synchronize presets from device",
     "infoTitle": "Preset Notes",
     "infoItem1": "Click an empty preset to assign a station",
@@ -81,7 +68,6 @@
     "infoItem3": "The play button on the right of a preset plays the station directly",
     "infoItem5": "The status icon at the top right of the device card opens the setup wizard for the device",
     "infoItem6": "\"Load from device\" syncs presets from SoundTouch",
-    "changeStation": "Click to change station",
     "assignPreset": "Assign preset",
     "searchClose": "Close search",
     "searchLoading": "Searching...",
@@ -914,5 +900,30 @@
     "codec": "Codec",
     "bitrate": "Bitrate",
     "homepage": "Homepage"
+  },
+  "device": {
+    "sourceChoose": "Choose source",
+    "sourceSwitching": "Switching to {{source}}…",
+    "sourceSwitched": "Source changed: {{source}}",
+    "sourceFailed": "Switching to {{source}} failed. The device is not responding.",
+    "sourceRetry": "Try again",
+    "slaveHint": "The source is set by master {{master}}.",
+    "standbyTitle": "Standby",
+    "standbyHint": "Device on standby. Switch it on to listen.",
+    "noControl": "Playback is controlled on the connected device.",
+    "presetPlay": "Play preset {{n}}: {{name}}",
+    "presetPause": "Pause preset {{n}}: {{name}}",
+    "presetChange": "Change station for preset {{n}}",
+    "prRunning": "Playing",
+    "prPaused": "Paused",
+    "prStarting": "Starting…",
+    "prFailed": "Could not start",
+    "presetStarted": "{{name}} is playing (preset {{n}})",
+    "presetPausedAnn": "{{name}} paused",
+    "presetFailedAnn": "Preset {{n}} ({{name}}) could not be started. Tap it to try again.",
+    "noPresetToStart": "No preset is saved yet. Assign a station to a preset first.",
+    "src": {
+      "presets": "Presets"
+    }
   }
 }

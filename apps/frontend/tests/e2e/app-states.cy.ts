@@ -1,5 +1,5 @@
 /**
- * E2E: layout + accessibility of the interactive states of Local control, Zones and Firmware
+ * E2E: layout + accessibility of the interactive states of the device card, Zones and Firmware
  * (zone cards, device selection, selection bar, dissolve dialog, standby, playing).
  *
  * The device list, zones, now-playing and volume are mocked with cy.intercept, so the result does not depend on
@@ -78,7 +78,7 @@ function mockPlayer(nowPlaying: Record<string, unknown>) {
   cy.intercept("GET", "/api/devices/*/volume", { statusCode: 200, body: { actual: 40, target: 40, muted: false } });
 }
 
-describe("Zones, Local control and Firmware states", { retries: 0 }, () => {
+describe("Zones, device card and Firmware states", { retries: 0 }, () => {
   beforeEach(() => {
     mockApi();
     mockPlayer(PLAYING);
@@ -119,20 +119,20 @@ describe("Zones, Local control and Firmware states", { retries: 0 }, () => {
         cy.get("dialog.dlg").should("not.exist");
       });
 
-      it("local control: playing with a zone badge", () => {
-        visitDe(`/local?device=${DEVICES[0]!.device_id}`);
+      it("devices: playing with a zone badge", () => {
+        visitDe(`/?device=${DEVICES[0]!.device_id}`);
         cy.get(".lc-zone", { timeout: 10000 }).should("exist");
         cy.get(".lc-key--primary").should("exist");
-        assertNoLayoutIssues(`local playing @${width}`);
-        assertNoAxeViolations(`local playing @${width}`);
+        assertNoLayoutIssues(`devices playing @${width}`);
+        assertNoAxeViolations(`devices playing @${width}`);
       });
 
-      it("local control: standby", () => {
+      it("devices: standby", () => {
         mockPlayer(STANDBY);
-        visitDe(`/local?device=${DEVICES[3]!.device_id}`);
-        cy.get(".lc-power--off", { timeout: 10000 }).should("exist");
-        assertNoLayoutIssues(`local standby @${width}`);
-        assertNoAxeViolations(`local standby @${width}`);
+        visitDe(`/?device=${DEVICES[3]!.device_id}`);
+        cy.get(".rp-power--off", { timeout: 10000 }).should("exist");
+        assertNoLayoutIssues(`devices standby @${width}`);
+        assertNoAxeViolations(`devices standby @${width}`);
       });
 
       it("firmware: axe", () => {

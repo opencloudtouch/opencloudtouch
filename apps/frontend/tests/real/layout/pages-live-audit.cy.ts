@@ -12,7 +12,6 @@ const VIEWPORTS = [320, 375, 768, 1280];
 const DEVICE = "68C90B32AF6E";
 const PAGES: { name: string; path: string }[] = [
   { name: "presets", path: `/?device=${DEVICE}` },
-  { name: "local", path: "/local" },
   { name: "multiroom", path: "/multiroom" },
   { name: "firmware", path: "/firmware" },
   { name: "settings", path: "/settings" },

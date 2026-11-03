@@ -31,17 +31,12 @@
     "play": "Odtwórz",
     "pause": "Pauza",
     "noStation": "Brak stacji",
-    "noDevices": "Nie znaleziono urządzeń",
     "powerButton": "Włącz/wyłącz",
-    "localControl": "Sterowanie lokalne",
-    "sourceTitle": "Źródło",
     "playbackTitle": "Odtwarzanie",
     "prevTrack": "Poprzedni utwór",
     "nextTrack": "Następny utwór",
     "muteOn": "Włącz dźwięk",
     "muteOff": "Wycisz",
-    "manageZone": "Zarządzaj strefą",
-    "multiRoom": "Wiele pomieszczeń",
     "prevDevice": "Poprzednie urządzenie",
     "nextDevice": "Następne urządzenie",
     "source": {
@@ -56,24 +51,16 @@
       "pandora": "Pandora",
       "amazon": "Amazon Music",
       "storedMusic": "Biblioteka multimediów"
-    },
-    "unknownDevice": "Nieznane urządzenie",
-    "zoneBadgeMember": "Strefa",
-    "zoneTitle": "Strefa: {{role}}"
+    }
   },
   "presets": {
-    "pageTitle": "Presety radiowe",
-    "empty": "Brak skonfigurowanych presetów",
-    "playPreset": "Odtwórz preset {{name}}",
     "presetSaved": "Preset {{number}} zapisany.",
     "presetDeleted": "Preset {{number}} usunięty.",
-    "playFailed": "Nie można odtworzyć presetu. Spróbuj ponownie.",
     "noDevices": "Nie znaleziono urządzeń",
     "syncedFromDevice": "Presety załadowane z urządzenia pomyślnie.",
     "savedStations": "Zapisane stacje",
     "syncFromDevice": "Załaduj z urządzenia",
     "syncFromDeviceSyncing": "Synchronizacja...",
-    "deviceOffline": "Urządzenie offline",
     "syncFromDeviceTitle": "Synchronizuj presety z urządzenia",
     "infoTitle": "Informacje o presetach",
     "infoItem1": "Kliknij pusty preset, aby przypisać stację",
@@ -81,7 +68,6 @@
     "infoItem3": "Przycisk odtwarzania po prawej stronie presetu od razu odtwarza stację",
     "infoItem5": "Ikona stanu w prawym górnym rogu karty urządzenia otwiera kreator konfiguracji urządzenia",
     "infoItem6": "\"Załaduj z urządzenia\" synchronizuje presety z SoundTouch",
-    "changeStation": "Kliknij, aby zmienić stację",
     "assignPreset": "Przypisz preset",
     "searchClose": "Zamknij wyszukiwanie",
     "searchLoading": "Wyszukiwanie...",
@@ -914,5 +900,30 @@
     "codec": "Kodek",
     "bitrate": "Przepływność",
     "homepage": "Strona internetowa"
+  },
+  "device": {
+    "sourceChoose": "Wybierz źródło",
+    "sourceSwitching": "Przełączanie na {{source}}…",
+    "sourceSwitched": "Zmieniono źródło: {{source}}",
+    "sourceFailed": "Nie udało się przełączyć na {{source}}. Urządzenie nie odpowiada.",
+    "sourceRetry": "Spróbuj ponownie",
+    "slaveHint": "Źródło ustawia urządzenie główne {{master}}.",
+    "standbyTitle": "Tryb gotowości",
+    "standbyHint": "Urządzenie w trybie gotowości. Włącz je, aby słuchać.",
+    "noControl": "Odtwarzaniem steruje się na podłączonym urządzeniu.",
+    "presetPlay": "Odtwórz preset {{n}}: {{name}}",
+    "presetPause": "Wstrzymaj preset {{n}}: {{name}}",
+    "presetChange": "Zmień stację dla presetu {{n}}",
+    "prRunning": "Odtwarzanie",
+    "prPaused": "Wstrzymano",
+    "prStarting": "Uruchamianie…",
+    "prFailed": "Nie udało się uruchomić",
+    "presetStarted": "{{name}} jest odtwarzane (preset {{n}})",
+    "presetPausedAnn": "{{name}} wstrzymano",
+    "presetFailedAnn": "Nie udało się uruchomić presetu {{n}} ({{name}}). Dotknij ponownie, aby spróbować jeszcze raz.",
+    "noPresetToStart": "Nie zapisano jeszcze żadnego presetu. Najpierw przypisz stację do presetu.",
+    "src": {
+      "presets": "Presety"
+    }
   }
 }
