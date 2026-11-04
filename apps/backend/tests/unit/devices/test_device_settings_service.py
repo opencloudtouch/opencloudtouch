@@ -420,7 +420,7 @@ class TestErrorsAndConcurrency:
 
         assert result.language is not None
         client.post_gate.set()
-        await write
+        assert (await write).applied
 
     @pytest.mark.asyncio
     async def test_locks_are_per_device_and_created_lazily(self, service):
