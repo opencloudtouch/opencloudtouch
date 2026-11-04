@@ -263,6 +263,18 @@ export async function prevTrack(deviceId: string): Promise<void> {
   return sendKey(deviceId, "PREV_TRACK");
 }
 
+/** Input sources that can be switched to; streaming accounts and media servers start in their own app. */
+export type SelectableSource = "BLUETOOTH" | "AUX" | "AIRPLAY";
+
+export async function selectSource(deviceId: string, source: SelectableSource): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}/source`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ source }),
+  });
+  await throwIfNotOk(response, `Failed to select source ${source}`);
+}
+
 export async function power(deviceId: string): Promise<void> {
   return sendKey(deviceId, "POWER");
 }

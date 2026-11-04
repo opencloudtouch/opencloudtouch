@@ -160,7 +160,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/DeviceListResponse'
     delete:
       tags:
       - Devices
@@ -224,7 +225,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/DeviceResponse'
         '422':
           description: Validation Error
           content:
@@ -516,6 +518,42 @@ paths:
           content:
             application/json:
               schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/devices/{device_id}/source:
+    put:
+      tags:
+      - Devices
+      summary: Select Source
+      description: Switch the device to an input source (Bluetooth, AUX or AirPlay).
+      operationId: select_source_api_devices__device_id__source_put
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Body_select_source_api_devices__device_id__source_put'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '404':
+          description: Device not found
+        '503':
+          description: Device unreachable
         '422':
           description: Validation Error
           content:
@@ -3244,7 +3282,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
   /api/health/websockets:
     get:
       tags:
@@ -3382,6 +3421,16 @@ components:
           type: string
           title: Validation Message
           default: ''
+        validation_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Validation Code
+        validation_params:
+          additionalProperties:
+            type: string
+          type: object
+          title: Validation Params
       type: object
       required:
       - filename
@@ -3461,6 +3510,19 @@ components:
       type: object
       title: BackupSetResponse
       description: Backup set in scan response.
+    Body_select_source_api_devices__device_id__source_put:
+      properties:
+        source:
+          type: string
+          enum:
+          - BLUETOOTH
+          - AUX
+          - AIRPLAY
+          title: Source
+      type: object
+      required:
+      - source
+      title: Body_select_source_api_devices__device_id__source_put
     Body_set_mute_api_devices__device_id__mute_put:
       properties:
         muted:
@@ -3717,6 +3779,92 @@ components:
       - message
       title: DetectStrategyResponse
       description: Response with detected setup strategy.
+    DeviceListResponse:
+      properties:
+        count:
+          type: integer
+          title: Count
+        devices:
+          items:
+            $ref: '#/components/schemas/DeviceResponse'
+          type: array
+          title: Devices
+      type: object
+      required:
+      - count
+      - devices
+      title: DeviceListResponse
+      description: Response containing all stored devices.
+    DeviceResponse:
+      properties:
+        id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Id
+        device_id:
+          type: string
+          title: Device Id
+        ip:
+          type: string
+          title: Ip
+        name:
+          type: string
+          title: Name
+        model:
+          type: string
+          title: Model
+        mac_address:
+          type: string
+          title: Mac Address
+        firmware_version:
+          type: string
+          title: Firmware Version
+        schema_version:
+          type: string
+          title: Schema Version
+        last_seen:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Last Seen
+        setup_status:
+          type: string
+          title: Setup Status
+        ssh_permanent:
+          type: boolean
+          title: Ssh Permanent
+        setup_completed_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Setup Completed At
+        marge_account_uuid:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Marge Account Uuid
+        uuid_source:
+          type: string
+          title: Uuid Source
+      type: object
+      required:
+      - id
+      - device_id
+      - ip
+      - name
+      - model
+      - mac_address
+      - firmware_version
+      - schema_version
+      - last_seen
+      - setup_status
+      - ssh_permanent
+      - setup_completed_at
+      - marge_account_uuid
+      - uuid_source
+      title: DeviceResponse
+      description: Stored device information, including UUID provenance.
     DiagnosticsRequest:
       properties:
         frontend_logs:
@@ -3850,6 +3998,48 @@ components:
           title: Detail
       type: object
       title: HTTPValidationError
+    HealthConfig:
+      properties:
+        discovery_enabled:
+          type: boolean
+          title: Discovery Enabled
+      type: object
+      required:
+      - discovery_enabled
+      title: HealthConfig
+      description: Non-sensitive configuration flags exposed by /health.
+    HealthResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+        service:
+          type: string
+          title: Service
+        version:
+          type: string
+          title: Version
+        build:
+          type: string
+          enum:
+          - official
+          - community
+          title: Build
+        uptime:
+          type: integer
+          title: Uptime
+        config:
+          $ref: '#/components/schemas/HealthConfig'
+      type: object
+      required:
+      - status
+      - service
+      - version
+      - build
+      - uptime
+      - config
+      title: HealthResponse
+      description: Response of GET /health (documented contract used by the frontend).
     HostsModifyRequest:
       properties:
         device_ip:
@@ -4248,6 +4438,16 @@ components:
           type: number
           title: Duration Seconds
           default: 0.0
+        message_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Message Code
+        message_params:
+          additionalProperties:
+            type: string
+          type: object
+          title: Message Params
       type: object
       required:
       - name
@@ -4763,3 +4963,112 @@ components:
       - ip
       title: MessageResponse
       description: Generic message response.
+    ErrorItem:
+      description: 'One field-level error inside ``ErrorDetail.errors``.
+
+
+        ``field`` keeps the legacy dotted location (``body.port``); ``path`` is the
+
+        same location without the leading ``body``/``query``/``path``/``header``
+
+        segment (``port``) and is what clients map to input names.'
+      properties:
+        field:
+          title: Field
+          type: string
+        path:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Path
+        message:
+          title: Message
+          type: string
+        type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Type
+        code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Code
+      required:
+      - field
+      - message
+      title: ErrorItem
+      type: object
+    ErrorDetail:
+      description: "Standardized error response format (RFC 7807-inspired).\n\nProvides\
+        \ consistent error structure across all API endpoints.\n\nAttributes:\n  \
+        \  type: Error category (validation_error, not_found, server_error, etc.)\n\
+        \    title: Human-readable error title\n    status: HTTP status code\n   \
+        \ detail: Detailed error message\n    instance: Request path that triggered\
+        \ error (optional)\n    errors: Field-level validation errors (optional, for\
+        \ 422 responses)\n    code: Stable machine-readable error identifier (see\
+        \ ``error_codes``)\n    params: Flat string map for message interpolation\
+        \ on the client\n    extra: Structured data for the client (not for translation)\n\
+        \nExample:\n    {\n        \"type\": \"not_found\",\n        \"title\": \"\
+        Device Not Found\",\n        \"status\": 404,\n        \"detail\": \"Device\
+        \ not found: abc123\",\n        \"instance\": \"/api/devices/abc123\",\n \
+        \       \"errors\": null,\n        \"code\": \"device_not_found\",\n     \
+        \   \"params\": null,\n        \"extra\": null\n    }"
+      properties:
+        type:
+          title: Type
+          type: string
+        title:
+          title: Title
+          type: string
+        status:
+          title: Status
+          type: integer
+        detail:
+          title: Detail
+          type: string
+        instance:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Instance
+        errors:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/ErrorItem'
+            type: array
+          - type: 'null'
+          default: null
+          title: Errors
+        code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Code
+        params:
+          anyOf:
+          - additionalProperties:
+              type: string
+            type: object
+          - type: 'null'
+          default: null
+          title: Params
+        extra:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          default: null
+          title: Extra
+      required:
+      - type
+      - title
+      - status
+      - detail
+      title: ErrorDetail
+      type: object

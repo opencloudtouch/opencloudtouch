@@ -13,9 +13,12 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.requests import Request
 
+from opencloudtouch.core import error_codes
 from opencloudtouch.core.exceptions import ErrorDetail
 
 logger = logging.getLogger(__name__)
+
+_NOT_FOUND_TITLE = "Not Found"
 
 # API route prefixes — 404 on these returns JSON (not index.html)
 _API_PREFIXES = (
@@ -58,17 +61,18 @@ def _build_api_404_response(path: str, exc) -> JSONResponse:
     exc_detail = getattr(exc, "detail", None)
     detail = (
         str(exc_detail)
-        if exc_detail and exc_detail != "Not Found"
+        if exc_detail and exc_detail != _NOT_FOUND_TITLE
         else f"The requested resource {path} was not found"
     )
     return JSONResponse(
         status_code=404,
         content=ErrorDetail(
             type="not_found",
-            title="Not Found",
+            title=_NOT_FOUND_TITLE,
             status=404,
             detail=detail,
             instance=path,
+            code=error_codes.NOT_FOUND,
         ).model_dump(),
     )
 
@@ -139,7 +143,17 @@ def mount_static_files(app: FastAPI, static_dir: Path) -> None:
         # SECURITY: Prevent path traversal (percent-encoded ../ or \)
         decoded_path = unquote(path.lstrip("/"))
         if ".." in decoded_path or "\\" in decoded_path:
-            return JSONResponse(status_code=404, content={"detail": "Not found"})
+            return JSONResponse(
+                status_code=404,
+                content=ErrorDetail(
+                    type="not_found",
+                    title=_NOT_FOUND_TITLE,
+                    status=404,
+                    detail="Not found",
+                    instance=path,
+                    code=error_codes.NOT_FOUND,
+                ).model_dump(),
+            )
 
         # Serve actual file if it exists inside dist/
         file_response = _serve_static_file(_static_dir, decoded_path)

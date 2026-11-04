@@ -30,58 +30,59 @@ describe("Device Discovery", () => {
 
       // Verify devices visible (MockDiscoveryAdapter returns 3 devices)
       cy.get('[data-test="app-header"]').should("be.visible");
-      cy.get('[data-test="device-card"]').should("have.length", 1);
+      cy.get('.ds-card-shell[data-state="current"] [data-test="device-card"]').should("have.length", 1);
 
       // Wait for ALL 3 devices to load before checking navigation
       // (progressive SSE may deliver devices incrementally)
-      cy.get(".swiper-dots .dot").should("have.length", 3);
+      cy.get(".ds-dot").should("have.length", 3);
 
       // Verify 3 devices by swiping navigation
       // Start at device 0 - left arrow should be disabled
-      cy.get(".swipe-arrow-left").should("be.disabled");
-      cy.get(".swipe-arrow-right").should("not.be.disabled");
+      cy.get(".ds-arrow--prev").should("be.disabled");
+      cy.get(".ds-arrow--next").should("not.be.disabled");
 
       // Get IP of first device for comparison
-      cy.get('[data-test="device-card"]')
+      cy.get('.ds-card-shell[data-state="current"] [data-test="device-card"]')
         .find('[data-test="device-ip"]')
         .invoke("text")
-        .as("firstDeviceIP");
+        .then((text) => cy.wrap(text, { log: false }).as("firstDeviceIP")); // wrap: a query alias would re-run and follow the current card
 
       // Swipe right 1x → device 1
-      cy.get(".swipe-arrow-right").click();
-      cy.wait(150); // Animation (Phase 2 optimization)
-      cy.get('[data-test="device-card"]')
-        .find('[data-test="device-ip"]')
-        .invoke("text")
-        .then((secondIP) => {
-          cy.get("@firstDeviceIP").should("not.equal", secondIP);
+      cy.get(".ds-arrow--next").click();
+      // The card is replaced by a crossfade: wait until the current card shows the next device
+      cy.get("@firstDeviceIP").then((firstIP) => {
+        cy.get('.ds-card-shell[data-state="current"] [data-test="device-ip"]').should(($ip) => {
+          expect($ip.text()).to.not.equal(firstIP);
         });
-      cy.get(".swipe-arrow-left").should("not.be.disabled");
-      cy.get(".swipe-arrow-right").should("not.be.disabled");
+      });
+      // The leaving card must be removed after the crossfade (a card stuck on top swallowed every tap on phones)
+      cy.get(".ds-card-shell").should("have.length", 1);
+      cy.get(".ds-arrow--prev").should("not.be.disabled");
+      cy.get(".ds-arrow--next").should("not.be.disabled");
 
       // Swipe right 2x → device 2 (last device)
-      cy.get(".swipe-arrow-right").click();
+      cy.get(".ds-arrow--next").click();
       cy.wait(150); // Animation (Phase 2 optimization)
-      cy.get('[data-test="device-card"]')
+      cy.get('.ds-card-shell[data-state="current"] [data-test="device-card"]')
         .find('[data-test="device-ip"]')
         .invoke("text")
         .then((thirdIP) => {
           cy.get("@firstDeviceIP").should("not.equal", thirdIP);
         });
-      cy.get(".swipe-arrow-left").should("not.be.disabled");
-      cy.get(".swipe-arrow-right").should("be.disabled"); // End of list
+      cy.get(".ds-arrow--prev").should("not.be.disabled");
+      cy.get(".ds-arrow--next").should("be.disabled"); // End of list
 
       // Swipe left 1x → back to device 1
-      cy.get(".swipe-arrow-left").click();
+      cy.get(".ds-arrow--prev").click();
       cy.wait(150); // Animation (Phase 2 optimization)
-      cy.get(".swipe-arrow-left").should("not.be.disabled");
-      cy.get(".swipe-arrow-right").should("not.be.disabled");
+      cy.get(".ds-arrow--prev").should("not.be.disabled");
+      cy.get(".ds-arrow--next").should("not.be.disabled");
 
       // Swipe left 2x → back to device 0 (first device)
-      cy.get(".swipe-arrow-left").click();
+      cy.get(".ds-arrow--prev").click();
       cy.wait(150); // Animation (Phase 2 optimization)
-      cy.get(".swipe-arrow-left").should("be.disabled"); // Start of list
-      cy.get(".swipe-arrow-right").should("not.be.disabled");
+      cy.get(".ds-arrow--prev").should("be.disabled"); // Start of list
+      cy.get(".ds-arrow--next").should("not.be.disabled");
     });
 
     it("should show correct number of devices based on manual IPs", () => {
@@ -99,25 +100,25 @@ describe("Device Discovery", () => {
       cy.url().should("eq", Cypress.config().baseUrl + "/");
 
       // Wait for ALL 3 devices to load before checking navigation
-      cy.get(".swiper-dots .dot").should("have.length", 3);
+      cy.get(".ds-dot").should("have.length", 3);
 
       // Verify 3 devices by swiping navigation
-      cy.get(".swipe-arrow-left").should("be.disabled");
-      cy.get(".swipe-arrow-right").should("not.be.disabled");
+      cy.get(".ds-arrow--prev").should("be.disabled");
+      cy.get(".ds-arrow--next").should("not.be.disabled");
 
       // Swipe to last device (2x right)
-      cy.get(".swipe-arrow-right").click();
+      cy.get(".ds-arrow--next").click();
       cy.wait(150); // Phase 2 optimization
-      cy.get(".swipe-arrow-right").click();
+      cy.get(".ds-arrow--next").click();
       cy.wait(150); // Phase 2 optimization
-      cy.get(".swipe-arrow-right").should("be.disabled"); // End reached
+      cy.get(".ds-arrow--next").should("be.disabled"); // End reached
 
       // Swipe back to first device (2x left)
-      cy.get(".swipe-arrow-left").click();
+      cy.get(".ds-arrow--prev").click();
       cy.wait(150); // Phase 2 optimization
-      cy.get(".swipe-arrow-left").click();
+      cy.get(".ds-arrow--prev").click();
       cy.wait(150); // Phase 2 optimization
-      cy.get(".swipe-arrow-left").should("be.disabled"); // Start reached
+      cy.get(".ds-arrow--prev").should("be.disabled"); // Start reached
     });
   });
 

@@ -20,51 +20,54 @@
     "disabled": "Disabled"
   },
   "nav": {
-    "presets": "Presets",
+    "devices": "Devices",
     "zones": "Zones",
     "settings": "Settings",
-    "about": "About"
+    "about": "About",
+    "ariaLabel": "Main navigation"
   },
   "player": {
     "noPlayback": "No playback",
     "play": "Play",
     "pause": "Pause",
     "noStation": "No station",
-    "noDevices": "No devices found",
     "powerButton": "Power on/off",
-    "localControl": "Local Control",
-    "sourceTitle": "Source",
     "playbackTitle": "Playback",
     "prevTrack": "Previous track",
     "nextTrack": "Next track",
     "muteOn": "Unmute",
     "muteOff": "Mute",
-    "manageZone": "Manage zone",
-    "multiRoom": "Multi-room",
     "prevDevice": "Previous device",
-    "nextDevice": "Next device"
+    "nextDevice": "Next device",
+    "source": {
+      "bluetooth": "Bluetooth",
+      "radio": "Radio",
+      "aux": "AUX",
+      "airplay": "AirPlay",
+      "dlna": "DLNA",
+      "tv": "TV / HDMI",
+      "spotify": "Spotify",
+      "deezer": "Deezer",
+      "pandora": "Pandora",
+      "amazon": "Amazon Music",
+      "storedMusic": "Media library"
+    }
   },
   "presets": {
-    "pageTitle": "Radio Presets",
-    "empty": "No presets configured",
-    "playPreset": "Play preset {{name}}",
     "presetSaved": "Preset {{number}} saved.",
     "presetDeleted": "Preset {{number}} deleted.",
-    "playFailed": "Preset could not be played. Please try again.",
     "noDevices": "No devices found",
     "syncedFromDevice": "Presets successfully loaded from device.",
     "savedStations": "Saved Stations",
     "syncFromDevice": "Load from device",
     "syncFromDeviceSyncing": "Sync...",
-    "deviceOffline": "Device offline",
     "syncFromDeviceTitle": "Synchronize presets from device",
-    "infoTitle": "Preset Notes",
-    "infoItem1": "Click an empty preset to assign a station",
-    "infoItem2": "Click an assigned station to change or delete it",
-    "infoItem3": "The green ► button plays the station directly",
-    "infoItem5": "⚙️ opens the Setup Wizard for the device",
+    "infoTitle": "Device Notes",
+    "infoItem1": "Tap an empty preset to assign a station",
+    "infoItem2": "Tap the pencil next to a station to change or delete it",
+    "infoItem3": "Tap a preset to play it, tap again to pause. The source buttons above the cover switch between Presets, Bluetooth and AUX",
+    "infoItem5": "The status icon at the top right of the device card opens the setup wizard for the device",
     "infoItem6": "\"Load from device\" syncs presets from SoundTouch",
-    "changeStation": "Click to change station",
     "assignPreset": "Assign preset",
     "searchClose": "Close search",
     "searchLoading": "Searching...",
@@ -77,7 +80,6 @@
     "confirmDeleteTitle": "Delete preset",
     "confirmDeleteMessage": "Do you really want to delete preset {{preset}}?",
     "confirmDelete": "Delete",
-    "deleteDevice": "Delete Device",
     "searchTypeLabel": {
       "name": "Name",
       "country": "Country",
@@ -104,7 +106,21 @@
     "manualStreamErrorTitle": "Stream error",
     "manualStreamUnreachable": "The stream URL is not reachable.",
     "manualStreamSaveFailed": "The station could not be saved.",
-    "manualStreamErrorOk": "OK"
+    "manualStreamErrorOk": "OK",
+    "unknownDevice": "Unknown device",
+    "unknownModel": "Unknown model",
+    "unknownIp": "Unknown IP",
+    "searchHint": "Enter at least 2 characters to search.",
+    "manualInvalidUrl": "Please enter a valid HTTP or HTTPS address.",
+    "searchTypeGroup": "Search by",
+    "providerGroup": "Source",
+    "searchResults": "Search results",
+    "removeDevice": "Remove device",
+    "removeDeviceTitle": "Remove device?",
+    "removeDeviceOnline": "\"{{name}}\" is reachable. It is removed from OpenCloudTouch, its saved presets are kept. The device itself is not changed and can be added again by the next scan.",
+    "removeDeviceOffline": "\"{{name}}\" is offline. It is removed from OpenCloudTouch, its saved presets are kept. Once it is back on the network, the next scan can add it again.",
+    "removeDeviceConfirm": "Remove",
+    "deviceRemoved": "\"{{name}}\" was removed."
   },
   "settings": {
     "title": "Settings",
@@ -117,11 +133,14 @@
       "enterIp": "Please enter an IP address",
       "probing": "Searching...",
       "deviceAdded": "{{name}} ({{ip}}) added",
-      "probeError": "No device found at {{ip}}"
+      "probeError": "No device found at {{ip}}",
+      "label": "Device IP address",
+      "hint": "Format: 192.168.1.10"
     },
     "discovery": {
       "devicesFound_one": "{{count}} new device found",
-      "devicesFound_other": "{{count}} new devices found"
+      "devicesFound_other": "{{count}} new devices found",
+      "moreDevices": "+ {{count}} more"
     },
     "deviceDiscovery": {
       "sectionTitle": "Find Devices",
@@ -130,19 +149,25 @@
       "scanButton": "Scan Now",
       "scanning": "Scanning...",
       "manualTitle": "Manual IP Address",
-      "manualDescription": "Use this if automatic search doesn't find anything due to VLAN, Docker network, or firewall."
+      "manualDescription": "Use this if automatic search doesn't find anything due to VLAN, Docker network, or firewall.",
+      "scanningStatus": "Network scan running"
     },
     "logging": {
       "sectionTitle": "Logging",
       "description": "Control the log detail level and download logs for troubleshooting.",
       "logLevel": "Log Level",
-      "levelOff": "Off",
+      "levelOff": "Critical only",
       "levelInfo": "Info",
       "levelDebug": "Debug",
       "downloadLogs": "Download Logs",
       "downloadDescription": "Download the last 1000 backend log entries as a text file.",
       "levelChanged": "Log level set to {{level}}",
-      "levelError": "Could not change log level"
+      "levelError": "Could not change log level",
+      "levelSaving": "Saving log level",
+      "downloading": "Preparing...",
+      "downloadFailedNetwork": "Logs could not be downloaded: the server could not be reached. Check your connection and try again.",
+      "downloadFailedHttp": "Logs could not be downloaded: the server responded with status {{status}}.",
+      "downloadFailedUnknown": "Logs could not be downloaded: an unexpected error occurred."
     }
   },
   "manualIpModal": {
@@ -152,7 +177,9 @@
     "saveError": "Error saving IP addresses",
     "save": "Save",
     "saving": "Saving...",
-    "hint": "You can find the IP address in the associated app under Settings → Info or in your router."
+    "hint": "You can find the IP address in the associated app under Settings → Info or in your router.",
+    "placeholder": "Example:\n192.168.1.100\n192.168.1.101\n192.168.1.102",
+    "saved": "IP addresses saved!"
   },
   "multiroom": {
     "pageTitle": "Multi-Room Zones",
@@ -177,7 +204,6 @@
     "infoItem5": "Click the zone name to rename it",
     "editZone": "Edit",
     "dissolve": "Dissolve",
-    "dissolveConfirm": "Really dissolve?",
     "zoneUpdated": "Zone updated",
     "zoneCreated": "Zone created",
     "zoneCreateFailed": "Zone could not be created",
@@ -189,30 +215,12 @@
     "clickToEdit": "Click to edit",
     "cancel": "Cancel",
     "masterBadge": "Master",
-    "slaveBadge": "Slave"
-  },
-  "firmware": {
-    "title": "Firmware Updates",
-    "noDevices": "No devices found",
-    "currentDevice": "Current Device",
-    "currentVersion": "Current version:",
-    "statusLabel": "Status:",
-    "updateAvailable": "Update available",
-    "upToDate": "Up to date",
-    "allDevices": "All Devices",
-    "unknownVersion": "Unknown",
-    "unknownModel": "Unknown Model",
-    "warningTitle": "Experimental Feature",
-    "warningText": "Firmware updates are experimental and may damage your device. Only use official firmware files from your device manufacturer. Upload is currently disabled.",
-    "uploadTitle": "Upload Firmware",
-    "uploadNotAvailable": "Firmware upload is currently not available",
-    "uploadButton": "Select firmware",
-    "uploadHint": "This feature will be enabled in future versions",
-    "infoTitle": "Firmware Notes",
-    "infoItem1": "Firmware updates should only be performed if there are problems",
-    "infoItem2": "Do not power off the device during an update",
-    "infoItem3": "The update process can take 5–10 minutes",
-    "infoItem4": "The device restarts automatically after the update"
+    "slaveBadge": "Slave",
+    "unknownDevice": "Unknown device",
+    "defaultZoneName": "{{name}} zone",
+    "staleBadge": "Not seen for a while",
+    "confirmDissolveTitle": "Dissolve zone?",
+    "confirmDissolveMessage": "“{{name}}” will be dissolved. The devices will play individually again."
   },
   "setup": {
     "next": "Next",
@@ -381,7 +389,8 @@
         "troubleshootingItem3": "Wait at least 100 seconds after restart",
         "troubleshootingItem4": "Try another power cycle (steps 2–5)",
         "troubleshootingItem5": "Check that the device is on the same network",
-        "troubleshootingItem6": "Test the SSH connection manually with the command above — if that works, the device is ready."
+        "troubleshootingItem6": "Test the SSH connection manually with the command above — if that works, the device is ready.",
+        "nextDisabled": "Please check SSH access and decide whether SSH stays enabled."
       },
       "step4": {
         "title": "Create backup",
@@ -392,14 +401,15 @@
         "btnCreate": "Create backup now",
         "btnCreating": "Creating backup...",
         "progressMessage": "Creating backup for {{device}}",
-        "progressNote": "This can take up to 2 minutes...",
+        "progressNote": "This can take up to 10 minutes...",
         "errorTitle": "Backup failed",
         "successTitle": "Backup created successfully!",
         "successHint": "The backups were written to your USB drive. Remove the drive after the wizard — it contains your recovery files.",
         "filesTitle": "Saved files (on USB drive):",
         "totalLabel": "Total:",
         "durationMinSec": "{{min}} min {{sec}} s",
-        "durationSec": "{{sec}} s"
+        "durationSec": "{{sec}} s",
+        "nextWarning": "Without a backup, restoring is not possible. If you continue now, you do so at your own risk."
       },
       "step5": {
         "titleProxy": "Reverse proxy detected",
@@ -467,8 +477,7 @@
         "changedEntries": "Changed entries:",
         "backupLabel": "Backup:",
         "btnShowChanges": "▶ Show changes",
-        "btnHideChanges": "▼ Hide changes",
-        "hostsApplied": "Hosts file successfully modified."
+        "btnHideChanges": "▼ Hide changes"
       },
       "step7": {
         "title": "Patch NTP Server",
@@ -542,7 +551,11 @@
         "btnSkip": "Continue anyway — device will not be marked as configured",
         "checkNtpServer": "NTP server set to: {{server}}",
         "checkNtpServerWrong": "NTP server is set to '{{found}}', expected '{{expected}}'",
-        "fullVerifyItem5": "NTP server configured on device"
+        "fullVerifyItem5": "NTP server configured on device",
+        "phaseFinalize": "Setup",
+        "phaseReboot": "Restart",
+        "phaseVerify": "Verify",
+        "nextDisabled": "Please complete all checks successfully first."
       },
       "step9": {
         "title": "Setup complete!",
@@ -572,9 +585,18 @@
         "supportLink": "Contact support →",
         "summaryItem7": "NTP server patched ({{server}})"
       }
-    }
+    },
+    "trackerCompact": "Step {{current}} of {{total}} – {{label}}",
+    "stepAriaSkipped": "Step {{id}}: {{label}} — {{description}} – skipped"
   },
   "restore": {
+    "steps": {
+      "choice": "Choice",
+      "backup": "Backup",
+      "restore": "Restore",
+      "verify": "Verify",
+      "done": "Done"
+    },
     "choice": {
       "title": "What would you like to do?",
       "setup_title": "Setup Wizard",
@@ -606,7 +628,10 @@
       "running": "Restore in progress...",
       "error": "Restore failed: {{message}}",
       "success": "All steps completed successfully! Total: {{time}}s",
-      "continue": "Continue"
+      "continue": "Continue",
+      "running_hint": "This can take several minutes (usually 8 to 9). Keep this page open and do not disconnect the device.",
+      "error_hint": "Go back and try again.",
+      "failed_title": "Restore incomplete"
     },
     "verification": {
       "title": "Waiting for Device",
@@ -627,9 +652,62 @@
       "failed": "Failed",
       "note": "The device is now in its original state. You can safely disconnect it.",
       "done": "Done"
+    },
+    "step_labels": {
+      "pre_snapshot": "Pre-restore snapshot",
+      "config": "Config files",
+      "presets": "Presets",
+      "hosts": "/etc/hosts",
+      "ntp": "/etc/ntpservers.txt",
+      "remote_services": "SSH persistence",
+      "reboot": "Reboot"
+    },
+    "messages": {
+      "snapshot_saved": "Pre-restore snapshot saved",
+      "snapshot_unavailable": "No wizard service available",
+      "snapshot_failed": "Snapshot failed: {{error}}",
+      "config_restored": "Config files restored",
+      "config_restore_failed": "Config restore failed: {{error}}",
+      "presets_clean": "No Presets.xml found on device (already clean)",
+      "presets_restored": "Presets restored at {{path}}",
+      "presets_restore_failed": "Preset restore failed: {{error}}",
+      "hosts_read_failed": "Failed to read /etc/hosts",
+      "hosts_clean": "No OCT block found in /etc/hosts (already clean)",
+      "hosts_restored": "OCT block removed from /etc/hosts",
+      "hosts_restore_failed": "Hosts restore failed: {{error}}",
+      "ntp_no_backup": "No NTP backup found (already clean)",
+      "ntp_copy_failed": "Failed to restore /etc/ntpservers.txt from backup",
+      "ntp_restored": "NTP servers restored from backup",
+      "ntp_restore_failed": "NTP restore failed: {{error}}",
+      "remote_services_deleted": "/mnt/nv/remote_services deleted",
+      "remote_services_failed": "Failed to remove remote_services: {{error}}",
+      "reboot_sent": "Reboot command sent",
+      "reboot_failed": "Reboot failed: {{error}}"
+    },
+    "validation": {
+      "archive_corrupt": "Archive is corrupt or unreadable",
+      "archive_empty": "Archive is empty",
+      "archive_unverified": "Archive contents could not be verified (scan failed or timed out)",
+      "archive_path_missing": "Expected paths starting with {{expected}} not found in archive"
+    },
+    "status": {
+      "completed": "Completed",
+      "skipped": "Skipped",
+      "failed": "Failed",
+      "in_progress": "In progress",
+      "pending": "Pending"
     }
   },
   "errors": {
+    "api": {
+      "unknown": "Something went wrong.",
+      "unknownWithCode": "Something went wrong (code: {{code}}).",
+      "device_not_found": "The device was not found.",
+      "device_unreachable": "The device is not reachable. Check that it is switched on and connected to the network.",
+      "not_found": "The requested resource was not found.",
+      "validation_error": "The request contains invalid data. Please check your inputs.",
+      "internal_error": "An internal error occurred. Please try again later."
+    },
     "loadFailed": "Failed to load. Please try again.",
     "unknown": "An unexpected error occurred. Please try again.",
     "networkFailed": "Could not connect to the server. Please check your network connection.",
@@ -678,27 +756,34 @@
     "licensesDescription": "OpenCloudTouch uses the following open-source libraries:",
     "licenseCompliance": "License Compliance",
     "licenseComplianceText": "OpenCloudTouch is open-source software under the Apache License 2.0. All libraries used are compatible with this license.",
-    "devicesConnected_zero": "No devices connected",
-    "devicesConnected_one": "{{count}} device connected",
-    "devicesConnected_other": "{{count}} devices connected",
-    "github": "GitHub",
-    "reportIssue": "Report a problem",
     "support": "Support",
-    "versionUnavailable": "Version unavailable",
-    "hallOfFameTitle": "Hall of Fame",
-    "hallOfFameDescription": "Top 3 contributors of all time — recognized for exceptional technical impact.",
-    "supportersTitle": "Supporters",
     "reportBug": "Report Bug",
     "diagnostics": "Diagnostics",
-    "supportersDescription": "Thank you to everyone who supports OpenCloudTouch financially. Your contributions help keep the project alive!",
-    "supportersMonthly": "Monthly Supporters",
-    "supportersOneTime": "One-Time Supporters",
-    "buildTime": "Built on {{time}}",
     "checkingUpdates": "Checking for updates...",
     "updateAvailable": "Update available: {{version}}",
     "viewRelease": "View Release",
     "upToDate": "You're up to date!",
-    "devBuild": "Self-built / dev version — update checks are disabled"
+    "devBuild": "Self-built / dev version — update checks are disabled",
+    "github": "GitHub",
+    "externalLink": "(opens in new tab)",
+    "licenses": "Open-source licenses",
+    "linksLabel": "More information",
+    "supportersTitle": "Supp<0/>rters",
+    "supportersLabel": "Supporters",
+    "monthlySupporter": "(monthly supporter)",
+    "libraryWebsite": "{{name}} website",
+    "licensesVersion": "Version",
+    "licensesGroup": {
+      "frontend": "Frontend",
+      "backend": "Backend",
+      "build": "Build tools"
+    },
+    "licenseProject": "OpenCloudTouch licence",
+    "licenseApache": "Apache License 2.0",
+    "trademarkTitle": "Trademark notice",
+    "trademarkText1": "OpenCloudTouch is <0>not affiliated with Bose Corporation</0>. Bose® and SoundTouch® are registered trademarks of Bose Corporation.",
+    "trademarkText2": "This software interfaces with Bose SoundTouch® devices using their publicly documented local APIs. See <0>TRADEMARK.md</0> for details.",
+    "runningSince": "Running since {{time}}"
   },
   "discovery": {
     "alreadyRunning": "Device search already running. Please wait...",
@@ -723,7 +808,8 @@
     "helpFirewall": "Firewall rules might block device discovery",
     "helpRestart": "Restart the devices and OpenCloudTouch",
     "helpManualAdd": "Add device IPs manually",
-    "helpSetupWizard": "Follow the Setup Wizard for step-by-step instructions"
+    "helpSetupWizard": "Follow the Setup Wizard for step-by-step instructions",
+    "deviceSaved": "Saved"
   },
   "setupBadge": {
     "unknown": "Set up device",
@@ -744,27 +830,7 @@
     "unknown": "Unknown"
   },
   "bugReport": {
-    "title": "Report a Bug",
-    "description": "Bug Description",
-    "descriptionPlaceholder": "What went wrong?",
-    "steps": "Steps to Reproduce",
-    "stepsPlaceholder": "1. Go to...\n2. Click on...\n3. See error...",
-    "expected": "Expected Behavior",
-    "expectedPlaceholder": "What should have happened?",
-    "installationType": "Installation Type",
-    "whichInstallation": "Which installation?",
-    "hardware": "Hardware / Platform",
-    "whichHardware": "Which hardware?",
-    "devices": "SoundTouch Device(s)",
-    "whichDevice": "Which device?",
-    "networkConfig": "Network Configuration",
-    "additionalInfo": "Additional Info",
-    "submit": "Submit Bug Report",
-    "submitting": "Submitting...",
-    "downloadLogs": "Download Logs",
     "downloading": "Downloading...",
-    "submitSuccess": "Bug report created! {{url}}",
-    "submitFailed": "Failed to submit bug report: {{error}}",
     "diagnosticsSuccess": "Diagnostics downloaded! Attach the .log.gz file to your GitHub issue.",
     "diagnosticsFailed": "Failed to download diagnostics: {{error}}"
   },
@@ -785,7 +851,15 @@
     "firmware": "Firmware",
     "setupStatus": "Setup Status",
     "lastSeen": "Last Seen",
-    "downloadBundle": "Download Support Bundle"
+    "downloadBundle": "Download Support Bundle",
+    "ip": "IP address",
+    "ssh": "SSH",
+    "sshOn": "Permanently enabled",
+    "sshOff": "Not enabled",
+    "statusOnline": "Online",
+    "statusStale": "Not seen recently",
+    "statusOffline": "Offline",
+    "unknownValue": "unknown"
   },
   "deviceRename": {
     "clickToEdit": "Click to rename",
@@ -796,6 +870,48 @@
   "deviceHeader": {
     "reboot": "Reboot device",
     "sent": "Reboot command sent",
-    "confirmMessage": "Reboot {{name}}? The device will be unavailable for about 100 seconds."
+    "confirmMessage": "Reboot {{name}}? The device will be unavailable for about 100 seconds.",
+    "backToDevice": "Back to {{name}}"
+  },
+  "a11y": {
+    "skipToContent": "Skip to content",
+    "selectLanguage": "Select language",
+    "deviceSelection": "Device selection",
+    "switchToDevice": "Switch to {{name}}",
+    "volume": "Volume",
+    "copyCommand": "Copy command",
+    "copyToClipboard": "Copy to clipboard",
+    "deviceCounter": "Device {{current}} of {{total}}"
+  },
+  "stationDetail": {
+    "codec": "Codec",
+    "bitrate": "Bitrate",
+    "homepage": "Homepage"
+  },
+  "device": {
+    "sourceChoose": "Choose source",
+    "sourceSwitching": "Switching to {{source}}…",
+    "sourceSwitched": "Source changed: {{source}}",
+    "sourceRetry": "Try again",
+    "slaveHint": "The source is set by master {{master}}.",
+    "standbyTitle": "Standby",
+    "standbyHint": "Device on standby. Switch it on to listen.",
+    "noControl": "Playback is controlled on the connected device.",
+    "presetPlay": "Play preset {{n}}: {{name}}",
+    "presetPause": "Pause preset {{n}}: {{name}}",
+    "presetChange": "Change station for preset {{n}}",
+    "prRunning": "Playing",
+    "prPaused": "Paused",
+    "prStarting": "Starting…",
+    "prFailed": "Could not start",
+    "presetStarted": "{{name}} is playing (preset {{n}})",
+    "presetPausedAnn": "{{name}} paused",
+    "presetFailedAnn": "Preset {{n}} ({{name}}) could not be started. Tap it to try again.",
+    "noPresetToStart": "No preset is saved yet. Assign a station to a preset first.",
+    "src": {
+      "presets": "Presets"
+    },
+    "sourceUnreachable": "{{source}} not reachable",
+    "sourceFailedKey": "{{source}}, not reachable. Try again"
   }
 }

@@ -1,9 +1,11 @@
 /**
  * RestoreChoice - Clean Restore or Restore from Backup
+ * Props, handlers and t() keys unchanged. Emoji replaced by Lucide icons (Icon.Sparkles / Icon.ArchiveRestore).
  */
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import WizardStep from "./WizardStep";
+import { Icon } from "./Icon";
 
 interface RestoreChoiceProps {
   stepNumber: number;
@@ -37,7 +39,7 @@ export default function RestoreChoice({
           whileTap={{ scale: 0.98 }}
           onClick={onCleanRestore}
         >
-          <span className="wizard-choice__icon">🧹</span>
+          <span className="wizard-choice__icon">{Icon.Sparkles()}</span>
           <h3>{t("restore.restore_choice.clean_title", "Clean Restore")}</h3>
           <p>
             {t(
@@ -53,7 +55,7 @@ export default function RestoreChoice({
           whileTap={{ scale: 0.98 }}
           onClick={onBackupRestore}
         >
-          <span className="wizard-choice__icon">📦</span>
+          <span className="wizard-choice__icon">{Icon.ArchiveRestore()}</span>
           <h3>{t("restore.restore_choice.backup_title", "Restore from Backup")}</h3>
           <p>
             {t(

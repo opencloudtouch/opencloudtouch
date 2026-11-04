@@ -92,7 +92,8 @@ describe("Restore Wizard — Clean Restore Happy Path (T059)", () => {
 
     // Step 6: Completion
     cy.contains(/Wiederherstellung abgeschlossen/i).should("be.visible");
-    cy.contains("Fertig").should("be.visible");
+    // Target the button: the tracker also contains the word "Fertig" (compact line, hidden on desktop).
+    cy.contains("button", "Fertig").scrollIntoView().should("be.visible");
   });
 });
 

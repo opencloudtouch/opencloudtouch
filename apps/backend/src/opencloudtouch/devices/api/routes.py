@@ -5,7 +5,7 @@ CRUD endpoints for device management. Discovery endpoints extracted to discovery
 
 import logging
 from collections.abc import Awaitable
-from typing import Annotated, TypeVar
+from typing import Annotated, Literal, TypeVar
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from pydantic import BaseModel, StrictInt
@@ -72,7 +72,33 @@ async def _device_op(
         ) from e
 
 
-@router.get("")
+class DeviceResponse(BaseModel):
+    """Stored device information, including UUID provenance."""
+
+    id: int | None
+    device_id: str
+    ip: str
+    name: str
+    model: str
+    mac_address: str
+    firmware_version: str
+    schema_version: str
+    last_seen: str | None
+    setup_status: str
+    ssh_permanent: bool
+    setup_completed_at: str | None
+    marge_account_uuid: str | None
+    uuid_source: str
+
+
+class DeviceListResponse(BaseModel):
+    """Response containing all stored devices."""
+
+    count: int
+    devices: list[DeviceResponse]
+
+
+@router.get("", response_model=DeviceListResponse)
 async def get_devices(device_service: DeviceService = Depends(get_device_service)):
     """
     Get all devices from database.
@@ -134,7 +160,7 @@ async def delete_by_device_id(
     return {"message": "Device successfully deleted"}
 
 
-@router.get("/{device_id}")
+@router.get("/{device_id}", response_model=DeviceResponse)
 async def get_device(
     device_id: str, device_service: DeviceService = Depends(get_device_service)
 ):
@@ -660,6 +686,27 @@ async def set_mute(
         device_service.set_mute(device_id, muted),
     )
     return {"actual": vol.actual, "target": vol.target, "muted": vol.muted}
+
+
+@router.put(
+    "/{device_id}/source",
+    responses={
+        404: {"description": "Device not found"},
+        503: {"description": "Device unreachable"},
+    },
+)
+async def select_source(
+    device_id: str,
+    source: Annotated[Literal["BLUETOOTH", "AUX", "AIRPLAY"], Body(embed=True)],
+    device_service: Annotated[DeviceService, Depends(get_device_service)],
+):
+    """Switch the device to an input source (Bluetooth, AUX or AirPlay)."""
+    await _device_op(
+        device_id,
+        "select source",
+        device_service.select_source(device_id, source),
+    )
+    return {"source": source, "device_id": device_id}
 
 
 @router.post(

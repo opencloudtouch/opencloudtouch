@@ -51,6 +51,12 @@ const createFetchMock = (overrides: FetchMockOverrides = {}) => {
         json: async () => ({ ips: [] }),
       });
     }
+    if (url.includes("/api/zones")) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => [],
+      });
+    }
     if (url.includes("/api/presets")) {
       return Promise.resolve({
         ok: true,

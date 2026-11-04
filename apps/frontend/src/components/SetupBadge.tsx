@@ -5,8 +5,10 @@
  * Reads setup_status directly from the Device object (persisted in DB).
  * Click navigates to setup wizard for that device.
  */
+import type { ReactElement } from "react";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
+import { Icon } from "./Icon";
 import "./SetupBadge.css";
 
 interface SetupBadgeProps {
@@ -23,42 +25,34 @@ type DisplayStatus =
   | "outdated"
   | "offline";
 
-const STATUS_CONFIG: Record<DisplayStatus, { cls: string; icon: string; titleKey: string }> = {
+// Every status has its own icon shape, so the state never depends on colour alone.
+const STATUS_CONFIG: Record<
+  DisplayStatus,
+  { cls: string; icon: () => ReactElement; titleKey: string }
+> = {
   unknown: {
-    cls: "setup-badge badge-unknown",
-    icon: "⚙️",
+    cls: "sb sb--unknown",
+    icon: () => Icon.CircleHelp(22),
     titleKey: "setupBadge.unknown",
   },
   unconfigured: {
-    cls: "setup-badge badge-unconfigured",
-    icon: "⚙️",
+    cls: "sb sb--unconfigured",
+    icon: () => Icon.Settings(22),
     titleKey: "setupBadge.unconfigured",
   },
   configured: {
-    cls: "setup-badge badge-configured",
-    icon: "✓",
+    cls: "sb sb--configured",
+    icon: () => Icon.CircleCheck(22),
     titleKey: "setupBadge.configured",
   },
   pending: {
-    cls: "setup-badge badge-pending",
-    icon: "⏳",
+    cls: "sb sb--pending",
+    icon: () => Icon.Hourglass(22),
     titleKey: "setupBadge.pending",
   },
-  failed: {
-    cls: "setup-badge badge-unconfigured",
-    icon: "⚠️",
-    titleKey: "setupBadge.failed",
-  },
-  outdated: {
-    cls: "setup-badge badge-outdated",
-    icon: "⚠️",
-    titleKey: "setupBadge.outdated",
-  },
-  offline: {
-    cls: "setup-badge badge-offline",
-    icon: "⚙️",
-    titleKey: "setupBadge.offline",
-  },
+  failed: { cls: "sb sb--failed", icon: () => Icon.CircleX(22), titleKey: "setupBadge.failed" },
+  outdated: { cls: "sb sb--outdated", icon: () => Icon.Alert(22), titleKey: "setupBadge.outdated" },
+  offline: { cls: "sb sb--offline", icon: () => Icon.WifiOff(22), titleKey: "setupBadge.offline" },
 };
 
 const VALID_STATUSES = new Set<string>(Object.keys(STATUS_CONFIG));
@@ -85,7 +79,9 @@ export default function SetupBadge({ deviceId, setupStatus }: Readonly<SetupBadg
       aria-label={title}
       data-test="setup-button"
     >
-      <span className="badge-icon">{icon}</span>
+      <span className="sb-icon" aria-hidden="true">
+        {icon()}
+      </span>
     </button>
   );
 }

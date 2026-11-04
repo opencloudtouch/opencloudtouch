@@ -1,0 +1,119 @@
+/* si-: source switch in the header of the now-playing block (three small round buttons).
+   The visible circle is 32px, the button itself 44 x 44; the negative margin keeps the 32px header row. */
+.si-np-wrap {
+  position: relative;
+}
+.np-header.si-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 32px;
+}
+.si-b-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+.si-b-left .si-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.si-b {
+  display: flex;
+  flex: none;
+}
+.si-bb {
+  position: relative;
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  margin: -6px 0;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+}
+.si-bb[aria-disabled="true"] {
+  cursor: default;
+}
+.si-bb-in {
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ui-control-border);
+  color: var(--color-text-secondary);
+  transition: background var(--motion-base);
+}
+.si-bb:hover:not([aria-disabled="true"]) .si-bb-in {
+  background: var(--bg-tertiary);
+}
+.si-bb[aria-pressed="true"] .si-bb-in {
+  background: rgba(var(--primary-rgb), 0.22);
+  border: 2px solid var(--primary-color);
+  color: var(--color-text-primary);
+}
+.si-bb[aria-busy="true"] .si-bb-in {
+  border: 2px solid var(--primary-color);
+  color: var(--color-text-primary);
+}
+.si-bb[aria-disabled="true"]:not([aria-busy="true"]) .si-bb-in {
+  opacity: 0.6;
+}
+
+/* failed switch: the key of the source gets a red frame and a small cross; the message is a toast (nothing on the card changes) */
+.si-bb--fail .si-bb-in {
+  border: 2px solid var(--color-danger);
+  color: var(--color-text-primary);
+}
+.si-bb-x {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  box-sizing: content-box;
+  margin: -2px;
+  border-radius: 50%;
+  border: 2px solid var(--color-bg-card);
+  background: #c62828;
+  color: #fff;
+}
+@media (forced-colors: active) {
+  .si-bb-x {
+    background: Highlight;
+    color: HighlightText;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .si-bb-in {
+    transition: none;
+  }
+}
+@media (forced-colors: active) {
+  .si-bb-in {
+    border-color: CanvasText;
+  }
+  .si-bb[aria-pressed="true"] .si-bb-in {
+    border-color: Highlight;
+    outline: 2px solid Highlight;
+  }
+}

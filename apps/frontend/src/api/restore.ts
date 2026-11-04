@@ -21,6 +21,9 @@ export interface BackupFileInfoResponse {
   is_pre_restore: boolean;
   validation_status: string;
   validation_message: string;
+  /** Stable code of validation_message for translation (message stays English as fallback). */
+  validation_code?: string | null;
+  validation_params?: Record<string, string>;
 }
 
 export interface BackupSetResponse {
@@ -64,6 +67,9 @@ export interface RestoreStepResponse {
   message: string;
   error: string | null;
   duration_seconds: number;
+  /** Stable code of message for translation (message stays English as fallback). */
+  message_code?: string | null;
+  message_params?: Record<string, string>;
 }
 
 export interface RestoreWizardResponse {

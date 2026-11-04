@@ -163,3 +163,17 @@ def test_dlna_control_url_must_match_description_host():
         "http://192.168.55.99:8200/control",
         expected_host="192.168.55.1",
     )
+
+
+@pytest.mark.asyncio
+async def test_dlna_discovery_uses_public_ssdp_search(monkeypatch):
+    discovery = DlnaDiscovery()
+    locations = ["http://192.0.2.10:8200/root.xml"]
+    search = AsyncMock(return_value=locations)
+    fetch = AsyncMock(return_value=[])
+    monkeypatch.setattr(discovery.ssdp, "search_locations", search)
+    monkeypatch.setattr(discovery, "_fetch_server_descriptions", fetch)
+
+    assert await discovery.discover() == []
+    search.assert_awaited_once_with()
+    fetch.assert_awaited_once_with(locations)

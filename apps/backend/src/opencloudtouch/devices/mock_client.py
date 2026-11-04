@@ -15,6 +15,7 @@ from opencloudtouch.devices.client import (
     NowPlayingInfo,
     VolumeInfo,
 )
+from opencloudtouch.devices.models import SELECTABLE_SOURCES
 from opencloudtouch.zones.models import ZoneMemberInfo, ZoneStatus
 
 logger = logging.getLogger(__name__)
@@ -185,6 +186,17 @@ class MockDeviceClient(DeviceClient):
             state,
             self.device_id,
             extra={"device_id": self.device_id, "key": key, "state": state},
+        )
+
+    async def select_source(self, source: str) -> None:
+        """Mock source switch."""
+        if source not in SELECTABLE_SOURCES:
+            raise ValueError(f"Invalid source: {source}")
+        logger.info(
+            "[MOCK] select_source(%s) for device %s",
+            source,
+            self.device_id,
+            extra={"device_id": self.device_id, "source": source},
         )
 
     async def get_volume(self) -> VolumeInfo:

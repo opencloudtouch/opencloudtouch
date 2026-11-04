@@ -20,51 +20,54 @@
     "disabled": "Uitgeschakeld"
   },
   "nav": {
-    "presets": "Presets",
+    "devices": "Apparaten",
     "zones": "Zones",
     "settings": "Instellingen",
-    "about": "Over"
+    "about": "Over",
+    "ariaLabel": "Hoofdnavigatie"
   },
   "player": {
     "noPlayback": "Geen weergave",
     "play": "Afspelen",
     "pause": "Pauzeren",
     "noStation": "Geen station",
-    "noDevices": "Geen apparaten gevonden",
     "powerButton": "Aan/uit",
-    "localControl": "Lokale bediening",
-    "sourceTitle": "Bron",
     "playbackTitle": "Weergave",
     "prevTrack": "Vorig nummer",
     "nextTrack": "Volgend nummer",
     "muteOn": "Geluid aan",
     "muteOff": "Dempen",
-    "manageZone": "Zone beheren",
-    "multiRoom": "Meerkamers",
     "prevDevice": "Vorig apparaat",
-    "nextDevice": "Volgend apparaat"
+    "nextDevice": "Volgend apparaat",
+    "source": {
+      "bluetooth": "Bluetooth",
+      "radio": "Radio",
+      "aux": "AUX",
+      "airplay": "AirPlay",
+      "dlna": "DLNA",
+      "tv": "TV / HDMI",
+      "spotify": "Spotify",
+      "deezer": "Deezer",
+      "pandora": "Pandora",
+      "amazon": "Amazon Music",
+      "storedMusic": "Mediabibliotheek"
+    }
   },
   "presets": {
-    "pageTitle": "Radio Presets",
-    "empty": "Geen presets geconfigureerd",
-    "playPreset": "Preset {{name}} afspelen",
     "presetSaved": "Preset {{number}} opgeslagen.",
     "presetDeleted": "Preset {{number}} verwijderd.",
-    "playFailed": "Preset kon niet worden afgespeeld. Probeer het opnieuw.",
     "noDevices": "Geen apparaten gevonden",
     "syncedFromDevice": "Presets succesvol geladen van apparaat.",
     "savedStations": "Opgeslagen stations",
     "syncFromDevice": "Laden van apparaat",
     "syncFromDeviceSyncing": "Synchroniseren...",
-    "deviceOffline": "Apparaat offline",
     "syncFromDeviceTitle": "Presets synchroniseren van apparaat",
-    "infoTitle": "Preset notities",
-    "infoItem1": "Klik op een lege preset om een station toe te wijzen",
-    "infoItem2": "Klik op een toegewezen station om het te wijzigen of te verwijderen",
-    "infoItem3": "De groene ► knop speelt het station direct af",
-    "infoItem5": "⚙️ opent de installatiewizard voor het apparaat",
+    "infoTitle": "Apparaatnotities",
+    "infoItem1": "Tik op een lege preset om een zender toe te wijzen",
+    "infoItem2": "Tik op het potlood naast een zender om die te wijzigen of te verwijderen",
+    "infoItem3": "Tik op een preset om af te spelen en tik opnieuw om te pauzeren. De bronknoppen boven de hoes schakelen tussen Presets, Bluetooth en AUX",
+    "infoItem5": "Het statuspictogram rechtsboven op de apparaatkaart opent de installatiewizard voor het apparaat",
     "infoItem6": "\"Laden van apparaat\" synchroniseert presets van SoundTouch",
-    "changeStation": "Klik om station te wijzigen",
     "assignPreset": "Preset toewijzen",
     "searchClose": "Zoeken sluiten",
     "searchLoading": "Zoeken...",
@@ -77,7 +80,6 @@
     "confirmDeleteTitle": "Preset verwijderen",
     "confirmDeleteMessage": "Wilt u preset {{preset}} echt verwijderen?",
     "confirmDelete": "Verwijderen",
-    "deleteDevice": "Apparaat verwijderen",
     "searchTypeLabel": {
       "name": "Naam",
       "country": "Land",
@@ -104,7 +106,21 @@
     "manualStreamErrorTitle": "Streamfout",
     "manualStreamUnreachable": "De stream-URL is niet bereikbaar.",
     "manualStreamSaveFailed": "Het station kon niet worden opgeslagen.",
-    "manualStreamErrorOk": "OK"
+    "manualStreamErrorOk": "OK",
+    "unknownDevice": "Onbekend apparaat",
+    "unknownModel": "Onbekend model",
+    "unknownIp": "Onbekend IP-adres",
+    "searchHint": "Voer minstens 2 tekens in om te zoeken.",
+    "manualInvalidUrl": "Voer een geldig HTTP- of HTTPS-adres in.",
+    "searchTypeGroup": "Zoeken op",
+    "providerGroup": "Bron",
+    "searchResults": "Zoekresultaten",
+    "removeDevice": "Apparaat verwijderen",
+    "removeDeviceTitle": "Apparaat verwijderen?",
+    "removeDeviceOnline": "\"{{name}}\" is bereikbaar. Het wordt uit OpenCloudTouch verwijderd, de opgeslagen presets blijven behouden. Het apparaat zelf wordt niet gewijzigd en kan bij de volgende zoekopdracht opnieuw worden toegevoegd.",
+    "removeDeviceOffline": "\"{{name}}\" is offline. Het wordt uit OpenCloudTouch verwijderd, de opgeslagen presets blijven behouden. Zodra het weer in het netwerk zit, kan de volgende zoekopdracht het opnieuw toevoegen.",
+    "removeDeviceConfirm": "Verwijderen",
+    "deviceRemoved": "\"{{name}}\" is verwijderd."
   },
   "settings": {
     "title": "Instellingen",
@@ -117,11 +133,14 @@
       "enterIp": "Voer een IP-adres in",
       "probing": "Zoeken...",
       "deviceAdded": "{{name}} ({{ip}}) toegevoegd",
-      "probeError": "Geen apparaat gevonden op {{ip}}"
+      "probeError": "Geen apparaat gevonden op {{ip}}",
+      "label": "IP-adres van het apparaat",
+      "hint": "Formaat: 192.168.1.10"
     },
     "discovery": {
       "devicesFound_one": "{{count}} nieuw apparaat gevonden",
-      "devicesFound_other": "{{count}} nieuwe apparaten gevonden"
+      "devicesFound_other": "{{count}} nieuwe apparaten gevonden",
+      "moreDevices": "+ {{count}} meer"
     },
     "deviceDiscovery": {
       "sectionTitle": "Apparaten zoeken",
@@ -130,19 +149,25 @@
       "scanButton": "Nu zoeken",
       "scanning": "Zoeken...",
       "manualTitle": "Handmatig IP-adres",
-      "manualDescription": "Gebruik deze optie als automatisch zoeken niets vindt vanwege VLAN, Docker-netwerk of firewall."
+      "manualDescription": "Gebruik deze optie als automatisch zoeken niets vindt vanwege VLAN, Docker-netwerk of firewall.",
+      "scanningStatus": "Netwerkzoekopdracht bezig"
     },
     "logging": {
       "sectionTitle": "Logboek",
       "description": "Beheer het detailniveau van het logboek en download logs voor probleemoplossing.",
       "logLevel": "Logniveau",
-      "levelOff": "Uit",
+      "levelOff": "Alleen kritiek",
       "levelInfo": "Info",
       "levelDebug": "Debug",
       "downloadLogs": "Logs downloaden",
       "downloadDescription": "Download de laatste 1000 backend-logvermeldingen als tekstbestand.",
       "levelChanged": "Logniveau ingesteld op {{level}}",
-      "levelError": "Logniveau kon niet worden gewijzigd"
+      "levelError": "Logniveau kon niet worden gewijzigd",
+      "levelSaving": "Logniveau wordt opgeslagen",
+      "downloading": "Wordt voorbereid...",
+      "downloadFailedNetwork": "Logs konden niet worden gedownload: de server is niet bereikbaar. Controleer de verbinding en probeer het opnieuw.",
+      "downloadFailedHttp": "Logs konden niet worden gedownload: de server antwoordde met status {{status}}.",
+      "downloadFailedUnknown": "Logs konden niet worden gedownload: er is een onverwachte fout opgetreden."
     }
   },
   "manualIpModal": {
@@ -152,7 +177,9 @@
     "saveError": "Fout bij opslaan van IP-adressen",
     "save": "Opslaan",
     "saving": "Opslaan...",
-    "hint": "Het IP-adres staat in de bijbehorende app onder Instellingen → Info of in uw router."
+    "hint": "Het IP-adres staat in de bijbehorende app onder Instellingen → Info of in uw router.",
+    "placeholder": "Voorbeeld:\n192.168.1.100\n192.168.1.101\n192.168.1.102",
+    "saved": "IP-adressen opgeslagen!"
   },
   "multiroom": {
     "pageTitle": "Meerkamers zones",
@@ -177,7 +204,6 @@
     "infoItem5": "Klik op de zonenaam om deze te hernoemen",
     "editZone": "Bewerken",
     "dissolve": "Ontbinden",
-    "dissolveConfirm": "Echt ontbinden?",
     "zoneUpdated": "Zone bijgewerkt",
     "zoneCreated": "Zone aangemaakt",
     "zoneCreateFailed": "Zone kon niet worden aangemaakt",
@@ -189,30 +215,12 @@
     "clickToEdit": "Klik om te bewerken",
     "cancel": "Annuleren",
     "masterBadge": "Master",
-    "slaveBadge": "Slave"
-  },
-  "firmware": {
-    "title": "Firmware-updates",
-    "noDevices": "Geen apparaten gevonden",
-    "currentDevice": "Huidig apparaat",
-    "currentVersion": "Huidige versie:",
-    "statusLabel": "Status:",
-    "updateAvailable": "Update beschikbaar",
-    "upToDate": "Up-to-date",
-    "allDevices": "Alle apparaten",
-    "unknownVersion": "Onbekend",
-    "unknownModel": "Onbekend model",
-    "warningTitle": "Experimentele functie",
-    "warningText": "Firmware-updates zijn experimenteel en kunnen uw apparaat beschadigen. Gebruik alleen officiële firmware-bestanden van uw apparaatfabrikant. Uploaden is momenteel uitgeschakeld.",
-    "uploadTitle": "Firmware uploaden",
-    "uploadNotAvailable": "Firmware-upload is momenteel niet beschikbaar",
-    "uploadButton": "Firmware selecteren",
-    "uploadHint": "Deze functie wordt ingeschakeld in toekomstige versies",
-    "infoTitle": "Firmware notities",
-    "infoItem1": "Firmware-updates mogen alleen worden uitgevoerd als er problemen zijn",
-    "infoItem2": "Zet het apparaat niet uit tijdens een update",
-    "infoItem3": "Het updateproces kan 5-10 minuten duren",
-    "infoItem4": "Het apparaat herstart automatisch na de update"
+    "slaveBadge": "Slave",
+    "unknownDevice": "Onbekend apparaat",
+    "defaultZoneName": "Zone {{name}}",
+    "staleBadge": "Al lang niet gezien",
+    "confirmDissolveTitle": "Zone opheffen?",
+    "confirmDissolveMessage": "“{{name}}” wordt opgeheven. De apparaten spelen daarna weer afzonderlijk."
   },
   "setup": {
     "next": "Volgende",
@@ -381,7 +389,8 @@
         "troubleshootingItem3": "Wacht minstens 100 seconden na het herstarten",
         "troubleshootingItem4": "Probeer een andere stroomcyclus (stappen 2-5)",
         "troubleshootingItem5": "Controleer of het apparaat in hetzelfde netwerk zit",
-        "troubleshootingItem6": "Test de SSH-verbinding handmatig met het bovenstaande commando — als dat werkt, is het apparaat klaar."
+        "troubleshootingItem6": "Test de SSH-verbinding handmatig met het bovenstaande commando — als dat werkt, is het apparaat klaar.",
+        "nextDisabled": "Controleer de SSH-toegang en beslis of SSH ingeschakeld blijft."
       },
       "step4": {
         "title": "Back-up maken",
@@ -392,14 +401,15 @@
         "btnCreate": "Nu back-up maken",
         "btnCreating": "Back-up maken...",
         "progressMessage": "Back-up maken voor {{device}}",
-        "progressNote": "Dit kan tot 2 minuten duren...",
+        "progressNote": "Dit kan tot 10 minuten duren...",
         "errorTitle": "Back-up mislukt",
         "successTitle": "Back-up succesvol gemaakt!",
         "successHint": "De back-ups zijn naar uw USB-stick geschreven. Verwijder de stick na de wizard — hij bevat uw herstelbestanden.",
         "filesTitle": "Opgeslagen bestanden (op USB-stick):",
         "totalLabel": "Totaal:",
         "durationMinSec": "{{min}} min {{sec}} s",
-        "durationSec": "{{sec}} s"
+        "durationSec": "{{sec}} s",
+        "nextWarning": "Zonder back-up is herstellen niet mogelijk. Als u nu doorgaat, doet u dat op eigen risico."
       },
       "step5": {
         "titleProxy": "Reverse proxy gedetecteerd",
@@ -467,8 +477,7 @@
         "changedEntries": "Gewijzigde vermeldingen:",
         "backupLabel": "Back-up:",
         "btnShowChanges": "▶ Wijzigingen tonen",
-        "btnHideChanges": "▼ Wijzigingen verbergen",
-        "hostsApplied": "Hosts-bestand succesvol gewijzigd."
+        "btnHideChanges": "▼ Wijzigingen verbergen"
       },
       "step7": {
         "title": "NTP-server patchen",
@@ -542,7 +551,11 @@
         "btnRetryFullVerify": "Verificatie opnieuw uitvoeren",
         "checkNtpServer": "NTP-server ingesteld op: {{server}}",
         "checkNtpServerWrong": "NTP-server is ingesteld op '{{found}}', verwacht werd '{{expected}}'",
-        "fullVerifyItem5": "NTP-server op het apparaat geconfigureerd"
+        "fullVerifyItem5": "NTP-server op het apparaat geconfigureerd",
+        "phaseFinalize": "Instellen",
+        "phaseReboot": "Herstart",
+        "phaseVerify": "Controleren",
+        "nextDisabled": "Voltooi eerst alle controles met succes."
       },
       "step9": {
         "title": "Installatie voltooid!",
@@ -572,9 +585,18 @@
         "supportLink": "Contact opnemen met ondersteuning →",
         "summaryItem7": "NTP-server gepatcht ({{server}})"
       }
-    }
+    },
+    "trackerCompact": "Stap {{current}} van {{total}} – {{label}}",
+    "stepAriaSkipped": "Stap {{id}}: {{label}} — {{description}} – overgeslagen"
   },
   "restore": {
+    "steps": {
+      "choice": "Keuze",
+      "backup": "Back-up",
+      "restore": "Herstellen",
+      "verify": "Controleren",
+      "done": "Klaar"
+    },
     "choice": {
       "title": "Wat wil je doen?",
       "setup_title": "Installatiewizard",
@@ -606,7 +628,10 @@
       "running": "Herstel bezig...",
       "error": "Restore failed: {{message}}",
       "success": "All steps completed successfully! Total: {{time}}s",
-      "continue": "Doorgaan"
+      "continue": "Doorgaan",
+      "running_hint": "Dit kan enkele minuten duren (meestal 8 tot 9). Laat deze pagina open en koppel het apparaat niet los.",
+      "error_hint": "Ga terug en probeer het opnieuw.",
+      "failed_title": "Herstel onvolledig"
     },
     "verification": {
       "title": "Wachten op apparaat",
@@ -627,9 +652,62 @@
       "failed": "Mislukt",
       "note": "Het apparaat is nu in de oorspronkelijke staat. Je kunt het veilig loskoppelen.",
       "done": "Done"
+    },
+    "step_labels": {
+      "pre_snapshot": "Snapshot vóór het herstel",
+      "config": "Configuratiebestanden",
+      "presets": "Presets",
+      "hosts": "/etc/hosts",
+      "ntp": "/etc/ntpservers.txt",
+      "remote_services": "SSH-persistentie",
+      "reboot": "Herstart"
+    },
+    "messages": {
+      "snapshot_saved": "Snapshot vóór het herstel opgeslagen",
+      "snapshot_unavailable": "Geen wizard-service beschikbaar",
+      "snapshot_failed": "Snapshot mislukt: {{error}}",
+      "config_restored": "Configuratiebestanden hersteld",
+      "config_restore_failed": "Herstel van de configuratie mislukt: {{error}}",
+      "presets_clean": "Geen Presets.xml op het apparaat gevonden (al schoon)",
+      "presets_restored": "Presets hersteld in {{path}}",
+      "presets_restore_failed": "Herstel van de presets mislukt: {{error}}",
+      "hosts_read_failed": "/etc/hosts kon niet worden gelezen",
+      "hosts_clean": "Geen OCT-blok in /etc/hosts gevonden (al schoon)",
+      "hosts_restored": "OCT-blok uit /etc/hosts verwijderd",
+      "hosts_restore_failed": "Herstel van /etc/hosts mislukt: {{error}}",
+      "ntp_no_backup": "Geen NTP-back-up gevonden (al schoon)",
+      "ntp_copy_failed": "/etc/ntpservers.txt kon niet uit de back-up worden hersteld",
+      "ntp_restored": "NTP-servers hersteld uit de back-up",
+      "ntp_restore_failed": "Herstel van de NTP-servers mislukt: {{error}}",
+      "remote_services_deleted": "/mnt/nv/remote_services verwijderd",
+      "remote_services_failed": "remote_services kon niet worden verwijderd: {{error}}",
+      "reboot_sent": "Herstartcommando verzonden",
+      "reboot_failed": "Herstart mislukt: {{error}}"
+    },
+    "validation": {
+      "archive_corrupt": "Archief is beschadigd of onleesbaar",
+      "archive_empty": "Archief is leeg",
+      "archive_unverified": "De inhoud van het archief kon niet worden gecontroleerd (scan mislukt of time-out)",
+      "archive_path_missing": "Verwachte paden die beginnen met {{expected}} zijn niet gevonden in het archief"
+    },
+    "status": {
+      "completed": "Voltooid",
+      "skipped": "Overgeslagen",
+      "failed": "Mislukt",
+      "in_progress": "Bezig",
+      "pending": "In afwachting"
     }
   },
   "errors": {
+    "api": {
+      "unknown": "Er is iets misgegaan.",
+      "unknownWithCode": "Er is iets misgegaan (code: {{code}}).",
+      "device_not_found": "Het apparaat is niet gevonden.",
+      "device_unreachable": "Het apparaat is niet bereikbaar. Controleer of het is ingeschakeld en met het netwerk is verbonden.",
+      "not_found": "De gevraagde bron is niet gevonden.",
+      "validation_error": "De aanvraag bevat ongeldige gegevens. Controleer je invoer.",
+      "internal_error": "Er is een interne fout opgetreden. Probeer het later opnieuw."
+    },
     "loadFailed": "Laden mislukt. Probeer het opnieuw.",
     "unknown": "Er is een onverwachte fout opgetreden. Probeer het opnieuw.",
     "networkFailed": "Kon geen verbinding maken met de server. Controleer uw netwerkverbinding.",
@@ -678,27 +756,34 @@
     "licensesDescription": "OpenCloudTouch gebruikt de volgende open-source bibliotheken:",
     "licenseCompliance": "Licentienaleving",
     "licenseComplianceText": "OpenCloudTouch is open-source software onder de Apache License 2.0. Alle gebruikte bibliotheken zijn compatibel met deze licentie.",
-    "devicesConnected_zero": "Geen apparaten verbonden",
-    "devicesConnected_one": "{{count}} apparaat verbonden",
-    "devicesConnected_other": "{{count}} apparaten verbonden",
-    "github": "GitHub",
-    "reportIssue": "Een probleem melden",
     "support": "Ondersteunen",
-    "versionUnavailable": "Versie niet beschikbaar",
-    "hallOfFameTitle": "Eregalerij",
-    "hallOfFameDescription": "Top 3 bijdragers aller tijden — erkend voor uitzonderlijke technische impact.",
-    "supportersTitle": "Supporters",
     "reportBug": "Bug melden",
     "diagnostics": "Diagnostiek",
-    "supportersDescription": "Dank aan iedereen die OpenCloudTouch financieel steunt. Jullie bijdragen helpen het project levend te houden!",
-    "supportersMonthly": "Maandelijkse Supporters",
-    "supportersOneTime": "Eenmalige supporters",
-    "buildTime": "Gebouwd op {{time}}",
     "checkingUpdates": "Controleren op updates...",
     "updateAvailable": "Update beschikbaar: {{version}}",
     "viewRelease": "Release bekijken",
     "upToDate": "Je bent up-to-date!",
-    "devBuild": "Zelfgebouwde versie — updatecontrole uitgeschakeld"
+    "devBuild": "Zelfgebouwde versie — updatecontrole uitgeschakeld",
+    "github": "GitHub",
+    "externalLink": "(opent in een nieuw tabblad)",
+    "licenses": "Open-sourcelicenties",
+    "linksLabel": "Meer informatie",
+    "supportersTitle": "Supp<0/>rters",
+    "supportersLabel": "Ondersteuners",
+    "monthlySupporter": "(maandelijkse ondersteuner)",
+    "libraryWebsite": "Website van {{name}}",
+    "licensesVersion": "Versie",
+    "licensesGroup": {
+      "frontend": "Frontend",
+      "backend": "Backend",
+      "build": "Buildhulpmiddelen"
+    },
+    "licenseProject": "OpenCloudTouch-licentie",
+    "licenseApache": "Apache License 2.0",
+    "trademarkTitle": "Merkvermelding",
+    "trademarkText1": "OpenCloudTouch is <0>niet verbonden met Bose Corporation</0>. Bose® en SoundTouch® zijn geregistreerde handelsmerken van Bose Corporation.",
+    "trademarkText2": "Deze software gebruikt de openbaar gedocumenteerde lokale API's van Bose SoundTouch®-apparaten. Zie <0>TRADEMARK.md</0> voor details.",
+    "runningSince": "Actief sinds {{time}}"
   },
   "discovery": {
     "alreadyRunning": "Apparaatzoektocht loopt al. Wacht even...",
@@ -723,7 +808,8 @@
     "helpFirewall": "Firewallregels kunnen apparaatdetectie blokkeren",
     "helpRestart": "Herstart de apparaten en OpenCloudTouch",
     "helpManualAdd": "Voeg apparaat-IPs handmatig toe",
-    "helpSetupWizard": "Volg de installatiewizard voor stapsgewijze instructies"
+    "helpSetupWizard": "Volg de installatiewizard voor stapsgewijze instructies",
+    "deviceSaved": "Opgeslagen"
   },
   "setupBadge": {
     "unknown": "Apparaat instellen",
@@ -744,27 +830,7 @@
     "unknown": "Onbekend"
   },
   "bugReport": {
-    "title": "Bug melden",
-    "description": "Bugbeschrijving",
-    "descriptionPlaceholder": "Wat ging er mis?",
-    "steps": "Stappen om te reproduceren",
-    "stepsPlaceholder": "1. Ga naar...\n2. Klik op...\n3. Zie fout...",
-    "expected": "Verwacht gedrag",
-    "expectedPlaceholder": "Wat had er moeten gebeuren?",
-    "installationType": "Installatietype",
-    "whichInstallation": "Welke installatie?",
-    "hardware": "Hardware / Platform",
-    "whichHardware": "Welke hardware?",
-    "devices": "SoundTouch-apparaat(en)",
-    "whichDevice": "Welk apparaat?",
-    "networkConfig": "Netwerkconfiguratie",
-    "additionalInfo": "Aanvullende informatie",
-    "submit": "Bugrapport verzenden",
-    "submitting": "Verzenden...",
-    "downloadLogs": "Logs downloaden",
     "downloading": "Downloaden...",
-    "submitSuccess": "Bugrapport aangemaakt! {{url}}",
-    "submitFailed": "Bugrapport verzenden mislukt: {{error}}",
     "diagnosticsSuccess": "Diagnostiek gedownload! Voeg het .log.gz-bestand toe aan uw GitHub-issue.",
     "diagnosticsFailed": "Diagnostiek downloaden mislukt: {{error}}"
   },
@@ -785,7 +851,15 @@
     "firmware": "Firmware",
     "setupStatus": "Configuratiestatus",
     "lastSeen": "Laatst gezien",
-    "downloadBundle": "Ondersteuningsbundel downloaden"
+    "downloadBundle": "Ondersteuningsbundel downloaden",
+    "ip": "IP-adres",
+    "ssh": "SSH",
+    "sshOn": "Permanent ingeschakeld",
+    "sshOff": "Niet ingeschakeld",
+    "statusOnline": "Online",
+    "statusStale": "Lang niet gezien",
+    "statusOffline": "Offline",
+    "unknownValue": "onbekend"
   },
   "deviceRename": {
     "clickToEdit": "Klik om te hernoemen",
@@ -796,6 +870,48 @@
   "deviceHeader": {
     "reboot": "Apparaat herstarten",
     "sent": "Herstartopdracht verzonden",
-    "confirmMessage": "{{name}} herstarten? Het apparaat is ongeveer 100 seconden niet beschikbaar."
+    "confirmMessage": "{{name}} herstarten? Het apparaat is ongeveer 100 seconden niet beschikbaar.",
+    "backToDevice": "Terug naar {{name}}"
+  },
+  "a11y": {
+    "skipToContent": "Ga naar inhoud",
+    "selectLanguage": "Taal kiezen",
+    "deviceSelection": "Apparaatselectie",
+    "switchToDevice": "Overschakelen naar {{name}}",
+    "volume": "Volume",
+    "copyCommand": "Opdracht kopiëren",
+    "copyToClipboard": "Naar klembord kopiëren",
+    "deviceCounter": "Apparaat {{current}} van {{total}}"
+  },
+  "stationDetail": {
+    "codec": "Codec",
+    "bitrate": "Bitrate",
+    "homepage": "Website"
+  },
+  "device": {
+    "sourceChoose": "Bron kiezen",
+    "sourceSwitching": "Overschakelen naar {{source}}…",
+    "sourceSwitched": "Bron gewijzigd: {{source}}",
+    "sourceRetry": "Opnieuw proberen",
+    "slaveHint": "De bron wordt bepaald door master {{master}}.",
+    "standbyTitle": "Stand-by",
+    "standbyHint": "Apparaat in stand-by. Zet het aan om te luisteren.",
+    "noControl": "Afspelen wordt bediend op het aangesloten apparaat.",
+    "presetPlay": "Preset {{n}} afspelen: {{name}}",
+    "presetPause": "Preset {{n}} pauzeren: {{name}}",
+    "presetChange": "Zender voor preset {{n}} wijzigen",
+    "prRunning": "Speelt",
+    "prPaused": "Gepauzeerd",
+    "prStarting": "Starten…",
+    "prFailed": "Starten mislukt",
+    "presetStarted": "{{name}} speelt (preset {{n}})",
+    "presetPausedAnn": "{{name}} gepauzeerd",
+    "presetFailedAnn": "Preset {{n}} ({{name}}) kon niet worden gestart. Tik opnieuw om het nog eens te proberen.",
+    "noPresetToStart": "Er is nog geen preset opgeslagen. Wijs eerst een zender toe aan een preset.",
+    "src": {
+      "presets": "Presets"
+    },
+    "sourceUnreachable": "{{source}} niet bereikbaar",
+    "sourceFailedKey": "{{source}}, niet bereikbaar. Opnieuw proberen"
   }
 }
