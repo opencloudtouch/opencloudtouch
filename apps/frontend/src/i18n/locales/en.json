@@ -883,7 +883,6 @@
     "sourceChoose": "Choose source",
     "sourceSwitching": "Switching to {{source}}…",
     "sourceSwitched": "Source changed: {{source}}",
-    "sourceFailed": "Switching to {{source}} failed. The device is not responding.",
     "sourceRetry": "Try again",
     "slaveHint": "The source is set by master {{master}}.",
     "standbyTitle": "Standby",
@@ -902,6 +901,8 @@
     "noPresetToStart": "No preset is saved yet. Assign a station to a preset first.",
     "src": {
       "presets": "Presets"
-    }
+    },
+    "sourceUnreachable": "{{source}} not reachable",
+    "sourceFailedKey": "{{source}}, not reachable. Try again"
   }
 }

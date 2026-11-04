@@ -883,7 +883,6 @@
     "sourceChoose": "Wybierz źródło",
     "sourceSwitching": "Przełączanie na {{source}}…",
     "sourceSwitched": "Zmieniono źródło: {{source}}",
-    "sourceFailed": "Nie udało się przełączyć na {{source}}. Urządzenie nie odpowiada.",
     "sourceRetry": "Spróbuj ponownie",
     "slaveHint": "Źródło ustawia urządzenie główne {{master}}.",
     "standbyTitle": "Tryb gotowości",
@@ -902,6 +901,8 @@
     "noPresetToStart": "Nie zapisano jeszcze żadnego presetu. Najpierw przypisz stację do presetu.",
     "src": {
       "presets": "Presety"
-    }
+    },
+    "sourceUnreachable": "{{source}} niedostępne",
+    "sourceFailedKey": "{{source}}, niedostępne. Spróbuj ponownie"
   }
 }

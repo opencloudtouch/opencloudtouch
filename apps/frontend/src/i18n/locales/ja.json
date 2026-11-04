@@ -883,7 +883,6 @@
     "sourceChoose": "ソースを選択",
     "sourceSwitching": "{{source}} に切り替え中…",
     "sourceSwitched": "ソースを切り替えました: {{source}}",
-    "sourceFailed": "{{source}} への切り替えに失敗しました。デバイスが応答しません。",
     "sourceRetry": "再試行",
     "slaveHint": "ソースはマスター {{master}} が設定します。",
     "standbyTitle": "スタンバイ",
@@ -902,6 +901,8 @@
     "noPresetToStart": "保存されたプリセットがまだありません。先にプリセットへステーションを割り当ててください。",
     "src": {
       "presets": "プリセット"
-    }
+    },
+    "sourceUnreachable": "{{source}}に接続できません",
+    "sourceFailedKey": "{{source}}に接続できません。もう一度試す"
   }
 }

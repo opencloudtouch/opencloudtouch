@@ -141,10 +141,7 @@ describe("Toast Component", () => {
     it("should have aria-label on close button for screen readers", () => {
       render(<Toast message="Test message" />);
 
-      expect(screen.getByRole("button", { name: "Close" })).toHaveAttribute(
-        "aria-label",
-        "Close"
-      );
+      expect(screen.getByRole("button", { name: "Close" })).toHaveAttribute("aria-label", "Close");
     });
   });
 
@@ -163,6 +160,37 @@ describe("Toast Component", () => {
       unmount();
       render(<Toast message="FYI" type="info" />);
       expect(screen.getByRole("status")).toHaveTextContent("FYI");
+    });
+  });
+
+  describe("persistent toast with an action", () => {
+    it("stays after the duration, runs the action and reports a manual close", () => {
+      const onAction = vi.fn();
+      const onDismiss = vi.fn();
+      const onClose = vi.fn();
+      render(
+        <Toast
+          message="AUX not reachable"
+          type="error"
+          duration={1000}
+          persistent
+          action={{ label: "Try again", onClick: onAction }}
+          onDismiss={onDismiss}
+          onClose={onClose}
+        />
+      );
+
+      act(() => {
+        vi.advanceTimersByTime(10000);
+      });
+      expect(screen.getByText("AUX not reachable")).toBeInTheDocument();
+      expect(onClose).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+      expect(onAction).toHaveBeenCalledTimes(1);
+
+      fireEvent.click(screen.getByRole("button", { name: "Close" }));
+      expect(onDismiss).toHaveBeenCalledTimes(1);
     });
   });
 });

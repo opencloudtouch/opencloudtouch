@@ -883,7 +883,6 @@
     "sourceChoose": "Elegir fuente",
     "sourceSwitching": "Cambiando a {{source}}…",
     "sourceSwitched": "Fuente cambiada: {{source}}",
-    "sourceFailed": "No se pudo cambiar a {{source}}. El dispositivo no responde.",
     "sourceRetry": "Reintentar",
     "slaveHint": "La fuente la define el maestro {{master}}.",
     "standbyTitle": "En espera",
@@ -902,6 +901,8 @@
     "noPresetToStart": "Aún no hay ningún preset guardado. Asigna primero una emisora a un preset.",
     "src": {
       "presets": "Presets"
-    }
+    },
+    "sourceUnreachable": "{{source}} no disponible",
+    "sourceFailedKey": "{{source}}, no disponible. Reintentar"
   }
 }

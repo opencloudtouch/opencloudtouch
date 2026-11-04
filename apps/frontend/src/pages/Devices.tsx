@@ -8,7 +8,6 @@ import PresetRow, { type PresetRowState } from "../components/PresetRow";
 import SourceSwitch, { type DeviceSource } from "../components/SourceSwitch";
 import TransportKeys, { type TransportKey } from "../components/TransportKeys";
 import SetupBadge from "../components/SetupBadge";
-import SwitchFailedAlert from "../components/SwitchFailedAlert";
 import DeviceOfflineBanner from "../components/DeviceOfflineBanner";
 import DeviceNameEditor from "../components/DeviceNameEditor";
 import RadioSearch, { RadioStation } from "../components/RadioSearch";
@@ -87,7 +86,7 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
   const { nowPlaying: npState, refresh: refreshNowPlaying } = useNowPlaying(deviceId);
   const { zones } = useZones();
   const [lastPreset, setLastPreset] = useLastPreset(deviceId);
-  const { show: showToast } = useToast();
+  const { show: showToast, hide: hideToast } = useToast();
   const [powerLoading, setPowerLoading] = useState(false);
   const [pendingStation, setPendingStation] = useState<RadioStation | null>(null);
   const [clearingPreset, setClearingPreset] = useState<number | null>(null);
@@ -140,6 +139,36 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
     // Intentionally omit currentDeviceIndex: re-running on every arrow-key change
     // would override the user's manual selection back to the URL device.
   }, [searchParams, devices]);
+
+  // A failed switch is reported by one toast that stays until it is closed, retried or the device leaves the card
+  const retrySwitchRef = useRef<() => void>(() => {});
+  retrySwitchRef.current = () => {
+    if (switchFailed) void handleSelectSource(switchFailed);
+  };
+  const failToastShownRef = useRef(false);
+  useEffect(() => {
+    if (!switchFailed) {
+      if (failToastShownRef.current) hideToast();
+      failToastShownRef.current = false;
+      return;
+    }
+    failToastShownRef.current = true;
+    showToast(
+      t("device.sourceUnreachable", { source: t(SOURCE_LABEL_KEYS[switchFailed]) }),
+      "error",
+      {
+        persistent: true,
+        action: { label: t("device.sourceRetry"), onClick: () => retrySwitchRef.current() },
+        onDismiss: () => setSwitchFailed(null),
+      }
+    );
+  }, [switchFailed, showToast, hideToast, t]);
+  useEffect(
+    () => () => {
+      if (failToastShownRef.current) hideToast();
+    },
+    [hideToast]
+  );
 
   // The alert sits in the inert area: when the device goes to standby it could no longer be closed or retried
   useEffect(() => {
@@ -382,6 +411,7 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
     <SourceSwitch
       current={currentSource}
       switching={switching}
+      failed={switchFailed}
       disabled={switchDisabled}
       describedBy={isZoneMember ? "dv-slave-hint" : undefined}
       onSelect={handleSelectSource}
@@ -504,13 +534,6 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
                         nowPlaying={nowPlaying}
                         headerLabel={headerLabel}
                         headerAction={sourceSwitch}
-                      />
-                    )}
-                    {switchFailed && !switching && (
-                      <SwitchFailedAlert
-                        sourceLabel={sourceName(switchFailed)}
-                        onRetry={() => handleSelectSource(switchFailed)}
-                        onClose={() => setSwitchFailed(null)}
                       />
                     )}
                   </div>

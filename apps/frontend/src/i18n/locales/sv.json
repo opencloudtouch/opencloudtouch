@@ -883,7 +883,6 @@
     "sourceChoose": "Välj källa",
     "sourceSwitching": "Byter till {{source}}…",
     "sourceSwitched": "Källa ändrad: {{source}}",
-    "sourceFailed": "Det gick inte att byta till {{source}}. Enheten svarar inte.",
     "sourceRetry": "Försök igen",
     "slaveHint": "Källan styrs av master {{master}}.",
     "standbyTitle": "Standby",
@@ -902,6 +901,8 @@
     "noPresetToStart": "Inget förval är sparat ännu. Tilldela först en station till ett förval.",
     "src": {
       "presets": "Förval"
-    }
+    },
+    "sourceUnreachable": "{{source}} kan inte nås",
+    "sourceFailedKey": "{{source}}, kan inte nås. Försök igen"
   }
 }

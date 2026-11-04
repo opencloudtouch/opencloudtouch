@@ -883,7 +883,6 @@
     "sourceChoose": "Quelle wählen",
     "sourceSwitching": "Wechsle zu {{source}}…",
     "sourceSwitched": "Quelle gewechselt: {{source}}",
-    "sourceFailed": "Umschalten auf {{source}} fehlgeschlagen. Das Gerät antwortet nicht.",
     "sourceRetry": "Erneut versuchen",
     "slaveHint": "Die Quelle bestimmt der Master {{master}}.",
     "standbyTitle": "Standby",
@@ -902,6 +901,8 @@
     "noPresetToStart": "Es ist noch kein Preset gespeichert. Weise zuerst einem Preset einen Sender zu.",
     "src": {
       "presets": "Presets"
-    }
+    },
+    "sourceUnreachable": "{{source}} nicht erreichbar",
+    "sourceFailedKey": "{{source}}, nicht erreichbar. Erneut versuchen"
   }
 }

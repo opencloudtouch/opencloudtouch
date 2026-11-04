@@ -61,6 +61,29 @@
   align-items: center;
   justify-content: center;
 }
+.toast--act .toast-action {
+  flex: none;
+  min-height: 44px;
+  margin: -6px 0;
+  padding: 0 8px;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.toast--act .toast-action:hover {
+  background: rgba(128, 128, 128, 0.25);
+}
+.toast--act .toast-action:focus-visible,
+.toast--act .toast-close:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
 .toast-close:hover {
   color: var(--color-text-primary);
   background: rgba(255, 255, 255, 0.08);

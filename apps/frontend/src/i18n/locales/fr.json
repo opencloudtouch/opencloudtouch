@@ -883,7 +883,6 @@
     "sourceChoose": "Choisir la source",
     "sourceSwitching": "Passage à {{source}}…",
     "sourceSwitched": "Source changée : {{source}}",
-    "sourceFailed": "Le passage à {{source}} a échoué. L'appareil ne répond pas.",
     "sourceRetry": "Réessayer",
     "slaveHint": "La source est définie par le maître {{master}}.",
     "standbyTitle": "Veille",
@@ -902,6 +901,8 @@
     "noPresetToStart": "Aucun préréglage enregistré. Attribuez d'abord une station à un préréglage.",
     "src": {
       "presets": "Préréglages"
-    }
+    },
+    "sourceUnreachable": "{{source}} injoignable",
+    "sourceFailedKey": "{{source}}, injoignable. Réessayer"
   }
 }

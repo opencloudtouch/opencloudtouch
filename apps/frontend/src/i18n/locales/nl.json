@@ -883,7 +883,6 @@
     "sourceChoose": "Bron kiezen",
     "sourceSwitching": "Overschakelen naar {{source}}…",
     "sourceSwitched": "Bron gewijzigd: {{source}}",
-    "sourceFailed": "Overschakelen naar {{source}} is mislukt. Het apparaat reageert niet.",
     "sourceRetry": "Opnieuw proberen",
     "slaveHint": "De bron wordt bepaald door master {{master}}.",
     "standbyTitle": "Stand-by",
@@ -902,6 +901,8 @@
     "noPresetToStart": "Er is nog geen preset opgeslagen. Wijs eerst een zender toe aan een preset.",
     "src": {
       "presets": "Presets"
-    }
+    },
+    "sourceUnreachable": "{{source}} niet bereikbaar",
+    "sourceFailedKey": "{{source}}, niet bereikbaar. Opnieuw proberen"
   }
 }
