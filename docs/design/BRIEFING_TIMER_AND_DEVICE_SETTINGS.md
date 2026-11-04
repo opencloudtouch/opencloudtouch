@@ -32,13 +32,13 @@ The new screens must look and behave like the stages 5–13 that already exist. 
 
 Principles that these files already follow, and that apply to every new screen:
 
-1. **Order by use.** The card runs: what plays → how to control it → how loud → what else to play → rarely used → remove. Where the quick timer goes must be argued with this order. A timer relates to volume and ending playback, so the candidate is directly below volume, but the designer decides and explains why, including how the card stays calm on 320 px where it is already about 1450 px tall.
+1. **Order by use.** The card runs: what plays → how to control it → how loud → what else to play → rarely used → remove. The designer decides where each new element goes and explains the choice with this order, including how the card stays calm on 320 px where it is already about 1450 px tall.
 2. **One place, one control, one label.** A function exists once. The quick timer is not repeated in settings; scheduled timers are not repeated on the card.
 3. **Reserve space.** Every state line, hint, error and countdown has a reserved slot with a fixed height. Appearing, running and ended states change content, not size.
 4. **State = shape + word + icon**, never colour alone; disabled, busy and failed are distinct from each other.
 5. **Quiet by default, emphasis by state.** Secondary options (fade-out, end action) are collapsed; destructive actions are ghost until they matter.
 6. **Same component for the same job.** Selects are `.ui-select`, toggles and chips are the existing ones, dialogs are `Modal`/`ConfirmDialog`, notices are toasts or `.wz-status`. A new component needs a sentence on why no existing one fits.
-7. **Phone first, large screens use the space.** 320/390 one column; from 1024 px the two-column card of stage 10 (left: playing, keys, volume; right: presets, source). Say where the timer goes in the two-column layout.
+7. **Phone first, large screens use the space.** 320/390 one column; from 1024 px the two-column card of stage 10 (left: playing, keys, volume; right: presets, source). Placement within the layouts is the designer's decision.
 8. **Texts through i18n keys**, written for the user, German and Swedish checked with long strings.
 
 "Just drawing" is not accepted. The delivery must justify each placement and each new component against this list (one line each), name the existing pattern it reuses, and list every deviation with the reason. A screen without that justification is sent back.
@@ -58,33 +58,33 @@ Goal: fast access to a one-off timer that is already set up in time.
 
 Requirements:
 
-- Lives **on the device card** (Devices page), in the position the designer argues for under principle 1 of section 1a (candidate: directly below volume). It must not move or resize the card in any state (rule 1): reserve the height, no element that appears suddenly.
+- Lives **on the device card** (Devices page), at a position the designer chooses and justifies (section 1a). The only given is the location: the device card. It must not move or resize the card in any state (rule 1): reserve the height, no element that appears suddenly.
 - Entry by **hours and minutes** (two inputs or a stepper pair, total 1 min – 12 h, shows the total, e.g. "= 1 h 47 min"). Quick presets (e.g. 15 / 30 / 45 / 60 / 90 min) are allowed if they save taps.
 - Remembers the last used duration, fade-out and end action per browser.
 - Fade-out (off, 10, 30, 60, 120 s; default 30 s) and end action (stop / standby) are secondary: collapsed behind a single control, not shown by default.
 - States to design: no timer · input invalid · starting · running (countdown, ends-at time) · fading out · ending · ended or replaced elsewhere · cancel · server error with retry · device offline · device in standby · zone member.
 - The countdown is announced politely, but **not every second** (rule 4); a cancel control is always reachable by keyboard; the focus stays where it was after start, cancel and end.
-- A running timer is also visible in the collapsed or compact state of the card (small label with remaining time), so the user sees that a timer is active without opening anything.
+- The user must be able to see at a glance that a timer is active and how long it has left, without opening anything. How is a design decision.
 
-Open questions for Design: is one row with "Timer" opening an inline panel better than a permanent block? How does the timer coexist with the swiper and the sticky bar?
+Everything about form, position and interaction pattern is left to Design. Only constraint: it has to coexist with the existing swiper and sticky device bar.
 
 ## 4. Device settings card (new) with scheduled timers
 
-Goal: next to the Setup Wizard and the Restore Wizard, every device gets a **"Device settings"** card. It opens a settings view for that device.
+Goal: every device gets a settings page of its own. It holds the device settings and the scheduled timers. The only given is the location (a per-device settings page); how it is reached, how it is structured and how it relates to the Setup and Restore wizards is up to Design.
 
 Contents of the settings view:
 
 1. **Device settings** (#557): name, clock (time), language, bass, power saving. Each shows its current value, a save action and a per-field error. Fields the device does not support are hidden or disabled with a reason.
 2. **Scheduled timers** (#543, #583), a list with **multiple entries**:
-   - Each entry: weekdays (multi-select, Mon–Sun, shortcuts "weekdays" and "weekend"), time of day (hour and minute), action, enabled switch.
+   - Each entry: weekdays (multi-select, Mon–Sun), time of day (hour and minute), action, enabled switch.
    - Action `play preset` (slot 1–6), with optional start volume and fade-in; optional **end phase**: "switch off after" hours and minutes, fade-out (off / 10 / 30 / 60 s) and end action (stop / standby).
    - Action `stop` or `standby`, with optional fade-out.
    - Example the design must make easy: "Mon–Fri 07:00" and "Sat–Sun 09:00" as two entries; "Tue and Fri–Sun 14:44, preset 2, switch off after 47 min with fade-out".
    - Per entry: next run, last run result (success, skipped, failed with reason), run now, edit, delete (with confirmation).
    - Empty state, loading state, error state, offline device, many entries (list stays calm; adding and removing an entry must not make the page jump).
-3. **Time zone** is shown next to the list (the schedule uses the server's time zone). The design must show it clearly, because a wrong zone makes every entry wrong.
+3. **Time zone:** the schedule uses the server's time zone. The design must make it clearly visible, because a wrong zone makes every entry wrong. Where is up to Design.
 
-Quick timer (section 3) is activated on the device card; scheduled timers are activated here. A running quick timer shows up in this view as read-only status with a link to the card.
+Quick timer (section 3) is activated on the device card; scheduled timers are activated on the device settings page. Whether and how the two reference each other is up to Design.
 
 Open questions for Design:
 
@@ -94,7 +94,7 @@ Open questions for Design:
 
 ## 5. Stream recovery on the Settings page
 
-Keep it on the global Settings page, but give it the same look as the rest of stage 13: opt-in switch with explanation, window and attempts fields with inline validation, activity log as a table at ≥768 px and as a list of cards below (no horizontal scroll, rule 4/6), refresh with polite status text, empty, loading and error states. No behaviour change.
+It stays on the global Settings page (no move). Content, unchanged in behaviour: opt-in switch with explanation, window and attempts fields with inline validation, activity log (time, device, station, preset, outcome, play time, attempts), refresh, empty, loading and error states. Layout is up to Design; it must follow the existing look and the UI checklist (no horizontal scroll, rules 4 and 6).
 
 ## 6. Deliverables
 
@@ -110,6 +110,5 @@ Keep it on the global Settings page, but give it the same look as the rest of st
 1. **Time zone of schedules:** server time zone (simple, matches the device clock) or per entry? #583 puts per-schedule time zones out of scope; the design should assume the server time zone.
 2. **What a missed run does** (server was off at the start time): the backend rules of #543 apply; the design needs a visible "missed" state.
 3. **Quick timer vs scheduled end phase:** one timer per device. A scheduled start with an end phase replaces a running quick timer. The UI must say so when the user starts one while the other is active.
-4. **Where "Device settings" opens from:** card button, device menu, or the setup badge. The maintainers decide.
 
 Hardware behaviour (pause vs stop, power, fades on the real device) is not verified yet; the design must not depend on it.
