@@ -85,6 +85,33 @@ class TestDeviceWebSocketConnect:
             await device_ws.disconnect()
 
 
+class TestDeviceWebSocketConnectArguments:
+    @pytest.mark.asyncio
+    async def test_connect_bypasses_environment_proxy_and_keeps_options(
+        self, device_ws
+    ):
+        """Devices live on the LAN: never route them through HTTP(S)_PROXY/ALL_PROXY.
+
+        websockets >= 15 defaults to proxy=True (reads the proxy environment); a
+        ProxyError would end the connection loop without reconnect.
+        """
+        with patch(
+            "opencloudtouch.devices.websocket.connection.ws_connect",
+            side_effect=asyncio.CancelledError,
+        ) as mock_connect:
+            device_ws.connect()
+            await asyncio.sleep(0)
+            await device_ws.disconnect()
+
+        mock_connect.assert_called_once()
+        kwargs = mock_connect.call_args.kwargs
+        assert mock_connect.call_args.args == (device_ws.uri,)
+        assert kwargs["proxy"] is None
+        assert [str(p) for p in kwargs["subprotocols"]] == ["gabbo"]
+        assert kwargs["ping_interval"] == 30
+        assert kwargs["ping_timeout"] == 10
+
+
 class TestDeviceWebSocketDisconnect:
     @pytest.mark.asyncio
     async def test_disconnect_cleans_up(self, device_ws, on_state_change):

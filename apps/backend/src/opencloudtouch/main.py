@@ -27,6 +27,7 @@ from opencloudtouch.core.exception_handlers import (
 )
 from opencloudtouch.core.logging import setup_logging
 from opencloudtouch.core.logs_routes import router as logs_router
+from opencloudtouch.core.openapi import install_error_schemas
 from opencloudtouch.api.diagnostics import router as diagnostics_router
 from opencloudtouch.core.static_files import (
     find_frontend_static_dir,
@@ -386,6 +387,7 @@ app = FastAPI(
 # ============================================================================
 
 register_exception_handlers(app)
+install_error_schemas(app)
 
 # ============================================================================
 # CORS Middleware

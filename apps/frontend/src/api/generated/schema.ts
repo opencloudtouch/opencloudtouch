@@ -3915,6 +3915,104 @@ export interface components {
       /** Ip */
       ip: string;
     };
+    /**
+     * ErrorItem
+     * @description One field-level error inside ``ErrorDetail.errors``.
+     *
+     *     ``field`` keeps the legacy dotted location (``body.port``); ``path`` is the
+     *     same location without the leading ``body``/``query``/``path``/``header``
+     *     segment (``port``) and is what clients map to input names.
+     */
+    ErrorItem: {
+      /** Field */
+      field: string;
+      /**
+       * Path
+       * @default null
+       */
+      path: string | null;
+      /** Message */
+      message: string;
+      /**
+       * Type
+       * @default null
+       */
+      type: string | null;
+      /**
+       * Code
+       * @default null
+       */
+      code: string | null;
+    };
+    /**
+     * ErrorDetail
+     * @description Standardized error response format (RFC 7807-inspired).
+     *
+     *     Provides consistent error structure across all API endpoints.
+     *
+     *     Attributes:
+     *         type: Error category (validation_error, not_found, server_error, etc.)
+     *         title: Human-readable error title
+     *         status: HTTP status code
+     *         detail: Detailed error message
+     *         instance: Request path that triggered error (optional)
+     *         errors: Field-level validation errors (optional, for 422 responses)
+     *         code: Stable machine-readable error identifier (see ``error_codes``)
+     *         params: Flat string map for message interpolation on the client
+     *         extra: Structured data for the client (not for translation)
+     *
+     *     Example:
+     *         {
+     *             "type": "not_found",
+     *             "title": "Device Not Found",
+     *             "status": 404,
+     *             "detail": "Device not found: abc123",
+     *             "instance": "/api/devices/abc123",
+     *             "errors": null,
+     *             "code": "device_not_found",
+     *             "params": null,
+     *             "extra": null
+     *         }
+     */
+    ErrorDetail: {
+      /** Type */
+      type: string;
+      /** Title */
+      title: string;
+      /** Status */
+      status: number;
+      /** Detail */
+      detail: string;
+      /**
+       * Instance
+       * @default null
+       */
+      instance: string | null;
+      /**
+       * Errors
+       * @default null
+       */
+      errors: components["schemas"]["ErrorItem"][] | null;
+      /**
+       * Code
+       * @default null
+       */
+      code: string | null;
+      /**
+       * Params
+       * @default null
+       */
+      params: {
+        [key: string]: string;
+      } | null;
+      /**
+       * Extra
+       * @default null
+       */
+      extra: {
+        [key: string]: unknown;
+      } | null;
+    };
   };
   responses: never;
   parameters: never;
