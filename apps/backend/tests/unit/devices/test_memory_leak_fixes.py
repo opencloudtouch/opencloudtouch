@@ -452,12 +452,14 @@ class TestShutdownRadioAdapters:
         mock_radio = AsyncMock()
         mock_tunein = AsyncMock()
         mock_health_check = AsyncMock()
+        mock_dlna = AsyncMock()
 
         mock_app = MagicMock()
         mock_app.state = SimpleNamespace(
             health_check=mock_health_check,
             radio_adapter=mock_radio,
             tunein_adapter=mock_tunein,
+            dlna_service=mock_dlna,
         )
 
         import logging
@@ -469,6 +471,7 @@ class TestShutdownRadioAdapters:
 
         mock_radio.close.assert_awaited_once()
         mock_tunein.close.assert_awaited_once()
+        mock_dlna.close.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_shutdown_handles_missing_radio_adapters(self):
@@ -478,7 +481,11 @@ class TestShutdownRadioAdapters:
         mock_health_check = AsyncMock()
 
         mock_app = MagicMock()
-        mock_app.state = SimpleNamespace(health_check=mock_health_check)
+        mock_dlna = AsyncMock()
+        mock_app.state = SimpleNamespace(
+            health_check=mock_health_check,
+            dlna_service=mock_dlna,
+        )
 
         import logging
 
@@ -488,6 +495,7 @@ class TestShutdownRadioAdapters:
         # Should not raise — adapters not present
         await _shutdown(mock_app, repos, logger)
         mock_health_check.stop.assert_awaited_once()
+        mock_dlna.close.assert_awaited_once()
 
 
 # ---------------------------------------------------------------------------
