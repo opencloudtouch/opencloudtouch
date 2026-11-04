@@ -24,6 +24,8 @@ class SleepTimer:
     original_volume: int | None = None
     # last value the fade wrote: tells after a restart whether the volume is still ours
     last_set_volume: int | None = None
+    # the value before it: an interrupted write may or may not have landed
+    prev_set_volume: int | None = None
     created_at: float = 0.0
 
     @property

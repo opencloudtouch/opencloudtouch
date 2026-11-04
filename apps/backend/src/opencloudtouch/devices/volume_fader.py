@@ -56,8 +56,9 @@ class VolumeFader:
     ) -> FadeResult:
         """Move the volume from *from_v* to *to_v* within *seconds*.
 
-        *on_set* is awaited with every value this fade writes (the caller can tell
-        later, even after a restart, whether a volume it finds is still its own).
+        *on_set* is awaited with every value this fade is about to write, before the
+        write (the caller can tell later, even after a restart or an interrupted
+        write, whether a volume it finds is still its own).
         """
         if seconds <= 0 or from_v == to_v:
             return FadeResult.COMPLETED
@@ -103,6 +104,10 @@ class VolumeFader:
 
             target = step_target(from_v, to_v, step, steps)
             if target != last_set:
+                if on_set is not None:
+                    # Reported before the write: a write that is cancelled while the
+                    # speaker command runs in its worker thread may still land.
+                    await on_set(target)
                 await retry_unreachable(
                     functools.partial(
                         self._device_service.set_volume, device_id, target
@@ -110,7 +115,5 @@ class VolumeFader:
                     self._sleep,
                 )
                 last_set = target
-                if on_set is not None:
-                    await on_set(target)
             step += 1
         return FadeResult.COMPLETED

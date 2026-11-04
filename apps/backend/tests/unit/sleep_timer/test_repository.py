@@ -66,12 +66,17 @@ async def test_set_original_volume_and_clear_it(repo):
 
 
 @pytest.mark.asyncio
-async def test_set_last_set_volume(repo):
+async def test_set_last_set_volume_keeps_the_previous_one_too(repo):
     await repo.upsert(_timer(original_volume=40))
-    await repo.set_last_set_volume(DEVICE, 12)
-    assert (await repo.get(DEVICE)).last_set_volume == 12
-    await repo.upsert(_timer(original_volume=40, last_set_volume=7))
-    assert (await repo.get(DEVICE)).last_set_volume == 7
+    await repo.set_last_set_volume(DEVICE, 12, 15)
+    row = await repo.get(DEVICE)
+    assert (row.last_set_volume, row.prev_set_volume) == (12, 15)
+    await repo.upsert(_timer(original_volume=40, last_set_volume=7, prev_set_volume=9))
+    row = await repo.get(DEVICE)
+    assert (row.last_set_volume, row.prev_set_volume) == (7, 9)
+    await repo.set_last_set_volume(DEVICE, None, None)
+    row = await repo.get(DEVICE)
+    assert (row.last_set_volume, row.prev_set_volume) == (None, None)
 
 
 @pytest.mark.asyncio
