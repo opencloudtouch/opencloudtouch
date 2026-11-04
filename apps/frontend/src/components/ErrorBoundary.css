@@ -1,126 +1,116 @@
-/* Error Boundary Styles */
-
-.error-boundary {
+/* eb-: replaces ErrorBoundary.css (renders outside .app, so it fills the viewport itself) */
+.eb {
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  padding: var(--space-md);
+  background: var(--color-bg-dark);
+}
+.eb-card {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 640px;
+  margin: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.error-boundary-content {
-  background: white;
-  border-radius: 1rem;
-  padding: 3rem;
-  max-width: 600px;
-  width: 100%;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  gap: var(--space-md);
+  padding: 32px var(--space-md);
   text-align: center;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
 }
-
-.error-boundary-icon {
-  font-size: 4rem;
-  margin-bottom: 1.5rem;
-  animation: shake 0.5s ease-in-out;
-}
-
-@keyframes shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  25% {
-    transform: translateX(-10px);
-  }
-  75% {
-    transform: translateX(10px);
+@media (min-width: 601px) {
+  .eb-card {
+    padding: 40px var(--space-lg);
   }
 }
-
-.error-boundary-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #2d3748;
-  margin-bottom: 1rem;
-}
-
-.error-boundary-message {
-  font-size: 1.125rem;
-  color: #4a5568;
-  margin-bottom: 2rem;
-  line-height: 1.6;
-}
-
-.error-boundary-details {
-  background: #f7fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  margin-bottom: 2rem;
-  text-align: left;
-  cursor: pointer;
-}
-
-.error-boundary-details summary {
-  font-weight: 600;
-  color: #4a5568;
-  cursor: pointer;
-  user-select: none;
-}
-
-.error-boundary-details summary:hover {
-  color: #2d3748;
-}
-
-.error-boundary-details pre {
-  margin-top: 1rem;
-  padding: 0.5rem;
-  background: white;
-  border-radius: 0.25rem;
-  overflow-x: auto;
-  font-size: 0.875rem;
-  color: #e53e3e;
-  font-family: "Courier New", monospace;
-}
-
-.error-boundary-stack {
-  color: #718096 !important;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.error-boundary-actions {
+.eb-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--border-radius-lg);
+  background: var(--bg-tertiary);
+  color: var(--color-danger);
   display: flex;
-  gap: 1rem;
+  align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
 }
-
-.error-boundary-actions .btn {
-  min-width: 150px;
+.eb-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
 }
-
-/* Responsive Design */
-@media (max-width: 640px) {
-  .error-boundary-content {
-    padding: 2rem 1.5rem;
+.eb-message {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}
+.eb-details {
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+}
+.eb-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: var(--touch-target-min);
+  padding: 0 var(--space-md);
+  cursor: pointer;
+  list-style: none;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
+}
+.eb-details > summary::-webkit-details-marker {
+  display: none;
+}
+.eb-chevron {
+  display: flex;
+  transition: transform var(--motion-base);
+}
+.eb-details[open] .eb-chevron {
+  transform: rotate(180deg);
+}
+.eb-details pre {
+  margin: 0;
+  padding: 12px var(--space-md);
+  max-height: 220px;
+  overflow: auto;
+  border-top: 1px solid var(--border-color);
+  background: var(--color-bg-darker);
+  font: 13px/1.5 var(--font-mono);
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.eb-stack {
+  color: var(--color-text-secondary);
+}
+.eb-actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+@media (min-width: 601px) {
+  .eb-actions {
+    flex-direction: row;
+    justify-content: center;
   }
-
-  .error-boundary-title {
-    font-size: 1.5rem;
-  }
-
-  .error-boundary-message {
-    font-size: 1rem;
-  }
-
-  .error-boundary-actions {
-    flex-direction: column;
-  }
-
-  .error-boundary-actions .btn {
-    width: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .eb-chevron {
+    transition: none;
   }
 }

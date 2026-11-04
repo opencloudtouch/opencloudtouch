@@ -113,11 +113,38 @@ export function getFontSize(supporter: Supporter, maxAmount: number): number {
   return Math.floor(minSize + (maxSize - minSize) * ratio);
 }
 
+/**
+ * Vivid colours: saturation 85 to 100 %; lightness starts at 58 % and is raised per hue until the text reaches >= 4.8:1
+ * on the card surface (#242424). Blues and violets end up lighter than yellows and greens; every name stays readable.
+ */
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+  };
+  return [f(0), f(8), f(4)];
+}
+
+function luminance([r, g, b]: [number, number, number]): number {
+  const c = (v: number) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+  return 0.2126 * c(r) + 0.7152 * c(g) + 0.0722 * c(b);
+}
+
+const CARD_LUMINANCE = luminance([36 / 255, 36 / 255, 36 / 255]);
+
 export function generateGradientColor(index: number, total: number): string {
   const hue = (index / total) * 360;
-  const saturation = 60 + (index % 3) * 10;
-  const lightness = 55 + (index % 2) * 10;
-  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  const saturation = 85 + (index % 4) * 5;
+  let lightness = 58 + (index % 2) * 4;
+  while (
+    lightness < 90 &&
+    (luminance(hslToRgb(hue, saturation / 100, lightness / 100)) + 0.05) / (CARD_LUMINANCE + 0.05) <
+      4.8
+  ) {
+    lightness += 1;
+  }
+  return `hsl(${hue.toFixed(1)}, ${saturation}%, ${lightness}%)`;
 }
 
 export function cleanName(name: string): string {
@@ -133,18 +160,4 @@ export function cleanName(name: string): string {
   }
 
   return name;
-}
-
-/**
- * Format a duration in seconds as a compact string such as "2d 3h 14m".
- * Units are language-neutral abbreviations; invalid or negative input yields "0m".
- */
-export function formatUptime(totalSeconds: number): string {
-  if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return "0m";
-  const minutes = Math.floor(totalSeconds / 60) % 60;
-  const hours = Math.floor(totalSeconds / 3600) % 24;
-  const days = Math.floor(totalSeconds / 86400);
-  if (days > 0) return `${days}d ${hours}h ${minutes}m`;
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${minutes}m`;
 }

@@ -427,3 +427,11 @@ class TestErrorsAndConcurrency:
         assert service._setting_locks == {}
         await service.set_device_power_saving("AABB", True)
         assert list(service._setting_locks) == ["AABB"]
+
+    @pytest.mark.asyncio
+    async def test_unknown_devices_leave_no_lock_behind(self, service):
+        service.repository.get_by_device_id.return_value = None
+        for device_id in ("NOPE1", "NOPE2", "NOPE3"):
+            with pytest.raises(DeviceNotFoundError):
+                await service.set_device_power_saving(device_id, True)
+        assert service._setting_locks == {}

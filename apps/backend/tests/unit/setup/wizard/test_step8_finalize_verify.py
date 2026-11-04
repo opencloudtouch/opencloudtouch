@@ -19,6 +19,7 @@ def _make_device_repo(existing_uuid_owner=None):
         repo.get_by_account_uuid = AsyncMock(return_value=device)
     else:
         repo.get_by_account_uuid = AsyncMock(return_value=None)
+    repo.get_by_device_id = AsyncMock(return_value=MagicMock(device_id="AABBCCDDEEFF"))
     repo.update_marge_account_uuid = AsyncMock()
     return repo
 
@@ -36,7 +37,8 @@ class TestFinalizeDeviceNoUUID:
     """Device has no UUID -- should generate and set."""
 
     @pytest.mark.asyncio
-    async def test_generates_uuid_when_missing(self):
+    @pytest.mark.parametrize("uuid_source", ["derived", "collision_fallback"])
+    async def test_generates_uuid_when_missing(self, uuid_source):
         repo = _make_device_repo()
         service = WizardService(device_repo=repo)
 
@@ -49,6 +51,7 @@ class TestFinalizeDeviceNoUUID:
                     had_uuid=False,
                     uuid="1234567",
                     message="UUID set via SSH",
+                    uuid_source=uuid_source,
                 ),
             ),
             patch(
@@ -96,7 +99,7 @@ class TestFinalizeDeviceNoUUID:
             assert result["uuid"] == "1234567"
             assert result["had_uuid"] is False
             repo.update_marge_account_uuid.assert_called_once_with(
-                "AABBCCDDEEFF", "1234567"
+                "AABBCCDDEEFF", "1234567", uuid_source=uuid_source
             )
 
 
@@ -222,6 +225,67 @@ class TestFinalizeDeviceUUIDFails:
 
             assert result["success"] is False
             assert "SSH failed" in result["error"]
+
+
+class TestFinalizeDeviceMissingDatabaseRow:
+    """Step 8 reports a failed UUID persistence instead of claiming success."""
+
+    @pytest.mark.asyncio
+    async def test_missing_row_fails_before_sources_are_written(self):
+        repo = _make_device_repo()
+        repo.get_by_device_id.return_value = None
+        service = WizardService(device_repo=repo)
+
+        with (
+            patch(
+                "opencloudtouch.setup.wizard.step8_finalize_verify.ensure_account_uuid_unique",
+                new_callable=AsyncMock,
+                return_value=AccountPairingResult(
+                    success=True, had_uuid=False, uuid="1234567"
+                ),
+            ) as uuid_setup,
+            patch(
+                "opencloudtouch.setup.wizard.step8_finalize_verify.force_write_sources_xml",
+                new_callable=AsyncMock,
+            ) as write_sources,
+        ):
+            result = await service.finalize_device("192.168.1.100", "AABBCCDDEEFF")
+
+        assert result["success"] is False
+        assert "not found" in result["error"].lower()
+        uuid_setup.assert_not_awaited()
+        repo.update_marge_account_uuid.assert_not_awaited()
+        write_sources.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_sql_guard_conflict_still_aborts_finalize(self):
+        """A write-time conflict remains an error with no Sources.xml write."""
+        repo = _make_device_repo()
+        repo.update_marge_account_uuid.side_effect = ValueError(
+            "UUID collision or device not found: 1234567"
+        )
+        service = WizardService(device_repo=repo)
+
+        with (
+            patch(
+                "opencloudtouch.setup.wizard.step8_finalize_verify.ensure_account_uuid_unique",
+                new_callable=AsyncMock,
+                return_value=AccountPairingResult(
+                    success=True, had_uuid=False, uuid="1234567"
+                ),
+            ) as uuid_setup,
+            patch(
+                "opencloudtouch.setup.wizard.step8_finalize_verify.force_write_sources_xml",
+                new_callable=AsyncMock,
+            ) as write_sources,
+        ):
+            result = await service.finalize_device("192.168.1.100", "AABBCCDDEEFF")
+
+        assert result["success"] is False
+        assert "UUID collision" in result["error"]
+        uuid_setup.assert_awaited_once()
+        repo.update_marge_account_uuid.assert_awaited_once()
+        write_sources.assert_not_awaited()
 
 
 class TestFinalizeDeviceNoRepo:

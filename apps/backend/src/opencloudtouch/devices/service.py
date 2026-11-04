@@ -392,24 +392,26 @@ class DeviceService:
         is_applied: Callable[[Any], bool],
     ) -> SettingWriteResult:
         """Pre-read (409 if unavailable), POST, post-read (verifies what was kept)."""
-        lock = self._setting_locks.setdefault(device_id, asyncio.Lock())
-        async with lock, self._device_client(device_id) as client:
-            getter = getattr(client, f"get_{name}")
-            before = await self._read_setting(name, getter)
-            if before is None:
-                raise_coded(
-                    409,
-                    error_codes.SETTING_NOT_AVAILABLE,
-                    f"Setting '{name}' is not available on this device",
+        # The device is resolved first: an unknown id must not leave a lock behind.
+        async with self._device_client(device_id) as client:
+            lock = self._setting_locks.setdefault(device_id, asyncio.Lock())
+            async with lock:
+                getter = getattr(client, f"get_{name}")
+                before = await self._read_setting(name, getter)
+                if before is None:
+                    raise_coded(
+                        409,
+                        error_codes.SETTING_NOT_AVAILABLE,
+                        f"Setting '{name}' is not available on this device",
+                    )
+                await write(client, before)
+                try:
+                    after = await self._read_setting(name, getter)
+                except DeviceConnectionError:
+                    after = None
+                return SettingWriteResult(
+                    applied=after is not None and is_applied(after), value=after
                 )
-            await write(client, before)
-            try:
-                after = await self._read_setting(name, getter)
-            except DeviceConnectionError:
-                after = None
-            return SettingWriteResult(
-                applied=after is not None and is_applied(after), value=after
-            )
 
     async def set_device_language(
         self, device_id: str, language_id: Any
@@ -488,6 +490,12 @@ class DeviceService:
         logger.info(  # NOSONAR
             "Successfully pressed key %s on device %s", key, device_id
         )
+
+    async def select_source(self, device_id: str, source: str) -> None:
+        """Switch a device to an input source (BLUETOOTH, AUX, AIRPLAY)."""
+        logger.info("Selecting source %s on device %s", source, device_id)  # NOSONAR
+        async with self._device_client(device_id) as client:
+            await client.select_source(source)
 
     async def delete_all_devices(self, allow_dangerous_operations: bool) -> None:
         """Delete all devices from database.

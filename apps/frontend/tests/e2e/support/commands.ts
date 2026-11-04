@@ -29,7 +29,7 @@ Cypress.Commands.add("openIPConfigModal", () => {
       cy.get("details summary").click();
     }
   });
-  cy.get('[data-test="manual-add-button"]').should("be.visible").click();
+  cy.get('[data-test="manual-add-button"]').scrollIntoView().should("be.visible").click();
   cy.get('[data-test="modal-content"]').should("be.visible");
 });
 
