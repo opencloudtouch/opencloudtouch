@@ -15,6 +15,34 @@ Build on the existing handoff `design/oct-handoff` (`design/claude-design-handof
 
 The handoff contains **no** design for the sleep timer, scheduled timers, device settings or stream recovery. All four below are new.
 
+## 1a. Consistency and design principles (binding, not a style hint)
+
+The new screens must look and behave like the stages 5–13 that already exist. Before drawing anything, read and apply these files of the handoff (`design/claude-design-handoff/project/`):
+
+| Source | What it fixes |
+|---|---|
+| `app/ui-base.css`, `app/tokens.css` | Tokens, type scale (`--fs-*`), buttons (`.btn-*`), `.ui-select`, `.ui-state`, `.wz-status`, spinner, focus ring, motion tokens. Reuse these; new tokens only with a written reason. |
+| `app/STAGE5-NOTES.md` | Shell, dialogs (`Modal`, `ConfirmDialog`), toasts, empty state, skeletons, class prefixes, heading structure (one `h1`, `h2` per section), Lucide-style icons (no emoji). |
+| `app7/STAGE7-NOTES.md` + `Settings.tsx/.css` | Section pattern (`h2` with `aria-hidden` icon, card), form pattern: real `<label>`, hint and error share **one reserved slot** (no jump), `role="alert"` errors, busy buttons keep their width, save shows a spinner plus a hidden `role="status"`. Used for stream recovery and device settings. |
+| `app8/STAGE8-NOTES.md` | Destructive actions: one place, one label, same confirm dialog online and offline, focus on "Cancel", the text says what happens. Used for deleting a schedule entry. |
+| `app10/STAGE10-NOTES.md`, `app13/STAGE13-NOTES.md` | Card order and the reasoning behind it (below), fixed heights, state shown by shape plus word (never colour alone), 76 px rows. |
+| `wizard/wizard-base.css`, `app7`/`app10` offline banner | Wizard entry cards, status boxes, offline handling. The "Device settings" card must sit with the Setup and Restore entries like one of them. |
+| `app13/REVIEW-FULL-UI.md`, `REVIEW-STAGE13-IMPLEMENTATION.md` | Open findings of the last review. Do not repeat them in new screens. |
+| `docs/UI_QUALITY_CHECKLIST.md` | Rules 1–7. |
+
+Principles that these files already follow, and that apply to every new screen:
+
+1. **Order by use.** The card runs: what plays → how to control it → how loud → what else to play → rarely used → remove. Where the quick timer goes must be argued with this order. A timer relates to volume and ending playback, so the candidate is directly below volume, but the designer decides and explains why, including how the card stays calm on 320 px where it is already about 1450 px tall.
+2. **One place, one control, one label.** A function exists once. The quick timer is not repeated in settings; scheduled timers are not repeated on the card.
+3. **Reserve space.** Every state line, hint, error and countdown has a reserved slot with a fixed height. Appearing, running and ended states change content, not size.
+4. **State = shape + word + icon**, never colour alone; disabled, busy and failed are distinct from each other.
+5. **Quiet by default, emphasis by state.** Secondary options (fade-out, end action) are collapsed; destructive actions are ghost until they matter.
+6. **Same component for the same job.** Selects are `.ui-select`, toggles and chips are the existing ones, dialogs are `Modal`/`ConfirmDialog`, notices are toasts or `.wz-status`. A new component needs a sentence on why no existing one fits.
+7. **Phone first, large screens use the space.** 320/390 one column; from 1024 px the two-column card of stage 10 (left: playing, keys, volume; right: presets, source). Say where the timer goes in the two-column layout.
+8. **Texts through i18n keys**, written for the user, German and Swedish checked with long strings.
+
+"Just drawing" is not accepted. The delivery must justify each placement and each new component against this list (one line each), name the existing pattern it reuses, and list every deviation with the reason. A screen without that justification is sent back.
+
 ## 2. What exists today (behaviour is fixed, visuals are not)
 
 | Feature | Behaviour (backend contract) | Current placeholder UI |
@@ -30,7 +58,7 @@ Goal: fast access to a one-off timer that is already set up in time.
 
 Requirements:
 
-- Lives **on the device card** (Devices page), next to the volume control. It must not move or resize the card in any state (rule 1): reserve the height, no element that appears suddenly.
+- Lives **on the device card** (Devices page), in the position the designer argues for under principle 1 of section 1a (candidate: directly below volume). It must not move or resize the card in any state (rule 1): reserve the height, no element that appears suddenly.
 - Entry by **hours and minutes** (two inputs or a stepper pair, total 1 min – 12 h, shows the total, e.g. "= 1 h 47 min"). Quick presets (e.g. 15 / 30 / 45 / 60 / 90 min) are allowed if they save taps.
 - Remembers the last used duration, fade-out and end action per browser.
 - Fade-out (off, 10, 30, 60, 120 s; default 30 s) and end action (stop / standby) are secondary: collapsed behind a single control, not shown by default.
@@ -73,6 +101,7 @@ Keep it on the global Settings page, but give it the same look as the rest of st
 - Prototype pages like the existing stages, with state switches for: device (online, offline, standby, zone member), timer state, language (de, sv), theme (dark, light), width (320, 390, 768, 1280), long names.
 - For every new component: the list of CSS tokens used, new components only where an existing one (`ui-base`, dialogs, toasts, sticky device switch) does not fit.
 - Drop-in **React/CSS** like the earlier stages (props, hooks, API calls and `t()` keys unchanged where they exist), plus an i18n additions file in en / de / sv.
+- A **consistency table**: for every new screen and component the existing pattern or file it reuses (section 1a), or the reason for a new one.
 - The rule 1–7 table with evidence (layout audit at 320 / 390 / 768 / 1280, dark and light, contrast, 44 px targets, keyboard order and focus, screen reader names and live regions).
 - Open points and deviations listed explicitly.
 
