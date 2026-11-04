@@ -2,7 +2,7 @@
  * Tests for DeviceNowPlaying component
  */
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { DeviceNowPlaying } from "../../src/components/DeviceNowPlaying";
 import type { NowPlayingState } from "../../src/api/devices";
 
@@ -160,4 +160,12 @@ describe("DeviceNowPlaying", () => {
     expect(screen.getByText("Solo Artist")).toBeInTheDocument();
   });
 
+  it("falls back to the source icon when the artwork cannot be loaded", () => {
+    const { container } = render(
+      <DeviceNowPlaying nowPlaying={makePlaying({ artwork_url: "http://x/broken.jpg" })} />,
+    );
+    fireEvent.error(container.querySelector("img.dnp-art") as HTMLImageElement);
+    expect(container.querySelector("img.dnp-art")).not.toBeInTheDocument();
+    expect(container.querySelector(".dnp-icon")).toBeInTheDocument();
+  });
 });

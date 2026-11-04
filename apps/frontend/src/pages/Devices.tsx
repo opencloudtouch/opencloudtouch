@@ -172,7 +172,8 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
     const preset = presets[num];
     if (!preset || !isRadio || npState?.station_name !== preset.station_name) return "idle";
     if (npState?.state === "PLAY_STATE") return "playing";
-    if (npState?.state === "PAUSE_STATE") return "paused";
+    // A radio stream cannot really pause: many devices report STOP_STATE with the station still selected
+    if (npState?.state === "PAUSE_STATE" || npState?.state === "STOP_STATE") return "paused";
     return "idle";
   };
 
