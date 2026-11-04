@@ -22,6 +22,8 @@ class SleepTimer:
     fade_seconds: int
     end_action: str
     original_volume: int | None = None
+    # last value the fade wrote: tells after a restart whether the volume is still ours
+    last_set_volume: int | None = None
     created_at: float = 0.0
 
     @property

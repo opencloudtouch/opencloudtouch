@@ -1,122 +1,132 @@
-.diagnostics-page h1 {
-  margin-bottom: 1.5rem;
-}
-
-.diagnostics-loading,
-.diagnostics-error {
-  text-align: center;
-  padding: 2rem;
-  color: var(--text-secondary, #8e8e93);
-}
-
-.diagnostics-error {
-  color: var(--color-error, #ff453a);
-}
-
-.diagnostics-section {
-  margin-bottom: 1.5rem;
-}
-
-.diagnostics-section h2 {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-  color: var(--text-primary, #fff);
-}
-
-.diagnostics-table {
+/* dg-: Diagnostics page (stage 7). Replaces Diagnostics.css (.page, .diagnostics-*, .status-dot*, .device-card-*). Key/value pairs are <dl> rows: two columns from 480px, stacked below, nothing scrolls sideways. */
+.dg {
+  box-sizing: border-box;
   width: 100%;
-  border-collapse: collapse;
-}
-
-.diagnostics-table td {
-  padding: 0.4rem 0.75rem;
-  border-bottom: 1px solid var(--border-color, #2c2c2e);
-  font-size: 0.875rem;
-}
-
-.diagnostics-table td:first-child {
-  color: var(--text-secondary, #8e8e93);
-  width: 40%;
-  white-space: nowrap;
-}
-
-.diagnostics-table-compact td {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.8rem;
-}
-
-.status-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 0.5rem;
-  vertical-align: middle;
-}
-
-.status-green {
-  background-color: #30d158;
-}
-
-.status-yellow {
-  background-color: #ffd60a;
-}
-
-.status-red {
-  background-color: #ff453a;
-}
-
-.diagnostics-device-list {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--space-md);
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-lg);
+}
+.dg > * {
+  min-width: 0;
+}
+@media (min-width: 769px) {
+  .dg {
+    padding: var(--space-lg);
+  }
+}
+.dg-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+}
+.dg-download-btn {
+  min-width: min(100%, 19rem);
+} /* idle and busy label share the width */
+.dg-download-btn[aria-disabled="true"] {
+  cursor: progress;
+}
+@media (max-width: 480px) {
+  .dg-head > div,
+  .dg-download-btn {
+    width: 100%;
+  }
+}
+.dg-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.diagnostics-device-card {
-  background: var(--bg-card, #1c1c1e);
-  border-radius: 12px;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border-color, #2c2c2e);
+.dg-kv {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  padding-block: 4px;
+}
+.dg-kv--compact {
+  padding: 0;
+}
+.dg-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 32%) minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border-color);
+  min-height: 44px;
+}
+.dg-row:first-child {
+  border-top: 0;
+}
+.dg-row dt {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+.dg-row dd {
+  margin: 0;
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.dg-row dd.ui-mono {
+  font-size: 14px;
+}
+@media (max-width: 479px) {
+  .dg-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+    padding: 8px 0;
+  }
 }
 
-.device-card-header {
+.dg-devices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.dg-device {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dg-device-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.dg-device-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 140px;
+}
+.dg-device-title > .ui-h3 {
+  overflow-wrap: anywhere;
+}
+.dg-device-head .ui-badge {
+  white-space: normal;
+  text-align: left;
+}
+.dg-empty {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  gap: 12px;
+  margin: 0;
+  font-size: var(--fs-body);
+  color: var(--color-text-secondary);
 }
-
-.device-card-model {
-  color: var(--text-secondary, #8e8e93);
-  font-size: 0.8rem;
-  margin-left: auto;
-}
-
-.diagnostics-empty {
-  color: var(--text-secondary, #8e8e93);
-  text-align: center;
-  padding: 1rem;
-}
-
-.diagnostics-download-btn {
-  width: 100%;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 10px;
-  background: var(--accent-color, #007aff);
-  color: #fff;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.diagnostics-download-btn:hover {
-  opacity: 0.85;
-}
-
-.diagnostics-download-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.dg-empty svg {
+  flex: none;
 }

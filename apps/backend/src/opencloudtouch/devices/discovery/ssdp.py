@@ -69,7 +69,7 @@ class SSDPDiscovery:
 
         try:
             # Run SSDP M-SEARCH in thread (blocking I/O)
-            locations = await asyncio.to_thread(self._ssdp_msearch)
+            locations = await self.search_locations()
 
             # Fetch and parse device descriptions
             devices = await self._fetch_device_descriptions(locations)
@@ -80,6 +80,10 @@ class SSDPDiscovery:
         except Exception:
             logger.exception("SSDP discovery failed")
             return {}
+
+    async def search_locations(self) -> list[str]:
+        """Return SSDP LOCATION URLs without device-specific filtering."""
+        return await asyncio.to_thread(self._ssdp_msearch)
 
     def _ssdp_msearch(self) -> list[str]:
         """Serialize searches sharing the SSDP UDP 1900 receive port."""

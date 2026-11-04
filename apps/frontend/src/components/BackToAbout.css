@@ -1,0 +1,26 @@
+/* back link to the parent page (Diagnostics, Licenses): text link with arrow, 44px target, fixed target /about */
+.pg-back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--touch-target-min);
+  margin-block: -8px -4px;
+  padding-right: 8px;
+  font-size: 16px;
+  font-weight: var(--font-weight-medium);
+  color: var(--primary-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.pg-back:hover {
+  color: #fff;
+}
+.pg-back > span:first-child {
+  display: flex;
+}
+@media (forced-colors: active) {
+  .pg-back {
+    color: LinkText;
+  }
+}

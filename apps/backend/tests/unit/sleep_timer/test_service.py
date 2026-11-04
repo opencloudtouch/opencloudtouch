@@ -441,22 +441,59 @@ class TestRestart:
         assert (await repository.get(DEVICE)).original_volume == 40
 
     @pytest.mark.asyncio
-    async def test_a_future_timer_with_a_stored_volume_restores_it_and_fades_again(
-        self, service, vtime, devices, repository
+    async def test_a_crash_mid_fade_is_undone_after_the_restart(
+        self, make_service, vtime, devices, repository
     ):
-        devices.volume = 10  # mid-fade when the process died
-        devices.on_call = None
-        await repository.upsert(
-            SleepTimer(DEVICE, vtime.t + 20, 30, 30, "stop", 40, vtime.t - 1780)
-        )
-        service._last_set[DEVICE] = 10
-        await service.recover()
+        devices.volume = 40
+        first = make_service()
+        await first.start(DEVICE, 30, 30, "stop")
+        await vtime.advance(THIRTY_MINUTES - 15)
+        faded = devices.volume
+        assert faded < 40
+        first._tasks[DEVICE].cancel()  # the process dies: no shutdown, no restore
+        await asyncio.sleep(0)
+
+        second = make_service()  # a fresh process: nothing in memory
+        await second.recover()
         await vtime.advance(0)
         await asyncio.sleep(0.01)
-        assert devices.volumes_set()[0] == 40  # restored first, then faded again
-        await vtime.advance(25)
-        await drain(service)
+
+        assert 40 in devices.volumes_set()
+        await vtime.advance(30)
+        await drain(second)
         assert devices.keys() == ["PAUSE"]
+        assert await repository.get(DEVICE) is None
+
+    @pytest.mark.asyncio
+    async def test_a_timer_that_elapsed_long_ago_restores_the_persisted_volume(
+        self, make_service, vtime, devices, repository
+    ):
+        devices.volume = 40
+        first = make_service()
+        await first.start(DEVICE, 30, 30, "stop")
+        await vtime.advance(THIRTY_MINUTES - 5)  # nearly faded out
+        first._tasks[DEVICE].cancel()
+        await asyncio.sleep(0)
+        vtime.jump(3600)  # the speaker was offline for an hour
+
+        second = make_service()
+        await second.recover()
+        await vtime.advance(5)
+        await drain(second)
+
+        assert devices.volume == 40
+        assert devices.keys() == []
+        assert await repository.get(DEVICE) is None
+
+    @pytest.mark.asyncio
+    async def test_the_last_value_written_is_persisted(
+        self, service, vtime, devices, repository
+    ):
+        devices.volume = 40
+        await service.start(DEVICE, 30, 30, "stop")
+        await vtime.advance(THIRTY_MINUTES - 15)
+        row = await repository.get(DEVICE)
+        assert row.last_set_volume == devices.volume
 
     @pytest.mark.asyncio
     async def test_a_future_timer_with_less_than_two_seconds_left_skips_the_fade(

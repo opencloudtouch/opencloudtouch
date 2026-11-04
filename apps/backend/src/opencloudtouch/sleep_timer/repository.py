@@ -30,6 +30,7 @@ class SleepTimerRepository(BaseRepository):
                 fade_seconds INTEGER NOT NULL,
                 end_action TEXT NOT NULL CHECK (end_action IN ({actions})),
                 original_volume INTEGER,
+                last_set_volume INTEGER,
                 created_at TEXT NOT NULL
             )
         """)
@@ -44,13 +45,15 @@ class SleepTimerRepository(BaseRepository):
             fade_seconds=row[3],
             end_action=row[4],
             original_volume=row[5],
-            created_at=from_iso(row[6]),
+            last_set_volume=row[6],
+            created_at=from_iso(row[7]),
         )
 
     async def get(self, device_id: str) -> SleepTimer | None:
         cursor = await self._conn.execute(
             "SELECT device_id, ends_at, duration_minutes, fade_seconds, end_action, "
-            "original_volume, created_at FROM sleep_timers WHERE device_id = ?",
+            "original_volume, last_set_volume, created_at FROM sleep_timers "
+            "WHERE device_id = ?",
             (device_id,),
         )
         row = await cursor.fetchone()
@@ -59,7 +62,8 @@ class SleepTimerRepository(BaseRepository):
     async def list_all(self) -> list[SleepTimer]:
         cursor = await self._conn.execute(
             "SELECT device_id, ends_at, duration_minutes, fade_seconds, end_action, "
-            "original_volume, created_at FROM sleep_timers ORDER BY ends_at"
+            "original_volume, last_set_volume, created_at FROM sleep_timers "
+            "ORDER BY ends_at"
         )
         return [self._to_timer(tuple(row)) for row in await cursor.fetchall()]
 
@@ -68,15 +72,16 @@ class SleepTimerRepository(BaseRepository):
             """
             INSERT INTO sleep_timers (
                 device_id, ends_at, duration_minutes, fade_seconds, end_action,
-                original_volume, created_at
+                original_volume, last_set_volume, created_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(device_id) DO UPDATE SET
                 ends_at = excluded.ends_at,
                 duration_minutes = excluded.duration_minutes,
                 fade_seconds = excluded.fade_seconds,
                 end_action = excluded.end_action,
                 original_volume = excluded.original_volume,
+                last_set_volume = excluded.last_set_volume,
                 created_at = excluded.created_at
             """,
             (
@@ -86,6 +91,7 @@ class SleepTimerRepository(BaseRepository):
                 timer.fade_seconds,
                 timer.end_action,
                 timer.original_volume,
+                timer.last_set_volume,
                 to_iso(timer.created_at),
             ),
         )
@@ -94,6 +100,13 @@ class SleepTimerRepository(BaseRepository):
     async def set_original_volume(self, device_id: str, volume: int | None) -> None:
         await self._conn.execute(
             "UPDATE sleep_timers SET original_volume = ? WHERE device_id = ?",
+            (volume, device_id),
+        )
+        await self._conn.commit()
+
+    async def set_last_set_volume(self, device_id: str, volume: int | None) -> None:
+        await self._conn.execute(
+            "UPDATE sleep_timers SET last_set_volume = ? WHERE device_id = ?",
             (volume, device_id),
         )
         await self._conn.commit()

@@ -1,5 +1,5 @@
 /**
- * E2E: Sleep timer on the Local Control page.
+ * E2E: Sleep timer on the device card (Devices page).
  * Devices come from the mock backend (OCT_MOCK_MODE=true); only the sleep timer
  * endpoint is stubbed with cy.intercept so that no real minutes have to pass.
  */
@@ -23,8 +23,8 @@ function status(endsInSeconds: number | null) {
   };
 }
 
-function visitLocalControl() {
-  cy.visit("/local", {
+function visitDevices() {
+  cy.visit("/", {
     onBeforeLoad(win) {
       win.localStorage.setItem("oct-lang", "en");
     },
@@ -51,7 +51,7 @@ describe("Sleep timer", () => {
       active = true;
       req.reply(status(1800));
     }).as("start");
-    visitLocalControl();
+    visitDevices();
 
     cy.get("#sleep-timer-fade").select("10");
     cy.get("#sleep-timer-end").select("standby");
@@ -72,7 +72,7 @@ describe("Sleep timer", () => {
       active = false;
       req.reply({ statusCode: 204 });
     }).as("cancel");
-    visitLocalControl();
+    visitDevices();
 
     cy.get('[role="timer"]').should("be.visible");
     cy.contains("button", "Cancel timer").click();
@@ -84,7 +84,7 @@ describe("Sleep timer", () => {
   it("rejects a custom duration out of range without sending anything", () => {
     cy.intercept("GET", TIMER, (req) => req.reply(status(null)));
     cy.intercept("PUT", TIMER, cy.spy().as("put"));
-    visitLocalControl();
+    visitDevices();
 
     cy.get("#sleep-timer-duration").select("custom");
     cy.get("#sleep-timer-custom").clear().type("721");
@@ -113,7 +113,7 @@ describe("Sleep timer", () => {
         ],
       },
     });
-    visitLocalControl();
+    visitDevices();
 
     cy.contains("button", "Start timer").click();
     cy.contains("The fade-out must not be longer than the timer.").should("be.visible");

@@ -48,6 +48,8 @@ def _backup_set_to_response(bs):
                     else f.validation_status
                 ),
                 validation_message=f.validation_message,
+                validation_code=f.validation_code,
+                validation_params=f.validation_params,
             )
             for f in bs.files
         ],
@@ -125,6 +127,8 @@ async def wizard_restore_wizard(
                     name=s.name.value if hasattr(s.name, "value") else s.name,
                     status=s.status.value if hasattr(s.status, "value") else s.status,
                     message=s.message,
+                    message_code=s.message_code,
+                    message_params=s.message_params,
                     error=s.error,
                     duration_seconds=s.duration_seconds,
                 )

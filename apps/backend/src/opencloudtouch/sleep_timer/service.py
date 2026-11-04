@@ -108,6 +108,8 @@ class SleepTimerService:
     async def recover(self) -> None:
         """Re-arm or finish the timers that were stored before a restart."""
         for timer in await self._repository.list_all():
+            if timer.last_set_volume is not None:
+                self._last_set[timer.device_id] = timer.last_set_volume
             remaining = timer.ends_at - self._clock()
             if remaining > 0:
                 self._arm(timer, recovered=True)
@@ -201,6 +203,11 @@ class SleepTimerService:
         await self._device_service.set_volume(timer.device_id, timer.original_volume)
         return True
 
+    async def _remember_last_set(self, device_id: str, volume: int) -> None:
+        """Keep the value the fade wrote in memory and in the database (restart safe)."""
+        self._last_set[device_id] = volume
+        await self._repository.set_last_set_volume(device_id, volume)
+
     async def _restore_on_shutdown(self, timer: SleepTimer) -> None:
         if await self._restore_volume(timer):
             await self._repository.set_original_volume(timer.device_id, None)
@@ -250,6 +257,8 @@ class SleepTimerService:
             logger.warning("Sleep timer could not undo the interrupted fade")
         timer.original_volume = None
         await self._repository.set_original_volume(timer.device_id, None)
+        await self._repository.set_last_set_volume(timer.device_id, None)
+        self._last_set.pop(timer.device_id, None)
 
     async def _fade_out(self, timer: SleepTimer, recovered: bool) -> bool:
         """Fade to 0. Returns False when the timer must not run its end sequence."""
@@ -277,7 +286,7 @@ class SleepTimerService:
             volume.actual,
             0,
             seconds,
-            on_set=functools.partial(self._last_set.__setitem__, timer.device_id),
+            on_set=functools.partial(self._remember_last_set, timer.device_id),
         )
         if result is FadeResult.MANUAL_CHANGE:
             logger.info("Sleep timer ended without stopping: manual_change")

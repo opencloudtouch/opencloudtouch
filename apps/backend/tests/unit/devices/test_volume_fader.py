@@ -131,7 +131,11 @@ class TestFade:
     @pytest.mark.asyncio
     async def test_reports_every_value_it_sets(self, harness):
         seen: list[int] = []
-        await harness.fader.fade(DEVICE, 40, 0, 30, on_set=seen.append)
+
+        async def remember(value: int) -> None:
+            seen.append(value)
+
+        await harness.fader.fade(DEVICE, 40, 0, 30, on_set=remember)
         assert seen == harness.devices.volumes_set()
 
 

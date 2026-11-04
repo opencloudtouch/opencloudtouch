@@ -51,6 +51,11 @@ vi.mock("../../src/components/DeviceSwiper", () => ({
   },
 }));
 
+// The sleep timer needs a QueryClient and has its own tests
+vi.mock("../../src/components/SleepTimer", () => ({
+  default: () => null,
+}));
+
 vi.mock("framer-motion", () => ({
   motion: {
     div: ({ children, ...props }: Record<string, unknown>) => (
@@ -63,7 +68,11 @@ vi.mock("framer-motion", () => ({
 vi.mock("../../src/components/NowPlaying", () => ({
   default: () => <div data-testid="now-playing" />,
 }));
-vi.mock("../../src/components/PresetButton", () => ({
+vi.mock("../../src/hooks/useZones", () => ({
+  useZones: () => ({ zones: [], isLoading: false, error: null }),
+}));
+
+vi.mock("../../src/components/PresetRow", () => ({
   default: () => <div data-testid="preset-button" />,
 }));
 vi.mock("../../src/components/SetupBadge", () => ({
@@ -131,7 +140,7 @@ vi.mock("../../src/contexts/ToastContext", () => ({
   useToast: () => ({ show: vi.fn() }),
 }));
 
-import RadioPresets from "../../src/pages/RadioPresets";
+import Devices from "../../src/pages/Devices";
 
 const mockDevices = [
   {
@@ -155,7 +164,7 @@ describe("Device persistence via URL parameter", () => {
   });
 
   test("swiping to second device updates URL with ?device= parameter", async () => {
-    render(<RadioPresets devices={mockDevices} />);
+    render(<Devices devices={mockDevices} />);
 
     // Swipe to second device
     await act(async () => {
@@ -169,7 +178,7 @@ describe("Device persistence via URL parameter", () => {
   });
 
   test("swiping back to first device updates URL parameter", async () => {
-    render(<RadioPresets devices={mockDevices} />);
+    render(<Devices devices={mockDevices} />);
 
     // First swipe to device 2
     await act(async () => {

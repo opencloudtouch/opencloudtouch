@@ -6,8 +6,7 @@ Modern React SPA für die lokale Steuerung von Bose SoundTouch Geräten.
 
 - **Swipeable Device Cards**: Intuitive Geräteauswahl mit Wischgesten
 - **Empty State**: Benutzerführung beim ersten App-Start
-- **Radio Presets**: Radiosender auf Preset-Tasten (1-6) verwalten
-- **Local Control**: Lautstärke, Quellen, Playback-Steuerung
+- **Devices**: one card per device with now playing, source switch (Presets, Bluetooth, AUX), playback keys, volume and the radio presets (1-6)
 - **MultiRoom**: Zonen-Management für synchrone Wiedergabe
 - **Firmware**: Geräte-Informationen und Firmware-Status
 - **Settings**: Gerätekonfiguration und Discovery-Einstellungen
@@ -112,8 +111,7 @@ frontend/
 │   │   ├── Navigation.jsx
 │   │   └── ErrorBoundary.jsx
 │   ├── pages/            # Page Components (React Router)
-│   │   ├── RadioPresets.jsx      # Radio Preset Management
-│   │   ├── LocalControl.jsx      # Volume, Playback, Source Control
+│   │   ├── Devices.tsx           # Device card: playback, source, volume, presets
 │   │   ├── MultiRoom.jsx         # Zone Management
 │   │   ├── Firmware.jsx          # Device Info & Firmware Status
 │   │   ├── Settings.jsx          # App & Device Configuration
@@ -192,10 +190,8 @@ App.jsx (Root)
 ├── Navigation (Persistent)
 ├── DeviceSwiper (Device Selection)
 └── Router (React Router)
-    ├── RadioPresets (Page)
-    ├── LocalControl (Page)
+    ├── Devices (Page)
     ├── MultiRoom (Page)
-    ├── Firmware (Page)
     ├── Settings (Page)
     └── Licenses (Page)
 ```

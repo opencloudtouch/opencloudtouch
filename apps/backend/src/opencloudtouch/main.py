@@ -8,15 +8,16 @@ import time
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Literal
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from opencloudtouch import __version__, is_official_build
 from opencloudtouch.api import devices_router
 from opencloudtouch.api.bug_report import router as bug_report_router
-from opencloudtouch.api.health_models import HealthConfig, HealthResponse
 from opencloudtouch.bmx.radiobrowser_routes import radiobrowser_router
 from opencloudtouch.bmx.resolve_routes import resolve_router
 from opencloudtouch.bmx.routes import router as bmx_router
@@ -476,13 +477,30 @@ app.include_router(stream_recovery_router)  # Stream recovery watchdog settings
 app.include_router(sleep_timer_router)  # Sleep timer per device
 
 
-# Monotonic reference taken at import time (= process start) for /health uptime.
-_PROCESS_START = time.monotonic()
+# Monotonic start of the process: /health reports the seconds since then (the About page shows "running since")
+_STARTED_AT = time.monotonic()
+
+
+class HealthConfig(BaseModel):
+    """Non-sensitive configuration flags exposed by /health."""
+
+    discovery_enabled: bool
+
+
+class HealthResponse(BaseModel):
+    """Response of GET /health (documented contract used by the frontend)."""
+
+    status: str
+    service: str
+    version: str
+    build: Literal["official", "community"]
+    uptime: int
+    config: HealthConfig
 
 
 # Health endpoint
 @app.get("/health", tags=["System"])
-async def health_check() -> HealthResponse:
+async def health_check(request: Request) -> HealthResponse:
     """Health check endpoint for Docker and monitoring.
 
     Minimal response — detailed memory stats available at /api/diagnostics/memory.
@@ -494,7 +512,7 @@ async def health_check() -> HealthResponse:
         service="opencloudtouch",
         version=__version__,
         build="official" if is_official_build() else "community",
-        uptime=int(time.monotonic() - _PROCESS_START),
+        uptime=int(time.monotonic() - _STARTED_AT),
         config=HealthConfig(discovery_enabled=cfg.discovery_enabled),
     )
 
