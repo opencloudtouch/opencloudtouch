@@ -75,28 +75,32 @@
   opacity: 0.6;
 }
 
-/* failed switch: floats over the art and info (no layout change); the header row stays visible */
-.si-fail {
+/* failed switch: the key of the source gets a red frame and a small cross; the message is a toast (nothing on the card changes) */
+.si-bb--fail .si-bb-in {
+  border: 2px solid var(--color-danger);
+  color: var(--color-text-primary);
+}
+.si-bb-x {
   position: absolute;
-  z-index: 5;
-  left: 0;
-  right: 0;
-  top: 44px;
-  bottom: 0;
-  align-items: flex-start;
-  overflow: auto;
-  background: var(--color-bg-card);
-  box-shadow: var(--shadow-md);
-}
-.si-fail .wz-status-body {
-  flex: 1;
-  min-width: 0;
-}
-.si-fail-actions {
+  top: 1px;
+  right: 1px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  box-sizing: content-box;
+  margin: -2px;
+  border-radius: 50%;
+  border: 2px solid var(--color-bg-card);
+  background: #c62828;
+  color: #fff;
+}
+@media (forced-colors: active) {
+  .si-bb-x {
+    background: Highlight;
+    color: HighlightText;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

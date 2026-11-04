@@ -139,7 +139,8 @@
     },
     "discovery": {
       "devicesFound_one": "{{count}} neues Gerät gefunden",
-      "devicesFound_other": "{{count}} neue Geräte gefunden"
+      "devicesFound_other": "{{count}} neue Geräte gefunden",
+      "moreDevices": "+ {{count}} weitere"
     },
     "deviceDiscovery": {
       "sectionTitle": "Geräte finden",
@@ -155,7 +156,7 @@
       "sectionTitle": "Logging",
       "description": "Steuern Sie den Log-Detailgrad und laden Sie Logs zur Fehlersuche herunter.",
       "logLevel": "Log-Level",
-      "levelOff": "Aus",
+      "levelOff": "Nur kritische Fehler",
       "levelInfo": "Info",
       "levelDebug": "Debug",
       "downloadLogs": "Logs herunterladen",
@@ -220,29 +221,6 @@
     "staleBadge": "Lange nicht gesehen",
     "confirmDissolveTitle": "Zone auflösen?",
     "confirmDissolveMessage": "„{{name}}“ wird aufgelöst. Die Geräte spielen danach wieder einzeln."
-  },
-  "firmware": {
-    "title": "Firmware Updates",
-    "noDevices": "Keine Geräte gefunden",
-    "currentDevice": "Aktuelles Gerät",
-    "currentVersion": "Aktuelle Version:",
-    "statusLabel": "Status:",
-    "updateAvailable": "Update verfügbar",
-    "upToDate": "Aktuell",
-    "allDevices": "Alle Geräte",
-    "unknownVersion": "Unbekannt",
-    "unknownModel": "Unbekanntes Modell",
-    "warningTitle": "Experimentelle Funktion",
-    "warningText": "Firmware-Updates sind experimentell und können Ihr Gerät beschädigen. Verwenden Sie nur offizielle Firmware-Dateien von Ihrem Gerätehersteller. Der Upload ist derzeit deaktiviert.",
-    "uploadTitle": "Firmware hochladen",
-    "uploadNotAvailable": "Firmware-Upload ist derzeit nicht verfügbar",
-    "uploadButton": "Firmware auswählen",
-    "uploadHint": "Diese Funktion wird in zukünftigen Versionen aktiviert",
-    "infoTitle": "Firmware-Hinweise",
-    "infoItem1": "Firmware-Updates sollten nur bei Problemen durchgeführt werden",
-    "infoItem2": "Während des Updates darf das Gerät nicht ausgeschaltet werden",
-    "infoItem3": "Der Update-Prozess kann 5-10 Minuten dauern",
-    "infoItem4": "Nach dem Update startet das Gerät automatisch neu"
   },
   "setup": {
     "next": "Weiter",
@@ -905,7 +883,6 @@
     "sourceChoose": "Quelle wählen",
     "sourceSwitching": "Wechsle zu {{source}}…",
     "sourceSwitched": "Quelle gewechselt: {{source}}",
-    "sourceFailed": "Umschalten auf {{source}} fehlgeschlagen. Das Gerät antwortet nicht.",
     "sourceRetry": "Erneut versuchen",
     "slaveHint": "Die Quelle bestimmt der Master {{master}}.",
     "standbyTitle": "Standby",
@@ -924,6 +901,8 @@
     "noPresetToStart": "Es ist noch kein Preset gespeichert. Weise zuerst einem Preset einen Sender zu.",
     "src": {
       "presets": "Presets"
-    }
+    },
+    "sourceUnreachable": "{{source}} nicht erreichbar",
+    "sourceFailedKey": "{{source}}, nicht erreichbar. Erneut versuchen"
   }
 }

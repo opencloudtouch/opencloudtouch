@@ -20,8 +20,9 @@ import { markDeviceOffline, _resetOfflineStore } from "../../src/api/offlineDevi
 
 // Mock toast context so tests don't require ToastProvider wrapper
 const mockShowToast = vi.fn();
+const mockHideToast = vi.fn();
 vi.mock("../../src/contexts/ToastContext", () => ({
-  useToast: () => ({ show: mockShowToast }),
+  useToast: () => ({ show: mockShowToast, hide: mockHideToast }),
   ToastProvider: ({ children }: { children: ReactNode }) => children,
 }));
 
@@ -1065,7 +1066,7 @@ describe("Devices Page", () => {
       expect(screen.getByTestId("np-label")).toHaveTextContent("");
     });
 
-    it("shows an alert with retry when the switch fails and the old source stays", async () => {
+    it("marks the key and shows a persistent toast with retry when the switch fails", async () => {
       mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
       vi.mocked(devicesApi.selectSource).mockRejectedValueOnce(new Error("offline"));
       await renderDevices();
@@ -1074,16 +1075,40 @@ describe("Devices Page", () => {
         fireEvent.click(screen.getByRole("button", { name: "AUX" }));
       });
 
-      expect(await screen.findByRole("alert")).toHaveTextContent(
-        "Switching to AUX failed. The device is not responding."
-      );
+      const marked = await screen.findByRole("button", { name: "AUX, not reachable. Try again" });
+      expect(marked).toHaveClass("si-bb--fail");
       expect(screen.getByRole("button", { name: "Presets" })).toHaveAttribute("aria-pressed", "true");
+      expect(mockShowToast).toHaveBeenCalledWith(
+        "AUX not reachable",
+        "error",
+        expect.objectContaining({ persistent: true })
+      );
 
+      // tapping the marked key tries again; success clears the marker and the toast
       await act(async () => {
-        fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+        fireEvent.click(marked);
       });
       expect(devicesApi.selectSource).toHaveBeenCalledTimes(2);
-      await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+      await waitFor(() => expect(mockHideToast).toHaveBeenCalled());
+      expect(screen.queryByRole("button", { name: /not reachable/ })).not.toBeInTheDocument();
+    });
+
+    it("retries from the toast action", async () => {
+      mockNowPlayingState = playing("INTERNET_RADIO", { station_name: "SWR3" });
+      vi.mocked(devicesApi.selectSource).mockRejectedValueOnce(new Error("offline"));
+      await renderDevices();
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "AUX" }));
+      });
+      await screen.findByRole("button", { name: "AUX, not reachable. Try again" });
+
+      const options = mockShowToast.mock.calls.at(-1)?.[2] as {
+        action: { onClick: () => void };
+      };
+      await act(async () => {
+        options.action.onClick();
+      });
+      expect(devicesApi.selectSource).toHaveBeenCalledTimes(2);
     });
 
     it("Presets plays the preset this device played last", async () => {

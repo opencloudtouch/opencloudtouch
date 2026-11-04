@@ -32,6 +32,14 @@ function NewTabHint() {
   );
 }
 
+// The list of the last visit: the Supporters block must not pop in (and push the page down) on every visit
+let supportersCache: Supporter[] | null = null;
+
+/** Test helper: forget the supporters kept across page visits. */
+export function _resetSupportersCache() {
+  supportersCache = null;
+}
+
 export default function About() {
   const { t, i18n } = useTranslation();
   const { data: health, isLoading: healthLoading } = useHealth();
@@ -50,8 +58,8 @@ export default function About() {
     [uptime]
   );
 
-  const [supporters, setSupporters] = useState<Supporter[]>([]);
-  const [supportersLoading, setSupportersLoading] = useState(true);
+  const [supporters, setSupporters] = useState<Supporter[]>(() => supportersCache ?? []);
+  const [supportersLoading, setSupportersLoading] = useState(supportersCache === null);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo>({ available: false });
   const [updateLoading, setUpdateLoading] = useState(true);
   // one thank-you sentence per visit instead of a tooltip on every name
@@ -64,6 +72,7 @@ export default function About() {
         // Cache-busting: Add timestamp to prevent stale data
         const response = await fetch(`/supporters.csv?t=${Date.now()}`);
         if (!response.ok) {
+          supportersCache = [];
           setSupporters([]);
           setSupportersLoading(false);
           return;
@@ -79,6 +88,7 @@ export default function About() {
         const lines = text.trim().split("\n").slice(1); // Skip header
 
         if (lines.length === 0 || lines[0] === "") {
+          supportersCache = [];
           setSupporters([]);
           setSupportersLoading(false);
           return;
@@ -111,10 +121,12 @@ export default function About() {
           return a.firstSupportDate.localeCompare(b.firstSupportDate);
         });
 
+        supportersCache = parsed;
         setSupporters(parsed);
         setSupportersLoading(false);
       } catch (error) {
         console.error("Failed to load supporters:", error);
+        supportersCache = [];
         setSupporters([]);
         setSupportersLoading(false);
       }
@@ -247,7 +259,18 @@ export default function About() {
         )}
       </div>
 
-      {/* Supporters Wimmelbild */}
+      {/* Supporters Wimmelbild: the space is reserved while the list loads, the page must not grow afterwards */}
+      {supportersLoading && (
+        <div className="ab-supporters-ph" aria-hidden="true">
+          <span className="ui-skeleton ab-sk-title" />
+          <div className="ui-card ab-sk-card">
+            <span className="ui-skeleton ab-sk-line" style={{ width: "70%" }} />
+            <span className="ui-skeleton ab-sk-line" style={{ width: "90%" }} />
+            <span className="ui-skeleton ab-sk-line" style={{ width: "55%" }} />
+            <span className="ui-skeleton ab-sk-line" style={{ width: "80%" }} />
+          </div>
+        </div>
+      )}
       {!supportersLoading && supporters.length > 0 && (
         <section className="ab-supporters" aria-labelledby="ab-supporters-title">
           <h2 id="ab-supporters-title" className="ui-h2" aria-label={t("about.supportersLabel")}>

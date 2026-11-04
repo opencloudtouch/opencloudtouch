@@ -5,6 +5,7 @@
   gap: 8px;
   min-width: 0;
   max-width: 100%;
+  min-height: 32px; /* reserved, also without data */
   margin-top: 2px;
 }
 .dnp-art {

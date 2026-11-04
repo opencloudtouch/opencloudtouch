@@ -139,7 +139,8 @@
     },
     "discovery": {
       "devicesFound_one": "{{count}} nouvel appareil trouvé",
-      "devicesFound_other": "{{count}} nouveaux appareils trouvés"
+      "devicesFound_other": "{{count}} nouveaux appareils trouvés",
+      "moreDevices": "+ {{count}} de plus"
     },
     "deviceDiscovery": {
       "sectionTitle": "Trouver des appareils",
@@ -155,7 +156,7 @@
       "sectionTitle": "Journalisation",
       "description": "Contrôlez le niveau de détail des journaux et téléchargez les journaux pour le dépannage.",
       "logLevel": "Niveau de journal",
-      "levelOff": "Désactivé",
+      "levelOff": "Critiques uniquement",
       "levelInfo": "Info",
       "levelDebug": "Debug",
       "downloadLogs": "Télécharger les journaux",
@@ -220,29 +221,6 @@
     "staleBadge": "Pas vu depuis longtemps",
     "confirmDissolveTitle": "Dissoudre la zone ?",
     "confirmDissolveMessage": "« {{name}} » sera dissoute. Les appareils joueront de nouveau séparément."
-  },
-  "firmware": {
-    "title": "Mises à jour du firmware",
-    "noDevices": "Aucun appareil trouvé",
-    "currentDevice": "Appareil actuel",
-    "currentVersion": "Version actuelle :",
-    "statusLabel": "Statut :",
-    "updateAvailable": "Mise à jour disponible",
-    "upToDate": "À jour",
-    "allDevices": "Tous les appareils",
-    "unknownVersion": "Inconnu",
-    "unknownModel": "Modèle inconnu",
-    "warningTitle": "Fonctionnalité expérimentale",
-    "warningText": "Les mises à jour du firmware sont expérimentales et peuvent endommager votre appareil. Utilisez uniquement des fichiers firmware officiels du fabricant. Le téléchargement est actuellement désactivé.",
-    "uploadTitle": "Télécharger le firmware",
-    "uploadNotAvailable": "Le téléchargement du firmware n'est actuellement pas disponible",
-    "uploadButton": "Sélectionner le firmware",
-    "uploadHint": "Cette fonctionnalité sera activée dans les prochaines versions",
-    "infoTitle": "Notes sur le firmware",
-    "infoItem1": "Les mises à jour du firmware ne doivent être effectuées qu'en cas de problème",
-    "infoItem2": "Ne mettez pas l'appareil hors tension pendant une mise à jour",
-    "infoItem3": "Le processus de mise à jour peut prendre 5 à 10 minutes",
-    "infoItem4": "L'appareil redémarre automatiquement après la mise à jour"
   },
   "setup": {
     "next": "Suivant",
@@ -905,7 +883,6 @@
     "sourceChoose": "Choisir la source",
     "sourceSwitching": "Passage à {{source}}…",
     "sourceSwitched": "Source changée : {{source}}",
-    "sourceFailed": "Le passage à {{source}} a échoué. L'appareil ne répond pas.",
     "sourceRetry": "Réessayer",
     "slaveHint": "La source est définie par le maître {{master}}.",
     "standbyTitle": "Veille",
@@ -924,6 +901,8 @@
     "noPresetToStart": "Aucun préréglage enregistré. Attribuez d'abord une station à un préréglage.",
     "src": {
       "presets": "Préréglages"
-    }
+    },
+    "sourceUnreachable": "{{source}} injoignable",
+    "sourceFailedKey": "{{source}}, injoignable. Réessayer"
   }
 }

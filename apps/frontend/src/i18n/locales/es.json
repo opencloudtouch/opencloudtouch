@@ -139,7 +139,8 @@
     },
     "discovery": {
       "devicesFound_one": "{{count}} nuevo dispositivo encontrado",
-      "devicesFound_other": "{{count}} nuevos dispositivos encontrados"
+      "devicesFound_other": "{{count}} nuevos dispositivos encontrados",
+      "moreDevices": "+ {{count}} más"
     },
     "deviceDiscovery": {
       "sectionTitle": "Buscar dispositivos",
@@ -155,7 +156,7 @@
       "sectionTitle": "Registro",
       "description": "Controle el nivel de detalle del registro y descargue los registros para la resolución de problemas.",
       "logLevel": "Nivel de registro",
-      "levelOff": "Desactivado",
+      "levelOff": "Solo críticos",
       "levelInfo": "Info",
       "levelDebug": "Debug",
       "downloadLogs": "Descargar registros",
@@ -220,29 +221,6 @@
     "staleBadge": "No visto desde hace tiempo",
     "confirmDissolveTitle": "¿Disolver la zona?",
     "confirmDissolveMessage": "«{{name}}» se disolverá. Los dispositivos volverán a reproducir por separado."
-  },
-  "firmware": {
-    "title": "Actualizaciones de firmware",
-    "noDevices": "No se encontraron dispositivos",
-    "currentDevice": "Dispositivo actual",
-    "currentVersion": "Versión actual:",
-    "statusLabel": "Estado:",
-    "updateAvailable": "Actualización disponible",
-    "upToDate": "Actualizado",
-    "allDevices": "Todos los dispositivos",
-    "unknownVersion": "Desconocido",
-    "unknownModel": "Modelo desconocido",
-    "warningTitle": "Función experimental",
-    "warningText": "Las actualizaciones de firmware son experimentales y pueden dañar su dispositivo. Utilice solo archivos de firmware oficiales del fabricante. La carga está actualmente desactivada.",
-    "uploadTitle": "Cargar firmware",
-    "uploadNotAvailable": "La carga de firmware no está disponible actualmente",
-    "uploadButton": "Seleccionar firmware",
-    "uploadHint": "Esta función se activará en versiones futuras",
-    "infoTitle": "Notas sobre firmware",
-    "infoItem1": "Las actualizaciones de firmware solo deben realizarse si hay problemas",
-    "infoItem2": "No apague el dispositivo durante una actualización",
-    "infoItem3": "El proceso de actualización puede tardar 5-10 minutos",
-    "infoItem4": "El dispositivo se reinicia automáticamente después de la actualización"
   },
   "setup": {
     "next": "Siguiente",
@@ -905,7 +883,6 @@
     "sourceChoose": "Elegir fuente",
     "sourceSwitching": "Cambiando a {{source}}…",
     "sourceSwitched": "Fuente cambiada: {{source}}",
-    "sourceFailed": "No se pudo cambiar a {{source}}. El dispositivo no responde.",
     "sourceRetry": "Reintentar",
     "slaveHint": "La fuente la define el maestro {{master}}.",
     "standbyTitle": "En espera",
@@ -924,6 +901,8 @@
     "noPresetToStart": "Aún no hay ningún preset guardado. Asigna primero una emisora a un preset.",
     "src": {
       "presets": "Presets"
-    }
+    },
+    "sourceUnreachable": "{{source}} no disponible",
+    "sourceFailedKey": "{{source}}, no disponible. Reintentar"
   }
 }

@@ -165,7 +165,7 @@
     width: calc(var(--space-md) - 8px);
     box-sizing: border-box;
     background: var(--color-bg-card);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--ui-control-border);
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--motion-base);

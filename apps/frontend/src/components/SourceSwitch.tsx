@@ -16,6 +16,8 @@ interface SourceSwitchProps {
   current: DeviceSource | null;
   /** The source a switch is running for. */
   switching: DeviceSource | null;
+  /** The source whose last switch failed: its key is marked, tapping it tries again. */
+  failed?: DeviceSource | null;
   /** Standby, zone member or a switch in progress: the buttons stay in place but do nothing. */
   disabled: boolean;
   /** id of a visually hidden element that explains why the buttons are disabled. */
@@ -30,6 +32,7 @@ interface SourceSwitchProps {
 export default function SourceSwitch({
   current,
   switching,
+  failed = null,
   disabled,
   describedBy,
   onSelect,
@@ -61,6 +64,8 @@ export default function SourceSwitch({
         const busy = switching === source.id;
         const pressed = current === source.id && !busy;
         const label = t(source.labelKey);
+        const isFailed = failed === source.id && !busy;
+        const name = isFailed ? t("device.sourceFailedKey", { source: label }) : label;
         return (
           <button
             key={source.id}
@@ -68,14 +73,14 @@ export default function SourceSwitch({
               refs.current[index] = el;
             }}
             type="button"
-            className="si-bb"
+            className={isFailed ? "si-bb si-bb--fail" : "si-bb"}
             data-testid={`source-${source.id}`}
             aria-pressed={pressed}
             aria-busy={busy || undefined}
             aria-disabled={disabled || undefined}
             aria-describedby={describedBy}
-            aria-label={label}
-            title={label}
+            aria-label={name}
+            title={name}
             tabIndex={tabStop === source.id ? 0 : -1}
             onKeyDown={(event) => onKeyDown(event, index)}
             onClick={() => {
@@ -85,6 +90,11 @@ export default function SourceSwitch({
             <span className="si-bb-in">
               {busy ? <span className="ui-spin">{Icon.Loader(18)}</span> : source.icon()}
             </span>
+            {isFailed && (
+              <span className="si-bb-x" aria-hidden="true">
+                {Icon.X(10)}
+              </span>
+            )}
           </button>
         );
       })}

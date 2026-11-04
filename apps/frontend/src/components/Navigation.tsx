@@ -33,7 +33,7 @@ export default function Navigation() {
           </NavLink>
           <NavLink to={withDevice("/multiroom")} className="nav-link">
             <span className="nav-icon" aria-hidden="true">
-              {Icon.Volume2(22)}
+              {Icon.Link(22)}
             </span>
             <span className="nav-label">{t("nav.zones")}</span>
           </NavLink>

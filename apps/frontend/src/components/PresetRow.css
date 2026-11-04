@@ -156,9 +156,8 @@
   gap: 6px;
 }
 .pr--dis .pr-main {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+  cursor: default;
+} /* text stays at full strength (a dimmed state word fails the contrast minimum) */
 .pr--playing .pr-main,
 .pr--paused .pr-main,
 .pr--starting .pr-main,

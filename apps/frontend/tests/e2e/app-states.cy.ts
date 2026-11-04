@@ -1,5 +1,5 @@
 /**
- * E2E: layout + accessibility of the interactive states of the device card, Zones and Firmware
+ * E2E: layout + accessibility of the interactive states of the device card and Zones
  * (zone cards, device selection, selection bar, dissolve dialog, standby, playing).
  *
  * The device list, zones, now-playing and volume are mocked with cy.intercept, so the result does not depend on
@@ -78,7 +78,7 @@ function mockPlayer(nowPlaying: Record<string, unknown>) {
   cy.intercept("GET", "/api/devices/*/volume", { statusCode: 200, body: { actual: 40, target: 40, muted: false } });
 }
 
-describe("Zones, device card and Firmware states", { retries: 0 }, () => {
+describe("Zones and device card states", { retries: 0 }, () => {
   beforeEach(() => {
     mockApi();
     mockPlayer(PLAYING);
@@ -135,11 +135,6 @@ describe("Zones, device card and Firmware states", { retries: 0 }, () => {
         assertNoAxeViolations(`devices standby @${width}`);
       });
 
-      it("firmware: axe", () => {
-        visitDe("/firmware");
-        cy.get(".fw-item").should("have.length.at.least", 1);
-        assertNoAxeViolations(`firmware @${width}`);
-      });
     });
   }
 });

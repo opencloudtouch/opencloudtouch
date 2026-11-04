@@ -4,6 +4,7 @@
 @media (max-width: 768px) and (min-height: 600px) {
   .rp-device,
   .lc-device,
+  .dv-device,
   .ds {
     display: contents;
   }

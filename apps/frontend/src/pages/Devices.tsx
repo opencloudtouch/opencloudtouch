@@ -8,7 +8,6 @@ import PresetRow, { type PresetRowState } from "../components/PresetRow";
 import SourceSwitch, { type DeviceSource } from "../components/SourceSwitch";
 import TransportKeys, { type TransportKey } from "../components/TransportKeys";
 import SetupBadge from "../components/SetupBadge";
-import SwitchFailedAlert from "../components/SwitchFailedAlert";
 import DeviceOfflineBanner from "../components/DeviceOfflineBanner";
 import DeviceNameEditor from "../components/DeviceNameEditor";
 import RadioSearch, { RadioStation } from "../components/RadioSearch";
@@ -61,7 +60,11 @@ function toDeviceSource(source?: string): DeviceSource | null {
 export default function Devices({ devices = [], onRemoveDevice }: Readonly<DevicesProps>) {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
+  // Start on the device of the URL: choosing it in an effect would show the first device and then slide to the right one
+  const [currentDeviceIndex, setCurrentDeviceIndex] = useState(() => {
+    const index = devices.findIndex((d) => d.device_id === searchParams.get("device"));
+    return Math.max(index, 0);
+  });
   const [searchOpen, setSearchOpen] = useState(false);
   const [assigningPreset, setAssigningPreset] = useState<number | null>(null);
 
@@ -83,7 +86,7 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
   const { nowPlaying: npState, refresh: refreshNowPlaying } = useNowPlaying(deviceId);
   const { zones } = useZones();
   const [lastPreset, setLastPreset] = useLastPreset(deviceId);
-  const { show: showToast } = useToast();
+  const { show: showToast, hide: hideToast } = useToast();
   const [powerLoading, setPowerLoading] = useState(false);
   const [pendingStation, setPendingStation] = useState<RadioStation | null>(null);
   const [clearingPreset, setClearingPreset] = useState<number | null>(null);
@@ -137,6 +140,41 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
     // would override the user's manual selection back to the URL device.
   }, [searchParams, devices]);
 
+  // A failed switch is reported by one toast that stays until it is closed, retried or the device leaves the card
+  const retrySwitchRef = useRef<() => void>(() => {});
+  retrySwitchRef.current = () => {
+    if (switchFailed) void handleSelectSource(switchFailed);
+  };
+  const failToastShownRef = useRef(false);
+  useEffect(() => {
+    if (!switchFailed) {
+      if (failToastShownRef.current) hideToast();
+      failToastShownRef.current = false;
+      return;
+    }
+    failToastShownRef.current = true;
+    showToast(
+      t("device.sourceUnreachable", { source: t(SOURCE_LABEL_KEYS[switchFailed]) }),
+      "error",
+      {
+        persistent: true,
+        action: { label: t("device.sourceRetry"), onClick: () => retrySwitchRef.current() },
+        onDismiss: () => setSwitchFailed(null),
+      }
+    );
+  }, [switchFailed, showToast, hideToast, t]);
+  useEffect(
+    () => () => {
+      if (failToastShownRef.current) hideToast();
+    },
+    [hideToast]
+  );
+
+  // The alert sits in the inert area: when the device goes to standby it could no longer be closed or retried
+  useEffect(() => {
+    if (isStandby) setSwitchFailed(null);
+  }, [isStandby]);
+
   // The state of a card never leaks into the next device
   useEffect(() => {
     setStartingPreset(null);
@@ -163,7 +201,8 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
     const preset = presets[num];
     if (!preset || !isRadio || npState?.station_name !== preset.station_name) return "idle";
     if (npState?.state === "PLAY_STATE") return "playing";
-    if (npState?.state === "PAUSE_STATE") return "paused";
+    // A radio stream cannot really pause: many devices report STOP_STATE with the station still selected
+    if (npState?.state === "PAUSE_STATE" || npState?.state === "STOP_STATE") return "paused";
     return "idle";
   };
 
@@ -372,6 +411,7 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
     <SourceSwitch
       current={currentSource}
       switching={switching}
+      failed={switchFailed}
       disabled={switchDisabled}
       describedBy={isZoneMember ? "dv-slave-hint" : undefined}
       onSelect={handleSelectSource}
@@ -451,6 +491,11 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
                       : t("multiroom.slaveBadge")}
                   </span>
                 </span>
+                {isZoneMember && (
+                  <p id="dv-slave-hint" className="dv-zone-hint">
+                    {t("device.slaveHint", { master: masterName })}
+                  </p>
+                )}
               </div>
             )}
 
@@ -491,20 +536,7 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
                         headerAction={sourceSwitch}
                       />
                     )}
-                    {switchFailed && !switching && (
-                      <SwitchFailedAlert
-                        sourceLabel={sourceName(switchFailed)}
-                        onRetry={() => handleSelectSource(switchFailed)}
-                        onClose={() => setSwitchFailed(null)}
-                      />
-                    )}
                   </div>
-                  {isZoneMember && (
-                    <span id="dv-slave-hint" className="visually-hidden">
-                      {t("device.slaveHint", { master: masterName })}
-                    </span>
-                  )}
-
                   <TransportKeys
                     playing={isPlaying}
                     showSkip={!!source && !isRadio && !isStandby && source !== "AUX"}

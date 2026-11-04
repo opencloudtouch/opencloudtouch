@@ -139,7 +139,8 @@
     },
     "discovery": {
       "devicesFound_one": "新しいデバイスが{{count}}台見つかりました",
-      "devicesFound_other": "新しいデバイスが{{count}}台見つかりました"
+      "devicesFound_other": "新しいデバイスが{{count}}台見つかりました",
+      "moreDevices": "他 {{count}} 台"
     },
     "deviceDiscovery": {
       "sectionTitle": "デバイスを探す",
@@ -155,7 +156,7 @@
       "sectionTitle": "ログ",
       "description": "ログの詳細レベルを制御し、トラブルシューティング用にログをダウンロードします。",
       "logLevel": "ログレベル",
-      "levelOff": "オフ",
+      "levelOff": "重大なエラーのみ",
       "levelInfo": "Info",
       "levelDebug": "Debug",
       "downloadLogs": "ログをダウンロード",
@@ -220,29 +221,6 @@
     "staleBadge": "しばらく確認されていません",
     "confirmDissolveTitle": "ゾーンを解除しますか?",
     "confirmDissolveMessage": "「{{name}}」を解除します。デバイスは再び個別に再生されます。"
-  },
-  "firmware": {
-    "title": "ファームウェアアップデート",
-    "noDevices": "デバイスが見つかりません",
-    "currentDevice": "現在のデバイス",
-    "currentVersion": "現在のバージョン：",
-    "statusLabel": "ステータス：",
-    "updateAvailable": "アップデートあり",
-    "upToDate": "最新",
-    "allDevices": "すべてのデバイス",
-    "unknownVersion": "不明",
-    "unknownModel": "不明なモデル",
-    "warningTitle": "実験的機能",
-    "warningText": "ファームウェアアップデートは実験的であり、デバイスを損傷する可能性があります。デバイスメーカーの公式ファームウェアファイルのみを使用してください。アップロードは現在無効です。",
-    "uploadTitle": "ファームウェアをアップロード",
-    "uploadNotAvailable": "ファームウェアのアップロードは現在利用できません",
-    "uploadButton": "ファームウェアを選択",
-    "uploadHint": "この機能は将来のバージョンで有効になります",
-    "infoTitle": "ファームウェアについて",
-    "infoItem1": "ファームウェアアップデートは問題がある場合にのみ実行してください",
-    "infoItem2": "アップデート中はデバイスの電源を切らないでください",
-    "infoItem3": "アップデートプロセスは5〜10分かかる場合があります",
-    "infoItem4": "アップデート後、デバイスは自動的に再起動します"
   },
   "setup": {
     "next": "次へ",
@@ -905,7 +883,6 @@
     "sourceChoose": "ソースを選択",
     "sourceSwitching": "{{source}} に切り替え中…",
     "sourceSwitched": "ソースを切り替えました: {{source}}",
-    "sourceFailed": "{{source}} への切り替えに失敗しました。デバイスが応答しません。",
     "sourceRetry": "再試行",
     "slaveHint": "ソースはマスター {{master}} が設定します。",
     "standbyTitle": "スタンバイ",
@@ -924,6 +901,8 @@
     "noPresetToStart": "保存されたプリセットがまだありません。先にプリセットへステーションを割り当ててください。",
     "src": {
       "presets": "プリセット"
-    }
+    },
+    "sourceUnreachable": "{{source}}に接続できません",
+    "sourceFailedKey": "{{source}}に接続できません。もう一度試す"
   }
 }

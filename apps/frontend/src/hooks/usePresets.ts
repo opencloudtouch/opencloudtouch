@@ -69,7 +69,8 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
   const [loadingFlag, setLoadingFlag] = useState(false);
   // A device without cached presets shows the loading skeleton from the first frame instead of empty slots
   const switchingUncached = !!deviceId && store.id !== deviceId && !cachedPresets;
-  const loading = loadingFlag || switchingUncached;
+  // A refresh behind cached presets must not replace them with the skeleton (the page would flash on every visit)
+  const loading = switchingUncached || (loadingFlag && Object.keys(presets).length === 0);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

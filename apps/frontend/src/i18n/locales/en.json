@@ -139,7 +139,8 @@
     },
     "discovery": {
       "devicesFound_one": "{{count}} new device found",
-      "devicesFound_other": "{{count}} new devices found"
+      "devicesFound_other": "{{count}} new devices found",
+      "moreDevices": "+ {{count}} more"
     },
     "deviceDiscovery": {
       "sectionTitle": "Find Devices",
@@ -155,7 +156,7 @@
       "sectionTitle": "Logging",
       "description": "Control the log detail level and download logs for troubleshooting.",
       "logLevel": "Log Level",
-      "levelOff": "Off",
+      "levelOff": "Critical only",
       "levelInfo": "Info",
       "levelDebug": "Debug",
       "downloadLogs": "Download Logs",
@@ -220,29 +221,6 @@
     "staleBadge": "Not seen for a while",
     "confirmDissolveTitle": "Dissolve zone?",
     "confirmDissolveMessage": "“{{name}}” will be dissolved. The devices will play individually again."
-  },
-  "firmware": {
-    "title": "Firmware Updates",
-    "noDevices": "No devices found",
-    "currentDevice": "Current Device",
-    "currentVersion": "Current version:",
-    "statusLabel": "Status:",
-    "updateAvailable": "Update available",
-    "upToDate": "Up to date",
-    "allDevices": "All Devices",
-    "unknownVersion": "Unknown",
-    "unknownModel": "Unknown Model",
-    "warningTitle": "Experimental Feature",
-    "warningText": "Firmware updates are experimental and may damage your device. Only use official firmware files from your device manufacturer. Upload is currently disabled.",
-    "uploadTitle": "Upload Firmware",
-    "uploadNotAvailable": "Firmware upload is currently not available",
-    "uploadButton": "Select firmware",
-    "uploadHint": "This feature will be enabled in future versions",
-    "infoTitle": "Firmware Notes",
-    "infoItem1": "Firmware updates should only be performed if there are problems",
-    "infoItem2": "Do not power off the device during an update",
-    "infoItem3": "The update process can take 5–10 minutes",
-    "infoItem4": "The device restarts automatically after the update"
   },
   "setup": {
     "next": "Next",
@@ -905,7 +883,6 @@
     "sourceChoose": "Choose source",
     "sourceSwitching": "Switching to {{source}}…",
     "sourceSwitched": "Source changed: {{source}}",
-    "sourceFailed": "Switching to {{source}} failed. The device is not responding.",
     "sourceRetry": "Try again",
     "slaveHint": "The source is set by master {{master}}.",
     "standbyTitle": "Standby",
@@ -924,6 +901,8 @@
     "noPresetToStart": "No preset is saved yet. Assign a station to a preset first.",
     "src": {
       "presets": "Presets"
-    }
+    },
+    "sourceUnreachable": "{{source}} not reachable",
+    "sourceFailedKey": "{{source}}, not reachable. Try again"
   }
 }

@@ -139,7 +139,8 @@
     },
     "discovery": {
       "devicesFound_one": "Znaleziono {{count}} nowe urządzenie",
-      "devicesFound_other": "Znaleziono {{count}} nowe urządzenia"
+      "devicesFound_other": "Znaleziono {{count}} nowe urządzenia",
+      "moreDevices": "+ {{count}} więcej"
     },
     "deviceDiscovery": {
       "sectionTitle": "Znajdź urządzenia",
@@ -155,7 +156,7 @@
       "sectionTitle": "Logi",
       "description": "Kontroluj poziom szczegółowości logów i pobieraj logi do rozwiązywania problemów.",
       "logLevel": "Poziom logowania",
-      "levelOff": "Wyłączony",
+      "levelOff": "Tylko krytyczne",
       "levelInfo": "Info",
       "levelDebug": "Debug",
       "downloadLogs": "Pobierz logi",
@@ -220,29 +221,6 @@
     "staleBadge": "Dawno niewidziane",
     "confirmDissolveTitle": "Rozwiązać strefę?",
     "confirmDissolveMessage": "Strefa „{{name}}” zostanie rozwiązana. Urządzenia będą znów odtwarzać osobno."
-  },
-  "firmware": {
-    "title": "Aktualizacje firmware",
-    "noDevices": "Nie znaleziono urządzeń",
-    "currentDevice": "Bieżące urządzenie",
-    "currentVersion": "Bieżąca wersja:",
-    "statusLabel": "Status:",
-    "updateAvailable": "Dostępna aktualizacja",
-    "upToDate": "Aktualne",
-    "allDevices": "Wszystkie urządzenia",
-    "unknownVersion": "Nieznana",
-    "unknownModel": "Nieznany model",
-    "warningTitle": "Funkcja eksperymentalna",
-    "warningText": "Aktualizacje firmware są eksperymentalne i mogą uszkodzić urządzenie. Używaj tylko oficjalnych plików firmware od producenta. Przesyłanie jest obecnie wyłączone.",
-    "uploadTitle": "Prześlij firmware",
-    "uploadNotAvailable": "Przesyłanie firmware jest obecnie niedostępne",
-    "uploadButton": "Wybierz firmware",
-    "uploadHint": "Ta funkcja zostanie włączona w przyszłych wersjach",
-    "infoTitle": "Informacje o firmware",
-    "infoItem1": "Aktualizacje firmware należy przeprowadzać tylko w przypadku problemów",
-    "infoItem2": "Nie wyłączaj urządzenia podczas aktualizacji",
-    "infoItem3": "Proces aktualizacji może trwać 5-10 minut",
-    "infoItem4": "Urządzenie automatycznie restartuje się po aktualizacji"
   },
   "setup": {
     "next": "Dalej",
@@ -905,7 +883,6 @@
     "sourceChoose": "Wybierz źródło",
     "sourceSwitching": "Przełączanie na {{source}}…",
     "sourceSwitched": "Zmieniono źródło: {{source}}",
-    "sourceFailed": "Nie udało się przełączyć na {{source}}. Urządzenie nie odpowiada.",
     "sourceRetry": "Spróbuj ponownie",
     "slaveHint": "Źródło ustawia urządzenie główne {{master}}.",
     "standbyTitle": "Tryb gotowości",
@@ -924,6 +901,8 @@
     "noPresetToStart": "Nie zapisano jeszcze żadnego presetu. Najpierw przypisz stację do presetu.",
     "src": {
       "presets": "Presety"
-    }
+    },
+    "sourceUnreachable": "{{source}} niedostępne",
+    "sourceFailedKey": "{{source}}, niedostępne. Spróbuj ponownie"
   }
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import { ToastType } from "../contexts/ToastContext";
+import type { ToastAction, ToastType } from "../contexts/ToastContext";
 import { Icon } from "./Icon";
 import "./Toast.css";
 
@@ -17,14 +17,26 @@ interface ToastProps {
   message: string;
   type?: ToastType;
   duration?: number;
+  persistent?: boolean;
+  action?: ToastAction;
+  onDismiss?: () => void;
   onClose?: () => void;
 }
 
-export default function Toast({ message, type = "info", duration = 5000, onClose }: ToastProps) {
+export default function Toast({
+  message,
+  type = "info",
+  duration = 5000,
+  persistent = false,
+  action,
+  onDismiss,
+  onClose,
+}: Readonly<ToastProps>) {
   const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
+    if (persistent) return;
     let fadeTimer: ReturnType<typeof setTimeout>;
     const timer = setTimeout(() => {
       setIsVisible(false);
@@ -37,7 +49,7 @@ export default function Toast({ message, type = "info", duration = 5000, onClose
       clearTimeout(timer);
       clearTimeout(fadeTimer);
     };
-  }, [duration, onClose]);
+  }, [duration, persistent, onClose]);
 
   if (!isVisible) return null;
 
@@ -54,7 +66,7 @@ export default function Toast({ message, type = "info", duration = 5000, onClose
 
   return (
     <Container
-      className={`toast toast-${type} ${isVisible ? "toast-visible" : "toast-hidden"}`}
+      className={`toast toast-${type} toast-visible${action ? " toast--act" : ""}`}
       data-test="toast-notification"
       role={isAlert ? "alert" : undefined}
     >
@@ -66,10 +78,16 @@ export default function Toast({ message, type = "info", duration = 5000, onClose
           {message}
         </p>
       </div>
+      {action && (
+        <button type="button" className="toast-action" onClick={action.onClick}>
+          {action.label}
+        </button>
+      )}
       <button
         className="toast-close"
         onClick={() => {
           setIsVisible(false);
+          onDismiss?.();
           if (onClose) setTimeout(onClose, 300);
         }}
         aria-label={t("common.close")}
