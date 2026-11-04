@@ -192,7 +192,6 @@ App.jsx (Root)
 └── Router (React Router)
     ├── Devices (Page)
     ├── MultiRoom (Page)
-    ├── Firmware (Page)
     ├── Settings (Page)
     └── Licenses (Page)
 ```
