@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useManualIPs, useProbeDevice } from "../hooks/useSettings";
 import { useDiscoveryStream } from "../hooks/useDiscoveryStream";
 import { useToast } from "../contexts/ToastContext";
+import StreamRecoverySettings from "../components/StreamRecoverySettings";
 import { toUserMessage } from "../utils/errorMessages";
 import { getLogEntries, getLogBuffers } from "../utils/logBuffer";
 import { syncDebugFromBackendLevel } from "../utils/debug";
@@ -344,6 +345,8 @@ export default function Settings() {
           </div>
         </div>
       </section>
+
+      <StreamRecoverySettings />
 
       {/* Logging Section */}
       <section className="st-section" aria-labelledby="st-logging-title">

@@ -4,6 +4,11 @@ import Settings from "../../src/pages/Settings";
 import { QueryWrapper } from "../utils/reactQueryTestUtils";
 import { ToastProvider } from "../../src/contexts/ToastContext";
 
+// The stream recovery section has its own tests and its own fetches
+vi.mock("../../src/components/StreamRecoverySettings", () => ({
+  default: () => null,
+}));
+
 // Create typed mock for fetch
 let mockFetch: Mock;
 

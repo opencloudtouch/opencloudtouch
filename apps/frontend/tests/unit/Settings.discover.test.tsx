@@ -18,6 +18,11 @@ import type { DiscoveryState } from "../../src/hooks/useDiscoveryStream";
 // ---------------------------------------------------------------------------
 // Module-level mock — isolated to this file
 // ---------------------------------------------------------------------------
+// The stream recovery section has its own tests and its own fetches
+vi.mock("../../src/components/StreamRecoverySettings", () => ({
+  default: () => null,
+}));
+
 vi.mock("../../src/hooks/useDiscoveryStream", () => ({
   useDiscoveryStream: vi.fn(),
 }));
