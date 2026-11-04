@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: OpenCloudTouch
   description: Open-Source replacement for discontinued streaming device cloud features
-  version: 1.6.0
+  version: 1.5.8
 paths:
   /api/devices/discover:
     get:
@@ -5014,8 +5014,9 @@ components:
         \ on the client\n    extra: Structured data for the client (not for translation)\n\
         \nExample:\n    {\n        \"type\": \"not_found\",\n        \"title\": \"\
         Device Not Found\",\n        \"status\": 404,\n        \"detail\": \"Device\
-        \ with ID 'abc123' does not exist\",\n        \"instance\": \"/api/devices/abc123\"\
-        \n    }"
+        \ not found: abc123\",\n        \"instance\": \"/api/devices/abc123\",\n \
+        \       \"errors\": null,\n        \"code\": \"device_not_found\",\n     \
+        \   \"params\": null,\n        \"extra\": null\n    }"
       properties:
         type:
           title: Type
