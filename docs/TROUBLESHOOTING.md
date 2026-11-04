@@ -21,6 +21,14 @@
 | Status is `failed` | The update or recovery process could not complete. Check the Docker and OpenCloudTouch logs before retrying. |
 | Community/self-built image is not updated automatically | Expected. Automatic replacement with an official image is disabled for community builds. |
 
+During self-update, the replacement container inherits the healthcheck from the
+target image. Docker Compose healthcheck overrides, including
+`test: ["NONE"]`, are not preserved and revert to the image default.
+
+The update helper currently requires the Docker socket at
+`/var/run/docker.sock` on the host. Rootless Docker and installations using a
+different host-side socket path are not currently supported.
+
 The existing `/data` mount is preserved during container replacement and
 rollback. Do not delete Docker volumes while diagnosing an update problem.
 Active states older than 30 minutes are treated as stale automatically. A
