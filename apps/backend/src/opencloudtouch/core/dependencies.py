@@ -20,6 +20,7 @@ from opencloudtouch.recents.repository import RecentsRepository
 from opencloudtouch.recents.service import RecentsService
 from opencloudtouch.settings.repository import SettingsRepository
 from opencloudtouch.settings.service import SettingsService
+from opencloudtouch.streamrecovery.service import StreamRecoveryService
 from opencloudtouch.zones.service import ZoneService
 
 if TYPE_CHECKING:
@@ -85,6 +86,11 @@ def get_zone_service(request: Request) -> ZoneService:
     return request.app.state.zone_service
 
 
+def get_stream_recovery_service(request: Request) -> StreamRecoveryService:
+    """Get the stream recovery service from app.state (FastAPI dependency)."""
+    return request.app.state.stream_recovery_service
+
+
 def get_setup_service(request: Request) -> SetupService:
     """Get setup service instance from app.state (FastAPI dependency)."""
     return request.app.state.setup_service
@@ -111,6 +117,9 @@ PresetServiceDep = Annotated[PresetService, Depends(get_preset_service)]
 MargeServiceDep = Annotated[MargeService, Depends(get_marge_service)]
 ZoneServiceDep = Annotated[ZoneService, Depends(get_zone_service)]
 DlnaServiceDep = Annotated[DlnaService, Depends(get_dlna_service)]
+StreamRecoveryServiceDep = Annotated[
+    StreamRecoveryService, Depends(get_stream_recovery_service)
+]
 SettingsServiceDep = Annotated[SettingsService, Depends(get_settings_service)]
 DeviceStateManagerDep = Annotated[DeviceStateManager, Depends(get_device_state_manager)]
 WizardServiceDep = Annotated["WizardService", Depends(get_wizard_service)]
