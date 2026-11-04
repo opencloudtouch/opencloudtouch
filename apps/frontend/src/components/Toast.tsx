@@ -31,7 +31,7 @@ export default function Toast({
   action,
   onDismiss,
   onClose,
-}: ToastProps) {
+}: Readonly<ToastProps>) {
   const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(true);
 
@@ -66,7 +66,7 @@ export default function Toast({
 
   return (
     <Container
-      className={`toast toast-${type} ${isVisible ? "toast-visible" : "toast-hidden"}${action ? " toast--act" : ""}`}
+      className={`toast toast-${type} toast-visible${action ? " toast--act" : ""}`}
       data-test="toast-notification"
       role={isAlert ? "alert" : undefined}
     >

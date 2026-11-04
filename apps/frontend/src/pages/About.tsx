@@ -72,6 +72,7 @@ export default function About() {
         // Cache-busting: Add timestamp to prevent stale data
         const response = await fetch(`/supporters.csv?t=${Date.now()}`);
         if (!response.ok) {
+          supportersCache = [];
           setSupporters([]);
           setSupportersLoading(false);
           return;
@@ -87,6 +88,7 @@ export default function About() {
         const lines = text.trim().split("\n").slice(1); // Skip header
 
         if (lines.length === 0 || lines[0] === "") {
+          supportersCache = [];
           setSupporters([]);
           setSupportersLoading(false);
           return;
@@ -124,6 +126,7 @@ export default function About() {
         setSupportersLoading(false);
       } catch (error) {
         console.error("Failed to load supporters:", error);
+        supportersCache = [];
         setSupporters([]);
         setSupportersLoading(false);
       }

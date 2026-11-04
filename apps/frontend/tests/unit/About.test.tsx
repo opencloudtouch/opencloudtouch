@@ -4,7 +4,7 @@ import React from "react";
 import { MemoryRouter } from "react-router";
 import { QueryWrapper } from "../utils/reactQueryTestUtils";
 import { useHealth } from "../../src/hooks/useHealth";
-import About from "../../src/pages/About";
+import About, { _resetSupportersCache } from "../../src/pages/About";
 
 // Mock framer-motion
 vi.mock("framer-motion", () => ({
@@ -57,6 +57,7 @@ function mockFetchWith(csvResponse: { ok: boolean; text?: () => Promise<string> 
 describe("About page", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    _resetSupportersCache();
     routeQuery.search = "";
   });
 
