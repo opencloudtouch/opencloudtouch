@@ -3005,6 +3005,50 @@ export interface components {
       message: string;
     };
     /**
+     * DeviceListResponse
+     * @description Response containing all stored devices.
+     */
+    DeviceListResponse: {
+      /** Count */
+      count: number;
+      /** Devices */
+      devices: components["schemas"]["DeviceResponse"][];
+    };
+    /**
+     * DeviceResponse
+     * @description Stored device information, including UUID provenance.
+     */
+    DeviceResponse: {
+      /** Id */
+      id: number | null;
+      /** Device Id */
+      device_id: string;
+      /** Ip */
+      ip: string;
+      /** Name */
+      name: string;
+      /** Model */
+      model: string;
+      /** Mac Address */
+      mac_address: string;
+      /** Firmware Version */
+      firmware_version: string;
+      /** Schema Version */
+      schema_version: string;
+      /** Last Seen */
+      last_seen: string | null;
+      /** Setup Status */
+      setup_status: string;
+      /** Ssh Permanent */
+      ssh_permanent: boolean;
+      /** Setup Completed At */
+      setup_completed_at: string | null;
+      /** Marge Account Uuid */
+      marge_account_uuid: string | null;
+      /** Uuid Source */
+      uuid_source: string;
+    };
+    /**
      * DiagnosticsRequest
      * @description Request body for diagnostics download (no GitHub token needed).
      */
@@ -4054,7 +4098,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["DeviceListResponse"];
         };
       };
     };
@@ -4096,7 +4140,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["DeviceResponse"];
         };
       };
       /** @description Validation Error */

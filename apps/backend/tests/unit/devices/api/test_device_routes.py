@@ -83,6 +83,8 @@ def sample_devices():
             model="SoundTouch 30",
             mac_address="AA:BB:CC:DD:EE:FF",
             firmware_version="28.0.5.46710",
+            marge_account_uuid="1234567",
+            uuid_source="derived",
         ),
         Device(
             id=2,
@@ -141,6 +143,8 @@ class TestDeviceListEndpoint:
         assert "model" in device
         assert "mac_address" in device
         assert "firmware_version" in device
+        assert device["marge_account_uuid"] == "1234567"
+        assert device["uuid_source"] == "derived"
 
 
 class TestDeviceDetailEndpoint:
@@ -185,6 +189,8 @@ class TestDeviceDetailEndpoint:
         assert device["model"] == "SoundTouch 30"
         assert device["mac_address"] == "AA:BB:CC:DD:EE:FF"
         assert device["firmware_version"] == "28.0.5.46710"
+        assert device["marge_account_uuid"] == "1234567"
+        assert device["uuid_source"] == "derived"
 
 
 class TestBassEndpoint:
