@@ -95,6 +95,7 @@ def mock_init_services_deps():
         "device": patch("opencloudtouch.main.DeviceService"),
         "discovery_adapter": patch("opencloudtouch.main.get_discovery_adapter"),
         "zone": patch("opencloudtouch.main.ZoneService"),
+        "sleep_timer": patch("opencloudtouch.main.SleepTimerService"),
         "settings": patch("opencloudtouch.main.SettingsService"),
         "setup": patch("opencloudtouch.main.SetupService"),
         "wizard": patch("opencloudtouch.main.WizardService"),
@@ -111,6 +112,7 @@ def mock_init_services_deps():
         return_value=MagicMock(synced=0, failed=0, discovered=0)
     )
     mocks["startup_check"].return_value.run = AsyncMock()
+    mocks["sleep_timer"].return_value.recover = AsyncMock()
     yield mocks
     for p in patches.values():
         p.stop()
@@ -127,6 +129,7 @@ def _build_init_services_repos():
             "recents_repo",
             "wizard_audit_repo",
             "zone_repo",
+            "sleep_timer_repo",
         )
     }
 

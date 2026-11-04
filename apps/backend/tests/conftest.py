@@ -123,9 +123,14 @@ def mock_adapter(mock_adapter_factory):
 
 @pytest.fixture(autouse=True)
 def _reset_mock_device_settings():
-    """The mock client keeps settings in module state; isolate every test."""
-    from opencloudtouch.devices.mock_client import reset_mock_device_settings
+    """The mock client keeps settings and playback state at module level; isolate."""
+    from opencloudtouch.devices.mock_client import (
+        reset_mock_device_settings,
+        reset_mock_state,
+    )
 
     reset_mock_device_settings()
+    reset_mock_state()
     yield
     reset_mock_device_settings()
+    reset_mock_state()

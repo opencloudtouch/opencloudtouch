@@ -8,6 +8,7 @@ settings_enabled_invalid
 settings_language_invalid
 settings_time_format_invalid
 settings_timezone_invalid
+sleep_timer_fade_too_long
 stream_recovery_attempts_invalid
 stream_recovery_failed
 stream_recovery_min_play_invalid

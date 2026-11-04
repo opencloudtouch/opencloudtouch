@@ -1,9 +1,8 @@
 """Shared fixtures: virtual time, fake collaborators and an event feeder."""
 
 import asyncio
-import heapq
-import itertools
 from datetime import UTC, datetime
+
 import pytest
 
 from opencloudtouch.devices.client import NowPlayingInfo
@@ -12,14 +11,9 @@ from opencloudtouch.devices.websocket.parser import DeviceEvent, EventType
 from opencloudtouch.presets.models import Preset
 from opencloudtouch.streamrecovery.repository import StreamRecoveryRepository
 from opencloudtouch.streamrecovery.service import StreamRecoveryService
+from tests.unit.helpers.virtual_time import VirtualTime, settle
 
 DEVICE = "AABBCC112233"
-
-
-async def settle(rounds: int = 25) -> None:
-    """Let ready tasks run (real event loop, no virtual time involved)."""
-    for _ in range(rounds):
-        await asyncio.sleep(0)
 
 
 async def finish(service, timeout: float = 2.0) -> None:
@@ -31,41 +25,6 @@ async def finish(service, timeout: float = 2.0) -> None:
     if tasks:
         await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout)
     await settle()
-
-
-class VirtualTime:
-    """Injectable clock + sleep: sleeping blocks until the test advances time."""
-
-    def __init__(self) -> None:
-        self.t = 10_000.0
-        self._waiters: list[tuple[float, int, asyncio.Future]] = []
-        self._counter = itertools.count()
-
-    def clock(self) -> float:
-        return self.t
-
-    async def sleep(self, seconds: float) -> None:
-        future: asyncio.Future = asyncio.get_running_loop().create_future()
-        heapq.heappush(self._waiters, (self.t + seconds, next(self._counter), future))
-        await future
-
-    def jump(self, seconds: float) -> None:
-        """Move the clock without waking sleepers (e.g. 'the station played for 6 h')."""
-        self.t += seconds
-
-    async def advance(self, seconds: float) -> None:
-        """Move the clock and wake every sleeper that becomes due, in order."""
-        target = self.t + seconds
-        await settle()
-        while self._waiters and self._waiters[0][0] <= target:
-            when, _, future = heapq.heappop(self._waiters)
-            if future.cancelled():
-                continue
-            self.t = max(self.t, when)
-            future.set_result(None)
-            await settle()
-        self.t = target
-        await settle()
 
 
 class FakeDeviceService:

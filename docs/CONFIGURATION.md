@@ -83,6 +83,23 @@ Internet-radio stations sometimes close the connection after a maximum listener 
 - **Hardware assumptions (unverified):** a station-side close shows up as `INVALID_SOURCE`, and the event sequence before it is `PLAY_STATE` or `BUFFERING_STATE`; re-sending `PRESET_n` starts the preset on SoundTouch 10/20/30 (the Wave SoundTouch IV is reported not to); the speaker's station name equals the stored preset name.
 - **Diagnostics:** the stream proxy now logs `[STREAM END] … elapsed=<seconds>` at INFO when a stream ends without OCT stopping it (upstream end or error, client disconnect).
 
+## Sleep timer
+
+A server-side timer per device fades the volume out, stops playback (or puts the speaker into standby) and gives the previous volume back, so the next playback is not silent. No `OCT_*` variable; timers are stored in the database.
+
+| Endpoint | Purpose |
+|----------|---------|
+| `PUT /api/devices/{id}/sleep-timer` | `{"duration_minutes": 30, "fade_seconds": 30, "end_action": "stop" \| "standby"}`; `duration_minutes` 1–720 is required, `fade_seconds` 0–300 (default 30), `end_action` defaults to `stop`; replaces a running timer |
+| `GET /api/devices/{id}/sleep-timer` | `{"active": false, "server_time": …}` or the timer with `ends_at`, `state` (`running`, `fading`, `ending`); makes no device call |
+| `DELETE /api/devices/{id}/sleep-timer` | Cancels the timer (idempotent, `204`) and restores a faded volume |
+
+- **Sequence:** at `ends_at - fade_seconds` the volume is read (V0) and faded to 0 in steps of about 2 s (at most 150 steps, due at absolute times so a slow speaker does not stretch the fade). At the end OCT pauses playback (and sends `STOP` if the speaker is still playing 2 s later), restores V0 and, with `end_action: "standby"`, presses `POWER` after 1 s unless the speaker is already in standby. A speaker that is not playing is not paused; a muted or silent speaker is not faded and gets no volume restore.
+- **The user wins:** if the volume differs by more than 2 from what OCT last set, the fade stops, the speaker is neither paused nor switched off, and the user's volume stays. Cancelling restores V0 only while the volume is still the faded one.
+- **Unreachable speaker:** every step and the end sequence are retried 3 times, 20 s apart; then OCT logs an ERROR, forgets the timer and leaves the volume as it is. The outcome is only logged, never stored.
+- **Restart:** timers are stored. After a restart a timer that ends in the future continues (a fade that was interrupted is undone first and started again); one that ended up to 10 minutes ago runs its end sequence now; an older one only restores the volume (the row stays until that works). On shutdown OCT restores faded volumes within 3 s.
+- **Mock mode** (`OCT_MOCK_MODE=true`): the mock devices now keep volume, mute and play state, so the whole sequence is observable through the device API.
+- **Hardware assumptions (unverified):** `PAUSE` stops streams, `STOP` stops other sources, `set_volume` works while paused, and `POWER` right after `STOP` puts the speaker into standby. Remote commands can take up to ~15 s on some speakers (#261).
+
 ## Bug Reports & Production Safety
 
 | Variable | Default | Description |
