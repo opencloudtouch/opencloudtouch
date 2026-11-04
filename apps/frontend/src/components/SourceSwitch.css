@@ -76,28 +76,70 @@
   opacity: 0.6;
 }
 
-/* failed switch: floats over the art and info (no layout change); the header row stays visible */
-.si-fail {
+/* failed switch: an opaque panel over the art and info (no layout change); the header row stays visible.
+   The red tint is layered over the solid card colour (wz-status alone is a 10% tint and lets the cover shine through). */
+.si-np-wrap > .si-fail.wz-status {
   position: absolute;
   z-index: 5;
   left: 0;
   right: 0;
   top: var(--si-fail-top);
   bottom: 0;
-  align-items: flex-start;
+  box-sizing: border-box;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  gap: var(--space-md);
+  padding: var(--space-md);
   overflow: auto;
-  background: var(--color-bg-card);
+  background: linear-gradient(var(--bg), var(--bg)), var(--color-bg-card);
+  border: 1px solid var(--c);
   box-shadow: var(--shadow-md);
 }
-.si-fail .wz-status-body {
+.si-fail-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.si-fail-msg .wz-icon {
+  color: var(--c);
+}
+.si-fail-msg p {
+  margin: 0;
   flex: 1;
   min-width: 0;
+  color: var(--color-text-primary);
+  font-size: 15px;
+  line-height: 1.4;
 }
 .si-fail-actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
-  margin-top: 8px;
+}
+.si-fail-actions .btn {
+  min-height: 44px;
+  width: 100%;
+  justify-content: center;
+  white-space: normal;
+}
+.si-fail-actions .btn-primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+.si-fail-actions .btn-secondary {
+  background: var(--color-bg-card);
+  border: 1px solid var(--ui-control-border);
+  color: var(--color-text-primary);
+}
+.si-fail-actions .btn-secondary:hover {
+  background: var(--bg-tertiary);
+}
+@media (max-width: 340px) {
+  .si-fail-actions {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
