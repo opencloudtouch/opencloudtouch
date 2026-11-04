@@ -1,0 +1,12 @@
+{
+  "de": {
+    "a11y": {
+      "deviceCounter": "Gerät {{current}} von {{total}}"
+    }
+  },
+  "en": {
+    "a11y": {
+      "deviceCounter": "Device {{current}} of {{total}}"
+    }
+  }
+}

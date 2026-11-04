@@ -1,0 +1,10 @@
+/* lc-transport: playback keys on the Local control card (stage 9). Add AFTER LocalControl.css; the round keys (.lc-key, .lc-key--primary, .lc-controls) come from there unchanged.
+   Position: directly below the now-playing block, above the volume slider (what is playing, what to do with it, how loud).
+   One row with the same three keys for EVERY source. Keys that make no sense for the current source stay in place, disabled, so the card never changes its layout. */
+.lc-transport { display: flex; align-items: center; justify-content: center; gap: 20px; min-width: 0; }
+.lc-transport .lc-key { flex: none; }
+.lc-transport .lc-key:disabled:not([aria-busy="true"]) { opacity: 1; background: transparent; border-color: var(--border-color); color: var(--color-text-secondary); cursor: not-allowed; }   /* quiet outline, still readable (>= 4.5:1), clearly not pressable */
+.lc-transport .lc-key--primary:disabled:not([aria-busy="true"]) { background: var(--surface-color); border-color: var(--border-color); color: var(--color-text-secondary); }
+.lc-transport .lc-key:focus-visible { outline-offset: 3px; }
+.lc-key[aria-busy="true"]:disabled { cursor: progress; }
+@media (max-width: 340px) { .lc-transport { gap: 14px; } .lc-transport .lc-key { width: 52px; height: 52px; } .lc-transport .lc-key--primary { width: 68px; height: 68px; } }

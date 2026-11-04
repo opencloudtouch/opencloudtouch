@@ -1,0 +1,56 @@
+/* dv-: Devices page (stage 10). The device card holds everything about one device. Load AFTER RadioPresets.css, LocalControl.css, LocalControl.transport.css and DeviceSwiper.css.
+   Replaces .rp / .rp-device / .rp-card / .rp-presets / .rp-grid / .rp-info (Presets) and .lc / .lc-card (Local control). Header classes (.rp-card-head, .rp-power, .rp-device-*) are reused unchanged.
+   Order in the card: header, now playing, track keys, volume, presets, source (collapsed), remove. One column up to 1023px; from 1024px two columns inside the SAME card (left: playing, keys, volume; right: presets, source). */
+.dv { box-sizing: border-box; width: 100%; max-width: var(--page-max); margin: 0 auto; padding: var(--space-md); display: flex; flex-direction: column; gap: var(--space-lg); }
+.dv > * { min-width: 0; }
+.dv-title { margin: 0; }
+.dv-device { width: 100%; max-width: 560px; margin: 0 auto; }
+@media (min-width: 769px) { .dv { padding: var(--space-lg); } }
+@media (min-width: 1024px) { .dv-device { max-width: 1040px; } }
+
+.dv-card { box-sizing: border-box; display: flex; flex-direction: column; gap: var(--space-md); min-width: 0; padding: var(--space-md); background: var(--color-bg-card); border: 1px solid var(--border-color); border-radius: var(--border-radius-lg); }
+@media (min-width: 601px) { .dv-card { padding: 20px; } }
+@media (min-width: 1024px) { .dv-card { padding: 24px; gap: var(--space-lg); } }
+.dv-zone-row { display: flex; justify-content: center; margin-top: -4px; }
+.dv-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-lg); }
+.dv-main, .dv-side { display: flex; flex-direction: column; gap: var(--space-md); min-width: 0; }
+.dv-side { gap: var(--space-lg); }
+@media (min-width: 1024px) { .dv-body { grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: var(--space-xl); align-items: start; } }
+
+/* now playing without cover: same square, source icon in a quiet tile */
+.np-art--none { display: flex; align-items: center; justify-content: center; background: var(--surface-color); border: 1px solid var(--border-color); color: var(--color-text-secondary); }
+
+/* track keys: fixed row height 76px for every source, so the card never jumps */
+.dv-keys { min-height: 76px; }
+.dv-keys-note { margin: 0; max-width: 28ch; text-align: center; font-size: 14px; line-height: 1.4; color: var(--color-text-secondary); text-wrap: balance; }
+.dv-inert { opacity: .6; }   /* standby: everything under the header except the power button; the wrappers also carry the inert attribute, so nothing is focusable or readable as active */
+
+/* sections */
+.dv-sec { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.dv-sec-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.dv-sec-head .ui-h3 { margin: 0; }
+.dv-sec-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.dv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+
+/* source: one row, collapsed. Shows the CURRENT source (also when it cannot be switched here, e.g. Spotify), expands to the choice. */
+.dv-src { display: flex; flex-direction: column; min-width: 0; }
+.dv-src-btn { box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 12px; border: 1px solid var(--ui-control-border); border-radius: var(--border-radius-md); background: transparent; color: var(--text-primary); text-align: left; transition: background var(--motion-base); }
+.dv-src-btn:hover:not(:disabled) { background: var(--bg-tertiary); }
+.dv-src-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.dv-src-label { font-size: 13px; line-height: 1.3; color: var(--color-text-secondary); }
+.dv-src-cur { font-size: 16px; line-height: 1.3; font-weight: var(--font-weight-medium); color: var(--color-text-primary); overflow-wrap: anywhere; }
+.dv-src-chev { display: flex; flex: none; color: var(--color-text-secondary); transition: transform var(--motion-base); }
+.dv-src-btn[aria-expanded="true"] .dv-src-chev { transform: rotate(180deg); }
+.dv-src-panel { display: flex; flex-direction: column; gap: 12px; padding: 12px 2px 2px; }
+.dv-src-panel[hidden] { display: none; }
+.dv-src-hint { margin: 0; font-size: 14px; line-height: 1.45; color: var(--color-text-secondary); text-wrap: pretty; overflow-wrap: anywhere; }
+.dv-chip { padding: 0 14px; }
+.dv-chip-ic { display: flex; }
+.dv-chip[aria-busy="true"]:disabled { opacity: 1; border-color: var(--primary-color); background: rgba(var(--primary-rgb), .12); }
+.dv-chip:disabled:not([aria-busy="true"]) { opacity: .45; }
+.dv-fail { align-items: center; }
+.dv-fail .wz-status-body { flex: 1; }
+.dv-fail .btn { flex: none; }
+@media (max-width: 420px) { .dv-fail { flex-wrap: wrap; } .dv-fail .btn { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .dv-src-btn, .dv-src-chev { transition: none; } }
+@media (forced-colors: active) { .dv-src-btn, .np-art--none { border-color: CanvasText; } }

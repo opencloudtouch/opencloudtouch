@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stage 9 frame</title>
+<style>
+/* prototype only: stand-in for flag-icons (the app loads the real flag-icons CSS) and the audit chip */
+.fi{display:inline-block;width:1.33em;height:1em;background:linear-gradient(#1b1b1b 33%,#c0392b 33% 66%,#e6b800 66%)}
+#audit{position:fixed;right:8px;bottom:8px;z-index:2147483647;padding:6px 10px;border-radius:6px;font:600 12px/1.3 system-ui;max-width:70%}
+.pg{padding:var(--space-md);display:flex;flex-direction:column;gap:var(--space-lg);max-width:var(--page-max);margin:0 auto}
+.pg h2.sec{margin:0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-text-secondary);font-weight:700}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.col{display:flex;flex-direction:column;gap:12px}
+.demo{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:12px}
+</style>
+<script>
+(function(){var q=new URLSearchParams(location.search),before=q.get('v')==='before';
+var base=['tokens','ui-base','Modal','app-shell','Navigation','LanguageSelector','Toast','DeviceOfflineBanner','PresetButton','SetupBadge','StationDetail','VolumeSlider'].map(function(n){return '../app/'+n+'.css'});
+var own=['../app6c/DeviceNameEditor.css','../app6c/RadioPresets.css','../app6c/LocalControl.css','../app6c/before/NowPlaying.css','../app6b/RadioSearch.css','../app6b/MultiRoom.css'];own.push(before?'../app6c/DeviceSwiper.css':'../app6d/DeviceSwiper.css');if(q.get('sticky')==='on'&&!before)own.push('../app6d/DeviceSwiper.sticky.css');
+own.push('../app8/DeviceRemove.css');own.push('LocalControl.transport.css');base.concat(own).forEach(function(h){document.write('<link rel="stylesheet" href="'+h+'">')});})();
+</script>
+<style>
+.mlab{position:relative;width:min(288px,100%);height:120px;overflow:hidden;border:1px dashed #555;border-radius:12px}
+.mc{position:absolute;inset:8px;border-radius:12px;background:#3a4a66;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.mc-new{background:#2f6b4f}
+.mt{border-collapse:collapse;font-size:14px;width:min(360px,100%)}.mt th,.mt td{padding:4px 8px;border-bottom:1px solid #3a3a3a;text-align:right}.mt-bad td{color:#ff8a80}
+</style>
+</head><body><div id="root"></div><div id="audit"></div>
+<script>
+const Q=new URLSearchParams(location.search),P=(k,d)=>Q.get(k)||d;
+let TX={};
+const t=(k,v)=>{let s=k.split('.').reduce((o,p)=>o&&o[p],TX);if(typeof s!=='string')return k;return s.replace(/\{\{(\w+)\}\}/g,(_,n)=>v&&v[n]!=null?v[n]:'')};
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const PA={
+SkipBack:'<path d="M17.971 4.285A2 2 0 0 1 21 6v12a2 2 0 0 1-3.029 1.715l-9.997-5.998a2 2 0 0 1-.003-3.432z"/><path d="M3 20V4"/>',SkipForward:'<path d="M21 4v16"/><path d="M6.029 4.285A2 2 0 0 0 3 6v12a2 2 0 0 0 3.029 1.715l9.997-5.998a2 2 0 0 0 .003-3.432z"/>',
+Radio:'<path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/>',
+Volume2:'<path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/>',
+VolumeX:'<path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><line x1="22" x2="16" y1="9" y2="15"/><line x1="16" x2="22" y1="9" y2="15"/>',
+Settings:'<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+Info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+Check:'<path d="M20 6 9 17l-5-5"/>',X:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+ChevronDown:'<path d="m6 9 6 6 6-6"/>',ChevronLeft:'<path d="m15 18-6-6 6-6"/>',ChevronRight:'<path d="m9 18 6-6-6-6"/>',
+CircleX:'<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',CircleCheck:'<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+Alert:'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+WifiOff:'<path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M19 12.859a10 10 0 0 0-2.007-1.523"/><path d="M2 8.82a15 15 0 0 1 4.177-2.643"/><path d="M22 8.82a15 15 0 0 0-11.288-3.764"/><path d="m2 2 20 20"/>',
+Power:'<path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/>',
+Loader:'<path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/>',
+RefreshCw:'<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+Rotate:'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+Pencil:'<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
+Trash:'<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
+Plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',Play:'<polygon points="6 3 20 12 6 21 6 3"/>',
+Pause:'<rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/>',
+Search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+Bluetooth:'<path d="m7 7 10 10-5 5V2l5 5L7 17"/>',
+Headphones:'<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/>',
+Airplay:'<path d="M5 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1"/><path d="m12 15 5 6H7Z"/>',
+Tv:'<rect width="20" height="15" x="2" y="7" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/>',
+Music:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+Speaker:'<rect width="16" height="20" x="4" y="2" rx="2"/><circle cx="12" cy="14" r="4"/><path d="M12 6h.01"/>',
+Hourglass:'<path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/>',
+CircleHelp:'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+ArrowLeft:'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+ExternalLink:'<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>'};
+const I=(n,s=20)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${PA[n]||''}</svg>`;
+const WI=(n,s)=>`<span class="wz-icon" aria-hidden="true">${I(n,s)}</span>`;
+const hue=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h};
+const ini=s=>s.replace(/[^A-Za-zÄÖÜäöü0-9 ]/g,'').split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('')||'?';
+const avatar=(n,cls)=>`<span class="${cls}" style="background-color:hsl(${hue(n)} 45% 32%);display:flex">${esc(ini(n))}</span>`;
+
+/* ---------- data ---------- */
+const LONGDEV='Wohnzimmer Lautsprecher Obergeschoss Süd';
+const DEVS=[['Wohnzimmer','SoundTouch 30','192.168.1.21','configured'],['Küche','SoundTouch 10','192.168.1.22','unconfigured'],['Schlafzimmer','SoundTouch 20','192.168.1.23','pending'],['Büro','SoundTouch 10','192.168.1.24','failed'],['Bad','SoundTouch 10','192.168.1.25','outdated'],['Terrasse','SoundTouch 300','192.168.1.26','offline'],['Keller','SoundTouch 10','192.168.1.27','unknown'],['Flur','SoundTouch 10','192.168.1.28','configured'],['Gästezimmer','SoundTouch 20','192.168.1.29','configured'],['Garage','SoundTouch 10','192.168.1.30','configured'],['Dachboden','SoundTouch 10','192.168.1.31','configured'],['Werkstatt','SoundTouch 30','192.168.1.32','configured']];
+const LONGNAME='RadioParadiseMainMixHighQualityLosslessFLAC320kbpsInternationalStreamEuropeSouthWest';
+const PRESETS={full:['SWR3','Deutschlandfunk','Antenne Bayern','1LIVE','Bayern 3','NDR 2'],mixed:['SWR3',null,'Antenne Bayern',null,null,'NDR 2'],empty:[null,null,null,null,null,null],
+long:[LONGNAME,'Bayerischer Rundfunk BAYERN 3 Live aus München – Das Beste aus Pop und Rock der letzten Jahrzehnte','SWR3','Radio Eins vom Rundfunk Berlin-Brandenburg',null,'ÖsterreichischerRundfunkÖ1KulturRadioWienStudioLive']};
+const SRCS={
+ radio:{src:'INTERNET_RADIO',st:'SWR3',tr:'Don’t Stop Believin’',ar:'Journey',play:true},
+ longtrack:{src:'INTERNET_RADIO',st:LONGNAME,tr:'Symphonie Nr. 9 in d-Moll, Op. 125 – IV. Presto – Allegro assai (Ode an die Freude)',ar:'Berliner Philharmoniker, Herbert von Karajan, Wiener Singverein, Gundula Janowitz, Hilde Rössel-Majdan',play:true},
+ bt:{src:'BLUETOOTH',st:'iPhone von Alexandra',tr:'Blinding Lights',ar:'The Weeknd',play:true},
+ aux:{src:'AUX',st:'',tr:'',ar:'',play:false},
+ airplay:{src:'AIRPLAY',st:'MacBook Pro',tr:'Midnight City',ar:'M83',play:true},
+ tv:{src:'TV',st:'',tr:'',ar:'',play:false},
+ streaming:{src:'SPOTIFY',st:'',tr:'Bohemian Rhapsody – Remastered 2011',ar:'Queen',play:false},
+ standby:{src:'STANDBY',st:'',tr:'',ar:'',play:false}};
+const ART="<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><rect width='300' height='300' fill='#323a46'/><circle cx='150' cy='150' r='90' fill='none' stroke='#58626f' stroke-width='14'/></svg>";
+const SRCMAP={BLUETOOTH:['Bluetooth','bluetooth'],INTERNET_RADIO:['Radio','radio'],AUX:['Headphones','aux'],AIRPLAY:['Airplay','airplay'],DLNA:['Speaker','dlna'],TV:['Tv','tv'],SPOTIFY:['Music','streaming']};
+const SRCKEY={BLUETOOTH:'bluetooth',INTERNET_RADIO:'radio',AUX:'aux',AIRPLAY:'airplay',DLNA:'dlna',TV:'tv',SPOTIFY:'spotify'};
+const STAT={unknown:'CircleHelp',unconfigured:'Settings',configured:'CircleCheck',pending:'Hourglass',failed:'CircleX',outdated:'Alert',offline:'WifiOff'};
+const STVAR={unknown:'neutral',unconfigured:'warning',configured:'success',pending:'info',failed:'danger',outdated:'warning',offline:'neutral'};
+
+/* ---------- pieces (markup mirrors the TSX 1:1) ---------- */
+function langSel(open){const L=[['Deutsch','DE'],['English','EN'],['Français','FR'],['Español','ES'],['Italiano','IT'],['Nederlands','NL'],['Polski','PL'],['Português','PT'],['Svenska','SV'],['Čeština','CS']];
+ return `<div class="lang-selector-wrapper"><button class="lang-selector" aria-label="${t('a11y.selectLanguage')}" aria-expanded="${open}" aria-haspopup="listbox" data-act="lang"><span class="fi lang-flag" aria-hidden="true"></span><span class="lang-code">DE</span></button>${open?`<ul class="lang-dropdown" role="listbox" aria-label="${t('a11y.selectLanguage')}">${L.map(([n,c],i)=>`<li role="option" aria-selected="${i==0}" class="lang-option${i==0?' lang-option--active':''}" tabindex="0"><span class="fi lang-option-flag" aria-hidden="true"></span><span class="lang-option-name">${n}</span><span class="lang-option-code">${c}</span><span class="lang-option-check" aria-hidden="true">${i==0?I('Check',18):''}</span></li>`).join('')}</ul>`:''}</div>`}
+function nav(active,open){const L=[['presets','Radio','nav.presets'],['zones','Volume2','nav.zones'],['settings','Settings','nav.settings'],['about','Info','nav.about']];
+ return `<nav class="nav" aria-label="${t('nav.ariaLabel')}"><div class="nav-inner"><div class="nav-container">${L.map(([k,ic,lb])=>`<a href="#" class="nav-link"${active===k?' aria-current="page"':''}><span class="nav-icon" aria-hidden="true">${I(ic,22)}</span><span class="nav-label">${t(lb)}</span></a>`).join('')}</div>${langSel(open)}</div></nav>`}
+const shell=(inner,active,open)=>`<div class="app"><a class="skip-link" href="#main-content">${t('a11y.skipToContent')}</a><header class="app-header" data-test="app-header">${nav(active,open)}</header><main id="main-content" tabindex="-1" class="app-main">${inner}</main></div>`;
+const dlg=(size,role,lb,ds,inner,oa='',pa='')=>`<dialog class="dlg dlg--${size}" role="${role}" aria-modal="true" aria-labelledby="${lb}"${ds?` aria-describedby="${ds}"`:''}><div class="dlg-overlay" role="presentation" ${oa}><div class="dlg-panel" ${pa}>${inner}</div></div></dialog>`;
+function confirm(title,msg,ok,cancel,destr,ov){return dlg('sm','alertdialog','confirm-dialog-title','confirm-dialog-message',`<div class="dlg-head"><h2 id="confirm-dialog-title" class="dlg-title">${esc(title)}</h2></div><div class="dlg-body"><p id="confirm-dialog-message" class="dlg-text">${esc(msg)}</p></div><div class="dlg-actions">${cancel?`<button class="btn btn-secondary" data-testid="confirm-dialog-cancel">${cancel}</button>`:''}<button class="btn ${destr?'btn-danger':'btn-primary'}" data-testid="confirm-dialog-confirm">${ok}</button></div>`,'data-testid="confirm-dialog-overlay"')}
+const toast=(type,msg,top)=>`<div class="toast toast-${type} toast-visible" data-test="toast-notification" role="${type==='error'||type==='warning'?'alert':'status'}"${top!=null?` style="top:calc(var(--header-h) + 8px + ${top}px)"`:''}><div class="toast-icon" aria-hidden="true">${I({success:'CircleCheck',error:'CircleX',warning:'Alert',info:'Info'}[type],22)}</div><div class="toast-content"><p class="toast-message" data-test="toast-message">${esc(msg)}</p></div><button class="toast-close" aria-label="${t('common.close')}" data-test="toast-close-button">${I('X',18)}</button></div>`;
+const alertBox=(kind,icon,msg,close,attrs='')=>`<div class="wz-status wz-status--${kind}" role="alert" ${attrs}>${WI(icon,20)}<div class="wz-status-body"><p>${esc(msg)}</p></div>${close?`<button class="ui-alert-close" aria-label="${t('common.close')}">${I('X',18)}</button>`:''}</div>`;
+
+function setupBadge(st){return `<button class="sb sb--${st}" title="${t('setupBadge.'+st)}" aria-label="${t('setupBadge.'+st)}" data-test="setup-button"><span class="sb-icon" aria-hidden="true">${I(STAT[st],22)}</span></button>`}
+function nameBlock(n,nm){const fs=n.length>26?17:n.length>18?20:24;
+ if(nm==='edit'||nm==='saving'||nm==='error'||nm==='toolong')return `<div class="dne" data-test="device-name-editor"><h2 class="dne-heading"><span class="dne-field"><input class="ui-input dne-input" type="text" value="${esc(nm==='toolong'?n+' Erweiterung Neu':n)}" maxlength="30" ${nm==='saving'?'disabled':''} aria-label="${t('deviceRename.inputLabel')}" ${nm==='error'||nm==='toolong'?'aria-invalid="true" aria-describedby="device-name-error"':''} data-test="device-name-input">${nm==='saving'?`<span class="dne-saving ui-spin" aria-hidden="true">${I('Loader',18)}</span>`:''}</span></h2>${nm==='error'||nm==='toolong'?`<span id="device-name-error" class="ui-field-error dne-error" role="alert" data-test="device-name-error">${I('CircleX',16)}<span>${t(nm==='error'?'deviceRename.failed':'deviceRename.tooLong')}</span></span>`:''}</div>`;
+ return `<h2 class="dne-heading"><button type="button" class="dne-btn" style="font-size:${fs}px" title="${t('deviceRename.clickToEdit')}" data-test="device-name" aria-label="${esc(n)} — ${t('deviceRename.clickToEdit')}"><span class="dne-text">${esc(n)}</span><span class="dne-icon" aria-hidden="true">${I('Pencil',Math.round(fs*.65))}</span></button></h2>`}
+function nowPlaying(k){const d=SRCS[k];if(!d)return `<div class="np np--empty"><span class="np-empty-icon" aria-hidden="true">${I('Music',28)}</span><div class="np-placeholder">${t('player.noPlayback')}</div></div>`;
+ const m=SRCMAP[d.src],label=SRCKEY[d.src]&&d.src!=='INTERNET_RADIO'?t('player.source.'+SRCKEY[d.src]):null;
+ const head=label?(d.st?label+' · '+d.st:label):(d.st||t('player.noStation'));
+ const badge=m?`<div class="ui-source np-source ${m[1]}" title="${t('player.source.'+SRCKEY[d.src])}" ${label?'aria-hidden="true"':`role="img" aria-label="${t('player.source.radio')}"`}>${I(m[0],20)}</div>`:'';
+ const art=`<div class="np-art"><img alt="" src="data:image/svg+xml;utf8,${encodeURIComponent(ART)}"><button class="np-play-overlay" aria-label="${d.play?t('player.pause'):t('player.play')}">${I(d.play?'Pause':'Play',28)}</button></div>`;
+ const mq=(c,x)=>x?`<div class="np-marquee ${c}" title="${esc(x)}"><span class="np-marquee-inner">${esc(x)}</span></div>`:'';
+ return `<div class="np"><div class="np-header">${badge}<div class="np-station" title="${esc(d.st)}">${esc(head)}</div></div>${art}<div class="np-info">${mq('np-track',d.tr)}${mq('np-artist',d.ar)}</div></div>`}
+function volume(muted,v){const p=muted?v:v;return `<div class="vs"><button class="vs-mute${muted?' muted':''}" aria-label="${muted?t('player.muteOn'):t('player.muteOff')}" aria-pressed="${muted}">${I(muted||v===0?'VolumeX':'Volume2',24)}</button><div class="vs-track${muted?' muted':''}" role="slider" aria-valuenow="${v}" aria-valuemin="0" aria-valuemax="100" aria-label="${t('a11y.volume')}" tabindex="0"><div class="vs-track-bg"></div><div class="vs-track-fill" style="width:${p}%;background-color:${muted?'#8c8c8c':'#5dade2'}"></div><div class="vs-thumb" style="left:${p}%"></div></div><span class="vs-value" aria-hidden="true">${muted?'–':v}</span></div>`}
+function preset(n,name,playing,disabled){
+ if(disabled)return `<div class="pb pb--disabled" data-testid="preset-${n}"><div class="pb-info"><span class="pb-num">${n}</span><span class="pb-name pb-name--muted">${t('errors.offlineTitle')}</span></div></div>`;
+ if(!name)return `<div class="pb" data-testid="preset-${n}"><button class="pb-empty" data-testid="preset-empty-${n}"><span class="pb-num">${n}</span><span class="pb-placeholder">${t('presets.assignPreset')}</span><span class="pb-plus" aria-hidden="true">${I('Plus',20)}</span></button></div>`;
+ return `<div class="pb${playing?' pb--playing':''}" data-testid="preset-${n}"><button class="pb-info" data-testid="preset-play-${n}" title="${t('presets.changeStation')}"><span class="pb-num">${n}</span><div class="pb-logo">${avatar(name,'pb-avatar')}</div><span class="pb-name">${esc(name)}</span></button><button type="button" class="pb-play${playing?' playing':''}" aria-label="${playing?t('player.pause'):t('presets.playPreset',{name})}" data-testid="preset-action-${n}" title="${playing?t('player.pause'):t('player.play')}">${I(playing?'Pause':'Play',22)}</button></div>`}
+const skelPreset=()=>`<div class="sk-preset"><div class="ui-skeleton" style="width:28px;height:28px;border-radius:50%"></div><div class="ui-skeleton" style="width:40px;height:40px;border-radius:8px"></div><div class="sk-content"><div class="ui-skeleton" style="width:80%;height:18px;border-radius:4px"></div></div></div>`;
+
+let S={i:+P('i',0),lang:P('lang','closed')==='open'};
+function devName(i){return i===0&&P('name','std')==='long'?LONGDEV:DEVS[i][0]}
+function swiper(card,count){const i=Math.min(S.i,count-1);
+ return `<div class="ds" data-test="device-swiper"><button class="ds-arrow ds-arrow--prev" ${i===0?'disabled':''} aria-label="${t('player.prevDevice')}" data-test="device-prev" data-act="prev">${I('ChevronLeft',24)}</button><button class="ds-arrow ds-arrow--next" ${i===count-1?'disabled':''} aria-label="${t('player.nextDevice')}" data-test="device-next" data-act="next">${I('ChevronRight',24)}</button><div class="ds-viewport"><div class="ds-card">${card(i)}</div></div><div class="ds-dots" role="group" aria-label="${t('a11y.deviceSelection')}">${Array.from({length:count},(_,k)=>`<button class="ds-dot${k===i?' ds-dot--active':''}" ${k===i?'aria-current="true"':''} aria-label="${t('a11y.switchToDevice',{name:devName(k)})}" title="${esc(devName(k))}" data-act="dot" data-i="${k}"></button>`).join('')}</div></div>`}
+
+</script>
+<script src="frame-pages.js"></script>
+</body></html>

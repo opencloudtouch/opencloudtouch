@@ -1,0 +1,12 @@
+/* Prototype only: tokens + global rules copied from the app's index.css (unchanged), without body overflow-x:hidden so overflow stays visible in the audit. */
+:root{--shadow-sm:0 2px 8px rgba(0,0,0,.3);--shadow-md:0 4px 12px rgba(0,0,0,.4);--shadow-lg:0 8px 24px rgba(0,0,0,.5);--color-bg-dark:#1a1a1a;--color-bg-darker:#0d0d0d;--color-bg-card:#242424;--color-text-primary:#fff;--color-text-secondary:#b3b3b3;--color-text-tertiary:#949494;--color-border:#333;--color-accent:#0066cc;--color-accent-hover:#0052a3;--color-active:#fff;--color-disabled:#4d4d4d;--text-primary:#e0e0e0;--text-secondary:#b3b3b3;--text-tertiary:#949494;--surface-color:#2a2a2a;--bg-tertiary:#323232;--border-color:#3a3a3a;--primary-color:#4a90d9;--primary-rgb:74,144,217;--color-success:#81c784;--color-danger:#ef5350;--font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif;--font-weight-normal:400;--font-weight-medium:500;--font-weight-bold:700;--space-xs:4px;--space-sm:8px;--space-md:16px;--space-lg:24px;--space-xl:32px;--space-2xl:48px;--border-radius-sm:8px;--border-radius-md:12px;--border-radius-lg:16px;--border-radius-xl:20px;--touch-target-min:44px}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%}
+body{font-family:var(--font-sans);font-weight:400;background:var(--color-bg-dark);color:var(--color-text-primary);-webkit-font-smoothing:antialiased}
+*:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+button{font-family:inherit;cursor:pointer;border:none;background:none;min-height:var(--touch-target-min);min-width:var(--touch-target-min)}
+button:disabled{cursor:not-allowed;opacity:.3}
+a{color:inherit;text-decoration:none}
+input{font-family:inherit;font-size:16px}
+ul,ol{list-style:none}
+.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0}

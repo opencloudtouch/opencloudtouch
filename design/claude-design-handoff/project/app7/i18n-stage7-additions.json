@@ -1,0 +1,80 @@
+{
+  "de": {
+    "settings": {
+      "deviceDiscovery": { "scanningStatus": "Netzwerksuche läuft" },
+      "manualIps": { "label": "IP-Adresse des Geräts", "hint": "Format: 192.168.1.10" },
+      "logging": {
+        "levelSaving": "Log-Level wird gespeichert",
+        "downloading": "Wird erstellt...",
+        "downloadFailed": "Logs konnten nicht heruntergeladen werden: {{error}}"
+      }
+    },
+    "diagnostics": {
+      "ip": "IP-Adresse",
+      "ssh": "SSH",
+      "sshOn": "Dauerhaft aktiv",
+      "sshOff": "Nicht aktiv",
+      "statusOnline": "Online",
+      "statusStale": "Länger nicht gesehen",
+      "statusOffline": "Offline",
+      "unknownValue": "unbekannt"
+    },
+    "about": {
+      "back": "Über",
+      "github": "GitHub",
+      "externalLink": "(öffnet in neuem Tab)",
+      "licenses": "Open-Source-Lizenzen",
+      "linksLabel": "Weitere Informationen",
+      "supportersTitle": "Supp<0/>rters",
+      "supportersLabel": "Unterstützer",
+      "monthlySupporter": "(monatlicher Unterstützer)",
+      "libraryWebsite": "{{name}} Website",
+      "licensesVersion": "Version",
+      "licensesGroup": { "frontend": "Frontend", "backend": "Backend", "build": "Build-Werkzeuge" },
+      "licenseProject": "OpenCloudTouch-Lizenz",
+      "licenseApache": "Apache License 2.0",
+      "trademarkTitle": "Markenhinweis",
+      "trademarkText1": "OpenCloudTouch steht in <0>keiner Verbindung zur Bose Corporation</0>. Bose® und SoundTouch® sind eingetragene Marken der Bose Corporation.",
+      "trademarkText2": "Diese Software nutzt die öffentlich dokumentierten lokalen Schnittstellen von Bose-SoundTouch®-Geräten. Details stehen in der <0>TRADEMARK.md</0>."
+    }
+  },
+  "en": {
+    "settings": {
+      "deviceDiscovery": { "scanningStatus": "Network scan running" },
+      "manualIps": { "label": "Device IP address", "hint": "Format: 192.168.1.10" },
+      "logging": {
+        "levelSaving": "Saving log level",
+        "downloading": "Preparing...",
+        "downloadFailed": "Logs could not be downloaded: {{error}}"
+      }
+    },
+    "diagnostics": {
+      "ip": "IP address",
+      "ssh": "SSH",
+      "sshOn": "Permanently enabled",
+      "sshOff": "Not enabled",
+      "statusOnline": "Online",
+      "statusStale": "Not seen recently",
+      "statusOffline": "Offline",
+      "unknownValue": "unknown"
+    },
+    "about": {
+      "back": "About",
+      "github": "GitHub",
+      "externalLink": "(opens in new tab)",
+      "licenses": "Open-source licenses",
+      "linksLabel": "More information",
+      "supportersTitle": "Supp<0/>rters",
+      "supportersLabel": "Supporters",
+      "monthlySupporter": "(monthly supporter)",
+      "libraryWebsite": "{{name}} website",
+      "licensesVersion": "Version",
+      "licensesGroup": { "frontend": "Frontend", "backend": "Backend", "build": "Build tools" },
+      "licenseProject": "OpenCloudTouch licence",
+      "licenseApache": "Apache License 2.0",
+      "trademarkTitle": "Trademark notice",
+      "trademarkText1": "OpenCloudTouch is <0>not affiliated with Bose Corporation</0>. Bose® and SoundTouch® are registered trademarks of Bose Corporation.",
+      "trademarkText2": "This software interfaces with Bose SoundTouch® devices using their publicly documented local APIs. See <0>TRADEMARK.md</0> for details."
+    }
+  }
+}

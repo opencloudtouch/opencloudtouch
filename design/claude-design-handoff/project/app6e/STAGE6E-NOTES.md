@@ -1,0 +1,21 @@
+# Stage 6e: scroll jump in the 6d prototype, comparison with your screenshot
+
+Folder `app6e/`: `stage6e-frame.html`, `frame-pages.js` (prototype frame, fixed), `de-texts.json`, `i18n-stage6b-additions.json`. Prototype: `OCT App Stufe 6e.dc.html`.
+**No CSS or TSX changes.** The frame loads `DeviceSwiper.css` and `DeviceSwiper.sticky.css` from `app6d/` unchanged. Earlier folders are untouched.
+
+## 1. Why the page jumped to the top: prototype only
+
+The prototype frame is not React. Every state change (device switch, swipe, dot width measurement) called `render()`, which does `root.innerHTML = …` for the **whole page**, including `<main class="app-main">`. `<main>` is the scroll container, so a brand new `<main>` replaced the old one and started at `scrollTop = 0`. It is the first of your suspects (whole page re-rendered by the state change). It happened with every layout, but only becomes visible when you have scrolled, which is why it showed with the sticky bar (you cannot reach the sticky bar's job without scrolling). `scrollTo`, `focus()`, the card height during the crossfade and the demo script were not involved. The same re-render also dropped `data-stuck` for one frame (until the IntersectionObserver fired again), a small flash of the dots instead of the name.
+
+**Fix (prototype):** `render()` reads `scrollTop` of `<main>` and the `data-stuck` state of the bar before replacing the markup and sets both again on the new elements.
+**Check:** `Hit-Test starten` now also runs, in the sticky variant: scroll `<main>` to 400 px, tap the arrow in the bar, read `scrollTop` (fresh from the new element), tap back. Result at 375×667: **400 after the switch, 400 after switching back**, 0 covered controls in the 53 hit-tests of that run. Before the fix the same measurement reads 0 (I confirmed the number in the first run of the new check, which still read a stale element; the cause above is from the code, not from that run).
+
+**Is it a property of the delivered files? No.** The CSS and the DOM of 6d do not scroll anything and do not depend on a reset: the old card leaves inside `.ds-viewport` (absolute, same box), the new card replaces it in place, `<main>` is never re-created, and the bar is `position: sticky`, so nothing moves under a React render. That matches your WebKit measurement (400 px to 400 px). One consequence worth knowing: if the new device's card is **shorter** than the old one while the user is scrolled below the card, the browser clamps the scroll position to the new, shorter page. That is the browser keeping the position, not a reset, and `overflow-anchor` does not change it.
+
+## 2. Your screenshot against my prototype
+
+Compared element by element with the CSS I delivered, the screenshot shows exactly what `DeviceSwiper.sticky.css` produces:
+- **Bar at the top:** same background as the page, full bleed, 52 px, arrows 44 px on the outer edges, name and counter ("Bedroom · 1/3", bold 16 px) centred between them. It blends in with the page, which is intended (opaque, no card colour). Directly below the app header, with its hairline visible between header and bar.
+- **Cover cut under it:** the artwork is cut cleanly by the bar's lower edge. In your screenshot the bar's own lower edge is a hairline; in the prototype it is the hairline plus the soft 8 px shadow (`0 1px 0 var(--border-color), 0 8px 12px -8px rgba(0,0,0,.7)`), which on a dark page and a dark card is hard to see. If you do not see the shadow in your app, it is the contrast of the shadow on #1a1a1a, not a missing rule; nothing to change.
+- **Peek sliver at the right edge:** visible beside the card from below the bar to 28 px above the card's bottom (in your screenshot it ends at about y 735, the card at 788), 8 px wide, card colour with a hairline, rounded on the outer side. On the left there is none because this is the first device ("1/3"), as designed. At the top it is cut by the sticky bar like the rest of the card, which is correct (the bar is above it in the stack).
+- **Anything different:** I see nothing in the screenshot that differs from the prototype. The only visible difference between your app and the prototype is the content (cover image, Station A), not the layout.

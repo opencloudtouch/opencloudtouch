@@ -1,0 +1,42 @@
+/* dlg-: shared dialog (Modal.tsx) and its building blocks. Replaces ConfirmDialog.css, the modal rules of ManualIPModal/EmptyState CSS
+   and the overlay rules of RadioSearch.css. */
+body.dlg-scroll-lock, body.dlg-scroll-lock .app-main { overflow: hidden; }
+
+.dlg {
+  position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0;
+  border: 0; background: transparent; color: var(--color-text-primary); overflow: hidden;
+}
+.dlg:not([open]) { display: none; }
+.dlg::backdrop { background: rgba(0, 0, 0, .72); }
+.dlg-overlay {
+  position: absolute; inset: 0; box-sizing: border-box; display: flex; justify-content: center; align-items: center;
+  padding: var(--space-md); padding-top: max(var(--space-md), env(safe-area-inset-top)); padding-bottom: max(var(--space-md), env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+.dlg-panel {
+  box-sizing: border-box; display: flex; flex-direction: column; width: 100%; min-width: 0; max-height: 100%; margin: auto;
+  background: var(--color-bg-card); border: 1px solid var(--border-color); border-radius: var(--border-radius-lg); box-shadow: var(--elev-modal);
+  animation: dlg-in var(--motion-slow) ease-out;   /* transform only: text never sits on a half-transparent layer */
+}
+@keyframes dlg-in { from { transform: translateY(12px); } to { transform: none; } }
+.dlg--sm .dlg-panel { max-width: 420px; }
+.dlg--md .dlg-panel { max-width: 560px; }
+.dlg--lg .dlg-panel { max-width: 720px; height: min(760px, 100%); }
+@media (max-width: 600px) {
+  .dlg--lg .dlg-overlay { padding: 0; }
+  .dlg--lg .dlg-panel { max-width: none; height: 100%; border: 0; border-radius: 0; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); animation-name: dlg-sheet; }
+}
+@keyframes dlg-sheet { from { transform: translateY(24px); } to { transform: none; } }
+
+.dlg-head { flex: none; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: var(--space-md) var(--space-md) 0 20px; }
+.dlg-title { margin: 0; min-width: 0; font-size: 20px; line-height: 1.3; font-weight: var(--font-weight-bold); color: var(--color-text-primary); overflow-wrap: anywhere; }
+.dlg-close { flex: none; margin: -4px 0; color: var(--color-text-secondary); border-radius: var(--border-radius-sm); display: flex; align-items: center; justify-content: center; }
+.dlg-close:hover { color: var(--color-text-primary); background: var(--bg-tertiary); }
+.dlg-body { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: var(--space-md); padding: var(--space-md) 20px 20px; overflow-y: auto; }
+.dlg-text { margin: 0; font-size: 15px; line-height: 1.5; color: var(--text-primary); overflow-wrap: anywhere; text-wrap: pretty; }
+.dlg-actions { flex: none; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; padding: 0 20px 20px; }
+.dlg-actions > .btn { flex: 1 1 140px; }
+@media (min-width: 601px) { .dlg-actions > .btn { flex: 0 1 auto; } }
+
+@media (prefers-reduced-motion: reduce) { .dlg-panel { animation: none; } }
+@media (forced-colors: active) { .dlg-panel { border: 2px solid CanvasText; } }

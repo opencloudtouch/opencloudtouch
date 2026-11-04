@@ -1,0 +1,8 @@
+/* Light variant (draft, stage 10). Only tokens, applied with <html data-theme="light">. The app has no light theme today; this is the smallest mapping that keeps the contrast pairs of the dark theme:
+   text on card >= 7:1, secondary text >= 5.5:1, accent and danger text >= 4.5:1 on white. Components that hard-code #fff are listed in the notes. */
+[data-theme="light"] { color-scheme: light; --color-bg-dark: #f1f3f6; --color-bg-darker: #e6e9ee; --color-bg-card: #ffffff; --color-text-primary: #14171c; --color-text-secondary: #4a525e; --color-text-tertiary: #5c6573; --text-primary: #1c2128; --text-secondary: #4a525e; --text-tertiary: #5c6573; --surface-color: #eef1f5; --bg-tertiary: #e4e8ee; --border-color: #cfd5de; --color-border: #cfd5de; --ui-control-border: #7a8494; --primary-color: #1a62b0; --primary-rgb: 26, 98, 176; --primary-text: #0f4f98; --color-success: #1f7a2b; --danger-text: #b3261e; --color-danger: #c62828; --shadow-sm: 0 2px 8px rgba(20,30,50,.12); --shadow-md: 0 4px 12px rgba(20,30,50,.16); --shadow-lg: 0 8px 24px rgba(20,30,50,.2); }
+[data-theme="light"] .ui-chip[aria-pressed="true"], [data-theme="light"] .lc-quick--active, [data-theme="light"] .ds-dot:hover::before { color: var(--color-text-primary); }
+[data-theme="light"] .ui-select { color-scheme: light; }
+[data-theme="light"] .ds-dot::before { background: #7a8494; }
+[data-theme="light"] .lc-key--primary, [data-theme="light"] .btn-primary { color: #fff; }
+[data-theme="light"] .pb--playing .pb-name { color: var(--color-text-primary); }

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>body{margin:0;background:#0d0d0d}</style>
+</helmet>
+<div style="min-height:100vh;background:#0d0d0d;color:#e0e0e0;font-family:-apple-system,'Segoe UI',system-ui,sans-serif;display:flex;flex-direction:column">
+  <div style="position:relative;max-height:44vh;overflow:auto;background:#141414;border-bottom:1px solid #333;padding:12px 16px;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center">
+      <div style="font-weight:700;font-size:14px;color:#fff">OCT App · Stufe 7 · Einstellungen, Diagnose, Über, Lizenzen</div>
+      <div style="font-size:12px;padding:3px 10px;border-radius:999px;{{ auditStyle }}">{{ auditText }}</div>
+      <button onClick="{{ runHit }}" style="min-height:32px;padding:6px 14px;border-radius:999px;border:1px solid #4a90d9;background:rgba(74,144,217,.2);color:#fff;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap">{{ hitButton }}</button>
+      <div style="font-size:12px;padding:3px 10px;border-radius:999px;{{ hitStyle }}">{{ hitSummary }}</div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 20px;align-items:flex-start">
+      <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Seite</span><sc-for list="{{ pages }}" as="b" hint-placeholder-count="4"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Breite</span><sc-for list="{{ widths }}" as="b" hint-placeholder-count="5"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Phone</span><sc-for list="{{ phones }}" as="b" hint-placeholder-count="4"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 20px;align-items:flex-start">
+      <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+        <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">{{ g.label }}</span><sc-for list="{{ g.buttons }}" as="b" hint-placeholder-count="3"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      </sc-for>
+    </div>
+    <div style="display:{{ hitDisplay }};flex-direction:column;gap:3px;font-size:12px;line-height:1.45;border-top:1px solid #333;padding-top:8px">
+      <sc-for list="{{ hitRows }}" as="r" hint-placeholder-count="0"><div style="{{ r.style }}">{{ r.text }}</div></sc-for>
+    </div>
+  </div>
+  <div style="flex:1;overflow:auto;padding:16px 16px 48px">
+    <div style="display:flex;justify-content:center"><iframe src="{{ src }}" title="Stufe 7" data-vis="1" style="{{ frameStyle }}"></iframe></div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { page: 'settings', width: 375, height: 0, v: {}, au: null, hit: null, hitBusy: '' };
+  componentDidMount() {
+    this._h = (e) => {
+      const d = e.data;
+      if (!d || d.oct !== 'audit') return;
+      let hid = false;
+      try { hid = !!(e.source && e.source.frameElement && e.source.frameElement.dataset.h === '1'); } catch (_) { hid = false; }
+      if (!hid) this.setState({ au: { ok: d.ok, msg: d.msg } });
+    };
+    window.addEventListener('message', this._h);
+  }
+  componentWillUnmount() { window.removeEventListener('message', this._h); }
+  sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  mk(url, w, h) {
+    return new Promise(res => {
+      const f = document.createElement('iframe');
+      f.dataset.h = '1'; f.src = url; f.title = 'hit-test';
+      f.style.cssText = 'position:fixed;left:-10000px;top:0;border:0;width:' + w + 'px;height:' + h + 'px';
+      f.onload = () => res(f);
+      document.body.appendChild(f);
+    });
+  }
+  hit(doc) {
+    const win = doc.defaultView, main = doc.querySelector('.app-main'), bad = [];
+    let n = 0;
+    let auditErr = ''; try { win.audit(); } catch (e) { auditErr = 'Audit-Fehler: ' + e.message; }
+    const aud = doc.getElementById('audit'); const auditMsg = auditErr || (aud ? aud.textContent : '');
+    if (aud) aud.style.display = 'none';
+    const vw = win.innerWidth, vh = win.innerHeight;
+    const name = (el) => (typeof el.className === 'string' && el.className ? '.' + el.className.split(' ')[0] : el.tagName.toLowerCase());
+    const els = [...doc.querySelectorAll('#root button,#root a[href],#root input:not([type=hidden]),#root select,#root textarea,#root [role=slider]')];
+    for (const el of els) {
+      if (el.closest('[inert],[aria-hidden=true],.visually-hidden,.skip-link')) continue;
+      let r = el.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      if (main) { const m = main.getBoundingClientRect(); main.scrollTop += r.top + r.height / 2 - (m.top + m.height / 2); }
+      r = el.getClientRects()[0] || el.getBoundingClientRect();
+      const x0 = Math.max(r.left, 0), x1 = Math.min(r.right, vw), y0 = Math.max(r.top, 0), y1 = Math.min(r.bottom, vh);
+      if (x1 > x0 && y1 > y0) {
+        const c = doc.elementFromPoint((x0 + x1) / 2, (y0 + y1) / 2); n++;
+        if (!(c === el || el.contains(c))) bad.push(name(el) + ' verdeckt von ' + (c ? name(c) : 'nichts'));
+      }
+      if (main) main.scrollTop = 0;
+    }
+    if (main && main.scrollHeight > main.clientHeight + 1 && !main.querySelector('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea,[tabindex="0"]')) bad.push('scrollbarer main ohne fokussierbares Element');
+    if (win.document.documentElement.scrollWidth > vw + 1) bad.push('horizontales Scrollen');
+    return { n, bad, audit: auditMsg };
+  }
+  async runHit(e, quick) {
+    if (this.state.hitBusy) return;
+    const sizes = quick === 'q' ? [[375, 667]] : [[320, 568], [375, 667], [402, 874], [430, 932]];
+    const S = [
+      ['settings', ''], ['settings', 'sc=scanning'], ['settings', 'ip=empty'], ['settings', 'ip=format'], ['settings', 'ip=probe'], ['settings', 'ip=probing'], ['settings', 'lv=saving'], ['settings', 'dl=busy'], ['settings', 'dl=error'], ['settings', 's=loading'], ['settings', 's=error'], ['settings', 'toast=scan'],
+      ['diag', ''], ['diag', 'n=2'], ['diag', 's=nodev'], ['diag', 's=loading'], ['diag', 's=error'], ['diag', 'dl=busy&long=1'], ['diag', 'toast=dgerr'],
+      ['about', ''], ['about', 'up=checking'], ['about', 'up=uptodate'], ['about', 'up=dev'], ['about', 'ver=loading'], ['about', 'ver=fail'], ['about', 'sup=0'], ['about', 'sup=12'], ['about', 'bt=1'],
+      ['licenses', '']
+    ];
+    const rows = [];
+    this.setState({ hit: [], hitBusy: 'läuft…' });
+    for (const [w, h] of sizes) {
+      for (let i = 0; i < S.length; i += 6) {
+        const part = S.slice(i, i + 6);
+        const res = await Promise.all(part.map(async ([pg, q]) => {
+          const f = await this.mk('app7/stage7-frame.html?page=' + pg + (q ? '&' + q : ''), w, h);
+          await this.sleep(1300);
+          for (let k = 0; k < 20 && !(f.contentDocument.getElementById('audit') || {}).textContent; k++) await this.sleep(250);
+          const r = this.hit(f.contentDocument); f.remove();
+          return { label: pg + ' ' + (q || 'Normal') + ' @' + w + '×' + h, n: r.n, bad: r.bad, audit: r.audit };
+        }));
+        res.forEach(r => rows.push(r));
+        this.setState({ hit: rows.slice(), hitBusy: w + '×' + h + ' ' + Math.min(i + 6, S.length) + '/' + S.length });
+      }
+    }
+    this.setState({ hitBusy: '' });
+  }
+  renderVals() {
+    const s = this.state;
+    const pill = (on) => ({ minHeight: 32, padding: '6px 12px', lineHeight: '1.2', flexShrink: 0, whiteSpace: 'nowrap', borderRadius: 999, border: '1px solid ' + (on ? '#4a90d9' : '#3a3a3a'), background: on ? 'rgba(74,144,217,.2)' : 'transparent', color: on ? '#fff' : '#b3b3b3', fontSize: 13, fontWeight: 500, fontFamily: 'inherit', cursor: 'pointer' });
+    const DEF = {
+      settings: [
+        ['s', 'Seite', [['ok', 'Normal'], ['loading', 'Lädt'], ['error', 'Ladefehler']]],
+        ['sc', 'Suche', [['idle', 'Bereit'], ['scanning', 'Läuft']]],
+        ['ip', 'Manuelle IP', [['none', 'Leer'], ['empty', 'Fehler: leer'], ['format', 'Fehler: Format'], ['probe', 'Fehler: kein Gerät'], ['probing', 'Prüft']]],
+        ['lv', 'Log-Level', [['idle', 'Bereit'], ['saving', 'Speichert']]],
+        ['dl', 'Log-Download', [['idle', 'Bereit'], ['busy', 'Läuft'], ['error', 'Fehler']]],
+        ['toast', 'Toast', [['', 'Keiner'], ['scan', 'Suche fertig'], ['dev', 'Gerät hinzugefügt'], ['level', 'Level gesetzt'], ['lerr', 'Level-Fehler']]]
+      ],
+      diag: [
+        ['s', 'Zustand', [['ok', 'Inhalt'], ['loading', 'Lädt'], ['error', 'Fehler'], ['nodev', 'Keine Geräte']]],
+        ['n', 'Geräte', [['10', '10'], ['2', '2']]],
+        ['long', 'Plattform', [['0', 'Normal'], ['1', 'Sehr lang']]],
+        ['dl', 'Bundle', [['idle', 'Bereit'], ['busy', 'Lädt']]],
+        ['toast', 'Toast', [['', 'Keiner'], ['dgok', 'Erfolg'], ['dgerr', 'Fehler']]]
+      ],
+      about: [
+        ['ver', 'Version', [['ok', 'v1.5.0'], ['loading', 'Lädt'], ['fail', 'Fehler']]],
+        ['up', 'Update', [['available', 'Verfügbar'], ['checking', 'Prüft'], ['uptodate', 'Aktuell'], ['dev', 'Eigenbau']]],
+        ['sup', 'Unterstützer', [['200', '200'], ['12', '12'], ['0', 'Keine']]],
+        ['bt', 'Build-Zeit', [['0', 'Aus'], ['1', 'An']]]
+      ],
+      licenses: []
+    };
+    const cur = s.v[s.page] || {};
+    const val = (k, d) => cur[k] !== undefined ? cur[k] : d[0][0];
+    const groups = DEF[s.page].map(([k, label, opts]) => ({ label, buttons: opts.map(([v, l]) => ({ label: l, style: pill(val(k, opts) === v), on: () => this.setState(p => ({ au: null, v: { ...p.v, [p.page]: { ...(p.v[p.page] || {}), [k]: v } } })) })) }));
+    const q = DEF[s.page].map(([k, , opts]) => k + '=' + encodeURIComponent(val(k, opts))).filter(x => !/=$/.test(x)).join('&');
+    const W = s.width;
+    const hit = s.hit; let total = 0, bad = 0;
+    const okAud = (r) => /^✓/.test(r.audit) || (/toast=/.test(r.label) && !/Kontrast|<44|Overflow|Scroll|Ziele/.test(r.audit.replace(/Überlappung: [^|]*/, '')));
+    const hitRows = (hit || []).filter(r => r.bad.length || !okAud(r)).map(r => ({ text: r.label + ': ' + r.bad.join('; ') + (okAud(r) ? '' : ' | Audit: ' + r.audit.slice(0, 160)), style: 'color:#ff8a80' }));
+    (hit || []).forEach(r => { total += r.n; bad += r.bad.length + (okAud(r) ? 0 : 1); });
+    const au = s.au;
+    return {
+      pages: [['settings', 'Einstellungen'], ['diag', 'Diagnose'], ['about', 'Über'], ['licenses', 'Lizenzen']].map(([k, l]) => ({ label: l, style: pill(s.page === k), on: () => this.setState({ page: k, au: null }) })),
+      widths: [320, 375, 414, 768, 1280].map(w => ({ label: String(w), style: pill(W === w && !s.height), on: () => this.setState({ width: w, height: 0, au: null }) })),
+      phones: [[320, 568], [375, 667], [402, 874], [430, 932]].map(([w, h]) => ({ label: w + '×' + h, style: pill(W === w && s.height === h), on: () => this.setState({ width: w, height: h, au: null }) })),
+      groups, hitRows,
+      src: 'app7/stage7-frame.html?page=' + s.page + (q ? '&' + q : ''),
+      frameStyle: { display: 'block', width: W, maxWidth: '100%', height: s.height ? s.height : 'calc(100vh - 300px)', minHeight: s.height ? s.height : 560, border: '1px solid #333', background: '#1a1a1a' },
+      auditText: au ? au.msg : 'Prüfe…',
+      auditStyle: au ? (au.ok ? 'background:#1b5e20;color:#fff' : 'background:#b71c1c;color:#fff') : 'background:#333;color:#b3b3b3',
+      runHit: () => this.runHit(null, window.__q),
+      hitButton: s.hitBusy ? 'Hit-Test ' + s.hitBusy : 'Hit-Test + Audit (alle Zustände, 4 Phones)',
+      hitSummary: hit ? (s.hitBusy ? 'läuft: ' : '') + hit.length + ' Zustände, ' + total + ' Steuerelemente, ' + bad + ' Befunde' : 'noch nicht gelaufen',
+      hitStyle: hit ? (bad ? 'background:#b71c1c;color:#fff' : 'background:#1b5e20;color:#fff') : 'background:#333;color:#b3b3b3',
+      hitDisplay: hitRows.length ? 'flex' : 'none'
+    };
+  }
+}
+
+</script>
+</body>
+</html>

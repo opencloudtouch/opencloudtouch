@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>body{margin:0;background:#0d0d0d}</style>
+</helmet>
+<div style="min-height:100vh;background:#0d0d0d;color:#e0e0e0;font-family:-apple-system,'Segoe UI',system-ui,sans-serif;display:flex;flex-direction:column">
+  <div style="background:#141414;border-bottom:1px solid #333;padding:12px 16px;display:flex;flex-direction:column;gap:8px">
+    <div style="font-weight:700;font-size:14px;color:#fff">OCT App · Stufe 9 · Titel-Tasten, Lokale Steuerung</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center">
+      <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Quelle</span><sc-for list="{{ sources }}" as="b" hint-placeholder-count="7"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Zustand</span><sc-for list="{{ states }}" as="b" hint-placeholder-count="4"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Start auf</span><sc-for list="{{ starts }}" as="b" hint-placeholder-count="3"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Phone</span><sc-for list="{{ phones }}" as="b" hint-placeholder-count="4"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Breite</span><sc-for list="{{ widths }}" as="b" hint-placeholder-count="3"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      <button onClick="{{ reset }}" style="min-height:32px;padding:6px 14px;border-radius:999px;border:1px solid #4a90d9;background:rgba(74,144,217,.2);color:#fff;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap">Zurücksetzen</button>
+    </div>
+    <div style="font-size:12px;color:#b3b3b3;line-height:1.5">Drei Tasten für jede Quelle an derselben Stelle (unter „Läuft gerade“, über der Lautstärke). Bluetooth, AirPlay, DLNA und Spotify: alle drei aktiv. Radio: nur Wiedergabe/Pause. AUX, TV, Standby, keine Daten: alle deaktiviert. Offline: keine Tasten. Tasten klicken: Pause/Wiedergabe wechselt, Titel vor/zurück zeigt kurz den Ladezustand.</div>
+  </div>
+  <div style="flex:1;overflow:auto;padding:16px 16px 48px">
+    <div style="display:flex;justify-content:center"><iframe key="{{ nonce }}" src="{{ src }}" title="Stufe 9" style="{{ frameStyle }}"></iframe></div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { src: 'bt', st: '', start: 'online', width: 402, height: 874, nonce: 0 };
+  renderVals() {
+    const s = this.state;
+    const pill = (on) => ({ minHeight: 32, padding: '6px 12px', lineHeight: '1.2', flexShrink: 0, whiteSpace: 'nowrap', borderRadius: 999, border: '1px solid ' + (on ? '#4a90d9' : '#3a3a3a'), background: on ? 'rgba(74,144,217,.2)' : 'transparent', color: on ? '#fff' : '#b3b3b3', fontSize: 13, fontWeight: 500, fontFamily: 'inherit', cursor: 'pointer' });
+    const bump = (o) => this.setState({ ...o, nonce: this.state.nonce + 1 });
+    const idx = { online: 0, offline: 2, last: 4 }[s.start];
+    return {
+      sources: [['bt', 'Bluetooth'], ['airplay', 'AirPlay'], ['dlna', 'DLNA'], ['spotify', 'Spotify'], ['radio', 'Radio'], ['aux', 'AUX'], ['tv', 'TV']].map(([k, l]) => ({ label: l, style: pill(s.src === k), on: () => bump({ src: k }) })),
+      states: [['', 'Läuft'], ['standby', 'Standby'], ['nodata', 'Keine Daten']].map(([k, l]) => ({ label: l, style: pill(s.st === k), on: () => bump({ st: k }) })),
+      starts: [['online', 'Gerät online'], ['offline', 'Gerät offline']].map(([k, l]) => ({ label: l, style: pill(s.start === k), on: () => bump({ start: k }) })),
+      phones: [[320, 568], [375, 667], [402, 874]].map(([w, h]) => ({ label: w + '×' + h, style: pill(s.width === w && s.height === h), on: () => bump({ width: w, height: h }) })),
+      widths: [768, 1280].map(w => ({ label: String(w), style: pill(s.width === w), on: () => bump({ width: w, height: 874 }) })),
+      reset: () => bump({}),
+      nonce: s.nonce,
+      src: 'app9/stage9-frame.html?page=local&v=after&dev=5&off=2&src=' + s.src + '&st=' + s.st + '&i=' + idx + '&n=' + s.nonce,
+      frameStyle: { display: 'block', width: s.width, maxWidth: '100%', height: s.height, border: '1px solid #333', background: '#1a1a1a' }
+    };
+  }
+}
+
+</script>
+</body>
+</html>

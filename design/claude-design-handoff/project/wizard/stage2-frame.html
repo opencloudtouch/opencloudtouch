@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stage 2 frame</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="wizard-base.css">
+<link rel="stylesheet" href="Step2USBPreparation.css">
+<link rel="stylesheet" href="Step3PowerCycle.css">
+<link rel="stylesheet" href="Step4Backup.css">
+<link rel="stylesheet" href="Step5ConfigModification.css">
+<style>#audit{position:fixed;right:8px;bottom:8px;z-index:50;padding:6px 10px;border-radius:6px;font:600 12px/1.3 system-ui;max-width:70%}</style>
+</head><body><div id="root"></div><div id="audit"></div>
+<script>
+// Prototype renderer: mirrors the markup of the TSX components 1:1 (same classes, same DOM order). Texts come from the uploaded German i18n file.
+const Q=new URLSearchParams(location.search), P=(k,d)=>Q.get(k)||d;
+let TX={};
+const t=(k,v)=>{let s=k.split('.').reduce((o,p)=>o&&o[p],TX);if(typeof s!=='string')return k;return s.replace(/\{\{(\w+)\}\}/g,(_,n)=>v&&v[n]!=null?v[n]:'')};
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const S=(n,c,sz)=>`<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${c}</svg>`;
+const sh='<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>';
+const I={
+Speaker:(s=22)=>S(0,'<rect width="16" height="20" x="4" y="2" rx="2"/><circle cx="12" cy="14" r="4"/><path d="M12 6h.01"/>',s),
+Rotate:(s=18)=>S(0,'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',s),
+Check:(s=16)=>S(0,'<path d="M20 6 9 17l-5-5"/>',s),
+Info:(s=14)=>S(0,'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',s),
+Alert:(s=22)=>S(0,'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',s),
+ArrowLeft:(s=18)=>S(0,'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',s),
+ArrowRight:(s=18)=>S(0,'<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',s),
+Settings:(s=26)=>S(0,'<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',s),
+Copy:(s=18)=>S(0,'<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',s),
+LockOpen:(s=24)=>S(0,'<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>',s),
+Lock:(s=24)=>S(0,'<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',s),
+DoorOpen:(s=24)=>S(0,'<path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h3"/><path d="M13 20h9"/><path d="M10 12v.01"/><path d="M13 4.562v16.157a1 1 0 0 1-1.242.97L5 20V5.562a2 2 0 0 1 1.515-1.94l4-1A2 2 0 0 1 13 4.561Z"/>',s),
+Plug:(s=22)=>S(0,'<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>',s),
+MapPin:(s=14)=>S(0,'<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',s),
+Folder:(s=22)=>S(0,'<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',s),
+Save:(s=18)=>S(0,'<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/>',s),
+Wrench:(s=18)=>S(0,'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',s),
+ShieldCheck:(s=22)=>S(0,sh+'<path d="m9 12 2 2 4-4"/>',s),
+ShieldAlert:(s=22)=>S(0,sh+'<path d="M12 8v4"/><path d="M12 16h.01"/>',s),
+Hourglass:(s=22)=>S(0,'<path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/>',s),
+CircleCheck:(s=22)=>S(0,'<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',s),
+CircleX:(s=22)=>S(0,'<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',s),
+ExternalLink:(s=14)=>S(0,'<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',s)};
+const DEV='Wohnzimmer', IP='192.168.178.42', MODEL='SoundTouch 30 Series III';
+
+const header=()=>`<div class="device-info-header"><div class="device-info-main"><div class="device-icon">${I.Speaker()}</div><div class="device-details"><h2 class="device-name">${P('name','')==='long'?'Werkstatt-Lautsprecher Obergeschoss links':DEV}</h2><div class="device-meta"><span class="device-model">SoundTouch 30</span><span class="device-separator">•</span><span class="device-ip">${IP}</span></div></div></div><button class="device-reboot-btn device-reboot-btn--idle" title="${t('deviceHeader.reboot')}">${I.Rotate()} ${t('deviceHeader.reboot')}</button></div>`;
+const tracker=n=>{const L=[1,2,3,4,5,6,7,8].map(i=>t('setup.step'+i+'.label'));return `<div class="progress-tracker"><div class="progress-tracker-compact" aria-hidden="true">Schritt ${n} von 8 – ${L[n-1]}</div><div class="progress-steps">${L.map((l,i)=>{const id=i+1,st=id<n?'completed':'pending';return `<div class="progress-step ${st} ${id===n?'active':''}"><div class="step-indicator">${i>0?'<div class="step-connector"></div>':''}<div class="step-circle" title="${l}" aria-label="Schritt ${id}: ${l}">${st==='completed'?'<span class="step-icon" aria-hidden="true">'+I.Check()+'</span>':'<span class="step-number" aria-hidden="true">'+id+'</span>'}</div></div><div class="step-label">${l}</div></div>`}).join('')}</div></div>`};
+const btnNext=(label,dis)=>`<button class="btn btn-primary wizard-btn-next" ${dis?'disabled':''} ${dis&&dis!==true?`title="${esc(dis)}"`:''}>${label} ${I.ArrowRight()}</button>`;
+const frame=(num,title,desc,warn,content,o={})=>`<div class="wizard-step"><div class="wizard-step-header"><div class="wizard-step-number">${t('setup.stepLabel',{step:num})}</div><h2 class="wizard-step-title">${title}</h2>${desc?`<p class="wizard-step-description">${desc}</p>`:''}</div>${warn?`<div class="wizard-warning" role="alert"><span class="wizard-warning-icon" aria-hidden="true">${I.Alert()}</span><span class="wizard-warning-text">${warn}</span></div>`:''}<div class="wizard-step-content">${content}</div><div class="wizard-step-actions"><button class="btn btn-secondary wizard-btn-previous">${I.ArrowLeft()} ${t('setup.back')}</button><div class="wizard-actions-right">${o.dis&&o.reason?`<span class="wizard-next-hint" role="status">${I.Info()} <span>${o.reason}</span></span>`:''}${btnNext(t('setup.next'),o.dis)}</div></div></div>`;
+const spinS='<span class="spinner-small"></span>';
+
+/* ---- Step 1 USB ---- */
+function usb(){
+ const plat=P('plat','windows'),port=P('port','micro'),ready=P('ready','0')==='1';
+ const types=port==='both'?['micro-usb','usb-a']:port==='usba'?['usb-a']:['micro-usb'];
+ const both=types.length>1, needAd=types.includes('micro-usb');
+ const key={windows:['platformWindowsTitle',6,'windowsStep'],macos:['platformMacTitle',7,'macStep'],linux:['platformLinuxTitle',5,'linuxStep']}[plat];
+ const title=key?t('setup.wizard.step2.'+key[0]):t('setup.wizard.step2.platformDefaultTitle');
+ const steps=key?Array.from({length:key[1]},(_,i)=>t('setup.wizard.step2.'+key[2]+(i+1))):[t('setup.wizard.step2.defaultStep1'),t('setup.wizard.step2.defaultStep2')];
+ const cf=t('setup.wizard.step2.createFileDesc').replace(/<0>(.*?)<\/0>/g,'<code>$1</code>').replace(/<1>(.*?)<\/1>/g,'<strong>$1</strong>');
+ const c=`<div class="usb-preparation"><div class="usb-device-info"><div class="usb-icon">${I.Plug()}</div><div class="usb-device-details"><div class="usb-device-needs"><strong>${t('setup.wizard.step2.deviceNeeds')}</strong> ${types.map(u=>u.toUpperCase()).join(' oder ')}</div><small class="usb-device-line">${I.MapPin()} <span>Rückseite des Geräts, unten links</span></small><small class="usb-device-line"><span>${t('setup.wizard.step2.model')} ${MODEL}</span></small>${both?`<div class="usb-dual-hint">${I.Info(18)}<span>${t('setup.wizard.step2.dualUsbHint')}</span></div>`:''}${needAd?`<div class="usb-adapter-hint"><p class="usb-adapter-text">${I.Plug(18)}<span>${t('setup.wizard.step2.adapterNeeded')}</span></p><ul class="usb-adapter-links"><li><a href="#">${t('setup.wizard.step2.adapterUsba')}${I.ExternalLink()}</a><span class="usb-adapter-price">(~${t('setup.wizard.step2.adapterUsbaPriceHint')})</span></li><li><a href="#">${t('setup.wizard.step2.adapterUsbc')}${I.ExternalLink()}</a><span class="usb-adapter-price">(~${t('setup.wizard.step2.adapterUsbcPriceHint')})</span></li></ul></div>`:''}</div></div>
+ <div class="usb-section"><div class="usb-section-header"><h3 class="usb-section-title"><span class="usb-section-number">1</span><span class="usb-section-title-text">${title}</span></h3><label for="usb-platform-select" class="usb-platform-label">${t('setup.wizard.step2.platformLabel')}</label><select id="usb-platform-select" class="usb-platform-select" aria-label="${t('setup.wizard.step2.platformAriaLabel')}"><option value="windows" ${plat==='windows'?'selected':''}>Windows</option><option value="macos" ${plat==='macos'?'selected':''}>macOS</option><option value="linux" ${plat==='linux'?'selected':''}>Linux</option></select></div><ol class="usb-instruction-list">${steps.map(s=>`<li class="usb-instruction-item">${esc(s)}</li>`).join('')}</ol></div>
+ <div class="usb-section"><h3 class="usb-section-title"><span class="usb-section-number">2</span><span class="usb-section-title-text">${t('setup.wizard.step2.sectionCreateFile')}</span></h3><p class="usb-section-description">${cf}</p></div>
+ <div class="usb-section"><h3 class="usb-section-title"><span class="usb-section-number">3</span><span class="usb-section-title-text">${t('setup.wizard.step2.sectionVerify')}</span></h3><div class="usb-checklist"><label class="usb-checklist-item"><input type="checkbox"><span>${t('setup.wizard.step2.checkFat32')}</span></label><label class="usb-checklist-item"><input type="checkbox"><span>${t('setup.wizard.step2.checkFileEmpty')}</span></label><label class="usb-checklist-item"><input type="checkbox" ${ready?'checked':''}><span><strong>${t('setup.wizard.step2.checkReady')}</strong></span></label></div></div></div>`;
+ return frame(1,t('setup.wizard.step2.title'),t('setup.wizard.step2.description'),t('setup.wizard.step2.warning'),c,{dis:!ready,reason:t('setup.wizard.step2.nextDisabled')});
+}
+
+/* ---- Step 2 Power cycle ---- */
+function power(){
+ const st=P('status','pending'),risk=P('risk','none'),dec=P('dec','none'),adv=P('adv','closed');
+ const ans={gering:['ja','ja','nein'],mittel:['ja','ja','ja'],hoch:['ja','unbekannt','nein'],none:[null,null,null]}[risk];
+ const att=st==='pending'?0:1, avail=st==='success', err=st==='error';
+ const al=a=>a==='ja'?t('setup.wizard.step3.answerYes'):a==='nein'?t('setup.wizard.step3.answerNo'):t('setup.wizard.step3.answerUnknown');
+ const Qs=[['q1',['ja','nein','unbekannt']],['q2',['ja','nein','unbekannt']],['q3',['nein','ja','unbekannt']]];
+ const steps=[1,2,3,4,5].map(i=>`<div class="power-cycle-step"><div class="power-cycle-step-number">${i}</div><div class="power-cycle-step-content"><strong>${t('setup.wizard.step3.instructionStep'+i)}</strong><p>${t('setup.wizard.step3.instructionStep'+i+'Desc')}</p></div></div>`).join('');
+ let status='';
+ if(st==='pending')status=`<div class="power-cycle-status pending wz-status wz-status--warning" role="status"><div class="status-icon" aria-hidden="true">${I.Hourglass()}</div><div class="status-content"><p>${t('setup.wizard.step3.statusWaiting')}</p><small>${t('setup.wizard.step3.statusWaitingHint')}</small></div></div>`;
+ if(st==='checking')status=`<div class="power-cycle-status checking wz-status" role="status"><div class="status-icon"><div class="spinner"></div></div><div class="status-content"><p>${t('setup.wizard.step3.statusChecking')}</p><small>${t('setup.wizard.step3.statusCheckingDevice')} ${DEV}</small></div></div>`;
+ if(avail)status=`<div class="power-cycle-status success wz-status wz-status--success" role="status"><div class="status-icon" aria-hidden="true">${I.CircleCheck()}</div><div class="status-content"><p><strong>${t('setup.wizard.step3.statusAvailable')}</strong></p><small>${t('setup.wizard.step3.statusAvailableHint')}</small></div></div>`;
+ if(err)status=`<div class="power-cycle-status error wz-status wz-status--error" role="status"><div class="status-icon" aria-hidden="true">${I.CircleX()}</div><div class="status-content"><p><strong>${t('setup.wizard.step3.statusError')}</strong></p><small>SSH ist nicht verfügbar. Bitte wiederholen Sie die Schritte.</small></div></div>`;
+ const btn=st==='checking'?`${spinS}${t('setup.wizard.step3.btnChecking')}`:att===0?t('setup.wizard.step3.btnCheckNow'):t('setup.wizard.step3.btnCheckAgain');
+ const lvl=risk==='none'?null:risk;
+ const ri=lvl==='gering'?I.ShieldCheck():lvl==='mittel'?I.Alert():I.ShieldAlert();
+ const riskHtml=avail?`<div class="ssh-risk-assessment"><h4 class="risk-title">${I.Lock(20)} ${t('setup.wizard.step3.sshTitle')}</h4><p class="risk-intro">${t('setup.wizard.step3.sshIntro')}</p>${Qs.map(([k,ord],qi)=>`<div class="risk-question"><p class="risk-question-text"><strong>${qi+1}.</strong> ${t('setup.wizard.step3.'+k)}</p><div class="risk-answers">${ord.map(a=>`<button class="risk-answer-btn ${ans[qi]===a?'selected':''} ${a==='unbekannt'?'unknown':''}" aria-pressed="${ans[qi]===a}">${al(a)}</button>`).join('')}</div></div>`).join('')}${lvl?`<div class="risk-level risk-level--${lvl}" role="status"><span class="risk-level-icon">${ri}</span><div><strong>${t('setup.wizard.step3.riskLabel')} ${t('setup.wizard.step3.risk'+({gering:'Low',mittel:'Medium',hoch:'High'}[lvl]))}</strong><p class="risk-level-hint">${t('setup.wizard.step3.riskHint'+({gering:'Low',mittel:'Medium',hoch:'High'}[lvl]))}</p></div></div>`:''}<div class="risk-decision-buttons"><button class="risk-card risk-card--permanent${dec==='perm'?' selected':''}${lvl==='hoch'?' danger':''}" aria-pressed="${dec==='perm'}"><span class="risk-card-icon">${I.LockOpen()}</span><span class="risk-card-label">${t('setup.wizard.step3.sshPermanentLabel')}</span>${dec==='perm'?`<span class="risk-card-check">${I.Check(20)}</span>`:''}</button><button class="risk-card risk-card--temporary${dec==='temp'?' selected':''}" aria-pressed="${dec==='temp'}"><span class="risk-card-icon">${I.DoorOpen()}</span><span class="risk-card-label">${t('setup.wizard.step3.sshTemporaryLabel')}</span>${dec==='temp'?`<span class="risk-card-check">${I.Check(20)}</span>`:''}</button></div></div>`:'';
+ const putty=[1,2,3,4,5].map(i=>`<div class="putty-step"><span class="putty-step-num">${i}</span><span>${esc(t('setup.wizard.step3.puttyStep'+i,{ip:IP}))}</span></div>`).join('');
+ const cmd=`ssh \\\n  -o HostKeyAlgorithms=ssh-rsa \\\n  -o PubkeyAcceptedKeyTypes=ssh-rsa \\\n  -o KexAlgorithms=diffie-hellman-group1-sha1 \\\n  -o Ciphers=aes128-cbc \\\n  root@${IP}`;
+ const cl=adv==='putty'?'putty':'terminal';
+ const det=`<details class="ssh-manual-test-collapsible" ${adv!=='closed'?'open':''}><summary class="ssh-manual-test-summary">${I.Wrench()}<span>${t('setup.wizard.step3.advancedTitle')}</span></summary><div class="power-cycle-ssh-hint"><p class="ssh-manual-test-hint"><strong>${t('setup.wizard.step3.advancedWhy')}</strong> ${t('setup.wizard.step3.advancedWhyText')}</p><p class="ssh-hint-description">${t('setup.wizard.step3.advancedDesc')}</p><div class="ssh-client-tabs"><button class="ssh-client-tab ${cl==='terminal'?'active':''}" aria-pressed="${cl==='terminal'}">${t('setup.wizard.step3.tabTerminal')}</button><button class="ssh-client-tab ${cl==='putty'?'active':''}" aria-pressed="${cl==='putty'}">${t('setup.wizard.step3.tabPuTTY')}</button></div>${cl==='terminal'?`<div class="ssh-command-wrapper"><pre class="ssh-hint-command">${esc(cmd)}</pre><button class="ssh-copy-btn" title="In Zwischenablage kopieren" aria-label="Befehl kopieren">${I.Copy(18)}</button></div>`:`<div class="putty-instructions">${putty}</div>`}<small class="ssh-hint-note">${t('setup.wizard.step3.sshPasswordHint')}</small></div></details>`;
+ const trouble=att>0&&!avail?`<div class="power-cycle-troubleshooting wz-status wz-status--warning"><div class="warning-icon" aria-hidden="true">${I.Alert()}</div><div class="warning-content"><h4 class="troubleshooting-title">${t('setup.wizard.step3.troubleshootingTitle').replace('⚠️ ','')}</h4><ul class="troubleshooting-list">${[1,2,3,4,5,6].map(i=>`<li>${t('setup.wizard.step3.troubleshootingItem'+i)}</li>`).join('')}</ul></div></div>`:'';
+ const c=`<div class="power-cycle"><div class="power-cycle-steps"><h3 class="power-cycle-title">${t('setup.wizard.step3.sectionInstructions')}</h3>${steps}</div><div class="power-cycle-check"><h3 class="power-cycle-title">${t('setup.wizard.step3.sectionStatus')}</h3>${status}<button class="btn btn-primary power-cycle-check-btn" ${st==='checking'?'disabled':''}>${btn}</button>${riskHtml}</div>${det}${trouble}</div>`;
+ const dis=!avail||dec==='none';
+ return frame(2,t('setup.wizard.step3.title'),t('setup.wizard.step3.description'),t('setup.wizard.step3.warning'),c,{dis,reason:'Bitte SSH-Zugang prüfen und eine Entscheidung zur SSH-Dauerhaftigkeit treffen.'});
+}
+
+/* ---- Step 3 Backup ---- */
+function backup(){
+ const bs=P('bs','idle'),run=bs==='running',err=bs==='error'||bs==='error2',ok=bs==='success';
+ const hasData=bs==='error2'||ok;
+ const files=[['rootfs',58.12,41,'/media/usb/oct-backup/20261020-142530/rootfs.tar.gz'],['persistent',0.01,2,'/media/usb/oct-backup/20261020-142530/persistent.tar.gz'],['update',1.04,6,'/media/usb/oct-backup/20261020-142530/update.tar.gz']];
+ const dur=s=>s>=60?t('setup.wizard.step4.durationMinSec',{min:Math.floor(s/60),sec:s%60}):t('setup.wizard.step4.durationSec',{sec:s});
+ let c='<div class="backup">';
+ if(!hasData)c+=`<div class="backup-selection"><h3 class="backup-title">${t('setup.wizard.step4.sectionTitle')}</h3><p class="backup-info">${t('setup.wizard.step4.backupInfo')}</p><button class="btn btn-primary backup-create-btn" ${run?'disabled':''}>${run?spinS+t('setup.wizard.step4.btnCreating'):I.Save()+' '+t('setup.wizard.step4.btnCreate')}</button></div>`;
+ if(run)c+=`<div class="backup-progress wz-status" role="status" aria-live="polite"><div class="progress-icon"><div class="spinner-large"></div></div><p class="progress-message">${t('setup.wizard.step4.progressMessage',{device:DEV})}</p><small class="progress-note">${t('setup.wizard.step4.progressNote')}</small></div>`;
+ if(err)c+=`<div class="backup-error wz-status wz-status--error" role="alert"><div class="error-icon" role="img" aria-label="${t('setup.wizard.step4.errorTitle')}">${I.CircleX(28)}</div><div class="error-content"><strong>${t('setup.wizard.step4.errorTitle')}</strong><p>${bs==='error'?'Zeitüberschreitung nach 180 s. Das Gerät hat nicht geantwortet.':'Backup von Volume rootfs fehlgeschlagen: Kein freier Speicher auf dem USB-Stick.'}</p></div></div>`;
+ if(ok)c+=`<div class="backup-success wz-result"><div class="success-icon" role="img" aria-label="${t('setup.wizard.step4.successTitle')}">${I.CircleCheck(28)}</div><h3 class="success-title">${t('setup.wizard.step4.successTitle')}</h3><p class="success-message">${t('setup.wizard.step4.successHint')}</p><div class="backup-location-hint"><span class="backup-location-icon">${I.Plug(20)}</span><span>${t('setup.wizard.step4.successHint')}</span></div><div class="backup-files"><h4 class="backup-files-title">${t('setup.wizard.step4.filesTitle')}</h4>${files.map(f=>`<div class="backup-file-item"><span class="backup-file-icon">${I.Folder()}</span><div class="backup-file-details"><strong>${f[0]}</strong><small>${f[1].toFixed(2)} MB · ${dur(f[2])}</small></div><code class="backup-file-path">${f[3]}</code></div>`).join('')}</div><div class="backup-summary"><strong>${t('setup.wizard.step4.totalLabel')}</strong> 59.17 MB in ${dur(49)}</div></div>`;
+ if(err)c+=`<div class="backup-next-warning" role="alert">${I.Alert(20)}<span>Ohne Backup ist keine Wiederherstellung möglich. Wenn Sie jetzt fortfahren, geschieht das auf eigenes Risiko.</span></div>`;
+ c+='</div>';
+ return frame(3,t('setup.wizard.step4.title'),t('setup.wizard.step4.description'),t('setup.wizard.step4.warning'),c,{dis:run});
+}
+
+/* ---- Step 4 Config ---- */
+function config(){
+ const cm=P('cm','form'),inp=P('inp','std'),msg=P('msg','none'),ap=P('ap','ready');
+ const det=cm==='detecting',proxy=cm==='proxy';
+ const url=inp==='long'?'http://oct-wohnzimmer-server.fritz.box.example-heimnetz.de:7777/bmx/services/with/a/very/long/path':inp==='empty'?'':'http://192.168.178.20:7777';
+ const norm=u=>{const m=/^(?:(https?):\/\/)?([a-zA-Z0-9][a-zA-Z0-9.-]*|[\d.]+)(?::(\d+))?$/.exec(u.trim());return m?`${m[1]||'http'}://${m[2]}:${m[3]||'7777'}`:(u.trim()||'http://...')};
+ const okRes=ap==='ok'||ap==='okdiff';
+ const title=proxy?t('setup.wizard.step5.titleProxy'):t('setup.wizard.step5.titleNoProxy');
+ let c='<div class="config-modification">';
+ if(det)c+=`<div class="config-detecting wz-status" role="status" aria-live="polite">${spinS}<p>${t('setup.wizard.step5.detecting')}</p></div>`;
+ if(proxy)c+=`<div class="config-success wz-result"><div class="success-icon">${I.Lock(28)}</div><h3 class="success-title">${t('setup.wizard.step5.proxySuccessTitle')}</h3><p class="success-message">${t('setup.wizard.step5.strategyMessageProxy')}</p><div class="config-details"><div class="config-detail-item"><strong>${t('setup.wizard.step5.strategyLabel')}</strong><span>${t('setup.wizard.step5.strategyValue')}</span></div><div class="config-detail-item"><strong>${t('setup.wizard.step5.bmxLabel')}</strong><span>${t('setup.wizard.step5.bmxValue')}</span></div><div class="config-detail-item"><strong>${t('setup.wizard.step5.reasonLabel')}</strong><span>${t('setup.wizard.step5.reasonValue')}</span></div></div><p class="config-proxy-hint">${t('setup.wizard.step5.proxyHint')}</p></div>`;
+ if(cm==='form'){
+  const vErr=msg==='valid'||inp==='empty'&&false;
+  c+=`<div class="config-input-section"><h3 class="config-title">${t('setup.wizard.step5.configTitle')}</h3><p class="config-description">${t('setup.wizard.step5.configDesc')}</p><div class="config-input-group"><label for="oct-url" class="config-label">${t('setup.wizard.step5.urlLabel')}</label><input id="oct-url" type="text" class="config-input" value="${esc(url)}" placeholder="http://192.168.1.100:7777" inputmode="url" autocapitalize="none" spellcheck="false" aria-invalid="${msg==='valid'}"><small class="config-hint">${t('setup.wizard.step5.urlHint')}</small></div>`;
+  if(msg==='valid')c+=`<div class="config-validation-error wz-status wz-status--warning" role="alert"><div class="error-icon">${I.Alert()}</div><div class="error-content"><strong>${t('setup.wizard.step5.validationErrorTitle')}</strong><pre class="error-details">${esc(t('setup.wizard.step5.validationInvalid'))}</pre></div></div>`;
+  if(['dnsres','dnsmis','octun'].includes(msg)){
+   const ttl=msg==='octun'?t('setup.wizard.step5.octUnreachableTitle'):t('setup.wizard.step5.dnsWarningTitle');
+   const body=msg==='dnsres'?`<p>${t('setup.wizard.step5.dnsUnresolvable')}</p>`:msg==='dnsmis'?`<p>${t('setup.wizard.step5.dnsMismatch',{resolved:'192.168.178.99',expected:'192.168.178.20'})}</p>`:`<p>Verbindung zu 192.168.178.20:7777 abgelehnt (Zeitüberschreitung nach 5 s).</p>`;
+   c+=`<div class="config-dns-warning wz-status wz-status--warning" data-test="dns-warning" role="alert"><div class="warning-icon">${I.Alert()}</div><div class="warning-content"><strong>${ttl}</strong>${body}<div class="dns-warning-actions"><button class="btn btn-secondary" data-test="dns-proceed">${t('setup.wizard.step5.dnsProceed')}</button></div></div></div>`;
+  }
+  c+=`<div class="config-change-preview"><h4 class="config-preview-title">${t('setup.wizard.step5.changePreviewTitle')}</h4><div class="config-change-item"><div class="config-change-from"><span class="config-change-label">${t('setup.wizard.step5.changeFrom')}</span><code>https://streaming.bose.com/...</code></div><div class="config-change-arrow" aria-hidden="true">${I.ArrowRight(22)}</div><div class="config-change-to"><span class="config-change-label">${t('setup.wizard.step5.changeTo')}</span><code>${esc(norm(url))}</code></div></div></div><button class="btn btn-primary config-modify-btn" ${ap==='running'||!url?'disabled':''}>${ap==='running'?spinS+t('setup.wizard.step5.btnApplying'):I.Settings(20)+' '+t('setup.wizard.step5.btnApply')}</button></div>`;
+ }
+ if(ap==='error')c+=`<div class="config-error wz-status wz-status--error" role="alert"><div class="error-icon">${I.CircleX()}</div><div class="error-content"><strong>${t('setup.wizard.step5.errorTitle')}</strong><p>SSH-Verbindung zu 192.168.178.42 unterbrochen. Die Konfigurationsdatei wurde nicht verändert.</p></div></div>`;
+ if(okRes){const open=ap==='okdiff';c+=`<div class="config-success wz-result"><div class="success-icon">${I.CircleCheck(28)}</div><h3 class="success-title">${t('setup.wizard.step5.successTitle')}</h3><p class="success-message">${t('setup.wizard.step5.configApplied')}</p><div class="config-details"><div class="config-detail-item"><strong>${t('setup.wizard.step5.oldUrl')}</strong><code>https://streaming.bose.com/</code></div><div class="config-detail-item"><strong>${t('setup.wizard.step5.newUrl')}</strong><code>${esc(norm(url))}</code></div><div class="config-detail-item"><strong>${t('setup.wizard.step5.backupLabel')}</strong><code>/media/usb/oct-backup/20261020-142530/OverrideSdkPrivateCfg.xml.bak</code></div></div><div class="config-diff-section"><button class="btn btn-outline config-diff-toggle" aria-expanded="${open}" aria-controls="config-diff-content">${open?t('setup.wizard.step5.btnHideChanges'):t('setup.wizard.step5.btnShowChanges')}</button>${open?`<pre class="config-diff" id="config-diff-content"><code>- &lt;bmxRegistryUrl&gt;https://streaming.bose.com/&lt;/bmxRegistryUrl&gt;\n+ &lt;bmxRegistryUrl&gt;${esc(norm(url))}/bmx/registry/v1/services&lt;/bmxRegistryUrl&gt;</code></pre>`:''}</div></div>`}
+ c+='</div>';
+ const dis=det||(!proxy&&!okRes);
+ return frame(4,title,proxy?t('setup.wizard.step5.descProxy'):t('setup.wizard.step5.descNoProxy'),proxy?'':t('setup.wizard.step5.warningNoProxy'),c,{dis,reason:det?t('setup.wizard.step5.nextDisabledDetecting'):t('setup.wizard.step5.nextDisabledApply')});
+}
+
+const STEPS={usb:[1,usb],power:[2,power],backup:[3,backup],config:[4,config]};
+fetch('../uploads/10-de-wizard-texts-83c9d615.json').then(r=>r.json()).then(j=>{TX=j;const [n,fn]=STEPS[P('step','usb')];
+ document.getElementById('root').innerHTML=`<div class="page setup-wizard-page">${header()}<div class="wizard-content-v2">${tracker(n)}${fn()}</div></div>`;
+ requestAnimationFrame(audit);}).catch(e=>{document.getElementById('root').textContent='Fehler: '+e});
+function audit(){
+ const vw=document.documentElement.clientWidth, bad=[];
+ document.querySelectorAll('#root *').forEach(el=>{const r=el.getBoundingClientRect();if(r.width&&(r.right>vw+1||r.left<-1)){const p=el.closest('pre,code,.ssh-command-wrapper,.backup-file-path,.config-diff');if(!p||p===el)bad.push(el.className||el.tagName)}});
+ const small=[...document.querySelectorAll('#root button,#root select,#root input:not([type=checkbox]),#root summary,#root label.usb-checklist-item,#root .usb-adapter-links a')].filter(e=>{const r=e.getBoundingClientRect();return r.width&&r.height&&(r.height<43.5||r.width<43.5)}).map(e=>e.className||e.tagName);
+ const scr=document.documentElement.scrollWidth>vw+1;
+ const a=document.getElementById('audit'),ok=!scr&&!bad.length&&!small.length;
+ a.style.background=ok?'#1b5e20':'#b71c1c';a.style.color='#fff';
+ a.textContent=ok?`✓ ${vw}px: kein Overflow, Ziele ≥44px`:`✗ ${vw}px: ${scr?'horizontaler Scroll. ':''}${bad.slice(0,3).join(', ')}${small.length?' | <44px: '+small.slice(0,3).join(', '):''}`;
+ parent.postMessage({oct:'audit',ok,msg:a.textContent},'*');
+}
+</script></body></html>

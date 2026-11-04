@@ -1,0 +1,165 @@
+{
+  "de": {
+    "presets": {
+      "removeDevice": "Gerät entfernen",
+      "removeDeviceTitle": "Gerät entfernen?",
+      "removeDeviceOnline": "„{{name}}“ ist erreichbar. Beim Entfernen werden die gespeicherten Presets in OpenCloudTouch gelöscht. Das Gerät selbst wird nicht verändert und kann bei der nächsten Suche erneut hinzugefügt werden.",
+      "removeDeviceOffline": "„{{name}}“ ist offline. Es wird mit seinen gespeicherten Presets aus OpenCloudTouch entfernt. Sobald es wieder im Netzwerk ist, kann es bei der nächsten Suche erneut hinzugefügt werden.",
+      "removeDeviceConfirm": "Entfernen",
+      "deviceRemoved": "„{{name}}“ wurde entfernt.",
+      "noDevicesTitle": "Keine Geräte",
+      "noDevicesHint": "Suchen Sie in den Einstellungen nach Geräten oder fügen Sie eine IP-Adresse hinzu.",
+      "goToSettings": "Zu den Einstellungen",
+      "assignPreset": "Sender zuweisen",
+      "changeStation": "Sender ändern",
+      "playPreset": "{{name}} abspielen",
+      "sync": "Vom Gerät laden"
+    },
+    "player": {
+      "prevTrack": "Vorheriger Titel",
+      "nextTrack": "Nächster Titel",
+      "play": "Wiedergabe",
+      "pause": "Pause",
+      "playbackTitle": "Wiedergabe",
+      "localControl": "Lokale Steuerung"
+    },
+    "nav": {
+      "devices": "Geräte"
+    },
+    "devices": {
+      "title": "Geräte"
+    },
+    "device": {
+      "standbyHint": "Gerät im Standby. Einschalten, um Musik zu hören.",
+      "noControl": "Die Wiedergabe wird am angeschlossenen Gerät gesteuert.",
+      "presetsTitle": "Gespeicherte Sender",
+      "findStation": "Sender suchen",
+      "sourceChoose": "Quelle wählen",
+      "sourceCurrent": "Aktuell: {{source}}",
+      "sourceSwitching": "Wechsle zu {{source}}…",
+      "sourceSwitched": "Quelle gewechselt: {{source}}",
+      "sourceFailed": "Umschalten auf {{source}} fehlgeschlagen. Das Gerät antwortet nicht.",
+      "sourceRetry": "Erneut versuchen",
+      "sourceStandby": "Zum Umschalten das Gerät einschalten.",
+      "sourceExternal": "{{source}} wurde in der App gestartet und lässt sich hier nicht wählen.",
+      "sourceRadio": "Radio startet über die Presets oder die Sendersuche.",
+      "zoneMember": "Zone: Mitglied",
+      "zoneMaster": "Zone: Master"
+    },
+    "a11y": {
+      "volume": "Lautstärke",
+      "deviceSelection": "Geräteauswahl",
+      "switchToDevice": "Zu {{name}} wechseln"
+    }
+  },
+  "en": {
+    "presets": {
+      "removeDevice": "Remove device",
+      "removeDeviceTitle": "Remove device?",
+      "removeDeviceOnline": "\"{{name}}\" is reachable. Removing it deletes its saved presets in OpenCloudTouch. The device itself is not changed and can be added again by the next scan.",
+      "removeDeviceOffline": "\"{{name}}\" is offline. It is removed from OpenCloudTouch together with its saved presets. Once it is back on the network, the next scan can add it again.",
+      "removeDeviceConfirm": "Remove",
+      "deviceRemoved": "\"{{name}}\" was removed.",
+      "noDevicesTitle": "No devices",
+      "noDevicesHint": "Scan for devices in Settings or add an IP address.",
+      "goToSettings": "Go to Settings",
+      "assignPreset": "Assign station",
+      "changeStation": "Change station",
+      "playPreset": "Play {{name}}",
+      "sync": "Load from device"
+    },
+    "player": {
+      "prevTrack": "Previous track",
+      "nextTrack": "Next track",
+      "play": "Play",
+      "pause": "Pause",
+      "playbackTitle": "Playback",
+      "localControl": "Local control"
+    },
+    "nav": {
+      "devices": "Devices"
+    },
+    "devices": {
+      "title": "Devices"
+    },
+    "device": {
+      "standbyHint": "Device on standby. Switch it on to listen.",
+      "noControl": "Playback is controlled on the connected device.",
+      "presetsTitle": "Saved stations",
+      "findStation": "Find station",
+      "sourceChoose": "Choose source",
+      "sourceCurrent": "Now: {{source}}",
+      "sourceSwitching": "Switching to {{source}}…",
+      "sourceSwitched": "Source changed: {{source}}",
+      "sourceFailed": "Switching to {{source}} failed. The device is not responding.",
+      "sourceRetry": "Try again",
+      "sourceStandby": "Switch the device on to change the source.",
+      "sourceExternal": "{{source}} was started in the app and cannot be chosen here.",
+      "sourceRadio": "Radio starts from the presets or the station search.",
+      "zoneMember": "Zone: member",
+      "zoneMaster": "Zone: master"
+    },
+    "a11y": {
+      "volume": "Volume",
+      "deviceSelection": "Device selection",
+      "switchToDevice": "Switch to {{name}}"
+    }
+  },
+  "sv": {
+    "nav": {
+      "devices": "Enheter",
+      "zones": "Zoner",
+      "settings": "Inställningar",
+      "about": "Om"
+    },
+    "devices": {
+      "title": "Enheter"
+    },
+    "player": {
+      "powerButton": "Slå på eller av",
+      "prevTrack": "Föregående spår",
+      "nextTrack": "Nästa spår",
+      "play": "Spela upp",
+      "pause": "Pausa",
+      "muteOn": "Ljud på",
+      "muteOff": "Ljud av",
+      "noPlayback": "Ingen uppspelning",
+      "noStation": "Ingen station",
+      "prevDevice": "Föregående enhet",
+      "nextDevice": "Nästa enhet",
+      "playbackTitle": "Uppspelning"
+    },
+    "errors": {
+      "offlineTitle": "Enheten är offline"
+    },
+    "device": {
+      "standbyHint": "Enheten är i standby. Slå på den för att lyssna.",
+      "noControl": "Uppspelningen styrs på den anslutna enheten.",
+      "presetsTitle": "Sparade stationer",
+      "findStation": "Sök station",
+      "sourceChoose": "Välj källa",
+      "sourceCurrent": "Just nu: {{source}}",
+      "sourceSwitching": "Byter till {{source}}…",
+      "sourceSwitched": "Källa ändrad: {{source}}",
+      "sourceFailed": "Det gick inte att byta till {{source}}. Enheten svarar inte.",
+      "sourceRetry": "Försök igen",
+      "sourceStandby": "Slå på enheten för att byta källa.",
+      "sourceExternal": "{{source}} startades i appen och kan inte väljas här.",
+      "sourceRadio": "Radio startas från förinställningarna eller stationssökningen.",
+      "zoneMember": "Zon: medlem",
+      "zoneMaster": "Zon: master"
+    },
+    "presets": {
+      "assignPreset": "Tilldela station",
+      "changeStation": "Byt station",
+      "playPreset": "Spela {{name}}",
+      "removeDevice": "Ta bort enhet",
+      "sync": "Läs in från enheten"
+    },
+    "a11y": {
+      "volume": "Volym",
+      "deviceSelection": "Val av enhet",
+      "switchToDevice": "Byt till {{name}}"
+    }
+  }
+}

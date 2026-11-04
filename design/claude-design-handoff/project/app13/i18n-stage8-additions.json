@@ -1,0 +1,393 @@
+{
+  "de": {
+    "presets": {
+      "removeDevice": "Gerät entfernen",
+      "removeDeviceTitle": "Gerät entfernen?",
+      "removeDeviceOnline": "„{{name}}“ ist erreichbar. Beim Entfernen werden die gespeicherten Presets in OpenCloudTouch gelöscht. Das Gerät selbst wird nicht verändert und kann bei der nächsten Suche erneut hinzugefügt werden.",
+      "removeDeviceOffline": "„{{name}}“ ist offline. Es wird mit seinen gespeicherten Presets aus OpenCloudTouch entfernt. Sobald es wieder im Netzwerk ist, kann es bei der nächsten Suche erneut hinzugefügt werden.",
+      "removeDeviceConfirm": "Entfernen",
+      "deviceRemoved": "„{{name}}“ wurde entfernt.",
+      "noDevicesTitle": "Keine Geräte",
+      "noDevicesHint": "Suchen Sie in den Einstellungen nach Geräten oder fügen Sie eine IP-Adresse hinzu.",
+      "goToSettings": "Zu den Einstellungen",
+      "assignPreset": "Sender zuweisen",
+      "changeStation": "Sender ändern",
+      "playPreset": "{{name}} abspielen",
+      "sync": "Vom Gerät laden"
+    },
+    "player": {
+      "prevTrack": "Vorheriger Titel",
+      "nextTrack": "Nächster Titel",
+      "play": "Wiedergabe",
+      "pause": "Pause",
+      "playbackTitle": "Wiedergabe",
+      "localControl": "Lokale Steuerung"
+    },
+    "nav": {
+      "devices": "Geräte"
+    },
+    "devices": {
+      "title": "Geräte"
+    },
+    "device": {
+      "standbyHint": "Gerät im Standby. Einschalten, um Musik zu hören.",
+      "noControl": "Die Wiedergabe wird am angeschlossenen Gerät gesteuert.",
+      "presetsTitle": "Gespeicherte Sender",
+      "findStation": "Sender suchen",
+      "sourceChoose": "Quelle wählen",
+      "sourceCurrent": "Aktuell: {{source}}",
+      "sourceSwitching": "Wechsle zu {{source}}…",
+      "sourceSwitched": "Quelle gewechselt: {{source}}",
+      "sourceFailed": "Umschalten auf {{source}} fehlgeschlagen. Das Gerät antwortet nicht.",
+      "sourceFailedShort": "{{source}} nicht erreichbar",
+      "sourceRetry": "Erneut versuchen",
+      "sourceStandby": "Zum Umschalten das Gerät einschalten.",
+      "sourceExternal": "{{source}} wurde in der App gestartet und lässt sich hier nicht wählen.",
+      "sourceRadio": "Radio startet über die Presets oder die Sendersuche.",
+      "zoneMember": "Zone: Mitglied",
+      "zoneMaster": "Zone: Master",
+      "nowFrom": "Wiedergabe von",
+      "src": {
+        "presets": "Presets"
+      },
+      "more": "Mehr",
+      "idleTitle": "Kein Sender läuft",
+      "idleHint": "Wähle einen Preset, um zu starten.",
+      "viewOnlyHint": "Presets werden nur angezeigt. Die Wiedergabe startet erst beim Antippen.",
+      "standbyTitle": "Standby",
+      "auxTitle": "AUX-Eingang",
+      "auxHint": "Starte die Wiedergabe am angeschlossenen Gerät. Die Lautstärke regelst du hier.",
+      "btConnected": "Verbunden mit {{name}}",
+      "btPairName": "Name zum Koppeln: {{name}}",
+      "btPair": "Neues Gerät koppeln",
+      "btDisconnect": "Verbindung trennen",
+      "slaveHint": "Die Quelle bestimmt der Master {{master}}.",
+      "globalHint": "{{source}} wird in der App gesteuert. Titel wählst du dort.",
+      "manageSources": "Quellen verwalten",
+      "presetsEdit": "Bearbeiten",
+      "presetsEditDone": "Fertig",
+      "presetEdit": "Preset {{n}} ändern",
+      "presetPlaying": "Läuft",
+      "pickTitle": "Quelle wählen",
+      "pickActive": "Aktiv",
+      "pickEmpty": "Noch keine Quellen eingerichtet.",
+      "loadError": "Das Gerät konnte nicht geladen werden.",
+      "sourceChange": "Quelle wechseln",
+      "moreSources": "Weitere Quellen",
+      "pickExternal": "{{source}} (in der App gestartet)",
+      "pickViewing": "Wird angezeigt",
+      "presetPlay": "Preset {{n}} abspielen: {{name}}",
+      "presetPause": "Preset {{n}} pausieren: {{name}}",
+      "presetChange": "Sender für Preset {{n}} ändern",
+      "presetChangeShort": "Ändern",
+      "prRunning": "Läuft",
+      "prPaused": "Pausiert",
+      "prStarting": "Startet…",
+      "prFailed": "Start fehlgeschlagen",
+      "presetStarted": "{{name}} spielt (Preset {{n}})",
+      "presetPausedAnn": "{{name}} pausiert",
+      "presetFailedAnn": "Preset {{n}} ({{name}}) konnte nicht gestartet werden. Tippe erneut, um es nochmal zu versuchen."
+    },
+    "a11y": {
+      "volume": "Lautstärke",
+      "deviceSelection": "Geräteauswahl",
+      "switchToDevice": "Zu {{name}} wechseln"
+    },
+    "sources": {
+      "title": "Quellen",
+      "later": "Später",
+      "intro": "Quellen richtest du einmal für die ganze App ein. Wähle ein Gerät und dann eine Quelle, sie spielt auf diesem Gerät.",
+      "add": "Quelle hinzufügen",
+      "edit": "Bearbeiten",
+      "remove": "Entfernen",
+      "emptyTitle": "Noch keine Quellen",
+      "emptyText": "Füge einen Medienserver oder einen Streamingdienst hinzu, um ihn auf deinen Geräten abzuspielen.",
+      "loadError": "Quellen konnten nicht geladen werden.",
+      "itemError": "{{name}} antwortet nicht. Prüfe, ob sie eingeschaltet ist und im selben Netzwerk liegt.",
+      "status": {
+        "ok": "Verbunden",
+        "error": "Fehler",
+        "off": "Nicht erreichbar"
+      },
+      "type": {
+        "dlna": "Medienserver (DLNA)",
+        "spotify": "Spotify"
+      },
+      "addTitle": "Quelle hinzufügen",
+      "editTitle": "Quelle bearbeiten",
+      "typeLabel": "Art",
+      "serverLabel": "Im Netzwerk gefundener Server",
+      "serverHint": "Eingeschaltete Server erscheinen hier automatisch.",
+      "nameLabel": "Name",
+      "removeTitle": "{{name}} entfernen?",
+      "removeText": "Die Quelle verschwindet von allen Geräten. Läuft gerade Wiedergabe davon, wird sie beendet."
+    },
+    "common": {
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "close": "Schließen"
+    }
+  },
+  "en": {
+    "presets": {
+      "removeDevice": "Remove device",
+      "removeDeviceTitle": "Remove device?",
+      "removeDeviceOnline": "\"{{name}}\" is reachable. Removing it deletes its saved presets in OpenCloudTouch. The device itself is not changed and can be added again by the next scan.",
+      "removeDeviceOffline": "\"{{name}}\" is offline. It is removed from OpenCloudTouch together with its saved presets. Once it is back on the network, the next scan can add it again.",
+      "removeDeviceConfirm": "Remove",
+      "deviceRemoved": "\"{{name}}\" was removed.",
+      "noDevicesTitle": "No devices",
+      "noDevicesHint": "Scan for devices in Settings or add an IP address.",
+      "goToSettings": "Go to Settings",
+      "assignPreset": "Assign station",
+      "changeStation": "Change station",
+      "playPreset": "Play {{name}}",
+      "sync": "Load from device"
+    },
+    "player": {
+      "prevTrack": "Previous track",
+      "nextTrack": "Next track",
+      "play": "Play",
+      "pause": "Pause",
+      "playbackTitle": "Playback",
+      "localControl": "Local control"
+    },
+    "nav": {
+      "devices": "Devices"
+    },
+    "devices": {
+      "title": "Devices"
+    },
+    "device": {
+      "standbyHint": "Device on standby. Switch it on to listen.",
+      "noControl": "Playback is controlled on the connected device.",
+      "presetsTitle": "Saved stations",
+      "findStation": "Find station",
+      "sourceChoose": "Choose source",
+      "sourceCurrent": "Now: {{source}}",
+      "sourceSwitching": "Switching to {{source}}…",
+      "sourceSwitched": "Source changed: {{source}}",
+      "sourceFailed": "Switching to {{source}} failed. The device is not responding.",
+      "sourceFailedShort": "{{source}} unreachable",
+      "sourceRetry": "Try again",
+      "sourceStandby": "Switch the device on to change the source.",
+      "sourceExternal": "{{source}} was started in the app and cannot be chosen here.",
+      "sourceRadio": "Radio starts from the presets or the station search.",
+      "zoneMember": "Zone: member",
+      "zoneMaster": "Zone: master",
+      "nowFrom": "Playing from",
+      "src": {
+        "presets": "Presets"
+      },
+      "more": "More",
+      "idleTitle": "No station playing",
+      "idleHint": "Choose a preset to start.",
+      "viewOnlyHint": "Showing presets. Playback only starts when you tap one.",
+      "standbyTitle": "Standby",
+      "auxTitle": "AUX input",
+      "auxHint": "Start playback on the connected device. You control the volume here.",
+      "btConnected": "Connected to {{name}}",
+      "btPairName": "Pairing name: {{name}}",
+      "btPair": "Pair new device",
+      "btDisconnect": "Disconnect",
+      "slaveHint": "The source is set by master {{master}}.",
+      "globalHint": "{{source}} is controlled in its app. Choose tracks there.",
+      "manageSources": "Manage sources",
+      "presetsEdit": "Edit",
+      "presetsEditDone": "Done",
+      "presetEdit": "Change preset {{n}}",
+      "presetPlaying": "Playing",
+      "pickTitle": "Choose source",
+      "pickActive": "Active",
+      "pickEmpty": "No sources set up yet.",
+      "loadError": "The device could not be loaded.",
+      "sourceChange": "Change source",
+      "moreSources": "More sources",
+      "pickExternal": "{{source}} (started in the app)",
+      "pickViewing": "Shown",
+      "presetPlay": "Play preset {{n}}: {{name}}",
+      "presetPause": "Pause preset {{n}}: {{name}}",
+      "presetChange": "Change station for preset {{n}}",
+      "presetChangeShort": "Change",
+      "prRunning": "Playing",
+      "prPaused": "Paused",
+      "prStarting": "Starting…",
+      "prFailed": "Could not start",
+      "presetStarted": "{{name}} is playing (preset {{n}})",
+      "presetPausedAnn": "{{name}} paused",
+      "presetFailedAnn": "Preset {{n}} ({{name}}) could not be started. Tap it to try again."
+    },
+    "a11y": {
+      "volume": "Volume",
+      "deviceSelection": "Device selection",
+      "switchToDevice": "Switch to {{name}}"
+    },
+    "sources": {
+      "title": "Sources",
+      "later": "Later",
+      "intro": "Sources are set up once for the whole app. Choose a device, then a source, and it plays on that device.",
+      "add": "Add source",
+      "edit": "Edit",
+      "remove": "Remove",
+      "emptyTitle": "No sources yet",
+      "emptyText": "Add a media server or a streaming service to play it on your devices.",
+      "loadError": "Sources could not be loaded.",
+      "itemError": "{{name}} is not responding. Check that it is switched on and in the same network.",
+      "status": {
+        "ok": "Connected",
+        "error": "Error",
+        "off": "Not reachable"
+      },
+      "type": {
+        "dlna": "Media server (DLNA)",
+        "spotify": "Spotify"
+      },
+      "addTitle": "Add source",
+      "editTitle": "Edit source",
+      "typeLabel": "Type",
+      "serverLabel": "Server found in the network",
+      "serverHint": "Servers that are switched on appear here automatically.",
+      "nameLabel": "Name",
+      "removeTitle": "Remove {{name}}?",
+      "removeText": "The source disappears from all devices. Playback that is running from it stops."
+    },
+    "common": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "close": "Close"
+    }
+  },
+  "sv": {
+    "nav": {
+      "devices": "Enheter",
+      "zones": "Zoner",
+      "settings": "Inställningar",
+      "about": "Om"
+    },
+    "devices": {
+      "title": "Enheter"
+    },
+    "player": {
+      "powerButton": "Slå på eller av",
+      "prevTrack": "Föregående spår",
+      "nextTrack": "Nästa spår",
+      "play": "Spela upp",
+      "pause": "Pausa",
+      "muteOn": "Ljud på",
+      "muteOff": "Ljud av",
+      "noPlayback": "Ingen uppspelning",
+      "noStation": "Ingen station",
+      "prevDevice": "Föregående enhet",
+      "nextDevice": "Nästa enhet",
+      "playbackTitle": "Uppspelning"
+    },
+    "errors": {
+      "offlineTitle": "Enheten är offline"
+    },
+    "device": {
+      "standbyHint": "Enheten är i standby. Slå på den för att lyssna.",
+      "noControl": "Uppspelningen styrs på den anslutna enheten.",
+      "presetsTitle": "Sparade stationer",
+      "findStation": "Sök station",
+      "sourceChoose": "Välj källa",
+      "sourceCurrent": "Just nu: {{source}}",
+      "sourceSwitching": "Byter till {{source}}…",
+      "sourceSwitched": "Källa ändrad: {{source}}",
+      "sourceFailed": "Det gick inte att byta till {{source}}. Enheten svarar inte.",
+      "sourceFailedShort": "{{source}} nås inte",
+      "sourceRetry": "Försök igen",
+      "sourceStandby": "Slå på enheten för att byta källa.",
+      "sourceExternal": "{{source}} startades i appen och kan inte väljas här.",
+      "sourceRadio": "Radio startas från förinställningarna eller stationssökningen.",
+      "zoneMember": "Zon: medlem",
+      "zoneMaster": "Zon: master",
+      "nowFrom": "Spelar från",
+      "src": {
+        "presets": "Förval"
+      },
+      "more": "Mer",
+      "idleTitle": "Ingen station spelar",
+      "idleHint": "Välj ett förval för att starta.",
+      "viewOnlyHint": "Visar förval. Uppspelningen startar först när du trycker på ett.",
+      "standbyTitle": "Standby",
+      "auxTitle": "AUX-ingång",
+      "auxHint": "Starta uppspelningen på den anslutna enheten. Volymen styr du här.",
+      "btConnected": "Ansluten till {{name}}",
+      "btPairName": "Parkopplingsnamn: {{name}}",
+      "btPair": "Para ihop ny enhet",
+      "btDisconnect": "Koppla från",
+      "slaveHint": "Källan styrs av master {{master}}.",
+      "globalHint": "{{source}} styrs i appen. Välj spår där.",
+      "manageSources": "Hantera källor",
+      "presetsEdit": "Redigera",
+      "presetsEditDone": "Klar",
+      "presetEdit": "Ändra förval {{n}}",
+      "presetPlaying": "Spelar",
+      "pickTitle": "Välj källa",
+      "pickActive": "Aktiv",
+      "pickEmpty": "Inga källor har lagts till ännu.",
+      "loadError": "Enheten kunde inte läsas in.",
+      "sourceChange": "Byt källa",
+      "moreSources": "Fler källor",
+      "pickExternal": "{{source}} (startad i appen)",
+      "pickViewing": "Visas",
+      "presetPlay": "Spela förval {{n}}: {{name}}",
+      "presetPause": "Pausa förval {{n}}: {{name}}",
+      "presetChange": "Byt station för förval {{n}}",
+      "presetChangeShort": "Ändra",
+      "prRunning": "Spelar",
+      "prPaused": "Pausad",
+      "prStarting": "Startar…",
+      "prFailed": "Kunde inte starta",
+      "presetStarted": "{{name}} spelar (förval {{n}})",
+      "presetPausedAnn": "{{name}} pausad",
+      "presetFailedAnn": "Förval {{n}} ({{name}}) kunde inte startas. Tryck igen för att försöka på nytt."
+    },
+    "presets": {
+      "assignPreset": "Tilldela station",
+      "changeStation": "Byt station",
+      "playPreset": "Spela {{name}}",
+      "removeDevice": "Ta bort enhet",
+      "sync": "Läs in från enheten"
+    },
+    "a11y": {
+      "volume": "Volym",
+      "deviceSelection": "Val av enhet",
+      "switchToDevice": "Byt till {{name}}"
+    },
+    "sources": {
+      "title": "Källor",
+      "later": "Senare",
+      "intro": "Källor läggs till en gång för hela appen. Välj en enhet och sedan en källa, så spelar den på enheten.",
+      "add": "Lägg till källa",
+      "edit": "Redigera",
+      "remove": "Ta bort",
+      "emptyTitle": "Inga källor ännu",
+      "emptyText": "Lägg till en mediaserver eller streamingtjänst för att spela den på dina enheter.",
+      "loadError": "Källorna kunde inte läsas in.",
+      "itemError": "{{name}} svarar inte. Kontrollera att den är påslagen och på samma nätverk.",
+      "status": {
+        "ok": "Ansluten",
+        "error": "Fel",
+        "off": "Inte nåbar"
+      },
+      "type": {
+        "dlna": "Mediaserver (DLNA)",
+        "spotify": "Spotify"
+      },
+      "addTitle": "Lägg till källa",
+      "editTitle": "Redigera källa",
+      "typeLabel": "Typ",
+      "serverLabel": "Server som hittats i nätverket",
+      "serverHint": "Påslagna servrar visas här automatiskt.",
+      "nameLabel": "Namn",
+      "removeTitle": "Ta bort {{name}}?",
+      "removeText": "Källan försvinner från alla enheter. Pågående uppspelning från den stoppas."
+    },
+    "common": {
+      "save": "Spara",
+      "cancel": "Avbryt",
+      "close": "Stäng"
+    }
+  }
+}

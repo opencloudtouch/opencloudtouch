@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@keyframes oct-spin{to{transform:rotate(360deg)}}
+body{margin:0;background:#0d0d0d}
+a{color:#4a90d9}a:hover{color:#7fb2e8}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#0d0d0d;color:#e0e0e0;font-family:-apple-system,'Segoe UI',system-ui,sans-serif;display:flex;flex-direction:column">
+  <div style="position:sticky;top:0;z-index:5;background:#141414;border-bottom:1px solid #333;padding:12px 16px;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;flex-wrap:wrap;gap:6px 20px;align-items:center">
+      <div style="font-weight:700;font-size:14px;color:#fff">OCT Wizard · Stufe 1</div>
+      <div style="font-size:12px;color:#949494">Bausteine, Auswahl, Laden, Keine Geräte · Texte aus 12-de-wizard-texts.json</div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 20px">
+      <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Ansicht</span><sc-for list="{{ screens }}" as="b" hint-placeholder-count="4"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Breite</span><sc-for list="{{ widths }}" as="b" hint-placeholder-count="4"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Neustart-Button</span><sc-for list="{{ reboots }}" as="b" hint-placeholder-count="3"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Gerätename</span><sc-for list="{{ names }}" as="b" hint-placeholder-count="2"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+    </div>
+    <sc-if value="{{ isBlocks }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-wrap:wrap;gap:8px 20px">
+        <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Tracker</span><sc-for list="{{ modes }}" as="b" hint-placeholder-count="2"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Schritt</span><sc-for list="{{ stepBtns }}" as="b" hint-placeholder-count="5"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Weiter</span><sc-for list="{{ nexts }}" as="b" hint-placeholder-count="3"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="flex:1;overflow-x:auto;padding:24px 16px 64px">
+    <div style="{{ frameStyle }}">
+      <div style="height:48px;background:#0d0d0d;border-bottom:1px solid #333;display:flex;align-items:center;justify-content:center;font-size:12px;color:#949494;padding:0 16px;text-align:center">App-Shell (nicht Teil des Redesigns)</div>
+      <div style="{{ contentStyle }}">
+
+        <sc-if value="{{ showHeader }}" hint-placeholder-val="{{ true }}">
+          <div class="device-info-header" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;background:#2a2a2a;border:1px solid #3a3a3a;border-radius:12px;padding:16px">
+            <div style="flex:1 1 220px;min-width:0;display:flex;gap:12px;align-items:center">
+              <div style="flex:none;width:44px;height:44px;border-radius:8px;background:#323232;display:flex;align-items:center;justify-content:center;color:#4a90d9">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="16" height="20" x="4" y="2" rx="2"></rect><circle cx="12" cy="14" r="4"></circle><path d="M12 6h.01"></path></svg>
+              </div>
+              <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                <div style="font-size:17px;font-weight:700;color:#fff;overflow-wrap:anywhere;line-height:1.25">{{ deviceName }}</div>
+                <div style="font-size:14px;color:#b3b3b3;overflow-wrap:anywhere">SoundTouch 30 <span style="opacity:.5">•</span> <span style="font-family:ui-monospace,Menlo,Consolas,monospace">192.168.178.42</span></div>
+              </div>
+            </div>
+            <button class="device-reboot-btn" style="{{ rebootStyle }}">
+              <sc-if value="{{ rbIdle }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg></sc-if>
+              <sc-if value="{{ rbSent }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+              <sc-if value="{{ rbErr }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></sc-if>
+              {{ rebootLabel }}
+            </button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isChoice }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:20px">
+            <h1 style="margin:0;font-size:{{ h1Size }};line-height:1.2;color:#fff;font-weight:700">Was möchten Sie tun?</h1>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:16px">
+              <button class="wizard-choice__card wizard-choice__card--setup" style="text-align:left;font:inherit;color:inherit;cursor:pointer;background:#242424;border:1px solid #3a3a3a;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:12px;min-width:0;transition:transform .15s,border-color .15s" style-hover="transform:scale(1.02);border-color:#4a90d9" style-active="transform:scale(.98)" style-focus="outline:2px solid #0066cc;outline-offset:2px">
+                <span style="width:48px;height:48px;border-radius:12px;background:rgba(74,144,217,.15);color:#4a90d9;display:flex;align-items:center;justify-content:center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
+                <span style="font-size:20px;font-weight:700;color:#fff">Setup-Assistent</span>
+                <span style="font-size:15px;line-height:1.5;color:#b3b3b3">Gerät für OpenCloudTouch konfigurieren</span>
+              </button>
+              <button class="wizard-choice__card wizard-choice__card--restore" style="text-align:left;font:inherit;color:inherit;cursor:pointer;background:#242424;border:1px solid #3a3a3a;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:12px;min-width:0;transition:transform .15s,border-color .15s" style-hover="transform:scale(1.02);border-color:#4a90d9" style-active="transform:scale(.98)" style-focus="outline:2px solid #0066cc;outline-offset:2px">
+                <span style="width:48px;height:48px;border-radius:12px;background:rgba(74,144,217,.15);color:#4a90d9;display:flex;align-items:center;justify-content:center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg></span>
+                <span style="font-size:20px;font-weight:700;color:#fff">Wiederherstellungs-Assistent</span>
+                <span style="font-size:15px;line-height:1.5;color:#b3b3b3">Alle OCT-Änderungen rückgängig machen und Werkszustand wiederherstellen</span>
+              </button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isLoading }}" hint-placeholder-val="{{ false }}">
+          <div class="wizard-loading" role="status" aria-live="polite" style="background:#242424;border:1px solid #3a3a3a;border-radius:16px;padding:48px 24px;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center">
+            <span style="width:40px;height:40px;border:4px solid #3a3a3a;border-top-color:#4a90d9;border-radius:50%;animation:oct-spin .9s linear infinite;display:block"></span>
+            <span style="font-size:17px;color:#e0e0e0">Geräte werden geladen...</span>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+          <div class="wizard-empty-state" style="background:#242424;border:1px solid #3a3a3a;border-radius:16px;padding:40px 24px;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center">
+            <span style="width:64px;height:64px;border-radius:16px;background:#323232;color:#b3b3b3;display:flex;align-items:center;justify-content:center"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2"></rect><path d="M12 18h.01"></path></svg></span>
+            <h2 style="margin:0;font-size:22px;color:#fff">Keine Geräte gefunden</h2>
+            <p style="margin:0;max-width:44ch;font-size:15px;line-height:1.5;color:#b3b3b3;text-wrap:pretty">Bitte synchronisieren Sie zuerst Ihre SoundTouch-Geräte.</p>
+            <p class="wizard-empty-hint" style="margin:0;font-size:15px;line-height:1.5;color:#b3b3b3;max-width:44ch"><button class="inline-link-button" style="background:none;border:0;padding:0;font:inherit;color:#4a90d9;text-decoration:underline;cursor:pointer;min-height:44px;text-align:center" style-hover="opacity:.8">Gehen Sie zur Startseite und klicken Sie auf "Jetzt Geräte suchen".</button></p>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;max-width:320px">
+              <button style="width:100%;min-height:44px;background:#0066cc;color:#fff;border:1px solid #0066cc;border-radius:8px;font:500 16px inherit;display:inline-flex;gap:8px;align-items:center;justify-content:center;cursor:pointer" style-hover="background:#0052a3" style-focus="outline:2px solid #0066cc;outline-offset:2px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Zurück zur Startseite</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isBlocks }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:32px">
+
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="font:600 12px ui-monospace,Menlo,monospace;color:#949494;letter-spacing:.04em">4.3 FORTSCHRITTSANZEIGE</div>
+              <div class="progress-tracker" style="display:flex;flex-direction:column;gap:12px;background:#242424;border:1px solid #3a3a3a;border-radius:12px;padding:16px 8px 16px">
+                <sc-if value="{{ narrow }}"><div style="text-align:center;font-size:14px;color:#b3b3b3;padding:0 8px">{{ compactText }}</div></sc-if>
+                <div style="display:flex;align-items:flex-start">
+                  <sc-for list="{{ tsteps }}" as="s" hint-placeholder-count="8">
+                    <div class="progress-step" style="flex:1 1 0;min-width:0;position:relative;display:flex;flex-direction:column;align-items:center;gap:6px">
+                      <div style="{{ s.conn }}"></div>
+                      <div class="step-circle" role="img" aria-label="{{ s.aria }}" title="{{ s.aria }}" style="{{ s.circle }}">
+                        <sc-if value="{{ s.isDone }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+                        <sc-if value="{{ s.isErr }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></sc-if>
+                        <sc-if value="{{ s.isNum }}">{{ s.n }}</sc-if>
+                      </div>
+                      <div class="step-label" style="{{ s.label }}">{{ s.text }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="font-size:12px;color:#949494">Zustände</div>
+              <div style="display:flex;align-items:flex-start;background:#242424;border:1px solid #3a3a3a;border-radius:12px;padding:16px 8px">
+                <sc-for list="{{ legend }}" as="s" hint-placeholder-count="5">
+                  <div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px">
+                    <div style="{{ s.circle }}">
+                      <sc-if value="{{ s.isDone }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+                      <sc-if value="{{ s.isErr }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></sc-if>
+                      <sc-if value="{{ s.isNum }}">{{ s.n }}</sc-if>
+                    </div>
+                    <div style="font-size:12px;color:#b3b3b3;text-align:center;overflow-wrap:anywhere">{{ s.text }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="font:600 12px ui-monospace,Menlo,monospace;color:#949494;letter-spacing:.04em">4.4 SCHRITT-RAHMEN</div>
+              <div class="wizard-step" style="display:flex;flex-direction:column;gap:20px;background:#242424;border:1px solid #3a3a3a;border-radius:16px;padding:{{ cardPad }}">
+                <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
+                  <span class="wizard-step-number" style="font-size:13px;font-weight:700;color:#4a90d9;background:rgba(74,144,217,.15);border-radius:999px;padding:4px 12px">Schritt 1</span>
+                  <h2 class="wizard-step-title" style="margin:0;font-size:{{ h2Size }};line-height:1.25;color:#fff">USB-Stick vorbereiten</h2>
+                  <p class="wizard-step-description" style="margin:0;font-size:15px;line-height:1.5;color:#b3b3b3;text-wrap:pretty">Formatieren Sie einen USB-Stick und erstellen Sie die Konfigurationsdatei.</p>
+                </div>
+                <div class="wizard-warning" role="alert" style="display:flex;gap:12px;align-items:flex-start;background:rgba(255,193,7,.10);border:1px solid rgba(255,193,7,.45);border-radius:8px;padding:12px 16px">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffc107" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:1px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+                  <span style="font-size:15px;line-height:1.5;color:#e0e0e0">Der USB-Stick wird vollständig gelöscht! Sichern Sie vorher alle Daten.</span>
+                </div>
+                <div class="wizard-step-content" style="font-size:15px;color:#b3b3b3;border:1px dashed #3a3a3a;border-radius:8px;padding:16px;text-align:center">Schrittinhalt</div>
+                <div class="wizard-step-actions" style="{{ actionsStyle }}">
+                  <button class="wizard-btn-previous" style="{{ backStyle }}" style-hover="background:#323232"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>Zurück</button>
+                  <div class="wizard-actions-right" style="{{ rightStyle }}">
+                    <button class="wizard-btn-skip" style="{{ skipStyle }}" style-hover="color:#fff">Überspringen</button>
+                    <sc-if value="{{ nextDisabled }}"><div class="wizard-next-hint" role="status" style="{{ hintStyle }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;margin-right:4px"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>Bitte alle Schritte oben abhaken, um fortzufahren.</div></sc-if>
+                    <button class="wizard-btn-next" title="{{ nextTitle }}" style="{{ nextStyle }}">
+                      <sc-if value="{{ nextLoading }}"><span class="spinner-small" style="width:16px;height:16px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:oct-spin .8s linear infinite;display:block"></span></sc-if>
+                      {{ nextLabel }}
+                      <sc-if value="{{ nextArrow }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></sc-if>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="font:600 12px ui-monospace,Menlo,monospace;color:#949494;letter-spacing:.04em">4.5 STATUS-BOXEN</div>
+              <sc-for list="{{ statuses }}" as="b" hint-placeholder-count="5">
+                <div role="status" style="{{ b.box }}">
+                  <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex:none">
+                    <sc-if value="{{ b.isInfo }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></sc-if>
+                    <sc-if value="{{ b.isOk }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></sc-if>
+                    <sc-if value="{{ b.isWarn }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></sc-if>
+                    <sc-if value="{{ b.isErr }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg></sc-if>
+                    <sc-if value="{{ b.isLoad }}"><span style="width:20px;height:20px;border:3px solid rgba(74,144,217,.3);border-top-color:#4a90d9;border-radius:50%;animation:oct-spin .9s linear infinite;display:block"></span></sc-if>
+                  </div>
+                  <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                    <div style="font-weight:700;color:#fff;font-size:15px">{{ b.title }}</div>
+                    <div style="font-size:14px;line-height:1.5;color:#e0e0e0;overflow-wrap:anywhere">{{ b.text }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:24px">
+              <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+                <div style="font:600 12px ui-monospace,Menlo,monospace;color:#949494;letter-spacing:.04em">NUMMERIERTE LISTE</div>
+                <div style="background:#2a2a2a;border:1px solid #3a3a3a;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:16px">
+                  <sc-for list="{{ numlist }}" as="it" hint-placeholder-count="3">
+                    <div style="display:flex;gap:12px;align-items:flex-start">
+                      <span style="flex:none;width:32px;height:32px;border-radius:50%;background:rgba(74,144,217,.15);color:#4a90d9;font-weight:700;display:flex;align-items:center;justify-content:center">{{ it.n }}</span>
+                      <div style="min-width:0"><div style="font-weight:700;color:#fff;font-size:15px">{{ it.title }}</div><div style="font-size:14px;line-height:1.5;color:#b3b3b3;overflow-wrap:anywhere">{{ it.text }}</div></div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+                <div style="font:600 12px ui-monospace,Menlo,monospace;color:#949494;letter-spacing:.04em">CHECKLISTE</div>
+                <div class="verify-checklist" style="background:#2a2a2a;border:1px solid #3a3a3a;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px">
+                  <sc-for list="{{ checks }}" as="c" hint-placeholder-count="5">
+                    <div style="{{ c.row }}">
+                      <span style="flex:none;width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:{{ c.color }}">
+                        <sc-if value="{{ c.ok }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+                        <sc-if value="{{ c.bad }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></sc-if>
+                      </span>
+                      <span style="min-width:0;overflow-wrap:anywhere;font-size:14px;line-height:1.5;color:#e0e0e0;{{ c.textStyle }}">{{ c.text }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="font:600 12px ui-monospace,Menlo,monospace;color:#949494;letter-spacing:.04em">CODE, DIFF, PFAD-CHIPS</div>
+              <div style="display:flex;align-items:stretch;background:#0d0d0d;border:1px solid #3a3a3a;border-radius:8px;min-width:0">
+                <pre style="margin:0;padding:12px 16px;flex:1 1 0;min-width:0;overflow-x:auto;font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#e0e0e0">ssh -o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no root@192.168.178.42</pre>
+                <button aria-label="Befehl kopieren" style="flex:none;width:44px;min-height:44px;background:transparent;border:0;border-left:1px solid #3a3a3a;color:#b3b3b3;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="color:#fff;background:#1a1a1a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg></button>
+              </div>
+              <pre style="margin:0;padding:12px 16px;overflow-x:auto;background:#0d0d0d;border:1px solid #3a3a3a;border-radius:8px;font:13px/1.6 ui-monospace,Menlo,Consolas,monospace;color:#b3b3b3"><span style="color:#ef5350">- &lt;Bose&gt;https://streaming.bose.com/api/v1/sourceproviders&lt;/Bose&gt;</span>
+<span style="color:#81c784">+ &lt;Bose&gt;http://192.168.178.20:7777/bmx/sourceproviders&lt;/Bose&gt;</span></pre>
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <code style="max-width:100%;overflow-wrap:anywhere;background:#323232;border:1px solid #3a3a3a;border-radius:8px;padding:6px 10px;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#e0e0e0">/media/usb/oct-backup/20251020-142530/persistent.tar.gz</code>
+                <code style="max-width:100%;overflow-wrap:anywhere;background:#323232;border:1px solid #3a3a3a;border-radius:8px;padding:6px 10px;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#e0e0e0">http://192.168.178.20:7777</code>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="font:600 12px ui-monospace,Menlo,monospace;color:#949494;letter-spacing:.04em">BUTTONS</div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:12px">
+                <button style="min-height:44px;padding:0 16px;background:#0066cc;color:#fff;border:1px solid #0066cc;border-radius:8px;font:500 16px inherit;cursor:pointer" style-hover="background:#0052a3">Primär</button>
+                <button style="min-height:44px;padding:0 16px;background:transparent;color:#e0e0e0;border:1px solid #4d4d4d;border-radius:8px;font:500 16px inherit;cursor:pointer" style-hover="background:#323232">Sekundär</button>
+                <button style="min-height:44px;padding:0 16px;background:transparent;color:#4a90d9;border:1px solid #4a90d9;border-radius:8px;font:500 16px inherit;cursor:pointer" style-hover="background:rgba(74,144,217,.12)">Outline</button>
+                <button style="min-height:44px;padding:0 16px;background:transparent;color:#b3b3b3;border:1px solid transparent;border-radius:8px;font:500 16px inherit;cursor:pointer" style-hover="color:#fff;background:#2a2a2a">Ghost</button>
+                <button style="min-height:44px;padding:0 16px;background:#0066cc;color:#fff;border:1px solid #0066cc;border-radius:8px;font:500 16px inherit;display:inline-flex;gap:8px;align-items:center;justify-content:center"><span style="width:16px;height:16px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:oct-spin .8s linear infinite;display:block"></span>Laden...</button>
+                <button disabled="{{ true }}" style="min-height:44px;padding:0 16px;background:#0066cc;color:#fff;border:1px solid #0066cc;border-radius:8px;font:500 16px inherit;opacity:.3">Deaktiviert</button>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="font:600 12px ui-monospace,Menlo,monospace;color:#949494;letter-spacing:.04em">WAHLKARTEN (RISK-CARD)</div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px">
+                <sc-for list="{{ riskCards }}" as="r" hint-placeholder-count="3">
+                  <button style="{{ r.style }}">
+                    <span style="display:flex;justify-content:space-between;align-items:center;width:100%">
+                      <span style="color:{{ r.color }};display:flex"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg></span>
+                      <sc-if value="{{ r.selected }}"><span style="display:flex;align-items:center;gap:4px;font-size:13px;font-weight:700;color:{{ r.color }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Ausgewählt</span></sc-if>
+                    </span>
+                    <span style="font-weight:700;color:#fff;font-size:16px">{{ r.title }}</span>
+                    <sc-if value="{{ r.text }}"><span style="font-size:14px;line-height:1.5;color:#b3b3b3">{{ r.text }}</span></sc-if>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="font:600 12px ui-monospace,Menlo,monospace;color:#949494;letter-spacing:.04em">FORMULARFELDER</div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <label for="oct-url-demo" style="font-size:14px;font-weight:500;color:#e0e0e0">Server URL:</label>
+                <input id="oct-url-demo" class="config-input" defaultValue="http://192.168.178.20:7777/bmx/services/with/a/very/long/path/that/scrolls/inside/the/field" style="box-sizing:border-box;width:100%;min-height:44px;padding:0 12px;background:#1a1a1a;color:#e0e0e0;border:1px solid #4d4d4d;border-radius:8px;font:16px ui-monospace,Menlo,Consolas,monospace;text-overflow:clip"/>
+                <div style="font-size:13px;color:#949494;line-height:1.5">Beispiele: http://192.168.1.100:7777, oct.local, 192.168.1.100:8080</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <label for="oct-ip-demo" style="font-size:14px;font-weight:500;color:#e0e0e0">OpenCloudTouch Server IP:</label>
+                <input id="oct-ip-demo" aria-invalid="true" defaultValue="192.168.178" style="box-sizing:border-box;width:100%;min-height:44px;padding:0 12px;background:#1a1a1a;color:#e0e0e0;border:1px solid #f44336;border-radius:8px;font:16px ui-monospace,Menlo,Consolas,monospace"/>
+                <div role="alert" style="display:flex;gap:8px;align-items:flex-start;background:rgba(244,67,54,.10);border:1px solid rgba(244,67,54,.45);border-radius:8px;padding:10px 12px;font-size:14px;line-height:1.5;color:#e0e0e0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f44336" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:2px"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg><span style="min-width:0;overflow-wrap:anywhere">Eingabe ungültig</span></div>
+              </div>
+            </div>
+
+          </div>
+        </sc-if>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { screen: 'choice', width: 375, reboot: 'idle', long: false, mode: 'setup', step: 3, next: 'disabled' };
+  renderVals() {
+    const s = this.state, w = s.width, narrow = w <= 600, vn = w <= 400;
+    const set = (k, v) => () => this.setState({ [k]: v });
+    const pill = on => ({ minHeight: 32, padding: '0 12px', borderRadius: 999, border: '1px solid ' + (on ? '#4a90d9' : '#3a3a3a'), background: on ? 'rgba(74,144,217,.2)' : 'transparent', color: on ? '#fff' : '#b3b3b3', font: '500 13px inherit', cursor: 'pointer' });
+    const group = (key, items) => items.map(([v, label]) => ({ label, on: set(key, v), style: pill(s[key] === v) }));
+    const mono = 'ui-monospace,Menlo,Consolas,monospace';
+    const pad = narrow ? 16 : 24;
+    const names = ['Wohnzimmer', 'Werkstatt-Lautsprecher Obergeschoss links'];
+    const rb = s.reboot;
+    const rbBase = { flex: narrow ? '1 1 100%' : '0 0 auto', minHeight: 44, padding: '0 16px', borderRadius: 8, font: '500 15px inherit', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: rb === 'idle' ? 'pointer' : 'default' };
+    const rbStyle = rb === 'idle' ? { ...rbBase, background: 'transparent', color: '#e0e0e0', border: '1px solid #4d4d4d' }
+      : rb === 'sent' ? { ...rbBase, background: 'rgba(76,175,80,.12)', color: '#81c784', border: '1px solid #4caf50', opacity: .85 }
+      : { ...rbBase, background: 'rgba(244,67,54,.12)', color: '#ef5350', border: '1px solid #f44336' };
+    // tracker
+    const labelsSetup = ['USB', 'Neustart', 'Backup', 'Verbindung', 'DNS', 'NTP', 'Prüfung', 'Fertig'];
+    const labelsRestore = ['Auswahl', 'Backup', 'Wiederherstellen', 'Prüfen', 'Fertig'];
+    const labels = s.mode === 'setup' ? labelsSetup : labelsRestore;
+    const N = labels.length, cur = Math.min(s.step, N);
+    const cs = vn ? 28 : narrow ? 32 : 40;
+    const circle = st => {
+      const base = { width: cs, height: cs, borderRadius: '50%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: vn ? 13 : 15, position: 'relative', zIndex: 1, flex: 'none' };
+      if (st === 'done') return { ...base, background: '#4caf50', color: '#0d0d0d', border: '2px solid #4caf50' };
+      if (st === 'err') return { ...base, background: '#f44336', color: '#0d0d0d', border: '2px solid #f44336' };
+      if (st === 'active') return { ...base, background: '#0066cc', color: '#fff', border: '2px solid #4a90d9', transform: 'scale(1.12)' };
+      if (st === 'prog') return { ...base, background: '#0066cc', color: '#fff', border: '2px solid #4a90d9', boxShadow: '0 0 0 4px rgba(74,144,217,.35)' };
+      return { ...base, background: '#1a1a1a', color: '#b3b3b3', border: '2px solid #4d4d4d' };
+    };
+    const labelStyle = on => narrow ? { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } : { fontSize: 12, lineHeight: 1.3, textAlign: 'center', overflowWrap: 'anywhere', padding: '0 2px', color: on ? '#fff' : '#b3b3b3', fontWeight: on ? 700 : 400 };
+    const mk = (st, n, text, i, prevDone) => ({
+      n, text, circle: circle(st), isDone: st === 'done', isErr: st === 'err', isNum: st !== 'done' && st !== 'err',
+      aria: `Schritt ${n}: ${text}`, label: labelStyle(st === 'active'),
+      conn: (i === 0 || vn) ? { display: 'none' } : { position: 'absolute', top: cs / 2 - 1, left: `calc(-50% + ${cs / 2 + 4}px)`, width: `calc(100% - ${cs + 8}px)`, height: 2, background: prevDone ? '#4caf50' : '#3a3a3a', zIndex: 0 }
+    });
+    const tsteps = labels.map((t, i) => { const n = i + 1; const st = n < cur ? 'done' : n === cur ? 'active' : 'pend'; return mk(st, n, t, i, n <= cur); });
+    const legend = [['pend', 'Offen'], ['active', 'Aktiv'], ['prog', 'Läuft'], ['done', 'Erledigt'], ['err', 'Fehler']].map(([st, t], i) => mk(st, i + 1, t, 0, false)).map(x => ({ ...x, label: undefined }));
+    // step frame
+    const nx = s.next, nd = nx === 'disabled';
+    const btn = { minHeight: 44, borderRadius: 8, font: '500 16px inherit', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '0 20px', cursor: 'pointer', width: narrow ? '100%' : 'auto' };
+    const status = (kind, title, text, color, bg, border) => ({ title, text, isInfo: kind === 'i', isOk: kind === 'o', isWarn: kind === 'w', isErr: kind === 'e', isLoad: kind === 'l', box: { display: 'flex', gap: 12, alignItems: 'flex-start', background: bg, border: '1px solid ' + border, borderRadius: 12, padding: '14px 16px', color, minWidth: 0 } });
+    const risk = (title, text, mode) => ({
+      title, text, selected: mode !== 'def', color: mode === 'danger' ? '#ef5350' : mode === 'sel' ? '#4a90d9' : '#b3b3b3',
+      style: { textAlign: 'left', font: 'inherit', cursor: 'pointer', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8, padding: 16, borderRadius: 12, background: mode === 'danger' ? 'rgba(244,67,54,.08)' : mode === 'sel' ? 'rgba(74,144,217,.10)' : '#2a2a2a', border: '2px solid ' + (mode === 'danger' ? '#f44336' : mode === 'sel' ? '#4a90d9' : '#3a3a3a') }
+    });
+    const chk = (text, kind, indent) => ({ text, ok: kind === 'ok', bad: kind === 'bad', color: kind === 'ok' ? '#81c784' : '#ef5350', row: { display: 'flex', gap: 8, alignItems: 'flex-start', paddingLeft: indent ? 20 : 0, minWidth: 0 }, textStyle: '' });
+    return {
+      screens: group('screen', [['choice', 'Auswahl'], ['loading', 'Laden'], ['empty', 'Keine Geräte'], ['blocks', 'Bausteine']]),
+      widths: group('width', [[320, '320'], [375, '375'], [768, '768'], [1280, '1280']]),
+      reboots: group('reboot', [['idle', 'Bereit'], ['sent', 'Gesendet'], ['err', 'Fehler']]),
+      names: group('long', [[false, 'Kurz'], [true, 'Lang']]),
+      modes: group('mode', [['setup', 'Setup (8)'], ['restore', 'Restore (5)']]),
+      stepBtns: Array.from({ length: 8 }, (_, i) => i + 1).filter(n => n <= N).map(n => ({ label: String(n), on: set('step', n), style: pill(cur === n) })),
+      nexts: group('next', [['enabled', 'Aktiv'], ['disabled', 'Deaktiviert'], ['loading', 'Lädt']]),
+      isChoice: s.screen === 'choice', isLoading: s.screen === 'loading', isEmpty: s.screen === 'empty', isBlocks: s.screen === 'blocks',
+      showHeader: s.screen === 'choice' || s.screen === 'blocks',
+      frameStyle: { width: w, boxSizing: 'border-box', margin: '0 auto', background: '#1a1a1a', border: '1px solid #333', minHeight: 640, flex: 'none' },
+      contentStyle: { maxWidth: 720, margin: '0 auto', padding: `24px ${pad}px 48px`, display: 'flex', flexDirection: 'column', gap: 24 },
+      deviceName: names[s.long ? 1 : 0], rebootStyle: rbStyle, rbIdle: rb === 'idle', rbSent: rb === 'sent', rbErr: rb === 'err',
+      rebootLabel: rb === 'idle' ? 'Gerät neu starten' : rb === 'sent' ? 'Neustart-Befehl gesendet' : '',
+      h1Size: narrow ? '24px' : '30px', h2Size: narrow ? '20px' : '24px', cardPad: narrow ? '20px 16px' : '28px',
+      narrow, compactText: `Schritt ${cur} von ${N} – ${labels[cur - 1]}`, tsteps, legend,
+      actionsStyle: { display: 'flex', flexDirection: narrow ? 'column-reverse' : 'row', justifyContent: 'space-between', alignItems: narrow ? 'stretch' : 'center', gap: 12, paddingTop: 16, borderTop: '1px solid #3a3a3a' },
+      backStyle: { ...btn, background: 'transparent', color: '#e0e0e0', border: '1px solid #4d4d4d' },
+      rightStyle: { display: 'flex', flexDirection: narrow ? 'column' : 'row', alignItems: narrow ? 'stretch' : 'center', gap: narrow ? 12 : 12, minWidth: 0, justifyContent: 'flex-end' },
+      skipStyle: { ...btn, background: 'transparent', color: '#b3b3b3', border: '1px solid transparent', order: narrow ? 1 : 0 },
+      hintStyle: { order: narrow ? -1 : 0, fontSize: 13, lineHeight: 1.5, color: '#b3b3b3', textAlign: narrow ? 'left' : 'right', maxWidth: narrow ? 'none' : 260 },
+      nextStyle: { ...btn, background: '#0066cc', color: '#fff', border: '1px solid #0066cc', opacity: nd ? .3 : 1, cursor: nd ? 'not-allowed' : 'pointer', order: 0 },
+      nextDisabled: nd, nextLoading: nx === 'loading', nextArrow: nx !== 'loading',
+      nextLabel: nx === 'loading' ? 'Laden...' : 'Weiter', nextTitle: nd ? 'Bitte alle Schritte oben abhaken, um fortzufahren.' : '',
+      statuses: [
+        status('i', 'Optionaler Schritt', 'Dieser Schritt ist optional und kann übersprungen werden — das Gerät behält dann seine bisherige NTP-Konfiguration.', '#e0e0e0', 'rgba(74,144,217,.08)', 'rgba(74,144,217,.45)'),
+        status('o', 'Backup erfolgreich erstellt!', 'Die Backups wurden auf Ihren USB-Stick geschrieben. Ziehen Sie den Stick nach dem Wizard ab.', '#81c784', 'rgba(76,175,80,.10)', 'rgba(76,175,80,.5)'),
+        status('w', 'DNS-Warnung', 'Dieser Hostname konnte nicht per DNS aufgelöst werden. Der Lautsprecher kann Ihren Server möglicherweise nicht erreichen.', '#ffc107', 'rgba(255,193,7,.10)', 'rgba(255,193,7,.5)'),
+        status('e', 'Backup fehlgeschlagen', 'Zeitüberschreitung nach 180 s.', '#ef5350', 'rgba(244,67,54,.10)', 'rgba(244,67,54,.55)'),
+        status('l', 'Backup wird erstellt für Wohnzimmer', 'Dies kann bis zu 2 Minuten dauern...', '#4a90d9', 'rgba(74,144,217,.08)', 'rgba(74,144,217,.45)')
+      ],
+      numlist: [
+        { n: 1, title: 'USB-Stick einstecken', text: 'Stecken Sie den vorbereiteten USB-Stick in das Gerät ein.' },
+        { n: 2, title: 'Stromversorgung trennen', text: 'Ziehen Sie das Netzteil des Geräts ab.' },
+        { n: 3, title: '10 Sekunden warten', text: 'Warten Sie mindestens 10 Sekunden.' }
+      ],
+      checks: [chk('UUID in Datenbank registriert', 'ok'), chk('Alle benötigten Quellen vorhanden', 'ok'), { ...chk('/etc/hosts:', 'none'), ok: false, bad: false, textStyle: `font-family:${mono};color:#b3b3b3;margin-top:6px` }, chk('OCT-Block in /etc/hosts vorhanden', 'ok', true), chk('Einige benötigte Domains fehlen in /etc/hosts', 'bad', true)],
+      riskCards: [risk('Nicht dauerhaft halten', '', 'def'), risk('SSH dauerhaft aktivieren', '', 'sel'), risk('SSH dauerhaft aktivieren', 'Dauerhafter SSH wird nicht empfohlen. Unbekannte Faktoren oder offene Netzwerke erhöhen das Risiko erheblich.', 'danger')]
+    };
+  }
+}
+
+</script>
+</body>
+</html>

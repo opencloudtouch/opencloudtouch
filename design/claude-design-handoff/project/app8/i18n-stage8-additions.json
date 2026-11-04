@@ -1,0 +1,28 @@
+{
+  "de": {
+    "presets": {
+      "removeDevice": "Gerät entfernen",
+      "removeDeviceTitle": "Gerät entfernen?",
+      "removeDeviceOnline": "„{{name}}“ ist erreichbar. Beim Entfernen werden die gespeicherten Presets in OpenCloudTouch gelöscht. Das Gerät selbst wird nicht verändert und kann bei der nächsten Suche erneut hinzugefügt werden.",
+      "removeDeviceOffline": "„{{name}}“ ist offline. Es wird mit seinen gespeicherten Presets aus OpenCloudTouch entfernt. Sobald es wieder im Netzwerk ist, kann es bei der nächsten Suche erneut hinzugefügt werden.",
+      "removeDeviceConfirm": "Entfernen",
+      "deviceRemoved": "„{{name}}“ wurde entfernt.",
+      "noDevicesTitle": "Keine Geräte",
+      "noDevicesHint": "Suchen Sie in den Einstellungen nach Geräten oder fügen Sie eine IP-Adresse hinzu.",
+      "goToSettings": "Zu den Einstellungen"
+    }
+  },
+  "en": {
+    "presets": {
+      "removeDevice": "Remove device",
+      "removeDeviceTitle": "Remove device?",
+      "removeDeviceOnline": "\"{{name}}\" is reachable. Removing it deletes its saved presets in OpenCloudTouch. The device itself is not changed and can be added again by the next scan.",
+      "removeDeviceOffline": "\"{{name}}\" is offline. It is removed from OpenCloudTouch together with its saved presets. Once it is back on the network, the next scan can add it again.",
+      "removeDeviceConfirm": "Remove",
+      "deviceRemoved": "\"{{name}}\" was removed.",
+      "noDevicesTitle": "No devices",
+      "noDevicesHint": "Scan for devices in Settings or add an IP address.",
+      "goToSettings": "Go to Settings"
+    }
+  }
+}

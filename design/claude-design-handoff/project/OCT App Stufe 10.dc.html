@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>body{margin:0;background:#0d0d0d}</style>
+</helmet>
+<div style="min-height:100vh;background:#0d0d0d;color:#e0e0e0;font-family:-apple-system,'Segoe UI',system-ui,sans-serif;display:flex;flex-direction:column">
+  <div style="max-height:46vh;overflow:auto;background:#141414;border-bottom:1px solid #333;padding:12px 16px;display:flex;flex-direction:column;gap:8px">
+    <div style="font-weight:700;font-size:14px;color:#fff">OCT App · Stufe 10 · Die Gerätekarte (Seite „Geräte“)</div>
+    <div style="font-size:12px;color:#b3b3b3;line-height:1.5">Alles zu einem Gerät auf einer Karte. Klickbar im Frame: Wiedergabe/Pause, Ein/Aus, Stumm, Preset wählen, Quelle (Bluetooth, AUX, AirPlay) wechseln, Quelle ein-/ausklappen. Wischen und Pfeile wechseln das Gerät (Schlafzimmer ist offline).</div>
+    <sc-for list="{{ groups }}" as="g" hint-placeholder-count="8">
+      <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px;min-width:64px">{{ g.label }}</span><sc-for list="{{ g.buttons }}" as="b" hint-placeholder-count="4"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+    </sc-for>
+  </div>
+  <div style="flex:1;overflow:auto;padding:16px 16px 48px">
+    <div style="display:flex;justify-content:center"><iframe key="{{ nonce }}" src="{{ src }}" title="Stufe 10" style="{{ frameStyle }}"></iframe></div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { c: 'radiop', zone: 'none', sw: 'idle', fail: '0', ap: '1', lang: 'de', long: '0', theme: 'dark', so: '0', name: 'std', width: 390, height: 844, nonce: 0 };
+  renderVals() {
+    const s = this.state;
+    const pill = (on) => ({ minHeight: 32, padding: '6px 12px', lineHeight: '1.2', flexShrink: 0, whiteSpace: 'nowrap', borderRadius: 999, border: '1px solid ' + (on ? '#4a90d9' : '#3a3a3a'), background: on ? 'rgba(74,144,217,.2)' : 'transparent', color: on ? '#fff' : '#b3b3b3', fontSize: 13, fontWeight: 500, fontFamily: 'inherit', cursor: 'pointer' });
+    const set = (o) => this.setState({ ...o, nonce: this.state.nonce + 1 });
+    const grp = (label, key, opts) => ({ label, buttons: opts.map(([v, l]) => ({ label: l, style: pill(s[key] === v), on: () => set({ [key]: v }) })) });
+    const groups = [
+      grp('Wiedergabe', 'c', [['radiop', 'Radio per Preset'], ['radio', 'Radio ohne Preset'], ['bt', 'Bluetooth'], ['btnc', 'Bluetooth ohne Cover'], ['airplay', 'AirPlay'], ['spotify', 'Spotify'], ['dlna', 'DLNA'], ['aux', 'AUX'], ['standby', 'Standby'], ['offline', 'Gerät offline']]),
+      grp('Umschalten', 'sw', [['idle', 'Bereit'], ['switching', 'Wird umgeschaltet'], ['failed', 'Fehlgeschlagen']]),
+      grp('Klick auf Quelle', 'fail', [['0', 'gelingt'], ['1', 'schlägt fehl']]),
+      grp('Quellen', 'so', [['0', 'eingeklappt'], ['1', 'ausgeklappt']]),
+      grp('AirPlay-fähig', 'ap', [['1', 'Ja (3 Quellen)'], ['0', 'Nein (2 Quellen)']]),
+      grp('Zone', 'zone', [['none', 'Keine'], ['master', 'Master'], ['member', 'Slave']]),
+      grp('Texte', 'lang', [['de', 'Deutsch'], ['sv', 'Svenska']]),
+      grp('Länge', 'long', [['0', 'Normal'], ['1', 'Sehr lang (Titel, Name)']]),
+      grp('Thema', 'theme', [['dark', 'Dunkel'], ['light', 'Hell']]),
+    ];
+    const sizes = [[320, 568], [390, 844], [768, 1024], [1280, 900]];
+    groups.push({ label: 'Größe', buttons: sizes.map(([w, h]) => ({ label: w + '×' + h, style: pill(s.width === w), on: () => set({ width: w, height: h }) })) });
+    const idx = s.c === 'offline' ? 2 : 0;
+    const q = ['c=' + s.c, 'zone=' + s.zone, 'sw=' + s.sw, 'swt=aux', 'fail=' + s.fail, 'ap=' + s.ap, 'lang=' + s.lang, 'long=' + s.long, 'theme=' + s.theme, 'so=' + s.so, 'name=' + (s.long === '1' ? 'long' : 'std')].join('&');
+    return {
+      groups, nonce: s.nonce,
+      src: 'app10/stage10-frame.html?page=devices&v=after&dev=5&off=2&i=' + idx + '&' + q,
+      frameStyle: { display: 'block', width: s.width, maxWidth: '100%', height: s.height, border: '1px solid #333', background: s.theme === 'light' ? '#f1f3f6' : '#1a1a1a' }
+    };
+  }
+}
+
+</script>
+</body>
+</html>

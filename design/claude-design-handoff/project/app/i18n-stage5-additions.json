@@ -1,0 +1,103 @@
+{
+  "de": {
+    "presets": {
+      "unknownDevice": "Unbekanntes Gerät",
+      "unknownModel": "Unbekanntes Modell",
+      "unknownIp": "Unbekannte IP",
+      "searchHint": "Mindestens 2 Zeichen eingeben, um zu suchen.",
+      "manualInvalidUrl": "Bitte eine gültige HTTP- oder HTTPS-Adresse eingeben.",
+      "searchTypeGroup": "Suchen nach",
+      "providerGroup": "Quelle",
+      "searchResults": "Suchergebnisse",
+      "infoItem3": "Der Play-Button rechts im Preset spielt den Sender direkt ab",
+      "infoItem5": "Das Status-Symbol oben rechts an der Gerätekarte öffnet den Setup-Wizard für das Gerät"
+    },
+    "player": {
+      "source": {
+        "bluetooth": "Bluetooth",
+        "radio": "Radio",
+        "aux": "AUX",
+        "airplay": "AirPlay",
+        "dlna": "DLNA",
+        "tv": "TV / HDMI",
+        "spotify": "Spotify",
+        "deezer": "Deezer",
+        "pandora": "Pandora",
+        "amazon": "Amazon Music",
+        "storedMusic": "Mediathek"
+      }
+    },
+    "stationDetail": {
+      "codec": "Codec",
+      "bitrate": "Bitrate",
+      "homepage": "Homepage"
+    },
+    "manualIpModal": {
+      "placeholder": "Beispiel:\n192.168.1.100\n192.168.1.101\n192.168.1.102",
+      "saved": "IP-Adressen gespeichert!"
+    },
+    "discovery": {
+      "deviceSaved": "Gespeichert"
+    },
+    "setupBadge": {
+      "unknown": "Setup-Status unbekannt",
+      "unconfigured": "Nicht eingerichtet",
+      "configured": "Eingerichtet",
+      "pending": "Einrichtung läuft",
+      "failed": "Einrichtung fehlgeschlagen",
+      "outdated": "Setup veraltet",
+      "offline": "Gerät offline"
+    },
+    "statusBadge": {
+      "unknown": "Unbekannt",
+      "unconfigured": "Nicht eingerichtet",
+      "configured": "Eingerichtet",
+      "pending": "Ausstehend",
+      "failed": "Fehlgeschlagen",
+      "outdated": "Veraltet",
+      "offline": "Offline"
+    }
+  },
+  "en": {
+    "presets": {
+      "unknownDevice": "Unknown device",
+      "unknownModel": "Unknown model",
+      "unknownIp": "Unknown IP",
+      "searchHint": "Enter at least 2 characters to search.",
+      "manualInvalidUrl": "Please enter a valid HTTP or HTTPS address.",
+      "searchTypeGroup": "Search by",
+      "providerGroup": "Source",
+      "searchResults": "Search results",
+      "infoItem3": "The play button on the right of a preset plays the station directly",
+      "infoItem5": "The status icon at the top right of the device card opens the setup wizard for the device"
+    },
+    "player": {
+      "source": {
+        "bluetooth": "Bluetooth",
+        "radio": "Radio",
+        "aux": "AUX",
+        "airplay": "AirPlay",
+        "dlna": "DLNA",
+        "tv": "TV / HDMI",
+        "spotify": "Spotify",
+        "deezer": "Deezer",
+        "pandora": "Pandora",
+        "amazon": "Amazon Music",
+        "storedMusic": "Media library"
+      }
+    },
+    "stationDetail": {
+      "codec": "Codec",
+      "bitrate": "Bitrate",
+      "homepage": "Homepage"
+    },
+    "manualIpModal": {
+      "placeholder": "Example:\n192.168.1.100\n192.168.1.101\n192.168.1.102",
+      "saved": "IP addresses saved!"
+    },
+    "discovery": {
+      "deviceSaved": "Saved"
+    }
+  },
+  "_note": "setupBadge.* / statusBadge.* only in the DE block here because the prototype needs texts for them; the keys already exist in the app (not new). Remove from the delivery if present in your JSON."
+}

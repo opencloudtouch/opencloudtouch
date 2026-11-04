@@ -1,0 +1,111 @@
+/* si-: source indicator on the device card (stage 12, three approaches A menu, B mini segments, C badge + dialog).
+   Everything attaches to the EXISTING now-playing header (.np-header: badge + label, 32px row). Heights of the header, art, info, keys never change.
+   Load after LocalControl.css, NowPlaying.css, LocalControl.transport.css. */
+.si-stage { box-sizing: border-box; width: 100%; max-width: 560px; margin: 0 auto; padding: var(--space-md); }
+.si-card { gap: var(--space-md); }
+.si-np-wrap { position: relative; }
+.si-head { min-height: 32px; }
+
+/* hit area: the visible element stays small, the tap target is 44px (extends over the free space around it) */
+.si-a, .si-c, .si-bb { position: relative; min-height: 0; min-width: 0; background: transparent; border: 0; color: inherit; }
+.si-a::after, .si-c::after, .si-bb::after { content: ""; position: absolute; inset: -6px -4px; }
+
+/* A: the label itself is the menu button; the chevron says "choose" */
+.si-a { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; height: 32px; padding: 0 2px 0 0; border-radius: 8px; text-align: left; font: inherit; cursor: pointer; }
+.si-a .si-label { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.si-chev { display: flex; flex: none; color: var(--color-text-secondary); transition: transform var(--motion-base); }
+.si-a[aria-expanded="true"] .si-chev { transform: rotate(180deg); }
+.si-a:hover:not([aria-disabled="true"]) .si-label { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--color-text-secondary); }
+.si-a[aria-disabled="true"], .si-c[aria-disabled="true"], .si-bb[aria-disabled="true"] { cursor: default; }
+.si-a[aria-disabled="true"] .si-chev { opacity: .35; }
+
+/* menu: floats over the cover (absolute, no layout change) */
+.si-menu { position: absolute; z-index: 6; top: 36px; left: 0; width: min(100%, 320px); box-sizing: border-box; padding: 6px; display: flex; flex-direction: column; gap: 2px; background: var(--surface-color); border: 1px solid var(--ui-control-border); border-radius: var(--border-radius-md); box-shadow: var(--shadow-lg); }
+.si-mi { box-sizing: border-box; width: 100%; min-height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-radius: 8px; background: transparent; color: var(--text-primary); text-align: left; font-size: 16px; }
+.si-mi:hover:not([aria-disabled="true"]) { background: var(--bg-tertiary); }
+.si-mi[aria-checked="true"], .si-mi[aria-pressed="true"] { background: rgba(var(--primary-rgb), .22); font-weight: var(--font-weight-bold); color: var(--color-text-primary); }
+.si-mi[aria-current="true"] { outline: 2px dashed var(--primary-color); outline-offset: -2px; }
+.si-mi[aria-disabled="true"] { cursor: default; opacity: .75; }
+.si-mi-ic { display: flex; flex: none; }
+.si-mi-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.si-mi-n { overflow-wrap: anywhere; }
+.si-mi-s { font-size: 13px; font-weight: var(--font-weight-normal); color: var(--color-text-secondary); }
+.si-mi-on { display: flex; flex: none; width: 18px; }
+.si-sep { display: flex; align-items: center; min-height: 32px; padding: 0 12px; font-size: 13px; color: var(--color-text-secondary); border-top: 1px solid var(--border-color); margin-top: 4px; }
+
+/* B: three small icon buttons at the right of the header; the pressed one is filled, framed twice as thick and the label names the source */
+.si-b-left { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+.si-b-left .si-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.si-b { display: flex; flex: none; }
+.si-bb { width: 44px; height: 44px; margin: -6px 0; display: flex; align-items: center; justify-content: center; padding: 0; }   /* the element itself is 44 x 44; the negative margin keeps the 32px header row */
+.si-bb::after { content: none; }
+.si-bb-in { box-sizing: border-box; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid var(--ui-control-border); color: var(--color-text-secondary); transition: background var(--motion-base); }
+.si-bb:hover:not([aria-disabled="true"]) .si-bb-in { background: var(--bg-tertiary); }
+.si-bb[aria-pressed="true"] .si-bb-in { background: rgba(var(--primary-rgb), .22); border: 2px solid var(--primary-color); color: var(--color-text-primary); }
+.si-bb--view .si-bb-in { border: 2px dashed var(--primary-color); color: var(--color-text-primary); }
+.si-bb[aria-busy="true"] .si-bb-in { border: 2px solid var(--primary-color); color: var(--color-text-primary); }
+.si-bb[aria-disabled="true"]:not([aria-busy="true"]) .si-bb-in { opacity: .6; }
+
+/* C: the badge is the button; a small chevron on its corner says "choose", the choice lives in a dialog */
+.si-c { flex: none; width: 32px; height: 32px; padding: 0; border-radius: var(--border-radius-sm); cursor: pointer; }
+.si-c .ui-source { width: 32px; height: 32px; }
+.si-c-chev { position: absolute; right: -5px; bottom: -5px; z-index: 1; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--color-bg-card); border: 1px solid var(--ui-control-border); color: var(--color-text-primary); }
+.si-c[aria-disabled="true"] .si-c-chev { opacity: .35; }
+.si-dlg-h { margin: 12px 0 4px; font-size: 13px; font-weight: var(--font-weight-medium); color: var(--color-text-secondary); }
+.si-dlg-list { display: flex; flex-direction: column; gap: 4px; }
+.si-dlg-list .si-mi { border: 1px solid var(--ui-control-border); }
+.si-dlg-list .si-mi[aria-pressed="true"] { border: 2px solid var(--primary-color); }
+
+/* failed switch and offline: float over the art and info, solid, no layout change; the indicator row stays visible */
+/* failed switch (stage 13b): one quiet line, never over the cover. A: reserved strip under the source bar. B: replaces the station label. */
+.si-np-wrap { container-type: inline-size; }
+.si-slot { box-sizing: border-box; height: 40px; display: flex; align-items: stretch; }
+.si-note.wz-status { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 0 0 0 12px; margin: 0; border: 0; border-radius: 8px; background: linear-gradient(var(--bg), var(--bg)), var(--color-bg-card); }
+.si-note-ic, .si-lbl-ic { display: flex; flex: none; color: var(--c, var(--color-danger)); }
+.si-note-t { flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; font-size: 14px; line-height: 18px; color: var(--color-text-primary); }
+.si-fx-retry, .si-fx-close { min-height: 0; position: relative; flex: none; display: flex; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box; min-width: 44px; height: 44px; margin: -2px 0; padding: 0 8px; background: transparent; border: 0; color: var(--color-text-primary); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 8px; }
+.si-note .si-fx-retry, .si-note .si-fx-close { align-self: center; }
+.si-fx-retry:hover, .si-fx-close:hover { background: var(--bg-tertiary); }
+.si-fx-ic { display: flex; }
+.si-fx-tx { display: none; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+@container (min-width: 340px) { .si-note .si-fx-tx { display: inline; } .si-note .si-fx-retry .si-fx-ic { display: none; } }
+/* B: label row, two lines in the existing 32px row */
+.si-lbl-fail { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; height: 32px; }
+.si-lbl-stack { display: flex; flex-direction: column; justify-content: center; min-width: 0; height: 32px; }
+.si-lbl-t { flex: none; display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; line-height: 16px; font-weight: 600; color: var(--color-text-primary); }
+.si-lbl-stack .si-fx-retry { align-self: flex-start; height: 16px; min-height: 0; min-width: 0; flex: none; margin: 0; padding: 0; font-size: 13px; line-height: 16px; font-weight: 500; border-radius: 4px; }
+.si-lbl-stack .si-fx-retry::after { content: ""; position: absolute; inset: -14px -8px -14px -8px; }
+.si-lbl-stack .si-fx-retry .si-fx-ic { display: none; }
+.si-lbl-stack .si-fx-retry .si-fx-tx { display: inline; }
+.si-lbl-fail .si-fx-close { display: none; }
+@container (min-width: 400px) { .si-lbl-fail .si-fx-close { display: flex; position: relative; margin: 0 0 0 auto; } .si-lbl-fail { padding-right: 4px; } }
+.si-fx-retry:focus-visible, .si-fx-close:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+@media (forced-colors: active) { .si-note.wz-status { border: 1px solid CanvasText; } }
+.si-ov { position: absolute; inset: 0; z-index: 4; display: flex; align-items: flex-start; background: var(--color-bg-card); }
+.si-ov > .wz-status { width: 100%; }
+.si-card .np[data-test="si-np"] { min-width: 0; }
+
+/* reserved hint row (slave, "presets only shown") and the stacked area: tallest pane sets the height */
+.si-hint { margin: 0; min-height: 40px; font-size: 14px; line-height: 1.4; color: var(--color-text-secondary); text-align: center; text-wrap: balance; }
+.si-area { display: grid; }
+.si-pane { grid-area: 1 / 1; min-width: 0; visibility: hidden; opacity: 0; transition: opacity 160ms ease, visibility 0s linear 160ms; }
+.si-pane--on { visibility: visible; opacity: 1; transition: opacity 160ms ease; }
+.si-info { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--border-radius-md); background: var(--surface-color); }
+.si-info > div { min-width: 0; }
+.si-info p { margin: 0; overflow-wrap: anywhere; }
+.si-info-t { font-size: 16px; font-weight: var(--font-weight-medium); color: var(--color-text-primary); line-height: 1.4; }
+.si-info-s { margin-top: 2px; font-size: 14px; line-height: 1.45; color: var(--color-text-secondary); }
+
+@media (prefers-reduced-motion: reduce) { .si-chev, .si-bb-in, .si-pane, .si-pane--on { transition: none; } }
+@media (forced-colors: active) { .si-menu, .si-mi, .si-bb-in, .si-c-chev, .si-info { border-color: CanvasText; } .si-mi[aria-checked="true"], .si-mi[aria-pressed="true"], .si-bb[aria-pressed="true"] .si-bb-in { border-color: Highlight; outline: 2px solid Highlight; } }
+
+.si-menu--end { left: auto; right: 0; }
+.np-header.si-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; }
+
+/* C: toast + marker on the failed source key (no card change at all) */
+.si-bb--fail .si-bb-in { border: 2px solid var(--color-danger); color: var(--color-text-primary); }
+.si-bb-x { position: absolute; top: 1px; right: 1px; display: flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: #c62828; color: #fff; border: 2px solid var(--color-bg-card); box-sizing: content-box; margin: -2px; }
+.toast--act .toast-action { flex: none; min-height: 44px; padding: 0 8px; background: transparent; border: 0; color: inherit; font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; border-radius: 8px; }
+.toast--act .toast-action:hover { background: rgba(128,128,128,.25); }
+.toast--act .toast-action:focus-visible, .toast--act .toast-close:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
+@media (forced-colors: active) { .si-bb-x { background: Highlight; color: HighlightText; } }

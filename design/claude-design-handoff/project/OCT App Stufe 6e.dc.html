@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>body{margin:0;background:#0d0d0d}</style>
+</helmet>
+<div style="min-height:100vh;background:#0d0d0d;color:#e0e0e0;font-family:-apple-system,'Segoe UI',system-ui,sans-serif;display:flex;flex-direction:column">
+  <div style="position:relative;max-height:46vh;overflow:auto;background:#141414;border-bottom:1px solid #333;padding:12px 16px;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center">
+      <div style="font-weight:700;font-size:14px;color:#fff">OCT App · Stufe 6e · Scroll-Position beim Gerätewechsel, Sticky-Leiste, Hit-Test</div>
+      <div style="font-size:12px;padding:3px 10px;border-radius:999px;{{ auditStyle }}">{{ auditText }}</div>
+      <button onClick="{{ runHit }}" style="min-height:32px;padding:6px 14px;border-radius:999px;border:1px solid #4a90d9;background:rgba(74,144,217,.2);color:#fff;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">{{ hitButton }}</button>
+      <div style="font-size:12px;padding:3px 10px;border-radius:999px;{{ hitStyle }}">{{ hitSummary }}</div>
+    </div>
+    <div style="font-size:12px;color:#ff8a80;line-height:1.5">{{ hitFails }}</div>
+    <div style="font-size:12px;color:#b3b3b3;line-height:1.5">{{ diag }}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 20px;align-items:flex-start">
+      <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Ansicht</span><sc-for list="{{ modes }}" as="b" hint-placeholder-count="2"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Seite</span><sc-for list="{{ pages }}" as="b" hint-placeholder-count="2"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Phone</span><sc-for list="{{ phones }}" as="b" hint-placeholder-count="4"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Breite</span><sc-for list="{{ widths }}" as="b" hint-placeholder-count="8"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Vergleich</span><sc-for list="{{ cmps }}" as="b" hint-placeholder-count="3"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Leiste</span><sc-for list="{{ stickies }}" as="b" hint-placeholder-count="2"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Test</span><sc-for list="{{ flags }}" as="b" hint-placeholder-count="2"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Wisch-Demo (Nachher)</span><sc-for list="{{ demos }}" as="b" hint-placeholder-count="5"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for><span style="font-size:12px;color:#b3b3b3;margin-left:8px">{{ swipeLog }}</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 20px;align-items:flex-start">
+      <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+        <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">{{ g.label }}</span><sc-for list="{{ g.buttons }}" as="b" hint-placeholder-count="3"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      </sc-for>
+    </div>
+    <div style="display:{{ hitDisplay }};flex-direction:column;gap:3px;font-size:12px;line-height:1.45;border-top:1px solid #333;padding-top:8px">
+      <sc-for list="{{ hitRows }}" as="r" hint-placeholder-count="0"><div style="{{ r.style }}">{{ r.text }}</div></sc-for>
+    </div>
+  </div>
+  <div style="flex:1;overflow:auto;padding:16px 16px 48px">
+    <div style="display:flex;flex-wrap:nowrap;gap:24px;align-items:flex-start;width:max-content;margin:0 auto">
+      <sc-for list="{{ frames }}" as="f" hint-placeholder-count="2">
+        <div><div style="font-size:12px;color:#b3b3b3;margin-bottom:6px;text-align:center">{{ f.label }}</div><iframe src="{{ f.src }}" title="{{ f.label }}" data-vis="1" data-m="{{ f.m }}" style="{{ f.style }}"></iframe></div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { mode: 'main', page: 'presets', width: 402, height: 874, cmp: 'after', sticky: 'off', rm: '0', leak: '0', v: {}, au: {}, diag: {}, swipe: '', hit: null, hitBusy: '' };
+  componentDidMount() {
+    this._h = (e) => {
+      const d = e.data;
+      if (!d) return;
+      let hid = false;
+      try { hid = !!(e.source && e.source.frameElement && e.source.frameElement.dataset.h === '1'); } catch (_) { hid = false; }
+      if (hid) return;
+      if (d.oct === 'audit') this.setState(p => ({ au: { ...p.au, [d.v]: { ok: d.ok, msg: d.msg } }, diag: { ...p.diag, [d.v]: d.diag || '' } }));
+      if (d.oct === 'swipe') this.setState({ swipe: d.log });
+    };
+    window.addEventListener('message', this._h);
+  }
+  componentWillUnmount() { window.removeEventListener('message', this._h); }
+
+  sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  mk(url, w, h) {
+    return new Promise(res => {
+      const f = document.createElement('iframe');
+      f.dataset.h = '1'; f.src = url; f.title = 'hit-test';
+      f.style.cssText = 'position:fixed;left:-10000px;top:0;border:0;width:' + w + 'px;height:' + h + 'px';
+      f.onload = () => res(f);
+      document.body.appendChild(f);
+    });
+  }
+  hit(doc) {
+    const win = doc.defaultView, main = doc.querySelector('.app-main'), bad = [];
+    let n = 0;
+    const aud = doc.getElementById('audit'); if (aud) aud.style.display = 'none';
+    const modal = doc.querySelector('dialog[open]');
+    const els = [...doc.querySelectorAll('#root button,#root a[href],#root input:not([type=hidden]),#root select,#root textarea,#root [role=slider]')];
+    const vw = win.innerWidth, vh = win.innerHeight;
+    const desc = (c) => c ? ((c.className && typeof c.className === 'string' ? '.' + c.className.split(' ')[0] : c.tagName.toLowerCase())) : 'nichts';
+    const name = (el) => (typeof el.className === 'string' && el.className ? '.' + el.className.split(' ')[0] : el.tagName.toLowerCase());
+    const probe = (el, label) => {
+      let r = el.getBoundingClientRect();
+      const x0 = Math.max(r.left, 0), x1 = Math.min(r.right, vw), y0 = Math.max(r.top, 0), y1 = Math.min(r.bottom, vh);
+      if (x1 <= x0 || y1 <= y0) return;
+      const c = doc.elementFromPoint((x0 + x1) / 2, (y0 + y1) / 2);
+      n++;
+      if (!(c === el || el.contains(c))) { const st = doc.elementsFromPoint((x0 + x1) / 2, (y0 + y1) / 2).slice(0, 4).map(desc).join('>'); bad.push(name(el) + ' verdeckt von ' + desc(c) + ' [' + st + '] r=' + Math.round(r.left) + ',' + Math.round(r.top) + ',' + Math.round(r.width) + 'x' + Math.round(r.height) + ' ' + (label || '') + ' | vw=' + vw + ' mainSL=' + (main ? main.scrollLeft : '-') + ' mainW=' + (main ? main.clientWidth : '-') + ' card=' + (() => { const k = doc.querySelector('.ds-card:not([data-leaving])'); if (!k) return '-'; const q = k.getBoundingClientRect(); return Math.round(q.left) + ',' + Math.round(q.width) + ' x=' + k.style.getPropertyValue('--ds-x') + ' tr=' + getComputedStyle(k).translate; })()); }
+    };
+    const sticky = !!main && !!doc.querySelector('.ds-bar') && getComputedStyle(doc.querySelector('.ds-bar')).position === 'sticky';
+    const sp = main ? parseFloat(getComputedStyle(main).scrollPaddingTop) || 0 : 0;
+    for (const el of els) {
+      if (modal && !modal.contains(el)) continue;
+      if (el.closest('[inert],[aria-hidden=true],.visually-hidden,.skip-link')) continue;
+      let r = el.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      if (main && !modal) {
+        const m = main.getBoundingClientRect();
+        main.scrollTop += r.top + r.height / 2 - (m.top + m.height / 2);
+      }
+      probe(el, '');
+      if (sticky && main && !modal && !el.closest('.ds-bar')) {
+        const m = main.getBoundingClientRect(); r = el.getBoundingClientRect();
+        main.scrollTop += r.top - (m.top + sp);
+        probe(el, 'nach Fokus-Scroll an den oberen Rand');
+      }
+      if (main) main.scrollTop = 0;
+    }
+    return { n, bad };
+  }
+  async runApp(url, w, h, label, extra) {
+    const f = await this.mk(url, w, h);
+    await this.sleep(1100);
+    const d = f.contentDocument, W = f.contentWindow, st = [];
+    const rec = (s) => { this.setState({ hitBusy: label.slice(0, 22) + ' ' + s }); const r = this.hit(d); if (W.__err) r.bad.push('JS-Fehler: ' + W.__err); st.push({ s, n: r.n, bad: r.bad }); };
+    const click = async (sel, wait) => { const b = d.querySelector(sel); if (b) b.click(); await this.sleep(wait); };
+    rec('Start');
+    if (extra !== 'static') {
+      await click('[data-act=next]', 70); rec('Pfeil, Überblendung läuft');
+      await this.sleep(700); rec('nach Pfeil');
+      await Promise.race([W.demoSwipe(-110), this.sleep(3000)]); await this.sleep(60); rec('Wischen, Überblendung läuft');
+      await this.sleep(700); rec('nach Wischen');
+      await Promise.race([W.demoSwipe(40), this.sleep(3000)]); await this.sleep(350); await this.sleep(500); rec('Wischen zurückgeschnappt');
+      await click('[data-act=dot][data-i="0"]', 750); rec('nach Punkt');
+    }
+    if (url.indexOf('sticky=on') > 0) {
+      const mn = d.querySelector('.app-main'); mn.scrollTop = 400; await this.sleep(150);
+      const b = d.querySelector('[data-act=next]'); if (b) b.click(); await this.sleep(900);
+      const a1 = d.querySelector('.app-main').scrollTop; const b2 = d.querySelector('[data-act=prev]'); if (b2) b2.click(); await this.sleep(900);
+      const a2 = d.querySelector('.app-main').scrollTop;
+      st.push({ s: 'Scroll 400 nach Wechsel ' + a1 + ', zurück ' + a2, n: 2, bad: [a1 === 400 ? null : 'Scroll-Sprung ' + a1, a2 === 400 ? null : 'Scroll-Sprung ' + a2].filter(Boolean) });
+    }
+    f.remove();
+    return { label, st };
+  }
+  async runHit(e, quick) {
+    if (this.state.hitBusy) return;
+    const sizes = quick === 'q' ? [[375, 667], [320, 568]] : [[320, 568], [375, 667], [402, 874], [430, 932]];
+    if (quick === 's') { const rr = await this.runApp('app6e/stage6e-frame.html?page=presets&v=after&sticky=on', 375, 667, 'Presets 375×667 Sticky-Leiste'); this.setState({ hit: [rr], hitBusy: '' }); return; }
+    const rows = []; const set = (extra) => this.setState({ hit: rows.slice(), ...(extra || {}) });
+    this.setState({ hit: [], hitBusy: 'läuft…' });
+    const WZ = [['stage2', ['usb', 'power', 'backup', 'config']], ['stage3', ['dns', 'ntp', 'verify', 'done']], ['stage4', ['choice', 'scan', 'exec', 'verify', 'done']]];
+    const A = 'app6e/stage6e-frame.html?page=';
+    for (const [w, h] of sizes) {
+      const jobs = [
+        this.runApp(A + 'presets&v=after&sticky=off', w, h, 'Presets ' + w + '×' + h + ' Leiste oben'),
+        this.runApp(A + 'local&v=after&sticky=off', w, h, 'Lokale Steuerung ' + w + '×' + h + ' Leiste oben'),
+        this.runApp(A + 'presets&v=after&sticky=on', w, h, 'Presets ' + w + '×' + h + ' Sticky-Leiste'),
+        this.runApp(A + 'search&v=after', w, h, 'Suchdialog ' + w + '×' + h, 'static')
+      ];
+      if (w === 402) jobs.push(this.runApp(A + 'presets&v=after&sticky=off&leak=1', w, h, 'ABSICHTLICHER FEHLER (6c-TSX nachgebaut: alte Karte bleibt) ' + w + '×' + h));
+      if (quick !== 'q') for (const [fr, steps] of WZ) for (const s of steps) {
+        const url = 'wizard/' + fr + '-frame.html?step=' + s;
+        jobs.push((async () => { const f = await this.mk(url, w, h); await this.sleep(1300); const r = this.hit(f.contentDocument); f.remove(); return { label: 'Wizard ' + fr.replace('stage', 'Stufe ') + ' · ' + s + ' ' + w + '×' + h, st: [{ s: 'Start', n: r.n, bad: r.bad }] }; })());
+      }
+      const res = await Promise.all(jobs.map(j => j.catch(err => ({ label: 'FEHLER ' + w + ': ' + err, st: [{ s: 'Fehler', n: 0, bad: ['x'] }] }))));
+      res.forEach(r => rows.push(r));
+      set({ hitBusy: 'läuft… ' + w + ' fertig' });
+    }
+    set({ hitBusy: '' });
+  }
+  async demo(kind) {
+    const f = [...document.querySelectorAll('iframe[data-vis="1"]')].filter(x => x.dataset.m === 'after').pop();
+    if (!f || !f.contentWindow.demoSwipe) return;
+    const W = f.contentWindow;
+    const r = kind === 'back' ? await W.demoSwipe(-40, 250) : kind === 'next' ? await W.demoSwipe(-110, 250) : kind === 'prev' ? await W.demoSwipe(90, 250) : kind === 'fast' ? await W.demoSwipe(-34, 60) : kind === 'edge' ? await W.demoSwipe(160, 300) : kind === 'slider' ? await W.demoSwipe(-120, 250, '.vs-track') : await W.demoSwipe(-120, 250, '.dne-btn');
+    this.setState({ swipe: r });
+  }
+  renderVals() {
+    const s = this.state;
+    const NAMEG = ['name', 'Gerätename', [['std', 'Normal'], ['short', 'Kurz'], ['mid', '25 Zeichen'], ['long', '40 Zeichen']]];
+    const DEF = {
+      presets: [NAMEG, ['dev', 'Geräte', [['5', '5'], ['2', '2'], ['12', '12'], ['30', '30']]], ['np', 'Wiedergabe', [['full', 'Titel + Interpret'], ['late', 'Kein Sender']]]],
+      local: [NAMEG, ['zone', 'Zone', [['1', 'In Zone'], ['0', 'Keine']]], ['dev', 'Geräte', [['5', '5'], ['2', '2'], ['12', '12'], ['30', '30']]], ['np', 'Wiedergabe', [['full', 'Titel + Interpret'], ['ph', 'Platzhalter lädt']]]]
+    };
+    const pill = (on) => ({ minHeight: 32, padding: '6px 12px', lineHeight: '1.2', flexShrink: 0, whiteSpace: 'nowrap', borderRadius: 999, border: '1px solid ' + (on ? '#4a90d9' : '#3a3a3a'), background: on ? 'rgba(74,144,217,.2)' : 'transparent', color: on ? '#fff' : '#b3b3b3', fontSize: 13, fontWeight: 500, fontFamily: 'inherit', cursor: 'pointer' });
+    const reset = { au: {}, diag: {} };
+    const cur = s.v[s.page] || {};
+    const val = (k, d) => cur[k] !== undefined ? cur[k] : d[0][0];
+    const groups = DEF[s.page].map(([k, label, opts]) => ({
+      label,
+      buttons: opts.map(([v, l]) => ({ label: l, style: pill(val(k, opts) === v), on: () => this.setState(p => ({ ...reset, v: { ...p.v, [p.page]: { ...(p.v[p.page] || {}), [k]: v } } })) }))
+    }));
+    const q = DEF[s.page].map(([k, , opts]) => k + '=' + encodeURIComponent(val(k, opts))).join('&');
+    const bp = s.mode === 'bp';
+    const W = s.width, H = s.height || 0;
+    const modes = s.cmp === 'both' ? ['before', 'after'] : [s.cmp];
+    const extra = '&sticky=' + s.sticky + '&rm=' + s.rm + '&leak=' + s.leak;
+    const sizes = bp ? [[320, 700], [480, 700], [600, 700], [768, 700]] : [[W, H]];
+    const frames = [];
+    modes.forEach(m => sizes.forEach(([w, h]) => frames.push({
+      label: (m === 'before' ? 'Vorher (6c)' : 'Nachher (6e)') + (bp ? ' · ' + w + ' px' : ''), m,
+      src: 'app6e/stage6e-frame.html?page=' + s.page + '&v=' + m + '&' + q + extra,
+      style: { display: 'block', width: w, height: h ? h : 'calc(100vh - 260px)', minHeight: h ? h : 560, border: '1px solid #333', background: '#1a1a1a' }
+    })));
+    const key = modes.includes('after') ? 'after' : 'before';
+    const au = s.au[key];
+    const flag = (k, label, on) => ({ label, style: pill(s[k] === on), on: () => this.setState(p => ({ [k]: p[k] === on ? '0' : on, ...reset })) });
+    const hit = s.hit;
+    let total = 0, bad = 0;
+    const hitRows = (hit || []).map(r => {
+      const fails = r.st.reduce((a, x) => a + x.bad.length, 0), n = r.st.reduce((a, x) => a + x.n, 0);
+      total += n; const expected = r.label.indexOf('ABSICHTLICH') === 0;
+      if (!expected) bad += fails;
+      const txt = r.label + ': ' + r.st.map(x => x.s + ' ' + (x.n - x.bad.length) + '/' + x.n).join(' · ') + (fails ? '  →  ' + [...new Set(r.st.flatMap(x => x.bad))].slice(0, 3).join('; ') : '');
+      return { fails: expected ? 0 : fails, text: txt, style: 'color:' + (expected ? (fails ? '#9ccc65' : '#ff8a80') : fails ? '#ff8a80' : '#b3b3b3') };
+    });
+    hitRows.sort((a, b) => (b.fails > 0) - (a.fails > 0) || (b.text.indexOf('ABSICHT') === 0) - (a.text.indexOf('ABSICHT') === 0));
+    return {
+      modes: [['main', 'Karte + Wischen'], ['bp', 'Grenze 320 · 480 · 600 · 768']].map(([k, l]) => ({ label: l, style: pill(s.mode === k), on: () => this.setState({ mode: k, ...reset }) })),
+      pages: [['presets', 'Presets'], ['local', 'Lokale Steuerung']].map(([k, l]) => ({ label: l, style: pill(s.page === k), on: () => this.setState({ page: k, ...reset }) })),
+      phones: [[320, 568], [375, 667], [402, 874], [430, 932]].map(([w, h]) => ({ label: w + '×' + h, style: pill(!bp && W === w && s.height === h), on: () => this.setState({ mode: 'main', width: w, height: h, ...reset }) })),
+      widths: [320, 480, 600, 768, 769, 1024].map(w => ({ label: String(w), style: pill(!bp && W === w), on: () => this.setState({ mode: 'main', width: w, height: s.height || 874, ...reset }) })),
+      cmps: [['after', 'Nachher'], ['both', 'Beide'], ['before', 'Vorher (6c)']].map(([c, l]) => ({ label: l, style: pill(s.cmp === c), on: () => this.setState({ cmp: c, ...reset }) })),
+      stickies: [['off', 'Normal'], ['on', 'Sticky']].map(([c, l]) => ({ label: l, style: pill(s.sticky === c), on: () => this.setState({ sticky: c, ...reset }) })),
+      flags: [flag('rm', 'Bewegung reduziert', '1'), flag('leak', 'Fehlerfall 6c (alte Karte bleibt)', '1')],
+      demos: [['back', '40 px: schnappt zurück'], ['next', '110 px: nächstes'], ['prev', '90 px: vorheriges'], ['fast', '34 px schnell: nächstes'], ['edge', '160 px am Rand'], ['slider', 'Start auf Lautstärke'], ['name', 'Start auf Name']].map(([k, l]) => ({ label: l, style: pill(false), on: () => this.demo(k) })),
+      swipeLog: s.swipe,
+      groups, frames,
+      diag: (s.diag[key] || '') + (modes.length > 1 && s.diag.before ? '  |  Vorher: ' + s.diag.before : ''),
+      auditText: au ? au.msg : 'Prüfe…',
+      auditStyle: au ? (au.ok ? 'background:#1b5e20;color:#fff' : 'background:#b71c1c;color:#fff') : 'background:#333;color:#b3b3b3',
+      runHit: () => this.runHit(null, window.__q),
+      hitButton: s.hitBusy ? 'Hit-Test ' + s.hitBusy : 'Hit-Test starten (alle Phones, Wizard)',
+      hitSummary: hit ? (s.hitBusy ? 'läuft: ' : '') + total + ' Prüfungen, ' + bad + ' verdeckt (ohne absichtlichen Fehlerfall)' : 'noch nicht gelaufen',
+      hitStyle: hit ? (bad ? 'background:#b71c1c;color:#fff' : 'background:#1b5e20;color:#fff') : 'background:#333;color:#b3b3b3',
+      hitFails: (hit || []).filter(r => r.label.indexOf('ABSICHT') !== 0).flatMap(r => r.st.filter(x => x.bad.length).map(x => r.label + ' / ' + x.s + ': ' + [...new Set(x.bad)].slice(0, 2).join('; '))).slice(0, 8).join('  ||  '),
+      hitDisplay: hit && hit.length ? 'flex' : 'none',
+      hitRows
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>body{margin:0;background:#0d0d0d}</style>
+</helmet>
+<div style="min-height:100vh;background:#0d0d0d;color:#e0e0e0;font-family:-apple-system,'Segoe UI',system-ui,sans-serif;display:flex;flex-direction:column">
+  <div style="position:relative;max-height:35vh;overflow:auto;background:#141414;border-bottom:1px solid #333;padding:12px 16px;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center">
+      <div style="font-weight:700;font-size:14px;color:#fff">OCT App · Stufe 5 · Grundlagen + Presets</div>
+      <div style="font-size:12px;padding:3px 10px;border-radius:999px;{{ auditStyle }}">{{ auditText }}</div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 20px;align-items:flex-start">
+      <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Seite</span><sc-for list="{{ pages }}" as="b" hint-placeholder-count="9"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">Breite</span><sc-for list="{{ widths }}" as="b" hint-placeholder-count="5"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 20px;align-items:flex-start">
+      <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+        <div style="display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center"><span style="font-size:12px;color:#949494;margin-right:4px">{{ g.label }}</span><sc-for list="{{ g.buttons }}" as="b" hint-placeholder-count="3"><button onClick="{{ b.on }}" style="{{ b.style }}">{{ b.label }}</button></sc-for></div>
+      </sc-for>
+    </div>
+  </div>
+  <div style="flex:1;overflow:auto;padding:16px 16px 48px">
+    <iframe src="{{ src }}" title="App-Vorschau" style="{{ frameStyle }}"></iframe>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { page: 'presets', width: 375, v: {}, audit: null };
+  componentDidMount() {
+    this._h = (e) => { if (e.data && e.data.oct === 'audit') this.setState({ audit: { ok: e.data.ok, msg: e.data.msg } }); };
+    window.addEventListener('message', this._h);
+  }
+  componentWillUnmount() { window.removeEventListener('message', this._h); }
+  renderVals() {
+    const s = this.state;
+    const OV = ['ov', 'Overlay', [['none', 'Keins'], ['search', 'Suchdialog'], ['overwrite', 'Überschreiben'], ['delete', 'Löschen'], ['removeDevice', 'Gerät entfernen'], ['toast', 'Toast']]];
+    const DEF = {
+      shell: [['nav', 'Aktiver Link', [['presets', 'Presets'], ['zones', 'Zonen'], ['settings', 'Einstellungen'], ['about', 'Über']]], ['lang', 'Sprache', [['closed', 'Geschlossen'], ['open', 'Offen (10)']]]],
+      app: [['s', 'Zustand', [['loading0', 'Lädt <3 s'], ['loading3', 'Lädt 3 s Hinweis'], ['loading8', 'Lädt 8 s Retry'], ['loading10', 'Lädt 10 s Timeout'], ['error', 'Ladefehler'], ['boundary', 'ErrorBoundary'], ['boundaryopen', 'ErrorBoundary Details']]]],
+      welcome: [['s', 'Zustand', [['idle', 'Start'], ['manual', 'Manuelle IPs'], ['searching', 'Sucht (0)'], ['progress', 'Sucht (3 gefunden)'], ['help', 'Hilfe offen']]], ['mo', 'Dialog Manuelle IP', [['none', 'Zu'], ['empty', 'Leer'], ['prefill', 'Gefüllt'], ['invalid', 'Ungültig'], ['saving', 'Speichert'], ['success', 'Erfolg'], ['error', 'Fehler']]]],
+      notfound: [],
+      presets: [
+        ['card', 'Wiedergabe', [['radio', 'Radio'], ['longtrack', 'Lange Titel'], ['bt', 'Bluetooth'], ['aux', 'AUX'], ['airplay', 'AirPlay'], ['tv', 'TV'], ['streaming', 'Spotify'], ['standby', 'Standby'], ['none', 'Keine'], ['offline', 'Offline']]],
+        ['pr', 'Presets', [['full', 'Alle 6'], ['mixed', 'Teils leer'], ['empty', 'Alle leer'], ['long', 'Lange Namen']]],
+        ['ld', 'Laden', [['idle', 'Bereit'], ['loading', 'Lädt'], ['syncing', 'Sync']]],
+        ['er', 'Fehler', [['none', 'Keiner'], ['error', 'Presets'], ['play', 'Abspielen'], ['both', 'Beide']]],
+        ['dev', 'Geräte', [['1', '1'], ['3', '3'], ['12', '12']]],
+        ['name', 'Gerätename', [['std', 'Normal'], ['long', '40 Zeichen']]],
+        ['nm', 'Name bearbeiten', [['display', 'Anzeige'], ['edit', 'Bearbeiten'], ['saving', 'Speichert'], ['error', 'Fehler'], ['toolong', 'Zu lang']]],
+        ['st', 'Setup-Status', [['', 'Je Gerät'], ['unknown', 'unknown'], ['unconfigured', 'unconfigured'], ['configured', 'configured'], ['pending', 'pending'], ['failed', 'failed'], ['outdated', 'outdated'], ['offline', 'offline']]],
+        ['vol', 'Lautstärke', [['normal', 'Normal'], ['muted', 'Stumm']]],
+        ['pw', 'Power', [['', 'Normal'], ['loading', 'Lädt']]], OV, ['sv', 'Suchzustand (bei Suchdialog)', [['results', 'Ergebnisse'], ['empty', 'Leer'], ['manual', 'Manuell']]]
+      ],
+      search: [['sv', 'Zustand', [['empty', 'Leere Eingabe'], ['loading', 'Lädt'], ['results', 'Ergebnisse'], ['many', 'Mehr laden'], ['loadingmore', 'Lädt mehr'], ['max', 'Maximum'], ['noresults', 'Keine Treffer'], ['error', 'Fehler'], ['existing', 'Mit Löschen'], ['manual', 'Manuell'], ['manualinvalid', 'Manuell ungültig'], ['manualerr', 'Manuell Fehlerdialog'], ['detailloading', 'Detail lädt'], ['detail', 'Detail'], ['detailnotfound', 'Detail nicht gefunden'], ['detailerror', 'Detail Fehler']]]],
+      dialogs: [['d', 'Dialog', [['overwrite', 'Überschreiben'], ['delete', 'Löschen'], ['info', 'Nur OK'], ['removeDevice', 'Gerät entfernen (Vorschlag)']]]],
+      toasts: [['t', 'Ansicht', [['all', '4 Typen'], ['long', 'Langer Text']]]],
+      primitives: [['p', 'Bereich', [['buttons', 'Buttons'], ['forms', 'Formulare'], ['badges', 'Badges'], ['feedback', 'Feedback']]]]
+    };
+    const PAGES = [['shell', 'Navigation'], ['app', 'App-Zustände'], ['welcome', 'Willkommen'], ['notfound', '404'], ['presets', 'Presets'], ['search', 'Stationssuche'], ['dialogs', 'Bestätigungen'], ['toasts', 'Toasts'], ['primitives', 'Primitive']];
+    const pill = (on) => ({ minHeight: 32, padding: '6px 12px', lineHeight: '1.2', flexShrink: 0, borderRadius: 999, border: '1px solid ' + (on ? '#4a90d9' : '#3a3a3a'), background: on ? 'rgba(74,144,217,.2)' : 'transparent', color: on ? '#fff' : '#b3b3b3', fontSize: 13, fontWeight: 500, fontFamily: 'inherit', cursor: 'pointer' });
+    const cur = s.v[s.page] || {};
+    const val = (k, d) => cur[k] !== undefined ? cur[k] : d[0][0];
+    const groups = DEF[s.page].map(([k, label, opts]) => ({
+      label,
+      buttons: opts.map(([v, l]) => ({ label: l, style: pill(val(k, opts) === v), on: () => this.setState(p => ({ audit: null, v: { ...p.v, [p.page]: { ...(p.v[p.page] || {}), [k]: v } } })) }))
+    }));
+    const q = DEF[s.page].map(([k, , opts]) => k + '=' + encodeURIComponent(val(k, opts))).join('&');
+    const W = s.width, au = s.audit;
+    return {
+      pages: PAGES.map(([k, l]) => ({ label: l, style: pill(s.page === k), on: () => this.setState({ page: k, audit: null }) })),
+      widths: [320, 375, 414, 768, 1280].map(w => ({ label: String(w), style: pill(W === w), on: () => this.setState({ width: w, audit: null }) })),
+      groups,
+      src: 'app/stage5-frame.html?page=' + s.page + '&' + q,
+      frameStyle: { display: 'block', width: W, height: 'calc(100vh - 110px)', minHeight: 640, margin: '0 auto', border: '1px solid #333', background: '#1a1a1a' },
+      auditText: au ? au.msg : 'Prüfe…',
+      auditStyle: au ? (au.ok ? 'background:#1b5e20;color:#fff' : 'background:#b71c1c;color:#fff') : 'background:#333;color:#b3b3b3'
+    };
+  }
+}
+
+</script>
+</body>
+</html>

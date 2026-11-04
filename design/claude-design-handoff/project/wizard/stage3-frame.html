@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stage 3 frame</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="wizard-base.css">
+<link rel="stylesheet" href="Step6HostsModification.css">
+<link rel="stylesheet" href="Step7NtpPatch.css">
+<link rel="stylesheet" href="Step8Verification.css">
+<link rel="stylesheet" href="Step9Completion.css">
+<style>#audit{position:fixed;right:8px;bottom:8px;z-index:50;padding:6px 10px;border-radius:6px;font:600 12px/1.3 system-ui;max-width:70%}</style>
+</head><body><div id="root"></div><div id="audit"></div>
+<script>
+// Prototype renderer: mirrors the markup of the TSX components 1:1 (same classes, same DOM order). Texts: uploaded German i18n JSON.
+const Q=new URLSearchParams(location.search), P=(k,d)=>Q.get(k)||d;
+let TX={};
+const t=(k,v)=>{let s=k.split('.').reduce((o,p)=>o&&o[p],TX);if(typeof s!=='string')return k;return s.replace(/\{\{(\w+)\}\}/g,(_,n)=>v&&v[n]!=null?v[n]:'')};
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const S=(c,sz)=>`<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${c}</svg>`;
+const I={
+Speaker:(s=22)=>S('<rect width="16" height="20" x="4" y="2" rx="2"/><circle cx="12" cy="14" r="4"/><path d="M12 6h.01"/>',s),
+Rotate:(s=18)=>S('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',s),
+Check:(s=16)=>S('<path d="M20 6 9 17l-5-5"/>',s),
+X:(s=16)=>S('<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',s),
+Info:(s=14)=>S('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',s),
+Alert:(s=22)=>S('<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',s),
+ArrowLeft:(s=18)=>S('<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',s),
+ArrowRight:(s=18)=>S('<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',s),
+CircleCheck:(s=22)=>S('<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',s),
+CircleX:(s=22)=>S('<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',s),
+Globe:(s=20)=>S('<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>',s),
+Clock:(s=20)=>S('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',s),
+Search:(s=22)=>S('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',s),
+Rocket:(s=20)=>S('<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>',s),
+PartyPopper:(s=28)=>S('<path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11-.11.7-.72 1.22-1.43 1.22H17"/><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7"/><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"/>',s),
+HardDrive:(s=24)=>S('<path d="M22 12H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M6 16h.01"/><path d="M10 16h.01"/>',s)};
+const DEV=P('dev','std')==='long'?'Einstellungen-Wiederherstellung Lautsprecher Obergeschoss':'Wohnzimmer', IP='192.168.178.42', OCT='192.168.178.20';
+const S6='setup.wizard.step6.',S7='setup.wizard.step7.',S8='setup.wizard.step8.',S9='setup.wizard.step9.';
+
+const header=()=>`<div class="device-info-header"><div class="device-info-main"><div class="device-icon">${I.Speaker()}</div><div class="device-details"><h2 class="device-name">${esc(DEV)}</h2><div class="device-meta"><span class="device-model">SoundTouch 30</span><span class="device-separator">•</span><span class="device-ip">${IP}</span></div></div></div><button class="device-reboot-btn device-reboot-btn--idle">${I.Rotate()} ${t('deviceHeader.reboot')}</button></div>`;
+const tracker=n=>{const L=[1,2,3,4,5,6,7,8].map(i=>t('setup.step'+i+'.label'));return `<div class="progress-tracker"><div class="progress-tracker-compact" aria-hidden="true">Schritt ${n} von 8 – ${L[n-1]}</div><div class="progress-steps">${L.map((l,i)=>{const id=i+1,st=id<n?'completed':'pending';return `<div class="progress-step ${st} ${id===n?'active':''}"><div class="step-indicator">${i>0?'<div class="step-connector"></div>':''}<div class="step-circle" title="${l}" aria-label="Schritt ${id}: ${l}">${st==='completed'?'<span class="step-icon" aria-hidden="true">'+I.Check()+'</span>':'<span class="step-number" aria-hidden="true">'+id+'</span>'}</div></div><div class="step-label">${l}</div></div>`}).join('')}</div></div>`};
+const frame=(num,title,desc,warn,content,o={})=>`<div class="wizard-step"><div class="wizard-step-header"><div class="wizard-step-number">${t('setup.stepLabel',{step:num})}</div><h2 class="wizard-step-title">${title}</h2>${desc?`<p class="wizard-step-description">${desc}</p>`:''}</div>${warn?`<div class="wizard-warning" role="alert"><span class="wizard-warning-icon" aria-hidden="true">${I.Alert()}</span><span class="wizard-warning-text">${warn}</span></div>`:''}<div class="wizard-step-content">${content}</div><div class="wizard-step-actions">${o.bare?'':`<button class="btn btn-secondary wizard-btn-previous">${I.ArrowLeft()} ${t('setup.back')}</button>`}<div class="wizard-actions-right">${o.skip?`<button class="btn btn-ghost wizard-btn-skip">${t('setup.skip')}</button>`:''}${o.dis&&o.reason?`<span class="wizard-next-hint" role="status">${I.Info()} <span>${o.reason}</span></span>`:''}${o.bare?'':`<button class="btn btn-primary wizard-btn-next" ${o.dis?'disabled':''}>${t('setup.next')} ${I.ArrowRight()}</button>`}</div></div></div>`;
+const spinS='<span class="spinner-small"></span>';
+const errBox=(cls,title,msg)=>`<div class="${cls} wz-status wz-status--error" role="alert"><div class="error-icon">${I.CircleX()}</div><div class="error-content"><strong>${title}</strong><p>${esc(msg)}</p></div></div>`;
+const diffLines=(opt)=>{const d=['bose.vtuner.com','bose2.vtuner.com','primary5.vtuner.com','primary6.vtuner.com','streaming.bose.com','bmx.bose.com','api.bosesoundtouch.com'];if(opt==='all')d.push('update.bose.com','analytics.bose.com','telemetry.bose.com');return d.map(x=>'+ '+OCT+' '+x).join('\n')};
+
+/* ---- Step 5 DNS ---- */
+function dns(){
+ const st=P('st','form'),ipk=P('ip','std'),opt=P('opt','none'),diff=P('diff','0')==='1',bk=P('bk','1')==='1';
+ const ip={std:OCT,empty:'',ipv6:'fd12:3456:789a:1::20'}[ipk];
+ const REQ=['bose.vtuner.com','bose2.vtuner.com','primary5.vtuner.com','primary6.vtuner.com','streaming.bose.com','bmx.bose.com','api.bosesoundtouch.com'],OP=['update.bose.com','analytics.bose.com','telemetry.bose.com'];
+ const ok=st==='success',run=st==='applying';
+ let c='<div class="hosts-modification">';
+ if(!ok)c+=`<div class="hosts-config-section"><div class="hosts-input-group wz-field"><label for="oct-ip" class="hosts-label wz-label">${t(S6+'ipLabel')}</label><input id="oct-ip" type="text" class="hosts-input" value="${esc(ip)}" placeholder="192.168.1.100" inputmode="url" autocapitalize="none" spellcheck="false"><small class="hosts-hint wz-hint">${t(S6+'ipHint')}</small></div><div class="hosts-domains-section wz-card"><h3 class="hosts-title">${t(S6+'domainsTitle')}</h3><div class="hosts-domains-group"><h4 class="hosts-domains-subtitle">${t(S6+'domainsRequired')}</h4>${REQ.map(d=>`<label class="hosts-domain-item required"><input type="checkbox" checked disabled><code class="hosts-domain-name">${d}</code><span class="hosts-domain-badge" title="${esc(t(S6+'domainRequiredTitle'))}" aria-label="${esc(t(S6+'domainRequiredAria'))}">${t(S6+'domainRequiredBadge')}</span></label>`).join('')}</div><div class="hosts-domains-group"><h4 class="hosts-domains-subtitle">${t(S6+'domainsOptional')}</h4>${OP.map(d=>`<label class="hosts-domain-item"><input type="checkbox" ${opt==='all'?'checked':''}><code class="hosts-domain-name">${d}</code></label>`).join('')}</div></div><button class="btn btn-primary hosts-modify-btn" ${run||!ip?'disabled':''}>${run?spinS+t(S6+'btnModifying'):I.Globe(20)+' '+t(S6+'btnModify')}</button></div>`;
+ if(st==='error')c+=errBox('hosts-error',t(S6+'errorTitle'),'SSH-Verbindung zu '+IP+' unterbrochen. Die Datei /etc/hosts wurde nicht verändert.');
+ if(ok){const d=diffLines(opt);c+=`<div class="hosts-success wz-result"><div class="success-icon">${I.CircleCheck(28)}</div><h3 class="success-title">${t(S6+'successTitle')}</h3><p class="success-message">${t(S6+'hostsApplied')}</p><div class="hosts-details"><div class="hosts-detail-item"><strong>${t(S6+'changedEntries')}</strong><span class="hosts-detail-value">${esc(d)}</span></div>${bk?`<div class="hosts-detail-item"><strong>${t(S6+'backupLabel')}</strong><code>/media/sda1/oct-backup/20261020-142530/hosts.bak</code></div>`:''}</div><div class="hosts-diff-section"><button class="btn btn-outline hosts-diff-toggle" aria-expanded="${diff}" aria-controls="hosts-diff-content">${diff?t(S6+'btnHideChanges'):t(S6+'btnShowChanges')}</button>${diff?`<pre class="hosts-diff wz-diff" id="hosts-diff-content"><code>${esc(d)}</code></pre>`:''}</div></div>`}
+ c+='</div>';
+ return frame(5,t(S6+'title'),t(S6+'description'),t(S6+'warning'),c,{dis:!ok,reason:t(S6+'nextDisabled')});
+}
+
+/* ---- Step 6 NTP ---- */
+function ntp(){
+ const st=P('st','form'),sv=P('srv','std');
+ const val={std:'pool.ntp.org',empty:'',long:'0.europe.pool.ntp.org.sehr-langer-hostname-fuer-den-zeitserver-im-heimnetz.example.de'}[sv];
+ const ok=st==='success',run=st==='patching';
+ let c=`<div class="ntp-patch"><div class="ntp-optional-notice wz-status" role="status"><span class="ntp-optional-icon wz-icon" aria-hidden="true">${I.Info(20)}</span><span class="ntp-optional-text">${t(S7+'optionalNotice')}</span></div>`;
+ if(!ok)c+=`<div class="ntp-input-group wz-field"><label for="ntp-server" class="ntp-label wz-label">${t(S7+'serverLabel')}</label><input id="ntp-server" type="text" class="ntp-input" value="${esc(val)}" placeholder="pool.ntp.org" inputmode="url" autocapitalize="none" spellcheck="false"><small class="ntp-hint wz-hint">${t(S7+'serverHint')}</small><button class="btn btn-primary ntp-patch-btn" ${run||!val.trim()?'disabled':''}>${run?spinS+t(S7+'btnPatching'):I.Clock(20)+' '+t(S7+'btnPatch')}</button></div>`;
+ if(st==='error')c+=errBox('ntp-error',t(S7+'errorTitle'),'ntpd-Synchronisation fehlgeschlagen: Zeitserver nicht erreichbar.');
+ if(ok)c+=`<div class="ntp-success wz-result"><div class="success-icon">${I.CircleCheck(28)}</div><h3 class="success-title">${t(S7+'successTitle')}</h3><p class="success-message">NTP server set to pool.ntp.org</p></div>`;
+ c+='</div>';
+ return frame(6,t(S7+'title'),t(S7+'description'),'',c,{skip:!ok,dis:!ok,reason:t(S7+'nextDisabled')});
+}
+
+/* ---- Step 7 Verification ---- */
+const PASS={uuid_in_db:'checkUuidInDb',sources_complete:'checkSourcesComplete',config_files_present:'checkConfigPresent',config_files_identical:'checkConfigIdentical',hosts_oct_block:'checkHostsOctBlock',hosts_domains_complete:'checkHostsDomains',system_config_uuid_match:'checkSysConfigUuid'};
+const FAIL={sources_complete:'checkSourcesMissing',config_files_present:'checkConfigMissing',config_files_identical:'checkConfigDiffer',hosts_oct_block:'checkHostsOctBlockMissing',hosts_domains_complete:'checkHostsDomainsMissing',hosts_ip_correct:'checkHostsIpWrong',system_config_uuid_match:'checkSysConfigUuidMismatch',uuid_in_db:'checkUuidNotInDb'};
+const cmsg=c=>{if(c.name==='config_bmx_url'&&c.passed)return t(S8+'checkBmxUrl',{hostPort:OCT+':7777'});if(c.name==='hosts_ip_correct'&&c.passed)return t(S8+'checkHostsIp',{ip:OCT});if(c.name==='ntp_server_correct')return c.passed?t(S8+'checkNtpServer',{server:'pool.ntp.org'}):t(S8+'checkNtpServerWrong',{found:'time.example.org',expected:'pool.ntp.org'});if(!c.passed){const k=FAIL[c.name];return k?t(S8+k,{missing:(c.missing||[]).join(', ')}):'Prüfung fehlgeschlagen'}return PASS[c.name]?t(S8+PASS[c.name]):''};
+const ci=p=>`<span class="check-icon wz-icon">${p?I.Check(18):I.X(18)}</span>`;
+const item=(p,m)=>`<div class="verify-check-item ${p?'passed':'failed'}">${ci(p)}<span class="check-message">${m}</span></div>`;
+function verify(){
+ const ph=P('ph','f-idle'),ntpOn=P('ntp','0')==='1',cd=+P('cd','100');
+ const fin=!['f-idle','f-run','f-err'].includes(ph);
+ const setup={'f-idle':'idle','f-run':'finalizing','f-err':'error','v-run':'post_reboot_verify','v-ok':'done','v-fail':'done','v-err':'error'}[ph]||'done_finalize';
+ const reb={'r-run':'rebooting','r-wait':'waiting','r-err':'error','r-done':'done','v-run':'done','v-ok':'done','v-fail':'done','v-err':'done'}[ph]||'idle';
+ const pass=ph==='v-ok';
+ const cur=!fin?1:reb==='done'?3:2;
+ const phs=[['phaseFinalize','Einrichten'],['phaseReboot','Neustart'],['phaseVerify','Prüfen']];
+ let c='<div class="verification"><ol class="verify-phases">'+phs.map((p,i)=>{const n=i+1,s=n<cur||(n===3&&pass)?'done':n===cur?'active':'pending';return `<li class="verify-phase verify-phase--${s}" ${s==='active'?'aria-current="step"':''}><span class="verify-phase-num" aria-hidden="true">${s==='done'?I.Check(14):n}</span><span class="verify-phase-label">${t(S8+p[0])==S8+p[0]?p[1]:t(S8+p[0])}</span></li>`}).join('')+'</ol>';
+ if(setup==='idle')c+=`<div class="finalize-section"><button class="btn btn-primary">${t(S8+'btnFinalize')}</button></div>`;
+ if(setup==='finalizing')c+=`<div class="finalize-status wz-status" role="status">${spinS}${t(S8+'finalizing')}</div>`;
+ if(setup==='error')c+=`<div class="setup-error wz-status wz-status--error" role="alert"><div class="failed-icon">${I.Alert()}</div><p>${ph==='f-err'?'SSH-Verbindung abgelehnt: Gerät nicht erreichbar.':'Server nicht erreichbar (Zeitüberschreitung nach 30 s).'}</p><button class="btn btn-secondary">${t(S8+'btnRetryFinalize')}</button></div>`;
+ if(fin)c+=`<div class="verify-checklist">${item(true,t(S8+'finalizeUuid',{uuid:'5522049'}))}${item(true,t(S8+'finalizeSources'))}${item(true,t(S8+'finalizeSystemConfig'))}</div>`;
+ if(setup==='done_finalize'||reb!=='idle'){
+  c+=`<div class="reboot-section"><div class="reboot-header"><span class="reboot-icon" aria-hidden="true">${I.Rotate(22)}</span><div><strong>${t(S8+'rebootHeader')}</strong><p class="reboot-hint">${t(S8+'rebootMandatoryHint')}</p></div></div>`;
+  if(reb==='idle'&&setup==='done_finalize')c+=`<div class="reboot-action"><button class="btn btn-primary reboot-btn">${I.Rotate()} ${t(S8+'btnReboot')}</button></div>`;
+  if(reb==='rebooting')c+=`<div class="reboot-status reboot-status--progress" role="status">${spinS}${t(S8+'rebootRebooting')}</div>`;
+  if(reb==='waiting')c+=`<div class="reboot-status reboot-status--waiting" role="status"><span class="reboot-countdown" aria-hidden="true">${cd}s</span><span class="reboot-status-text">${t(S8+'rebootWaiting')}</span><span class="reboot-progress" aria-hidden="true"><span class="reboot-progress-bar" style="width:${100-cd}%"></span></span></div>`;
+  if(reb==='done')c+=`<div class="reboot-status reboot-status--done" role="status"><span class="wz-icon">${I.CircleCheck()}</span><span class="reboot-status-text">${t(S8+'rebootDone')}</span></div>`;
+  if(reb==='error')c+=`<div class="reboot-status reboot-status--error" role="alert"><span class="wz-icon">${I.CircleX()}</span><span class="reboot-status-text">Verbindung zu ${IP} verloren: Neustart-Befehl wurde nicht bestätigt.</span><button class="btn btn-secondary reboot-retry">${t(S8+'btnRetryReboot')}</button></div>`;
+  c+='</div>';
+ }
+ if(reb==='done'&&setup!=='post_reboot_verify'&&setup!=='done')c+=`<div class="verification-start"><div class="verification-info"><div class="info-icon" aria-hidden="true">${I.Search(22)}</div><div class="info-content"><h3>${t(S8+'fullVerifyTitle')}</h3><ul><li>${t(S8+'fullVerifyItem1')}</li><li>${t(S8+'fullVerifyItem2')}</li><li>${t(S8+'fullVerifyItem3')}</li><li>${t(S8+'fullVerifyItem4')}</li>${ntpOn?`<li>${t(S8+'fullVerifyItem5')}</li>`:''}</ul></div></div><button class="btn btn-primary verification-test-btn">${I.Rocket(20)} ${t(S8+'btnRunFullVerify')}</button></div>`;
+ if(setup==='post_reboot_verify')c+=`<div class="verify-status wz-status" role="status">${spinS}${t(S8+'fullVerifying')}</div>`;
+ if(setup==='done'){
+  const bad=ph==='v-fail';
+  const mk=(n,p,extra)=>Object.assign({name:n,passed:p},extra||{});
+  const un=[mk('uuid_in_db',true)];if(ntpOn)un.push(mk('ntp_server_correct',!bad));
+  const grp=[[S8+'groupSources',[mk('sources_complete',!bad,{missing:['BLUETOOTH','TUNEIN']})]],[S8+'groupConfig',[mk('config_files_present',true),mk('config_files_identical',!bad),mk('config_bmx_url',true)]],[S8+'groupHosts',[mk('hosts_oct_block',true),mk('hosts_domains_complete',!bad),mk('hosts_ip_correct',!bad)]],[S8+'groupSystemConfig',[mk('system_config_uuid_match',true)]]];
+  c+=`<div class="verify-checklist"><h3>${t(S8+'verifyTitle')}</h3>${un.map(x=>item(x.passed,cmsg(x))).join('')}${grp.map(g=>`<div class="verify-group"><div class="verify-group-header verify-group-title">${t(g[0])}:</div><div class="verify-group-items">${g[1].map(x=>item(x.passed,esc(cmsg(x)))).join('')}</div></div>`).join('')}</div>`;
+  c+=`<div class="verification-results"><h3 class="verification-title">${t(S8+'resultsTitle')}</h3><div class="verification-summary-list">${item(!bad,t(S8+'summaryConfigCorrect'))}${item(!bad,t(S8+'summaryRedirectsCorrect'))}${item(!bad,t(S8+'summarySourcesPresent'))}</div></div>`;
+  c+=pass?`<div class="verification-success wz-result" role="status"><div class="success-icon">${I.PartyPopper(28)}</div><h3 class="success-title">${t(S8+'allPassedTitle')}</h3><p class="success-message">${t(S8+'allPassedMessage')}</p></div>`:`<div class="verification-failed wz-result wz-result--warning" role="alert"><div class="failed-icon">${I.Alert(28)}</div><h3 class="failed-title">${t(S8+'someFailedTitle')}</h3><p class="failed-message">${t(S8+'someFailedMessage')}</p><button class="btn btn-secondary verification-retry-btn">${I.Rotate()} ${t(S8+'btnRetryFullVerify')}</button><button class="btn btn-ghost verification-skip-btn">${t(S8+'btnSkip')}</button></div>`;
+ }
+ c+='</div>';
+ return frame(7,t(S8+'title'),t(S8+'description'),t(S8+'warning'),c,{dis:!pass,reason:'Bitte zuerst alle Prüfungen erfolgreich abschließen.'});
+}
+
+/* ---- Step 8 Completion ---- */
+function done(){
+ const bk=P('bk','1')==='1',ntpOn=P('ntp','0')==='1';
+ const items=[1,2,3,4,5,6].map(i=>t(S9+'summaryItem'+i));if(ntpOn)items.push(t(S9+'summaryItem7',{server:'pool.ntp.org'}));
+ const path='/media/sda1/oct-backup/20261020-142530/rootfs.tar.gz';
+ const c=`<div class="completion"><div class="completion-hero"><div class="completion-icon" aria-hidden="true">${I.PartyPopper(36)}</div><h2 class="completion-title">${t(S9+'heroTitle')}</h2><p class="completion-message">${esc(t(S9+'heroMessage',{device:DEV}))}</p></div><div class="completion-summary"><h3 class="summary-title">${t(S9+'summaryTitle')}</h3><ul class="summary-list">${items.map(x=>`<li class="summary-item"><span class="summary-icon" aria-hidden="true">${I.Check(18)}</span><span class="summary-text">${esc(x)}</span></li>`).join('')}</ul></div><div class="completion-backup-info ${bk?'completion-backup-info--ok':'completion-backup-info--missing'}"><div class="backup-info-icon" aria-hidden="true">${bk?I.HardDrive(24):I.Alert(24)}</div><div class="backup-info-content">${bk?`<strong>${t(S9+'backupTitle')}</strong><code class="backup-info-path">${path}</code><p class="backup-info-note">${t(S9+'backupNote')}</p>`:`<strong>${t(S9+'noBackupTitle')}</strong><p class="backup-info-warning">${t(S9+'noBackupWarning')}</p>`}</div></div><div class="completion-next-steps"><h3 class="next-steps-title">${t(S9+'nextTitle')}</h3><div class="next-steps-list">${[1,2,3].map(i=>`<div class="next-step-item"><div class="next-step-number">${i}</div><div class="next-step-content"><strong>${t(S9+'nextStep'+i+'Title')}</strong><p>${t(S9+'nextStep'+i+'Desc')}</p></div></div>`).join('')}</div></div><div class="completion-actions"><button class="btn btn-primary wizard-btn-next completion-btn-done">${t(S9+'btnDone')}</button></div><div class="completion-support"><p>${t(S9+'supportText')} <a href="#" class="completion-support-link">${t(S9+'supportLink')}</a></p></div></div>`;
+ return frame(8,t(S9+'title'),t(S9+'description'),'',c,{bare:true});
+}
+
+const STEPS={dns:[5,dns],ntp:[6,ntp],verify:[7,verify],done:[8,done]};
+fetch('../uploads/10-de-wizard-texts-83c9d615.json').then(r=>r.json()).then(j=>{TX=j;const [n,fn]=STEPS[P('step','dns')];
+ document.getElementById('root').innerHTML=`<div class="page setup-wizard-page">${header()}<div class="wizard-content-v2">${tracker(n)}${fn()}</div></div>`;
+ requestAnimationFrame(()=>setTimeout(audit,350));}).catch(e=>{document.getElementById('root').textContent='Fehler: '+e});
+function audit(){
+ const vw=document.documentElement.clientWidth,bad=[];
+ document.querySelectorAll('#root *').forEach(el=>{const r=el.getBoundingClientRect();if(r.width&&(r.right>vw+1||r.left<-1)){const p=el.closest('pre,code,.ssh-command-wrapper,.backup-info-path,.hosts-diff,.hosts-detail-value');if(!p||p===el)bad.push(el.className||el.tagName)}});
+ const small=[...document.querySelectorAll('#root button,#root select,#root input:not([type=checkbox]),#root label.hosts-domain-item,#root .completion-support-link')].filter(e=>{if(e.disabled&&e.tagName==='BUTTON'&&false)return false;const r=e.getBoundingClientRect();return r.width&&r.height&&(r.height<43.5||r.width<43.5)}).map(e=>e.className||e.tagName);
+ const ov=[];const els=[...document.querySelectorAll('#root button,#root label,#root input:not([type=checkbox]),#root h1,#root h2,#root h3,#root h4,#root p,#root li')].filter(e=>e.getBoundingClientRect().width);
+ for(let i=0;i<els.length;i++)for(let j=i+1;j<els.length;j++){const a=els[i],b=els[j];if(a.contains(b)||b.contains(a))continue;const A=a.getBoundingClientRect(),B=b.getBoundingClientRect();const w=Math.min(A.right,B.right)-Math.max(A.left,B.left),h=Math.min(A.bottom,B.bottom)-Math.max(A.top,B.top);if(w>2&&h>2)ov.push((a.className||a.tagName)+' x '+(b.className||b.tagName))}
+ const scr=document.documentElement.scrollWidth>vw+1;
+ const a=document.getElementById('audit'),ok=!scr&&!bad.length&&!small.length&&!ov.length;
+ a.style.background=ok?'#1b5e20':'#b71c1c';a.style.color='#fff';
+ a.textContent=ok?`✓ ${vw}px: kein Overflow, keine Überlappung, Ziele ≥44px`:`✗ ${vw}px: ${scr?'horizontaler Scroll. ':''}${bad.slice(0,2).join(', ')}${small.length?' | <44px: '+small.slice(0,2).join(', '):''}${ov.length?' | Überlappung: '+ov.slice(0,2).join(', '):''}`;
+ parent.postMessage({oct:'audit',ok,msg:a.textContent},'*');
+}
+</script></body></html>

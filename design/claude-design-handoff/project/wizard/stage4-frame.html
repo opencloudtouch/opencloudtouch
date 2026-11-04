@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stage 4 frame</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="wizard-base.css">
+<link rel="stylesheet" href="RestoreSteps.css">
+<style>#audit{position:fixed;right:8px;bottom:8px;z-index:50;padding:6px 10px;border-radius:6px;font:600 12px/1.3 system-ui;max-width:70%}</style>
+</head><body><div id="root"></div><div id="audit"></div>
+<script>
+// Prototype renderer: mirrors the markup of the TSX components 1:1 (same classes, same DOM order). Texts: uploaded German i18n JSON + the proposed new keys.
+const Q=new URLSearchParams(location.search),P=(k,d)=>Q.get(k)||d;
+let TX={};
+const t=(k,v)=>{let s=k.split('.').reduce((o,p)=>o&&o[p],TX);if(typeof s!=='string')return k;return s.replace(/\{\{(\w+)\}\}/g,(_,n)=>v&&v[n]!=null?v[n]:'')};
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const PA={
+Speaker:'<rect width="16" height="20" x="4" y="2" rx="2"/><circle cx="12" cy="14" r="4"/><path d="M12 6h.01"/>',
+Rotate:'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+Check:'<path d="M20 6 9 17l-5-5"/>',X:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+Info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+Alert:'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+ArrowLeft:'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',ArrowRight:'<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+CircleCheck:'<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',CircleX:'<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
+Sparkles:'<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/>',
+ArchiveRestore:'<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h2"/><path d="M20 8v11a2 2 0 0 1-2 2h-2"/><path d="m9 15 3-3 3 3"/><path d="M12 12v9"/>',
+SkipForward:'<polygon points="5 4 15 12 5 20 5 4"/><line x1="19" x2="19" y1="5" y2="19"/>',Minus:'<path d="M5 12h14"/>',
+Loader:'<path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/>',
+Clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>'};
+const I=(n,s=20)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${PA[n]}</svg>`;
+const WI=(n,s)=>`<span class="wz-icon" aria-hidden="true">${I(n,s)}</span>`;
+const DEV=P('dev','std')==='long'?'Wiederherstellungs-Lautsprecher Obergeschoss Gästezimmer links':'Wohnzimmer',IP='192.168.178.42';
+const R='restore.',path=P('path','backup');
+
+const header=()=>`<div class="device-info-header"><div class="device-info-main"><div class="device-icon">${I('Speaker',22)}</div><div class="device-details"><h2 class="device-name">${esc(DEV)}</h2><div class="device-meta"><span class="device-model">SoundTouch 30</span><span class="device-separator">•</span><span class="device-ip">${IP}</span></div></div></div><button class="device-reboot-btn device-reboot-btn--idle">${I('Rotate',18)} ${t('deviceHeader.reboot')}</button></div>`;
+const tracker=n=>{const K=['choice','backup','restore','verify','done'],L=K.map(k=>t(R+'steps.'+k));
+ const st=id=>id===2&&path==='clean'&&n>1?'skipped':id<n?'completed':'pending';
+ return `<div class="progress-tracker"><div class="progress-tracker-compact" aria-hidden="true">${t('setup.trackerCompact',{current:n,total:5,label:L[n-1]})}</div><div class="progress-steps">${L.map((l,i)=>{const id=i+1,s=st(id),aria=t(s==='completed'?'setup.stepAriaCompleted':s==='skipped'?'setup.stepAriaSkipped':'setup.stepAriaPending',{id,label:l,description:''});return `<div class="progress-step ${s} ${id===n?'active':''}"><div class="step-indicator">${i>0?'<div class="step-connector"></div>':''}<div class="step-circle" title="${l}" aria-label="${esc(aria)}">${s==='completed'?`<span class="step-icon" aria-hidden="true">${I('Check',16)}</span>`:s==='skipped'?`<span class="step-icon" aria-hidden="true">${I('Minus',16)}</span>`:`<span class="step-number" aria-hidden="true">${id}</span>`}</div></div><div class="step-label">${l}</div></div>`}).join('')}</div></div>`};
+const spin='<span class="spinner-small"></span>';
+const frame=(n,title,desc,content,o={})=>{
+ const nx=o.next;
+ return `<div class="wizard-step"><div class="wizard-step-header"><div class="wizard-step-number">${t('setup.stepLabel',{step:n})}</div><h2 class="wizard-step-title">${title}</h2>${desc?`<p class="wizard-step-description">${desc}</p>`:''}</div><div class="wizard-step-content">${content}</div><div class="wizard-step-actions">${o.back?`<button class="btn btn-secondary wizard-btn-previous" ${o.back==='off'?'disabled':''}>${I('ArrowLeft',18)} ${t('setup.back')}</button>`:''}<div class="wizard-actions-right">${nx?`<button class="btn btn-primary wizard-btn-next" ${nx.dis||nx.load?'disabled':''}>${nx.load?spin+t('common.loading'):nx.label+' '+I('ArrowRight',18)}</button>`:''}</div></div></div>`};
+
+function choice(){
+ const c=`<div class="wizard-choice__cards"><button class="wizard-choice__card"><span class="wizard-choice__icon">${I('Sparkles',26)}</span><h3>${t(R+'restore_choice.clean_title')}</h3><p>${t(R+'restore_choice.clean_desc')}</p></button><button class="wizard-choice__card"><span class="wizard-choice__icon">${I('ArchiveRestore',26)}</span><h3>${t(R+'restore_choice.backup_title')}</h3><p>${t(R+'restore_choice.backup_desc')}</p></button></div>`;
+ return frame(1,t(R+'restore_choice.title'),t(R+'restore_choice.description'),c,{back:'on'});
+}
+const FN='soundtouch-68C90B32AF6E-20261021-';
+function scan(){
+ const s=P('ss','ok'),B=R+'backup_scan.';
+ const retry=`<button class="btn btn-secondary">${I('Rotate',16)} ${t('common.retry')}</button>`;
+ let c='';
+ if(s==='scanning')c=`<div class="backup-scan__loading wz-status" role="status"><span class="wz-spinner" aria-hidden="true"></span><p>${t(B+'scanning')}</p></div>`;
+ if(s==='reqerr')c=`<div class="backup-scan__error wz-status wz-status--error" role="alert">${WI('CircleX',20)}<div class="wz-status-body"><p>${esc(t(B+'error',{message:'Backup scan failed: 502 Bad Gateway – upstream connect error or disconnect/reset before headers. reset reason: connection timeout'}))}</p>${retry}</div></div>`;
+ if(s==='nousb')c=`<div class="backup-scan__warning wz-status wz-status--warning" role="alert">${WI('Alert',22)}<div class="wz-status-body"><p>${t(B+'no_usb')}</p>${retry}</div></div>`;
+ if(s==='srverr')c=`<div class="backup-scan__warning wz-status wz-status--warning" role="alert">${WI('Alert',22)}<div class="wz-status-body"><p>Backup directory /media/sda1/oct-backup is not readable: Input/output error (EIO) while listing directory entries on the USB volume</p></div></div>`;
+ if(['ok','warn','legacy'].includes(s)){
+  const W=s==='warn',files=[['persistent','persistent',null],['rootfs','rootfs',W?t(R+'validation.archive_path_missing',{expected:'opt/Bose/'}):null],['update','update',W?t(R+'validation.archive_unverified'):null]];
+  c=`<div class="backup-scan__result"><h4>${WI('CircleCheck',20)}${t(B+'found')}${s==='legacy'?' ('+t(B+'legacy')+')':''}</h4><ul>${files.map(f=>`<li><strong>${f[0]}</strong> <span class="backup-scan__filename">${FN}${f[1]}.tgz</span>${f[2]?`<span class="backup-scan__mismatch">${WI('Alert',18)}<span>${esc(f[2])}</span></span>`:''}</li>`).join('')}</ul></div>`;
+ }
+ const loading=s==='scanning',has=['ok','warn','legacy'].includes(s);
+ return frame(2,t(B+'title'),t(B+'description'),c,{back:loading?'off':'on',next:{label:t(B+'use_backup'),dis:!has,load:loading}});
+}
+const PRES='/mnt/nv/BoseApp-Persistence/1/Presets.xml';
+function execSteps(v){
+ const S=(name,status,code,params,dur,msg,err)=>({name,status,code,params,dur,msg:msg||'',err:err||null});
+ const base={
+  ok:[S('pre_snapshot','completed','snapshot_saved',{},489.0),S('config','completed','config_restored',{},3.4),S('presets','completed','presets_restored',{path:PRES},2.1),S('hosts','completed','hosts_restored',{},1.2),S('ntp','completed','ntp_restored',{},0.9),S('remote_services','completed','remote_services_deleted',{},0.6),S('reboot','completed','reboot_sent',{},3.9)],
+  skipped:[S('pre_snapshot','completed','snapshot_saved',{},489.0),S('config','completed','config_restored',{},3.4),S('presets','skipped','presets_clean',{},0),S('hosts','skipped','hosts_clean',{},0),S('ntp','skipped','ntp_no_backup',{},0),S('remote_services','completed','remote_services_deleted',{},0.6),S('reboot','completed','reboot_sent',{},3.9)],
+  partial:[S('pre_snapshot','completed','snapshot_saved',{},489.0),S('config','completed','config_restored',{},3.4),S('presets','completed','presets_restored',{path:PRES},2.1),S('hosts','completed','hosts_restored',{},1.2),S('ntp','failed','ntp_restore_failed',{error:'Permission denied'},0.8,'NTP restore failed: Permission denied','Permission denied: /etc/ntpservers.txt (errno 13) while writing via SSH session to 192.168.178.42'),S('remote_services','completed','remote_services_deleted',{},0.6),S('reboot','skipped',null,{},0,'Reboot skipped because a previous step failed')],
+  all:[S('pre_snapshot','completed','snapshot_saved',{},489.0),S('config','completed','config_restored',{},3.4),S('presets','in_progress','presets_restored',{path:PRES},0),S('hosts','skipped','hosts_clean',{},0),S('ntp','failed','ntp_restore_failed',{error:'Permission denied'},0.8,'NTP restore failed: Permission denied','Permission denied: /etc/ntpservers.txt (errno 13)'),S('remote_services','pending','remote_services_deleted',{},0),S('reboot','pending','reboot_sent',{},0)]
+ };
+ return base[v]||base.ok;
+}
+const STIC={pending:'Clock',in_progress:'Loader',completed:'CircleCheck',skipped:'SkipForward',failed:'CircleX'};
+const stepMsg=s=>s.code?t(R+'messages.'+s.code,s.params):s.msg;
+function exec(){
+ const s=P('ex','ok'),E=R+'execution.';
+ let c='',running=s==='running',okAll=s==='ok'||s==='skipped';
+ if(running)c=`<div class="restore-execution__progress wz-status" role="status"><div class="restore-execution__progress-head"><span class="wz-spinner" aria-hidden="true"></span><p>${t(E+'running')}</p></div><p class="restore-execution__hint">${t(E+'running_hint')}</p><span class="wz-progress wz-progress--indeterminate" aria-hidden="true"><span class="wz-progress-bar"></span></span></div>`;
+ if(s==='reqerr')c=`<div class="restore-execution__error wz-status wz-status--error" role="alert">${WI('CircleX',20)}<div class="wz-status-body"><p>${esc(t(E+'error',{message:'Restore execution failed: 504 Gateway Timeout – SSH session to 192.168.178.42:22 closed unexpectedly during pre-restore snapshot'}))}</p><p class="restore-execution__hint">${t(E+'error_hint')}</p></div></div>`;
+ if(['ok','skipped','partial','all'].includes(s)){
+  const steps=execSteps(s);
+  c=`<div class="restore-execution__steps">${steps.map(x=>`<div class="restore-execution__step restore-execution__step--${x.status}"><span class="restore-execution__icon">${I(STIC[x.status],20)}</span><span class="restore-execution__label">${esc(t(R+'step_labels.'+x.name))}</span><span class="restore-execution__message">${esc(stepMsg(x))}</span>${x.err&&x.err!==x.msg?`<span class="restore-execution__error-detail">${esc(x.err)}</span>`:''}${x.dur>0?`<span class="restore-execution__duration">${x.dur.toFixed(1)}s</span>`:''}</div>`).join('')}${okAll?`<div class="restore-execution__success wz-status wz-status--success" role="status">${WI('CircleCheck',24)}<p>${t(E+'success',{time:'501.1'})}</p></div>`:`<div class="restore-execution__failed wz-status wz-status--error" role="alert">${WI('CircleX',24)}<div class="wz-status-body"><strong class="wz-status-title">${t(E+'failed_title')}</strong><p>${t(E+'error_hint')}</p></div></div>`}</div>`;
+ }
+ return frame(3,t(E+'title'),t(E+'description'),c,{back:running?undefined:'on',next:{label:t(E+'continue'),dis:!okAll,load:running}});
+}
+function verify(){
+ const s=P('vs','countdown'),cd=+P('cd','120'),V=R+'verification.';
+ let c='',online=s==='online',load=s==='countdown';
+ if(s==='countdown')c=`<div class="restore-verification__countdown wz-status" role="timer"><span class="wz-spinner" aria-hidden="true"></span><div class="wz-status-body"><p>${t(V+'countdown',{seconds:cd})}</p><span class="wz-progress" aria-hidden="true"><span class="wz-progress-bar" style="width:${Math.min(100,(120-cd)/120*100)}%"></span></span></div></div>`;
+ if(s==='timeout')c=`<div class="restore-verification__timeout wz-status wz-status--warning" role="alert">${WI('Alert',22)}<div class="wz-status-body"><p>${t(V+'timeout')}</p><div class="wz-status-actions"><button class="btn btn-secondary">${I('Rotate',16)} ${t('common.retry')}</button><button class="btn btn-primary">${t(V+'manual_confirm')}</button></div></div></div>`;
+ if(online)c=`<div class="restore-verification__online wz-status wz-status--success" role="status">${WI('CircleCheck',22)}<p>${t(V+'online')}</p></div>`;
+ return frame(4,t(V+'title'),t(V+'description'),c,{back:'on',next:{label:t(V+'continue'),dis:!online,load}});
+}
+function done(){
+ const s=P('cs','all'),type=P('rt','backup'),C=R+'completion.';
+ const all=execSteps('partial'),ok=execSteps('ok'),sk=execSteps('skipped');
+ let steps;
+ if(s==='all')steps=all.map((x,i)=>i===2?{...x,status:'skipped',code:'presets_clean',params:{}}:x);
+ else if(s==='ok')steps=sk;else steps=ok;
+ const rest=steps.filter(x=>x.status==='completed'),skp=steps.filter(x=>x.status==='skipped'),fl=steps.filter(x=>x.status==='failed');
+ const li=(ic,x,extra)=>`<li>${WI(ic,18)}<span>${esc(stepMsg(x))}${extra||''}</span></li>`;
+ let c=`<div class="restore-completion"><h4>${type==='clean'?t(C+'clean_summary'):t(C+'backup_summary')}</h4>`;
+ if(rest.length)c+=`<div class="restore-completion__section restore-completion__section--restored"><h5>${WI('CircleCheck',20)}${t(C+'restored')}</h5><ul>${rest.map(x=>li('Check',x)).join('')}</ul></div>`;
+ if(skp.length)c+=`<div class="restore-completion__section restore-completion__section--skipped"><h5>${WI('SkipForward',20)}${t(C+'skipped')}</h5><ul>${skp.map(x=>li('Minus',x)).join('')}</ul></div>`;
+ if(fl.length)c+=`<div class="restore-completion__section restore-completion__section--failed"><h5>${WI('CircleX',20)}${t(C+'failed')}</h5><ul>${fl.map(x=>li('X',x,x.err&&x.err!==x.msg?`<span class="restore-completion__error"> — ${esc(x.err)}</span>`:'')).join('')}</ul></div>`;
+ c+=`<p class="restore-completion__note wz-status">${WI('Info',20)}<span>${t(C+'note')}</span></p></div>`;
+ return frame(5,t(C+'title'),t(C+'description'),c,{next:{label:t(C+'done')}});
+}
+const STEPS={choice:[1,choice],scan:[2,scan],exec:[3,exec],verify:[4,verify],done:[5,done]};
+fetch('../uploads/11-de-wizard-and-restore-texts.json').then(r=>r.json()).then(j=>{TX=j;
+ Object.assign(TX.restore.execution,{running_hint:'Dieser Vorgang kann mehrere Minuten dauern (meist 8 bis 9). Lassen Sie diese Seite geöffnet und trennen Sie das Gerät nicht.',error_hint:'Gehen Sie zurück und versuchen Sie es erneut.',failed_title:'Wiederherstellung unvollständig'});
+ TX.setup.stepAriaSkipped='Schritt {{id}}: {{label}} — {{description}} – übersprungen';
+ const [n,fn]=STEPS[P('step','choice')];
+ document.getElementById('root').innerHTML=`<div class="page setup-wizard-page">${header()}<div class="wizard-content-v2">${tracker(n)}${fn()}</div></div>`;
+ requestAnimationFrame(()=>setTimeout(audit,350));}).catch(e=>{document.getElementById('root').textContent='Fehler: '+e});
+function audit(){
+ const vw=document.documentElement.clientWidth,bad=[];
+ document.querySelectorAll('#root *').forEach(el=>{const r=el.getBoundingClientRect();if(r.width&&(r.right>vw+1||r.left<-1))bad.push(el.className||el.tagName)});
+ const small=[...document.querySelectorAll('#root button')].filter(e=>{const r=e.getBoundingClientRect();return r.width&&r.height&&(r.height<43.5||r.width<43.5)}).map(e=>e.className);
+ const ov=[],els=[...document.querySelectorAll('#root button,#root label,#root h1,#root h2,#root h3,#root h4,#root h5,#root p,#root li,#root strong,#root .restore-execution__step>span,#root .backup-scan__result li>span')].filter(e=>e.getBoundingClientRect().width);
+ for(let i=0;i<els.length;i++)for(let j=i+1;j<els.length;j++){const a=els[i],b=els[j];if(a.contains(b)||b.contains(a))continue;const A=a.getBoundingClientRect(),B=b.getBoundingClientRect();const w=Math.min(A.right,B.right)-Math.max(A.left,B.left),h=Math.min(A.bottom,B.bottom)-Math.max(A.top,B.top);if(w>2&&h>2)ov.push((a.className||a.tagName)+' x '+(b.className||b.tagName))}
+ const sb=['.progress-tracker','.wizard-step','.device-info-header'].filter(s=>{const e=document.querySelector(s);return e&&e.scrollWidth>e.clientWidth+1});
+ const tr=document.querySelector('.progress-tracker'),sc=document.querySelector('.wizard-step');
+ const wide=[tr,sc].some(e=>e&&e.getBoundingClientRect().width>720.5);
+ const an=document.querySelector('.progress-step.active .step-circle'),white=an&&getComputedStyle(an).color==='rgb(255, 255, 255)';
+ const scr=document.documentElement.scrollWidth>vw+1,ok=!scr&&!bad.length&&!small.length&&!ov.length&&!sb.length&&!wide&&white;
+ const a=document.getElementById('audit');a.style.background=ok?'#1b5e20':'#b71c1c';a.style.color='#fff';
+ a.textContent=ok?`✓ ${vw}px: kein Overflow/Scrollbar, keine Überlappung, Ziele ≥44px, ≤720px`:`✗ ${vw}px: ${scr?'Scroll. ':''}${bad.slice(0,2).join(', ')}${small.length?' | <44px: '+small.slice(0,2).join(', '):''}${ov.length?' | Überlappung: '+ov.slice(0,2).join(', '):''}${sb.length?' | Scrollbar: '+sb.join(','):''}${wide?' | >720px':''}${white?'':' | Ziffer nicht weiß'}`;
+ parent.postMessage({oct:'audit',ok,msg:a.textContent},'*');
+}
+</script></body></html>
