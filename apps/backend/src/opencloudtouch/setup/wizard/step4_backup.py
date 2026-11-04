@@ -25,7 +25,11 @@ class Step4BackupMixin:
         """
         async with ssh_operation(device_ip, "backup") as ssh:
             backup_service = SoundTouchBackupService(ssh)
-            results = await backup_service.backup_all(device_id=device_id)
+            try:
+                results = await backup_service.backup_all(device_id=device_id)
+            except RuntimeError as e:
+                # No USB stick found: report it as a normal, actionable failure
+                return {"success": False, "message": str(e)}
 
             failed = [r for r in results if not r.success]
             if failed:
