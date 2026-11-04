@@ -11,6 +11,7 @@ import SetupBadge from "../components/SetupBadge";
 import DeviceOfflineBanner from "../components/DeviceOfflineBanner";
 import DeviceNameEditor from "../components/DeviceNameEditor";
 import RadioSearch, { RadioStation } from "../components/RadioSearch";
+import SleepTimer from "../components/SleepTimer";
 import VolumeSlider from "../components/VolumeSlider";
 import ConfirmDialog from "../components/ConfirmDialog";
 import RemoveDevice from "../components/RemoveDevice";
@@ -506,6 +507,11 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
               </motion.div>
             )}
 
+            {/* A running sleep timer stays visible and cancellable while the speaker is offline */}
+            {deviceOffline && deviceId && (
+              <SleepTimer key={deviceId} deviceId={deviceId} deviceOffline />
+            )}
+
             {!deviceOffline && (
               <div className="dv-body">
                 <div className="dv-main">
@@ -558,6 +564,10 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
                       onMuteToggle={toggleMute}
                     />
                   </div>
+
+                  {deviceId && (
+                    <SleepTimer key={deviceId} deviceId={deviceId} deviceOffline={false} />
+                  )}
                 </div>
 
                 <div className="dv-side">

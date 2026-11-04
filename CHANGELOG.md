@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stream recovery (opt-in): `GET`/`PUT /api/stream-recovery` and `GET /api/stream-recovery/events`. A watchdog presses the matching radio preset again when a speaker that played a station for a minimum time suddenly reports `INVALID_SOURCE`, with a rate limit and an activity log; new error codes `stream_recovery_min_play_invalid`, `stream_recovery_attempts_invalid`, `stream_recovery_failed`.
 - Settings page: "Stream recovery" section (switch, minimum playing time, attempts per hour, recent activity) in all 10 locales.
 - Sleep timer: `PUT`/`GET`/`DELETE /api/devices/{id}/sleep-timer` fade the volume out, stop playback or switch the speaker to standby and restore the previous volume; timers survive a restart; new error code `sleep_timer_fade_too_long`. Shared `VolumeFader`, playback helpers and a stateful mock device (volume, mute, play state) for tests and mock mode.
+- Device card: sleep timer (duration, fade, end action, live countdown on the server clock, cancel) in all 10 locales.
 
 ### Changed
 - The navigation entry "Presets" is now "Devices" (all 10 locales). The device card is the single place for a device: now playing with a source switch (Presets, Bluetooth, AUX), previous/next/play keys for sources with tracks, volume, presets and remove

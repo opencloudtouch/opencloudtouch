@@ -51,6 +51,11 @@ vi.mock("../../src/components/DeviceSwiper", () => ({
   },
 }));
 
+// The sleep timer needs a QueryClient and has its own tests
+vi.mock("../../src/components/SleepTimer", () => ({
+  default: () => null,
+}));
+
 vi.mock("framer-motion", () => ({
   motion: {
     div: ({ children, ...props }: Record<string, unknown>) => (

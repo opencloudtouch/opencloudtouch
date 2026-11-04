@@ -123,6 +123,13 @@ vi.mock("../../src/components/VolumeSlider", () => ({
   ),
 }));
 
+// The sleep timer has its own tests and its own fetches
+vi.mock("../../src/components/SleepTimer", () => ({
+  default: ({ deviceId, deviceOffline }: { deviceId: string; deviceOffline: boolean }) => (
+    <div data-testid="sleep-timer" data-device={deviceId} data-offline={String(deviceOffline)} />
+  ),
+}));
+
 vi.mock("../../src/components/PresetRow", () => ({
   default: ({ number, preset, state, onToggle, onChange }: { number: number; preset: { station_name: string } | null; state: string; onToggle: () => void; onChange: () => void }) => (
     <div data-testid={`preset-${number}`}>
@@ -1328,6 +1335,29 @@ describe("Devices Page", () => {
       expect(screen.queryByTestId("now-playing")).not.toBeInTheDocument();
       expect(screen.queryByTestId("preset-list")).not.toBeInTheDocument();
       expect(screen.queryByTestId("volume-slider")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Sleep timer", () => {
+    beforeEach(() => {
+      _resetOfflineStore();
+    });
+
+    it("is shown for the selected device and can be started while online", async () => {
+      await renderAndWaitForLoad();
+
+      const timer = screen.getByTestId("sleep-timer");
+      expect(timer).toHaveAttribute("data-device", "AABBCC123456");
+      expect(timer).toHaveAttribute("data-offline", "false");
+    });
+
+    it("stays available for an offline device so a running timer can be cancelled", async () => {
+      markDeviceOffline("AABBCC123456");
+      await renderAndWaitForLoad();
+
+      const timer = screen.getByTestId("sleep-timer");
+      expect(timer).toHaveAttribute("data-device", "AABBCC123456");
+      expect(timer).toHaveAttribute("data-offline", "true");
     });
   });
 });
