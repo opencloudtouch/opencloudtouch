@@ -86,6 +86,7 @@ docs/*
 !docs/GIT_HOOKS.md
 !docs/DEFINITION_OF_READY.md
 !docs/DEFINITION_OF_DONE.md
+!docs/UI_QUALITY_CHECKLIST.md
 .specify/
 specs/
 

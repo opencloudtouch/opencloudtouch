@@ -28,11 +28,23 @@ export interface UseZonesResult {
   refetch: () => Promise<void>;
 }
 
+let zonesCache: ZoneInfo[] | null = null;
+
+/** Test helper: forget the zones kept across page visits. */
+export function _resetZonesCache() {
+  zonesCache = null;
+}
+
 export function useZones(): UseZonesResult {
-  const [zones, setZones] = useState<ZoneInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // The last result is kept across page visits, so the Zones page does not start with a loading card every time
+  const [zones, setZones] = useState<ZoneInfo[]>(() => zonesCache ?? []);
+  const [isLoading, setIsLoading] = useState(zonesCache === null);
   const [error, setError] = useState<string | null>(null);
   const { subscribe } = useDeviceEventContext();
+
+  useEffect(() => {
+    if (!isLoading) zonesCache = zones;
+  }, [zones, isLoading]);
 
   const fetchZones = useCallback(async () => {
     try {
@@ -47,7 +59,7 @@ export function useZones(): UseZonesResult {
 
   // Initial fetch + SSE subscription
   useEffect(() => {
-    setIsLoading(true);
+    if (zonesCache === null) setIsLoading(true);
     fetchZones().finally(() => setIsLoading(false));
 
     // Zone SSE events are notifications — refetch full zone list on change

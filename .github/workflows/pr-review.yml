@@ -34,62 +34,85 @@ jobs:
       && github.event.pull_request.head.repo.full_name != github.repository
     permissions:
       pull-requests: write
+      issues: write
 
     steps:
-      - name: Welcome comment
+      - name: Welcome comment and contributor label
         uses: actions/github-script@v9
         with:
           script: |
+            const { owner, repo } = context.repo;
             const pr = context.payload.pull_request;
             const author = pr.user.login;
+            const marker = '<!-- oct-contributor-welcome:v1 -->';
+            const trustedLabel = 'contributor:trusted';
 
-            // Check if this is the contributor's first PR
-            const { data: prs } = await github.rest.pulls.list({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'all',
-              sort: 'created',
-              direction: 'asc',
-              per_page: 5,
+            // Merged PRs of this author (all time). GitHub's "approve workflow
+            // runs for first-time contributors" gate lifts after the first
+            // merged contribution, so one merged PR means CI runs unattended.
+            const { data: merged } = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${owner}/${repo} is:pr is:merged author:${author}`,
+              per_page: 1,
             });
-            const prsByAuthor = prs.filter(p => p.user.login === author);
-            const isFirstPR = prsByAuthor.length <= 1;
+            const mergedCount = merged.total_count;
+            const isTrusted = mergedCount >= 1;
 
-            let body = '';
-            if (isFirstPR) {
-              body += `### 👋 Welcome @${author}!\n\n`;
-              body += `Thanks for your first contribution to OpenCloudTouch! We're glad to have you.\n\n`;
-            } else {
-              body += `### 👋 Hey @${author}, welcome back!\n\n`;
-              body += `Thanks for another contribution!\n\n`;
+            if (isTrusted) {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name: trustedLabel });
+              } catch (e) {
+                if (e.status !== 404) throw e;
+                await github.rest.issues.createLabel({
+                  owner, repo, name: trustedLabel, color: '0e8a16',
+                  description: 'Author has at least one merged PR; CI runs without approval',
+                });
+              }
+              await github.rest.issues.addLabels({
+                owner, repo, issue_number: pr.number, labels: [trustedLabel],
+              });
             }
 
-            body += `#### ⏳ CI Pipeline\n\n`;
-            body += `Our CI runs automatically once a maintainer approves the workflow. `;
-            body += `This is a GitHub security requirement for first-time contributors. `;
-            body += `We'll approve it shortly.\n\n`;
-            body += `In the meantime, you can run the checks locally:\n\n`;
-            body += `\`\`\`bash\n`;
-            body += `# Backend\n`;
-            body += `cd apps/backend && pip install -r requirements-dev.txt\n`;
-            body += `pytest tests/unit -x -q\n`;
-            body += `ruff check src/\n\n`;
-            body += `# Frontend\n`;
-            body += `cd apps/frontend && npm ci\n`;
-            body += `npm test\n`;
-            body += `npx eslint src/\n`;
-            body += `\`\`\`\n\n`;
-            body += `#### ✅ PR Checklist\n\n`;
-            body += `- [ ] Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) format\n`;
-            body += `- [ ] Tests added/updated for changed code\n`;
-            body += `- [ ] Code formatted (Python: \`black\`, TypeScript: \`prettier\`)\n\n`;
-            body += `📖 See [CONTRIBUTING.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/.github/CONTRIBUTING.md) for details.\n`;
+            // One welcome-style comment per PR (guards against re-delivery).
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number: pr.number, per_page: 100,
+            });
+            if (comments.some(c => c.body && c.body.includes(marker))) return;
+
+            const checks = `In the meantime, you can run the checks locally:\n\n`
+              + `\`\`\`bash\n`
+              + `# Backend\n`
+              + `cd apps/backend && pip install -r requirements-dev.txt\n`
+              + `pytest tests/unit -x -q\n`
+              + `ruff check src/\n\n`
+              + `# Frontend\n`
+              + `cd apps/frontend && npm ci\n`
+              + `npm test\n`
+              + `npx eslint src/\n`
+              + `\`\`\`\n\n`;
+            const checklist = `#### ✅ PR Checklist\n\n`
+              + `- [ ] Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) format\n`
+              + `- [ ] Tests added/updated for changed code\n`
+              + `- [ ] Code formatted (Python: \`black\`, TypeScript: \`prettier\`)\n\n`
+              + `📖 See [CONTRIBUTING.md](https://github.com/${owner}/${repo}/blob/main/.github/CONTRIBUTING.md) for details.\n`;
+
+            let body = `${marker}\n`;
+            if (!isTrusted) {
+              body += `### 👋 Welcome @${author}!\n\n`;
+              body += `Thanks for your first contribution to OpenCloudTouch!\n\n`;
+              body += `#### ⏳ CI Pipeline\n\n`;
+              body += `Because this is your first contribution, GitHub holds the CI run until a maintainer `;
+              body += `approves it. This happens **once**: after your first merged PR, checks run automatically `;
+              body += `and your PRs are labelled \`${trustedLabel}\`. We'll approve this run shortly.\n\n`;
+              body += checks + checklist;
+            } else {
+              body += `### Thanks @${author}, PR received\n\n`;
+              body += `You already have ${mergedCount} merged PR${mergedCount === 1 ? '' : 's'} here, so CI runs `;
+              body += `automatically without maintainer approval (label \`${trustedLabel}\`).\n\n`;
+              body += checklist;
+            }
 
             await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: pr.number,
-              body: body,
+              owner, repo, issue_number: pr.number, body,
             });
 
   # ============================================================================

@@ -16,14 +16,28 @@ import Toast from "../components/Toast";
 
 export type ToastType = "info" | "success" | "warning" | "error";
 
-export interface ToastData {
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
+export interface ToastOptions {
+  duration?: number;
+  /** Stays until the user closes it (or another toast replaces it). */
+  persistent?: boolean;
+  action?: ToastAction;
+  /** Called when the user closes the toast with its close button (not on auto-hide). */
+  onDismiss?: () => void;
+}
+
+export interface ToastData extends ToastOptions {
   message: string;
   type: ToastType;
   duration: number;
 }
 
 export interface ToastContextValue {
-  show: (message: string, type?: ToastType, duration?: number) => void;
+  show: (message: string, type?: ToastType, options?: number | ToastOptions) => void;
   hide: () => void;
 }
 
@@ -36,9 +50,13 @@ interface ToastProviderProps {
 export function ToastProvider({ children }: ToastProviderProps) {
   const [toast, setToast] = useState<ToastData | null>(null);
 
-  const show = useCallback((message: string, type: ToastType = "info", duration: number = 5000) => {
-    setToast({ message, type, duration });
-  }, []);
+  const show = useCallback(
+    (message: string, type: ToastType = "info", options: number | ToastOptions = 5000) => {
+      const opts = typeof options === "number" ? { duration: options } : options;
+      setToast({ ...opts, message, type, duration: opts.duration ?? 5000 });
+    },
+    []
+  );
 
   const hide = useCallback(() => {
     setToast(null);
@@ -48,7 +66,15 @@ export function ToastProvider({ children }: ToastProviderProps) {
     <ToastContext value={{ show, hide }}>
       {children}
       {toast && (
-        <Toast message={toast.message} type={toast.type} duration={toast.duration} onClose={hide} />
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          duration={toast.duration}
+          persistent={toast.persistent}
+          action={toast.action}
+          onDismiss={toast.onDismiss}
+          onClose={hide}
+        />
       )}
     </ToastContext>
   );

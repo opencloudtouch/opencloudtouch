@@ -2,6 +2,7 @@ import { afterEach, beforeAll, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import "../src/i18n";
+import { clearDeviceDataCache } from "../src/utils/deviceDataCache";
 
 // Mock EventSource (not available in jsdom) – use direct global assignment so
 // it survives vi.unstubAllGlobals() calls in individual test files.
@@ -59,5 +60,6 @@ beforeAll(() => {
 // Cleanup after each test
 afterEach(() => {
   cleanup();
+  clearDeviceDataCache(); // per-device card cache must not leak between tests
   vi.clearAllMocks();
 });

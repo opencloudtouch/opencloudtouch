@@ -318,6 +318,9 @@ jobs:
       - name: Install linting tools
         run: pip install ruff mypy
 
+      - name: Lint GitHub Actions workflow
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 -shellcheck= .github/workflows/ci.yml
+
       - name: Run ruff (Python linter)
         run: ruff check apps/backend/ --select=E,F,W --ignore=E501
 
@@ -698,19 +701,10 @@ jobs:
       contents: write
 
     steps:
-      - name: Determine branch ref
-        id: ref
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "branch=${{ github.event.pull_request.head.ref }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "branch=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          ref: ${{ steps.ref.outputs.branch }}
+          ref: ${{ github.head_ref || github.ref_name }}
           token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Set up Python
@@ -757,6 +751,8 @@ jobs:
             -exec bash -c 'for f; do [ -s "$f" ] && [ "$(tail -c1 "$f")" != "" ] && echo >> "$f"; done' _ {} + || true
 
       - name: Commit and push if changed
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
           git config user.name "formatter-bot"
           git config user.email "noreply@opencloudtouch.org"
@@ -764,8 +760,9 @@ jobs:
           if git diff --cached --quiet; then
             echo "✅ No formatting changes needed"
           else
+            git check-ref-format --branch "$BRANCH" >/dev/null || { echo "::error::Invalid branch name"; exit 1; }
             echo "📝 Formatting changes detected — committing"
             git diff --cached --stat
             git commit -m "style: auto-format code [formatter-bot]"
-            git push origin ${{ steps.ref.outputs.branch }}
+            git push origin "refs/heads/$BRANCH"
           fi

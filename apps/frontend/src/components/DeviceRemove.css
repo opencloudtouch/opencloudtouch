@@ -1,0 +1,67 @@
+/* dm-: "Remove device" in the device card (stage 8). Same footer, same button, same position in Presets and Local control, online and offline.
+   Online: quiet ghost button (text + icon in the danger colour, no border, tint on hover). Offline: .btn-danger-outline. Same size, same label, same place; only the emphasis changes with the state. */
+.dm-foot {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--space-xs);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-color);
+}
+.dm-remove {
+  width: 100%;
+  min-height: var(--touch-target-min);
+  gap: 8px;
+}
+.btn.dm-quiet {
+  color: var(--danger-text);
+}
+.btn.dm-quiet:hover:not(:disabled) {
+  color: var(--danger-text);
+  background: rgba(244, 67, 54, 0.12);
+}
+.btn.dm-quiet:active:not(:disabled) {
+  background: rgba(244, 67, 54, 0.2);
+}
+/* offline: banner and button read as one block (the banner explains, the button acts) */
+.rp-card > .dob + .dm-foot,
+.lc-card > .dob + .dm-foot {
+  margin-top: 0;
+}
+/* confirm dialog: who is being removed */
+.dm-who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  min-width: 0;
+}
+.dm-who > span:first-child {
+  display: flex;
+  flex: none;
+  color: var(--color-text-secondary);
+}
+.dm-who-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+.dm-who-ip {
+  flex: none;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+@media (max-width: 380px) {
+  .dm-who {
+    flex-wrap: wrap;
+  }
+  .dm-who-ip {
+    flex-basis: 100%;
+    padding-left: 30px;
+  }
+}

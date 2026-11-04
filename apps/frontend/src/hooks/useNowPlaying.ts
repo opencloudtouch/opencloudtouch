@@ -11,6 +11,7 @@ import { getNowPlaying, isDeviceOfflineError, type NowPlayingState } from "../ap
 import { isDeviceOffline, markDeviceOffline } from "../api/offlineDeviceStore";
 import { useDeviceEventContext } from "../contexts/DeviceEventContext";
 import { octDebug } from "../utils/debug";
+import { getCachedDeviceData, setCachedDeviceData } from "../utils/deviceDataCache";
 
 export interface UseNowPlayingResult {
   nowPlaying: NowPlayingState | null;
@@ -21,7 +22,31 @@ export interface UseNowPlayingResult {
 }
 
 export function useNowPlaying(deviceId: string | undefined): UseNowPlayingResult {
-  const [nowPlaying, setNowPlaying] = useState<NowPlayingState | null>(null);
+  // The state is keyed by device: after a device switch the new card must not show the data of the previous device
+  // (it used to, until the new response arrived). Cached data of the new device is shown at once.
+  const [store, setStore] = useState<{ id: string | undefined; data: NowPlayingState | null }>(
+    () => ({
+      id: deviceId,
+      data: getCachedDeviceData(deviceId)?.nowPlaying ?? null,
+    })
+  );
+  const nowPlaying =
+    store.id === deviceId ? store.data : (getCachedDeviceData(deviceId)?.nowPlaying ?? null);
+  const setNowPlaying = useCallback(
+    (
+      value: NowPlayingState | null | ((prev: NowPlayingState | null) => NowPlayingState | null)
+    ) => {
+      setStore((prev) => {
+        const base =
+          prev.id === deviceId ? prev.data : (getCachedDeviceData(deviceId)?.nowPlaying ?? null);
+        return { id: deviceId, data: typeof value === "function" ? value(base) : value };
+      });
+    },
+    [deviceId]
+  );
+  useEffect(() => {
+    if (deviceId && nowPlaying) setCachedDeviceData(deviceId, { nowPlaying });
+  }, [deviceId, nowPlaying]);
   const [loading, setLoading] = useState(false);
   const [deviceOffline, setDeviceOffline] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +84,7 @@ export function useNowPlaying(deviceId: string | undefined): UseNowPlayingResult
         console.warn("[useNowPlaying] Failed to fetch:", err);
       }
     },
-    [deviceId]
+    [deviceId, setNowPlaying]
   );
 
   // Initial fetch + SSE subscription
@@ -194,7 +219,7 @@ export function useNowPlaying(deviceId: string | undefined): UseNowPlayingResult
       unsubMetadata();
       unsubConnection();
     };
-  }, [deviceId, fetchNowPlaying, subscribe]);
+  }, [deviceId, fetchNowPlaying, setNowPlaying, subscribe]);
 
   const refresh = useCallback(async () => {
     await fetchNowPlaying(true);

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Tests for Device Repository
 """
 
@@ -757,3 +757,445 @@ class TestDatabaseConnectionErrors:
 
         finally:
             await repo.close()
+
+
+@pytest.mark.asyncio
+async def test_upsert_conflicting_uuid_preserves_stored_mapping(repo):
+    """Discovery collision must preserve both existing account mappings."""
+    speaker_a = Device(
+        device_id="AABBCCDDEEFF",
+        ip="192.168.1.10",
+        name="Speaker A",
+        model="SoundTouch 10",
+        mac_address="AA:BB:CC:DD:EE:FF",
+        firmware_version="27.0.6",
+        marge_account_uuid="1234567",
+    )
+    speaker_b = Device(
+        device_id="112233445566",
+        ip="192.168.1.11",
+        name="Speaker B",
+        model="SoundTouch 10",
+        mac_address="11:22:33:44:55:66",
+        firmware_version="27.0.6",
+        marge_account_uuid="7654321",
+    )
+
+    await repo.upsert(speaker_a)
+    await repo.upsert(speaker_b)
+
+    # Speaker B now reports the UUID already assigned to Speaker A.
+    speaker_b.marge_account_uuid = "1234567"
+    await repo.upsert(speaker_b)
+
+    # Preserve the UUID actually reported by the physical speaker.
+    assert speaker_b.marge_account_uuid == "1234567"
+
+    stored_a = await repo.get_by_device_id(speaker_a.device_id)
+    stored_b = await repo.get_by_device_id(speaker_b.device_id)
+
+    assert stored_a.marge_account_uuid == "1234567"
+    assert stored_b.marge_account_uuid == "7654321"
+    assert (await repo.get_by_account_uuid("1234567")).device_id == speaker_a.device_id
+    assert (await repo.get_by_account_uuid("7654321")).device_id == speaker_b.device_id
+
+
+@pytest.mark.asyncio
+async def test_update_account_uuid_rejects_collision(repo):
+    """Direct UUID updates must not assign one UUID to two devices."""
+    speaker_a = Device(
+        device_id="AABBCCDDEEFF",
+        ip="192.168.1.10",
+        name="Speaker A",
+        model="SoundTouch 10",
+        mac_address="AA:BB:CC:DD:EE:FF",
+        firmware_version="27.0.6",
+        marge_account_uuid="1234567",
+    )
+    speaker_b = Device(
+        device_id="112233445566",
+        ip="192.168.1.11",
+        name="Speaker B",
+        model="SoundTouch 10",
+        mac_address="11:22:33:44:55:66",
+        firmware_version="27.0.6",
+        marge_account_uuid="7654321",
+    )
+
+    await repo.upsert(speaker_a)
+    await repo.upsert(speaker_b)
+
+    with pytest.raises(ValueError, match="UUID collision"):
+        await repo.update_marge_account_uuid(speaker_b.device_id, "1234567")
+
+    stored_a = await repo.get_by_device_id(speaker_a.device_id)
+    stored_b = await repo.get_by_device_id(speaker_b.device_id)
+
+    assert stored_a.marge_account_uuid == "1234567"
+    assert stored_b.marge_account_uuid == "7654321"
+
+
+@pytest.mark.asyncio
+async def test_upsert_rechecks_uuid_collision_during_sql_write(repo):
+    """A UUID assigned after pre-check must not be stored twice."""
+    speaker_a = Device(
+        device_id="AABBCCDDEEFF",
+        ip="192.168.1.10",
+        name="Speaker A",
+        model="SoundTouch 10",
+        mac_address="AA:BB:CC:DD:EE:FF",
+        firmware_version="27.0.6",
+    )
+    speaker_b = Device(
+        device_id="112233445566",
+        ip="192.168.1.11",
+        name="Speaker B",
+        model="SoundTouch 10",
+        mac_address="11:22:33:44:55:66",
+        firmware_version="27.0.6",
+    )
+
+    await repo.upsert(speaker_a)
+    await repo.upsert(speaker_b)
+
+    original_lookup = repo.get_by_account_uuid
+    injected = False
+
+    async def concurrent_assignment(uuid):
+        nonlocal injected
+
+        if uuid == "1234567" and not injected:
+            injected = True
+            await repo.update_marge_account_uuid(speaker_a.device_id, "1234567")
+            return None
+
+        return await original_lookup(uuid)
+
+    from unittest.mock import patch
+
+    with patch.object(
+        repo,
+        "get_by_account_uuid",
+        side_effect=concurrent_assignment,
+    ):
+        speaker_b.marge_account_uuid = "1234567"
+        speaker_b.name = "Speaker B updated"
+        await repo.upsert(speaker_b)
+
+    stored_a = await repo.get_by_device_id(speaker_a.device_id)
+    stored_b = await repo.get_by_device_id(speaker_b.device_id)
+
+    assert stored_a.marge_account_uuid == "1234567"
+    assert stored_b.marge_account_uuid != "1234567"
+    assert stored_b.name == "Speaker B updated"
+
+
+@pytest.mark.asyncio
+async def test_new_device_insert_rechecks_uuid_collision(repo):
+    """A new device must not insert a UUID assigned after the pre-check."""
+    from unittest.mock import patch
+
+    speaker_a = Device(
+        device_id="AABBCCDDEEFF",
+        ip="192.168.1.10",
+        name="Speaker A",
+        model="SoundTouch 10",
+        mac_address="AA:BB:CC:DD:EE:FF",
+        firmware_version="27.0.6",
+    )
+    await repo.upsert(speaker_a)
+
+    speaker_b = Device(
+        device_id="112233445566",
+        ip="192.168.1.11",
+        name="Speaker B",
+        model="SoundTouch 10",
+        mac_address="11:22:33:44:55:66",
+        firmware_version="27.0.6",
+        marge_account_uuid="1234567",
+    )
+
+    original_lookup = repo.get_by_account_uuid
+    injected = False
+
+    async def concurrent_assignment(uuid):
+        nonlocal injected
+        if uuid == "1234567" and not injected:
+            injected = True
+            await repo.update_marge_account_uuid(speaker_a.device_id, "1234567")
+            return None
+        return await original_lookup(uuid)
+
+    with patch.object(repo, "get_by_account_uuid", side_effect=concurrent_assignment):
+        await repo.upsert(speaker_b)
+
+    stored_a = await repo.get_by_device_id(speaker_a.device_id)
+    stored_b = await repo.get_by_device_id(speaker_b.device_id)
+
+    assert stored_a.marge_account_uuid == "1234567"
+    assert stored_b.marge_account_uuid is None
+    assert stored_b.name == "Speaker B"
+
+
+@pytest.mark.asyncio
+async def test_existing_device_late_collision_keeps_stored_uuid(repo):
+    """A collision detected inside SQL preserves an existing mapping."""
+    from unittest.mock import patch
+
+    speaker_a = Device(
+        device_id="AABBCCDDEEFF",
+        ip="192.168.1.10",
+        name="Speaker A",
+        model="SoundTouch 10",
+        mac_address="AA:BB:CC:DD:EE:FF",
+        firmware_version="27.0.6",
+    )
+    speaker_b = Device(
+        device_id="112233445566",
+        ip="192.168.1.11",
+        name="Speaker B",
+        model="SoundTouch 10",
+        mac_address="11:22:33:44:55:66",
+        firmware_version="27.0.6",
+        marge_account_uuid="7654321",
+    )
+
+    await repo.upsert(speaker_a)
+    await repo.upsert(speaker_b)
+
+    original_lookup = repo.get_by_account_uuid
+    injected = False
+
+    async def concurrent_assignment(uuid):
+        nonlocal injected
+        if uuid == "1234567" and not injected:
+            injected = True
+            await repo.update_marge_account_uuid(speaker_a.device_id, "1234567")
+            return None
+        return await original_lookup(uuid)
+
+    speaker_b.marge_account_uuid = "1234567"
+
+    with patch.object(repo, "get_by_account_uuid", side_effect=concurrent_assignment):
+        await repo.upsert(speaker_b)
+
+    stored_a = await repo.get_by_device_id(speaker_a.device_id)
+    stored_b = await repo.get_by_device_id(speaker_b.device_id)
+
+    assert stored_a.marge_account_uuid == "1234567"
+    assert stored_b.marge_account_uuid == "7654321"
+    assert (await repo.get_by_account_uuid("7654321")).device_id == speaker_b.device_id
+
+
+@pytest.mark.asyncio
+async def test_uuid_source_persists_and_is_exposed_in_device_api(repo):
+    """Store UUID provenance and include it in device API serialization."""
+    device = Device(
+        device_id="AABBCCDDEEFF",
+        ip="192.168.1.10",
+        name="Speaker A",
+        model="SoundTouch 10",
+        mac_address="AABBCCDDEEFF",
+        firmware_version="27.0.6",
+        marge_account_uuid="1234567",
+    )
+    await repo.upsert(device)
+
+    initial = await repo.get_by_device_id(device.device_id)
+    assert initial.uuid_source == "unknown"
+    assert initial.to_dict()["uuid_source"] == "unknown"
+
+    await repo.update_marge_account_uuid(
+        device.device_id, "1234567", uuid_source="derived"
+    )
+    stored = await repo.get_by_device_id(device.device_id)
+    assert stored.uuid_source == "derived"
+    assert stored.to_dict()["uuid_source"] == "derived"
+
+    # A subsequent wizard run detects the same UUID on the device, but
+    # must not overwrite how it was first established.
+    await repo.update_marge_account_uuid(
+        device.device_id, "1234567", uuid_source="existing"
+    )
+    await repo.upsert(
+        Device(
+            device_id=device.device_id,
+            ip="192.168.1.11",
+            name="Speaker A",
+            model="SoundTouch 10",
+            mac_address="AABBCCDDEEFF",
+            firmware_version="27.0.6",
+            marge_account_uuid="1234567",
+        )
+    )
+    refreshed = await repo.get_by_device_id(device.device_id)
+    assert refreshed.uuid_source == "derived"
+
+
+@pytest.mark.asyncio
+async def test_derived_uuid_survives_stale_info_before_reboot(repo):
+    device = Device(
+        device_id="AABBCCDDEEFF",
+        ip="192.168.1.10",
+        name="Speaker A",
+        model="SoundTouch 10",
+        mac_address="AABBCCDDEEFF",
+        firmware_version="27.0.6",
+    )
+    await repo.upsert(device)
+    await repo.update_marge_account_uuid(
+        device.device_id, "1234567", uuid_source="derived"
+    )
+    device.marge_account_uuid = "7654321"
+    await repo.upsert(device)
+
+    stored = await repo.get_by_device_id(device.device_id)
+    assert stored.marge_account_uuid == "1234567"
+    assert stored.uuid_source == "derived"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("source", ["derived", "collision_fallback"])
+async def test_discovery_preserves_wizard_uuid_for_free_mismatch(repo, source, caplog):
+    """A stale /info response must not undo a UUID assigned by the wizard."""
+    device = Device(
+        device_id="AABBCCDDEEFF",
+        ip="192.168.1.10",
+        name="Speaker A",
+        model="SoundTouch 10",
+        mac_address="AABBCCDDEEFF",
+        firmware_version="27.0.6",
+        marge_account_uuid="1234567",
+    )
+    await repo.upsert(device)
+    await repo.update_marge_account_uuid(
+        device.device_id, "7654321", uuid_source=source
+    )
+    device.marge_account_uuid = "1234567"
+    device.name = "Speaker A updated"
+    with caplog.at_level("INFO"):
+        await repo.upsert(device)
+
+    stored = await repo.get_by_device_id(device.device_id)
+    assert stored.marge_account_uuid == "7654321"
+    assert stored.uuid_source == source
+    assert stored.name == "Speaker A updated"
+    assert "Preserving stored UUID" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_existing_source_allows_free_uuid_change(repo):
+    """Unprotected UUID provenance keeps the previous discovery behavior."""
+    device = Device(
+        device_id="AABBCCDDEEFF",
+        ip="192.168.1.10",
+        name="Speaker A",
+        model="SoundTouch 10",
+        mac_address="AABBCCDDEEFF",
+        firmware_version="27.0.6",
+        marge_account_uuid="1234567",
+    )
+    await repo.upsert(device)
+    await repo.update_marge_account_uuid(
+        device.device_id, "1234567", uuid_source="existing"
+    )
+    device.marge_account_uuid = "7654321"
+    await repo.upsert(device)
+    stored = await repo.get_by_device_id(device.device_id)
+    assert stored.marge_account_uuid == "7654321"
+    assert stored.uuid_source == "unknown"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("source", ["derived", "collision_fallback"])
+async def test_wizard_uuid_survives_conflicting_stale_info(repo, source, caplog):
+    """A stale /info collision must not undo the wizard's UUID assignment."""
+    speaker_a = Device(
+        device_id="AABBCCDDEEFF",
+        ip="192.168.1.10",
+        name="Speaker A",
+        model="SoundTouch 10",
+        mac_address="AABBCCDDEEFF",
+        firmware_version="27.0.6",
+        marge_account_uuid="1234567",
+    )
+    speaker_b = Device(
+        device_id="112233445566",
+        ip="192.168.1.11",
+        name="Speaker B",
+        model="SoundTouch 10",
+        mac_address="112233445566",
+        firmware_version="27.0.6",
+        marge_account_uuid="7654321",
+    )
+
+    await repo.upsert(speaker_a)
+    await repo.upsert(speaker_b)
+    await repo.update_marge_account_uuid(
+        speaker_b.device_id, "7654321", uuid_source=source
+    )
+
+    # Before reboot, /info reports a UUID owned by speaker A.
+    speaker_b.marge_account_uuid = "1234567"
+
+    with caplog.at_level("INFO"):
+        await repo.upsert(speaker_b)
+
+    stored_a = await repo.get_by_device_id(speaker_a.device_id)
+    stored_b = await repo.get_by_device_id(speaker_b.device_id)
+
+    assert stored_a.marge_account_uuid == "1234567"
+    assert stored_b.marge_account_uuid == "7654321"
+    assert stored_b.uuid_source == source
+    assert (await repo.get_by_account_uuid("1234567")).device_id == speaker_a.device_id
+    assert (await repo.get_by_account_uuid("7654321")).device_id == speaker_b.device_id
+    assert "Skipping conflicting UUID" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_new_device_collision_still_does_not_claim_uuid(repo, caplog):
+    """Unknown devices cannot take a UUID belonging to another speaker."""
+    a = Device(
+        device_id="AABBCCDDEEFF",
+        ip="192.168.1.10",
+        name="A",
+        model="SoundTouch 10",
+        mac_address="AABBCCDDEEFF",
+        firmware_version="27.0.6",
+        marge_account_uuid="1234567",
+    )
+    b = Device(
+        device_id="112233445566",
+        ip="192.168.1.11",
+        name="B",
+        model="SoundTouch 10",
+        mac_address="112233445566",
+        firmware_version="27.0.6",
+        marge_account_uuid="1234567",
+    )
+    await repo.upsert(a)
+    await repo.upsert(b)
+    assert (await repo.get_by_device_id(b.device_id)).marge_account_uuid is None
+    assert "Skipping conflicting UUID" in caplog.text
+    assert "Preserving stored UUID None" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_uuid_source_existing_migration_unknown_and_invalid_source(repo):
+    device = Device(
+        device_id="AABBCCDDEEFF",
+        ip="192.168.1.10",
+        name="Speaker A",
+        model="SoundTouch 10",
+        mac_address="AABBCCDDEEFF",
+        firmware_version="27.0.6",
+    )
+    await repo.upsert(device)
+    await repo.update_marge_account_uuid(
+        device.device_id, "1234567", uuid_source="existing"
+    )
+    assert (await repo.get_by_device_id(device.device_id)).uuid_source == "existing"
+    with pytest.raises(ValueError, match="Invalid UUID source"):
+        await repo.update_marge_account_uuid(
+            device.device_id, "1234567", uuid_source="untrusted"
+        )
