@@ -156,7 +156,7 @@
       "sectionTitle": "Logboek",
       "description": "Beheer het detailniveau van het logboek en download logs voor probleemoplossing.",
       "logLevel": "Logniveau",
-      "levelOff": "Uit",
+      "levelOff": "Alleen kritiek",
       "levelInfo": "Info",
       "levelDebug": "Debug",
       "downloadLogs": "Logs downloaden",

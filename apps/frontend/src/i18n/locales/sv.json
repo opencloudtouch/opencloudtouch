@@ -156,7 +156,7 @@
       "sectionTitle": "Loggning",
       "description": "Styr detaljnivån för loggar och ladda ned loggar för felsökning.",
       "logLevel": "Loggnivå",
-      "levelOff": "Av",
+      "levelOff": "Endast kritiska",
       "levelInfo": "Info",
       "levelDebug": "Debug",
       "downloadLogs": "Ladda ned loggar",

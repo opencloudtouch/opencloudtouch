@@ -156,7 +156,7 @@
       "sectionTitle": "Journalisation",
       "description": "Contrôlez le niveau de détail des journaux et téléchargez les journaux pour le dépannage.",
       "logLevel": "Niveau de journal",
-      "levelOff": "Désactivé",
+      "levelOff": "Critiques uniquement",
       "levelInfo": "Info",
       "levelDebug": "Debug",
       "downloadLogs": "Télécharger les journaux",

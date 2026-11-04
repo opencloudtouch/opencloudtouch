@@ -156,7 +156,7 @@
       "sectionTitle": "Logi",
       "description": "Kontroluj poziom szczegółowości logów i pobieraj logi do rozwiązywania problemów.",
       "logLevel": "Poziom logowania",
-      "levelOff": "Wyłączony",
+      "levelOff": "Tylko krytyczne",
       "levelInfo": "Info",
       "levelDebug": "Debug",
       "downloadLogs": "Pobierz logi",

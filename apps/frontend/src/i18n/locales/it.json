@@ -156,7 +156,7 @@
       "sectionTitle": "Registrazione",
       "description": "Controllare il livello di dettaglio dei log e scaricare i log per la risoluzione dei problemi.",
       "logLevel": "Livello di log",
-      "levelOff": "Disattivato",
+      "levelOff": "Solo critici",
       "levelInfo": "Info",
       "levelDebug": "Debug",
       "downloadLogs": "Scarica log",

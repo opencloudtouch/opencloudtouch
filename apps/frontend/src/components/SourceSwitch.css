@@ -2,6 +2,7 @@
    The visible circle is 32px, the button itself 44 x 44; the negative margin keeps the 32px header row. */
 .si-np-wrap {
   position: relative;
+  --si-fail-top: 44px; /* header row (32px) plus gap: the failure alert starts below it */
 }
 .np-header.si-head {
   display: flex;
@@ -81,7 +82,7 @@
   z-index: 5;
   left: 0;
   right: 0;
-  top: 44px;
+  top: var(--si-fail-top);
   bottom: 0;
   align-items: flex-start;
   overflow: auto;

@@ -156,7 +156,7 @@
       "sectionTitle": "Logging",
       "description": "Control the log detail level and download logs for troubleshooting.",
       "logLevel": "Log Level",
-      "levelOff": "Off",
+      "levelOff": "Critical only",
       "levelInfo": "Info",
       "levelDebug": "Debug",
       "downloadLogs": "Download Logs",

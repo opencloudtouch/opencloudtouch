@@ -156,7 +156,7 @@
       "sectionTitle": "Registro",
       "description": "Controle o nível de detalhe do registro e baixe os logs para solução de problemas.",
       "logLevel": "Nível de log",
-      "levelOff": "Desativado",
+      "levelOff": "Somente críticos",
       "levelInfo": "Info",
       "levelDebug": "Debug",
       "downloadLogs": "Baixar logs",
