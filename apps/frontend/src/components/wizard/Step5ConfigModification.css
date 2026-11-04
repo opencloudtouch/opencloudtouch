@@ -1,355 +1,266 @@
-/* Config Modification Styles */
+/* Step 4 (Verbindung): step-specific rules only. */
 .config-modification {
-  max-width: 600px;
-  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-width: 0;
 }
-
-.config-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-}
-
-.config-description {
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin-bottom: 2rem;
-}
-
-/* Input Section */
 .config-input-section {
-  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
 }
-
-.config-input-group {
-  margin-bottom: 2rem;
+.config-title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--color-text-primary);
 }
-
-.config-label {
-  display: block;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
+.config-description {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
 }
-
-.config-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid var(--border-color);
-  border-radius: 6px;
-  font-size: 1rem;
-  font-family: "Courier New", monospace;
-  transition: border-color 0.2s;
-  background: var(--surface-color);
-  color: var(--text-primary);
-}
-
-.config-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
-}
-
-.config-input:focus-visible {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
-}
-
-.config-hint {
-  display: block;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin-top: 0.5rem;
-}
-
-/* Change Preview */
-.config-change-preview {
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.config-preview-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 1rem;
-}
-
-.config-change-item {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 1rem;
+.config-detecting {
   align-items: center;
 }
-
-.config-change-from,
-.config-change-to {
-  padding: 0.75rem;
-  border-radius: 6px;
+.config-detecting p {
+  margin: 0;
+  font-size: 15px;
+  color: var(--color-text-primary);
 }
 
+/* field */
+.config-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.config-label {
+  font-size: 14px;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+.config-input:focus {
+  border-color: var(--primary-color);
+}
+.config-input[aria-invalid="true"] {
+  border-color: #f44336;
+}
+.config-hint {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-tertiary);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* validation + DNS warning (status box variant: warning) */
+.config-validation-error,
+.config-dns-warning {
+  align-items: flex-start;
+}
+.config-validation-error .error-icon {
+  color: #ffc107;
+}
+.config-validation-error .error-content strong,
+.config-dns-warning .warning-content strong {
+  color: #ffc107;
+}
+.config-validation-error .error-details {
+  margin: 0;
+  font: 14px/1.6 inherit;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.config-dns-warning .warning-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.config-dns-warning .warning-content strong {
+  margin: 0;
+}
+.dns-warning-actions {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+}
+.dns-warning-actions .btn {
+  width: 100%;
+}
+@media (min-width: 601px) {
+  .dns-warning-actions {
+    flex-direction: row;
+  }
+  .dns-warning-actions .btn {
+    width: auto;
+  }
+}
+
+/* change preview: side by side from 601 px, stacked with a downward arrow on phones */
+.config-change-preview {
+  padding: var(--space-md);
+  background: var(--color-bg-darker);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+}
+.config-preview-title {
+  margin: 0 0 12px;
+  font-size: 15px;
+  color: var(--color-text-primary);
+}
+.config-change-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  justify-items: stretch;
+  align-items: center;
+}
+.config-change-from,
+.config-change-to {
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: var(--border-radius-sm);
+}
 .config-change-from {
   background: rgba(239, 83, 80, 0.12);
   border: 1px solid #ef5350;
 }
-
 .config-change-to {
   background: rgba(76, 175, 80, 0.12);
-  border: 1px solid #66bb6a;
+  border: 1px solid #4caf50;
 }
-
 .config-change-label {
   display: block;
-  font-size: 0.75rem;
-  font-weight: 600;
+  margin-bottom: 2px;
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
   text-transform: uppercase;
-  margin-bottom: 0.25rem;
-  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
 }
-
-.config-change-from code {
-  color: #ef5350;
-}
-
+.config-change-from code,
 .config-change-to code {
-  color: #81c784;
+  display: block;
+  font:
+    14px/1.5 ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
+  overflow-wrap: anywhere;
 }
-
+.config-change-from code {
+  color: var(--color-danger);
+}
+.config-change-to code {
+  color: var(--color-success);
+}
 .config-change-arrow {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: var(--text-secondary);
+  display: flex;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  transform: rotate(90deg);
 }
-
+@media (min-width: 601px) {
+  .config-change-item {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 12px;
+  }
+  .config-change-arrow {
+    transform: none;
+  }
+}
 .config-modify-btn {
   width: 100%;
-  font-size: 1.125rem;
+  min-height: 52px;
+  font-size: 17px;
 }
 
-/* Error */
-.config-error {
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
-  padding: 1.5rem;
-  background: rgba(244, 67, 54, 0.1);
-  border: 1px solid #f44336;
-  border-radius: 8px;
-  margin-bottom: 2rem;
-}
-
-.error-icon {
-  font-size: 2rem;
-  flex-shrink: 0;
-}
-
-.error-content strong {
-  display: block;
-  color: #ef5350;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.error-content p {
+/* result cards: details */
+.config-proxy-hint {
   margin: 0;
-  color: var(--text-secondary);
-  line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
 }
-
-/* Success */
-.config-success {
-  text-align: center;
-}
-
-.success-icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-}
-
-.success-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-success, #81c784);
-  margin: 0.5rem 0;
-}
-
-.success-message {
-  font-size: 1rem;
-  color: var(--text-secondary);
-  margin-bottom: 2rem;
-}
-
-/* Config Details */
 .config-details {
-  background: var(--surface-color);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: var(--space-md);
+  background: var(--color-bg-darker);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 1.5rem;
-  text-align: left;
-  margin-bottom: 1.5rem;
+  border-radius: var(--border-radius-md);
 }
-
 .config-detail-item {
-  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
-
-.config-detail-item:last-child {
-  margin-bottom: 0;
-}
-
 .config-detail-item strong {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
 }
-
+.config-detail-item span {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
 .config-detail-item code {
   display: block;
-  font-family: "Courier New", monospace;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+  padding: 6px 8px;
   background: var(--surface-color);
   border: 1px solid var(--border-color);
-  padding: 0.5rem;
   border-radius: 4px;
-  overflow-x: auto;
-  white-space: nowrap;
+  font:
+    13px/1.5 ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
 }
 
-/* Diff Viewer */
+/* diff: scrolls inside only */
 .config-diff-section {
-  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
 }
-
 .config-diff-toggle {
   width: 100%;
-  margin-bottom: 1rem;
+  justify-content: flex-start;
   text-align: left;
 }
-
 .config-diff {
-  background: #263238;
-  color: #aed581;
-  padding: 1rem;
-  border-radius: 6px;
-  font-family: "Courier New", monospace;
-  font-size: 0.875rem;
-  line-height: 1.6;
-  overflow-x: auto;
-  max-height: 400px;
-  overflow-y: auto;
+  max-height: 360px;
+  margin: 0;
+  padding: 12px var(--space-md);
+  overflow: auto;
+  background: var(--color-bg-darker);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font:
+    13px/1.6 ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
+  color: var(--color-success);
 }
-
 .config-diff code {
   color: inherit;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .config-change-item {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
-  }
-
-  .config-change-arrow {
-    text-align: center;
-    transform: rotate(90deg);
-  }
-}
-
-/* Validation Error Toast */
-.config-validation-error {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
-  border-radius: 8px;
-  background: rgba(251, 188, 5, 0.12);
-  border: 1px solid #fbc005;
-  margin: 1rem 0 2rem;
-  animation: slideIn 0.3s ease-out;
-}
-
-.config-validation-error .error-icon {
-  flex-shrink: 0;
-  font-size: 1.5rem;
-  line-height: 1;
-}
-
-.config-validation-error .error-content {
-  flex: 1;
-}
-
-.config-validation-error strong {
-  display: block;
-  color: #f57c00;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.config-validation-error .error-details {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin: 0;
-  white-space: pre-wrap;
-  font-family: inherit;
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* DNS Warning */
-.config-dns-warning {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
-  border-radius: 8px;
-  background: rgba(251, 188, 5, 0.12);
-  border: 1px solid #fbc005;
-  margin: 1rem 0 2rem;
-  animation: slideIn 0.3s ease-out;
-}
-
-.config-dns-warning .warning-icon {
-  flex-shrink: 0;
-  font-size: 1.5rem;
-  line-height: 1;
-}
-
-.config-dns-warning .warning-content {
-  flex: 1;
-}
-
-.config-dns-warning strong {
-  display: block;
-  color: #f57c00;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.config-dns-warning p {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin: 0 0 1rem;
-}
-
-.dns-warning-actions {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
+/* error box uses the shared .wz-status--error */
+.config-error {
+  align-items: flex-start;
 }

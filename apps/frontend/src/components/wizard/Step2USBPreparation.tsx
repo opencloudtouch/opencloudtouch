@@ -1,10 +1,13 @@
 /**
- * Step 2: USB Preparation
+ * Step 2: USB Preparation (tracker step 1)
+ * Logic, props, API call and t() keys unchanged. Markup/classNames/icons only.
  */
 import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import WizardStep from "./WizardStep";
+import { Icon } from "./Icon";
 import { getModelInstructions, type ModelInstructions } from "../../api/setup";
+import "./wizard-base.css";
 import "./Step2USBPreparation.css";
 
 interface Step2Props {
@@ -44,7 +47,7 @@ function getAmazonSearchUrl(query: string, lang: string): string {
 }
 
 export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }: Step2Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [platform, setPlatform] = useState<Platform>(detectPlatform);
   const [usbReady, setUsbReady] = useState(false);
   const [instructions, setInstructions] = useState<ModelInstructions | null>(null);
@@ -107,9 +110,7 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
   };
 
   const needsMicroUsbAdapter = adapterNeeded && usbTypes.includes("micro-usb");
-  const { i18n } = useTranslation();
   const lang = i18n.language;
-
   const formatInstructions = getFormatInstructions();
 
   return (
@@ -126,38 +127,46 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
       <div className="usb-preparation">
         {/* Device Info */}
         <div className="usb-device-info">
-          <div className="usb-icon">🔌</div>
+          <div className="usb-icon">{Icon.Plug()}</div>
           <div className="usb-device-details">
-            <strong>{t("setup.wizard.step2.deviceNeeds")}</strong>{" "}
-            {hasBothTypes
-              ? usbTypes.map((u) => u.toUpperCase()).join(` ${t("common.or", "oder")} `)
-              : usbTypes[0]?.toUpperCase()}
+            <div className="usb-device-needs">
+              <strong>{t("setup.wizard.step2.deviceNeeds")}</strong>{" "}
+              {hasBothTypes
+                ? usbTypes.map((u) => u.toUpperCase()).join(` ${t("common.or", "oder")} `)
+                : usbTypes[0]?.toUpperCase()}
+            </div>
             {portLocation && (
-              <>
-                <br />
-                <small>📍 {portLocation}</small>
-              </>
+              <small className="usb-device-line">
+                {Icon.MapPin()} <span>{portLocation}</span>
+              </small>
             )}
-            <br />
-            <small>
-              {t("setup.wizard.step2.model")} {deviceModel}
+            <small className="usb-device-line">
+              <span>
+                {t("setup.wizard.step2.model")} {deviceModel}
+              </span>
             </small>
             {hasBothTypes && (
               <div className="usb-dual-hint">
-                ℹ️{" "}
-                {t(
-                  "setup.wizard.step2.dualUsbHint",
-                  "Dein Gerät hat je nach Baujahr Micro-USB oder USB-A. Schau auf die Rückseite welcher Port vorhanden ist."
-                )}
+                {Icon.Info(18)}
+                <span>
+                  {t(
+                    "setup.wizard.step2.dualUsbHint",
+                    "Dein Gerät hat je nach Baujahr Micro-USB oder USB-A. Schau auf die Rückseite welcher Port vorhanden ist."
+                  )}
+                </span>
               </div>
             )}
             {needsMicroUsbAdapter && (
               <div className="usb-adapter-hint">
-                🔌{" "}
-                {t(
-                  "setup.wizard.step2.adapterNeeded",
-                  "Dein Gerät hat einen Micro-USB Port. Du brauchst einen OTG-Adapter:"
-                )}
+                <p className="usb-adapter-text">
+                  {Icon.Plug(18)}
+                  <span>
+                    {t(
+                      "setup.wizard.step2.adapterNeeded",
+                      "Dein Gerät hat einen Micro-USB Port. Du brauchst einen OTG-Adapter:"
+                    )}
+                  </span>
+                </p>
                 <ul className="usb-adapter-links">
                   <li>
                     <a
@@ -172,9 +181,9 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
                       rel="noopener noreferrer"
                     >
                       {t("setup.wizard.step2.adapterUsba", "USB-A → Micro-USB OTG Adapter")}
+                      {Icon.ExternalLink()}
                     </a>
                     <span className="usb-adapter-price">
-                      {" "}
                       (~{t("setup.wizard.step2.adapterUsbaPriceHint", "6 €")})
                     </span>
                   </li>
@@ -191,9 +200,9 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
                       rel="noopener noreferrer"
                     >
                       {t("setup.wizard.step2.adapterUsbc", "USB-C → Micro-USB OTG Adapter")}
+                      {Icon.ExternalLink()}
                     </a>
                     <span className="usb-adapter-price">
-                      {" "}
                       (~{t("setup.wizard.step2.adapterUsbcPriceHint", "10 €")})
                     </span>
                   </li>
@@ -208,7 +217,7 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
           <div className="usb-section-header">
             <h3 className="usb-section-title">
               <span className="usb-section-number">1</span>
-              {formatInstructions.title}
+              <span className="usb-section-title-text">{formatInstructions.title}</span>
             </h3>
             <label htmlFor="usb-platform-select" className="usb-platform-label">
               {t("setup.wizard.step2.platformLabel")}
@@ -238,16 +247,23 @@ export default function Step2USBPreparation({ deviceModel, onNext, onPrevious }:
         <div className="usb-section">
           <h3 className="usb-section-title">
             <span className="usb-section-number">2</span>
-            {t("setup.wizard.step2.sectionCreateFile")}
+            <span className="usb-section-title-text">
+              {t("setup.wizard.step2.sectionCreateFile")}
+            </span>
           </h3>
-          <p className="usb-section-description">{t("setup.wizard.step2.createFileDesc")}</p>
+          <p className="usb-section-description">
+            <Trans
+              i18nKey="setup.wizard.step2.createFileDesc"
+              components={[<code key="file" />, <strong key="empty" />]}
+            />
+          </p>
         </div>
 
         {/* Verification */}
         <div className="usb-section">
           <h3 className="usb-section-title">
             <span className="usb-section-number">3</span>
-            {t("setup.wizard.step2.sectionVerify")}
+            <span className="usb-section-title-text">{t("setup.wizard.step2.sectionVerify")}</span>
           </h3>
           <div className="usb-checklist">
             <label className="usb-checklist-item">

@@ -12,6 +12,7 @@ import {
   togglePlayPause,
   nextTrack,
   prevTrack,
+  selectSource,
 } from "../../../src/api/devices";
 
 describe("Devices API Client", () => {
@@ -399,6 +400,28 @@ describe("Devices API Client", () => {
 
       await expect(prevTrack("device123")).rejects.toThrow(
         "Failed to send key PREV_TRACK: Service Unavailable"
+      );
+    });
+  });
+
+  describe("selectSource", () => {
+    it("sends PUT with the source in the JSON body", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true });
+
+      await expect(selectSource("device123", "BLUETOOTH")).resolves.toBeUndefined();
+
+      expect(mockFetch).toHaveBeenCalledWith("/api/devices/device123/source", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "BLUETOOTH" }),
+      });
+    });
+
+    it("throws error on failed request", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: false, statusText: "Service Unavailable" });
+
+      await expect(selectSource("device123", "AUX")).rejects.toThrow(
+        "Failed to select source AUX: Service Unavailable"
       );
     });
   });

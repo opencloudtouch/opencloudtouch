@@ -44,7 +44,7 @@ A change is **done** when it is shippable: it meets its acceptance criteria, is 
 
 ### 6. UI (if applicable)
 - [ ] All new strings exist in **all 10 locales** with identical placeholders; no raw backend text is shown to users.
-- [ ] Loading, empty, error and offline states work; keyboard operation and accessible names/live regions are in place.
+- [ ] Loading, empty, error and offline states work; keyboard operation and accessible names/live regions are in place (see the [UI quality checklist](UI_QUALITY_CHECKLIST.md)).
 - [ ] Layout works at phone width; designer mockups were followed if provided.
 
 ### 7. Security and privacy

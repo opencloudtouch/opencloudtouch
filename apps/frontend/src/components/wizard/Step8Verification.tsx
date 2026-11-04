@@ -1,15 +1,20 @@
 /**
- * Step 8: Verification & Test
+ * Step 8: Verification & Test (tracker step 7, "Prüfung")
  *
  * Flow: Finalize → Reboot (mandatory) → Post-reboot full verification
- * The full verification runs verify_setup (11+ checks) + DNS redirect tests
- * to give a comprehensive health report.
+ * Props, state machine, API calls, 100 s countdown, check mapping and t() keys unchanged.
+ * Markup/classNames/icons only, plus:
+ *  - a three-segment phase indicator at the top (fixed height, never changes size),
+ *  - `nextDisabledReason` (new key setup.wizard.step8.nextDisabled),
+ *  - a countdown progress bar (aria-hidden, no text).
  */
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { verifyRedirect, rebootDevice, finalizeDevice, verifySetup } from "../../api/wizard";
 import type { VerifyCheck, FinalizeResponse } from "../../api/wizard";
 import WizardStep from "./WizardStep";
+import { Icon } from "./Icon";
+import "./wizard-base.css";
 import "./Step8Verification.css";
 
 interface Step8Props {
@@ -45,6 +50,12 @@ const CHECK_GROUPS = [
   { labelKey: "setup.wizard.step8.groupSystemConfig", checks: ["system_config_uuid_match"] },
 ];
 const GROUPED_CHECKS = new Set(CHECK_GROUPS.flatMap((g) => g.checks));
+
+const PHASES = [
+  { n: 1, key: "setup.wizard.step8.phaseFinalize", fallback: "Setup" },
+  { n: 2, key: "setup.wizard.step8.phaseReboot", fallback: "Restart" },
+  { n: 3, key: "setup.wizard.step8.phaseVerify", fallback: "Verify" },
+];
 
 interface TestResult {
   domain: string;
@@ -282,6 +293,18 @@ export default function Step8Verification({
   const summarySourcesPassed =
     verifyChecks.find((c) => c.name === "sources_complete")?.passed ?? false;
 
+  // Phase indicator (display only)
+  let currentPhase = 1;
+  if (finalizeResult?.success) currentPhase = rebootState === "done" ? 3 : 2;
+  const phaseState = (n: number): "done" | "active" | "pending" => {
+    if (n < currentPhase || (n === 3 && allTestsPassed)) return "done";
+    return n === currentPhase ? "active" : "pending";
+  };
+
+  const checkIcon = (passed: boolean) => (
+    <span className="check-icon wz-icon">{passed ? Icon.Check(18) : Icon.X(18)}</span>
+  );
+
   return (
     <WizardStep
       stepNumber={7}
@@ -291,8 +314,27 @@ export default function Step8Verification({
       onNext={onNext}
       onPrevious={onPrevious}
       isNextDisabled={!allTestsPassed}
+      nextDisabledReason={t("setup.wizard.step8.nextDisabled")}
     >
       <div className="verification">
+        <ol className="verify-phases">
+          {PHASES.map((p) => {
+            const state = phaseState(p.n);
+            return (
+              <li
+                key={p.n}
+                className={`verify-phase verify-phase--${state}`}
+                aria-current={state === "active" ? "step" : undefined}
+              >
+                <span className="verify-phase-num" aria-hidden="true">
+                  {state === "done" ? Icon.Check(14) : p.n}
+                </span>
+                <span className="verify-phase-label">{t(p.key, p.fallback)}</span>
+              </li>
+            );
+          })}
+        </ol>
+
         {/* Phase 1: Finalize Section */}
         {setupPhase === "idle" && (
           <div className="finalize-section">
@@ -303,15 +345,15 @@ export default function Step8Verification({
         )}
 
         {setupPhase === "finalizing" && (
-          <div className="finalize-status">
+          <div className="finalize-status wz-status" role="status" aria-live="polite">
             <span className="spinner-small" />
             {t("setup.wizard.step8.finalizing", "Setting up device...")}
           </div>
         )}
 
         {setupPhase === "error" && (
-          <div className="setup-error">
-            <div className="failed-icon">{"\u26a0\ufe0f"}</div>
+          <div className="setup-error wz-status wz-status--error" role="alert">
+            <div className="failed-icon">{Icon.Alert()}</div>
             <p>{setupError}</p>
             <button className="btn btn-secondary" onClick={handleFinalizeAndVerify}>
               {t("setup.wizard.step8.btnRetryFinalize", "Retry")}
@@ -322,7 +364,7 @@ export default function Step8Verification({
         {finalizeResult?.success && (
           <div className="verify-checklist">
             <div className="verify-check-item passed">
-              <span className="check-icon">{"\u2705"}</span>
+              {checkIcon(true)}
               <span className="check-message">
                 {t("setup.wizard.step8.finalizeUuid", { uuid: finalizeResult.uuid })}
               </span>
@@ -330,13 +372,11 @@ export default function Step8Verification({
             <div
               className={`verify-check-item ${finalizeResult.sources_written ? "passed" : "failed"}`}
             >
-              <span className="check-icon">
-                {finalizeResult.sources_written ? "\u2705" : "\u274c"}
-              </span>
+              {checkIcon(finalizeResult.sources_written)}
               <span className="check-message">{t("setup.wizard.step8.finalizeSources")}</span>
             </div>
             <div className="verify-check-item passed">
-              <span className="check-icon">{"\u2705"}</span>
+              {checkIcon(true)}
               <span className="check-message">{t("setup.wizard.step8.finalizeSystemConfig")}</span>
             </div>
           </div>
@@ -346,7 +386,9 @@ export default function Step8Verification({
         {(setupPhase === "done_finalize" || rebootState !== "idle") && (
           <div className="reboot-section">
             <div className="reboot-header">
-              <span className="reboot-icon">🔄</span>
+              <span className="reboot-icon" aria-hidden="true">
+                {Icon.Rotate(22)}
+              </span>
               <div>
                 <strong>{t("setup.wizard.step8.rebootHeader")}</strong>
                 <p className="reboot-hint">
@@ -361,34 +403,44 @@ export default function Step8Verification({
             {rebootState === "idle" && setupPhase === "done_finalize" && (
               <div className="reboot-action">
                 <button className="btn btn-primary reboot-btn" onClick={handleReboot}>
-                  🔄 {t("setup.wizard.step8.btnReboot")}
+                  {Icon.Rotate()} {t("setup.wizard.step8.btnReboot")}
                 </button>
               </div>
             )}
 
             {rebootState === "rebooting" && (
-              <div className="reboot-status reboot-status--progress">
+              <output className="reboot-status reboot-status--progress">
                 <span className="spinner-small" />
                 {t("setup.wizard.step8.rebootRebooting")}
-              </div>
+              </output>
             )}
 
             {rebootState === "waiting" && (
-              <div className="reboot-status reboot-status--waiting">
-                <span className="reboot-countdown">{rebootCountdown}s</span>
-                {t("setup.wizard.step8.rebootWaiting")}
-              </div>
+              <output className="reboot-status reboot-status--waiting">
+                <span className="reboot-countdown" aria-hidden="true">
+                  {rebootCountdown}s
+                </span>
+                <span className="reboot-status-text">{t("setup.wizard.step8.rebootWaiting")}</span>
+                <span className="reboot-progress" aria-hidden="true">
+                  <span
+                    className="reboot-progress-bar"
+                    style={{ width: `${100 - rebootCountdown}%` }}
+                  />
+                </span>
+              </output>
             )}
 
             {rebootState === "done" && (
-              <div className="reboot-status reboot-status--done">
-                ✅ {t("setup.wizard.step8.rebootDone")}
-              </div>
+              <output className="reboot-status reboot-status--done">
+                <span className="wz-icon">{Icon.CircleCheck()}</span>
+                <span className="reboot-status-text">{t("setup.wizard.step8.rebootDone")}</span>
+              </output>
             )}
 
             {rebootState === "error" && (
-              <div className="reboot-status reboot-status--error">
-                ❌ {rebootError}
+              <div className="reboot-status reboot-status--error" role="alert">
+                <span className="wz-icon">{Icon.CircleX()}</span>
+                <span className="reboot-status-text">{rebootError}</span>
                 <button className="btn btn-secondary reboot-retry" onClick={handleReboot}>
                   {t("setup.wizard.step8.btnRetryReboot")}
                 </button>
@@ -401,7 +453,9 @@ export default function Step8Verification({
         {rebootState === "done" && setupPhase !== "post_reboot_verify" && setupPhase !== "done" && (
           <div className="verification-start">
             <div className="verification-info">
-              <div className="info-icon">🔍</div>
+              <div className="info-icon" aria-hidden="true">
+                {Icon.Search(22)}
+              </div>
               <div className="info-content">
                 <h3>{t("setup.wizard.step8.fullVerifyTitle", "Full System Verification")}</h3>
                 <ul>
@@ -439,13 +493,13 @@ export default function Step8Verification({
               className="btn btn-primary verification-test-btn"
               onClick={handleFullVerification}
             >
-              🚀 {t("setup.wizard.step8.btnRunFullVerify", "Run Full Verification")}
+              {Icon.Rocket(20)} {t("setup.wizard.step8.btnRunFullVerify", "Run Full Verification")}
             </button>
           </div>
         )}
 
         {setupPhase === "post_reboot_verify" && (
-          <div className="verify-status">
+          <div className="verify-status wz-status" role="status" aria-live="polite">
             <span className="spinner-small" />
             {t("setup.wizard.step8.fullVerifying", "Running full system verification...")}
           </div>
@@ -466,7 +520,7 @@ export default function Step8Verification({
                       key={check.name}
                       className={`verify-check-item ${check.passed ? "passed" : "failed"}`}
                     >
-                      <span className="check-icon">{check.passed ? "\u2705" : "\u274c"}</span>
+                      {checkIcon(check.passed)}
                       <span className="check-message">{getCheckMessage(check)}</span>
                     </div>
                   ))}
@@ -478,14 +532,16 @@ export default function Step8Verification({
                   if (groupChecks.length === 0) return null;
                   return (
                     <div key={group.labelKey} className="verify-group">
-                      <div className="verify-group-header">{t(group.labelKey)}:</div>
+                      <div className="verify-group-header verify-group-title">
+                        {t(group.labelKey)}:
+                      </div>
                       <div className="verify-group-items">
                         {groupChecks.map((check) => (
                           <div
                             key={check.name}
                             className={`verify-check-item ${check.passed ? "passed" : "failed"}`}
                           >
-                            <span className="check-icon">{check.passed ? "\u2705" : "\u274c"}</span>
+                            {checkIcon(check.passed)}
                             <span className="check-message">{getCheckMessage(check)}</span>
                           </div>
                         ))}
@@ -503,7 +559,7 @@ export default function Step8Verification({
 
                 <div className="verification-summary-list">
                   <div className={`verify-check-item ${summaryConfigPassed ? "passed" : "failed"}`}>
-                    <span className="check-icon">{summaryConfigPassed ? "\u2705" : "\u274c"}</span>
+                    {checkIcon(summaryConfigPassed)}
                     <span className="check-message">
                       {t("setup.wizard.step8.summaryConfigCorrect")}
                     </span>
@@ -511,9 +567,7 @@ export default function Step8Verification({
                   <div
                     className={`verify-check-item ${summaryRedirectsPassed ? "passed" : "failed"}`}
                   >
-                    <span className="check-icon">
-                      {summaryRedirectsPassed ? "\u2705" : "\u274c"}
-                    </span>
+                    {checkIcon(summaryRedirectsPassed)}
                     <span className="check-message">
                       {t("setup.wizard.step8.summaryRedirectsCorrect")}
                     </span>
@@ -521,7 +575,7 @@ export default function Step8Verification({
                   <div
                     className={`verify-check-item ${summarySourcesPassed ? "passed" : "failed"}`}
                   >
-                    <span className="check-icon">{summarySourcesPassed ? "\u2705" : "\u274c"}</span>
+                    {checkIcon(summarySourcesPassed)}
                     <span className="check-message">
                       {t("setup.wizard.step8.summarySourcesPresent")}
                     </span>
@@ -532,21 +586,21 @@ export default function Step8Verification({
 
             {/* Overall Result */}
             {allTestsPassed ? (
-              <div className="verification-success">
-                <div className="success-icon">{"\ud83c\udf89"}</div>
+              <output className="verification-success wz-result">
+                <div className="success-icon">{Icon.PartyPopper(28)}</div>
                 <h3 className="success-title">{t("setup.wizard.step8.allPassedTitle")}</h3>
                 <p className="success-message">{t("setup.wizard.step8.allPassedMessage")}</p>
-              </div>
+              </output>
             ) : (
-              <div className="verification-failed">
-                <div className="failed-icon">{"\u26a0\ufe0f"}</div>
+              <div className="verification-failed wz-result wz-result--warning" role="alert">
+                <div className="failed-icon">{Icon.Alert(28)}</div>
                 <h3 className="failed-title">{t("setup.wizard.step8.someFailedTitle")}</h3>
                 <p className="failed-message">{t("setup.wizard.step8.someFailedMessage")}</p>
                 <button
                   className="btn btn-secondary verification-retry-btn"
                   onClick={handleFullVerification}
                 >
-                  {"\ud83d\udd04"}{" "}
+                  {Icon.Rotate()}{" "}
                   {t("setup.wizard.step8.btnRetryFullVerify", "Run Verification Again")}
                 </button>
                 {onSkip && (
