@@ -21,6 +21,7 @@ dependencies = [
     "bosesoundtouchapi>=1.0.86",
     "defusedxml>=0.7.1",
     "websockets>=15.0",
+    "tzdata>=2024.1",
     "ssdpy>=0.4.1",
     "asyncssh>=2.20.0",
     "starlette>=0.40.0",

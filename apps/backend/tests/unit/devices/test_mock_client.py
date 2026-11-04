@@ -222,3 +222,49 @@ class TestMockDeviceClientBass:
         client = MockDeviceClient(device_id="AABBCC112233")
         with pytest.raises(ValueError, match="between -9 and 0"):
             await client.set_bass(-10)
+
+
+class TestMockDeviceSettings:
+    """Language, clock and power saving live in module state keyed by device id."""
+
+    @pytest.mark.asyncio
+    async def test_defaults(self):
+        from opencloudtouch.devices.client import LanguageSetting, PowerSavingSetting
+
+        client = MockDeviceClient("AABBCC112233")
+
+        assert await client.get_language() == LanguageSetting(3, "English")
+        clock = await client.get_clock()
+        assert (clock.enabled, clock.time_format, clock.timezone) == (
+            True,
+            "24h",
+            "Europe/Berlin",
+        )
+        assert await client.get_power_saving() == PowerSavingSetting(False)
+
+    @pytest.mark.asyncio
+    async def test_values_survive_a_new_client_instance(self):
+        await MockDeviceClient("AABBCC112233").set_language(12)
+        await MockDeviceClient("AABBCC112233").set_clock(
+            False, "12h", "Asia/Tokyo", {"brightnessLevel": "3"}
+        )
+        await MockDeviceClient("AABBCC112233").set_power_saving(True)
+
+        other = MockDeviceClient("AABBCC112233")
+        assert (await other.get_language()).id == 12
+        clock = await other.get_clock()
+        assert (clock.enabled, clock.time_format, clock.timezone) == (
+            False,
+            "12h",
+            "Asia/Tokyo",
+        )
+        assert clock.extra == {"brightnessLevel": "3"}
+        assert (await other.get_power_saving()).enabled is True
+
+    @pytest.mark.asyncio
+    async def test_reset_restores_the_defaults(self):
+        from opencloudtouch.devices.mock_client import reset_mock_device_settings
+
+        await MockDeviceClient("AABBCC112233").set_language(12)
+        reset_mock_device_settings()
+        assert (await MockDeviceClient("AABBCC112233").get_language()).id == 3

@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cypress suites for responsive layout (overlap, overflow and clipping audit) and for axe accessibility of every wizard state
 - Machine-readable `code`, `params` and `extra` in API error responses (`ErrorDetail`), `errors[].path`/`code` for field errors, `raise_coded()` and an error-code registry (`core/error_codes.py`); all existing keys are unchanged.
 - Frontend: typed `ApiError` thrown by `throwIfNotOk` and translated messages via `getApiErrorMessage`/`getFieldErrors` (`errors.api.*` in all locales).
+- Device settings API: `GET /api/devices/{id}/settings` and `PUT …/settings/language|clock|power-saving` for display language, standby clock (format, IANA time zone) and power saving, with a verified write (`applied`) and per-setting availability; new error codes `setting_not_available`, `settings_*_invalid` and `device_rejected` (HTTP 502 when the speaker answers with an error); new dependency `tzdata`.
 
 ### Changed
 - The navigation entry "Presets" is now "Devices" (all 10 locales). The device card is the single place for a device: now playing with a source switch (Presets, Bluetooth, AUX), previous/next/play keys for sources with tracks, volume, presets and remove

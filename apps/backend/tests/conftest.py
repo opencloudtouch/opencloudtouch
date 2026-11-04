@@ -119,3 +119,13 @@ def mock_adapter_factory():
 def mock_adapter(mock_adapter_factory):
     """Fresh mock BoseDeviceDiscoveryAdapter for each test."""
     return mock_adapter_factory()
+
+
+@pytest.fixture(autouse=True)
+def _reset_mock_device_settings():
+    """The mock client keeps settings in module state; isolate every test."""
+    from opencloudtouch.devices.mock_client import reset_mock_device_settings
+
+    reset_mock_device_settings()
+    yield
+    reset_mock_device_settings()

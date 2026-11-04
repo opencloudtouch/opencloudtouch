@@ -18,6 +18,7 @@ from opencloudtouch.core.exceptions import (
     CodedApiError,
     DeviceConnectionError,
     DeviceNotFoundError,
+    DeviceRejectedError,
     DiscoveryError,
     DomainValidationError,
     ErrorDetail,
@@ -311,6 +312,14 @@ _CASES = {
         "Device Unavailable",
         "Device unreachable: 1.2.3.4",
         "device_unreachable",
+    ),
+    DeviceRejectedError: (
+        DeviceRejectedError("1.2.3.4", 500),
+        502,
+        "bad_gateway",
+        "Device Rejected Request",
+        "The device rejected the request.",
+        "device_rejected",
     ),
     DiscoveryError: (
         DiscoveryError("x"),

@@ -1,5 +1,11 @@
 device_not_found
+device_rejected
 device_unreachable
 internal_error
 not_found
+setting_not_available
+settings_enabled_invalid
+settings_language_invalid
+settings_time_format_invalid
+settings_timezone_invalid
 validation_error

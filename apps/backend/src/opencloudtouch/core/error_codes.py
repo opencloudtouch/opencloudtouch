@@ -12,9 +12,15 @@ import re
 CODE_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 
 DEVICE_NOT_FOUND = "device_not_found"
+DEVICE_REJECTED = "device_rejected"
 DEVICE_UNREACHABLE = "device_unreachable"
 INTERNAL_ERROR = "internal_error"
 NOT_FOUND = "not_found"
+SETTING_NOT_AVAILABLE = "setting_not_available"
+SETTINGS_ENABLED_INVALID = "settings_enabled_invalid"
+SETTINGS_LANGUAGE_INVALID = "settings_language_invalid"
+SETTINGS_TIME_FORMAT_INVALID = "settings_time_format_invalid"
+SETTINGS_TIMEZONE_INVALID = "settings_timezone_invalid"
 VALIDATION_ERROR = "validation_error"
 
 

@@ -8,6 +8,7 @@ Hierarchy:
     OpenCloudTouchError
     ├── DeviceNotFoundError          → 404
     ├── DeviceConnectionError        → 503
+    │   └── DeviceRejectedError      → 502
     ├── DiscoveryError               → 500
     ├── DomainValidationError        → 400
     ├── CodedApiError                → any (raise_coded)
@@ -57,6 +58,18 @@ class DeviceConnectionError(OpenCloudTouchError):
     def __init__(self, device_ip: str, message: str = "Device unreachable"):
         self.device_ip = device_ip
         super().__init__(f"{message}: {device_ip}")
+
+
+class DeviceRejectedError(DeviceConnectionError):
+    """Raised when the device answered, but with HTTP >= 400.
+
+    Unlike its base class the device is reachable, so callers must not mark it
+    offline. Maps to HTTP 502 ``device_rejected``.
+    """
+
+    def __init__(self, device_ip: str, status_code: int):
+        self.status_code = status_code
+        super().__init__(device_ip, f"Device rejected the request (HTTP {status_code})")
 
 
 class DiscoveryError(OpenCloudTouchError):
