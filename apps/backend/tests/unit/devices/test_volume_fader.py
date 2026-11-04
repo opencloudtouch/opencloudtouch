@@ -138,6 +138,26 @@ class TestFade:
         await harness.fader.fade(DEVICE, 40, 0, 30, on_set=remember)
         assert seen == harness.devices.volumes_set()
 
+    @pytest.mark.asyncio
+    async def test_reports_a_value_before_it_is_written(self, harness):
+        order: list[str] = []
+
+        async def remember(value: int) -> None:
+            order.append(f"report:{value}")
+
+        harness.devices.on_call = lambda name, args: (
+            order.append(f"write:{args[0]}") if name == "set_volume" else None
+        )
+        await harness.fader.fade(DEVICE, 40, 0, 6, on_set=remember)
+
+        # a write that is interrupted may still land: the caller must know it first
+        assert order[:2] == [f"report:{harness.devices.volumes_set()[0]}"] + [
+            f"write:{harness.devices.volumes_set()[0]}"
+        ]
+        for i in range(0, len(order), 2):
+            assert order[i].startswith("report:")
+            assert order[i + 1] == order[i].replace("report:", "write:")
+
 
 class TestManualChange:
     @pytest.mark.asyncio

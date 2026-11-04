@@ -486,6 +486,66 @@ class TestRestart:
         assert await repository.get(DEVICE) is None
 
     @pytest.mark.asyncio
+    async def test_a_cancel_during_an_in_flight_write_still_restores(
+        self, service, vtime, devices, repository
+    ):
+        """The speaker applies the step although the call never returns (thread)."""
+        devices.volume = 40
+        hung = asyncio.Event()
+        original = devices.set_volume
+        calls = {"n": 0}
+
+        async def hanging(device_id, level):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                devices.volume = level  # the speaker took the value...
+                hung.set()
+                await asyncio.Event().wait()  # ...but the call does not return
+            return await original(device_id, level)
+
+        devices.set_volume = hanging
+        await service.start(DEVICE, 30, 30, "stop")
+        await vtime.advance(THIRTY_MINUTES - 25)
+        await asyncio.wait_for(hung.wait(), 2)
+        assert devices.volume < 38  # a step of more than the tolerance
+
+        await service.cancel(DEVICE)
+
+        assert devices.volume == 40
+
+    @pytest.mark.asyncio
+    async def test_a_crash_during_an_in_flight_write_is_undone_after_the_restart(
+        self, make_service, vtime, devices, repository
+    ):
+        devices.volume = 40
+        hung = asyncio.Event()
+        original = devices.set_volume
+        calls = {"n": 0}
+
+        async def hanging(device_id, level):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                devices.volume = level
+                hung.set()
+                await asyncio.Event().wait()
+            return await original(device_id, level)
+
+        devices.set_volume = hanging
+        first = make_service()
+        await first.start(DEVICE, 30, 30, "stop")
+        await vtime.advance(THIRTY_MINUTES - 25)
+        await asyncio.wait_for(hung.wait(), 2)
+        first._tasks[DEVICE].cancel()  # the process dies mid-write
+        await asyncio.sleep(0)
+
+        second = make_service()
+        await second.recover()
+        await vtime.advance(0)
+        await asyncio.sleep(0.01)
+
+        assert 40 in devices.volumes_set()
+
+    @pytest.mark.asyncio
     async def test_the_last_value_written_is_persisted(
         self, service, vtime, devices, repository
     ):

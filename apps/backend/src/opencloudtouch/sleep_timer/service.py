@@ -54,7 +54,9 @@ class SleepTimerService:
         self._fader = VolumeFader(device_service, sleep, clock)
         self._tasks: dict[str, asyncio.Task[None]] = {}
         self._locks: dict[str, asyncio.Lock] = {}
-        self._last_set: dict[str, int] = {}
+        # (last value, the one before) the fade wrote: both count as ours, because a
+        # write that was interrupted may or may not have landed
+        self._own: dict[str, tuple[int | None, int | None]] = {}
 
     # ------------------------------------------------------------------ public
 
@@ -109,7 +111,10 @@ class SleepTimerService:
         """Re-arm or finish the timers that were stored before a restart."""
         for timer in await self._repository.list_all():
             if timer.last_set_volume is not None:
-                self._last_set[timer.device_id] = timer.last_set_volume
+                self._own[timer.device_id] = (
+                    timer.last_set_volume,
+                    timer.prev_set_volume,
+                )
             remaining = timer.ends_at - self._clock()
             if remaining > 0:
                 self._arm(timer, recovered=True)
@@ -182,7 +187,7 @@ class SleepTimerService:
             except Exception:  # noqa: BLE001
                 logger.warning("Sleep timer could not restore the volume on cancel")
         await self._repository.delete(device_id)
-        self._last_set.pop(device_id, None)
+        self._own.pop(device_id, None)
 
     async def _wait_until(self, epoch: float) -> None:
         while True:
@@ -194,9 +199,9 @@ class SleepTimerService:
     async def _restore_volume(self, timer: SleepTimer) -> bool:
         """Set the stored volume again unless the user has changed it meanwhile."""
         volume = await self._device_service.get_volume(timer.device_id)
-        last = self._last_set.get(timer.device_id)
-        untouched = volume.target <= VOLUME_TOLERANCE or (
-            last is not None and abs(volume.target - last) <= VOLUME_TOLERANCE
+        own = [v for v in self._own.get(timer.device_id, ()) if v is not None]
+        untouched = volume.target <= VOLUME_TOLERANCE or any(
+            abs(volume.target - v) <= VOLUME_TOLERANCE for v in own
         )
         if not untouched or timer.original_volume is None:
             return False
@@ -204,9 +209,11 @@ class SleepTimerService:
         return True
 
     async def _remember_last_set(self, device_id: str, volume: int) -> None:
-        """Keep the value the fade wrote in memory and in the database (restart safe)."""
-        self._last_set[device_id] = volume
-        await self._repository.set_last_set_volume(device_id, volume)
+        """Keep the value the fade is about to write, and the one before, in memory and
+        in the database (restart safe)."""
+        previous = self._own.get(device_id, (None, None))[0]
+        self._own[device_id] = (volume, previous)
+        await self._repository.set_last_set_volume(device_id, volume, previous)
 
     async def _restore_on_shutdown(self, timer: SleepTimer) -> None:
         if await self._restore_volume(timer):
@@ -233,7 +240,7 @@ class SleepTimerService:
 
     async def _finish(self, timer: SleepTimer) -> None:
         await self._repository.delete(timer.device_id)
-        self._last_set.pop(timer.device_id, None)
+        self._own.pop(timer.device_id, None)
 
     async def _run(self, timer: SleepTimer, recovered: bool, end_now: bool) -> None:
         if end_now:  # the user is presumably still asleep: end first, restore after
@@ -257,8 +264,8 @@ class SleepTimerService:
             logger.warning("Sleep timer could not undo the interrupted fade")
         timer.original_volume = None
         await self._repository.set_original_volume(timer.device_id, None)
-        await self._repository.set_last_set_volume(timer.device_id, None)
-        self._last_set.pop(timer.device_id, None)
+        await self._repository.set_last_set_volume(timer.device_id, None, None)
+        self._own.pop(timer.device_id, None)
 
     async def _fade_out(self, timer: SleepTimer, recovered: bool) -> bool:
         """Fade to 0. Returns False when the timer must not run its end sequence."""
@@ -281,6 +288,7 @@ class SleepTimerService:
 
         timer.original_volume = volume.actual
         await self._repository.set_original_volume(timer.device_id, volume.actual)
+        self._own[timer.device_id] = (volume.actual, None)  # the baseline is ours too
         result = await self._fader.fade(
             timer.device_id,
             volume.actual,
