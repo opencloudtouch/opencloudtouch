@@ -9,8 +9,8 @@ If missing, it is written directly to the persistence file via SSH:
     /mnt/nv/BoseApp-Persistence/1/SystemConfigurationDB.xml
 """
 
+import hashlib
 import logging
-import random
 from dataclasses import dataclass
 from typing import Optional
 
@@ -41,11 +41,29 @@ class AccountPairingResult:
     uuid: str = ""
     message: str = ""
     error: Optional[str] = None
+    uuid_source: str = "unknown"
 
 
-def _generate_account_uuid() -> str:
-    """Generate a 7-digit account UUID (matching Bose format)."""
-    return str(random.randint(1_000_000, 9_999_999))  # noqa: S311
+def _normalize_device_id(device_id: str) -> str:
+    """Normalize and validate a device MAC for stable UUID derivation."""
+    normalized = device_id.replace(":", "").replace("-", "").upper()
+    if len(normalized) != 12 or any(c not in "0123456789ABCDEF" for c in normalized):
+        raise ValueError("device_id must be a 12-digit hexadecimal MAC address")
+    return normalized
+
+
+def _generate_account_uuid(device_id: str, counter: int = 0) -> str:
+    """Derive a reproducible seven-digit account UUID from the device MAC.
+
+    The counter is used only when the primary UUID is already assigned to
+    another device in the local repository.
+    """
+    normalized = _normalize_device_id(device_id)
+    if counter < 0:
+        raise ValueError("counter must not be negative")
+    key = normalized if counter == 0 else f"{normalized}:{counter}"
+    digest = hashlib.sha256(key.encode("ascii")).hexdigest()
+    return str(1_000_000 + int(digest, 16) % 9_000_000)
 
 
 def is_valid_account_uuid(uuid: str) -> bool:
@@ -54,7 +72,10 @@ def is_valid_account_uuid(uuid: str) -> bool:
 
 
 async def check_marge_account_uuid(
-    device_ip: str, device_port: int = _DEFAULT_DEVICE_HTTP_PORT
+    device_ip: str,
+    device_port: int = _DEFAULT_DEVICE_HTTP_PORT,
+    *,
+    raise_on_error: bool = False,
 ) -> Optional[str]:
     """Check if device has a margeAccountUUID via GET /info.
 
@@ -72,12 +93,16 @@ async def check_marge_account_uuid(
             resp.raise_for_status()
     except (httpx.HTTPError, httpx.TimeoutException) as e:
         logger.warning("Cannot read /info from %s: %s", device_ip, e)
+        if raise_on_error:
+            raise
         return None
 
     try:
         root = ET.fromstring(resp.text)
     except ET.ParseError:
         logger.warning("Invalid XML from %s/info", device_ip)
+        if raise_on_error:
+            raise
         return None
 
     elem = root.find("margeAccountUUID")
@@ -187,6 +212,7 @@ async def ensure_account_uuid(
     device_port: int = _DEFAULT_DEVICE_HTTP_PORT,
     ssh: Optional[SoundTouchSSHClient] = None,
     device_name: str = "SoundTouch",
+    device_id: Optional[str] = None,
 ) -> AccountPairingResult:
     """Ensure device has a margeAccountUUID — set one if missing.
 
@@ -203,7 +229,16 @@ async def ensure_account_uuid(
     Returns:
         AccountPairingResult
     """
-    existing = await check_marge_account_uuid(device_ip, device_port)
+    try:
+        existing = await check_marge_account_uuid(
+            device_ip, device_port, raise_on_error=True
+        )
+    except (httpx.HTTPError, ET.ParseError) as e:
+        return AccountPairingResult(
+            success=False,
+            had_uuid=False,
+            error=f"Cannot verify existing account UUID: {e}",
+        )
 
     if existing:
         logger.info("Device %s already has margeAccountUUID=%s", device_ip, existing)
@@ -214,7 +249,16 @@ async def ensure_account_uuid(
             message=f"Device already has account UUID: {existing}",
         )
 
-    uuid = _generate_account_uuid()
+    if not device_id:
+        return AccountPairingResult(
+            success=False,
+            had_uuid=False,
+            error="Device MAC address is required to derive an account UUID",
+        )
+    try:
+        uuid = _generate_account_uuid(device_id)
+    except ValueError as e:
+        return AccountPairingResult(success=False, had_uuid=False, error=str(e))
     logger.info(
         "Device %s has no margeAccountUUID — setting %s via SSH",
         device_ip,
@@ -260,7 +304,16 @@ async def ensure_account_uuid_unique(
     Returns:
         AccountPairingResult with collision info
     """
-    existing = await check_marge_account_uuid(device_ip, device_port)
+    try:
+        existing = await check_marge_account_uuid(
+            device_ip, device_port, raise_on_error=True
+        )
+    except (httpx.HTTPError, ET.ParseError) as e:
+        return AccountPairingResult(
+            success=False,
+            had_uuid=False,
+            error=f"Cannot verify existing account UUID: {e}",
+        )
 
     if existing:
         # Check if another device owns this UUID
@@ -272,10 +325,11 @@ async def ensure_account_uuid_unique(
                 had_uuid=True,
                 uuid=existing,
                 message=f"Device has unique account UUID: {existing}",
+                uuid_source="existing",
             )
 
         logger.warning(
-            "UUID collision: %s owns UUID=%s, generating new for %s",
+            "UUID collision: %s owns UUID=%s, resolving for %s",
             owner.device_id,
             existing,
             device_id,
@@ -287,34 +341,38 @@ async def ensure_account_uuid_unique(
         async with SoundTouchSSHClient(device_ip) as ssh_client:
             return await set_account_uuid_via_ssh(ssh_client, uuid, device_name)
 
-    for attempt in range(1, max_retries + 1):
-        new_uuid = _generate_account_uuid()
+    try:
+        # Reserve counter=0 for the primary, server-independent identifier.
+        # Counter=1..N gives a deterministic local collision fallback.
+        for attempt in range(max_retries):
+            new_uuid = _generate_account_uuid(device_id, attempt)
 
-        collision = await device_repo.get_by_account_uuid(new_uuid)
-        if collision is not None and collision.device_id != device_id:
-            logger.warning(
-                "Generated UUID=%s also collides (attempt %d/%d)",
-                new_uuid,
-                attempt,
-                max_retries,
-            )
-            if attempt == max_retries:
-                return AccountPairingResult(
-                    success=False,
-                    had_uuid=existing is not None,
-                    error=f"UUID collision after {max_retries} attempts",
+            collision = await device_repo.get_by_account_uuid(new_uuid)
+            if collision is not None and collision.device_id != device_id:
+                logger.warning(
+                    "Derived UUID=%s collides (attempt %d/%d)",
+                    new_uuid,
+                    attempt + 1,
+                    max_retries,
                 )
-            continue
+                continue
 
-        result = await _set_uuid(new_uuid)
-        if not result.success:
+            result = await _set_uuid(new_uuid)
+            if not result.success:
+                return result
+
+            result.had_uuid = existing is not None
+            result.uuid_source = (
+                "collision_fallback" if attempt or existing else "derived"
+            )
             return result
-
-        result.had_uuid = existing is not None
-        return result
+    except ValueError as e:
+        return AccountPairingResult(
+            success=False, had_uuid=existing is not None, error=str(e)
+        )
 
     return AccountPairingResult(
         success=False,
         had_uuid=existing is not None,
-        error="UUID generation exhausted",
+        error=f"UUID collision after {max_retries} attempts",
     )

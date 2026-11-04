@@ -14,12 +14,33 @@ describe("StatusBadge", () => {
     "unknown",
   ];
 
+  const EXPECTED_LABELS: Record<SetupStatus, string> = {
+    unconfigured: "Not configured",
+    pending: "Setup in progress...",
+    configured: "Configured",
+    failed: "Failed",
+    outdated: "Outdated",
+    offline: "Offline",
+    unknown: "Unknown",
+  };
+
+  const EXPECTED_VARIANTS: Record<SetupStatus, string> = {
+    unconfigured: "warning",
+    pending: "info",
+    configured: "success",
+    failed: "danger",
+    outdated: "warning",
+    offline: "neutral",
+    unknown: "neutral",
+  };
+
   describe("Rendering", () => {
-    it.each(ALL_STATUSES)("renders icon for '%s' status", (status) => {
+    it.each(ALL_STATUSES)("renders an icon with an accessible name for '%s' status", (status) => {
       const { container } = render(<StatusBadge status={status} />);
-      const icon = container.querySelector(".status-icon");
+      const icon = screen.getByRole("img", { name: EXPECTED_LABELS[status] });
       expect(icon).toBeInTheDocument();
-      expect(icon?.textContent).toBeTruthy();
+      expect(icon.querySelector("svg")).not.toBeNull();
+      expect(container.querySelector(".ui-badge--icon")).not.toBeNull();
     });
 
     it("does not show label by default", () => {
@@ -30,64 +51,52 @@ describe("StatusBadge", () => {
     it("shows label when showLabel is true", () => {
       render(<StatusBadge status="configured" showLabel />);
       expect(screen.getByText("Configured")).toBeInTheDocument();
+      // With a visible label the icon is decorative
+      expect(screen.queryByRole("img")).not.toBeInTheDocument();
     });
   });
 
   describe("Status Labels", () => {
-    const EXPECTED_LABELS: Record<SetupStatus, string> = {
-      unconfigured: "Not configured",
-      pending: "Setup in progress...",
-      configured: "Configured",
-      failed: "Failed",
-      outdated: "Outdated",
-      offline: "Offline",
-      unknown: "Unknown",
-    };
-
     it.each(Object.entries(EXPECTED_LABELS))(
       "shows correct label for '%s'",
       (status, expectedLabel) => {
-        render(
-          <StatusBadge status={status as SetupStatus} showLabel />,
-        );
+        render(<StatusBadge status={status as SetupStatus} showLabel />);
         expect(screen.getByText(expectedLabel)).toBeInTheDocument();
       },
     );
   });
 
   describe("CSS Classes", () => {
-    it("applies status-specific class", () => {
-      const { container } = render(<StatusBadge status="failed" />);
-      expect(container.firstChild).toHaveClass("status-failed");
-    });
+    it.each(Object.entries(EXPECTED_VARIANTS))(
+      "applies the variant class for '%s'",
+      (status, variant) => {
+        const { container } = render(<StatusBadge status={status as SetupStatus} />);
+        expect(container.firstChild).toHaveClass("ui-badge", `ui-badge--${variant}`);
+      },
+    );
 
     it("applies medium size by default", () => {
       const { container } = render(<StatusBadge status="configured" />);
-      expect(container.firstChild).toHaveClass("status-medium");
+      expect(container.firstChild).toHaveClass("ui-badge--medium");
     });
 
     it("applies requested size class", () => {
-      const { container } = render(
-        <StatusBadge status="configured" size="small" />,
-      );
-      expect(container.firstChild).toHaveClass("status-small");
+      const { container } = render(<StatusBadge status="configured" size="small" />);
+      expect(container.firstChild).toHaveClass("ui-badge--small");
+    });
+
+    it("only icon-only badges get the square icon class", () => {
+      const { container, rerender } = render(<StatusBadge status="configured" />);
+      expect(container.firstChild).toHaveClass("ui-badge--icon");
+      rerender(<StatusBadge status="configured" showLabel />);
+      expect(container.firstChild).not.toHaveClass("ui-badge--icon");
     });
   });
 
   describe("Visual Semantics", () => {
-    it("configured shows success icon ✅", () => {
-      const { container } = render(<StatusBadge status="configured" />);
-      expect(container.querySelector(".status-icon")?.textContent).toBe("✅");
-    });
-
-    it("failed shows error icon ❌", () => {
-      const { container } = render(<StatusBadge status="failed" />);
-      expect(container.querySelector(".status-icon")?.textContent).toBe("❌");
-    });
-
-    it("offline shows signal icon 📡", () => {
-      const { container } = render(<StatusBadge status="offline" />);
-      expect(container.querySelector(".status-icon")?.textContent).toBe("📡");
+    it.each(ALL_STATUSES)("'%s' draws its own icon shape (not colour alone)", (status) => {
+      const { container } = render(<StatusBadge status={status} />);
+      expect(container.querySelector("svg")).not.toBeNull();
     });
   });
 });

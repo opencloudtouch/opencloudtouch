@@ -1,563 +1,461 @@
-/* Power Cycle Styles */
+/* Step 2 (Neustart / SSH): step-specific rules only. */
 .power-cycle {
-  max-width: 600px;
-  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-width: 0;
 }
-
 .power-cycle-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 1.5rem;
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--color-text-primary);
 }
 
-/* Steps */
+/* instructions */
 .power-cycle-steps {
-  margin-bottom: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-
 .power-cycle-step {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: var(--color-bg-card, #2a2a2a);
+  gap: 12px;
+  min-width: 0;
+  padding: var(--space-md);
+  background: var(--surface-color);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--border-radius-md);
 }
-
 .power-cycle-step-number {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: var(--primary-color);
-  color: white;
-  border-radius: 50%;
-  font-size: 1.125rem;
-  font-weight: 700;
-  flex-shrink: 0;
+  background: rgba(var(--primary-rgb), 0.15);
+  color: var(--primary-text);
+  font-weight: var(--font-weight-bold);
 }
-
 .power-cycle-step-content {
   flex: 1;
+  min-width: 0;
 }
-
 .power-cycle-step-content strong {
   display: block;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary, #e0e0e0);
-  margin-bottom: 0.25rem;
+  margin-bottom: 2px;
+  font-size: 15px;
+  color: var(--color-text-primary);
 }
-
 .power-cycle-step-content p {
-  color: var(--text-secondary, #b0b0b0);
-  line-height: 1.6;
   margin: 0;
-  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
 }
 
-.power-cycle-step-content code {
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  padding: 0.125rem 0.375rem;
-  border-radius: 4px;
-  font-family: "Courier New", monospace;
-  font-size: 0.9em;
-}
-
-/* Status Check */
+/* status + risk container */
 .power-cycle-check {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
   background: var(--surface-color);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
+  border-radius: var(--border-radius-md);
+  min-width: 0;
 }
-
 .power-cycle-status {
-  display: flex;
-  gap: 1rem;
   align-items: center;
-  padding: 1rem;
-  border-radius: 6px;
-  margin-bottom: 1rem;
 }
-
-.power-cycle-status.pending {
-  background: rgba(255, 193, 7, 0.1);
-  border: 2px solid #ffa726;
-}
-
 .power-cycle-status.checking {
-  background: rgba(33, 150, 243, 0.1);
-  border: 2px solid #42a5f5;
+  --c: var(--primary-color);
 }
-
-.power-cycle-status.success {
-  background: rgba(76, 175, 80, 0.1);
-  border: 2px solid #66bb6a;
-}
-
-.power-cycle-status.error {
-  background: rgba(244, 67, 54, 0.1);
-  border: 2px solid #ef5350;
-}
-
 .status-icon {
-  font-size: 2rem;
-  flex-shrink: 0;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-
+.status-icon .spinner {
+  width: 22px;
+  height: 22px;
+  border-width: 3px;
+  border-color: rgba(var(--primary-rgb), 0.3);
+  border-top-color: var(--primary-color);
+}
 .status-content {
   flex: 1;
+  min-width: 0;
 }
-
 .status-content p {
-  margin: 0 0 0.25rem;
-  color: var(--text-primary, #e0e0e0);
-  font-weight: 500;
+  margin: 0;
+  font-size: 15px;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
 }
-
 .status-content small {
-  font-size: 0.875rem;
-  color: var(--text-secondary, #b0b0b0);
-  font-weight: 500;
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
 }
-
 .power-cycle-check-btn {
   width: 100%;
 }
 
-/* Troubleshooting */
-.power-cycle-troubleshooting {
-  background: rgba(255, 152, 0, 0.1);
-  border: 2px solid #ff9800;
-  border-radius: 8px;
-  padding: 1.5rem;
-}
-
-.troubleshooting-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #ffb74d;
-  margin: 0 0 1rem;
-}
-
-.troubleshooting-list {
-  margin: 0;
-  padding-left: 1.5rem;
-  color: #ffcc80;
-  font-weight: 500;
-}
-
-.troubleshooting-list li {
-  margin-bottom: 0.5rem;
-  line-height: 1.6;
-}
-
-/* Spinner */
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid rgba(33, 150, 243, 0.3);
-  border-top-color: #2196f3;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* SSH Hint */
-.power-cycle-ssh-hint {
-  margin-top: 2rem;
-  padding: 1.25rem;
-  background: var(--color-bg-card, #1e2a1e);
-  border: 1px solid var(--color-success, #4caf50);
-  border-left: 4px solid var(--color-success, #4caf50);
-  border-radius: 8px;
-}
-
-.ssh-hint-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-success, #4caf50);
-  margin-bottom: 0.5rem;
-}
-
-.ssh-hint-description {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin-bottom: 0.75rem;
-}
-
-/* REFACT-210: SSH Manual Test Collapsible */
-.ssh-manual-test-collapsible {
-  margin: 1rem 0;
-  border: 1px solid var(--border-color, #3a3a3a);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.ssh-manual-test-summary {
-  padding: 0.75rem 1rem;
-  cursor: pointer;
-  background: var(--color-bg-card, #2a2a2a);
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--text-secondary, #888);
-  list-style: none;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.ssh-manual-test-summary:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-primary, #e0e0e0);
-}
-
-.ssh-manual-test-summary::-webkit-details-marker {
-  display: none;
-}
-
-.ssh-manual-test-hint {
-  font-size: 0.875rem;
-  color: var(--text-secondary, #888);
-  margin-bottom: 1rem;
-  line-height: 1.6;
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 4px;
-  border-left: 3px solid var(--primary-color, #4a90d9);
-}
-
-/* Client Tabs */
-.ssh-client-tabs {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.ssh-client-tab {
-  padding: 0.4rem 0.9rem;
-  font-size: 0.8rem;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s;
-}
-
-.ssh-client-tab:hover {
-  background: var(--color-bg-surface, #222);
-  color: var(--text-primary);
-}
-
-.ssh-client-tab.active {
-  background: var(--color-success, #4caf50);
-  color: #fff;
-  border-color: var(--color-success, #4caf50);
-  font-weight: 600;
-}
-
-.ssh-hint-command {
-  background: var(--color-bg-surface, #111);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
-  font-size: 0.82rem;
-  font-family: "Courier New", Courier, monospace;
-  color: var(--color-primary, #90caf9);
-  white-space: pre;
-  overflow-x: auto;
-  margin: 0;
-  line-height: 1.7;
-}
-
-/* Copyable command wrapper */
-.ssh-command-wrapper {
-  position: relative;
-  margin-bottom: 0.5rem;
-}
-
-.ssh-command-wrapper:hover .ssh-copy-btn {
-  opacity: 1;
-}
-
-.ssh-copy-btn {
-  position: absolute;
-  top: 0.4rem;
-  right: 0.4rem;
-  opacity: 0;
-  transition:
-    opacity 0.15s,
-    background 0.15s;
-  background: var(--color-bg-card, #2a2a2a);
-  border: 1px solid var(--border-color);
-  border-radius: 5px;
-  color: var(--text-secondary);
-  font-size: 1rem;
-  line-height: 1;
-  padding: 0.25rem 0.45rem;
-  cursor: pointer;
-}
-
-.ssh-copy-btn:hover {
-  background: var(--color-primary, #90caf9);
-  color: #000;
-  border-color: var(--color-primary, #90caf9);
-}
-
-.ssh-copy-btn.copied {
-  opacity: 1;
-  background: var(--color-success, #4caf50);
-  color: #fff;
-  border-color: var(--color-success, #4caf50);
-}
-
-/* PuTTY Instructions */
-.putty-instructions {
+/* risk assessment: a section of the status card (divider, not a card in a card) */
+.ssh-risk-assessment {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  margin-bottom: 0.5rem;
+  gap: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-color);
+  min-width: 0;
 }
-
-.putty-step {
+.risk-title {
   display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  font-size: 0.85rem;
-  color: var(--text-primary);
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+}
+.risk-title svg {
+  flex: none;
+  color: var(--primary-text);
+}
+.risk-intro {
+  margin: 0;
+  font-size: 15px;
   line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+.risk-question {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.risk-question-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+.risk-answers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr));
+  gap: 12px;
+}
+.risk-answer-btn {
+  min-height: var(--touch-target-min);
+  padding: 8px 12px;
+  border: 1px solid var(--color-disabled);
+  border-radius: var(--border-radius-sm);
+  background: var(--color-bg-card);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.3;
+  text-align: center;
+}
+.risk-answer-btn:hover {
+  border-color: var(--primary-color);
+  background: rgba(var(--primary-rgb), 0.08);
+}
+.risk-answer-btn.selected {
+  border-color: var(--primary-color);
+  background: rgba(var(--primary-rgb), 0.2);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+.risk-answer-btn.unknown.selected {
+  border-color: #f44336;
+  background: rgba(244, 67, 54, 0.15);
 }
 
-.putty-step-num {
-  min-width: 1.5rem;
-  height: 1.5rem;
+.risk-level {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px var(--space-md);
+  border-radius: var(--border-radius-md);
+  border: 1px solid transparent;
+}
+.risk-level-icon {
+  flex: none;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-success, #4caf50);
-  color: #fff;
-  border-radius: 50%;
-  font-size: 0.75rem;
-  font-weight: 700;
-  flex-shrink: 0;
 }
-
-.putty-step code {
-  background: var(--color-bg-surface, #111);
-  padding: 0.1rem 0.35rem;
-  border-radius: 3px;
-  font-size: 0.78rem;
-  color: var(--color-primary, #90caf9);
-}
-
-.ssh-hint-note {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  font-style: italic;
+.risk-level strong {
   display: block;
-  margin-top: 0.5rem;
+  margin-bottom: 2px;
+  font-size: 15px;
+  color: var(--color-text-primary);
 }
-
-/* ─── SSH Persistence Risk Assessment ───────────────────────────────────────── */
-
-.ssh-risk-assessment {
-  margin-top: 1.5rem;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 1.5rem;
-}
-
-.risk-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 0.75rem 0;
-}
-
-.risk-intro {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  margin-bottom: 1.5rem;
+.risk-level-hint {
+  margin: 0;
+  font-size: 14px;
   line-height: 1.5;
-}
-
-.risk-question {
-  margin-bottom: 1.25rem;
-}
-
-.risk-question-text {
-  font-size: 0.95rem;
   color: var(--text-primary);
-  margin-bottom: 0.5rem;
-  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
-
-.risk-answers {
-  display: flex;
-  gap: 0.75rem; /* REFACT-204: erhöht von 0.5rem auf 0.75rem (12px) */
-  flex-wrap: wrap;
-}
-
-.risk-answer-btn {
-  padding: 0.4rem 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--color-bg-card, #2a2a2a);
-  color: var(--text-primary);
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.15s ease;
-}
-
-.risk-answer-btn:hover {
-  border-color: var(--primary-color);
-  background: rgba(66, 133, 244, 0.1);
-}
-
-.risk-answer-btn.selected {
-  border-color: var(--primary-color);
-  background: rgba(66, 133, 244, 0.2);
-  color: var(--primary-color);
-  font-weight: 600;
-}
-
-.risk-answer-btn.unknown.selected {
-  border-color: #ef5350;
-  background: rgba(239, 83, 80, 0.15);
-  color: #ef5350;
-}
-
-/* Risk level badge */
-.risk-level {
-  display: flex;
-  gap: 0.75rem;
-  align-items: flex-start;
-  padding: 0.875rem 1rem;
-  border-radius: 6px;
-  margin: 1.25rem 0;
-  border: 1px solid transparent;
-}
-
 .risk-level--gering {
   background: rgba(76, 175, 80, 0.1);
-  border-color: rgba(76, 175, 80, 0.3);
+  border-color: rgba(76, 175, 80, 0.5);
 }
-
+.risk-level--gering .risk-level-icon {
+  color: var(--color-success);
+}
 .risk-level--mittel {
   background: rgba(255, 193, 7, 0.1);
-  border-color: rgba(255, 193, 7, 0.35);
+  border-color: rgba(255, 193, 7, 0.5);
 }
-
+.risk-level--mittel .risk-level-icon {
+  color: #ffc107;
+}
 .risk-level--hoch {
-  background: rgba(239, 83, 80, 0.1);
-  border-color: rgba(239, 83, 80, 0.35);
+  background: rgba(244, 67, 54, 0.1);
+  border-color: rgba(244, 67, 54, 0.55);
+}
+.risk-level--hoch .risk-level-icon {
+  color: var(--color-danger);
 }
 
-.risk-level-icon {
-  font-size: 1.25rem;
-  flex-shrink: 0;
-  margin-top: 0.1rem;
-}
-
-.risk-level strong {
-  font-size: 0.95rem;
-  color: var(--text-primary);
-  display: block;
-  margin-bottom: 0.25rem;
-}
-
-.risk-level-hint {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  margin: 0;
-  line-height: 1.4;
-}
-
-/* Decision cards (radio-style) */
+/* decision cards: two distinct icons (open padlock / open door) */
 .risk-decision-buttons {
-  display: flex;
-  gap: 1.5rem; /* REFACT-212: erhöht von 0.75rem auf 1.5rem (24px) */
-  flex-wrap: wrap;
-  margin-top: 0.25rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: var(--space-md);
 }
-
 .risk-card {
-  flex: 1;
-  min-width: 180px;
-  display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.85rem 1.25rem;
-  border-radius: 8px;
-  border: 2px solid var(--border-color);
-  background: var(--surface-color);
-  color: var(--text-primary);
-  cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: 500;
-  text-align: left;
-  transition:
-    border-color 0.15s,
-    background 0.15s,
-    box-shadow 0.15s;
-  position: relative;
+  gap: 12px;
+  min-height: 60px;
+  padding: 12px var(--space-md);
+  font-size: 15px;
+  font-weight: var(--font-weight-medium);
 }
-
 .risk-card:hover {
   border-color: var(--primary-color);
   background: rgba(var(--primary-rgb), 0.06);
 }
-
-.risk-card--permanent.selected {
-  border-color: var(--primary-color);
-  background: rgba(var(--primary-rgb), 0.12);
-  box-shadow: 0 0 0 1px var(--primary-color);
-}
-
-.risk-card--permanent.selected.danger {
-  border-color: var(--color-danger);
-  background: rgba(239, 83, 80, 0.12);
-  box-shadow: 0 0 0 1px var(--color-danger);
-}
-
-.risk-card--temporary.selected {
-  border-color: var(--color-success);
-  background: rgba(129, 199, 132, 0.12);
-  box-shadow: 0 0 0 1px var(--color-success);
-}
-
 .risk-card-icon {
-  font-size: 1.15rem;
-  flex-shrink: 0;
+  flex: none;
+  display: flex;
+  color: var(--color-text-secondary);
 }
-
 .risk-card-label {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
-
 .risk-card-check {
+  flex: none;
+  display: flex;
   margin-left: auto;
-  font-size: 1rem;
-  color: var(--color-success);
-  font-weight: 700;
+  color: var(--primary-text);
 }
-
+.risk-card--permanent.selected .risk-card-icon {
+  color: var(--primary-text);
+}
+.risk-card--permanent.selected.danger .risk-card-icon,
 .risk-card--permanent.selected.danger .risk-card-check {
   color: var(--color-danger);
+}
+.risk-card--temporary.selected {
+  border-color: #4caf50;
+  background: rgba(76, 175, 80, 0.1);
+}
+.risk-card--temporary.selected .risk-card-icon,
+.risk-card--temporary.selected .risk-card-check {
+  color: var(--color-success);
+}
+
+/* manual SSH test (native <details>): reserves its own space, nothing overlaps Back/Next */
+.ssh-manual-test-collapsible {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  background: var(--surface-color);
+}
+.ssh-manual-test-summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--touch-target-min);
+  padding: 10px var(--space-md);
+  border-radius: var(--border-radius-md);
+  font-size: 15px;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+.ssh-manual-test-summary::-webkit-details-marker {
+  display: none;
+}
+.ssh-manual-test-summary svg {
+  flex: none;
+}
+.ssh-manual-test-summary span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ssh-manual-test-summary::after {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-right: 4px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.15s;
+}
+.ssh-manual-test-collapsible[open] > .ssh-manual-test-summary {
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+}
+.ssh-manual-test-collapsible[open] > .ssh-manual-test-summary::after {
+  transform: rotate(-135deg);
+}
+.ssh-manual-test-summary:hover {
+  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+.power-cycle-ssh-hint {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: var(--space-md);
+  min-width: 0;
+}
+.ssh-manual-test-hint {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  background: var(--color-bg-darker);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+.ssh-manual-test-hint strong {
+  color: var(--color-text-primary);
+}
+.ssh-hint-description {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+.ssh-client-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 8px;
+}
+.ssh-client-tab {
+  min-height: var(--touch-target-min);
+  padding: 8px 12px;
+  border: 1px solid var(--color-disabled);
+  border-radius: var(--border-radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.3;
+}
+.ssh-client-tab:hover {
+  color: var(--color-text-primary);
+  background: var(--bg-tertiary);
+}
+.ssh-client-tab.active {
+  background: rgba(var(--primary-rgb), 0.2);
+  border-color: var(--primary-color);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+.putty-instructions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.putty-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.putty-step > span:last-child {
+  min-width: 0;
+  padding-top: 2px;
+}
+.putty-step-num {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--primary-rgb), 0.18);
+  color: var(--primary-text);
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+}
+.ssh-hint-note {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+/* troubleshooting (status box variant: warning) */
+.power-cycle-troubleshooting {
+  align-items: flex-start;
+}
+.troubleshooting-title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: var(--color-text-primary);
+}
+.troubleshooting-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+.troubleshooting-list li {
+  position: relative;
+  padding-left: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.troubleshooting-list li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0.6em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ffc107;
 }

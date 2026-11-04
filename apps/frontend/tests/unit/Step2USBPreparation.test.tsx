@@ -141,3 +141,21 @@ describe("Step2USBPreparation - General functionality", () => {
   });
 
 });
+
+describe("Step2USBPreparation - createFileDesc markup", () => {
+  it("renders the <0>/<1> tags of the translation as <code>/<strong>, not as raw text", async () => {
+    const { container, unmount } = render(
+      <Step2USBPreparation deviceModel="SoundTouch 30" {...defaultProps} />
+    );
+    await waitFor(() => expect(getPageText()).toContain("remote_services"));
+
+    const description = container.querySelector(".usb-section-description");
+    expect(description).not.toBeNull();
+    // Raw i18next component placeholders must never reach the user.
+    expect(description?.textContent).not.toMatch(/<\/?\d+>/);
+    expect(description?.querySelector("code")?.textContent).toBe("remote_services");
+    expect(description?.querySelector("strong")).not.toBeNull();
+    unmount();
+  });
+});
+

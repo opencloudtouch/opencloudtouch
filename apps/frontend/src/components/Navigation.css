@@ -1,87 +1,113 @@
-/* Top Navigation - Spotify-Style */
+/* nav-: header navigation. Replaces Navigation.css. Height comes from .app-header (64px). */
 .nav {
-  padding: var(--space-md);
-  background-color: var(--color-bg-darker);
+  height: 100%;
 }
-
-/* Outer wrapper: max-width + flex row for nav-links + language selector.
-   Must NOT have overflow:hidden/auto so the LanguageSelector dropdown is visible. */
 .nav-inner {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  max-width: 1200px;
+  justify-content: space-between;
+  gap: 8px;
+  height: 100%;
+  max-width: var(--page-max);
   margin: 0 auto;
+  padding: 0 var(--space-md);
 }
-
-/* Inner container: scrollable nav links only — LanguageSelector is a sibling */
 .nav-container {
   display: flex;
-  flex: 1;
-  gap: var(--space-sm);
-  overflow-x: auto;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
 }
-
-.nav-container::-webkit-scrollbar {
-  display: none; /* Chrome/Safari */
-}
-
 .nav-link {
-  flex: 1;
-  text-align: center;
+  position: relative;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--border-radius-lg);
-  background-color: transparent;
+  justify-content: center;
+  gap: 2px;
+  min-width: var(--touch-target-min);
+  min-height: 52px;
+  padding: 4px 12px;
+  border-radius: var(--border-radius-sm);
   color: var(--color-text-secondary);
   font-size: 12px;
+  line-height: 1.2;
   font-weight: var(--font-weight-medium);
-  white-space: nowrap;
-  transition: all 0.2s ease;
-  min-width: 80px;
+  text-align: center;
+  transition:
+    background var(--motion-base),
+    color var(--motion-base);
 }
-
 .nav-link:hover {
-  background-color: rgba(255, 255, 255, 0.05);
   color: var(--color-text-primary);
+  background: var(--surface-color);
 }
-
-.nav-link.active {
-  background-color: var(--color-accent);
-  color: white;
-}
-
 .nav-icon {
-  font-size: 20px;
+  display: flex;
 }
-
-.nav-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.nav-link[aria-current="page"] {
+  color: var(--color-text-primary);
+  background: rgba(var(--primary-rgb), 0.15);
 }
-
-/* Responsive */
-@media (max-width: 768px) {
-  .nav {
-    padding: var(--space-sm);
-  }
-
+.nav-link[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 2px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--primary-color);
+}
+@media (min-width: 601px) {
   .nav-link {
-    min-width: 60px;
-    padding: var(--space-sm);
+    padding-inline: 16px;
+    font-size: 13px;
   }
-
-  .nav-icon {
-    font-size: 18px;
+  .nav-container {
+    gap: 8px;
   }
-
-  .nav-label {
-    font-size: 10px;
+}
+@media (max-width: 360px) {
+  .nav-inner {
+    padding-inline: 8px;
+    gap: 4px;
+  }
+  .nav-container {
+    gap: 2px;
+  }
+  .nav-link {
+    padding-inline: 8px;
+  }
+  .nav-link[aria-current="page"]::after {
+    left: 8px;
+    right: 8px;
+  }
+  /* only the active link shows its label; the others keep it for screen readers */
+  .nav-link:not([aria-current="page"]) .nav-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-link {
+    transition: none;
+  }
+}
+@media (forced-colors: active) {
+  .nav-link[aria-current="page"] {
+    border: 1px solid Highlight;
+  }
+  .nav-link[aria-current="page"]::after {
+    background: Highlight;
   }
 }

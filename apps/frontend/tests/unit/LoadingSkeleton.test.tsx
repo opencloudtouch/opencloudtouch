@@ -19,7 +19,7 @@ describe("LoadingSkeleton", () => {
   describe("Skeleton Base Component", () => {
     it("renders with configurable dimensions", () => {
       const { container, rerender } = render(<Skeleton />);
-      const skeleton = container.querySelector(".skeleton");
+      const skeleton = container.querySelector(".ui-skeleton");
 
       // Default dimensions
       expect(skeleton).toBeInTheDocument();
@@ -27,7 +27,7 @@ describe("LoadingSkeleton", () => {
 
       // Custom dimensions
       rerender(<Skeleton width="200px" height="40px" borderRadius="8px" />);
-      const skeleton2 = container.querySelector(".skeleton") as HTMLElement;
+      const skeleton2 = container.querySelector(".ui-skeleton") as HTMLElement;
       expect(skeleton2).toHaveStyle({ width: "200px", height: "40px" });
       // border-radius is a CSS shorthand — getComputedStyle in jsdom does not
       // resolve it, so we check the inline style directly.
@@ -43,13 +43,13 @@ describe("LoadingSkeleton", () => {
       const { container, rerender } = render(
         <SkeletonList count={5} SkeletonComponent={DeviceCardSkeleton} />
       );
-      expect(container.querySelectorAll(".device-card-skeleton")).toHaveLength(5);
+      expect(container.querySelectorAll(".sk-device")).toHaveLength(5);
 
       rerender(<SkeletonList count={3} SkeletonComponent={PresetSkeleton} />);
-      expect(container.querySelectorAll(".preset-skeleton")).toHaveLength(3);
+      expect(container.querySelectorAll(".sk-preset")).toHaveLength(3);
 
       rerender(<SkeletonList count={2} SkeletonComponent={StationCardSkeleton} />);
-      expect(container.querySelectorAll(".station-card-skeleton")).toHaveLength(2);
+      expect(container.querySelectorAll(".sk-station")).toHaveLength(2);
     });
   });
 });

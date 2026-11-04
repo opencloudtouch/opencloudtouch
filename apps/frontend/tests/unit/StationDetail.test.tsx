@@ -105,7 +105,7 @@ describe("StationDetail Component", () => {
       expect(screen.getByText("SWR3")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText("← Back"));
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(mockOnBack).toHaveBeenCalledTimes(1);
   });
 
@@ -131,7 +131,7 @@ describe("StationDetail Component", () => {
       expect(screen.getByText("Failed to load. Please try again.")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText("← Back"));
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(mockOnBack).toHaveBeenCalledTimes(1);
   });
 

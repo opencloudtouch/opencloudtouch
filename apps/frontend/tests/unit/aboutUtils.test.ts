@@ -126,9 +126,33 @@ describe("getFontSize", () => {
 });
 
 describe("generateGradientColor", () => {
+  it("keeps every name readable: at least 4.5:1 contrast on the card (#242424) for 200 hues", () => {
+    const toRgb = (h: number, sat: number, l: number): [number, number, number] => {
+      const a = sat * Math.min(l, 1 - l);
+      const f = (n: number) => {
+        const k = (n + h / 30) % 12;
+        return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+      };
+      return [f(0), f(8), f(4)];
+    };
+    const lum = ([r, g, b]: [number, number, number]) => {
+      const c = (v: number) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+      return 0.2126 * c(r) + 0.7152 * c(g) + 0.0722 * c(b);
+    };
+    const card = lum([36 / 255, 36 / 255, 36 / 255]);
+    for (let i = 0; i < 200; i++) {
+      const m = /hsl\(([\d.]+), (\d+)%, (\d+)%\)/.exec(generateGradientColor(i, 200));
+      expect(m).not.toBeNull();
+      const [h, sat, l] = [Number(m![1]), Number(m![2]), Number(m![3])];
+      expect(sat).toBeGreaterThanOrEqual(85);
+      const ratio = (lum(toRgb(h, sat / 100, l / 100)) + 0.05) / (card + 0.05);
+      expect(ratio).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it("returns an HSL color string", () => {
     const result = generateGradientColor(0, 10);
-    expect(result).toMatch(/^hsl\(\d+, \d+%, \d+%\)$/);
+    expect(result).toMatch(/^hsl\([\d.]+, \d+%, \d+%\)$/);
   });
 
   it("generates different colors for different indices", () => {
@@ -139,7 +163,7 @@ describe("generateGradientColor", () => {
 
   it("wraps hue around 360 degrees", () => {
     const result = generateGradientColor(10, 10);
-    expect(result).toMatch(/^hsl\(360, \d+%, \d+%\)$/);
+    expect(result).toMatch(/^hsl\(360(\.0)?, \d+%, \d+%\)$/);
   });
 });
 

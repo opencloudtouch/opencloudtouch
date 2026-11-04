@@ -102,7 +102,7 @@ describe('Wizard Device Persistence', () => {
     cy.get('[data-test="device-swiper"]').should('contain', 'SoundTouch 10');
 
     // Click setup button
-    cy.get('[data-test="setup-button"]').click();
+    cy.get('.ds-card-shell[data-state="current"] [data-test="setup-button"]').click();
 
     // Navigate through WizardChoice to Setup path
     cy.url().should('include', '/setup-wizard?deviceId=DEVICE_KITCHEN');
@@ -136,7 +136,7 @@ describe('Wizard Device Persistence', () => {
     }).as('checkPorts');
 
     // Start wizard
-    cy.get('[data-test="setup-button"]').click();
+    cy.get('.ds-card-shell[data-state="current"] [data-test="setup-button"]').click();
 
     // Navigate through WizardChoice to Setup path
     cy.url().should('include', '/setup-wizard?deviceId=DEVICE_KITCHEN');
@@ -169,7 +169,7 @@ describe('Wizard Device Persistence', () => {
     cy.get('[data-test="device-swiper"]').should('contain', 'Schlafzimmer');
 
     // Start wizard
-    cy.get('[data-test="setup-button"]').click();
+    cy.get('.ds-card-shell[data-state="current"] [data-test="setup-button"]').click();
     // Navigate through WizardChoice to Setup path
     cy.url().should('include', '/setup-wizard?deviceId=DEVICE_BEDROOM');
     cy.reload();
@@ -202,7 +202,7 @@ describe('Wizard Device Persistence', () => {
     cy.get('[data-test="device-swiper"]').should('contain', 'Küche');
 
     // Start wizard – navigate through WizardChoice to Setup path
-    cy.get('[data-test="setup-button"]').click();
+    cy.get('.ds-card-shell[data-state="current"] [data-test="setup-button"]').click();
     // Reload to bypass v7_startTransition SPA deferred rendering
     cy.url().should('include', '/setup-wizard?deviceId=DEVICE_KITCHEN');
     cy.reload();
