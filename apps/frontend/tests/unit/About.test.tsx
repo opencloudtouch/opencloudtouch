@@ -111,6 +111,26 @@ describe("About page", () => {
     });
   });
 
+  it("shows the supporters of the last visit at once, without the placeholder", async () => {
+    setupHealthMock();
+    mockFetchWith({ ok: true, text: () => Promise.resolve(CSV_DATA) });
+    const ui = (
+      <MemoryRouter>
+        <QueryWrapper>
+          <About />
+        </QueryWrapper>
+      </MemoryRouter>
+    );
+
+    const first = render(ui);
+    await waitFor(() => expect(screen.getByText("Alice")).toBeTruthy());
+    first.unmount();
+
+    const { container } = render(ui);
+    expect(screen.getByText("Alice")).toBeTruthy();
+    expect(container.querySelector(".ab-supporters-ph")).toBeNull();
+  });
+
   it("handles empty supporters CSV", async () => {
     setupHealthMock();
     mockFetchWith({ ok: true, text: () => Promise.resolve(CSV_HEADER) });
