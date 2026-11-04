@@ -38,8 +38,7 @@ jobs:
           SUPPORTERS_API_USER: oct-ci
           SUPPORTERS_API_PASS: ${{ secrets.SUPPORTERS_API_PASS }}
         run: |
-          AUTH=$(echo -n "$SUPPORTERS_API_USER:$SUPPORTERS_API_PASS" | base64)
-          curl -H "Authorization: Basic $AUTH" \
+          curl --user "${SUPPORTERS_API_USER}:${SUPPORTERS_API_PASS}" \
             https://opencloudtouch.org/api/supporters/get.php \
             -o supporters.csv --fail --silent --show-error
 
