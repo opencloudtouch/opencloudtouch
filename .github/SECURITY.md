@@ -77,6 +77,22 @@ cors_origins:
 
 ### Container Security
 
+#### Docker socket and self-update
+
+In-app self-update is opt-in. It requires mounting `/var/run/docker.sock`, which
+effectively grants broad control over the Docker host. The shipped Compose files
+leave the mount commented out. Enable it only on a trusted host after reviewing
+this risk. Remove the mount and recreate the container to opt out again. The
+update-check API exposes this capability state for a future frontend; the UI
+does not receive a way to mount the host socket by itself.
+
+When the socket is mounted, the root entrypoint grants the container's `oct`
+user (numeric UID 1000) access with `setfacl`. The ACL changes the host socket
+inode and can remain after the container stops, until the socket is recreated or
+the ACL is removed on the host. The update endpoint also requires a JSON body
+confirming the exact latest release, so a body-less cross-origin form request
+cannot trigger an update.
+
 #### Non-Root User
 
 Container runs as UID 1000 (non-root):

@@ -6,6 +6,88 @@ This guide explains how to upgrade OpenCloudTouch deployments. It covers Docker-
 
 ---
 
+## In-app self-update
+
+Official Docker-based OpenCloudTouch installations support backend-driven
+self-update.
+
+### Update process
+
+1. OpenCloudTouch checks the latest official release.
+2. The exact target image is pulled while the current container keeps running.
+3. A short-lived helper container is started from the currently working image.
+4. The helper replaces the OpenCloudTouch container while preserving `/data`.
+5. The new container must pass its Docker health check.
+6. If startup or the health check fails, the previous immutable image is
+   restored automatically.
+
+### Backend endpoints
+
+- `GET /api/system/check-update`
+- `POST /api/system/update` with JSON confirmation
+- `GET /api/system/update-status`
+
+The status endpoint reports the current phase, progress percentage, message,
+target version, and current version.
+
+`GET /api/system/check-update` also returns `self_update_enabled` and
+`self_update_reason`. A future frontend can use these typed fields to show or
+disable its update controls without probing Docker itself. Enabling or disabling
+self-update remains an explicit deployment choice: add or remove the socket
+mount, then recreate the OCT container.
+
+Possible phases include:
+
+- `idle`
+- `pulling`
+- `restarting`
+- `ready`
+- `rolling_back`
+- `rolled_back`
+- `failed`
+
+Only one update can run at a time. In-progress status records older than 30
+minutes are treated as stale so an interrupted pull or dead helper cannot block
+future updates indefinitely.
+
+Self-update is not triggered automatically. The update request must confirm the
+exact version returned by `GET /api/system/check-update`:
+
+```bash
+curl -X POST http://localhost:7777/api/system/update \
+  -H 'Content-Type: application/json' \
+  -d '{"target_version":"1.6.1"}'
+```
+
+The backend identifies its own container by container ID, with the conventional
+`opencloudtouch` name as a fallback. A persistent `/data` mount is mandatory;
+the helper validates and reconstructs mounts before stopping the old container.
+
+### Docker socket requirement
+
+Self-update requires the Docker socket:
+
+```yaml
+volumes:
+  - /var/run/docker.sock:/var/run/docker.sock
+```
+
+> **Security:** Docker socket access provides extensive control over the
+> Docker host. It is commented out in the shipped Compose files and must be
+> enabled explicitly. The entrypoint grants UID 1000 access through a socket
+> ACL; that ACL remains on the socket inode after the container stops. Users who
+> do not want to grant this access should continue using the manual procedures.
+
+The replacement preserves `OCT_*`, `TZ`, and common proxy environment values,
+plus the existing network, restart, logging, port, shared-memory, label, and
+mount configuration. Other custom runtime settings should be reviewed after an
+update. A later `docker compose up` still applies the image tag in the Compose
+file; if that tag is pinned to an older release, Compose can downgrade the
+container again.
+
+---
+
+
 ## 1. Upgrade with Docker
 
 **Recommended for most users.**
