@@ -81,7 +81,7 @@ export default function Step6HostsModification({
       onHostsModified(result, customIp.trim());
 
       if (!result.success) {
-        setError(t("setup.wizard.step6.errorTitle"));
+        setError(t("errors.unknown"));
       }
     } catch (err) {
       const message = userErrorMessage(err);

@@ -496,7 +496,7 @@ describe("Step7NtpPatch — render", () => {
 
     await waitFor(() => {
       expectNoRawText(document, "ntpd sync failed");
-      expect(screen.getByText(i18next.t("setup.wizard.step7.errorTitle"), { selector: "p, span, div" })).toBeInTheDocument();
+      expect(screen.getByText(i18next.t("errors.unknown"), { selector: "p, span, div" })).toBeInTheDocument();
     });
   });
 });

@@ -100,7 +100,6 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
   const [lastPreset, setLastPreset] = useLastPreset(deviceId);
   const { show: showToast, hide: hideToast } = useToast();
   const [powerLoading, setPowerLoading] = useState(false);
-  const [pendingStation, setPendingStation] = useState<RadioStation | null>(null);
   const [clearingPreset, setClearingPreset] = useState<number | null>(null);
   const [startingPreset, setStartingPreset] = useState<number | null>(null);
   const [failedPreset, setFailedPreset] = useState<number | null>(null);
@@ -253,10 +252,8 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
       await assignStation(presetNumber, station, deviceId);
       setAssigningPreset(null);
       setSearchOpen(false);
-      setPendingStation(null);
       showToast(t("presets.presetSaved", { number: presetNumber }), "success");
     } catch (err) {
-      setPendingStation(null);
 
       if (station.stationuuid.startsWith("manual-")) {
         throw err;
@@ -265,12 +262,6 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
       // Preserve the existing provider error behaviour.
       setAssigningPreset(null);
       setSearchOpen(false);
-    }
-  };
-
-  const handleConfirmOverwrite = async () => {
-    if (pendingStation && assigningPreset) {
-      await doAssign(assigningPreset, pendingStation);
     }
   };
 
@@ -714,24 +705,12 @@ export default function Devices({ devices = [], onRemoveDevice }: Readonly<Devic
         onClose={() => {
           setSearchOpen(false);
           setAssigningPreset(null);
-          setPendingStation(null);
-        }}
+            }}
         onStationSelect={handleStationSelect}
         onDelete={handleDeletePreset}
         presetNumber={assigningPreset}
         hasExistingPreset={assigningPreset !== null && !!presets[assigningPreset]}
         existingPreset={assigningPreset !== null ? presets[assigningPreset] : null}
-      />
-
-      {/* Confirm Overwrite Dialog */}
-      <ConfirmDialog
-        open={pendingStation !== null}
-        title={t("presets.confirmOverwriteTitle")}
-        message={t("presets.confirmOverwriteMessage", { preset: assigningPreset })}
-        confirmLabel={t("presets.confirmOverwrite")}
-        cancelLabel={t("common.cancel")}
-        onConfirm={handleConfirmOverwrite}
-        onCancel={() => setPendingStation(null)}
       />
 
       {/* Confirm Clear Dialog */}

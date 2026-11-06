@@ -64,7 +64,7 @@ export default function Step4Backup({
       onBackupComplete(result);
 
       if (!result.success) {
-        setError(t("setup.wizard.step4.errorTitle"));
+        setError(t("errors.unknown"));
       }
     } catch (err) {
       const message = userErrorMessage(err);

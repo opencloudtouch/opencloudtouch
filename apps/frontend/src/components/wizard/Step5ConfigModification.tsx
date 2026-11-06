@@ -237,7 +237,7 @@ export default function Step5ConfigModification({
       setBypassDnsCheck(false); // Reset bypass after successful submit
 
       if (!result.success) {
-        setError(t("setup.wizard.step5.errorTitle"));
+        setError(t("errors.unknown"));
       }
     } catch (err) {
       // A rejected input (HTTP 422) is shown at the input; everything else as a translated error
