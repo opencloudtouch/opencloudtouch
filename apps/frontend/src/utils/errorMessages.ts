@@ -6,7 +6,10 @@
  * Technical details are logged to console, never shown to users.
  */
 
+import type { TFunction } from "i18next";
 import { i18next } from "../i18n";
+import { isApiErrorInstance } from "../api/types";
+import { getApiErrorMessage } from "./apiErrors";
 
 /** Known error patterns mapped to i18n key resolver functions */
 const ERROR_PATTERNS: Array<[RegExp, () => string]> = [
@@ -82,4 +85,16 @@ function extractRawMessage(error: unknown): string {
     return String((error as { message: unknown }).message);
   }
   return String(error);
+}
+
+/**
+ * Translated message for ANY error shown to the user. Never returns raw server or exception text:
+ * coded API errors are translated by their `code`, everything else by pattern or the generic
+ * `errors.unknown` message. The technical detail only goes to the console.
+ */
+export function userErrorMessage(error: unknown): string {
+  if (isApiErrorInstance(error) && error.code) {
+    return getApiErrorMessage(i18next.t as TFunction, error);
+  }
+  return toUserMessage(error);
 }

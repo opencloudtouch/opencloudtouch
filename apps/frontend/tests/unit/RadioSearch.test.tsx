@@ -1,6 +1,7 @@
 ﻿import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import RadioSearch from "../../src/components/RadioSearch";
+import { i18next } from "../../src/i18n";
 
 describe("RadioSearch Component", () => {
   const mockOnStationSelect = vi.fn();
@@ -354,7 +355,8 @@ describe("RadioSearch Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText("Network error")).toBeInTheDocument();
+        expect(screen.getByText(i18next.t("errors.networkFailed"))).toBeInTheDocument();
+        expect(document.body.textContent).not.toContain("Network error"); // translated message only
       },
       { timeout: 700 }
     );

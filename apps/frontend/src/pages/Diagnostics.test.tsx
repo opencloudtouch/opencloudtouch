@@ -29,6 +29,7 @@ vi.mock("../contexts/ToastContext", () => ({
 
 import { getDiagnostics } from "../api/diagnostics";
 import { downloadDiagnostics } from "../api/bugReport";
+import { expectNoRawText } from "../../tests/unit/helpers/translatedError";
 
 const mockedGetDiagnostics = vi.mocked(getDiagnostics);
 const mockedDownloadDiagnostics = vi.mocked(downloadDiagnostics);
@@ -83,7 +84,8 @@ describe("Diagnostics Page", () => {
       </MemoryRouter>
     );
     await waitFor(() => {
-      expect(screen.getByText("Network failure")).toBeInTheDocument();
+      expectNoRawText(document, "Network failure");
+      expect(screen.getByRole("alert")).toBeInTheDocument();
     });
   });
 
@@ -209,7 +211,7 @@ describe("Diagnostics Page", () => {
     await waitFor(() => {
       expect(screen.getByText("Living Room")).toBeInTheDocument();
     });
-    expect(screen.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
+    expect(screen.getByRole("link", { name: "Info" })).toHaveAttribute("href", "/about");
   });
 
   it("calls downloadDiagnostics when download button is clicked", async () => {
@@ -339,7 +341,7 @@ describe("Diagnostics Page", () => {
       consoleError.mockRestore();
     });
 
-    it("shows the raw stringified value when the fetch rejects with a non-Error", async () => {
+    it("shows a translated message when the fetch rejects with a non-Error", async () => {
       mockedGetDiagnostics.mockRejectedValue("boom-string");
       render(
         <MemoryRouter>
@@ -347,7 +349,7 @@ describe("Diagnostics Page", () => {
         </MemoryRouter>
       );
       await waitFor(() => {
-        expect(screen.getByText("boom-string")).toBeInTheDocument();
+        expectNoRawText(document, "boom-string");
       });
     });
 

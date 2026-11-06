@@ -9,7 +9,7 @@ import { collectLayoutIssues, waitForStableLayout, LayoutIssue } from "../../e2e
 
 const DEVICE = "68C90B32AF6E";
 const WIDTH = Number(Cypress.expose("auditWidth") ?? 320);
-const LONG = { timeout: 180000 };
+const LONG = { timeout: 1200000 }; // device operations (backup, restore) can take 10+ minutes; wait until they finish
 const RESTART_WAIT_MS = 35000; // user requirement: wait >= 30 s after restarts
 
 const results: Record<string, LayoutIssue[]> = {};
@@ -50,9 +50,6 @@ describe("Setup wizard live audit", () => {
     snap("03-ports-before");
     cy.get(".power-cycle-check-btn").click();
     cy.get(".ssh-risk-assessment", LONG).should("exist");
-    cy.get(".risk-question").each(($q) => {
-      cy.wrap($q).find(".risk-answer-btn").first().click();
-    });
     cy.get(".risk-card--temporary", LONG).click();
     snap("03-ports-after");
     cy.get(".wizard-btn-next").should("not.be.disabled").click();
@@ -62,7 +59,7 @@ describe("Setup wizard live audit", () => {
     snap("04-backup-before");
     cy.get(".backup-create-btn").click();
     // Backup can take several minutes on a real device (user decision: allow 10 min).
-    cy.get(".wizard-btn-next:not([disabled])", { timeout: 600000 }).should("exist");
+    cy.get(".wizard-btn-next:not([disabled])", { timeout: 1200000 }).should("exist");
     snap("04-backup-after");
     cy.get(".wizard-btn-next").click();
 
@@ -99,10 +96,10 @@ describe("Setup wizard live audit", () => {
     cy.get(".reboot-btn").click();
     waitForDeviceRestart();
     snap("08-verify-rebooting");
-    cy.get(".verification-test-btn", { timeout: 240000 }).should("be.visible");
+    cy.get(".verification-test-btn", { timeout: 1200000 }).should("be.visible");
     waitForDeviceRestart();
     cy.get(".verification-test-btn").click();
-    cy.get(".wizard-btn-next:not([disabled])", { timeout: 240000 }).should("exist");
+    cy.get(".wizard-btn-next:not([disabled])", { timeout: 1200000 }).should("exist");
     snap("08-verify-after");
     cy.get(".wizard-btn-next").click();
 

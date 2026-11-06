@@ -120,62 +120,66 @@ export default function Licenses() {
         <p className="lic-text">{t("about.licensesDescription")}</p>
       </header>
 
-      <LicenseGroup title={t("about.licensesGroup.frontend")} items={DEPENDENCIES.frontend} />
-      <LicenseGroup title={t("about.licensesGroup.backend")} items={DEPENDENCIES.backend} />
-      <LicenseGroup title={t("about.licensesGroup.build")} items={DEPENDENCIES.build} />
+      <div className="lic-groups">
+        <LicenseGroup title={t("about.licensesGroup.frontend")} items={DEPENDENCIES.frontend} />
+        <LicenseGroup title={t("about.licensesGroup.backend")} items={DEPENDENCIES.backend} />
+        <LicenseGroup title={t("about.licensesGroup.build")} items={DEPENDENCIES.build} />
+      </div>
 
       {/* Footer notices: h2 (not h3) so the heading order stays h1 > h2 */}
-      <section className="ui-card lic-note" aria-labelledby="lic-compliance-title">
-        <h2 id="lic-compliance-title" className="ui-h3">
-          {t("about.licenseCompliance")}
-        </h2>
-        <p className="lic-text">{t("about.licenseComplianceText")}</p>
-        <p className="lic-text">
-          <strong>{t("about.licenseProject")}:</strong>{" "}
-          <a
-            className="lic-link"
-            href={`${REPO_URL}/blob/main/LICENSE`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t("about.licenseApache")}
-            <span className="visually-hidden"> {t("about.externalLink")}</span>
-          </a>
-        </p>
-      </section>
-
-      <section
-        className="wz-status wz-status--warning lic-trademark"
-        aria-labelledby="lic-trademark-title"
-      >
-        <span className="wz-icon" aria-hidden="true">
-          {Icon.Alert(22)}
-        </span>
-        <div className="wz-status-body">
-          <h2 id="lic-trademark-title" className="ui-h3">
-            {t("about.trademarkTitle")}
+      <div className="lic-notes">
+        <section className="ui-card lic-note" aria-labelledby="lic-compliance-title">
+          <h2 id="lic-compliance-title" className="ui-h3">
+            {t("about.licenseCompliance")}
           </h2>
-          <p>
-            <Trans i18nKey="about.trademarkText1" components={[<strong key="b" />]} />
+          <p className="lic-text">{t("about.licenseComplianceText")}</p>
+          <p className="lic-text">
+            <strong>{t("about.licenseProject")}:</strong>{" "}
+            <a
+              className="lic-link"
+              href={`${REPO_URL}/blob/main/LICENSE`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t("about.licenseApache")}
+              <span className="visually-hidden"> {t("about.externalLink")}</span>
+            </a>
           </p>
-          <p>
-            <Trans
-              i18nKey="about.trademarkText2"
-              components={[
-                <a
-                  className="lic-link"
-                  key="l"
-                  href={`${REPO_URL}/blob/main/TRADEMARK.md`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  TRADEMARK.md
-                </a>,
-              ]}
-            />
-          </p>
-        </div>
-      </section>
+        </section>
+
+        <section
+          className="wz-status wz-status--warning lic-trademark"
+          aria-labelledby="lic-trademark-title"
+        >
+          <span className="wz-icon" aria-hidden="true">
+            {Icon.Alert(22)}
+          </span>
+          <div className="wz-status-body">
+            <h2 id="lic-trademark-title" className="ui-h3">
+              {t("about.trademarkTitle")}
+            </h2>
+            <p>
+              <Trans i18nKey="about.trademarkText1" components={[<strong key="b" />]} />
+            </p>
+            <p>
+              <Trans
+                i18nKey="about.trademarkText2"
+                components={[
+                  <a
+                    className="lic-link"
+                    key="l"
+                    href={`${REPO_URL}/blob/main/TRADEMARK.md`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    TRADEMARK.md
+                  </a>,
+                ]}
+              />
+            </p>
+          </div>
+        </section>
+      </div>
 
       <section className="lic-note lic-attribution" aria-labelledby="lic-about-title">
         <h2 id="lic-about-title" className="ui-h3">

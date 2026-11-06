@@ -32,7 +32,7 @@ async def rename_device_via_ssh(device_ip: str, new_name: str) -> None:
     """
     escaped_name = xml_escape(new_name)
 
-    async with ssh_operation(device_ip, "rename-device") as ssh:
+    async with ssh_operation(device_ip, "rename-device", write=True) as ssh:
         # Read existing config
         read_result = await ssh.execute(f"cat {_SYS_CONFIG_PATH}")
         if not read_result.success or not read_result.output:
@@ -51,16 +51,12 @@ async def rename_device_via_ssh(device_ip: str, new_name: str) -> None:
             )
 
         # Write back atomically
-        await ssh.execute("mount -o remount,rw /")
-        try:
-            write_result = await ssh.execute(
-                f"cat > {_SYS_CONFIG_PATH} << 'XMLEOF'\n{new_xml}\nXMLEOF"
+        write_result = await ssh.execute(
+            f"cat > {_SYS_CONFIG_PATH} << 'XMLEOF'\n{new_xml}\nXMLEOF"
+        )
+        if not write_result.success:
+            raise RuntimeError(
+                f"Failed to write {_SYS_CONFIG_PATH}: {write_result.error}"
             )
-            if not write_result.success:
-                raise RuntimeError(
-                    f"Failed to write {_SYS_CONFIG_PATH}: {write_result.error}"
-                )
-        finally:
-            await ssh.execute("mount -o remount,ro /")
 
         logger.info("Device %r renamed to %r via SSH", device_ip, new_name)

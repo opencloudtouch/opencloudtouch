@@ -135,7 +135,7 @@ class SoundTouchConfigService:
 
         If the override doesn't exist but the base config does, copy it.
         Always returns OVERRIDE_PATH as the write target.
-        The /mnt/nv/ partition is always writable — no remount needed.
+        The /mnt/nv/ partition is made writable by ssh_operation(write=True) when needed.
 
         Raises RuntimeError if no config source is available.
         """
@@ -359,7 +359,7 @@ class SoundTouchConfigService:
         """Modify BMX URL (and optionally marge/swupdate) in config.
 
         Protocol: ensure override exists → backup → read → modify → write → verify.
-        /mnt/nv/ is always writable — no remount needed.
+        /mnt/nv/ is made writable by ssh_operation(write=True) when needed.
 
         Args:
             oct_ip: OCT server hostname or IP (used for URL building)
@@ -438,7 +438,7 @@ class SoundTouchConfigService:
         """Restore config from backup.
 
         Protocol: verify backup exists → copy to override path → verify.
-        /mnt/nv/ is always writable — no remount needed.
+        /mnt/nv/ is made writable by ssh_operation(write=True) when needed.
 
         Args:
             backup_path: Path to backup file on device

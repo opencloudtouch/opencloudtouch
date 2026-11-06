@@ -15,6 +15,7 @@ import {
 } from "../api/devices";
 import { isDeviceOffline, markDeviceOffline } from "../api/offlineDeviceStore";
 import { useDeviceEventContext } from "../contexts/DeviceEventContext";
+import i18next from "i18next";
 import { octDebug } from "../utils/debug";
 import { getCachedDeviceData, setCachedDeviceData } from "../utils/deviceDataCache";
 
@@ -29,7 +30,14 @@ export interface UseVolumeResult {
   toggleMute: () => void;
 }
 
-export function useVolume(deviceId: string | undefined): UseVolumeResult {
+/**
+ * @param onError called with a translated message when the volume or mute change fails (the page shows it as a toast);
+ *   the slider is rolled back to the volume the device really has.
+ */
+export function useVolume(
+  deviceId: string | undefined,
+  onError?: (message: string) => void
+): UseVolumeResult {
   // Keyed by device (see useNowPlaying): no volume of the previous device after a switch, cached value at once.
   const [store, setStore] = useState<{ id: string | undefined; volume: number; muted: boolean }>(
     () => ({
@@ -192,12 +200,20 @@ export function useVolume(deviceId: string | undefined): UseVolumeResult {
           }
         } catch (err) {
           console.error("[useVolume] Failed to set volume:", err);
+          onError?.(i18next.t("errors.volumeFailed"));
+          // roll back to the volume the device really has
+          getVolume(deviceId)
+            .then((real) => {
+              setVolume(real.actual);
+              setMuted(real.muted);
+            })
+            .catch(() => {});
         } finally {
           pendingVolumeRef.current = false;
         }
       }, THROTTLE_MS);
     },
-    [deviceId, setMuted, setVolume]
+    [deviceId, setMuted, setVolume, onError]
   );
 
   // Mute toggler
@@ -213,8 +229,9 @@ export function useVolume(deviceId: string | undefined): UseVolumeResult {
       .catch((err) => {
         console.error("[useVolume] Failed to toggle mute:", err);
         setMuted(!newMuted); // Rollback
+        onError?.(i18next.t("errors.volumeFailed"));
       });
-  }, [deviceId, muted, setMuted, setVolume]);
+  }, [deviceId, muted, setMuted, setVolume, onError]);
 
   return { volume, muted, loading, deviceOffline, setDeviceVolume, toggleMute };
 }

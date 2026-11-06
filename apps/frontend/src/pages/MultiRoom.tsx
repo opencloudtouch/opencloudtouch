@@ -12,6 +12,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import { DeviceNowPlaying } from "../components/DeviceNowPlaying";
 import { Icon } from "../components/Icon";
 import "./MultiRoom.css";
+import { useToast } from "../contexts/ToastContext";
 
 interface MultiRoomProps {
   readonly devices?: Device[];
@@ -20,7 +21,10 @@ interface MultiRoomProps {
 // ---- Zone Volume per Member ----
 
 function ZoneMemberVolume({ deviceId }: Readonly<{ deviceId: string }>) {
-  const { volume, muted, setDeviceVolume, toggleMute } = useVolume(deviceId);
+  const { show: showToast } = useToast();
+  const { volume, muted, setDeviceVolume, toggleMute } = useVolume(deviceId, (message) =>
+    showToast(message, "error")
+  );
   return (
     <div className="zn-member-volume">
       <VolumeSlider
@@ -268,6 +272,7 @@ export default function MultiRoom({ devices = [] }: Readonly<MultiRoomProps>) {
     zoneCreated: t("multiroom.zoneCreated"),
     zoneUpdated: t("multiroom.zoneUpdated"),
     zoneCreateFailed: t("multiroom.zoneCreateFailed"),
+    zoneUpdateFailed: t("multiroom.zoneUpdateFailed"),
     zoneDissolved: t("multiroom.zoneDissolved"),
     zoneDissolveFailed: t("multiroom.zoneDissolveFailed"),
   });

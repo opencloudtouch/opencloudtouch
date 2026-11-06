@@ -18,6 +18,7 @@ import {
 import { isDeviceOffline } from "../api/offlineDeviceStore";
 import { getCachedDeviceData, setCachedDeviceData } from "../utils/deviceDataCache";
 import { buildPresetsMap } from "../utils/presetsMap";
+import { octDebug } from "../utils/debug";
 
 // --------------------------------------------------------------------------
 // Helpers
@@ -35,7 +36,8 @@ export interface UsePresetsResult {
   syncing: boolean;
   error: string | null;
   clearError: () => void;
-  syncPresets: () => Promise<void>;
+  /** Resolves to true when the presets were synced, false when the sync failed (the error is set). */
+  syncPresets: () => Promise<boolean>;
   assignStation: (presetNumber: number, station: RadioStation, deviceId: string) => Promise<void>;
   removePreset: (presetNumber: number, deviceId: string) => Promise<void>;
 }
@@ -107,10 +109,10 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
 
           // Auto-sync from device if no presets found in database
           if (devicePresets.length === 0) {
-            console.log(`[usePresets] No presets in DB for ${deviceId}, syncing from device...`);
+            octDebug("usePresets", `No presets in DB for ${deviceId}, syncing from device...`);
             try {
               const syncResult = await syncPresetsFromDevice(deviceId);
-              console.log(`[usePresets] Auto-sync result: ${syncResult.message}`);
+              octDebug("usePresets", `Auto-sync result: ${syncResult.message}`);
 
               const syncedPresets = await getDevicePresets(deviceId);
               if (Array.isArray(syncedPresets)) {
@@ -141,28 +143,30 @@ export function usePresets(deviceId: string | undefined): UsePresetsResult {
   // ------------------------------------------------------------------
   // Manual sync
   // ------------------------------------------------------------------
-  const syncPresets = async () => {
-    if (!deviceId) return;
+  const syncPresets = async (): Promise<boolean> => {
+    if (!deviceId) return false;
 
     setSyncing(true);
     setError(null);
 
     try {
       const result = await syncPresetsFromDevice(deviceId);
-      console.log(result.message);
+      octDebug("usePresets", result.message);
 
       const devicePresets = await getDevicePresets(deviceId);
 
       if (!Array.isArray(devicePresets)) {
         console.error("[usePresets] getDevicePresets returned non-array:", devicePresets);
         setPresets({});
-        return;
+        return false;
       }
 
       setPresets(buildPresetsMap(devicePresets));
+      return true;
     } catch (err) {
       console.error("[usePresets] Failed to sync presets:", err);
       setError(i18next.t("errors.presetsSyncFailed"));
+      return false;
     } finally {
       setSyncing(false);
     }

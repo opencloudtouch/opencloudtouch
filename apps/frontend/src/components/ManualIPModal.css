@@ -1,7 +1,7 @@
 /* mip-: manual IP dialog (frame, buttons, status boxes come from Modal.css / ui-base.css) */
 .mip-hint-text {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--text-primary);
 }

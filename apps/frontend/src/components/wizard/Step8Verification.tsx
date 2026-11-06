@@ -16,6 +16,7 @@ import WizardStep from "./WizardStep";
 import { Icon } from "./Icon";
 import "./wizard-base.css";
 import "./Step8Verification.css";
+import { userErrorMessage } from "../../utils/errorMessages";
 
 interface Step8Props {
   readonly deviceIp: string;
@@ -34,6 +35,13 @@ const TEST_DOMAINS = [
 ];
 
 // Checks already shown by finalize results — hide from verify list
+/** Wording for the UUID line: kept from the device, newly set, or replaced after a collision. */
+function uuidMessageKey(source: FinalizeResponse["uuid_source"]): string {
+  if (source === "existing") return "setup.wizard.step8.finalizeUuidKept";
+  if (source === "collision_fallback") return "setup.wizard.step8.finalizeUuidReplaced";
+  return "setup.wizard.step8.finalizeUuid";
+}
+
 const HIDDEN_CHECKS = new Set(["uuid_present", "system_config_present"]);
 
 // Group verify checks by file/category for tree display
@@ -130,6 +138,11 @@ export default function Step8Verification({
     uuid_in_db: "setup.wizard.step8.checkUuidNotInDb",
   };
 
+  const UNMAPPED_FAIL_KEYS: Record<string, string> = {
+    config_bmx_url: "setup.wizard.step8.checkBmxUrlWrong",
+    connection: "setup.wizard.step8.checkConnectionFailed",
+  };
+
   /** Translate verify check messages — both passed and failed use i18n when available */
   const getCheckMessage = (check: VerifyCheck): string => {
     if (check.name === "config_bmx_url" && check.passed) {
@@ -159,7 +172,8 @@ export default function Step8Verification({
         const missing = (check.details?.missing as string[])?.join(", ");
         return t(failKey, { missing: missing || "", defaultValue: check.message });
       }
-      return check.message;
+      // never show the raw backend text (always translated)
+      return t(UNMAPPED_FAIL_KEYS[check.name] ?? "setup.wizard.step8.checkFailedGeneric");
     }
 
     const key = PASS_KEY_MAP[check.name];
@@ -195,7 +209,7 @@ export default function Step8Verification({
       // Finalize succeeded — move to reboot phase
       setSetupPhase("done_finalize");
     } catch (err) {
-      const msg = err instanceof Error ? err.message : t("errors.unknown");
+      const msg = userErrorMessage(err);
       setSetupError(msg);
       setSetupPhase("error");
     }
@@ -219,7 +233,7 @@ export default function Step8Verification({
         });
       }, 1000);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : t("errors.unknown");
+      const msg = userErrorMessage(err);
       setRebootError(msg);
       setRebootState("error");
     }
@@ -260,7 +274,7 @@ export default function Step8Verification({
             message: result.message,
           });
         } catch (err) {
-          const message = err instanceof Error ? err.message : t("errors.unknown");
+          const message = userErrorMessage(err);
           dnsResults.push({
             domain,
             success: false,
@@ -278,7 +292,7 @@ export default function Step8Verification({
       setAllTestsPassed(allVerifyPassed && allDnsPassed);
       setSetupPhase("done");
     } catch (err) {
-      const msg = err instanceof Error ? err.message : t("errors.unknown");
+      const msg = userErrorMessage(err);
       setSetupError(msg);
       setSetupPhase("error");
     }
@@ -366,7 +380,7 @@ export default function Step8Verification({
             <div className="verify-check-item passed">
               {checkIcon(true)}
               <span className="check-message">
-                {t("setup.wizard.step8.finalizeUuid", { uuid: finalizeResult.uuid })}
+                {t(uuidMessageKey(finalizeResult.uuid_source), { uuid: finalizeResult.uuid })}
               </span>
             </div>
             <div

@@ -14,8 +14,13 @@ Tested with SoundTouch 10 (Firmware 0x0939).
 
 import asyncio
 import logging
+import shlex
+import time
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Optional
+from typing import AsyncIterator, Optional, Sequence
+
+from opencloudtouch.core import device_timing
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +68,18 @@ class SoundTouchSSHClient:
         self._connection = None
 
     async def connect(self, timeout: float = 10.0) -> SSHConnectionResult:
+        """Establish the SSH connection and record how long it took."""
+        start = time.perf_counter()
+        result = await self._connect(timeout)
+        device_timing.record(
+            "ssh_connect",
+            self.host,
+            (time.perf_counter() - start) * 1000,
+            ok=result.success,
+        )
+        return result
+
+    async def _connect(self, timeout: float = 10.0) -> SSHConnectionResult:
         """
         Establish SSH connection to device.
 
@@ -125,7 +142,21 @@ class SoundTouchSSHClient:
             return SSHConnectionResult(success=False, error=error)
 
     async def execute(self, command: str, timeout: float = 30.0) -> CommandResult:
-        """Execute a command over SSH."""
+        """Execute a command over SSH and record how long it took."""
+        start = time.perf_counter()
+        result = await self._execute(command, timeout)
+        device_timing.record(
+            "ssh_exec",
+            device_timing.command_label(command),
+            (time.perf_counter() - start) * 1000,
+            host=self.host,
+            ok=result.success,
+            exit=result.exit_code,
+            out_bytes=len(result.output or ""),
+        )
+        return result
+
+    async def _execute(self, command: str, timeout: float = 30.0) -> CommandResult:
         if not self._connection:
             return CommandResult(
                 success=False, error="Not connected. Call connect() first."
@@ -177,6 +208,59 @@ class SoundTouchSSHClient:
             return CommandResult(
                 success=False, error=f"Command execution failed: {str(e)}"
             )
+
+    async def is_mount_read_only(self, mount_point: str) -> Optional[bool]:
+        """True if ``mount_point`` is mounted read-only, False if read-write, None if unknown.
+
+        The last matching ``/proc/mounts`` line wins (the root file system is listed twice on
+        SoundTouch devices: an rw ``rootfs`` entry and the real read-only ``ubifs`` entry).
+        """
+        result = await self.execute(
+            f"awk -v m={shlex.quote(mount_point)} '$2==m {{o=$4}} END {{print o}}' /proc/mounts"
+        )
+        options = result.output.strip().split("\n")[0].strip() if result.success else ""
+        if not options:
+            return None
+        return "ro" in options.split(",")
+
+    @asynccontextmanager
+    async def write_access(
+        self, mount_points: Sequence[str] = ("/", "/mnt/nv")
+    ) -> AsyncIterator[None]:
+        """Make the given mount points writable for the block and restore their previous mode.
+
+        Only mount points that are currently read-only are remounted, and only those are set back
+        to read-only afterwards. Every write operation on a device (config, hosts, NTP, UUID,
+        remote_services, rename, restore) runs inside this block, so a read-only ``/mnt/nv`` or ``/``
+        can never make a write fail, and the device is left in the state it was found in.
+        """
+        remounted: list[str] = []
+        for mount_point in mount_points:
+            if await self.is_mount_read_only(mount_point):
+                result = await self.execute(f"mount -o remount,rw {shlex.quote(mount_point)}")
+                if result.success:
+                    remounted.append(mount_point)
+                else:
+                    logger.warning(
+                        "remount rw of %s failed on %s: %s",
+                        mount_point,
+                        self.host,
+                        result.error or result.output,
+                    )
+        try:
+            yield
+        finally:
+            if remounted:
+                await self.execute("sync")
+            for mount_point in reversed(remounted):
+                result = await self.execute(f"mount -o remount,ro {shlex.quote(mount_point)}")
+                if not result.success:
+                    logger.warning(
+                        "remount ro of %s failed on %s: %s",
+                        mount_point,
+                        self.host,
+                        result.error or result.output,
+                    )
 
     async def close(self):
         """Close SSH connection."""

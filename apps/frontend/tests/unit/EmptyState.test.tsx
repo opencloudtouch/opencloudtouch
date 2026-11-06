@@ -124,6 +124,17 @@ describe("EmptyState Component", () => {
       expect(screen.getByText("Manage presets")).toBeInTheDocument();
     });
 
+    it("offers the language selector before the content (no navigation on this page)", () => {
+      renderWithProviders(<EmptyState />);
+
+      const selector = screen.getByRole("button", { name: /language/i });
+      const title = screen.getByText("Welcome to OpenCloudTouch");
+      expect(selector.closest(".es-lang")).not.toBeNull();
+      expect(
+        selector.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+    });
+
     it("should show discovery button", () => {
       // Uses default createFetchMock from beforeEach
       renderWithProviders(<EmptyState />);

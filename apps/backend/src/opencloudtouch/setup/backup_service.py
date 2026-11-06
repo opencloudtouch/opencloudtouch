@@ -8,10 +8,13 @@ Real partition layout (ST10, Firmware 27.x):
   ubi1:persistent   31.5 MB  → /mnt/nv          (presets, tokens, WiFi config)
   ubi2:update        7.9 MB  → /mnt/update       (firmware installer cache)
 
-Backup sizes (compressed tar.gz):
-  soundtouch-rootfs.tgz   ~58 MB
-  soundtouch-nv.tgz       ~10 KB
-  soundtouch-update.tgz   ~0.9 MB
+Backup sizes (plain tar, NOT compressed):
+  soundtouch-rootfs.tar   ~141 MB
+  soundtouch-nv.tar       ~170 KB
+  soundtouch-update.tar   ~3 MB
+
+Why no compression: the device has a single 600 MHz ARM core; gzip needs about 400 s for the rootfs,
+a plain tar to the USB stick about 31 s. Older .tgz backups are still read by the restore.
 
 BusyBox v1.19.4 limitations:
   - No --one-file-system flag for tar
@@ -37,6 +40,8 @@ class VolumeType(Enum):
     ROOTFS = "rootfs"
     PERSISTENT = "persistent"
     UPDATE = "update"
+    # The few files a restore needs from the rootfs (optional extra archive, a few KB)
+    CONFIG = "config"
 
 
 # SSH command timeout per volume. Writing the archive to a USB stick on the device's slow CPU/flash can take
@@ -46,34 +51,39 @@ _BACKUP_TIMEOUTS: dict[VolumeType, float] = {
     VolumeType.ROOTFS: _BACKUP_TIMEOUT_SECONDS,
     VolumeType.PERSISTENT: _BACKUP_TIMEOUT_SECONDS,
     VolumeType.UPDATE: _BACKUP_TIMEOUT_SECONDS,
+    VolumeType.CONFIG: _BACKUP_TIMEOUT_SECONDS,
 }
 
 # tar commands per volume (BusyBox-compatible, explicit directory list)
 _BACKUP_COMMANDS: dict[VolumeType, str] = {
-    VolumeType.ROOTFS: "cd / && tar czf {path} bin boot etc home lib mnt opt sbin srv usr var 2>/dev/null",
-    VolumeType.PERSISTENT: "tar czf {path} /mnt/nv 2>/dev/null",
-    VolumeType.UPDATE: "tar czf {path} /mnt/update 2>/dev/null",
+    VolumeType.ROOTFS: "cd / && tar cf {path} bin boot etc home lib mnt opt sbin srv usr var 2>/dev/null",
+    VolumeType.PERSISTENT: "tar cf {path} /mnt/nv 2>/dev/null",
+    VolumeType.UPDATE: "tar cf {path} /mnt/update 2>/dev/null",
+    # Only the SDK config the restore puts back. Restoring it from this archive takes a second instead of
+    # reading the whole 140 MB rootfs archive (about 30 s on the device).
+    VolumeType.CONFIG: "cd / && tar cf {path} opt/Bose/etc/SoundTouchSdkPrivateCfg.xml 2>/dev/null",
 }
 
 _BACKUP_VOLUME_SUFFIXES: dict[VolumeType, str] = {
     VolumeType.ROOTFS: "rootfs",
     VolumeType.PERSISTENT: "nv",
     VolumeType.UPDATE: "update",
+    VolumeType.CONFIG: "config",
 }
 
 
 def _backup_filename(volume: VolumeType, device_id: str | None = None) -> str:
     """Build a unique backup filename with device ID and date.
 
-    Format: soundtouch-{device_id}-{YYYYMMDD}-{volume}.tgz
-    Fallback (no device_id): soundtouch-{volume}.tgz (legacy)
+    Format: soundtouch-{device_id}-{YYYYMMDD}-{volume}.tar (uncompressed; older backups use .tgz)
+    Fallback (no device_id): soundtouch-{volume}.tar (legacy)
     """
     suffix = _BACKUP_VOLUME_SUFFIXES[volume]
     if device_id:
         date_str = datetime.now(UTC).strftime("%Y%m%d")
         safe_id = device_id.replace(":", "").replace(" ", "_")[:20]
-        return f"soundtouch-{safe_id}-{date_str}-{suffix}.tgz"
-    return f"soundtouch-{suffix}.tgz"
+        return f"soundtouch-{safe_id}-{date_str}-{suffix}.tar"
+    return f"soundtouch-{suffix}.tar"
 
 
 @dataclass
@@ -129,9 +139,18 @@ class SoundTouchBackupService:
             )
 
         results: List[BackupResult] = []
-        for volume in [VolumeType.ROOTFS, VolumeType.PERSISTENT, VolumeType.UPDATE]:
+        for volume in [
+            VolumeType.ROOTFS,
+            VolumeType.CONFIG,
+            VolumeType.PERSISTENT,
+            VolumeType.UPDATE,
+        ]:
             try:
                 result = await self._backup_volume(volume, backup_dir, device_id)
+                if volume is VolumeType.CONFIG and not result.success:
+                    # optional: the restore falls back to the rootfs archive, the backup stays valid
+                    self.logger.warning("Config archive not created: %s", result.error)
+                    continue
                 results.append(result)
                 self.logger.info(
                     "Backed up %s: %.2f MB in %.1fs",
@@ -143,6 +162,8 @@ class SoundTouchBackupService:
                 self.logger.error(
                     "Failed to backup %s: %s", volume.value, e, exc_info=True
                 )
+                if volume is VolumeType.CONFIG:
+                    continue  # optional, see above
                 results.append(BackupResult(volume=volume, success=False, error=str(e)))
 
         return results
@@ -193,8 +214,9 @@ class SoundTouchBackupService:
 
         # tar on BusyBox often exits 1 for minor warnings (e.g. socket files) —
         # check whether the archive was actually written instead of trusting exit code.
+        # stat answers at once; `wc -c` would read the whole archive over USB (29 s for 141 MB).
         size_result = await self.ssh.execute(
-            f"wc -c {backup_file} 2>/dev/null | awk '{{print $1}}'"
+            f"stat -c %s {backup_file} 2>/dev/null || wc -c < {backup_file} 2>/dev/null"
         )
         size_bytes = 0
         if size_result.success and size_result.output.strip().isdigit():

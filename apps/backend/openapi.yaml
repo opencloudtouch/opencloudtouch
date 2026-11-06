@@ -3345,11 +3345,11 @@ components:
         step:
           anyOf:
           - type: integer
-            maximum: 7.0
+            maximum: 10.0
             minimum: 0.0
           - type: 'null'
           title: Step
-          description: Wizard step number (0=init)
+          description: Wizard step number (0=init, up to 8 setup steps)
         detail:
           anyOf:
           - type: string
@@ -3946,6 +3946,10 @@ components:
           type: boolean
           title: Uuid Was Collision
           default: false
+        uuid_source:
+          type: string
+          title: Uuid Source
+          default: unknown
         sources_written:
           type: boolean
           title: Sources Written

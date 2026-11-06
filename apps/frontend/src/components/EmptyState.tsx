@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "../contexts/ToastContext";
 import { useManualIPs } from "../hooks/useSettings";
 import { useDiscoveryStream } from "../hooks/useDiscoveryStream";
+import LanguageSelector from "./LanguageSelector";
 import ManualIPModal from "./ManualIPModal";
 import { Icon } from "./Icon";
 import "./EmptyState.css";
@@ -71,6 +72,10 @@ export default function EmptyState() {
 
   return (
     <div className="es" data-test="empty-state">
+      {/* No navigation bar on this page: the language must still be changeable */}
+      <div className="es-lang">
+        <LanguageSelector />
+      </div>
       <div className="es-content">
         <img
           className="es-logo"

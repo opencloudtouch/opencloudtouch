@@ -38,6 +38,7 @@ export default function RemoveDevice({
       onRemoved(deviceId);
     } catch (err) {
       console.error("Failed to remove device:", err);
+      show(t("presets.removeDeviceFailed", { name }), "error", 8000);
     }
   };
 

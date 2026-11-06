@@ -158,7 +158,7 @@ async def set_account_uuid_via_ssh(
     or creates from template if missing. Also sets acctMode=local
     and isMultiDeviceAccount=true. Verifies write by reading back.
 
-    /mnt/nv is always writable — no remount needed.
+    /mnt/nv is made writable by ssh_operation(write=True) if it is mounted read-only.
 
     Args:
         ssh: Connected SoundTouchSSHClient

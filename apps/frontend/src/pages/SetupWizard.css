@@ -15,7 +15,7 @@
   border: 1px solid rgba(234, 179, 8, 0.4);
   border-radius: var(--border-radius-lg);
   text-align: center;
-  font-size: 13px;
+  font-size: var(--fs-small);
   color: #92400e; /* WCAG AA: dark amber — higher contrast than #fbbf24 */
   font-weight: var(--font-weight-medium);
 }
@@ -59,14 +59,14 @@
 }
 
 .wizard-empty-state p {
-  font-size: 16px;
+  font-size: var(--fs-lg);
   color: var(--color-text-secondary);
   margin-bottom: var(--space-xl);
 }
 
 /* REFACT-140: Help hint + inline link button */
 .wizard-empty-hint {
-  font-size: 15px;
+  font-size: var(--fs-body);
   color: var(--color-text-secondary);
   margin-bottom: var(--space-md);
   margin-top: calc(-1 * var(--space-lg));
@@ -93,7 +93,7 @@
   }
 
   .global-demo-banner {
-    font-size: 13px;
+    font-size: var(--fs-small);
     padding: var(--space-sm) var(--space-md);
   }
 

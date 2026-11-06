@@ -12,10 +12,15 @@
   --font-mono: ui-monospace, Menlo, Consolas, monospace;
   /* type scale */
   --fs-h1: 26px;
+  --fs-2xl: 24px;
   --fs-h2: 20px;
+  --fs-xl: 18px;
   --fs-h3: 17px;
+  --fs-lg: 16px;
   --fs-body: 15px;
+  --fs-md: 14px;
   --fs-small: 13px;
+  --fs-xs: 12px;
   /* elevation */
   --elev-card: none;
   --elev-modal: var(--shadow-lg);
@@ -50,7 +55,7 @@
   padding: 0 20px;
   border-radius: var(--border-radius-sm);
   border: 1px solid transparent;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: var(--font-weight-medium);
   cursor: pointer;
   transition:
@@ -139,7 +144,7 @@
 }
 .btn-sm {
   padding: 0 14px;
-  font-size: 14px;
+  font-size: var(--fs-md);
 } /* height stays >= 44px */
 .btn-icon {
   width: var(--touch-target-min);
@@ -249,7 +254,7 @@
   --bd: rgba(76, 175, 80, 0.5);
 }
 .wz-status--warning {
-  --c: #ffc107;
+  --c: var(--warning-color);
   --bg: rgba(255, 193, 7, 0.1);
   --bd: rgba(255, 193, 7, 0.5);
 }
@@ -273,19 +278,19 @@
   gap: 2px;
 }
 .wz-status-title {
-  font-size: 15px;
+  font-size: var(--fs-body);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
 }
 .wz-status-text {
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--text-primary);
   overflow-wrap: anywhere;
 }
 .wz-status-body > p {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--text-primary);
   overflow-wrap: anywhere;
@@ -352,7 +357,7 @@
   min-width: 0;
 }
 .ui-label {
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: var(--font-weight-medium);
   color: var(--text-primary);
 }
@@ -480,7 +485,7 @@ fieldset.ui-chips {
   border: 1px solid var(--ui-control-border);
   background: transparent;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: var(--fs-body);
   font-weight: var(--font-weight-medium);
   cursor: pointer;
   transition:
@@ -628,12 +633,12 @@ fieldset.ui-chips {
 .ui-badge--small {
   min-height: 20px;
   padding: 1px 8px;
-  font-size: 12px;
+  font-size: var(--fs-xs);
 }
 .ui-badge--large {
   min-height: 32px;
   padding: 4px 14px;
-  font-size: 15px;
+  font-size: var(--fs-body);
 }
 .ui-badge--icon {
   padding: 0;
@@ -727,7 +732,7 @@ fieldset.ui-chips {
   background: #3a2f10;
   border-bottom: 1px solid rgba(255, 193, 7, 0.5);
   color: #fff;
-  font-size: 14px;
+  font-size: var(--fs-md);
   text-align: center;
 }
 .inline-link-button {

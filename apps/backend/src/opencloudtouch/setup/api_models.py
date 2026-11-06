@@ -478,6 +478,9 @@ class FinalizeResponse(BaseModel):
     uuid: str = ""
     had_uuid: bool = False
     uuid_was_collision: bool = False
+    # "existing" (kept from device), "derived" (newly set) or "collision_fallback"
+    # (replaced because another device owns the same UUID)
+    uuid_source: str = "unknown"
     sources_written: bool = False
     sources_backup_path: str = ""
     system_config_written: bool = False

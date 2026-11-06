@@ -79,14 +79,15 @@ describe("restore message translation", () => {
     expect(text).toBe("Presets wiederhergestellt unter /mnt/nv/Presets.xml");
   });
 
-  it("keeps technical error text from the device as a parameter, not translated", async () => {
+  it("never shows the technical error text of the device, only the translated message", async () => {
     await i18next.changeLanguage("de");
     const text = translateStepMessage(t, {
       message: "Reboot failed: Connection lost",
       message_code: "reboot_failed",
       message_params: { error: "Connection lost" },
     });
-    expect(text).toBe("Neustart fehlgeschlagen: Connection lost");
+    expect(text).toBe("Neustart fehlgeschlagen");
+    expect(text).not.toContain("Connection lost");
   });
 
   it("falls back to the English backend text for an unknown code", async () => {

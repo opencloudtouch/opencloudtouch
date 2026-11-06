@@ -42,7 +42,7 @@
 }
 .completion-title {
   margin: 0;
-  font-size: 26px;
+  font-size: var(--fs-h1);
   line-height: 1.2;
   color: var(--color-text-primary);
   overflow-wrap: anywhere;
@@ -50,7 +50,7 @@
 .completion-message {
   margin: 0;
   max-width: 44ch;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.5;
   color: var(--color-text-secondary);
   text-wrap: pretty;
@@ -65,7 +65,7 @@
 }
 .completion .summary-title {
   margin: 0 0 12px;
-  font-size: 17px;
+  font-size: var(--fs-h3);
   color: var(--color-success);
 }
 .completion .summary-list {
@@ -95,7 +95,7 @@
 .completion .summary-text {
   min-width: 0;
   padding-top: 2px;
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--text-primary);
   overflow-wrap: anywhere;
@@ -130,7 +130,7 @@
   color: #64b5f6;
 }
 .completion-backup-info--missing .backup-info-icon {
-  color: #ffc107;
+  color: var(--warning-color);
 }
 .completion-backup-info .backup-info-content {
   flex: 1;
@@ -161,7 +161,7 @@
 .completion-backup-info .backup-info-note,
 .completion-backup-info .backup-info-warning {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--text-primary);
   overflow-wrap: anywhere;
@@ -176,7 +176,7 @@
 }
 .completion .next-steps-title {
   margin: 0 0 12px;
-  font-size: 17px;
+  font-size: var(--fs-h3);
   color: var(--color-text-primary);
 }
 .completion .next-steps-list {
@@ -213,12 +213,12 @@
 .completion .next-step-content strong {
   display: block;
   margin-bottom: 2px;
-  font-size: 15px;
+  font-size: var(--fs-body);
   color: var(--color-text-primary);
 }
 .completion .next-step-content p {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--color-text-secondary);
   overflow-wrap: anywhere;
@@ -231,7 +231,7 @@
 }
 .completion-btn-done {
   min-height: 52px;
-  font-size: 17px;
+  font-size: var(--fs-h3);
   font-weight: var(--font-weight-bold);
 }
 @media (min-width: 601px) {
@@ -250,7 +250,7 @@
 }
 .completion-support p {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--color-text-secondary);
 }
@@ -273,5 +273,39 @@
   }
   .reboot-progress-bar {
     transition: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* summary | next steps; hero, backup info, actions and support span */
+  .completion {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-lg) var(--space-xl);
+    align-items: start;
+  }
+  .completion > .completion-hero {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+  .completion > .completion-summary {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .completion > .completion-next-steps {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .completion > .completion-backup-info {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  .completion > .completion-actions {
+    grid-column: 1 / -1;
+    grid-row: 4;
+  }
+  .completion > .completion-support {
+    grid-column: 1 / -1;
+    grid-row: 5;
   }
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Device } from "../api/devices";
+import { octDebug } from "../utils/debug";
 
 /**
  * Safe JSON.parse: returns parsed value or null on SyntaxError.
@@ -88,14 +89,14 @@ export function useDiscoveryStream() {
 
     // Handle started event
     eventSource.addEventListener("started", (e: MessageEvent) => {
-      console.log("[SSE] Discovery started:", e.data);
+      octDebug("SSE", "Discovery started:", e.data);
     });
 
     // Handle device_found event
     eventSource.addEventListener("device_found", (e: MessageEvent) => {
       const data = safeParse<unknown>(e.data, "device_found");
       if (!data) return;
-      console.log("[SSE] Device found:", data);
+      octDebug("SSE", "Device found:", data);
 
       setState((prev) => ({
         ...prev,
@@ -107,7 +108,7 @@ export function useDiscoveryStream() {
     eventSource.addEventListener("device_synced", (e: MessageEvent) => {
       const device = safeParse<Device>(e.data, "device_synced");
       if (!device) return;
-      console.log("[SSE] Device synced:", device);
+      octDebug("SSE", "Device synced:", device);
 
       // Track synchronously via ref (used by completed handler for atomic cache update)
       const already = devicesFoundRef.current.some((d) => d.device_id === device.device_id);
@@ -147,7 +148,7 @@ export function useDiscoveryStream() {
         "completed"
       );
       if (!data) return;
-      console.log("[SSE] Discovery completed:", data);
+      octDebug("SSE", "Discovery completed:", data);
 
       // Atomically update cache with ALL discovered devices before marking
       // completed=true. This ensures the route guard (devices.length > 0)

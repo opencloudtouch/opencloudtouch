@@ -417,3 +417,28 @@ describe("Settings — Discover Button completion toast", () => {
     expect(screen.queryByText(/new device found/i)).toBeNull();
   });
 });
+
+
+// ---------------------------------------------------------------------------
+// A failed scan is reported (regression: it used to end silently)
+// ---------------------------------------------------------------------------
+describe("Settings — failed scan feedback", () => {
+  it.each([
+    { error: "SSE connection failed", message: "Error during device search. Please try again." },
+    { error: "Discovery already in progress", message: "Device search already running. Please wait..." },
+  ])("shows a translated toast for the scan error '$error'", async ({ error, message }) => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => ({ ips: [] }) });
+    const { useDiscoveryStream } = await import("../../src/hooks/useDiscoveryStream");
+    (useDiscoveryStream as Mock).mockReturnValue({
+      ...makeDiscoveryState({ error }),
+      startDiscovery: mockStartDiscovery,
+    });
+
+    renderSettings();
+
+    await waitFor(() => {
+      expect(screen.getByText(message)).toBeInTheDocument();
+    });
+    expect(document.body.textContent).not.toContain(error);
+  });
+});

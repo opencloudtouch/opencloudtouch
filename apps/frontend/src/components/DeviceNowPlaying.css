@@ -37,12 +37,12 @@
   white-space: nowrap;
 }
 .dnp-title {
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
 }
 .dnp-artist {
-  font-size: 13px;
+  font-size: var(--fs-small);
   color: var(--color-text-secondary);
 }
 .dnp-title + .dnp-artist::before {

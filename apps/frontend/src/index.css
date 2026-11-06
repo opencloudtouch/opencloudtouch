@@ -92,7 +92,7 @@ body {
 
 /* Focus Visible (Accessibility) */
 *:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--focus-ring, #8ab8f0); /* light blue: #0066cc has only 2.8:1 on the dark surfaces */
   outline-offset: 2px;
 }
 
@@ -125,7 +125,7 @@ a {
 /* Input */
 input {
   font-family: inherit;
-  font-size: 16px; /* Prevent iOS auto-zoom */
+  font-size: var(--fs-lg); /* Prevent iOS auto-zoom */
 }
 
 /* Lists */

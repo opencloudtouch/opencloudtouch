@@ -53,7 +53,7 @@
 }
 .dm-who-ip {
   flex: none;
-  font-size: 13px;
+  font-size: var(--fs-small);
   color: var(--color-text-secondary);
 }
 @media (max-width: 380px) {
