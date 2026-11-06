@@ -1,0 +1,30 @@
+name: Supporters Fetch Regression
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-supporters.yml'
+      - '.github/workflows/build-images.yml'
+      - '.github/workflows/test-build.yml'
+      - '.github/workflows/supporters-fetch-test.yml'
+      - 'scripts/tests/test_supporters_fetch.py'
+  pull_request:
+    paths:
+      - '.github/workflows/patch-supporters.yml'
+      - '.github/workflows/build-images.yml'
+      - '.github/workflows/test-build.yml'
+      - '.github/workflows/supporters-fetch-test.yml'
+      - 'scripts/tests/test_supporters_fetch.py'
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify fetch blocks with short and long dummy credentials
+        run: python3 scripts/tests/test_supporters_fetch.py
