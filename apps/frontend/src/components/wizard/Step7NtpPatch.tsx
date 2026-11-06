@@ -33,7 +33,7 @@ export default function Step7NtpPatch({ deviceIp, onNext, onPrevious }: Step7Pro
       const trimmed = ntpServer.trim();
       const res = await patchNtp({ device_ip: deviceIp, ntp_server: trimmed });
       setResult(res);
-      if (!res.success) setError(t("setup.wizard.step7.errorTitle"));
+      if (!res.success) setError(t("errors.unknown"));
     } catch (err) {
       setError(userErrorMessage(err));
     } finally {
