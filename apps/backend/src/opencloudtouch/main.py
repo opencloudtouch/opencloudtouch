@@ -340,6 +340,9 @@ async def _init_websocket_pipeline(
 
 async def _shutdown(app: FastAPI, repos: dict, logger: logging.Logger) -> None:
     """Graceful shutdown: stop background tasks, close repositories."""
+    if hasattr(app.state, "dlna_service"):
+        await app.state.dlna_service.close()
+        logger.info("DLNA AVTransport subscriptions closed")
     # Stop WebSocket manager first (stops pushing events)
     if hasattr(app.state, "ws_manager"):
         await app.state.ws_manager.stop()
