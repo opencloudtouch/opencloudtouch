@@ -33,7 +33,7 @@ describe("Device Offline Display", () => {
     cy.waitForDevices();
 
     // Should redirect to dashboard with devices loaded
-    cy.url().should("eq", Cypress.config().baseUrl + "/");
+    cy.location("pathname").should("eq", "/");
     cy.get('[data-test="device-card"]', { timeout: 10000 }).should("have.length.at.least", 1);
   });
 
